@@ -50,27 +50,19 @@ def _write_archive(tmp_path: Path, name: str, payload: bytes) -> Path:
 # ── Stage from a local archive ─────────────────────────────────────
 
 
-async def test_stage_archive_file_extracts_and_validates_manifest(
-    hass, tmp_path: Path
-) -> None:
+async def test_stage_archive_file_extracts_and_validates_manifest(hass, tmp_path: Path) -> None:
     hass.config.config_dir = str(tmp_path)
-    archive = _write_archive(
-        tmp_path, "leak-lockdown.tar.gz", _build_demo_bundle_bytes()
-    )
+    archive = _write_archive(tmp_path, "leak-lockdown.tar.gz", _build_demo_bundle_bytes())
 
     staged = await async_stage_archive_file(hass, archive)
 
     assert staged.slug == "leak-lockdown"
     assert staged.version == "2.0.0"
     # Bundle landed under <config>/selora_ai_recipes/<slug>/.
-    bundle_root = (
-        Path(hass.config.config_dir) / "selora_ai_recipes" / "leak-lockdown"
-    )
+    bundle_root = Path(hass.config.config_dir) / "selora_ai_recipes" / "leak-lockdown"
     assert bundle_root.is_dir()
     assert (bundle_root / "manifest.yaml").is_file()
-    assert (
-        bundle_root / "package" / "automations" / "engage.yaml.j2"
-    ).is_file()
+    assert (bundle_root / "package" / "automations" / "engage.yaml.j2").is_file()
 
 
 async def test_stage_archive_rejects_path_traversal(hass, tmp_path: Path) -> None:
@@ -91,9 +83,7 @@ async def test_stage_archive_rejects_path_traversal(hass, tmp_path: Path) -> Non
     assert not (tmp_path / "escape.txt").exists()
 
 
-async def test_stage_archive_rejects_corrupt_payload(
-    hass, tmp_path: Path
-) -> None:
+async def test_stage_archive_rejects_corrupt_payload(hass, tmp_path: Path) -> None:
     """Wrong magic bytes → ArchiveError, not an unhandled exception."""
     hass.config.config_dir = str(tmp_path)
     archive = _write_archive(tmp_path, "nope.tar.gz", b"not actually a tarball")
@@ -101,9 +91,7 @@ async def test_stage_archive_rejects_corrupt_payload(
         await async_stage_archive_file(hass, archive)
 
 
-async def test_stage_archive_rejects_missing_manifest(
-    hass, tmp_path: Path
-) -> None:
+async def test_stage_archive_rejects_missing_manifest(hass, tmp_path: Path) -> None:
     """Archive extracts cleanly but has no manifest.yaml — that's a
     bundle error, surfaced as a clean ArchiveError.
     """
@@ -139,17 +127,13 @@ async def test_stage_archive_zip_format_works(hass, tmp_path: Path) -> None:
 # ── URL install (mocked) ───────────────────────────────────────────
 
 
-async def test_install_from_url_validates_scheme(
-    hass, tmp_path: Path
-) -> None:
+async def test_install_from_url_validates_scheme(hass, tmp_path: Path) -> None:
     hass.config.config_dir = str(tmp_path)
     with pytest.raises(ArchiveError, match="scheme"):
         await async_install_from_url(hass, "file:///etc/passwd")
 
 
-async def test_install_from_url_validates_suffix(
-    hass, tmp_path: Path
-) -> None:
+async def test_install_from_url_validates_suffix(hass, tmp_path: Path) -> None:
     hass.config.config_dir = str(tmp_path)
     with pytest.raises(ArchiveError, match="tar.gz"):
         await async_install_from_url(hass, "https://example.com/recipe.txt")
@@ -204,21 +188,15 @@ async def test_install_from_url_happy_path(hass, tmp_path: Path) -> None:
         await session.close()
 
     assert staged.slug == "leak-lockdown"
-    bundle_root = (
-        Path(hass.config.config_dir) / "selora_ai_recipes" / "leak-lockdown"
-    )
+    bundle_root = Path(hass.config.config_dir) / "selora_ai_recipes" / "leak-lockdown"
     assert (bundle_root / "manifest.yaml").is_file()
     # The downloaded archive itself is cleaned up after staging.
-    download_dir = (
-        Path(hass.config.config_dir) / "selora_ai_recipes" / "_downloads"
-    )
+    download_dir = Path(hass.config.config_dir) / "selora_ai_recipes" / "_downloads"
     if download_dir.exists():
         assert not any(download_dir.iterdir())
 
 
-async def test_install_from_url_rejects_redirect_to_public_http(
-    hass, tmp_path: Path
-) -> None:
+async def test_install_from_url_rejects_redirect_to_public_http(hass, tmp_path: Path) -> None:
     """An https URL that redirects to plaintext http on a public host must
     be refused: aiohttp follows redirects by default, so without per-hop
     validation the archive would be fetched in the clear, defeating the
@@ -249,9 +227,7 @@ async def test_install_from_url_rejects_redirect_to_public_http(
         await session.close()
 
 
-async def test_install_from_url_follows_https_redirect(
-    hass, tmp_path: Path
-) -> None:
+async def test_install_from_url_follows_https_redirect(hass, tmp_path: Path) -> None:
     """A legitimate https -> https redirect (e.g. a CDN hand-off) is
     followed and staged normally."""
     from pytest_homeassistant_custom_component.test_util.aiohttp import (
@@ -280,9 +256,7 @@ async def test_install_from_url_follows_https_redirect(
     assert staged.slug == "leak-lockdown"
 
 
-async def test_install_from_url_refuses_oversized_content_length(
-    hass, tmp_path: Path
-) -> None:
+async def test_install_from_url_refuses_oversized_content_length(hass, tmp_path: Path) -> None:
     """If the server advertises Content-Length over the cap we bail
     early, without trying to read the body.
     """
@@ -349,17 +323,13 @@ async def test_install_from_url_aborts_oversized_stream_without_content_length(
 # ── Replacing an existing bundle ───────────────────────────────────
 
 
-async def test_stage_archive_replaces_existing_bundle(
-    hass, tmp_path: Path
-) -> None:
+async def test_stage_archive_replaces_existing_bundle(hass, tmp_path: Path) -> None:
     """Re-uploading the same slug replaces the prior copy on disk.
     Lets the user iterate on a recipe without having to manually
     clean up first.
     """
     hass.config.config_dir = str(tmp_path)
-    archive = _write_archive(
-        tmp_path, "leak.tar.gz", _build_demo_bundle_bytes()
-    )
+    archive = _write_archive(tmp_path, "leak.tar.gz", _build_demo_bundle_bytes())
 
     first = await async_stage_archive_file(hass, archive)
     # Drop a marker into the staged bundle so we can verify it's

@@ -181,9 +181,7 @@ def test_repair_service_name_still_fixes_real_bogus_light_onoff() -> None:
 
 
 def test_repair_service_name_other_domains_unaffected() -> None:
-    assert _repair_service_name("cover.cover", "Opening the garage door") == (
-        "cover.open_cover"
-    )
+    assert _repair_service_name("cover.cover", "Opening the garage door") == ("cover.open_cover")
 
 
 # --- Repair 2: missing climate setpoint -----------------------------------

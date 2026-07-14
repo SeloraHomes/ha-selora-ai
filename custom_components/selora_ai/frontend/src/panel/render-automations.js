@@ -2,6 +2,7 @@ import { html } from "lit";
 import {
   describeFlowItem,
   collectFlowEntityIds,
+  asArray,
 } from "../shared/flow-description.js";
 import { fmtEntity } from "../shared/formatting.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
@@ -175,14 +176,14 @@ function renderActionItem(host, action) {
                 ? host._t("automations_flow_branch_if", "If")
                 : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
-            ${(branch.conditions || []).map(
+            ${asArray(branch.conditions).map(
               (c) =>
                 html`<div class="flow-node condition-node">
                   ${renderFlowDescription(host, c)}
                 </div>`,
             )}
             <div class="flow-arrow-sm">↓</div>
-            ${(branch.sequence || []).map((s) => renderActionItem(host, s))}
+            ${asArray(branch.sequence).map((s) => renderActionItem(host, s))}
           </div>
         `,
       )}

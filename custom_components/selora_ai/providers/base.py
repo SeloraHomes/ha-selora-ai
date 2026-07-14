@@ -549,11 +549,13 @@ class LLMProvider(ABC):
         self,
         system: str,
         messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 1024,
     ) -> AsyncIterator[str]:
         """Async generator that yields text chunks from an SSE stream."""
         try:
             session = self._get_session()
-            payload = self.build_payload(system, messages, stream=True)
+            payload = self.build_payload(system, messages, stream=True, max_tokens=max_tokens)
 
             # See raw_request_stream above for why this uses connect +
             # sock_read instead of a wall-clock total.

@@ -247,6 +247,84 @@ function _coalesceEntityListings(text) {
   return out.join("\n");
 }
 
+// Split a table row into trimmed cell strings, tolerating optional leading /
+// trailing pipes. Inline formatting (bold/italic/code) has already run, so
+// cells may contain HTML — left as-is (not re-escaped).
+function _tableCells(line) {
+  let s = line.trim();
+  if (s.startsWith("|")) s = s.slice(1);
+  if (s.endsWith("|")) s = s.slice(0, -1);
+  return s.split("|").map((c) => c.trim());
+}
+
+// A GFM delimiter row: pipe-separated cells each `:?-+:?` (dashes + optional
+// alignment colons). Must contain a pipe so a bare `---` thematic break isn't
+// mistaken for a one-column table.
+function _isTableDelimiter(line) {
+  if (!line.includes("|")) return false;
+  const cells = _tableCells(line);
+  return cells.length >= 1 && cells.every((c) => /^:?-{1,}:?$/.test(c));
+}
+
+// Convert GFM pipe tables (header row + `|---|` delimiter + body rows) to HTML.
+// Runs on the already-inline-formatted, pre-<br> text so cell contents keep
+// their bold/italic/code, and so the line structure is still intact.
+function _renderTables(src) {
+  const lines = src.split("\n");
+  /** @type {string[]} */
+  const out = [];
+  let i = 0;
+  const th =
+    "text-align:left;padding:6px 10px;font-weight:700;border-bottom:2px solid var(--divider-color,rgba(255,255,255,0.18));";
+  const td =
+    "padding:6px 10px;vertical-align:top;border-bottom:1px solid var(--divider-color,rgba(255,255,255,0.08));";
+  while (i < lines.length) {
+    if (
+      lines[i].includes("|") &&
+      i + 1 < lines.length &&
+      _isTableDelimiter(lines[i + 1])
+    ) {
+      const header = _tableCells(lines[i]);
+      const align = _tableCells(lines[i + 1]).map((c) => {
+        const l = c.startsWith(":");
+        const r = c.endsWith(":");
+        return l && r ? "center" : r ? "right" : l ? "left" : "";
+      });
+      const alignStyle = (c) => (align[c] ? `text-align:${align[c]};` : "");
+      i += 2;
+      const body = [];
+      while (
+        i < lines.length &&
+        lines[i].includes("|") &&
+        !_isTableDelimiter(lines[i])
+      ) {
+        body.push(_tableCells(lines[i]));
+        i++;
+      }
+      const headHtml = header
+        .map((c, idx) => `<th style="${th}${alignStyle(idx)}">${c}</th>`)
+        .join("");
+      const bodyHtml = body
+        .map(
+          (row) =>
+            `<tr>${row
+              .map((c, idx) => `<td style="${td}${alignStyle(idx)}">${c}</td>`)
+              .join("")}</tr>`,
+        )
+        .join("");
+      out.push(
+        `<div class="selora-md-table" style="overflow-x:auto;margin:8px 0;">` +
+          `<table style="border-collapse:collapse;width:100%;font-size:13px;">` +
+          `<thead><tr>${headHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`,
+      );
+      continue;
+    }
+    out.push(lines[i]);
+    i++;
+  }
+  return out.join("\n");
+}
+
 /** @param {string|null|undefined} text @returns {string} sanitized HTML */
 export function renderMarkdown(text) {
   if (!text) return "";
@@ -357,8 +435,15 @@ export function renderMarkdown(text) {
     /^[-•]\s+(.+)$/gm,
     '<div style="margin:4px 0 4px 8px;padding-left:12px;border-left:2px solid rgba(251,191,36,0.35);">$1</div>',
   );
+  // GFM tables — before the newline→<br> pass, which would otherwise shred
+  // the row structure. Cells keep the inline formatting applied above.
+  escaped = _renderTables(escaped);
   // Line breaks
   escaped = escaped.replace(/\n/g, "<br>");
+  // A table block carries its own margin; drop <br>s hugging it so the LLM's
+  // surrounding newlines don't stack extra space above/below.
+  escaped = escaped.replace(/(<br>)+(<div class="selora-md-table")/g, "$2");
+  escaped = escaped.replace(/(<\/table><\/div>)(<br>)+/g, "$1");
   // Block-level entity grid divs don't need surrounding <br> — they
   // already carry their own margin. Strip any <br> immediately before
   // the opening tag or immediately after the closing tag so the LLM's

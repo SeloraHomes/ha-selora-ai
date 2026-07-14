@@ -355,6 +355,27 @@ async def test_get_suggestions_unsnoozes_expired(pattern_store):
 
 
 @pytest.mark.asyncio
+async def test_purge_surfaced_suggestions(pattern_store):
+    """purge_surfaced_suggestions deletes pending + snoozed suggestions (the
+    ones that reach the UI) but keeps dismissed ones for suppression history."""
+    ps, _ = pattern_store
+    pending = await ps.save_suggestion({"pattern_id": "p1", "description": "Pending"})
+    snoozed = await ps.save_suggestion({"pattern_id": "p2", "description": "Snoozed"})
+    dismissed = await ps.save_suggestion({"pattern_id": "p3", "description": "Dismissed"})
+    data = await ps._get_loaded_data()
+    data["suggestions"][snoozed]["status"] = "snoozed"
+    data["suggestions"][dismissed]["status"] = "dismissed"
+
+    removed = await ps.purge_surfaced_suggestions()
+
+    assert removed == 2
+    data = await ps._get_loaded_data()
+    assert pending not in data["suggestions"]
+    assert snoozed not in data["suggestions"]
+    assert dismissed in data["suggestions"]  # dismissal history preserved
+
+
+@pytest.mark.asyncio
 async def test_has_suggestion_for_pattern(pattern_store):
     """has_suggestion_for_pattern returns True for pending/snoozed, False otherwise."""
     ps, _ = pattern_store

@@ -92,14 +92,10 @@ async def test_role_integration_scopes_candidates(hass, tmp_path: Path) -> None:
     assert report.ok, report.failures()
 
 
-async def test_role_integration_excludes_registryless_entity(
-    hass, tmp_path: Path
-) -> None:
+async def test_role_integration_excludes_registryless_entity(hass, tmp_path: Path) -> None:
     """An entity with no registry entry can't be attributed to an
     integration, so a role that names one excludes it."""
-    hass.states.async_set(
-        "binary_sensor.floating_door", "off", {"device_class": "door"}
-    )
+    hass.states.async_set("binary_sensor.floating_door", "off", {"device_class": "door"})
     manifest = load_manifest(_write_bundle(tmp_path, _FRIDGE_MANIFEST))
     report = resolve(
         manifest,

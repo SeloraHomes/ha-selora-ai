@@ -372,8 +372,10 @@ export const headerStyles = css`
      .overflow-section.narrow-only { display: none } and .tabs-center
      rules so it wins on source order — otherwise the later base rule
      re-hides the menu's nav section and the homeowner loses navigation
-     entirely once the header collapses. */
-  @container selora-header (max-width: 880px) {
+     entirely once the header collapses. Breakpoint sized for the 5-tab
+     strip (Conversations / Automations / Scenes / Recipes / Insights)
+     plus the title and New Chat button — below this they overlap. */
+  @container selora-header (max-width: 1150px) {
     .tabs-center {
       display: none;
     }

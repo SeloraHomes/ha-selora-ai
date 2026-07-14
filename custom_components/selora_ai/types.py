@@ -10,7 +10,7 @@ Convention: all new code must import from here rather than using bare
 
 from __future__ import annotations
 
-from typing import Any, Required, TypedDict
+from typing import Any, NotRequired, Required, TypedDict
 
 # ── Automation structures ──────────────────────────────────────────────
 
@@ -769,3 +769,226 @@ class SessionData(TypedDict):
     created_at: str
     updated_at: str
     messages: list[ChatMessage]
+
+
+# ── Insights: Layer 1 (health signals) ────────────────────────────────
+
+
+class HealthSignal(TypedDict):
+    """A single deduplicated health observation about a device/entity/integration.
+
+    Produced by ``health_monitor`` (Layer 1), persisted in ``health_store``.
+    Deterministic, LLM-free, and safe to hand to the Selora OS host. The
+    ``signal_id`` is derived from ``(kind, target)`` so re-detection of the
+    same problem upserts one record and bumps ``count`` rather than piling up
+    duplicates.
+    """
+
+    signal_id: str
+    kind: str  # unavailable|flapping|silent|stale|battery_low|integration_error
+    severity: str  # info|warning|critical
+    target: str  # entity_id | device_id | integration domain
+    target_kind: str  # "entity" | "device" | "integration"
+    device_id: NotRequired[str | None]  # entity target's device; None otherwise
+    area_name: str
+    evidence: dict[str, Any]
+    first_seen: str  # ISO-8601
+    last_seen: str  # ISO-8601
+    count: int
+    status: str  # active|resolved|acknowledged
+
+
+class HealthStoreData(TypedDict):
+    """Persisted shape of ``health_store``."""
+
+    signals: dict[str, HealthSignal]
+    meta: dict[str, Any]  # export_sequence, last_scan, ...
+
+
+# ── Insights: Layer 2 (advisor) ───────────────────────────────────────
+
+
+class Insight(TypedDict):
+    """A user-facing insight: a reported issue, a suggested fix, or an
+    improvement idea. Produced by ``insights`` (Layer 2) from health signals,
+    detected patterns, and the home snapshot.
+    """
+
+    insight_id: str
+    kind: str  # "issue" | "fix" | "improvement"
+    severity: str  # info|warning|critical
+    title: str
+    detail: str
+    linked_signals: list[str]  # HealthSignal.signal_id values
+    suggested_action: dict[str, Any]  # automation payload / config action / doc link
+    source: str  # "deterministic" | "llm"
+    created_at: str  # ISO-8601
+    status: str  # new|acknowledged|resolved|dismissed
+
+
+class Finding(TypedDict, total=False):
+    """A deterministic Insights check result, rendered as an audit card.
+
+    Produced by ``insights_checks`` with NO model involvement — the message is
+    templated and the entities are exact ground truth (contrast the retired
+    free-form LLM audit, which speculated). Field names match the audit
+    recommendation card so findings render through the existing surface.
+    """
+
+    check_id: str  # which check produced it (e.g. "duplicate_automations")
+    severity: str  # critical | warning | info
+    category: str  # issue | fix | improvement
+    title: str
+    detail: str
+    entities: list[str]  # clickable entity_ids, exact
+    action: str | None  # short imperative, or None
+    device_id: str | None  # device this concerns (enables per-device Ignore)
+    link: str  # optional deep-link URL (e.g. an integration's Settings page)
+    link_label: str  # label for ``link``
+
+
+class CheckResult(TypedDict):
+    """One check's outcome, so the panel can show the full assessment — every
+    check that ran, whether it's clear, and what it found."""
+
+    check_id: str
+    title: str  # what the check assesses, user-facing
+    kind: str  # "deterministic" | "model"
+    status: str  # "clear" | "issues"
+    findings: list[Finding]
+
+
+# ── Insights: export handoff to the Selora OS host ────────────────────
+
+
+class InsightsArtifactRef(TypedDict):
+    """Pointer + integrity metadata for the immutable export artifact."""
+
+    path: str  # relative to the manifest directory
+    sha256: str
+    size_bytes: int
+    encoding: str  # "gzip" | "none"
+
+
+class InsightsExportManifest(TypedDict):
+    """The atomic pointer the host reads first. Written last (commit point).
+
+    Answers, for the host: *which file, is it OK, what schema, is it fresh.*
+    """
+
+    schema_version: int
+    sequence: int
+    status: str  # "complete" | "partial"
+    generated_at: str  # ISO-8601 (VM clock)
+    cadence_seconds: int
+    next_expected_at: str  # ISO-8601 (VM clock)
+    artifact: InsightsArtifactRef
+    summary: dict[str, int]
+    producer: dict[str, str]  # integration_version, ha_version, installation_id?
+    collection: dict[str, Any]  # status, partial_reason
+
+
+class InsightsEnvelope(TypedDict):
+    """The full payload inside the gzipped artifact — both layers + context."""
+
+    schema_version: int
+    sequence: int
+    generated_at: str
+    signals: list[HealthSignal]
+    insights: list[Insight]
+    inventory: dict[str, int]
+    roster: HomeRoster
+    collection: dict[str, Any]
+
+
+# ── Insights: the full home roster (schema v2) ────────────────────────
+# A complete "what's running, what's not" inventory for the Selora OS host /
+# Connect. Unlike the anonymous PostHog telemetry (counts only), this is the
+# user's own home going to their own account, keyed by installation_id — so it
+# carries identities + state. SAFE_ATTRIBUTES filtering still applies.
+
+
+class RosterIntegration(TypedDict):
+    """One configured integration and whether it loaded."""
+
+    domain: str
+    name: str  # human manifest name (e.g. "National Weather Service (NWS)")
+    title: str
+    state: str  # loaded | setup_error | setup_retry | not_loaded | migration_error
+    devices: int
+    entities: int
+    has_issue: bool  # an active HA repair issue targets this domain
+    custom: bool  # custom component (not built into Home Assistant)
+    url: str  # manifest documentation URL (e.g. integration docs page), "" if unknown
+
+
+class RosterDevice(TypedDict):
+    """One device and its availability rollup."""
+
+    id: str
+    name: str
+    manufacturer: str
+    model: str
+    area: str
+    integration: str
+    disabled: bool
+    entities: int
+    unavailable_entities: int  # ENABLED, visible entities with no usable state
+    disabled_entities: int  # intentionally-off entities (neutral, not broken)
+    url: str  # device configuration_url (e.g. add-on homepage), "" if none
+
+
+class RosterEntity(TypedDict):
+    """One entity with its current state and availability."""
+
+    entity_id: str
+    name: str
+    domain: str
+    device_class: str
+    area: str
+    state: str
+    available: bool  # False when unavailable/unknown/disabled/no-state
+    last_changed: str | None
+    disabled: bool
+    hidden: bool
+    device_id: str | None  # device this entity belongs to, or None
+
+
+class RosterAutomation(TypedDict):
+    """One automation and whether it's running."""
+
+    entity_id: str
+    name: str
+    enabled: bool
+    selora: bool  # Selora-generated (by id prefix / alias)
+    last_triggered: str | None
+
+
+class RosterScript(TypedDict):
+    """One script entity."""
+
+    entity_id: str
+    name: str
+    state: str
+    last_triggered: str | None
+
+
+class RosterScene(TypedDict):
+    """One scene entity."""
+
+    entity_id: str
+    name: str
+
+
+class HomeRoster(TypedDict):
+    """The complete device-plane inventory shipped in the export envelope."""
+
+    integrations: list[RosterIntegration]
+    devices: list[RosterDevice]
+    entities: list[RosterEntity]
+    automations: list[RosterAutomation]
+    scripts: list[RosterScript]
+    scenes: list[RosterScene]
+    truncated: bool  # True when entity rows hit INSIGHTS_ROSTER_MAX_ENTITIES
+    unavailable_total: int  # enabled, visible entities with no usable state
+    disabled_total: int  # intentionally-off entities across the home

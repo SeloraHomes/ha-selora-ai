@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { describeFlowItem } from "../flow-description.js";
+import { describeFlowItem, asArray } from "../flow-description.js";
 
 const mockHass = {
   states: {
@@ -400,5 +400,32 @@ describe("Edge cases", () => {
   it("returns fallback for empty object", () => {
     const result = describeFlowItem(mockHass, {});
     expect(result).toBe("Automation step");
+  });
+});
+
+describe("asArray", () => {
+  it("wraps a single object (HA allows non-list conditions/sequence)", () => {
+    const one = { condition: "state", entity_id: "light.x", state: "on" };
+    expect(asArray(one)).toEqual([one]);
+  });
+
+  it("passes arrays through unchanged", () => {
+    expect(asArray([1, 2])).toEqual([1, 2]);
+  });
+
+  it("maps null/undefined/false to empty array", () => {
+    expect(asArray(null)).toEqual([]);
+    expect(asArray(undefined)).toEqual([]);
+    expect(asArray(false)).toEqual([]);
+  });
+
+  it("a choose branch with a single condition object no longer throws", () => {
+    // Regression: (branch.conditions || []).map crashed when conditions was
+    // a lone object. asArray normalizes so .map/.length are always safe.
+    const branch = {
+      conditions: { condition: "state", entity_id: "light.x", state: "on" },
+    };
+    expect(() => asArray(branch.conditions).map((c) => c)).not.toThrow();
+    expect(asArray(branch.conditions)).toHaveLength(1);
   });
 });

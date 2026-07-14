@@ -808,6 +808,24 @@ class PatternStore:
         await self._save()
         return True
 
+    async def purge_surfaced_suggestions(self) -> int:
+        """Delete every ``pending``/``snoozed`` suggestion — the ones that reach
+        the UI (improvement cards, Automations tab). Used to clear existing
+        pattern suggestions when the pipeline is switched off. Dismissed
+        suggestions are kept so the alias-suppression history stays intact.
+        """
+        data = await self._get_loaded_data()
+        to_remove = [
+            sid
+            for sid, s in data["suggestions"].items()
+            if s.get("status") in ("pending", "snoozed")
+        ]
+        for sid in to_remove:
+            del data["suggestions"][sid]
+        if to_remove:
+            await self._save()
+        return len(to_remove)
+
     async def remove_suggestions_for_pattern(self, pattern_id: str) -> int:
         """Remove pending suggestions linked to a rejected pattern.
 

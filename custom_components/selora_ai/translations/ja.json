@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "変更の保存に失敗しました：",
     "scene_actions_refine_default_name": "シーン",
     "session_toast_new_automation_chat_failed": "新しいオートメーションチャットの開始に失敗しました：",
+    "session_toast_new_session_failed": "新しい会話の開始に失敗しました：",
     "session_toast_ai_no_suggestion": "AI が提案を返しませんでした — もう一度お試しください。",
     "session_toast_suggest_failed": "提案の生成に失敗しました — LLM 設定を確認してください。",
     "suggestions_analysis_no_new": "分析が完了しました — 現時点で新しい提案はありません",

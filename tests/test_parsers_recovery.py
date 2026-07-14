@@ -172,9 +172,7 @@ class TestResolveUnknownEntityIds:
         reason = "automation references unknown entity_id(s): light.front_door"
         automation = {
             "triggers": [{"trigger": "state", "entity_id": "light.front_door", "to": "on"}],
-            "actions": [
-                {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
         entities = [_entity("light.kitchen", "Kitchen Light")]
         patched, subs = _resolve_unknown_entity_ids(
@@ -193,12 +191,8 @@ class TestResolveUnknownEntityIds:
         clarifies which light, instead of acting on the front door."""
         reason = "automation references unknown entity_id(s): light.some_light"
         automation = {
-            "triggers": [
-                {"trigger": "state", "entity_id": "cover.front_door", "to": "open"}
-            ],
-            "actions": [
-                {"service": "light.turn_on", "target": {"entity_id": "light.some_light"}}
-            ],
+            "triggers": [{"trigger": "state", "entity_id": "cover.front_door", "to": "open"}],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.some_light"}}],
         }
         entities = [_entity("cover.front_door", "Front Door")]
         patched, subs = _resolve_unknown_entity_ids(
@@ -220,9 +214,7 @@ class TestResolveUnknownEntityIds:
         reason = "automation references unknown entity_id(s): light.movie"
         automation = {
             "triggers": [{"trigger": "time", "at": "22:00:00"}],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.movie"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.movie"}}],
         }
         entities = [_entity("scene.movie", "Movie Scene")]
         patched, subs = _resolve_unknown_entity_ids(
@@ -269,9 +261,7 @@ class TestResolveUnknownEntityIds:
         reason = "automation references unknown entity_id(s): light.movie"
         automation = {
             "triggers": [{"trigger": "time", "at": "22:00:00"}],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.movie"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.movie"}}],
         }
         entities = [_entity("scene.movie", "Movie Scene")]
         patched, subs = _resolve_unknown_entity_ids(reason, automation, entities)
@@ -298,7 +288,6 @@ class TestResolveUnknownEntityIds:
         assert patched is None
         assert subs == {}
 
-
     def test_off_action_refused_when_data_target_resolves_to_scene(self) -> None:
         """Legacy ``data.entity_id`` shape: off-action with a target
         that would resolve to scene must be refused too (not just the
@@ -306,9 +295,7 @@ class TestResolveUnknownEntityIds:
         reason = "automation references unknown entity_id(s): light.movie"
         automation = {
             "triggers": [{"trigger": "time", "at": "22:00:00"}],
-            "actions": [
-                {"service": "light.turn_off", "data": {"entity_id": "light.movie"}}
-            ],
+            "actions": [{"service": "light.turn_off", "data": {"entity_id": "light.movie"}}],
         }
         entities = [_entity("scene.movie", "Movie Scene")]
         patched, subs = _resolve_unknown_entity_ids(reason, automation, entities)
@@ -321,9 +308,7 @@ class TestResolveUnknownEntityIds:
         reason = "automation references unknown entity_id(s): light.movie"
         automation = {
             "triggers": [{"trigger": "time", "at": "22:00:00"}],
-            "actions": [
-                {"service": "light.turn_on", "target": {"entity_id": "light.movie"}}
-            ],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.movie"}}],
         }
         entities = [_entity("scene.movie", "Movie Scene")]
         patched, subs = _resolve_unknown_entity_ids(reason, automation, entities)
@@ -471,8 +456,7 @@ class TestResolveUnknownEntityIds:
         ALL referenced unknowns, not just the ones in the reason text,
         so a 5-entity payload can fully recover in one pass."""
         reason = (
-            "automation references unknown entity_id(s): "
-            "light.l1, light.l2, light.l3 (+2 more)"
+            "automation references unknown entity_id(s): light.l1, light.l2, light.l3 (+2 more)"
         )
         automation = {
             "triggers": [{"trigger": "time", "at": "09:00:00"}],
@@ -491,16 +475,12 @@ class TestResolveUnknownEntityIds:
                 }
             ],
         }
-        entities = [
-            _entity(f"switch.l{i}", f"L{i}") for i in range(1, 6)
-        ]
+        entities = [_entity(f"switch.l{i}", f"L{i}") for i in range(1, 6)]
         patched, subs = _resolve_unknown_entity_ids(reason, automation, entities)
         assert patched is not None
         # All five substituted, not just the three named in the reason
         assert subs == {f"light.l{i}": f"switch.l{i}" for i in range(1, 6)}
-        assert patched["actions"][0]["target"]["entity_id"] == [
-            f"switch.l{i}" for i in range(1, 6)
-        ]
+        assert patched["actions"][0]["target"]["entity_id"] == [f"switch.l{i}" for i in range(1, 6)]
         assert patched["actions"][0]["service"] == "switch.turn_on"
 
     def test_registered_entity_not_treated_as_unknown(
@@ -530,9 +510,7 @@ class TestResolveUnknownEntityIds:
             ],
         }
         entities = [_entity("switch.coffee_maker", "Coffee Maker")]
-        patched, subs = _resolve_unknown_entity_ids(
-            reason, automation, entities, hass=object()
-        )
+        patched, subs = _resolve_unknown_entity_ids(reason, automation, entities, hass=object())
         assert patched is None
         assert subs == {}
 
@@ -808,9 +786,7 @@ class TestNumericThresholdExtraction:
             ("when humidity rises to 80", ("above", 80.0)),
         ],
     )
-    def test_directional_to_phrasing(
-        self, prompt: str, expected: tuple[str, float]
-    ) -> None:
+    def test_directional_to_phrasing(self, prompt: str, expected: tuple[str, float]) -> None:
         assert _extract_numeric_threshold(prompt) == expected
 
 
@@ -965,9 +941,7 @@ class TestCoerceSunTriggers:
             ],
             "actions": [],
         }
-        changed = _coerce_sun_triggers(
-            automation, "if motion is detected at sunset, turn on porch"
-        )
+        changed = _coerce_sun_triggers(automation, "if motion is detected at sunset, turn on porch")
         assert not changed
         assert len(automation["triggers"]) == 1
         assert automation["triggers"][0]["entity_id"] == "binary_sensor.motion"
@@ -1032,9 +1006,7 @@ class TestCoerceSunTriggers:
             "triggers": [{"trigger": "sun", "event": "sunrise"}],
             "actions": [],
         }
-        changed = _coerce_sun_triggers(
-            automation, "turn on the porch light at sunset"
-        )
+        changed = _coerce_sun_triggers(automation, "turn on the porch light at sunset")
         assert changed
         assert len(automation["triggers"]) == 1
         assert automation["triggers"][0]["trigger"] == "sun"
@@ -1065,9 +1037,7 @@ class TestCoerceSunTriggers:
             ],
             "actions": [],
         }
-        changed = _coerce_sun_triggers(
-            automation, "alert me at sunset and sunrise"
-        )
+        changed = _coerce_sun_triggers(automation, "alert me at sunset and sunrise")
         assert not changed
         events = {t["event"] for t in automation["triggers"]}
         assert events == {"sunrise", "sunset"}
@@ -1075,9 +1045,7 @@ class TestCoerceSunTriggers:
     def test_conjoined_sun_events_with_or(self) -> None:
         """``at sunrise or sunset`` chains via ``or``."""
         automation = {"triggers": [], "actions": []}
-        changed = _coerce_sun_triggers(
-            automation, "alert me at sunrise or sunset"
-        )
+        changed = _coerce_sun_triggers(automation, "alert me at sunrise or sunset")
         assert changed
         events = {t["event"] for t in automation["triggers"]}
         assert events == {"sunrise", "sunset"}
@@ -1093,9 +1061,7 @@ class TestCoerceSunTriggers:
             ],
             "actions": [],
         }
-        changed = _coerce_sun_triggers(
-            automation, "alert me at sunrise and at sunset"
-        )
+        changed = _coerce_sun_triggers(automation, "alert me at sunrise and at sunset")
         assert not changed
         events = {t["event"] for t in automation["triggers"]}
         assert events == {"sunrise", "sunset"}
@@ -1107,9 +1073,7 @@ class TestCoerceSunTriggers:
             "triggers": [{"trigger": "sun", "event": "sunrise"}],
             "actions": [],
         }
-        changed = _coerce_sun_triggers(
-            automation, "alert me at sunrise and at sunset"
-        )
+        changed = _coerce_sun_triggers(automation, "alert me at sunrise and at sunset")
         assert changed
         events = {t["event"] for t in automation["triggers"]}
         assert events == {"sunrise", "sunset"}
@@ -1152,9 +1116,7 @@ class TestCoerceSunTriggers:
             "triggers": [{"trigger": "time", "at": "22:00:00"}],
             "actions": [],
         }
-        changed = _coerce_sun_triggers(
-            automation, "turn on the porch light at sunset or at 10 PM"
-        )
+        changed = _coerce_sun_triggers(automation, "turn on the porch light at sunset or at 10 PM")
         assert changed
         platforms = [t.get("trigger") for t in automation["triggers"]]
         assert "sun" in platforms
@@ -1211,9 +1173,7 @@ class TestCoerceNumericStateTriggers:
             "trigger": {"trigger": "state", "entity_id": "sensor.temperature"},
             "actions": [],
         }
-        changed = _coerce_numeric_state_triggers(
-            automation, "when the temperature drops below 18"
-        )
+        changed = _coerce_numeric_state_triggers(automation, "when the temperature drops below 18")
         assert changed
         assert "trigger" not in automation
         assert automation["triggers"][0]["trigger"] == "numeric_state"
@@ -1281,9 +1241,7 @@ class TestCoerceNumericStateTriggers:
             "triggers": [{"trigger": "state", "entity_id": "climate.thermostat"}],
             "actions": [],
         }
-        changed = _coerce_numeric_state_triggers(
-            automation, "when temperature drops below 18"
-        )
+        changed = _coerce_numeric_state_triggers(automation, "when temperature drops below 18")
         assert not changed
         assert automation["triggers"][0]["trigger"] == "state"
 
@@ -1294,9 +1252,7 @@ class TestCoerceNumericStateTriggers:
             "triggers": [{"trigger": "state", "entity_id": "weather.home"}],
             "actions": [],
         }
-        changed = _coerce_numeric_state_triggers(
-            automation, "when temperature drops below 18"
-        )
+        changed = _coerce_numeric_state_triggers(automation, "when temperature drops below 18")
         assert not changed
         assert automation["triggers"][0]["trigger"] == "state"
 
@@ -1315,9 +1271,7 @@ class TestCoerceNumericStateTriggers:
             ],
             "actions": [],
         }
-        changed = _coerce_numeric_state_triggers(
-            automation, "when the temperature drops below 18"
-        )
+        changed = _coerce_numeric_state_triggers(automation, "when the temperature drops below 18")
         assert changed
         tr = automation["triggers"][0]
         assert tr["trigger"] == "numeric_state"
@@ -1336,9 +1290,7 @@ class TestCoerceNumericStateTriggers:
             ],
             "actions": [],
         }
-        changed = _coerce_numeric_state_triggers(
-            automation, "when temperature drops below 18"
-        )
+        changed = _coerce_numeric_state_triggers(automation, "when temperature drops below 18")
         assert changed
         tr = automation["triggers"][0]
         assert tr["trigger"] == "numeric_state"
@@ -1384,9 +1336,7 @@ class TestCoerceNumericStateTriggers:
             ],
             "actions": [],
         }
-        changed = _coerce_numeric_state_triggers(
-            automation, "when temperature drops below 18"
-        )
+        changed = _coerce_numeric_state_triggers(automation, "when temperature drops below 18")
         assert not changed
         assert automation["triggers"][0]["trigger"] == "sun"
         assert automation["triggers"][1]["trigger"] == "time"
@@ -1523,9 +1473,7 @@ class TestCoerceNumericStateTriggers:
             ],
             "actions": [],
         }
-        changed = _coerce_numeric_state_triggers(
-            automation, "when temperature drops below 18"
-        )
+        changed = _coerce_numeric_state_triggers(automation, "when temperature drops below 18")
         assert not changed
         assert automation["triggers"][0]["from"] == "unknown"
 
@@ -1683,9 +1631,7 @@ class TestFindPresenceEntity:
         """P1 — a room-matching binary_sensor that is NOT presence-class
         (window/door) must not be selected. ``to: off`` on a window
         would mean 'window closed', not 'nobody present'."""
-        hass = _FakeHass(
-            [_FakeState("binary_sensor.kitchen_window", "Kitchen Window")]
-        )
+        hass = _FakeHass([_FakeState("binary_sensor.kitchen_window", "Kitchen Window")])
         eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
         assert eid is None
 
@@ -1828,9 +1774,7 @@ class TestFindPresenceEntity:
                 ),
             ]
         )
-        eid = _find_presence_entity(
-            hass, "when nobody is in the conservatory for 10 minutes"
-        )
+        eid = _find_presence_entity(hass, "when nobody is in the conservatory for 10 minutes")
         assert eid == "binary_sensor.conservatory_occupancy"
 
 
@@ -1838,17 +1782,15 @@ class TestCoercePresenceForDurationTrigger:
     """End-to-end coercion: presence + duration → state trigger with ``for:``."""
 
     def test_negative_kitchen_emits_off_with_for(self) -> None:
-        hass = _FakeHass(
-            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
-        )
+        hass = _FakeHass([_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")])
         automation = {
             "triggers": [{"trigger": "time", "at": "10:00:00"}],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}],
         }
         changed = _coerce_presence_for_duration_trigger(
-            automation, "turn off the kitchen light when nobody is in the kitchen for 10 minutes", hass
+            automation,
+            "turn off the kitchen light when nobody is in the kitchen for 10 minutes",
+            hass,
         )
         assert changed is True
         triggers = automation["triggers"]
@@ -1863,17 +1805,15 @@ class TestCoercePresenceForDurationTrigger:
 
     def test_positive_kitchen_emits_on_with_for(self) -> None:
         """P1#1 — affirmative phrasing must emit ``to: on``, not ``to: off``."""
-        hass = _FakeHass(
-            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
-        )
+        hass = _FakeHass([_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")])
         automation = {
             "triggers": [{"trigger": "time", "at": "10:00:00"}],
-            "actions": [
-                {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
         changed = _coerce_presence_for_duration_trigger(
-            automation, "turn on the kitchen light when someone is in the kitchen for 10 minutes", hass
+            automation,
+            "turn on the kitchen light when someone is in the kitchen for 10 minutes",
+            hass,
         )
         assert changed is True
         tr = automation["triggers"][0]
@@ -1904,17 +1844,15 @@ class TestCoercePresenceForDurationTrigger:
 
     def test_refuses_when_no_room_match(self) -> None:
         """P1#2 — kitchen prompt with only bedroom sensor refuses recovery."""
-        hass = _FakeHass(
-            [_FakeState("binary_sensor.bedroom_occupancy", "Bedroom Occupancy")]
-        )
+        hass = _FakeHass([_FakeState("binary_sensor.bedroom_occupancy", "Bedroom Occupancy")])
         automation = {
             "triggers": [{"trigger": "time", "at": "10:00:00"}],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}],
         }
         changed = _coerce_presence_for_duration_trigger(
-            automation, "turn off the kitchen light when nobody is in the kitchen for 10 minutes", hass
+            automation,
+            "turn off the kitchen light when nobody is in the kitchen for 10 minutes",
+            hass,
         )
         assert changed is False
         # Original time trigger is left alone for the caller to clarify.
@@ -1926,9 +1864,7 @@ class TestCoercePresenceForDurationTrigger:
         hass = _FakeHass([_FakeState("light.porch", "Porch Light")])
         automation = {
             "triggers": [{"trigger": "time", "at": "10:00:00"}],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.porch"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.porch"}}],
         }
         changed = _coerce_presence_for_duration_trigger(
             automation, "turn off the porch light when nobody is there for 10 minutes", hass
@@ -1938,17 +1874,15 @@ class TestCoercePresenceForDurationTrigger:
     def test_trigger_entity_is_single_string_not_comma(self) -> None:
         """P1#4 — the synthesized trigger watches ONLY the presence entity,
         not a comma-string that also watches the action target."""
-        hass = _FakeHass(
-            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
-        )
+        hass = _FakeHass([_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")])
         automation = {
             "triggers": [{"trigger": "time", "at": "10:00:00"}],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}],
         }
         _coerce_presence_for_duration_trigger(
-            automation, "turn off the kitchen light when nobody is in the kitchen for 10 minutes", hass
+            automation,
+            "turn off the kitchen light when nobody is in the kitchen for 10 minutes",
+            hass,
         )
         eid = automation["triggers"][0]["entity_id"]
         assert "," not in eid
@@ -1958,9 +1892,7 @@ class TestCoercePresenceForDurationTrigger:
         """P1#5 — compound shape ("…or at sunset") and explicit conditions
         survive the coercion. Only the LoRA's duration-misread time
         trigger is dropped."""
-        hass = _FakeHass(
-            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
-        )
+        hass = _FakeHass([_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")])
         sunset_trigger = {"trigger": "sun", "event": "sunset"}
         condition = {"condition": "state", "entity_id": "light.kitchen", "state": "on"}
         automation = {
@@ -1969,9 +1901,7 @@ class TestCoercePresenceForDurationTrigger:
                 sunset_trigger,
             ],
             "conditions": [condition],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}],
         }
         changed = _coerce_presence_for_duration_trigger(
             automation,
@@ -1983,12 +1913,9 @@ class TestCoercePresenceForDurationTrigger:
         # Sunset preserved; LoRA's misread time trigger removed; presence
         # trigger appended.
         assert sunset_trigger in triggers
-        assert all(
-            not (t.get("trigger") == "time" and t.get("at") == "10:00:00") for t in triggers
-        )
+        assert all(not (t.get("trigger") == "time" and t.get("at") == "10:00:00") for t in triggers)
         assert any(
-            t.get("trigger") == "state"
-            and t.get("entity_id") == "binary_sensor.kitchen_occupancy"
+            t.get("trigger") == "state" and t.get("entity_id") == "binary_sensor.kitchen_occupancy"
             for t in triggers
         )
         # Conditions are preserved.
@@ -2094,14 +2021,11 @@ class TestCoercePresenceForDurationTrigger:
         assert changed is True
         triggers = automation["triggers"]
         # The explicit 10:00 time trigger survives.
-        assert any(
-            t.get("trigger") == "time" and t.get("at") == "10:00:00" for t in triggers
-        )
+        assert any(t.get("trigger") == "time" and t.get("at") == "10:00:00" for t in triggers)
         # Presence demoted to a condition (an "if"-introduced gate).
         conditions = automation.get("conditions", [])
         assert any(
-            c.get("condition") == "state" and c.get("for") == {"minutes": 10}
-            for c in conditions
+            c.get("condition") == "state" and c.get("for") == {"minutes": 10} for c in conditions
         )
 
     def test_stray_hallucinated_time_trigger_dropped(self) -> None:
@@ -2168,15 +2092,12 @@ class TestCoercePresenceForDurationTrigger:
         )
         assert changed is True
         triggers = automation["triggers"]
-        assert any(
-            t.get("trigger") == "time" and t.get("at") == "10:00:00" for t in triggers
-        )
+        assert any(t.get("trigger") == "time" and t.get("at") == "10:00:00" for t in triggers)
         # Presence is a condition, NOT a trigger.
         assert all(t.get("trigger") != "state" for t in triggers)
         conditions = automation.get("conditions", [])
         assert any(
-            c.get("condition") == "state" and c.get("for") == {"minutes": 10}
-            for c in conditions
+            c.get("condition") == "state" and c.get("for") == {"minutes": 10} for c in conditions
         )
 
     def test_when_presence_with_primary_trigger_becomes_condition(self) -> None:
@@ -2215,7 +2136,7 @@ class TestCoercePresenceForDurationTrigger:
         )
 
     def test_when_presence_standalone_stays_trigger(self) -> None:
-        """"when nobody is home for 10 minutes" with no other trigger →
+        """ "when nobody is home for 10 minutes" with no other trigger →
         presence remains the trigger (not demoted to a condition)."""
         hass = _FakeHass(
             [
@@ -2244,14 +2165,10 @@ class TestCoercePresenceForDurationTrigger:
         """P2 — "for 10 seconds" misread as ``at: 00:00:10`` (or
         10:00:00) is dropped alongside synthesizing the presence
         trigger."""
-        hass = _FakeHass(
-            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
-        )
+        hass = _FakeHass([_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")])
         automation = {
             "triggers": [{"trigger": "time", "at": "00:00:10"}],
-            "actions": [
-                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}],
         }
         changed = _coerce_presence_for_duration_trigger(
             automation,
@@ -2301,9 +2218,7 @@ class TestSynthesizeActionFromPrompt:
 
     def test_no_verb_returns_none(self) -> None:
         hass = _FakeHass([_FakeState("light.porch", "Porch Light")])
-        action = _synthesize_action_from_prompt(
-            hass, "nobody is home for 10 minutes"
-        )
+        action = _synthesize_action_from_prompt(hass, "nobody is home for 10 minutes")
         assert action is None
 
 
@@ -2315,10 +2230,7 @@ class TestPromptKeywordBestEntity:
 
     def test_unique_overlap_picks_entity(self) -> None:
         ents = [self._ent("light.porch", "Porch Light")]
-        assert (
-            _prompt_keyword_best_entity("turn off the porch light", ents)
-            == "light.porch"
-        )
+        assert _prompt_keyword_best_entity("turn off the porch light", ents) == "light.porch"
 
     def test_ambiguous_tie_refuses(self) -> None:
         """P2 — equal overlap + domain rank across two entities ("Front
@@ -2343,9 +2255,7 @@ class TestEntitiesNamedInPrompt:
 
     def test_english_contiguous(self) -> None:
         ents = [self._ent("light.lr", "Living Room Light")]
-        assert _entities_named_in_prompt("turn off the living room light", ents) == [
-            "light.lr"
-        ]
+        assert _entities_named_in_prompt("turn off the living room light", ents) == ["light.lr"]
 
     def test_interleaved_particles_match_in_all_locales(self) -> None:
         # The substring approach failed on the particle between name words;
@@ -2367,9 +2277,7 @@ class TestEntitiesNamedInPrompt:
             self._ent("light.lr", "Living Room Light"),
             self._ent("fan.lr", "Living Room Fan"),
         ]
-        assert _entities_named_in_prompt("turn off the living room light", ents) == [
-            "light.lr"
-        ]
+        assert _entities_named_in_prompt("turn off the living room light", ents) == ["light.lr"]
 
     def test_longest_name_first(self) -> None:
         ents = [
@@ -2377,9 +2285,7 @@ class TestEntitiesNamedInPrompt:
             self._ent("light.living_room", "Living Room"),
         ]
         # Both are token-subsets of the prompt; the longer name ranks first.
-        assert _entities_named_in_prompt("the living room please", ents)[0] == (
-            "light.living_room"
-        )
+        assert _entities_named_in_prompt("the living room please", ents)[0] == ("light.living_room")
 
 
 class TestCloudJsonSalvage:
@@ -2426,9 +2332,7 @@ class TestCloudJsonSalvage:
         parse_suggestions("[{'alias': 'A', 'actions': [],},]", "selora_cloud")
         assert "cloud_json_salvage" in calls
 
-    def test_no_repair_recorded_for_clean_json(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_no_repair_recorded_for_clean_json(self, monkeypatch: pytest.MonkeyPatch) -> None:
         calls: list[str] = []
         monkeypatch.setattr(
             "custom_components.selora_ai.llm_client.parsers.record_repair",

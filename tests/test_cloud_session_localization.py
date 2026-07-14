@@ -27,9 +27,7 @@ from custom_components.selora_ai.providers.selora_cloud import (
 _EXPECTED_LOCALES = {"en", "fr", "de", "es", "it", "nl", "hu", "zh", "pt", "ja", "ko", "ru"}
 
 
-@pytest.mark.parametrize(
-    "table", [_CLOUD_SESSION_EXPIRED_BY_LANG, _CLOUD_UNREACHABLE_BY_LANG]
-)
+@pytest.mark.parametrize("table", [_CLOUD_SESSION_EXPIRED_BY_LANG, _CLOUD_UNREACHABLE_BY_LANG])
 def test_all_locales_present(table: dict[str, str]) -> None:
     assert set(table) == _EXPECTED_LOCALES
     assert all(v.strip() for v in table.values())
@@ -48,25 +46,24 @@ def test_english_default_matches_dict() -> None:
 
 
 def test_localizes_by_language() -> None:
-    assert _approval_phrase(_CLOUD_SESSION_EXPIRED_BY_LANG, "fr") == (
-        _CLOUD_SESSION_EXPIRED_BY_LANG["fr"]
+    assert (
+        _approval_phrase(_CLOUD_SESSION_EXPIRED_BY_LANG, "fr")
+        == (_CLOUD_SESSION_EXPIRED_BY_LANG["fr"])
     )
-    assert _approval_phrase(_CLOUD_UNREACHABLE_BY_LANG, "de") == (
-        _CLOUD_UNREACHABLE_BY_LANG["de"]
-    )
+    assert _approval_phrase(_CLOUD_UNREACHABLE_BY_LANG, "de") == (_CLOUD_UNREACHABLE_BY_LANG["de"])
 
 
 def test_region_subtag_normalized() -> None:
     """zh-Hant / zh-Hans collapse to the single ``zh`` runtime entry."""
-    assert _approval_phrase(_CLOUD_SESSION_EXPIRED_BY_LANG, "zh-Hant") == (
-        _CLOUD_SESSION_EXPIRED_BY_LANG["zh"]
+    assert (
+        _approval_phrase(_CLOUD_SESSION_EXPIRED_BY_LANG, "zh-Hant")
+        == (_CLOUD_SESSION_EXPIRED_BY_LANG["zh"])
     )
 
 
 def test_unknown_locale_falls_back_to_english() -> None:
-    assert _approval_phrase(_CLOUD_UNREACHABLE_BY_LANG, "xx") == (
-        _CLOUD_UNREACHABLE_BY_LANG["en"]
-    )
-    assert _approval_phrase(_CLOUD_SESSION_EXPIRED_BY_LANG, None) == (
-        _CLOUD_SESSION_EXPIRED_BY_LANG["en"]
+    assert _approval_phrase(_CLOUD_UNREACHABLE_BY_LANG, "xx") == (_CLOUD_UNREACHABLE_BY_LANG["en"])
+    assert (
+        _approval_phrase(_CLOUD_SESSION_EXPIRED_BY_LANG, None)
+        == (_CLOUD_SESSION_EXPIRED_BY_LANG["en"])
     )

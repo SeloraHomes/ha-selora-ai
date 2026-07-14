@@ -524,18 +524,63 @@ class LLMClient:
         *,
         max_tokens: int = 1024,
         kind: str = "raw",
+        timeout: float | None = None,
+        log_errors: bool = True,
     ) -> tuple[str | None, str | None]:
         """Send a raw request to the LLM provider.
 
         Thin wrapper exposed for callers (e.g. SuggestionGenerator) that need
         direct LLM access without the architect parsing pipeline. Pass
-        ``kind`` to tag the call for the usage breakdown.
+        ``kind`` to tag the call for the usage breakdown. ``timeout`` overrides
+        the per-request HTTP timeout (for long reasoning calls); ``log_errors``
+        can be set False so an expected/transient failure doesn't log loudly.
         """
         with self._usage.scope(kind):
             try:
-                return await self._provider.send_request(system, messages, max_tokens=max_tokens)
+                return await self._provider.send_request(
+                    system,
+                    messages,
+                    max_tokens=max_tokens,
+                    timeout=timeout,
+                    log_errors=log_errors,
+                )
             finally:
                 self._usage.flush(kind)
+
+    async def send_request_streamed(
+        self,
+        system: str,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 1024,
+        kind: str = "raw",
+    ) -> tuple[str | None, str | None]:
+        """Accumulate a streamed completion into a single ``(text, error)``.
+
+        Same contract as ``send_request`` but over the SSE transport. Some
+        Cloud gateways return a 502 on a long *non-streaming* completion (an
+        upstream read-timeout on the single blocking response), while a
+        streamed response keeps the connection fed with chunks and completes
+        cleanly — so callers with a large output (e.g. the home audit) route
+        through here instead. A provider/gateway failure surfaces as
+        ``(None, error)`` exactly like ``send_request``.
+        """
+        chunks: list[str] = []
+        with self._usage.scope(kind):
+            try:
+                async for chunk in self._provider.send_request_stream(
+                    system, messages, max_tokens=max_tokens
+                ):
+                    chunks.append(chunk)
+            except ConnectionError as exc:
+                return None, str(exc)
+            except Exception as exc:  # noqa: BLE001 — mirror send_request's (None, error) shape
+                _LOGGER.warning("Streamed request failed: %s", exc)
+                return None, str(exc)
+            finally:
+                self._usage.flush(kind)
+        text = "".join(chunks)
+        return (text or None), None
 
     # ------------------------------------------------------------------
     # Public API

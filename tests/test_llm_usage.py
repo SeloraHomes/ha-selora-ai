@@ -93,10 +93,7 @@ class TestEstimateCost:
         # Selora Cloud bills in prepaid credits, not per-token USD, even when
         # the backing model id is otherwise known. No USD estimate is produced.
         assert (
-            estimate_llm_cost_usd(
-                "selora_cloud", "claude-sonnet-4-6", 1_000_000, 1_000_000
-            )
-            == 0.0
+            estimate_llm_cost_usd("selora_cloud", "claude-sonnet-4-6", 1_000_000, 1_000_000) == 0.0
         )
 
 
@@ -479,9 +476,7 @@ class TestLLMClientFlushUsage:
         evt = list(hass.data[DOMAIN]["llm_usage_events"])[0]
         assert evt["cost_usd"] == pytest.approx(0.0)
 
-    async def test_selora_cloud_events_are_recorded_without_cost(
-        self, hass, monkeypatch
-    ) -> None:
+    async def test_selora_cloud_events_are_recorded_without_cost(self, hass, monkeypatch) -> None:
         """Selora Cloud token/call usage is recorded locally so sensors and
         charts reflect activity. Cost stays 0 — billing is credit-based and
         metered in the user's Selora Homes account, not derivable per token."""

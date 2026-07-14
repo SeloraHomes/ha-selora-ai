@@ -5,7 +5,6 @@ explicit brevity directives so the LLM produces concise chat responses,
 and that those directives do not conflict with tool-policy formatting rules.
 """
 
-
 # ruff: noqa: ANN001, ANN202  # pre-existing test fixture type-annotation debt
 from __future__ import annotations
 
@@ -1068,9 +1067,7 @@ class TestChatCommandExecution:
         assert result["response"] == _REFINEMENT_SUPPRESSED_BY_LANG["en"]
         # And the stored assistant turn carries no pending approval.
         stored = await store.get_session(session["id"])
-        assert all(
-            m.get("approval_status") != "pending" for m in stored["messages"]
-        )
+        assert all(m.get("approval_status") != "pending" for m in stored["messages"])
 
 
 class TestBuildCommandConfirmation:

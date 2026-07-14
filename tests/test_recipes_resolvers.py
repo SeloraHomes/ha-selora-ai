@@ -133,7 +133,5 @@ class TestResolverEmptyValueValidation:
         assert _coerce_value(spec, "") == (None, "required")
 
     def test_non_resolver_blank_still_uses_default(self) -> None:
-        spec = InputSpec(
-            id="shelter", type="string", label="Shelter", default="the basement"
-        )
+        spec = InputSpec(id="shelter", type="string", label="Shelter", default="the basement")
         assert _coerce_value(spec, "") == ("the basement", None)

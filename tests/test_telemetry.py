@@ -221,9 +221,7 @@ async def test_consent_withdrawn_during_prep_blocks_post(hass, client) -> None:
 
     async def _disable_then_version() -> str:
         # Simulate the user flipping the toggle off mid-preparation.
-        hass.config_entries.async_update_entry(
-            entry, options={CONF_TELEMETRY_ENABLED: False}
-        )
+        hass.config_entries.async_update_entry(entry, options={CONF_TELEMETRY_ENABLED: False})
         return await real_app_version()
 
     with patch.object(client, "_async_app_version", side_effect=_disable_then_version):
@@ -302,9 +300,7 @@ async def test_consent_withdrawn_during_install_id_blocks_post(hass, client) -> 
     session = _FakeSession()
 
     async def _disable_then_id() -> str:
-        hass.config_entries.async_update_entry(
-            entry, options={CONF_TELEMETRY_ENABLED: False}
-        )
+        hass.config_entries.async_update_entry(entry, options={CONF_TELEMETRY_ENABLED: False})
         return "deadbeef"
 
     with patch.object(client, "_async_install_id", side_effect=_disable_then_id):

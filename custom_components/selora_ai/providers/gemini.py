@@ -380,10 +380,12 @@ class GeminiProvider(LLMProvider):
         self,
         system: str,
         messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 1024,
     ) -> AsyncIterator[str]:
         """Yield text chunks from a streaming Gemini request."""
         session = self._get_session()
-        payload = self.build_payload(system, messages, stream=True)
+        payload = self.build_payload(system, messages, stream=True, max_tokens=max_tokens)
 
         async with session.post(
             self._stream_endpoint,

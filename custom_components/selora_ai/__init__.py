@@ -40,6 +40,7 @@ import voluptuous as vol
 if TYPE_CHECKING:
     from .automation_store import AutomationStore
     from .device_manager import DeviceManager
+    from .health_monitor import HealthMonitor
     from .pattern_store import PatternStore
     from .scene_store import SceneStore
     from .types import EntitySnapshot
@@ -67,6 +68,10 @@ from .const import (
     CONF_ENTRY_TYPE,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
+    CONF_INSIGHTS_ENABLED,
+    CONF_INSIGHTS_EXPORT_CADENCE,
+    CONF_INSIGHTS_EXPORT_RETENTION,
+    CONF_INSIGHTS_INTERVAL,
     CONF_LLM_PRICING_OVERRIDES,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
@@ -89,6 +94,9 @@ from .const import (
     DEFAULT_DISCOVERY_MODE,
     DEFAULT_ENRICHMENT_INTERVAL,
     DEFAULT_GEMINI_MODEL,
+    DEFAULT_INSIGHTS_EXPORT_CADENCE,
+    DEFAULT_INSIGHTS_EXPORT_RETENTION,
+    DEFAULT_INSIGHTS_INTERVAL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
@@ -107,15 +115,18 @@ from .const import (
     LLM_PROVIDER_OPENROUTER,
     LLM_PROVIDER_SELORA_CLOUD,
     LLM_PROVIDER_SELORA_LOCAL,
+    MIN_INSIGHTS_INTERVAL,
     MODE_SCHEDULED,
     PANEL_ICON,
     PANEL_NAME,
     PANEL_PATH,
     PANEL_TITLE,
+    PATTERN_SUGGESTIONS_ENABLED,
     SELORA_EXCLUDE_LABEL_ID,
     SELORA_EXCLUDE_LABEL_NAME,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
+    SIGNAL_INSIGHTS_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
     STREAM_AUTOMATION_IDLE_TIMEOUT_S,
     STREAM_CLOUD_IDLE_TIMEOUT_S,
@@ -610,6 +621,22 @@ def _entry_is_configurable_llm(entry_data: dict[str, Any]) -> bool:
     if entry_data.get(CONF_LLM_PROVIDER):
         return True
     return bool(_aigateway_view(entry_data)["refresh_token"])
+
+
+def _sanitize_insights_interval(raw: Any) -> int:
+    """Coerce a stored scan-interval option to a safe positive int.
+
+    A cleared field serializes to ``null``, and the input can carry zero or a
+    negative number; any of those would raise in ``async_track_time_interval``
+    and abort Insights startup, leaving Health shown as on but never scanning.
+    Anything non-int or below ``MIN_INSIGHTS_INTERVAL`` falls back to the
+    default.
+    """
+    try:
+        val = int(raw)
+    except (TypeError, ValueError):
+        return DEFAULT_INSIGHTS_INTERVAL
+    return val if val >= MIN_INSIGHTS_INTERVAL else DEFAULT_INSIGHTS_INTERVAL
 
 
 def _resolve_llm_entry(hass: HomeAssistant) -> ConfigEntry | None:
@@ -4237,6 +4264,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     options = entry.options
     discovery_enabled = options.get(CONF_DISCOVERY_ENABLED, DEFAULT_DISCOVERY_ENABLED)
     pattern_enabled = options.get(CONF_PATTERN_ENABLED, True)
+    insights_enabled = options.get(CONF_INSIGHTS_ENABLED, True)
 
     async def _run_discovery(_now: datetime | None = None) -> None:
         """Run the discovery process and respect settings."""
@@ -4389,35 +4417,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _bg.append(hass.async_create_task(_cleanup_stale_schedules()))
 
+    # Pattern detection and Insights share a single state_changed tap,
+    # registered once below when either feature is on. These stay None when
+    # their feature is disabled so the shared listener can skip them.
+    pattern_store: PatternStore | None = None
+    health_monitor: HealthMonitor | None = None
+
     if pattern_enabled:
         from .pattern_store import PatternStore
 
         pattern_store = PatternStore(hass)
-
-        async def _state_change_listener(event: Any) -> None:
-            """Record state changes for pattern detection."""
-            entity_id = event.data.get("entity_id", "")
-            domain = entity_id.split(".")[0] if "." in entity_id else ""
-            if domain not in COLLECTOR_DOMAINS:
-                return
-            new_state = event.data.get("new_state")
-            old_state = event.data.get("old_state")
-            if new_state is None or old_state is None:
-                return
-            if new_state.state == old_state.state:
-                return
-            await pattern_store.record_state_change(
-                entity_id,
-                new_state.state,
-                old_state.state,
-                new_state.last_changed.isoformat(),
-            )
-
-        unsub_state_listener = hass.bus.async_listen("state_changed", _state_change_listener)
         hass.data[DOMAIN][entry.entry_id]["pattern_store"] = pattern_store
-        hass.data[DOMAIN][entry.entry_id]["unsub_state_listener"] = unsub_state_listener
-
-        _bg.append(hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback)))
 
         from .pattern_engine import PatternEngine
 
@@ -4451,7 +4461,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
 
         pattern_engine.on_patterns_detected = _on_patterns_detected
-        await pattern_engine.async_start()
 
         enrichment_interval = entry.options.get(
             CONF_ENRICHMENT_INTERVAL, DEFAULT_ENRICHMENT_INTERVAL
@@ -4476,17 +4485,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         cached["source"] = updated.get("source", cached.get("source"))
                 async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
 
-        unsub_enrichment = async_track_time_interval(
-            hass,
-            _enrichment_cycle,
-            timedelta(seconds=enrichment_interval),
-        )
-        hass.data[DOMAIN][entry.entry_id]["unsub_enrichment"] = unsub_enrichment
-
-        _LOGGER.info(
-            "Pattern detection + suggestion generation started (enrichment every %ds)",
-            enrichment_interval,
-        )
+        if PATTERN_SUGGESTIONS_ENABLED:
+            _bg.append(hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback)))
+            await pattern_engine.async_start()
+            unsub_enrichment = async_track_time_interval(
+                hass,
+                _enrichment_cycle,
+                timedelta(seconds=enrichment_interval),
+            )
+            hass.data[DOMAIN][entry.entry_id]["unsub_enrichment"] = unsub_enrichment
+            _LOGGER.info(
+                "Pattern detection + suggestion generation started (enrichment every %ds)",
+                enrichment_interval,
+            )
+        else:
+            # Pattern-suggestion pipeline is off (PATTERN_SUGGESTIONS_ENABLED).
+            # Leave detection/generation wired but idle and clear any suggestions
+            # already surfaced so their cards disappear. Rebuilt deterministically
+            # by the Insights check catalog.
+            purged = await pattern_store.purge_surfaced_suggestions()
+            _LOGGER.info("Pattern suggestions disabled; purged %d surfaced suggestion(s)", purged)
     else:
         _LOGGER.info("Pattern detection disabled")
 
@@ -4502,6 +4520,106 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
     cache_invalidator.async_start()
     hass.data[DOMAIN][entry.entry_id]["cache_invalidator"] = cache_invalidator
+
+    # ── Insights: Layer 1 health monitoring + Layer 2 advisor + export ──
+    if insights_enabled:
+        from .health_monitor import HealthMonitor
+        from .health_store import HealthStore
+        from .insights import InsightsEngine
+        from .insights_audit import AuditRunner
+        from .insights_export import InsightsExporter
+
+        health_store = HealthStore(hass)
+        health_monitor = HealthMonitor(hass, health_store)
+        insights_engine = InsightsEngine(hass, health_store, pattern_store, llm)
+        insights_exporter = InsightsExporter(
+            hass, health_store, insights_engine, installation_id=installation_id
+        )
+        audit_runner = AuditRunner(hass, health_store)
+        entry_bucket = hass.data[DOMAIN][entry.entry_id]
+        entry_bucket["health_store"] = health_store
+        entry_bucket["health_monitor"] = health_monitor
+        entry_bucket["insights_engine"] = insights_engine
+        entry_bucket["insights_exporter"] = insights_exporter
+        entry_bucket["audit_runner"] = audit_runner
+
+        # Guard each scheduler startup SEPARATELY: the subsystems are
+        # independent, so an export-only failure (e.g. a permissions error while
+        # sweeping its directory) must NOT skip the audit scheduler or the
+        # sensor refresh. And no failure here may abort setup before the shared
+        # state_changed tap below is registered, or pattern detection would
+        # silently stop recording.
+        # Coerce+floor the interval: a persisted cleared/zero/negative/non-int
+        # value would crash timer creation and silently disable scanning.
+        insights_interval = _sanitize_insights_interval(
+            options.get(CONF_INSIGHTS_INTERVAL, DEFAULT_INSIGHTS_INTERVAL)
+        )
+        try:
+            await health_monitor.async_start(insights_interval)
+        except Exception:  # noqa: BLE001 — never let Insights startup abort setup
+            _LOGGER.exception("Health monitor startup failed; continuing without it")
+        try:
+            await insights_exporter.async_start(
+                options.get(CONF_INSIGHTS_EXPORT_CADENCE, DEFAULT_INSIGHTS_EXPORT_CADENCE),
+                options.get(CONF_INSIGHTS_EXPORT_RETENTION, DEFAULT_INSIGHTS_EXPORT_RETENTION),
+            )
+        except Exception:  # noqa: BLE001 — an export failure must not disable the audit
+            _LOGGER.exception("Insights export startup failed; continuing without it")
+        # The home audit powers the Insights front page. It's a deterministic
+        # check catalog now (no LLM), so schedule it whenever Insights is on —
+        # a no-LLM install must still get the periodic audit, not a stale/absent
+        # one until someone opens the panel.
+        try:
+            await audit_runner.async_start()
+        except Exception:  # noqa: BLE001 — audit startup is independent
+            _LOGGER.exception("Audit runner startup failed; continuing without it")
+        # The Home Health sensor was added (with a placeholder score of 100)
+        # before this block wired the store into hass.data. Nudge it to refresh
+        # now so it reflects any persisted active signals instead of reading
+        # falsely-healthy until its 60s poll.
+        async_dispatcher_send(hass, SIGNAL_INSIGHTS_UPDATED)
+        _LOGGER.info("Insights started (health monitoring + host export)")
+    else:
+        _LOGGER.info("Insights disabled")
+
+    # Pattern detection and Insights share a single state_changed tap. The
+    # monitor gets every in-scope update (cadence + availability tracking);
+    # the pattern store only records genuine state transitions.
+    if pattern_enabled or insights_enabled:
+
+        async def _state_change_listener(event: Any) -> None:
+            entity_id = event.data.get("entity_id", "")
+            domain = entity_id.split(".")[0] if "." in entity_id else ""
+            if domain not in COLLECTOR_DOMAINS:
+                return
+            new_state = event.data.get("new_state")
+            old_state = event.data.get("old_state")
+            # Entity removed from the state machine (HA sends new_state=None on
+            # removal): drop its health tracker so a churning dynamic integration
+            # can't grow _tracks without bound. No pattern transition to record.
+            if new_state is None:
+                if health_monitor is not None:
+                    health_monitor.handle_entity_removed(entity_id)
+                return
+            # Health tracking wants every in-scope update, including an entity's
+            # first appearance (old_state None), so it seeds new devices live.
+            if health_monitor is not None:
+                health_monitor.handle_state_change(entity_id, new_state, old_state)
+            # Pattern detection only records genuine transitions (needs both).
+            if (
+                pattern_store is not None
+                and old_state is not None
+                and new_state.state != old_state.state
+            ):
+                await pattern_store.record_state_change(
+                    entity_id,
+                    new_state.state,
+                    old_state.state,
+                    new_state.last_changed.isoformat(),
+                )
+
+        unsub_state_listener = hass.bus.async_listen("state_changed", _state_change_listener)
+        hass.data[DOMAIN][entry.entry_id]["unsub_state_listener"] = unsub_state_listener
 
     # Anonymous home-inventory telemetry (opt-in, off by default). One
     # snapshot shortly after startup once registries are populated, then
@@ -4660,6 +4778,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     for task in pending_tasks:
         with suppress(asyncio.CancelledError, Exception):
             await task
+
+    # Stop Insights (health monitor + host export + daily audit)
+    health_monitor = data.get("health_monitor")
+    if health_monitor:
+        await health_monitor.async_stop()
+    insights_exporter = data.get("insights_exporter")
+    if insights_exporter:
+        await insights_exporter.async_stop()
+    audit_runner = data.get("audit_runner")
+    if audit_runner:
+        await audit_runner.async_stop()
 
     # Stop pattern detection
     cache_invalidator = data.get("cache_invalidator")

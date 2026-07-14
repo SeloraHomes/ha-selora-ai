@@ -28,6 +28,7 @@ import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
 import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
+import { renderInsights } from "./panel/render-insights.js";
 import { renderRecipesV2 } from "./panel/render-recipes.js";
 import {
   renderVersionHistoryDrawer,
@@ -35,6 +36,7 @@ import {
 } from "./panel/render-version-history.js";
 import * as sessionActions from "./panel/session-actions.js";
 import * as suggestionActions from "./panel/suggestion-actions.js";
+import * as insightsActions from "./panel/insights-actions.js";
 import * as chatActions from "./panel/chat-actions.js";
 import * as automationCrud from "./panel/automation-crud.js";
 import * as automationManagement from "./panel/automation-management.js";
@@ -308,6 +310,23 @@ class SeloraAIPanel extends LitElement {
       _recipeManageSelections: { type: Object },
       _recipeManageBusy: { type: Boolean },
       _recipeManageError: { type: String },
+
+      // Health tab
+      _insightsLoading: { type: Boolean },
+      _insightsEnabled: { type: Boolean },
+      _insightsExportEnabled: { type: Boolean },
+      // Daily home audit (primary Insights view)
+      _auditStatus: { type: String },
+      _auditResponse: { type: String },
+      _auditRecommendations: { type: Array },
+      _auditChecks: { type: Array },
+      _auditScore: { type: Number },
+      _auditBand: { type: String },
+      _auditQuickActions: { type: Array },
+      _auditGeneratedAt: { type: String },
+      _auditError: { type: String },
+      _auditRunning: { type: Boolean },
+      _auditLoaded: { type: Boolean },
 
       // Automations tab
       _suggestions: { type: Array },
@@ -587,6 +606,23 @@ class SeloraAIPanel extends LitElement {
     this._suggestionBulkMode = false;
     this._highlightedAutomation = null;
     this._fadingOutSuggestions = {};
+    // Health tab
+    this._insightsLoading = false;
+    this._insightsEnabled = true;
+    this._insightsExportEnabled = false;
+    this._auditStatus = "pending";
+    this._auditResponse = "";
+    this._auditRecommendations = [];
+    this._auditChecks = [];
+    this._auditScore = null;
+    this._auditBand = "";
+    this._auditQuickActions = [];
+    this._auditGeneratedAt = null;
+    this._auditError = null;
+    this._auditRunning = false;
+    // False until the first audit fetch resolves — lets the Health body show a
+    // loading spinner instead of flashing the "No audit yet" empty state.
+    this._auditLoaded = false;
     this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
@@ -1292,6 +1328,13 @@ class SeloraAIPanel extends LitElement {
         discovery_end_time: this._config.discovery_end_time,
         pattern_detection_enabled:
           this._config.pattern_detection_enabled !== false,
+        insights_enabled: this._config.insights_enabled !== false,
+        // Guard against a cleared/zero/negative interval reaching the backend
+        // (would crash timer creation); fall back to the 15-min default.
+        insights_interval: (() => {
+          const v = parseInt(this._config.insights_interval, 10);
+          return Number.isFinite(v) && v >= 60 ? v : 900;
+        })(),
         auto_purge_stale: this._config.auto_purge_stale || false,
         telemetry_enabled: this._config.telemetry_enabled === true,
         // Deciding the toggle here counts as seeing the prompt — mark it
@@ -1987,7 +2030,10 @@ class SeloraAIPanel extends LitElement {
         changedProps.has("_scenes") ||
         changedProps.has("_expandedScenes") ||
         changedProps.has("_sceneEdits") ||
-        changedProps.has("_activeTab"))
+        changedProps.has("_activeTab") ||
+        changedProps.has("_auditResponse") ||
+        changedProps.has("_auditRecommendations") ||
+        changedProps.has("_auditChecks"))
     ) {
       this._hydrateEntityChips();
     }
@@ -4073,6 +4119,10 @@ class SeloraAIPanel extends LitElement {
     await loadUsageStats(this);
   }
 
+  _renderInsights() {
+    return renderInsights(this);
+  }
+
   _renderVersionHistoryDrawer(a) {
     return renderVersionHistoryDrawer(this, a);
   }
@@ -4357,6 +4407,19 @@ class SeloraAIPanel extends LitElement {
                 >Recipes</span
               >
             </div>
+            <div
+              class="tab ${this._activeTab === "insights" ? "active" : ""}"
+              @click=${() => {
+                this._setActiveTab("insights");
+                this._showSidebar = false;
+                this._openInsights();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon icon="mdi:heart-pulse" class="tab-icon"></ha-icon
+                >${this._t("insights_tab", "Health")}</span
+              >
+            </div>
           </div>
           <span class="header-spacer"></span>
           ${this._activeTab !== "chat" || this._messages.length > 0
@@ -4453,6 +4516,20 @@ class SeloraAIPanel extends LitElement {
                       >
                         <ha-icon icon="mdi:book-open-variant"></ha-icon>
                         Recipes
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "insights"
+                          ? "active"
+                          : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._setActiveTab("insights");
+                          this._showSidebar = false;
+                          this._openInsights();
+                        }}
+                      >
+                        <ha-icon icon="mdi:heart-pulse"></ha-icon>
+                        ${this._t("insights_tab", "Health")}
                       </button>
                       <div class="overflow-divider"></div>
                     </div>
@@ -4796,6 +4873,7 @@ class SeloraAIPanel extends LitElement {
           ${this._activeTab === "recipes" ? this._renderRecipesV2() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
           ${this._activeTab === "usage" ? this._renderUsage() : ""}
+          ${this._activeTab === "insights" ? this._renderInsights() : ""}
         </div>
       </div>
 
@@ -4862,6 +4940,7 @@ class SeloraAIPanel extends LitElement {
 // Attach extracted business logic to prototype
 Object.assign(SeloraAIPanel.prototype, sessionActions);
 Object.assign(SeloraAIPanel.prototype, suggestionActions);
+Object.assign(SeloraAIPanel.prototype, insightsActions);
 Object.assign(SeloraAIPanel.prototype, chatActions);
 Object.assign(SeloraAIPanel.prototype, automationCrud);
 Object.assign(SeloraAIPanel.prototype, automationManagement);

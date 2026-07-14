@@ -2972,9 +2972,7 @@ class TestSpokenPlayMediaRewrite:
         # A usable non-Piper/Google engine wins over cloud even though the
         # sorted list puts "home_assistant_cloud" first.
         self._cloud_active = True
-        hass = self._hass(
-            tts_entities=["tts.home_assistant_cloud", "tts.microsoft"]
-        )
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud", "tts.microsoft"])
         assert _resolve_tts_engine(hass) == "tts.microsoft"
 
     def test_resolve_engine_cloud_only_last_resort(self) -> None:

@@ -2042,6 +2042,8 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         self,
         system: str,
         messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 1024,  # noqa: ARG002 — low-context path sizes its own payload
     ) -> AsyncIterator[str]:
         # Branch by call_kind:
         #   * Prose intents (chat_answer, session_title) emit plain text

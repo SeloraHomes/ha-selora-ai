@@ -42,9 +42,7 @@ async def test_initial_cycle_cancelled_during_boot_grace_skips_collection(
     # HA still starting → async_start defers the first cycle behind the grace.
     hass.set_state(CoreState.starting)
     try:
-        with patch(
-            "custom_components.selora_ai.collector.asyncio.sleep", _park
-        ):
+        with patch("custom_components.selora_ai.collector.asyncio.sleep", _park):
             await collector.async_start()
             # Fire the started event so the cycle is scheduled, then wait until
             # it has entered the (parked) boot-grace sleep.

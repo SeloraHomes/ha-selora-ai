@@ -1286,6 +1286,60 @@ export function renderSettings(host) {
               <div class="service-label-group">
                 <label
                   >${host._t(
+                    "settings_health_monitoring_label",
+                    "Health monitoring",
+                  )}</label
+                >
+                <span class="service-desc"
+                  >${host._t(
+                    "settings_health_monitoring_desc",
+                    "Deterministic checks for offline devices, low batteries, integration errors and automation issues — powers the Health page.",
+                  )}</span
+                >
+              </div>
+              <ha-switch
+                .checked=${host._config.insights_enabled !== false}
+                @change=${(e) =>
+                  host._updateConfig("insights_enabled", e.target.checked)}
+              ></ha-switch>
+            </div>
+            ${host._config.insights_enabled !== false
+              ? html`
+                  <div class="service-details">
+                    <div
+                      class="form-group"
+                      style="width:150px;margin-bottom:0;"
+                    >
+                      <label
+                        >${host._t(
+                          "settings_scan_interval_seconds_label",
+                          "Scan interval (s)",
+                        )}</label
+                      >
+                      <input
+                        class="form-select"
+                        type="number"
+                        min="60"
+                        step="60"
+                        .value=${host._config.insights_interval}
+                        @input=${(e) =>
+                          host._updateConfig(
+                            "insights_interval",
+                            parseInt(e.target.value),
+                          )}
+                        style="width:100%;box-sizing:border-box;"
+                      />
+                    </div>
+                  </div>
+                `
+              : ""}
+          </div>
+
+          <div class="service-group">
+            <div class="service-row">
+              <div class="service-label-group">
+                <label
+                  >${host._t(
                     "settings_auto_remove_stale_label",
                     "Auto-remove stale automations",
                   )}</label

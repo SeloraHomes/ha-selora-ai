@@ -198,6 +198,36 @@ describe("renderMarkdown", () => {
     expect(result).toContain(">bold</strong>");
   });
 
+  it("renders a GFM pipe table", () => {
+    const md = [
+      "| Automation | Copies | Keep |",
+      "|---|---|---|",
+      "| **Doorbell** | 5 | 1 |",
+      "| Game Area | 2 | 1 |",
+    ].join("\n");
+    const result = renderMarkdown(md);
+    expect(result).toContain("<table");
+    expect(result).toContain("<th");
+    expect(result).toContain(">Automation</th>");
+    // Header pipes must not survive as literal text.
+    expect(result).not.toContain("|---|");
+    // Cell keeps inline bold, and body cells render as <td>.
+    expect(result).toContain("<strong>Doorbell</strong>");
+    expect(result).toContain(">5</td>");
+  });
+
+  it("respects column alignment markers", () => {
+    const md = ["| A | B |", "|:---|---:|", "| x | y |"].join("\n");
+    const result = renderMarkdown(md);
+    expect(result).toContain("text-align:left");
+    expect(result).toContain("text-align:right");
+  });
+
+  it("does not treat a bare thematic break as a table", () => {
+    const result = renderMarkdown("Use the pipe | operator\n---\nNext line.");
+    expect(result).not.toContain("<table");
+  });
+
   it("renders italic text", () => {
     const result = renderMarkdown("This is *italic* text.");
     expect(result).toContain("<em>italic</em>");

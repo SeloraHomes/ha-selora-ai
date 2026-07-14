@@ -5,597 +5,619 @@ var __export = (target, all) => {
 };
 
 // node_modules/@lit/reactive-element/css-tag.js
-var t = globalThis;
+var t = window;
 var e =
   t.ShadowRoot &&
   (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) &&
   "adoptedStyleSheets" in Document.prototype &&
   "replace" in CSSStyleSheet.prototype;
 var s = /* @__PURE__ */ Symbol();
-var o = /* @__PURE__ */ new WeakMap();
-var n = class {
-  constructor(t5, e6, o6) {
-    if (((this._$cssResult$ = true), o6 !== s))
+var n = /* @__PURE__ */ new WeakMap();
+var o = class {
+  constructor(t4, e6, n5) {
+    if (((this._$cssResult$ = true), n5 !== s))
       throw Error(
         "CSSResult is not constructable. Use `unsafeCSS` or `css` instead.",
       );
-    ((this.cssText = t5), (this.t = e6));
+    ((this.cssText = t4), (this.t = e6));
   }
   get styleSheet() {
-    let t5 = this.o;
-    const s4 = this.t;
-    if (e && void 0 === t5) {
-      const e6 = void 0 !== s4 && 1 === s4.length;
-      (e6 && (t5 = o.get(s4)),
-        void 0 === t5 &&
-          ((this.o = t5 = new CSSStyleSheet()).replaceSync(this.cssText),
-          e6 && o.set(s4, t5)));
+    let t4 = this.o;
+    const s6 = this.t;
+    if (e && void 0 === t4) {
+      const e6 = void 0 !== s6 && 1 === s6.length;
+      (e6 && (t4 = n.get(s6)),
+        void 0 === t4 &&
+          ((this.o = t4 = new CSSStyleSheet()).replaceSync(this.cssText),
+          e6 && n.set(s6, t4)));
     }
-    return t5;
+    return t4;
   }
   toString() {
     return this.cssText;
   }
 };
-var r = (t5) => new n("string" == typeof t5 ? t5 : t5 + "", void 0, s);
-var i = (t5, ...e6) => {
-  const o6 =
-    1 === t5.length
-      ? t5[0]
+var r = (t4) => new o("string" == typeof t4 ? t4 : t4 + "", void 0, s);
+var i = (t4, ...e6) => {
+  const n5 =
+    1 === t4.length
+      ? t4[0]
       : e6.reduce(
-          (e7, s4, o7) =>
+          (e7, s6, n6) =>
             e7 +
-            ((t6) => {
-              if (true === t6._$cssResult$) return t6.cssText;
-              if ("number" == typeof t6) return t6;
+            ((t5) => {
+              if (true === t5._$cssResult$) return t5.cssText;
+              if ("number" == typeof t5) return t5;
               throw Error(
                 "Value passed to 'css' function must be a 'css' function result: " +
-                  t6 +
+                  t5 +
                   ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.",
               );
-            })(s4) +
-            t5[o7 + 1],
-          t5[0],
+            })(s6) +
+            t4[n6 + 1],
+          t4[0],
         );
-  return new n(o6, t5, s);
+  return new o(n5, t4, s);
 };
-var S = (s4, o6) => {
-  if (e)
-    s4.adoptedStyleSheets = o6.map((t5) =>
-      t5 instanceof CSSStyleSheet ? t5 : t5.styleSheet,
-    );
-  else
-    for (const e6 of o6) {
-      const o7 = document.createElement("style"),
-        n4 = t.litNonce;
-      (void 0 !== n4 && o7.setAttribute("nonce", n4),
-        (o7.textContent = e6.cssText),
-        s4.appendChild(o7));
-    }
+var S = (s6, n5) => {
+  e
+    ? (s6.adoptedStyleSheets = n5.map((t4) =>
+        t4 instanceof CSSStyleSheet ? t4 : t4.styleSheet,
+      ))
+    : n5.forEach((e6) => {
+        const n6 = document.createElement("style"),
+          o6 = t.litNonce;
+        (void 0 !== o6 && n6.setAttribute("nonce", o6),
+          (n6.textContent = e6.cssText),
+          s6.appendChild(n6));
+      });
 };
 var c = e
-  ? (t5) => t5
-  : (t5) =>
-      t5 instanceof CSSStyleSheet
-        ? ((t6) => {
+  ? (t4) => t4
+  : (t4) =>
+      t4 instanceof CSSStyleSheet
+        ? ((t5) => {
             let e6 = "";
-            for (const s4 of t6.cssRules) e6 += s4.cssText;
+            for (const s6 of t5.cssRules) e6 += s6.cssText;
             return r(e6);
-          })(t5)
-        : t5;
+          })(t4)
+        : t4;
 
 // node_modules/@lit/reactive-element/reactive-element.js
-var {
-  is: i2,
-  defineProperty: e2,
-  getOwnPropertyDescriptor: h,
-  getOwnPropertyNames: r2,
-  getOwnPropertySymbols: o2,
-  getPrototypeOf: n2,
-} = Object;
-var a = globalThis;
-var c2 = a.trustedTypes;
-var l = c2 ? c2.emptyScript : "";
-var p = a.reactiveElementPolyfillSupport;
-var d = (t5, s4) => t5;
-var u = {
-  toAttribute(t5, s4) {
-    switch (s4) {
+var s2;
+var e2 = window;
+var r2 = e2.trustedTypes;
+var h = r2 ? r2.emptyScript : "";
+var o2 = e2.reactiveElementPolyfillSupport;
+var n2 = {
+  toAttribute(t4, i5) {
+    switch (i5) {
       case Boolean:
-        t5 = t5 ? l : null;
+        t4 = t4 ? h : null;
         break;
       case Object:
       case Array:
-        t5 = null == t5 ? t5 : JSON.stringify(t5);
+        t4 = null == t4 ? t4 : JSON.stringify(t4);
     }
-    return t5;
+    return t4;
   },
-  fromAttribute(t5, s4) {
-    let i7 = t5;
-    switch (s4) {
+  fromAttribute(t4, i5) {
+    let s6 = t4;
+    switch (i5) {
       case Boolean:
-        i7 = null !== t5;
+        s6 = null !== t4;
         break;
       case Number:
-        i7 = null === t5 ? null : Number(t5);
+        s6 = null === t4 ? null : Number(t4);
         break;
       case Object:
       case Array:
         try {
-          i7 = JSON.parse(t5);
-        } catch (t6) {
-          i7 = null;
+          s6 = JSON.parse(t4);
+        } catch (t5) {
+          s6 = null;
         }
     }
-    return i7;
+    return s6;
   },
 };
-var f = (t5, s4) => !i2(t5, s4);
-var b = {
+var a = (t4, i5) => i5 !== t4 && (i5 == i5 || t4 == t4);
+var l = {
   attribute: true,
   type: String,
-  converter: u,
+  converter: n2,
   reflect: false,
-  useDefault: false,
-  hasChanged: f,
+  hasChanged: a,
 };
-((Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata")),
-  (a.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap()));
-var y = class extends HTMLElement {
-  static addInitializer(t5) {
-    (this._$Ei(), (this.l ??= []).push(t5));
+var d = "finalized";
+var u = class extends HTMLElement {
+  constructor() {
+    (super(),
+      (this._$Ei = /* @__PURE__ */ new Map()),
+      (this.isUpdatePending = false),
+      (this.hasUpdated = false),
+      (this._$El = null),
+      this._$Eu());
+  }
+  static addInitializer(t4) {
+    var i5;
+    (this.finalize(),
+      (null !== (i5 = this.h) && void 0 !== i5 ? i5 : (this.h = [])).push(t4));
   }
   static get observedAttributes() {
-    return (this.finalize(), this._$Eh && [...this._$Eh.keys()]);
+    this.finalize();
+    const t4 = [];
+    return (
+      this.elementProperties.forEach((i5, s6) => {
+        const e6 = this._$Ep(s6, i5);
+        void 0 !== e6 && (this._$Ev.set(e6, s6), t4.push(e6));
+      }),
+      t4
+    );
   }
-  static createProperty(t5, s4 = b) {
+  static createProperty(t4, i5 = l) {
     if (
-      (s4.state && (s4.attribute = false),
-      this._$Ei(),
-      this.prototype.hasOwnProperty(t5) &&
-        ((s4 = Object.create(s4)).wrapped = true),
-      this.elementProperties.set(t5, s4),
-      !s4.noAccessor)
+      (i5.state && (i5.attribute = false),
+      this.finalize(),
+      this.elementProperties.set(t4, i5),
+      !i5.noAccessor && !this.prototype.hasOwnProperty(t4))
     ) {
-      const i7 = /* @__PURE__ */ Symbol(),
-        h3 = this.getPropertyDescriptor(t5, i7, s4);
-      void 0 !== h3 && e2(this.prototype, t5, h3);
+      const s6 = "symbol" == typeof t4 ? /* @__PURE__ */ Symbol() : "__" + t4,
+        e6 = this.getPropertyDescriptor(t4, s6, i5);
+      void 0 !== e6 && Object.defineProperty(this.prototype, t4, e6);
     }
   }
-  static getPropertyDescriptor(t5, s4, i7) {
-    const { get: e6, set: r4 } = h(this.prototype, t5) ?? {
-      get() {
-        return this[s4];
-      },
-      set(t6) {
-        this[s4] = t6;
-      },
-    };
+  static getPropertyDescriptor(t4, i5, s6) {
     return {
-      get: e6,
-      set(s5) {
-        const h3 = e6?.call(this);
-        (r4?.call(this, s5), this.requestUpdate(t5, h3, i7));
+      get() {
+        return this[i5];
+      },
+      set(e6) {
+        const r4 = this[t4];
+        ((this[i5] = e6), this.requestUpdate(t4, r4, s6));
       },
       configurable: true,
       enumerable: true,
     };
   }
-  static getPropertyOptions(t5) {
-    return this.elementProperties.get(t5) ?? b;
-  }
-  static _$Ei() {
-    if (this.hasOwnProperty(d("elementProperties"))) return;
-    const t5 = n2(this);
-    (t5.finalize(),
-      void 0 !== t5.l && (this.l = [...t5.l]),
-      (this.elementProperties = new Map(t5.elementProperties)));
+  static getPropertyOptions(t4) {
+    return this.elementProperties.get(t4) || l;
   }
   static finalize() {
-    if (this.hasOwnProperty(d("finalized"))) return;
+    if (this.hasOwnProperty(d)) return false;
+    this[d] = true;
+    const t4 = Object.getPrototypeOf(this);
     if (
-      ((this.finalized = true),
-      this._$Ei(),
-      this.hasOwnProperty(d("properties")))
+      (t4.finalize(),
+      void 0 !== t4.h && (this.h = [...t4.h]),
+      (this.elementProperties = new Map(t4.elementProperties)),
+      (this._$Ev = /* @__PURE__ */ new Map()),
+      this.hasOwnProperty("properties"))
     ) {
-      const t6 = this.properties,
-        s4 = [...r2(t6), ...o2(t6)];
-      for (const i7 of s4) this.createProperty(i7, t6[i7]);
+      const t5 = this.properties,
+        i5 = [
+          ...Object.getOwnPropertyNames(t5),
+          ...Object.getOwnPropertySymbols(t5),
+        ];
+      for (const s6 of i5) this.createProperty(s6, t5[s6]);
     }
-    const t5 = this[Symbol.metadata];
-    if (null !== t5) {
-      const s4 = litPropertyMetadata.get(t5);
-      if (void 0 !== s4)
-        for (const [t6, i7] of s4) this.elementProperties.set(t6, i7);
-    }
-    this._$Eh = /* @__PURE__ */ new Map();
-    for (const [t6, s4] of this.elementProperties) {
-      const i7 = this._$Eu(t6, s4);
-      void 0 !== i7 && this._$Eh.set(i7, t6);
-    }
-    this.elementStyles = this.finalizeStyles(this.styles);
+    return ((this.elementStyles = this.finalizeStyles(this.styles)), true);
   }
-  static finalizeStyles(s4) {
-    const i7 = [];
-    if (Array.isArray(s4)) {
-      const e6 = new Set(s4.flat(1 / 0).reverse());
-      for (const s5 of e6) i7.unshift(c(s5));
-    } else void 0 !== s4 && i7.push(c(s4));
-    return i7;
+  static finalizeStyles(i5) {
+    const s6 = [];
+    if (Array.isArray(i5)) {
+      const e6 = new Set(i5.flat(1 / 0).reverse());
+      for (const i6 of e6) s6.unshift(c(i6));
+    } else void 0 !== i5 && s6.push(c(i5));
+    return s6;
   }
-  static _$Eu(t5, s4) {
-    const i7 = s4.attribute;
-    return false === i7
+  static _$Ep(t4, i5) {
+    const s6 = i5.attribute;
+    return false === s6
       ? void 0
-      : "string" == typeof i7
-        ? i7
-        : "string" == typeof t5
-          ? t5.toLowerCase()
+      : "string" == typeof s6
+        ? s6
+        : "string" == typeof t4
+          ? t4.toLowerCase()
           : void 0;
   }
-  constructor() {
-    (super(),
-      (this._$Ep = void 0),
-      (this.isUpdatePending = false),
-      (this.hasUpdated = false),
-      (this._$Em = null),
-      this._$Ev());
-  }
-  _$Ev() {
-    ((this._$ES = new Promise((t5) => (this.enableUpdating = t5))),
+  _$Eu() {
+    var t4;
+    ((this._$E_ = new Promise((t5) => (this.enableUpdating = t5))),
       (this._$AL = /* @__PURE__ */ new Map()),
-      this._$E_(),
+      this._$Eg(),
       this.requestUpdate(),
-      this.constructor.l?.forEach((t5) => t5(this)));
+      null === (t4 = this.constructor.h) ||
+        void 0 === t4 ||
+        t4.forEach((t5) => t5(this)));
   }
-  addController(t5) {
-    ((this._$EO ??= /* @__PURE__ */ new Set()).add(t5),
-      void 0 !== this.renderRoot && this.isConnected && t5.hostConnected?.());
+  addController(t4) {
+    var i5, s6;
+    ((null !== (i5 = this._$ES) && void 0 !== i5 ? i5 : (this._$ES = [])).push(
+      t4,
+    ),
+      void 0 !== this.renderRoot &&
+        this.isConnected &&
+        (null === (s6 = t4.hostConnected) || void 0 === s6 || s6.call(t4)));
   }
-  removeController(t5) {
-    this._$EO?.delete(t5);
+  removeController(t4) {
+    var i5;
+    null === (i5 = this._$ES) ||
+      void 0 === i5 ||
+      i5.splice(this._$ES.indexOf(t4) >>> 0, 1);
   }
-  _$E_() {
-    const t5 = /* @__PURE__ */ new Map(),
-      s4 = this.constructor.elementProperties;
-    for (const i7 of s4.keys())
-      this.hasOwnProperty(i7) && (t5.set(i7, this[i7]), delete this[i7]);
-    t5.size > 0 && (this._$Ep = t5);
+  _$Eg() {
+    this.constructor.elementProperties.forEach((t4, i5) => {
+      this.hasOwnProperty(i5) && (this._$Ei.set(i5, this[i5]), delete this[i5]);
+    });
   }
   createRenderRoot() {
-    const t5 =
-      this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return (S(t5, this.constructor.elementStyles), t5);
+    var t4;
+    const s6 =
+      null !== (t4 = this.shadowRoot) && void 0 !== t4
+        ? t4
+        : this.attachShadow(this.constructor.shadowRootOptions);
+    return (S(s6, this.constructor.elementStyles), s6);
   }
   connectedCallback() {
-    ((this.renderRoot ??= this.createRenderRoot()),
+    var t4;
+    (void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()),
       this.enableUpdating(true),
-      this._$EO?.forEach((t5) => t5.hostConnected?.()));
+      null === (t4 = this._$ES) ||
+        void 0 === t4 ||
+        t4.forEach((t5) => {
+          var i5;
+          return null === (i5 = t5.hostConnected) || void 0 === i5
+            ? void 0
+            : i5.call(t5);
+        }));
   }
-  enableUpdating(t5) {}
+  enableUpdating(t4) {}
   disconnectedCallback() {
-    this._$EO?.forEach((t5) => t5.hostDisconnected?.());
+    var t4;
+    null === (t4 = this._$ES) ||
+      void 0 === t4 ||
+      t4.forEach((t5) => {
+        var i5;
+        return null === (i5 = t5.hostDisconnected) || void 0 === i5
+          ? void 0
+          : i5.call(t5);
+      });
   }
-  attributeChangedCallback(t5, s4, i7) {
-    this._$AK(t5, i7);
+  attributeChangedCallback(t4, i5, s6) {
+    this._$AK(t4, s6);
   }
-  _$ET(t5, s4) {
-    const i7 = this.constructor.elementProperties.get(t5),
-      e6 = this.constructor._$Eu(t5, i7);
-    if (void 0 !== e6 && true === i7.reflect) {
+  _$EO(t4, i5, s6 = l) {
+    var e6;
+    const r4 = this.constructor._$Ep(t4, s6);
+    if (void 0 !== r4 && true === s6.reflect) {
       const h3 = (
-        void 0 !== i7.converter?.toAttribute ? i7.converter : u
-      ).toAttribute(s4, i7.type);
-      ((this._$Em = t5),
-        null == h3 ? this.removeAttribute(e6) : this.setAttribute(e6, h3),
-        (this._$Em = null));
+        void 0 !==
+        (null === (e6 = s6.converter) || void 0 === e6
+          ? void 0
+          : e6.toAttribute)
+          ? s6.converter
+          : n2
+      ).toAttribute(i5, s6.type);
+      ((this._$El = t4),
+        null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3),
+        (this._$El = null));
     }
   }
-  _$AK(t5, s4) {
-    const i7 = this.constructor,
-      e6 = i7._$Eh.get(t5);
-    if (void 0 !== e6 && this._$Em !== e6) {
-      const t6 = i7.getPropertyOptions(e6),
+  _$AK(t4, i5) {
+    var s6;
+    const e6 = this.constructor,
+      r4 = e6._$Ev.get(t4);
+    if (void 0 !== r4 && this._$El !== r4) {
+      const t5 = e6.getPropertyOptions(r4),
         h3 =
-          "function" == typeof t6.converter
-            ? { fromAttribute: t6.converter }
-            : void 0 !== t6.converter?.fromAttribute
-              ? t6.converter
-              : u;
-      this._$Em = e6;
-      const r4 = h3.fromAttribute(s4, t6.type);
-      ((this[e6] = r4 ?? this._$Ej?.get(e6) ?? r4), (this._$Em = null));
+          "function" == typeof t5.converter
+            ? { fromAttribute: t5.converter }
+            : void 0 !==
+                (null === (s6 = t5.converter) || void 0 === s6
+                  ? void 0
+                  : s6.fromAttribute)
+              ? t5.converter
+              : n2;
+      ((this._$El = r4),
+        (this[r4] = h3.fromAttribute(i5, t5.type)),
+        (this._$El = null));
     }
   }
-  requestUpdate(t5, s4, i7, e6 = false, h3) {
-    if (void 0 !== t5) {
-      const r4 = this.constructor;
-      if (
-        (false === e6 && (h3 = this[t5]),
-        (i7 ??= r4.getPropertyOptions(t5)),
-        !(
-          (i7.hasChanged ?? f)(h3, s4) ||
-          (i7.useDefault &&
-            i7.reflect &&
-            h3 === this._$Ej?.get(t5) &&
-            !this.hasAttribute(r4._$Eu(t5, i7)))
-        ))
+  requestUpdate(t4, i5, s6) {
+    let e6 = true;
+    (void 0 !== t4 &&
+      (((s6 = s6 || this.constructor.getPropertyOptions(t4)).hasChanged || a)(
+        this[t4],
+        i5,
       )
-        return;
-      this.C(t5, s4, i7);
-    }
-    false === this.isUpdatePending && (this._$ES = this._$EP());
+        ? (this._$AL.has(t4) || this._$AL.set(t4, i5),
+          true === s6.reflect &&
+            this._$El !== t4 &&
+            (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()),
+            this._$EC.set(t4, s6)))
+        : (e6 = false)),
+      !this.isUpdatePending && e6 && (this._$E_ = this._$Ej()));
   }
-  C(t5, s4, { useDefault: i7, reflect: e6, wrapped: h3 }, r4) {
-    (i7 &&
-      !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t5) &&
-      (this._$Ej.set(t5, r4 ?? s4 ?? this[t5]),
-      true !== h3 || void 0 !== r4)) ||
-      (this._$AL.has(t5) ||
-        (this.hasUpdated || i7 || (s4 = void 0), this._$AL.set(t5, s4)),
-      true === e6 &&
-        this._$Em !== t5 &&
-        (this._$Eq ??= /* @__PURE__ */ new Set()).add(t5));
-  }
-  async _$EP() {
+  async _$Ej() {
     this.isUpdatePending = true;
     try {
-      await this._$ES;
-    } catch (t6) {
-      Promise.reject(t6);
+      await this._$E_;
+    } catch (t5) {
+      Promise.reject(t5);
     }
-    const t5 = this.scheduleUpdate();
-    return (null != t5 && (await t5), !this.isUpdatePending);
+    const t4 = this.scheduleUpdate();
+    return (null != t4 && (await t4), !this.isUpdatePending);
   }
   scheduleUpdate() {
     return this.performUpdate();
   }
   performUpdate() {
+    var t4;
     if (!this.isUpdatePending) return;
-    if (!this.hasUpdated) {
-      if (((this.renderRoot ??= this.createRenderRoot()), this._$Ep)) {
-        for (const [t7, s5] of this._$Ep) this[t7] = s5;
-        this._$Ep = void 0;
-      }
-      const t6 = this.constructor.elementProperties;
-      if (t6.size > 0)
-        for (const [s5, i7] of t6) {
-          const { wrapped: t7 } = i7,
-            e6 = this[s5];
-          true !== t7 ||
-            this._$AL.has(s5) ||
-            void 0 === e6 ||
-            this.C(s5, void 0, i7, e6);
-        }
-    }
-    let t5 = false;
-    const s4 = this._$AL;
+    (this.hasUpdated,
+      this._$Ei &&
+        (this._$Ei.forEach((t5, i6) => (this[i6] = t5)), (this._$Ei = void 0)));
+    let i5 = false;
+    const s6 = this._$AL;
     try {
-      ((t5 = this.shouldUpdate(s4)),
-        t5
-          ? (this.willUpdate(s4),
-            this._$EO?.forEach((t6) => t6.hostUpdate?.()),
-            this.update(s4))
-          : this._$EM());
-    } catch (s5) {
-      throw ((t5 = false), this._$EM(), s5);
+      ((i5 = this.shouldUpdate(s6)),
+        i5
+          ? (this.willUpdate(s6),
+            null === (t4 = this._$ES) ||
+              void 0 === t4 ||
+              t4.forEach((t5) => {
+                var i6;
+                return null === (i6 = t5.hostUpdate) || void 0 === i6
+                  ? void 0
+                  : i6.call(t5);
+              }),
+            this.update(s6))
+          : this._$Ek());
+    } catch (t5) {
+      throw ((i5 = false), this._$Ek(), t5);
     }
-    t5 && this._$AE(s4);
+    i5 && this._$AE(s6);
   }
-  willUpdate(t5) {}
-  _$AE(t5) {
-    (this._$EO?.forEach((t6) => t6.hostUpdated?.()),
-      this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t5)),
-      this.updated(t5));
+  willUpdate(t4) {}
+  _$AE(t4) {
+    var i5;
+    (null === (i5 = this._$ES) ||
+      void 0 === i5 ||
+      i5.forEach((t5) => {
+        var i6;
+        return null === (i6 = t5.hostUpdated) || void 0 === i6
+          ? void 0
+          : i6.call(t5);
+      }),
+      this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t4)),
+      this.updated(t4));
   }
-  _$EM() {
+  _$Ek() {
     ((this._$AL = /* @__PURE__ */ new Map()), (this.isUpdatePending = false));
   }
   get updateComplete() {
     return this.getUpdateComplete();
   }
   getUpdateComplete() {
-    return this._$ES;
+    return this._$E_;
   }
-  shouldUpdate(t5) {
+  shouldUpdate(t4) {
     return true;
   }
-  update(t5) {
-    ((this._$Eq &&= this._$Eq.forEach((t6) => this._$ET(t6, this[t6]))),
-      this._$EM());
+  update(t4) {
+    (void 0 !== this._$EC &&
+      (this._$EC.forEach((t5, i5) => this._$EO(i5, this[i5], t5)),
+      (this._$EC = void 0)),
+      this._$Ek());
   }
-  updated(t5) {}
-  firstUpdated(t5) {}
+  updated(t4) {}
+  firstUpdated(t4) {}
 };
-((y.elementStyles = []),
-  (y.shadowRootOptions = { mode: "open" }),
-  (y[d("elementProperties")] = /* @__PURE__ */ new Map()),
-  (y[d("finalized")] = /* @__PURE__ */ new Map()),
-  p?.({ ReactiveElement: y }),
-  (a.reactiveElementVersions ??= []).push("2.1.2"));
+((u[d] = true),
+  (u.elementProperties = /* @__PURE__ */ new Map()),
+  (u.elementStyles = []),
+  (u.shadowRootOptions = { mode: "open" }),
+  null == o2 || o2({ ReactiveElement: u }),
+  (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2
+    ? s2
+    : (e2.reactiveElementVersions = [])
+  ).push("1.6.3"));
 
 // node_modules/lit-html/lit-html.js
-var t2 = globalThis;
-var i3 = (t5) => t5;
-var s2 = t2.trustedTypes;
-var e3 = s2 ? s2.createPolicy("lit-html", { createHTML: (t5) => t5 }) : void 0;
-var h2 = "$lit$";
-var o3 = `lit$${Math.random().toFixed(9).slice(2)}$`;
-var n3 = "?" + o3;
-var r3 = `<${n3}>`;
-var l2 = document;
-var c3 = () => l2.createComment("");
-var a2 = (t5) =>
-  null === t5 || ("object" != typeof t5 && "function" != typeof t5);
-var u2 = Array.isArray;
-var d2 = (t5) => u2(t5) || "function" == typeof t5?.[Symbol.iterator];
-var f2 = "[ 	\n\f\r]";
-var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+var t2;
+var i2 = window;
+var s3 = i2.trustedTypes;
+var e3 = s3 ? s3.createPolicy("lit-html", { createHTML: (t4) => t4 }) : void 0;
+var o3 = "$lit$";
+var n3 = `lit$${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}$`;
+var l2 = "?" + n3;
+var h2 = `<${l2}>`;
+var r3 = document;
+var u2 = () => r3.createComment("");
+var d2 = (t4) =>
+  null === t4 || ("object" != typeof t4 && "function" != typeof t4);
+var c2 = Array.isArray;
+var v = (t4) =>
+  c2(t4) || "function" == typeof (null == t4 ? void 0 : t4[Symbol.iterator]);
+var a2 = "[ 	\n\f\r]";
+var f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
 var _ = /-->/g;
 var m = />/g;
-var p2 = RegExp(
-  `>|${f2}(?:([^\\s"'>=/]+)(${f2}*=${f2}*(?:[^ 	 // nosemgrep
+var p = RegExp(
+  `>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
 \f\r"'\`<>=]|("|')|))|$)`,
   "g",
 );
 var g = /'/g;
 var $ = /"/g;
-var y2 = /^(?:script|style|textarea|title)$/i;
-var x =
-  (t5) =>
-  (i7, ...s4) => ({ _$litType$: t5, strings: i7, values: s4 });
-var b2 = x(1);
-var w = x(2);
-var T = x(3);
-var E = /* @__PURE__ */ Symbol.for("lit-noChange");
+var y = /^(?:script|style|textarea|title)$/i;
+var w =
+  (t4) =>
+  (i5, ...s6) => ({ _$litType$: t4, strings: i5, values: s6 });
+var x = w(1);
+var b = w(2);
+var T = /* @__PURE__ */ Symbol.for("lit-noChange");
 var A = /* @__PURE__ */ Symbol.for("lit-nothing");
-var C = /* @__PURE__ */ new WeakMap();
-var P = l2.createTreeWalker(l2, 129);
-function V(t5, i7) {
-  if (!u2(t5) || !t5.hasOwnProperty("raw"))
+var E = /* @__PURE__ */ new WeakMap();
+var C = r3.createTreeWalker(r3, 129, null, false);
+function P(t4, i5) {
+  if (!Array.isArray(t4) || !t4.hasOwnProperty("raw"))
     throw Error("invalid template strings array");
-  return void 0 !== e3 ? e3.createHTML(i7) : i7;
+  return void 0 !== e3 ? e3.createHTML(i5) : i5;
 }
-var N = (t5, i7) => {
-  const s4 = t5.length - 1,
+var V = (t4, i5) => {
+  const s6 = t4.length - 1,
     e6 = [];
-  let n4,
-    l3 = 2 === i7 ? "<svg>" : 3 === i7 ? "<math>" : "",
-    c4 = v;
-  for (let i8 = 0; i8 < s4; i8++) {
-    const s5 = t5[i8];
-    let a3,
-      u3,
-      d3 = -1,
-      f3 = 0;
+  let l5,
+    r4 = 2 === i5 ? "<svg>" : "",
+    u3 = f;
+  for (let i6 = 0; i6 < s6; i6++) {
+    const s7 = t4[i6];
+    let d3,
+      c3,
+      v2 = -1,
+      a4 = 0;
     for (
       ;
-      f3 < s5.length && ((c4.lastIndex = f3), (u3 = c4.exec(s5)), null !== u3);
+      a4 < s7.length && ((u3.lastIndex = a4), (c3 = u3.exec(s7)), null !== c3);
     )
-      ((f3 = c4.lastIndex),
-        c4 === v
-          ? "!--" === u3[1]
-            ? (c4 = _)
-            : void 0 !== u3[1]
-              ? (c4 = m)
-              : void 0 !== u3[2]
-                ? (y2.test(u3[2]) && (n4 = RegExp("</" + u3[2], "g")),
-                  (c4 = p2))
-                : void 0 !== u3[3] && (c4 = p2)
-          : c4 === p2
-            ? ">" === u3[0]
-              ? ((c4 = n4 ?? v), (d3 = -1))
-              : void 0 === u3[1]
-                ? (d3 = -2)
-                : ((d3 = c4.lastIndex - u3[2].length),
-                  (a3 = u3[1]),
-                  (c4 = void 0 === u3[3] ? p2 : '"' === u3[3] ? $ : g))
-            : c4 === $ || c4 === g
-              ? (c4 = p2)
-              : c4 === _ || c4 === m
-                ? (c4 = v)
-                : ((c4 = p2), (n4 = void 0))); // nosemgrep
-    const x2 = c4 === p2 && t5[i8 + 1].startsWith("/>") ? " " : "";
-    l3 +=
-      c4 === v
-        ? s5 + r3
-        : d3 >= 0
-          ? (e6.push(a3), s5.slice(0, d3) + h2 + s5.slice(d3) + o3 + x2)
-          : s5 + o3 + (-2 === d3 ? i8 : x2);
+      ((a4 = u3.lastIndex),
+        u3 === f
+          ? "!--" === c3[1]
+            ? (u3 = _)
+            : void 0 !== c3[1]
+              ? (u3 = m)
+              : void 0 !== c3[2]
+                ? (y.test(c3[2]) && (l5 = RegExp("</" + c3[2], "g")), (u3 = p))
+                : void 0 !== c3[3] && (u3 = p)
+          : u3 === p
+            ? ">" === c3[0]
+              ? ((u3 = null != l5 ? l5 : f), (v2 = -1))
+              : void 0 === c3[1]
+                ? (v2 = -2)
+                : ((v2 = u3.lastIndex - c3[2].length),
+                  (d3 = c3[1]),
+                  (u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g))
+            : u3 === $ || u3 === g
+              ? (u3 = p)
+              : u3 === _ || u3 === m
+                ? (u3 = f)
+                : ((u3 = p), (l5 = void 0))); // nosemgrep
+    const w2 = u3 === p && t4[i6 + 1].startsWith("/>") ? " " : "";
+    r4 +=
+      u3 === f
+        ? s7 + h2
+        : v2 >= 0
+          ? (e6.push(d3), s7.slice(0, v2) + o3 + s7.slice(v2) + n3 + w2)
+          : s7 + n3 + (-2 === v2 ? (e6.push(void 0), i6) : w2);
   }
-  return [
-    V(
-      t5,
-      l3 +
-        (t5[s4] || "<?>") +
-        (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : ""),
-    ),
-    e6,
-  ];
+  return [P(t4, r4 + (t4[s6] || "<?>") + (2 === i5 ? "</svg>" : "")), e6];
 };
-var S2 = class _S {
-  constructor({ strings: t5, _$litType$: i7 }, e6) {
-    let r4;
+var N = class _N {
+  constructor({ strings: t4, _$litType$: i5 }, e6) {
+    let h3;
     this.parts = [];
-    let l3 = 0,
-      a3 = 0;
-    const u3 = t5.length - 1,
-      d3 = this.parts,
-      [f3, v2] = N(t5, i7);
+    let r4 = 0,
+      d3 = 0;
+    const c3 = t4.length - 1,
+      v2 = this.parts,
+      [a4, f2] = V(t4, i5);
     if (
-      ((this.el = _S.createElement(f3, e6)),
-      (P.currentNode = this.el.content),
-      2 === i7 || 3 === i7)
+      ((this.el = _N.createElement(a4, e6)),
+      (C.currentNode = this.el.content),
+      2 === i5)
     ) {
-      const t6 = this.el.content.firstChild;
-      t6.replaceWith(...t6.childNodes);
+      const t5 = this.el.content,
+        i6 = t5.firstChild;
+      (i6.remove(), t5.append(...i6.childNodes));
     }
-    for (; null !== (r4 = P.nextNode()) && d3.length < u3; ) {
-      if (1 === r4.nodeType) {
-        if (r4.hasAttributes())
-          for (const t6 of r4.getAttributeNames())
-            if (t6.endsWith(h2)) {
-              const i8 = v2[a3++],
-                s4 = r4.getAttribute(t6).split(o3),
-                e7 = /([.?@])?(.*)/.exec(i8);
-              (d3.push({
-                type: 1,
-                index: l3,
-                name: e7[2],
-                strings: s4,
-                ctor:
-                  "." === e7[1] ? I : "?" === e7[1] ? L : "@" === e7[1] ? z : H,
-              }),
-                r4.removeAttribute(t6));
-            } else
-              t6.startsWith(o3) &&
-                (d3.push({ type: 6, index: l3 }), r4.removeAttribute(t6));
-        if (y2.test(r4.tagName)) {
-          const t6 = r4.textContent.split(o3),
-            i8 = t6.length - 1;
-          if (i8 > 0) {
-            r4.textContent = s2 ? s2.emptyScript : "";
-            for (let s4 = 0; s4 < i8; s4++)
-              (r4.append(t6[s4], c3()),
-                P.nextNode(),
-                d3.push({ type: 2, index: ++l3 }));
-            r4.append(t6[i8], c3());
+    for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
+      if (1 === h3.nodeType) {
+        if (h3.hasAttributes()) {
+          const t5 = [];
+          for (const i6 of h3.getAttributeNames())
+            if (i6.endsWith(o3) || i6.startsWith(n3)) {
+              const s6 = f2[d3++];
+              if ((t5.push(i6), void 0 !== s6)) {
+                const t6 = h3.getAttribute(s6.toLowerCase() + o3).split(n3),
+                  i7 = /([.?@])?(.*)/.exec(s6);
+                v2.push({
+                  type: 1,
+                  index: r4,
+                  name: i7[2],
+                  strings: t6,
+                  ctor:
+                    "." === i7[1]
+                      ? H
+                      : "?" === i7[1]
+                        ? L
+                        : "@" === i7[1]
+                          ? z
+                          : k,
+                });
+              } else v2.push({ type: 6, index: r4 });
+            }
+          for (const i6 of t5) h3.removeAttribute(i6);
+        }
+        if (y.test(h3.tagName)) {
+          const t5 = h3.textContent.split(n3),
+            i6 = t5.length - 1;
+          if (i6 > 0) {
+            h3.textContent = s3 ? s3.emptyScript : "";
+            for (let s6 = 0; s6 < i6; s6++)
+              (h3.append(t5[s6], u2()),
+                C.nextNode(),
+                v2.push({ type: 2, index: ++r4 }));
+            h3.append(t5[i6], u2());
           }
         }
-      } else if (8 === r4.nodeType)
-        if (r4.data === n3) d3.push({ type: 2, index: l3 });
+      } else if (8 === h3.nodeType)
+        if (h3.data === l2) v2.push({ type: 2, index: r4 });
         else {
-          let t6 = -1;
-          for (; -1 !== (t6 = r4.data.indexOf(o3, t6 + 1)); )
-            (d3.push({ type: 7, index: l3 }), (t6 += o3.length - 1));
+          let t5 = -1;
+          for (; -1 !== (t5 = h3.data.indexOf(n3, t5 + 1)); )
+            (v2.push({ type: 7, index: r4 }), (t5 += n3.length - 1));
         }
-      l3++;
+      r4++;
     }
   }
-  static createElement(t5, i7) {
-    const s4 = l2.createElement("template");
-    return ((s4.innerHTML = t5), s4);
+  static createElement(t4, i5) {
+    const s6 = r3.createElement("template");
+    return ((s6.innerHTML = t4), s6);
   }
 };
-function M(t5, i7, s4 = t5, e6) {
-  if (i7 === E) return i7;
-  let h3 = void 0 !== e6 ? s4._$Co?.[e6] : s4._$Cl;
-  const o6 = a2(i7) ? void 0 : i7._$litDirective$;
+function S2(t4, i5, s6 = t4, e6) {
+  var o6, n5, l5, h3;
+  if (i5 === T) return i5;
+  let r4 =
+    void 0 !== e6
+      ? null === (o6 = s6._$Co) || void 0 === o6
+        ? void 0
+        : o6[e6]
+      : s6._$Cl;
+  const u3 = d2(i5) ? void 0 : i5._$litDirective$;
   return (
-    h3?.constructor !== o6 &&
-      (h3?._$AO?.(false),
-      void 0 === o6 ? (h3 = void 0) : ((h3 = new o6(t5)), h3._$AT(t5, s4, e6)),
-      void 0 !== e6 ? ((s4._$Co ??= [])[e6] = h3) : (s4._$Cl = h3)),
-    void 0 !== h3 && (i7 = M(t5, h3._$AS(t5, i7.values), h3, e6)),
-    i7
+    (null == r4 ? void 0 : r4.constructor) !== u3 &&
+      (null === (n5 = null == r4 ? void 0 : r4._$AO) ||
+        void 0 === n5 ||
+        n5.call(r4, false),
+      void 0 === u3 ? (r4 = void 0) : ((r4 = new u3(t4)), r4._$AT(t4, s6, e6)),
+      void 0 !== e6
+        ? ((null !== (l5 = (h3 = s6)._$Co) && void 0 !== l5
+            ? l5
+            : (h3._$Co = []))[e6] = r4)
+        : (s6._$Cl = r4)),
+    void 0 !== r4 && (i5 = S2(t4, r4._$AS(t4, i5.values), r4, e6)),
+    i5
   );
 }
-var R = class {
-  constructor(t5, i7) {
+var M = class {
+  constructor(t4, i5) {
     ((this._$AV = []),
       (this._$AN = void 0),
-      (this._$AD = t5),
-      (this._$AM = i7));
+      (this._$AD = t4),
+      (this._$AM = i5));
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -603,60 +625,79 @@ var R = class {
   get _$AU() {
     return this._$AM._$AU;
   }
-  u(t5) {
+  u(t4) {
+    var i5;
     const {
-        el: { content: i7 },
-        parts: s4,
+        el: { content: s6 },
+        parts: e6,
       } = this._$AD,
-      e6 = (t5?.creationScope ?? l2).importNode(i7, true);
-    P.currentNode = e6;
-    let h3 = P.nextNode(),
-      o6 = 0,
-      n4 = 0,
-      r4 = s4[0];
-    for (; void 0 !== r4; ) {
-      if (o6 === r4.index) {
-        let i8;
-        (2 === r4.type
-          ? (i8 = new k(h3, h3.nextSibling, this, t5))
-          : 1 === r4.type
-            ? (i8 = new r4.ctor(h3, r4.name, r4.strings, this, t5))
-            : 6 === r4.type && (i8 = new Z(h3, this, t5)),
-          this._$AV.push(i8),
-          (r4 = s4[++n4]));
+      o6 = (
+        null !== (i5 = null == t4 ? void 0 : t4.creationScope) && void 0 !== i5
+          ? i5
+          : r3
+      ).importNode(s6, true);
+    C.currentNode = o6;
+    let n5 = C.nextNode(),
+      l5 = 0,
+      h3 = 0,
+      u3 = e6[0];
+    for (; void 0 !== u3; ) {
+      if (l5 === u3.index) {
+        let i6;
+        (2 === u3.type
+          ? (i6 = new R(n5, n5.nextSibling, this, t4))
+          : 1 === u3.type
+            ? (i6 = new u3.ctor(n5, u3.name, u3.strings, this, t4))
+            : 6 === u3.type && (i6 = new Z(n5, this, t4)),
+          this._$AV.push(i6),
+          (u3 = e6[++h3]));
       }
-      o6 !== r4?.index && ((h3 = P.nextNode()), o6++);
+      l5 !== (null == u3 ? void 0 : u3.index) && ((n5 = C.nextNode()), l5++);
     }
-    return ((P.currentNode = l2), e6);
+    return ((C.currentNode = r3), o6);
   }
-  p(t5) {
-    let i7 = 0;
-    for (const s4 of this._$AV)
-      (void 0 !== s4 &&
-        (void 0 !== s4.strings
-          ? (s4._$AI(t5, s4, i7), (i7 += s4.strings.length - 2))
-          : s4._$AI(t5[i7])),
-        i7++);
+  v(t4) {
+    let i5 = 0;
+    for (const s6 of this._$AV)
+      (void 0 !== s6 &&
+        (void 0 !== s6.strings
+          ? (s6._$AI(t4, s6, i5), (i5 += s6.strings.length - 2))
+          : s6._$AI(t4[i5])),
+        i5++);
   }
 };
-var k = class _k {
-  get _$AU() {
-    return this._$AM?._$AU ?? this._$Cv;
-  }
-  constructor(t5, i7, s4, e6) {
+var R = class _R {
+  constructor(t4, i5, s6, e6) {
+    var o6;
     ((this.type = 2),
       (this._$AH = A),
       (this._$AN = void 0),
-      (this._$AA = t5),
-      (this._$AB = i7),
-      (this._$AM = s4),
+      (this._$AA = t4),
+      (this._$AB = i5),
+      (this._$AM = s6),
       (this.options = e6),
-      (this._$Cv = e6?.isConnected ?? true));
+      (this._$Cp =
+        null === (o6 = null == e6 ? void 0 : e6.isConnected) ||
+        void 0 === o6 ||
+        o6));
+  }
+  get _$AU() {
+    var t4, i5;
+    return null !==
+      (i5 = null === (t4 = this._$AM) || void 0 === t4 ? void 0 : t4._$AU) &&
+      void 0 !== i5
+      ? i5
+      : this._$Cp;
   }
   get parentNode() {
-    let t5 = this._$AA.parentNode;
-    const i7 = this._$AM;
-    return (void 0 !== i7 && 11 === t5?.nodeType && (t5 = i7.parentNode), t5);
+    let t4 = this._$AA.parentNode;
+    const i5 = this._$AM;
+    return (
+      void 0 !== i5 &&
+        11 === (null == t4 ? void 0 : t4.nodeType) &&
+        (t4 = i5.parentNode),
+      t4
+    );
   }
   get startNode() {
     return this._$AA;
@@ -664,236 +705,298 @@ var k = class _k {
   get endNode() {
     return this._$AB;
   }
-  _$AI(t5, i7 = this) {
-    ((t5 = M(this, t5, i7)),
-      a2(t5)
-        ? t5 === A || null == t5 || "" === t5
+  _$AI(t4, i5 = this) {
+    ((t4 = S2(this, t4, i5)),
+      d2(t4)
+        ? t4 === A || null == t4 || "" === t4
           ? (this._$AH !== A && this._$AR(), (this._$AH = A))
-          : t5 !== this._$AH && t5 !== E && this._(t5)
-        : void 0 !== t5._$litType$
-          ? this.$(t5)
-          : void 0 !== t5.nodeType
-            ? this.T(t5)
-            : d2(t5)
-              ? this.k(t5)
-              : this._(t5));
+          : t4 !== this._$AH && t4 !== T && this._(t4)
+        : void 0 !== t4._$litType$
+          ? this.g(t4)
+          : void 0 !== t4.nodeType
+            ? this.$(t4)
+            : v(t4)
+              ? this.T(t4)
+              : this._(t4));
   }
-  O(t5) {
-    return this._$AA.parentNode.insertBefore(t5, this._$AB);
+  k(t4) {
+    return this._$AA.parentNode.insertBefore(t4, this._$AB);
   }
-  T(t5) {
-    this._$AH !== t5 && (this._$AR(), (this._$AH = this.O(t5)));
+  $(t4) {
+    this._$AH !== t4 && (this._$AR(), (this._$AH = this.k(t4)));
   }
-  _(t5) {
-    (this._$AH !== A && a2(this._$AH)
-      ? (this._$AA.nextSibling.data = t5)
-      : this.T(l2.createTextNode(t5)),
-      (this._$AH = t5));
+  _(t4) {
+    (this._$AH !== A && d2(this._$AH)
+      ? (this._$AA.nextSibling.data = t4)
+      : this.$(r3.createTextNode(t4)),
+      (this._$AH = t4));
   }
-  $(t5) {
-    const { values: i7, _$litType$: s4 } = t5,
-      e6 =
-        "number" == typeof s4
-          ? this._$AC(t5)
-          : (void 0 === s4.el &&
-              (s4.el = S2.createElement(V(s4.h, s4.h[0]), this.options)),
-            s4);
-    if (this._$AH?._$AD === e6) this._$AH.p(i7);
+  g(t4) {
+    var i5;
+    const { values: s6, _$litType$: e6 } = t4,
+      o6 =
+        "number" == typeof e6
+          ? this._$AC(t4)
+          : (void 0 === e6.el &&
+              (e6.el = N.createElement(P(e6.h, e6.h[0]), this.options)),
+            e6);
+    if ((null === (i5 = this._$AH) || void 0 === i5 ? void 0 : i5._$AD) === o6)
+      this._$AH.v(s6);
     else {
-      const t6 = new R(e6, this),
-        s5 = t6.u(this.options);
-      (t6.p(i7), this.T(s5), (this._$AH = t6));
+      const t5 = new M(o6, this),
+        i6 = t5.u(this.options);
+      (t5.v(s6), this.$(i6), (this._$AH = t5));
     }
   }
-  _$AC(t5) {
-    let i7 = C.get(t5.strings);
-    return (void 0 === i7 && C.set(t5.strings, (i7 = new S2(t5))), i7);
+  _$AC(t4) {
+    let i5 = E.get(t4.strings);
+    return (void 0 === i5 && E.set(t4.strings, (i5 = new N(t4))), i5);
   }
-  k(t5) {
-    u2(this._$AH) || ((this._$AH = []), this._$AR());
-    const i7 = this._$AH;
-    let s4,
+  T(t4) {
+    c2(this._$AH) || ((this._$AH = []), this._$AR());
+    const i5 = this._$AH;
+    let s6,
       e6 = 0;
-    for (const h3 of t5)
-      (e6 === i7.length
-        ? i7.push((s4 = new _k(this.O(c3()), this.O(c3()), this, this.options)))
-        : (s4 = i7[e6]),
-        s4._$AI(h3),
+    for (const o6 of t4)
+      (e6 === i5.length
+        ? i5.push((s6 = new _R(this.k(u2()), this.k(u2()), this, this.options)))
+        : (s6 = i5[e6]),
+        s6._$AI(o6),
         e6++);
-    e6 < i7.length &&
-      (this._$AR(s4 && s4._$AB.nextSibling, e6), (i7.length = e6));
+    e6 < i5.length &&
+      (this._$AR(s6 && s6._$AB.nextSibling, e6), (i5.length = e6));
   }
-  _$AR(t5 = this._$AA.nextSibling, s4) {
-    for (this._$AP?.(false, true, s4); t5 !== this._$AB; ) {
-      const s5 = i3(t5).nextSibling;
-      (i3(t5).remove(), (t5 = s5));
+  _$AR(t4 = this._$AA.nextSibling, i5) {
+    var s6;
+    for (
+      null === (s6 = this._$AP) ||
+      void 0 === s6 ||
+      s6.call(this, false, true, i5);
+      t4 && t4 !== this._$AB;
+    ) {
+      const i6 = t4.nextSibling;
+      (t4.remove(), (t4 = i6));
     }
   }
-  setConnected(t5) {
-    void 0 === this._$AM && ((this._$Cv = t5), this._$AP?.(t5));
+  setConnected(t4) {
+    var i5;
+    void 0 === this._$AM &&
+      ((this._$Cp = t4),
+      null === (i5 = this._$AP) || void 0 === i5 || i5.call(this, t4));
   }
 };
-var H = class {
+var k = class {
+  constructor(t4, i5, s6, e6, o6) {
+    ((this.type = 1),
+      (this._$AH = A),
+      (this._$AN = void 0),
+      (this.element = t4),
+      (this.name = i5),
+      (this._$AM = e6),
+      (this.options = o6),
+      s6.length > 2 || "" !== s6[0] || "" !== s6[1]
+        ? ((this._$AH = Array(s6.length - 1).fill(new String())),
+          (this.strings = s6))
+        : (this._$AH = A));
+  }
   get tagName() {
     return this.element.tagName;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(t5, i7, s4, e6, h3) {
-    ((this.type = 1),
-      (this._$AH = A),
-      (this._$AN = void 0),
-      (this.element = t5),
-      (this.name = i7),
-      (this._$AM = e6),
-      (this.options = h3),
-      s4.length > 2 || "" !== s4[0] || "" !== s4[1]
-        ? ((this._$AH = Array(s4.length - 1).fill(new String())),
-          (this.strings = s4))
-        : (this._$AH = A));
-  }
-  _$AI(t5, i7 = this, s4, e6) {
-    const h3 = this.strings;
-    let o6 = false;
-    if (void 0 === h3)
-      ((t5 = M(this, t5, i7, 0)),
-        (o6 = !a2(t5) || (t5 !== this._$AH && t5 !== E)),
-        o6 && (this._$AH = t5));
+  _$AI(t4, i5 = this, s6, e6) {
+    const o6 = this.strings;
+    let n5 = false;
+    if (void 0 === o6)
+      ((t4 = S2(this, t4, i5, 0)),
+        (n5 = !d2(t4) || (t4 !== this._$AH && t4 !== T)),
+        n5 && (this._$AH = t4));
     else {
-      const e7 = t5;
-      let n4, r4;
-      for (t5 = h3[0], n4 = 0; n4 < h3.length - 1; n4++)
-        ((r4 = M(this, e7[s4 + n4], i7, n4)),
-          r4 === E && (r4 = this._$AH[n4]),
-          (o6 ||= !a2(r4) || r4 !== this._$AH[n4]),
-          r4 === A ? (t5 = A) : t5 !== A && (t5 += (r4 ?? "") + h3[n4 + 1]),
-          (this._$AH[n4] = r4));
+      const e7 = t4;
+      let l5, h3;
+      for (t4 = o6[0], l5 = 0; l5 < o6.length - 1; l5++)
+        ((h3 = S2(this, e7[s6 + l5], i5, l5)),
+          h3 === T && (h3 = this._$AH[l5]),
+          n5 || (n5 = !d2(h3) || h3 !== this._$AH[l5]),
+          h3 === A
+            ? (t4 = A)
+            : t4 !== A && (t4 += (null != h3 ? h3 : "") + o6[l5 + 1]),
+          (this._$AH[l5] = h3));
     }
-    o6 && !e6 && this.j(t5);
+    n5 && !e6 && this.j(t4);
   }
-  j(t5) {
-    t5 === A
+  j(t4) {
+    t4 === A
       ? this.element.removeAttribute(this.name)
-      : this.element.setAttribute(this.name, t5 ?? "");
+      : this.element.setAttribute(this.name, null != t4 ? t4 : "");
   }
 };
-var I = class extends H {
+var H = class extends k {
   constructor() {
     (super(...arguments), (this.type = 3));
   }
-  j(t5) {
-    this.element[this.name] = t5 === A ? void 0 : t5;
+  j(t4) {
+    this.element[this.name] = t4 === A ? void 0 : t4;
   }
 };
-var L = class extends H {
+var I = s3 ? s3.emptyScript : "";
+var L = class extends k {
   constructor() {
     (super(...arguments), (this.type = 4));
   }
-  j(t5) {
-    this.element.toggleAttribute(this.name, !!t5 && t5 !== A);
+  j(t4) {
+    t4 && t4 !== A
+      ? this.element.setAttribute(this.name, I)
+      : this.element.removeAttribute(this.name);
   }
 };
-var z = class extends H {
-  constructor(t5, i7, s4, e6, h3) {
-    (super(t5, i7, s4, e6, h3), (this.type = 5));
+var z = class extends k {
+  constructor(t4, i5, s6, e6, o6) {
+    (super(t4, i5, s6, e6, o6), (this.type = 5));
   }
-  _$AI(t5, i7 = this) {
-    if ((t5 = M(this, t5, i7, 0) ?? A) === E) return;
-    const s4 = this._$AH,
-      e6 =
-        (t5 === A && s4 !== A) ||
-        t5.capture !== s4.capture ||
-        t5.once !== s4.once ||
-        t5.passive !== s4.passive,
-      h3 = t5 !== A && (s4 === A || e6);
-    (e6 && this.element.removeEventListener(this.name, this, s4),
-      h3 && this.element.addEventListener(this.name, this, t5),
-      (this._$AH = t5));
+  _$AI(t4, i5 = this) {
+    var s6;
+    if (
+      (t4 = null !== (s6 = S2(this, t4, i5, 0)) && void 0 !== s6 ? s6 : A) === T
+    )
+      return;
+    const e6 = this._$AH,
+      o6 =
+        (t4 === A && e6 !== A) ||
+        t4.capture !== e6.capture ||
+        t4.once !== e6.once ||
+        t4.passive !== e6.passive,
+      n5 = t4 !== A && (e6 === A || o6);
+    (o6 && this.element.removeEventListener(this.name, this, e6),
+      n5 && this.element.addEventListener(this.name, this, t4),
+      (this._$AH = t4));
   }
-  handleEvent(t5) {
+  handleEvent(t4) {
+    var i5, s6;
     "function" == typeof this._$AH
-      ? this._$AH.call(this.options?.host ?? this.element, t5)
-      : this._$AH.handleEvent(t5);
+      ? this._$AH.call(
+          null !==
+            (s6 =
+              null === (i5 = this.options) || void 0 === i5
+                ? void 0
+                : i5.host) && void 0 !== s6
+            ? s6
+            : this.element,
+          t4,
+        )
+      : this._$AH.handleEvent(t4);
   }
 };
 var Z = class {
-  constructor(t5, i7, s4) {
-    ((this.element = t5),
+  constructor(t4, i5, s6) {
+    ((this.element = t4),
       (this.type = 6),
       (this._$AN = void 0),
-      (this._$AM = i7),
-      (this.options = s4));
+      (this._$AM = i5),
+      (this.options = s6));
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AI(t5) {
-    M(this, t5);
+  _$AI(t4) {
+    S2(this, t4);
   }
 };
 var j = {
-  M: h2,
-  P: o3,
-  A: n3,
+  O: o3,
+  P: n3,
+  A: l2,
   C: 1,
-  L: N,
-  R,
-  D: d2,
-  V: M,
-  I: k,
-  H,
-  N: L,
-  U: z,
-  B: I,
+  M: V,
+  L: M,
+  R: v,
+  D: S2,
+  I: R,
+  V: k,
+  H: L,
+  N: z,
+  U: H,
   F: Z,
 };
-var B = t2.litHtmlPolyfillSupport;
-(B?.(S2, k), (t2.litHtmlVersions ??= []).push("3.3.3"));
-var D = (t5, i7, s4) => {
-  const e6 = s4?.renderBefore ?? i7;
-  let h3 = e6._$litPart$;
-  if (void 0 === h3) {
-    const t6 = s4?.renderBefore ?? null;
-    e6._$litPart$ = h3 = new k(i7.insertBefore(c3(), t6), t6, void 0, s4 ?? {});
+var B = i2.litHtmlPolyfillSupport;
+(null == B || B(N, R),
+  (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2
+    ? t2
+    : (i2.litHtmlVersions = [])
+  ).push("2.8.0"));
+var D = (t4, i5, s6) => {
+  var e6, o6;
+  const n5 =
+    null !== (e6 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== e6
+      ? e6
+      : i5;
+  let l5 = n5._$litPart$;
+  if (void 0 === l5) {
+    const t5 =
+      null !== (o6 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== o6
+        ? o6
+        : null;
+    n5._$litPart$ = l5 = new R(
+      i5.insertBefore(u2(), t5),
+      t5,
+      void 0,
+      null != s6 ? s6 : {},
+    );
   }
-  return (h3._$AI(t5), h3);
+  return (l5._$AI(t4), l5);
 };
 
 // node_modules/lit-element/lit-element.js
-var s3 = globalThis;
-var i4 = class extends y {
+var l3;
+var o4;
+var s4 = class extends u {
   constructor() {
     (super(...arguments),
       (this.renderOptions = { host: this }),
       (this._$Do = void 0));
   }
   createRenderRoot() {
-    const t5 = super.createRenderRoot();
-    return ((this.renderOptions.renderBefore ??= t5.firstChild), t5);
+    var t4, e6;
+    const i5 = super.createRenderRoot();
+    return (
+      (null !== (t4 = (e6 = this.renderOptions).renderBefore) &&
+        void 0 !== t4) ||
+        (e6.renderBefore = i5.firstChild),
+      i5
+    );
   }
-  update(t5) {
-    const r4 = this.render();
+  update(t4) {
+    const i5 = this.render();
     (this.hasUpdated || (this.renderOptions.isConnected = this.isConnected),
-      super.update(t5),
-      (this._$Do = D(r4, this.renderRoot, this.renderOptions)));
+      super.update(t4),
+      (this._$Do = D(i5, this.renderRoot, this.renderOptions)));
   }
   connectedCallback() {
-    (super.connectedCallback(), this._$Do?.setConnected(true));
+    var t4;
+    (super.connectedCallback(),
+      null === (t4 = this._$Do) || void 0 === t4 || t4.setConnected(true));
   }
   disconnectedCallback() {
-    (super.disconnectedCallback(), this._$Do?.setConnected(false));
+    var t4;
+    (super.disconnectedCallback(),
+      null === (t4 = this._$Do) || void 0 === t4 || t4.setConnected(false));
   }
   render() {
-    return E;
+    return T;
   }
 };
-((i4._$litElement$ = true),
-  (i4["finalized"] = true),
-  s3.litElementHydrateSupport?.({ LitElement: i4 }));
-var o4 = s3.litElementPolyfillSupport;
-o4?.({ LitElement: i4 });
-(s3.litElementVersions ??= []).push("4.2.2");
+((s4.finalized = true),
+  (s4._$litElement$ = true),
+  null === (l3 = globalThis.litElementHydrateSupport) ||
+    void 0 === l3 ||
+    l3.call(globalThis, { LitElement: s4 }));
+var n4 = globalThis.litElementPolyfillSupport;
+null == n4 || n4({ LitElement: s4 });
+(null !== (o4 = globalThis.litElementVersions) && void 0 !== o4
+  ? o4
+  : (globalThis.litElementVersions = [])
+).push("3.3.3");
 
 // src/shared/design-tokens.css.js
 var seloraTokens = i`
@@ -1304,6 +1407,9 @@ var sharedBadges = i`
     line-height: 1;
     display: inline-flex;
     align-items: center;
+    /* inline-flex ignores text-align; center the content explicitly so a
+       min-width-padded badge isn't left-aligned. */
+    justify-content: center;
     transition: all 0.25s ease;
   }
   .chip {
@@ -2414,8 +2520,10 @@ var headerStyles = i`
      .overflow-section.narrow-only { display: none } and .tabs-center
      rules so it wins on source order — otherwise the later base rule
      re-hides the menu's nav section and the homeowner loses navigation
-     entirely once the header collapses. */
-  @container selora-header (max-width: 880px) {
+     entirely once the header collapses. Breakpoint sized for the 5-tab
+     strip (Conversations / Automations / Scenes / Recipes / Insights)
+     plus the title and New Chat button — below this they overlap. */
+  @container selora-header (max-width: 1150px) {
     .tabs-center {
       display: none;
     }
@@ -6701,6 +6809,531 @@ var usageStyles = i`
   }
 `;
 
+// src/panel/styles/insights.css.js
+var insightsStyles = i`
+  .page-sub {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-top: 4px;
+  }
+  .btn-sm {
+    padding: 4px 10px;
+    font-size: 12px;
+    /* Constrain the icon: without this ha-icon defaults to 24px, dwarfing the
+       12px label and clashing with the 13px Re-run button icon. */
+    --mdc-icon-size: 15px;
+  }
+
+  .insights-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .insights-tile {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    border-radius: 10px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .insights-tile-value {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .insights-tile-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.7;
+    margin-top: 6px;
+  }
+
+  .insights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .insight-card {
+    display: flex;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    border-radius: 10px;
+    overflow: hidden;
+    transition: opacity 0.2s ease;
+  }
+  .insight-card.acknowledged {
+    opacity: 0.6;
+  }
+  .insight-card-severity {
+    flex: 0 0 4px;
+  }
+  .insight-card-body {
+    flex: 1 1 auto;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+  .insight-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .insight-card-title {
+    font-weight: 600;
+    font-size: 14px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .insight-kind-badge {
+    flex: 0 0 auto;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .insight-card-detail {
+    font-size: 13px;
+    opacity: 0.8;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .insight-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    align-items: center;
+  }
+  .insight-ack-note {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+
+  /* ── Audit card (primary) ── */
+  .insight-audit-card {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin: 16px 0;
+  }
+  .insight-audit-md {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .insight-audit-md h1,
+  .insight-audit-md h2,
+  .insight-audit-md h3,
+  .insight-audit-md h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 16px 0 6px;
+  }
+  .insight-audit-md ul {
+    margin: 6px 0;
+    padding-left: 18px;
+  }
+  .insight-audit-md li {
+    margin: 3px 0;
+  }
+  .insight-audit-md .selora-entity-grid {
+    margin: 6px 0;
+  }
+  .insight-audit-actions {
+    margin-top: 16px;
+  }
+  .insight-audit-status {
+    font-size: 13px;
+    opacity: 0.75;
+    padding: 8px 0;
+  }
+  .insight-audit-err {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-top: 6px;
+    font-family: var(--code-font-family, monospace);
+  }
+  .insight-audit-running {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .insight-audit-hint {
+    font-size: 12px;
+    opacity: 0.55;
+    margin-top: 2px;
+  }
+
+  /* ── Audit recommendation cards ── */
+  .audit-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 16px 0;
+  }
+  .audit-card-tiles {
+    margin: 8px 0 2px;
+  }
+  .insights-section-label {
+    margin: 20px 0 -4px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+  .page-header-spacer {
+    flex: 1 1 auto;
+  }
+  /* ── Health score gauge (hero) ── */
+  .health-gauge {
+    position: relative;
+    width: 148px;
+    height: 148px;
+    margin: 8px auto 20px;
+  }
+  .health-gauge-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .health-gauge-track,
+  .health-gauge-value {
+    fill: none;
+    stroke-width: 9;
+    stroke-linecap: round;
+    /* Start at 3 o'clock; rotate so the 90° gap sits centred at the bottom. */
+    transform: rotate(135deg);
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .health-gauge-track {
+    stroke: var(--divider-color, rgba(255, 255, 255, 0.1));
+  }
+  .health-gauge-value {
+    stroke: var(--gauge-color, #22c55e);
+    filter: drop-shadow(
+      0 0 5px color-mix(in srgb, var(--gauge-color) 55%, transparent)
+    );
+    animation: health-gauge-sweep 1.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes health-gauge-sweep {
+    from {
+      stroke-dashoffset: var(--gauge-len);
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  .health-gauge-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    animation: health-gauge-pop 0.6s ease-out both;
+  }
+  @keyframes health-gauge-pop {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .health-gauge-score {
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--gauge-color, #22c55e);
+    letter-spacing: -0.02em;
+  }
+  .health-gauge-max {
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.5;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .health-gauge-value {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+    .health-gauge-center {
+      animation: none;
+    }
+  }
+  .check-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  /* Each check is a bounded row-card so the title and its status read as one
+     unit instead of a label and a far-away word across empty space. */
+  .check-item {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: background 0.12s ease;
+  }
+  /* Only the collapsed (clear) rows brighten on hover — a whole-card tint on an
+     expanded issue row would wash out the finding sub-cards nested inside it. */
+  .check-item:not(.check-item-issues):hover {
+    background: color-mix(
+      in srgb,
+      var(--primary-text-color, #fff) 7%,
+      var(--card-background-color, rgba(255, 255, 255, 0.04))
+    );
+  }
+  .check-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .check-icon {
+    --mdc-icon-size: 18px;
+    flex: 0 0 auto;
+  }
+  .check-clear {
+    color: var(--success-color, #43a047);
+  }
+  .check-issues {
+    color: var(--warning-color, #ffa600);
+  }
+  /* A check that failed to run — muted, distinct from clear (green) so it never
+     reads as "assessed and healthy". */
+  .check-error {
+    color: var(--secondary-text-color, #9e9e9e);
+  }
+  .check-title {
+    font-weight: 600;
+    font-size: 14px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* Color-coded status chip — the color echoes the row icon so the outcome is
+     legible at a glance without tracing across the row. */
+  .check-badge {
+    flex: 0 0 auto;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .check-badge.clear {
+    color: var(--success-color, #43a047);
+    background: color-mix(
+      in srgb,
+      var(--success-color, #43a047) 14%,
+      transparent
+    );
+  }
+  .check-badge.issues {
+    color: var(--warning-color, #ffa600);
+    background: color-mix(
+      in srgb,
+      var(--warning-color, #ffa600) 16%,
+      transparent
+    );
+  }
+  .check-badge.error {
+    color: var(--secondary-text-color, #9e9e9e);
+    background: color-mix(
+      in srgb,
+      var(--secondary-text-color, #9e9e9e) 14%,
+      transparent
+    );
+  }
+  .check-ai {
+    font-size: 10px;
+  }
+  .check-findings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 12px 0 0;
+  }
+  /* Finding cards sit inside the (same-coloured) row-card, so lift them a
+     shade to stay distinct. Use a text-on-card mix rather than
+     --secondary-background-color, which is a heavy mid-grey in light mode; this
+     stays a subtle tint in both themes (slightly darker on light, lighter on
+     dark). */
+  .check-findings .audit-card {
+    background: color-mix(
+      in srgb,
+      var(--primary-text-color, #fff) 5%,
+      var(--card-background-color, transparent)
+    );
+  }
+  .audit-card {
+    display: flex;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .audit-card-bar {
+    flex: 0 0 4px;
+  }
+  .audit-card-body {
+    flex: 1 1 auto;
+    padding: 14px 16px;
+    min-width: 0;
+  }
+  .audit-card-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .audit-card-title {
+    font-weight: 600;
+    font-size: 14px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .audit-card-badge {
+    flex: 0 0 auto;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .audit-card-detail {
+    font-size: 13px;
+    opacity: 0.82;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+  .audit-card-entities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .audit-entity-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--secondary-background-color, rgba(255, 255, 255, 0.07));
+    border: none;
+    border-radius: 12px;
+    padding: 3px 10px 3px 8px;
+    font-size: 12px;
+    color: inherit;
+    cursor: pointer;
+  }
+  .audit-entity-chip ha-icon {
+    --mdc-icon-size: 14px;
+    opacity: 0.7;
+  }
+  .audit-entity-chip:hover {
+    background: var(--divider-color, rgba(255, 255, 255, 0.12));
+  }
+  .audit-card-actions {
+    margin-top: 12px;
+  }
+
+  /* ── Device-health signal groups ── */
+  .ts-ignore {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 4px 8px;
+    background: none;
+    border: none;
+    color: var(--secondary-text-color, #a1a1aa);
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0.7;
+    --mdc-icon-size: 15px;
+  }
+  .ts-ignore:hover {
+    opacity: 1;
+  }
+  .ts-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .ts-group {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .ts-group-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .ts-group-summary {
+    margin-left: auto;
+    font-size: 11px;
+    opacity: 0.6;
+    white-space: nowrap;
+  }
+  .ts-group-chevron {
+    --mdc-icon-size: 16px;
+    opacity: 0.5;
+    flex: 0 0 auto;
+  }
+  .ts-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+  }
+  .ts-group-name {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .ts-group-area {
+    font-size: 11px;
+    opacity: 0.55;
+  }
+  .ts-group-count {
+    margin-left: auto;
+    font-size: 11px;
+    opacity: 0.6;
+  }
+  .ts-group-items {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .ts-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .ts-item-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--primary-color, #03a9f4);
+    cursor: pointer;
+    font-size: 12px;
+    text-align: left;
+  }
+  .ts-item-link:hover {
+    text-decoration: underline;
+  }
+  .ts-item-desc {
+    opacity: 0.6;
+  }
+`;
+
 // src/panel/styles/quick-actions.css.js
 var quickActionStyles = i`
   /* ── Shared quick-action container ── */
@@ -7057,6 +7690,7 @@ var allPanelStyles = [
   automationsStyles,
   settingsStyles,
   usageStyles,
+  insightsStyles,
   quickActionStyles,
 ];
 
@@ -7067,8 +7701,8 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 function parseHexColor(hex) {
-  const n4 = parseInt(hex.slice(1), 16);
-  return [(n4 >> 16) & 255, (n4 >> 8) & 255, n4 & 255];
+  const n5 = parseInt(hex.slice(1), 16);
+  return [(n5 >> 16) & 255, (n5 >> 8) & 255, n5 & 255];
 }
 var SparkleEngine = class {
   constructor(canvas, opts) {
@@ -7097,7 +7731,7 @@ var SparkleEngine = class {
   }
   init() {
     this.particles = [];
-    for (let i7 = 0; i7 < this.count; i7++) {
+    for (let i5 = 0; i5 < this.count; i5++) {
       const yBias = Math.random();
       this.particles.push({
         x: rand(0, this.w),
@@ -7131,39 +7765,39 @@ var SparkleEngine = class {
     const { w: w2, h: h3, maxOpacity, particles } = this;
     this._currentSpeed +=
       (this._targetSpeed - this._currentSpeed) * this._speedEase;
-    const s4 = this._currentSpeed;
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
-      p4.x += p4.vx * s4;
-      p4.y += p4.vy * s4;
-      if (p4.x < 0) p4.x = w2;
-      else if (p4.x > w2) p4.x = 0;
-      if (p4.y < 0) {
-        p4.y = h3;
-      } else if (p4.y > h3) {
+    const s6 = this._currentSpeed;
+    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
+      const p2 = particles[i5];
+      p2.x += p2.vx * s6;
+      p2.y += p2.vy * s6;
+      if (p2.x < 0) p2.x = w2;
+      else if (p2.x > w2) p2.x = 0;
+      if (p2.y < 0) {
+        p2.y = h3;
+      } else if (p2.y > h3) {
         const r4 = Math.random();
-        p4.y = r4 * r4 * h3 * 0.5;
+        p2.y = r4 * r4 * h3 * 0.5;
       }
-      p4.opacity += p4.opacitySpeed * p4.opacityDir * s4;
-      if (p4.opacity >= maxOpacity) {
-        p4.opacity = maxOpacity;
-        p4.opacityDir = -1;
-      } else if (p4.opacity <= 0.1) {
-        p4.opacity = 0.1;
-        p4.opacityDir = 1;
+      p2.opacity += p2.opacitySpeed * p2.opacityDir * s6;
+      if (p2.opacity >= maxOpacity) {
+        p2.opacity = maxOpacity;
+        p2.opacityDir = -1;
+      } else if (p2.opacity <= 0.1) {
+        p2.opacity = 0.1;
+        p2.opacityDir = 1;
       }
     }
   }
   _draw() {
     const { ctx, w: w2, h: h3, particles, _rgb } = this;
-    const [r4, g2, b3] = _rgb;
+    const [r4, g2, b2] = _rgb;
     ctx.clearRect(0, 0, w2, h3);
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
-      ctx.globalAlpha = p4.opacity;
-      ctx.fillStyle = `rgb(${r4},${g2},${b3})`;
+    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
+      const p2 = particles[i5];
+      ctx.globalAlpha = p2.opacity;
+      ctx.fillStyle = `rgb(${r4},${g2},${b2})`;
       ctx.beginPath();
-      ctx.arc(p4.x, p4.y, p4.size, 0, TAU);
+      ctx.arc(p2.x, p2.y, p2.size, 0, TAU);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -8021,6 +8655,7 @@ var en_default = {
     scene_actions_refine_default_name: "the scene",
     session_toast_new_automation_chat_failed:
       "Failed to start a new automation chat:",
+    session_toast_new_session_failed: "Failed to start a new conversation:",
     session_toast_ai_no_suggestion:
       "AI didn't return a suggestion \u2014 try again.",
     session_toast_suggest_failed:
@@ -9106,6 +9741,8 @@ var fr_default = {
     scene_actions_refine_default_name: "la sc\xE8ne",
     session_toast_new_automation_chat_failed:
       "\xC9chec du d\xE9marrage d'un nouveau chat d'automatisation :",
+    session_toast_new_session_failed:
+      "\xC9chec du d\xE9marrage d'une nouvelle conversation :",
     session_toast_ai_no_suggestion:
       "L'IA n'a pas retourn\xE9 de suggestion \u2014 r\xE9essayez.",
     session_toast_suggest_failed:
@@ -10204,6 +10841,8 @@ var de_default = {
     scene_actions_refine_default_name: "die Szene",
     session_toast_new_automation_chat_failed:
       "Neuer Automatisierungs-Chat konnte nicht gestartet werden:",
+    session_toast_new_session_failed:
+      "Neue Unterhaltung konnte nicht gestartet werden:",
     session_toast_ai_no_suggestion:
       "KI hat keinen Vorschlag zur\xFCckgegeben \u2014 versuchen Sie es erneut.",
     session_toast_suggest_failed:
@@ -11289,6 +11928,8 @@ var es_default = {
     scene_actions_refine_default_name: "la escena",
     session_toast_new_automation_chat_failed:
       "No se pudo iniciar un nuevo chat de automatizaci\xF3n:",
+    session_toast_new_session_failed:
+      "No se pudo iniciar una nueva conversaci\xF3n:",
     session_toast_ai_no_suggestion:
       "La IA no devolvi\xF3 una sugerencia \u2014 int\xE9ntelo de nuevo.",
     session_toast_suggest_failed:
@@ -12365,6 +13006,8 @@ var it_default = {
     scene_actions_refine_default_name: "la scena",
     session_toast_new_automation_chat_failed:
       "Impossibile avviare una nuova chat di automazione:",
+    session_toast_new_session_failed:
+      "Impossibile avviare una nuova conversazione:",
     session_toast_ai_no_suggestion:
       "L'AI non ha restituito un suggerimento \u2014 riprovi.",
     session_toast_suggest_failed:
@@ -13460,6 +14103,7 @@ var nl_default = {
     scene_actions_refine_default_name: "de sc\xE8ne",
     session_toast_new_automation_chat_failed:
       "Starten van nieuw automatiseringsgesprek mislukt:",
+    session_toast_new_session_failed: "Starten van nieuw gesprek mislukt:",
     session_toast_ai_no_suggestion:
       "AI heeft geen suggestie geretourneerd \u2014 probeer het opnieuw.",
     session_toast_suggest_failed:
@@ -14574,6 +15218,8 @@ var hu_default = {
     scene_actions_refine_default_name: "a jelenet",
     session_toast_new_automation_chat_failed:
       "Nem siker\xFClt \xFAj automatizmus-besz\xE9lget\xE9st ind\xEDtani:",
+    session_toast_new_session_failed:
+      "Nem siker\xFClt \xFAj besz\xE9lget\xE9st ind\xEDtani:",
     session_toast_ai_no_suggestion:
       "Az AI nem adott vissza javaslatot \u2014 pr\xF3b\xE1lja \xFAjra.",
     session_toast_suggest_failed:
@@ -15664,6 +16310,8 @@ var pt_default = {
     scene_actions_refine_default_name: "a cena",
     session_toast_new_automation_chat_failed:
       "N\xE3o foi poss\xEDvel iniciar uma nova conversa de automa\xE7\xE3o:",
+    session_toast_new_session_failed:
+      "N\xE3o foi poss\xEDvel iniciar uma nova conversa:",
     session_toast_ai_no_suggestion:
       "A IA n\xE3o devolveu nenhuma sugest\xE3o \u2014 tente novamente.",
     session_toast_suggest_failed:
@@ -17080,6 +17728,8 @@ var ru_default = {
     scene_actions_refine_default_name: "\u0441\u0446\u0435\u043D\u0430",
     session_toast_new_automation_chat_failed:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0447\u0430\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u0447\u0430\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438:",
+    session_toast_new_session_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0447\u0430\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u0440\u0430\u0437\u0433\u043E\u0432\u043E\u0440:",
     session_toast_ai_no_suggestion:
       "\u0418\u0418 \u043D\u0435 \u0432\u0435\u0440\u043D\u0443\u043B \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
     session_toast_suggest_failed:
@@ -18503,6 +19153,8 @@ var ja_default = {
     scene_actions_refine_default_name: "\u30B7\u30FC\u30F3",
     session_toast_new_automation_chat_failed:
       "\u65B0\u3057\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u30C1\u30E3\u30C3\u30C8\u306E\u958B\u59CB\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    session_toast_new_session_failed:
+      "\u65B0\u3057\u3044\u4F1A\u8A71\u306E\u958B\u59CB\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
     session_toast_ai_no_suggestion:
       "AI \u304C\u63D0\u6848\u3092\u8FD4\u3057\u307E\u305B\u3093\u3067\u3057\u305F \u2014 \u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
     session_toast_suggest_failed:
@@ -19773,6 +20425,8 @@ var ko_default = {
     scene_actions_refine_default_name: "\uC7A5\uBA74",
     session_toast_new_automation_chat_failed:
       "\uC0C8 \uC790\uB3D9\uD654 \uCC44\uD305\uC744 \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    session_toast_new_session_failed:
+      "\uC0C8 \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
     session_toast_ai_no_suggestion:
       "AI\uAC00 \uC81C\uC548\uC744 \uBC18\uD658\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4 \u2014 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
     session_toast_suggest_failed:
@@ -20955,6 +21609,8 @@ var zh_Hans_default = {
     scene_actions_refine_default_name: "\u8BE5\u573A\u666F",
     session_toast_new_automation_chat_failed:
       "\u542F\u52A8\u65B0\u7684\u81EA\u52A8\u5316\u5BF9\u8BDD\u5931\u8D25\uFF1A",
+    session_toast_new_session_failed:
+      "\u5F00\u59CB\u65B0\u5BF9\u8BDD\u5931\u8D25\uFF1A",
     session_toast_ai_no_suggestion:
       "AI \u672A\u8FD4\u56DE\u5EFA\u8BAE\u2014\u2014\u8BF7\u91CD\u8BD5\u3002",
     session_toast_suggest_failed:
@@ -22121,6 +22777,8 @@ var zh_Hant_default = {
     scene_actions_refine_default_name: "\u6B64\u60C5\u5883",
     session_toast_new_automation_chat_failed:
       "\u7121\u6CD5\u958B\u59CB\u65B0\u7684\u81EA\u52D5\u5316\u5C0D\u8A71\uFF1A",
+    session_toast_new_session_failed:
+      "\u7121\u6CD5\u958B\u59CB\u65B0\u5C0D\u8A71\uFF1A",
     session_toast_ai_no_suggestion:
       "AI \u672A\u50B3\u56DE\u5EFA\u8B70 \u2014 \u8ACB\u518D\u8A66\u4E00\u6B21\u3002",
     session_toast_suggest_failed:
@@ -22549,40 +23207,40 @@ var t3 = {
   ELEMENT: 6,
 };
 var e4 =
-  (t5) =>
-  (...e6) => ({ _$litDirective$: t5, values: e6 });
-var i5 = class {
-  constructor(t5) {}
+  (t4) =>
+  (...e6) => ({ _$litDirective$: t4, values: e6 });
+var i3 = class {
+  constructor(t4) {}
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AT(t5, e6, i7) {
-    ((this._$Ct = t5), (this._$AM = e6), (this._$Ci = i7));
+  _$AT(t4, e6, i5) {
+    ((this._$Ct = t4), (this._$AM = e6), (this._$Ci = i5));
   }
-  _$AS(t5, e6) {
-    return this.update(t5, e6);
+  _$AS(t4, e6) {
+    return this.update(t4, e6);
   }
-  update(t5, e6) {
+  update(t4, e6) {
     return this.render(...e6);
   }
 };
 
 // node_modules/lit-html/directive-helpers.js
-var { I: t4 } = j;
-var m2 = {};
-var p3 = (o6, t5 = m2) => (o6._$AH = t5);
+var { I: l4 } = j;
+var s5 = {};
+var a3 = (o6, l5 = s5) => (o6._$AH = l5);
 
 // node_modules/lit-html/directives/keyed.js
-var i6 = e4(
-  class extends i5 {
+var i4 = e4(
+  class extends i3 {
     constructor() {
       (super(...arguments), (this.key = A));
     }
-    render(r4, t5) {
-      return ((this.key = r4), t5);
+    render(r4, t4) {
+      return ((this.key = r4), t4);
     }
-    update(r4, [t5, e6]) {
-      return (t5 !== this.key && (p3(r4), (this.key = t5)), e6);
+    update(r4, [t4, e6]) {
+      return (t4 !== this.key && (a3(r4), (this.key = t4)), e6);
     }
   },
 );
@@ -22650,7 +23308,7 @@ function _coalesceEntityListings(text) {
   const BLANK = /^\s*$/;
   const lines = text.split("\n");
   const out = [];
-  let i7 = 0;
+  let i5 = 0;
   const skipBlanks = (j2) => {
     while (j2 < lines.length && BLANK.test(lines[j2])) j2++;
     return j2;
@@ -22670,58 +23328,119 @@ function _coalesceEntityListings(text) {
     if (multi) {
       return multi[1]
         .split(",")
-        .map((s4) => s4.trim())
-        .filter((s4) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s4));
+        .map((s6) => s6.trim())
+        .filter((s6) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s6));
     }
     return [];
   };
   const BARE_MARKER =
     /^\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
-  while (i7 < lines.length) {
+  while (i5 < lines.length) {
     const tryCoalesce = (firstLineRe) => {
-      if (!firstLineRe.test(lines[i7])) return false;
+      if (!firstLineRe.test(lines[i5])) return false;
       const runIds = [];
-      let j3 = i7;
+      let j3 = i5;
       while (j3 < lines.length) {
-        const m3 = lines[j3].match(firstLineRe);
-        if (!m3) break;
-        for (const id of idsFromMarker(m3[1])) runIds.push(id);
+        const m2 = lines[j3].match(firstLineRe);
+        if (!m2) break;
+        for (const id of idsFromMarker(m2[1])) runIds.push(id);
         j3++;
         j3 = skipStateLines(j3);
         j3 = skipBlanks(j3);
       }
       if (runIds.length === 0) return false;
       out.push(`[[entities:${runIds.join(",")}]]`);
-      i7 = j3;
+      i5 = j3;
       return true;
     };
     if (tryCoalesce(MARKER_BULLET)) continue;
     if (tryCoalesce(BARE_MARKER)) continue;
-    const tailMatch = lines[i7].match(MARKER_TAIL_STATE);
+    const tailMatch = lines[i5].match(MARKER_TAIL_STATE);
     if (tailMatch) {
       out.push(tailMatch[1]);
-      let j3 = i7 + 1;
+      let j3 = i5 + 1;
       j3 = skipStateLines(j3);
-      i7 = j3;
+      i5 = j3;
       continue;
     }
     const ids = [];
-    let j2 = i7;
+    let j2 = i5;
     while (j2 < lines.length) {
-      const m3 = lines[j2].match(ID_LINE);
-      if (!m3) break;
-      ids.push(m3[1]);
+      const m2 = lines[j2].match(ID_LINE);
+      if (!m2) break;
+      ids.push(m2[1]);
       j2++;
       j2 = skipStateLines(j2);
       j2 = skipBlanks(j2);
     }
     if (ids.length >= 1) {
       out.push(`[[entities:${ids.join(",")}]]`);
-      i7 = j2;
+      i5 = j2;
       continue;
     }
-    out.push(lines[i7]);
-    i7++;
+    out.push(lines[i5]);
+    i5++;
+  }
+  return out.join("\n");
+}
+function _tableCells(line) {
+  let s6 = line.trim();
+  if (s6.startsWith("|")) s6 = s6.slice(1);
+  if (s6.endsWith("|")) s6 = s6.slice(0, -1);
+  return s6.split("|").map((c3) => c3.trim());
+}
+function _isTableDelimiter(line) {
+  if (!line.includes("|")) return false;
+  const cells = _tableCells(line);
+  return cells.length >= 1 && cells.every((c3) => /^:?-{1,}:?$/.test(c3));
+}
+function _renderTables(src) {
+  const lines = src.split("\n");
+  const out = [];
+  let i5 = 0;
+  const th =
+    "text-align:left;padding:6px 10px;font-weight:700;border-bottom:2px solid var(--divider-color,rgba(255,255,255,0.18));";
+  const td =
+    "padding:6px 10px;vertical-align:top;border-bottom:1px solid var(--divider-color,rgba(255,255,255,0.08));";
+  while (i5 < lines.length) {
+    if (
+      lines[i5].includes("|") &&
+      i5 + 1 < lines.length &&
+      _isTableDelimiter(lines[i5 + 1])
+    ) {
+      const header = _tableCells(lines[i5]);
+      const align = _tableCells(lines[i5 + 1]).map((c3) => {
+        const l5 = c3.startsWith(":");
+        const r4 = c3.endsWith(":");
+        return l5 && r4 ? "center" : r4 ? "right" : l5 ? "left" : "";
+      });
+      const alignStyle = (c3) => (align[c3] ? `text-align:${align[c3]};` : "");
+      i5 += 2;
+      const body = [];
+      while (
+        i5 < lines.length &&
+        lines[i5].includes("|") &&
+        !_isTableDelimiter(lines[i5])
+      ) {
+        body.push(_tableCells(lines[i5]));
+        i5++;
+      }
+      const headHtml = header
+        .map((c3, idx) => `<th style="${th}${alignStyle(idx)}">${c3}</th>`)
+        .join("");
+      const bodyHtml = body
+        .map(
+          (row) =>
+            `<tr>${row.map((c3, idx) => `<td style="${td}${alignStyle(idx)}">${c3}</td>`).join("")}</tr>`,
+        )
+        .join("");
+      out.push(
+        `<div class="selora-md-table" style="overflow-x:auto;margin:8px 0;"><table style="border-collapse:collapse;width:100%;font-size:13px;"><thead><tr>${headHtml}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`,
+      );
+      continue;
+    }
+    out.push(lines[i5]);
+    i5++;
   }
   return out.join("\n");
 }
@@ -22795,16 +23514,19 @@ function renderMarkdown(text) {
     /^[-•]\s+(.+)$/gm,
     '<div style="margin:4px 0 4px 8px;padding-left:12px;border-left:2px solid rgba(251,191,36,0.35);">$1</div>',
   );
+  escaped = _renderTables(escaped);
   escaped = escaped.replace(/\n/g, "<br>");
+  escaped = escaped.replace(/(<br>)+(<div class="selora-md-table")/g, "$2");
+  escaped = escaped.replace(/(<\/table><\/div>)(<br>)+/g, "$1");
   escaped = escaped.replace(/(<br>)+(<div class="selora-entity-grid")/g, "$2");
   escaped = escaped.replace(
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
-  const escapeCode = (s4) =>
-    s4.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const escapeAttr = (s4) =>
-    s4
+  const escapeCode = (s6) =>
+    s6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escapeAttr = (s6) =>
+    s6
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
@@ -22831,12 +23553,12 @@ function _formatTimestamp(iso) {
 }
 function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";
-  const s4 = String(state).toLowerCase();
-  if (["on", "open", "home", "playing", "active"].includes(s4))
+  const s6 = String(state).toLowerCase();
+  if (["on", "open", "home", "playing", "active"].includes(s6))
     return "var(--selora-accent, #fbbf24)";
-  if (["off", "closed", "not_home", "idle", "standby"].includes(s4))
+  if (["off", "closed", "not_home", "idle", "standby"].includes(s6))
     return "var(--selora-zinc-400)";
-  if (["unavailable", "unknown"].includes(s4)) return "#ef4444";
+  if (["unavailable", "unknown"].includes(s6)) return "#ef4444";
   return "var(--selora-zinc-200)";
 }
 function _deviceIcon(domains) {
@@ -22860,7 +23582,7 @@ function renderDeviceDetail(host) {
   const detail = host._deviceDetail;
   if (!detail) return "";
   const loading = host._deviceDetailLoading;
-  return b2`
+  return x`
     <div
       class="device-detail-drawer"
       style="
@@ -22872,13 +23594,13 @@ function renderDeviceDetail(host) {
     >
       ${
         loading
-          ? b2`<span style="font-size:13px;color:var(--selora-zinc-400);"
+          ? x`<span style="font-size:13px;color:var(--selora-zinc-400);"
             >${host._t(
               "device_detail_loading",
               "Loading device detail...",
             )}</span
           >`
-          : b2`
+          : x`
             <!-- Header -->
             <div
               style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"
@@ -22898,7 +23620,7 @@ function renderDeviceDetail(host) {
                     ${[detail.area, detail.manufacturer, detail.model].filter(Boolean).join(" \xB7 ")}
                     ${
                       detail.integration
-                        ? b2` ·
+                        ? x` ·
                           <span style="opacity:0.7"
                             >${detail.integration}</span
                           >`
@@ -22924,7 +23646,7 @@ function renderDeviceDetail(host) {
             <!-- Entities -->
             ${
               detail.entities?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -22932,7 +23654,7 @@ function renderDeviceDetail(host) {
                       ${host._t("device_detail_entities_heading", "Entities")}
                     </div>
                     ${detail.entities.map(
-                      (e6) => b2`
+                      (e6) => x`
                         <div
                           style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
@@ -22957,7 +23679,7 @@ function renderDeviceDetail(host) {
             <!-- State History -->
             ${
               detail.state_history?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -22969,7 +23691,7 @@ function renderDeviceDetail(host) {
                     </div>
                     <div style="max-height:150px;overflow-y:auto;">
                       ${detail.state_history.slice(0, 30).map(
-                        (h3) => b2`
+                        (h3) => x`
                           <div
                             style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"
                           >
@@ -22994,7 +23716,7 @@ function renderDeviceDetail(host) {
             <!-- Linked Automations -->
             ${
               detail.linked_automations?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -23005,13 +23727,13 @@ function renderDeviceDetail(host) {
                       )}
                     </div>
                     ${detail.linked_automations.map(
-                      (a3) => b2`
+                      (a4) => x`
                         <div
                           style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
                           <span
                             style="font-size:12px;color:var(--selora-zinc-200);"
-                            >${a3.alias || a3.id}</span
+                            >${a4.alias || a4.id}</span
                           >
                         </div>
                       `,
@@ -23024,7 +23746,7 @@ function renderDeviceDetail(host) {
             <!-- Related Patterns -->
             ${
               detail.related_patterns?.length
-                ? b2`
+                ? x`
                   <div>
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -23035,19 +23757,19 @@ function renderDeviceDetail(host) {
                       )}
                     </div>
                     ${detail.related_patterns.map(
-                      (p4) => b2`
+                      (p2) => x`
                         <div
                           style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
                           <div
                             style="font-size:12px;color:var(--selora-zinc-200);"
                           >
-                            ${p4.description}
+                            ${p2.description}
                           </div>
                           <div
                             style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
                           >
-                            ${p4.type} · ${Math.round(p4.confidence * 100)}%
+                            ${p2.type} · ${Math.round(p2.confidence * 100)}%
                             ${host._t(
                               "device_detail_confidence_label",
                               "confidence",
@@ -23117,28 +23839,28 @@ function _approvalScope(value) {
 function _normalizeApprovalActions(host, actions) {
   let touched = false;
   const presentation = _approvalPresentation(host);
-  const out = actions.map((a3) => {
-    const scope = _approvalScope(a3?.value);
-    if (!scope) return a3;
+  const out = actions.map((a4) => {
+    const scope = _approvalScope(a4?.value);
+    if (!scope) return a4;
     const preset = presentation[scope];
-    if (!preset) return a3;
+    if (!preset) return a4;
     touched = true;
     return {
-      ...a3,
+      ...a4,
       // Override label too — older persisted messages may have shipped
       // "Session" / "Allow once" wording, but we want the new copy
       // ("For this conversation") to appear consistently.
       label: preset.label,
       mode: "choice",
-      icon: a3.icon || preset.icon,
-      tone: a3.tone || preset.tone,
-      description: a3.description || preset.description,
+      icon: a4.icon || preset.icon,
+      tone: a4.tone || preset.tone,
+      description: a4.description || preset.description,
     };
   });
   return touched ? out : actions;
 }
 function _isApprovalGroup(actions) {
-  return actions.some((a3) => _approvalScope(a3?.value));
+  return actions.some((a4) => _approvalScope(a4?.value));
 }
 function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
@@ -23149,30 +23871,30 @@ function renderQuickActions(host, actions, opts = {}) {
     const approvalClass = _isApprovalGroup(actions)
       ? " qa-group--approval"
       : "";
-    return b2`
+    return x`
       <div class="qa-group qa-group--choices${approvalClass}${usedClass}">
-        ${actions.map((a3) => _renderChoice(host, a3))}
+        ${actions.map((a4) => _renderChoice(host, a4))}
       </div>
     `;
   }
   if (mode === "confirmation") {
-    return b2`
+    return x`
       <div class="qa-group qa-group--confirmations${usedClass}">
-        ${actions.map((a3) => _renderConfirmation(host, a3))}
+        ${actions.map((a4) => _renderConfirmation(host, a4))}
       </div>
     `;
   }
-  return b2`
+  return x`
     <div class="qa-group${usedClass}">
-      ${actions.map((a3) => _renderSuggestion(host, a3))}
+      ${actions.map((a4) => _renderSuggestion(host, a4))}
     </div>
   `;
 }
 function _detectMode(actions) {
   const first = actions[0];
   if (first.mode) return first.mode;
-  if (actions.some((a3) => a3.primary !== void 0)) return "confirmation";
-  if (actions.some((a3) => a3.description)) return "choice";
+  if (actions.some((a4) => a4.primary !== void 0)) return "confirmation";
+  if (actions.some((a4) => a4.description)) return "choice";
   return "suggestion";
 }
 function _onSelect(host, action) {
@@ -23180,7 +23902,7 @@ function _onSelect(host, action) {
 }
 function _renderSuggestion(host, action) {
   const leadingIcon = action.icon || "mdi:auto-fix";
-  return b2`
+  return x`
     <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
       <span class="qa-glow-track" aria-hidden="true">
         <span class="qa-glow-spot"></span>
@@ -23225,7 +23947,7 @@ function _renderChoice(host, action) {
   const cardTitle = tooltipDescription
     ? `${action.label} \u2014 ${action.description}`
     : action.label;
-  return b2`
+  return x`
     <div
       class="qa-choice"
       style=${toneStyle}
@@ -23241,7 +23963,7 @@ function _renderChoice(host, action) {
           <span class="qa-choice-label" title=${action.label}
             >${action.label}</span
           >
-          ${inlineDescription ? b2`<span class="qa-choice-desc">${action.description}</span>` : ""}
+          ${inlineDescription ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
         </div>
         <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
       </div>
@@ -23258,11 +23980,11 @@ function _renderConfirmation(host, action) {
       : tone === "deny"
         ? "color:#ef4444;"
         : "";
-  return b2`
+  return x`
     <button class=${cls} @click=${() => _onSelect(host, action)}>
       ${
         action.icon
-          ? b2`<ha-icon
+          ? x`<ha-icon
             icon=${action.icon}
             style="--mdc-icon-size:16px;${iconStyle}"
           ></ha-icon>`
@@ -23270,7 +23992,7 @@ function _renderConfirmation(host, action) {
       }
       <span style="display:flex;flex-direction:column;align-items:flex-start;">
         <span class="qa-confirm-label">${action.label}</span>
-        ${action.description ? b2`<span class="qa-confirm-desc">${action.description}</span>` : ""}
+        ${action.description ? x`<span class="qa-confirm-desc">${action.description}</span>` : ""}
       </span>
     </button>
   `;
@@ -23363,11 +24085,11 @@ var DOMAIN_FORMS = {
     past: "Ran shell command",
   },
 };
-function _domainOf(s4) {
-  return (s4 || "").split(".", 1)[0];
+function _domainOf(s6) {
+  return (s6 || "").split(".", 1)[0];
 }
-function _serviceSuffix(s4) {
-  const parts = (s4 || "").split(".");
+function _serviceSuffix(s6) {
+  const parts = (s6 || "").split(".");
   return parts.length > 1 ? parts.slice(1).join(".") : "";
 }
 function _friendlyName(host, entityId) {
@@ -23388,12 +24110,12 @@ function describeCall(host, call) {
   const ids = callTargetEntityIds(call);
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
-  const t5 =
+  const t4 =
     typeof host?._t === "function"
       ? (k2, fb) => host._t(k2, fb)
       : (_k, fb) => fb;
-  const imperative = forms?.imperative || t5("action_format_run_verb", "Run");
-  const pastVerb = forms?.past || t5("action_format_ran_verb", "Ran");
+  const imperative = forms?.imperative || t4("action_format_run_verb", "Run");
+  const pastVerb = forms?.past || t4("action_format_ran_verb", "Ran");
   if (ids.length) {
     const names = ids.map((eid) => _friendlyName(host, eid));
     return {
@@ -23440,7 +24162,7 @@ function _renderActionTile(call) {
   const service = call?.service || "";
   const icon = actionIcon(service);
   const { verb } = describeCall({ hass: { states: {} } }, call);
-  return b2`
+  return x`
     <div
       style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;min-width:88px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);"
       title=${service}
@@ -23460,7 +24182,7 @@ function _renderCallRow(host, call, reason) {
   const ids = callTargetEntityIds(call);
   const { targetText } = describeCall(host, call);
   const rightSide = ids.length
-    ? b2`
+    ? x`
         <div
           class="selora-entity-grid"
           data-entity-ids=${ids.join(",")}
@@ -23468,14 +24190,14 @@ function _renderCallRow(host, call, reason) {
           style="flex:1;min-width:0;margin:0;"
         ></div>
       `
-    : b2`
+    : x`
         <div
           style="flex:1;min-width:0;padding:12px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);font-size:13px;color:var(--primary-text-color);"
         >
           ${targetText}
         </div>
       `;
-  return b2`
+  return x`
     <div
       style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;flex-direction:column;gap:8px;"
     >
@@ -23489,7 +24211,7 @@ function _renderCallRow(host, call, reason) {
       </div>
       ${
         reason
-          ? b2`<div
+          ? x`<div
             style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
           >
             ${reason}
@@ -23550,7 +24272,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       approvalStatus === "approved"
         ? "mdi:check-circle-outline"
         : "mdi:close-circle-outline";
-    return b2`
+    return x`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolvedColor};"
       >
@@ -23565,7 +24287,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
     `;
   }
   if (approvalStatus === "resolving") {
-    return b2`
+    return x`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
@@ -23574,8 +24296,8 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       </div>
     `;
   }
-  const reasonFor = (i7) => reasons[i7] || "";
-  return b2`
+  const reasonFor = (i5) => reasons[i5] || "";
+  return x`
     <div
       style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
     >
@@ -23594,11 +24316,11 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${calls.map((c4, i7) => _renderCallRow(host, c4, reasonFor(i7)))}
+        ${calls.map((c3, i5) => _renderCallRow(host, c3, reasonFor(i5)))}
       </div>
       ${
         entityIds.length
-          ? b2`
+          ? x`
             <div
               style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
             >
@@ -23684,17 +24406,17 @@ function renderAgentSteps(host, steps) {
   const items = _dedupeSteps(steps);
   if (items.length === 0) return "";
   const lastIndex = items.length - 1;
-  return b2`
+  return x`
     <div
       class="agent-steps"
       style="display:flex;flex-direction:column;gap:7px;margin:2px 2px 10px;"
     >
-      ${items.map((step, i7) => {
+      ${items.map((step, i5) => {
         const color = _stepColor(step.status);
         const spinning = step.status === "active";
         const emphasised = step.status === "warn" || step.status === "error";
-        const showRail = i7 !== lastIndex;
-        return b2`
+        const showRail = i5 !== lastIndex;
+        return x`
           <div
             class="agent-step"
             style="display:flex;align-items:center;gap:9px;"
@@ -23705,7 +24427,7 @@ function renderAgentSteps(host, steps) {
             >
               ${
                 showRail
-                  ? b2`<span
+                  ? x`<span
                     style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
                   ></span>`
                   : ""
@@ -24102,12 +24824,12 @@ function _toUnicodeBoundary(re) {
   const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
   return new RegExp(src, flags); // nosemgrep
 }
-for (const t5 of BASE_TRIGGERS) {
-  t5.pattern = _toUnicodeBoundary(t5.pattern);
+for (const t4 of BASE_TRIGGERS) {
+  t4.pattern = _toUnicodeBoundary(t4.pattern);
 }
 for (const list of Object.values(LOCALE_TRIGGERS)) {
-  for (const t5 of list) {
-    t5.pattern = _toUnicodeBoundary(t5.pattern);
+  for (const t4 of list) {
+    t4.pattern = _toUnicodeBoundary(t4.pattern);
   }
 }
 function _langKey(lang) {
@@ -24518,7 +25240,7 @@ function _ghostVocabFor(lang) {
   const key = GHOST_VOCABULARY_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
   if (!_ghostSorted[key]) {
     _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
-      (a3, b3) => a3.length - b3.length,
+      (a4, b2) => a4.length - b2.length,
     );
   }
   return _ghostSorted[key];
@@ -24527,11 +25249,11 @@ var GHOST_MIN_PREFIX = 3;
 var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
 function _partialWordAt(text, caret) {
   if (caret <= 0) return null;
-  let i7 = caret;
-  while (i7 > 0 && _WORD_CHAR_RE.test(text[i7 - 1])) i7--;
-  const word = text.slice(i7, caret);
+  let i5 = caret;
+  while (i5 > 0 && _WORD_CHAR_RE.test(text[i5 - 1])) i5--;
+  const word = text.slice(i5, caret);
   if (!word) return null;
-  return { word, start: i7 };
+  return { word, start: i5 };
 }
 function findGhostSuggestion(text, caret, lang) {
   if (typeof text !== "string") return null;
@@ -24632,8 +25354,8 @@ function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areas && typeof areas === "object") {
-    for (const [id, a3] of Object.entries(areas)) {
-      areaById[id] = a3?.name || a3?.area_id || id;
+    for (const [id, a4] of Object.entries(areas)) {
+      areaById[id] = a4?.name || a4?.area_id || id;
     }
   }
   const fullEntReg = entities || {};
@@ -24709,8 +25431,8 @@ function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
   return dedupeDeviceItems(items);
 }
 var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
-function normLabel(s4) {
-  return s4.toLowerCase().replace(/\s+/g, " ").trim();
+function normLabel(s6) {
+  return s6.toLowerCase().replace(/\s+/g, " ").trim();
 }
 function baseLabel(normalized) {
   return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
@@ -24721,14 +25443,14 @@ function isParenPrefix(shorter, longer) {
   return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
 }
 function labelsForked(labels) {
-  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
-  for (let i7 = 0; i7 + 1 < sorted.length; i7++) {
-    if (!isParenPrefix(sorted[i7], sorted[i7 + 1])) return true;
+  const sorted = [...labels].sort((a4, b2) => a4.length - b2.length);
+  for (let i5 = 0; i5 + 1 < sorted.length; i5++) {
+    if (!isParenPrefix(sorted[i5], sorted[i5 + 1])) return true;
   }
   return false;
 }
 function dedupeDeviceItems(items) {
-  const devices = items.filter((i7) => i7.kind === "device");
+  const devices = items.filter((i5) => i5.kind === "device");
   const domainsByDevice = /* @__PURE__ */ new Map();
   for (const it of devices) {
     if (!it.device_id) continue;
@@ -24782,7 +25504,7 @@ function dedupeDeviceItems(items) {
       if (!it.area_id && it.device_id) kept.delete(it);
     }
   }
-  return items.filter((i7) => i7.kind !== "device" || kept.has(i7));
+  return items.filter((i5) => i5.kind !== "device" || kept.has(i5));
 }
 function _scoreItem(item, lowerQuery) {
   const label = item._lowerLabel;
@@ -24797,8 +25519,8 @@ function _scoreItem(item, lowerQuery) {
   }
   if (label.includes(lowerQuery)) return 100;
   let qi = 0;
-  for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
-    if (label[i7] === lowerQuery[qi]) qi += 1;
+  for (let i5 = 0; i5 < label.length && qi < lowerQuery.length; i5++) {
+    if (label[i5] === lowerQuery[qi]) qi += 1;
   }
   if (qi === lowerQuery.length) return 10;
   return 0;
@@ -24812,7 +25534,7 @@ function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
     if (!domainSet.has(it.domain)) continue;
     out.push(it);
   }
-  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
+  out.sort((a4, b2) => a4.label.localeCompare(b2.label));
   return out.slice(0, max);
 }
 function findExactMatches(items, kind, query, domains = null) {
@@ -24846,14 +25568,14 @@ function rankSuggestions(
     const score = _scoreItem(it, lowerQuery);
     if (score > 0) scored.push({ item: it, score });
   }
-  scored.sort((a3, b3) => {
-    if (b3.score !== a3.score) return b3.score - a3.score;
-    if (a3.item.label.length !== b3.item.label.length) {
-      return a3.item.label.length - b3.item.label.length;
+  scored.sort((a4, b2) => {
+    if (b2.score !== a4.score) return b2.score - a4.score;
+    if (a4.item.label.length !== b2.item.label.length) {
+      return a4.item.label.length - b2.item.label.length;
     }
-    return a3.item.label.localeCompare(b3.item.label);
+    return a4.item.label.localeCompare(b2.item.label);
   });
-  return scored.slice(0, max).map((s4) => s4.item);
+  return scored.slice(0, max).map((s6) => s6.item);
 }
 function applySelection(text, trigger, item) {
   const before = text.slice(0, trigger.start);
@@ -24899,16 +25621,16 @@ function stripEntityMarkers(text) {
     .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
     .trimEnd();
 }
-function _escapeRegex(s4) {
-  return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function _escapeRegex(s6) {
+  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function pruneStaleSelections(text, selections) {
   if (!selections?.length) return selections;
-  return selections.filter((s4) => {
-    if (!s4.label) return false;
-    const escaped = _escapeRegex(s4.label);
-    const startWord = /^\w/.test(s4.label);
-    const endWord = /\w$/.test(s4.label);
+  return selections.filter((s6) => {
+    if (!s6.label) return false;
+    const escaped = _escapeRegex(s6.label);
+    const startWord = /^\w/.test(s6.label);
+    const endWord = /\w$/.test(s6.label);
     const pattern = (startWord ? "\\b" : "") + escaped + (endWord ? "\\b" : "");
     return new RegExp(pattern, "i").test(text); // nosemgrep
   });
@@ -24957,7 +25679,7 @@ function _formatToolArgs(args) {
   return parts.join(", ");
 }
 function renderToolCalls(host, toolCalls) {
-  return b2`
+  return x`
     <details
       class="dev-tool-calls"
       style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
@@ -24978,13 +25700,13 @@ function renderToolCalls(host, toolCalls) {
         style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
       >
         ${toolCalls.map(
-          (tc, i7) => b2`
+          (tc, i5) => x`
             <div
-              style="padding:2px 0;${i7 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+              style="padding:2px 0;${i5 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
             >
               <span style="color:var(--primary-text-color);font-weight:600;"
                 >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
+              >${tc.arguments && Object.keys(tc.arguments).length ? x`<span>(${_formatToolArgs(tc.arguments)})</span>` : x`<span>()</span>`}
             </div>
           `,
         )}
@@ -25031,7 +25753,7 @@ function _welcomeSuggestions(host) {
 }
 function renderAutomationSuggestButton(host) {
   const busy = !!host._suggestingAutomation;
-  return b2`
+  return x`
     <button
       class="welcome-suggest-btn"
       ?disabled=${busy || host._loading || host._streaming}
@@ -25039,8 +25761,8 @@ function renderAutomationSuggestButton(host) {
     >
       ${
         busy
-          ? b2`<span class="spinner green"></span>`
-          : b2`<ha-icon
+          ? x`<span class="spinner green"></span>`
+          : x`<ha-icon
             icon="mdi:auto-fix"
             style="--mdc-icon-size:14px;"
           ></ha-icon>`
@@ -25054,12 +25776,12 @@ function renderAutomationSuggestButton(host) {
 function renderChat(host) {
   const isEmpty = host._messages.length === 0;
   if (isEmpty) {
-    return b2`
+    return x`
       <div class="chat-pane">
         <div class="chat-welcome-center" id="chat-messages">
-          ${i6(
+          ${i4(
             host._welcomeKey || 0,
-            b2`
+            x`
               <div class="welcome-center-content">
                 <img
                   src="/api/selora_ai/logo.png"
@@ -25069,11 +25791,11 @@ function renderChat(host) {
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
                   ${
                     host._newAutomationMode
-                      ? b2`${host._t("new_automation_title_prefix", "New")}
+                      ? x`${host._t("new_automation_title_prefix", "New")}
                         <span class="gold-text"
                           >${host._t("new_automation_gold", "Automation")}</span
                         >`
-                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
+                      : x`${host._t("welcome_title_prefix", "Welcome to")}
                         <span class="gold-text">Selora AI</span>`
                   }
                 </div>
@@ -25095,7 +25817,7 @@ function renderChat(host) {
 
                 ${
                   host._llmNeedsSetup
-                    ? b2`
+                    ? x`
                       <div
                         style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
                         @click=${() => host._goToSettings()}
@@ -25128,7 +25850,7 @@ function renderChat(host) {
                         </span>
                       </div>
                     `
-                    : b2`
+                    : x`
                       <div class="welcome-composer-area">
                         <selora-particles
                           class="welcome-composer-particles"
@@ -25143,7 +25865,7 @@ function renderChat(host) {
                       ${
                         host._newAutomationMode
                           ? renderAutomationSuggestButton(host)
-                          : b2`
+                          : x`
                             <details class="welcome-quickstart">
                               <summary class="welcome-quickstart-summary">
                                 <span
@@ -25186,7 +25908,7 @@ function renderChat(host) {
     !lastMsg.command_approval
       ? lastMsg
       : null;
-  return b2`
+  return x`
     <div class="chat-pane">
       <div
         class="chat-messages"
@@ -25197,7 +25919,7 @@ function renderChat(host) {
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
           host._loading
-            ? b2`
+            ? x`
               <div class="typing-bubble">
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
@@ -25211,7 +25933,7 @@ function renderChat(host) {
       <div class="chat-input-wrapper">
         ${
           host._chatScrolledAway && host._messages.length > 0
-            ? b2`
+            ? x`
               <button
                 class="chat-jump-bottom"
                 @click=${() => host._scrollChatToBottom()}
@@ -25228,7 +25950,7 @@ function renderChat(host) {
         }
         ${
           lastQuickActions
-            ? b2`
+            ? x`
               <div class="chat-quick-actions">
                 ${renderQuickActions(host, lastQuickActions.quick_actions, {
                   used: !!lastQuickActions._qa_used,
@@ -25319,7 +26041,7 @@ function _measureCaretInTextarea(textarea) {
   const mirror = document.createElement("div");
   const style = mirror.style;
   const cs = window.getComputedStyle(textarea);
-  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
+  for (const p2 of _MIRROR_COPY_PROPS) style[p2] = cs[p2];
   style.position = "absolute";
   style.visibility = "hidden";
   style.top = "0";
@@ -25447,7 +26169,7 @@ function _renderGhostOverlay(host) {
   if (!suffix) return "";
   const anchor = host._ghost.anchor;
   if (!anchor) return "";
-  return b2`
+  return x`
     <span
       class="composer-ghost-suffix"
       aria-hidden="true"
@@ -25504,7 +26226,7 @@ function _selectAutocompleteItem(host, textarea, item) {
 }
 function _removeSelection(host, idx) {
   const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i7) => i7 !== idx);
+  host._autocompleteSelections = sels.filter((_2, i5) => i5 !== idx);
 }
 function _renderAutocomplete(host) {
   const ac = host._autocomplete;
@@ -25534,14 +26256,14 @@ function _renderAutocomplete(host) {
     }
     groups.get(item.kind).push(item);
   }
-  return b2`
+  return x`
     <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
       ${groupOrder.map((kind) => {
         const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
         const header = headerKV
           ? host._t(headerKV[0], headerKV[1])
           : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
-        return b2`
+        return x`
           <div class="composer-autocomplete-header">
             <span>${header}</span>
           </div>
@@ -25559,7 +26281,7 @@ function _renderAutocomplete(host) {
 }
 function _renderAutocompleteRow(host, ac, item) {
   const idx = ac.items.indexOf(item);
-  return b2`<button
+  return x`<button
     type="button"
     class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
     role="option"
@@ -25574,22 +26296,22 @@ function _renderAutocompleteRow(host, ac, item) {
   >
     <ha-icon icon=${item.icon}></ha-icon>
     <span class="composer-autocomplete-label">${item.label}</span>
-    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
+    ${item.area ? x`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
   </button>`;
 }
 function _renderSelectionChips(host) {
   const sels = host._autocompleteSelections || [];
   if (!sels.length) return "";
-  return b2`
+  return x`
     <div class="composer-selections-inline">
       ${sels.map(
-        (s4, idx) => b2`
+        (s6, idx) => x`
           <span
             class="composer-selection-chip"
-            title=${s4.entity_id || s4.area_id || ""}
+            title=${s6.entity_id || s6.area_id || ""}
           >
-            <ha-icon icon=${s4.icon}></ha-icon>
-            ${s4.label}
+            <ha-icon icon=${s6.icon}></ha-icon>
+            ${s6.label}
             <button
               type="button"
               title=${host._t("chat_selection_remove", "Remove")}
@@ -25605,7 +26327,7 @@ function _renderSelectionChips(host) {
 }
 function _renderComposer(host, opts = {}) {
   const welcome = !!opts.welcome;
-  return b2`
+  return x`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
       <div
@@ -25705,8 +26427,8 @@ function _renderComposer(host, opts = {}) {
                   return;
                 }
                 const userHistory = host._messages
-                  .filter((m3) => m3.role === "user" && m3.content)
-                  .map((m3) => stripEntityMarkers(m3.content));
+                  .filter((m2) => m2.role === "user" && m2.content)
+                  .map((m2) => stripEntityMarkers(m2.content));
                 const ta = e6.target;
                 const atStart =
                   ta.selectionStart === 0 && ta.selectionEnd === 0;
@@ -25781,14 +26503,14 @@ function _renderComposer(host, opts = {}) {
         </div>
         ${
           host._streaming
-            ? b2`<button
+            ? x`<button
               class="composer-send"
               @click=${() => host._stopStreaming()}
               title=${host._t("chat_stop_generating", "Stop generating")}
             >
               <ha-icon icon="mdi:stop"></ha-icon>
             </button>`
-            : b2`<button
+            : x`<button
               class="composer-send"
               @click=${() => host._sendMessage()}
               ?disabled=${host._loading || !host._input.trim()}
@@ -25803,7 +26525,7 @@ function _renderComposer(host, opts = {}) {
 }
 function renderMessage(host, msg, idx) {
   const isUser = msg.role === "user";
-  if (msg._streaming && !msg.content) return b2``;
+  if (msg._streaming && !msg.content) return x``;
   let displayContent = msg.content;
   let showAutomationSpinner = false;
   let showSceneSpinner = false;
@@ -25859,11 +26581,11 @@ function renderMessage(host, msg, idx) {
     msg.approval_status !== "approved" &&
     msg.approval_status !== "denied" &&
     msg.approval_status !== "resolving";
-  return b2`
+  return x`
     <div class="message-row">
       ${
         isUser
-          ? b2`
+          ? x`
             <div class="bubble user">
               <span
                 class="msg-content"
@@ -25871,7 +26593,7 @@ function renderMessage(host, msg, idx) {
               ></span>
             </div>
           `
-          : b2`
+          : x`
             <div
               class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
             >
@@ -25883,7 +26605,7 @@ function renderMessage(host, msg, idx) {
                 ${
                   msg.command_approval
                     ? ""
-                    : b2`<span
+                    : x`<span
                       class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
                       @click=${host._onCodeCopyClick}
                       .innerHTML=${renderMarkdown(displayContent)}
@@ -25900,7 +26622,7 @@ function renderMessage(host, msg, idx) {
                           ) % AUTOMATION_LABEL_KEYS.length;
                         const [labelKey, labelFallback] =
                           AUTOMATION_LABEL_KEYS[labelIdx];
-                        return b2`
+                        return x`
                         <div
                           style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
@@ -25919,7 +26641,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   showSceneSpinner
-                    ? b2`
+                    ? x`
                       <div
                         style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                       >
@@ -25940,7 +26662,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   msg.config_issue
-                    ? b2`
+                    ? x`
                       <div style="margin-top: 10px;">
                         <mwc-button dense raised @click=${host._goToSettings}
                           >${host._t(
@@ -25966,7 +26688,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   msg._interrupted
-                    ? b2`
+                    ? x`
                       <div class="stream-interrupt">
                         <ha-icon
                           icon="mdi:alert-circle-outline"
@@ -25994,21 +26716,21 @@ function renderMessage(host, msg, idx) {
                 canRetry ||
                 showQuickActions ||
                 hasProposalActions
-                  ? b2`<div
+                  ? x`<div
                     class="bubble-meta"
                     style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
                   >
                     ${
                       msg._streaming
-                        ? b2`<span style="opacity:0.5;">
+                        ? x`<span style="opacity:0.5;">
                           Selora AI ·
                           ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
                         </span>`
                         : canCopy || canFeedback || canRetry
-                          ? b2`<div class="msg-actions">
+                          ? x`<div class="msg-actions">
                             ${
                               canCopy
-                                ? b2`<button
+                                ? x`<button
                                   class="msg-action-btn"
                                   title=${host._t(
                                     isProposal
@@ -26038,7 +26760,7 @@ function renderMessage(host, msg, idx) {
                             }
                             ${
                               canFeedback && host._config?.telemetry_enabled
-                                ? b2`<button
+                                ? x`<button
                                     class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
                                     title=${host._t(
                                       "chat_feedback_helpful",
@@ -26086,7 +26808,7 @@ function renderMessage(host, msg, idx) {
                             }
                             ${
                               msg._interrupted && msg._retryWith
-                                ? b2`<button
+                                ? x`<button
                                   class="msg-action-btn"
                                   title=${host._t("chat_retry", "Retry")}
                                   aria-label=${host._t("chat_retry", "Retry")}
@@ -26104,7 +26826,7 @@ function renderMessage(host, msg, idx) {
                     }
                     ${
                       hasProposalActions || showQuickActions
-                        ? b2`<div class="msg-quick">
+                        ? x`<div class="msg-quick">
                           ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
                           ${
                             showQuickActions
@@ -26169,7 +26891,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     : (host._editedYaml[key] ?? originalYaml);
   const isDirty = !readOnly && current !== originalYaml;
   const saving = !!host._savingYaml[key];
-  return b2`
+  return x`
     <ha-code-editor
       mode="yaml"
       .value=${current}
@@ -26183,11 +26905,11 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     ></ha-code-editor>
     ${
       isDirty || (onSave && !readOnly)
-        ? b2`
+        ? x`
           <div class="yaml-edit-bar">
             ${
               isDirty
-                ? b2`
+                ? x`
                   <span class="yaml-unsaved">
                     <ha-icon
                       icon="mdi:circle-edit-outline"
@@ -26196,11 +26918,11 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
                     ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
                   </span>
                 `
-                : b2`<span style="flex:1;"></span>`
+                : x`<span style="flex:1;"></span>`
             }
             ${
               onSave
-                ? b2`
+                ? x`
                   <button
                     class="btn btn-primary"
                     ?disabled=${saving || !isDirty}
@@ -26227,7 +26949,7 @@ function humanizeToken(value) {
   if (value == null || value === "") return "";
   return String(value)
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (c4) => c4.toUpperCase());
+    .replace(/\b\w/g, (c3) => c3.toUpperCase());
 }
 function fmtEntity(hass, id) {
   if (!id) return "";
@@ -26240,7 +26962,7 @@ function fmtEntity(hass, id) {
     /_/g,
     " ",
   );
-  return raw.replace(/\b\w/g, (c4) => c4.toUpperCase());
+  return raw.replace(/\b\w/g, (c3) => c3.toUpperCase());
 }
 var _LIST_CONNECTORS = {
   en: { last: " and ", oxford: ", and " },
@@ -26261,15 +26983,15 @@ function fmtEntities(hass, val, language) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
   if (arr.length === 1) return fmtEntity(hass, arr[0]);
-  const c4 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
+  const c3 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
   if (arr.length === 2)
-    return `${fmtEntity(hass, arr[0])}${c4.last}${fmtEntity(hass, arr[1])}`;
+    return `${fmtEntity(hass, arr[0])}${c3.last}${fmtEntity(hass, arr[1])}`;
   return (
     arr
       .slice(0, -1)
       .map((e6) => fmtEntity(hass, e6))
       .join(", ") +
-    c4.oxford +
+    c3.oxford +
     fmtEntity(hass, arr[arr.length - 1])
   );
 }
@@ -26382,9 +27104,9 @@ var _STATE_NAMES = {
 };
 function fmtState(state, language) {
   if (state == null) return null;
-  const s4 = String(state);
+  const s6 = String(state);
   const table = _STATE_NAMES[_langKey2(language, _STATE_NAMES)];
-  return table[s4] || s4.replace(/_/g, " ");
+  return table[s6] || s6.replace(/_/g, " ");
 }
 function fmtDuration(value) {
   if (!value) return "";
@@ -26482,37 +27204,40 @@ function fmtNumericValue(entityId, value) {
 }
 function fmtTime(hass, val) {
   if (val == null) return String(val);
-  const s4 = String(val).trim();
-  if (s4.includes("{{") || s4.includes("{%")) {
-    const m3 = s4.match(/states\(['"]([^'"]+)['"]\)/);
-    if (m3) return fmtEntity(hass, m3[1]);
-    const m22 = s4.match(/state_attr\(['"]([^'"]+)['"]/);
+  const s6 = String(val).trim();
+  if (s6.includes("{{") || s6.includes("{%")) {
+    const m2 = s6.match(/states\(['"]([^'"]+)['"]\)/);
+    if (m2) return fmtEntity(hass, m2[1]);
+    const m22 = s6.match(/state_attr\(['"]([^'"]+)['"]/);
     if (m22) return fmtEntity(hass, m22[1]);
     return "a calculated time";
   }
-  const num = Number(s4);
-  if (!isNaN(num) && num >= 0 && num <= 86400 && !s4.includes(":")) {
+  const num = Number(s6);
+  if (!isNaN(num) && num >= 0 && num <= 86400 && !s6.includes(":")) {
     const h3 = Math.floor(num / 3600);
-    const m3 = Math.floor((num % 3600) / 60);
-    return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    const m2 = Math.floor((num % 3600) / 60);
+    return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
   }
-  const parts = s4.split(":");
+  const parts = s6.split(":");
   if (parts.length >= 2) {
     const h3 = parseInt(parts[0], 10);
-    const m3 = parseInt(parts[1], 10);
-    if (!isNaN(h3) && !isNaN(m3)) {
-      return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    const m2 = parseInt(parts[1], 10);
+    if (!isNaN(h3) && !isNaN(m2)) {
+      return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
     }
   }
-  if (s4.startsWith("input_datetime.") || s4.startsWith("sensor."))
-    return fmtEntity(hass, s4);
-  return s4;
+  if (s6.startsWith("input_datetime.") || s6.startsWith("sensor."))
+    return fmtEntity(hass, s6);
+  return s6;
 }
 
 // src/shared/flow-description.js
+function asArray(v2) {
+  return Array.isArray(v2) ? v2 : v2 == null || v2 === false ? [] : [v2];
+}
 var PHRASES = {
   en: {
-    when_time_is: (t5) => `When the time is ${t5}`,
+    when_time_is: (t4) => `When the time is ${t4}`,
     when_time_is_any: (list) => `When the time is ${list}`,
     or: " or ",
     when_it_is: (ev) => `When it is ${ev}`,
@@ -26527,7 +27252,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `When ${eid} becomes ${st}${dur}`,
     when_changes_state: (eid, dur) => `When ${eid} changes state${dur}`,
     for_duration: (d3) => ` for ${d3}`,
-    when_between: (eid, a3, b3) => `When ${eid} is between ${a3} and ${b3}`,
+    when_between: (eid, a4, b2) => `When ${eid} is between ${a4} and ${b2}`,
     when_rises_above: (eid, v2) => `When ${eid} rises above ${v2}`,
     when_drops_below: (eid, v2) => `When ${eid} drops below ${v2}`,
     when_value_changes: (eid) => `When ${eid} value changes`,
@@ -26535,20 +27260,20 @@ var PHRASES = {
     ha_starts: "starts",
     ha_shuts_down: "shuts down",
     ha_changes_state: "changes state",
-    every_seconds: (n4) => `Every ${n4} second${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) => `Every ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Every ${n4} hour${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n5) => `Every ${n5} second${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) => `Every ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Every ${n5} hour${Number(n5) === 1 ? "" : "s"}`,
     on_time_pattern: "On a time pattern",
     when_template_entity: (e6) => `When ${e6} condition is met`,
     when_template_met: "When a template condition is met",
-    when_event: (n4) => `When ${n4} happens`,
+    when_event: (n5) => `When ${n5} happens`,
     when_event_generic: "When an event happens",
-    when_device_triggered: (t5) => `When a device ${t5}`,
-    when_device_is: (t5) => `When a device is ${t5}`,
+    when_device_triggered: (t4) => `When a device ${t4}`,
+    when_device_is: (t4) => `When a device is ${t4}`,
     triggered: "triggered",
     zone_enters: "enters",
     zone_leaves: "leaves",
-    when_mqtt_topic: (t5) => `When a device message arrives (${t5})`,
+    when_mqtt_topic: (t4) => `When a device message arrives (${t4})`,
     when_mqtt: "When a device message arrives",
     when_webhook: "When an outside service sends an update",
     when_tag: (id) => `When a tag is scanned${id ? ` (${id})` : ""}`,
@@ -26558,20 +27283,20 @@ var PHRASES = {
     on_entity: (e6) => ` on ${e6}`,
     when_trigger_happens: "When this trigger happens",
     cond_is: (eid, st) => `${eid} is ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} between ${a3} and ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} between ${a4} and ${b2}`,
     cond_above: (eid, v2) => `${eid} above ${v2}`,
     cond_below: (eid, v2) => `${eid} below ${v2}`,
     cond_numeric: (eid) => `${eid} numeric check`,
-    cond_after_time: (t5) => `after ${t5}`,
-    cond_before_time: (t5) => `before ${t5}`,
+    cond_after_time: (t4) => `after ${t4}`,
+    cond_before_time: (t4) => `before ${t4}`,
     cond_on_weekday: (d3) => `on ${d3}`,
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
-    cond_after_sun: (s4) => `after ${s4}`,
-    cond_before_sun: (s4) => `before ${s4}`,
+    cond_after_sun: (s6) => `after ${s6}`,
+    cond_before_sun: (s6) => `before ${s6}`,
     cond_sun_position: "Sun position",
-    cond_all: (n4) => `All ${n4} conditions must be true`,
-    cond_any: (n4) => `Any of ${n4} conditions is true`,
+    cond_all: (n5) => `All ${n5} conditions must be true`,
+    cond_any: (n5) => `Any of ${n5} conditions is true`,
     cond_none: "None of the conditions are true",
     cond_in_zone: (eid, z2) => `${eid} is in ${z2 || "zone"}`,
     cond_device: "Device condition",
@@ -26596,26 +27321,26 @@ var PHRASES = {
     extra_temp: (v2) => `to ${v2}\xB0`,
     extra_color_temp: (v2) => `color temp ${v2}`,
     wait_str: (d3) => `Wait ${d3}`,
-    wait_parts: (p4) => `Wait ${p4}`,
+    wait_parts: (p2) => `Wait ${p2}`,
     wait_plain: "Wait",
     wait_until: "Wait until condition is met",
     wait_for_trigger: "Wait for a trigger",
     activate_scene: (e6) => `Activate scene: ${e6}`,
-    choose_between: (n4) => `Choose between ${n4} option${n4 !== 1 ? "s" : ""}`,
-    repeat_count: (n4) => `Repeat ${n4} time${n4 !== 1 ? "s" : ""}`,
+    choose_between: (n5) => `Choose between ${n5} option${n5 !== 1 ? "s" : ""}`,
+    repeat_count: (n5) => `Repeat ${n5} time${n5 !== 1 ? "s" : ""}`,
     repeat_while: "Repeat while condition holds",
     repeat_until: "Repeat until condition is met",
     repeat: "Repeat",
-    parallel: (n4) => `Run ${n4} actions in parallel`,
-    sequence: (n4) => `Run a sequence of ${n4} steps`,
+    parallel: (n5) => `Run ${n5} actions in parallel`,
+    sequence: (n5) => `Run a sequence of ${n5} steps`,
     set_variables: "Set variables",
-    stop_label: (s4) => `Stop: ${s4}`,
+    stop_label: (s6) => `Stop: ${s6}`,
     fire_event: (e6) => `Fire event: ${e6}`,
     automation_step: "Automation step",
     joiner_dot: " \xB7 ",
   },
   fr: {
-    when_time_is: (t5) => `Quand l'heure est ${t5}`,
+    when_time_is: (t4) => `Quand l'heure est ${t4}`,
     when_time_is_any: (list) => `Quand l'heure est ${list}`,
     or: " ou ",
     when_it_is: (ev) => `Quand c'est ${ev}`,
@@ -26630,7 +27355,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Quand ${eid} devient ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quand ${eid} change d'\xE9tat${dur}`,
     for_duration: (d3) => ` pendant ${d3}`,
-    when_between: (eid, a3, b3) => `Quand ${eid} est entre ${a3} et ${b3}`,
+    when_between: (eid, a4, b2) => `Quand ${eid} est entre ${a4} et ${b2}`,
     when_rises_above: (eid, v2) => `Quand ${eid} d\xE9passe ${v2}`,
     when_drops_below: (eid, v2) => `Quand ${eid} descend sous ${v2}`,
     when_value_changes: (eid) => `Quand la valeur de ${eid} change`,
@@ -26638,22 +27363,22 @@ var PHRASES = {
     ha_starts: "d\xE9marre",
     ha_shuts_down: "s'arr\xEAte",
     ha_changes_state: "change d'\xE9tat",
-    every_seconds: (n4) =>
-      `Toutes les ${n4} seconde${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) =>
-      `Toutes les ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Toutes les ${n4} heure${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n5) =>
+      `Toutes les ${n5} seconde${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) =>
+      `Toutes les ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Toutes les ${n5} heure${Number(n5) === 1 ? "" : "s"}`,
     on_time_pattern: "Selon un sch\xE9ma temporel",
     when_template_entity: (e6) => `Quand la condition sur ${e6} est vraie`,
     when_template_met: "Quand une condition mod\xE8le est vraie",
-    when_event: (n4) => `Quand ${n4} se produit`,
+    when_event: (n5) => `Quand ${n5} se produit`,
     when_event_generic: "Quand un \xE9v\xE9nement se produit",
-    when_device_triggered: (t5) => `Quand un appareil ${t5}`,
-    when_device_is: (t5) => `Quand un appareil est ${t5}`,
+    when_device_triggered: (t4) => `Quand un appareil ${t4}`,
+    when_device_is: (t4) => `Quand un appareil est ${t4}`,
     triggered: "d\xE9clench\xE9",
     zone_enters: "entre dans",
     zone_leaves: "quitte",
-    when_mqtt_topic: (t5) => `Quand un message d'appareil arrive (${t5})`,
+    when_mqtt_topic: (t4) => `Quand un message d'appareil arrive (${t4})`,
     when_mqtt: "Quand un message d'appareil arrive",
     when_webhook: "Quand un service externe envoie une mise \xE0 jour",
     when_tag: (id) => `Quand un tag est scann\xE9${id ? ` (${id})` : ""}`,
@@ -26664,20 +27389,20 @@ var PHRASES = {
     on_entity: (e6) => ` sur ${e6}`,
     when_trigger_happens: "Quand ce d\xE9clencheur se produit",
     cond_is: (eid, st) => `${eid} est ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} entre ${a3} et ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} entre ${a4} et ${b2}`,
     cond_above: (eid, v2) => `${eid} au-dessus de ${v2}`,
     cond_below: (eid, v2) => `${eid} en dessous de ${v2}`,
     cond_numeric: (eid) => `v\xE9rification num\xE9rique de ${eid}`,
-    cond_after_time: (t5) => `apr\xE8s ${t5}`,
-    cond_before_time: (t5) => `avant ${t5}`,
+    cond_after_time: (t4) => `apr\xE8s ${t4}`,
+    cond_before_time: (t4) => `avant ${t4}`,
     cond_on_weekday: (d3) => `le ${d3}`,
     cond_time_window: "Fen\xEAtre temporelle",
     cond_template_true: "Le mod\xE8le est \xE9valu\xE9 \xE0 vrai",
-    cond_after_sun: (s4) => `apr\xE8s ${s4}`,
-    cond_before_sun: (s4) => `avant ${s4}`,
+    cond_after_sun: (s6) => `apr\xE8s ${s6}`,
+    cond_before_sun: (s6) => `avant ${s6}`,
     cond_sun_position: "Position du soleil",
-    cond_all: (n4) => `Les ${n4} conditions doivent \xEAtre vraies`,
-    cond_any: (n4) => `L'une des ${n4} conditions est vraie`,
+    cond_all: (n5) => `Les ${n5} conditions doivent \xEAtre vraies`,
+    cond_any: (n5) => `L'une des ${n5} conditions est vraie`,
     cond_none: "Aucune des conditions n'est vraie",
     cond_in_zone: (eid, z2) => `${eid} est dans ${z2 || "la zone"}`,
     cond_device: "Condition d'appareil",
@@ -26702,26 +27427,26 @@ var PHRASES = {
     extra_temp: (v2) => `\xE0 ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. de couleur ${v2}`,
     wait_str: (d3) => `Attendre ${d3}`,
-    wait_parts: (p4) => `Attendre ${p4}`,
+    wait_parts: (p2) => `Attendre ${p2}`,
     wait_plain: "Attendre",
     wait_until: "Attendre que la condition soit vraie",
     wait_for_trigger: "Attendre un d\xE9clencheur",
     activate_scene: (e6) => `Activer la sc\xE8ne : ${e6}`,
-    choose_between: (n4) => `Choisir parmi ${n4} option${n4 !== 1 ? "s" : ""}`,
-    repeat_count: (n4) => `R\xE9p\xE9ter ${n4} fois`,
+    choose_between: (n5) => `Choisir parmi ${n5} option${n5 !== 1 ? "s" : ""}`,
+    repeat_count: (n5) => `R\xE9p\xE9ter ${n5} fois`,
     repeat_while: "R\xE9p\xE9ter tant que la condition est vraie",
     repeat_until: "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit vraie",
     repeat: "R\xE9p\xE9ter",
-    parallel: (n4) => `Ex\xE9cuter ${n4} actions en parall\xE8le`,
-    sequence: (n4) => `Ex\xE9cuter une s\xE9quence de ${n4} \xE9tapes`,
+    parallel: (n5) => `Ex\xE9cuter ${n5} actions en parall\xE8le`,
+    sequence: (n5) => `Ex\xE9cuter une s\xE9quence de ${n5} \xE9tapes`,
     set_variables: "D\xE9finir des variables",
-    stop_label: (s4) => `Arr\xEAter : ${s4}`,
+    stop_label: (s6) => `Arr\xEAter : ${s6}`,
     fire_event: (e6) => `D\xE9clencher l'\xE9v\xE9nement : ${e6}`,
     automation_step: "\xC9tape d'automatisation",
     joiner_dot: " \xB7 ",
   },
   de: {
-    when_time_is: (t5) => `Wenn die Uhrzeit ${t5} ist`,
+    when_time_is: (t4) => `Wenn die Uhrzeit ${t4} ist`,
     when_time_is_any: (list) => `Wenn die Uhrzeit ${list} ist`,
     or: " oder ",
     when_it_is: (ev) => `Wenn ${ev} ist`,
@@ -26735,7 +27460,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Wenn ${eid} zu ${st} wird${dur}`,
     when_changes_state: (eid, dur) => `Wenn ${eid} den Zustand \xE4ndert${dur}`,
     for_duration: (d3) => ` f\xFCr ${d3}`,
-    when_between: (eid, a3, b3) => `Wenn ${eid} zwischen ${a3} und ${b3} liegt`,
+    when_between: (eid, a4, b2) => `Wenn ${eid} zwischen ${a4} und ${b2} liegt`,
     when_rises_above: (eid, v2) => `Wenn ${eid} \xFCber ${v2} steigt`,
     when_drops_below: (eid, v2) => `Wenn ${eid} unter ${v2} f\xE4llt`,
     when_value_changes: (eid) => `Wenn sich der Wert von ${eid} \xE4ndert`,
@@ -26743,20 +27468,20 @@ var PHRASES = {
     ha_starts: "startet",
     ha_shuts_down: "herunterf\xE4hrt",
     ha_changes_state: "den Zustand \xE4ndert",
-    every_seconds: (n4) => `Alle ${n4} Sekunde${Number(n4) === 1 ? "" : "n"}`,
-    every_minutes: (n4) => `Alle ${n4} Minute${Number(n4) === 1 ? "" : "n"}`,
-    every_hours: (n4) => `Alle ${n4} Stunde${Number(n4) === 1 ? "" : "n"}`,
+    every_seconds: (n5) => `Alle ${n5} Sekunde${Number(n5) === 1 ? "" : "n"}`,
+    every_minutes: (n5) => `Alle ${n5} Minute${Number(n5) === 1 ? "" : "n"}`,
+    every_hours: (n5) => `Alle ${n5} Stunde${Number(n5) === 1 ? "" : "n"}`,
     on_time_pattern: "Nach einem Zeitmuster",
     when_template_entity: (e6) => `Wenn Bedingung f\xFCr ${e6} erf\xFCllt ist`,
     when_template_met: "Wenn eine Template-Bedingung erf\xFCllt ist",
-    when_event: (n4) => `Wenn ${n4} eintritt`,
+    when_event: (n5) => `Wenn ${n5} eintritt`,
     when_event_generic: "Wenn ein Ereignis eintritt",
-    when_device_triggered: (t5) => `Wenn ein Ger\xE4t ${t5}`,
-    when_device_is: (t5) => `Wenn ein Ger\xE4t ${t5} ist`,
+    when_device_triggered: (t4) => `Wenn ein Ger\xE4t ${t4}`,
+    when_device_is: (t4) => `Wenn ein Ger\xE4t ${t4} ist`,
     triggered: "ausgel\xF6st",
     zone_enters: "betritt",
     zone_leaves: "verl\xE4sst",
-    when_mqtt_topic: (t5) => `Wenn eine Ger\xE4tenachricht eintrifft (${t5})`,
+    when_mqtt_topic: (t4) => `Wenn eine Ger\xE4tenachricht eintrifft (${t4})`,
     when_mqtt: "Wenn eine Ger\xE4tenachricht eintrifft",
     when_webhook: "Wenn ein externer Dienst ein Update sendet",
     when_tag: (id) => `Wenn ein Tag gescannt wird${id ? ` (${id})` : ""}`,
@@ -26766,20 +27491,20 @@ var PHRASES = {
     on_entity: (e6) => ` auf ${e6}`,
     when_trigger_happens: "Wenn dieser Ausl\xF6ser eintritt",
     cond_is: (eid, st) => `${eid} ist ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} zwischen ${a3} und ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} zwischen ${a4} und ${b2}`,
     cond_above: (eid, v2) => `${eid} \xFCber ${v2}`,
     cond_below: (eid, v2) => `${eid} unter ${v2}`,
     cond_numeric: (eid) => `${eid} numerische Pr\xFCfung`,
-    cond_after_time: (t5) => `nach ${t5}`,
-    cond_before_time: (t5) => `vor ${t5}`,
+    cond_after_time: (t4) => `nach ${t4}`,
+    cond_before_time: (t4) => `vor ${t4}`,
     cond_on_weekday: (d3) => `am ${d3}`,
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
-    cond_after_sun: (s4) => `nach ${s4}`,
-    cond_before_sun: (s4) => `vor ${s4}`,
+    cond_after_sun: (s6) => `nach ${s6}`,
+    cond_before_sun: (s6) => `vor ${s6}`,
     cond_sun_position: "Sonnenposition",
-    cond_all: (n4) => `Alle ${n4} Bedingungen m\xFCssen erf\xFCllt sein`,
-    cond_any: (n4) => `Eine der ${n4} Bedingungen ist erf\xFCllt`,
+    cond_all: (n5) => `Alle ${n5} Bedingungen m\xFCssen erf\xFCllt sein`,
+    cond_any: (n5) => `Eine der ${n5} Bedingungen ist erf\xFCllt`,
     cond_none: "Keine der Bedingungen ist erf\xFCllt",
     cond_in_zone: (eid, z2) => `${eid} ist in ${z2 || "Zone"}`,
     cond_device: "Ger\xE4tebedingung",
@@ -26804,26 +27529,26 @@ var PHRASES = {
     extra_temp: (v2) => `auf ${v2}\xB0`,
     extra_color_temp: (v2) => `Farbtemp. ${v2}`,
     wait_str: (d3) => `${d3} warten`,
-    wait_parts: (p4) => `${p4} warten`,
+    wait_parts: (p2) => `${p2} warten`,
     wait_plain: "Warten",
     wait_until: "Warten bis Bedingung erf\xFCllt ist",
     wait_for_trigger: "Auf Ausl\xF6ser warten",
     activate_scene: (e6) => `Szene aktivieren: ${e6}`,
-    choose_between: (n4) => `Aus ${n4} Optionen w\xE4hlen`,
-    repeat_count: (n4) => `${n4}-mal wiederholen`,
+    choose_between: (n5) => `Aus ${n5} Optionen w\xE4hlen`,
+    repeat_count: (n5) => `${n5}-mal wiederholen`,
     repeat_while: "Wiederholen solange Bedingung erf\xFCllt ist",
     repeat_until: "Wiederholen bis Bedingung erf\xFCllt ist",
     repeat: "Wiederholen",
-    parallel: (n4) => `${n4} Aktionen parallel ausf\xFChren`,
-    sequence: (n4) => `Eine Sequenz von ${n4} Schritten ausf\xFChren`,
+    parallel: (n5) => `${n5} Aktionen parallel ausf\xFChren`,
+    sequence: (n5) => `Eine Sequenz von ${n5} Schritten ausf\xFChren`,
     set_variables: "Variablen setzen",
-    stop_label: (s4) => `Stoppen: ${s4}`,
+    stop_label: (s6) => `Stoppen: ${s6}`,
     fire_event: (e6) => `Ereignis ausl\xF6sen: ${e6}`,
     automation_step: "Automatisierungsschritt",
     joiner_dot: " \xB7 ",
   },
   es: {
-    when_time_is: (t5) => `Cuando la hora sea ${t5}`,
+    when_time_is: (t4) => `Cuando la hora sea ${t4}`,
     when_time_is_any: (list) => `Cuando la hora sea ${list}`,
     or: " o ",
     when_it_is: (ev) => `Cuando sea ${ev}`,
@@ -26838,7 +27563,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Cuando ${eid} pase a ${st}${dur}`,
     when_changes_state: (eid, dur) => `Cuando ${eid} cambie de estado${dur}`,
     for_duration: (d3) => ` durante ${d3}`,
-    when_between: (eid, a3, b3) => `Cuando ${eid} est\xE9 entre ${a3} y ${b3}`,
+    when_between: (eid, a4, b2) => `Cuando ${eid} est\xE9 entre ${a4} y ${b2}`,
     when_rises_above: (eid, v2) => `Cuando ${eid} supere ${v2}`,
     when_drops_below: (eid, v2) => `Cuando ${eid} baje de ${v2}`,
     when_value_changes: (eid) => `Cuando cambie el valor de ${eid}`,
@@ -26846,20 +27571,20 @@ var PHRASES = {
     ha_starts: "se inicie",
     ha_shuts_down: "se apague",
     ha_changes_state: "cambie de estado",
-    every_seconds: (n4) => `Cada ${n4} segundo${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) => `Cada ${n4} minuto${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Cada ${n4} hora${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n5) => `Cada ${n5} segundo${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) => `Cada ${n5} minuto${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Cada ${n5} hora${Number(n5) === 1 ? "" : "s"}`,
     on_time_pattern: "En un patr\xF3n temporal",
     when_template_entity: (e6) => `Cuando se cumpla la condici\xF3n de ${e6}`,
     when_template_met: "Cuando se cumpla una condici\xF3n de plantilla",
-    when_event: (n4) => `Cuando ocurra ${n4}`,
+    when_event: (n5) => `Cuando ocurra ${n5}`,
     when_event_generic: "Cuando ocurra un evento",
-    when_device_triggered: (t5) => `Cuando un dispositivo ${t5}`,
-    when_device_is: (t5) => `Cuando un dispositivo est\xE9 ${t5}`,
+    when_device_triggered: (t4) => `Cuando un dispositivo ${t4}`,
+    when_device_is: (t4) => `Cuando un dispositivo est\xE9 ${t4}`,
     triggered: "activado",
     zone_enters: "entra en",
     zone_leaves: "sale de",
-    when_mqtt_topic: (t5) => `Cuando llegue un mensaje de dispositivo (${t5})`,
+    when_mqtt_topic: (t4) => `Cuando llegue un mensaje de dispositivo (${t4})`,
     when_mqtt: "Cuando llegue un mensaje de dispositivo",
     when_webhook: "Cuando un servicio externo env\xEDe una actualizaci\xF3n",
     when_tag: (id) => `Cuando se escanee una etiqueta${id ? ` (${id})` : ""}`,
@@ -26870,20 +27595,20 @@ var PHRASES = {
     on_entity: (e6) => ` en ${e6}`,
     when_trigger_happens: "Cuando ocurra este disparador",
     cond_is: (eid, st) => `${eid} es ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} entre ${a3} y ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} entre ${a4} y ${b2}`,
     cond_above: (eid, v2) => `${eid} por encima de ${v2}`,
     cond_below: (eid, v2) => `${eid} por debajo de ${v2}`,
     cond_numeric: (eid) => `verificaci\xF3n num\xE9rica de ${eid}`,
-    cond_after_time: (t5) => `despu\xE9s de ${t5}`,
-    cond_before_time: (t5) => `antes de ${t5}`,
+    cond_after_time: (t4) => `despu\xE9s de ${t4}`,
+    cond_before_time: (t4) => `antes de ${t4}`,
     cond_on_weekday: (d3) => `el ${d3}`,
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se eval\xFAa como verdadera",
-    cond_after_sun: (s4) => `despu\xE9s de ${s4}`,
-    cond_before_sun: (s4) => `antes de ${s4}`,
+    cond_after_sun: (s6) => `despu\xE9s de ${s6}`,
+    cond_before_sun: (s6) => `antes de ${s6}`,
     cond_sun_position: "Posici\xF3n del sol",
-    cond_all: (n4) => `Las ${n4} condiciones deben ser verdaderas`,
-    cond_any: (n4) => `Cualquiera de las ${n4} condiciones es verdadera`,
+    cond_all: (n5) => `Las ${n5} condiciones deben ser verdaderas`,
+    cond_any: (n5) => `Cualquiera de las ${n5} condiciones es verdadera`,
     cond_none: "Ninguna de las condiciones es verdadera",
     cond_in_zone: (eid, z2) => `${eid} est\xE1 en ${z2 || "la zona"}`,
     cond_device: "Condici\xF3n de dispositivo",
@@ -26908,27 +27633,27 @@ var PHRASES = {
     extra_temp: (v2) => `a ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. de color ${v2}`,
     wait_str: (d3) => `Esperar ${d3}`,
-    wait_parts: (p4) => `Esperar ${p4}`,
+    wait_parts: (p2) => `Esperar ${p2}`,
     wait_plain: "Esperar",
     wait_until: "Esperar hasta que se cumpla la condici\xF3n",
     wait_for_trigger: "Esperar un disparador",
     activate_scene: (e6) => `Activar escena: ${e6}`,
-    choose_between: (n4) =>
-      `Elegir entre ${n4} opci${n4 !== 1 ? "ones" : "\xF3n"}`,
-    repeat_count: (n4) => `Repetir ${n4} ve${n4 !== 1 ? "ces" : "z"}`,
+    choose_between: (n5) =>
+      `Elegir entre ${n5} opci${n5 !== 1 ? "ones" : "\xF3n"}`,
+    repeat_count: (n5) => `Repetir ${n5} ve${n5 !== 1 ? "ces" : "z"}`,
     repeat_while: "Repetir mientras la condici\xF3n sea verdadera",
     repeat_until: "Repetir hasta que la condici\xF3n sea verdadera",
     repeat: "Repetir",
-    parallel: (n4) => `Ejecutar ${n4} acciones en paralelo`,
-    sequence: (n4) => `Ejecutar una secuencia de ${n4} pasos`,
+    parallel: (n5) => `Ejecutar ${n5} acciones en paralelo`,
+    sequence: (n5) => `Ejecutar una secuencia de ${n5} pasos`,
     set_variables: "Establecer variables",
-    stop_label: (s4) => `Detener: ${s4}`,
+    stop_label: (s6) => `Detener: ${s6}`,
     fire_event: (e6) => `Disparar evento: ${e6}`,
     automation_step: "Paso de automatizaci\xF3n",
     joiner_dot: " \xB7 ",
   },
   it: {
-    when_time_is: (t5) => `Quando l'ora \xE8 ${t5}`,
+    when_time_is: (t4) => `Quando l'ora \xE8 ${t4}`,
     when_time_is_any: (list) => `Quando l'ora \xE8 ${list}`,
     or: " o ",
     when_it_is: (ev) => `Quando \xE8 ${ev}`,
@@ -26942,7 +27667,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Quando ${eid} diventa ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quando ${eid} cambia stato${dur}`,
     for_duration: (d3) => ` per ${d3}`,
-    when_between: (eid, a3, b3) => `Quando ${eid} \xE8 tra ${a3} e ${b3}`,
+    when_between: (eid, a4, b2) => `Quando ${eid} \xE8 tra ${a4} e ${b2}`,
     when_rises_above: (eid, v2) => `Quando ${eid} supera ${v2}`,
     when_drops_below: (eid, v2) => `Quando ${eid} scende sotto ${v2}`,
     when_value_changes: (eid) => `Quando il valore di ${eid} cambia`,
@@ -26950,22 +27675,22 @@ var PHRASES = {
     ha_starts: "si avvia",
     ha_shuts_down: "si arresta",
     ha_changes_state: "cambia stato",
-    every_seconds: (n4) => `Ogni ${n4} second${Number(n4) === 1 ? "o" : "i"}`,
-    every_minutes: (n4) => `Ogni ${n4} minut${Number(n4) === 1 ? "o" : "i"}`,
-    every_hours: (n4) => `Ogni ${n4} or${Number(n4) === 1 ? "a" : "e"}`,
+    every_seconds: (n5) => `Ogni ${n5} second${Number(n5) === 1 ? "o" : "i"}`,
+    every_minutes: (n5) => `Ogni ${n5} minut${Number(n5) === 1 ? "o" : "i"}`,
+    every_hours: (n5) => `Ogni ${n5} or${Number(n5) === 1 ? "a" : "e"}`,
     on_time_pattern: "Su uno schema temporale",
     when_template_entity: (e6) =>
       `Quando la condizione su ${e6} \xE8 soddisfatta`,
     when_template_met: "Quando una condizione del modello \xE8 soddisfatta",
-    when_event: (n4) => `Quando ${n4} si verifica`,
+    when_event: (n5) => `Quando ${n5} si verifica`,
     when_event_generic: "Quando si verifica un evento",
-    when_device_triggered: (t5) => `Quando un dispositivo ${t5}`,
-    when_device_is: (t5) => `Quando un dispositivo \xE8 ${t5}`,
+    when_device_triggered: (t4) => `Quando un dispositivo ${t4}`,
+    when_device_is: (t4) => `Quando un dispositivo \xE8 ${t4}`,
     triggered: "attivato",
     zone_enters: "entra in",
     zone_leaves: "esce da",
-    when_mqtt_topic: (t5) =>
-      `Quando arriva un messaggio del dispositivo (${t5})`,
+    when_mqtt_topic: (t4) =>
+      `Quando arriva un messaggio del dispositivo (${t4})`,
     when_mqtt: "Quando arriva un messaggio del dispositivo",
     when_webhook: "Quando un servizio esterno invia un aggiornamento",
     when_tag: (id) => `Quando un tag viene scansionato${id ? ` (${id})` : ""}`,
@@ -26976,20 +27701,20 @@ var PHRASES = {
     on_entity: (e6) => ` su ${e6}`,
     when_trigger_happens: "Quando si verifica questo trigger",
     cond_is: (eid, st) => `${eid} \xE8 ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} tra ${a3} e ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} tra ${a4} e ${b2}`,
     cond_above: (eid, v2) => `${eid} sopra ${v2}`,
     cond_below: (eid, v2) => `${eid} sotto ${v2}`,
     cond_numeric: (eid) => `verifica numerica di ${eid}`,
-    cond_after_time: (t5) => `dopo ${t5}`,
-    cond_before_time: (t5) => `prima di ${t5}`,
+    cond_after_time: (t4) => `dopo ${t4}`,
+    cond_before_time: (t4) => `prima di ${t4}`,
     cond_on_weekday: (d3) => `il ${d3}`,
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello \xE8 valutato vero",
-    cond_after_sun: (s4) => `dopo ${s4}`,
-    cond_before_sun: (s4) => `prima di ${s4}`,
+    cond_after_sun: (s6) => `dopo ${s6}`,
+    cond_before_sun: (s6) => `prima di ${s6}`,
     cond_sun_position: "Posizione del sole",
-    cond_all: (n4) => `Tutte le ${n4} condizioni devono essere vere`,
-    cond_any: (n4) => `Una delle ${n4} condizioni \xE8 vera`,
+    cond_all: (n5) => `Tutte le ${n5} condizioni devono essere vere`,
+    cond_any: (n5) => `Una delle ${n5} condizioni \xE8 vera`,
     cond_none: "Nessuna delle condizioni \xE8 vera",
     cond_in_zone: (eid, z2) => `${eid} \xE8 in ${z2 || "zona"}`,
     cond_device: "Condizione del dispositivo",
@@ -27014,26 +27739,26 @@ var PHRASES = {
     extra_temp: (v2) => `a ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. colore ${v2}`,
     wait_str: (d3) => `Attendi ${d3}`,
-    wait_parts: (p4) => `Attendi ${p4}`,
+    wait_parts: (p2) => `Attendi ${p2}`,
     wait_plain: "Attendi",
     wait_until: "Attendi finch\xE9 la condizione non \xE8 soddisfatta",
     wait_for_trigger: "Attendi un trigger",
     activate_scene: (e6) => `Attiva scena: ${e6}`,
-    choose_between: (n4) => `Scegli tra ${n4} opzion${n4 !== 1 ? "i" : "e"}`,
-    repeat_count: (n4) => `Ripeti ${n4} volt${n4 !== 1 ? "e" : "a"}`,
+    choose_between: (n5) => `Scegli tra ${n5} opzion${n5 !== 1 ? "i" : "e"}`,
+    repeat_count: (n5) => `Ripeti ${n5} volt${n5 !== 1 ? "e" : "a"}`,
     repeat_while: "Ripeti finch\xE9 la condizione \xE8 vera",
     repeat_until: "Ripeti finch\xE9 la condizione non \xE8 vera",
     repeat: "Ripeti",
-    parallel: (n4) => `Esegui ${n4} azioni in parallelo`,
-    sequence: (n4) => `Esegui una sequenza di ${n4} passaggi`,
+    parallel: (n5) => `Esegui ${n5} azioni in parallelo`,
+    sequence: (n5) => `Esegui una sequenza di ${n5} passaggi`,
     set_variables: "Imposta variabili",
-    stop_label: (s4) => `Ferma: ${s4}`,
+    stop_label: (s6) => `Ferma: ${s6}`,
     fire_event: (e6) => `Lancia evento: ${e6}`,
     automation_step: "Passo di automazione",
     joiner_dot: " \xB7 ",
   },
   nl: {
-    when_time_is: (t5) => `Wanneer het tijdstip ${t5} is`,
+    when_time_is: (t4) => `Wanneer het tijdstip ${t4} is`,
     when_time_is_any: (list) => `Wanneer het tijdstip ${list} is`,
     or: " of ",
     when_it_is: (ev) => `Wanneer het ${ev} is`,
@@ -27049,7 +27774,7 @@ var PHRASES = {
     when_changes_state: (eid, dur) =>
       `Wanneer ${eid} van status verandert${dur}`,
     for_duration: (d3) => ` gedurende ${d3}`,
-    when_between: (eid, a3, b3) => `Wanneer ${eid} tussen ${a3} en ${b3} is`,
+    when_between: (eid, a4, b2) => `Wanneer ${eid} tussen ${a4} en ${b2} is`,
     when_rises_above: (eid, v2) => `Wanneer ${eid} boven ${v2} stijgt`,
     when_drops_below: (eid, v2) => `Wanneer ${eid} onder ${v2} zakt`,
     when_value_changes: (eid) => `Wanneer de waarde van ${eid} verandert`,
@@ -27057,23 +27782,23 @@ var PHRASES = {
     ha_starts: "start",
     ha_shuts_down: "afsluit",
     ha_changes_state: "van status verandert",
-    every_seconds: (n4) =>
-      `Elke ${n4} ${Number(n4) === 1 ? "seconde" : "seconden"}`,
-    every_minutes: (n4) =>
-      `Elke ${n4} ${Number(n4) === 1 ? "minuut" : "minuten"}`,
-    every_hours: (n4) => `Elke ${n4} uur`,
+    every_seconds: (n5) =>
+      `Elke ${n5} ${Number(n5) === 1 ? "seconde" : "seconden"}`,
+    every_minutes: (n5) =>
+      `Elke ${n5} ${Number(n5) === 1 ? "minuut" : "minuten"}`,
+    every_hours: (n5) => `Elke ${n5} uur`,
     on_time_pattern: "Op een tijdpatroon",
     when_template_entity: (e6) => `Wanneer de voorwaarde op ${e6} klopt`,
     when_template_met: "Wanneer aan een sjabloonvoorwaarde wordt voldaan",
-    when_event: (n4) => `Wanneer ${n4} gebeurt`,
+    when_event: (n5) => `Wanneer ${n5} gebeurt`,
     when_event_generic: "Wanneer een gebeurtenis plaatsvindt",
-    when_device_triggered: (t5) => `Wanneer een apparaat ${t5}`,
-    when_device_is: (t5) => `Wanneer een apparaat ${t5} is`,
+    when_device_triggered: (t4) => `Wanneer een apparaat ${t4}`,
+    when_device_is: (t4) => `Wanneer een apparaat ${t4} is`,
     triggered: "geactiveerd",
     zone_enters: "betreedt",
     zone_leaves: "verlaat",
-    when_mqtt_topic: (t5) =>
-      `Wanneer er een apparaatbericht binnenkomt (${t5})`,
+    when_mqtt_topic: (t4) =>
+      `Wanneer er een apparaatbericht binnenkomt (${t4})`,
     when_mqtt: "Wanneer er een apparaatbericht binnenkomt",
     when_webhook: "Wanneer een externe service een update stuurt",
     when_tag: (id) => `Wanneer een tag wordt gescand${id ? ` (${id})` : ""}`,
@@ -27083,20 +27808,20 @@ var PHRASES = {
     on_entity: (e6) => ` op ${e6}`,
     when_trigger_happens: "Wanneer deze trigger optreedt",
     cond_is: (eid, st) => `${eid} is ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} tussen ${a3} en ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} tussen ${a4} en ${b2}`,
     cond_above: (eid, v2) => `${eid} boven ${v2}`,
     cond_below: (eid, v2) => `${eid} onder ${v2}`,
     cond_numeric: (eid) => `${eid} numerieke controle`,
-    cond_after_time: (t5) => `na ${t5}`,
-    cond_before_time: (t5) => `v\xF3\xF3r ${t5}`,
+    cond_after_time: (t4) => `na ${t4}`,
+    cond_before_time: (t4) => `v\xF3\xF3r ${t4}`,
     cond_on_weekday: (d3) => `op ${d3}`,
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
-    cond_after_sun: (s4) => `na ${s4}`,
-    cond_before_sun: (s4) => `v\xF3\xF3r ${s4}`,
+    cond_after_sun: (s6) => `na ${s6}`,
+    cond_before_sun: (s6) => `v\xF3\xF3r ${s6}`,
     cond_sun_position: "Zonpositie",
-    cond_all: (n4) => `Alle ${n4} voorwaarden moeten waar zijn`,
-    cond_any: (n4) => `E\xE9n van de ${n4} voorwaarden is waar`,
+    cond_all: (n5) => `Alle ${n5} voorwaarden moeten waar zijn`,
+    cond_any: (n5) => `E\xE9n van de ${n5} voorwaarden is waar`,
     cond_none: "Geen van de voorwaarden is waar",
     cond_in_zone: (eid, z2) => `${eid} bevindt zich in ${z2 || "zone"}`,
     cond_device: "Apparaatvoorwaarde",
@@ -27121,27 +27846,27 @@ var PHRASES = {
     extra_temp: (v2) => `naar ${v2}\xB0`,
     extra_color_temp: (v2) => `kleurtemp. ${v2}`,
     wait_str: (d3) => `Wacht ${d3}`,
-    wait_parts: (p4) => `Wacht ${p4}`,
+    wait_parts: (p2) => `Wacht ${p2}`,
     wait_plain: "Wacht",
     wait_until: "Wacht tot aan de voorwaarde is voldaan",
     wait_for_trigger: "Wacht op een trigger",
     activate_scene: (e6) => `Sc\xE8ne activeren: ${e6}`,
-    choose_between: (n4) =>
-      `Kies tussen ${n4} ${n4 !== 1 ? "opties" : "optie"}`,
-    repeat_count: (n4) => `Herhaal ${n4} ${n4 !== 1 ? "keer" : "keer"}`,
+    choose_between: (n5) =>
+      `Kies tussen ${n5} ${n5 !== 1 ? "opties" : "optie"}`,
+    repeat_count: (n5) => `Herhaal ${n5} ${n5 !== 1 ? "keer" : "keer"}`,
     repeat_while: "Herhaal zolang de voorwaarde geldt",
     repeat_until: "Herhaal totdat de voorwaarde wordt voldaan",
     repeat: "Herhalen",
-    parallel: (n4) => `Voer ${n4} acties parallel uit`,
-    sequence: (n4) => `Voer een reeks van ${n4} stappen uit`,
+    parallel: (n5) => `Voer ${n5} acties parallel uit`,
+    sequence: (n5) => `Voer een reeks van ${n5} stappen uit`,
     set_variables: "Variabelen instellen",
-    stop_label: (s4) => `Stop: ${s4}`,
+    stop_label: (s6) => `Stop: ${s6}`,
     fire_event: (e6) => `Gebeurtenis afvuren: ${e6}`,
     automation_step: "Automatiseringsstap",
     joiner_dot: " \xB7 ",
   },
   hu: {
-    when_time_is: (t5) => `Amikor az id\u0151 ${t5}`,
+    when_time_is: (t4) => `Amikor az id\u0151 ${t4}`,
     when_time_is_any: (list) => `Amikor az id\u0151 ${list}`,
     or: " vagy ",
     when_it_is: (ev) => `Amikor ${ev} van`,
@@ -27157,8 +27882,8 @@ var PHRASES = {
     when_changes_state: (eid, dur) =>
       `Amikor ${eid} \xE1llapotot v\xE1lt${dur}`,
     for_duration: (d3) => ` ${d3}-ig`,
-    when_between: (eid, a3, b3) =>
-      `Amikor ${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt van`,
+    when_between: (eid, a4, b2) =>
+      `Amikor ${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt van`,
     when_rises_above: (eid, v2) => `Amikor ${eid} ${v2} f\xF6l\xE9 emelkedik`,
     when_drops_below: (eid, v2) => `Amikor ${eid} ${v2} al\xE1 esik`,
     when_value_changes: (eid) => `Amikor ${eid} \xE9rt\xE9ke v\xE1ltozik`,
@@ -27166,20 +27891,20 @@ var PHRASES = {
     ha_starts: "elindul",
     ha_shuts_down: "le\xE1ll",
     ha_changes_state: "\xE1llapotot v\xE1lt",
-    every_seconds: (n4) => `Minden ${n4} m\xE1sodperc`,
-    every_minutes: (n4) => `Minden ${n4} perc`,
-    every_hours: (n4) => `Minden ${n4} \xF3ra`,
+    every_seconds: (n5) => `Minden ${n5} m\xE1sodperc`,
+    every_minutes: (n5) => `Minden ${n5} perc`,
+    every_hours: (n5) => `Minden ${n5} \xF3ra`,
     on_time_pattern: "Id\u0151minta szerint",
     when_template_entity: (e6) => `Amikor a ${e6} felt\xE9tel teljes\xFCl`,
     when_template_met: "Amikor egy sablonfelt\xE9tel teljes\xFCl",
-    when_event: (n4) => `Amikor ${n4} t\xF6rt\xE9nik`,
+    when_event: (n5) => `Amikor ${n5} t\xF6rt\xE9nik`,
     when_event_generic: "Amikor egy esem\xE9ny t\xF6rt\xE9nik",
-    when_device_triggered: (t5) => `Amikor egy eszk\xF6z ${t5}`,
-    when_device_is: (t5) => `Amikor egy eszk\xF6z ${t5}`,
+    when_device_triggered: (t4) => `Amikor egy eszk\xF6z ${t4}`,
+    when_device_is: (t4) => `Amikor egy eszk\xF6z ${t4}`,
     triggered: "kiv\xE1lt\xF3dik",
     zone_enters: "bel\xE9p ide:",
     zone_leaves: "elhagyja ezt:",
-    when_mqtt_topic: (t5) => `Amikor eszk\xF6z\xFCzenet \xE9rkezik (${t5})`,
+    when_mqtt_topic: (t4) => `Amikor eszk\xF6z\xFCzenet \xE9rkezik (${t4})`,
     when_mqtt: "Amikor eszk\xF6z\xFCzenet \xE9rkezik",
     when_webhook:
       "Amikor egy k\xFCls\u0151 szolg\xE1ltat\xE1s friss\xEDt\xE9st k\xFCld",
@@ -27192,20 +27917,20 @@ var PHRASES = {
     on_entity: (e6) => ` itt: ${e6}`,
     when_trigger_happens: "Amikor ez a trigger bek\xF6vetkezik",
     cond_is: (eid, st) => `${eid} \xE9rt\xE9ke ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt`,
+    cond_between: (eid, a4, b2) => `${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt`,
     cond_above: (eid, v2) => `${eid} ${v2} f\xF6l\xF6tt`,
     cond_below: (eid, v2) => `${eid} ${v2} alatt`,
     cond_numeric: (eid) => `${eid} numerikus ellen\u0151rz\xE9s`,
-    cond_after_time: (t5) => `${t5} ut\xE1n`,
-    cond_before_time: (t5) => `${t5} el\u0151tt`,
+    cond_after_time: (t4) => `${t4} ut\xE1n`,
+    cond_before_time: (t4) => `${t4} el\u0151tt`,
     cond_on_weekday: (d3) => `${d3} napokon`,
     cond_time_window: "Id\u0151ablak",
     cond_template_true: "A sablon igaznak \xE9rt\xE9kel\u0151dik",
-    cond_after_sun: (s4) => `${s4} ut\xE1n`,
-    cond_before_sun: (s4) => `${s4} el\u0151tt`,
+    cond_after_sun: (s6) => `${s6} ut\xE1n`,
+    cond_before_sun: (s6) => `${s6} el\u0151tt`,
     cond_sun_position: "Nappoz\xEDci\xF3",
-    cond_all: (n4) => `Mind a ${n4} felt\xE9telnek igaznak kell lennie`,
-    cond_any: (n4) => `A ${n4} felt\xE9tel egyike igaz`,
+    cond_all: (n5) => `Mind a ${n5} felt\xE9telnek igaznak kell lennie`,
+    cond_any: (n5) => `A ${n5} felt\xE9tel egyike igaz`,
     cond_none: "Egyik felt\xE9tel sem igaz",
     cond_in_zone: (eid, z2) => `${eid} itt: ${z2 || "z\xF3na"}`,
     cond_device: "Eszk\xF6zfelt\xE9tel",
@@ -27230,20 +27955,20 @@ var PHRASES = {
     extra_temp: (v2) => `${v2}\xB0-ra`,
     extra_color_temp: (v2) => `sz\xEDnh\u0151m\xE9rs\xE9klet ${v2}`,
     wait_str: (d3) => `V\xE1rakoz\xE1s: ${d3}`,
-    wait_parts: (p4) => `V\xE1rakoz\xE1s: ${p4}`,
+    wait_parts: (p2) => `V\xE1rakoz\xE1s: ${p2}`,
     wait_plain: "V\xE1rakoz\xE1s",
     wait_until: "V\xE1rakoz\xE1s, am\xEDg a felt\xE9tel teljes\xFCl",
     wait_for_trigger: "V\xE1rakoz\xE1s triggerre",
     activate_scene: (e6) => `Jelenet aktiv\xE1l\xE1sa: ${e6}`,
-    choose_between: (n4) => `V\xE1laszt\xE1s ${n4} opci\xF3 k\xF6z\xFCl`,
-    repeat_count: (n4) => `Ism\xE9tl\xE9s ${n4}-szor`,
+    choose_between: (n5) => `V\xE1laszt\xE1s ${n5} opci\xF3 k\xF6z\xFCl`,
+    repeat_count: (n5) => `Ism\xE9tl\xE9s ${n5}-szor`,
     repeat_while: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel fenn\xE1ll",
     repeat_until: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel teljes\xFCl",
     repeat: "Ism\xE9tl\xE9s",
-    parallel: (n4) => `${n4} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
-    sequence: (n4) => `${n4} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
+    parallel: (n5) => `${n5} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
+    sequence: (n5) => `${n5} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
     set_variables: "V\xE1ltoz\xF3k be\xE1ll\xEDt\xE1sa",
-    stop_label: (s4) => `Meg\xE1ll\xEDt\xE1s: ${s4}`,
+    stop_label: (s6) => `Meg\xE1ll\xEDt\xE1s: ${s6}`,
     fire_event: (e6) => `Esem\xE9ny kiv\xE1lt\xE1sa: ${e6}`,
     automation_step: "Automatizmus l\xE9p\xE9se",
     joiner_dot: " \xB7 ",
@@ -27263,167 +27988,167 @@ function _val(phrases, key, ...args) {
 function describeFlowItem(hass, item) {
   if (!item || typeof item !== "object") return String(item ?? "");
   const T2 = _phrases(hass);
-  const t5 = (k2, ...a3) => _val(T2, k2, ...a3);
+  const t4 = (k2, ...a4) => _val(T2, k2, ...a4);
   const lang = hass?.language;
-  const p4 = item.platform || item.trigger;
-  if (p4 === "time") {
+  const p2 = item.platform || item.trigger;
+  if (p2 === "time") {
     const raw = item.at;
     if (Array.isArray(raw)) {
-      return t5(
+      return t4(
         "when_time_is_any",
-        raw.map((x2) => fmtTime(hass, x2)).join(t5("or")),
+        raw.map((x2) => fmtTime(hass, x2)).join(t4("or")),
       );
     }
-    return t5("when_time_is", fmtTime(hass, raw));
+    return t4("when_time_is", fmtTime(hass, raw));
   }
-  if (p4 === "sun") {
+  if (p2 === "sun") {
     const ev =
       item.event === "sunset"
-        ? t5("sunset")
+        ? t4("sunset")
         : item.event === "sunrise"
-          ? t5("sunrise")
+          ? t4("sunrise")
           : humanizeToken(item.event || "sun event").toLowerCase();
     if (item.offset) {
       const neg = item.offset.startsWith("-");
       const raw = neg ? item.offset.slice(1) : item.offset;
-      const [h3, m3, s4] = raw.split(":").map(Number);
+      const [h3, m2, s6] = raw.split(":").map(Number);
       const parts = [];
       if (h3) parts.push(`${h3}h`);
-      if (m3) parts.push(`${m3}min`);
-      if (s4) parts.push(`${s4}s`);
+      if (m2) parts.push(`${m2}min`);
+      if (s6) parts.push(`${s6}s`);
       const label = parts.join(" ") || item.offset;
-      return t5("sun_offset", label, neg, ev);
+      return t4("sun_offset", label, neg, ev);
     }
-    return t5("when_it_is", ev);
+    return t4("when_it_is", ev);
   }
-  if (p4 === "state") {
+  if (p2 === "state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const rawTo = item.to == null ? null : String(item.to);
     const fromState = fmtState(item.from, lang);
     const toState = fmtState(item.to, lang);
     const duration = fmtDuration(item.for);
-    const dur = duration ? t5("for_duration", duration) : "";
-    if (rawTo === "on") return t5("when_turns_on", eid, dur);
-    if (rawTo === "off") return t5("when_turns_off", eid, dur);
+    const dur = duration ? t4("for_duration", duration) : "";
+    if (rawTo === "on") return t4("when_turns_on", eid, dur);
+    if (rawTo === "off") return t4("when_turns_off", eid, dur);
     if (toState && fromState)
-      return t5("when_changes_from_to", eid, fromState, toState, dur);
-    if (toState) return t5("when_becomes", eid, toState, dur);
-    return t5("when_changes_state", eid, dur);
+      return t4("when_changes_from_to", eid, fromState, toState, dur);
+    if (toState) return t4("when_becomes", eid, toState, dur);
+    return t4("when_changes_state", eid, dur);
   }
-  if (p4 === "numeric_state") {
+  if (p2 === "numeric_state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
     if (item.above != null && item.below != null)
-      return t5("when_between", eid, above, below);
-    if (item.above != null) return t5("when_rises_above", eid, above);
-    if (item.below != null) return t5("when_drops_below", eid, below);
-    return t5("when_value_changes", eid);
+      return t4("when_between", eid, above, below);
+    if (item.above != null) return t4("when_rises_above", eid, above);
+    if (item.below != null) return t4("when_drops_below", eid, below);
+    return t4("when_value_changes", eid);
   }
-  if (p4 === "homeassistant") {
+  if (p2 === "homeassistant") {
     const ev =
       item.event === "start"
-        ? t5("ha_starts")
+        ? t4("ha_starts")
         : item.event === "shutdown"
-          ? t5("ha_shuts_down")
-          : t5("ha_changes_state");
-    return t5("when_ha", ev);
+          ? t4("ha_shuts_down")
+          : t4("ha_changes_state");
+    return t4("when_ha", ev);
   }
-  if (p4 === "time_pattern") {
-    if (item.seconds != null) return t5("every_seconds", item.seconds);
-    if (item.minutes != null) return t5("every_minutes", item.minutes);
-    if (item.hours != null) return t5("every_hours", item.hours);
-    return t5("on_time_pattern");
+  if (p2 === "time_pattern") {
+    if (item.seconds != null) return t4("every_seconds", item.seconds);
+    if (item.minutes != null) return t4("every_minutes", item.minutes);
+    if (item.hours != null) return t4("every_hours", item.hours);
+    return t4("on_time_pattern");
   }
-  if (p4 === "template") {
+  if (p2 === "template") {
     const tmpl = item.value_template || "";
     const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
     if (entityMatch)
-      return t5("when_template_entity", fmtEntity(hass, entityMatch[1]));
-    return t5("when_template_met");
+      return t4("when_template_entity", fmtEntity(hass, entityMatch[1]));
+    return t4("when_template_met");
   }
-  if (p4 === "event") {
+  if (p2 === "event") {
     if (item.event_type)
-      return t5("when_event", humanizeToken(item.event_type).toLowerCase());
-    return t5("when_event_generic");
+      return t4("when_event", humanizeToken(item.event_type).toLowerCase());
+    return t4("when_event_generic");
   }
-  if (p4 === "device") {
+  if (p2 === "device") {
     const triggerType = item.type
       ? humanizeToken(item.type).toLowerCase()
-      : t5("triggered");
+      : t4("triggered");
     return item.device_id
-      ? t5("when_device_triggered", triggerType)
-      : t5("when_device_is", triggerType);
+      ? t4("when_device_triggered", triggerType)
+      : t4("when_device_is", triggerType);
   }
-  if (p4 === "zone") {
+  if (p2 === "zone") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const zone = fmtEntity(hass, item.zone);
     const rawEvent = String(item.event || "enter");
     const ev =
       rawEvent === "enter"
-        ? t5("zone_enters")
+        ? t4("zone_enters")
         : rawEvent === "leave"
-          ? t5("zone_leaves")
+          ? t4("zone_leaves")
           : humanizeToken(rawEvent).toLowerCase();
     return `${eid} ${ev} ${zone}`.trim();
   }
-  if (p4 === "mqtt")
-    return item.topic ? t5("when_mqtt_topic", item.topic) : t5("when_mqtt");
-  if (p4 === "webhook") return t5("when_webhook");
-  if (p4 === "tag") return t5("when_tag", item.tag_id || "");
-  if (p4 === "geo_location") return t5("when_geo");
-  if (p4 === "calendar") {
+  if (p2 === "mqtt")
+    return item.topic ? t4("when_mqtt_topic", item.topic) : t4("when_mqtt");
+  if (p2 === "webhook") return t4("when_webhook");
+  if (p2 === "tag") return t4("when_tag", item.tag_id || "");
+  if (p2 === "geo_location") return t4("when_geo");
+  if (p2 === "calendar") {
     const eventName = item.event
       ? humanizeToken(item.event).toLowerCase()
-      : t5("calendar_event");
+      : t4("calendar_event");
     const entity = item.entity_id
-      ? t5("on_entity", fmtEntity(hass, item.entity_id))
+      ? t4("on_entity", fmtEntity(hass, item.entity_id))
       : "";
-    return t5("when_calendar", eventName, entity);
+    return t4("when_calendar", eventName, entity);
   }
-  if (p4) return t5("when_trigger_happens");
+  if (p2) return t4("when_trigger_happens");
   const cond = item.condition;
   if (cond === "state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const st = fmtState(item.state ?? item.to, lang);
-    return t5("cond_is", eid, st);
+    return t4("cond_is", eid, st);
   }
   if (cond === "numeric_state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     if (item.above != null && item.below != null)
-      return t5("cond_between", eid, item.above, item.below);
-    if (item.above != null) return t5("cond_above", eid, item.above);
-    if (item.below != null) return t5("cond_below", eid, item.below);
-    return t5("cond_numeric", eid);
+      return t4("cond_between", eid, item.above, item.below);
+    if (item.above != null) return t4("cond_above", eid, item.above);
+    if (item.below != null) return t4("cond_below", eid, item.below);
+    return t4("cond_numeric", eid);
   }
   if (cond === "time") {
     const parts = [];
     if (item.after)
-      parts.push(t5("cond_after_time", fmtTime(hass, item.after)));
+      parts.push(t4("cond_after_time", fmtTime(hass, item.after)));
     if (item.before)
-      parts.push(t5("cond_before_time", fmtTime(hass, item.before)));
+      parts.push(t4("cond_before_time", fmtTime(hass, item.before)));
     if (item.weekday)
-      parts.push(t5("cond_on_weekday", fmtWeekdays(item.weekday, lang)));
-    return parts.length ? parts.join(t5("joiner_dot")) : t5("cond_time_window");
+      parts.push(t4("cond_on_weekday", fmtWeekdays(item.weekday, lang)));
+    return parts.length ? parts.join(t4("joiner_dot")) : t4("cond_time_window");
   }
-  if (cond === "template") return t5("cond_template_true");
+  if (cond === "template") return t4("cond_template_true");
   if (cond === "sun") {
     const parts = [];
     if (item.after)
-      parts.push(t5("cond_after_sun", String(item.after).replace(/_/g, " ")));
+      parts.push(t4("cond_after_sun", String(item.after).replace(/_/g, " ")));
     if (item.before)
-      parts.push(t5("cond_before_sun", String(item.before).replace(/_/g, " ")));
-    return parts.join(", ") || t5("cond_sun_position");
+      parts.push(t4("cond_before_sun", String(item.before).replace(/_/g, " ")));
+    return parts.join(", ") || t4("cond_sun_position");
   }
-  if (cond === "and") return t5("cond_all", (item.conditions || []).length);
-  if (cond === "or") return t5("cond_any", (item.conditions || []).length);
-  if (cond === "not") return t5("cond_none");
+  if (cond === "and") return t4("cond_all", asArray(item.conditions).length);
+  if (cond === "or") return t4("cond_any", asArray(item.conditions).length);
+  if (cond === "not") return t4("cond_none");
   if (cond === "zone") {
     const eid = fmtEntities(hass, item.entity_id, lang);
-    return t5("cond_in_zone", eid, fmtEntity(hass, item.zone));
+    return t4("cond_in_zone", eid, fmtEntity(hass, item.zone));
   }
   if (cond === "device")
-    return item.type ? String(item.type).replace(/_/g, " ") : t5("cond_device");
+    return item.type ? String(item.type).replace(/_/g, " ") : t4("cond_device");
   if (cond) return String(cond).replace(/_/g, " ");
   const svc = item.service || item.action;
   if (svc) {
@@ -27435,33 +28160,33 @@ function describeFlowItem(hass, item) {
     ) {
       const title = item.data?.title;
       const msg = item.data?.message;
-      if (title) return t5("notify_quoted", title);
+      if (title) return t4("notify_quoted", title);
       if (msg) {
         const short = msg.length > 60 ? msg.slice(0, 57) + "\u2026" : msg;
-        return t5("notify_quoted", short);
+        return t4("notify_quoted", short);
       }
-      return t5("send_notification");
+      return t4("send_notification");
     }
     if (domain === "notify") {
       const target = svcName
         .replace(/_/g, " ")
-        .replace(/\b\w/g, (c4) => c4.toUpperCase());
+        .replace(/\b\w/g, (c3) => c3.toUpperCase());
       const msg = item.data?.message;
       const title = item.data?.title;
-      if (title) return t5("notify_target", target, title);
+      if (title) return t4("notify_target", target, title);
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return t5("notify_target", target, short);
+        return t4("notify_target", target, short);
       }
-      return t5("notify_via", target);
+      return t4("notify_via", target);
     }
     if (domain === "tts") {
       const msg = item.data?.message;
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return t5("say_quoted", short);
+        return t4("say_quoted", short);
       }
-      return t5("tts");
+      return t4("tts");
     }
     const ACTION_KEYS = {
       turn_on: "action_turn_on",
@@ -27478,17 +28203,17 @@ function describeFlowItem(hass, item) {
     };
     const actionKey = ACTION_KEYS[svcName];
     const name = actionKey
-      ? t5(actionKey)
-      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c4) => c4.toUpperCase());
+      ? t4(actionKey)
+      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
     const targets = item.target?.entity_id ?? item.data?.entity_id;
     const tgt = fmtEntities(hass, targets, lang);
     const extras = [];
     if (item.data?.brightness_pct != null)
-      extras.push(t5("extra_brightness", item.data.brightness_pct));
+      extras.push(t4("extra_brightness", item.data.brightness_pct));
     if (item.data?.temperature != null)
-      extras.push(t5("extra_temp", item.data.temperature));
+      extras.push(t4("extra_temp", item.data.temperature));
     if (item.data?.color_temp != null)
-      extras.push(t5("extra_color_temp", item.data.color_temp));
+      extras.push(t4("extra_color_temp", item.data.color_temp));
     if (item.data?.message && !String(item.data.message).includes("{{")) {
       const short =
         item.data.message.length > 50
@@ -27503,30 +28228,30 @@ function describeFlowItem(hass, item) {
   }
   if (item.delay) {
     const d3 = item.delay;
-    if (typeof d3 === "string") return t5("wait_str", d3);
+    if (typeof d3 === "string") return t4("wait_str", d3);
     const parts = [];
     if (d3.hours) parts.push(`${d3.hours}h`);
     if (d3.minutes) parts.push(`${d3.minutes}m`);
     if (d3.seconds) parts.push(`${d3.seconds}s`);
-    return parts.length ? t5("wait_parts", parts.join(" ")) : t5("wait_plain");
+    return parts.length ? t4("wait_parts", parts.join(" ")) : t4("wait_plain");
   }
-  if (item.wait_template) return t5("wait_until");
-  if (item.wait_for_trigger) return t5("wait_for_trigger");
-  if (item.scene) return t5("activate_scene", fmtEntity(hass, item.scene));
-  if (item.choose) return t5("choose_between", item.choose.length);
+  if (item.wait_template) return t4("wait_until");
+  if (item.wait_for_trigger) return t4("wait_for_trigger");
+  if (item.scene) return t4("activate_scene", fmtEntity(hass, item.scene));
+  if (item.choose) return t4("choose_between", asArray(item.choose).length);
   if (item.repeat) {
     const r4 = item.repeat;
-    if (r4.count != null) return t5("repeat_count", r4.count);
-    if (r4.while) return t5("repeat_while");
-    if (r4.until) return t5("repeat_until");
-    return t5("repeat");
+    if (r4.count != null) return t4("repeat_count", r4.count);
+    if (r4.while) return t4("repeat_while");
+    if (r4.until) return t4("repeat_until");
+    return t4("repeat");
   }
-  if (item.parallel) return t5("parallel", (item.parallel || []).length);
-  if (item.sequence) return t5("sequence", (item.sequence || []).length);
-  if (item.variables) return t5("set_variables");
-  if (item.stop) return t5("stop_label", item.stop);
+  if (item.parallel) return t4("parallel", asArray(item.parallel).length);
+  if (item.sequence) return t4("sequence", asArray(item.sequence).length);
+  if (item.variables) return t4("set_variables");
+  if (item.stop) return t4("stop_label", item.stop);
   if (item.event)
-    return t5("fire_event", String(item.event).replace(/_/g, " "));
+    return t4("fire_event", String(item.event).replace(/_/g, " "));
   const SKIP = /* @__PURE__ */ new Set([
     "id",
     "enabled",
@@ -27552,8 +28277,8 @@ function describeFlowItem(hass, item) {
     .filter(Boolean)
     .slice(0, 3);
   return readable.length
-    ? readable.join(t5("joiner_dot"))
-    : t5("automation_step");
+    ? readable.join(t4("joiner_dot"))
+    : t4("automation_step");
 }
 function collectFlowEntityIds(item) {
   if (!item || typeof item !== "object") return [];
@@ -27577,7 +28302,7 @@ function collectFlowEntityIds(item) {
 }
 
 // src/panel/render-suggestions.js
-var ClampCursorDirective = class extends i5 {
+var ClampCursorDirective = class extends i3 {
   update(part, [force]) {
     const el = part.element;
     if (force) {
@@ -27599,17 +28324,17 @@ function collapsedSuggestionCount() {
   const w2 = window.innerWidth;
   return w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : COLLAPSED_COUNT;
 }
-function normalizeProactive(s4) {
+function normalizeProactive(s6) {
   return {
     type: "proactive",
-    cardKey: `proactive_${s4.suggestion_id}`,
-    title: s4.description,
-    subtitle: s4.evidence_summary || null,
+    cardKey: `proactive_${s6.suggestion_id}`,
+    title: s6.description,
+    subtitle: s6.evidence_summary || null,
     risk: null,
-    automationYaml: s4.automation_yaml || "",
-    automationData: s4.automation_data || null,
-    _original: s4,
-    _suggestionId: s4.suggestion_id,
+    automationYaml: s6.automation_yaml || "",
+    automationData: s6.automation_data || null,
+    _original: s6,
+    _suggestionId: s6.suggestion_id,
   };
 }
 function normalizeLLM(item) {
@@ -27629,12 +28354,12 @@ function normalizeLLM(item) {
 function buildQualified(host) {
   const seenKeys = /* @__PURE__ */ new Set();
   const qualified = [];
-  for (const s4 of host._proactiveSuggestions || []) {
-    if ((s4.confidence || 0) < MIN_CONF) continue;
-    const key = (s4.description || "").toLowerCase().trim();
+  for (const s6 of host._proactiveSuggestions || []) {
+    if ((s6.confidence || 0) < MIN_CONF) continue;
+    const key = (s6.description || "").toLowerCase().trim();
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
-    qualified.push(normalizeProactive(s4));
+    qualified.push(normalizeProactive(s6));
   }
   for (const item of host._suggestions || []) {
     const auto = item.automation || item.automation_data;
@@ -27660,12 +28385,12 @@ function applyFilters(host, qualified) {
     return true;
   });
   if (sortBy === "alpha") {
-    filtered.sort((a3, b3) => (a3.title || "").localeCompare(b3.title || ""));
+    filtered.sort((a4, b2) => (a4.title || "").localeCompare(b2.title || ""));
   } else {
-    filtered.sort((a3, b3) => {
-      if (a3.type !== b3.type) return a3.type === "llm" ? -1 : 1;
-      const confA = a3._original?.confidence || 0;
-      const confB = b3._original?.confidence || 0;
+    filtered.sort((a4, b2) => {
+      if (a4.type !== b2.type) return a4.type === "llm" ? -1 : 1;
+      const confA = a4._original?.confidence || 0;
+      const confB = b2._original?.confidence || 0;
       return confB - confA;
     });
   }
@@ -27699,7 +28424,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     };
   };
   const expandedClass = expandedText ? "expanded" : "";
-  return b2`
+  return x`
     <div
       class="card${fadingOut ? " fading-out" : ""}"
       style="padding:16px 18px;display:flex;flex-direction:column;"
@@ -27707,7 +28432,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       <div class="card-header" style="margin-bottom:0;">
         ${
           bulkMode
-            ? b2`
+            ? x`
               <label class="card-select">
                 <input
                   type="checkbox"
@@ -27736,7 +28461,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
 
       ${
         item.subtitle
-          ? b2`
+          ? x`
             <div
               class="clamp-2 ${expandedClass}"
               style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;"
@@ -27751,7 +28476,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       }
       ${
         item.risk?.level === "elevated"
-          ? b2`
+          ? x`
             <div
               class="proposal-status"
               style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-top:8px;font-size:12px;"
@@ -27766,7 +28491,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       <div class="card-tabs" style="margin-top:12px;">
         ${
           hasFlow
-            ? b2`
+            ? x`
               <button
                 class="card-tab ${activeTab === "flow" ? "active" : ""}"
                 @click=${() => {
@@ -27817,7 +28542,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       ${activeTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
       ${
         activeTab === "yaml"
-          ? b2`
+          ? x`
             <div style="margin-top:6px;">
               <ha-code-editor
                 mode="yaml"
@@ -27881,7 +28606,7 @@ function renderSuggestionsSection(host) {
   const bulkMode = !!host._suggestionBulkMode;
   const selectedKeys = host._selectedSuggestionKeys || {};
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
-  return b2`
+  return x`
     <div class="suggestions-section">
       <div class="page-section-header">
         <div class="section-card-title-group">
@@ -27890,7 +28615,7 @@ function renderSuggestionsSection(host) {
           >
           ${
             totalCount > 0
-              ? b2`<span class="badge"
+              ? x`<span class="badge"
                 >${totalCount} ${host._t("suggestions_badge_new", "new")}</span
               >`
               : ""
@@ -27898,7 +28623,7 @@ function renderSuggestionsSection(host) {
         </div>
         ${
           isDev
-            ? b2`
+            ? x`
               <div class="section-card-actions">
                 <button
                   class="filter-row-secondary"
@@ -27934,11 +28659,11 @@ function renderSuggestionsSection(host) {
                 >
                   ${
                     host._generatingSuggestions
-                      ? b2`<span
+                      ? x`<span
                         class="spinner"
                         style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
                       ></span>`
-                      : b2`<ha-icon
+                      : x`<ha-icon
                         icon="mdi:auto-fix"
                         style="--mdc-icon-size:14px;"
                       ></ha-icon>`
@@ -27960,7 +28685,7 @@ function renderSuggestionsSection(host) {
 
       ${
         totalCount === 0
-          ? b2`
+          ? x`
             <p style="opacity:0.45;margin:0;font-size:13px;">
               ${host._t(
                 "suggestions_empty_state",
@@ -27968,10 +28693,10 @@ function renderSuggestionsSection(host) {
               )}
             </p>
           `
-          : b2`
+          : x`
             ${
               expanded
-                ? b2`<div class="filter-row" style="margin-bottom:12px;">
+                ? x`<div class="filter-row" style="margin-bottom:12px;">
                   <div class="filter-input-wrap" style="flex:0 1 260px;">
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input
@@ -27989,7 +28714,7 @@ function renderSuggestionsSection(host) {
                     />
                     ${
                       host._suggestionFilter
-                        ? b2`<ha-icon
+                        ? x`<ha-icon
                           icon="mdi:close-circle"
                           style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                           @click=${() => {
@@ -28003,7 +28728,7 @@ function renderSuggestionsSection(host) {
                   </div>
                   ${
                     isDev
-                      ? b2`
+                      ? x`
                         <div class="status-pills">
                           ${[
                             ["all", host._t("suggestions_filter_all", "All")],
@@ -28016,7 +28741,7 @@ function renderSuggestionsSection(host) {
                             ],
                             ["ai", host._t("suggestions_filter_ai", "AI")],
                           ].map(
-                            ([val, label]) => b2`
+                            ([val, label]) => x`
                               <button
                                 class="status-pill ${(host._suggestionSourceFilter || "all") === val ? "active" : ""}"
                                 @click=${() => {
@@ -28052,7 +28777,7 @@ function renderSuggestionsSection(host) {
                   >
                     ${
                       bulkMode
-                        ? b2`
+                        ? x`
                           <span style="font-size:12px;opacity:0.7;">
                             ${selectedCount}
                             ${host._t("suggestions_bulk_selected", "selected")}
@@ -28119,7 +28844,7 @@ function renderSuggestionsSection(host) {
                             ${host._t("suggestions_bulk_done", "Done")}
                           </button>
                         `
-                        : b2`
+                        : x`
                           <button
                             class="btn btn-outline"
                             @click=${() => {
@@ -28147,7 +28872,7 @@ function renderSuggestionsSection(host) {
 
             ${
               remainingCount > 0
-                ? b2`
+                ? x`
                   <button
                     class="show-more-link"
                     @click=${() => {
@@ -28201,18 +28926,18 @@ function getStaleAutomations(host) {
     }
   }
   if (dirty) _saveKept(kept);
-  return host._automations.filter((a3) => {
-    if (!host._automationIsEnabled(a3)) return false;
-    if (!a3.automation_id?.startsWith("selora_ai_")) return false;
-    if (kept[a3.automation_id]) return false;
-    if (!a3.last_triggered) {
-      if (a3.last_updated) {
-        const created = new Date(a3.last_updated).getTime();
+  return host._automations.filter((a4) => {
+    if (!host._automationIsEnabled(a4)) return false;
+    if (!a4.automation_id?.startsWith("selora_ai_")) return false;
+    if (kept[a4.automation_id]) return false;
+    if (!a4.last_triggered) {
+      if (a4.last_updated) {
+        const created = new Date(a4.last_updated).getTime();
         if (created >= cutoff) return false;
       }
       return true;
     }
-    return new Date(a3.last_triggered).getTime() < cutoff;
+    return new Date(a4.last_triggered).getTime() < cutoff;
   });
 }
 
@@ -28224,7 +28949,7 @@ function renderFlowEntityLink(host, entityId) {
     stateObj?.attributes?.icon ||
     DOMAIN_ICONS3[entityId.split(".")[0]] ||
     "mdi:circle-medium";
-  return b2`<button
+  return x`<button
     type="button"
     class="flow-entity-link"
     title=${`Open ${friendly} (${entityId})`}
@@ -28244,14 +28969,14 @@ function renderFlowEntityLink(host, entityId) {
 }
 var DURATION_RE =
   /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
-function expandDurationAbbrev(s4) {
-  return s4
+function expandDurationAbbrev(s6) {
+  return s6
     .replace(/(\d+)\s*h\b/g, "$1 hr")
     .replace(/(\d+)\s*m\b/g, "$1 min")
     .replace(/(\d+)\s*s\b/g, "$1 sec");
 }
 function renderFlowDuration(raw) {
-  return b2`<span class="flow-duration"
+  return x`<span class="flow-duration"
     ><ha-icon icon="mdi:clock-outline"></ha-icon>${expandDurationAbbrev(
       raw,
     )}</span
@@ -28260,33 +28985,33 @@ function renderFlowDuration(raw) {
 function splitDurations(text) {
   const out = [];
   let last = 0;
-  for (const m3 of text.matchAll(DURATION_RE)) {
-    if (m3.index > last) out.push(text.slice(last, m3.index));
-    out.push({ duration: m3[0] });
-    last = m3.index + m3[0].length;
+  for (const m2 of text.matchAll(DURATION_RE)) {
+    if (m2.index > last) out.push(text.slice(last, m2.index));
+    out.push({ duration: m2[0] });
+    last = m2.index + m2[0].length;
   }
   if (last < text.length) out.push(text.slice(last));
   return out;
 }
 function renderFlowDescription(host, item) {
   const description = describeFlowItem(host.hass, item);
-  if (!description) return b2`${description}`;
+  if (!description) return x`${description}`;
   const entityIds = collectFlowEntityIds(item);
   const lookups = entityIds
     .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
-    .filter((l3) => l3.name)
-    .sort((a3, b3) => b3.name.length - a3.name.length);
+    .filter((l5) => l5.name)
+    .sort((a4, b2) => b2.name.length - a4.name.length);
   const segments = [];
   let remaining = description;
   let safety = 32;
   while (remaining && safety-- > 0) {
     let bestIdx = -1;
     let bestMatch = null;
-    for (const l3 of lookups) {
-      const idx = remaining.indexOf(l3.name);
+    for (const l5 of lookups) {
+      const idx = remaining.indexOf(l5.name);
       if (idx >= 0 && (bestIdx === -1 || idx < bestIdx)) {
         bestIdx = idx;
-        bestMatch = l3;
+        bestMatch = l5;
       }
     }
     if (!bestMatch) {
@@ -28308,63 +29033,63 @@ function renderFlowDescription(host, item) {
       final.push(piece);
     }
   }
-  return b2`${final.map((s4) => {
-    if (typeof s4 === "string") return s4;
-    if (s4.entity) return renderFlowEntityLink(host, s4.entity);
-    if (s4.duration) return renderFlowDuration(s4.duration);
+  return x`${final.map((s6) => {
+    if (typeof s6 === "string") return s6;
+    if (s6.entity) return renderFlowEntityLink(host, s6.entity);
+    if (s6.duration) return renderFlowDuration(s6.duration);
     return "";
   })}`;
 }
 function renderFlowNode(host, item, kind) {
-  return b2`<div class="flow-node ${kind}-node">
+  return x`<div class="flow-node ${kind}-node">
     ${renderFlowDescription(host, item)}
   </div>`;
 }
 function renderActionItem(host, action) {
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
-    return b2`<div class="flow-choose">
+    return x`<div class="flow-choose">
       ${action.choose.map(
-        (branch, i7) => b2`
+        (branch, i5) => x`
           <div class="flow-branch">
             <div class="flow-branch-label">
-              ${i7 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
+              ${i5 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
-            ${(branch.conditions || []).map(
-              (c4) => b2`<div class="flow-node condition-node">
-                  ${renderFlowDescription(host, c4)}
+            ${asArray(branch.conditions).map(
+              (c3) => x`<div class="flow-node condition-node">
+                  ${renderFlowDescription(host, c3)}
                 </div>`,
             )}
             <div class="flow-arrow-sm">↓</div>
-            ${(branch.sequence || []).map((s4) => renderActionItem(host, s4))}
+            ${asArray(branch.sequence).map((s6) => renderActionItem(host, s6))}
           </div>
         `,
       )}
       ${
         Array.isArray(action.default) && action.default.length
-          ? b2`<div class="flow-branch">
+          ? x`<div class="flow-branch">
             <div class="flow-branch-label">
               ${host._t("automations_flow_branch_otherwise", "Otherwise")}
             </div>
-            ${action.default.map((s4) => renderActionItem(host, s4))}
+            ${action.default.map((s6) => renderActionItem(host, s6))}
           </div>`
           : ""
       }
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.parallel)) {
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${action.parallel.map((s4) => renderActionItem(host, s4))}
+      ${action.parallel.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.sequence)) {
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${action.sequence.map((s4) => renderActionItem(host, s4))}
+      ${action.sequence.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -28385,10 +29110,10 @@ function renderActionItem(host, action) {
         );
       return host._t("automations_flow_repeat", "Repeat");
     })();
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${(Array.isArray(inner) ? inner : [inner]).map((s4) =>
-        renderActionItem(host, s4),
+      ${(Array.isArray(inner) ? inner : [inner]).map((s6) =>
+        renderActionItem(host, s6),
       )}
     </div>`;
   }
@@ -28406,7 +29131,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     /^\[Selora AI\]\s*/,
     "",
   );
-  return b2`
+  return x`
     <ha-icon
       icon="mdi:robot"
       style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
@@ -28415,11 +29140,11 @@ function renderAutomationIdentity(alias, description, opts = {}) {
       ${
         nameOverride
           ? nameOverride
-          : b2`<div class="auto-row-title-row">
+          : x`<div class="auto-row-title-row">
             <span class="auto-row-title">${alias}</span>
             ${
               isSelora && !badge
-                ? b2`<ha-icon
+                ? x`<ha-icon
                   class="selora-ai-mark"
                   icon="mdi:creation"
                   title="Created by Selora AI"
@@ -28429,7 +29154,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
             ${titleSuffix || ""}
             ${
               badge
-                ? b2`<span
+                ? x`<span
                   style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
                   >${badge}</span
                 >`
@@ -28437,43 +29162,43 @@ function renderAutomationIdentity(alias, description, opts = {}) {
             }
           </div>`
       }
-      ${cleanedDescription ? b2`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
+      ${cleanedDescription ? x`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
       ${tail || ""}
     </div>
   `;
 }
 function renderAutomationFlowchart(host, auto) {
-  if (!auto) return b2``;
+  if (!auto) return x``;
   const triggers = (() => {
-    const t5 = auto.triggers ?? auto.trigger ?? [];
-    return Array.isArray(t5) ? t5 : [t5];
+    const t4 = auto.triggers ?? auto.trigger ?? [];
+    return Array.isArray(t4) ? t4 : [t4];
   })();
   const conditions = (() => {
-    const c4 = auto.conditions ?? auto.condition ?? [];
-    return Array.isArray(c4) ? c4 : [c4];
+    const c3 = auto.conditions ?? auto.condition ?? [];
+    return Array.isArray(c3) ? c3 : [c3];
   })().filter(Boolean);
   const actions = (() => {
-    const a3 = auto.actions ?? auto.action ?? [];
-    return Array.isArray(a3) ? a3 : [a3];
+    const a4 = auto.actions ?? auto.action ?? [];
+    return Array.isArray(a4) ? a4 : [a4];
   })();
-  if (!triggers.length && !actions.length) return b2``;
-  return b2`
+  if (!triggers.length && !actions.length) return x``;
+  return x`
     <div class="flow-chart">
       <div class="flow-section flow-section--inline">
         <div class="flow-label">
           ${host._t("automations_flow_label_trigger", "Trigger")}
         </div>
-        ${triggers.map((t5) => renderFlowNode(host, t5, "trigger"))}
+        ${triggers.map((t4) => renderFlowNode(host, t4, "trigger"))}
       </div>
       ${
         conditions.length
-          ? b2`
+          ? x`
             <div class="flow-arrow">↓</div>
             <div class="flow-section flow-section--inline">
               <div class="flow-label">
                 ${host._t("automations_flow_label_condition", "Condition")}
               </div>
-              ${conditions.map((c4) => renderFlowNode(host, c4, "condition"))}
+              ${conditions.map((c3) => renderFlowNode(host, c3, "condition"))}
             </div>
           `
           : ""
@@ -28483,7 +29208,7 @@ function renderAutomationFlowchart(host, auto) {
         <div class="flow-label">
           ${host._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a3) => renderActionItem(host, a3))}
+        ${actions.map((a4) => renderActionItem(host, a4))}
       </div>
     </div>
   `;
@@ -28498,7 +29223,7 @@ function renderProposalCard(host, msg, msgIndex) {
     const isEnabled = _savedIsEnabled(host, msg);
     const yamlKey2 = `saved_${msgIndex}`;
     const yamlOpen2 = host._yamlOpen && host._yamlOpen[msgIndex];
-    return b2`
+    return x`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -28511,7 +29236,7 @@ function renderProposalCard(host, msg, msgIndex) {
           ${renderAutomationFlowchart(host, automation)}
           ${
             yaml
-              ? b2`
+              ? x`
                 <div
                   class="yaml-toggle"
                   style="margin-top:12px;"
@@ -28525,7 +29250,7 @@ function renderProposalCard(host, msg, msgIndex) {
                 </div>
                 ${
                   yamlOpen2
-                    ? b2`<div style="margin-top:6px;">
+                    ? x`<div style="margin-top:6px;">
                       ${host._renderYamlEditor(yamlKey2, yaml, null, {
                         readOnly: true,
                       })}
@@ -28540,7 +29265,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -28562,7 +29287,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return b2`
+    return x`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(
@@ -28586,7 +29311,7 @@ function renderProposalCard(host, msg, msgIndex) {
   const yamlKey = `proposal_${msgIndex}`;
   const hasEdits =
     host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
-  return b2`
+  return x`
     <div class="automation-subcard">
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -28596,7 +29321,7 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="automation-subcard-body">
         ${
           risk?.level === "elevated"
-            ? b2`
+            ? x`
               <div
                 class="proposal-status"
                 style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);"
@@ -28612,7 +29337,7 @@ function renderProposalCard(host, msg, msgIndex) {
                   <div style="margin-top:4px;">${risk.summary}</div>
                   ${
                     risk.reasons?.length
-                      ? b2`<div style="margin-top:6px; font-size:12px;">
+                      ? x`<div style="margin-top:6px; font-size:12px;">
                         ${risk.reasons.join(" ")}
                       </div>`
                       : ""
@@ -28637,11 +29362,11 @@ function renderProposalCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen
-            ? b2`<div style="margin-top:6px;">
+            ? x`<div style="margin-top:6px;">
               ${host._renderYamlEditor(yamlKey, yaml)}
               ${
                 hasEdits
-                  ? b2`<div class="proposal-verify">
+                  ? x`<div class="proposal-verify">
                     ${host._t(
                       "automations_proposal_yaml_edits_note",
                       "Your YAML edits will be used when you accept.",
@@ -28660,7 +29385,7 @@ function _savedIsEnabled(host, msg) {
   const savedAutomationId = msg.automation_id || null;
   if (!savedAutomationId) return false;
   const created = (host._automations || []).find(
-    (a3) => a3.automation_id === savedAutomationId,
+    (a4) => a4.automation_id === savedAutomationId,
   );
   return created ? host._automationIsEnabled(created) : false;
 }
@@ -28673,7 +29398,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const savedAutomationId = msg.automation_id || null;
     const created = savedAutomationId
       ? (host._automations || []).find(
-          (a3) => a3.automation_id === savedAutomationId,
+          (a4) => a4.automation_id === savedAutomationId,
         )
       : null;
     if (!created) return "";
@@ -28681,7 +29406,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
     const elevated = risk?.level === "elevated";
     if (isEnabled) {
-      return b2`<div class="qa-group automation-card-actions">
+      return x`<div class="qa-group automation-card-actions">
         <button
           class="qa-suggestion"
           ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
@@ -28717,7 +29442,7 @@ function renderProposalActions(host, msg, msgIndex) {
         </button>
       </div>`;
     }
-    return b2`
+    return x`
       <div class="automation-card-actions">
         <button
           class="btn btn-success"
@@ -28740,7 +29465,7 @@ function renderProposalActions(host, msg, msgIndex) {
       </div>
       ${
         elevated
-          ? b2`<p class="automation-workflow-note elevated">
+          ? x`<p class="automation-workflow-note elevated">
             <ha-icon
               icon="mdi:shield-alert-outline"
               style="--mdc-icon-size:14px;"
@@ -28758,7 +29483,7 @@ function renderProposalActions(host, msg, msgIndex) {
     return "";
   }
   const yamlKey = `proposal_${msgIndex}`;
-  return b2`<div
+  return x`<div
     class="automation-card-actions ${(host._acceptAnimating || {})[msgIndex] ? "exiting" : ""}"
   >
     <button
@@ -28782,10 +29507,10 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
   const w2 = window.innerWidth;
   const numCols = w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : cols;
   const buckets = Array.from({ length: numCols }, () => []);
-  cards.forEach((c4, i7) => buckets[i7 % numCols].push(c4));
+  cards.forEach((c3, i5) => buckets[i5 % numCols].push(c3));
   return buckets.map(
-    (col, i7) => b2`<div class="masonry-col">
-        ${col}${i7 === 0 && firstColFooter ? firstColFooter : ""}
+    (col, i5) => x`<div class="masonry-col">
+        ${col}${i5 === 0 && firstColFooter ? firstColFooter : ""}
       </div>`,
   );
 }
@@ -28796,44 +29521,44 @@ function renderAutomations(host) {
   const sortDir = host._sortDir || "desc";
   let filteredAutomations = [...host._automations];
   const staleList = getStaleAutomations(host);
-  const staleSet = new Set(staleList.map((a3) => a3.automation_id));
+  const staleSet = new Set(staleList.map((a4) => a4.automation_id));
   if (statusFilter === "enabled") {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      host._automationIsEnabled(a3),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      host._automationIsEnabled(a4),
     );
   } else if (statusFilter === "disabled") {
     filteredAutomations = filteredAutomations.filter(
-      (a3) => !host._automationIsEnabled(a3),
+      (a4) => !host._automationIsEnabled(a4),
     );
   } else if (statusFilter === "stale") {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      staleSet.has(a3.automation_id),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      staleSet.has(a4.automation_id),
     );
   }
   if (filterText) {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      (a3.alias || "").toLowerCase().includes(filterText),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      (a4.alias || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", enabled_first: "asc" };
   if (sortBy === "recent") {
-    filteredAutomations.sort((a3, b3) => {
-      const aTime = a3.last_triggered
-        ? new Date(a3.last_triggered).getTime()
+    filteredAutomations.sort((a4, b2) => {
+      const aTime = a4.last_triggered
+        ? new Date(a4.last_triggered).getTime()
         : 0;
-      const bTime = b3.last_triggered
-        ? new Date(b3.last_triggered).getTime()
+      const bTime = b2.last_triggered
+        ? new Date(b2.last_triggered).getTime()
         : 0;
       return bTime - aTime;
     });
   } else if (sortBy === "alpha") {
-    filteredAutomations.sort((a3, b3) =>
-      (a3.alias || "").localeCompare(b3.alias || ""),
+    filteredAutomations.sort((a4, b2) =>
+      (a4.alias || "").localeCompare(b2.alias || ""),
     );
   } else if (sortBy === "enabled_first") {
-    filteredAutomations.sort((a3, b3) => {
-      const aOn = host._automationIsEnabled(a3) ? 0 : 1;
-      const bOn = host._automationIsEnabled(b3) ? 0 : 1;
+    filteredAutomations.sort((a4, b2) => {
+      const aOn = host._automationIsEnabled(a4) ? 0 : 1;
+      const bOn = host._automationIsEnabled(b2) ? 0 : 1;
       return aOn - bOn;
     });
   }
@@ -28851,9 +29576,9 @@ function renderAutomations(host) {
     safeAutoPage * perPage,
   );
   const selectableAutomations = filteredAutomations.filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a4) => !a4._draft && a4.automation_id,
   );
-  const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
+  const selectableIds = selectableAutomations.map((a4) => a4.automation_id);
   const selectedIds = host._getSelectedAutomationIds();
   const selectedVisibleCount = selectableIds.filter(
     (id) => host._selectedAutomationIds[id],
@@ -28867,7 +29592,7 @@ function renderAutomations(host) {
     selectedIds.length - selectedVisibleCount,
   );
   const bulkDisabled = selectedIds.length === 0 || host._bulkActionInProgress;
-  return b2`
+  return x`
     <div class="scroll-view" @click=${() => host._closeBurgerMenus()}>
       <div class="page-root">
         <div class="page-header">
@@ -28876,7 +29601,7 @@ function renderAutomations(host) {
           </h1>
           ${
             host._automations.length > 0
-              ? b2`<button
+              ? x`<button
                 class="filter-row-action"
                 ?disabled=${host._llmNeedsSetup}
                 title=${
@@ -28907,30 +29632,30 @@ function renderAutomations(host) {
         </div>
         ${
           host._automations.length > 0
-            ? b2`
+            ? x`
               <div class="filter-tabs-row" style="margin-top:12px;">
                 <div class="filter-tabs" role="tablist">
                   ${["all", "enabled", "disabled"].map(
-                    (s4) => b2`
+                    (s6) => x`
                       <button
                         role="tab"
-                        aria-selected=${host._statusFilter === s4}
-                        class="filter-tab ${host._statusFilter === s4 ? "active" : ""}"
+                        aria-selected=${host._statusFilter === s6}
+                        class="filter-tab ${host._statusFilter === s6 ? "active" : ""}"
                         @click=${() => {
-                          host._statusFilter = s4;
+                          host._statusFilter = s6;
                           host._automationsPage = 1;
                         }}
                       >
                         ${host._t(
-                          `automations_status_tab_${s4}`,
-                          s4.charAt(0).toUpperCase() + s4.slice(1),
+                          `automations_status_tab_${s6}`,
+                          s6.charAt(0).toUpperCase() + s6.slice(1),
                         )}
                       </button>
                     `,
                   )}
                   ${
                     staleSet.size > 0
-                      ? b2`<button
+                      ? x`<button
                         role="tab"
                         aria-selected=${host._statusFilter === "stale"}
                         class="filter-tab ${host._statusFilter === "stale" ? "active" : ""}"
@@ -28955,7 +29680,7 @@ function renderAutomations(host) {
                 <div class="filter-tabs-actions">
                   ${
                     host._bulkEditMode
-                      ? b2`
+                      ? x`
                         <label class="bulk-select-all">
                           <input
                             type="checkbox"
@@ -28985,7 +29710,7 @@ function renderAutomations(host) {
                           ${host._t("automations_bulk_done", "Done")}
                         </button>
                       `
-                      : b2`
+                      : x`
                         <button
                           class="filter-row-secondary"
                           @click=${() => {
@@ -29019,7 +29744,7 @@ function renderAutomations(host) {
                   />
                   ${
                     host._automationFilter
-                      ? b2`<ha-icon
+                      ? x`<ha-icon
                         icon="mdi:close-circle"
                         style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                         @click=${() => {
@@ -29067,20 +29792,20 @@ function renderAutomations(host) {
               </div>
               ${
                 host._bulkEditMode && selectedIds.length > 0
-                  ? b2`
+                  ? x`
                     <div class="bulk-actions-row">
                       <div class="left">
                         ${selectedIds.length}
                         selected${
                           hiddenSelectedCount > 0
-                            ? b2` <span style="opacity:0.65;font-weight:500;"
+                            ? x` <span style="opacity:0.65;font-weight:500;"
                               >(${hiddenSelectedCount} hidden by filter)</span
                             >`
                             : ""
                         }
                         ${
                           host._bulkActionInProgress
-                            ? b2`<span style="opacity:0.75;font-weight:500;">
+                            ? x`<span style="opacity:0.75;font-weight:500;">
                               · ${host._bulkActionLabel}</span
                             >`
                             : ""
@@ -29151,30 +29876,30 @@ function renderAutomations(host) {
                   : ""
               }
               <div class="automations-list">
-                ${pagedAutomations.map((a3) => {
-                  const isDraft = !!a3._draft;
-                  const isOn = host._automationIsEnabled(a3);
-                  const isUnavailable = a3.state === "unavailable";
-                  const automationId = a3.automation_id || "";
+                ${pagedAutomations.map((a4) => {
+                  const isDraft = !!a4._draft;
+                  const isOn = host._automationIsEnabled(a4);
+                  const isUnavailable = a4.state === "unavailable";
+                  const automationId = a4.automation_id || "";
                   const hasAutomationId = !!automationId;
                   const canToggle =
                     hasAutomationId && !host._bulkActionInProgress;
                   const deleting = host._deletingAutomation[automationId];
                   const loadingChat = host._loadingToChat[automationId];
-                  const runKey = automationId || a3.entity_id;
+                  const runKey = automationId || a4.entity_id;
                   const running = !!host._runningAutomation?.[runKey];
                   const burgerOpen = host._openBurgerMenu === automationId;
-                  const cardExpanded = !!host._cardActiveTab[a3.entity_id];
-                  const ago = formatTimeAgo(a3.last_triggered);
+                  const cardExpanded = !!host._cardActiveTab[a4.entity_id];
+                  const ago = formatTimeAgo(a4.last_triggered);
                   const lastRun = ago
                     ? ago
                     : !isOn
                       ? host._t("automations_last_run_disabled", "Disabled")
                       : host._t("automations_last_run_never", "Never");
-                  return b2`
+                  return x`
                     <div
-                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
-                      data-entity-id="${a3.entity_id}"
+                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a4.entity_id ? " highlighted" : ""}"
+                      data-entity-id="${a4.entity_id}"
                     >
                       <div
                         class="auto-row-main"
@@ -29185,32 +29910,32 @@ function renderAutomations(host) {
                             )
                           )
                             return;
-                          const current = host._cardActiveTab[a3.entity_id];
+                          const current = host._cardActiveTab[a4.entity_id];
                           if (current) {
                             host._cardActiveTab = {
                               ...host._cardActiveTab,
-                              [a3.entity_id]: null,
+                              [a4.entity_id]: null,
                             };
                           } else {
                             const defaultTab =
-                              (a3.triggers ?? a3.trigger)?.length ||
-                              (a3.actions ?? a3.action)?.length
+                              (a4.triggers ?? a4.trigger)?.length ||
+                              (a4.actions ?? a4.action)?.length
                                 ? "flow"
-                                : a3.yaml_text
+                                : a4.yaml_text
                                   ? "yaml"
                                   : hasAutomationId
                                     ? "history"
                                     : null;
                             host._cardActiveTab = {
                               ...host._cardActiveTab,
-                              [a3.entity_id]: defaultTab,
+                              [a4.entity_id]: defaultTab,
                             };
                           }
                         }}
                       >
                         ${
                           host._bulkEditMode && hasAutomationId
-                            ? b2`
+                            ? x`
                               <label class="card-select">
                                 <input
                                   type="checkbox"
@@ -29227,12 +29952,12 @@ function renderAutomations(host) {
                             `
                             : ""
                         }
-                        ${renderAutomationIdentity(a3.alias, a3.description, {
-                          isSelora: !!a3.is_selora,
-                          titleSuffix: b2`
+                        ${renderAutomationIdentity(a4.alias, a4.description, {
+                          isSelora: !!a4.is_selora,
+                          titleSuffix: x`
                             ${
-                              a3.recipe_title
-                                ? b2`<span
+                              a4.recipe_title
+                                ? x`<span
                                   class="recipe-pill"
                                   title=${host._t(
                                     "automations_recipe_pill_tooltip",
@@ -29243,19 +29968,19 @@ function renderAutomations(host) {
                                     icon="mdi:book-open-variant"
                                   ></ha-icon>
                                   <span class="recipe-pill-name"
-                                    >${a3.recipe_title}</span
+                                    >${a4.recipe_title}</span
                                   >
                                 </span>`
                                 : ""
                             }
                             ${
                               isUnavailable
-                                ? b2`<span
+                                ? x`<span
                                   class="needs-attention-pill"
                                   @click=${(e6) => {
                                     e6.stopPropagation();
                                     host._unavailableAutoId = automationId;
-                                    host._unavailableAutoName = a3.alias;
+                                    host._unavailableAutoName = a4.alias;
                                   }}
                                   >${host._t(
                                     "automations_needs_attention_pill",
@@ -29266,7 +29991,7 @@ function renderAutomations(host) {
                             }
                             ${
                               staleSet.has(automationId)
-                                ? b2`<span
+                                ? x`<span
                                   class="stale-pill"
                                   title=${staleTooltip(host)}
                                 >
@@ -29281,7 +30006,7 @@ function renderAutomations(host) {
                           `,
                           nameOverride:
                             host._editingAlias === automationId
-                              ? b2`
+                              ? x`
                                   <input
                                     class="rename-input"
                                     data-id="${automationId}"
@@ -29314,7 +30039,7 @@ function renderAutomations(host) {
                                   </button>
                                 `
                               : null,
-                          tail: b2`<span class="auto-row-mobile-meta">
+                          tail: x`<span class="auto-row-mobile-meta">
                             <span
                               >${host._t(
                                 "automations_last_run_prefix",
@@ -29336,11 +30061,11 @@ function renderAutomations(host) {
                               "Last run:",
                             )} </span
                           >${lastRun}${
-                            a3.last_triggered
-                              ? b2`<span class="setting-tooltip"
+                            a4.last_triggered
+                              ? x`<span class="setting-tooltip"
                                 >Last run:
                                 ${new Date(
-                                  a3.last_triggered,
+                                  a4.last_triggered,
                                 ).toLocaleString()}</span
                               >`
                               : ""
@@ -29386,7 +30111,7 @@ function renderAutomations(host) {
                             @change=${(e6) => {
                               if (!canToggle) return;
                               host._toggleAutomation(
-                                a3.entity_id,
+                                a4.entity_id,
                                 automationId,
                                 e6.target.checked,
                               );
@@ -29397,8 +30122,8 @@ function renderAutomations(host) {
                           </div>
                         </label>
                         ${
-                          !isDraft && a3.entity_id
-                            ? b2`
+                          !isDraft && a4.entity_id
+                            ? x`
                               <button
                                 class="row-action-btn"
                                 ?disabled=${running || isUnavailable}
@@ -29406,7 +30131,7 @@ function renderAutomations(host) {
                                   e6.stopPropagation();
                                   if (running || isUnavailable) return;
                                   host._runAutomation(
-                                    a3.entity_id,
+                                    a4.entity_id,
                                     automationId,
                                   );
                                 }}
@@ -29425,7 +30150,7 @@ function renderAutomations(host) {
                         }
                         ${
                           hasAutomationId
-                            ? b2`
+                            ? x`
                               <div class="burger-menu-wrapper">
                                 <button
                                   class="burger-btn"
@@ -29443,7 +30168,7 @@ function renderAutomations(host) {
                                 </button>
                                 ${
                                   burgerOpen
-                                    ? b2`
+                                    ? x`
                                       <div
                                         class="burger-dropdown"
                                         style=${host._openBurgerMenuStyle}
@@ -29481,7 +30206,7 @@ function renderAutomations(host) {
                                             e6.stopPropagation();
                                             host._startRenameAutomation(
                                               automationId,
-                                              a3.alias,
+                                              a4.alias,
                                             );
                                           }}
                                         >
@@ -29553,7 +30278,7 @@ function renderAutomations(host) {
                             `
                             : isDraft
                               ? ""
-                              : b2`
+                              : x`
                                 <div class="burger-menu-wrapper">
                                   <button
                                     class="burger-btn"
@@ -29574,21 +30299,21 @@ function renderAutomations(host) {
                       </div>
                       ${
                         cardExpanded
-                          ? b2`
+                          ? x`
                             <div class="auto-row-expand">
                               <div class="card-tabs" style="margin-top:0;">
                                 ${
-                                  (a3.triggers ?? a3.trigger)?.length ||
-                                  (a3.actions ?? a3.action)?.length
-                                    ? b2`
+                                  (a4.triggers ?? a4.trigger)?.length ||
+                                  (a4.actions ?? a4.action)?.length
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "flow" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "flow" ? "active" : ""}"
                                         @click=${() => {
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]:
+                                            [a4.entity_id]:
                                               host._cardActiveTab[
-                                                a3.entity_id
+                                                a4.entity_id
                                               ] === "flow"
                                                 ? null
                                                 : "flow",
@@ -29609,16 +30334,16 @@ function renderAutomations(host) {
                                     : ""
                                 }
                                 ${
-                                  a3.yaml_text
-                                    ? b2`
+                                  a4.yaml_text
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "yaml" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "yaml" ? "active" : ""}"
                                         @click=${() => {
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]:
+                                            [a4.entity_id]:
                                               host._cardActiveTab[
-                                                a3.entity_id
+                                                a4.entity_id
                                               ] === "yaml"
                                                 ? null
                                                 : "yaml",
@@ -29640,17 +30365,17 @@ function renderAutomations(host) {
                                 }
                                 ${
                                   hasAutomationId
-                                    ? b2`
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "history" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "history" ? "active" : ""}"
                                         @click=${() => {
                                           const isActive =
                                             host._cardActiveTab[
-                                              a3.entity_id
+                                              a4.entity_id
                                             ] === "history";
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]: isActive
+                                            [a4.entity_id]: isActive
                                               ? null
                                               : "history",
                                           };
@@ -29677,22 +30402,22 @@ function renderAutomations(host) {
                                     : ""
                                 }
                               </div>
-                              ${host._cardActiveTab[a3.entity_id] === "flow" && ((a3.triggers ?? a3.trigger)?.length || (a3.actions ?? a3.action)?.length) ? renderAutomationFlowchart(host, a3) : ""}
+                              ${host._cardActiveTab[a4.entity_id] === "flow" && ((a4.triggers ?? a4.trigger)?.length || (a4.actions ?? a4.action)?.length) ? renderAutomationFlowchart(host, a4) : ""}
                               ${
-                                host._cardActiveTab[a3.entity_id] === "yaml" &&
-                                a3.yaml_text
+                                host._cardActiveTab[a4.entity_id] === "yaml" &&
+                                a4.yaml_text
                                   ? host._renderYamlEditor(
-                                      `yaml_${a3.entity_id}`,
-                                      a3.yaml_text,
+                                      `yaml_${a4.entity_id}`,
+                                      a4.yaml_text,
                                       (key) =>
                                         host._saveActiveAutomationYaml(
-                                          a3.automation_id,
+                                          a4.automation_id,
                                           key,
                                         ),
                                     )
                                   : ""
                               }
-                              ${host._cardActiveTab[a3.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a3) : ""}
+                              ${host._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a4) : ""}
                             </div>
                           `
                           : ""
@@ -29703,7 +30428,7 @@ function renderAutomations(host) {
               </div>
               ${
                 totalAutoPages > 1
-                  ? b2`
+                  ? x`
                     <div class="pagination">
                       <button
                         class="btn btn-outline"
@@ -29751,7 +30476,7 @@ function renderAutomations(host) {
               }
               ${
                 filteredAutomations.length === 0 && host._automations.length > 0
-                  ? b2`<div
+                  ? x`<div
                     style="text-align:center;opacity:0.45;padding:24px 0;"
                   >
                     No automations match "${host._automationFilter}"
@@ -29759,7 +30484,7 @@ function renderAutomations(host) {
                   : ""
               }
             `
-            : b2`<div style="text-align:center;padding:32px 0;">
+            : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon
                 icon="mdi:robot-vacuum-variant"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
@@ -29798,7 +30523,7 @@ function renderAutomations(host) {
 }
 function renderUnavailableModal(host) {
   if (!host._unavailableAutoId) return "";
-  return b2`
+  return x`
     <div
       class="modal-overlay"
       @click=${() => {
@@ -29973,7 +30698,7 @@ function _toggleAutomationSelection(automationId, evt) {
 }
 function _toggleSelectAllFiltered(filteredAutomations, checked) {
   const selectable = (filteredAutomations || []).filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a4) => !a4._draft && a4.automation_id,
   );
   const next = { ...this._selectedAutomationIds };
   for (const auto of selectable) {
@@ -29990,12 +30715,12 @@ async function _bulkToggleSelected(enable) {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id)
-    .filter((a3) =>
-      enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3),
+    .filter((a4) => a4 && !a4._draft && a4.automation_id)
+    .filter((a4) =>
+      enable ? !this._automationIsEnabled(a4) : this._automationIsEnabled(a4),
     );
   const skippedCount = selectedIds.length - targets.length;
   if (!targets.length) {
@@ -30047,10 +30772,10 @@ async function _bulkSoftDeleteSelected() {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id);
+    .filter((a4) => a4 && !a4._draft && a4.automation_id);
   if (!targets.length) return;
   if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
   this._bulkActionInProgress = true;
@@ -30114,8 +30839,8 @@ async function _enableSavedAutomation(entityId, automationId) {
       entity_id: entityId,
       enabled: true,
     });
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
     );
   } catch (err) {
     const message = err?.message || "unknown error";
@@ -30410,7 +31135,7 @@ async function _loadAutomationToChat(automationId) {
 
 // src/panel/render-scenes.js
 function _sceneCardHeader(name, badge) {
-  return b2`
+  return x`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <ha-icon
         icon="mdi:palette"
@@ -30439,7 +31164,7 @@ function _renderTargetRow(host, entityId, stateData, editSceneId) {
       ? host._sceneEditedEntities(editSceneId)[entityId]
       : stateData;
   const single = JSON.stringify({ [entityId]: target });
-  return b2`
+  return x`
     <div class="scene-ent-row">
       <div
         class="selora-entity-grid scene-ent-tile"
@@ -30467,16 +31192,16 @@ function _renderEntityList(host, entities, editSceneId = null) {
     if (!groups.has(area)) groups.set(area, []);
     groups.get(area).push(id);
   }
-  const sorted = [...groups.entries()].sort((a3, b3) => {
-    if (!a3[0]) return 1;
-    if (!b3[0]) return -1;
-    return a3[0].localeCompare(b3[0]);
+  const sorted = [...groups.entries()].sort((a4, b2) => {
+    if (!a4[0]) return 1;
+    if (!b2[0]) return -1;
+    return a4[0].localeCompare(b2[0]);
   });
   const showHeaders = groups.size > 1;
-  return b2`
+  return x`
     ${
       editSceneId
-        ? b2`<div class="scene-ent-hint">
+        ? x`<div class="scene-ent-hint">
           <ha-icon icon="mdi:gesture-tap"></ha-icon>
           <span
             >Adjust each entity's desired state on the <strong>right</strong>.
@@ -30493,10 +31218,10 @@ function _renderEntityList(host, entities, editSceneId = null) {
         <span class="scene-ent-cap--target">Scene sets</span>
       </div>
       ${sorted.map(
-        ([area, areaIds]) => b2`
+        ([area, areaIds]) => x`
           ${
             showHeaders
-              ? b2`<div class="scene-ent-area">
+              ? x`<div class="scene-ent-area">
                 <ha-icon icon="mdi:floor-plan"></ha-icon>
                 <span>${area || "Unassigned"}</span>
               </div>`
@@ -30510,7 +31235,7 @@ function _renderEntityList(host, entities, editSceneId = null) {
     </div>
     ${
       editSceneId && host._sceneIsDirty(editSceneId)
-        ? b2`<div class="scene-edit-bar">
+        ? x`<div class="scene-edit-bar">
           <span class="scene-edit-bar-msg">
             <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this scene
           </span>
@@ -30558,7 +31283,7 @@ function renderSceneCard(host, msg, msgIndex) {
   const yamlKey = `scene_${msgIndex}`;
   const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
   if (status === "saved") {
-    return b2`
+    return x`
       <div style="margin-top:12px;padding:14px 0 0;">
         <div class="scene-saved-head">
           <ha-icon icon="mdi:check-circle" class="scene-saved-icon"></ha-icon>
@@ -30571,7 +31296,7 @@ function renderSceneCard(host, msg, msgIndex) {
           ${_renderEntityList(host, scene.entities || {})}
           ${
             msg.scene_yaml
-              ? b2`<div
+              ? x`<div
                   class="yaml-toggle"
                   style="margin-top:10px;margin-bottom:0;"
                   @click=${() => toggleYaml(host, yamlKey)}
@@ -30584,7 +31309,7 @@ function renderSceneCard(host, msg, msgIndex) {
                 </div>
                 ${
                   yamlOpen
-                    ? b2`<ha-code-editor
+                    ? x`<ha-code-editor
                       mode="yaml"
                       .value=${msg.scene_yaml}
                       read-only
@@ -30626,7 +31351,7 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -30645,7 +31370,7 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return b2`
+    return x`
       <div style="margin-top:12px;padding:14px 0 0;">
         ${_sceneCardHeader(
           scene.name,
@@ -30655,7 +31380,7 @@ function renderSceneCard(host, msg, msgIndex) {
           ${_renderEntityList(host, scene.entities || {})}
           ${
             msg.scene_yaml
-              ? b2`<div
+              ? x`<div
                 class="yaml-toggle"
                 style="margin-top:10px;margin-bottom:0;"
                 @click=${() => toggleYaml(host, yamlKey)}
@@ -30670,7 +31395,7 @@ function renderSceneCard(host, msg, msgIndex) {
           }
           ${
             yamlOpen && msg.scene_yaml
-              ? b2`
+              ? x`
                 <ha-code-editor
                   mode="yaml"
                   .value=${msg.scene_yaml}
@@ -30684,7 +31409,7 @@ function renderSceneCard(host, msg, msgIndex) {
       </div>
     `;
   }
-  return b2`
+  return x`
     <div style="margin-top:12px;padding:14px 0 0;">
       ${_sceneCardHeader(
         scene.name,
@@ -30706,7 +31431,7 @@ function renderSceneCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen && msg.scene_yaml
-            ? b2`
+            ? x`
               <ha-code-editor
                 mode="yaml"
                 .value=${msg.scene_yaml}
@@ -30739,35 +31464,35 @@ function renderScenes(host) {
   const sortDir = host._sceneSortDir || "desc";
   const statusFilter = host._sceneStatusFilter || "all";
   const allScenes = host._scenes || [];
-  const seloraCount = allScenes.filter((s4) => s4.source === "selora").length;
+  const seloraCount = allScenes.filter((s6) => s6.source === "selora").length;
   const manualCount = allScenes.length - seloraCount;
   let filtered = [...allScenes];
   if (statusFilter === "selora") {
-    filtered = filtered.filter((s4) => s4.source === "selora");
+    filtered = filtered.filter((s6) => s6.source === "selora");
   } else if (statusFilter === "manual") {
-    filtered = filtered.filter((s4) => s4.source !== "selora");
+    filtered = filtered.filter((s6) => s6.source !== "selora");
   }
   if (filterText) {
-    filtered = filtered.filter((s4) =>
-      (s4.name || "").toLowerCase().includes(filterText),
+    filtered = filtered.filter((s6) =>
+      (s6.name || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
   if (sortBy === "recent") {
-    filtered.sort((a3, b3) => {
-      const at = a3.updated_at ? new Date(a3.updated_at).getTime() : 0;
-      const bt = b3.updated_at ? new Date(b3.updated_at).getTime() : 0;
+    filtered.sort((a4, b2) => {
+      const at = a4.updated_at ? new Date(a4.updated_at).getTime() : 0;
+      const bt = b2.updated_at ? new Date(b2.updated_at).getTime() : 0;
       return bt - at;
     });
   } else if (sortBy === "alpha") {
-    filtered.sort((a3, b3) => (a3.name || "").localeCompare(b3.name || ""));
+    filtered.sort((a4, b2) => (a4.name || "").localeCompare(b2.name || ""));
   } else if (sortBy === "size") {
-    filtered.sort((a3, b3) => (b3.entity_count || 0) - (a3.entity_count || 0));
+    filtered.sort((a4, b2) => (b2.entity_count || 0) - (a4.entity_count || 0));
   }
   if (sortDir !== naturalDir[sortBy]) {
     filtered.reverse();
   }
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="page-root">
         <div class="page-header">
@@ -30776,7 +31501,7 @@ function renderScenes(host) {
           </h1>
           ${
             (host._scenes || []).length > 0
-              ? b2`<button
+              ? x`<button
                 class="filter-row-action"
                 ?disabled=${host._llmNeedsSetup}
                 title=${
@@ -30800,7 +31525,7 @@ function renderScenes(host) {
         </div>
         ${
           (host._scenes || []).length > 0
-            ? b2`
+            ? x`
               <div class="filter-tabs-row" style="margin-top:12px;">
                 <div class="filter-tabs" role="tablist">
                   <button
@@ -30815,7 +31540,7 @@ function renderScenes(host) {
                   </button>
                   ${
                     seloraCount > 0 && manualCount > 0
-                      ? b2`
+                      ? x`
                         <button
                           role="tab"
                           aria-selected=${statusFilter === "selora"}
@@ -30865,7 +31590,7 @@ function renderScenes(host) {
                   />
                   ${
                     host._sceneFilter
-                      ? b2`<ha-icon
+                      ? x`<ha-icon
                         icon="mdi:close-circle"
                         style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                         @click=${() => {
@@ -30908,21 +31633,21 @@ function renderScenes(host) {
                 </div>
               </div>
               <div class="automations-list">
-                ${filtered.map((s4) => {
-                  const sceneId = s4.scene_id;
-                  const sceneEntityId = s4.entity_id;
-                  const entities = s4.entities || {};
-                  const entityCount = _sceneEntityCount(s4);
+                ${filtered.map((s6) => {
+                  const sceneId = s6.scene_id;
+                  const sceneEntityId = s6.entity_id;
+                  const entities = s6.entities || {};
+                  const entityCount = _sceneEntityCount(s6);
                   const isExpanded = !!host._expandedScenes?.[sceneId];
                   const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
                   const burgerOpen = host._openSceneBurger === sceneId;
                   const deleting = !!host._deletingScene?.[sceneId];
                   const loadingChat = !!host._loadingToChat?.[sceneId];
-                  const updated = formatTimeAgo(s4.updated_at);
+                  const updated = formatTimeAgo(s6.updated_at);
                   const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
-                  const isSelora = s4.source === "selora";
-                  const recipeTitle = s4.recipe_title || "";
-                  return b2`
+                  const isSelora = s6.source === "selora";
+                  const recipeTitle = s6.recipe_title || "";
+                  return x`
                     <div
                       class="auto-row${isExpanded ? " expanded" : ""}"
                       data-scene-id="${sceneId}"
@@ -30951,7 +31676,7 @@ function renderScenes(host) {
                           ></ha-icon>
                           ${
                             !isSelora && !recipeTitle && host.narrow
-                              ? b2`<span
+                              ? x`<span
                                 style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
                                 >HA</span
                               >`
@@ -30960,10 +31685,10 @@ function renderScenes(host) {
                         </div>
                         <div class="auto-row-name">
                           <div class="auto-row-title-row">
-                            <span class="auto-row-title">${s4.name}</span>
+                            <span class="auto-row-title">${s6.name}</span>
                             ${
                               recipeTitle
-                                ? b2`<span
+                                ? x`<span
                                   class="recipe-pill"
                                   title=${host._t(
                                     "automations_recipe_pill_tooltip",
@@ -30978,7 +31703,7 @@ function renderScenes(host) {
                                   >
                                 </span>`
                                 : !isSelora && !host.narrow
-                                  ? b2`<span
+                                  ? x`<span
                                     style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
                                     >HA</span
                                   >`
@@ -31008,7 +31733,7 @@ function renderScenes(host) {
                               const id = sceneEntityId
                                 ? sceneEntityId.replace(/^scene\./, "")
                                 : sceneId;
-                              host._activateScene(id, s4.name);
+                              host._activateScene(id, s6.name);
                             }}
                             title=${host._t(
                               "scenes_activate_button",
@@ -31046,7 +31771,7 @@ function renderScenes(host) {
                             </button>
                             ${
                               burgerOpen
-                                ? b2`
+                                ? x`
                                   <div
                                     class="burger-dropdown"
                                     style=${host._openBurgerMenuStyle}
@@ -31114,7 +31839,7 @@ function renderScenes(host) {
                                     </button>
                                     ${
                                       isSelora
-                                        ? b2`<button
+                                        ? x`<button
                                           class="burger-item danger"
                                           ?disabled=${deleting}
                                           @click=${(e6) => {
@@ -31123,7 +31848,7 @@ function renderScenes(host) {
                                             host._deleteSceneConfirmId =
                                               sceneId;
                                             host._deleteSceneConfirmName =
-                                              s4.name;
+                                              s6.name;
                                           }}
                                         >
                                           <ha-icon
@@ -31153,7 +31878,7 @@ function renderScenes(host) {
                       </div>
                       ${
                         isExpanded
-                          ? b2`
+                          ? x`
                             <div class="auto-row-expand">
                               ${
                                 Object.keys(entities).length
@@ -31162,7 +31887,7 @@ function renderScenes(host) {
                                       entities,
                                       isSelora ? sceneId : null,
                                     )
-                                  : b2`<div
+                                  : x`<div
                                     style="font-size:12px;opacity:0.6;padding:6px 0;"
                                   >
                                     ${host._t(
@@ -31189,16 +31914,16 @@ function renderScenes(host) {
                               </div>
                               ${
                                 yamlOpen
-                                  ? b2`
+                                  ? x`
                                     <ha-code-editor
                                       mode="yaml"
                                       .value=${
                                         isSelora && host._sceneIsDirty(sceneId)
                                           ? host._sceneEditYaml(
                                               sceneId,
-                                              s4.name,
+                                              s6.name,
                                             )
-                                          : s4.yaml ||
+                                          : s6.yaml ||
                                             host._t(
                                               "scenes_yaml_unavailable_comment",
                                               "# YAML not available \u2014 open the scene in Home Assistant to view it.",
@@ -31220,7 +31945,7 @@ function renderScenes(host) {
               </div>
               ${
                 filtered.length === 0 && (host._scenes || []).length > 0
-                  ? b2`<div
+                  ? x`<div
                     style="text-align:center;opacity:0.45;padding:24px 0;"
                   >
                     No scenes match "${host._sceneFilter}"
@@ -31228,7 +31953,7 @@ function renderScenes(host) {
                   : ""
               }
             `
-            : b2`<div style="text-align:center;padding:32px 0;">
+            : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon
                 icon="mdi:palette"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
@@ -31270,7 +31995,7 @@ function renderDeleteSceneModal(host) {
   const name =
     host._deleteSceneConfirmName ||
     host._t("scenes_delete_modal_fallback_name", "this scene");
-  return b2`
+  return x`
     <div
       class="modal-overlay"
       @click=${(e6) => {
@@ -31441,8 +32166,8 @@ function _buildEntityIndex(hass, areasMap, devicesMap, entitiesMap) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areasMap && typeof areasMap === "object") {
-    for (const [id, a3] of Object.entries(areasMap)) {
-      areaById[id] = a3?.name || id;
+    for (const [id, a4] of Object.entries(areasMap)) {
+      areaById[id] = a4?.name || id;
     }
   }
   const entReg = entitiesMap || hass.entities || {};
@@ -31501,17 +32226,17 @@ function _buildDeviceIndex(devicesMap, areasMap) {
 }
 function _interleave(lists, max) {
   const out = [];
-  let i7 = 0;
+  let i5 = 0;
   while (out.length < max) {
     let added = false;
     for (const list of lists) {
-      if (i7 < list.length && out.length < max) {
-        out.push(list[i7]);
+      if (i5 < list.length && out.length < max) {
+        out.push(list[i5]);
         added = true;
       }
     }
     if (!added) break;
-    i7++;
+    i5++;
   }
   return out;
 }
@@ -31582,7 +32307,7 @@ function _navigate(path) {
   window.dispatchEvent(new Event("location-changed"));
 }
 function _renderChipGroup(title, chips) {
-  return b2`
+  return x`
     <div>
       <div
         style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);margin-bottom:6px;"
@@ -31602,7 +32327,7 @@ function _renderChip({
   onOpen,
   onRemove,
 }) {
-  return b2`
+  return x`
     <span class="composer-selection-chip" title=${title || label}>
       <button
         type="button"
@@ -31613,7 +32338,7 @@ function _renderChip({
         <span style="line-height:1;">${label}</span>
         ${
           kindLabel
-            ? b2`<span
+            ? x`<span
               style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
               >${kindLabel}</span
             >`
@@ -31635,7 +32360,7 @@ function _renderChip({
 }
 function _renderDropdown(host, items, activeIndex) {
   if (!items.length) return "";
-  return b2`
+  return x`
     <div
       style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;max-height:240px;overflow-y:auto;"
     >
@@ -31646,7 +32371,7 @@ function _renderDropdown(host, items, activeIndex) {
         else if (item.kind === KIND_HA_DEVICE)
           kindLabel = host._t("ignore_list_dropdown_kind_device", "Device");
         const active = idx === activeIndex;
-        return b2`
+        return x`
           <button
             type="button"
             data-ignore-row=${idx}
@@ -31667,12 +32392,12 @@ function _renderDropdown(host, items, activeIndex) {
             <span style="flex:1;">${item.label}</span>
             ${
               kindLabel
-                ? b2`<span
+                ? x`<span
                   style="font-size:11px;color:var(--secondary-text-color);"
                   >${kindLabel}</span
                 >`
                 : item.area
-                  ? b2`<span
+                  ? x`<span
                     style="font-size:11px;color:var(--secondary-text-color);"
                     >${item.area}</span
                   >`
@@ -31685,7 +32410,7 @@ function _renderDropdown(host, items, activeIndex) {
   `;
 }
 function _renderInfoCallout(host, labelName) {
-  return b2`
+  return x`
     <details
       style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
     >
@@ -31757,7 +32482,7 @@ function renderIgnoreList(host) {
   const total =
     tagged.entities.length + tagged.devices.length + tagged.areas.length;
   const labelName = _config(host).exclude_label_name || "Selora exclude";
-  return b2`
+  return x`
     <div class="section-card settings-section">
       <div class="section-card-header">
         <h3>
@@ -31800,12 +32525,12 @@ function renderIgnoreList(host) {
 
       ${
         total === 0
-          ? b2`<div
+          ? x`<div
             style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
           >
             ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
           </div>`
-          : b2`
+          : x`
             <div
               style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
             >
@@ -31879,10 +32604,10 @@ function _textInput({
   placeholder = "",
   style = "",
 }) {
-  return b2`
+  return x`
     ${
       label
-        ? b2`<label
+        ? x`<label
           style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
           >${label}</label
         >`
@@ -31918,7 +32643,7 @@ function _todayCostHint(host) {
 function _renderUsageHeaderLink(host) {
   const cost = _todayCostHint(host);
   const hasData = cost !== null && cost > 0;
-  return b2`
+  return x`
     <button
       class="section-card-action"
       title=${host._t("settings_view_token_usage_title", "View token usage")}
@@ -31951,10 +32676,10 @@ var _PROVIDERS = [
 function _renderProviderPicker(host) {
   const providers = _PROVIDERS;
   const current = providers.find(
-    (p4) => p4.value === host._config.llm_provider,
+    (p2) => p2.value === host._config.llm_provider,
   );
   const open = host._providerDropdownOpen || false;
-  return b2`
+  return x`
     <div style="position:relative;">
       <button
         class="form-select"
@@ -31978,7 +32703,7 @@ function _renderProviderPicker(host) {
       </button>
       ${
         open
-          ? b2`
+          ? x`
             <div
               style="position:fixed;inset:0;z-index:9;"
               @click=${() => {
@@ -31990,15 +32715,15 @@ function _renderProviderPicker(host) {
               style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
             >
               ${providers.map(
-                (p4) => b2`
+                (p2) => x`
                   <button
-                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p4.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p4.disabled ? "var(--disabled-text-color, #999)" : p4.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p4.disabled ? "default" : "pointer"};opacity:${p4.disabled ? "0.5" : "1"};"
+                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p2.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p2.disabled ? "var(--disabled-text-color, #999)" : p2.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p2.disabled ? "default" : "pointer"};opacity:${p2.disabled ? "0.5" : "1"};"
                     @click=${() => {
-                      if (p4.disabled) return;
+                      if (p2.disabled) return;
                       host._providerDropdownOpen = false;
-                      host._updateConfig("llm_provider", p4.value);
+                      host._updateConfig("llm_provider", p2.value);
                       if (
-                        p4.value === "selora_local" &&
+                        p2.value === "selora_local" &&
                         host._config?.selora_local_discovered_host
                       ) {
                         host._updateConfig(
@@ -32011,7 +32736,7 @@ function _renderProviderPicker(host) {
                       host._llmSaveStatus = null;
                     }}
                   >
-                    ${p4.label}
+                    ${p2.label}
                   </button>
                 `,
               )}
@@ -32024,7 +32749,7 @@ function _renderProviderPicker(host) {
 }
 function renderSettings(host) {
   if (!host._config) {
-    return b2`
+    return x`
       <div
         class="scroll-view"
         style="display:flex; justify-content:center; padding-top:64px;"
@@ -32039,7 +32764,7 @@ function renderSettings(host) {
   const isOpenAI = host._config.llm_provider === "openai";
   const isOpenRouter = host._config.llm_provider === "openrouter";
   const isSeloraLocal = host._config.llm_provider === "selora_local";
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="settings-form">
         <a
@@ -32079,7 +32804,7 @@ function renderSettings(host) {
 
           ${
             isSeloraCloud
-              ? b2`
+              ? x`
                 <div class="form-group">
                   <label
                     >${host._t(
@@ -32089,7 +32814,7 @@ function renderSettings(host) {
                   >
                   ${
                     host._config.aigateway_linked
-                      ? b2`
+                      ? x`
                         <div
                           style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);"
                         >
@@ -32103,7 +32828,7 @@ function renderSettings(host) {
                             >
                               Linked${
                                 host._config.aigateway_user_email
-                                  ? b2` as
+                                  ? x` as
                                     <strong
                                       >${host._config.aigateway_user_email}</strong
                                     >`
@@ -32128,7 +32853,7 @@ function renderSettings(host) {
                           </button>
                         </div>
                       `
-                      : b2`
+                      : x`
                         <div
                           style="display:flex;flex-direction:column;gap:10px;"
                         >
@@ -32142,7 +32867,7 @@ function renderSettings(host) {
                           </p>
                           ${
                             host._config.developer_mode
-                              ? b2`
+                              ? x`
                                 ${_textInput({
                                   label: host._t(
                                     "settings_selora_cloud_url_label",
@@ -32170,7 +32895,7 @@ function renderSettings(host) {
                           }
                           ${
                             host._aigwAuthorizeUrl
-                              ? b2`<a
+                              ? x`<a
                                 class="btn btn-primary"
                                 href=${host._aigwAuthorizeUrl}
                                 target="_blank"
@@ -32182,7 +32907,7 @@ function renderSettings(host) {
                                   "Open sign-in page \u2192",
                                 )}
                               </a>`
-                              : b2`<button
+                              : x`<button
                                 class="btn btn-primary"
                                 ?disabled=${host._linkingAIGateway}
                                 @click=${() => host._startAIGatewayLink()}
@@ -32190,7 +32915,7 @@ function renderSettings(host) {
                               >
                                 ${
                                   host._linkingAIGateway
-                                    ? b2`<span
+                                    ? x`<span
                                         class="spinner"
                                         style="width:14px;height:14px;"
                                       ></span>
@@ -32207,7 +32932,7 @@ function renderSettings(host) {
                           }
                           ${
                             host._aigwAuthorizeUrl
-                              ? b2`<div
+                              ? x`<div
                                 style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                               >
                                 ${host._t(
@@ -32222,7 +32947,7 @@ function renderSettings(host) {
                   }
                   ${
                     host._aigatewayError
-                      ? b2`<div
+                      ? x`<div
                         style="color:var(--error-color,#d32f2f);font-size:13px;padding:6px 0 0;"
                       >
                         ${host._aigatewayError}
@@ -32232,7 +32957,7 @@ function renderSettings(host) {
                 </div>
                 ${
                   host._config.aigateway_linked && host._config.developer_mode
-                    ? b2`
+                    ? x`
                       <div class="form-group">
                         ${_textInput({
                           label: host._t(
@@ -32254,14 +32979,14 @@ function renderSettings(host) {
                 }
               `
               : isGemini
-                ? b2`
+                ? x`
                   <div class="form-group">
                     <label
                       >${host._t("settings_api_key_label", "API Key")}</label
                     >
                     ${
                       host._config.gemini_api_key_set
-                        ? b2`<button
+                        ? x`<button
                           class="key-hint key-set key-hint-btn"
                           title=${host._t(
                             "settings_click_replace_key_title",
@@ -32317,14 +33042,14 @@ function renderSettings(host) {
                   </div>
                 `
                 : isAnthropic
-                  ? b2`
+                  ? x`
                     <div class="form-group">
                       <label
                         >${host._t("settings_api_key_label", "API Key")}</label
                       >
                       ${
                         host._config.anthropic_api_key_set
-                          ? b2`<button
+                          ? x`<button
                             class="key-hint key-set key-hint-btn"
                             title=${host._t(
                               "settings_click_replace_key_title",
@@ -32384,7 +33109,7 @@ function renderSettings(host) {
                     </div>
                   `
                   : isOpenAI
-                    ? b2`
+                    ? x`
                       <div class="form-group">
                         <label
                           >${host._t(
@@ -32394,7 +33119,7 @@ function renderSettings(host) {
                         >
                         ${
                           host._config.openai_api_key_set
-                            ? b2`<button
+                            ? x`<button
                               class="key-hint key-set key-hint-btn"
                               title=${host._t(
                                 "settings_click_replace_key_title",
@@ -32452,7 +33177,7 @@ function renderSettings(host) {
                       </div>
                     `
                     : isOpenRouter
-                      ? b2`
+                      ? x`
                         <div class="form-group">
                           <label
                             >${host._t(
@@ -32462,7 +33187,7 @@ function renderSettings(host) {
                           >
                           ${
                             host._config.openrouter_api_key_set
-                              ? b2`<button
+                              ? x`<button
                                 class="key-hint key-set key-hint-btn"
                                 title=${host._t(
                                   "settings_click_replace_key_title",
@@ -32525,7 +33250,7 @@ function renderSettings(host) {
                         </div>
                       `
                       : isSeloraLocal
-                        ? b2`
+                        ? x`
                           <button
                             class="btn-link"
                             style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
@@ -32549,7 +33274,7 @@ function renderSettings(host) {
                           </button>
                           ${
                             host._seloraLocalAdvanced
-                              ? b2`
+                              ? x`
                                 <p
                                   style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
                                 >
@@ -32593,7 +33318,7 @@ function renderSettings(host) {
                               : ""
                           }
                         `
-                        : b2`
+                        : x`
                           <div class="form-group">
                             ${_textInput({
                               label: host._t(
@@ -32624,7 +33349,7 @@ function renderSettings(host) {
           ${
             isSeloraCloud && !host._config.aigateway_linked
               ? ""
-              : b2`
+              : x`
                 <div class="card-save-bar">
                   <button
                     class="btn btn-primary"
@@ -32633,7 +33358,7 @@ function renderSettings(host) {
                   >
                     ${
                       host._savingLlmConfig
-                        ? b2`<span
+                        ? x`<span
                             class="spinner"
                             style="width:14px;height:14px;"
                           ></span>
@@ -32646,7 +33371,7 @@ function renderSettings(host) {
           }
           ${
             host._llmSaveStatus
-              ? b2`<div
+              ? x`<div
                 class="save-feedback save-feedback--${host._llmSaveStatus.type}"
               >
                 <ha-icon
@@ -32703,7 +33428,7 @@ function renderSettings(host) {
             </div>
             ${
               host._connectError
-                ? b2`<div
+                ? x`<div
                   style="color:var(--error-color,#d32f2f);font-size:13px;padding:4px 0 0;"
                 >
                   ${host._connectError}
@@ -32712,7 +33437,7 @@ function renderSettings(host) {
             }
             ${
               host._connectAuthorizeUrl
-                ? b2`<div
+                ? x`<div
                   style="display:flex;flex-direction:column;gap:6px;padding:8px 0 0;"
                 >
                   <a
@@ -32740,7 +33465,7 @@ function renderSettings(host) {
             }
             ${
               host._config.selora_connect_enabled
-                ? b2`
+                ? x`
                   <div
                     style="display:flex;align-items:center;gap:8px;padding:8px 0 0;"
                   >
@@ -32775,7 +33500,7 @@ function renderSettings(host) {
             ${
               host._config.developer_mode &&
               !host._config.selora_connect_enabled
-                ? b2`
+                ? x`
                   <div style="padding:8px 0 0;">
                     ${_textInput({
                       label: host._t(
@@ -32810,15 +33535,15 @@ function renderSettings(host) {
           </p>
           ${
             host._mcpTokens.length === 0
-              ? b2`<div
+              ? x`<div
                 style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
               >
                 ${host._t("settings_no_tokens_yet", "No tokens yet.")}
               </div>`
-              : b2`
+              : x`
                 <div class="mcp-token-list">
                   ${host._mcpTokens.map(
-                    (t5) => b2`
+                    (t4) => x`
                       <div class="mcp-token-row">
                         <ha-icon
                           icon="mdi:key-variant"
@@ -32826,19 +33551,19 @@ function renderSettings(host) {
                         ></ha-icon>
                         <div class="mcp-token-info">
                           <div class="mcp-token-name">
-                            ${t5.name}
+                            ${t4.name}
                             <span
-                              class="mcp-token-badge mcp-token-badge--${t5.permission_level}"
-                              >${t5.permission_level.replace("_", " ")}</span
+                              class="mcp-token-badge mcp-token-badge--${t4.permission_level}"
+                              >${t4.permission_level.replace("_", " ")}</span
                             >
                           </div>
                           <div class="mcp-token-meta">
-                            <span>${t5.token_prefix}${"*".repeat(8)}</span>
+                            <span>${t4.token_prefix}${"*".repeat(8)}</span>
                             ${
-                              t5.expires_at
-                                ? b2`<span
+                              t4.expires_at
+                                ? x`<span
                                   >&middot; expires
-                                  ${new Date(t5.expires_at).toLocaleDateString(
+                                  ${new Date(t4.expires_at).toLocaleDateString(
                                     void 0,
                                     { month: "short", day: "numeric" },
                                   )}</span
@@ -32846,26 +33571,26 @@ function renderSettings(host) {
                                 : ""
                             }
                             ${
-                              t5.last_used_at
-                                ? b2`<span
+                              t4.last_used_at
+                                ? x`<span
                                   >&middot; used
-                                  ${_timeAgo(t5.last_used_at)}</span
+                                  ${_timeAgo(t4.last_used_at)}</span
                                 >`
                                 : ""
                             }
                           </div>
                         </div>
                         <ha-icon-button
-                          ?disabled=${host._revokingTokenId === t5.id}
-                          @click=${() => host._revokeMcpToken(t5.id)}
+                          ?disabled=${host._revokingTokenId === t4.id}
+                          @click=${() => host._revokeMcpToken(t4.id)}
                         >
                           ${
-                            host._revokingTokenId === t5.id
-                              ? b2`<span
+                            host._revokingTokenId === t4.id
+                              ? x`<span
                                 class="spinner"
                                 style="width:14px;height:14px;"
                               ></span>`
-                              : b2`<ha-icon
+                              : x`<ha-icon
                                 icon="mdi:delete-outline"
                                 style="--mdc-icon-size:20px;"
                               ></ha-icon>`
@@ -32951,7 +33676,7 @@ function renderSettings(host) {
             </div>
             ${
               host._config.collector_enabled
-                ? b2`
+                ? x`
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
@@ -33001,7 +33726,7 @@ function renderSettings(host) {
                     </div>
                     ${
                       host._config.collector_mode === "scheduled"
-                        ? b2`
+                        ? x`
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
@@ -33064,7 +33789,7 @@ function renderSettings(host) {
             </div>
             ${
               host._config.discovery_enabled
-                ? b2`
+                ? x`
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
@@ -33114,7 +33839,7 @@ function renderSettings(host) {
                     </div>
                     ${
                       host._config.discovery_mode === "scheduled"
-                        ? b2`
+                        ? x`
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
@@ -33179,6 +33904,61 @@ function renderSettings(host) {
                   )}
               ></ha-switch>
             </div>
+          </div>
+
+          <div class="service-group">
+            <div class="service-row">
+              <div class="service-label-group">
+                <label
+                  >${host._t(
+                    "settings_health_monitoring_label",
+                    "Health monitoring",
+                  )}</label
+                >
+                <span class="service-desc"
+                  >${host._t(
+                    "settings_health_monitoring_desc",
+                    "Deterministic checks for offline devices, low batteries, integration errors and automation issues \u2014 powers the Health page.",
+                  )}</span
+                >
+              </div>
+              <ha-switch
+                .checked=${host._config.insights_enabled !== false}
+                @change=${(e6) => host._updateConfig("insights_enabled", e6.target.checked)}
+              ></ha-switch>
+            </div>
+            ${
+              host._config.insights_enabled !== false
+                ? x`
+                  <div class="service-details">
+                    <div
+                      class="form-group"
+                      style="width:150px;margin-bottom:0;"
+                    >
+                      <label
+                        >${host._t(
+                          "settings_scan_interval_seconds_label",
+                          "Scan interval (s)",
+                        )}</label
+                      >
+                      <input
+                        class="form-select"
+                        type="number"
+                        min="60"
+                        step="60"
+                        .value=${host._config.insights_interval}
+                        @input=${(e6) =>
+                          host._updateConfig(
+                            "insights_interval",
+                            parseInt(e6.target.value),
+                          )}
+                        style="width:100%;box-sizing:border-box;"
+                      />
+                    </div>
+                  </div>
+                `
+                : ""
+            }
           </div>
 
           <div class="service-group">
@@ -33365,7 +34145,7 @@ var MCP_TOOLS = [
 function renderApprovalGrants(host) {
   const grants = host._approvalGrants || [];
   if (!grants.length) {
-    return b2`<div
+    return x`<div
       style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
     >
       ${host._t(
@@ -33381,7 +34161,7 @@ function renderApprovalGrants(host) {
     medium: "#f59e0b",
     high: "#ef4444",
   };
-  return b2`
+  return x`
     <div class="mcp-token-list">
       ${grants.map((g2) => {
         const grantKey = g2.key || g2.service;
@@ -33389,7 +34169,7 @@ function renderApprovalGrants(host) {
           ? host?.hass?.states?.[g2.entity_id]?.attributes?.friendly_name ||
             g2.entity_id
           : null;
-        return b2`
+        return x`
           <div class="mcp-token-row">
             <ha-icon
               icon=${entityFriendly ? "mdi:shield-account-outline" : "mdi:shield-check-outline"}
@@ -33410,11 +34190,11 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-name">
                 ${g2.service}${
                   entityFriendly
-                    ? b2` <span
+                    ? x` <span
                       style="color:var(--secondary-text-color);font-weight:400;"
                       >→ ${entityFriendly}</span
                     >`
-                    : b2` <span
+                    : x` <span
                       style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
                       >→ ${host._t("settings_approval_all_label", "all")}</span
                     >`
@@ -33429,7 +34209,7 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-meta">
                 <span
                   >granted
-                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? b2` by <strong>${g2.granted_by_name}</strong>` : ""}</span
+                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? x` by <strong>${g2.granted_by_name}</strong>` : ""}</span
                 >
               </div>
             </div>
@@ -33439,11 +34219,11 @@ function renderApprovalGrants(host) {
             >
               ${
                 host._revokingApprovalKey === grantKey
-                  ? b2`<span
+                  ? x`<span
                     class="spinner"
                     style="width:14px;height:14px;"
                   ></span>`
-                  : b2`<ha-icon
+                  : x`<ha-icon
                     icon="mdi:delete-outline"
                     style="--mdc-icon-size:20px;"
                   ></ha-icon>`
@@ -33483,7 +34263,7 @@ function _timeAgo(isoString) {
 function renderCreateTokenDialog(host) {
   if (!host._showCreateTokenDialog) return "";
   if (host._createdToken) {
-    return b2`
+    return x`
       <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
         <div
           class="modal-content"
@@ -33537,7 +34317,7 @@ function renderCreateTokenDialog(host) {
     `;
   }
   const permission = host._newTokenPermission;
-  return b2`
+  return x`
     <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
       <div
         class="modal-content"
@@ -33594,7 +34374,7 @@ function renderCreateTokenDialog(host) {
 
         ${
           permission === "custom"
-            ? b2`
+            ? x`
               <div class="form-group">
                 <label
                   >${host._t(
@@ -33604,7 +34384,7 @@ function renderCreateTokenDialog(host) {
                 >
                 <div class="mcp-tool-checklist">
                   ${MCP_TOOLS.map(
-                    (tool) => b2`
+                    (tool) => x`
                       <label class="mcp-tool-check">
                         <input
                           type="checkbox"
@@ -33620,7 +34400,7 @@ function renderCreateTokenDialog(host) {
                         <span>${tool.label}</span>
                         ${
                           tool.admin
-                            ? b2`<span
+                            ? x`<span
                               class="mcp-token-badge mcp-token-badge--admin"
                               style="font-size:10px;padding:1px 5px;"
                               >${host._t("settings_admin_badge", "admin")}</span
@@ -33685,7 +34465,7 @@ function renderCreateTokenDialog(host) {
           >
             ${
               host._creatingToken
-                ? b2`<span
+                ? x`<span
                   class="spinner"
                   style="width:14px;height:14px;"
                 ></span>`
@@ -33702,7 +34482,7 @@ function renderCreateTokenDialog(host) {
 function renderTelemetryConsent(host) {
   const cfg = host._config;
   if (!cfg || cfg.telemetry_prompt_seen || cfg.telemetry_enabled) return "";
-  return b2`
+  return x`
     <div
       class="telemetry-consent"
       role="region"
@@ -33776,20 +34556,20 @@ function _findUsageSensors(hass) {
   }
   return result;
 }
-function _fmtTokens(n4) {
-  const v2 = Number(n4) || 0;
+function _fmtTokens(n5) {
+  const v2 = Number(n5) || 0;
   if (v2 >= 1e6) return (v2 / 1e6).toFixed(2) + "M";
   if (v2 >= 1e3) return (v2 / 1e3).toFixed(1) + "k";
   return Math.round(v2).toLocaleString();
 }
-function _fmtUsd(n4) {
-  const v2 = Number(n4) || 0;
+function _fmtUsd(n5) {
+  const v2 = Number(n5) || 0;
   if (v2 === 0) return "$0.00";
   if (v2 < 0.01) return "<$0.01";
   return "$" + v2.toFixed(2);
 }
-function _fmtInt(n4) {
-  return (Number(n4) || 0).toLocaleString();
+function _fmtInt(n5) {
+  return (Number(n5) || 0).toLocaleString();
 }
 async function _fetchPeriodStats(hass, statisticIds, periodStart) {
   if (!hass) return {};
@@ -33810,8 +34590,8 @@ async function _fetchPeriodStats(hass, statisticIds, periodStart) {
 function _sumChange(buckets) {
   if (!Array.isArray(buckets)) return 0;
   let total = 0;
-  for (const b3 of buckets) {
-    const v2 = Number(b3?.change ?? 0);
+  for (const b2 of buckets) {
+    const v2 = Number(b2?.change ?? 0);
     if (Number.isFinite(v2)) total += v2;
   }
   return total;
@@ -33961,9 +34741,9 @@ function _groupByProviderModel(events) {
     g2.cost_usd += Number(e6.cost_usd) || 0;
   }
   return [...groups.values()].sort(
-    (a3, b3) =>
-      b3.cost_usd - a3.cost_usd ||
-      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
   );
 }
 function _groupByKind(events) {
@@ -33991,17 +34771,17 @@ function _groupByKind(events) {
     }
   }
   return [...groups.values()].sort(
-    (a3, b3) =>
-      b3.cost_usd - a3.cost_usd ||
-      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
   );
 }
 function _formatRelativeTime(iso) {
   if (!iso) return "";
-  const t5 = new Date(iso).getTime();
-  if (Number.isNaN(t5)) return "";
+  const t4 = new Date(iso).getTime();
+  if (Number.isNaN(t4)) return "";
   const now = Date.now();
-  const sec = Math.max(1, Math.round((now - t5) / 1e3));
+  const sec = Math.max(1, Math.round((now - t4) / 1e3));
   if (sec < 60) return `${sec}s ago`;
   const min = Math.round(sec / 60);
   if (min < 60) return `${min}m ago`;
@@ -34032,27 +34812,27 @@ function _highlightYaml(yamlStr) {
     const rest = line.slice(indent.length);
     const listMatch = rest.match(/^(- )(.*)$/);
     if (listMatch) {
-      return b2`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
+      return x`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
     }
     const kvMatch = rest.match(/^([\w_-]+)(:)(.*)$/);
     if (kvMatch) {
       const val = kvMatch[3].trim();
-      return b2`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? b2` <span class="yaml-val">${val}</span>` : ""}</div>`;
+      return x`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? x` <span class="yaml-val">${val}</span>` : ""}</div>`;
     }
-    return b2`<div class="yaml-line">${line}</div>`;
+    return x`<div class="yaml-line">${line}</div>`;
   });
 }
 function _renderDashboardSnippet(host, sensors) {
   const selected = host._dashboardSnippetKey || _USAGE_KEYS[0];
-  const s4 = sensors[selected];
-  const entityId = s4?.entityId || `sensor.${selected}`;
+  const s6 = sensors[selected];
+  const entityId = s6?.entityId || `sensor.${selected}`;
   const label =
-    s4?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
+    s6?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
   const yaml = _yamlForSensor(entityId, label);
-  return b2`
+  return x`
     <div class="usage-snippet-pills">
       ${_USAGE_KEYS.map(
-        (key) => b2`
+        (key) => x`
           <button
             class="usage-snippet-pill ${key === selected ? "active" : ""}"
             @click=${() => {
@@ -34106,20 +34886,20 @@ function _renderDashboardSnippet(host, sensors) {
   `;
 }
 function _renderTile({ label, value, sub, icon }) {
-  return b2`
+  return x`
     <div class="usage-tile">
       <div class="usage-tile-head">
-        ${icon ? b2`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
+        ${icon ? x`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
         <span class="usage-tile-label">${label}</span>
       </div>
       <div class="usage-tile-value">${value}</div>
-      ${sub ? b2`<div class="usage-tile-sub">${sub}</div>` : ""}
+      ${sub ? x`<div class="usage-tile-sub">${sub}</div>` : ""}
     </div>
   `;
 }
 function _renderPeriodRow(title, stats) {
   if (!stats) {
-    return b2`
+    return x`
       <div class="usage-period-row usage-period-row--loading">
         <span class="usage-period-title">${title}</span>
         <span class="usage-period-loading">Loading…</span>
@@ -34131,13 +34911,13 @@ function _renderPeriodRow(title, stats) {
   const calls = stats.llm_calls || 0;
   const cost = stats.llm_cost || 0;
   const empty = !tokensIn && !tokensOut && !calls && !cost;
-  return b2`
+  return x`
     <div class="usage-period-row">
       <span class="usage-period-title">${title}</span>
       ${
         empty
-          ? b2`<span class="usage-period-empty">No activity</span>`
-          : b2`
+          ? x`<span class="usage-period-empty">No activity</span>`
+          : x`
             <span class="usage-period-cost">${_fmtUsd(cost)}</span>
             <span class="usage-period-tokens">
               ${_fmtTokens(tokensIn + tokensOut)} tokens · ${_fmtInt(calls)}
@@ -34150,16 +34930,16 @@ function _renderPeriodRow(title, stats) {
 }
 function _renderBreakdown(groups, totalCost) {
   if (!groups || groups.length === 0) return "";
-  return b2`
+  return x`
     <div class="usage-breakdown">
       ${groups.map((g2) => {
         const pct =
           totalCost > 0 ? Math.round((g2.cost_usd / totalCost) * 100) : 0;
         const tokens = g2.input_tokens + g2.output_tokens;
         const intentEntries = [...g2.intents.entries()].sort(
-          (a3, b3) => b3[1] - a3[1],
+          (a4, b2) => b2[1] - a4[1],
         );
-        return b2`
+        return x`
           <div class="usage-breakdown-row">
             <div class="usage-breakdown-head">
               <span class="usage-breakdown-label">${_kindLabel(g2.kind)}</span>
@@ -34175,14 +34955,14 @@ function _renderBreakdown(groups, totalCost) {
               <span>${_fmtInt(g2.calls)} call${g2.calls === 1 ? "" : "s"}</span>
               <span>·</span>
               <span>${_fmtTokens(tokens)} tokens</span>
-              ${totalCost > 0 ? b2`<span>·</span> <span>${pct}% of cost</span>` : ""}
+              ${totalCost > 0 ? x`<span>·</span> <span>${pct}% of cost</span>` : ""}
             </div>
             ${
               intentEntries.length > 0
-                ? b2`
+                ? x`
                   <div class="usage-breakdown-intents">
                     ${intentEntries.map(
-                      ([intent, count]) => b2`
+                      ([intent, count]) => x`
                         <span class="usage-intent-pill">
                           ${_intentLabel(intent)} · ${_fmtInt(count)}
                         </span>
@@ -34199,15 +34979,15 @@ function _renderBreakdown(groups, totalCost) {
   `;
 }
 function _renderRecentList(events) {
-  return b2`
+  return x`
     <div class="usage-recent-list">
       ${events.map((e6) => {
         const intent = _intentLabel(e6.intent);
-        return b2`
+        return x`
           <div class="usage-recent-row">
             <div class="usage-recent-main">
               <span class="usage-recent-kind">${_kindLabel(e6.kind)}</span>
-              ${intent ? b2`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
+              ${intent ? x`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
               <span class="usage-recent-time">
                 ${_formatRelativeTime(e6.timestamp)}
               </span>
@@ -34253,8 +35033,8 @@ var _PROVIDER_LABELS = {
   selora_local: "Selora AI Local",
   selora_cloud: "Selora Cloud",
 };
-function _providerLabel(p4) {
-  return _PROVIDER_LABELS[p4] || p4;
+function _providerLabel(p2) {
+  return _PROVIDER_LABELS[p2] || p2;
 }
 function _defaultPriceFor(host, provider, model) {
   const table = host?._pricingDefaults || {};
@@ -34264,8 +35044,8 @@ function _overridePriceFor(host, provider, model) {
   const overrides = host?._config?.llm_pricing_overrides || {};
   return overrides[provider]?.[model] || null;
 }
-function _formatPrice(n4) {
-  const v2 = Number(n4);
+function _formatPrice(n5) {
+  const v2 = Number(n5);
   if (!Number.isFinite(v2)) return "\u2014";
   return "$" + v2.toFixed(v2 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
 }
@@ -34349,7 +35129,7 @@ var SELORA_CLOUD_USAGE_URL = "https://connect.selorahomes.com/selora-ai";
 function _renderPricingCard(host) {
   const { provider, model } = _activeProviderModel(host);
   if (provider === "selora_cloud") {
-    return b2`
+    return x`
       <div class="section-card">
         <div class="section-card-header">
           <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -34384,7 +35164,7 @@ function _renderPricingCard(host) {
     `;
   }
   if (provider === "ollama" || provider === "selora_local" || !model) {
-    return b2`
+    return x`
       <div class="section-card">
         <div class="section-card-header">
           <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -34416,7 +35196,7 @@ function _renderPricingCard(host) {
     host._pricingEdit?.provider === provider &&
     host._pricingEdit?.model === model;
   const effective = override || defaults;
-  return b2`
+  return x`
     <div class="section-card">
       <div class="section-card-header">
         <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -34451,11 +35231,11 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? b2`<span class="usage-pricing-default">
+              ? x`<span class="usage-pricing-default">
                 ${host._t("usage_pricing_default_prefix", "default")}
                 ${_formatPrice(defaults[0])}
               </span>`
-              : b2`<span class="usage-pricing-default"
+              : x`<span class="usage-pricing-default"
                 >${host._t(
                   "usage_pricing_no_default",
                   "no built-in default",
@@ -34472,7 +35252,7 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? b2`<span class="usage-pricing-default">
+              ? x`<span class="usage-pricing-default">
                 ${host._t("usage_pricing_default_prefix", "default")}
                 ${_formatPrice(defaults[1])}
               </span>`
@@ -34483,7 +35263,7 @@ function _renderPricingCard(host) {
 
       ${
         editing
-          ? b2`
+          ? x`
             <div class="usage-pricing-edit">
               <ha-textfield
                 label=${host._t(
@@ -34545,7 +35325,7 @@ function _renderPricingCard(host) {
               </div>
             </div>
           `
-          : b2`
+          : x`
             <div class="usage-pricing-actions">
               <button
                 class="btn btn-outline"
@@ -34577,7 +35357,7 @@ function _renderPricingCard(host) {
               </button>
               ${
                 override
-                  ? b2`
+                  ? x`
                     <button
                       class="btn btn-outline"
                       @click=${() => _clearPricingOverride(host, provider, model)}
@@ -34647,13 +35427,13 @@ function renderUsage(host) {
     ? breakdown.reduce((sum, g2) => sum + g2.cost_usd, 0)
     : 0;
   const bufTokensIn = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.input_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.input_tokens, 0)
     : 0;
   const bufTokensOut = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.output_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.output_tokens, 0)
     : 0;
   const bufCalls = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.calls, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.calls, 0)
     : 0;
   let dispTokensIn;
   let dispTokensOut;
@@ -34661,14 +35441,14 @@ function renderUsage(host) {
   let dispCost;
   let periodStats = stats;
   if (filterActive && filteredTotals?.totals) {
-    const t5 = filteredTotals.totals;
-    dispTokensIn = t5.input || 0;
-    dispTokensOut = t5.output || 0;
-    dispCalls = t5.calls || 0;
-    dispCost = t5.cost_usd || 0;
-    const p4 = filteredTotals.periods || {};
+    const t4 = filteredTotals.totals;
+    dispTokensIn = t4.input || 0;
+    dispTokensOut = t4.output || 0;
+    dispCalls = t4.calls || 0;
+    dispCost = t4.cost_usd || 0;
+    const p2 = filteredTotals.periods || {};
     const pick = (k2) => {
-      const v2 = p4[k2] || {};
+      const v2 = p2[k2] || {};
       return {
         llm_tokens_in: v2.input || 0,
         llm_tokens_out: v2.output || 0,
@@ -34699,7 +35479,7 @@ function renderUsage(host) {
   const filterChips =
     providerOptions.length === 0
       ? ""
-      : b2`
+      : x`
           <div class="usage-snippet-pills" style="margin-bottom:12px;">
             <button
               class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
@@ -34708,19 +35488,19 @@ function renderUsage(host) {
               ${host._t("usage_filter_all_providers", "All providers")}
             </button>
             ${providerOptions.map(
-              (p4) => b2`
+              (p2) => x`
                 <button
-                  class="usage-snippet-pill ${filter.provider === p4 && filter.model == null ? "active" : ""}"
-                  @click=${() => setFilter(p4, null)}
+                  class="usage-snippet-pill ${filter.provider === p2 && filter.model == null ? "active" : ""}"
+                  @click=${() => setFilter(p2, null)}
                 >
-                  ${_providerLabel(p4)}
+                  ${_providerLabel(p2)}
                 </button>
               `,
             )}
           </div>
           ${
             filter.provider && modelOptions.length > 1
-              ? b2`
+              ? x`
                 <div class="usage-snippet-pills" style="margin-bottom:12px;">
                   <button
                     class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
@@ -34729,12 +35509,12 @@ function renderUsage(host) {
                     ${host._t("usage_filter_all_models", "All models")}
                   </button>
                   ${modelOptions.map(
-                    (m3) => b2`
+                    (m2) => x`
                       <button
-                        class="usage-snippet-pill ${filter.model === m3 ? "active" : ""}"
-                        @click=${() => setFilter(filter.provider, m3)}
+                        class="usage-snippet-pill ${filter.model === m2 ? "active" : ""}"
+                        @click=${() => setFilter(filter.provider, m2)}
                       >
-                        ${m3 || host._t("usage_filter_no_model", "(no model)")}
+                        ${m2 || host._t("usage_filter_no_model", "(no model)")}
                       </button>
                     `,
                   )}
@@ -34743,7 +35523,7 @@ function renderUsage(host) {
               : ""
           }
         `;
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="usage-view">
         <a
@@ -34762,7 +35542,7 @@ function renderUsage(host) {
           <h2>${host._t("usage_token_usage_title", "Token usage")}</h2>
           ${
             lastProvider
-              ? b2`
+              ? x`
                 <span class="usage-subtitle">
                   ${lastProvider}${lastModel ? ` \xB7 ${lastModel}` : ""}
                 </span>
@@ -34774,7 +35554,7 @@ function renderUsage(host) {
         ${filterChips}
         ${
           sensorsMissing && recent !== null && recent.length === 0
-            ? b2`
+            ? x`
               <div class="section-card usage-empty">
                 <ha-icon
                   icon="mdi:information-outline"
@@ -34796,10 +35576,10 @@ function renderUsage(host) {
                 </div>
               </div>
             `
-            : b2`
+            : x`
               ${
                 hasTotals
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>${host._t("usage_totals_title", "Totals")}</h3>
@@ -34839,7 +35619,7 @@ function renderUsage(host) {
               }
               ${
                 !sensorsMissing || filterActive
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -34893,7 +35673,7 @@ function renderUsage(host) {
                 </div>
                 ${
                   filteredRecent && filteredRecent.length > 0
-                    ? b2`
+                    ? x`
                       <div
                         class="usage-snippet-pills"
                         style="margin-bottom:12px;"
@@ -34925,11 +35705,11 @@ function renderUsage(host) {
                 }
                 ${
                   filteredRecent === null
-                    ? b2`<div class="usage-period-loading">
+                    ? x`<div class="usage-period-loading">
                       ${host._t("usage_loading", "Loading\u2026")}
                     </div>`
                     : filteredRecent.length === 0
-                      ? b2`<div class="usage-period-empty">
+                      ? x`<div class="usage-period-empty">
                         ${host._t(
                           "usage_no_calls_recorded",
                           "No calls recorded yet.",
@@ -34941,7 +35721,7 @@ function renderUsage(host) {
 
               ${
                 filteredRecent && filteredRecent.length > 0
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -34956,7 +35736,7 @@ function renderUsage(host) {
               ${_renderPricingCard(host)}
               ${
                 sensorsMissing
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -34978,7 +35758,7 @@ function renderUsage(host) {
                       </p>
                     </div>
                   `
-                  : b2`
+                  : x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -35005,30 +35785,356 @@ function renderUsage(host) {
   `;
 }
 
+// src/panel/health-gauge.js
+var R2 = 52;
+var CIRC = 2 * Math.PI * R2;
+var SPAN = 0.75;
+var TRACK_LEN = CIRC * SPAN;
+var _BAND_COLOR = {
+  A: "#22c55e",
+  B: "#4ade80",
+  C: "#f59e0b",
+  D: "#f97316",
+  F: "#ef4444",
+};
+function _bandColor(band) {
+  return _BAND_COLOR[band] || _BAND_COLOR.A;
+}
+function renderHealthGauge(host) {
+  const score = host._auditScore;
+  if (typeof score !== "number") return "";
+  const band = host._auditBand || "A";
+  const color = _bandColor(band);
+  const pct = Math.max(0, Math.min(100, score)) / 100;
+  const valueLen = TRACK_LEN * pct;
+  return x`
+    <div
+      class="health-gauge"
+      style="--gauge-color:${color};"
+      title=${host._t("insights_score_title", "Deterministic health score")}
+    >
+      <svg viewBox="0 0 120 120" class="health-gauge-svg" aria-hidden="true">
+        <circle
+          class="health-gauge-track"
+          cx="60"
+          cy="60"
+          r=${R2}
+          stroke-dasharray="${TRACK_LEN} ${CIRC}"
+        ></circle>
+        <circle
+          class="health-gauge-value"
+          cx="60"
+          cy="60"
+          r=${R2}
+          stroke-dasharray="${valueLen} ${CIRC}"
+          style="--gauge-len:${valueLen};"
+        ></circle>
+      </svg>
+      <div class="health-gauge-center">
+        <span class="health-gauge-score">${Math.round(score)}</span>
+        <span class="health-gauge-max">/100</span>
+      </div>
+    </div>
+  `;
+}
+
+// src/panel/render-insights.js
+var _SEVERITY_META = {
+  critical: { color: "#ef4444", icon: "mdi:alert-octagon", order: 0 },
+  warning: { color: "#f59e0b", icon: "mdi:alert", order: 1 },
+  info: { color: "#3b82f6", icon: "mdi:information", order: 2 },
+};
+function _severityMeta(sev) {
+  return _SEVERITY_META[sev] || _SEVERITY_META.info;
+}
+function _relativeTime(host, iso) {
+  if (!iso) return host._t("insights_never", "never");
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const mins = Math.max(0, Math.round((Date.now() - then) / 6e4));
+  if (mins < 1) return host._t("insights_just_now", "just now");
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  return hrs < 24 ? `${hrs} h ago` : `${Math.round(hrs / 24)} d ago`;
+}
+var _CATEGORY_LABEL = {
+  issue: "Issue",
+  fix: "Fix",
+  improvement: "Improvement",
+};
+function _entityCards(host, entityIds) {
+  const ids = (entityIds || []).filter((e6) => host.hass?.states?.[e6]);
+  if (!ids.length) return "";
+  return x`<div
+    class="selora-entity-grid audit-card-tiles"
+    data-entity-ids=${ids.join(",")}
+  ></div>`;
+}
+function _askPrompt(rec) {
+  const parts = [
+    `My home audit flagged this ${rec.category || "issue"}: "${rec.title}".`,
+  ];
+  if (rec.detail) parts.push(rec.detail);
+  if (rec.entities && rec.entities.length) {
+    parts.push(`Affected entities: ${rec.entities.join(", ")}.`);
+  }
+  parts.push(
+    "Please explain what's going on and what my options are. Just advise \u2014 don't create or change any automations, scenes, or devices.",
+  );
+  return parts.join(" ");
+}
+function _recCard(host, rec) {
+  const meta = _severityMeta(rec.severity);
+  const category = host._t(
+    `insights_kind_${rec.category}`,
+    _CATEGORY_LABEL[rec.category] || rec.category,
+  );
+  return x`
+    <div class="audit-card">
+      <div class="audit-card-bar" style="background:${meta.color};"></div>
+      <div class="audit-card-body">
+        <div class="audit-card-head">
+          <ha-icon
+            icon=${meta.icon}
+            style="color:${meta.color};--mdc-icon-size:18px;"
+          ></ha-icon>
+          <span class="audit-card-title">${rec.title}</span>
+          <span class="badge audit-card-badge">${category}</span>
+        </div>
+        ${rec.detail ? x`<div class="audit-card-detail">${rec.detail}</div>` : ""}
+        ${_entityCards(host, rec.entities)}
+        <div class="audit-card-actions">
+          <button
+            class="btn btn-outline btn-sm"
+            @click=${() => host._askInNewChat(_askPrompt(rec))}
+          >
+            <ha-icon icon="mdi:auto-fix"></ha-icon>
+            ${host._t("insights_ask_selora", "Ask Selora AI")}
+          </button>
+          ${
+            rec.link
+              ? x`<a class="btn btn-outline btn-sm" href=${rec.link}>
+                <ha-icon icon="mdi:open-in-new"></ha-icon>
+                ${host._t(
+                  "insights_open_settings",
+                  rec.link_label || "Open in Settings",
+                )}
+              </a>`
+              : ""
+          }
+          ${
+            rec.device_id || (rec.entities && rec.entities.length)
+              ? x`<button
+                class="btn btn-outline btn-sm"
+                @click=${() => host._ignoreFix(rec)}
+              >
+                <ha-icon icon="mdi:bell-off-outline"></ha-icon>
+                ${host._t("insights_ignore_short", "Ignore")}
+              </button>`
+              : ""
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+function _checkRow(host, check) {
+  const issues = check.status === "issues";
+  const errored = check.status === "error";
+  const findings = check.findings || [];
+  const statusText = errored
+    ? host._t("insights_check_error", "Couldn't check")
+    : issues
+      ? `${findings.length} ${findings.length === 1 ? "issue" : "issues"}`
+      : host._t("insights_check_clear", "Clear");
+  const iconName = errored
+    ? "mdi:help-circle-outline"
+    : issues
+      ? "mdi:alert-circle"
+      : "mdi:check-circle";
+  const iconClass = errored
+    ? "check-error"
+    : issues
+      ? "check-issues"
+      : "check-clear";
+  const badgeClass = errored ? "error" : issues ? "issues" : "clear";
+  return x`
+    <div class="check-item ${issues ? "check-item-issues" : ""}">
+      <div class="check-head">
+        <ha-icon class="check-icon ${iconClass}" icon=${iconName}></ha-icon>
+        <span class="check-title">${check.title}</span>
+        ${check.kind === "model" ? x`<span class="badge check-ai">AI</span>` : ""}
+        <span class="check-badge ${badgeClass}">${statusText}</span>
+      </div>
+      ${
+        issues
+          ? x`<div class="audit-cards check-findings">
+            ${findings.map((f2) => _recCard(host, f2))}
+          </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+function _auditBody(host) {
+  if (host._auditRunning || !host._auditLoaded) {
+    return x`<div class="insight-audit-card">
+      <div class="insight-audit-status insight-audit-running">
+        <span class="spinner"></span>
+        <div>
+          <div>${host._t("insights_audit_running", "Running checks\u2026")}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  const status = host._auditStatus;
+  const checks = host._auditChecks || [];
+  if (checks.length) {
+    return x`<div class="check-list">
+      ${checks.map((c3) => _checkRow(host, c3))}
+    </div>`;
+  }
+  if (status === "no_llm") {
+    return x`<div class="insight-audit-card">
+      <div class="insight-audit-status">
+        ${host._t(
+          "insights_audit_no_llm",
+          "Configure an LLM provider in Settings to get daily home audits.",
+        )}
+      </div>
+    </div>`;
+  }
+  if (status === "unsupported") {
+    return x`<div class="insight-audit-card">
+      <div class="insight-audit-status">
+        ${host._t(
+          "insights_audit_unsupported",
+          "Home audits need a cloud LLM provider (Anthropic, Gemini, or OpenAI). A local model can't run them.",
+        )}
+      </div>
+    </div>`;
+  }
+  if (status === "error") {
+    return x`<div class="insight-audit-card">
+      <div class="insight-audit-status">
+        ${host._t("insights_audit_error", "The last audit failed.")}
+        ${host._auditError ? x`<div class="insight-audit-err">${host._auditError}</div>` : ""}
+      </div>
+    </div>`;
+  }
+  const recs = host._auditRecommendations || [];
+  if (status === "ok" && recs.length) {
+    return x`<div class="audit-cards">
+      ${recs.map((r4) => _recCard(host, r4))}
+    </div>`;
+  }
+  if (status === "ok" && host._auditResponse) {
+    return x`
+      <div class="insight-audit-card">
+        <div
+          class="insight-audit-md"
+          .innerHTML=${renderMarkdown(host._auditResponse)}
+        ></div>
+        ${
+          host._auditQuickActions && host._auditQuickActions.length
+            ? x`<div class="insight-audit-actions">
+              ${renderQuickActions(host, host._auditQuickActions, {})}
+            </div>`
+            : ""
+        }
+      </div>
+    `;
+  }
+  if (status === "ok") {
+    return x`<div class="insight-audit-card">
+      <div class="insight-audit-status">
+        ${host._t(
+          "insights_audit_empty_ok",
+          "All clear \u2014 the last audit found nothing to fix or improve.",
+        )}
+      </div>
+    </div>`;
+  }
+  return x`<div class="insight-audit-card">
+    <div class="insight-audit-status">
+      ${host._t(
+        "insights_audit_pending",
+        "No audit yet \u2014 the first one runs shortly after startup, or run it now.",
+      )}
+    </div>
+  </div>`;
+}
+function renderInsights(host) {
+  if (host._insightsEnabled === false) {
+    return x`
+      <div class="scroll-view">
+        <div class="page-root">
+          <div class="empty-state" style="text-align:center;padding:48px 16px;">
+            <ha-icon
+              icon="mdi:heart-off-outline"
+              style="--mdc-icon-size:40px;opacity:0.4;"
+            ></ha-icon>
+            <p>
+              ${host._t(
+                "insights_disabled",
+                "Health monitoring is turned off. Enable it in Settings to monitor your home's health.",
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  return x`
+    <div class="scroll-view">
+      <div class="page-root">
+        <div class="page-header">
+          <h1 class="page-h1">${host._t("insights_title", "Health")}</h1>
+          <span class="page-header-spacer"></span>
+          <button
+            class="filter-row-action"
+            ?disabled=${host._auditRunning}
+            @click=${() => host._rerunAudit()}
+          >
+            <ha-icon icon="mdi:refresh" style="--mdc-icon-size:13px;"></ha-icon>
+            ${host._t("insights_rerun_audit", "Re-run")}
+          </button>
+        </div>
+        <div class="page-sub">
+          ${host._t("insights_last_audit", "Last checked")}:
+          ${_relativeTime(host, host._auditGeneratedAt)}
+        </div>
+
+        ${renderHealthGauge(host)} ${_auditBody(host)}
+      </div>
+    </div>
+  `;
+}
+
 // node_modules/lit-html/directives/unsafe-html.js
-var e5 = class extends i5 {
-  constructor(i7) {
-    if ((super(i7), (this.it = A), i7.type !== t3.CHILD))
+var e5 = class extends i3 {
+  constructor(i5) {
+    if ((super(i5), (this.et = A), i5.type !== t3.CHILD))
       throw Error(
         this.constructor.directiveName +
           "() can only be used in child bindings",
       );
   }
   render(r4) {
-    if (r4 === A || null == r4) return ((this._t = void 0), (this.it = r4));
-    if (r4 === E) return r4;
+    if (r4 === A || null == r4) return ((this.ft = void 0), (this.et = r4));
+    if (r4 === T) return r4;
     if ("string" != typeof r4)
       throw Error(
         this.constructor.directiveName + "() called with a non-string value",
       );
-    if (r4 === this.it) return this._t;
-    this.it = r4;
-    const s4 = [r4];
+    if (r4 === this.et) return this.ft;
+    this.et = r4;
+    const s6 = [r4];
     return (
-      (s4.raw = s4),
-      (this._t = {
+      (s6.raw = s6),
+      (this.ft = {
         _$litType$: this.constructor.resultType,
-        strings: s4,
+        strings: s6,
         values: [],
       })
     );
@@ -35093,31 +36199,31 @@ function _entityFriendlyName(hass, entityId) {
 }
 var _YAML_ESCAPE_RE = /[&<>]/g;
 var _YAML_ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
-function _escape(s4) {
-  return s4.replace(_YAML_ESCAPE_RE, (c4) => _YAML_ESC[c4]);
+function _escape(s6) {
+  return s6.replace(_YAML_ESCAPE_RE, (c3) => _YAML_ESC[c3]);
 }
 function _highlightYamlValue(rest) {
   const out = [];
-  let i7 = 0;
-  while (i7 < rest.length) {
-    if (rest[i7] === "{" && rest[i7 + 1] === "{") {
-      const end = rest.indexOf("}}", i7 + 2);
+  let i5 = 0;
+  while (i5 < rest.length) {
+    if (rest[i5] === "{" && rest[i5 + 1] === "{") {
+      const end = rest.indexOf("}}", i5 + 2);
       if (end !== -1) {
-        out.push(`<span class="yp">${_escape(rest.slice(i7, end + 2))}</span>`);
-        i7 = end + 2;
+        out.push(`<span class="yp">${_escape(rest.slice(i5, end + 2))}</span>`);
+        i5 = end + 2;
         continue;
       }
     }
-    if (rest[i7] === '"' || rest[i7] === "'") {
-      const quote = rest[i7];
-      let end = i7 + 1;
+    if (rest[i5] === '"' || rest[i5] === "'") {
+      const quote = rest[i5];
+      let end = i5 + 1;
       while (end < rest.length && rest[end] !== quote) end++;
-      out.push(`<span class="ys">${_escape(rest.slice(i7, end + 1))}</span>`);
-      i7 = end + 1;
+      out.push(`<span class="ys">${_escape(rest.slice(i5, end + 1))}</span>`);
+      i5 = end + 1;
       continue;
     }
-    out.push(_escape(rest[i7]));
-    i7++;
+    out.push(_escape(rest[i5]));
+    i5++;
   }
   let joined = out.join("");
   const bareValue = rest.trim();
@@ -35158,9 +36264,9 @@ function _highlightYaml2(text) {
           _highlightYamlValue(rest)
         );
       }
-      const m3 = body.match(/^([^\s:#][^:]*?):(\s*)(.*)$/);
-      if (m3) {
-        const [, key, sp, val] = m3;
+      const m2 = body.match(/^([^\s:#][^:]*?):(\s*)(.*)$/);
+      if (m2) {
+        const [, key, sp, val] = m2;
         let valOut = val;
         let trailing = "";
         const cIdx = val.indexOf("#");
@@ -35181,9 +36287,9 @@ function _highlightYaml2(text) {
 }
 function _hasAcceptedSuffix(name) {
   const lower = (name || "").toLowerCase();
-  return _ACCEPTED_SUFFIXES.some((s4) => lower.endsWith(s4));
+  return _ACCEPTED_SUFFIXES.some((s6) => lower.endsWith(s6));
 }
-var _STYLE = b2`
+var _STYLE = x`
   <style>
     /* Type scale. The --selora-fs-* tokens are referenced throughout
        this stylesheet but were never defined globally, so every
@@ -38313,7 +39419,7 @@ function _renderInstallSourceCard(host) {
     }
     host._uploadRecipeArchive(file);
   };
-  return b2`
+  return x`
     <details class="install-disclosure" ?open=${!!error}>
       <summary class="install-disclosure-summary">
         <ha-icon icon="mdi:package-variant-closed"></ha-icon>
@@ -38435,7 +39541,7 @@ function _renderInstallSourceCard(host) {
           />
         </div>
 
-        ${error ? b2`<div class="install-error">${error}</div>` : ""}
+        ${error ? x`<div class="install-error">${error}</div>` : ""}
       </div>
     </details>
   `;
@@ -38462,7 +39568,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
       navigator.clipboard.writeText(record.package_path).catch(() => {});
     }
   };
-  return b2`
+  return x`
     <details
       class="recipe-details ${asCard ? "recipe-details-card" : ""}"
       ?open=${asCard}
@@ -38476,7 +39582,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
       </summary>
       ${
         !asCard && description
-          ? b2`<div class="recipe-card-desc recipe-details-desc">
+          ? x`<div class="recipe-card-desc recipe-details-desc">
             ${description}
           </div>`
           : ""
@@ -38484,7 +39590,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
       <div class="recipe-details-grid">
         ${
           pkg?.counts && Object.keys(pkg.counts).length
-            ? b2`
+            ? x`
               <div class="recipe-details-key">
                 ${host._t("recipes_details_creates_key", "Creates")}
               </div>
@@ -38509,7 +39615,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
             <code>${record.package_path || "\u2014"}</code>
             ${
               record.package_path
-                ? b2`<button
+                ? x`<button
                   class="recipe-details-copy"
                   title=${host._t(
                     "recipes_details_copy_path_title",
@@ -38524,7 +39630,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
           </span>
           ${
             pkg?.yaml
-              ? b2`<details class="recipe-package-view">
+              ? x`<details class="recipe-package-view">
                 <summary class="recipe-details-summary">
                   <ha-icon icon="mdi:chevron-down"></ha-icon>
                   ${host._t(
@@ -38548,7 +39654,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
         <div class="recipe-details-val">
           ${
             bindingRoles.length === 0
-              ? b2`<span class="recipe-details-empty"
+              ? x`<span class="recipe-details-empty"
                 >${host._t(
                   "recipes_details_no_bound_devices",
                   "No bound devices",
@@ -38556,12 +39662,12 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
               >`
               : bindingRoles.map((role) => {
                   const ents = bindings[role] || [];
-                  return b2`<div class="recipe-details-binding">
+                  return x`<div class="recipe-details-binding">
                   <div class="recipe-details-role">${_humanizeRole(role)}</div>
                   <div class="recipe-details-entities">
                     ${
                       ents.length === 0
-                        ? b2`<span class="recipe-details-empty"
+                        ? x`<span class="recipe-details-empty"
                           >${host._t(
                             "recipes_details_none_selected_optional",
                             "None selected (optional)",
@@ -38569,16 +39675,16 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
                         >`
                         : ents.map((id) => {
                             const name = _entityFriendlyName(host.hass, id);
-                            const inner = b2`<ha-icon
+                            const inner = x`<ha-icon
                               icon=${_entityIcon2(host.hass, id)}
                             ></ha-icon>
                             ${name}`;
                             if (!host.hass?.states?.[id]) {
-                              return b2`<span class="recipe-details-chip"
+                              return x`<span class="recipe-details-chip"
                               >${inner}</span
                             >`;
                             }
-                            return b2`<button
+                            return x`<button
                             type="button"
                             class="recipe-details-chip recipe-details-chip--clickable"
                             title=${`Open ${name} (${id})`}
@@ -38605,13 +39711,13 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
 
         ${
           inputKeys.length
-            ? b2`
+            ? x`
               <div class="recipe-details-key">
                 ${host._t("recipes_details_settings_key", "Settings")}
               </div>
               <div class="recipe-details-val">
                 ${inputKeys.map(
-                  (k2) => b2`<div>
+                  (k2) => x`<div>
                       <span class="recipe-details-role"
                         >${_humanizeRole(k2)}:</span
                       >
@@ -38624,14 +39730,14 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
         }
         ${
           integrationDomains.length
-            ? b2`
+            ? x`
               <div class="recipe-details-key">
                 ${host._t("recipes_details_integrations_key", "Integrations")}
               </div>
               <div class="recipe-details-val">
                 <div class="recipe-details-entities">
                   ${integrationDomains.map(
-                    (dom) => b2`<span class="recipe-details-chip">
+                    (dom) => x`<span class="recipe-details-chip">
                         <ha-icon icon="mdi:puzzle"></ha-icon>
                         ${dom}
                       </span>`,
@@ -38663,46 +39769,46 @@ var _PACKAGE_SECTION_LABELS = {
 };
 function _formatPackageCounts(host, counts) {
   const parts = Object.entries(counts || {})
-    .filter(([, n4]) => n4 > 0)
-    .map(([key, n4]) => {
+    .filter(([, n5]) => n5 > 0)
+    .map(([key, n5]) => {
       const labels = _PACKAGE_SECTION_LABELS[key] || [key, `${key}s`];
-      return `${n4} ${n4 === 1 ? labels[0] : labels[1]}`;
+      return `${n5} ${n5 === 1 ? labels[0] : labels[1]}`;
     });
   if (!parts.length)
-    return b2`<span class="recipe-details-empty"
+    return x`<span class="recipe-details-empty"
       >${host._t("recipes_details_creates_nothing", "Nothing")}</span
     >`;
   return parts.join(" \xB7 ");
 }
-function _humanizeRole(s4) {
-  if (!s4) return "";
-  const spaced = s4.replace(/_/g, " ");
+function _humanizeRole(s6) {
+  if (!s6) return "";
+  const spaced = s6.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 function _renderListView(host) {
   const available = host._recipesList?.available || [];
   const installed = host._recipesList?.installed || [];
   const availableBySlug = Object.fromEntries(
-    available.map((m3) => [m3.slug, m3]),
+    available.map((m2) => [m2.slug, m2]),
   );
   const installedSlugs = new Set(installed.map((r4) => r4.slug));
   const onlyInstalled = installed.filter((r4) => !availableBySlug[r4.slug]);
-  const installedAvailable = available.filter((m3) =>
-    installedSlugs.has(m3.slug),
+  const installedAvailable = available.filter((m2) =>
+    installedSlugs.has(m2.slug),
   );
   const catalogBySlug = new Map(
     (host._recipesCatalog?.recipes || []).map((r4) => [r4.slug, r4]),
   );
   const catalogSlugs = new Set(catalogBySlug.keys());
   const stagedLocal = available.filter(
-    (m3) => !installedSlugs.has(m3.slug) && !catalogSlugs.has(m3.slug),
+    (m2) => !installedSlugs.has(m2.slug) && !catalogSlugs.has(m2.slug),
   );
-  const withCategory = (m3) => {
-    if (m3.category_title) return m3;
-    const cat = catalogBySlug.get(m3.slug)?.category_title;
-    return cat ? { ...m3, category_title: cat } : m3;
+  const withCategory = (m2) => {
+    if (m2.category_title) return m2;
+    const cat = catalogBySlug.get(m2.slug)?.category_title;
+    return cat ? { ...m2, category_title: cat } : m2;
   };
-  return b2`
+  return x`
     <div class="recipes-root">
       <div class="recipes-header">
         <div class="recipes-h1">
@@ -38738,13 +39844,13 @@ function _renderListView(host) {
       ${_renderInstallSourceCard(host)} ${_renderCatalogSection(host)}
       ${
         installedAvailable.length > 0
-          ? b2`
+          ? x`
             <div class="recipes-section-title">
               ${host._t("recipes_list_installed_section", "Installed recipes")}
             </div>
             <div class="catalog-grid">
-              ${installedAvailable.map((m3) =>
-                _renderCatalogCard(host, withCategory(m3), true),
+              ${installedAvailable.map((m2) =>
+                _renderCatalogCard(host, withCategory(m2), true),
               )}
             </div>
           `
@@ -38752,13 +39858,13 @@ function _renderListView(host) {
       }
       ${
         stagedLocal.length > 0
-          ? b2`
+          ? x`
             <div class="recipes-section-title">
               ${host._t("recipes_list_staged", "On this device")}
             </div>
             <div class="catalog-grid">
-              ${stagedLocal.map((m3) =>
-                _renderCatalogCard(host, withCategory(m3), false),
+              ${stagedLocal.map((m2) =>
+                _renderCatalogCard(host, withCategory(m2), false),
               )}
             </div>
           `
@@ -38766,7 +39872,7 @@ function _renderListView(host) {
       }
       ${
         onlyInstalled.length > 0
-          ? b2`
+          ? x`
             <div class="recipes-section-title">
               ${host._t(
                 "recipes_list_installed_missing_bundle",
@@ -38775,7 +39881,7 @@ function _renderListView(host) {
             </div>
             <div style="display:flex;flex-direction:column;gap:10px;">
               ${onlyInstalled.map(
-                (rec) => b2`
+                (rec) => x`
                   <div class="recipe-card">
                     <div class="recipe-card-body">
                       <div class="recipe-card-title">
@@ -38824,7 +39930,7 @@ function _renderCatalogSection(host) {
     ? host._catalogUrlOverride()
     : "";
   const isDev = !!host._config?.developer_mode;
-  return b2`
+  return x`
     <div class="catalog-section">
       <div class="filter-row">
         <div class="filter-input-wrap" style="flex:1 1 260px;">
@@ -38840,7 +39946,7 @@ function _renderCatalogSection(host) {
           />
           ${
             host._recipesCatalogSearch
-              ? b2`<ha-icon
+              ? x`<ha-icon
                 icon="mdi:close-circle"
                 style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                 @click=${() => host._onRecipesCatalogSearch("")}
@@ -38851,7 +39957,7 @@ function _renderCatalogSection(host) {
         <div class="catalog-controls">
           ${
             isDev
-              ? b2`<button
+              ? x`<button
                 class="sort-dir-toggle"
                 @click=${() => {
                   const next = window.prompt(
@@ -38881,7 +39987,7 @@ function _renderCatalogSection(host) {
       </div>
       ${
         currentOverride && isDev
-          ? b2`<div class="catalog-override-banner">
+          ? x`<div class="catalog-override-banner">
             <ha-icon icon="mdi:flask-outline"></ha-icon>
             ${host._t(
               "recipes_catalog_source_overridden",
@@ -38893,7 +39999,7 @@ function _renderCatalogSection(host) {
       }
       ${
         host._recipesCatalogError
-          ? b2`<div class="catalog-error">
+          ? x`<div class="catalog-error">
             <ha-icon icon="mdi:cloud-off-outline"></ha-icon>
             ${host._t(
               "recipes_catalog_unreachable",
@@ -38902,7 +40008,7 @@ function _renderCatalogSection(host) {
             ${host._recipesCatalogError}
           </div>`
           : !cat
-            ? b2`<div class="catalog-loading">
+            ? x`<div class="catalog-loading">
               ${
                 host._recipesCatalogBusy
                   ? host._t(
@@ -38917,14 +40023,14 @@ function _renderCatalogSection(host) {
             </div>`
             : filtered.length === 0
               ? (host._recipesCatalogSearch || "").trim()
-                ? b2`<div class="catalog-loading">
+                ? x`<div class="catalog-loading">
                   ${host._t(
                     "recipes_catalog_no_matches_prefix",
                     "No matches for",
                   )}
                   &ldquo;${host._recipesCatalogSearch}&rdquo;.
                 </div>`
-                : b2`<div class="catalog-loading">
+                : x`<div class="catalog-loading">
                   ${host._t(
                     "recipes_catalog_empty",
                     "No recipes in this catalog yet.",
@@ -38942,8 +40048,8 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
   let featured = [];
   let rest = browseable;
   if (!searching) {
-    const byDate = [...browseable].sort((a3, b3) =>
-      String(b3.released || "").localeCompare(String(a3.released || "")),
+    const byDate = [...browseable].sort((a4, b2) =>
+      String(b2.released || "").localeCompare(String(a4.released || "")),
     );
     featured = byDate.slice(0, 2);
     rest = byDate.slice(2);
@@ -38954,10 +40060,10 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
   const pageItems = rest.slice(start, start + _CATALOG_PAGE_SIZE);
   const card = (entry, isFeatured) =>
     _renderCatalogCard(host, entry, false, isFeatured);
-  return b2`
+  return x`
     ${
       featured.length
-        ? b2`
+        ? x`
           <div class="recipes-section-title">
             ${host._t("recipes_catalog_featured", "Featured")}
           </div>
@@ -38969,10 +40075,10 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
     }
     ${
       rest.length
-        ? b2`
+        ? x`
           ${
             !searching
-              ? b2`<div class="recipes-section-title">
+              ? x`<div class="recipes-section-title">
                 ${host._t("recipes_catalog_all", "Available recipes")}
               </div>`
               : ""
@@ -38987,7 +40093,7 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
   `;
 }
 function _renderCatalogPagination(host, page, totalPages) {
-  return b2`
+  return x`
     <div class="catalog-pagination">
       <button
         class="btn btn-outline"
@@ -39017,8 +40123,8 @@ function _recipeIntegrationBrands(entry) {
   for (const item of [...(entry.required || []), ...(entry.optional || [])]) {
     if (item && item.integration) domains.add(item.integration);
   }
-  for (const i7 of entry.integrations || []) {
-    if (i7 && i7.domain) domains.add(i7.domain);
+  for (const i5 of entry.integrations || []) {
+    if (i5 && i5.domain) domains.add(i5.domain);
   }
   for (const r4 of entry.roles || []) {
     if (r4 && r4.integration) domains.add(r4.integration);
@@ -39027,20 +40133,20 @@ function _recipeIntegrationBrands(entry) {
 }
 function _renderRecipeBrandStrip(brands) {
   if (!brands || !brands.length) return "";
-  return b2`
+  return x`
     <div class="recipe-brands">
       ${brands.map(
-        (b3) => b2`<span class="recipe-brand" title=${b3.reason || b3.title}>
+        (b2) => x`<span class="recipe-brand" title=${b2.reason || b2.title}>
             <img
               class="recipe-brand-logo"
-              src=${`https://brands.home-assistant.io/_/${b3.domain}/icon@2x.png`}
+              src=${`https://brands.home-assistant.io/_/${b2.domain}/icon@2x.png`}
               alt=""
               loading="lazy"
               @error=${(e6) => {
                 e6.target.style.display = "none";
               }}
             />
-            <span class="recipe-brand-name">${b3.title}</span>
+            <span class="recipe-brand-name">${b2.title}</span>
           </span>`,
       )}
     </div>
@@ -39061,7 +40167,7 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
   };
   const meta = entry.released || entry.author || "";
   const staging = host._recipesStagingSlug === slug;
-  return b2`
+  return x`
     <div
       class="catalog-card catalog-card-clickable ${featured ? "catalog-card-featured" : ""} ${staging ? "is-staging" : ""}"
       role="button"
@@ -39079,7 +40185,7 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
         <div class="catalog-card-pills">
           ${
             entry.category_title
-              ? b2`<span class="catalog-card-category"
+              ? x`<span class="catalog-card-category"
                 >${entry.category_title}</span
               >`
               : ""
@@ -39087,7 +40193,7 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
         </div>
         ${
           staging
-            ? b2`<ha-icon
+            ? x`<ha-icon
               class="catalog-card-spinner icon-spin"
               icon="mdi:loading"
             ></ha-icon>`
@@ -39095,7 +40201,7 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
         }
         ${
           installed
-            ? b2`<span class="catalog-installed-badge">
+            ? x`<span class="catalog-installed-badge">
               <ha-icon icon="mdi:check"></ha-icon>
               ${host._t("recipes_card_installed_badge", "Installed")}
             </span>`
@@ -39106,19 +40212,17 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
       <div class="catalog-card-meta">
         v${entry.version}${meta ? ` \xB7 ${meta}` : ""}
       </div>
-      ${entry.description ? b2`<div class="catalog-card-desc">${entry.description}</div>` : ""}
+      ${entry.description ? x`<div class="catalog-card-desc">${entry.description}</div>` : ""}
       ${
         entry.tags?.length
-          ? b2`<div class="catalog-card-tags">
-            ${entry.tags.map(
-              (t5) => b2`<span class="catalog-tag">${t5}</span>`,
-            )}
+          ? x`<div class="catalog-card-tags">
+            ${entry.tags.map((t4) => x`<span class="catalog-tag">${t4}</span>`)}
           </div>`
           : ""
       }
       ${
         _recipeIntegrationBrands(entry).length
-          ? b2`<div class="catalog-card-footer">
+          ? x`<div class="catalog-card-footer">
             ${_renderRecipeBrandStrip(_recipeIntegrationBrands(entry))}
           </div>`
           : ""
@@ -39139,33 +40243,33 @@ function _renderInputField(host, input) {
     host._updateRecipeInput(input.id, v2);
   };
   if (input.type === "boolean") {
-    return b2`
+    return x`
       <div class="wizard-field">
         <label style="display:flex;gap:8px;align-items:center;">
           <input type="checkbox" .checked=${!!value} @change=${onInput} />
           ${input.label}
         </label>
-        ${input.description ? b2`<span class="hint">${input.description}</span>` : ""}
+        ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
       </div>
     `;
   }
   if (input.type === "select") {
-    return b2`
+    return x`
       <div class="wizard-field">
         <label>${input.label}</label>
-        ${input.description ? b2`<span class="hint">${input.description}</span>` : ""}
+        ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
         <select .value=${String(value ?? "")} @change=${onInput}>
           ${(input.choices || []).map(
-            (choice) => b2`<option value=${choice}>${choice}</option>`,
+            (choice) => x`<option value=${choice}>${choice}</option>`,
           )}
         </select>
       </div>
     `;
   }
-  return b2`
+  return x`
     <div class="wizard-field">
       <label>${input.label}</label>
-      ${input.description ? b2`<span class="hint">${input.description}</span>` : ""}
+      ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
       <input
         type=${input.type === "number" ? "number" : "text"}
         .value=${String(value ?? "")}
@@ -39230,16 +40334,16 @@ function _navigateInHA(path) {
 }
 function _renderPunchList(host, items) {
   if (!items || items.length === 0) return "";
-  return b2`
+  return x`
     <div class="wizard-section">
       <h3>${host._t("recipes_punch_list_title", "Punch list")}</h3>
       <div class="punch">
         ${items.map(
-          (item) => b2`
+          (item) => x`
             <div class="punch-item">
               <span class="stage-pill">${item.stage}</span>
               <div>
-                ${item.target ? b2`<strong>${item.target}</strong>: ` : ""}${item.message}
+                ${item.target ? x`<strong>${item.target}</strong>: ` : ""}${item.message}
               </div>
             </div>
           `,
@@ -39271,13 +40375,13 @@ function _statusLabel(host, status) {
 function _activeItem(host, items) {
   if (!items?.length) return null;
   if (host._recipeActiveItemId) {
-    const found = items.find((i7) => i7.id === host._recipeActiveItemId);
+    const found = items.find((i5) => i5.id === host._recipeActiveItemId);
     if (found) return found;
   }
   return (
-    items.find((i7) => i7.status === "needs_input" || i7.status === "failed") ||
-    items.find((i7) => i7.status === "running") ||
-    items.find((i7) => i7.status === "pending") ||
+    items.find((i5) => i5.status === "needs_input" || i5.status === "failed") ||
+    items.find((i5) => i5.status === "running") ||
+    items.find((i5) => i5.status === "pending") ||
     items[items.length - 1]
   );
 }
@@ -39291,20 +40395,20 @@ function _renderActionPanel(host, item) {
   return _renderSystemPanel(host, item);
 }
 function _panelShell(host, title, statusKind, body, footer) {
-  return b2`
+  return x`
     <div class="panel-shell">
       <div class="panel-head">
         <div class="panel-title">${title}</div>
         ${
           statusKind
-            ? b2`<span class="panel-status ${statusKind}"
+            ? x`<span class="panel-status ${statusKind}"
               >${_statusLabel(host, statusKind)}</span
             >`
             : ""
         }
       </div>
       <div class="panel-body">${body}</div>
-      ${footer ? b2`<div class="panel-footer">${footer}</div>` : ""}
+      ${footer ? x`<div class="panel-footer">${footer}</div>` : ""}
     </div>
   `;
 }
@@ -39314,8 +40418,8 @@ function _renderSystemPanel(host, item) {
     item.title,
     item.status,
     item.detail
-      ? b2`<p class="panel-prose">${item.detail}</p>`
-      : b2`<p class="panel-prose panel-muted">
+      ? x`<p class="panel-prose">${item.detail}</p>`
+      : x`<p class="panel-prose panel-muted">
           ${host._t(
             "recipes_system_panel_auto",
             "This step runs automatically. No action needed from you.",
@@ -39330,7 +40434,7 @@ function _renderInputsPanel(host, item) {
     host,
     host._t("recipes_inputs_panel_title", "Recipe settings"),
     item.status,
-    b2`<div class="panel-fields">
+    x`<div class="panel-fields">
       ${inputs.map((input) => _renderInputField(host, input))}
     </div>`,
     null,
@@ -39372,7 +40476,7 @@ function _renderRoleSelectionPanel(host, item) {
       })
     : candidatesT;
   const ordered = [...matched].sort(
-    (a3, b3) => (selected.has(b3) ? 1 : 0) - (selected.has(a3) ? 1 : 0),
+    (a4, b2) => (selected.has(b2) ? 1 : 0) - (selected.has(a4) ? 1 : 0),
   );
   const CHIP_CAP = 12;
   const expanded = !!host._recipeRoleExpanded?.[roleId] || !!filterText;
@@ -39386,11 +40490,11 @@ function _renderRoleSelectionPanel(host, item) {
     host,
     `${host._t("recipes_role_pick_prefix", "Pick:")} ${item.title}`,
     item.status,
-    b2`
-      ${role.description ? b2`<p class="panel-prose">${role.description}</p>` : ""}
+    x`
+      ${role.description ? x`<p class="panel-prose">${role.description}</p>` : ""}
       ${
         pinned.length > 0
-          ? b2`
+          ? x`
             <div class="panel-prose panel-muted">
               ${pinned.length}
               ${host._t(
@@ -39400,7 +40504,7 @@ function _renderRoleSelectionPanel(host, item) {
             </div>
             <div class="panel-chips">
               ${pinned.map(
-                (id) => b2`
+                (id) => x`
                   <span class="role-entity-chip is-pinned" title=${id}>
                     <span class="chip-icon-tile">
                       <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
@@ -39424,7 +40528,7 @@ function _renderRoleSelectionPanel(host, item) {
       }
       ${
         candidates.length > 0
-          ? b2`
+          ? x`
             <p class="panel-prose panel-muted">
               ${host._t("recipes_role_pick_one_or_more", "Pick one or more")}
               ${filterLabel}${role.max_count ? ` (${host._t("recipes_role_up_to", "up to")} ${role.max_count})` : ""}.
@@ -39435,7 +40539,7 @@ function _renderRoleSelectionPanel(host, item) {
             </p>
             ${
               showFilter
-                ? b2`<input
+                ? x`<input
                   class="role-filter-input"
                   type="text"
                   .value=${host._recipeRoleFilters?.[roleId] || ""}
@@ -39449,17 +40553,17 @@ function _renderRoleSelectionPanel(host, item) {
             }
             ${
               ordered.length === 0
-                ? b2`<p class="panel-prose panel-muted">
+                ? x`<p class="panel-prose panel-muted">
                   ${host._t(
                     "recipes_role_filter_no_matches",
                     "No entities match your filter.",
                   )}
                 </p>`
-                : b2`
+                : x`
                   <div class="panel-chips">
                     ${shown.map((id) => {
                       const on = selected.has(id);
-                      return b2`
+                      return x`
                         <button
                           class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
                           type="button"
@@ -39489,7 +40593,7 @@ function _renderRoleSelectionPanel(host, item) {
                   </div>
                   ${
                     hiddenCount > 0
-                      ? b2`<button
+                      ? x`<button
                         class="role-show-more"
                         type="button"
                         @click=${() => host._toggleRecipeRoleExpanded(roleId)}
@@ -39498,7 +40602,7 @@ function _renderRoleSelectionPanel(host, item) {
                         (${ordered.length})
                       </button>`
                       : expanded && !filterText && candidatesT.length > CHIP_CAP
-                        ? b2`<button
+                        ? x`<button
                           class="role-show-more"
                           type="button"
                           @click=${() => host._toggleRecipeRoleExpanded(roleId)}
@@ -39514,7 +40618,7 @@ function _renderRoleSelectionPanel(host, item) {
       }
     `,
     candidates.length === 0
-      ? b2`
+      ? x`
           <div class="role-empty-help">
             <ha-icon icon="mdi:radar" class="role-empty-icon"></ha-icon>
             <div class="role-empty-body">
@@ -39525,7 +40629,7 @@ function _renderRoleSelectionPanel(host, item) {
               </div>
               <p class="role-empty-prose">
                 ${host._t("recipes_role_empty_pair", "Pair")}
-                ${role.min_count > 0 ? b2`${host._t("recipes_role_empty_at_least", "at least")} ` : ""}${host._t(
+                ${role.min_count > 0 ? x`${host._t("recipes_role_empty_at_least", "at least")} ` : ""}${host._t(
                   "recipes_role_empty_one_prose",
                   "one and it'll appear here automatically \u2014 you can leave this page to add a device and the wizard keeps your progress on Back.",
                 )}
@@ -39575,8 +40679,8 @@ function _renderPinPanel(host, item) {
     host,
     item.title,
     item.status,
-    b2`
-      ${model ? b2`<div class="panel-prose panel-muted">${model}</div>` : ""}
+    x`
+      ${model ? x`<div class="panel-prose panel-muted">${model}</div>` : ""}
       <p class="panel-prose">${action}</p>
       <p class="panel-prose panel-muted">
         ${host._t("recipes_pin_expected_entity", "Expected entity id:")}
@@ -39589,7 +40693,7 @@ function _renderPinPanel(host, item) {
         )}
       </p>
     `,
-    b2`
+    x`
       <button
         class="panel-btn primary"
         type="button"
@@ -39629,14 +40733,14 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       item.status,
-      b2`
+      x`
         <p class="panel-prose">
           ${label}
           ${host._t("recipes_integration_ready", "is set up and ready to use.")}
         </p>
         ${
           entryTitle
-            ? b2`<div class="integration-entry-meta">
+            ? x`<div class="integration-entry-meta">
               <ha-icon icon="mdi:identifier"></ha-icon>
               <span class="panel-muted"
                 >${host._t("recipes_integration_entry_label", "Entry:")}</span
@@ -39652,7 +40756,7 @@ function _renderIntegrationPanel(host, item) {
           )}
         </p>
       `,
-      b2`
+      x`
         <button
           class="panel-btn secondary"
           type="button"
@@ -39670,13 +40774,13 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       item.status,
-      b2`
+      x`
         <p class="panel-prose">
           ${autoSetup ? `${item.title} ${host._t("recipes_integration_autosetup_prose", "can be set up automatically using your Home Assistant location. No questions for you to answer.")}` : `${item.title} ${host._t("recipes_integration_needs_setup_prose", "needs to be set up before this recipe can install. You can start it without leaving this page.")}`}
         </p>
-        ${flow?.error ? b2`<div class="panel-error">${flow.error}</div>` : ""}
+        ${flow?.error ? x`<div class="panel-error">${flow.error}</div>` : ""}
       `,
-      b2`
+      x`
         <button
           class="panel-btn primary"
           type="button"
@@ -39685,8 +40789,8 @@ function _renderIntegrationPanel(host, item) {
         >
           ${
             host._recipesBusy
-              ? b2`<span class="spinner"></span>`
-              : b2`<ha-icon
+              ? x`<span class="spinner"></span>`
+              : x`<ha-icon
                 icon=${autoSetup ? "mdi:auto-fix" : "mdi:play"}
               ></ha-icon>`
           }
@@ -39723,7 +40827,7 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       "failed",
-      b2`<p class="panel-prose">
+      x`<p class="panel-prose">
         ${
           flow.error ||
           host._t(
@@ -39732,7 +40836,7 @@ function _renderIntegrationPanel(host, item) {
           )
         }
       </p>`,
-      b2`
+      x`
         <button
           class="panel-btn secondary"
           type="button"
@@ -39748,7 +40852,7 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       "ok",
-      b2`<p class="panel-prose">
+      x`<p class="panel-prose">
         ${copy?.label || domain}
         ${host._t(
           "recipes_integration_was_set_up",
@@ -39762,7 +40866,7 @@ function _renderIntegrationPanel(host, item) {
     host,
     item.title,
     "running",
-    b2`<p>${host._t("recipes_working", "Working\u2026")}</p>`,
+    x`<p>${host._t("recipes_working", "Working\u2026")}</p>`,
     null,
   );
 }
@@ -39774,23 +40878,23 @@ function _renderFlowForm(host, item, flow) {
     host,
     item.title,
     "needs_input",
-    b2`
-      ${flow.step?.description ? b2`<p class="panel-prose">${flow.step.description}</p>` : ""}
-      ${errors.base ? b2`<div class="panel-error">${errors.base}</div>` : ""}
+    x`
+      ${flow.step?.description ? x`<p class="panel-prose">${flow.step.description}</p>` : ""}
+      ${errors.base ? x`<div class="panel-error">${errors.base}</div>` : ""}
       <div class="panel-fields">
-        ${fields.map((f3) =>
+        ${fields.map((f2) =>
           _renderFlowField(
             host,
             item,
             flow,
-            f3,
-            values[f3.name],
-            errors[f3.name],
+            f2,
+            values[f2.name],
+            errors[f2.name],
           ),
         )}
       </div>
     `,
-    b2`
+    x`
       <button
         class="panel-btn secondary"
         type="button"
@@ -39820,49 +40924,49 @@ function _renderFlowField(host, item, flow, field, value, error) {
   const ftype = field.type || (field.selector ? "select" : "string");
   let control;
   if (ftype === "boolean") {
-    control = b2`<input
+    control = x`<input
       type="checkbox"
       .checked=${value ?? field.default ?? false}
       @change=${(e6) => update(e6.target.checked)}
     />`;
   } else if (ftype === "integer" || ftype === "number") {
-    control = b2`<input
+    control = x`<input
       type="number"
       .value=${String(value ?? field.default ?? "")}
       @input=${(e6) => update(e6.target.value === "" ? null : Number(e6.target.value))}
     />`;
   } else if (field.options || ftype === "select") {
-    control = b2`<select
+    control = x`<select
       .value=${String(value ?? field.default ?? "")}
       @change=${(e6) => update(e6.target.value)}
     >
       ${(field.options || []).map(
-        (opt) => b2`
+        (opt) => x`
           <option value=${opt.value ?? opt}>${opt.label ?? opt}</option>
         `,
       )}
     </select>`;
   } else {
-    control = b2`<input
+    control = x`<input
       type="text"
       .value=${String(value ?? field.default ?? "")}
       @input=${(e6) => update(e6.target.value)}
     />`;
   }
-  return b2`
+  return x`
     <label class="panel-field">
       <span class="panel-field-label">
         ${field.description || field.name}
         ${
           field.required === false
-            ? b2`<em class="panel-field-optional"
+            ? x`<em class="panel-field-optional"
               >${host._t("recipes_field_optional", "(optional)")}</em
             >`
             : ""
         }
       </span>
       ${control}
-      ${error ? b2`<span class="panel-field-error">${error}</span>` : ""}
+      ${error ? x`<span class="panel-field-error">${error}</span>` : ""}
     </label>
   `;
 }
@@ -39875,7 +40979,7 @@ function _stepLabels(host) {
     host._t("recipes_step_activate", "Activate"),
   ];
 }
-function _humaniseSection(host, key, n4) {
+function _humaniseSection(host, key, n5) {
   const map = {
     automation: [
       host._t("recipes_section_automation_singular", "automation"),
@@ -39971,7 +41075,7 @@ function _humaniseSection(host, key, n4) {
     ],
   };
   const [singular, plural] = map[key] || [key, key];
-  return `${n4} ${n4 === 1 ? singular : plural}`;
+  return `${n5} ${n5 === 1 ? singular : plural}`;
 }
 function _roleIconForKind(role) {
   const k2 = role.kind || "";
@@ -40017,8 +41121,8 @@ function _renderWhatYouNeedRail(host, manifest) {
   const optional = roles.filter((r4) => (r4.min_count || 0) === 0);
   const hasPin = (role) => Boolean((manifest.bindings || {})[role.id]?.length);
   const brandMap = /* @__PURE__ */ new Map();
-  for (const i7 of integrations) {
-    if (i7.domain) brandMap.set(i7.domain, i7.title || i7.domain);
+  for (const i5 of integrations) {
+    if (i5.domain) brandMap.set(i5.domain, i5.title || i5.domain);
   }
   for (const r4 of roles) {
     if (r4.integration && !brandMap.has(r4.integration)) {
@@ -40026,15 +41130,15 @@ function _renderWhatYouNeedRail(host, manifest) {
     }
   }
   const brands = [...brandMap].map(([domain, title]) => ({ domain, title }));
-  return b2`
+  return x`
     <aside class="need-rail">
       <div class="need-rail-title">
         ${host._t("recipes_what_you_need_title", "What you need")}
       </div>
       ${
         brands.length
-          ? b2`<div class="need-integrations">
-            ${brands.map((b3) => _renderIntegrationBanner(host, b3))}
+          ? x`<div class="need-integrations">
+            ${brands.map((b2) => _renderIntegrationBanner(host, b2))}
           </div>`
           : ""
       }
@@ -40042,7 +41146,7 @@ function _renderWhatYouNeedRail(host, manifest) {
         ${required.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
         ${
           optional.length
-            ? b2`
+            ? x`
               <div class="need-rail-eyebrow">
                 ${host._t("recipes_optional_eyebrow", "Optional")}
               </div>
@@ -40056,7 +41160,7 @@ function _renderWhatYouNeedRail(host, manifest) {
 }
 function _renderIntegrationBanner(host, brand) {
   const iconUrl = `https://brands.home-assistant.io/_/${brand.domain}/icon@2x.png`;
-  return b2`
+  return x`
     <div class="need-integration">
       <div class="need-integration-logo-wrap">
         <img
@@ -40085,14 +41189,14 @@ function _renderIntegrationBanner(host, brand) {
 function _renderNeedRoleCard(role, pinned) {
   const count = role.min_count > 1 ? `${role.min_count}+ ` : "";
   const variant = pinned ? "pin" : "role";
-  return b2`
+  return x`
     <div class="need-card">
       <div class="need-card-icon need-card-icon--${variant}">
         <ha-icon icon=${_roleIconForKind(role)}></ha-icon>
       </div>
       <div class="need-card-body">
         <div class="need-card-title">${count}${role.title || role.id}</div>
-        ${role.description ? b2`<div class="need-card-desc">${role.description}</div>` : ""}
+        ${role.description ? x`<div class="need-card-desc">${role.description}</div>` : ""}
       </div>
     </div>
   `;
@@ -40100,7 +41204,7 @@ function _renderNeedRoleCard(role, pinned) {
 function _renderWizardStepper(host) {
   const current = host._recipeWizardStep || 1;
   const labels = _stepLabels(host).slice(1);
-  return b2`
+  return x`
     <aside class="step-rail">
       <div class="step-rail-title">
         ${host._t("recipes_progress_title", "Progress")}
@@ -40122,7 +41226,7 @@ function _renderWizardStepper(host) {
               : state === "current"
                 ? "mdi:circle-slice-8"
                 : "mdi:circle-outline";
-          return b2`
+          return x`
             <button
               class="step-rail-row step-${state}"
               type="button"
@@ -40143,7 +41247,7 @@ function _renderWizardFooter(host, opts) {
   const current = host._recipeWizardStep || 1;
   const { primary, primaryDisabled, hint, hideBack, hideSecondary } =
     opts || {};
-  return b2`
+  return x`
     <div class="step-footer">
       <div class="step-footer-hint">${hint || ""}</div>
       <div class="step-footer-actions">
@@ -40151,14 +41255,14 @@ function _renderWizardFooter(host, opts) {
           hideSecondary
             ? ""
             : current > 1 && !hideBack
-              ? b2`<button
+              ? x`<button
                 class="panel-btn secondary"
                 type="button"
                 @click=${() => host._retreatRecipeStep()}
               >
                 ${host._t("recipes_footer_back", "Back")}
               </button>`
-              : b2`<button
+              : x`<button
                 class="panel-btn secondary"
                 type="button"
                 @click=${() => host._closeRecipeWizard()}
@@ -40168,14 +41272,14 @@ function _renderWizardFooter(host, opts) {
         }
         ${
           primary
-            ? b2`<button
+            ? x`<button
               class="panel-btn primary"
               type="button"
               ?disabled=${primaryDisabled}
               @click=${primary.onClick}
             >
               ${primary.label}
-              ${primary.icon ? b2`<ha-icon icon=${primary.icon}></ha-icon>` : ""}
+              ${primary.icon ? x`<ha-icon icon=${primary.icon}></ha-icon>` : ""}
             </button>`
             : ""
         }
@@ -40186,7 +41290,7 @@ function _renderWizardFooter(host, opts) {
 function _renderWizardHero(host, manifest, opts) {
   const compact = opts?.compact === true;
   if (compact) {
-    return b2`
+    return x`
       <div class="wizard-header wizard-header-compact">
         <button
           class="wizard-back-compact"
@@ -40200,7 +41304,7 @@ function _renderWizardHero(host, manifest, opts) {
           <div class="wizard-compact-title">${manifest.title}</div>
           ${
             manifest.version
-              ? b2`<div class="wizard-compact-version">
+              ? x`<div class="wizard-compact-version">
                 v${manifest.version}
               </div>`
               : ""
@@ -40216,7 +41320,7 @@ function _renderWizardHero(host, manifest, opts) {
         day: "numeric",
       })
     : null;
-  return b2`
+  return x`
     <div class="wizard-header">
       <div class="wizard-hero">
         <div class="wizard-eyebrow">
@@ -40226,13 +41330,13 @@ function _renderWizardHero(host, manifest, opts) {
           >
           ${
             manifest.version
-              ? b2`<span class="wizard-eyebrow-sep">·</span>
+              ? x`<span class="wizard-eyebrow-sep">·</span>
                 <span class="wizard-eyebrow-meta">v${manifest.version}</span>`
               : ""
           }
           ${
             released
-              ? b2`<span class="wizard-eyebrow-sep">·</span>
+              ? x`<span class="wizard-eyebrow-sep">·</span>
                 <span class="wizard-eyebrow-meta"
                   >${host._t("recipes_eyebrow_released", "Released")}
                   ${released}</span
@@ -40241,18 +41345,18 @@ function _renderWizardHero(host, manifest, opts) {
           }
         </div>
         <div class="wizard-hero-title">${manifest.title}</div>
-        ${manifest.tagline ? b2`<div class="wizard-hero-tagline">${manifest.tagline}</div>` : ""}
+        ${manifest.tagline ? x`<div class="wizard-hero-tagline">${manifest.tagline}</div>` : ""}
         ${
           manifest.tags?.length
-            ? b2`
+            ? x`
               <div class="wizard-hero-tags">
                 ${manifest.tags.map(
                   (
-                    t5,
+                    t4,
                     idx,
-                  ) => b2`<span class="wizard-tag ${idx === 0 ? "primary" : ""}">
-                      ${idx === 0 ? b2`<ha-icon icon="mdi:bookmark"></ha-icon>` : ""}
-                      ${t5}
+                  ) => x`<span class="wizard-tag ${idx === 0 ? "primary" : ""}">
+                      ${idx === 0 ? x`<ha-icon icon="mdi:bookmark"></ha-icon>` : ""}
+                      ${t4}
                     </span>`,
                 )}
               </div>
@@ -40261,7 +41365,7 @@ function _renderWizardHero(host, manifest, opts) {
         }
         ${
           manifest.description
-            ? b2`<div class="wizard-hero-description">
+            ? x`<div class="wizard-hero-description">
               ${manifest.description}
             </div>`
             : ""
@@ -40272,7 +41376,7 @@ function _renderWizardHero(host, manifest, opts) {
 }
 function _renderStep1Overview(host) {
   const { manifest } = host._recipeWizardDetail;
-  const backLink = b2`<button
+  const backLink = x`<button
     class="wizard-back"
     @click=${() => host._closeRecipeWizard()}
   >
@@ -40283,7 +41387,7 @@ function _renderStep1Overview(host) {
     (r4) => r4.slug === manifest.slug,
   );
   if (record) {
-    return b2`
+    return x`
       <div class="step-pane">
         ${_renderInstalledDetails(host, record, null, { asCard: true })}
         <div class="overview-actions">
@@ -40291,7 +41395,7 @@ function _renderStep1Overview(host) {
           <div class="overview-actions-group">
             ${
               manifest.binding_mode === "group"
-                ? b2`<button
+                ? x`<button
                   class="btn btn-outline"
                   @click=${() => host._openManageDevices(manifest.slug)}
                   ?disabled=${host._recipesBusy}
@@ -40325,22 +41429,22 @@ function _renderStep1Overview(host) {
   const preview = host._recipeWizardPreview;
   const counts = preview?.preview?.created_counts || {};
   const bullets = Object.entries(counts)
-    .filter(([, n4]) => n4 > 0)
-    .map(([k2, n4]) => _humaniseSection(host, k2, n4));
-  return b2`
+    .filter(([, n5]) => n5 > 0)
+    .map(([k2, n5]) => _humaniseSection(host, k2, n5));
+  return x`
     <div class="step-pane">
       ${
         bullets.length
-          ? b2`
+          ? x`
             <section class="overview-card">
               <h3 class="overview-card-title">
                 ${host._t("recipes_this_recipe_creates", "This recipe creates")}
               </h3>
               <ul class="overview-list">
                 ${bullets.map(
-                  (b3) => b2`<li>
+                  (b2) => x`<li>
                       <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                      ${b3[0].toUpperCase() + b3.slice(1)}
+                      ${b2[0].toUpperCase() + b2.slice(1)}
                     </li>`,
                 )}
               </ul>
@@ -40353,7 +41457,7 @@ function _renderStep1Overview(host) {
         <div class="overview-actions-group">
           ${
             host._recipesBusy
-              ? b2`<span class="overview-actions-hint"
+              ? x`<span class="overview-actions-hint"
                 >${host._t("recipes_loading_recipe", "Loading recipe\u2026")}</span
               >`
               : ""
@@ -40373,7 +41477,7 @@ function _renderStep1Overview(host) {
 }
 function _renderStepHeading(host, stepNum, label, subline, required) {
   const displayNum = stepNum - 1;
-  return b2`
+  return x`
     <header class="step-heading">
       <div class="step-heading-eyebrow">
         <span class="step-heading-num"
@@ -40382,26 +41486,26 @@ function _renderStepHeading(host, stepNum, label, subline, required) {
         >
         ${
           required === false
-            ? b2`<span class="step-heading-optional"
+            ? x`<span class="step-heading-optional"
               >${host._t("recipes_optional_eyebrow", "Optional")}</span
             >`
             : required === true
-              ? b2`<span class="step-heading-required"
+              ? x`<span class="step-heading-required"
                 >${host._t("recipes_required_eyebrow", "Required")}</span
               >`
               : ""
         }
       </div>
       <h2 class="step-heading-title">${label}</h2>
-      ${subline ? b2`<p class="step-heading-sub">${subline}</p>` : ""}
+      ${subline ? x`<p class="step-heading-sub">${subline}</p>` : ""}
     </header>
   `;
 }
 function _renderStep2Settings(host) {
   const { manifest } = host._recipeWizardDetail;
-  const inputs = (manifest.inputs || []).filter((i7) => !i7.resolver);
-  const required = inputs.some((i7) => i7.required !== false);
-  return b2`
+  const inputs = (manifest.inputs || []).filter((i5) => !i5.resolver);
+  const required = inputs.some((i5) => i5.required !== false);
+  return x`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -40421,7 +41525,7 @@ function _renderStep2Settings(host) {
       ${
         inputs.length === 0
           ? ""
-          : b2`
+          : x`
             <section class="overview-card">
               <div class="panel-fields">
                 ${inputs.map((input) => _renderInputField(host, input))}
@@ -40449,7 +41553,7 @@ function _step3BlockReason(host, preview, needsAction) {
     );
   }
   const punch = (preview?.punch_list || []).find(
-    (p4) => p4.code !== "binding_pending" && p4.message,
+    (p2) => p2.code !== "binding_pending" && p2.message,
   );
   if (punch?.message) return punch.message;
   return host._t(
@@ -40472,7 +41576,7 @@ function _renderStep3Match(host) {
   const needsAction = matchItems.some(
     (it) => it.status === "needs_input" || it.status === "failed",
   );
-  return b2`
+  return x`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -40493,7 +41597,7 @@ function _renderStep3Match(host) {
         </div>
         ${
           matchItems.length === 0
-            ? b2`<div class="match-empty">
+            ? x`<div class="match-empty">
               ${
                 host._recipesBusy
                   ? host._t(
@@ -40514,7 +41618,7 @@ function _renderStep3Match(host) {
 
       ${
         active
-          ? b2`<div class="match-detail">
+          ? x`<div class="match-detail">
             ${_renderActionPanel(host, active)}
           </div>`
           : ""
@@ -40575,7 +41679,7 @@ function _renderMatchRow(host, item, active) {
   }
   const selected = _matchRowSelected(host, item);
   const visual = _matchRowVisual(item);
-  return b2`
+  return x`
     <button
       type="button"
       class="match-row match-data ${active ? "is-active" : ""}"
@@ -40593,11 +41697,11 @@ function _renderMatchRow(host, item, active) {
           <div class="match-title">${item.title}</div>
           ${
             flowError
-              ? b2`<div class="match-sub is-error" title=${flowError}>
+              ? x`<div class="match-sub is-error" title=${flowError}>
                 ${flowError}
               </div>`
               : item.detail
-                ? b2`<div class="match-sub">${item.detail}</div>`
+                ? x`<div class="match-sub">${item.detail}</div>`
                 : ""
           }
         </div>
@@ -40615,7 +41719,7 @@ function _matchRowSelected(host, item) {
     const pinned = item.payload?.pinned || [];
     const total = bound.length + pinned.length;
     if (total === 0)
-      return b2`<span class="panel-muted"
+      return x`<span class="panel-muted"
         >${host._t("recipes_selected_none", "None")}</span
       >`;
     if (total === 1)
@@ -40627,17 +41731,17 @@ function _matchRowSelected(host, item) {
     const label = [id.manufacturer, id.model].filter(Boolean).join(" ");
     return (
       label ||
-      b2`<span class="panel-muted"
+      x`<span class="panel-muted"
         >${host._t("recipes_selected_awaiting_pair", "Awaiting pair")}</span
       >`
     );
   }
   if (item.kind === "integration") {
-    return b2`<span class="panel-muted">—</span>`;
+    return x`<span class="panel-muted">—</span>`;
   }
   if (item.kind === "inputs") {
-    const n4 = item.payload?.inputs?.length || 0;
-    return `${n4} ${n4 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
+    const n5 = item.payload?.inputs?.length || 0;
+    return `${n5} ${n5 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
   }
   return "";
 }
@@ -40661,7 +41765,7 @@ function _renderStep4Resolve(host) {
   const allDone =
     installOk || (apply.length > 0 && completed.length === apply.length);
   const errorPunch = installFailed ? result.punch_list || [] : [];
-  return b2`
+  return x`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -40684,7 +41788,7 @@ function _renderStep4Resolve(host) {
       )}
       ${
         installFailed
-          ? b2`
+          ? x`
             <section class="bucket bucket-failed">
               <h3 class="bucket-title">
                 <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -40692,15 +41796,15 @@ function _renderStep4Resolve(host) {
               </h3>
               ${
                 errorPunch.length
-                  ? b2`<ul class="install-fail-list">
+                  ? x`<ul class="install-fail-list">
                     ${errorPunch.map(
-                      (p4) => b2`<li>
-                          <span class="install-fail-stage">${p4.stage}</span>
-                          ${p4.message}
+                      (p2) => x`<li>
+                          <span class="install-fail-stage">${p2.stage}</span>
+                          ${p2.message}
                         </li>`,
                     )}
                   </ul>`
-                  : b2`<p class="panel-prose panel-muted">
+                  : x`<p class="panel-prose panel-muted">
                     ${host._t(
                       "recipes_bucket_no_details",
                       "No details available. Check the Home Assistant log for the underlying error.",
@@ -40713,7 +41817,7 @@ function _renderStep4Resolve(host) {
       }
       ${
         interrupts.length
-          ? b2`
+          ? x`
             <section class="bucket bucket-waiting">
               <h3 class="bucket-title">
                 <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
@@ -40726,7 +41830,7 @@ function _renderStep4Resolve(host) {
       }
       ${
         failed.length
-          ? b2`
+          ? x`
             <section class="bucket bucket-failed">
               <h3 class="bucket-title">
                 <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -40739,7 +41843,7 @@ function _renderStep4Resolve(host) {
       }
       ${
         running.length
-          ? b2`
+          ? x`
             <section class="bucket bucket-running">
               <h3 class="bucket-title">
                 <ha-icon icon="mdi:cog-sync-outline"></ha-icon>
@@ -40752,7 +41856,7 @@ function _renderStep4Resolve(host) {
       }
       ${
         upcoming.length
-          ? b2`
+          ? x`
             <section class="bucket bucket-upcoming">
               <h3 class="bucket-title">
                 <ha-icon icon="mdi:tray-arrow-down"></ha-icon>
@@ -40765,7 +41869,7 @@ function _renderStep4Resolve(host) {
       }
       ${
         completed.length
-          ? b2`
+          ? x`
             <section class="bucket bucket-done">
               <h3 class="bucket-title">
                 <ha-icon icon="mdi:check-circle-outline"></ha-icon>
@@ -40807,18 +41911,18 @@ function _renderStep4Resolve(host) {
 }
 function _renderBucketItem(host, item, interactive) {
   const icon = _STATUS_ICON[item.status] || "mdi:circle-outline";
-  return b2`
+  return x`
     <div class="bucket-item">
       <div class="bucket-item-icon-wrap bucket-tile-${item.status}">
         <ha-icon icon=${icon}></ha-icon>
       </div>
       <div class="bucket-item-body">
         <div class="bucket-item-title">${item.title}</div>
-        ${item.detail ? b2`<div class="bucket-item-detail">${item.detail}</div>` : ""}
+        ${item.detail ? x`<div class="bucket-item-detail">${item.detail}</div>` : ""}
       </div>
       ${
         interactive
-          ? b2`<div class="bucket-item-action">
+          ? x`<div class="bucket-item-action">
             ${_renderActionPanel(host, item)}
           </div>`
           : ""
@@ -40834,7 +41938,7 @@ function _renderDashboardOutcome(host) {
   const dashboards = host._recipeDashboards || [];
   const title = host._t("recipes_step5_dashboard_title", "Dashboard card");
   if (placed) {
-    return b2`
+    return x`
       <section class="overview-card">
         <h3 class="overview-card-title">${title}</h3>
         <p class="step-prose">
@@ -40848,7 +41952,7 @@ function _renderDashboardOutcome(host) {
     `;
   }
   if (!dashboards.length) {
-    return b2`
+    return x`
       <section class="overview-card">
         <h3 class="overview-card-title">${title}</h3>
         <p class="step-prose panel-muted">
@@ -40865,7 +41969,7 @@ function _renderDashboardOutcome(host) {
     dashboards[0].url_path == null ? "" : dashboards[0].url_path;
   const selected =
     current === void 0 ? firstValue : current == null ? "" : current;
-  return b2`
+  return x`
     <section class="overview-card">
       <h3 class="overview-card-title">${title}</h3>
       <p class="step-prose panel-muted">
@@ -40881,7 +41985,7 @@ function _renderDashboardOutcome(host) {
         ?disabled=${host._recipesBusy}
       >
         ${dashboards.map(
-          (d3) => b2`<option value=${d3.url_path == null ? "" : d3.url_path}>
+          (d3) => x`<option value=${d3.url_path == null ? "" : d3.url_path}>
               ${d3.title}
             </option>`,
         )}
@@ -40936,9 +42040,9 @@ function _renderStep5Activate(host) {
     },
   ];
   const summaryBullets = Object.entries(counts)
-    .filter(([, n4]) => n4 > 0)
-    .map(([k2, n4]) => _humaniseSection(host, k2, n4));
-  return b2`
+    .filter(([, n5]) => n5 > 0)
+    .map(([k2, n5]) => _humaniseSection(host, k2, n5));
+  return x`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -40958,15 +42062,15 @@ function _renderStep5Activate(host) {
           </h3>
           ${
             summaryBullets.length
-              ? b2`<ul class="overview-list">
+              ? x`<ul class="overview-list">
                 ${summaryBullets.map(
-                  (b3) => b2`<li>
+                  (b2) => x`<li>
                       <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
-                      ${b3[0].toUpperCase() + b3.slice(1)}
+                      ${b2[0].toUpperCase() + b2.slice(1)}
                     </li>`,
                 )}
               </ul>`
-              : b2`<p class="step-prose panel-muted">
+              : x`<p class="step-prose panel-muted">
                 ${host._t(
                   "recipes_step5_no_entries",
                   "No entries were generated.",
@@ -40981,23 +42085,23 @@ function _renderStep5Activate(host) {
           </h3>
           ${
             uniqueBound.length
-              ? b2`<ul class="overview-list compact">
+              ? x`<ul class="overview-list compact">
                 ${uniqueBound.slice(0, 8).map(
-                  (id) => b2`<li>
+                  (id) => x`<li>
                       <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
                       ${_entityFriendlyName(host.hass, id)}
                     </li>`,
                 )}
                 ${
                   uniqueBound.length > 8
-                    ? b2`<li class="panel-muted">
+                    ? x`<li class="panel-muted">
                       + ${uniqueBound.length - 8}
                       ${host._t("recipes_step5_more_suffix", "more")}
                     </li>`
                     : ""
                 }
               </ul>`
-              : b2`<p class="step-prose panel-muted">
+              : x`<p class="step-prose panel-muted">
                 ${host._t(
                   "recipes_step5_no_devices",
                   "No devices are tied to this recipe.",
@@ -41012,12 +42116,12 @@ function _renderStep5Activate(host) {
           </h3>
           <ul class="overview-list compact">
             ${safety.map(
-              (s4) => b2`<li>
+              (s6) => x`<li>
                   <ha-icon
-                    icon=${s4.ok ? "mdi:check-circle" : "mdi:alert-circle"}
-                    class=${s4.ok ? "safety-ok" : "safety-fail"}
+                    icon=${s6.ok ? "mdi:check-circle" : "mdi:alert-circle"}
+                    class=${s6.ok ? "safety-ok" : "safety-fail"}
                   ></ha-icon>
-                  ${s4.label}
+                  ${s6.label}
                 </li>`,
             )}
           </ul>
@@ -41045,7 +42149,7 @@ function _renderStep5Activate(host) {
 function _renderWizardView(host) {
   const detail = host._recipeWizardDetail;
   if (!detail) {
-    return b2`<div class="recipes-empty">
+    return x`<div class="recipes-empty">
       ${host._t("recipes_loading", "Loading\u2026")}
     </div>`;
   }
@@ -41064,7 +42168,7 @@ function _renderWizardView(host) {
     step === 1
       ? _renderWhatYouNeedRail(host, detail.manifest)
       : _renderWizardStepper(host);
-  return b2`
+  return x`
     <div class="wizard-root ${step === 1 ? "wizard-root-overview" : ""}">
       <div class="wizard-main">
         ${_renderWizardHero(host, detail.manifest, { compact: step !== 1 })}
@@ -41077,7 +42181,7 @@ function _renderWizardView(host) {
 function _renderResultView(host) {
   const result = host._recipeWizardResult;
   if (!result) return "";
-  return b2`
+  return x`
     <div class="recipes-root">
       <button
         class="wizard-back"
@@ -41096,7 +42200,7 @@ function _renderResultView(host) {
       </button>
       ${
         result.ok
-          ? b2`
+          ? x`
             <div class="install-success">
               <div
                 style="font-size:var(--selora-fs-xl);font-weight:700;display:flex;align-items:center;gap:8px;"
@@ -41109,7 +42213,7 @@ function _renderResultView(host) {
               </div>
               ${
                 result.record
-                  ? b2`
+                  ? x`
                     <div style="font-size:var(--selora-fs-md);line-height:1.6;">
                       ${result.record.title} v${result.record.version}
                       ${host._t(
@@ -41124,7 +42228,7 @@ function _renderResultView(host) {
             </div>
             ${
               result.preview?.yaml
-                ? b2`
+                ? x`
                   <details class="wizard-section package-disclosure">
                     <summary>
                       <ha-icon
@@ -41151,7 +42255,7 @@ function _renderResultView(host) {
                 : ""
             }
           `
-          : b2`
+          : x`
             <div class="wizard-section">
               <h3 style="color:var(--error-color,#c62828);">
                 ${host._t(
@@ -41194,7 +42298,7 @@ function _renderUninstallModal(host) {
       host._cancelRecipeUninstall();
     }
   };
-  return b2`
+  return x`
     <div
       class="modal-overlay"
       @click=${(e6) => {
@@ -41222,7 +42326,7 @@ function _renderUninstallModal(host) {
         </p>
         ${
           integrationDomains.length
-            ? b2`
+            ? x`
               <div class="uninstall-integrations">
                 <div class="uninstall-integrations-title">
                   ${host._t(
@@ -41241,7 +42345,7 @@ function _renderUninstallModal(host) {
                   const checked = !!selectedEntries[entryId];
                   const others = host._otherUsersOfDomain(domain, slug);
                   const iconUrl = `https://brands.home-assistant.io/_/${domain}/icon@2x.png`;
-                  return b2`
+                  return x`
                     <label class="uninstall-integration-row">
                       <input
                         type="checkbox"
@@ -41261,7 +42365,7 @@ function _renderUninstallModal(host) {
                         <div class="uninstall-integration-name">${domain}</div>
                         ${
                           others.length
-                            ? b2`<div
+                            ? x`<div
                               class="uninstall-integration-warn"
                               title=${host._t(
                                 "recipes_uninstall_warn_title",
@@ -41309,7 +42413,7 @@ function _renderManageDevicesModal(host) {
   const slug = host._recipeManageSlug;
   if (!slug) return "";
   const detail = host._recipeManageDetail;
-  return b2`
+  return x`
     <div
       class="modal-overlay"
       @click=${(e6) => {
@@ -41327,13 +42431,13 @@ function _renderManageDevicesModal(host) {
             "Manage devices",
           )}${detail ? ` \u2014 ${detail.manifest.title}` : ""}
         </h3>
-        ${host._recipeManageError ? b2`<div class="panel-error">${host._recipeManageError}</div>` : ""}
+        ${host._recipeManageError ? x`<div class="panel-error">${host._recipeManageError}</div>` : ""}
         ${
           !detail
-            ? b2`<p class="panel-prose panel-muted">
+            ? x`<p class="panel-prose panel-muted">
               ${host._recipeManageBusy ? host._t("recipes_loading", "Loading\u2026") : host._t("recipes_manage_no_detail", "No detail available.")}
             </p>`
-            : b2`
+            : x`
               <p class="panel-prose">
                 ${host._t(
                   "recipes_manage_intro",
@@ -41376,16 +42480,16 @@ function _renderManageRoleRow(host, role) {
     }
     return true;
   });
-  return b2`
+  return x`
     <div class="manage-role">
       <div class="manage-role-head">
         <div class="manage-role-title">${role.title || role.id}</div>
-        ${role.description ? b2`<div class="manage-role-desc">${role.description}</div>` : ""}
+        ${role.description ? x`<div class="manage-role-desc">${role.description}</div>` : ""}
       </div>
       <div class="panel-chips">
         ${
           candidates.length === 0
-            ? b2`<p class="panel-prose panel-muted">
+            ? x`<p class="panel-prose panel-muted">
               ${host._t("recipes_manage_no_entities_prefix", "No")} ${role.kind}
               ${host._t(
                 "recipes_manage_no_entities_suffix",
@@ -41394,7 +42498,7 @@ function _renderManageRoleRow(host, role) {
             </p>`
             : candidates.map((id) => {
                 const on = selected.has(id);
-                return b2`
+                return x`
                 <button
                   type="button"
                   class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
@@ -41424,36 +42528,36 @@ function renderRecipesV2(host) {
   if (host._recipesView === "wizard") body = _renderWizardView(host);
   else if (host._recipesView === "result") body = _renderResultView(host);
   else body = _renderListView(host);
-  return b2`
+  return x`
     <div class="scroll-view">${_STYLE} ${body}</div>
     ${_renderManageDevicesModal(host)} ${_renderUninstallModal(host)}
   `;
 }
 
 // src/panel/render-version-history.js
-function renderVersionHistoryDrawer(host, a3) {
-  const automationId = a3.automation_id || a3.entity_id;
+function renderVersionHistoryDrawer(host, a4) {
+  const automationId = a4.automation_id || a4.entity_id;
   const versions = host._versions[automationId] || [];
   const loading = host._loadingVersions[automationId];
-  return b2`
+  return x`
     <div class="version-history">
       ${
         loading
-          ? b2`<div class="version-history-empty">
+          ? x`<div class="version-history-empty">
             ${host._t("version_history_loading", "Loading\u2026")}
           </div>`
           : versions.length === 0
-            ? b2`<div class="version-history-empty">
+            ? x`<div class="version-history-empty">
               ${host._t("version_history_empty", "No version history yet.")}
             </div>`
-            : b2`
+            : x`
               <ol class="version-list">
-                ${versions.map((v2, i7) =>
+                ${versions.map((v2, i5) =>
                   renderVersionEntry(
                     host,
                     automationId,
                     v2,
-                    i7,
+                    i5,
                     versions.length,
                   ),
                 )}
@@ -41463,16 +42567,16 @@ function renderVersionHistoryDrawer(host, a3) {
     </div>
   `;
 }
-function renderVersionEntry(host, automationId, v2, i7, total) {
+function renderVersionEntry(host, automationId, v2, i5, total) {
   const key = `${automationId}_${v2.version_id}`;
   const restoring = host._restoringVersion[key];
   const date = new Date(v2.created_at);
   const timeAgo = relativeTime(date);
-  const isCurrent = i7 === 0;
+  const isCurrent = i5 === 0;
   const message = v2.message || v2.version_message;
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
-  const versionNumber = total - i7;
-  return b2`
+  const versionNumber = total - i5;
+  return x`
     <li class="version-entry ${isCurrent ? "current" : ""}">
       <span class="version-entry-dot" aria-hidden="true"></span>
       <div class="version-entry-card">
@@ -41481,7 +42585,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
             <span class="version-entry-num">v${versionNumber}</span>
             ${
               isCurrent
-                ? b2`<span class="version-entry-badge"
+                ? x`<span class="version-entry-badge"
                   >${host._t("version_history_current_badge", "Current")}</span
                 >`
                 : ""
@@ -41491,7 +42595,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
             >${timeAgo}</time
           >
         </header>
-        ${message ? b2`<p class="version-entry-message">${message}</p>` : ""}
+        ${message ? x`<p class="version-entry-message">${message}</p>` : ""}
         <div class="version-entry-actions">
           <button
             class="btn btn-outline version-entry-btn"
@@ -41505,7 +42609,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
           </button>
           ${
             !isCurrent
-              ? b2`
+              ? x`
                 <button
                   class="btn btn-outline version-entry-btn"
                   ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
@@ -41535,7 +42639,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
         </div>
         ${
           yamlOpen
-            ? b2`<div class="version-entry-yaml">
+            ? x`<div class="version-entry-yaml">
               <ha-code-editor
                 mode="yaml"
                 .value=${v2.yaml || v2.yaml_content || host._t("version_history_no_yaml_stored", "(no YAML stored)")}
@@ -41553,7 +42657,7 @@ function renderDiffViewer(host) {
   if (!host._diffOpen) return "";
   const automationId = host._diffAutomationId;
   const versions = host._versions[automationId] || [];
-  return b2`
+  return x`
     <div
       style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
       @click=${(e6) => {
@@ -41608,8 +42712,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
+                (v2, i5) => x`<option value=${v2.version_id}>
+                    v${versions.length - i5} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -41635,8 +42739,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
+                (v2, i5) => x`<option value=${v2.version_id}>
+                    v${versions.length - i5} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -41646,14 +42750,14 @@ function renderDiffViewer(host) {
         <div style="flex:1;overflow-y:auto;padding:12px 20px;">
           ${
             host._loadingDiff
-              ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+              ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
                 ${host._t("version_history_loading_diff", "Loading diff\u2026")}
               </div>`
               : host._diffResult.length === 0
-                ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+                ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
                   ${host._t("version_history_no_diff", "No differences found.")}
                 </div>`
-                : b2`<pre
+                : x`<pre
                   style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
                 >
 ${host._diffResult.map((line) => {
@@ -41667,7 +42771,7 @@ ${host._diffResult.map((line) => {
     : line.startsWith("-")
       ? "#fa5252"
       : "var(--primary-text-color)";
-  return b2`<span
+  return x`<span
                       style="display:block;background:${bg};color:${color};padding:1px 4px;"
                       >${line}</span
                     >`;
@@ -41710,7 +42814,21 @@ var VALID_TABS = [
   "recipes",
   "settings",
   "usage",
+  "insights",
 ];
+var TAB_STORAGE_KEY = "selora_ai_active_tab";
+function _readStoredTab() {
+  try {
+    return window.sessionStorage.getItem(TAB_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+function _writeStoredTab(tab) {
+  try {
+    window.sessionStorage.setItem(TAB_STORAGE_KEY, tab);
+  } catch {}
+}
 function _parsePath(pathname) {
   if (!pathname.startsWith(PANEL_PREFIX)) return { tab: null, subpath: "" };
   const rest = pathname.slice(PANEL_PREFIX.length).replace(/^\/+|\/+$/g, "");
@@ -41723,6 +42841,7 @@ function _setActiveTab(tab) {
   if (!VALID_TABS.includes(tab)) return;
   this._closeRowMenus?.();
   this._activeTab = tab;
+  _writeStoredTab(tab);
   const target = tab === "chat" ? PANEL_PREFIX : `${PANEL_PREFIX}/${tab}`;
   if (window.location.pathname !== target) {
     const url = new URL(window.location);
@@ -41745,15 +42864,31 @@ function _setRecipeWizardUrl(slug) {
   }
 }
 function _checkTabParam() {
-  const { tab, subpath } = _parsePath(window.location.pathname);
+  let { tab, subpath } = _parsePath(window.location.pathname);
+  if (!this._tabRestored) {
+    this._tabRestored = true;
+    if (tab === "chat" && this._activeTab === "chat") {
+      const stored = _readStoredTab();
+      if (stored && stored !== "chat" && VALID_TABS.includes(stored)) {
+        tab = stored;
+        const url = new URL(window.location);
+        url.pathname = `${PANEL_PREFIX}/${stored}`;
+        window.history.replaceState({}, "", url);
+      }
+    }
+  }
   const tabActivated = tab && tab !== this._activeTab;
   if (tabActivated) {
     this._activeTab = tab;
     if (tab !== "chat") this._showSidebar = false;
   }
-  if (tab === "usage" && tabActivated) this._loadUsageStats?.();
+  const hassJustArrived = !!this.hass && !this._hadHass;
+  this._hadHass = !!this.hass;
+  const shouldLoad = tabActivated || hassJustArrived;
+  if (tab === "usage" && shouldLoad) this._loadUsageStats?.();
+  if (tab === "insights" && shouldLoad) this._openInsights?.();
   if (tab === "recipes") {
-    if (tabActivated) this._loadRecipesList?.();
+    if (shouldLoad) this._loadRecipesList?.();
     if (subpath) {
       const slug = decodeURIComponent(subpath.split("/")[0] || "");
       if (slug && slug !== this._recipeWizardSlug) {
@@ -41763,7 +42898,7 @@ function _checkTabParam() {
       this._closeRecipeWizard?.();
     }
   }
-  if (tab === "settings" && tabActivated) {
+  if (tab === "settings" && shouldLoad) {
     this._loadApprovalGrants?.();
     this._loadMcpTokens?.();
   }
@@ -41856,8 +42991,19 @@ async function _newSession() {
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
     if (this.narrow) this._showSidebar = false;
+    return true;
   } catch (err) {
     console.error("Failed to create session", err);
+    this._showToast(
+      this._t(
+        "session_toast_new_session_failed",
+        "Failed to start a new conversation:",
+      ) +
+        " " +
+        (err?.message || err),
+      "error",
+    );
+    return false;
   }
 }
 async function _startNewAutomationChat() {
@@ -42072,14 +43218,14 @@ function _toggleSessionSelection(sessionId) {
 }
 function _toggleSelectAllSessions() {
   const allSelected = this._sessions.every(
-    (s4) => this._selectedSessionIds[s4.id],
+    (s6) => this._selectedSessionIds[s6.id],
   );
   if (allSelected) {
     this._selectedSessionIds = {};
   } else {
     const selected = {};
-    this._sessions.forEach((s4) => {
-      selected[s4.id] = true;
+    this._sessions.forEach((s6) => {
+      selected[s6.id] = true;
     });
     this._selectedSessionIds = selected;
   }
@@ -42143,17 +43289,17 @@ async function _triggerGenerateSuggestions() {
       type: "selora_ai/generate_suggestions",
     });
     const existingAliases = new Set(
-      (this._suggestions || []).map((s4) => {
-        const a3 = s4.automation || s4.automation_data || {};
-        return (a3.alias || "").toLowerCase();
+      (this._suggestions || []).map((s6) => {
+        const a4 = s6.automation || s6.automation_data || {};
+        return (a4.alias || "").toLowerCase();
       }),
     );
     const added = [];
-    for (const s4 of newSuggestions || []) {
-      const a3 = s4.automation || s4.automation_data || {};
-      const alias = (a3.alias || "").toLowerCase();
+    for (const s6 of newSuggestions || []) {
+      const a4 = s6.automation || s6.automation_data || {};
+      const alias = (a4.alias || "").toLowerCase();
       if (!existingAliases.has(alias)) {
-        added.push(s4);
+        added.push(s6);
         existingAliases.add(alias);
       }
     }
@@ -42190,7 +43336,7 @@ async function _loadAutomations() {
     });
     this._automations = (automations || []).reverse();
     const validIds = new Set(
-      this._automations.map((a3) => a3.automation_id).filter(Boolean),
+      this._automations.map((a4) => a4.automation_id).filter(Boolean),
     );
     this._selectedAutomationIds = Object.fromEntries(
       Object.entries(this._selectedAutomationIds || {}).filter(
@@ -42210,8 +43356,8 @@ async function _loadProactiveSuggestions() {
       status: "pending",
     });
     const seen = /* @__PURE__ */ new Set();
-    this._proactiveSuggestions = (suggestions || []).filter((s4) => {
-      const key = (s4.description || "").toLowerCase().trim();
+    this._proactiveSuggestions = (suggestions || []).filter((s6) => {
+      const key = (s6.description || "").toLowerCase().trim();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -42255,7 +43401,7 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
     await this._loadAutomations();
     await new Promise((r4) => setTimeout(r4, 650));
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -42286,7 +43432,7 @@ async function _dismissProactiveSuggestion(suggestionId) {
       action: "dismissed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_dismissed_toast", "Suggestion dismissed"),
@@ -42308,7 +43454,7 @@ async function _snoozeProactiveSuggestion(suggestionId) {
       action: "snoozed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_snoozed_toast", "Suggestion snoozed for 24h"),
@@ -42339,9 +43485,147 @@ async function _triggerPatternScan() {
   this._loadingProactive = false;
 }
 
+// src/panel/insights-actions.js
+var insights_actions_exports = {};
+__export(insights_actions_exports, {
+  _ignoreFix: () => _ignoreFix,
+  _loadAudit: () => _loadAudit,
+  _loadInsights: () => _loadInsights,
+  _openInsights: () => _openInsights,
+  _rerunAudit: () => _rerunAudit,
+});
+async function _loadInsights() {
+  try {
+    const res = await this.hass.callWS({ type: "selora_ai/insights/list" });
+    this._insightsEnabled = res.enabled !== false;
+    this._insightsExportEnabled = !!res.export_enabled;
+  } catch (err) {
+    console.error("Failed to load insights", err);
+  }
+}
+function _applyAudit(host, audit) {
+  host._auditStatus = audit?.status || "pending";
+  host._auditResponse = audit?.response || "";
+  host._auditRecommendations = audit?.recommendations || [];
+  host._auditChecks = audit?.checks || [];
+  host._auditScore = typeof audit?.score === "number" ? audit.score : null;
+  host._auditBand = audit?.band || "";
+  host._auditQuickActions = audit?.quick_actions || [];
+  host._auditGeneratedAt = audit?.generated_at || null;
+  host._auditError = audit?.error || null;
+}
+async function _loadAudit() {
+  try {
+    const audit = await this.hass.callWS({ type: "selora_ai/insights/audit" });
+    _applyAudit(this, audit);
+  } catch (err) {
+    console.error("Failed to load home audit", err);
+  } finally {
+    this._auditLoaded = true;
+  }
+}
+async function _rerunAudit() {
+  this._auditRunning = true;
+  try {
+    const audit = await this.hass.callWS({
+      type: "selora_ai/insights/audit_rerun",
+    });
+    if (audit?.status === "ok") {
+      _applyAudit(this, audit);
+      this._showToast(
+        this._t("insights_audit_done", "Home audit updated"),
+        "success",
+      );
+    } else if (audit?.status === "no_llm") {
+      _applyAudit(this, audit);
+      this._showToast(
+        this._t(
+          "insights_audit_no_llm_toast",
+          "Configure an LLM to run audits",
+        ),
+        "info",
+      );
+    } else if (audit?.status === "unsupported") {
+      _applyAudit(this, audit);
+      this._showToast(
+        this._t(
+          "insights_audit_unsupported_toast",
+          "Home audits need a cloud LLM provider",
+        ),
+        "info",
+      );
+    } else {
+      this._showToast(
+        this._t(
+          "insights_audit_failed",
+          "Home audit failed \u2014 showing the last one",
+        ),
+        "error",
+      );
+      await this._loadAudit();
+    }
+  } catch (err) {
+    console.error("Home audit failed", err);
+    this._showToast(
+      this._t(
+        "insights_audit_failed",
+        "Home audit failed \u2014 showing the last one",
+      ),
+      "error",
+    );
+    await this._loadAudit();
+  }
+  this._auditRunning = false;
+}
+async function _applyExclude(host, { device_id, entity_ids }) {
+  if (device_id) {
+    await host.hass.callWS({
+      type: "selora_ai/apply_exclude_label",
+      device_id,
+    });
+  } else {
+    for (const eid of entity_ids || []) {
+      await host.hass.callWS({
+        type: "selora_ai/apply_exclude_label",
+        entity_id: eid,
+      });
+    }
+  }
+  await host.hass.callWS({ type: "selora_ai/insights/rescan" });
+  await Promise.all([host._loadInsights(), host._loadAudit()]);
+  host._showToast(
+    host._t(
+      "insights_ignored",
+      "Ignored \u2014 undo it in Settings \u2192 Ignore list",
+    ),
+    "success",
+  );
+}
+async function _ignoreFix(fix) {
+  try {
+    await _applyExclude(this, {
+      device_id: fix.device_id,
+      entity_ids: fix.entities || [],
+    });
+  } catch (err) {
+    console.error("Failed to ignore fix", err);
+    this._showToast(
+      this._t("insights_ignore_failed", "Couldn't ignore that"),
+      "error",
+    );
+  }
+}
+async function _openInsights() {
+  await Promise.all([this._loadAudit(), this._loadInsights()]);
+  if (this._auditStatus === "pending" && !this._auditRunning) {
+    this._rerunAudit();
+  }
+}
+
 // src/panel/chat-actions.js
 var chat_actions_exports = {};
 __export(chat_actions_exports, {
+  _askInNewChat: () => _askInNewChat,
   _copyMessageText: () => _copyMessageText,
   _onChatScroll: () => _onChatScroll,
   _onCodeCopyClick: () => _onCodeCopyClick,
@@ -42357,6 +43641,12 @@ __export(chat_actions_exports, {
   looksTruncatedResponse: () => looksTruncatedResponse,
 });
 function _quickStart(message) {
+  this._input = message;
+  this._sendMessage();
+}
+async function _askInNewChat(message) {
+  const ok = await this._newSession();
+  if (!ok) return;
   this._input = message;
   this._sendMessage();
 }
@@ -42606,7 +43896,7 @@ async function _sendMessage() {
       } else if (event.type === "step" && event.step && event.step.id) {
         lastActivityAt = Date.now();
         const steps = assistantMsg.steps ? [...assistantMsg.steps] : [];
-        const at = steps.findIndex((s4) => s4.id === event.step.id);
+        const at = steps.findIndex((s6) => s6.id === event.step.id);
         if (at >= 0) steps[at] = event.step;
         else steps.push(event.step);
         assistantMsg.steps = steps;
@@ -42902,10 +44192,10 @@ function _getRefiningAutomationId(msgIndex = null) {
   if (msg?.refining_automation_id) return msg.refining_automation_id;
   if (msg?.automation_id) return msg.automation_id;
   if (msg?.automation?.id) return msg.automation.id;
-  for (const m3 of this._messages) {
-    if (m3.automation_status === "refining") {
-      if (m3.automation_id) return m3.automation_id;
-      if (m3.automation?.id) return m3.automation.id;
+  for (const m2 of this._messages) {
+    if (m2.automation_status === "refining") {
+      if (m2.automation_id) return m2.automation_id;
+      if (m2.automation?.id) return m2.automation.id;
     }
   }
   return null;
@@ -42997,14 +44287,14 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     msg?.risk_assessment?.level === "elevated";
   if (elevated) return;
   const created = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
+    (a4) => a4.automation_id === automationId,
   );
   if (!created?.entity_id) {
     await new Promise((r4) => setTimeout(r4, 250));
     await this._loadAutomations();
   }
   const target = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
+    (a4) => a4.automation_id === automationId,
   );
   if (!target?.entity_id) {
     console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
@@ -43017,8 +44307,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     );
     return;
   }
-  this._automations = (this._automations || []).map((a3) =>
-    a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+  this._automations = (this._automations || []).map((a4) =>
+    a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
   );
   this.requestUpdate();
   try {
@@ -43029,8 +44319,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
       enabled: true,
     });
   } catch (err) {
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "off" } : a3,
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "off" } : a4,
     );
     this.requestUpdate();
     console.error("Failed to auto-enable new automation", err);
@@ -43054,7 +44344,7 @@ async function _removeDraftForSession(sessionId) {
   if (!sessionId) return;
   try {
     const draft = this._automations.find(
-      (a3) => a3._draft && a3._linked_session === sessionId,
+      (a4) => a4._draft && a4._linked_session === sessionId,
     );
     if (draft && draft._draft_id) {
       await this.hass.callWS({
@@ -43151,7 +44441,7 @@ async function _createAutomationFromSuggestion(automation) {
   }
 }
 function _discardSuggestion(suggestion) {
-  this._suggestions = this._suggestions.filter((s4) => s4 !== suggestion);
+  this._suggestions = this._suggestions.filter((s6) => s6 !== suggestion);
 }
 var ACCEPT_ANIM_MS = 240;
 async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
@@ -43259,9 +44549,9 @@ async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     const toast = _createdToast(auto.alias, createResult);
     this._showToast(toast.message, toast.type);
     await new Promise((r4) => setTimeout(r4, 650));
-    this._suggestions = this._suggestions.filter((s4) => {
-      const a3 = s4.automation || s4.automation_data;
-      return `sug_${a3?.alias}` !== yamlKey;
+    this._suggestions = this._suggestions.filter((s6) => {
+      const a4 = s6.automation || s6.automation_data;
+      return `sug_${a4?.alias}` !== yamlKey;
     });
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -43464,11 +44754,11 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "close_cover")
         return { ...base, state: "closed", current_position: 0 };
       if (service === "set_cover_position" && data.position != null) {
-        const p4 = Number(data.position);
+        const p2 = Number(data.position);
         return {
           ...base,
-          state: p4 > 0 ? "open" : "closed",
-          current_position: p4,
+          state: p2 > 0 ? "open" : "closed",
+          current_position: p2,
         };
       }
       return null;
@@ -43477,8 +44767,8 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "turn_off") return { state: "off" };
       if (service === "turn_on") return { ...base, state: "on" };
       if (service === "set_percentage" && data.percentage != null) {
-        const p4 = Number(data.percentage);
-        return { ...base, state: p4 > 0 ? "on" : "off", percentage: p4 };
+        const p2 = Number(data.percentage);
+        return { ...base, state: p2 > 0 ? "on" : "off", percentage: p2 };
       }
       if (service === "set_preset_mode" && data.preset_mode != null) {
         return { ...base, state: "on", preset_mode: data.preset_mode };
@@ -43538,7 +44828,7 @@ function _cleanSceneEntities(entities) {
 function _sceneEditedEntities(sceneId) {
   const edited = this._sceneEdits?.[sceneId];
   if (edited) return edited;
-  const scene = (this._scenes || []).find((s4) => s4.scene_id === sceneId);
+  const scene = (this._scenes || []).find((s6) => s6.scene_id === sceneId);
   return scene?.entities || {};
 }
 function _applySceneTileEdit(sceneId, entityId, domain, service, data) {
@@ -43667,8 +44957,8 @@ function _discardSceneEdits(sceneId) {
     }
     for (const pc of resolver.querySelectorAll("ha-panel-custom")) fix(pc);
     new MutationObserver((muts) => {
-      for (const m3 of muts) {
-        for (const n4 of m3.addedNodes) if (n4.nodeType === 1) fix(n4);
+      for (const m2 of muts) {
+        for (const n5 of m2.addedNodes) if (n5.nodeType === 1) fix(n5);
       }
     }).observe(resolver, { childList: true });
   };
@@ -43688,7 +44978,7 @@ var _SHA256_K = new Uint32Array([
   2756734187, 3204031479, 3329325298,
 ]);
 function _sha256(msgBytes) {
-  const rotr = (x2, n4) => (x2 >>> n4) | (x2 << (32 - n4));
+  const rotr = (x2, n5) => (x2 >>> n5) | (x2 << (32 - n5));
   const len = msgBytes.length;
   const bitLen = len * 8;
   const blocks = Math.ceil((len + 9) / 64);
@@ -43702,49 +44992,49 @@ function _sha256(msgBytes) {
     528734635, 1541459225,
   ];
   const w2 = new Uint32Array(64);
-  for (let i7 = 0; i7 < padded.length; i7 += 64) {
-    for (let t5 = 0; t5 < 16; t5++) w2[t5] = dv.getUint32(i7 + t5 * 4, false);
-    for (let t5 = 16; t5 < 64; t5++) {
+  for (let i5 = 0; i5 < padded.length; i5 += 64) {
+    for (let t4 = 0; t4 < 16; t4++) w2[t4] = dv.getUint32(i5 + t4 * 4, false);
+    for (let t4 = 16; t4 < 64; t4++) {
       const s0 =
-        rotr(w2[t5 - 15], 7) ^ rotr(w2[t5 - 15], 18) ^ (w2[t5 - 15] >>> 3);
+        rotr(w2[t4 - 15], 7) ^ rotr(w2[t4 - 15], 18) ^ (w2[t4 - 15] >>> 3);
       const s1 =
-        rotr(w2[t5 - 2], 17) ^ rotr(w2[t5 - 2], 19) ^ (w2[t5 - 2] >>> 10);
-      w2[t5] = (w2[t5 - 16] + s0 + w2[t5 - 7] + s1) | 0;
+        rotr(w2[t4 - 2], 17) ^ rotr(w2[t4 - 2], 19) ^ (w2[t4 - 2] >>> 10);
+      w2[t4] = (w2[t4 - 16] + s0 + w2[t4 - 7] + s1) | 0;
     }
-    let [a3, b3, c4, d3, e6, f3, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
-    for (let t5 = 0; t5 < 64; t5++) {
+    let [a4, b2, c3, d3, e6, f2, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
+    for (let t4 = 0; t4 < 64; t4++) {
       const S1 = rotr(e6, 6) ^ rotr(e6, 11) ^ rotr(e6, 25);
-      const ch = (e6 & f3) ^ (~e6 & g2);
-      const t1 = (h8 + S1 + ch + _SHA256_K[t5] + w2[t5]) | 0;
-      const S0 = rotr(a3, 2) ^ rotr(a3, 13) ^ rotr(a3, 22);
-      const maj = (a3 & b3) ^ (a3 & c4) ^ (b3 & c4);
+      const ch = (e6 & f2) ^ (~e6 & g2);
+      const t1 = (h8 + S1 + ch + _SHA256_K[t4] + w2[t4]) | 0;
+      const S0 = rotr(a4, 2) ^ rotr(a4, 13) ^ rotr(a4, 22);
+      const maj = (a4 & b2) ^ (a4 & c3) ^ (b2 & c3);
       const t22 = (S0 + maj) | 0;
       h8 = g2;
-      g2 = f3;
-      f3 = e6;
+      g2 = f2;
+      f2 = e6;
       e6 = (d3 + t1) | 0;
-      d3 = c4;
-      c4 = b3;
-      b3 = a3;
-      a3 = (t1 + t22) | 0;
+      d3 = c3;
+      c3 = b2;
+      b2 = a4;
+      a4 = (t1 + t22) | 0;
     }
-    h0 = (h0 + a3) | 0;
-    h1 = (h1 + b3) | 0;
-    h22 = (h22 + c4) | 0;
+    h0 = (h0 + a4) | 0;
+    h1 = (h1 + b2) | 0;
+    h22 = (h22 + c3) | 0;
     h3 = (h3 + d3) | 0;
     h4 = (h4 + e6) | 0;
-    h5 = (h5 + f3) | 0;
+    h5 = (h5 + f2) | 0;
     h6 = (h6 + g2) | 0;
     h7 = (h7 + h8) | 0;
   }
   const out = new Uint8Array(32);
   const ov = new DataView(out.buffer);
-  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i7) =>
-    ov.setUint32(i7 * 4, v2, false),
+  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i5) =>
+    ov.setUint32(i5 * 4, v2, false),
   );
   return out;
 }
-var SeloraAIPanel = class extends i4 {
+var SeloraAIPanel = class extends s4 {
   // HA's recent panel resolver wraps each panel in a scoped custom-element
   // registry (via @webcomponents/scoped-custom-element-registry). With the
   // default attachShadow options, our shadow root gets a fresh per-panel
@@ -43756,7 +45046,7 @@ var SeloraAIPanel = class extends i4 {
   // so attachShadow uses the global registry. Lit reads this static for
   // its default createRenderRoot, which keeps style adoption intact.
   static shadowRootOptions = {
-    ...i4.shadowRootOptions,
+    ...s4.shadowRootOptions,
     customElements: window.customElements,
   };
   static get properties() {
@@ -43860,6 +45150,22 @@ var SeloraAIPanel = class extends i4 {
       _recipeManageSelections: { type: Object },
       _recipeManageBusy: { type: Boolean },
       _recipeManageError: { type: String },
+      // Health tab
+      _insightsLoading: { type: Boolean },
+      _insightsEnabled: { type: Boolean },
+      _insightsExportEnabled: { type: Boolean },
+      // Daily home audit (primary Insights view)
+      _auditStatus: { type: String },
+      _auditResponse: { type: String },
+      _auditRecommendations: { type: Array },
+      _auditChecks: { type: Array },
+      _auditScore: { type: Number },
+      _auditBand: { type: String },
+      _auditQuickActions: { type: Array },
+      _auditGeneratedAt: { type: String },
+      _auditError: { type: String },
+      _auditRunning: { type: Boolean },
+      _auditLoaded: { type: Boolean },
       // Automations tab
       _suggestions: { type: Array },
       _automations: { type: Array },
@@ -44098,6 +45404,20 @@ var SeloraAIPanel = class extends i4 {
     this._suggestionBulkMode = false;
     this._highlightedAutomation = null;
     this._fadingOutSuggestions = {};
+    this._insightsLoading = false;
+    this._insightsEnabled = true;
+    this._insightsExportEnabled = false;
+    this._auditStatus = "pending";
+    this._auditResponse = "";
+    this._auditRecommendations = [];
+    this._auditChecks = [];
+    this._auditScore = null;
+    this._auditBand = "";
+    this._auditQuickActions = [];
+    this._auditGeneratedAt = null;
+    this._auditError = null;
+    this._auditRunning = false;
+    this._auditLoaded = false;
     this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
@@ -44419,13 +45739,13 @@ var SeloraAIPanel = class extends i4 {
     this.requestUpdate();
   }
   _quotaProviderLabel() {
-    const p4 = this._quotaAlert?.provider;
-    if (p4 === "selora_cloud") return "Selora Cloud";
-    if (p4 === "anthropic") return "Anthropic";
-    if (p4 === "openai") return "OpenAI";
-    if (p4 === "openrouter") return "OpenRouter";
-    if (p4 === "gemini") return "Gemini";
-    if (p4 === "ollama") return "Ollama";
+    const p2 = this._quotaAlert?.provider;
+    if (p2 === "selora_cloud") return "Selora Cloud";
+    if (p2 === "anthropic") return "Anthropic";
+    if (p2 === "openai") return "OpenAI";
+    if (p2 === "openrouter") return "OpenRouter";
+    if (p2 === "gemini") return "Gemini";
+    if (p2 === "ollama") return "Ollama";
     return this._t("panel_quota_provider_default", "your LLM provider");
   }
   _renderQuotaBanner() {
@@ -44434,7 +45754,7 @@ var SeloraAIPanel = class extends i4 {
       0,
       Math.ceil((this._quotaAlert.until - Date.now()) / 1e3),
     );
-    return b2`
+    return x`
       <div class="quota-banner" role="alert">
         <ha-icon icon="mdi:speedometer-slow"></ha-icon>
         <div class="quota-banner-text">
@@ -44444,7 +45764,7 @@ var SeloraAIPanel = class extends i4 {
           >
           ${
             remaining > 0
-              ? b2` ${this._t("panel_quota_try_again_prefix", "Try again in")}
+              ? x` ${this._t("panel_quota_try_again_prefix", "Try again in")}
               ${remaining}s.`
               : ` ${this._t("panel_quota_retrying_now", "Retrying now\u2026")}`
           }
@@ -44694,6 +46014,13 @@ var SeloraAIPanel = class extends i4 {
         discovery_end_time: this._config.discovery_end_time,
         pattern_detection_enabled:
           this._config.pattern_detection_enabled !== false,
+        insights_enabled: this._config.insights_enabled !== false,
+        // Guard against a cleared/zero/negative interval reaching the backend
+        // (would crash timer creation); fall back to the 15-min default.
+        insights_interval: (() => {
+          const v2 = parseInt(this._config.insights_interval, 10);
+          return Number.isFinite(v2) && v2 >= 60 ? v2 : 900;
+        })(),
         auto_purge_stale: this._config.auto_purge_stale || false,
         telemetry_enabled: this._config.telemetry_enabled === true,
         // Deciding the toggle here counts as seeing the prompt — mark it
@@ -44747,9 +46074,9 @@ var SeloraAIPanel = class extends i4 {
     while (result.length < length) {
       const arr = new Uint8Array(length - result.length);
       crypto.getRandomValues(arr);
-      for (const b3 of arr) {
-        if (b3 < limit && result.length < length) {
-          result.push(chars[b3 % chars.length]);
+      for (const b2 of arr) {
+        if (b2 < limit && result.length < length) {
+          result.push(chars[b2 % chars.length]);
         }
       }
     }
@@ -45012,7 +46339,7 @@ var SeloraAIPanel = class extends i4 {
       };
       if (this._newTokenPermission === "custom") {
         payload.allowed_tools = Object.keys(this._newTokenTools).filter(
-          (t5) => this._newTokenTools[t5],
+          (t4) => this._newTokenTools[t4],
         );
       }
       if (this._newTokenExpiry) {
@@ -45271,11 +46598,11 @@ var SeloraAIPanel = class extends i4 {
       this.shadowRoot?.appendChild(probe);
       const resolved = getComputedStyle(probe).color;
       probe.remove();
-      const m3 = resolved.match(/\d+/g);
-      if (m3 && m3.length >= 3) {
+      const m2 = resolved.match(/\d+/g);
+      if (m2 && m2.length >= 3) {
         this._primaryColor =
           "#" +
-          [m3[0], m3[1], m3[2]]
+          [m2[0], m2[1], m2[2]]
             .map((v2) => parseInt(v2, 10).toString(16).padStart(2, "0"))
             .join("");
       }
@@ -45292,7 +46619,10 @@ var SeloraAIPanel = class extends i4 {
         changedProps.has("_scenes") ||
         changedProps.has("_expandedScenes") ||
         changedProps.has("_sceneEdits") ||
-        changedProps.has("_activeTab"))
+        changedProps.has("_activeTab") ||
+        changedProps.has("_auditResponse") ||
+        changedProps.has("_auditRecommendations") ||
+        changedProps.has("_auditChecks"))
     ) {
       this._hydrateEntityChips();
     }
@@ -45349,21 +46679,21 @@ var SeloraAIPanel = class extends i4 {
     let lastTop = container ? container.scrollTop : 0;
     const tick = () => {
       if (!this._chatPinDeadline) return;
-      const c4 = this.shadowRoot?.getElementById("chat-messages");
-      if (!c4) {
+      const c3 = this.shadowRoot?.getElementById("chat-messages");
+      if (!c3) {
         this._chatPinDeadline = 0;
         return;
       }
       const userScrolled =
-        c4.scrollTop < lastTop - 2 && c4.scrollHeight === lastHeight;
+        c3.scrollTop < lastTop - 2 && c3.scrollHeight === lastHeight;
       if (userScrolled) {
         this._chatScrolledAway = true;
         this._chatPinDeadline = 0;
         return;
       }
-      c4.scrollTop = c4.scrollHeight;
-      lastHeight = c4.scrollHeight;
-      lastTop = c4.scrollTop;
+      c3.scrollTop = c3.scrollHeight;
+      lastHeight = c3.scrollHeight;
+      lastTop = c3.scrollTop;
       if (Date.now() >= this._chatPinDeadline) {
         this._chatPinDeadline = 0;
         return;
@@ -45456,7 +46786,7 @@ var SeloraAIPanel = class extends i4 {
       if (!wired) {
         const ids = (grid.dataset.entityIds || "")
           .split(",")
-          .map((s4) => s4.trim())
+          .map((s6) => s6.trim())
           .filter(Boolean);
         const noFeatures = grid.dataset.noFeatures === "true";
         grid.replaceChildren();
@@ -45476,10 +46806,10 @@ var SeloraAIPanel = class extends i4 {
             if (!groups.has(areaName)) groups.set(areaName, []);
             groups.get(areaName).push(id);
           }
-          const sortedGroups = [...groups.entries()].sort((a3, b3) => {
-            if (!a3[0]) return 1;
-            if (!b3[0]) return -1;
-            return a3[0].localeCompare(b3[0]);
+          const sortedGroups = [...groups.entries()].sort((a4, b2) => {
+            if (!a4[0]) return 1;
+            if (!b2[0]) return -1;
+            return a4[0].localeCompare(b2[0]);
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
@@ -45502,8 +46832,8 @@ var SeloraAIPanel = class extends i4 {
             return card;
           };
           const areaIdByName = /* @__PURE__ */ new Map();
-          for (const a3 of Object.values(registries.areas || {})) {
-            if (a3.name) areaIdByName.set(a3.name, a3.area_id);
+          for (const a4 of Object.values(registries.areas || {})) {
+            if (a4.name) areaIdByName.set(a4.name, a4.area_id);
           }
           for (const [areaName, areaIds] of sortedGroups) {
             if (showHeaders) {
@@ -45644,7 +46974,7 @@ var SeloraAIPanel = class extends i4 {
         const devices = {};
         for (const d3 of deviceList) devices[d3.id] = d3;
         const areas = {};
-        for (const a3 of areaList) areas[a3.area_id] = a3;
+        for (const a4 of areaList) areas[a4.area_id] = a4;
         return { entities, devices, areas };
       } catch (e6) {
         console.warn("Selora: registry list failed", e6);
@@ -45818,7 +47148,7 @@ var SeloraAIPanel = class extends i4 {
     if (!scene) return;
     const sessionId = scene.session_id;
     const known = sessionId
-      ? this._sessions.find((s4) => s4.id === sessionId)
+      ? this._sessions.find((s6) => s6.id === sessionId)
       : null;
     try {
       if (known) {
@@ -46054,8 +47384,8 @@ var SeloraAIPanel = class extends i4 {
     this._recipesCatalogSearch = value || "";
     this._catalogPage = 1;
   }
-  _setCatalogPage(n4) {
-    this._catalogPage = Math.max(1, n4);
+  _setCatalogPage(n5) {
+    this._catalogPage = Math.max(1, n5);
   }
   // Install a recipe from a catalog entry — same backend path as
   // the "paste a URL" install card, just pre-filled.
@@ -46323,7 +47653,7 @@ var SeloraAIPanel = class extends i4 {
         (it) => it.kind === "inputs" && it.status === "needs_input",
       );
       const inputPunch = (preview?.punch_list || []).some(
-        (p4) => p4.code === "input_invalid",
+        (p2) => p2.code === "input_invalid",
       );
       return !badInputs && !inputPunch;
     }
@@ -46339,7 +47669,7 @@ var SeloraAIPanel = class extends i4 {
           it.stage === "configure",
       );
       const earlyPunch = (preview.punch_list || []).some(
-        (p4) => p4.stage !== "resolve" || p4.code !== "binding_pending",
+        (p2) => p2.stage !== "resolve" || p2.code !== "binding_pending",
       );
       return !blockingNeedsInput && !earlyPunch;
     }
@@ -46914,12 +48244,12 @@ var SeloraAIPanel = class extends i4 {
       available.map((r4) => [r4.slug, r4.title || r4.slug]),
     );
     const usingDomain = (manifest) =>
-      (manifest?.integrations || []).some((i7) => i7.domain === domain);
+      (manifest?.integrations || []).some((i5) => i5.domain === domain);
     return installed
       .filter((rec) => rec.slug !== exceptSlug)
       .filter((rec) => {
-        const m3 = available.find((a3) => a3.slug === rec.slug);
-        return usingDomain(m3);
+        const m2 = available.find((a4) => a4.slug === rec.slug);
+        return usingDomain(m2);
       })
       .map((rec) => titleBySlug[rec.slug] || rec.title || rec.slug);
   }
@@ -46959,8 +48289,11 @@ var SeloraAIPanel = class extends i4 {
   async _loadUsageStats() {
     await loadUsageStats(this);
   }
-  _renderVersionHistoryDrawer(a3) {
-    return renderVersionHistoryDrawer(this, a3);
+  _renderInsights() {
+    return renderInsights(this);
+  }
+  _renderVersionHistoryDrawer(a4) {
+    return renderVersionHistoryDrawer(this, a4);
   }
   _renderDiffViewer() {
     return renderDiffViewer(this);
@@ -46995,7 +48328,7 @@ var SeloraAIPanel = class extends i4 {
         label: this._t("feedback_category_general", "General"),
       },
     ];
-    return b2`
+    return x`
       <div
         class="modal-overlay"
         @click=${(e6) => {
@@ -47051,7 +48384,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
             ${ratingOptions.map(
-              (opt) => b2`
+              (opt) => x`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackRating === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -47076,7 +48409,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
             ${categoryOptions.map(
-              (opt) => b2`
+              (opt) => x`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackCategory === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -47134,12 +48467,12 @@ var SeloraAIPanel = class extends i4 {
   // Render
   // -------------------------------------------------------------------------
   render() {
-    return b2`
+    return x`
       <div class="header">
         <div class="header-toolbar">
           ${
             this.narrow
-              ? b2`<button
+              ? x`<button
                 class="menu-btn"
                 @click=${() =>
                   this.dispatchEvent(
@@ -47230,11 +48563,24 @@ var SeloraAIPanel = class extends i4 {
                 >Recipes</span
               >
             </div>
+            <div
+              class="tab ${this._activeTab === "insights" ? "active" : ""}"
+              @click=${() => {
+                this._setActiveTab("insights");
+                this._showSidebar = false;
+                this._openInsights();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon icon="mdi:heart-pulse" class="tab-icon"></ha-icon
+                >${this._t("insights_tab", "Health")}</span
+              >
+            </div>
           </div>
           <span class="header-spacer"></span>
           ${
             this._activeTab !== "chat" || this._messages.length > 0
-              ? b2`<button
+              ? x`<button
                 class="header-new-chat"
                 title=${this._t("nav_new_chat", "New chat")}
                 aria-label=${this._t("nav_new_chat", "New chat")}
@@ -47270,7 +48616,7 @@ var SeloraAIPanel = class extends i4 {
             </button>
             ${
               this._showOverflowMenu
-                ? b2`
+                ? x`
                   <div class="overflow-menu selora-menu">
                     <div class="overflow-section narrow-only">
                       <button
@@ -47320,6 +48666,18 @@ var SeloraAIPanel = class extends i4 {
                       >
                         <ha-icon icon="mdi:book-open-variant"></ha-icon>
                         Recipes
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "insights" ? "active" : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._setActiveTab("insights");
+                          this._showSidebar = false;
+                          this._openInsights();
+                        }}
+                      >
+                        <ha-icon icon="mdi:heart-pulse"></ha-icon>
+                        ${this._t("insights_tab", "Health")}
                       </button>
                       <div class="overflow-divider"></div>
                     </div>
@@ -47427,10 +48785,10 @@ var SeloraAIPanel = class extends i4 {
             >
               ${
                 this._sessions.length > 0
-                  ? b2`
+                  ? x`
                     ${
                       this._selectChatsMode
-                        ? b2`
+                        ? x`
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
@@ -47441,7 +48799,7 @@ var SeloraAIPanel = class extends i4 {
                             ${this._t("panel_sidebar_done", "Done")}
                           </button>
                         `
-                        : b2`
+                        : x`
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
@@ -47464,7 +48822,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           ${
             this._selectChatsMode
-              ? b2`
+              ? x`
                 <div class="select-actions-bar">
                   <label
                     class="select-all-label"
@@ -47475,7 +48833,7 @@ var SeloraAIPanel = class extends i4 {
                       .checked=${
                         this._sessions.length > 0 &&
                         this._sessions.every(
-                          (s4) => this._selectedSessionIds[s4.id],
+                          (s6) => this._selectedSessionIds[s6.id],
                         )
                       }
                     />
@@ -47503,7 +48861,7 @@ var SeloraAIPanel = class extends i4 {
                   </button>
                 </div>
               `
-              : b2`
+              : x`
                 <button
                   class="btn btn-primary new-chat-btn"
                   style="width:calc(100% - 24px);"
@@ -47520,26 +48878,26 @@ var SeloraAIPanel = class extends i4 {
           <div class="session-list">
             ${
               this._sessions.length === 0
-                ? b2`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
+                ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
                   ${this._t(
                     "panel_sidebar_no_conversations",
                     "No conversations yet.",
                   )}
                 </div>`
                 : this._sessions.map(
-                    (s4) => b2`
+                    (s6) => x`
                     <div
-                      class="session-item-wrapper ${this._swipedSessionId === s4.id ? "reveal-delete" : ""}"
+                      class="session-item-wrapper ${this._swipedSessionId === s6.id ? "reveal-delete" : ""}"
                     >
                       <div
                         class="session-item-delete-bg"
-                        @click=${(e6) => this._deleteSession(s4.id, e6)}
+                        @click=${(e6) => this._deleteSession(s6.id, e6)}
                       >
                         <ha-icon icon="mdi:delete-outline"></ha-icon>
                       </div>
                       ${
-                        this._deleteConfirmSessionId === s4.id
-                          ? b2`
+                        this._deleteConfirmSessionId === s6.id
+                          ? x`
                             <div class="session-item session-delete-confirm">
                               <span class="session-delete-confirm-label"
                                 >${this._t(
@@ -47573,50 +48931,50 @@ var SeloraAIPanel = class extends i4 {
                               </div>
                             </div>
                           `
-                          : b2`
+                          : x`
                             <div
-                              class="session-item ${s4.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s4.id ? "swiped" : ""}"
+                              class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
                               @click=${() => {
-                                if (this._swipedSessionId === s4.id) {
+                                if (this._swipedSessionId === s6.id) {
                                   this._swipedSessionId = null;
                                   return;
                                 }
                                 this._selectChatsMode
-                                  ? this._toggleSessionSelection(s4.id)
-                                  : this._openSession(s4.id);
+                                  ? this._toggleSessionSelection(s6.id)
+                                  : this._openSession(s6.id);
                               }}
-                              @touchstart=${(e6) => this._onSessionTouchStart(e6, s4.id)}
-                              @touchmove=${(e6) => this._onSessionTouchMove(e6, s4.id)}
-                              @touchend=${(e6) => this._onSessionTouchEnd(e6, s4.id)}
+                              @touchstart=${(e6) => this._onSessionTouchStart(e6, s6.id)}
+                              @touchmove=${(e6) => this._onSessionTouchMove(e6, s6.id)}
+                              @touchend=${(e6) => this._onSessionTouchEnd(e6, s6.id)}
                             >
                               ${
                                 this._selectChatsMode
-                                  ? b2`
+                                  ? x`
                                     <input
                                       type="checkbox"
                                       class="session-checkbox"
-                                      .checked=${!!this._selectedSessionIds[s4.id]}
+                                      .checked=${!!this._selectedSessionIds[s6.id]}
                                       @click=${(e6) => {
                                         e6.stopPropagation();
-                                        this._toggleSessionSelection(s4.id);
+                                        this._toggleSessionSelection(s6.id);
                                       }}
                                     />
                                   `
                                   : ""
                               }
                               <div style="flex:1; min-width:0;">
-                                <div class="session-title">${s4.title}</div>
+                                <div class="session-title">${s6.title}</div>
                                 <div class="session-meta">
-                                  ${formatDate(s4.updated_at)}
+                                  ${formatDate(s6.updated_at)}
                                 </div>
                               </div>
                               ${
                                 !this._selectChatsMode
-                                  ? b2`
+                                  ? x`
                                     <ha-icon
                                       class="session-delete"
                                       icon="mdi:delete-outline"
-                                      @click=${(e6) => this._deleteSession(s4.id, e6)}
+                                      @click=${(e6) => this._deleteSession(s6.id, e6)}
                                       title=${this._t(
                                         "panel_session_delete_title",
                                         "Delete",
@@ -47654,13 +49012,14 @@ var SeloraAIPanel = class extends i4 {
           ${this._activeTab === "recipes" ? this._renderRecipesV2() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
           ${this._activeTab === "usage" ? this._renderUsage() : ""}
+          ${this._activeTab === "insights" ? this._renderInsights() : ""}
         </div>
       </div>
 
       ${this._renderFeedbackModal()}
       ${
         this._deleteConfirmSessionId === "__bulk__"
-          ? b2`
+          ? x`
             <div
               class="modal-overlay"
               @click=${(e6) => {
@@ -47704,7 +49063,7 @@ var SeloraAIPanel = class extends i4 {
       }
       ${
         this._toast
-          ? b2`
+          ? x`
             <div class="toast ${this._toastType}">
               <span>${this._toast}</span>
               <ha-icon
@@ -47721,6 +49080,7 @@ var SeloraAIPanel = class extends i4 {
 };
 Object.assign(SeloraAIPanel.prototype, session_actions_exports);
 Object.assign(SeloraAIPanel.prototype, suggestion_actions_exports);
+Object.assign(SeloraAIPanel.prototype, insights_actions_exports);
 Object.assign(SeloraAIPanel.prototype, chat_actions_exports);
 Object.assign(SeloraAIPanel.prototype, automation_crud_exports);
 Object.assign(SeloraAIPanel.prototype, automation_management_exports);

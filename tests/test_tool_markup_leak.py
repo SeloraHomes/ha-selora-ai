@@ -22,7 +22,7 @@ from custom_components.selora_ai.llm_client.parsers import (
 # The exact leak from the bug report, mangled special tokens and all.
 MANGLED_LEAK = (
     "Let me check the Reolink doorbell device for any device triggers.\n\n"
-    '< |  | DSML |  | tool_calls>\n'
+    "< |  | DSML |  | tool_calls>\n"
     '< |  | DSML |  | invoke name="list_devices">\n'
     '< |  | DSML |  | parameter name="domain" string="true">binary_sensor'
     "</ |  | DSML |  | parameter>\n"

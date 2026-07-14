@@ -28,7 +28,11 @@ def test_ran_out_localized_french() -> None:
     log = [
         {
             "tool": "execute_command",
-            "result": {"executed": True, "service": "light.turn_off", "entity_ids": ["light.kitchen"]},
+            "result": {
+                "executed": True,
+                "service": "light.turn_off",
+                "entity_ids": ["light.kitchen"],
+            },
         }
     ]
     out = _tool_failure_response(log, language="fr")

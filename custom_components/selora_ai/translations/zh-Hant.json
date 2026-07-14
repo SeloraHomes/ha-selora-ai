@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "無法儲存變更：",
     "scene_actions_refine_default_name": "此情境",
     "session_toast_new_automation_chat_failed": "無法開始新的自動化對話：",
+    "session_toast_new_session_failed": "無法開始新對話：",
     "session_toast_ai_no_suggestion": "AI 未傳回建議 — 請再試一次。",
     "session_toast_suggest_failed": "無法產生建議 — 請檢查 LLM 設定。",
     "suggestions_analysis_no_new": "分析完成 — 此時沒有新的建議",

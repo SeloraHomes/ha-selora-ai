@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://selorahomes.com/schemas/insights-manifest.schema.json",
+  "title": "Selora AI Insights Export Manifest",
+  "description": "Atomic pointer written last by the HA integration at <config>/selora_ai/insights/manifest.json. Read this first; it names the immutable artifact to copy.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "sequence",
+    "status",
+    "generated_at",
+    "cadence_seconds",
+    "next_expected_at",
+    "artifact",
+    "summary",
+    "producer",
+    "collection"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 2 },
+    "sequence": {
+      "type": "integer",
+      "description": "Monotonic, restart-proof. Use for change detection."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["complete", "partial"],
+      "description": "'partial' means the collection had an error but data was still published."
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "cadence_seconds": {
+      "type": "integer",
+      "description": "Expected interval between publishes (VM clock)."
+    },
+    "next_expected_at": { "type": "string", "format": "date-time" },
+    "artifact": {
+      "type": "object",
+      "required": ["path", "sha256", "size_bytes", "encoding"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Relative to the manifest directory, e.g. 'exports/insights-000000001751900000.json.gz'."
+        },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "encoding": { "type": "string", "enum": ["gzip"] }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "At-a-glance counts so the host can decide before decompressing the artifact.",
+      "additionalProperties": true,
+      "properties": {
+        "signals_active": { "type": "integer" },
+        "signals_critical": { "type": "integer" },
+        "insights_total": { "type": "integer" },
+        "integrations": { "type": "integer" },
+        "devices": { "type": "integer" },
+        "entities": { "type": "integer" },
+        "entities_unavailable": {
+          "type": "integer",
+          "description": "Enabled, visible entities with no usable state (excludes disabled/hidden)."
+        },
+        "entities_disabled": {
+          "type": "integer",
+          "description": "Intentionally-disabled entities across the home (neutral, not a health problem)."
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "required": ["integration_version", "ha_version"],
+      "additionalProperties": true,
+      "properties": {
+        "integration_version": { "type": "string" },
+        "ha_version": { "type": "string" },
+        "installation_id": {
+          "type": "string",
+          "description": "Selora installation id, present only when the integration was configured with one."
+        }
+      }
+    },
+    "collection": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": true,
+      "properties": {
+        "status": { "type": "string", "enum": ["ok", "partial"] },
+        "partial_reason": { "type": ["string", "null"] },
+        "roster_truncated": { "type": "boolean" }
+      }
+    }
+  }
+}

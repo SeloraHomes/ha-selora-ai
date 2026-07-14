@@ -58,6 +58,10 @@ def _make_gen_with_services(
     mock_state = MagicMock()
     mock_state.state = "on"
     mock_hass.states.get.return_value = mock_state
+    mock_hass.config.config_dir = "/tmp"
+    # Default: no existing automations, so the "already-linked entities" guard
+    # is a no-op. Tests that exercise it override this to return automations.
+    mock_hass.async_add_executor_job = AsyncMock(return_value=[])
     return SuggestionGenerator(mock_hass, store or _make_pattern_store())
 
 
@@ -598,6 +602,49 @@ class TestGenerateFromPatterns:
         assert result[0]["suggestion_id"] == "sugg_id_001"
 
     @pytest.mark.asyncio
+    async def test_skips_correlation_already_linked_by_existing_automation(self):
+        """A correlation whose two entities are already tied together by one
+        existing automation is that automation's own effect — it must not be
+        re-suggested (which would reverse cause/effect and conflict with it)."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)
+        pattern = _corr_pattern(1)  # entities: binary_sensor.motion_1, light.room_1
+        # An existing automation already links both entities (motion -> light).
+        existing_auto = {
+            "alias": "lights on when motion",
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.motion_1", "to": "on"}],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.room_1"}}],
+        }
+        gen._hass.async_add_executor_job = AsyncMock(return_value=[existing_auto])
+
+        result = await gen.generate_from_patterns([pattern])
+
+        assert result == []
+        store.save_suggestion.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_keeps_correlation_when_entities_not_jointly_automated(self):
+        """A correlation is still surfaced when no single existing automation
+        references both of its entities (only one is shared)."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)
+        pattern = _corr_pattern(2)  # entities: binary_sensor.motion_2, light.room_2
+        unrelated = {
+            "alias": "unrelated",
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.motion_2", "to": "on"}],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.other"}}],
+        }
+        gen._hass.async_add_executor_job = AsyncMock(return_value=[unrelated])
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns([pattern])
+        finally:
+            val_patch.stop()
+
+        assert len(result) == 1
+
+    @pytest.mark.asyncio
     async def test_deduplicates_batch_by_content(self):
         """Two patterns that produce identical trigger+action should yield only one suggestion (#46)."""
         pattern_a = {
@@ -779,6 +826,8 @@ def _make_gen_with_llm(store: MagicMock, llm: MagicMock) -> SuggestionGenerator:
     mock_state = MagicMock()
     mock_state.state = "on"
     mock_hass.states.get.return_value = mock_state
+    mock_hass.config.config_dir = "/tmp"
+    mock_hass.async_add_executor_job = AsyncMock(return_value=[])
     return SuggestionGenerator(mock_hass, store, llm=llm)
 
 
@@ -927,6 +976,8 @@ class TestSuggestionQualityGate:
         mock_state = MagicMock()
         mock_state.state = "on"
         mock_hass.states.get.return_value = mock_state
+        mock_hass.config.config_dir = "/tmp"
+        mock_hass.async_add_executor_job = AsyncMock(return_value=[])
         gen = SuggestionGenerator(mock_hass, store, llm=mock_llm)
 
         patterns = [_corr_pattern(0, confidence=0.8), _corr_pattern(1, confidence=0.8)]
@@ -1032,6 +1083,8 @@ class TestSuggestionQualityGate:
         mock_state = MagicMock()
         mock_state.state = "on"
         mock_hass.states.get.return_value = mock_state
+        mock_hass.config.config_dir = "/tmp"
+        mock_hass.async_add_executor_job = AsyncMock(return_value=[])
         gen = SuggestionGenerator(mock_hass, store, llm=mock_llm)
 
         # 5 distinct patterns, default cap 3 → top-3 by confidence survive.
