@@ -42,6 +42,7 @@ import * as automationCrud from "./panel/automation-crud.js";
 import * as automationManagement from "./panel/automation-management.js";
 import * as sceneActions from "./panel/scene-actions.js";
 import * as sceneEdit from "./panel/scene-edit.js";
+import { filterSessions } from "./panel/session-search.js";
 
 // ---------------------------------------------------------------------------
 // Self-heal HA's <ha-panel-custom> when navigating back to this panel.
@@ -466,6 +467,9 @@ class SeloraAIPanel extends LitElement {
       _swipedSessionId: { type: String },
       _selectedSessionIds: { type: Object },
 
+      // Conversation sidebar search
+      _sessionSearch: { type: String },
+
       // Pending "Create in Chat" from dashboard card
       _pendingNewAutomation: { type: String },
 
@@ -534,6 +538,7 @@ class SeloraAIPanel extends LitElement {
   constructor() {
     super();
     this._sessions = [];
+    this._sessionSearch = "";
     this._activeSessionId = null;
     this._messages = [];
     this._input = "";
@@ -4654,6 +4659,10 @@ class SeloraAIPanel extends LitElement {
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
+                              // Drop any active filter so selection (and
+                              // Select all) operate on the full visible list —
+                              // never on hidden, unrelated conversations.
+                              this._sessionSearch = "";
                               this._selectChatsMode = true;
                             }}
                           >
@@ -4720,127 +4729,169 @@ class SeloraAIPanel extends LitElement {
                   ${this._t("panel_sidebar_new_chat", "New Chat")}
                 </button>
               `}
+          ${this._sessions.length > 0 && !this._selectChatsMode
+            ? html`
+                <div class="session-search">
+                  <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
+                  <input
+                    type="text"
+                    .value=${this._sessionSearch}
+                    placeholder=${this._t(
+                      "panel_sidebar_search",
+                      "Search conversations",
+                    )}
+                    @input=${(e) => (this._sessionSearch = e.target.value)}
+                  />
+                  ${this._sessionSearch
+                    ? html`<ha-icon
+                        class="search-clear"
+                        icon="mdi:close-circle"
+                        @click=${() => (this._sessionSearch = "")}
+                      ></ha-icon>`
+                    : ""}
+                </div>
+              `
+            : ""}
           <div class="session-list">
             ${this._sessions.length === 0
-              ? html`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
+              ? html`<div class="session-search-empty">
                   ${this._t(
                     "panel_sidebar_no_conversations",
                     "No conversations yet.",
                   )}
                 </div>`
-              : this._sessions.map(
-                  (s) => html`
-                    <div
-                      class="session-item-wrapper ${this._swipedSessionId ===
-                      s.id
-                        ? "reveal-delete"
-                        : ""}"
-                    >
+              : (() => {
+                  const visible = filterSessions(
+                    this._sessions,
+                    this._sessionSearch,
+                  );
+                  if (visible.length === 0) {
+                    return html`<div class="session-search-empty">
+                      ${this._t(
+                        "panel_sidebar_no_matches",
+                        "No conversations match your search.",
+                      )}
+                    </div>`;
+                  }
+                  return visible.map(
+                    ({ session: s, snippet }) => html`
                       <div
-                        class="session-item-delete-bg"
-                        @click=${(e) => this._deleteSession(s.id, e)}
+                        class="session-item-wrapper ${this._swipedSessionId ===
+                        s.id
+                          ? "reveal-delete"
+                          : ""}"
                       >
-                        <ha-icon icon="mdi:delete-outline"></ha-icon>
-                      </div>
-                      ${this._deleteConfirmSessionId === s.id
-                        ? html`
-                            <div class="session-item session-delete-confirm">
-                              <span class="session-delete-confirm-label"
-                                >${this._t(
-                                  "panel_session_delete_confirm",
-                                  "Delete?",
-                                )}</span
-                              >
-                              <div
-                                style="display:flex;gap:6px;margin-left:auto;"
-                              >
-                                <button
-                                  class="btn btn-sm"
-                                  style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
-                                  @click=${(e) => {
-                                    e.stopPropagation();
-                                    this._confirmDeleteSession();
-                                  }}
+                        <div
+                          class="session-item-delete-bg"
+                          @click=${(e) => this._deleteSession(s.id, e)}
+                        >
+                          <ha-icon icon="mdi:delete-outline"></ha-icon>
+                        </div>
+                        ${this._deleteConfirmSessionId === s.id
+                          ? html`
+                              <div class="session-item session-delete-confirm">
+                                <span class="session-delete-confirm-label"
+                                  >${this._t(
+                                    "panel_session_delete_confirm",
+                                    "Delete?",
+                                  )}</span
                                 >
-                                  ${this._t("panel_session_delete", "Delete")}
-                                </button>
-                                <button
-                                  class="btn btn-outline btn-sm"
-                                  style="padding:3px 10px;font-size:12px;"
-                                  @click=${(e) => {
-                                    e.stopPropagation();
-                                    this._deleteConfirmSessionId = null;
-                                  }}
+                                <div
+                                  style="display:flex;gap:6px;margin-left:auto;"
                                 >
-                                  ${this._t("panel_session_cancel", "Cancel")}
-                                </button>
-                              </div>
-                            </div>
-                          `
-                        : html`
-                            <div
-                              class="session-item ${s.id ===
-                              this._activeSessionId
-                                ? "active"
-                                : ""} ${this._swipedSessionId === s.id
-                                ? "swiped"
-                                : ""}"
-                              @click=${() => {
-                                if (this._swipedSessionId === s.id) {
-                                  this._swipedSessionId = null;
-                                  return;
-                                }
-                                this._selectChatsMode
-                                  ? this._toggleSessionSelection(s.id)
-                                  : this._openSession(s.id);
-                              }}
-                              @touchstart=${(e) =>
-                                this._onSessionTouchStart(e, s.id)}
-                              @touchmove=${(e) =>
-                                this._onSessionTouchMove(e, s.id)}
-                              @touchend=${(e) =>
-                                this._onSessionTouchEnd(e, s.id)}
-                            >
-                              ${this._selectChatsMode
-                                ? html`
-                                    <input
-                                      type="checkbox"
-                                      class="session-checkbox"
-                                      .checked=${!!this._selectedSessionIds[
-                                        s.id
-                                      ]}
-                                      @click=${(e) => {
-                                        e.stopPropagation();
-                                        this._toggleSessionSelection(s.id);
-                                      }}
-                                    />
-                                  `
-                                : ""}
-                              <div style="flex:1; min-width:0;">
-                                <div class="session-title">${s.title}</div>
-                                <div class="session-meta">
-                                  ${formatDate(s.updated_at)}
+                                  <button
+                                    class="btn btn-sm"
+                                    style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
+                                    @click=${(e) => {
+                                      e.stopPropagation();
+                                      this._confirmDeleteSession();
+                                    }}
+                                  >
+                                    ${this._t("panel_session_delete", "Delete")}
+                                  </button>
+                                  <button
+                                    class="btn btn-outline btn-sm"
+                                    style="padding:3px 10px;font-size:12px;"
+                                    @click=${(e) => {
+                                      e.stopPropagation();
+                                      this._deleteConfirmSessionId = null;
+                                    }}
+                                  >
+                                    ${this._t("panel_session_cancel", "Cancel")}
+                                  </button>
                                 </div>
                               </div>
-                              ${!this._selectChatsMode
-                                ? html`
-                                    <ha-icon
-                                      class="session-delete"
-                                      icon="mdi:delete-outline"
-                                      @click=${(e) =>
-                                        this._deleteSession(s.id, e)}
-                                      title=${this._t(
-                                        "panel_session_delete_title",
-                                        "Delete",
-                                      )}
-                                    ></ha-icon>
-                                  `
-                                : ""}
-                            </div>
-                          `}
-                    </div>
-                  `,
-                )}
+                            `
+                          : html`
+                              <div
+                                class="session-item ${s.id ===
+                                this._activeSessionId
+                                  ? "active"
+                                  : ""} ${this._swipedSessionId === s.id
+                                  ? "swiped"
+                                  : ""}"
+                                @click=${() => {
+                                  if (this._swipedSessionId === s.id) {
+                                    this._swipedSessionId = null;
+                                    return;
+                                  }
+                                  this._selectChatsMode
+                                    ? this._toggleSessionSelection(s.id)
+                                    : this._openSession(s.id);
+                                }}
+                                @touchstart=${(e) =>
+                                  this._onSessionTouchStart(e, s.id)}
+                                @touchmove=${(e) =>
+                                  this._onSessionTouchMove(e, s.id)}
+                                @touchend=${(e) =>
+                                  this._onSessionTouchEnd(e, s.id)}
+                              >
+                                ${this._selectChatsMode
+                                  ? html`
+                                      <input
+                                        type="checkbox"
+                                        class="session-checkbox"
+                                        .checked=${!!this._selectedSessionIds[
+                                          s.id
+                                        ]}
+                                        @click=${(e) => {
+                                          e.stopPropagation();
+                                          this._toggleSessionSelection(s.id);
+                                        }}
+                                      />
+                                    `
+                                  : ""}
+                                <div style="flex:1; min-width:0;">
+                                  <div class="session-title">${s.title}</div>
+                                  ${snippet
+                                    ? html`<div class="session-snippet">
+                                        ${snippet.before}<mark>${snippet.match}</mark>${snippet.after}
+                                      </div>`
+                                    : ""}
+                                  <div class="session-meta">
+                                    ${formatDate(s.updated_at)}
+                                  </div>
+                                </div>
+                                ${!this._selectChatsMode
+                                  ? html`
+                                      <ha-icon
+                                        class="session-delete"
+                                        icon="mdi:delete-outline"
+                                        @click=${(e) =>
+                                          this._deleteSession(s.id, e)}
+                                        title=${this._t(
+                                          "panel_session_delete_title",
+                                          "Delete",
+                                        )}
+                                      ></ha-icon>
+                                    `
+                                  : ""}
+                              </div>
+                            `}
+                      </div>
+                    `,
+                  );
+                })()}
           </div>
         </div>
 

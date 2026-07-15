@@ -288,6 +288,10 @@ export async function _newSession() {
       type: "selora_ai/new_session",
     });
     this._activeSessionId = session_id;
+    // Clear any active sidebar search — a brand-new empty session has no
+    // content to match, so a stale query would hide the conversation the
+    // user just started.
+    this._sessionSearch = "";
     this._messages = [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
@@ -325,6 +329,7 @@ export async function _startNewAutomationChat() {
       type: "selora_ai/new_session",
     });
     this._activeSessionId = session_id;
+    this._sessionSearch = "";
     this._messages = [];
     this._input = "";
     this._autocompleteSelections = [];
@@ -389,6 +394,7 @@ export async function _newAutomationChat(name) {
     // text (avoids a flash of the prompt being cropped in the
     // single-line textarea).
     this._activeSessionId = session_id;
+    this._sessionSearch = "";
     this._messages = [];
     this._input = `Create a new automation called "${trimmed}".`;
     this._setActiveTab("chat");

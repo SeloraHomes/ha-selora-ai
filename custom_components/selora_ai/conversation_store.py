@@ -38,6 +38,28 @@ _SESSION_MAX_MESSAGES = 100
 # sessions (by updated_at) are evicted to stay within budget.
 _SESSION_MAX_COUNT = 200
 
+# Maximum length of the per-session searchable text blob returned in
+# summaries.  Message contents are concatenated so the sidebar can fuzzy
+# search and extract snippets client-side; the cap keeps the summary
+# payload bounded across all sessions.
+_SESSION_SEARCH_TEXT_MAX = 4000
+
+
+def _bounded_search_text(messages: list[ChatMessage]) -> str:
+    """Build the capped searchable blob for a session.
+
+    Concatenates non-empty message contents. When the result exceeds the cap
+    we keep a head *and* a tail slice (joined by an ellipsis) rather than the
+    leading prefix alone: the head preserves the opening turn that states the
+    goal, and the tail preserves the most recent turns — the same recency the
+    store deliberately retains — so a search for recent content still hits.
+    """
+    text = " ".join(content for m in messages if (content := (m.get("content") or "").strip()))
+    if len(text) <= _SESSION_SEARCH_TEXT_MAX:
+        return text
+    half = _SESSION_SEARCH_TEXT_MAX // 2
+    return f"{text[:half]} … {text[-half:]}"
+
 
 class ConversationStore:
     """Thin wrapper around HA's Store for persisting chat sessions."""
@@ -62,13 +84,16 @@ class ConversationStore:
             raise RuntimeError("Session store failed to load")
         summaries = []
         for sid, session in self._data["sessions"].items():
+            messages = session.get("messages", [])
+            search_text = _bounded_search_text(messages)
             summaries.append(
                 {
                     "id": sid,
                     "title": session.get("title", "Untitled"),
                     "created_at": session.get("created_at", ""),
                     "updated_at": session.get("updated_at", ""),
-                    "message_count": len(session.get("messages", [])),
+                    "message_count": len(messages),
+                    "search_text": search_text,
                 }
             )
         summaries.sort(key=lambda s: s["updated_at"], reverse=True)

@@ -29,9 +29,71 @@ export const sidebarStyles = css`
     align-items: center;
     justify-content: space-between;
   }
+  .session-search {
+    position: relative;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .session-search ha-icon.search-icon {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    --mdc-icon-size: 16px;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .session-search input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 30px 7px 32px;
+    font-size: 13px;
+    color: var(--primary-text-color);
+    background: var(--secondary-background-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .session-search input:focus {
+    border-color: var(--selora-accent);
+  }
+  .session-search .search-clear {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    --mdc-icon-size: 16px;
+    opacity: 0.5;
+    cursor: pointer;
+  }
+  .session-search .search-clear:hover {
+    opacity: 1;
+  }
   .session-list {
     flex: 1;
     overflow-y: auto;
+  }
+  .session-snippet {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 3px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .session-snippet mark {
+    background: rgba(251, 191, 36, 0.28);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  .session-search-empty {
+    padding: 16px;
+    font-size: 12px;
+    opacity: 0.5;
   }
   .session-item-wrapper {
     position: relative;

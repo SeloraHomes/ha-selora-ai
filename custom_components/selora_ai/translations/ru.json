@@ -157,6 +157,8 @@
     "panel_sidebar_delete": "Удалить",
     "panel_sidebar_new_chat": "Новый чат",
     "panel_sidebar_no_conversations": "Бесед пока нет.",
+    "panel_sidebar_search": "Поиск бесед",
+    "panel_sidebar_no_matches": "Нет бесед, соответствующих запросу.",
     "panel_session_delete_confirm": "Удалить?",
     "panel_session_delete": "Удалить",
     "panel_session_cancel": "Отмена",
