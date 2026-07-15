@@ -157,6 +157,8 @@
     "panel_sidebar_delete": "삭제",
     "panel_sidebar_new_chat": "새 채팅",
     "panel_sidebar_no_conversations": "아직 대화가 없습니다.",
+    "panel_sidebar_search": "대화 검색",
+    "panel_sidebar_no_matches": "검색과 일치하는 대화가 없습니다.",
     "panel_session_delete_confirm": "삭제하시겠습니까?",
     "panel_session_delete": "삭제",
     "panel_session_cancel": "취소",

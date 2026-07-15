@@ -157,6 +157,8 @@
     "panel_sidebar_delete": "Delete",
     "panel_sidebar_new_chat": "New Chat",
     "panel_sidebar_no_conversations": "No conversations yet.",
+    "panel_sidebar_search": "Search conversations",
+    "panel_sidebar_no_matches": "No conversations match your search.",
     "panel_session_delete_confirm": "Delete?",
     "panel_session_delete": "Delete",
     "panel_session_cancel": "Cancel",

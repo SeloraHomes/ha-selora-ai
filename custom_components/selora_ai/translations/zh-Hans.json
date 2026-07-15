@@ -157,6 +157,8 @@
     "panel_sidebar_delete": "删除",
     "panel_sidebar_new_chat": "新对话",
     "panel_sidebar_no_conversations": "暂无对话。",
+    "panel_sidebar_search": "搜索对话",
+    "panel_sidebar_no_matches": "没有符合搜索的对话。",
     "panel_session_delete_confirm": "删除？",
     "panel_session_delete": "删除",
     "panel_session_cancel": "取消",

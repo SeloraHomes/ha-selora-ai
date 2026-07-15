@@ -727,6 +727,8 @@ class SessionSummary(TypedDict):
     created_at: str
     updated_at: str
     message_count: int
+    # Concatenated message contents (capped) for client-side sidebar search.
+    search_text: str
 
 
 class ChatMessage(TypedDict, total=False):

@@ -1979,9 +1979,71 @@ var sidebarStyles = i`
     align-items: center;
     justify-content: space-between;
   }
+  .session-search {
+    position: relative;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .session-search ha-icon.search-icon {
+    position: absolute;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    --mdc-icon-size: 16px;
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .session-search input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 7px 30px 7px 32px;
+    font-size: 13px;
+    color: var(--primary-text-color);
+    background: var(--secondary-background-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .session-search input:focus {
+    border-color: var(--selora-accent);
+  }
+  .session-search .search-clear {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    --mdc-icon-size: 16px;
+    opacity: 0.5;
+    cursor: pointer;
+  }
+  .session-search .search-clear:hover {
+    opacity: 1;
+  }
   .session-list {
     flex: 1;
     overflow-y: auto;
+  }
+  .session-snippet {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 3px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .session-snippet mark {
+    background: rgba(251, 191, 36, 0.28);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  .session-search-empty {
+    padding: 16px;
+    font-size: 12px;
+    opacity: 0.5;
   }
   .session-item-wrapper {
     position: relative;
@@ -8138,6 +8200,8 @@ var en_default = {
     panel_sidebar_delete: "Delete",
     panel_sidebar_new_chat: "New Chat",
     panel_sidebar_no_conversations: "No conversations yet.",
+    panel_sidebar_search: "Search conversations",
+    panel_sidebar_no_matches: "No conversations match your search.",
     panel_session_delete_confirm: "Delete?",
     panel_session_delete: "Delete",
     panel_session_cancel: "Cancel",
@@ -9193,6 +9257,9 @@ var fr_default = {
     panel_sidebar_delete: "Supprimer",
     panel_sidebar_new_chat: "Nouveau chat",
     panel_sidebar_no_conversations: "Aucune conversation pour l'instant.",
+    panel_sidebar_search: "Rechercher des conversations",
+    panel_sidebar_no_matches:
+      "Aucune conversation ne correspond \xE0 votre recherche.",
     panel_session_delete_confirm: "Supprimer ?",
     panel_session_delete: "Supprimer",
     panel_session_cancel: "Annuler",
@@ -10298,6 +10365,8 @@ var de_default = {
     panel_sidebar_delete: "L\xF6schen",
     panel_sidebar_new_chat: "Neuer Chat",
     panel_sidebar_no_conversations: "Noch keine Konversationen.",
+    panel_sidebar_search: "Konversationen durchsuchen",
+    panel_sidebar_no_matches: "Keine Konversationen entsprechen deiner Suche.",
     panel_session_delete_confirm: "L\xF6schen?",
     panel_session_delete: "L\xF6schen",
     panel_session_cancel: "Abbrechen",
@@ -11393,6 +11462,9 @@ var es_default = {
     panel_sidebar_delete: "Eliminar",
     panel_sidebar_new_chat: "Nuevo chat",
     panel_sidebar_no_conversations: "A\xFAn no hay conversaciones.",
+    panel_sidebar_search: "Buscar conversaciones",
+    panel_sidebar_no_matches:
+      "Ninguna conversaci\xF3n coincide con tu b\xFAsqueda.",
     panel_session_delete_confirm: "\xBFEliminar?",
     panel_session_delete: "Eliminar",
     panel_session_cancel: "Cancelar",
@@ -12475,6 +12547,8 @@ var it_default = {
     panel_sidebar_delete: "Elimina",
     panel_sidebar_new_chat: "Nuova chat",
     panel_sidebar_no_conversations: "Nessuna conversazione ancora.",
+    panel_sidebar_search: "Cerca conversazioni",
+    panel_sidebar_no_matches: "Nessuna conversazione corrisponde alla ricerca.",
     panel_session_delete_confirm: "Eliminare?",
     panel_session_delete: "Elimina",
     panel_session_cancel: "Annulla",
@@ -13574,6 +13648,9 @@ var nl_default = {
     panel_sidebar_delete: "Verwijderen",
     panel_sidebar_new_chat: "Nieuw gesprek",
     panel_sidebar_no_conversations: "Nog geen gesprekken.",
+    panel_sidebar_search: "Gesprekken zoeken",
+    panel_sidebar_no_matches:
+      "Geen gesprekken komen overeen met je zoekopdracht.",
     panel_session_delete_confirm: "Verwijderen?",
     panel_session_delete: "Verwijderen",
     panel_session_cancel: "Annuleren",
@@ -14659,6 +14736,9 @@ var hu_default = {
     panel_sidebar_delete: "T\xF6rl\xE9s",
     panel_sidebar_new_chat: "\xDAj besz\xE9lget\xE9s",
     panel_sidebar_no_conversations: "M\xE9g nincsenek besz\xE9lget\xE9sek.",
+    panel_sidebar_search: "Besz\xE9lget\xE9sek keres\xE9se",
+    panel_sidebar_no_matches:
+      "Nincs a keres\xE9snek megfelel\u0151 besz\xE9lget\xE9s.",
     panel_session_delete_confirm: "T\xF6rli?",
     panel_session_delete: "T\xF6rl\xE9s",
     panel_session_cancel: "M\xE9gse",
@@ -15766,6 +15846,8 @@ var pt_default = {
     panel_sidebar_delete: "Eliminar",
     panel_sidebar_new_chat: "Nova conversa",
     panel_sidebar_no_conversations: "Ainda n\xE3o h\xE1 conversas.",
+    panel_sidebar_search: "Pesquisar conversas",
+    panel_sidebar_no_matches: "Nenhuma conversa corresponde \xE0 sua pesquisa.",
     panel_session_delete_confirm: "Eliminar?",
     panel_session_delete: "Eliminar",
     panel_session_cancel: "Cancelar",
@@ -16917,6 +16999,10 @@ var ru_default = {
     panel_sidebar_new_chat: "\u041D\u043E\u0432\u044B\u0439 \u0447\u0430\u0442",
     panel_sidebar_no_conversations:
       "\u0411\u0435\u0441\u0435\u0434 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442.",
+    panel_sidebar_search:
+      "\u041F\u043E\u0438\u0441\u043A \u0431\u0435\u0441\u0435\u0434",
+    panel_sidebar_no_matches:
+      "\u041D\u0435\u0442 \u0431\u0435\u0441\u0435\u0434, \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0445 \u0437\u0430\u043F\u0440\u043E\u0441\u0443.",
     panel_session_delete_confirm: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C?",
     panel_session_delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
     panel_session_cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
@@ -18500,6 +18586,9 @@ var ja_default = {
     panel_sidebar_new_chat: "\u65B0\u3057\u3044\u30C1\u30E3\u30C3\u30C8",
     panel_sidebar_no_conversations:
       "\u4F1A\u8A71\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    panel_sidebar_search: "\u4F1A\u8A71\u3092\u691C\u7D22",
+    panel_sidebar_no_matches:
+      "\u691C\u7D22\u306B\u4E00\u81F4\u3059\u308B\u4F1A\u8A71\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
     panel_session_delete_confirm: "\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
     panel_session_delete: "\u524A\u9664",
     panel_session_cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
@@ -19821,6 +19910,9 @@ var ko_default = {
     panel_sidebar_new_chat: "\uC0C8 \uCC44\uD305",
     panel_sidebar_no_conversations:
       "\uC544\uC9C1 \uB300\uD654\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    panel_sidebar_search: "\uB300\uD654 \uAC80\uC0C9",
+    panel_sidebar_no_matches:
+      "\uAC80\uC0C9\uACFC \uC77C\uCE58\uD558\uB294 \uB300\uD654\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
     panel_session_delete_confirm:
       "\uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?",
     panel_session_delete: "\uC0AD\uC81C",
@@ -21032,6 +21124,9 @@ var zh_Hans_default = {
     panel_sidebar_delete: "\u5220\u9664",
     panel_sidebar_new_chat: "\u65B0\u5BF9\u8BDD",
     panel_sidebar_no_conversations: "\u6682\u65E0\u5BF9\u8BDD\u3002",
+    panel_sidebar_search: "\u641C\u7D22\u5BF9\u8BDD",
+    panel_sidebar_no_matches:
+      "\u6CA1\u6709\u7B26\u5408\u641C\u7D22\u7684\u5BF9\u8BDD\u3002",
     panel_session_delete_confirm: "\u5220\u9664\uFF1F",
     panel_session_delete: "\u5220\u9664",
     panel_session_cancel: "\u53D6\u6D88",
@@ -22198,6 +22293,9 @@ var zh_Hant_default = {
     panel_sidebar_delete: "\u522A\u9664",
     panel_sidebar_new_chat: "\u65B0\u5C0D\u8A71",
     panel_sidebar_no_conversations: "\u5C1A\u7121\u5C0D\u8A71\u3002",
+    panel_sidebar_search: "\u641C\u5C0B\u5C0D\u8A71",
+    panel_sidebar_no_matches:
+      "\u6C92\u6709\u7B26\u5408\u641C\u5C0B\u7684\u5C0D\u8A71\u3002",
     panel_session_delete_confirm: "\u8981\u522A\u9664\u55CE\uFF1F",
     panel_session_delete: "\u522A\u9664",
     panel_session_cancel: "\u53D6\u6D88",
@@ -34083,12 +34181,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.11.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.12.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.11.0"}
+            Selora AI v${"0.12.0"}
           </a>
         </div>
       </div>
@@ -42981,6 +43079,7 @@ async function _newSession() {
       type: "selora_ai/new_session",
     });
     this._activeSessionId = session_id;
+    this._sessionSearch = "";
     this._messages = [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
@@ -43012,6 +43111,7 @@ async function _startNewAutomationChat() {
       type: "selora_ai/new_session",
     });
     this._activeSessionId = session_id;
+    this._sessionSearch = "";
     this._messages = [];
     this._input = "";
     this._autocompleteSelections = [];
@@ -43061,6 +43161,7 @@ async function _newAutomationChat(name) {
         .catch(() => {}),
     ]);
     this._activeSessionId = session_id;
+    this._sessionSearch = "";
     this._messages = [];
     this._input = `Create a new automation called "${trimmed}".`;
     this._setActiveTab("chat");
@@ -44922,6 +45023,84 @@ function _discardSceneEdits(sceneId) {
   this.requestUpdate();
 }
 
+// src/panel/session-search.js
+var SNIPPET_RADIUS = 40;
+function scoreText(hayLower, queryLower, allowSubsequence = true) {
+  if (!hayLower || !queryLower) return 0;
+  const words = hayLower.split(/\s+/);
+  for (const w2 of words) {
+    if (w2 === queryLower) return 1500;
+  }
+  if (hayLower.startsWith(queryLower)) return 1e3;
+  for (const w2 of words) {
+    if (w2.startsWith(queryLower)) return 500;
+  }
+  if (hayLower.includes(queryLower)) return 100;
+  if (!allowSubsequence) return 0;
+  let qi = 0;
+  for (let i5 = 0; i5 < hayLower.length && qi < queryLower.length; i5++) {
+    if (hayLower[i5] === queryLower[qi]) qi += 1;
+  }
+  return qi === queryLower.length ? 10 : 0;
+}
+function extractSnippet(text, queryLower) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  let idx = lower.indexOf(queryLower);
+  let matchLen = queryLower.length;
+  if (idx < 0) {
+    matchLen = 0;
+    let qi = 0;
+    for (let i5 = 0; i5 < lower.length && qi < queryLower.length; i5++) {
+      if (lower[i5] === queryLower[qi]) {
+        if (qi === 0) idx = i5;
+        qi += 1;
+      }
+    }
+    if (qi !== queryLower.length) return null;
+  }
+  let start = Math.max(0, idx - SNIPPET_RADIUS);
+  let end = Math.min(text.length, idx + matchLen + SNIPPET_RADIUS);
+  if (start > 0) {
+    const space = text.indexOf(" ", start);
+    if (space >= 0 && space < idx) start = space + 1;
+  }
+  if (end < text.length) {
+    const space = text.lastIndexOf(" ", end);
+    if (space > idx + matchLen) end = space;
+  }
+  const before = (start > 0 ? "\u2026" : "") + text.slice(start, idx);
+  const match = text.slice(idx, idx + matchLen);
+  const after =
+    text.slice(idx + matchLen, end) + (end < text.length ? "\u2026" : "");
+  return { before, match, after };
+}
+function filterSessions(sessions, query) {
+  const list = Array.isArray(sessions) ? sessions : [];
+  const q = (query || "").trim().toLowerCase();
+  if (!q) return list.map((session) => ({ session, snippet: null }));
+  const scored = [];
+  for (const session of list) {
+    const titleScore = scoreText((session.title || "").toLowerCase(), q);
+    const bodyScore = scoreText(
+      (session.search_text || "").toLowerCase(),
+      q,
+      false,
+    );
+    if (titleScore <= 0 && bodyScore <= 0) continue;
+    const rank = titleScore > 0 ? 1e5 + titleScore : bodyScore;
+    const snippet =
+      titleScore <= 0 && bodyScore > 0
+        ? extractSnippet(session.search_text, q)
+        : null;
+    scored.push({ session, snippet, rank, updated: session.updated_at || "" });
+  }
+  scored.sort(
+    (a4, b2) => b2.rank - a4.rank || b2.updated.localeCompare(a4.updated),
+  );
+  return scored.map(({ session, snippet }) => ({ session, snippet }));
+}
+
 // src/panel.js
 (() => {
   const PANEL_NAME = "selora-ai";
@@ -45281,6 +45460,8 @@ var SeloraAIPanel = class extends s4 {
       _selectChatsMode: { type: Boolean },
       _swipedSessionId: { type: String },
       _selectedSessionIds: { type: Object },
+      // Conversation sidebar search
+      _sessionSearch: { type: String },
       // Pending "Create in Chat" from dashboard card
       _pendingNewAutomation: { type: String },
       // Pagination
@@ -45339,6 +45520,7 @@ var SeloraAIPanel = class extends s4 {
   constructor() {
     super();
     this._sessions = [];
+    this._sessionSearch = "";
     this._activeSessionId = null;
     this._messages = [];
     this._input = "";
@@ -46506,7 +46688,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.11.0" : "unknown",
+        integration_version: true ? "0.12.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -48803,6 +48985,7 @@ var SeloraAIPanel = class extends s4 {
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
+                              this._sessionSearch = "";
                               this._selectChatsMode = true;
                             }}
                           >
@@ -48875,120 +49058,168 @@ var SeloraAIPanel = class extends s4 {
                 </button>
               `
           }
+          ${
+            this._sessions.length > 0 && !this._selectChatsMode
+              ? x`
+                <div class="session-search">
+                  <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
+                  <input
+                    type="text"
+                    .value=${this._sessionSearch}
+                    placeholder=${this._t(
+                      "panel_sidebar_search",
+                      "Search conversations",
+                    )}
+                    @input=${(e6) => (this._sessionSearch = e6.target.value)}
+                  />
+                  ${
+                    this._sessionSearch
+                      ? x`<ha-icon
+                        class="search-clear"
+                        icon="mdi:close-circle"
+                        @click=${() => (this._sessionSearch = "")}
+                      ></ha-icon>`
+                      : ""
+                  }
+                </div>
+              `
+              : ""
+          }
           <div class="session-list">
             ${
               this._sessions.length === 0
-                ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
+                ? x`<div class="session-search-empty">
                   ${this._t(
                     "panel_sidebar_no_conversations",
                     "No conversations yet.",
                   )}
                 </div>`
-                : this._sessions.map(
-                    (s6) => x`
-                    <div
-                      class="session-item-wrapper ${this._swipedSessionId === s6.id ? "reveal-delete" : ""}"
-                    >
+                : (() => {
+                    const visible = filterSessions(
+                      this._sessions,
+                      this._sessionSearch,
+                    );
+                    if (visible.length === 0) {
+                      return x`<div class="session-search-empty">
+                      ${this._t(
+                        "panel_sidebar_no_matches",
+                        "No conversations match your search.",
+                      )}
+                    </div>`;
+                    }
+                    return visible.map(
+                      ({ session: s6, snippet }) => x`
                       <div
-                        class="session-item-delete-bg"
-                        @click=${(e6) => this._deleteSession(s6.id, e6)}
+                        class="session-item-wrapper ${this._swipedSessionId === s6.id ? "reveal-delete" : ""}"
                       >
-                        <ha-icon icon="mdi:delete-outline"></ha-icon>
-                      </div>
-                      ${
-                        this._deleteConfirmSessionId === s6.id
-                          ? x`
-                            <div class="session-item session-delete-confirm">
-                              <span class="session-delete-confirm-label"
-                                >${this._t(
-                                  "panel_session_delete_confirm",
-                                  "Delete?",
-                                )}</span
-                              >
-                              <div
-                                style="display:flex;gap:6px;margin-left:auto;"
-                              >
-                                <button
-                                  class="btn btn-sm"
-                                  style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
-                                  @click=${(e6) => {
-                                    e6.stopPropagation();
-                                    this._confirmDeleteSession();
-                                  }}
+                        <div
+                          class="session-item-delete-bg"
+                          @click=${(e6) => this._deleteSession(s6.id, e6)}
+                        >
+                          <ha-icon icon="mdi:delete-outline"></ha-icon>
+                        </div>
+                        ${
+                          this._deleteConfirmSessionId === s6.id
+                            ? x`
+                              <div class="session-item session-delete-confirm">
+                                <span class="session-delete-confirm-label"
+                                  >${this._t(
+                                    "panel_session_delete_confirm",
+                                    "Delete?",
+                                  )}</span
                                 >
-                                  ${this._t("panel_session_delete", "Delete")}
-                                </button>
-                                <button
-                                  class="btn btn-outline btn-sm"
-                                  style="padding:3px 10px;font-size:12px;"
-                                  @click=${(e6) => {
-                                    e6.stopPropagation();
-                                    this._deleteConfirmSessionId = null;
-                                  }}
+                                <div
+                                  style="display:flex;gap:6px;margin-left:auto;"
                                 >
-                                  ${this._t("panel_session_cancel", "Cancel")}
-                                </button>
-                              </div>
-                            </div>
-                          `
-                          : x`
-                            <div
-                              class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
-                              @click=${() => {
-                                if (this._swipedSessionId === s6.id) {
-                                  this._swipedSessionId = null;
-                                  return;
-                                }
-                                this._selectChatsMode
-                                  ? this._toggleSessionSelection(s6.id)
-                                  : this._openSession(s6.id);
-                              }}
-                              @touchstart=${(e6) => this._onSessionTouchStart(e6, s6.id)}
-                              @touchmove=${(e6) => this._onSessionTouchMove(e6, s6.id)}
-                              @touchend=${(e6) => this._onSessionTouchEnd(e6, s6.id)}
-                            >
-                              ${
-                                this._selectChatsMode
-                                  ? x`
-                                    <input
-                                      type="checkbox"
-                                      class="session-checkbox"
-                                      .checked=${!!this._selectedSessionIds[s6.id]}
-                                      @click=${(e6) => {
-                                        e6.stopPropagation();
-                                        this._toggleSessionSelection(s6.id);
-                                      }}
-                                    />
-                                  `
-                                  : ""
-                              }
-                              <div style="flex:1; min-width:0;">
-                                <div class="session-title">${s6.title}</div>
-                                <div class="session-meta">
-                                  ${formatDate(s6.updated_at)}
+                                  <button
+                                    class="btn btn-sm"
+                                    style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
+                                    @click=${(e6) => {
+                                      e6.stopPropagation();
+                                      this._confirmDeleteSession();
+                                    }}
+                                  >
+                                    ${this._t("panel_session_delete", "Delete")}
+                                  </button>
+                                  <button
+                                    class="btn btn-outline btn-sm"
+                                    style="padding:3px 10px;font-size:12px;"
+                                    @click=${(e6) => {
+                                      e6.stopPropagation();
+                                      this._deleteConfirmSessionId = null;
+                                    }}
+                                  >
+                                    ${this._t("panel_session_cancel", "Cancel")}
+                                  </button>
                                 </div>
                               </div>
-                              ${
-                                !this._selectChatsMode
-                                  ? x`
-                                    <ha-icon
-                                      class="session-delete"
-                                      icon="mdi:delete-outline"
-                                      @click=${(e6) => this._deleteSession(s6.id, e6)}
-                                      title=${this._t(
-                                        "panel_session_delete_title",
-                                        "Delete",
-                                      )}
-                                    ></ha-icon>
-                                  `
-                                  : ""
-                              }
-                            </div>
-                          `
-                      }
-                    </div>
-                  `,
-                  )
+                            `
+                            : x`
+                              <div
+                                class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
+                                @click=${() => {
+                                  if (this._swipedSessionId === s6.id) {
+                                    this._swipedSessionId = null;
+                                    return;
+                                  }
+                                  this._selectChatsMode
+                                    ? this._toggleSessionSelection(s6.id)
+                                    : this._openSession(s6.id);
+                                }}
+                                @touchstart=${(e6) => this._onSessionTouchStart(e6, s6.id)}
+                                @touchmove=${(e6) => this._onSessionTouchMove(e6, s6.id)}
+                                @touchend=${(e6) => this._onSessionTouchEnd(e6, s6.id)}
+                              >
+                                ${
+                                  this._selectChatsMode
+                                    ? x`
+                                      <input
+                                        type="checkbox"
+                                        class="session-checkbox"
+                                        .checked=${!!this._selectedSessionIds[s6.id]}
+                                        @click=${(e6) => {
+                                          e6.stopPropagation();
+                                          this._toggleSessionSelection(s6.id);
+                                        }}
+                                      />
+                                    `
+                                    : ""
+                                }
+                                <div style="flex:1; min-width:0;">
+                                  <div class="session-title">${s6.title}</div>
+                                  ${
+                                    snippet
+                                      ? x`<div class="session-snippet">
+                                        ${snippet.before}<mark>${snippet.match}</mark>${snippet.after}
+                                      </div>`
+                                      : ""
+                                  }
+                                  <div class="session-meta">
+                                    ${formatDate(s6.updated_at)}
+                                  </div>
+                                </div>
+                                ${
+                                  !this._selectChatsMode
+                                    ? x`
+                                      <ha-icon
+                                        class="session-delete"
+                                        icon="mdi:delete-outline"
+                                        @click=${(e6) => this._deleteSession(s6.id, e6)}
+                                        title=${this._t(
+                                          "panel_session_delete_title",
+                                          "Delete",
+                                        )}
+                                      ></ha-icon>
+                                    `
+                                    : ""
+                                }
+                              </div>
+                            `
+                        }
+                      </div>
+                    `,
+                    );
+                  })()
             }
           </div>
         </div>

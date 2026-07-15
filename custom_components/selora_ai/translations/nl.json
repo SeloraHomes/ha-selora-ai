@@ -177,6 +177,8 @@
     "panel_sidebar_delete": "Verwijderen",
     "panel_sidebar_new_chat": "Nieuw gesprek",
     "panel_sidebar_no_conversations": "Nog geen gesprekken.",
+    "panel_sidebar_search": "Gesprekken zoeken",
+    "panel_sidebar_no_matches": "Geen gesprekken komen overeen met je zoekopdracht.",
     "panel_session_delete_confirm": "Verwijderen?",
     "panel_session_delete": "Verwijderen",
     "panel_session_cancel": "Annuleren",

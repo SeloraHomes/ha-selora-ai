@@ -157,6 +157,8 @@
     "panel_sidebar_delete": "削除",
     "panel_sidebar_new_chat": "新しいチャット",
     "panel_sidebar_no_conversations": "会話はまだありません。",
+    "panel_sidebar_search": "会話を検索",
+    "panel_sidebar_no_matches": "検索に一致する会話はありません。",
     "panel_session_delete_confirm": "削除しますか？",
     "panel_session_delete": "削除",
     "panel_session_cancel": "キャンセル",

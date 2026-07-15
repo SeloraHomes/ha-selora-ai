@@ -177,6 +177,8 @@
     "panel_sidebar_delete": "Törlés",
     "panel_sidebar_new_chat": "Új beszélgetés",
     "panel_sidebar_no_conversations": "Még nincsenek beszélgetések.",
+    "panel_sidebar_search": "Beszélgetések keresése",
+    "panel_sidebar_no_matches": "Nincs a keresésnek megfelelő beszélgetés.",
     "panel_session_delete_confirm": "Törli?",
     "panel_session_delete": "Törlés",
     "panel_session_cancel": "Mégse",
