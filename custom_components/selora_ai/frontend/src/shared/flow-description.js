@@ -62,6 +62,8 @@ const PHRASES = {
     when_event: (n) => `When ${n} happens`,
     when_event_generic: "When an event happens",
     when_device_triggered: (t) => `When a device ${t}`,
+    when_named_device: (name, ty) => `When ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t) => `When a device is ${t}`,
     triggered: "triggered",
     zone_enters: "enters",
@@ -79,6 +81,8 @@ const PHRASES = {
     cond_between: (eid, a, b) => `${eid} between ${a} and ${b}`,
     cond_above: (eid, v) => `${eid} above ${v}`,
     cond_below: (eid, v) => `${eid} below ${v}`,
+    cond_at_least: (eid, v) => `${eid} at least ${v}`,
+    cond_at_most: (eid, v) => `${eid} at most ${v}`,
     cond_numeric: (eid) => `${eid} numeric check`,
     cond_after_time: (t) => `after ${t}`,
     cond_before_time: (t) => `before ${t}`,
@@ -91,6 +95,8 @@ const PHRASES = {
     cond_all: (n) => `All ${n} conditions must be true`,
     cond_any: (n) => `Any of ${n} conditions is true`,
     cond_none: "None of the conditions are true",
+    cond_triggered_by: (label) => `Triggered by “${label}”`,
+    cond_at_time: (x) => `at ${x}`,
     cond_in_zone: (eid, z) => `${eid} is in ${z || "zone"}`,
     cond_device: "Device condition",
     notify_quoted: (q) => `Notify: "${q}"`,
@@ -165,6 +171,8 @@ const PHRASES = {
     when_event: (n) => `Quand ${n} se produit`,
     when_event_generic: "Quand un événement se produit",
     when_device_triggered: (t) => `Quand un appareil ${t}`,
+    when_named_device: (name, ty) => `Quand ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t) => `Quand un appareil est ${t}`,
     triggered: "déclenché",
     zone_enters: "entre dans",
@@ -183,6 +191,8 @@ const PHRASES = {
     cond_between: (eid, a, b) => `${eid} entre ${a} et ${b}`,
     cond_above: (eid, v) => `${eid} au-dessus de ${v}`,
     cond_below: (eid, v) => `${eid} en dessous de ${v}`,
+    cond_at_least: (eid, v) => `${eid} d'au moins ${v}`,
+    cond_at_most: (eid, v) => `${eid} d'au plus ${v}`,
     cond_numeric: (eid) => `vérification numérique de ${eid}`,
     cond_after_time: (t) => `après ${t}`,
     cond_before_time: (t) => `avant ${t}`,
@@ -195,6 +205,8 @@ const PHRASES = {
     cond_all: (n) => `Les ${n} conditions doivent être vraies`,
     cond_any: (n) => `L'une des ${n} conditions est vraie`,
     cond_none: "Aucune des conditions n'est vraie",
+    cond_triggered_by: (label) => `Déclenché par « ${label} »`,
+    cond_at_time: (x) => `à ${x}`,
     cond_in_zone: (eid, z) => `${eid} est dans ${z || "la zone"}`,
     cond_device: "Condition d'appareil",
     notify_quoted: (q) => `Notification : « ${q} »`,
@@ -268,6 +280,8 @@ const PHRASES = {
     when_event: (n) => `Wenn ${n} eintritt`,
     when_event_generic: "Wenn ein Ereignis eintritt",
     when_device_triggered: (t) => `Wenn ein Gerät ${t}`,
+    when_named_device: (name, ty) => `Wenn ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t) => `Wenn ein Gerät ${t} ist`,
     triggered: "ausgelöst",
     zone_enters: "betritt",
@@ -285,6 +299,8 @@ const PHRASES = {
     cond_between: (eid, a, b) => `${eid} zwischen ${a} und ${b}`,
     cond_above: (eid, v) => `${eid} über ${v}`,
     cond_below: (eid, v) => `${eid} unter ${v}`,
+    cond_at_least: (eid, v) => `${eid} mindestens ${v}`,
+    cond_at_most: (eid, v) => `${eid} höchstens ${v}`,
     cond_numeric: (eid) => `${eid} numerische Prüfung`,
     cond_after_time: (t) => `nach ${t}`,
     cond_before_time: (t) => `vor ${t}`,
@@ -297,6 +313,8 @@ const PHRASES = {
     cond_all: (n) => `Alle ${n} Bedingungen müssen erfüllt sein`,
     cond_any: (n) => `Eine der ${n} Bedingungen ist erfüllt`,
     cond_none: "Keine der Bedingungen ist erfüllt",
+    cond_triggered_by: (label) => `Ausgelöst durch „${label}“`,
+    cond_at_time: (x) => `um ${x}`,
     cond_in_zone: (eid, z) => `${eid} ist in ${z || "Zone"}`,
     cond_device: "Gerätebedingung",
     notify_quoted: (q) => `Benachrichtigen: „${q}“`,
@@ -371,6 +389,8 @@ const PHRASES = {
     when_event: (n) => `Cuando ocurra ${n}`,
     when_event_generic: "Cuando ocurra un evento",
     when_device_triggered: (t) => `Cuando un dispositivo ${t}`,
+    when_named_device: (name, ty) => `Cuando ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t) => `Cuando un dispositivo esté ${t}`,
     triggered: "activado",
     zone_enters: "entra en",
@@ -389,6 +409,8 @@ const PHRASES = {
     cond_between: (eid, a, b) => `${eid} entre ${a} y ${b}`,
     cond_above: (eid, v) => `${eid} por encima de ${v}`,
     cond_below: (eid, v) => `${eid} por debajo de ${v}`,
+    cond_at_least: (eid, v) => `${eid} al menos ${v}`,
+    cond_at_most: (eid, v) => `${eid} como máximo ${v}`,
     cond_numeric: (eid) => `verificación numérica de ${eid}`,
     cond_after_time: (t) => `después de ${t}`,
     cond_before_time: (t) => `antes de ${t}`,
@@ -401,6 +423,8 @@ const PHRASES = {
     cond_all: (n) => `Las ${n} condiciones deben ser verdaderas`,
     cond_any: (n) => `Cualquiera de las ${n} condiciones es verdadera`,
     cond_none: "Ninguna de las condiciones es verdadera",
+    cond_triggered_by: (label) => `Activado por «${label}»`,
+    cond_at_time: (x) => `a las ${x}`,
     cond_in_zone: (eid, z) => `${eid} está en ${z || "la zona"}`,
     cond_device: "Condición de dispositivo",
     notify_quoted: (q) => `Notificar: «${q}»`,
@@ -474,6 +498,8 @@ const PHRASES = {
     when_event: (n) => `Quando ${n} si verifica`,
     when_event_generic: "Quando si verifica un evento",
     when_device_triggered: (t) => `Quando un dispositivo ${t}`,
+    when_named_device: (name, ty) => `Quando ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t) => `Quando un dispositivo è ${t}`,
     triggered: "attivato",
     zone_enters: "entra in",
@@ -492,6 +518,8 @@ const PHRASES = {
     cond_between: (eid, a, b) => `${eid} tra ${a} e ${b}`,
     cond_above: (eid, v) => `${eid} sopra ${v}`,
     cond_below: (eid, v) => `${eid} sotto ${v}`,
+    cond_at_least: (eid, v) => `${eid} almeno ${v}`,
+    cond_at_most: (eid, v) => `${eid} al massimo ${v}`,
     cond_numeric: (eid) => `verifica numerica di ${eid}`,
     cond_after_time: (t) => `dopo ${t}`,
     cond_before_time: (t) => `prima di ${t}`,
@@ -504,6 +532,8 @@ const PHRASES = {
     cond_all: (n) => `Tutte le ${n} condizioni devono essere vere`,
     cond_any: (n) => `Una delle ${n} condizioni è vera`,
     cond_none: "Nessuna delle condizioni è vera",
+    cond_triggered_by: (label) => `Attivato da «${label}»`,
+    cond_at_time: (x) => `alle ${x}`,
     cond_in_zone: (eid, z) => `${eid} è in ${z || "zona"}`,
     cond_device: "Condizione del dispositivo",
     notify_quoted: (q) => `Notifica: «${q}»`,
@@ -579,6 +609,8 @@ const PHRASES = {
     when_event: (n) => `Wanneer ${n} gebeurt`,
     when_event_generic: "Wanneer een gebeurtenis plaatsvindt",
     when_device_triggered: (t) => `Wanneer een apparaat ${t}`,
+    when_named_device: (name, ty) => `Wanneer ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t) => `Wanneer een apparaat ${t} is`,
     triggered: "geactiveerd",
     zone_enters: "betreedt",
@@ -596,6 +628,8 @@ const PHRASES = {
     cond_between: (eid, a, b) => `${eid} tussen ${a} en ${b}`,
     cond_above: (eid, v) => `${eid} boven ${v}`,
     cond_below: (eid, v) => `${eid} onder ${v}`,
+    cond_at_least: (eid, v) => `${eid} minstens ${v}`,
+    cond_at_most: (eid, v) => `${eid} hoogstens ${v}`,
     cond_numeric: (eid) => `${eid} numerieke controle`,
     cond_after_time: (t) => `na ${t}`,
     cond_before_time: (t) => `vóór ${t}`,
@@ -608,6 +642,8 @@ const PHRASES = {
     cond_all: (n) => `Alle ${n} voorwaarden moeten waar zijn`,
     cond_any: (n) => `Eén van de ${n} voorwaarden is waar`,
     cond_none: "Geen van de voorwaarden is waar",
+    cond_triggered_by: (label) => `Geactiveerd door „${label}”`,
+    cond_at_time: (x) => `om ${x}`,
     cond_in_zone: (eid, z) => `${eid} bevindt zich in ${z || "zone"}`,
     cond_device: "Apparaatvoorwaarde",
     notify_quoted: (q) => `Melding: „${q}”`,
@@ -681,6 +717,8 @@ const PHRASES = {
     when_event: (n) => `Amikor ${n} történik`,
     when_event_generic: "Amikor egy esemény történik",
     when_device_triggered: (t) => `Amikor egy eszköz ${t}`,
+    when_named_device: (name, ty) => `Amikor ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t) => `Amikor egy eszköz ${t}`,
     triggered: "kiváltódik",
     zone_enters: "belép ide:",
@@ -699,6 +737,8 @@ const PHRASES = {
     cond_between: (eid, a, b) => `${eid} ${a} és ${b} között`,
     cond_above: (eid, v) => `${eid} ${v} fölött`,
     cond_below: (eid, v) => `${eid} ${v} alatt`,
+    cond_at_least: (eid, v) => `${eid} legalább ${v}`,
+    cond_at_most: (eid, v) => `${eid} legfeljebb ${v}`,
     cond_numeric: (eid) => `${eid} numerikus ellenőrzés`,
     cond_after_time: (t) => `${t} után`,
     cond_before_time: (t) => `${t} előtt`,
@@ -711,6 +751,8 @@ const PHRASES = {
     cond_all: (n) => `Mind a ${n} feltételnek igaznak kell lennie`,
     cond_any: (n) => `A ${n} feltétel egyike igaz`,
     cond_none: "Egyik feltétel sem igaz",
+    cond_triggered_by: (label) => `Kiváltotta: „${label}”`,
+    cond_at_time: (x) => `${x}-kor`,
     cond_in_zone: (eid, z) => `${eid} itt: ${z || "zóna"}`,
     cond_device: "Eszközfeltétel",
     notify_quoted: (q) => `Értesítés: „${q}”`,
@@ -767,6 +809,144 @@ function _val(phrases, key, ...args) {
   return typeof v === "function" ? v(...args) : v;
 }
 
+// Resolve a device trigger/condition's device_id to its display name via
+// the device registry the frontend ships on `hass.devices`. Returns null
+// when the registry (or the device) isn't available, so callers can fall
+// back to the generic "a device" phrasing.
+function _deviceName(hass, deviceId) {
+  if (!deviceId) return null;
+  const dev = hass?.devices?.[String(deviceId)];
+  return dev?.name_by_user || dev?.name || null;
+}
+
+// HA assigns a trigger without an explicit `id` its zero-based index as the
+// default id, so a `condition: trigger` may reference "0", "1", … Resolve a
+// trigger's effective id the same way so those conditions still match.
+function _triggerEffectiveId(tr, index) {
+  return tr?.id != null ? String(tr.id) : String(index);
+}
+
+// A state/numeric_state trigger listing several entities fires when ANY of
+// them changes, so their names join with "or" — unlike conditions, where a
+// list means every entity must match and fmtEntities' "and" is correct.
+function _entityNamesOr(hass, val, t) {
+  const arr = asArray(val);
+  if (arr.length <= 1) return fmtEntity(hass, arr[0]);
+  const names = arr.map((e) => fmtEntity(hass, e));
+  return names.slice(0, -1).join(", ") + t("or") + names[names.length - 1];
+}
+
+// One comparison clause: an optionally-parenthesized states()/state_attr()
+// reference, optional type-conversion filter chain, a numeric operator, and
+// a number — anchored so it matches the WHOLE clause, nothing partial.
+// Only `int` / `float` are allowed in the filter chain: they preserve the
+// comparison's meaning. Value-transforming filters (abs, round, +/-, etc.)
+// would change which values satisfy the check, so a clause using one fails
+// to match here and falls back to the generic template description.
+// Groups: 1 states-entity, 2 state_attr-entity, 3 attr, 4 operator, 5 number.
+const _CLAUSE_RE =
+  /^\(?\s*(?:states\(\s*['"]([^'"]+)['"]\s*\)|state_attr\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\))(?:\s*\|\s*(?:int|float)\b(?:\([^()]*\))?)*\s*\)?\s*(<=?|>=?)\s*(-?\d+(?:\.\d+)?)\s*$/;
+
+// Whole template is exactly is_state('entity', 'state').
+const _IS_STATE_RE =
+  /^is_state\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)$/;
+
+// Turn the comparison templates LLMs routinely emit into the same phrases a
+// native numeric_state / state condition would get, instead of the opaque
+// "Template evaluates to true":
+//   is_state('light.x', 'on')                          → "X is on"
+//   state_attr('cover.x', 'current_position') >= 45
+//     and state_attr(...) <= 55                        → "X current position between 45 and 55"
+//   states('sensor.x') | float > 20                    → "X above 20"
+// Returns null (→ caller falls back to "Template evaluates to true") unless
+// the ENTIRE template is one of the supported affirmative shapes. Partial,
+// negated ("not is_state(...)"), disjunctive, or mixed-entity expressions
+// bail out rather than render a description that inverts or drops meaning.
+function _describeComparisonTemplate(hass, template, t, lang) {
+  const inner = String(template || "")
+    .replace(/^\s*\{\{-?/, "")
+    .replace(/-?\}\}\s*$/, "")
+    .trim();
+  if (!inner) return null;
+
+  // Negation / disjunction / conditionals can't be rendered with the
+  // affirmative phrasing below without changing meaning — bail.
+  if (/\b(not|or|if|else)\b/.test(inner)) return null;
+
+  const isState = inner.match(_IS_STATE_RE);
+  if (isState)
+    return t(
+      "cond_is",
+      fmtEntity(hass, isState[1]),
+      fmtState(isState[2], lang),
+    );
+
+  // Otherwise the whole template must be one or two numeric comparisons,
+  // joined by "and", on the SAME entity reference (a range). Every clause
+  // must parse completely; a differing entity or a repeated bound bails.
+  const clauses = inner.split(/\s+and\s+/);
+  if (clauses.length > 2) return null;
+  let refKey = null;
+  let entityId = null;
+  let attr = null;
+  let above = null;
+  let aboveIncl = false;
+  let below = null;
+  let belowIncl = false;
+  for (const clause of clauses) {
+    const m = clause.match(_CLAUSE_RE);
+    if (!m) return null;
+    const eid = m[1] ?? m[2];
+    const key = `${eid}|${m[3] ?? ""}`;
+    if (refKey == null) {
+      refKey = key;
+      entityId = eid;
+      attr = m[3] ?? null;
+    } else if (key !== refKey) {
+      return null;
+    }
+    const inclusive = m[4].includes("=");
+    if (m[4][0] === ">") {
+      if (above != null) return null;
+      above = m[5];
+      aboveIncl = inclusive;
+    } else {
+      if (below != null) return null;
+      below = m[5];
+      belowIncl = inclusive;
+    }
+  }
+  if (!entityId) return null;
+  const name = fmtEntity(hass, entityId);
+  const subject = attr ? `${name} ${humanizeToken(attr).toLowerCase()}` : name;
+  // Preserve the operator's inclusivity — at the boundary value, "above 45"
+  // is the opposite verdict from ">= 45", so `>=`/`<=` render as
+  // "at least" / "at most". "between A and B" reads as inclusive of both
+  // ends, so it's only accurate for `>= … <=`; strict or mixed ranges would
+  // differ at a boundary, so they fall back to the generic template text
+  // rather than claim an inclusivity they don't have.
+  if (above != null && below != null)
+    return aboveIncl && belowIncl
+      ? t("cond_between", subject, above, below)
+      : null;
+  if (above != null)
+    return t(aboveIncl ? "cond_at_least" : "cond_above", subject, above);
+  if (below != null)
+    return t(belowIncl ? "cond_at_most" : "cond_below", subject, below);
+  return null;
+}
+
+// Whether a template condition gets a concrete description (vs falling back
+// to the generic "Template evaluates to true"). Runs the real parser with
+// throwaway hass/phrase args so the two can never drift — only the null vs
+// non-null verdict matters here, not the produced text. Used to decide
+// whether a template's entities are actually shown in the chart.
+function _templateHasConcreteDescription(template) {
+  return (
+    _describeComparisonTemplate(null, template, () => "x", undefined) != null
+  );
+}
+
 /**
  * Describe a single HA flow item (trigger, condition, or action) as a human-readable string.
  *
@@ -779,9 +959,11 @@ function _val(phrases, key, ...args) {
  *
  * @param {{ states?: Object, language?: string }} hass - Home Assistant instance for entity name lookups and locale
  * @param {Object} item - trigger, condition, or action object from an automation
+ * @param {{ triggers?: Object[] }} [ctx] - surrounding automation context; `triggers`
+ *   lets `condition: trigger` resolve its trigger id to the trigger it references
  * @returns {string} human-readable description
  */
-export function describeFlowItem(hass, item) {
+export function describeFlowItem(hass, item, ctx) {
   if (!item || typeof item !== "object") return String(item ?? "");
   const T = _phrases(hass);
   const t = (k, ...a) => _val(T, k, ...a);
@@ -821,7 +1003,7 @@ export function describeFlowItem(hass, item) {
     return t("when_it_is", ev);
   }
   if (p === "state") {
-    const eid = fmtEntities(hass, item.entity_id, lang);
+    const eid = _entityNamesOr(hass, item.entity_id, t);
     const rawTo = item.to == null ? null : String(item.to);
     const fromState = fmtState(item.from, lang);
     const toState = fmtState(item.to, lang);
@@ -834,10 +1016,15 @@ export function describeFlowItem(hass, item) {
     if (toState && fromState)
       return t("when_changes_from_to", eid, fromState, toState, dur);
     if (toState) return t("when_becomes", eid, toState, dur);
+    // A bare state trigger on a sensor fires on every reported value —
+    // "value changes" says that; "changes state" reads like on/off.
+    const firstId = String(asArray(item.entity_id)[0] || "");
+    if (!item.from && firstId.startsWith("sensor."))
+      return `${t("when_value_changes", eid)}${dur}`;
     return t("when_changes_state", eid, dur);
   }
   if (p === "numeric_state") {
-    const eid = fmtEntities(hass, item.entity_id, lang);
+    const eid = _entityNamesOr(hass, item.entity_id, t);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
     if (item.above != null && item.below != null)
@@ -877,6 +1064,8 @@ export function describeFlowItem(hass, item) {
     const triggerType = item.type
       ? humanizeToken(item.type).toLowerCase()
       : t("triggered");
+    const devName = _deviceName(hass, item.device_id);
+    if (devName) return t("when_named_device", devName, triggerType);
     return item.device_id
       ? t("when_device_triggered", triggerType)
       : t("when_device_is", triggerType);
@@ -933,7 +1122,37 @@ export function describeFlowItem(hass, item) {
       parts.push(t("cond_on_weekday", fmtWeekdays(item.weekday, lang)));
     return parts.length ? parts.join(t("joiner_dot")) : t("cond_time_window");
   }
-  if (cond === "template") return t("cond_template_true");
+  if (cond === "template") {
+    const parsed = _describeComparisonTemplate(
+      hass,
+      item.value_template,
+      t,
+      lang,
+    );
+    return parsed || t("cond_template_true");
+  }
+  if (cond === "trigger") {
+    // Ties a choose-branch to the trigger that fired. Time triggers get
+    // condition-style phrasing ("at 11:00") so the node reads like its
+    // sibling conditions; other trigger types have no natural condition
+    // form and quote the trigger card's own description instead.
+    const ids = asArray(item.id).map(String);
+    const matched = asArray(ctx?.triggers).filter((tr, i) =>
+      ids.includes(_triggerEffectiveId(tr, i)),
+    );
+    if (
+      matched.length &&
+      matched.every((tr) => (tr.platform || tr.trigger) === "time")
+    ) {
+      const times = matched
+        .flatMap((tr) => asArray(tr.at))
+        .map((x) => fmtTime(hass, x));
+      if (times.length) return t("cond_at_time", times.join(t("or")));
+    }
+    const labels = matched.map((tr) => describeFlowItem(hass, tr, ctx));
+    const label = (labels.length ? labels : ids).join(t("or"));
+    return t("cond_triggered_by", label);
+  }
   if (cond === "sun") {
     const parts = [];
     if (item.after)
@@ -949,8 +1168,12 @@ export function describeFlowItem(hass, item) {
     const eid = fmtEntities(hass, item.entity_id, lang);
     return t("cond_in_zone", eid, fmtEntity(hass, item.zone));
   }
-  if (cond === "device")
-    return item.type ? String(item.type).replace(/_/g, " ") : t("cond_device");
+  if (cond === "device") {
+    const ty = item.type ? String(item.type).replace(/_/g, " ") : null;
+    const devName = _deviceName(hass, item.device_id);
+    if (devName && ty) return t("cond_named_device", devName, ty);
+    return ty || t("cond_device");
+  }
   if (cond) return String(cond).replace(/_/g, " ");
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -1117,5 +1340,190 @@ export function collectFlowEntityIds(item) {
   push(item.entity_id);
   push(item.target?.entity_id);
   push(item.data?.entity_id);
+  // Template triggers/conditions reference entities inside Jinja calls —
+  // surface those too so their descriptions get clickable chips.
+  if (typeof item.value_template === "string") {
+    for (const m of item.value_template.matchAll(
+      /(?:states|state_attr|is_state|is_state_attr)\(\s*['"]([^'"]+)['"]/g,
+    )) {
+      push(m[1]);
+    }
+  }
   return out;
+}
+
+/**
+ * Resolve the device referenced by a device trigger / condition so the
+ * renderer can turn its name into a link to the device page. Device items
+ * carry a `device_id` (not an entity_id), so `collectFlowEntityIds` skips
+ * them — this is the device-shaped counterpart. Returns a single-element
+ * array (or empty when the item isn't a device item or the registry can't
+ * resolve the name) to mirror `collectFlowEntityIds`' shape.
+ *
+ * @param {{ devices?: Object }} hass
+ * @param {Object} item - trigger or condition object
+ * @returns {{ deviceId: string, name: string, domain: string | null }[]}
+ */
+export function collectFlowDeviceRefs(hass, item) {
+  if (!item || typeof item !== "object") return [];
+  const kind = item.platform || item.trigger || item.condition;
+  if (kind !== "device" || !item.device_id) return [];
+  const name = _deviceName(hass, item.device_id);
+  if (!name) return [];
+  return [
+    { deviceId: String(item.device_id), name, domain: item.domain ?? null },
+  ];
+}
+
+// True for a state trigger that fires on any change of its entities — no
+// target/excluded state, no dwell time, no attribute filter. These exist to
+// re-evaluate the automation's conditions, not to express logic of their
+// own. `not_from` / `not_to` constrain which transitions fire, so a trigger
+// carrying them is NOT bare: hiding or merging it would claim the action can
+// run on a transition the trigger explicitly excludes.
+function _isBareStateTrigger(tr) {
+  if (!tr || typeof tr !== "object") return false;
+  const p = tr.platform || tr.trigger;
+  return (
+    p === "state" &&
+    tr.to == null &&
+    tr.from == null &&
+    tr.not_to == null &&
+    tr.not_from == null &&
+    !tr.for &&
+    !tr.attribute
+  );
+}
+
+// True if this action runs whenever the automation is triggered, regardless
+// of any choose/if branch conditions — a plain service call, a `choose` with
+// a `default`, an `if` with an `else`, or a wrapper (parallel/sequence/
+// repeat) that contains such an action. A `choose` without a default and an
+// `if` without an else are fully conditional (nothing runs unless a branch
+// matches). An inline `condition` action is a guard, not an action.
+function _actionRunsUnconditionally(a) {
+  if (!a || typeof a !== "object") return true;
+  if (Array.isArray(a.choose)) return asArray(a.default).length > 0;
+  if (a.if != null) return asArray(a.else).length > 0;
+  if (Array.isArray(a.parallel))
+    return a.parallel.some(_actionRunsUnconditionally);
+  if (Array.isArray(a.sequence))
+    return a.sequence.some(_actionRunsUnconditionally);
+  if (a.repeat)
+    return asArray(a.repeat.sequence ?? a.repeat.actions).some(
+      _actionRunsUnconditionally,
+    );
+  if (a.condition != null) return false;
+  return true;
+}
+
+// True if any action runs unconditionally on every trigger firing. When so,
+// the trigger's timing is load-bearing (e.g. a `choose` default branch runs
+// on each change) and must stay visible even if its entity also appears in
+// a condition. Errs toward `true` (keep the trigger) in ambiguous cases.
+function _hasUnconditionalActionPath(actions) {
+  return asArray(actions).some(_actionRunsUnconditionally);
+}
+
+/**
+ * Collapse consecutive-or-not bare state triggers into one multi-entity
+ * trigger, so the flow chart shows a single "When A or B value changes"
+ * pill instead of one per sensor. Triggers with an `id` stay separate —
+ * a `condition: trigger` may reference them individually.
+ *
+ * @param {Object[]} triggers
+ * @returns {Object[]}
+ */
+export function mergeEquivalentTriggers(triggers) {
+  const out = [];
+  let merged = null;
+  for (const tr of asArray(triggers)) {
+    if (!_isBareStateTrigger(tr) || tr.id != null) {
+      out.push(tr);
+      continue;
+    }
+    if (!merged) {
+      merged = { ...tr, entity_id: [...asArray(tr.entity_id)] };
+      out.push(merged);
+    } else {
+      merged.entity_id.push(...asArray(tr.entity_id));
+    }
+  }
+  return out;
+}
+
+/**
+ * Decide which triggers the flow chart should display. A trigger earns a
+ * spot only when it says something the logic below doesn't already show.
+ * Two kinds are redundant by construction:
+ *   - a trigger whose `id` a `condition: trigger` references — that branch
+ *     already renders it as "Triggered by …";
+ *   - a bare state trigger whose entities all reappear in conditions — it
+ *     only re-evaluates the checks shown below.
+ * When EVERY trigger is redundant the section is dropped (empty array);
+ * otherwise all triggers stay — a partial list would read as the complete
+ * set — merged via mergeEquivalentTriggers.
+ *
+ * @param {Object[]|Object} triggers
+ * @param {Object[]|Object} conditions - the automation's top-level conditions
+ * @param {Object[]|Object} actions - the automation's actions (walked for choose branches)
+ * @returns {Object[]} triggers to render; empty means hide the section
+ */
+export function displayTriggers(triggers, conditions, actions) {
+  const trigs = asArray(triggers);
+  if (!trigs.length) return [];
+  const refIds = new Set();
+  const condEntities = new Set();
+  const visitCondition = (c) => {
+    if (!c || typeof c !== "object") return;
+    if (c.condition === "trigger")
+      for (const id of asArray(c.id)) refIds.add(String(id));
+    // A template condition's entities are shown only when it gets a concrete
+    // description; an opaque template renders as "Template evaluates to true"
+    // with no entity visible, so it must not suppress a matching trigger.
+    if (
+      c.condition !== "template" ||
+      _templateHasConcreteDescription(c.value_template)
+    ) {
+      for (const eid of collectFlowEntityIds(c)) condEntities.add(eid);
+    }
+    for (const sub of asArray(c.conditions)) visitCondition(sub);
+  };
+  const visitAction = (a) => {
+    if (!a || typeof a !== "object") return;
+    // Only walk into constructs renderActionItem actually expands. An
+    // `if`/`then`/`else` action is rendered as ONE opaque node — its
+    // conditions and nested actions never appear — so counting them toward
+    // trigger suppression would hide a trigger whose overlap is invisible
+    // to the user. Excluding if/then/else keeps such triggers shown.
+    for (const branch of asArray(a.choose)) {
+      for (const c of asArray(branch?.conditions)) visitCondition(c);
+      for (const s of asArray(branch?.sequence)) visitAction(s);
+    }
+    for (const key of ["default", "sequence", "parallel"]) {
+      for (const s of asArray(a[key])) visitAction(s);
+    }
+    for (const s of asArray(a.repeat?.sequence)) visitAction(s);
+  };
+  asArray(conditions).forEach(visitCondition);
+  asArray(actions).forEach(visitAction);
+  // If any action runs unconditionally, every trigger drives it on each
+  // firing, so the trigger section's timing is load-bearing and no trigger
+  // is redundant — not even one quoted by a `condition: trigger`, since that
+  // reference sits inside a conditional branch and says nothing about when
+  // the unconditional sibling action runs.
+  const hasUnconditional = _hasUnconditionalActionPath(actions);
+  const isRedundant = (tr, i) => {
+    if (!tr || typeof tr !== "object") return false;
+    if (hasUnconditional) return false;
+    // Quoted by a `condition: trigger` — that branch already shows it.
+    if (refIds.has(_triggerEffectiveId(tr, i))) return true;
+    // Otherwise only a bare state trigger whose entities all recur in
+    // (rendered) conditions is pure re-evaluation and safe to hide.
+    if (!_isBareStateTrigger(tr)) return false;
+    const ids = asArray(tr.entity_id).filter((e) => typeof e === "string");
+    return ids.length > 0 && ids.every((e) => condEntities.has(e));
+  };
+  if (trigs.every(isRedundant)) return [];
+  return mergeEquivalentTriggers(trigs);
 }

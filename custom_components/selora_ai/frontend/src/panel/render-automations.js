@@ -2,6 +2,8 @@ import { html } from "lit";
 import {
   describeFlowItem,
   collectFlowEntityIds,
+  collectFlowDeviceRefs,
+  displayTriggers,
   asArray,
 } from "../shared/flow-description.js";
 import { fmtEntity } from "../shared/formatting.js";
@@ -38,6 +40,26 @@ function renderFlowEntityLink(host, entityId) {
     }}
   >
     <ha-icon icon=${icon}></ha-icon><span>${friendly}</span>
+  </button>`;
+}
+
+// Click target for a device referenced by a device trigger/condition.
+// Devices have no more-info dialog, so this navigates to the device's
+// config page the same way HA's own UI does — history.pushState plus a
+// location-changed event so the SPA router picks it up without a reload.
+function renderFlowDeviceLink(host, deviceId, name, domain) {
+  const icon = (domain && DOMAIN_ICONS[domain]) || "mdi:devices";
+  return html`<button
+    type="button"
+    class="flow-entity-link"
+    title=${`Open ${name}`}
+    @click=${(e) => {
+      e.stopPropagation();
+      window.history.pushState(null, "", `/config/devices/device/${deviceId}`);
+      window.dispatchEvent(new Event("location-changed"));
+    }}
+  >
+    <ha-icon icon=${icon}></ha-icon><span>${name}</span>
   </button>`;
 }
 
@@ -89,19 +111,28 @@ function splitDurations(text) {
 // we silently leave the plain text in place. This stays robust for
 // every flow-item case `describeFlowItem` handles without us having to
 // rewrite each case to template-style.
-function renderFlowDescription(host, item) {
-  const description = describeFlowItem(host.hass, item);
+function renderFlowDescription(host, item, ctx) {
+  const description = describeFlowItem(host.hass, item, ctx);
   if (!description) return html`${description}`;
-  const entityIds = collectFlowEntityIds(item);
 
-  // Map each id to its display name once, longest first so multi-word
-  // names match before any single-word substrings they happen to contain.
-  const lookups = entityIds
-    .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
+  // Map each referenced name to its link target once, longest first so
+  // multi-word names match before any single-word substrings they happen
+  // to contain. Entities open the more-info dialog; devices (device
+  // triggers/conditions have no entity_id) navigate to their config page.
+  const lookups = [
+    ...collectFlowEntityIds(item).map((eid) => ({
+      name: fmtEntity(host.hass, eid),
+      link: { entity: eid },
+    })),
+    ...collectFlowDeviceRefs(host.hass, item).map((d) => ({
+      name: d.name,
+      link: { device: d },
+    })),
+  ]
     .filter((l) => l.name)
     .sort((a, b) => b.name.length - a.name.length);
 
-  // Pass 1: split description on entity friendly names → text + entity links.
+  // Pass 1: split description on referenced names → text + link segments.
   const segments = [];
   let remaining = description;
   // Cap iterations defensively — a pathological input could otherwise
@@ -123,7 +154,7 @@ function renderFlowDescription(host, item) {
       break;
     }
     if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
-    segments.push({ entity: bestMatch.eid });
+    segments.push({ link: bestMatch.link });
     remaining = remaining.slice(bestIdx + bestMatch.name.length);
   }
   if (remaining && safety <= 0) segments.push(remaining);
@@ -144,16 +175,61 @@ function renderFlowDescription(host, item) {
 
   return html`${final.map((s) => {
     if (typeof s === "string") return s;
-    if (s.entity) return renderFlowEntityLink(host, s.entity);
+    if (s.link?.entity) return renderFlowEntityLink(host, s.link.entity);
+    if (s.link?.device) {
+      const d = s.link.device;
+      return renderFlowDeviceLink(host, d.deviceId, d.name, d.domain);
+    }
     if (s.duration) return renderFlowDuration(s.duration);
     return "";
   })}`;
 }
 
-function renderFlowNode(host, item, kind) {
+function renderFlowNode(host, item, kind, ctx) {
   return html`<div class="flow-node ${kind}-node">
-    ${renderFlowDescription(host, item)}
+    ${renderFlowDescription(host, item, ctx)}
   </div>`;
+}
+
+// Render a condition, unwrapping logical groups so users see the actual
+// checks instead of an opaque "All N conditions must be true" summary.
+//
+// `implicitAll` tracks whether the enclosing context already means "all of
+// these must hold" — true for the top-level Condition section and each IF
+// branch's condition list. An `and` group only renders flat when that
+// holds; nested inside an `or` / `not` (implicitAll = false) it MUST keep
+// an explicit "All of the following" group, or `(A and B) or C` would
+// read as "any of A, B, C" and invert the logic. `or` / `not` always draw
+// a labeled group, and their children are no longer in an all-of context.
+function renderConditionItem(host, cond, ctx, implicitAll = true) {
+  if (cond && typeof cond === "object") {
+    const type = cond.condition;
+    if (type === "and") {
+      const children = asArray(cond.conditions).map((c) =>
+        renderConditionItem(host, c, ctx, true),
+      );
+      if (implicitAll) return html`${children}`;
+      return html`<div class="flow-branch">
+        <div class="flow-branch-label">
+          ${host._t("automations_flow_group_all_of", "All of the following:")}
+        </div>
+        ${children}
+      </div>`;
+    }
+    if (type === "or" || type === "not") {
+      const label =
+        type === "or"
+          ? host._t("automations_flow_group_any_of", "Any of the following:")
+          : host._t("automations_flow_group_none_of", "None of the following:");
+      return html`<div class="flow-branch">
+        <div class="flow-branch-label">${label}</div>
+        ${asArray(cond.conditions).map((c) =>
+          renderConditionItem(host, c, ctx, false),
+        )}
+      </div>`;
+    }
+  }
+  return renderFlowNode(host, cond, "condition", ctx);
 }
 
 // Expand control-flow action blocks (choose / parallel / sequence /
@@ -165,7 +241,7 @@ function renderFlowNode(host, item, kind) {
 // "IF <conditions> THEN <sequence>", with a final "OTHERWISE
 // <default>" panel when one is present. The same pattern handles
 // ``parallel`` / ``sequence`` lists.
-function renderActionItem(host, action) {
+function renderActionItem(host, action, ctx) {
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
     return html`<div class="flow-choose">
       ${action.choose.map(
@@ -176,14 +252,13 @@ function renderActionItem(host, action) {
                 ? host._t("automations_flow_branch_if", "If")
                 : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
-            ${asArray(branch.conditions).map(
-              (c) =>
-                html`<div class="flow-node condition-node">
-                  ${renderFlowDescription(host, c)}
-                </div>`,
+            ${asArray(branch.conditions).map((c) =>
+              renderConditionItem(host, c, ctx),
             )}
             <div class="flow-arrow-sm">↓</div>
-            ${asArray(branch.sequence).map((s) => renderActionItem(host, s))}
+            ${asArray(branch.sequence).map((s) =>
+              renderActionItem(host, s, ctx),
+            )}
           </div>
         `,
       )}
@@ -192,7 +267,7 @@ function renderActionItem(host, action) {
             <div class="flow-branch-label">
               ${host._t("automations_flow_branch_otherwise", "Otherwise")}
             </div>
-            ${action.default.map((s) => renderActionItem(host, s))}
+            ${action.default.map((s) => renderActionItem(host, s, ctx))}
           </div>`
         : ""}
     </div>`;
@@ -202,7 +277,7 @@ function renderActionItem(host, action) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${action.parallel.map((s) => renderActionItem(host, s))}
+      ${action.parallel.map((s) => renderActionItem(host, s, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.sequence)) {
@@ -210,7 +285,7 @@ function renderActionItem(host, action) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${action.sequence.map((s) => renderActionItem(host, s))}
+      ${action.sequence.map((s) => renderActionItem(host, s, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -234,11 +309,11 @@ function renderActionItem(host, action) {
     return html`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
       ${(Array.isArray(inner) ? inner : [inner]).map((s) =>
-        renderActionItem(host, s),
+        renderActionItem(host, s, ctx),
       )}
     </div>`;
   }
-  return renderFlowNode(host, action, "action");
+  return renderFlowNode(host, action, "action", ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -311,31 +386,48 @@ export function renderAutomationFlowchart(host, auto) {
     return Array.isArray(a) ? a : [a];
   })();
   if (!triggers.length && !actions.length) return html``;
+  // Conditions inside the chart may reference triggers by id
+  // (condition: trigger), so every node renders with the trigger list
+  // in scope.
+  const ctx = { triggers };
+  // Triggers whose only job is re-evaluating the conditions below, or that
+  // a branch already quotes as "Triggered by …", add nothing — hide the
+  // whole section when every trigger is such a duplicate.
+  const shownTriggers = displayTriggers(triggers, conditions, actions);
   return html`
     <div class="flow-chart">
-      <div class="flow-section flow-section--inline">
-        <div class="flow-label">
-          ${host._t("automations_flow_label_trigger", "Trigger")}
-        </div>
-        ${triggers.map((t) => renderFlowNode(host, t, "trigger"))}
-      </div>
+      ${shownTriggers.length
+        ? html`<div class="flow-section flow-section--inline">
+            <div class="flow-label">
+              ${shownTriggers.length > 1
+                ? host._t(
+                    "automations_flow_label_trigger_any",
+                    "Trigger (any of these)",
+                  )
+                : host._t("automations_flow_label_trigger", "Trigger")}
+            </div>
+            ${shownTriggers.map((t) => renderFlowNode(host, t, "trigger", ctx))}
+          </div>`
+        : ""}
       ${conditions.length
         ? html`
-            <div class="flow-arrow">↓</div>
+            ${shownTriggers.length ? html`<div class="flow-arrow">↓</div>` : ""}
             <div class="flow-section flow-section--inline">
               <div class="flow-label">
                 ${host._t("automations_flow_label_condition", "Condition")}
               </div>
-              ${conditions.map((c) => renderFlowNode(host, c, "condition"))}
+              ${conditions.map((c) => renderConditionItem(host, c, ctx))}
             </div>
           `
         : ""}
-      <div class="flow-arrow">↓</div>
+      ${shownTriggers.length || conditions.length
+        ? html`<div class="flow-arrow">↓</div>`
+        : ""}
       <div class="flow-section flow-section--stacked">
         <div class="flow-label">
           ${host._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a) => renderActionItem(host, a))}
+        ${actions.map((a) => renderActionItem(host, a, ctx))}
       </div>
     </div>
   `;

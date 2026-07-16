@@ -8379,6 +8379,10 @@ var en_default = {
     automations_flow_repeat_until: "Repeat until condition is met",
     automations_flow_repeat: "Repeat",
     automations_flow_label_trigger: "Trigger",
+    automations_flow_label_trigger_any: "Trigger (any of these)",
+    automations_flow_group_any_of: "Any of the following:",
+    automations_flow_group_all_of: "All of the following:",
+    automations_flow_group_none_of: "None of the following:",
     automations_flow_label_condition: "Condition",
     automations_flow_label_actions: "Actions",
     automations_badge_enabled: "Enabled",
@@ -9448,6 +9452,10 @@ var fr_default = {
       "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit remplie",
     automations_flow_repeat: "R\xE9p\xE9ter",
     automations_flow_label_trigger: "D\xE9clencheur",
+    automations_flow_label_trigger_any: "D\xE9clencheur (l'un de ceux-ci)",
+    automations_flow_group_any_of: "L'une des conditions suivantes :",
+    automations_flow_group_all_of: "Toutes les conditions suivantes :",
+    automations_flow_group_none_of: "Aucune des conditions suivantes :",
     automations_flow_label_condition: "Condition",
     automations_flow_label_actions: "Actions",
     automations_badge_enabled: "Activ\xE9",
@@ -10553,6 +10561,10 @@ var de_default = {
     automations_flow_repeat_until: "Wiederholen, bis Bedingung erf\xFCllt ist",
     automations_flow_repeat: "Wiederholen",
     automations_flow_label_trigger: "Ausl\xF6ser",
+    automations_flow_label_trigger_any: "Ausl\xF6ser (einer davon)",
+    automations_flow_group_any_of: "Eine der folgenden Bedingungen:",
+    automations_flow_group_all_of: "Alle der folgenden Bedingungen:",
+    automations_flow_group_none_of: "Keine der folgenden Bedingungen:",
     automations_flow_label_condition: "Bedingung",
     automations_flow_label_actions: "Aktionen",
     automations_badge_enabled: "Aktiviert",
@@ -11649,6 +11661,10 @@ var es_default = {
       "Repetir hasta que se cumpla la condici\xF3n",
     automations_flow_repeat: "Repetir",
     automations_flow_label_trigger: "Disparador",
+    automations_flow_label_trigger_any: "Disparador (cualquiera de estos)",
+    automations_flow_group_any_of: "Cualquiera de las siguientes:",
+    automations_flow_group_all_of: "Todas las siguientes:",
+    automations_flow_group_none_of: "Ninguna de las siguientes:",
     automations_flow_label_condition: "Condici\xF3n",
     automations_flow_label_actions: "Acciones",
     automations_badge_enabled: "Activado",
@@ -12733,6 +12749,10 @@ var it_default = {
       "Ripeti finch\xE9 la condizione non \xE8 soddisfatta",
     automations_flow_repeat: "Ripeti",
     automations_flow_label_trigger: "Trigger",
+    automations_flow_label_trigger_any: "Trigger (uno di questi)",
+    automations_flow_group_any_of: "Una delle seguenti:",
+    automations_flow_group_all_of: "Tutte le seguenti:",
+    automations_flow_group_none_of: "Nessuna delle seguenti:",
     automations_flow_label_condition: "Condizione",
     automations_flow_label_actions: "Azioni",
     automations_badge_enabled: "Attivato",
@@ -13832,6 +13852,10 @@ var nl_default = {
     automations_flow_repeat_until: "Herhaal totdat voorwaarde is voldaan",
     automations_flow_repeat: "Herhalen",
     automations_flow_label_trigger: "Trigger",
+    automations_flow_label_trigger_any: "Trigger (\xE9\xE9n van deze)",
+    automations_flow_group_any_of: "E\xE9n van de volgende:",
+    automations_flow_group_all_of: "Alle van de volgende:",
+    automations_flow_group_none_of: "Geen van de volgende:",
     automations_flow_label_condition: "Voorwaarde",
     automations_flow_label_actions: "Acties",
     automations_badge_enabled: "Aangezet",
@@ -14931,6 +14955,10 @@ var hu_default = {
       "Ism\xE9tl\xE9s a felt\xE9tel teljes\xFCl\xE9s\xE9ig",
     automations_flow_repeat: "Ism\xE9tl\xE9s",
     automations_flow_label_trigger: "Trigger",
+    automations_flow_label_trigger_any: "Trigger (ezek egyike)",
+    automations_flow_group_any_of: "Az al\xE1bbiak egyike:",
+    automations_flow_group_all_of: "Az \xF6sszes al\xE1bbi:",
+    automations_flow_group_none_of: "Az al\xE1bbiak egyike sem:",
     automations_flow_label_condition: "Felt\xE9tel",
     automations_flow_label_actions: "M\u0171veletek",
     automations_badge_enabled: "Bekapcsolva",
@@ -16037,6 +16065,10 @@ var pt_default = {
       "Repetir at\xE9 a condi\xE7\xE3o ser cumprida",
     automations_flow_repeat: "Repetir",
     automations_flow_label_trigger: "Acionador",
+    automations_flow_label_trigger_any: "Gatilho (qualquer um destes)",
+    automations_flow_group_any_of: "Qualquer uma das seguintes:",
+    automations_flow_group_all_of: "Todas as seguintes:",
+    automations_flow_group_none_of: "Nenhuma das seguintes:",
     automations_flow_label_condition: "Condi\xE7\xE3o",
     automations_flow_label_actions: "A\xE7\xF5es",
     automations_badge_enabled: "Ativada",
@@ -17281,6 +17313,14 @@ var ru_default = {
       "\u041F\u043E\u0432\u0442\u043E\u0440\u044F\u0442\u044C",
     automations_flow_label_trigger:
       "\u0422\u0440\u0438\u0433\u0433\u0435\u0440",
+    automations_flow_label_trigger_any:
+      "\u0422\u0440\u0438\u0433\u0433\u0435\u0440 (\u043B\u044E\u0431\u043E\u0439 \u0438\u0437 \u043D\u0438\u0445)",
+    automations_flow_group_any_of:
+      "\u041B\u044E\u0431\u043E\u0435 \u0438\u0437 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0445:",
+    automations_flow_group_all_of:
+      "\u0412\u0441\u0435 \u0438\u0437 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0445:",
+    automations_flow_group_none_of:
+      "\u041D\u0438 \u043E\u0434\u043D\u043E \u0438\u0437 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0445:",
     automations_flow_label_condition:
       "\u0423\u0441\u043B\u043E\u0432\u0438\u0435",
     automations_flow_label_actions:
@@ -18814,6 +18854,12 @@ var ja_default = {
       "\u6761\u4EF6\u304C\u6E80\u305F\u3055\u308C\u308B\u307E\u3067\u7E70\u308A\u8FD4\u3059",
     automations_flow_repeat: "\u7E70\u308A\u8FD4\u3059",
     automations_flow_label_trigger: "\u30C8\u30EA\u30AC\u30FC",
+    automations_flow_label_trigger_any:
+      "\u30C8\u30EA\u30AC\u30FC\uFF08\u3044\u305A\u308C\u304B\uFF09",
+    automations_flow_group_any_of: "\u6B21\u306E\u3044\u305A\u308C\u304B\uFF1A",
+    automations_flow_group_all_of: "\u6B21\u306E\u3059\u3079\u3066\uFF1A",
+    automations_flow_group_none_of:
+      "\u6B21\u306E\u3044\u305A\u308C\u3067\u3082\u306A\u3044\uFF1A",
     automations_flow_label_condition: "\u6761\u4EF6",
     automations_flow_label_actions: "\u30A2\u30AF\u30B7\u30E7\u30F3",
     automations_badge_enabled: "\u6709\u52B9",
@@ -20123,6 +20169,12 @@ var ko_default = {
       "\uC870\uAC74\uC774 \uCDA9\uC871\uB420 \uB54C\uAE4C\uC9C0 \uBC18\uBCF5",
     automations_flow_repeat: "\uBC18\uBCF5",
     automations_flow_label_trigger: "\uD2B8\uB9AC\uAC70",
+    automations_flow_label_trigger_any:
+      "\uD2B8\uB9AC\uAC70(\uB2E4\uC74C \uC911 \uD558\uB098)",
+    automations_flow_group_any_of: "\uB2E4\uC74C \uC911 \uD558\uB098:",
+    automations_flow_group_all_of: "\uB2E4\uC74C \uBAA8\uB450:",
+    automations_flow_group_none_of:
+      "\uB2E4\uC74C \uC911 \uC5B4\uB290 \uAC83\uB3C4 \uC544\uB2D8:",
     automations_flow_label_condition: "\uC870\uAC74",
     automations_flow_label_actions: "\uB3D9\uC791",
     automations_badge_enabled: "\uD65C\uC131\uD654\uB428",
@@ -21327,6 +21379,14 @@ var zh_Hans_default = {
       "\u91CD\u590D\u76F4\u5230\u6761\u4EF6\u6EE1\u8DB3",
     automations_flow_repeat: "\u91CD\u590D",
     automations_flow_label_trigger: "\u89E6\u53D1\u5668",
+    automations_flow_label_trigger_any:
+      "\u89E6\u53D1\u5668\uFF08\u4EFB\u4E00\uFF09",
+    automations_flow_group_any_of:
+      "\u6EE1\u8DB3\u4EE5\u4E0B\u4EFB\u4E00\u6761\u4EF6\uFF1A",
+    automations_flow_group_all_of:
+      "\u6EE1\u8DB3\u4EE5\u4E0B\u6240\u6709\u6761\u4EF6\uFF1A",
+    automations_flow_group_none_of:
+      "\u4E0D\u6EE1\u8DB3\u4EE5\u4E0B\u4EFB\u4F55\u6761\u4EF6\uFF1A",
     automations_flow_label_condition: "\u6761\u4EF6",
     automations_flow_label_actions: "\u52A8\u4F5C",
     automations_badge_enabled: "\u5DF2\u542F\u7528",
@@ -22495,6 +22555,14 @@ var zh_Hant_default = {
       "\u91CD\u8907\u76F4\u5230\u689D\u4EF6\u6210\u7ACB",
     automations_flow_repeat: "\u91CD\u8907",
     automations_flow_label_trigger: "\u89F8\u767C\u689D\u4EF6",
+    automations_flow_label_trigger_any:
+      "\u89F8\u767C\u5668\uFF08\u4EFB\u4E00\uFF09",
+    automations_flow_group_any_of:
+      "\u7B26\u5408\u4EE5\u4E0B\u4EFB\u4E00\u689D\u4EF6\uFF1A",
+    automations_flow_group_all_of:
+      "\u7B26\u5408\u4EE5\u4E0B\u6240\u6709\u689D\u4EF6\uFF1A",
+    automations_flow_group_none_of:
+      "\u4E0D\u7B26\u5408\u4EE5\u4E0B\u4EFB\u4F55\u689D\u4EF6\uFF1A",
     automations_flow_label_condition: "\u689D\u4EF6",
     automations_flow_label_actions: "\u52D5\u4F5C",
     automations_badge_enabled: "\u5DF2\u555F\u7528",
@@ -27367,6 +27435,8 @@ var PHRASES = {
     when_event: (n5) => `When ${n5} happens`,
     when_event_generic: "When an event happens",
     when_device_triggered: (t4) => `When a device ${t4}`,
+    when_named_device: (name, ty) => `When ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t4) => `When a device is ${t4}`,
     triggered: "triggered",
     zone_enters: "enters",
@@ -27384,6 +27454,8 @@ var PHRASES = {
     cond_between: (eid, a4, b2) => `${eid} between ${a4} and ${b2}`,
     cond_above: (eid, v2) => `${eid} above ${v2}`,
     cond_below: (eid, v2) => `${eid} below ${v2}`,
+    cond_at_least: (eid, v2) => `${eid} at least ${v2}`,
+    cond_at_most: (eid, v2) => `${eid} at most ${v2}`,
     cond_numeric: (eid) => `${eid} numeric check`,
     cond_after_time: (t4) => `after ${t4}`,
     cond_before_time: (t4) => `before ${t4}`,
@@ -27396,6 +27468,8 @@ var PHRASES = {
     cond_all: (n5) => `All ${n5} conditions must be true`,
     cond_any: (n5) => `Any of ${n5} conditions is true`,
     cond_none: "None of the conditions are true",
+    cond_triggered_by: (label) => `Triggered by \u201C${label}\u201D`,
+    cond_at_time: (x2) => `at ${x2}`,
     cond_in_zone: (eid, z2) => `${eid} is in ${z2 || "zone"}`,
     cond_device: "Device condition",
     notify_quoted: (q) => `Notify: "${q}"`,
@@ -27472,6 +27546,8 @@ var PHRASES = {
     when_event: (n5) => `Quand ${n5} se produit`,
     when_event_generic: "Quand un \xE9v\xE9nement se produit",
     when_device_triggered: (t4) => `Quand un appareil ${t4}`,
+    when_named_device: (name, ty) => `Quand ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t4) => `Quand un appareil est ${t4}`,
     triggered: "d\xE9clench\xE9",
     zone_enters: "entre dans",
@@ -27490,6 +27566,8 @@ var PHRASES = {
     cond_between: (eid, a4, b2) => `${eid} entre ${a4} et ${b2}`,
     cond_above: (eid, v2) => `${eid} au-dessus de ${v2}`,
     cond_below: (eid, v2) => `${eid} en dessous de ${v2}`,
+    cond_at_least: (eid, v2) => `${eid} d'au moins ${v2}`,
+    cond_at_most: (eid, v2) => `${eid} d'au plus ${v2}`,
     cond_numeric: (eid) => `v\xE9rification num\xE9rique de ${eid}`,
     cond_after_time: (t4) => `apr\xE8s ${t4}`,
     cond_before_time: (t4) => `avant ${t4}`,
@@ -27502,6 +27580,8 @@ var PHRASES = {
     cond_all: (n5) => `Les ${n5} conditions doivent \xEAtre vraies`,
     cond_any: (n5) => `L'une des ${n5} conditions est vraie`,
     cond_none: "Aucune des conditions n'est vraie",
+    cond_triggered_by: (label) => `D\xE9clench\xE9 par \xAB ${label} \xBB`,
+    cond_at_time: (x2) => `\xE0 ${x2}`,
     cond_in_zone: (eid, z2) => `${eid} est dans ${z2 || "la zone"}`,
     cond_device: "Condition d'appareil",
     notify_quoted: (q) => `Notification : \xAB ${q} \xBB`,
@@ -27575,6 +27655,8 @@ var PHRASES = {
     when_event: (n5) => `Wenn ${n5} eintritt`,
     when_event_generic: "Wenn ein Ereignis eintritt",
     when_device_triggered: (t4) => `Wenn ein Ger\xE4t ${t4}`,
+    when_named_device: (name, ty) => `Wenn ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t4) => `Wenn ein Ger\xE4t ${t4} ist`,
     triggered: "ausgel\xF6st",
     zone_enters: "betritt",
@@ -27592,6 +27674,8 @@ var PHRASES = {
     cond_between: (eid, a4, b2) => `${eid} zwischen ${a4} und ${b2}`,
     cond_above: (eid, v2) => `${eid} \xFCber ${v2}`,
     cond_below: (eid, v2) => `${eid} unter ${v2}`,
+    cond_at_least: (eid, v2) => `${eid} mindestens ${v2}`,
+    cond_at_most: (eid, v2) => `${eid} h\xF6chstens ${v2}`,
     cond_numeric: (eid) => `${eid} numerische Pr\xFCfung`,
     cond_after_time: (t4) => `nach ${t4}`,
     cond_before_time: (t4) => `vor ${t4}`,
@@ -27604,6 +27688,8 @@ var PHRASES = {
     cond_all: (n5) => `Alle ${n5} Bedingungen m\xFCssen erf\xFCllt sein`,
     cond_any: (n5) => `Eine der ${n5} Bedingungen ist erf\xFCllt`,
     cond_none: "Keine der Bedingungen ist erf\xFCllt",
+    cond_triggered_by: (label) => `Ausgel\xF6st durch \u201E${label}\u201C`,
+    cond_at_time: (x2) => `um ${x2}`,
     cond_in_zone: (eid, z2) => `${eid} ist in ${z2 || "Zone"}`,
     cond_device: "Ger\xE4tebedingung",
     notify_quoted: (q) => `Benachrichtigen: \u201E${q}\u201C`,
@@ -27678,6 +27764,8 @@ var PHRASES = {
     when_event: (n5) => `Cuando ocurra ${n5}`,
     when_event_generic: "Cuando ocurra un evento",
     when_device_triggered: (t4) => `Cuando un dispositivo ${t4}`,
+    when_named_device: (name, ty) => `Cuando ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t4) => `Cuando un dispositivo est\xE9 ${t4}`,
     triggered: "activado",
     zone_enters: "entra en",
@@ -27696,6 +27784,8 @@ var PHRASES = {
     cond_between: (eid, a4, b2) => `${eid} entre ${a4} y ${b2}`,
     cond_above: (eid, v2) => `${eid} por encima de ${v2}`,
     cond_below: (eid, v2) => `${eid} por debajo de ${v2}`,
+    cond_at_least: (eid, v2) => `${eid} al menos ${v2}`,
+    cond_at_most: (eid, v2) => `${eid} como m\xE1ximo ${v2}`,
     cond_numeric: (eid) => `verificaci\xF3n num\xE9rica de ${eid}`,
     cond_after_time: (t4) => `despu\xE9s de ${t4}`,
     cond_before_time: (t4) => `antes de ${t4}`,
@@ -27708,6 +27798,8 @@ var PHRASES = {
     cond_all: (n5) => `Las ${n5} condiciones deben ser verdaderas`,
     cond_any: (n5) => `Cualquiera de las ${n5} condiciones es verdadera`,
     cond_none: "Ninguna de las condiciones es verdadera",
+    cond_triggered_by: (label) => `Activado por \xAB${label}\xBB`,
+    cond_at_time: (x2) => `a las ${x2}`,
     cond_in_zone: (eid, z2) => `${eid} est\xE1 en ${z2 || "la zona"}`,
     cond_device: "Condici\xF3n de dispositivo",
     notify_quoted: (q) => `Notificar: \xAB${q}\xBB`,
@@ -27783,6 +27875,8 @@ var PHRASES = {
     when_event: (n5) => `Quando ${n5} si verifica`,
     when_event_generic: "Quando si verifica un evento",
     when_device_triggered: (t4) => `Quando un dispositivo ${t4}`,
+    when_named_device: (name, ty) => `Quando ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t4) => `Quando un dispositivo \xE8 ${t4}`,
     triggered: "attivato",
     zone_enters: "entra in",
@@ -27802,6 +27896,8 @@ var PHRASES = {
     cond_between: (eid, a4, b2) => `${eid} tra ${a4} e ${b2}`,
     cond_above: (eid, v2) => `${eid} sopra ${v2}`,
     cond_below: (eid, v2) => `${eid} sotto ${v2}`,
+    cond_at_least: (eid, v2) => `${eid} almeno ${v2}`,
+    cond_at_most: (eid, v2) => `${eid} al massimo ${v2}`,
     cond_numeric: (eid) => `verifica numerica di ${eid}`,
     cond_after_time: (t4) => `dopo ${t4}`,
     cond_before_time: (t4) => `prima di ${t4}`,
@@ -27814,6 +27910,8 @@ var PHRASES = {
     cond_all: (n5) => `Tutte le ${n5} condizioni devono essere vere`,
     cond_any: (n5) => `Una delle ${n5} condizioni \xE8 vera`,
     cond_none: "Nessuna delle condizioni \xE8 vera",
+    cond_triggered_by: (label) => `Attivato da \xAB${label}\xBB`,
+    cond_at_time: (x2) => `alle ${x2}`,
     cond_in_zone: (eid, z2) => `${eid} \xE8 in ${z2 || "zona"}`,
     cond_device: "Condizione del dispositivo",
     notify_quoted: (q) => `Notifica: \xAB${q}\xBB`,
@@ -27891,6 +27989,8 @@ var PHRASES = {
     when_event: (n5) => `Wanneer ${n5} gebeurt`,
     when_event_generic: "Wanneer een gebeurtenis plaatsvindt",
     when_device_triggered: (t4) => `Wanneer een apparaat ${t4}`,
+    when_named_device: (name, ty) => `Wanneer ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t4) => `Wanneer een apparaat ${t4} is`,
     triggered: "geactiveerd",
     zone_enters: "betreedt",
@@ -27909,6 +28009,8 @@ var PHRASES = {
     cond_between: (eid, a4, b2) => `${eid} tussen ${a4} en ${b2}`,
     cond_above: (eid, v2) => `${eid} boven ${v2}`,
     cond_below: (eid, v2) => `${eid} onder ${v2}`,
+    cond_at_least: (eid, v2) => `${eid} minstens ${v2}`,
+    cond_at_most: (eid, v2) => `${eid} hoogstens ${v2}`,
     cond_numeric: (eid) => `${eid} numerieke controle`,
     cond_after_time: (t4) => `na ${t4}`,
     cond_before_time: (t4) => `v\xF3\xF3r ${t4}`,
@@ -27921,6 +28023,8 @@ var PHRASES = {
     cond_all: (n5) => `Alle ${n5} voorwaarden moeten waar zijn`,
     cond_any: (n5) => `E\xE9n van de ${n5} voorwaarden is waar`,
     cond_none: "Geen van de voorwaarden is waar",
+    cond_triggered_by: (label) => `Geactiveerd door \u201E${label}\u201D`,
+    cond_at_time: (x2) => `om ${x2}`,
     cond_in_zone: (eid, z2) => `${eid} bevindt zich in ${z2 || "zone"}`,
     cond_device: "Apparaatvoorwaarde",
     notify_quoted: (q) => `Melding: \u201E${q}\u201D`,
@@ -27998,6 +28102,8 @@ var PHRASES = {
     when_event: (n5) => `Amikor ${n5} t\xF6rt\xE9nik`,
     when_event_generic: "Amikor egy esem\xE9ny t\xF6rt\xE9nik",
     when_device_triggered: (t4) => `Amikor egy eszk\xF6z ${t4}`,
+    when_named_device: (name, ty) => `Amikor ${name} ${ty}`,
+    cond_named_device: (name, ty) => `${name} ${ty}`,
     when_device_is: (t4) => `Amikor egy eszk\xF6z ${t4}`,
     triggered: "kiv\xE1lt\xF3dik",
     zone_enters: "bel\xE9p ide:",
@@ -28018,6 +28124,8 @@ var PHRASES = {
     cond_between: (eid, a4, b2) => `${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt`,
     cond_above: (eid, v2) => `${eid} ${v2} f\xF6l\xF6tt`,
     cond_below: (eid, v2) => `${eid} ${v2} alatt`,
+    cond_at_least: (eid, v2) => `${eid} legal\xE1bb ${v2}`,
+    cond_at_most: (eid, v2) => `${eid} legfeljebb ${v2}`,
     cond_numeric: (eid) => `${eid} numerikus ellen\u0151rz\xE9s`,
     cond_after_time: (t4) => `${t4} ut\xE1n`,
     cond_before_time: (t4) => `${t4} el\u0151tt`,
@@ -28030,6 +28138,8 @@ var PHRASES = {
     cond_all: (n5) => `Mind a ${n5} felt\xE9telnek igaznak kell lennie`,
     cond_any: (n5) => `A ${n5} felt\xE9tel egyike igaz`,
     cond_none: "Egyik felt\xE9tel sem igaz",
+    cond_triggered_by: (label) => `Kiv\xE1ltotta: \u201E${label}\u201D`,
+    cond_at_time: (x2) => `${x2}-kor`,
     cond_in_zone: (eid, z2) => `${eid} itt: ${z2 || "z\xF3na"}`,
     cond_device: "Eszk\xF6zfelt\xE9tel",
     notify_quoted: (q) => `\xC9rtes\xEDt\xE9s: \u201E${q}\u201D`,
@@ -28083,7 +28193,87 @@ function _val(phrases, key, ...args) {
   if (v2 === void 0) return PHRASES.en[key];
   return typeof v2 === "function" ? v2(...args) : v2;
 }
-function describeFlowItem(hass, item) {
+function _deviceName(hass, deviceId) {
+  if (!deviceId) return null;
+  const dev = hass?.devices?.[String(deviceId)];
+  return dev?.name_by_user || dev?.name || null;
+}
+function _triggerEffectiveId(tr, index) {
+  return tr?.id != null ? String(tr.id) : String(index);
+}
+function _entityNamesOr(hass, val, t4) {
+  const arr = asArray(val);
+  if (arr.length <= 1) return fmtEntity(hass, arr[0]);
+  const names = arr.map((e6) => fmtEntity(hass, e6));
+  return names.slice(0, -1).join(", ") + t4("or") + names[names.length - 1];
+}
+var _CLAUSE_RE =
+  /^\(?\s*(?:states\(\s*['"]([^'"]+)['"]\s*\)|state_attr\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\))(?:\s*\|\s*(?:int|float)\b(?:\([^()]*\))?)*\s*\)?\s*(<=?|>=?)\s*(-?\d+(?:\.\d+)?)\s*$/;
+var _IS_STATE_RE =
+  /^is_state\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)$/;
+function _describeComparisonTemplate(hass, template, t4, lang) {
+  const inner = String(template || "")
+    .replace(/^\s*\{\{-?/, "")
+    .replace(/-?\}\}\s*$/, "")
+    .trim();
+  if (!inner) return null;
+  if (/\b(not|or|if|else)\b/.test(inner)) return null;
+  const isState = inner.match(_IS_STATE_RE);
+  if (isState)
+    return t4(
+      "cond_is",
+      fmtEntity(hass, isState[1]),
+      fmtState(isState[2], lang),
+    );
+  const clauses = inner.split(/\s+and\s+/);
+  if (clauses.length > 2) return null;
+  let refKey = null;
+  let entityId = null;
+  let attr = null;
+  let above = null;
+  let aboveIncl = false;
+  let below = null;
+  let belowIncl = false;
+  for (const clause of clauses) {
+    const m2 = clause.match(_CLAUSE_RE);
+    if (!m2) return null;
+    const eid = m2[1] ?? m2[2];
+    const key = `${eid}|${m2[3] ?? ""}`;
+    if (refKey == null) {
+      refKey = key;
+      entityId = eid;
+      attr = m2[3] ?? null;
+    } else if (key !== refKey) {
+      return null;
+    }
+    const inclusive = m2[4].includes("=");
+    if (m2[4][0] === ">") {
+      if (above != null) return null;
+      above = m2[5];
+      aboveIncl = inclusive;
+    } else {
+      if (below != null) return null;
+      below = m2[5];
+      belowIncl = inclusive;
+    }
+  }
+  if (!entityId) return null;
+  const name = fmtEntity(hass, entityId);
+  const subject = attr ? `${name} ${humanizeToken(attr).toLowerCase()}` : name;
+  if (above != null && below != null)
+    return aboveIncl && belowIncl
+      ? t4("cond_between", subject, above, below)
+      : null;
+  if (above != null)
+    return t4(aboveIncl ? "cond_at_least" : "cond_above", subject, above);
+  if (below != null)
+    return t4(belowIncl ? "cond_at_most" : "cond_below", subject, below);
+  return null;
+}
+function _templateHasConcreteDescription(template) {
+  return _describeComparisonTemplate(null, template, () => "x", void 0) != null;
+}
+function describeFlowItem(hass, item, ctx) {
   if (!item || typeof item !== "object") return String(item ?? "");
   const T2 = _phrases(hass);
   const t4 = (k2, ...a4) => _val(T2, k2, ...a4);
@@ -28120,7 +28310,7 @@ function describeFlowItem(hass, item) {
     return t4("when_it_is", ev);
   }
   if (p2 === "state") {
-    const eid = fmtEntities(hass, item.entity_id, lang);
+    const eid = _entityNamesOr(hass, item.entity_id, t4);
     const rawTo = item.to == null ? null : String(item.to);
     const fromState = fmtState(item.from, lang);
     const toState = fmtState(item.to, lang);
@@ -28131,10 +28321,13 @@ function describeFlowItem(hass, item) {
     if (toState && fromState)
       return t4("when_changes_from_to", eid, fromState, toState, dur);
     if (toState) return t4("when_becomes", eid, toState, dur);
+    const firstId = String(asArray(item.entity_id)[0] || "");
+    if (!item.from && firstId.startsWith("sensor."))
+      return `${t4("when_value_changes", eid)}${dur}`;
     return t4("when_changes_state", eid, dur);
   }
   if (p2 === "numeric_state") {
-    const eid = fmtEntities(hass, item.entity_id, lang);
+    const eid = _entityNamesOr(hass, item.entity_id, t4);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
     if (item.above != null && item.below != null)
@@ -28174,6 +28367,8 @@ function describeFlowItem(hass, item) {
     const triggerType = item.type
       ? humanizeToken(item.type).toLowerCase()
       : t4("triggered");
+    const devName = _deviceName(hass, item.device_id);
+    if (devName) return t4("when_named_device", devName, triggerType);
     return item.device_id
       ? t4("when_device_triggered", triggerType)
       : t4("when_device_is", triggerType);
@@ -28229,7 +28424,33 @@ function describeFlowItem(hass, item) {
       parts.push(t4("cond_on_weekday", fmtWeekdays(item.weekday, lang)));
     return parts.length ? parts.join(t4("joiner_dot")) : t4("cond_time_window");
   }
-  if (cond === "template") return t4("cond_template_true");
+  if (cond === "template") {
+    const parsed = _describeComparisonTemplate(
+      hass,
+      item.value_template,
+      t4,
+      lang,
+    );
+    return parsed || t4("cond_template_true");
+  }
+  if (cond === "trigger") {
+    const ids = asArray(item.id).map(String);
+    const matched = asArray(ctx?.triggers).filter((tr, i5) =>
+      ids.includes(_triggerEffectiveId(tr, i5)),
+    );
+    if (
+      matched.length &&
+      matched.every((tr) => (tr.platform || tr.trigger) === "time")
+    ) {
+      const times = matched
+        .flatMap((tr) => asArray(tr.at))
+        .map((x2) => fmtTime(hass, x2));
+      if (times.length) return t4("cond_at_time", times.join(t4("or")));
+    }
+    const labels = matched.map((tr) => describeFlowItem(hass, tr, ctx));
+    const label = (labels.length ? labels : ids).join(t4("or"));
+    return t4("cond_triggered_by", label);
+  }
   if (cond === "sun") {
     const parts = [];
     if (item.after)
@@ -28245,8 +28466,12 @@ function describeFlowItem(hass, item) {
     const eid = fmtEntities(hass, item.entity_id, lang);
     return t4("cond_in_zone", eid, fmtEntity(hass, item.zone));
   }
-  if (cond === "device")
-    return item.type ? String(item.type).replace(/_/g, " ") : t4("cond_device");
+  if (cond === "device") {
+    const ty = item.type ? String(item.type).replace(/_/g, " ") : null;
+    const devName = _deviceName(hass, item.device_id);
+    if (devName && ty) return t4("cond_named_device", devName, ty);
+    return ty || t4("cond_device");
+  }
   if (cond) return String(cond).replace(/_/g, " ");
   const svc = item.service || item.action;
   if (svc) {
@@ -28396,7 +28621,114 @@ function collectFlowEntityIds(item) {
   push(item.entity_id);
   push(item.target?.entity_id);
   push(item.data?.entity_id);
+  if (typeof item.value_template === "string") {
+    for (const m2 of item.value_template.matchAll(
+      /(?:states|state_attr|is_state|is_state_attr)\(\s*['"]([^'"]+)['"]/g,
+    )) {
+      push(m2[1]);
+    }
+  }
   return out;
+}
+function collectFlowDeviceRefs(hass, item) {
+  if (!item || typeof item !== "object") return [];
+  const kind = item.platform || item.trigger || item.condition;
+  if (kind !== "device" || !item.device_id) return [];
+  const name = _deviceName(hass, item.device_id);
+  if (!name) return [];
+  return [
+    { deviceId: String(item.device_id), name, domain: item.domain ?? null },
+  ];
+}
+function _isBareStateTrigger(tr) {
+  if (!tr || typeof tr !== "object") return false;
+  const p2 = tr.platform || tr.trigger;
+  return (
+    p2 === "state" &&
+    tr.to == null &&
+    tr.from == null &&
+    tr.not_to == null &&
+    tr.not_from == null &&
+    !tr.for &&
+    !tr.attribute
+  );
+}
+function _actionRunsUnconditionally(a4) {
+  if (!a4 || typeof a4 !== "object") return true;
+  if (Array.isArray(a4.choose)) return asArray(a4.default).length > 0;
+  if (a4.if != null) return asArray(a4.else).length > 0;
+  if (Array.isArray(a4.parallel))
+    return a4.parallel.some(_actionRunsUnconditionally);
+  if (Array.isArray(a4.sequence))
+    return a4.sequence.some(_actionRunsUnconditionally);
+  if (a4.repeat)
+    return asArray(a4.repeat.sequence ?? a4.repeat.actions).some(
+      _actionRunsUnconditionally,
+    );
+  if (a4.condition != null) return false;
+  return true;
+}
+function _hasUnconditionalActionPath(actions) {
+  return asArray(actions).some(_actionRunsUnconditionally);
+}
+function mergeEquivalentTriggers(triggers) {
+  const out = [];
+  let merged = null;
+  for (const tr of asArray(triggers)) {
+    if (!_isBareStateTrigger(tr) || tr.id != null) {
+      out.push(tr);
+      continue;
+    }
+    if (!merged) {
+      merged = { ...tr, entity_id: [...asArray(tr.entity_id)] };
+      out.push(merged);
+    } else {
+      merged.entity_id.push(...asArray(tr.entity_id));
+    }
+  }
+  return out;
+}
+function displayTriggers(triggers, conditions, actions) {
+  const trigs = asArray(triggers);
+  if (!trigs.length) return [];
+  const refIds = /* @__PURE__ */ new Set();
+  const condEntities = /* @__PURE__ */ new Set();
+  const visitCondition = (c3) => {
+    if (!c3 || typeof c3 !== "object") return;
+    if (c3.condition === "trigger")
+      for (const id of asArray(c3.id)) refIds.add(String(id));
+    if (
+      c3.condition !== "template" ||
+      _templateHasConcreteDescription(c3.value_template)
+    ) {
+      for (const eid of collectFlowEntityIds(c3)) condEntities.add(eid);
+    }
+    for (const sub of asArray(c3.conditions)) visitCondition(sub);
+  };
+  const visitAction = (a4) => {
+    if (!a4 || typeof a4 !== "object") return;
+    for (const branch of asArray(a4.choose)) {
+      for (const c3 of asArray(branch?.conditions)) visitCondition(c3);
+      for (const s6 of asArray(branch?.sequence)) visitAction(s6);
+    }
+    for (const key of ["default", "sequence", "parallel"]) {
+      for (const s6 of asArray(a4[key])) visitAction(s6);
+    }
+    for (const s6 of asArray(a4.repeat?.sequence)) visitAction(s6);
+  };
+  asArray(conditions).forEach(visitCondition);
+  asArray(actions).forEach(visitAction);
+  const hasUnconditional = _hasUnconditionalActionPath(actions);
+  const isRedundant = (tr, i5) => {
+    if (!tr || typeof tr !== "object") return false;
+    if (hasUnconditional) return false;
+    if (refIds.has(_triggerEffectiveId(tr, i5))) return true;
+    if (!_isBareStateTrigger(tr)) return false;
+    const ids = asArray(tr.entity_id).filter((e6) => typeof e6 === "string");
+    return ids.length > 0 && ids.every((e6) => condEntities.has(e6));
+  };
+  if (trigs.every(isRedundant)) return [];
+  return mergeEquivalentTriggers(trigs);
 }
 
 // src/panel/render-suggestions.js
@@ -29065,6 +29397,21 @@ function renderFlowEntityLink(host, entityId) {
     <ha-icon icon=${icon}></ha-icon><span>${friendly}</span>
   </button>`;
 }
+function renderFlowDeviceLink(host, deviceId, name, domain) {
+  const icon = (domain && DOMAIN_ICONS3[domain]) || "mdi:devices";
+  return x`<button
+    type="button"
+    class="flow-entity-link"
+    title=${`Open ${name}`}
+    @click=${(e6) => {
+      e6.stopPropagation();
+      window.history.pushState(null, "", `/config/devices/device/${deviceId}`);
+      window.dispatchEvent(new Event("location-changed"));
+    }}
+  >
+    <ha-icon icon=${icon}></ha-icon><span>${name}</span>
+  </button>`;
+}
 var DURATION_RE =
   /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
 function expandDurationAbbrev(s6) {
@@ -29091,12 +29438,19 @@ function splitDurations(text) {
   if (last < text.length) out.push(text.slice(last));
   return out;
 }
-function renderFlowDescription(host, item) {
-  const description = describeFlowItem(host.hass, item);
+function renderFlowDescription(host, item, ctx) {
+  const description = describeFlowItem(host.hass, item, ctx);
   if (!description) return x`${description}`;
-  const entityIds = collectFlowEntityIds(item);
-  const lookups = entityIds
-    .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
+  const lookups = [
+    ...collectFlowEntityIds(item).map((eid) => ({
+      name: fmtEntity(host.hass, eid),
+      link: { entity: eid },
+    })),
+    ...collectFlowDeviceRefs(host.hass, item).map((d3) => ({
+      name: d3.name,
+      link: { device: d3 },
+    })),
+  ]
     .filter((l5) => l5.name)
     .sort((a4, b2) => b2.name.length - a4.name.length);
   const segments = [];
@@ -29117,7 +29471,7 @@ function renderFlowDescription(host, item) {
       break;
     }
     if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
-    segments.push({ entity: bestMatch.eid });
+    segments.push({ link: bestMatch.link });
     remaining = remaining.slice(bestIdx + bestMatch.name.length);
   }
   if (remaining && safety <= 0) segments.push(remaining);
@@ -29133,17 +29487,51 @@ function renderFlowDescription(host, item) {
   }
   return x`${final.map((s6) => {
     if (typeof s6 === "string") return s6;
-    if (s6.entity) return renderFlowEntityLink(host, s6.entity);
+    if (s6.link?.entity) return renderFlowEntityLink(host, s6.link.entity);
+    if (s6.link?.device) {
+      const d3 = s6.link.device;
+      return renderFlowDeviceLink(host, d3.deviceId, d3.name, d3.domain);
+    }
     if (s6.duration) return renderFlowDuration(s6.duration);
     return "";
   })}`;
 }
-function renderFlowNode(host, item, kind) {
+function renderFlowNode(host, item, kind, ctx) {
   return x`<div class="flow-node ${kind}-node">
-    ${renderFlowDescription(host, item)}
+    ${renderFlowDescription(host, item, ctx)}
   </div>`;
 }
-function renderActionItem(host, action) {
+function renderConditionItem(host, cond, ctx, implicitAll = true) {
+  if (cond && typeof cond === "object") {
+    const type = cond.condition;
+    if (type === "and") {
+      const children = asArray(cond.conditions).map((c3) =>
+        renderConditionItem(host, c3, ctx, true),
+      );
+      if (implicitAll) return x`${children}`;
+      return x`<div class="flow-branch">
+        <div class="flow-branch-label">
+          ${host._t("automations_flow_group_all_of", "All of the following:")}
+        </div>
+        ${children}
+      </div>`;
+    }
+    if (type === "or" || type === "not") {
+      const label =
+        type === "or"
+          ? host._t("automations_flow_group_any_of", "Any of the following:")
+          : host._t("automations_flow_group_none_of", "None of the following:");
+      return x`<div class="flow-branch">
+        <div class="flow-branch-label">${label}</div>
+        ${asArray(cond.conditions).map((c3) =>
+          renderConditionItem(host, c3, ctx, false),
+        )}
+      </div>`;
+    }
+  }
+  return renderFlowNode(host, cond, "condition", ctx);
+}
+function renderActionItem(host, action, ctx) {
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
     return x`<div class="flow-choose">
       ${action.choose.map(
@@ -29152,13 +29540,13 @@ function renderActionItem(host, action) {
             <div class="flow-branch-label">
               ${i5 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
-            ${asArray(branch.conditions).map(
-              (c3) => x`<div class="flow-node condition-node">
-                  ${renderFlowDescription(host, c3)}
-                </div>`,
+            ${asArray(branch.conditions).map((c3) =>
+              renderConditionItem(host, c3, ctx),
             )}
             <div class="flow-arrow-sm">↓</div>
-            ${asArray(branch.sequence).map((s6) => renderActionItem(host, s6))}
+            ${asArray(branch.sequence).map((s6) =>
+              renderActionItem(host, s6, ctx),
+            )}
           </div>
         `,
       )}
@@ -29168,7 +29556,7 @@ function renderActionItem(host, action) {
             <div class="flow-branch-label">
               ${host._t("automations_flow_branch_otherwise", "Otherwise")}
             </div>
-            ${action.default.map((s6) => renderActionItem(host, s6))}
+            ${action.default.map((s6) => renderActionItem(host, s6, ctx))}
           </div>`
           : ""
       }
@@ -29179,7 +29567,7 @@ function renderActionItem(host, action) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${action.parallel.map((s6) => renderActionItem(host, s6))}
+      ${action.parallel.map((s6) => renderActionItem(host, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.sequence)) {
@@ -29187,7 +29575,7 @@ function renderActionItem(host, action) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${action.sequence.map((s6) => renderActionItem(host, s6))}
+      ${action.sequence.map((s6) => renderActionItem(host, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -29211,11 +29599,11 @@ function renderActionItem(host, action) {
     return x`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
       ${(Array.isArray(inner) ? inner : [inner]).map((s6) =>
-        renderActionItem(host, s6),
+        renderActionItem(host, s6, ctx),
       )}
     </div>`;
   }
-  return renderFlowNode(host, action, "action");
+  return renderFlowNode(host, action, "action", ctx);
 }
 function renderAutomationIdentity(alias, description, opts = {}) {
   const {
@@ -29280,33 +29668,46 @@ function renderAutomationFlowchart(host, auto) {
     return Array.isArray(a4) ? a4 : [a4];
   })();
   if (!triggers.length && !actions.length) return x``;
+  const ctx = { triggers };
+  const shownTriggers = displayTriggers(triggers, conditions, actions);
   return x`
     <div class="flow-chart">
-      <div class="flow-section flow-section--inline">
-        <div class="flow-label">
-          ${host._t("automations_flow_label_trigger", "Trigger")}
-        </div>
-        ${triggers.map((t4) => renderFlowNode(host, t4, "trigger"))}
-      </div>
+      ${
+        shownTriggers.length
+          ? x`<div class="flow-section flow-section--inline">
+            <div class="flow-label">
+              ${
+                shownTriggers.length > 1
+                  ? host._t(
+                      "automations_flow_label_trigger_any",
+                      "Trigger (any of these)",
+                    )
+                  : host._t("automations_flow_label_trigger", "Trigger")
+              }
+            </div>
+            ${shownTriggers.map((t4) => renderFlowNode(host, t4, "trigger", ctx))}
+          </div>`
+          : ""
+      }
       ${
         conditions.length
           ? x`
-            <div class="flow-arrow">↓</div>
+            ${shownTriggers.length ? x`<div class="flow-arrow">↓</div>` : ""}
             <div class="flow-section flow-section--inline">
               <div class="flow-label">
                 ${host._t("automations_flow_label_condition", "Condition")}
               </div>
-              ${conditions.map((c3) => renderFlowNode(host, c3, "condition"))}
+              ${conditions.map((c3) => renderConditionItem(host, c3, ctx))}
             </div>
           `
           : ""
       }
-      <div class="flow-arrow">↓</div>
+      ${shownTriggers.length || conditions.length ? x`<div class="flow-arrow">↓</div>` : ""}
       <div class="flow-section flow-section--stacked">
         <div class="flow-label">
           ${host._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a4) => renderActionItem(host, a4))}
+        ${actions.map((a4) => renderActionItem(host, a4, ctx))}
       </div>
     </div>
   `;

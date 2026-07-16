@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { describeFlowItem, asArray } from "../flow-description.js";
+import {
+  describeFlowItem,
+  collectFlowEntityIds,
+  collectFlowDeviceRefs,
+  displayTriggers,
+  mergeEquivalentTriggers,
+  asArray,
+} from "../flow-description.js";
 
 const mockHass = {
   states: {
@@ -206,6 +213,35 @@ describe("Triggers", () => {
     expect(result).toContain("turned on");
   });
 
+  it("uses the device registry name for device triggers when available", () => {
+    const hass = {
+      ...mockHass,
+      devices: { abc123: { name: "Front Door Lock" } },
+    };
+    const result = describeFlowItem(hass, {
+      trigger: "device",
+      device_id: "abc123",
+      domain: "lock",
+      type: "unlocked",
+    });
+    expect(result).toBe("When Front Door Lock unlocked");
+  });
+
+  it("prefers the user-given device name over the integration name", () => {
+    const hass = {
+      ...mockHass,
+      devices: {
+        abc123: { name: "ZB-LOCK-01", name_by_user: "Front Door Lock" },
+      },
+    };
+    const result = describeFlowItem(hass, {
+      trigger: "device",
+      device_id: "abc123",
+      type: "unlocked",
+    });
+    expect(result).toBe("When Front Door Lock unlocked");
+  });
+
   it("describes event trigger", () => {
     const result = describeFlowItem(mockHass, {
       platform: "event",
@@ -228,6 +264,22 @@ describe("Triggers", () => {
       at: "08:00",
     });
     expect(result).toContain("When the time is");
+  });
+
+  it("describes bare state trigger on a sensor as a value change", () => {
+    const result = describeFlowItem(mockHass, {
+      trigger: "state",
+      entity_id: "sensor.temperature",
+    });
+    expect(result).toBe("When Temperature Sensor value changes");
+  });
+
+  it("keeps 'changes state' for bare state trigger on non-sensor", () => {
+    const result = describeFlowItem(mockHass, {
+      trigger: "state",
+      entity_id: "binary_sensor.front_door",
+    });
+    expect(result).toBe("When Front Door changes state");
   });
 });
 
@@ -278,6 +330,237 @@ describe("Conditions", () => {
       conditions: [{}, {}],
     });
     expect(result).toBe("All 2 conditions must be true");
+  });
+
+  it("phrases a trigger condition on a time trigger as a time check", () => {
+    const result = describeFlowItem(
+      mockHass,
+      { condition: "trigger", id: "at_11" },
+      { triggers: [{ trigger: "time", at: "11:00:00", id: "at_11" }] },
+    );
+    expect(result).toBe("at 11:00");
+  });
+
+  it("quotes the trigger description for non-time trigger conditions", () => {
+    const result = describeFlowItem(
+      mockHass,
+      { condition: "trigger", id: "door" },
+      {
+        triggers: [
+          {
+            trigger: "state",
+            entity_id: "binary_sensor.front_door",
+            to: "on",
+            id: "door",
+          },
+        ],
+      },
+    );
+    expect(result).toContain("Triggered by");
+    expect(result).toContain("When Front Door turns on");
+  });
+
+  it("falls back to the raw id when a trigger condition has no match", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "trigger",
+      id: "at_11",
+    });
+    expect(result).toContain("Triggered by");
+    expect(result).toContain("at_11");
+  });
+
+  it("resolves a trigger condition against a default (index) trigger id", () => {
+    // A trigger with no explicit id gets its zero-based index as the id,
+    // so `condition: trigger` with id "0" targets the first trigger.
+    const result = describeFlowItem(
+      mockHass,
+      { condition: "trigger", id: "0" },
+      { triggers: [{ trigger: "time", at: "11:00:00" }] },
+    );
+    expect(result).toBe("at 11:00");
+  });
+
+  it("resolves a default index id to a non-time trigger description", () => {
+    const result = describeFlowItem(
+      mockHass,
+      { condition: "trigger", id: "1" },
+      {
+        triggers: [
+          { trigger: "time", at: "08:00" },
+          { trigger: "state", entity_id: "light.living_room", to: "on" },
+        ],
+      },
+    );
+    expect(result).toContain("Triggered by");
+    expect(result).toContain("When Living Room Light turns on");
+  });
+
+  it("describes an inclusive range comparison template on an attribute", () => {
+    const tmpl =
+      "{{ (state_attr('cover.blinds', 'current_position') | int(0)) >= 45 " +
+      "and (state_attr('cover.blinds', 'current_position') | int(0)) <= 55 }}";
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: tmpl,
+    });
+    expect(result).toBe("Blinds current position between 45 and 55");
+  });
+
+  it("stays generic for a strict two-sided range", () => {
+    // "between" reads inclusive, so a `> … <` range would misstate the
+    // boundary — fall back rather than claim an inclusivity it lacks.
+    const tmpl =
+      "{{ states('sensor.temperature') | float > 45 and " +
+      "states('sensor.temperature') | float < 55 }}";
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: tmpl,
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("stays generic for a mixed-inclusivity two-sided range", () => {
+    const tmpl =
+      "{{ states('sensor.temperature') | float >= 45 and " +
+      "states('sensor.temperature') | float < 55 }}";
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: tmpl,
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("describes a single-bound comparison template on states()", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ states('sensor.temperature') | float > 20 }}",
+    });
+    expect(result).toBe("Temperature Sensor above 20");
+  });
+
+  it("renders >= as inclusive 'at least', not 'above'", () => {
+    // Regression: dropping the "=" contradicted the automation at the
+    // boundary value (20 satisfies >= 20 but not "above 20").
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ states('sensor.temperature') | float >= 20 }}",
+    });
+    expect(result).toBe("Temperature Sensor at least 20");
+  });
+
+  it("renders <= as inclusive 'at most', not 'below'", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ states('sensor.temperature') | float <= 20 }}",
+    });
+    expect(result).toBe("Temperature Sensor at most 20");
+  });
+
+  it("keeps strict < as 'below'", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ states('sensor.temperature') | float < 20 }}",
+    });
+    expect(result).toBe("Temperature Sensor below 20");
+  });
+
+  it("stays generic when a value-transforming filter is applied", () => {
+    // Regression: `| abs` was discarded, so -30 (which satisfies the real
+    // template) would be described as "above 20". Only int/float convert.
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ states('sensor.temperature') | float | abs > 20 }}",
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("stays generic for a rounding filter", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ states('sensor.temperature') | round(1) > 20 }}",
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("describes an is_state template like a state condition", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ is_state('light.living_room', 'on') }}",
+    });
+    expect(result).toBe("Living Room Light is on");
+  });
+
+  it("uses the device registry name for device conditions when available", () => {
+    const hass = {
+      ...mockHass,
+      devices: { abc123: { name: "Front Door Lock" } },
+    };
+    const result = describeFlowItem(hass, {
+      condition: "device",
+      device_id: "abc123",
+      domain: "lock",
+      type: "is_locked",
+    });
+    expect(result).toBe("Front Door Lock is locked");
+  });
+
+  it("keeps generic wording for templates without entity references", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ now().hour > 8 }}",
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("does not invert a negated is_state template", () => {
+    // Regression: an unanchored match reported "Living Room Light is on"
+    // for the opposite condition. A negated template must stay generic.
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template: "{{ not is_state('light.living_room', 'on') }}",
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("does not drop clauses from a compound is_state template", () => {
+    // Regression: only the first is_state() was described, silently
+    // omitting the second — the full expression must stay generic.
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template:
+        "{{ is_state('light.living_room', 'on') and " +
+        "is_state('cover.blinds', 'open') }}",
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("stays generic for a disjunctive comparison template", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template:
+        "{{ states('sensor.temperature') | float > 30 or " +
+        "states('sensor.temperature') | float < 5 }}",
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("stays generic when a range spans two different entities", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template:
+        "{{ states('sensor.temperature') | float > 20 and " +
+        "states('cover.blinds') | float < 55 }}",
+    });
+    expect(result).toBe("Template evaluates to true");
+  });
+
+  it("stays generic when a template mixes a comparison with extra logic", () => {
+    const result = describeFlowItem(mockHass, {
+      condition: "template",
+      value_template:
+        "{{ states('sensor.temperature') | float > 20 and is_state('light.living_room', 'on') }}",
+    });
+    expect(result).toBe("Template evaluates to true");
   });
 });
 
@@ -400,6 +683,376 @@ describe("Edge cases", () => {
   it("returns fallback for empty object", () => {
     const result = describeFlowItem(mockHass, {});
     expect(result).toBe("Automation step");
+  });
+});
+
+describe("collectFlowEntityIds", () => {
+  it("collects entity ids referenced inside value_template", () => {
+    const ids = collectFlowEntityIds({
+      condition: "template",
+      value_template:
+        "{{ (state_attr('cover.blinds', 'current_position') | int(0)) >= 45 " +
+        "and states('sensor.temperature') | float > 20 }}",
+    });
+    expect(ids).toEqual(["cover.blinds", "sensor.temperature"]);
+  });
+
+  it("still collects plain entity_id fields", () => {
+    const ids = collectFlowEntityIds({
+      condition: "state",
+      entity_id: "light.living_room",
+      state: "on",
+    });
+    expect(ids).toEqual(["light.living_room"]);
+  });
+});
+
+describe("mergeEquivalentTriggers", () => {
+  it("merges bare state triggers into one multi-entity trigger", () => {
+    const merged = mergeEquivalentTriggers([
+      { trigger: "state", entity_id: "sensor.uv" },
+      { trigger: "state", entity_id: "sensor.temperature" },
+      { trigger: "time", at: "11:00:00", id: "at_11" },
+    ]);
+    expect(merged).toHaveLength(2);
+    expect(merged[0].entity_id).toEqual(["sensor.uv", "sensor.temperature"]);
+    expect(merged[1].trigger).toBe("time");
+  });
+
+  it("keeps triggers with target states, durations, or ids separate", () => {
+    const triggers = [
+      { trigger: "state", entity_id: "light.a", to: "on" },
+      { trigger: "state", entity_id: "sensor.b", for: { minutes: 5 } },
+      { trigger: "state", entity_id: "sensor.c", id: "c" },
+    ];
+    expect(mergeEquivalentTriggers(triggers)).toEqual(triggers);
+  });
+
+  it("does not merge triggers constrained by not_from / not_to", () => {
+    const triggers = [
+      { trigger: "state", entity_id: "sensor.a", not_to: "unavailable" },
+      { trigger: "state", entity_id: "sensor.b", not_from: "unavailable" },
+    ];
+    expect(mergeEquivalentTriggers(triggers)).toEqual(triggers);
+  });
+
+  it("joins merged entities with 'or' in the description", () => {
+    const [merged] = mergeEquivalentTriggers([
+      { trigger: "state", entity_id: "sensor.temperature" },
+      { trigger: "state", entity_id: "sensor.humidity" },
+    ]);
+    expect(describeFlowItem(mockHass, merged)).toBe(
+      "When Temperature Sensor or Humidity value changes",
+    );
+  });
+});
+
+describe("displayTriggers", () => {
+  // Shape of the "Stores UV Management" automation: every trigger either
+  // re-evaluates conditions shown in the branches or is quoted there via
+  // a trigger condition — the section carries no extra information.
+  const uvTriggers = [
+    { entity_id: "sensor.uv", trigger: "state" },
+    { entity_id: "sensor.temperature", trigger: "state" },
+    { at: "11:00:00", id: "at_11", trigger: "time" },
+  ];
+  const uvActions = [
+    {
+      choose: [
+        {
+          conditions: {
+            condition: "and",
+            conditions: [
+              { condition: "time", after: "07:00:00", before: "11:00:00" },
+              { condition: "numeric_state", entity_id: "sensor.uv", above: 5 },
+              {
+                condition: "numeric_state",
+                entity_id: "sensor.temperature",
+                above: 16,
+              },
+            ],
+          },
+          sequence: [{ service: "scene.turn_on" }],
+        },
+        {
+          conditions: {
+            condition: "and",
+            conditions: [
+              { condition: "trigger", id: "at_11" },
+              {
+                condition: "template",
+                value_template:
+                  "{{ state_attr('cover.blinds', 'current_position') | int(0) >= 45 }}",
+              },
+            ],
+          },
+          sequence: [{ service: "cover.open_cover" }],
+        },
+      ],
+    },
+  ];
+
+  it("hides the section when every trigger is redundant with the logic below", () => {
+    expect(displayTriggers(uvTriggers, [], uvActions)).toEqual([]);
+  });
+
+  it("keeps triggers that carry their own semantics", () => {
+    const triggers = [
+      { trigger: "state", entity_id: "binary_sensor.motion", to: "on" },
+    ];
+    const actions = [{ service: "light.turn_on" }];
+    expect(displayTriggers(triggers, [], actions)).toEqual(triggers);
+  });
+
+  it("keeps bare state triggers whose entity is not in any condition", () => {
+    const triggers = [{ trigger: "state", entity_id: "sensor.uv" }];
+    const actions = [{ service: "notify.notify" }];
+    const shown = displayTriggers(triggers, [], actions);
+    expect(shown).toHaveLength(1);
+    expect(asArray(shown[0].entity_id)).toEqual(["sensor.uv"]);
+  });
+
+  it("shows all triggers (merged) when only some are redundant", () => {
+    const triggers = [
+      { trigger: "state", entity_id: "sensor.uv" },
+      { trigger: "state", entity_id: "sensor.humidity" },
+    ];
+    const conditions = [
+      { condition: "numeric_state", entity_id: "sensor.uv", above: 5 },
+    ];
+    const shown = displayTriggers(triggers, conditions, []);
+    expect(shown).toHaveLength(1);
+    expect(shown[0].entity_id).toEqual(["sensor.uv", "sensor.humidity"]);
+  });
+
+  it("finds trigger-condition references in top-level conditions too", () => {
+    const triggers = [{ trigger: "time", at: "11:00:00", id: "at_11" }];
+    const conditions = [{ condition: "trigger", id: "at_11" }];
+    expect(displayTriggers(triggers, conditions, [])).toEqual([]);
+  });
+
+  it("treats a trigger referenced by its default index id as redundant", () => {
+    const triggers = [{ trigger: "time", at: "11:00:00" }];
+    const conditions = [{ condition: "trigger", id: "0" }];
+    expect(displayTriggers(triggers, conditions, [])).toEqual([]);
+  });
+
+  it("keeps a state-change trigger when a choose default runs unconditionally", () => {
+    // Regression: the trigger's entity recurring in a branch condition hid
+    // the whole section, dropping "runs on every temperature change" — the
+    // default branch runs on each change regardless of the condition.
+    const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
+    const actions = [
+      {
+        choose: [
+          {
+            conditions: [
+              {
+                condition: "numeric_state",
+                entity_id: "sensor.temperature",
+                above: 20,
+              },
+            ],
+            sequence: [{ service: "light.turn_on" }],
+          },
+        ],
+        default: [{ service: "light.turn_off" }],
+      },
+    ];
+    const shown = displayTriggers(triggers, [], actions);
+    expect(shown).toHaveLength(1);
+    expect(asArray(shown[0].entity_id)).toEqual(["sensor.temperature"]);
+  });
+
+  it("keeps a state-change trigger when a top-level action is unconditional", () => {
+    const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
+    const conditions = [
+      {
+        condition: "numeric_state",
+        entity_id: "sensor.temperature",
+        above: 20,
+      },
+    ];
+    const actions = [{ service: "notify.notify" }];
+    expect(displayTriggers(triggers, conditions, actions)).toHaveLength(1);
+  });
+
+  it("still hides when every branch is conditional (no default)", () => {
+    const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
+    const actions = [
+      {
+        choose: [
+          {
+            conditions: [
+              {
+                condition: "numeric_state",
+                entity_id: "sensor.temperature",
+                above: 20,
+              },
+            ],
+            sequence: [{ service: "light.turn_on" }],
+          },
+        ],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toEqual([]);
+  });
+
+  it("keeps a trigger whose only overlap is an unrendered if condition", () => {
+    // renderActionItem does not expand `if`, so its condition never shows —
+    // suppressing the trigger would hide both the timing and the check.
+    const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
+    const actions = [
+      {
+        if: [
+          {
+            condition: "numeric_state",
+            entity_id: "sensor.temperature",
+            above: 20,
+          },
+        ],
+        then: [{ service: "light.turn_on" }],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toHaveLength(1);
+  });
+
+  it("keeps a referenced trigger when a sibling action runs unconditionally", () => {
+    // at_11 is quoted by a choose branch, but the top-level service runs on
+    // every firing (at 11:00). Hiding the only trigger would drop that
+    // timing from the chart.
+    const triggers = [{ trigger: "time", at: "11:00:00", id: "at_11" }];
+    const actions = [
+      { service: "light.turn_on" },
+      {
+        choose: [
+          {
+            conditions: [{ condition: "trigger", id: "at_11" }],
+            sequence: [{ service: "light.turn_off" }],
+          },
+        ],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toHaveLength(1);
+  });
+
+  it("still hides a referenced trigger when every action is conditional", () => {
+    const triggers = [{ trigger: "time", at: "11:00:00", id: "at_11" }];
+    const actions = [
+      {
+        choose: [
+          {
+            conditions: [{ condition: "trigger", id: "at_11" }],
+            sequence: [{ service: "light.turn_off" }],
+          },
+        ],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toEqual([]);
+  });
+
+  it("keeps a trigger whose entity only appears in an opaque template", () => {
+    // The template renders as "Template evaluates to true", so the entity
+    // is invisible — suppressing the trigger would leave nothing on screen.
+    const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
+    const conditions = [
+      {
+        condition: "template",
+        value_template:
+          "{{ states('sensor.temperature') | float > 20 or " +
+          "is_state('light.living_room', 'on') }}",
+      },
+    ];
+    expect(displayTriggers(triggers, conditions, [])).toHaveLength(1);
+  });
+
+  it("still hides a trigger whose entity is in a concrete template", () => {
+    const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
+    const conditions = [
+      {
+        condition: "template",
+        value_template: "{{ states('sensor.temperature') | float > 20 }}",
+      },
+    ];
+    expect(displayTriggers(triggers, conditions, [])).toEqual([]);
+  });
+
+  it("keeps a not_from/not_to-constrained state trigger visible", () => {
+    const triggers = [
+      {
+        trigger: "state",
+        entity_id: "sensor.temperature",
+        not_from: "unavailable",
+      },
+    ];
+    const actions = [
+      {
+        choose: [
+          {
+            conditions: [
+              {
+                condition: "numeric_state",
+                entity_id: "sensor.temperature",
+                above: 20,
+              },
+            ],
+            sequence: [{ service: "light.turn_on" }],
+          },
+        ],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toHaveLength(1);
+  });
+});
+
+describe("collectFlowDeviceRefs", () => {
+  const hassWithDevices = {
+    ...mockHass,
+    devices: {
+      abc123: { name: "ZB-LOCK-01", name_by_user: "Yale Lock" },
+    },
+  };
+
+  it("resolves a device trigger's device_id to a linkable ref", () => {
+    const refs = collectFlowDeviceRefs(hassWithDevices, {
+      trigger: "device",
+      device_id: "abc123",
+      domain: "lock",
+      type: "unlocked",
+    });
+    expect(refs).toEqual([
+      { deviceId: "abc123", name: "Yale Lock", domain: "lock" },
+    ]);
+  });
+
+  it("resolves device conditions too", () => {
+    const refs = collectFlowDeviceRefs(hassWithDevices, {
+      condition: "device",
+      device_id: "abc123",
+      type: "is_locked",
+    });
+    expect(refs).toEqual([
+      { deviceId: "abc123", name: "Yale Lock", domain: null },
+    ]);
+  });
+
+  it("returns nothing for non-device items", () => {
+    expect(
+      collectFlowDeviceRefs(hassWithDevices, {
+        trigger: "state",
+        entity_id: "light.living_room",
+      }),
+    ).toEqual([]);
+  });
+
+  it("returns nothing when the device is not in the registry", () => {
+    expect(
+      collectFlowDeviceRefs(mockHass, {
+        trigger: "device",
+        device_id: "missing",
+        type: "unlocked",
+      }),
+    ).toEqual([]);
   });
 });
 
