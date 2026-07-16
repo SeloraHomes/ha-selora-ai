@@ -4988,13 +4988,14 @@ var automationsStyles = i`
   .auto-row:last-child {
     border-bottom: none;
   }
-  .auto-row.disabled
-    > .auto-row-main
-    > :not(.burger-menu-wrapper):not(.row-action-btn):not(.auto-row-name):not(
-      ha-icon
-    ) {
-    opacity: 0.5;
-  }
+  /* Dim the status-carrying bits of a disabled row (toggle, last-run,
+     description) but NOT the action buttons or the burger menu — opacity on a
+     wrapper also fades its fixed-position dropdown, which made the open menu
+     see-through on disabled rows. Target the elements explicitly instead of
+     fading a whole control wrapper. */
+  .auto-row.disabled .auto-row-icon,
+  .auto-row.disabled .toggle-switch,
+  .auto-row.disabled .auto-row-last-run,
   .auto-row.disabled .auto-row-desc,
   .auto-row.disabled .auto-row-mobile-meta {
     opacity: 0.5;
@@ -5031,6 +5032,29 @@ var automationsStyles = i`
      the expanded card reads as a calm, settled surface. */
   .auto-row.expanded .auto-row-main:hover {
     background: transparent;
+  }
+  /* Trailing controls: the toggle sits alongside the action buttons on desktop,
+     replicating the flat row (toggle | run | menu). On mobile they restack (see
+     the media query) so the toggle drops under the button pair. */
+  .auto-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .auto-row-btns {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .auto-row-btns:empty {
+    display: none;
+  }
+  /* The Enable/Disable dropdown item is a mobile-only stand-in for the inline
+     toggle (which is hidden on mobile). Desktop keeps the inline toggle, so
+     the dropdown item stays hidden there. */
+  .burger-item-toggle {
+    display: none;
   }
   .auto-row-name {
     flex: 1;
@@ -5090,6 +5114,29 @@ var automationsStyles = i`
     width: 12px;
     height: 12px;
   }
+  /* Mobile-only "Disabled" marker. On desktop the inline toggle already shows
+     enabled/disabled state; on mobile the toggle moves into the burger menu,
+     so without this a disabled row is indistinguishable from an enabled one. */
+  .disabled-pill {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--secondary-text-color);
+    border: 1px solid var(--divider-color);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .disabled-pill ha-icon {
+    --mdc-icon-size: 12px;
+    width: 12px;
+    height: 12px;
+  }
   .selora-ai-mark {
     --mdc-icon-size: 12px;
     color: var(--selora-accent);
@@ -5131,6 +5178,22 @@ var automationsStyles = i`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* When expanded the full description shows in the card body, so hide the
+     header's clamped copy to avoid duplication. Use visibility (not display)
+     so it still reserves its one line — the header keeps its collapsed height
+     and the icon/toggle/buttons stay put instead of drifting on expand. */
+  .auto-row.expanded .auto-row-desc {
+    visibility: hidden;
+  }
+  /* Full, un-clamped description shown at the top of the expanded card body.
+     The header row keeps its single-line clamped .auto-row-desc so the header
+     never changes height (and its controls never drift) on expand. */
+  .auto-row-full-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--secondary-text-color);
+    padding: 0 4px 12px;
   }
   .auto-row-last-run {
     font-size: 12px;
@@ -5324,12 +5387,58 @@ var automationsStyles = i`
   @media (max-width: 600px) {
     .auto-row-main {
       align-items: flex-start;
+      /* Tighter gaps so the icon + toggle + action buttons leave more width
+         for the name column on narrow screens. */
+      gap: 8px;
+    }
+    /* Push the pills (recipe / stale / needs-attention) onto their own wrapped
+       line instead of letting them share — and steal — the title's width. The
+       title keeps its content width (so the sparkle mark stays inline next to
+       it) and wraps at word boundaries instead of one character at a time. */
+    .auto-row-title-row {
+      flex-wrap: wrap;
     }
     .auto-row-title {
       white-space: normal;
     }
+    .recipe-pill,
+    .stale-pill,
+    .needs-attention-pill,
+    .disabled-pill {
+      flex-basis: 100%;
+      max-width: max-content;
+    }
+    .disabled-pill {
+      display: inline-flex;
+    }
     .auto-row-desc {
       white-space: normal;
+    }
+    /* Mobile already shows the full description in the header (unclamped
+       above), so the expanded body copy would just duplicate it — and leaving
+       the header desc visible keeps the mobile "Last run" meta from stranding
+       with a gap. Hide the body copy and keep the header desc on expand. */
+    .auto-row.expanded .auto-row-desc {
+      visibility: visible;
+    }
+    .auto-row-full-desc {
+      display: none;
+    }
+    .auto-row-actions {
+      gap: 8px;
+    }
+    .auto-row-btns {
+      gap: 8px;
+    }
+    /* Move the toggle into the burger menu: hide the inline toggle (only when
+       the row actually has a menu to hold the Enable/Disable item) and surface
+       that dropdown item instead. Frees the width the toggle took on the header
+       line. Rows without a menu keep their inline toggle. */
+    .auto-row-actions.has-menu .toggle-switch {
+      display: none;
+    }
+    .burger-item-toggle {
+      display: flex;
     }
     /* Hide scene rows' duplicate desc — the same text already renders in
        .auto-row-mobile-meta below. Automations keep their actual
@@ -8452,6 +8561,8 @@ var en_default = {
     automations_burger_view_in_ha: "View in HA",
     automations_burger_deleting: "Deleting\u2026",
     automations_burger_delete: "Delete",
+    automations_burger_enable: "Enable",
+    automations_burger_disable: "Disable",
     automations_card_tab_flow: "Flow",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "History",
@@ -9527,6 +9638,8 @@ var fr_default = {
     automations_burger_view_in_ha: "Voir dans HA",
     automations_burger_deleting: "Suppression\u2026",
     automations_burger_delete: "Supprimer",
+    automations_burger_enable: "Activer",
+    automations_burger_disable: "D\xE9sactiver",
     automations_card_tab_flow: "Flux",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "Historique",
@@ -10636,6 +10749,8 @@ var de_default = {
     automations_burger_view_in_ha: "In HA anzeigen",
     automations_burger_deleting: "L\xF6sche\u2026",
     automations_burger_delete: "L\xF6schen",
+    automations_burger_enable: "Aktivieren",
+    automations_burger_disable: "Deaktivieren",
     automations_card_tab_flow: "Ablauf",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "Verlauf",
@@ -11736,6 +11851,8 @@ var es_default = {
     automations_burger_view_in_ha: "Ver en HA",
     automations_burger_deleting: "Eliminando\u2026",
     automations_burger_delete: "Eliminar",
+    automations_burger_enable: "Activar",
+    automations_burger_disable: "Desactivar",
     automations_card_tab_flow: "Flujo",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "Historial",
@@ -12823,6 +12940,8 @@ var it_default = {
     automations_burger_view_in_ha: "Apri in HA",
     automations_burger_deleting: "Eliminazione\u2026",
     automations_burger_delete: "Elimina",
+    automations_burger_enable: "Attiva",
+    automations_burger_disable: "Disattiva",
     automations_card_tab_flow: "Flusso",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "Cronologia",
@@ -13927,6 +14046,8 @@ var nl_default = {
     automations_burger_view_in_ha: "Bekijken in HA",
     automations_burger_deleting: "Verwijderen\u2026",
     automations_burger_delete: "Verwijderen",
+    automations_burger_enable: "Inschakelen",
+    automations_burger_disable: "Uitschakelen",
     automations_card_tab_flow: "Flow",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "Geschiedenis",
@@ -15030,6 +15151,8 @@ var hu_default = {
     automations_burger_view_in_ha: "Megtekint\xE9s a HA-ban",
     automations_burger_deleting: "T\xF6rl\xE9s\u2026",
     automations_burger_delete: "T\xF6rl\xE9s",
+    automations_burger_enable: "Enged\xE9lyez\xE9s",
+    automations_burger_disable: "Letilt\xE1s",
     automations_card_tab_flow: "Folyamat",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "El\u0151zm\xE9nyek",
@@ -16140,6 +16263,8 @@ var pt_default = {
     automations_burger_view_in_ha: "Ver no HA",
     automations_burger_deleting: "A eliminar\u2026",
     automations_burger_delete: "Eliminar",
+    automations_burger_enable: "Ativar",
+    automations_burger_disable: "Desativar",
     automations_card_tab_flow: "Fluxo",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "Hist\xF3rico",
@@ -17437,6 +17562,10 @@ var ru_default = {
     automations_burger_deleting:
       "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435\u2026",
     automations_burger_delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    automations_burger_enable:
+      "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C",
+    automations_burger_disable:
+      "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C",
     automations_card_tab_flow: "\u041F\u043E\u0442\u043E\u043A",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "\u0418\u0441\u0442\u043E\u0440\u0438\u044F",
@@ -18940,6 +19069,8 @@ var ja_default = {
     automations_burger_view_in_ha: "HA \u3067\u8868\u793A",
     automations_burger_deleting: "\u524A\u9664\u4E2D\u2026",
     automations_burger_delete: "\u524A\u9664",
+    automations_burger_enable: "\u6709\u52B9\u5316",
+    automations_burger_disable: "\u7121\u52B9\u5316",
     automations_card_tab_flow: "\u30D5\u30ED\u30FC",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "\u5C65\u6B74",
@@ -20249,6 +20380,8 @@ var ko_default = {
     automations_burger_view_in_ha: "HA\uC5D0\uC11C \uBCF4\uAE30",
     automations_burger_deleting: "\uC0AD\uC81C \uC911\u2026",
     automations_burger_delete: "\uC0AD\uC81C",
+    automations_burger_enable: "\uD65C\uC131\uD654",
+    automations_burger_disable: "\uBE44\uD65C\uC131\uD654",
     automations_card_tab_flow: "\uD750\uB984",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "\uAE30\uB85D",
@@ -21458,6 +21591,8 @@ var zh_Hans_default = {
     automations_burger_view_in_ha: "\u5728 HA \u4E2D\u67E5\u770B",
     automations_burger_deleting: "\u5220\u9664\u4E2D\u2026",
     automations_burger_delete: "\u5220\u9664",
+    automations_burger_enable: "\u542F\u7528",
+    automations_burger_disable: "\u7981\u7528",
     automations_card_tab_flow: "\u6D41\u7A0B",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "\u5386\u53F2",
@@ -22634,6 +22769,8 @@ var zh_Hant_default = {
     automations_burger_view_in_ha: "\u5728 HA \u4E2D\u6AA2\u8996",
     automations_burger_deleting: "\u522A\u9664\u4E2D\u2026",
     automations_burger_delete: "\u522A\u9664",
+    automations_burger_enable: "\u555F\u7528",
+    automations_burger_disable: "\u505C\u7528",
     automations_card_tab_flow: "\u6D41\u7A0B",
     automations_card_tab_yaml: "YAML",
     automations_card_tab_history: "\u6B77\u7A0B",
@@ -29608,6 +29745,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     nameOverride = null,
     tail = null,
     isSelora = true,
+    icon = "mdi:robot",
   } = opts;
   const cleanedDescription = (description || "").replace(
     /^\[Selora AI\]\s*/,
@@ -29615,7 +29753,8 @@ function renderAutomationIdentity(alias, description, opts = {}) {
   );
   return x`
     <ha-icon
-      icon="mdi:robot"
+      icon=${icon}
+      class="auto-row-icon"
       style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
     ></ha-icon>
     <div class="auto-row-name">
@@ -30449,6 +30588,8 @@ function renderAutomations(host) {
                         }
                         ${renderAutomationIdentity(a4.alias, a4.description, {
                           isSelora: !!a4.is_selora,
+                          icon:
+                            !isDraft && !isOn ? "mdi:robot-off" : "mdi:robot",
                           titleSuffix: x`
                             ${
                               a4.recipe_title
@@ -30495,6 +30636,20 @@ function renderAutomations(host) {
                                     style="--mdc-icon-size:12px;"
                                   ></ha-icon>
                                   Stale
+                                </span>`
+                                : ""
+                            }
+                            ${
+                              !isDraft && !isOn
+                                ? x`<span class="disabled-pill">
+                                  <ha-icon
+                                    icon="mdi:pause-circle-outline"
+                                    style="--mdc-icon-size:12px;"
+                                  ></ha-icon>
+                                  ${host._t(
+                                    "automations_status_tab_disabled",
+                                    "Disabled",
+                                  )}
                                 </span>`
                                 : ""
                             }
@@ -30566,236 +30721,283 @@ function renderAutomations(host) {
                               : ""
                           }
                         </span>
-                        <label
-                          class="toggle-switch"
-                          title="${
-                            canToggle
-                              ? isOn
-                                ? host._t(
-                                    "automations_toggle_enabled",
-                                    "Enabled",
-                                  )
-                                : host._t(
-                                    "automations_toggle_disabled",
-                                    "Disabled",
-                                  )
-                              : host._t(
-                                  "automations_toggle_unavailable",
-                                  "Unavailable",
-                                )
-                          }"
-                          style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
-                          @click=${(e6) => {
-                            e6.stopPropagation();
-                            if (!canToggle) {
-                              host._showToast(
-                                host._t(
-                                  "automations_toast_toggle_unresolved",
-                                  "Unable to toggle: automation id was not resolved. Reload and try again.",
-                                ),
-                                "error",
-                              );
-                            }
-                          }}
+                        <div
+                          class="auto-row-actions${hasAutomationId ? " has-menu" : ""}"
                         >
-                          <input
-                            type="checkbox"
-                            .checked=${isOn}
-                            ?disabled=${!canToggle}
-                            @click=${(e6) => e6.stopPropagation()}
-                            @change=${(e6) => {
-                              if (!canToggle) return;
-                              host._toggleAutomation(
-                                a4.entity_id,
-                                automationId,
-                                e6.target.checked,
-                              );
+                          <label
+                            class="toggle-switch"
+                            title="${
+                              canToggle
+                                ? isOn
+                                  ? host._t(
+                                      "automations_toggle_enabled",
+                                      "Enabled",
+                                    )
+                                  : host._t(
+                                      "automations_toggle_disabled",
+                                      "Disabled",
+                                    )
+                                : host._t(
+                                    "automations_toggle_unavailable",
+                                    "Unavailable",
+                                  )
+                            }"
+                            style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
+                            @click=${(e6) => {
+                              e6.stopPropagation();
+                              if (!canToggle) {
+                                host._showToast(
+                                  host._t(
+                                    "automations_toast_toggle_unresolved",
+                                    "Unable to toggle: automation id was not resolved. Reload and try again.",
+                                  ),
+                                  "error",
+                                );
+                              }
                             }}
-                          />
-                          <div class="toggle-track ${isOn ? "on" : ""}">
-                            <div class="toggle-thumb"></div>
-                          </div>
-                        </label>
-                        ${
-                          !isDraft && a4.entity_id
-                            ? x`
-                              <button
-                                class="row-action-btn"
-                                ?disabled=${running || isUnavailable}
-                                @click=${(e6) => {
-                                  e6.stopPropagation();
-                                  if (running || isUnavailable) return;
-                                  host._runAutomation(
-                                    a4.entity_id,
-                                    automationId,
-                                  );
-                                }}
-                                title=${host._t(
-                                  "automations_run_tooltip",
-                                  "Run Automation",
-                                )}
-                              >
-                                <ha-icon
-                                  icon="mdi:play"
-                                  style="--mdc-icon-size:16px;"
-                                ></ha-icon>
-                              </button>
-                            `
-                            : ""
-                        }
-                        ${
-                          hasAutomationId
-                            ? x`
-                              <div class="burger-menu-wrapper">
-                                <button
-                                  class="burger-btn"
-                                  @click=${(e6) => host._toggleBurgerMenu(automationId, e6)}
-                                  ?disabled=${host._bulkActionInProgress}
-                                  title=${host._t(
-                                    "automations_more_actions_tooltip",
-                                    "More actions",
-                                  )}
-                                >
-                                  <ha-icon
-                                    icon="mdi:dots-vertical"
-                                    style="--mdc-icon-size:16px;"
-                                  ></ha-icon>
-                                </button>
-                                ${
-                                  burgerOpen
-                                    ? x`
-                                      <div
-                                        class="burger-dropdown"
-                                        style=${host._openBurgerMenuStyle}
-                                      >
-                                        <button
-                                          class="burger-item"
-                                          @click=${(e6) => {
-                                            e6.stopPropagation();
-                                            host._openBurgerMenu = null;
-                                            host._loadAutomationToChat(
-                                              automationId,
-                                            );
-                                          }}
-                                          ?disabled=${loadingChat}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:chat-processing-outline"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${
-                                            loadingChat
-                                              ? host._t(
-                                                  "automations_burger_loading",
-                                                  "Loading\u2026",
-                                                )
-                                              : host._t(
-                                                  "automations_burger_refine_in_chat",
-                                                  "Refine in chat",
-                                                )
-                                          }
-                                        </button>
-                                        <button
-                                          class="burger-item"
-                                          @click=${(e6) => {
-                                            e6.stopPropagation();
-                                            host._startRenameAutomation(
-                                              automationId,
-                                              a4.alias,
-                                            );
-                                          }}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:pencil-outline"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${host._t(
-                                            "automations_burger_rename",
-                                            "Rename",
-                                          )}
-                                        </button>
-                                        <button
-                                          class="burger-item"
-                                          @click=${(e6) => {
-                                            e6.stopPropagation();
-                                            host._openBurgerMenu = null;
-                                            window.history.pushState(
-                                              null,
-                                              "",
-                                              `/config/automation/edit/${automationId}`,
-                                            );
-                                            window.dispatchEvent(
-                                              new Event("location-changed"),
-                                            );
-                                          }}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:open-in-new"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${host._t(
-                                            "automations_burger_view_in_ha",
-                                            "View in HA",
-                                          )}
-                                        </button>
-                                        <button
-                                          class="burger-item danger"
-                                          ?disabled=${deleting}
-                                          @click=${(e6) => {
-                                            e6.stopPropagation();
-                                            host._openBurgerMenu = null;
-                                            host._deleteAutomation(
-                                              automationId,
-                                            );
-                                          }}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:trash-can-outline"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${
-                                            deleting
-                                              ? host._t(
-                                                  "automations_burger_deleting",
-                                                  "Deleting\u2026",
-                                                )
-                                              : host._t(
-                                                  "automations_burger_delete",
-                                                  "Delete",
-                                                )
-                                          }
-                                        </button>
-                                      </div>
-                                    `
-                                    : ""
-                                }
-                              </div>
-                            `
-                            : isDraft
-                              ? ""
-                              : x`
-                                <div class="burger-menu-wrapper">
+                          >
+                            <input
+                              type="checkbox"
+                              .checked=${isOn}
+                              ?disabled=${!canToggle}
+                              @click=${(e6) => e6.stopPropagation()}
+                              @change=${(e6) => {
+                                if (!canToggle) return;
+                                host._toggleAutomation(
+                                  a4.entity_id,
+                                  automationId,
+                                  e6.target.checked,
+                                );
+                              }}
+                            />
+                            <div class="toggle-track ${isOn ? "on" : ""}">
+                              <div class="toggle-thumb"></div>
+                            </div>
+                          </label>
+                          <div class="auto-row-btns">
+                            ${
+                              !isDraft && a4.entity_id
+                                ? x`
                                   <button
-                                    class="burger-btn"
-                                    disabled
+                                    class="row-action-btn"
+                                    ?disabled=${running || isUnavailable}
+                                    @click=${(e6) => {
+                                      e6.stopPropagation();
+                                      if (running || isUnavailable) return;
+                                      host._runAutomation(
+                                        a4.entity_id,
+                                        automationId,
+                                      );
+                                    }}
                                     title=${host._t(
-                                      "automations_more_actions_external",
-                                      "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
+                                      "automations_run_tooltip",
+                                      "Run Automation",
                                     )}
                                   >
                                     <ha-icon
-                                      icon="mdi:dots-vertical"
+                                      icon="mdi:play"
                                       style="--mdc-icon-size:16px;"
                                     ></ha-icon>
                                   </button>
-                                </div>
-                              `
-                        }
+                                `
+                                : ""
+                            }
+                            ${
+                              hasAutomationId
+                                ? x`
+                                  <div class="burger-menu-wrapper">
+                                    <button
+                                      class="burger-btn"
+                                      @click=${(e6) => host._toggleBurgerMenu(automationId, e6)}
+                                      ?disabled=${host._bulkActionInProgress}
+                                      title=${host._t(
+                                        "automations_more_actions_tooltip",
+                                        "More actions",
+                                      )}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:dots-vertical"
+                                        style="--mdc-icon-size:16px;"
+                                      ></ha-icon>
+                                    </button>
+                                    ${
+                                      burgerOpen
+                                        ? x`
+                                          <div
+                                            class="burger-dropdown"
+                                            style=${host._openBurgerMenuStyle}
+                                          >
+                                            <button
+                                              class="burger-item burger-item-toggle"
+                                              ?disabled=${!canToggle}
+                                              @click=${(e6) => {
+                                                e6.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                if (!canToggle) return;
+                                                host._toggleAutomation(
+                                                  a4.entity_id,
+                                                  automationId,
+                                                  !isOn,
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon=${isOn ? "mdi:toggle-switch-off-outline" : "mdi:toggle-switch-outline"}
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${
+                                                isOn
+                                                  ? host._t(
+                                                      "automations_burger_disable",
+                                                      "Disable",
+                                                    )
+                                                  : host._t(
+                                                      "automations_burger_enable",
+                                                      "Enable",
+                                                    )
+                                              }
+                                            </button>
+                                            <button
+                                              class="burger-item"
+                                              @click=${(e6) => {
+                                                e6.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                host._loadAutomationToChat(
+                                                  automationId,
+                                                );
+                                              }}
+                                              ?disabled=${loadingChat}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:chat-processing-outline"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${
+                                                loadingChat
+                                                  ? host._t(
+                                                      "automations_burger_loading",
+                                                      "Loading\u2026",
+                                                    )
+                                                  : host._t(
+                                                      "automations_burger_refine_in_chat",
+                                                      "Refine in chat",
+                                                    )
+                                              }
+                                            </button>
+                                            <button
+                                              class="burger-item"
+                                              @click=${(e6) => {
+                                                e6.stopPropagation();
+                                                host._startRenameAutomation(
+                                                  automationId,
+                                                  a4.alias,
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:pencil-outline"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${host._t(
+                                                "automations_burger_rename",
+                                                "Rename",
+                                              )}
+                                            </button>
+                                            <button
+                                              class="burger-item"
+                                              @click=${(e6) => {
+                                                e6.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                window.history.pushState(
+                                                  null,
+                                                  "",
+                                                  `/config/automation/edit/${automationId}`,
+                                                );
+                                                window.dispatchEvent(
+                                                  new Event("location-changed"),
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:open-in-new"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${host._t(
+                                                "automations_burger_view_in_ha",
+                                                "View in HA",
+                                              )}
+                                            </button>
+                                            <button
+                                              class="burger-item danger"
+                                              ?disabled=${deleting}
+                                              @click=${(e6) => {
+                                                e6.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                host._deleteAutomation(
+                                                  automationId,
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:trash-can-outline"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${
+                                                deleting
+                                                  ? host._t(
+                                                      "automations_burger_deleting",
+                                                      "Deleting\u2026",
+                                                    )
+                                                  : host._t(
+                                                      "automations_burger_delete",
+                                                      "Delete",
+                                                    )
+                                              }
+                                            </button>
+                                          </div>
+                                        `
+                                        : ""
+                                    }
+                                  </div>
+                                `
+                                : isDraft
+                                  ? ""
+                                  : x`
+                                    <div class="burger-menu-wrapper">
+                                      <button
+                                        class="burger-btn"
+                                        disabled
+                                        title=${host._t(
+                                          "automations_more_actions_external",
+                                          "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
+                                        )}
+                                      >
+                                        <ha-icon
+                                          icon="mdi:dots-vertical"
+                                          style="--mdc-icon-size:16px;"
+                                        ></ha-icon>
+                                      </button>
+                                    </div>
+                                  `
+                            }
+                          </div>
+                        </div>
                       </div>
                       ${
                         cardExpanded
                           ? x`
                             <div class="auto-row-expand">
+                              ${(() => {
+                                const fullDesc = (a4.description || "").replace(
+                                  /^\[Selora AI\]\s*/,
+                                  "",
+                                );
+                                return fullDesc
+                                  ? x`<div class="auto-row-full-desc">
+                                      ${fullDesc}
+                                    </div>`
+                                  : "";
+                              })()}
                               <div class="card-tabs" style="margin-top:0;">
                                 ${
                                   (a4.triggers ?? a4.trigger)?.length ||

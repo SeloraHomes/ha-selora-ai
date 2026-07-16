@@ -399,6 +399,8 @@
     "automations_burger_view_in_ha": "Bekijken in HA",
     "automations_burger_deleting": "Verwijderen…",
     "automations_burger_delete": "Verwijderen",
+    "automations_burger_enable": "Inschakelen",
+    "automations_burger_disable": "Uitschakelen",
     "automations_card_tab_flow": "Flow",
     "automations_card_tab_yaml": "YAML",
     "automations_card_tab_history": "Geschiedenis",

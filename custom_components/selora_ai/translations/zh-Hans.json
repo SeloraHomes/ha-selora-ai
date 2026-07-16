@@ -379,6 +379,8 @@
     "automations_burger_view_in_ha": "在 HA 中查看",
     "automations_burger_deleting": "删除中…",
     "automations_burger_delete": "删除",
+    "automations_burger_enable": "启用",
+    "automations_burger_disable": "禁用",
     "automations_card_tab_flow": "流程",
     "automations_card_tab_yaml": "YAML",
     "automations_card_tab_history": "历史",
