@@ -26732,16 +26732,12 @@ function renderMessage(host, msg, idx) {
   const hasProposalActions = !isUser && !!msg.automation;
   const showQuickActions =
     !isUser &&
-    !!(msg.quick_actions && msg.quick_actions.length) && // Standard quick_actions only render on the latest message — once the
-    // conversation has moved on, an old suggestion chip is just clutter.
-    // Approval cards are the exception: a pending proposal must stay
-    // actionable even if the user typed something else before clicking,
-    // otherwise the only way to resolve it is to reload the session.
-    (idx === host._messages.length - 1 ||
-      (msg.command_approval &&
-        msg.approval_status !== "approved" &&
-        msg.approval_status !== "denied" &&
-        msg.approval_status !== "resolving")) && // Hide approval action cards once the proposal has been resolved (or
+    !!(msg.quick_actions && msg.quick_actions.length) && // Only approval cards render their action row inline in the bubble, so
+    // the Allow/Deny buttons sit next to the proposal they resolve. Standard
+    // quick_actions render exclusively in the sticky composer row (see
+    // lastQuickActions in renderChat); rendering them here too would show the
+    // same chips twice (in-card AND above the input).
+    msg.command_approval && // Hide approval action cards once the proposal has been resolved (or
     // is mid-resolve). Re-clicking after the status flipped would 404
     // server-side, and the approved/denied chip already says what happened.
     msg.approval_status !== "approved" &&
