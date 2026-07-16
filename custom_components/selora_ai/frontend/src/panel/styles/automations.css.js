@@ -21,13 +21,14 @@ export const automationsStyles = css`
   .auto-row:last-child {
     border-bottom: none;
   }
-  .auto-row.disabled
-    > .auto-row-main
-    > :not(.burger-menu-wrapper):not(.row-action-btn):not(.auto-row-name):not(
-      ha-icon
-    ) {
-    opacity: 0.5;
-  }
+  /* Dim the status-carrying bits of a disabled row (toggle, last-run,
+     description) but NOT the action buttons or the burger menu — opacity on a
+     wrapper also fades its fixed-position dropdown, which made the open menu
+     see-through on disabled rows. Target the elements explicitly instead of
+     fading a whole control wrapper. */
+  .auto-row.disabled .auto-row-icon,
+  .auto-row.disabled .toggle-switch,
+  .auto-row.disabled .auto-row-last-run,
   .auto-row.disabled .auto-row-desc,
   .auto-row.disabled .auto-row-mobile-meta {
     opacity: 0.5;
@@ -64,6 +65,29 @@ export const automationsStyles = css`
      the expanded card reads as a calm, settled surface. */
   .auto-row.expanded .auto-row-main:hover {
     background: transparent;
+  }
+  /* Trailing controls: the toggle sits alongside the action buttons on desktop,
+     replicating the flat row (toggle | run | menu). On mobile they restack (see
+     the media query) so the toggle drops under the button pair. */
+  .auto-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .auto-row-btns {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .auto-row-btns:empty {
+    display: none;
+  }
+  /* The Enable/Disable dropdown item is a mobile-only stand-in for the inline
+     toggle (which is hidden on mobile). Desktop keeps the inline toggle, so
+     the dropdown item stays hidden there. */
+  .burger-item-toggle {
+    display: none;
   }
   .auto-row-name {
     flex: 1;
@@ -123,6 +147,29 @@ export const automationsStyles = css`
     width: 12px;
     height: 12px;
   }
+  /* Mobile-only "Disabled" marker. On desktop the inline toggle already shows
+     enabled/disabled state; on mobile the toggle moves into the burger menu,
+     so without this a disabled row is indistinguishable from an enabled one. */
+  .disabled-pill {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--secondary-text-color);
+    border: 1px solid var(--divider-color);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .disabled-pill ha-icon {
+    --mdc-icon-size: 12px;
+    width: 12px;
+    height: 12px;
+  }
   .selora-ai-mark {
     --mdc-icon-size: 12px;
     color: var(--selora-accent);
@@ -164,6 +211,22 @@ export const automationsStyles = css`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* When expanded the full description shows in the card body, so hide the
+     header's clamped copy to avoid duplication. Use visibility (not display)
+     so it still reserves its one line — the header keeps its collapsed height
+     and the icon/toggle/buttons stay put instead of drifting on expand. */
+  .auto-row.expanded .auto-row-desc {
+    visibility: hidden;
+  }
+  /* Full, un-clamped description shown at the top of the expanded card body.
+     The header row keeps its single-line clamped .auto-row-desc so the header
+     never changes height (and its controls never drift) on expand. */
+  .auto-row-full-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--secondary-text-color);
+    padding: 0 4px 12px;
   }
   .auto-row-last-run {
     font-size: 12px;
@@ -357,12 +420,58 @@ export const automationsStyles = css`
   @media (max-width: 600px) {
     .auto-row-main {
       align-items: flex-start;
+      /* Tighter gaps so the icon + toggle + action buttons leave more width
+         for the name column on narrow screens. */
+      gap: 8px;
+    }
+    /* Push the pills (recipe / stale / needs-attention) onto their own wrapped
+       line instead of letting them share — and steal — the title's width. The
+       title keeps its content width (so the sparkle mark stays inline next to
+       it) and wraps at word boundaries instead of one character at a time. */
+    .auto-row-title-row {
+      flex-wrap: wrap;
     }
     .auto-row-title {
       white-space: normal;
     }
+    .recipe-pill,
+    .stale-pill,
+    .needs-attention-pill,
+    .disabled-pill {
+      flex-basis: 100%;
+      max-width: max-content;
+    }
+    .disabled-pill {
+      display: inline-flex;
+    }
     .auto-row-desc {
       white-space: normal;
+    }
+    /* Mobile already shows the full description in the header (unclamped
+       above), so the expanded body copy would just duplicate it — and leaving
+       the header desc visible keeps the mobile "Last run" meta from stranding
+       with a gap. Hide the body copy and keep the header desc on expand. */
+    .auto-row.expanded .auto-row-desc {
+      visibility: visible;
+    }
+    .auto-row-full-desc {
+      display: none;
+    }
+    .auto-row-actions {
+      gap: 8px;
+    }
+    .auto-row-btns {
+      gap: 8px;
+    }
+    /* Move the toggle into the burger menu: hide the inline toggle (only when
+       the row actually has a menu to hold the Enable/Disable item) and surface
+       that dropdown item instead. Frees the width the toggle took on the header
+       line. Rows without a menu keep their inline toggle. */
+    .auto-row-actions.has-menu .toggle-switch {
+      display: none;
+    }
+    .burger-item-toggle {
+      display: flex;
     }
     /* Hide scene rows' duplicate desc — the same text already renders in
        .auto-row-mobile-meta below. Automations keep their actual

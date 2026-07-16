@@ -399,6 +399,8 @@
     "automations_burger_view_in_ha": "Megtekintés a HA-ban",
     "automations_burger_deleting": "Törlés…",
     "automations_burger_delete": "Törlés",
+    "automations_burger_enable": "Engedélyezés",
+    "automations_burger_disable": "Letiltás",
     "automations_card_tab_flow": "Folyamat",
     "automations_card_tab_yaml": "YAML",
     "automations_card_tab_history": "Előzmények",

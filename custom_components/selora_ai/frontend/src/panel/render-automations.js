@@ -329,6 +329,7 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
     nameOverride = null,
     tail = null,
     isSelora = true,
+    icon = "mdi:robot",
   } = opts;
   const cleanedDescription = (description || "").replace(
     /^\[Selora AI\]\s*/,
@@ -336,7 +337,8 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
   );
   return html`
     <ha-icon
-      icon="mdi:robot"
+      icon=${icon}
+      class="auto-row-icon"
       style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
     ></ha-icon>
     <div class="auto-row-name">
@@ -1211,6 +1213,8 @@ export function renderAutomations(host) {
                           : ""}
                         ${renderAutomationIdentity(a.alias, a.description, {
                           isSelora: !!a.is_selora,
+                          icon:
+                            !isDraft && !isOn ? "mdi:robot-off" : "mdi:robot",
                           titleSuffix: html`
                             ${a.recipe_title
                               ? html`<span
@@ -1252,6 +1256,18 @@ export function renderAutomations(host) {
                                     style="--mdc-icon-size:12px;"
                                   ></ha-icon>
                                   Stale
+                                </span>`
+                              : ""}
+                            ${!isDraft && !isOn
+                              ? html`<span class="disabled-pill">
+                                  <ha-icon
+                                    icon="mdi:pause-circle-outline"
+                                    style="--mdc-icon-size:12px;"
+                                  ></ha-icon>
+                                  ${host._t(
+                                    "automations_status_tab_disabled",
+                                    "Disabled",
+                                  )}
                                 </span>`
                               : ""}
                           `,
@@ -1321,223 +1337,275 @@ export function renderAutomations(host) {
                               >`
                             : ""}
                         </span>
-                        <label
-                          class="toggle-switch"
-                          title="${canToggle
-                            ? isOn
-                              ? host._t("automations_toggle_enabled", "Enabled")
-                              : host._t(
-                                  "automations_toggle_disabled",
-                                  "Disabled",
-                                )
-                            : host._t(
-                                "automations_toggle_unavailable",
-                                "Unavailable",
-                              )}"
-                          style="flex-shrink:0;${canToggle
-                            ? ""
-                            : "opacity:0.45;cursor:not-allowed;"}"
-                          @click=${(e) => {
-                            e.stopPropagation();
-                            if (!canToggle) {
-                              host._showToast(
-                                host._t(
-                                  "automations_toast_toggle_unresolved",
-                                  "Unable to toggle: automation id was not resolved. Reload and try again.",
-                                ),
-                                "error",
-                              );
-                            }
-                          }}
+                        <div
+                          class="auto-row-actions${hasAutomationId
+                            ? " has-menu"
+                            : ""}"
                         >
-                          <input
-                            type="checkbox"
-                            .checked=${isOn}
-                            ?disabled=${!canToggle}
-                            @click=${(e) => e.stopPropagation()}
-                            @change=${(e) => {
-                              if (!canToggle) return;
-                              host._toggleAutomation(
-                                a.entity_id,
-                                automationId,
-                                e.target.checked,
-                              );
+                          <label
+                            class="toggle-switch"
+                            title="${canToggle
+                              ? isOn
+                                ? host._t(
+                                    "automations_toggle_enabled",
+                                    "Enabled",
+                                  )
+                                : host._t(
+                                    "automations_toggle_disabled",
+                                    "Disabled",
+                                  )
+                              : host._t(
+                                  "automations_toggle_unavailable",
+                                  "Unavailable",
+                                )}"
+                            style="flex-shrink:0;${canToggle
+                              ? ""
+                              : "opacity:0.45;cursor:not-allowed;"}"
+                            @click=${(e) => {
+                              e.stopPropagation();
+                              if (!canToggle) {
+                                host._showToast(
+                                  host._t(
+                                    "automations_toast_toggle_unresolved",
+                                    "Unable to toggle: automation id was not resolved. Reload and try again.",
+                                  ),
+                                  "error",
+                                );
+                              }
                             }}
-                          />
-                          <div class="toggle-track ${isOn ? "on" : ""}">
-                            <div class="toggle-thumb"></div>
-                          </div>
-                        </label>
-                        ${!isDraft && a.entity_id
-                          ? html`
-                              <button
-                                class="row-action-btn"
-                                ?disabled=${running || isUnavailable}
-                                @click=${(e) => {
-                                  e.stopPropagation();
-                                  if (running || isUnavailable) return;
-                                  host._runAutomation(
-                                    a.entity_id,
-                                    automationId,
-                                  );
-                                }}
-                                title=${host._t(
-                                  "automations_run_tooltip",
-                                  "Run Automation",
-                                )}
-                              >
-                                <ha-icon
-                                  icon="mdi:play"
-                                  style="--mdc-icon-size:16px;"
-                                ></ha-icon>
-                              </button>
-                            `
-                          : ""}
-                        ${hasAutomationId
-                          ? html`
-                              <div class="burger-menu-wrapper">
-                                <button
-                                  class="burger-btn"
-                                  @click=${(e) =>
-                                    host._toggleBurgerMenu(automationId, e)}
-                                  ?disabled=${host._bulkActionInProgress}
-                                  title=${host._t(
-                                    "automations_more_actions_tooltip",
-                                    "More actions",
-                                  )}
-                                >
-                                  <ha-icon
-                                    icon="mdi:dots-vertical"
-                                    style="--mdc-icon-size:16px;"
-                                  ></ha-icon>
-                                </button>
-                                ${burgerOpen
-                                  ? html`
-                                      <div
-                                        class="burger-dropdown"
-                                        style=${host._openBurgerMenuStyle}
-                                      >
-                                        <button
-                                          class="burger-item"
-                                          @click=${(e) => {
-                                            e.stopPropagation();
-                                            host._openBurgerMenu = null;
-                                            host._loadAutomationToChat(
-                                              automationId,
-                                            );
-                                          }}
-                                          ?disabled=${loadingChat}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:chat-processing-outline"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${loadingChat
-                                            ? host._t(
-                                                "automations_burger_loading",
-                                                "Loading…",
-                                              )
-                                            : host._t(
-                                                "automations_burger_refine_in_chat",
-                                                "Refine in chat",
-                                              )}
-                                        </button>
-                                        <button
-                                          class="burger-item"
-                                          @click=${(e) => {
-                                            e.stopPropagation();
-                                            host._startRenameAutomation(
-                                              automationId,
-                                              a.alias,
-                                            );
-                                          }}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:pencil-outline"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${host._t(
-                                            "automations_burger_rename",
-                                            "Rename",
-                                          )}
-                                        </button>
-                                        <button
-                                          class="burger-item"
-                                          @click=${(e) => {
-                                            e.stopPropagation();
-                                            host._openBurgerMenu = null;
-                                            window.history.pushState(
-                                              null,
-                                              "",
-                                              `/config/automation/edit/${automationId}`,
-                                            );
-                                            window.dispatchEvent(
-                                              new Event("location-changed"),
-                                            );
-                                          }}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:open-in-new"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${host._t(
-                                            "automations_burger_view_in_ha",
-                                            "View in HA",
-                                          )}
-                                        </button>
-                                        <button
-                                          class="burger-item danger"
-                                          ?disabled=${deleting}
-                                          @click=${(e) => {
-                                            e.stopPropagation();
-                                            host._openBurgerMenu = null;
-                                            host._deleteAutomation(
-                                              automationId,
-                                            );
-                                          }}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:trash-can-outline"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${deleting
-                                            ? host._t(
-                                                "automations_burger_deleting",
-                                                "Deleting…",
-                                              )
-                                            : host._t(
-                                                "automations_burger_delete",
-                                                "Delete",
-                                              )}
-                                        </button>
-                                      </div>
-                                    `
-                                  : ""}
-                              </div>
-                            `
-                          : isDraft
-                            ? ""
-                            : html`
-                                <div class="burger-menu-wrapper">
+                          >
+                            <input
+                              type="checkbox"
+                              .checked=${isOn}
+                              ?disabled=${!canToggle}
+                              @click=${(e) => e.stopPropagation()}
+                              @change=${(e) => {
+                                if (!canToggle) return;
+                                host._toggleAutomation(
+                                  a.entity_id,
+                                  automationId,
+                                  e.target.checked,
+                                );
+                              }}
+                            />
+                            <div class="toggle-track ${isOn ? "on" : ""}">
+                              <div class="toggle-thumb"></div>
+                            </div>
+                          </label>
+                          <div class="auto-row-btns">
+                            ${!isDraft && a.entity_id
+                              ? html`
                                   <button
-                                    class="burger-btn"
-                                    disabled
+                                    class="row-action-btn"
+                                    ?disabled=${running || isUnavailable}
+                                    @click=${(e) => {
+                                      e.stopPropagation();
+                                      if (running || isUnavailable) return;
+                                      host._runAutomation(
+                                        a.entity_id,
+                                        automationId,
+                                      );
+                                    }}
                                     title=${host._t(
-                                      "automations_more_actions_external",
-                                      "Managed outside Selora AI — edit it where it's defined, e.g. an installed recipe.",
+                                      "automations_run_tooltip",
+                                      "Run Automation",
                                     )}
                                   >
                                     <ha-icon
-                                      icon="mdi:dots-vertical"
+                                      icon="mdi:play"
                                       style="--mdc-icon-size:16px;"
                                     ></ha-icon>
                                   </button>
-                                </div>
-                              `}
+                                `
+                              : ""}
+                            ${hasAutomationId
+                              ? html`
+                                  <div class="burger-menu-wrapper">
+                                    <button
+                                      class="burger-btn"
+                                      @click=${(e) =>
+                                        host._toggleBurgerMenu(automationId, e)}
+                                      ?disabled=${host._bulkActionInProgress}
+                                      title=${host._t(
+                                        "automations_more_actions_tooltip",
+                                        "More actions",
+                                      )}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:dots-vertical"
+                                        style="--mdc-icon-size:16px;"
+                                      ></ha-icon>
+                                    </button>
+                                    ${burgerOpen
+                                      ? html`
+                                          <div
+                                            class="burger-dropdown"
+                                            style=${host._openBurgerMenuStyle}
+                                          >
+                                            <button
+                                              class="burger-item burger-item-toggle"
+                                              ?disabled=${!canToggle}
+                                              @click=${(e) => {
+                                                e.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                if (!canToggle) return;
+                                                host._toggleAutomation(
+                                                  a.entity_id,
+                                                  automationId,
+                                                  !isOn,
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon=${isOn
+                                                  ? "mdi:toggle-switch-off-outline"
+                                                  : "mdi:toggle-switch-outline"}
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${isOn
+                                                ? host._t(
+                                                    "automations_burger_disable",
+                                                    "Disable",
+                                                  )
+                                                : host._t(
+                                                    "automations_burger_enable",
+                                                    "Enable",
+                                                  )}
+                                            </button>
+                                            <button
+                                              class="burger-item"
+                                              @click=${(e) => {
+                                                e.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                host._loadAutomationToChat(
+                                                  automationId,
+                                                );
+                                              }}
+                                              ?disabled=${loadingChat}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:chat-processing-outline"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${loadingChat
+                                                ? host._t(
+                                                    "automations_burger_loading",
+                                                    "Loading…",
+                                                  )
+                                                : host._t(
+                                                    "automations_burger_refine_in_chat",
+                                                    "Refine in chat",
+                                                  )}
+                                            </button>
+                                            <button
+                                              class="burger-item"
+                                              @click=${(e) => {
+                                                e.stopPropagation();
+                                                host._startRenameAutomation(
+                                                  automationId,
+                                                  a.alias,
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:pencil-outline"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${host._t(
+                                                "automations_burger_rename",
+                                                "Rename",
+                                              )}
+                                            </button>
+                                            <button
+                                              class="burger-item"
+                                              @click=${(e) => {
+                                                e.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                window.history.pushState(
+                                                  null,
+                                                  "",
+                                                  `/config/automation/edit/${automationId}`,
+                                                );
+                                                window.dispatchEvent(
+                                                  new Event("location-changed"),
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:open-in-new"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${host._t(
+                                                "automations_burger_view_in_ha",
+                                                "View in HA",
+                                              )}
+                                            </button>
+                                            <button
+                                              class="burger-item danger"
+                                              ?disabled=${deleting}
+                                              @click=${(e) => {
+                                                e.stopPropagation();
+                                                host._openBurgerMenu = null;
+                                                host._deleteAutomation(
+                                                  automationId,
+                                                );
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:trash-can-outline"
+                                                style="--mdc-icon-size:14px;"
+                                              ></ha-icon>
+                                              ${deleting
+                                                ? host._t(
+                                                    "automations_burger_deleting",
+                                                    "Deleting…",
+                                                  )
+                                                : host._t(
+                                                    "automations_burger_delete",
+                                                    "Delete",
+                                                  )}
+                                            </button>
+                                          </div>
+                                        `
+                                      : ""}
+                                  </div>
+                                `
+                              : isDraft
+                                ? ""
+                                : html`
+                                    <div class="burger-menu-wrapper">
+                                      <button
+                                        class="burger-btn"
+                                        disabled
+                                        title=${host._t(
+                                          "automations_more_actions_external",
+                                          "Managed outside Selora AI — edit it where it's defined, e.g. an installed recipe.",
+                                        )}
+                                      >
+                                        <ha-icon
+                                          icon="mdi:dots-vertical"
+                                          style="--mdc-icon-size:16px;"
+                                        ></ha-icon>
+                                      </button>
+                                    </div>
+                                  `}
+                          </div>
+                        </div>
                       </div>
                       ${cardExpanded
                         ? html`
                             <div class="auto-row-expand">
+                              ${(() => {
+                                const fullDesc = (a.description || "").replace(
+                                  /^\[Selora AI\]\s*/,
+                                  "",
+                                );
+                                return fullDesc
+                                  ? html`<div class="auto-row-full-desc">
+                                      ${fullDesc}
+                                    </div>`
+                                  : "";
+                              })()}
                               <div class="card-tabs" style="margin-top:0;">
                                 ${(a.triggers ?? a.trigger)?.length ||
                                 (a.actions ?? a.action)?.length

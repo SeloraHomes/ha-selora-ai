@@ -379,6 +379,8 @@
     "automations_burger_view_in_ha": "Ver en HA",
     "automations_burger_deleting": "Eliminando…",
     "automations_burger_delete": "Eliminar",
+    "automations_burger_enable": "Activar",
+    "automations_burger_disable": "Desactivar",
     "automations_card_tab_flow": "Flujo",
     "automations_card_tab_yaml": "YAML",
     "automations_card_tab_history": "Historial",
