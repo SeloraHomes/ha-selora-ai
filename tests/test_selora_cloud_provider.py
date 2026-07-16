@@ -96,8 +96,13 @@ class TestSendRequestRetryAndLogging:
     async def test_non_transient_failure_logs_error_immediately(
         self, provider, caplog: pytest.LogCaptureFixture
     ) -> None:
-        """A 401 (or any non-transient error) must log loudly on the first attempt."""
-        provider_send = AsyncMock(return_value=(None, "HTTP 401: Unauthorized"))
+        """A non-transient, non-auth error must log loudly on the first attempt.
+
+        (A 401 is handled separately — it triggers a refresh-and-retry, see
+        ``TestAuthErrorRefreshRetry`` — so use a 400 here for the "fail fast,
+        no retry" path.)
+        """
+        provider_send = AsyncMock(return_value=(None, "HTTP 400: Bad Request"))
         provider_super_send = provider_send
 
         from custom_components.selora_ai.providers import openai_compat
@@ -117,12 +122,12 @@ class TestSendRequestRetryAndLogging:
             openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
 
         assert result is None
-        assert "401" in (err or "")
+        assert "400" in (err or "")
         # Only one base call — no retries on non-transient errors.
         assert provider_super_send.await_count == 1
         # Must be logged as ERROR, surface to the user.
         error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
-        assert any("401" in r.getMessage() for r in error_records)
+        assert any("400" in r.getMessage() for r in error_records)
 
     async def test_non_transient_failure_respects_log_errors_false(
         self, provider, caplog: pytest.LogCaptureFixture
@@ -130,7 +135,7 @@ class TestSendRequestRetryAndLogging:
         """Callers that opt out (e.g. health_check) get no error log."""
         from custom_components.selora_ai.providers import openai_compat
 
-        provider_super_send = AsyncMock(return_value=(None, "HTTP 401: Unauthorized"))
+        provider_super_send = AsyncMock(return_value=(None, "HTTP 400: Bad Request"))
         original = openai_compat.OpenAICompatibleProvider.send_request
         openai_compat.OpenAICompatibleProvider.send_request = provider_super_send  # type: ignore[assignment]
         try:
@@ -284,7 +289,12 @@ class TestStreamingColdStartRetry:
     async def test_send_request_stream_does_not_retry_non_transient(
         self, provider, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """A 401 / unrelated ConnectionError must propagate without retry."""
+        """An unrelated (non-auth, non-transient) ConnectionError propagates without retry.
+
+        (A 401 is handled separately by the refresh-and-retry path — see
+        ``TestAuthErrorRefreshRetry`` — so this uses a 400 to exercise the
+        "propagate immediately" branch.)
+        """
         from custom_components.selora_ai.providers import openai_compat, selora_cloud
 
         async def _no_sleep(_seconds: float) -> None:
@@ -296,13 +306,13 @@ class TestStreamingColdStartRetry:
 
         async def _fake_stream(self, *_a, **_kw):
             attempts["n"] += 1
-            raise ConnectionError("Selora Cloud: HTTP 401: Unauthorized")
+            raise ConnectionError("Selora Cloud: HTTP 400: Bad Request")
             yield  # pragma: no cover — keep this an async generator
 
         original = openai_compat.OpenAICompatibleProvider.send_request_stream
         openai_compat.OpenAICompatibleProvider.send_request_stream = _fake_stream  # type: ignore[assignment]
         try:
-            with pytest.raises(ConnectionError, match="401"):
+            with pytest.raises(ConnectionError, match="400"):
                 async for _ in provider.send_request_stream(
                     "sys", [{"role": "user", "content": "hi"}]
                 ):
@@ -726,3 +736,593 @@ class TestEnsureTokenBehaviour:
 
 async def _async_none() -> None:
     return None
+
+
+def _make_jwt(exp: float | int | None) -> str:
+    """Build a signature-less JWT whose payload carries (or omits) ``exp``.
+
+    Only the payload segment matters to ``_jwt_expiry`` — the header and
+    signature are cosmetic. Uses unpadded base64url, exactly as a real JWT.
+    """
+    import base64
+    import json
+
+    def _seg(obj: dict) -> str:
+        raw = json.dumps(obj).encode("utf-8")
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
+
+    header = _seg({"alg": "RS256", "typ": "JWT"})
+    payload = _seg({} if exp is None else {"exp": exp})
+    return f"{header}.{payload}.sig"
+
+
+class TestJwtExpiry:
+    """_jwt_expiry reads the token's own ``exp`` so we don't depend on expires_in."""
+
+    def test_reads_numeric_exp(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _jwt_expiry
+
+        assert _jwt_expiry(_make_jwt(1_800_000_000)) == 1_800_000_000.0
+
+    def test_missing_exp_is_zero(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _jwt_expiry
+
+        assert _jwt_expiry(_make_jwt(None)) == 0.0
+
+    def test_zero_exp_is_zero(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _jwt_expiry
+
+        assert _jwt_expiry(_make_jwt(0)) == 0.0
+
+    def test_boolean_exp_rejected(self) -> None:
+        """``True`` is an int subclass — must not be read as exp=1.0."""
+        from custom_components.selora_ai.providers.selora_cloud import _jwt_expiry
+
+        assert _jwt_expiry(_make_jwt(True)) == 0.0
+
+    def test_not_a_jwt_is_zero(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _jwt_expiry
+
+        assert _jwt_expiry("not-a-jwt") == 0.0
+        assert _jwt_expiry("") == 0.0
+
+    def test_undecodable_payload_is_zero(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _jwt_expiry
+
+        # Middle segment isn't valid base64url JSON.
+        assert _jwt_expiry("aaa.!!!not-base64!!!.sig") == 0.0
+
+
+class TestAuthErrorDetector:
+    """_is_auth_error must catch the 401 across the two error shapes."""
+
+    def test_matches_http_401_prefix(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _is_auth_error
+
+        # send_request / raw_request / raw_request_stream keep the status.
+        assert _is_auth_error("HTTP 401: Unauthorized")
+        assert _is_auth_error("LLM stream: HTTP 401: nope")
+
+    def test_matches_gateway_message_without_status(self) -> None:
+        """send_request_stream unwraps to just the body message (no code)."""
+        from custom_components.selora_ai.providers.selora_cloud import _is_auth_error
+
+        assert _is_auth_error("Selora Cloud: Invalid or expired token")
+        assert _is_auth_error("Failed to connect to Selora Cloud: authentication_error")
+
+    def test_ignores_non_auth_errors(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _is_auth_error
+
+        assert not _is_auth_error("HTTP 500: unable to reach app")
+        assert not _is_auth_error("HTTP 400: Bad Request")
+        assert not _is_auth_error(None)
+        assert not _is_auth_error("")
+
+
+class TestInitRecoversExpiryFromJwt:
+    """A provisioned token with unknown expiry (0.0) recovers exp from the JWT."""
+
+    def test_unknown_expiry_recovered_from_jwt(self, hass) -> None:
+        provider = SeloraCloudProvider(
+            hass,
+            access_token=_make_jwt(1_800_000_000),
+            refresh_token="aigw_refresh",
+            expires_at=0.0,  # nested blob / provisioner carries no expiry
+            connect_url="https://example.test",
+        )
+        assert provider._expires_at == 1_800_000_000.0
+
+    def test_explicit_expiry_is_not_overridden(self, hass) -> None:
+        provider = SeloraCloudProvider(
+            hass,
+            access_token=_make_jwt(1_800_000_000),
+            refresh_token="aigw_refresh",
+            expires_at=42.0,  # a known (flat) expiry wins — no JWT peek
+            connect_url="https://example.test",
+        )
+        assert provider._expires_at == 42.0
+
+    def test_no_token_stays_zero(self, hass) -> None:
+        provider = SeloraCloudProvider(
+            hass,
+            access_token="",
+            refresh_token="aigw_refresh",
+            expires_at=0.0,
+            connect_url="https://example.test",
+        )
+        assert provider._expires_at == 0.0
+
+
+class TestRefreshPrefersJwtExp:
+    """A refresh must derive expiry from the new token's ``exp``.
+
+    Previously a response missing ``expires_in`` left _expires_at=0.0
+    ("unknown"), which both defeated the proactive refresh AND meant
+    .storage never got a durable expiry — the two upstream bugs this
+    fixes.
+    """
+
+    async def test_expiry_taken_from_jwt_when_expires_in_absent(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        persisted: list[float] = []
+        monkeypatch.setattr(
+            provider, "_persist_tokens", lambda: persisted.append(provider._expires_at)
+        )
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(
+                # No expires_in — expiry must come from the token itself.
+                _FakeResponse(200, {"access_token": _make_jwt(1_800_000_000)})
+            ),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.OK
+        assert provider._expires_at == 1_800_000_000.0
+        # And the durable copy carries the real expiry, not 0.0.
+        assert persisted == [1_800_000_000.0]
+
+    async def test_jwt_exp_wins_over_expires_in(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        monkeypatch.setattr(provider, "_persist_tokens", lambda: None)
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(
+                _FakeResponse(
+                    200,
+                    {"access_token": _make_jwt(1_800_000_000), "expires_in": 3600},
+                )
+            ),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.OK
+        assert provider._expires_at == 1_800_000_000.0
+
+
+class TestAuthErrorRefreshRetry:
+    """A 401 forces a fresh token and one retry — the durable fix for a dead
+    token that slipped past the (unknown/stale) expiry check."""
+
+    @pytest.fixture
+    def provider(self, hass) -> SeloraCloudProvider:
+        p = SeloraCloudProvider(
+            hass,
+            access_token="ey.stale",
+            refresh_token="aigw_refresh",
+            expires_at=9_999_999_999.0,
+            connect_url="https://example.test",
+            client_id="cid",
+            entry_id="entry-id",
+        )
+        # Proactive check is happy — the token only fails reactively (401).
+        p._needs_refresh = lambda: False  # type: ignore[method-assign]
+        return p
+
+    async def test_send_request_refreshes_and_retries(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        refresh = AsyncMock(return_value=_RefreshResult.OK)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+
+        super_send = AsyncMock(side_effect=[(None, "HTTP 401: Invalid token"), ("ok", None)])
+        original = openai_compat.OpenAICompatibleProvider.send_request
+        openai_compat.OpenAICompatibleProvider.send_request = super_send  # type: ignore[assignment]
+        try:
+            result, err = await provider.send_request("sys", [{"role": "user", "content": "hi"}])
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
+
+        assert (result, err) == ("ok", None)
+        assert refresh.await_count == 1
+        assert super_send.await_count == 2
+        # The refresh was scoped to the exact token that was rejected, so a
+        # concurrent request that already refreshed it isn't clobbered.
+        assert refresh.await_args.kwargs == {"stale_token": "ey.stale"}
+
+    async def test_send_request_terminal_refresh_raises_relink(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.TERMINAL)
+        )
+        super_send = AsyncMock(return_value=(None, "HTTP 401: Invalid token"))
+        original = openai_compat.OpenAICompatibleProvider.send_request
+        openai_compat.OpenAICompatibleProvider.send_request = super_send  # type: ignore[assignment]
+        try:
+            with pytest.raises(CloudSessionExpiredError, match="relink"):
+                await provider.send_request("sys", [{"role": "user", "content": "hi"}])
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
+
+    async def test_send_request_persistent_401_does_not_loop(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A token the gateway keeps rejecting surfaces after one retry."""
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        refresh = AsyncMock(return_value=_RefreshResult.OK)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+        super_send = AsyncMock(return_value=(None, "HTTP 401: Invalid token"))
+        original = openai_compat.OpenAICompatibleProvider.send_request
+        openai_compat.OpenAICompatibleProvider.send_request = super_send  # type: ignore[assignment]
+        try:
+            result, err = await provider.send_request("sys", [{"role": "user", "content": "hi"}])
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
+
+        assert result is None
+        assert "401" in (err or "")
+        # Exactly one forced refresh + one retry — no hammering.
+        assert refresh.await_count == 1
+        assert super_send.await_count == 2
+
+    async def test_reactive_refresh_retries_transient_then_recovers(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A one-off refresh-endpoint blip during 401 recovery self-heals.
+
+        The reactive path must retry TRANSIENT refresh outcomes over the
+        same budget as the proactive ``_ensure_token`` path — otherwise a
+        momentary 5xx on the token endpoint turns a recoverable 401 into a
+        hard failure.
+        """
+        from custom_components.selora_ai.providers import selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        refresh = AsyncMock(side_effect=[_RefreshResult.TRANSIENT, _RefreshResult.OK])
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+
+        # Must not raise — the second refresh attempt recovers.
+        await provider._force_refresh_after_auth_error("ey.stale")
+
+        assert refresh.await_count == 2
+        # stale_token is forwarded on every attempt (forces + dedups).
+        assert all(c.kwargs == {"stale_token": "ey.stale"} for c in refresh.await_args_list)
+
+    async def test_reactive_refresh_transient_exhausted_raises_unreachable(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        refresh = AsyncMock(return_value=_RefreshResult.TRANSIENT)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+
+        with pytest.raises(CloudUnreachableError, match="try again"):
+            await provider._force_refresh_after_auth_error("ey.stale")
+
+        assert refresh.await_count == len(selora_cloud._UPSTREAM_RETRY_DELAYS) + 1
+
+    async def test_send_request_final_auth_retry_preserves_timeout(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A custom timeout must survive the final attempt and its 401 retry.
+
+        The final out-of-loop attempt (and the post-refresh retry) previously
+        fell back to DEFAULT_LLM_TIMEOUT, so a long analysis call could time
+        out only on this recovery path.
+        """
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.OK)
+        )
+
+        # 3 transient attempts (drain the loop), then a 401 on the final
+        # attempt, then a successful post-refresh retry.
+        n = len(selora_cloud._UPSTREAM_RETRY_DELAYS)
+        responses = [(None, "HTTP 500: proxy handler: unable to reach app")] * n
+        responses += [(None, "HTTP 401: Invalid token"), ("ok", None)]
+        super_send = AsyncMock(side_effect=responses)
+        original = openai_compat.OpenAICompatibleProvider.send_request
+        openai_compat.OpenAICompatibleProvider.send_request = super_send  # type: ignore[assignment]
+        try:
+            result, err = await provider.send_request(
+                "sys", [{"role": "user", "content": "hi"}], timeout=99.0
+            )
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
+
+        assert (result, err) == ("ok", None)
+        # Every attempt — loop, final, and post-refresh retry — kept timeout=99.
+        assert super_send.await_count == n + 2
+        assert all(c.kwargs.get("timeout") == 99.0 for c in super_send.await_args_list)
+
+    async def test_raw_request_refreshes_and_retries(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat
+
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.OK)
+        )
+        super_raw = AsyncMock(
+            side_effect=[ConnectionError("HTTP 401: Invalid token"), {"ok": True}]
+        )
+        original = openai_compat.OpenAICompatibleProvider.raw_request
+        openai_compat.OpenAICompatibleProvider.raw_request = super_raw  # type: ignore[assignment]
+        try:
+            result = await provider.raw_request("sys", [{"role": "user", "content": "hi"}])
+        finally:
+            openai_compat.OpenAICompatibleProvider.raw_request = original  # type: ignore[assignment]
+
+        assert result == {"ok": True}
+        assert super_raw.await_count == 2
+
+    async def test_raw_request_non_auth_error_propagates(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat
+
+        refresh = AsyncMock(return_value=_RefreshResult.OK)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+        super_raw = AsyncMock(side_effect=ConnectionError("HTTP 400: Bad Request"))
+        original = openai_compat.OpenAICompatibleProvider.raw_request
+        openai_compat.OpenAICompatibleProvider.raw_request = super_raw  # type: ignore[assignment]
+        try:
+            with pytest.raises(ConnectionError, match="400"):
+                await provider.raw_request("sys", [{"role": "user", "content": "hi"}])
+        finally:
+            openai_compat.OpenAICompatibleProvider.raw_request = original  # type: ignore[assignment]
+
+        assert refresh.await_count == 0
+        assert super_raw.await_count == 1
+
+    async def test_send_request_stream_refreshes_and_retries(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.OK)
+        )
+        attempts = {"n": 0}
+
+        async def _fake_stream(self, *_a, **_kw):
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise ConnectionError("Selora Cloud: Invalid or expired token")
+                yield  # pragma: no cover
+            for chunk in ("hel", "lo"):
+                yield chunk
+
+        original = openai_compat.OpenAICompatibleProvider.send_request_stream
+        openai_compat.OpenAICompatibleProvider.send_request_stream = _fake_stream  # type: ignore[assignment]
+        try:
+            chunks = [
+                c
+                async for c in provider.send_request_stream(
+                    "sys", [{"role": "user", "content": "hi"}]
+                )
+            ]
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request_stream = original  # type: ignore[assignment]
+
+        assert "".join(chunks) == "hello"
+        assert attempts["n"] == 2
+
+    async def test_raw_request_stream_refreshes_and_retries(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.OK)
+        )
+        attempts = {"n": 0}
+        sentinel = object()
+
+        async def _fake_stream(self, *_a, **_kw):
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise ConnectionError("LLM stream: HTTP 401: Invalid token")
+                yield  # pragma: no cover
+            yield sentinel
+
+        original = openai_compat.OpenAICompatibleProvider.raw_request_stream
+        openai_compat.OpenAICompatibleProvider.raw_request_stream = _fake_stream  # type: ignore[assignment]
+        try:
+            yielded = [
+                item
+                async for item in provider.raw_request_stream(
+                    "sys", [{"role": "user", "content": "hi"}]
+                )
+            ]
+        finally:
+            openai_compat.OpenAICompatibleProvider.raw_request_stream = original  # type: ignore[assignment]
+
+        assert yielded == [sentinel]
+        assert attempts["n"] == 2
+
+    async def test_send_request_stream_final_attempt_recovers_from_401(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """3 transient failures, then the final attempt is the first to 401.
+
+        The final streaming attempt lives outside the retry loop, so it must
+        carry its own one-time auth recovery — otherwise a token that expires
+        mid-cold-start propagates the 401 unhandled.
+        """
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.OK)
+        )
+        attempts = {"n": 0}
+
+        async def _fake_stream(self, *_a, **_kw):
+            attempts["n"] += 1
+            n = attempts["n"]
+            if n <= len(selora_cloud._UPSTREAM_RETRY_DELAYS):
+                raise ConnectionError("Selora Cloud: proxy handler: unable to reach app")
+                yield  # pragma: no cover
+            if n == len(selora_cloud._UPSTREAM_RETRY_DELAYS) + 1:
+                raise ConnectionError("Selora Cloud: Invalid or expired token")
+                yield  # pragma: no cover
+            for chunk in ("he", "llo"):
+                yield chunk
+
+        original = openai_compat.OpenAICompatibleProvider.send_request_stream
+        openai_compat.OpenAICompatibleProvider.send_request_stream = _fake_stream  # type: ignore[assignment]
+        try:
+            chunks = [
+                c
+                async for c in provider.send_request_stream(
+                    "sys", [{"role": "user", "content": "hi"}]
+                )
+            ]
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request_stream = original  # type: ignore[assignment]
+
+        assert "".join(chunks) == "hello"
+        # transient loop (N) + final 401 attempt (1) + recovered retry (1)
+        assert attempts["n"] == len(selora_cloud._UPSTREAM_RETRY_DELAYS) + 2
+
+    async def test_raw_request_stream_final_attempt_recovers_from_401(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.OK)
+        )
+        attempts = {"n": 0}
+        sentinel = object()
+
+        async def _fake_stream(self, *_a, **_kw):
+            attempts["n"] += 1
+            n = attempts["n"]
+            if n <= len(selora_cloud._UPSTREAM_RETRY_DELAYS):
+                raise ConnectionError("LLM stream: HTTP 503: unable to reach app")
+                yield  # pragma: no cover
+            if n == len(selora_cloud._UPSTREAM_RETRY_DELAYS) + 1:
+                raise ConnectionError("LLM stream: HTTP 401: Invalid token")
+                yield  # pragma: no cover
+            yield sentinel
+
+        original = openai_compat.OpenAICompatibleProvider.raw_request_stream
+        openai_compat.OpenAICompatibleProvider.raw_request_stream = _fake_stream  # type: ignore[assignment]
+        try:
+            yielded = [
+                item
+                async for item in provider.raw_request_stream(
+                    "sys", [{"role": "user", "content": "hi"}]
+                )
+            ]
+        finally:
+            openai_compat.OpenAICompatibleProvider.raw_request_stream = original  # type: ignore[assignment]
+
+        assert yielded == [sentinel]
+        assert attempts["n"] == len(selora_cloud._UPSTREAM_RETRY_DELAYS) + 2
+
+
+class _CountingSession:
+    """Fake aiohttp session that counts POSTs to the token endpoint."""
+
+    def __init__(self, payload: dict) -> None:
+        self.calls = 0
+        self._payload = payload
+
+    def post(self, *_a: object, **_kw: object) -> _FakeResponse:
+        self.calls += 1
+        return _FakeResponse(200, self._payload)
+
+
+class TestConcurrentAuthRefresh:
+    """A late 401 for an already-refreshed token must not clobber it."""
+
+    async def test_concurrent_401s_refresh_once(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import asyncio
+
+        from custom_components.selora_ai.providers import selora_cloud
+
+        old_token = _make_jwt(1_800_000_000)
+        new_token = _make_jwt(1_900_000_000)
+        provider = SeloraCloudProvider(
+            hass,
+            access_token=old_token,
+            refresh_token="aigw_refresh",
+            expires_at=1_800_000_000.0,
+            connect_url="https://example.test",
+            client_id="cid",
+            entry_id="entry-id",
+        )
+        monkeypatch.setattr(provider, "_persist_tokens", lambda: None)
+        session = _CountingSession({"access_token": new_token})
+        monkeypatch.setattr(selora_cloud, "async_get_clientsession", lambda _hass: session)
+
+        # Two requests that both used the same stale bearer report a 401.
+        await asyncio.gather(
+            provider._force_refresh_after_auth_error(old_token),
+            provider._force_refresh_after_auth_error(old_token),
+        )
+
+        # The second recovery sees the token already rotated → no extra POST,
+        # and the freshly minted token is preserved.
+        assert session.calls == 1
+        assert provider._access_token == new_token
+
+    async def test_stale_token_no_longer_current_is_noop(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """If another request already replaced the token, recovery is a no-op OK."""
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = SeloraCloudProvider(
+            hass,
+            access_token=_make_jwt(1_900_000_000),  # already the fresh token
+            refresh_token="aigw_refresh",
+            expires_at=1_900_000_000.0,
+            connect_url="https://example.test",
+            client_id="cid",
+            entry_id="entry-id",
+        )
+        session = _CountingSession({"access_token": "unused"})
+        monkeypatch.setattr(selora_cloud, "async_get_clientsession", lambda _hass: session)
+
+        # A 401 arrives for a token that is no longer live.
+        await provider._force_refresh_after_auth_error("ey.some-older-token")
+
+        assert session.calls == 0
+        assert provider._access_token == _make_jwt(1_900_000_000)
