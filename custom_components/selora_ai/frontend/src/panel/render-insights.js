@@ -91,9 +91,11 @@ function _recCard(host, rec) {
           <span class="audit-card-title">${rec.title}</span>
           <span class="badge audit-card-badge">${category}</span>
         </div>
-        ${rec.detail
-          ? html`<div class="audit-card-detail">${rec.detail}</div>`
-          : ""}
+        ${
+          rec.detail
+            ? html`<div class="audit-card-detail">${rec.detail}</div>`
+            : ""
+        }
         ${_entityCards(host, rec.entities)}
         <div class="audit-card-actions">
           <button
@@ -103,24 +105,28 @@ function _recCard(host, rec) {
             <ha-icon icon="mdi:auto-fix"></ha-icon>
             ${host._t("insights_ask_selora", "Ask Selora AI")}
           </button>
-          ${rec.link
-            ? html`<a class="btn btn-outline btn-sm" href=${rec.link}>
-                <ha-icon icon="mdi:open-in-new"></ha-icon>
-                ${host._t(
-                  "insights_open_settings",
-                  rec.link_label || "Open in Settings",
-                )}
-              </a>`
-            : ""}
-          ${rec.device_id || (rec.entities && rec.entities.length)
-            ? html`<button
-                class="btn btn-outline btn-sm"
-                @click=${() => host._ignoreFix(rec)}
-              >
-                <ha-icon icon="mdi:bell-off-outline"></ha-icon>
-                ${host._t("insights_ignore_short", "Ignore")}
-              </button>`
-            : ""}
+          ${
+            rec.link
+              ? html`<a class="btn btn-outline btn-sm" href=${rec.link}>
+                  <ha-icon icon="mdi:open-in-new"></ha-icon>
+                  ${host._t(
+                    "insights_open_settings",
+                    rec.link_label || "Open in Settings",
+                  )}
+                </a>`
+              : ""
+          }
+          ${
+            rec.device_id || (rec.entities && rec.entities.length)
+              ? html`<button
+                  class="btn btn-outline btn-sm"
+                  @click=${() => host._ignoreFix(rec)}
+                >
+                  <ha-icon icon="mdi:bell-off-outline"></ha-icon>
+                  ${host._t("insights_ignore_short", "Ignore")}
+                </button>`
+              : ""
+          }
         </div>
       </div>
     </div>
@@ -155,16 +161,20 @@ function _checkRow(host, check) {
       <div class="check-head">
         <ha-icon class="check-icon ${iconClass}" icon=${iconName}></ha-icon>
         <span class="check-title">${check.title}</span>
-        ${check.kind === "model"
-          ? html`<span class="badge check-ai">AI</span>`
-          : ""}
+        ${
+          check.kind === "model"
+            ? html`<span class="badge check-ai">AI</span>`
+            : ""
+        }
         <span class="check-badge ${badgeClass}">${statusText}</span>
       </div>
-      ${issues
-        ? html`<div class="audit-cards check-findings">
-            ${findings.map((f) => _recCard(host, f))}
-          </div>`
-        : ""}
+      ${
+        issues
+          ? html`<div class="audit-cards check-findings">
+              ${findings.map((f) => _recCard(host, f))}
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -216,9 +226,11 @@ function _auditBody(host) {
     return html`<div class="insight-audit-card">
       <div class="insight-audit-status">
         ${host._t("insights_audit_error", "The last audit failed.")}
-        ${host._auditError
-          ? html`<div class="insight-audit-err">${host._auditError}</div>`
-          : ""}
+        ${
+          host._auditError
+            ? html`<div class="insight-audit-err">${host._auditError}</div>`
+            : ""
+        }
       </div>
     </div>`;
   }
@@ -237,11 +249,13 @@ function _auditBody(host) {
           class="insight-audit-md"
           .innerHTML=${renderMarkdown(host._auditResponse)}
         ></div>
-        ${host._auditQuickActions && host._auditQuickActions.length
-          ? html`<div class="insight-audit-actions">
-              ${renderQuickActions(host, host._auditQuickActions, {})}
-            </div>`
-          : ""}
+        ${
+          host._auditQuickActions && host._auditQuickActions.length
+            ? html`<div class="insight-audit-actions">
+                ${renderQuickActions(host, host._auditQuickActions, {})}
+              </div>`
+            : ""
+        }
       </div>
     `;
   }

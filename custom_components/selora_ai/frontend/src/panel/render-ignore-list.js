@@ -374,12 +374,14 @@ function _renderChip({
       >
         <ha-icon icon=${icon}></ha-icon>
         <span style="line-height:1;">${label}</span>
-        ${kindLabel
-          ? html`<span
-              style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
-              >${kindLabel}</span
-            >`
-          : ""}
+        ${
+          kindLabel
+            ? html`<span
+                style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
+                >${kindLabel}</span
+              >`
+            : ""
+        }
       </button>
       <button
         type="button"
@@ -412,9 +414,9 @@ function _renderDropdown(host, items, activeIndex) {
           <button
             type="button"
             data-ignore-row=${idx}
-            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 12px;border:none;background:${active
-              ? "var(--secondary-background-color)"
-              : "transparent"};color:var(--primary-text-color);font-size:13px;cursor:pointer;"
+            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 12px;border:none;background:${
+              active ? "var(--secondary-background-color)" : "transparent"
+            };color:var(--primary-text-color);font-size:13px;cursor:pointer;"
             @mouseenter=${() => {
               host._ignoreDropdownIndex = idx;
               host.requestUpdate();
@@ -429,17 +431,19 @@ function _renderDropdown(host, items, activeIndex) {
               style="--mdc-icon-size:16px;color:var(--secondary-text-color);"
             ></ha-icon>
             <span style="flex:1;">${item.label}</span>
-            ${kindLabel
-              ? html`<span
-                  style="font-size:11px;color:var(--secondary-text-color);"
-                  >${kindLabel}</span
-                >`
-              : item.area
+            ${
+              kindLabel
                 ? html`<span
                     style="font-size:11px;color:var(--secondary-text-color);"
-                    >${item.area}</span
+                    >${kindLabel}</span
                   >`
-                : ""}
+                : item.area
+                  ? html`<span
+                      style="font-size:11px;color:var(--secondary-text-color);"
+                      >${item.area}</span
+                    >`
+                  : ""
+            }
           </button>
         `;
       })}
@@ -578,64 +582,76 @@ export function renderIgnoreList(host) {
         ${_renderDropdown(host, items, activeIndex)}
       </div>
 
-      ${total === 0
-        ? html`<div
-            style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
-          >
-            ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
-          </div>`
-        : html`
-            <div
-              style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
+      ${
+        total === 0
+          ? html`<div
+              style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
             >
-              ${tagged.areas.length
-                ? _renderChipGroup(
-                    "Areas",
-                    tagged.areas.map((aid) =>
-                      _renderChip({
-                        host,
-                        icon: "mdi:floor-plan",
-                        label: _areaLabel(host, aid),
-                        title: `Open area · ${aid}`,
-                        onOpen: () => _navigate(`/config/areas/area/${aid}`),
-                        onRemove: () => _removeLabel(host, { area_id: aid }),
-                      }),
-                    ),
-                  )
-                : ""}
-              ${tagged.devices.length
-                ? _renderChipGroup(
-                    "Devices",
-                    tagged.devices.map((did) =>
-                      _renderChip({
-                        host,
-                        icon: "mdi:chip",
-                        label: _deviceLabel(host, did),
-                        title: `Open device · ${did}`,
-                        onOpen: () =>
-                          _navigate(`/config/devices/device/${did}`),
-                        onRemove: () => _removeLabel(host, { device_id: did }),
-                      }),
-                    ),
-                  )
-                : ""}
-              ${tagged.entities.length
-                ? _renderChipGroup(
-                    "Entities",
-                    tagged.entities.map((eid) =>
-                      _renderChip({
-                        host,
-                        icon: _entityIcon(eid),
-                        label: _entityLabel(host, eid),
-                        title: `Open ${eid}`,
-                        onOpen: () => _openEntity(host, eid),
-                        onRemove: () => _removeLabel(host, { entity_id: eid }),
-                      }),
-                    ),
-                  )
-                : ""}
-            </div>
-          `}
+              ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
+            </div>`
+          : html`
+              <div
+                style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
+              >
+                ${
+                  tagged.areas.length
+                    ? _renderChipGroup(
+                        "Areas",
+                        tagged.areas.map((aid) =>
+                          _renderChip({
+                            host,
+                            icon: "mdi:floor-plan",
+                            label: _areaLabel(host, aid),
+                            title: `Open area · ${aid}`,
+                            onOpen: () =>
+                              _navigate(`/config/areas/area/${aid}`),
+                            onRemove: () =>
+                              _removeLabel(host, { area_id: aid }),
+                          }),
+                        ),
+                      )
+                    : ""
+                }
+                ${
+                  tagged.devices.length
+                    ? _renderChipGroup(
+                        "Devices",
+                        tagged.devices.map((did) =>
+                          _renderChip({
+                            host,
+                            icon: "mdi:chip",
+                            label: _deviceLabel(host, did),
+                            title: `Open device · ${did}`,
+                            onOpen: () =>
+                              _navigate(`/config/devices/device/${did}`),
+                            onRemove: () =>
+                              _removeLabel(host, { device_id: did }),
+                          }),
+                        ),
+                      )
+                    : ""
+                }
+                ${
+                  tagged.entities.length
+                    ? _renderChipGroup(
+                        "Entities",
+                        tagged.entities.map((eid) =>
+                          _renderChip({
+                            host,
+                            icon: _entityIcon(eid),
+                            label: _entityLabel(host, eid),
+                            title: `Open ${eid}`,
+                            onOpen: () => _openEntity(host, eid),
+                            onRemove: () =>
+                              _removeLabel(host, { entity_id: eid }),
+                          }),
+                        ),
+                      )
+                    : ""
+                }
+              </div>
+            `
+      }
     </div>
   `;
 }

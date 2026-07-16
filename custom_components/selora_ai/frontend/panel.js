@@ -5,619 +5,597 @@ var __export = (target, all) => {
 };
 
 // node_modules/@lit/reactive-element/css-tag.js
-var t = window;
+var t = globalThis;
 var e =
   t.ShadowRoot &&
   (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) &&
   "adoptedStyleSheets" in Document.prototype &&
   "replace" in CSSStyleSheet.prototype;
 var s = /* @__PURE__ */ Symbol();
-var n = /* @__PURE__ */ new WeakMap();
-var o = class {
-  constructor(t4, e6, n5) {
-    if (((this._$cssResult$ = true), n5 !== s))
+var o = /* @__PURE__ */ new WeakMap();
+var n = class {
+  constructor(t5, e6, o6) {
+    if (((this._$cssResult$ = true), o6 !== s))
       throw Error(
         "CSSResult is not constructable. Use `unsafeCSS` or `css` instead.",
       );
-    ((this.cssText = t4), (this.t = e6));
+    ((this.cssText = t5), (this.t = e6));
   }
   get styleSheet() {
-    let t4 = this.o;
-    const s6 = this.t;
-    if (e && void 0 === t4) {
-      const e6 = void 0 !== s6 && 1 === s6.length;
-      (e6 && (t4 = n.get(s6)),
-        void 0 === t4 &&
-          ((this.o = t4 = new CSSStyleSheet()).replaceSync(this.cssText),
-          e6 && n.set(s6, t4)));
+    let t5 = this.o;
+    const s4 = this.t;
+    if (e && void 0 === t5) {
+      const e6 = void 0 !== s4 && 1 === s4.length;
+      (e6 && (t5 = o.get(s4)),
+        void 0 === t5 &&
+          ((this.o = t5 = new CSSStyleSheet()).replaceSync(this.cssText),
+          e6 && o.set(s4, t5)));
     }
-    return t4;
+    return t5;
   }
   toString() {
     return this.cssText;
   }
 };
-var r = (t4) => new o("string" == typeof t4 ? t4 : t4 + "", void 0, s);
-var i = (t4, ...e6) => {
-  const n5 =
-    1 === t4.length
-      ? t4[0]
+var r = (t5) => new n("string" == typeof t5 ? t5 : t5 + "", void 0, s);
+var i = (t5, ...e6) => {
+  const o6 =
+    1 === t5.length
+      ? t5[0]
       : e6.reduce(
-          (e7, s6, n6) =>
+          (e7, s4, o7) =>
             e7 +
-            ((t5) => {
-              if (true === t5._$cssResult$) return t5.cssText;
-              if ("number" == typeof t5) return t5;
+            ((t6) => {
+              if (true === t6._$cssResult$) return t6.cssText;
+              if ("number" == typeof t6) return t6;
               throw Error(
                 "Value passed to 'css' function must be a 'css' function result: " +
-                  t5 +
+                  t6 +
                   ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.",
               );
-            })(s6) +
-            t4[n6 + 1],
-          t4[0],
+            })(s4) +
+            t5[o7 + 1],
+          t5[0],
         );
-  return new o(n5, t4, s);
+  return new n(o6, t5, s);
 };
-var S = (s6, n5) => {
-  e
-    ? (s6.adoptedStyleSheets = n5.map((t4) =>
-        t4 instanceof CSSStyleSheet ? t4 : t4.styleSheet,
-      ))
-    : n5.forEach((e6) => {
-        const n6 = document.createElement("style"),
-          o6 = t.litNonce;
-        (void 0 !== o6 && n6.setAttribute("nonce", o6),
-          (n6.textContent = e6.cssText),
-          s6.appendChild(n6));
-      });
+var S = (s4, o6) => {
+  if (e)
+    s4.adoptedStyleSheets = o6.map((t5) =>
+      t5 instanceof CSSStyleSheet ? t5 : t5.styleSheet,
+    );
+  else
+    for (const e6 of o6) {
+      const o7 = document.createElement("style"),
+        n4 = t.litNonce;
+      (void 0 !== n4 && o7.setAttribute("nonce", n4),
+        (o7.textContent = e6.cssText),
+        s4.appendChild(o7));
+    }
 };
 var c = e
-  ? (t4) => t4
-  : (t4) =>
-      t4 instanceof CSSStyleSheet
-        ? ((t5) => {
+  ? (t5) => t5
+  : (t5) =>
+      t5 instanceof CSSStyleSheet
+        ? ((t6) => {
             let e6 = "";
-            for (const s6 of t5.cssRules) e6 += s6.cssText;
+            for (const s4 of t6.cssRules) e6 += s4.cssText;
             return r(e6);
-          })(t4)
-        : t4;
+          })(t5)
+        : t5;
 
 // node_modules/@lit/reactive-element/reactive-element.js
-var s2;
-var e2 = window;
-var r2 = e2.trustedTypes;
-var h = r2 ? r2.emptyScript : "";
-var o2 = e2.reactiveElementPolyfillSupport;
-var n2 = {
-  toAttribute(t4, i5) {
-    switch (i5) {
+var {
+  is: i2,
+  defineProperty: e2,
+  getOwnPropertyDescriptor: h,
+  getOwnPropertyNames: r2,
+  getOwnPropertySymbols: o2,
+  getPrototypeOf: n2,
+} = Object;
+var a = globalThis;
+var c2 = a.trustedTypes;
+var l = c2 ? c2.emptyScript : "";
+var p = a.reactiveElementPolyfillSupport;
+var d = (t5, s4) => t5;
+var u = {
+  toAttribute(t5, s4) {
+    switch (s4) {
       case Boolean:
-        t4 = t4 ? h : null;
+        t5 = t5 ? l : null;
         break;
       case Object:
       case Array:
-        t4 = null == t4 ? t4 : JSON.stringify(t4);
+        t5 = null == t5 ? t5 : JSON.stringify(t5);
     }
-    return t4;
+    return t5;
   },
-  fromAttribute(t4, i5) {
-    let s6 = t4;
-    switch (i5) {
+  fromAttribute(t5, s4) {
+    let i7 = t5;
+    switch (s4) {
       case Boolean:
-        s6 = null !== t4;
+        i7 = null !== t5;
         break;
       case Number:
-        s6 = null === t4 ? null : Number(t4);
+        i7 = null === t5 ? null : Number(t5);
         break;
       case Object:
       case Array:
         try {
-          s6 = JSON.parse(t4);
-        } catch (t5) {
-          s6 = null;
+          i7 = JSON.parse(t5);
+        } catch (t6) {
+          i7 = null;
         }
     }
-    return s6;
+    return i7;
   },
 };
-var a = (t4, i5) => i5 !== t4 && (i5 == i5 || t4 == t4);
-var l = {
+var f = (t5, s4) => !i2(t5, s4);
+var b = {
   attribute: true,
   type: String,
-  converter: n2,
+  converter: u,
   reflect: false,
-  hasChanged: a,
+  useDefault: false,
+  hasChanged: f,
 };
-var d = "finalized";
-var u = class extends HTMLElement {
-  constructor() {
-    (super(),
-      (this._$Ei = /* @__PURE__ */ new Map()),
-      (this.isUpdatePending = false),
-      (this.hasUpdated = false),
-      (this._$El = null),
-      this._$Eu());
-  }
-  static addInitializer(t4) {
-    var i5;
-    (this.finalize(),
-      (null !== (i5 = this.h) && void 0 !== i5 ? i5 : (this.h = [])).push(t4));
+((Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata")),
+  (a.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap()));
+var y = class extends HTMLElement {
+  static addInitializer(t5) {
+    (this._$Ei(), (this.l ??= []).push(t5));
   }
   static get observedAttributes() {
-    this.finalize();
-    const t4 = [];
-    return (
-      this.elementProperties.forEach((i5, s6) => {
-        const e6 = this._$Ep(s6, i5);
-        void 0 !== e6 && (this._$Ev.set(e6, s6), t4.push(e6));
-      }),
-      t4
-    );
+    return (this.finalize(), this._$Eh && [...this._$Eh.keys()]);
   }
-  static createProperty(t4, i5 = l) {
+  static createProperty(t5, s4 = b) {
     if (
-      (i5.state && (i5.attribute = false),
-      this.finalize(),
-      this.elementProperties.set(t4, i5),
-      !i5.noAccessor && !this.prototype.hasOwnProperty(t4))
+      (s4.state && (s4.attribute = false),
+      this._$Ei(),
+      this.prototype.hasOwnProperty(t5) &&
+        ((s4 = Object.create(s4)).wrapped = true),
+      this.elementProperties.set(t5, s4),
+      !s4.noAccessor)
     ) {
-      const s6 = "symbol" == typeof t4 ? /* @__PURE__ */ Symbol() : "__" + t4,
-        e6 = this.getPropertyDescriptor(t4, s6, i5);
-      void 0 !== e6 && Object.defineProperty(this.prototype, t4, e6);
+      const i7 = /* @__PURE__ */ Symbol(),
+        h3 = this.getPropertyDescriptor(t5, i7, s4);
+      void 0 !== h3 && e2(this.prototype, t5, h3);
     }
   }
-  static getPropertyDescriptor(t4, i5, s6) {
-    return {
+  static getPropertyDescriptor(t5, s4, i7) {
+    const { get: e6, set: r4 } = h(this.prototype, t5) ?? {
       get() {
-        return this[i5];
+        return this[s4];
       },
-      set(e6) {
-        const r4 = this[t4];
-        ((this[i5] = e6), this.requestUpdate(t4, r4, s6));
+      set(t6) {
+        this[s4] = t6;
+      },
+    };
+    return {
+      get: e6,
+      set(s5) {
+        const h3 = e6?.call(this);
+        (r4?.call(this, s5), this.requestUpdate(t5, h3, i7));
       },
       configurable: true,
       enumerable: true,
     };
   }
-  static getPropertyOptions(t4) {
-    return this.elementProperties.get(t4) || l;
+  static getPropertyOptions(t5) {
+    return this.elementProperties.get(t5) ?? b;
+  }
+  static _$Ei() {
+    if (this.hasOwnProperty(d("elementProperties"))) return;
+    const t5 = n2(this);
+    (t5.finalize(),
+      void 0 !== t5.l && (this.l = [...t5.l]),
+      (this.elementProperties = new Map(t5.elementProperties)));
   }
   static finalize() {
-    if (this.hasOwnProperty(d)) return false;
-    this[d] = true;
-    const t4 = Object.getPrototypeOf(this);
+    if (this.hasOwnProperty(d("finalized"))) return;
     if (
-      (t4.finalize(),
-      void 0 !== t4.h && (this.h = [...t4.h]),
-      (this.elementProperties = new Map(t4.elementProperties)),
-      (this._$Ev = /* @__PURE__ */ new Map()),
-      this.hasOwnProperty("properties"))
+      ((this.finalized = true),
+      this._$Ei(),
+      this.hasOwnProperty(d("properties")))
     ) {
-      const t5 = this.properties,
-        i5 = [
-          ...Object.getOwnPropertyNames(t5),
-          ...Object.getOwnPropertySymbols(t5),
-        ];
-      for (const s6 of i5) this.createProperty(s6, t5[s6]);
+      const t6 = this.properties,
+        s4 = [...r2(t6), ...o2(t6)];
+      for (const i7 of s4) this.createProperty(i7, t6[i7]);
     }
-    return ((this.elementStyles = this.finalizeStyles(this.styles)), true);
+    const t5 = this[Symbol.metadata];
+    if (null !== t5) {
+      const s4 = litPropertyMetadata.get(t5);
+      if (void 0 !== s4)
+        for (const [t6, i7] of s4) this.elementProperties.set(t6, i7);
+    }
+    this._$Eh = /* @__PURE__ */ new Map();
+    for (const [t6, s4] of this.elementProperties) {
+      const i7 = this._$Eu(t6, s4);
+      void 0 !== i7 && this._$Eh.set(i7, t6);
+    }
+    this.elementStyles = this.finalizeStyles(this.styles);
   }
-  static finalizeStyles(i5) {
-    const s6 = [];
-    if (Array.isArray(i5)) {
-      const e6 = new Set(i5.flat(1 / 0).reverse());
-      for (const i6 of e6) s6.unshift(c(i6));
-    } else void 0 !== i5 && s6.push(c(i5));
-    return s6;
+  static finalizeStyles(s4) {
+    const i7 = [];
+    if (Array.isArray(s4)) {
+      const e6 = new Set(s4.flat(1 / 0).reverse());
+      for (const s5 of e6) i7.unshift(c(s5));
+    } else void 0 !== s4 && i7.push(c(s4));
+    return i7;
   }
-  static _$Ep(t4, i5) {
-    const s6 = i5.attribute;
-    return false === s6
+  static _$Eu(t5, s4) {
+    const i7 = s4.attribute;
+    return false === i7
       ? void 0
-      : "string" == typeof s6
-        ? s6
-        : "string" == typeof t4
-          ? t4.toLowerCase()
+      : "string" == typeof i7
+        ? i7
+        : "string" == typeof t5
+          ? t5.toLowerCase()
           : void 0;
   }
-  _$Eu() {
-    var t4;
-    ((this._$E_ = new Promise((t5) => (this.enableUpdating = t5))),
+  constructor() {
+    (super(),
+      (this._$Ep = void 0),
+      (this.isUpdatePending = false),
+      (this.hasUpdated = false),
+      (this._$Em = null),
+      this._$Ev());
+  }
+  _$Ev() {
+    ((this._$ES = new Promise((t5) => (this.enableUpdating = t5))),
       (this._$AL = /* @__PURE__ */ new Map()),
-      this._$Eg(),
+      this._$E_(),
       this.requestUpdate(),
-      null === (t4 = this.constructor.h) ||
-        void 0 === t4 ||
-        t4.forEach((t5) => t5(this)));
+      this.constructor.l?.forEach((t5) => t5(this)));
   }
-  addController(t4) {
-    var i5, s6;
-    ((null !== (i5 = this._$ES) && void 0 !== i5 ? i5 : (this._$ES = [])).push(
-      t4,
-    ),
-      void 0 !== this.renderRoot &&
-        this.isConnected &&
-        (null === (s6 = t4.hostConnected) || void 0 === s6 || s6.call(t4)));
+  addController(t5) {
+    ((this._$EO ??= /* @__PURE__ */ new Set()).add(t5),
+      void 0 !== this.renderRoot && this.isConnected && t5.hostConnected?.());
   }
-  removeController(t4) {
-    var i5;
-    null === (i5 = this._$ES) ||
-      void 0 === i5 ||
-      i5.splice(this._$ES.indexOf(t4) >>> 0, 1);
+  removeController(t5) {
+    this._$EO?.delete(t5);
   }
-  _$Eg() {
-    this.constructor.elementProperties.forEach((t4, i5) => {
-      this.hasOwnProperty(i5) && (this._$Ei.set(i5, this[i5]), delete this[i5]);
-    });
+  _$E_() {
+    const t5 = /* @__PURE__ */ new Map(),
+      s4 = this.constructor.elementProperties;
+    for (const i7 of s4.keys())
+      this.hasOwnProperty(i7) && (t5.set(i7, this[i7]), delete this[i7]);
+    t5.size > 0 && (this._$Ep = t5);
   }
   createRenderRoot() {
-    var t4;
-    const s6 =
-      null !== (t4 = this.shadowRoot) && void 0 !== t4
-        ? t4
-        : this.attachShadow(this.constructor.shadowRootOptions);
-    return (S(s6, this.constructor.elementStyles), s6);
+    const t5 =
+      this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
+    return (S(t5, this.constructor.elementStyles), t5);
   }
   connectedCallback() {
-    var t4;
-    (void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()),
+    ((this.renderRoot ??= this.createRenderRoot()),
       this.enableUpdating(true),
-      null === (t4 = this._$ES) ||
-        void 0 === t4 ||
-        t4.forEach((t5) => {
-          var i5;
-          return null === (i5 = t5.hostConnected) || void 0 === i5
-            ? void 0
-            : i5.call(t5);
-        }));
+      this._$EO?.forEach((t5) => t5.hostConnected?.()));
   }
-  enableUpdating(t4) {}
+  enableUpdating(t5) {}
   disconnectedCallback() {
-    var t4;
-    null === (t4 = this._$ES) ||
-      void 0 === t4 ||
-      t4.forEach((t5) => {
-        var i5;
-        return null === (i5 = t5.hostDisconnected) || void 0 === i5
-          ? void 0
-          : i5.call(t5);
-      });
+    this._$EO?.forEach((t5) => t5.hostDisconnected?.());
   }
-  attributeChangedCallback(t4, i5, s6) {
-    this._$AK(t4, s6);
+  attributeChangedCallback(t5, s4, i7) {
+    this._$AK(t5, i7);
   }
-  _$EO(t4, i5, s6 = l) {
-    var e6;
-    const r4 = this.constructor._$Ep(t4, s6);
-    if (void 0 !== r4 && true === s6.reflect) {
+  _$ET(t5, s4) {
+    const i7 = this.constructor.elementProperties.get(t5),
+      e6 = this.constructor._$Eu(t5, i7);
+    if (void 0 !== e6 && true === i7.reflect) {
       const h3 = (
-        void 0 !==
-        (null === (e6 = s6.converter) || void 0 === e6
-          ? void 0
-          : e6.toAttribute)
-          ? s6.converter
-          : n2
-      ).toAttribute(i5, s6.type);
-      ((this._$El = t4),
-        null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3),
-        (this._$El = null));
+        void 0 !== i7.converter?.toAttribute ? i7.converter : u
+      ).toAttribute(s4, i7.type);
+      ((this._$Em = t5),
+        null == h3 ? this.removeAttribute(e6) : this.setAttribute(e6, h3),
+        (this._$Em = null));
     }
   }
-  _$AK(t4, i5) {
-    var s6;
-    const e6 = this.constructor,
-      r4 = e6._$Ev.get(t4);
-    if (void 0 !== r4 && this._$El !== r4) {
-      const t5 = e6.getPropertyOptions(r4),
+  _$AK(t5, s4) {
+    const i7 = this.constructor,
+      e6 = i7._$Eh.get(t5);
+    if (void 0 !== e6 && this._$Em !== e6) {
+      const t6 = i7.getPropertyOptions(e6),
         h3 =
-          "function" == typeof t5.converter
-            ? { fromAttribute: t5.converter }
-            : void 0 !==
-                (null === (s6 = t5.converter) || void 0 === s6
-                  ? void 0
-                  : s6.fromAttribute)
-              ? t5.converter
-              : n2;
-      ((this._$El = r4),
-        (this[r4] = h3.fromAttribute(i5, t5.type)),
-        (this._$El = null));
+          "function" == typeof t6.converter
+            ? { fromAttribute: t6.converter }
+            : void 0 !== t6.converter?.fromAttribute
+              ? t6.converter
+              : u;
+      this._$Em = e6;
+      const r4 = h3.fromAttribute(s4, t6.type);
+      ((this[e6] = r4 ?? this._$Ej?.get(e6) ?? r4), (this._$Em = null));
     }
   }
-  requestUpdate(t4, i5, s6) {
-    let e6 = true;
-    (void 0 !== t4 &&
-      (((s6 = s6 || this.constructor.getPropertyOptions(t4)).hasChanged || a)(
-        this[t4],
-        i5,
+  requestUpdate(t5, s4, i7, e6 = false, h3) {
+    if (void 0 !== t5) {
+      const r4 = this.constructor;
+      if (
+        (false === e6 && (h3 = this[t5]),
+        (i7 ??= r4.getPropertyOptions(t5)),
+        !(
+          (i7.hasChanged ?? f)(h3, s4) ||
+          (i7.useDefault &&
+            i7.reflect &&
+            h3 === this._$Ej?.get(t5) &&
+            !this.hasAttribute(r4._$Eu(t5, i7)))
+        ))
       )
-        ? (this._$AL.has(t4) || this._$AL.set(t4, i5),
-          true === s6.reflect &&
-            this._$El !== t4 &&
-            (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()),
-            this._$EC.set(t4, s6)))
-        : (e6 = false)),
-      !this.isUpdatePending && e6 && (this._$E_ = this._$Ej()));
+        return;
+      this.C(t5, s4, i7);
+    }
+    false === this.isUpdatePending && (this._$ES = this._$EP());
   }
-  async _$Ej() {
+  C(t5, s4, { useDefault: i7, reflect: e6, wrapped: h3 }, r4) {
+    (i7 &&
+      !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t5) &&
+      (this._$Ej.set(t5, r4 ?? s4 ?? this[t5]),
+      true !== h3 || void 0 !== r4)) ||
+      (this._$AL.has(t5) ||
+        (this.hasUpdated || i7 || (s4 = void 0), this._$AL.set(t5, s4)),
+      true === e6 &&
+        this._$Em !== t5 &&
+        (this._$Eq ??= /* @__PURE__ */ new Set()).add(t5));
+  }
+  async _$EP() {
     this.isUpdatePending = true;
     try {
-      await this._$E_;
-    } catch (t5) {
-      Promise.reject(t5);
+      await this._$ES;
+    } catch (t6) {
+      Promise.reject(t6);
     }
-    const t4 = this.scheduleUpdate();
-    return (null != t4 && (await t4), !this.isUpdatePending);
+    const t5 = this.scheduleUpdate();
+    return (null != t5 && (await t5), !this.isUpdatePending);
   }
   scheduleUpdate() {
     return this.performUpdate();
   }
   performUpdate() {
-    var t4;
     if (!this.isUpdatePending) return;
-    (this.hasUpdated,
-      this._$Ei &&
-        (this._$Ei.forEach((t5, i6) => (this[i6] = t5)), (this._$Ei = void 0)));
-    let i5 = false;
-    const s6 = this._$AL;
-    try {
-      ((i5 = this.shouldUpdate(s6)),
-        i5
-          ? (this.willUpdate(s6),
-            null === (t4 = this._$ES) ||
-              void 0 === t4 ||
-              t4.forEach((t5) => {
-                var i6;
-                return null === (i6 = t5.hostUpdate) || void 0 === i6
-                  ? void 0
-                  : i6.call(t5);
-              }),
-            this.update(s6))
-          : this._$Ek());
-    } catch (t5) {
-      throw ((i5 = false), this._$Ek(), t5);
+    if (!this.hasUpdated) {
+      if (((this.renderRoot ??= this.createRenderRoot()), this._$Ep)) {
+        for (const [t7, s5] of this._$Ep) this[t7] = s5;
+        this._$Ep = void 0;
+      }
+      const t6 = this.constructor.elementProperties;
+      if (t6.size > 0)
+        for (const [s5, i7] of t6) {
+          const { wrapped: t7 } = i7,
+            e6 = this[s5];
+          true !== t7 ||
+            this._$AL.has(s5) ||
+            void 0 === e6 ||
+            this.C(s5, void 0, i7, e6);
+        }
     }
-    i5 && this._$AE(s6);
+    let t5 = false;
+    const s4 = this._$AL;
+    try {
+      ((t5 = this.shouldUpdate(s4)),
+        t5
+          ? (this.willUpdate(s4),
+            this._$EO?.forEach((t6) => t6.hostUpdate?.()),
+            this.update(s4))
+          : this._$EM());
+    } catch (s5) {
+      throw ((t5 = false), this._$EM(), s5);
+    }
+    t5 && this._$AE(s4);
   }
-  willUpdate(t4) {}
-  _$AE(t4) {
-    var i5;
-    (null === (i5 = this._$ES) ||
-      void 0 === i5 ||
-      i5.forEach((t5) => {
-        var i6;
-        return null === (i6 = t5.hostUpdated) || void 0 === i6
-          ? void 0
-          : i6.call(t5);
-      }),
-      this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t4)),
-      this.updated(t4));
+  willUpdate(t5) {}
+  _$AE(t5) {
+    (this._$EO?.forEach((t6) => t6.hostUpdated?.()),
+      this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t5)),
+      this.updated(t5));
   }
-  _$Ek() {
+  _$EM() {
     ((this._$AL = /* @__PURE__ */ new Map()), (this.isUpdatePending = false));
   }
   get updateComplete() {
     return this.getUpdateComplete();
   }
   getUpdateComplete() {
-    return this._$E_;
+    return this._$ES;
   }
-  shouldUpdate(t4) {
+  shouldUpdate(t5) {
     return true;
   }
-  update(t4) {
-    (void 0 !== this._$EC &&
-      (this._$EC.forEach((t5, i5) => this._$EO(i5, this[i5], t5)),
-      (this._$EC = void 0)),
-      this._$Ek());
+  update(t5) {
+    ((this._$Eq &&= this._$Eq.forEach((t6) => this._$ET(t6, this[t6]))),
+      this._$EM());
   }
-  updated(t4) {}
-  firstUpdated(t4) {}
+  updated(t5) {}
+  firstUpdated(t5) {}
 };
-((u[d] = true),
-  (u.elementProperties = /* @__PURE__ */ new Map()),
-  (u.elementStyles = []),
-  (u.shadowRootOptions = { mode: "open" }),
-  null == o2 || o2({ ReactiveElement: u }),
-  (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2
-    ? s2
-    : (e2.reactiveElementVersions = [])
-  ).push("1.6.3"));
+((y.elementStyles = []),
+  (y.shadowRootOptions = { mode: "open" }),
+  (y[d("elementProperties")] = /* @__PURE__ */ new Map()),
+  (y[d("finalized")] = /* @__PURE__ */ new Map()),
+  p?.({ ReactiveElement: y }),
+  (a.reactiveElementVersions ??= []).push("2.1.2"));
 
 // node_modules/lit-html/lit-html.js
-var t2;
-var i2 = window;
-var s3 = i2.trustedTypes;
-var e3 = s3 ? s3.createPolicy("lit-html", { createHTML: (t4) => t4 }) : void 0;
-var o3 = "$lit$";
-var n3 = `lit$${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}$`;
-var l2 = "?" + n3;
-var h2 = `<${l2}>`;
-var r3 = document;
-var u2 = () => r3.createComment("");
-var d2 = (t4) =>
-  null === t4 || ("object" != typeof t4 && "function" != typeof t4);
-var c2 = Array.isArray;
-var v = (t4) =>
-  c2(t4) || "function" == typeof (null == t4 ? void 0 : t4[Symbol.iterator]);
-var a2 = "[ 	\n\f\r]";
-var f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+var t2 = globalThis;
+var i3 = (t5) => t5;
+var s2 = t2.trustedTypes;
+var e3 = s2 ? s2.createPolicy("lit-html", { createHTML: (t5) => t5 }) : void 0;
+var h2 = "$lit$";
+var o3 = `lit$${Math.random().toFixed(9).slice(2)}$`;
+var n3 = "?" + o3;
+var r3 = `<${n3}>`;
+var l2 = document;
+var c3 = () => l2.createComment("");
+var a2 = (t5) =>
+  null === t5 || ("object" != typeof t5 && "function" != typeof t5);
+var u2 = Array.isArray;
+var d2 = (t5) => u2(t5) || "function" == typeof t5?.[Symbol.iterator];
+var f2 = "[ 	\n\f\r]";
+var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
 var _ = /-->/g;
 var m = />/g;
-var p = RegExp(
-  `>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
+var p2 = RegExp(
+  `>|${f2}(?:([^\\s"'>=/]+)(${f2}*=${f2}*(?:[^ 	 // nosemgrep
 \f\r"'\`<>=]|("|')|))|$)`,
   "g",
 );
 var g = /'/g;
 var $ = /"/g;
-var y = /^(?:script|style|textarea|title)$/i;
-var w =
-  (t4) =>
-  (i5, ...s6) => ({ _$litType$: t4, strings: i5, values: s6 });
-var x = w(1);
-var b = w(2);
-var T = /* @__PURE__ */ Symbol.for("lit-noChange");
+var y2 = /^(?:script|style|textarea|title)$/i;
+var x =
+  (t5) =>
+  (i7, ...s4) => ({ _$litType$: t5, strings: i7, values: s4 });
+var b2 = x(1);
+var w = x(2);
+var T = x(3);
+var E = /* @__PURE__ */ Symbol.for("lit-noChange");
 var A = /* @__PURE__ */ Symbol.for("lit-nothing");
-var E = /* @__PURE__ */ new WeakMap();
-var C = r3.createTreeWalker(r3, 129, null, false);
-function P(t4, i5) {
-  if (!Array.isArray(t4) || !t4.hasOwnProperty("raw"))
+var C = /* @__PURE__ */ new WeakMap();
+var P = l2.createTreeWalker(l2, 129);
+function V(t5, i7) {
+  if (!u2(t5) || !t5.hasOwnProperty("raw"))
     throw Error("invalid template strings array");
-  return void 0 !== e3 ? e3.createHTML(i5) : i5;
+  return void 0 !== e3 ? e3.createHTML(i7) : i7;
 }
-var V = (t4, i5) => {
-  const s6 = t4.length - 1,
+var N = (t5, i7) => {
+  const s4 = t5.length - 1,
     e6 = [];
-  let l5,
-    r4 = 2 === i5 ? "<svg>" : "",
-    u3 = f;
-  for (let i6 = 0; i6 < s6; i6++) {
-    const s7 = t4[i6];
-    let d3,
-      c3,
-      v2 = -1,
-      a4 = 0;
+  let n4,
+    l3 = 2 === i7 ? "<svg>" : 3 === i7 ? "<math>" : "",
+    c4 = v;
+  for (let i8 = 0; i8 < s4; i8++) {
+    const s5 = t5[i8];
+    let a3,
+      u3,
+      d3 = -1,
+      f3 = 0;
     for (
       ;
-      a4 < s7.length && ((u3.lastIndex = a4), (c3 = u3.exec(s7)), null !== c3);
+      f3 < s5.length && ((c4.lastIndex = f3), (u3 = c4.exec(s5)), null !== u3);
     )
-      ((a4 = u3.lastIndex),
-        u3 === f
-          ? "!--" === c3[1]
-            ? (u3 = _)
-            : void 0 !== c3[1]
-              ? (u3 = m)
-              : void 0 !== c3[2]
-                ? (y.test(c3[2]) && (l5 = RegExp("</" + c3[2], "g")), (u3 = p))
-                : void 0 !== c3[3] && (u3 = p)
-          : u3 === p
-            ? ">" === c3[0]
-              ? ((u3 = null != l5 ? l5 : f), (v2 = -1))
-              : void 0 === c3[1]
-                ? (v2 = -2)
-                : ((v2 = u3.lastIndex - c3[2].length),
-                  (d3 = c3[1]),
-                  (u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g))
-            : u3 === $ || u3 === g
-              ? (u3 = p)
-              : u3 === _ || u3 === m
-                ? (u3 = f)
-                : ((u3 = p), (l5 = void 0))); // nosemgrep
-    const w2 = u3 === p && t4[i6 + 1].startsWith("/>") ? " " : "";
-    r4 +=
-      u3 === f
-        ? s7 + h2
-        : v2 >= 0
-          ? (e6.push(d3), s7.slice(0, v2) + o3 + s7.slice(v2) + n3 + w2)
-          : s7 + n3 + (-2 === v2 ? (e6.push(void 0), i6) : w2);
+      ((f3 = c4.lastIndex),
+        c4 === v
+          ? "!--" === u3[1]
+            ? (c4 = _)
+            : void 0 !== u3[1]
+              ? (c4 = m)
+              : void 0 !== u3[2]
+                ? (y2.test(u3[2]) && (n4 = RegExp("</" + u3[2], "g")),
+                  (c4 = p2))
+                : void 0 !== u3[3] && (c4 = p2)
+          : c4 === p2
+            ? ">" === u3[0]
+              ? ((c4 = n4 ?? v), (d3 = -1))
+              : void 0 === u3[1]
+                ? (d3 = -2)
+                : ((d3 = c4.lastIndex - u3[2].length),
+                  (a3 = u3[1]),
+                  (c4 = void 0 === u3[3] ? p2 : '"' === u3[3] ? $ : g))
+            : c4 === $ || c4 === g
+              ? (c4 = p2)
+              : c4 === _ || c4 === m
+                ? (c4 = v)
+                : ((c4 = p2), (n4 = void 0))); // nosemgrep
+    const x2 = c4 === p2 && t5[i8 + 1].startsWith("/>") ? " " : "";
+    l3 +=
+      c4 === v
+        ? s5 + r3
+        : d3 >= 0
+          ? (e6.push(a3), s5.slice(0, d3) + h2 + s5.slice(d3) + o3 + x2)
+          : s5 + o3 + (-2 === d3 ? i8 : x2);
   }
-  return [P(t4, r4 + (t4[s6] || "<?>") + (2 === i5 ? "</svg>" : "")), e6];
+  return [
+    V(
+      t5,
+      l3 +
+        (t5[s4] || "<?>") +
+        (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : ""),
+    ),
+    e6,
+  ];
 };
-var N = class _N {
-  constructor({ strings: t4, _$litType$: i5 }, e6) {
-    let h3;
+var S2 = class _S {
+  constructor({ strings: t5, _$litType$: i7 }, e6) {
+    let r4;
     this.parts = [];
-    let r4 = 0,
-      d3 = 0;
-    const c3 = t4.length - 1,
-      v2 = this.parts,
-      [a4, f2] = V(t4, i5);
+    let l3 = 0,
+      a3 = 0;
+    const u3 = t5.length - 1,
+      d3 = this.parts,
+      [f3, v2] = N(t5, i7);
     if (
-      ((this.el = _N.createElement(a4, e6)),
-      (C.currentNode = this.el.content),
-      2 === i5)
+      ((this.el = _S.createElement(f3, e6)),
+      (P.currentNode = this.el.content),
+      2 === i7 || 3 === i7)
     ) {
-      const t5 = this.el.content,
-        i6 = t5.firstChild;
-      (i6.remove(), t5.append(...i6.childNodes));
+      const t6 = this.el.content.firstChild;
+      t6.replaceWith(...t6.childNodes);
     }
-    for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
-      if (1 === h3.nodeType) {
-        if (h3.hasAttributes()) {
-          const t5 = [];
-          for (const i6 of h3.getAttributeNames())
-            if (i6.endsWith(o3) || i6.startsWith(n3)) {
-              const s6 = f2[d3++];
-              if ((t5.push(i6), void 0 !== s6)) {
-                const t6 = h3.getAttribute(s6.toLowerCase() + o3).split(n3),
-                  i7 = /([.?@])?(.*)/.exec(s6);
-                v2.push({
-                  type: 1,
-                  index: r4,
-                  name: i7[2],
-                  strings: t6,
-                  ctor:
-                    "." === i7[1]
-                      ? H
-                      : "?" === i7[1]
-                        ? L
-                        : "@" === i7[1]
-                          ? z
-                          : k,
-                });
-              } else v2.push({ type: 6, index: r4 });
-            }
-          for (const i6 of t5) h3.removeAttribute(i6);
-        }
-        if (y.test(h3.tagName)) {
-          const t5 = h3.textContent.split(n3),
-            i6 = t5.length - 1;
-          if (i6 > 0) {
-            h3.textContent = s3 ? s3.emptyScript : "";
-            for (let s6 = 0; s6 < i6; s6++)
-              (h3.append(t5[s6], u2()),
-                C.nextNode(),
-                v2.push({ type: 2, index: ++r4 }));
-            h3.append(t5[i6], u2());
+    for (; null !== (r4 = P.nextNode()) && d3.length < u3;) {
+      if (1 === r4.nodeType) {
+        if (r4.hasAttributes())
+          for (const t6 of r4.getAttributeNames())
+            if (t6.endsWith(h2)) {
+              const i8 = v2[a3++],
+                s4 = r4.getAttribute(t6).split(o3),
+                e7 = /([.?@])?(.*)/.exec(i8);
+              (d3.push({
+                type: 1,
+                index: l3,
+                name: e7[2],
+                strings: s4,
+                ctor:
+                  "." === e7[1] ? I : "?" === e7[1] ? L : "@" === e7[1] ? z : H,
+              }),
+                r4.removeAttribute(t6));
+            } else
+              t6.startsWith(o3) &&
+                (d3.push({ type: 6, index: l3 }), r4.removeAttribute(t6));
+        if (y2.test(r4.tagName)) {
+          const t6 = r4.textContent.split(o3),
+            i8 = t6.length - 1;
+          if (i8 > 0) {
+            r4.textContent = s2 ? s2.emptyScript : "";
+            for (let s4 = 0; s4 < i8; s4++)
+              (r4.append(t6[s4], c3()),
+                P.nextNode(),
+                d3.push({ type: 2, index: ++l3 }));
+            r4.append(t6[i8], c3());
           }
         }
-      } else if (8 === h3.nodeType)
-        if (h3.data === l2) v2.push({ type: 2, index: r4 });
+      } else if (8 === r4.nodeType)
+        if (r4.data === n3) d3.push({ type: 2, index: l3 });
         else {
-          let t5 = -1;
-          for (; -1 !== (t5 = h3.data.indexOf(n3, t5 + 1)); )
-            (v2.push({ type: 7, index: r4 }), (t5 += n3.length - 1));
+          let t6 = -1;
+          for (; -1 !== (t6 = r4.data.indexOf(o3, t6 + 1));)
+            (d3.push({ type: 7, index: l3 }), (t6 += o3.length - 1));
         }
-      r4++;
+      l3++;
     }
   }
-  static createElement(t4, i5) {
-    const s6 = r3.createElement("template");
-    return ((s6.innerHTML = t4), s6);
+  static createElement(t5, i7) {
+    const s4 = l2.createElement("template");
+    return ((s4.innerHTML = t5), s4);
   }
 };
-function S2(t4, i5, s6 = t4, e6) {
-  var o6, n5, l5, h3;
-  if (i5 === T) return i5;
-  let r4 =
-    void 0 !== e6
-      ? null === (o6 = s6._$Co) || void 0 === o6
-        ? void 0
-        : o6[e6]
-      : s6._$Cl;
-  const u3 = d2(i5) ? void 0 : i5._$litDirective$;
+function M(t5, i7, s4 = t5, e6) {
+  if (i7 === E) return i7;
+  let h3 = void 0 !== e6 ? s4._$Co?.[e6] : s4._$Cl;
+  const o6 = a2(i7) ? void 0 : i7._$litDirective$;
   return (
-    (null == r4 ? void 0 : r4.constructor) !== u3 &&
-      (null === (n5 = null == r4 ? void 0 : r4._$AO) ||
-        void 0 === n5 ||
-        n5.call(r4, false),
-      void 0 === u3 ? (r4 = void 0) : ((r4 = new u3(t4)), r4._$AT(t4, s6, e6)),
-      void 0 !== e6
-        ? ((null !== (l5 = (h3 = s6)._$Co) && void 0 !== l5
-            ? l5
-            : (h3._$Co = []))[e6] = r4)
-        : (s6._$Cl = r4)),
-    void 0 !== r4 && (i5 = S2(t4, r4._$AS(t4, i5.values), r4, e6)),
-    i5
+    h3?.constructor !== o6 &&
+      (h3?._$AO?.(false),
+      void 0 === o6 ? (h3 = void 0) : ((h3 = new o6(t5)), h3._$AT(t5, s4, e6)),
+      void 0 !== e6 ? ((s4._$Co ??= [])[e6] = h3) : (s4._$Cl = h3)),
+    void 0 !== h3 && (i7 = M(t5, h3._$AS(t5, i7.values), h3, e6)),
+    i7
   );
 }
-var M = class {
-  constructor(t4, i5) {
+var R = class {
+  constructor(t5, i7) {
     ((this._$AV = []),
       (this._$AN = void 0),
-      (this._$AD = t4),
-      (this._$AM = i5));
+      (this._$AD = t5),
+      (this._$AM = i7));
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -625,79 +603,60 @@ var M = class {
   get _$AU() {
     return this._$AM._$AU;
   }
-  u(t4) {
-    var i5;
+  u(t5) {
     const {
-        el: { content: s6 },
-        parts: e6,
+        el: { content: i7 },
+        parts: s4,
       } = this._$AD,
-      o6 = (
-        null !== (i5 = null == t4 ? void 0 : t4.creationScope) && void 0 !== i5
-          ? i5
-          : r3
-      ).importNode(s6, true);
-    C.currentNode = o6;
-    let n5 = C.nextNode(),
-      l5 = 0,
-      h3 = 0,
-      u3 = e6[0];
-    for (; void 0 !== u3; ) {
-      if (l5 === u3.index) {
-        let i6;
-        (2 === u3.type
-          ? (i6 = new R(n5, n5.nextSibling, this, t4))
-          : 1 === u3.type
-            ? (i6 = new u3.ctor(n5, u3.name, u3.strings, this, t4))
-            : 6 === u3.type && (i6 = new Z(n5, this, t4)),
-          this._$AV.push(i6),
-          (u3 = e6[++h3]));
+      e6 = (t5?.creationScope ?? l2).importNode(i7, true);
+    P.currentNode = e6;
+    let h3 = P.nextNode(),
+      o6 = 0,
+      n4 = 0,
+      r4 = s4[0];
+    for (; void 0 !== r4;) {
+      if (o6 === r4.index) {
+        let i8;
+        (2 === r4.type
+          ? (i8 = new k(h3, h3.nextSibling, this, t5))
+          : 1 === r4.type
+            ? (i8 = new r4.ctor(h3, r4.name, r4.strings, this, t5))
+            : 6 === r4.type && (i8 = new Z(h3, this, t5)),
+          this._$AV.push(i8),
+          (r4 = s4[++n4]));
       }
-      l5 !== (null == u3 ? void 0 : u3.index) && ((n5 = C.nextNode()), l5++);
+      o6 !== r4?.index && ((h3 = P.nextNode()), o6++);
     }
-    return ((C.currentNode = r3), o6);
+    return ((P.currentNode = l2), e6);
   }
-  v(t4) {
-    let i5 = 0;
-    for (const s6 of this._$AV)
-      (void 0 !== s6 &&
-        (void 0 !== s6.strings
-          ? (s6._$AI(t4, s6, i5), (i5 += s6.strings.length - 2))
-          : s6._$AI(t4[i5])),
-        i5++);
+  p(t5) {
+    let i7 = 0;
+    for (const s4 of this._$AV)
+      (void 0 !== s4 &&
+        (void 0 !== s4.strings
+          ? (s4._$AI(t5, s4, i7), (i7 += s4.strings.length - 2))
+          : s4._$AI(t5[i7])),
+        i7++);
   }
 };
-var R = class _R {
-  constructor(t4, i5, s6, e6) {
-    var o6;
+var k = class _k {
+  get _$AU() {
+    return this._$AM?._$AU ?? this._$Cv;
+  }
+  constructor(t5, i7, s4, e6) {
     ((this.type = 2),
       (this._$AH = A),
       (this._$AN = void 0),
-      (this._$AA = t4),
-      (this._$AB = i5),
-      (this._$AM = s6),
+      (this._$AA = t5),
+      (this._$AB = i7),
+      (this._$AM = s4),
       (this.options = e6),
-      (this._$Cp =
-        null === (o6 = null == e6 ? void 0 : e6.isConnected) ||
-        void 0 === o6 ||
-        o6));
-  }
-  get _$AU() {
-    var t4, i5;
-    return null !==
-      (i5 = null === (t4 = this._$AM) || void 0 === t4 ? void 0 : t4._$AU) &&
-      void 0 !== i5
-      ? i5
-      : this._$Cp;
+      (this._$Cv = e6?.isConnected ?? true));
   }
   get parentNode() {
-    let t4 = this._$AA.parentNode;
-    const i5 = this._$AM;
-    return (
-      void 0 !== i5 &&
-        11 === (null == t4 ? void 0 : t4.nodeType) &&
-        (t4 = i5.parentNode),
-      t4
-    );
+    let t5 = this._$AA.parentNode;
+    const i7 = this._$AM;
+    return (void 0 !== i7 && 11 === t5?.nodeType && (t5 = i7.parentNode), t5);
   }
   get startNode() {
     return this._$AA;
@@ -705,298 +664,236 @@ var R = class _R {
   get endNode() {
     return this._$AB;
   }
-  _$AI(t4, i5 = this) {
-    ((t4 = S2(this, t4, i5)),
-      d2(t4)
-        ? t4 === A || null == t4 || "" === t4
+  _$AI(t5, i7 = this) {
+    ((t5 = M(this, t5, i7)),
+      a2(t5)
+        ? t5 === A || null == t5 || "" === t5
           ? (this._$AH !== A && this._$AR(), (this._$AH = A))
-          : t4 !== this._$AH && t4 !== T && this._(t4)
-        : void 0 !== t4._$litType$
-          ? this.g(t4)
-          : void 0 !== t4.nodeType
-            ? this.$(t4)
-            : v(t4)
-              ? this.T(t4)
-              : this._(t4));
+          : t5 !== this._$AH && t5 !== E && this._(t5)
+        : void 0 !== t5._$litType$
+          ? this.$(t5)
+          : void 0 !== t5.nodeType
+            ? this.T(t5)
+            : d2(t5)
+              ? this.k(t5)
+              : this._(t5));
   }
-  k(t4) {
-    return this._$AA.parentNode.insertBefore(t4, this._$AB);
+  O(t5) {
+    return this._$AA.parentNode.insertBefore(t5, this._$AB);
   }
-  $(t4) {
-    this._$AH !== t4 && (this._$AR(), (this._$AH = this.k(t4)));
+  T(t5) {
+    this._$AH !== t5 && (this._$AR(), (this._$AH = this.O(t5)));
   }
-  _(t4) {
-    (this._$AH !== A && d2(this._$AH)
-      ? (this._$AA.nextSibling.data = t4)
-      : this.$(r3.createTextNode(t4)),
-      (this._$AH = t4));
+  _(t5) {
+    (this._$AH !== A && a2(this._$AH)
+      ? (this._$AA.nextSibling.data = t5)
+      : this.T(l2.createTextNode(t5)),
+      (this._$AH = t5));
   }
-  g(t4) {
-    var i5;
-    const { values: s6, _$litType$: e6 } = t4,
-      o6 =
-        "number" == typeof e6
-          ? this._$AC(t4)
-          : (void 0 === e6.el &&
-              (e6.el = N.createElement(P(e6.h, e6.h[0]), this.options)),
-            e6);
-    if ((null === (i5 = this._$AH) || void 0 === i5 ? void 0 : i5._$AD) === o6)
-      this._$AH.v(s6);
+  $(t5) {
+    const { values: i7, _$litType$: s4 } = t5,
+      e6 =
+        "number" == typeof s4
+          ? this._$AC(t5)
+          : (void 0 === s4.el &&
+              (s4.el = S2.createElement(V(s4.h, s4.h[0]), this.options)),
+            s4);
+    if (this._$AH?._$AD === e6) this._$AH.p(i7);
     else {
-      const t5 = new M(o6, this),
-        i6 = t5.u(this.options);
-      (t5.v(s6), this.$(i6), (this._$AH = t5));
+      const t6 = new R(e6, this),
+        s5 = t6.u(this.options);
+      (t6.p(i7), this.T(s5), (this._$AH = t6));
     }
   }
-  _$AC(t4) {
-    let i5 = E.get(t4.strings);
-    return (void 0 === i5 && E.set(t4.strings, (i5 = new N(t4))), i5);
+  _$AC(t5) {
+    let i7 = C.get(t5.strings);
+    return (void 0 === i7 && C.set(t5.strings, (i7 = new S2(t5))), i7);
   }
-  T(t4) {
-    c2(this._$AH) || ((this._$AH = []), this._$AR());
-    const i5 = this._$AH;
-    let s6,
+  k(t5) {
+    u2(this._$AH) || ((this._$AH = []), this._$AR());
+    const i7 = this._$AH;
+    let s4,
       e6 = 0;
-    for (const o6 of t4)
-      (e6 === i5.length
-        ? i5.push((s6 = new _R(this.k(u2()), this.k(u2()), this, this.options)))
-        : (s6 = i5[e6]),
-        s6._$AI(o6),
+    for (const h3 of t5)
+      (e6 === i7.length
+        ? i7.push((s4 = new _k(this.O(c3()), this.O(c3()), this, this.options)))
+        : (s4 = i7[e6]),
+        s4._$AI(h3),
         e6++);
-    e6 < i5.length &&
-      (this._$AR(s6 && s6._$AB.nextSibling, e6), (i5.length = e6));
+    e6 < i7.length &&
+      (this._$AR(s4 && s4._$AB.nextSibling, e6), (i7.length = e6));
   }
-  _$AR(t4 = this._$AA.nextSibling, i5) {
-    var s6;
-    for (
-      null === (s6 = this._$AP) ||
-      void 0 === s6 ||
-      s6.call(this, false, true, i5);
-      t4 && t4 !== this._$AB;
-    ) {
-      const i6 = t4.nextSibling;
-      (t4.remove(), (t4 = i6));
+  _$AR(t5 = this._$AA.nextSibling, s4) {
+    for (this._$AP?.(false, true, s4); t5 !== this._$AB;) {
+      const s5 = i3(t5).nextSibling;
+      (i3(t5).remove(), (t5 = s5));
     }
   }
-  setConnected(t4) {
-    var i5;
-    void 0 === this._$AM &&
-      ((this._$Cp = t4),
-      null === (i5 = this._$AP) || void 0 === i5 || i5.call(this, t4));
+  setConnected(t5) {
+    void 0 === this._$AM && ((this._$Cv = t5), this._$AP?.(t5));
   }
 };
-var k = class {
-  constructor(t4, i5, s6, e6, o6) {
-    ((this.type = 1),
-      (this._$AH = A),
-      (this._$AN = void 0),
-      (this.element = t4),
-      (this.name = i5),
-      (this._$AM = e6),
-      (this.options = o6),
-      s6.length > 2 || "" !== s6[0] || "" !== s6[1]
-        ? ((this._$AH = Array(s6.length - 1).fill(new String())),
-          (this.strings = s6))
-        : (this._$AH = A));
-  }
+var H = class {
   get tagName() {
     return this.element.tagName;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AI(t4, i5 = this, s6, e6) {
-    const o6 = this.strings;
-    let n5 = false;
-    if (void 0 === o6)
-      ((t4 = S2(this, t4, i5, 0)),
-        (n5 = !d2(t4) || (t4 !== this._$AH && t4 !== T)),
-        n5 && (this._$AH = t4));
-    else {
-      const e7 = t4;
-      let l5, h3;
-      for (t4 = o6[0], l5 = 0; l5 < o6.length - 1; l5++)
-        ((h3 = S2(this, e7[s6 + l5], i5, l5)),
-          h3 === T && (h3 = this._$AH[l5]),
-          n5 || (n5 = !d2(h3) || h3 !== this._$AH[l5]),
-          h3 === A
-            ? (t4 = A)
-            : t4 !== A && (t4 += (null != h3 ? h3 : "") + o6[l5 + 1]),
-          (this._$AH[l5] = h3));
-    }
-    n5 && !e6 && this.j(t4);
+  constructor(t5, i7, s4, e6, h3) {
+    ((this.type = 1),
+      (this._$AH = A),
+      (this._$AN = void 0),
+      (this.element = t5),
+      (this.name = i7),
+      (this._$AM = e6),
+      (this.options = h3),
+      s4.length > 2 || "" !== s4[0] || "" !== s4[1]
+        ? ((this._$AH = Array(s4.length - 1).fill(new String())),
+          (this.strings = s4))
+        : (this._$AH = A));
   }
-  j(t4) {
-    t4 === A
+  _$AI(t5, i7 = this, s4, e6) {
+    const h3 = this.strings;
+    let o6 = false;
+    if (void 0 === h3)
+      ((t5 = M(this, t5, i7, 0)),
+        (o6 = !a2(t5) || (t5 !== this._$AH && t5 !== E)),
+        o6 && (this._$AH = t5));
+    else {
+      const e7 = t5;
+      let n4, r4;
+      for (t5 = h3[0], n4 = 0; n4 < h3.length - 1; n4++)
+        ((r4 = M(this, e7[s4 + n4], i7, n4)),
+          r4 === E && (r4 = this._$AH[n4]),
+          (o6 ||= !a2(r4) || r4 !== this._$AH[n4]),
+          r4 === A ? (t5 = A) : t5 !== A && (t5 += (r4 ?? "") + h3[n4 + 1]),
+          (this._$AH[n4] = r4));
+    }
+    o6 && !e6 && this.j(t5);
+  }
+  j(t5) {
+    t5 === A
       ? this.element.removeAttribute(this.name)
-      : this.element.setAttribute(this.name, null != t4 ? t4 : "");
+      : this.element.setAttribute(this.name, t5 ?? "");
   }
 };
-var H = class extends k {
+var I = class extends H {
   constructor() {
     (super(...arguments), (this.type = 3));
   }
-  j(t4) {
-    this.element[this.name] = t4 === A ? void 0 : t4;
+  j(t5) {
+    this.element[this.name] = t5 === A ? void 0 : t5;
   }
 };
-var I = s3 ? s3.emptyScript : "";
-var L = class extends k {
+var L = class extends H {
   constructor() {
     (super(...arguments), (this.type = 4));
   }
-  j(t4) {
-    t4 && t4 !== A
-      ? this.element.setAttribute(this.name, I)
-      : this.element.removeAttribute(this.name);
+  j(t5) {
+    this.element.toggleAttribute(this.name, !!t5 && t5 !== A);
   }
 };
-var z = class extends k {
-  constructor(t4, i5, s6, e6, o6) {
-    (super(t4, i5, s6, e6, o6), (this.type = 5));
+var z = class extends H {
+  constructor(t5, i7, s4, e6, h3) {
+    (super(t5, i7, s4, e6, h3), (this.type = 5));
   }
-  _$AI(t4, i5 = this) {
-    var s6;
-    if (
-      (t4 = null !== (s6 = S2(this, t4, i5, 0)) && void 0 !== s6 ? s6 : A) === T
-    )
-      return;
-    const e6 = this._$AH,
-      o6 =
-        (t4 === A && e6 !== A) ||
-        t4.capture !== e6.capture ||
-        t4.once !== e6.once ||
-        t4.passive !== e6.passive,
-      n5 = t4 !== A && (e6 === A || o6);
-    (o6 && this.element.removeEventListener(this.name, this, e6),
-      n5 && this.element.addEventListener(this.name, this, t4),
-      (this._$AH = t4));
+  _$AI(t5, i7 = this) {
+    if ((t5 = M(this, t5, i7, 0) ?? A) === E) return;
+    const s4 = this._$AH,
+      e6 =
+        (t5 === A && s4 !== A) ||
+        t5.capture !== s4.capture ||
+        t5.once !== s4.once ||
+        t5.passive !== s4.passive,
+      h3 = t5 !== A && (s4 === A || e6);
+    (e6 && this.element.removeEventListener(this.name, this, s4),
+      h3 && this.element.addEventListener(this.name, this, t5),
+      (this._$AH = t5));
   }
-  handleEvent(t4) {
-    var i5, s6;
+  handleEvent(t5) {
     "function" == typeof this._$AH
-      ? this._$AH.call(
-          null !==
-            (s6 =
-              null === (i5 = this.options) || void 0 === i5
-                ? void 0
-                : i5.host) && void 0 !== s6
-            ? s6
-            : this.element,
-          t4,
-        )
-      : this._$AH.handleEvent(t4);
+      ? this._$AH.call(this.options?.host ?? this.element, t5)
+      : this._$AH.handleEvent(t5);
   }
 };
 var Z = class {
-  constructor(t4, i5, s6) {
-    ((this.element = t4),
+  constructor(t5, i7, s4) {
+    ((this.element = t5),
       (this.type = 6),
       (this._$AN = void 0),
-      (this._$AM = i5),
-      (this.options = s6));
+      (this._$AM = i7),
+      (this.options = s4));
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AI(t4) {
-    S2(this, t4);
+  _$AI(t5) {
+    M(this, t5);
   }
 };
 var j = {
-  O: o3,
-  P: n3,
-  A: l2,
+  M: h2,
+  P: o3,
+  A: n3,
   C: 1,
-  M: V,
-  L: M,
-  R: v,
-  D: S2,
-  I: R,
-  V: k,
-  H: L,
-  N: z,
-  U: H,
+  L: N,
+  R,
+  D: d2,
+  V: M,
+  I: k,
+  H,
+  N: L,
+  U: z,
+  B: I,
   F: Z,
 };
-var B = i2.litHtmlPolyfillSupport;
-(null == B || B(N, R),
-  (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2
-    ? t2
-    : (i2.litHtmlVersions = [])
-  ).push("2.8.0"));
-var D = (t4, i5, s6) => {
-  var e6, o6;
-  const n5 =
-    null !== (e6 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== e6
-      ? e6
-      : i5;
-  let l5 = n5._$litPart$;
-  if (void 0 === l5) {
-    const t5 =
-      null !== (o6 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== o6
-        ? o6
-        : null;
-    n5._$litPart$ = l5 = new R(
-      i5.insertBefore(u2(), t5),
-      t5,
-      void 0,
-      null != s6 ? s6 : {},
-    );
+var B = t2.litHtmlPolyfillSupport;
+(B?.(S2, k), (t2.litHtmlVersions ??= []).push("3.3.3"));
+var D = (t5, i7, s4) => {
+  const e6 = s4?.renderBefore ?? i7;
+  let h3 = e6._$litPart$;
+  if (void 0 === h3) {
+    const t6 = s4?.renderBefore ?? null;
+    e6._$litPart$ = h3 = new k(i7.insertBefore(c3(), t6), t6, void 0, s4 ?? {});
   }
-  return (l5._$AI(t4), l5);
+  return (h3._$AI(t5), h3);
 };
 
 // node_modules/lit-element/lit-element.js
-var l3;
-var o4;
-var s4 = class extends u {
+var s3 = globalThis;
+var i4 = class extends y {
   constructor() {
     (super(...arguments),
       (this.renderOptions = { host: this }),
       (this._$Do = void 0));
   }
   createRenderRoot() {
-    var t4, e6;
-    const i5 = super.createRenderRoot();
-    return (
-      (null !== (t4 = (e6 = this.renderOptions).renderBefore) &&
-        void 0 !== t4) ||
-        (e6.renderBefore = i5.firstChild),
-      i5
-    );
+    const t5 = super.createRenderRoot();
+    return ((this.renderOptions.renderBefore ??= t5.firstChild), t5);
   }
-  update(t4) {
-    const i5 = this.render();
+  update(t5) {
+    const r4 = this.render();
     (this.hasUpdated || (this.renderOptions.isConnected = this.isConnected),
-      super.update(t4),
-      (this._$Do = D(i5, this.renderRoot, this.renderOptions)));
+      super.update(t5),
+      (this._$Do = D(r4, this.renderRoot, this.renderOptions)));
   }
   connectedCallback() {
-    var t4;
-    (super.connectedCallback(),
-      null === (t4 = this._$Do) || void 0 === t4 || t4.setConnected(true));
+    (super.connectedCallback(), this._$Do?.setConnected(true));
   }
   disconnectedCallback() {
-    var t4;
-    (super.disconnectedCallback(),
-      null === (t4 = this._$Do) || void 0 === t4 || t4.setConnected(false));
+    (super.disconnectedCallback(), this._$Do?.setConnected(false));
   }
   render() {
-    return T;
+    return E;
   }
 };
-((s4.finalized = true),
-  (s4._$litElement$ = true),
-  null === (l3 = globalThis.litElementHydrateSupport) ||
-    void 0 === l3 ||
-    l3.call(globalThis, { LitElement: s4 }));
-var n4 = globalThis.litElementPolyfillSupport;
-null == n4 || n4({ LitElement: s4 });
-(null !== (o4 = globalThis.litElementVersions) && void 0 !== o4
-  ? o4
-  : (globalThis.litElementVersions = [])
-).push("3.3.3");
+((i4._$litElement$ = true),
+  (i4["finalized"] = true),
+  s3.litElementHydrateSupport?.({ LitElement: i4 }));
+var o4 = s3.litElementPolyfillSupport;
+o4?.({ LitElement: i4 });
+(s3.litElementVersions ??= []).push("4.2.2");
 
 // src/shared/design-tokens.css.js
 var seloraTokens = i`
@@ -7872,8 +7769,8 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 function parseHexColor(hex) {
-  const n5 = parseInt(hex.slice(1), 16);
-  return [(n5 >> 16) & 255, (n5 >> 8) & 255, n5 & 255];
+  const n4 = parseInt(hex.slice(1), 16);
+  return [(n4 >> 16) & 255, (n4 >> 8) & 255, n4 & 255];
 }
 var SparkleEngine = class {
   constructor(canvas, opts) {
@@ -7902,7 +7799,7 @@ var SparkleEngine = class {
   }
   init() {
     this.particles = [];
-    for (let i5 = 0; i5 < this.count; i5++) {
+    for (let i7 = 0; i7 < this.count; i7++) {
       const yBias = Math.random();
       this.particles.push({
         x: rand(0, this.w),
@@ -7936,39 +7833,39 @@ var SparkleEngine = class {
     const { w: w2, h: h3, maxOpacity, particles } = this;
     this._currentSpeed +=
       (this._targetSpeed - this._currentSpeed) * this._speedEase;
-    const s6 = this._currentSpeed;
-    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
-      const p2 = particles[i5];
-      p2.x += p2.vx * s6;
-      p2.y += p2.vy * s6;
-      if (p2.x < 0) p2.x = w2;
-      else if (p2.x > w2) p2.x = 0;
-      if (p2.y < 0) {
-        p2.y = h3;
-      } else if (p2.y > h3) {
+    const s4 = this._currentSpeed;
+    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
+      const p4 = particles[i7];
+      p4.x += p4.vx * s4;
+      p4.y += p4.vy * s4;
+      if (p4.x < 0) p4.x = w2;
+      else if (p4.x > w2) p4.x = 0;
+      if (p4.y < 0) {
+        p4.y = h3;
+      } else if (p4.y > h3) {
         const r4 = Math.random();
-        p2.y = r4 * r4 * h3 * 0.5;
+        p4.y = r4 * r4 * h3 * 0.5;
       }
-      p2.opacity += p2.opacitySpeed * p2.opacityDir * s6;
-      if (p2.opacity >= maxOpacity) {
-        p2.opacity = maxOpacity;
-        p2.opacityDir = -1;
-      } else if (p2.opacity <= 0.1) {
-        p2.opacity = 0.1;
-        p2.opacityDir = 1;
+      p4.opacity += p4.opacitySpeed * p4.opacityDir * s4;
+      if (p4.opacity >= maxOpacity) {
+        p4.opacity = maxOpacity;
+        p4.opacityDir = -1;
+      } else if (p4.opacity <= 0.1) {
+        p4.opacity = 0.1;
+        p4.opacityDir = 1;
       }
     }
   }
   _draw() {
     const { ctx, w: w2, h: h3, particles, _rgb } = this;
-    const [r4, g2, b2] = _rgb;
+    const [r4, g2, b3] = _rgb;
     ctx.clearRect(0, 0, w2, h3);
-    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
-      const p2 = particles[i5];
-      ctx.globalAlpha = p2.opacity;
-      ctx.fillStyle = `rgb(${r4},${g2},${b2})`;
+    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
+      const p4 = particles[i7];
+      ctx.globalAlpha = p4.opacity;
+      ctx.fillStyle = `rgb(${r4},${g2},${b3})`;
       ctx.beginPath();
-      ctx.arc(p2.x, p2.y, p2.size, 0, TAU);
+      ctx.arc(p4.x, p4.y, p4.size, 0, TAU);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -23510,40 +23407,40 @@ var t3 = {
   ELEMENT: 6,
 };
 var e4 =
-  (t4) =>
-  (...e6) => ({ _$litDirective$: t4, values: e6 });
-var i3 = class {
-  constructor(t4) {}
+  (t5) =>
+  (...e6) => ({ _$litDirective$: t5, values: e6 });
+var i5 = class {
+  constructor(t5) {}
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AT(t4, e6, i5) {
-    ((this._$Ct = t4), (this._$AM = e6), (this._$Ci = i5));
+  _$AT(t5, e6, i7) {
+    ((this._$Ct = t5), (this._$AM = e6), (this._$Ci = i7));
   }
-  _$AS(t4, e6) {
-    return this.update(t4, e6);
+  _$AS(t5, e6) {
+    return this.update(t5, e6);
   }
-  update(t4, e6) {
+  update(t5, e6) {
     return this.render(...e6);
   }
 };
 
 // node_modules/lit-html/directive-helpers.js
-var { I: l4 } = j;
-var s5 = {};
-var a3 = (o6, l5 = s5) => (o6._$AH = l5);
+var { I: t4 } = j;
+var m2 = {};
+var p3 = (o6, t5 = m2) => (o6._$AH = t5);
 
 // node_modules/lit-html/directives/keyed.js
-var i4 = e4(
-  class extends i3 {
+var i6 = e4(
+  class extends i5 {
     constructor() {
       (super(...arguments), (this.key = A));
     }
-    render(r4, t4) {
-      return ((this.key = r4), t4);
+    render(r4, t5) {
+      return ((this.key = r4), t5);
     }
-    update(r4, [t4, e6]) {
-      return (t4 !== this.key && (a3(r4), (this.key = t4)), e6);
+    update(r4, [t5, e6]) {
+      return (t5 !== this.key && (p3(r4), (this.key = t5)), e6);
     }
   },
 );
@@ -23611,7 +23508,7 @@ function _coalesceEntityListings(text) {
   const BLANK = /^\s*$/;
   const lines = text.split("\n");
   const out = [];
-  let i5 = 0;
+  let i7 = 0;
   const skipBlanks = (j2) => {
     while (j2 < lines.length && BLANK.test(lines[j2])) j2++;
     return j2;
@@ -23631,110 +23528,110 @@ function _coalesceEntityListings(text) {
     if (multi) {
       return multi[1]
         .split(",")
-        .map((s6) => s6.trim())
-        .filter((s6) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s6));
+        .map((s4) => s4.trim())
+        .filter((s4) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s4));
     }
     return [];
   };
   const BARE_MARKER =
     /^\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
-  while (i5 < lines.length) {
+  while (i7 < lines.length) {
     const tryCoalesce = (firstLineRe) => {
-      if (!firstLineRe.test(lines[i5])) return false;
+      if (!firstLineRe.test(lines[i7])) return false;
       const runIds = [];
-      let j3 = i5;
+      let j3 = i7;
       while (j3 < lines.length) {
-        const m2 = lines[j3].match(firstLineRe);
-        if (!m2) break;
-        for (const id of idsFromMarker(m2[1])) runIds.push(id);
+        const m3 = lines[j3].match(firstLineRe);
+        if (!m3) break;
+        for (const id of idsFromMarker(m3[1])) runIds.push(id);
         j3++;
         j3 = skipStateLines(j3);
         j3 = skipBlanks(j3);
       }
       if (runIds.length === 0) return false;
       out.push(`[[entities:${runIds.join(",")}]]`);
-      i5 = j3;
+      i7 = j3;
       return true;
     };
     if (tryCoalesce(MARKER_BULLET)) continue;
     if (tryCoalesce(BARE_MARKER)) continue;
-    const tailMatch = lines[i5].match(MARKER_TAIL_STATE);
+    const tailMatch = lines[i7].match(MARKER_TAIL_STATE);
     if (tailMatch) {
       out.push(tailMatch[1]);
-      let j3 = i5 + 1;
+      let j3 = i7 + 1;
       j3 = skipStateLines(j3);
-      i5 = j3;
+      i7 = j3;
       continue;
     }
     const ids = [];
-    let j2 = i5;
+    let j2 = i7;
     while (j2 < lines.length) {
-      const m2 = lines[j2].match(ID_LINE);
-      if (!m2) break;
-      ids.push(m2[1]);
+      const m3 = lines[j2].match(ID_LINE);
+      if (!m3) break;
+      ids.push(m3[1]);
       j2++;
       j2 = skipStateLines(j2);
       j2 = skipBlanks(j2);
     }
     if (ids.length >= 1) {
       out.push(`[[entities:${ids.join(",")}]]`);
-      i5 = j2;
+      i7 = j2;
       continue;
     }
-    out.push(lines[i5]);
-    i5++;
+    out.push(lines[i7]);
+    i7++;
   }
   return out.join("\n");
 }
 function _tableCells(line) {
-  let s6 = line.trim();
-  if (s6.startsWith("|")) s6 = s6.slice(1);
-  if (s6.endsWith("|")) s6 = s6.slice(0, -1);
-  return s6.split("|").map((c3) => c3.trim());
+  let s4 = line.trim();
+  if (s4.startsWith("|")) s4 = s4.slice(1);
+  if (s4.endsWith("|")) s4 = s4.slice(0, -1);
+  return s4.split("|").map((c4) => c4.trim());
 }
 function _isTableDelimiter(line) {
   if (!line.includes("|")) return false;
   const cells = _tableCells(line);
-  return cells.length >= 1 && cells.every((c3) => /^:?-{1,}:?$/.test(c3));
+  return cells.length >= 1 && cells.every((c4) => /^:?-{1,}:?$/.test(c4));
 }
 function _renderTables(src) {
   const lines = src.split("\n");
   const out = [];
-  let i5 = 0;
+  let i7 = 0;
   const th =
     "text-align:left;padding:6px 10px;font-weight:700;border-bottom:2px solid var(--divider-color,rgba(255,255,255,0.18));";
   const td =
     "padding:6px 10px;vertical-align:top;border-bottom:1px solid var(--divider-color,rgba(255,255,255,0.08));";
-  while (i5 < lines.length) {
+  while (i7 < lines.length) {
     if (
-      lines[i5].includes("|") &&
-      i5 + 1 < lines.length &&
-      _isTableDelimiter(lines[i5 + 1])
+      lines[i7].includes("|") &&
+      i7 + 1 < lines.length &&
+      _isTableDelimiter(lines[i7 + 1])
     ) {
-      const header = _tableCells(lines[i5]);
-      const align = _tableCells(lines[i5 + 1]).map((c3) => {
-        const l5 = c3.startsWith(":");
-        const r4 = c3.endsWith(":");
-        return l5 && r4 ? "center" : r4 ? "right" : l5 ? "left" : "";
+      const header = _tableCells(lines[i7]);
+      const align = _tableCells(lines[i7 + 1]).map((c4) => {
+        const l3 = c4.startsWith(":");
+        const r4 = c4.endsWith(":");
+        return l3 && r4 ? "center" : r4 ? "right" : l3 ? "left" : "";
       });
-      const alignStyle = (c3) => (align[c3] ? `text-align:${align[c3]};` : "");
-      i5 += 2;
+      const alignStyle = (c4) => (align[c4] ? `text-align:${align[c4]};` : "");
+      i7 += 2;
       const body = [];
       while (
-        i5 < lines.length &&
-        lines[i5].includes("|") &&
-        !_isTableDelimiter(lines[i5])
+        i7 < lines.length &&
+        lines[i7].includes("|") &&
+        !_isTableDelimiter(lines[i7])
       ) {
-        body.push(_tableCells(lines[i5]));
-        i5++;
+        body.push(_tableCells(lines[i7]));
+        i7++;
       }
       const headHtml = header
-        .map((c3, idx) => `<th style="${th}${alignStyle(idx)}">${c3}</th>`)
+        .map((c4, idx) => `<th style="${th}${alignStyle(idx)}">${c4}</th>`)
         .join("");
       const bodyHtml = body
         .map(
           (row) =>
-            `<tr>${row.map((c3, idx) => `<td style="${td}${alignStyle(idx)}">${c3}</td>`).join("")}</tr>`,
+            `<tr>${row.map((c4, idx) => `<td style="${td}${alignStyle(idx)}">${c4}</td>`).join("")}</tr>`,
         )
         .join("");
       out.push(
@@ -23742,8 +23639,8 @@ function _renderTables(src) {
       );
       continue;
     }
-    out.push(lines[i5]);
-    i5++;
+    out.push(lines[i7]);
+    i7++;
   }
   return out.join("\n");
 }
@@ -23826,10 +23723,10 @@ function renderMarkdown(text) {
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
-  const escapeCode = (s6) =>
-    s6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const escapeAttr = (s6) =>
-    s6
+  const escapeCode = (s4) =>
+    s4.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escapeAttr = (s4) =>
+    s4
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
@@ -23856,12 +23753,12 @@ function _formatTimestamp(iso) {
 }
 function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";
-  const s6 = String(state).toLowerCase();
-  if (["on", "open", "home", "playing", "active"].includes(s6))
+  const s4 = String(state).toLowerCase();
+  if (["on", "open", "home", "playing", "active"].includes(s4))
     return "var(--selora-accent, #fbbf24)";
-  if (["off", "closed", "not_home", "idle", "standby"].includes(s6))
+  if (["off", "closed", "not_home", "idle", "standby"].includes(s4))
     return "var(--selora-zinc-400)";
-  if (["unavailable", "unknown"].includes(s6)) return "#ef4444";
+  if (["unavailable", "unknown"].includes(s4)) return "#ef4444";
   return "var(--selora-zinc-200)";
 }
 function _deviceIcon(domains) {
@@ -23885,7 +23782,7 @@ function renderDeviceDetail(host) {
   const detail = host._deviceDetail;
   if (!detail) return "";
   const loading = host._deviceDetailLoading;
-  return x`
+  return b2`
     <div
       class="device-detail-drawer"
       style="
@@ -23897,195 +23794,195 @@ function renderDeviceDetail(host) {
     >
       ${
         loading
-          ? x`<span style="font-size:13px;color:var(--selora-zinc-400);"
-            >${host._t(
-              "device_detail_loading",
-              "Loading device detail...",
-            )}</span
-          >`
-          : x`
-            <!-- Header -->
-            <div
-              style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"
-            >
-              <div style="display:flex;align-items:center;gap:8px;">
-                <ha-icon
-                  icon=${_deviceIcon(detail.entities?.map((e6) => e6.domain))}
-                  style="--mdc-icon-size:22px;color:var(--selora-accent);"
-                ></ha-icon>
-                <div>
-                  <div
-                    style="font-weight:700;font-size:15px;color:var(--selora-zinc-200);"
-                  >
-                    ${detail.name}
-                  </div>
-                  <div style="font-size:12px;color:var(--selora-zinc-400);">
-                    ${[detail.area, detail.manufacturer, detail.model].filter(Boolean).join(" \xB7 ")}
-                    ${
-                      detail.integration
-                        ? x` ·
-                          <span style="opacity:0.7"
-                            >${detail.integration}</span
-                          >`
-                        : ""
-                    }
-                  </div>
-                </div>
-              </div>
-              <button
-                style="background:none;border:none;cursor:pointer;color:var(--selora-zinc-400);padding:4px;"
-                @click=${() => {
-                  host._deviceDetail = null;
-                }}
-                title=${host._t("device_detail_close", "Close")}
+          ? b2`<span style="font-size:13px;color:var(--selora-zinc-400);"
+              >${host._t(
+                "device_detail_loading",
+                "Loading device detail...",
+              )}</span
+            >`
+          : b2`
+              <!-- Header -->
+              <div
+                style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"
               >
-                <ha-icon
-                  icon="mdi:close"
-                  style="--mdc-icon-size:18px;"
-                ></ha-icon>
-              </button>
-            </div>
-
-            <!-- Entities -->
-            ${
-              detail.entities?.length
-                ? x`
-                  <div style="margin-bottom:12px;">
-                    <div
-                      style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
-                    >
-                      ${host._t("device_detail_entities_heading", "Entities")}
-                    </div>
-                    ${detail.entities.map(
-                      (e6) => x`
-                        <div
-                          style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
-                        >
-                          <span
-                            style="font-size:12px;color:var(--selora-zinc-200);"
-                            >${e6.name || e6.entity_id}</span
-                          >
-                          <span
-                            style="font-size:12px;font-weight:600;color:${_stateColor(
-                              e6.state,
-                            )};"
-                            >${e6.state}</span
-                          >
-                        </div>
-                      `,
-                    )}
-                  </div>
-                `
-                : ""
-            }
-
-            <!-- State History -->
-            ${
-              detail.state_history?.length
-                ? x`
-                  <div style="margin-bottom:12px;">
-                    <div
-                      style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
-                    >
-                      ${host._t(
-                        "device_detail_state_history_heading",
-                        "State History (24h)",
-                      )}
-                    </div>
-                    <div style="max-height:150px;overflow-y:auto;">
-                      ${detail.state_history.slice(0, 30).map(
-                        (h3) => x`
-                          <div
-                            style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"
-                          >
-                            <span style="color:var(--selora-zinc-400);"
-                              >${h3.entity_id.split(".")[1]}</span
-                            >
-                            <span style="color:${_stateColor(h3.state)};"
-                              >${h3.state}</span
-                            >
-                            <span style="color:var(--selora-zinc-400);"
-                              >${_formatTimestamp(h3.last_changed)}</span
-                            >
-                          </div>
-                        `,
-                      )}
-                    </div>
-                  </div>
-                `
-                : ""
-            }
-
-            <!-- Linked Automations -->
-            ${
-              detail.linked_automations?.length
-                ? x`
-                  <div style="margin-bottom:12px;">
-                    <div
-                      style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
-                    >
-                      ${host._t(
-                        "device_detail_linked_automations_heading",
-                        "Linked Automations",
-                      )}
-                    </div>
-                    ${detail.linked_automations.map(
-                      (a4) => x`
-                        <div
-                          style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
-                        >
-                          <span
-                            style="font-size:12px;color:var(--selora-zinc-200);"
-                            >${a4.alias || a4.id}</span
-                          >
-                        </div>
-                      `,
-                    )}
-                  </div>
-                `
-                : ""
-            }
-
-            <!-- Related Patterns -->
-            ${
-              detail.related_patterns?.length
-                ? x`
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <ha-icon
+                    icon=${_deviceIcon(detail.entities?.map((e6) => e6.domain))}
+                    style="--mdc-icon-size:22px;color:var(--selora-accent);"
+                  ></ha-icon>
                   <div>
                     <div
-                      style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
+                      style="font-weight:700;font-size:15px;color:var(--selora-zinc-200);"
                     >
-                      ${host._t(
-                        "device_detail_detected_patterns_heading",
-                        "Detected Patterns",
-                      )}
+                      ${detail.name}
                     </div>
-                    ${detail.related_patterns.map(
-                      (p2) => x`
-                        <div
-                          style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
-                        >
-                          <div
-                            style="font-size:12px;color:var(--selora-zinc-200);"
-                          >
-                            ${p2.description}
-                          </div>
-                          <div
-                            style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
-                          >
-                            ${p2.type} · ${Math.round(p2.confidence * 100)}%
-                            ${host._t(
-                              "device_detail_confidence_label",
-                              "confidence",
-                            )}
-                          </div>
-                        </div>
-                      `,
-                    )}
+                    <div style="font-size:12px;color:var(--selora-zinc-400);">
+                      ${[detail.area, detail.manufacturer, detail.model].filter(Boolean).join(" \xB7 ")}
+                      ${
+                        detail.integration
+                          ? b2` ·
+                              <span style="opacity:0.7"
+                                >${detail.integration}</span
+                              >`
+                          : ""
+                      }
+                    </div>
                   </div>
-                `
-                : ""
-            }
-          `
+                </div>
+                <button
+                  style="background:none;border:none;cursor:pointer;color:var(--selora-zinc-400);padding:4px;"
+                  @click=${() => {
+                    host._deviceDetail = null;
+                  }}
+                  title=${host._t("device_detail_close", "Close")}
+                >
+                  <ha-icon
+                    icon="mdi:close"
+                    style="--mdc-icon-size:18px;"
+                  ></ha-icon>
+                </button>
+              </div>
+
+              <!-- Entities -->
+              ${
+                detail.entities?.length
+                  ? b2`
+                      <div style="margin-bottom:12px;">
+                        <div
+                          style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
+                        >
+                          ${host._t("device_detail_entities_heading", "Entities")}
+                        </div>
+                        ${detail.entities.map(
+                          (e6) => b2`
+                            <div
+                              style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
+                            >
+                              <span
+                                style="font-size:12px;color:var(--selora-zinc-200);"
+                                >${e6.name || e6.entity_id}</span
+                              >
+                              <span
+                                style="font-size:12px;font-weight:600;color:${_stateColor(
+                                  e6.state,
+                                )};"
+                                >${e6.state}</span
+                              >
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : ""
+              }
+
+              <!-- State History -->
+              ${
+                detail.state_history?.length
+                  ? b2`
+                      <div style="margin-bottom:12px;">
+                        <div
+                          style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
+                        >
+                          ${host._t(
+                            "device_detail_state_history_heading",
+                            "State History (24h)",
+                          )}
+                        </div>
+                        <div style="max-height:150px;overflow-y:auto;">
+                          ${detail.state_history.slice(0, 30).map(
+                            (h3) => b2`
+                              <div
+                                style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"
+                              >
+                                <span style="color:var(--selora-zinc-400);"
+                                  >${h3.entity_id.split(".")[1]}</span
+                                >
+                                <span style="color:${_stateColor(h3.state)};"
+                                  >${h3.state}</span
+                                >
+                                <span style="color:var(--selora-zinc-400);"
+                                  >${_formatTimestamp(h3.last_changed)}</span
+                                >
+                              </div>
+                            `,
+                          )}
+                        </div>
+                      </div>
+                    `
+                  : ""
+              }
+
+              <!-- Linked Automations -->
+              ${
+                detail.linked_automations?.length
+                  ? b2`
+                      <div style="margin-bottom:12px;">
+                        <div
+                          style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
+                        >
+                          ${host._t(
+                            "device_detail_linked_automations_heading",
+                            "Linked Automations",
+                          )}
+                        </div>
+                        ${detail.linked_automations.map(
+                          (a3) => b2`
+                            <div
+                              style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
+                            >
+                              <span
+                                style="font-size:12px;color:var(--selora-zinc-200);"
+                                >${a3.alias || a3.id}</span
+                              >
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : ""
+              }
+
+              <!-- Related Patterns -->
+              ${
+                detail.related_patterns?.length
+                  ? b2`
+                      <div>
+                        <div
+                          style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
+                        >
+                          ${host._t(
+                            "device_detail_detected_patterns_heading",
+                            "Detected Patterns",
+                          )}
+                        </div>
+                        ${detail.related_patterns.map(
+                          (p4) => b2`
+                            <div
+                              style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
+                            >
+                              <div
+                                style="font-size:12px;color:var(--selora-zinc-200);"
+                              >
+                                ${p4.description}
+                              </div>
+                              <div
+                                style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
+                              >
+                                ${p4.type} · ${Math.round(p4.confidence * 100)}%
+                                ${host._t(
+                                  "device_detail_confidence_label",
+                                  "confidence",
+                                )}
+                              </div>
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : ""
+              }
+            `
       }
     </div>
   `;
@@ -24142,28 +24039,28 @@ function _approvalScope(value) {
 function _normalizeApprovalActions(host, actions) {
   let touched = false;
   const presentation = _approvalPresentation(host);
-  const out = actions.map((a4) => {
-    const scope = _approvalScope(a4?.value);
-    if (!scope) return a4;
+  const out = actions.map((a3) => {
+    const scope = _approvalScope(a3?.value);
+    if (!scope) return a3;
     const preset = presentation[scope];
-    if (!preset) return a4;
+    if (!preset) return a3;
     touched = true;
     return {
-      ...a4,
+      ...a3,
       // Override label too — older persisted messages may have shipped
       // "Session" / "Allow once" wording, but we want the new copy
       // ("For this conversation") to appear consistently.
       label: preset.label,
       mode: "choice",
-      icon: a4.icon || preset.icon,
-      tone: a4.tone || preset.tone,
-      description: a4.description || preset.description,
+      icon: a3.icon || preset.icon,
+      tone: a3.tone || preset.tone,
+      description: a3.description || preset.description,
     };
   });
   return touched ? out : actions;
 }
 function _isApprovalGroup(actions) {
-  return actions.some((a4) => _approvalScope(a4?.value));
+  return actions.some((a3) => _approvalScope(a3?.value));
 }
 function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
@@ -24174,30 +24071,30 @@ function renderQuickActions(host, actions, opts = {}) {
     const approvalClass = _isApprovalGroup(actions)
       ? " qa-group--approval"
       : "";
-    return x`
+    return b2`
       <div class="qa-group qa-group--choices${approvalClass}${usedClass}">
-        ${actions.map((a4) => _renderChoice(host, a4))}
+        ${actions.map((a3) => _renderChoice(host, a3))}
       </div>
     `;
   }
   if (mode === "confirmation") {
-    return x`
+    return b2`
       <div class="qa-group qa-group--confirmations${usedClass}">
-        ${actions.map((a4) => _renderConfirmation(host, a4))}
+        ${actions.map((a3) => _renderConfirmation(host, a3))}
       </div>
     `;
   }
-  return x`
+  return b2`
     <div class="qa-group${usedClass}">
-      ${actions.map((a4) => _renderSuggestion(host, a4))}
+      ${actions.map((a3) => _renderSuggestion(host, a3))}
     </div>
   `;
 }
 function _detectMode(actions) {
   const first = actions[0];
   if (first.mode) return first.mode;
-  if (actions.some((a4) => a4.primary !== void 0)) return "confirmation";
-  if (actions.some((a4) => a4.description)) return "choice";
+  if (actions.some((a3) => a3.primary !== void 0)) return "confirmation";
+  if (actions.some((a3) => a3.description)) return "choice";
   return "suggestion";
 }
 function _onSelect(host, action) {
@@ -24205,7 +24102,7 @@ function _onSelect(host, action) {
 }
 function _renderSuggestion(host, action) {
   const leadingIcon = action.icon || "mdi:auto-fix";
-  return x`
+  return b2`
     <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
       <span class="qa-glow-track" aria-hidden="true">
         <span class="qa-glow-spot"></span>
@@ -24250,7 +24147,7 @@ function _renderChoice(host, action) {
   const cardTitle = tooltipDescription
     ? `${action.label} \u2014 ${action.description}`
     : action.label;
-  return x`
+  return b2`
     <div
       class="qa-choice"
       style=${toneStyle}
@@ -24266,7 +24163,7 @@ function _renderChoice(host, action) {
           <span class="qa-choice-label" title=${action.label}
             >${action.label}</span
           >
-          ${inlineDescription ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
+          ${inlineDescription ? b2`<span class="qa-choice-desc">${action.description}</span>` : ""}
         </div>
         <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
       </div>
@@ -24283,19 +24180,19 @@ function _renderConfirmation(host, action) {
       : tone === "deny"
         ? "color:#ef4444;"
         : "";
-  return x`
+  return b2`
     <button class=${cls} @click=${() => _onSelect(host, action)}>
       ${
         action.icon
-          ? x`<ha-icon
-            icon=${action.icon}
-            style="--mdc-icon-size:16px;${iconStyle}"
-          ></ha-icon>`
+          ? b2`<ha-icon
+              icon=${action.icon}
+              style="--mdc-icon-size:16px;${iconStyle}"
+            ></ha-icon>`
           : ""
       }
       <span style="display:flex;flex-direction:column;align-items:flex-start;">
         <span class="qa-confirm-label">${action.label}</span>
-        ${action.description ? x`<span class="qa-confirm-desc">${action.description}</span>` : ""}
+        ${action.description ? b2`<span class="qa-confirm-desc">${action.description}</span>` : ""}
       </span>
     </button>
   `;
@@ -24388,11 +24285,11 @@ var DOMAIN_FORMS = {
     past: "Ran shell command",
   },
 };
-function _domainOf(s6) {
-  return (s6 || "").split(".", 1)[0];
+function _domainOf(s4) {
+  return (s4 || "").split(".", 1)[0];
 }
-function _serviceSuffix(s6) {
-  const parts = (s6 || "").split(".");
+function _serviceSuffix(s4) {
+  const parts = (s4 || "").split(".");
   return parts.length > 1 ? parts.slice(1).join(".") : "";
 }
 function _friendlyName(host, entityId) {
@@ -24413,12 +24310,12 @@ function describeCall(host, call) {
   const ids = callTargetEntityIds(call);
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
-  const t4 =
+  const t5 =
     typeof host?._t === "function"
       ? (k2, fb) => host._t(k2, fb)
       : (_k, fb) => fb;
-  const imperative = forms?.imperative || t4("action_format_run_verb", "Run");
-  const pastVerb = forms?.past || t4("action_format_ran_verb", "Ran");
+  const imperative = forms?.imperative || t5("action_format_run_verb", "Run");
+  const pastVerb = forms?.past || t5("action_format_ran_verb", "Ran");
   if (ids.length) {
     const names = ids.map((eid) => _friendlyName(host, eid));
     return {
@@ -24465,7 +24362,7 @@ function _renderActionTile(call) {
   const service = call?.service || "";
   const icon = actionIcon(service);
   const { verb } = describeCall({ hass: { states: {} } }, call);
-  return x`
+  return b2`
     <div
       style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;min-width:88px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);"
       title=${service}
@@ -24485,7 +24382,7 @@ function _renderCallRow(host, call, reason) {
   const ids = callTargetEntityIds(call);
   const { targetText } = describeCall(host, call);
   const rightSide = ids.length
-    ? x`
+    ? b2`
         <div
           class="selora-entity-grid"
           data-entity-ids=${ids.join(",")}
@@ -24493,14 +24390,14 @@ function _renderCallRow(host, call, reason) {
           style="flex:1;min-width:0;margin:0;"
         ></div>
       `
-    : x`
+    : b2`
         <div
           style="flex:1;min-width:0;padding:12px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);font-size:13px;color:var(--primary-text-color);"
         >
           ${targetText}
         </div>
       `;
-  return x`
+  return b2`
     <div
       style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;flex-direction:column;gap:8px;"
     >
@@ -24514,11 +24411,11 @@ function _renderCallRow(host, call, reason) {
       </div>
       ${
         reason
-          ? x`<div
-            style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
-          >
-            ${reason}
-          </div>`
+          ? b2`<div
+              style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+            >
+              ${reason}
+            </div>`
           : ""
       }
     </div>
@@ -24575,7 +24472,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       approvalStatus === "approved"
         ? "mdi:check-circle-outline"
         : "mdi:close-circle-outline";
-    return x`
+    return b2`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolvedColor};"
       >
@@ -24590,7 +24487,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
     `;
   }
   if (approvalStatus === "resolving") {
-    return x`
+    return b2`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
@@ -24599,8 +24496,8 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       </div>
     `;
   }
-  const reasonFor = (i5) => reasons[i5] || "";
-  return x`
+  const reasonFor = (i7) => reasons[i7] || "";
+  return b2`
     <div
       style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
     >
@@ -24619,40 +24516,40 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${calls.map((c3, i5) => _renderCallRow(host, c3, reasonFor(i5)))}
+        ${calls.map((c4, i7) => _renderCallRow(host, c4, reasonFor(i7)))}
       </div>
       ${
         entityIds.length
-          ? x`
-            <div
-              style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
-            >
-              <span
-                >${host._t(
-                  "approval_scope_label",
-                  "For Session / Always:",
-                )}</span
+          ? b2`
+              <div
+                style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
               >
-              <button
-                @click=${() => host._toggleApprovalScope?.(msg)}
-                title=${host._t(
-                  "approval_scope_button_title",
-                  "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
-                )}
-                style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
-              >
-                <ha-icon
-                  icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
-                  style="--mdc-icon-size:14px;color:${scope === "all" ? "#f59e0b" : "#10b981"};"
-                ></ha-icon>
-                <span>${_scopeLabel(host, scope, entityIds)}</span>
-                <ha-icon
-                  icon="mdi:chevron-down"
-                  style="--mdc-icon-size:14px;opacity:0.6;"
-                ></ha-icon>
-              </button>
-            </div>
-          `
+                <span
+                  >${host._t(
+                    "approval_scope_label",
+                    "For Session / Always:",
+                  )}</span
+                >
+                <button
+                  @click=${() => host._toggleApprovalScope?.(msg)}
+                  title=${host._t(
+                    "approval_scope_button_title",
+                    "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
+                  )}
+                  style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
+                >
+                  <ha-icon
+                    icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
+                    style="--mdc-icon-size:14px;color:${scope === "all" ? "#f59e0b" : "#10b981"};"
+                  ></ha-icon>
+                  <span>${_scopeLabel(host, scope, entityIds)}</span>
+                  <ha-icon
+                    icon="mdi:chevron-down"
+                    style="--mdc-icon-size:14px;opacity:0.6;"
+                  ></ha-icon>
+                </button>
+              </div>
+            `
           : ""
       }
     </div>
@@ -24709,17 +24606,17 @@ function renderAgentSteps(host, steps) {
   const items = _dedupeSteps(steps);
   if (items.length === 0) return "";
   const lastIndex = items.length - 1;
-  return x`
+  return b2`
     <div
       class="agent-steps"
       style="display:flex;flex-direction:column;gap:7px;margin:2px 2px 10px;"
     >
-      ${items.map((step, i5) => {
+      ${items.map((step, i7) => {
         const color = _stepColor(step.status);
         const spinning = step.status === "active";
         const emphasised = step.status === "warn" || step.status === "error";
-        const showRail = i5 !== lastIndex;
-        return x`
+        const showRail = i7 !== lastIndex;
+        return b2`
           <div
             class="agent-step"
             style="display:flex;align-items:center;gap:9px;"
@@ -24730,9 +24627,9 @@ function renderAgentSteps(host, steps) {
             >
               ${
                 showRail
-                  ? x`<span
-                    style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
-                  ></span>`
+                  ? b2`<span
+                      style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
+                    ></span>`
                   : ""
               }
               <ha-icon
@@ -25127,12 +25024,12 @@ function _toUnicodeBoundary(re) {
   const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
   return new RegExp(src, flags); // nosemgrep
 }
-for (const t4 of BASE_TRIGGERS) {
-  t4.pattern = _toUnicodeBoundary(t4.pattern);
+for (const t5 of BASE_TRIGGERS) {
+  t5.pattern = _toUnicodeBoundary(t5.pattern);
 }
 for (const list of Object.values(LOCALE_TRIGGERS)) {
-  for (const t4 of list) {
-    t4.pattern = _toUnicodeBoundary(t4.pattern);
+  for (const t5 of list) {
+    t5.pattern = _toUnicodeBoundary(t5.pattern);
   }
 }
 function _langKey(lang) {
@@ -25543,7 +25440,7 @@ function _ghostVocabFor(lang) {
   const key = GHOST_VOCABULARY_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
   if (!_ghostSorted[key]) {
     _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
-      (a4, b2) => a4.length - b2.length,
+      (a3, b3) => a3.length - b3.length,
     );
   }
   return _ghostSorted[key];
@@ -25552,11 +25449,11 @@ var GHOST_MIN_PREFIX = 3;
 var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
 function _partialWordAt(text, caret) {
   if (caret <= 0) return null;
-  let i5 = caret;
-  while (i5 > 0 && _WORD_CHAR_RE.test(text[i5 - 1])) i5--;
-  const word = text.slice(i5, caret);
+  let i7 = caret;
+  while (i7 > 0 && _WORD_CHAR_RE.test(text[i7 - 1])) i7--;
+  const word = text.slice(i7, caret);
   if (!word) return null;
-  return { word, start: i5 };
+  return { word, start: i7 };
 }
 function findGhostSuggestion(text, caret, lang) {
   if (typeof text !== "string") return null;
@@ -25657,8 +25554,8 @@ function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areas && typeof areas === "object") {
-    for (const [id, a4] of Object.entries(areas)) {
-      areaById[id] = a4?.name || a4?.area_id || id;
+    for (const [id, a3] of Object.entries(areas)) {
+      areaById[id] = a3?.name || a3?.area_id || id;
     }
   }
   const fullEntReg = entities || {};
@@ -25734,8 +25631,8 @@ function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
   return dedupeDeviceItems(items);
 }
 var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
-function normLabel(s6) {
-  return s6.toLowerCase().replace(/\s+/g, " ").trim();
+function normLabel(s4) {
+  return s4.toLowerCase().replace(/\s+/g, " ").trim();
 }
 function baseLabel(normalized) {
   return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
@@ -25746,14 +25643,14 @@ function isParenPrefix(shorter, longer) {
   return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
 }
 function labelsForked(labels) {
-  const sorted = [...labels].sort((a4, b2) => a4.length - b2.length);
-  for (let i5 = 0; i5 + 1 < sorted.length; i5++) {
-    if (!isParenPrefix(sorted[i5], sorted[i5 + 1])) return true;
+  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
+  for (let i7 = 0; i7 + 1 < sorted.length; i7++) {
+    if (!isParenPrefix(sorted[i7], sorted[i7 + 1])) return true;
   }
   return false;
 }
 function dedupeDeviceItems(items) {
-  const devices = items.filter((i5) => i5.kind === "device");
+  const devices = items.filter((i7) => i7.kind === "device");
   const domainsByDevice = /* @__PURE__ */ new Map();
   for (const it of devices) {
     if (!it.device_id) continue;
@@ -25807,7 +25704,7 @@ function dedupeDeviceItems(items) {
       if (!it.area_id && it.device_id) kept.delete(it);
     }
   }
-  return items.filter((i5) => i5.kind !== "device" || kept.has(i5));
+  return items.filter((i7) => i7.kind !== "device" || kept.has(i7));
 }
 function _scoreItem(item, lowerQuery) {
   const label = item._lowerLabel;
@@ -25822,8 +25719,8 @@ function _scoreItem(item, lowerQuery) {
   }
   if (label.includes(lowerQuery)) return 100;
   let qi = 0;
-  for (let i5 = 0; i5 < label.length && qi < lowerQuery.length; i5++) {
-    if (label[i5] === lowerQuery[qi]) qi += 1;
+  for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
+    if (label[i7] === lowerQuery[qi]) qi += 1;
   }
   if (qi === lowerQuery.length) return 10;
   return 0;
@@ -25837,7 +25734,7 @@ function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
     if (!domainSet.has(it.domain)) continue;
     out.push(it);
   }
-  out.sort((a4, b2) => a4.label.localeCompare(b2.label));
+  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
   return out.slice(0, max);
 }
 function findExactMatches(items, kind, query, domains = null) {
@@ -25871,14 +25768,14 @@ function rankSuggestions(
     const score = _scoreItem(it, lowerQuery);
     if (score > 0) scored.push({ item: it, score });
   }
-  scored.sort((a4, b2) => {
-    if (b2.score !== a4.score) return b2.score - a4.score;
-    if (a4.item.label.length !== b2.item.label.length) {
-      return a4.item.label.length - b2.item.label.length;
+  scored.sort((a3, b3) => {
+    if (b3.score !== a3.score) return b3.score - a3.score;
+    if (a3.item.label.length !== b3.item.label.length) {
+      return a3.item.label.length - b3.item.label.length;
     }
-    return a4.item.label.localeCompare(b2.item.label);
+    return a3.item.label.localeCompare(b3.item.label);
   });
-  return scored.slice(0, max).map((s6) => s6.item);
+  return scored.slice(0, max).map((s4) => s4.item);
 }
 function applySelection(text, trigger, item) {
   const before = text.slice(0, trigger.start);
@@ -25924,16 +25821,16 @@ function stripEntityMarkers(text) {
     .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
     .trimEnd();
 }
-function _escapeRegex(s6) {
-  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function _escapeRegex(s4) {
+  return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function pruneStaleSelections(text, selections) {
   if (!selections?.length) return selections;
-  return selections.filter((s6) => {
-    if (!s6.label) return false;
-    const escaped = _escapeRegex(s6.label);
-    const startWord = /^\w/.test(s6.label);
-    const endWord = /\w$/.test(s6.label);
+  return selections.filter((s4) => {
+    if (!s4.label) return false;
+    const escaped = _escapeRegex(s4.label);
+    const startWord = /^\w/.test(s4.label);
+    const endWord = /\w$/.test(s4.label);
     const pattern = (startWord ? "\\b" : "") + escaped + (endWord ? "\\b" : "");
     return new RegExp(pattern, "i").test(text); // nosemgrep
   });
@@ -25982,7 +25879,7 @@ function _formatToolArgs(args) {
   return parts.join(", ");
 }
 function renderToolCalls(host, toolCalls) {
-  return x`
+  return b2`
     <details
       class="dev-tool-calls"
       style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
@@ -26003,13 +25900,13 @@ function renderToolCalls(host, toolCalls) {
         style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
       >
         ${toolCalls.map(
-          (tc, i5) => x`
+          (tc, i7) => b2`
             <div
-              style="padding:2px 0;${i5 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+              style="padding:2px 0;${i7 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
             >
               <span style="color:var(--primary-text-color);font-weight:600;"
                 >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length ? x`<span>(${_formatToolArgs(tc.arguments)})</span>` : x`<span>()</span>`}
+              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
             </div>
           `,
         )}
@@ -26056,7 +25953,7 @@ function _welcomeSuggestions(host) {
 }
 function renderAutomationSuggestButton(host) {
   const busy = !!host._suggestingAutomation;
-  return x`
+  return b2`
     <button
       class="welcome-suggest-btn"
       ?disabled=${busy || host._loading || host._streaming}
@@ -26064,11 +25961,11 @@ function renderAutomationSuggestButton(host) {
     >
       ${
         busy
-          ? x`<span class="spinner green"></span>`
-          : x`<ha-icon
-            icon="mdi:auto-fix"
-            style="--mdc-icon-size:14px;"
-          ></ha-icon>`
+          ? b2`<span class="spinner green"></span>`
+          : b2`<ha-icon
+              icon="mdi:auto-fix"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>`
       }
       <span
         >${busy ? host._t("chat_suggest_thinking", "Thinking\u2026") : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
@@ -26079,12 +25976,12 @@ function renderAutomationSuggestButton(host) {
 function renderChat(host) {
   const isEmpty = host._messages.length === 0;
   if (isEmpty) {
-    return x`
+    return b2`
       <div class="chat-pane">
         <div class="chat-welcome-center" id="chat-messages">
-          ${i4(
+          ${i6(
             host._welcomeKey || 0,
-            x`
+            b2`
               <div class="welcome-center-content">
                 <img
                   src="/api/selora_ai/logo.png"
@@ -26094,12 +25991,12 @@ function renderChat(host) {
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
                   ${
                     host._newAutomationMode
-                      ? x`${host._t("new_automation_title_prefix", "New")}
-                        <span class="gold-text"
-                          >${host._t("new_automation_gold", "Automation")}</span
-                        >`
-                      : x`${host._t("welcome_title_prefix", "Welcome to")}
-                        <span class="gold-text">Selora AI</span>`
+                      ? b2`${host._t("new_automation_title_prefix", "New")}
+                          <span class="gold-text"
+                            >${host._t("new_automation_gold", "Automation")}</span
+                          >`
+                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
+                          <span class="gold-text">Selora AI</span>`
                   }
                 </div>
                 <div
@@ -26120,76 +26017,76 @@ function renderChat(host) {
 
                 ${
                   host._llmNeedsSetup
-                    ? x`
-                      <div
-                        style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
-                        @click=${() => host._goToSettings()}
-                      >
-                        <ha-icon
-                          icon="mdi:rocket-launch-outline"
-                          style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
-                        ></ha-icon>
+                    ? b2`
                         <div
-                          style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                          style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
+                          @click=${() => host._goToSettings()}
                         >
-                          ${host._t("get_started", "Get started")}
-                        </div>
-                        <div
-                          style="font-size:13px;opacity:0.6;margin-bottom:16px;"
-                        >
-                          ${host._t(
-                            "get_started_body",
-                            "Configure your LLM provider in the Settings tab to start chatting with your home.",
-                          )}
-                        </div>
-                        <span
-                          style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
-                        >
-                          ${host._t("open_settings", "Open Settings")}
                           <ha-icon
-                            icon="mdi:arrow-right"
-                            style="--mdc-icon-size:16px;"
+                            icon="mdi:rocket-launch-outline"
+                            style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
                           ></ha-icon>
-                        </span>
-                      </div>
-                    `
-                    : x`
-                      <div class="welcome-composer-area">
-                        <selora-particles
-                          class="welcome-composer-particles"
-                          .count=${260}
-                          .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
-                          .maxOpacity=${host._isDark ? 0.55 : 0.5}
-                          .speed=${host._streaming || host._loading ? 2.2 : 1}
-                        ></selora-particles>
-                        ${_renderComposer(host, { welcome: true })}
-                      </div>
+                          <div
+                            style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                          >
+                            ${host._t("get_started", "Get started")}
+                          </div>
+                          <div
+                            style="font-size:13px;opacity:0.6;margin-bottom:16px;"
+                          >
+                            ${host._t(
+                              "get_started_body",
+                              "Configure your LLM provider in the Settings tab to start chatting with your home.",
+                            )}
+                          </div>
+                          <span
+                            style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
+                          >
+                            ${host._t("open_settings", "Open Settings")}
+                            <ha-icon
+                              icon="mdi:arrow-right"
+                              style="--mdc-icon-size:16px;"
+                            ></ha-icon>
+                          </span>
+                        </div>
+                      `
+                    : b2`
+                        <div class="welcome-composer-area">
+                          <selora-particles
+                            class="welcome-composer-particles"
+                            .count=${260}
+                            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
+                            .maxOpacity=${host._isDark ? 0.55 : 0.5}
+                            .speed=${host._streaming || host._loading ? 2.2 : 1}
+                          ></selora-particles>
+                          ${_renderComposer(host, { welcome: true })}
+                        </div>
 
-                      ${
-                        host._newAutomationMode
-                          ? renderAutomationSuggestButton(host)
-                          : x`
-                            <details class="welcome-quickstart">
-                              <summary class="welcome-quickstart-summary">
-                                <span
-                                  >${host._t(
-                                    "quick_start",
-                                    "Quick start",
-                                  )}</span
-                                >
-                                <ha-icon
-                                  icon="mdi:chevron-down"
-                                  class="welcome-quickstart-chevron"
-                                ></ha-icon>
-                              </summary>
-                              ${renderQuickActions(
-                                host,
-                                _welcomeSuggestions(host),
-                              )}
-                            </details>
-                          `
-                      }
-                    `
+                        ${
+                          host._newAutomationMode
+                            ? renderAutomationSuggestButton(host)
+                            : b2`
+                                <details class="welcome-quickstart">
+                                  <summary class="welcome-quickstart-summary">
+                                    <span
+                                      >${host._t(
+                                        "quick_start",
+                                        "Quick start",
+                                      )}</span
+                                    >
+                                    <ha-icon
+                                      icon="mdi:chevron-down"
+                                      class="welcome-quickstart-chevron"
+                                    ></ha-icon>
+                                  </summary>
+                                  ${renderQuickActions(
+                                    host,
+                                    _welcomeSuggestions(host),
+                                  )}
+                                </details>
+                              `
+                        }
+                      `
                 }
               </div>
             `,
@@ -26211,7 +26108,7 @@ function renderChat(host) {
     !lastMsg.command_approval
       ? lastMsg
       : null;
-  return x`
+  return b2`
     <div class="chat-pane">
       <div
         class="chat-messages"
@@ -26222,13 +26119,13 @@ function renderChat(host) {
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
           host._loading
-            ? x`
-              <div class="typing-bubble">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-              </div>
-            `
+            ? b2`
+                <div class="typing-bubble">
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                </div>
+              `
             : ""
         }
       </div>
@@ -26236,30 +26133,30 @@ function renderChat(host) {
       <div class="chat-input-wrapper">
         ${
           host._chatScrolledAway && host._messages.length > 0
-            ? x`
-              <button
-                class="chat-jump-bottom"
-                @click=${() => host._scrollChatToBottom()}
-                title=${host._t("chat_jump_to_latest", "Go to latest message")}
-                aria-label=${host._t(
-                  "chat_jump_to_latest",
-                  "Go to latest message",
-                )}
-              >
-                <ha-icon icon="mdi:chevron-down"></ha-icon>
-              </button>
-            `
+            ? b2`
+                <button
+                  class="chat-jump-bottom"
+                  @click=${() => host._scrollChatToBottom()}
+                  title=${host._t("chat_jump_to_latest", "Go to latest message")}
+                  aria-label=${host._t(
+                    "chat_jump_to_latest",
+                    "Go to latest message",
+                  )}
+                >
+                  <ha-icon icon="mdi:chevron-down"></ha-icon>
+                </button>
+              `
             : ""
         }
         ${
           lastQuickActions
-            ? x`
-              <div class="chat-quick-actions">
-                ${renderQuickActions(host, lastQuickActions.quick_actions, {
-                  used: !!lastQuickActions._qa_used,
-                })}
-              </div>
-            `
+            ? b2`
+                <div class="chat-quick-actions">
+                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
+                    used: !!lastQuickActions._qa_used,
+                  })}
+                </div>
+              `
             : ""
         }
         ${_renderComposer(host)}
@@ -26344,7 +26241,7 @@ function _measureCaretInTextarea(textarea) {
   const mirror = document.createElement("div");
   const style = mirror.style;
   const cs = window.getComputedStyle(textarea);
-  for (const p2 of _MIRROR_COPY_PROPS) style[p2] = cs[p2];
+  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
   style.position = "absolute";
   style.visibility = "hidden";
   style.top = "0";
@@ -26472,7 +26369,7 @@ function _renderGhostOverlay(host) {
   if (!suffix) return "";
   const anchor = host._ghost.anchor;
   if (!anchor) return "";
-  return x`
+  return b2`
     <span
       class="composer-ghost-suffix"
       aria-hidden="true"
@@ -26529,7 +26426,7 @@ function _selectAutocompleteItem(host, textarea, item) {
 }
 function _removeSelection(host, idx) {
   const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i5) => i5 !== idx);
+  host._autocompleteSelections = sels.filter((_2, i7) => i7 !== idx);
 }
 function _renderAutocomplete(host) {
   const ac = host._autocomplete;
@@ -26559,14 +26456,14 @@ function _renderAutocomplete(host) {
     }
     groups.get(item.kind).push(item);
   }
-  return x`
+  return b2`
     <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
       ${groupOrder.map((kind) => {
         const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
         const header = headerKV
           ? host._t(headerKV[0], headerKV[1])
           : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
-        return x`
+        return b2`
           <div class="composer-autocomplete-header">
             <span>${header}</span>
           </div>
@@ -26584,7 +26481,7 @@ function _renderAutocomplete(host) {
 }
 function _renderAutocompleteRow(host, ac, item) {
   const idx = ac.items.indexOf(item);
-  return x`<button
+  return b2`<button
     type="button"
     class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
     role="option"
@@ -26599,22 +26496,22 @@ function _renderAutocompleteRow(host, ac, item) {
   >
     <ha-icon icon=${item.icon}></ha-icon>
     <span class="composer-autocomplete-label">${item.label}</span>
-    ${item.area ? x`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
+    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
   </button>`;
 }
 function _renderSelectionChips(host) {
   const sels = host._autocompleteSelections || [];
   if (!sels.length) return "";
-  return x`
+  return b2`
     <div class="composer-selections-inline">
       ${sels.map(
-        (s6, idx) => x`
+        (s4, idx) => b2`
           <span
             class="composer-selection-chip"
-            title=${s6.entity_id || s6.area_id || ""}
+            title=${s4.entity_id || s4.area_id || ""}
           >
-            <ha-icon icon=${s6.icon}></ha-icon>
-            ${s6.label}
+            <ha-icon icon=${s4.icon}></ha-icon>
+            ${s4.label}
             <button
               type="button"
               title=${host._t("chat_selection_remove", "Remove")}
@@ -26630,7 +26527,7 @@ function _renderSelectionChips(host) {
 }
 function _renderComposer(host, opts = {}) {
   const welcome = !!opts.welcome;
-  return x`
+  return b2`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
       <div
@@ -26730,8 +26627,8 @@ function _renderComposer(host, opts = {}) {
                   return;
                 }
                 const userHistory = host._messages
-                  .filter((m2) => m2.role === "user" && m2.content)
-                  .map((m2) => stripEntityMarkers(m2.content));
+                  .filter((m3) => m3.role === "user" && m3.content)
+                  .map((m3) => stripEntityMarkers(m3.content));
                 const ta = e6.target;
                 const atStart =
                   ta.selectionStart === 0 && ta.selectionEnd === 0;
@@ -26806,21 +26703,21 @@ function _renderComposer(host, opts = {}) {
         </div>
         ${
           host._streaming
-            ? x`<button
-              class="composer-send"
-              @click=${() => host._stopStreaming()}
-              title=${host._t("chat_stop_generating", "Stop generating")}
-            >
-              <ha-icon icon="mdi:stop"></ha-icon>
-            </button>`
-            : x`<button
-              class="composer-send"
-              @click=${() => host._sendMessage()}
-              ?disabled=${host._loading || !host._input.trim()}
-              title=${host._t("chat_send", "Send")}
-            >
-              <ha-icon icon="mdi:arrow-up"></ha-icon>
-            </button>`
+            ? b2`<button
+                class="composer-send"
+                @click=${() => host._stopStreaming()}
+                title=${host._t("chat_stop_generating", "Stop generating")}
+              >
+                <ha-icon icon="mdi:stop"></ha-icon>
+              </button>`
+            : b2`<button
+                class="composer-send"
+                @click=${() => host._sendMessage()}
+                ?disabled=${host._loading || !host._input.trim()}
+                title=${host._t("chat_send", "Send")}
+              >
+                <ha-icon icon="mdi:arrow-up"></ha-icon>
+              </button>`
         }
       </div>
     </div>
@@ -26828,7 +26725,7 @@ function _renderComposer(host, opts = {}) {
 }
 function renderMessage(host, msg, idx) {
   const isUser = msg.role === "user";
-  if (msg._streaming && !msg.content) return x``;
+  if (msg._streaming && !msg.content) return b2``;
   let displayContent = msg.content;
   let showAutomationSpinner = false;
   let showSceneSpinner = false;
@@ -26880,268 +26777,280 @@ function renderMessage(host, msg, idx) {
     msg.approval_status !== "approved" &&
     msg.approval_status !== "denied" &&
     msg.approval_status !== "resolving";
-  return x`
+  return b2`
     <div class="message-row">
       ${
         isUser
-          ? x`
-            <div class="bubble user">
-              <span
-                class="msg-content"
-                .textContent=${stripEntityMarkers(msg.content)}
-              ></span>
-            </div>
-          `
-          : x`
-            <div
-              class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
-            >
-              ${renderAgentSteps(host, msg.steps)}
-              <div
-                class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
-                style="max-width:100%;align-self:auto;"
-              >
-                ${
-                  msg.command_approval
-                    ? ""
-                    : x`<span
-                      class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
-                      @click=${host._onCodeCopyClick}
-                      .innerHTML=${renderMarkdown(displayContent)}
-                    ></span>`
-                }
-                ${
-                  showAutomationSpinner
-                    ? (() => {
-                        const startedAt = msg._sentAt || Date.now();
-                        const labelIdx =
-                          Math.floor(
-                            (Date.now() - startedAt) /
-                              AUTOMATION_LABEL_INTERVAL_MS,
-                          ) % AUTOMATION_LABEL_KEYS.length;
-                        const [labelKey, labelFallback] =
-                          AUTOMATION_LABEL_KEYS[labelIdx];
-                        return x`
-                        <div
-                          style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                        >
-                          <div
-                            class="typing-dot"
-                            style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                          ></div>
-                          <span
-                            style="font-size:13px;font-weight:500;color:#fbbf24;"
-                            >${host._t(labelKey, labelFallback)}</span
-                          >
-                        </div>
-                      `;
-                      })()
-                    : ""
-                }
-                ${
-                  showSceneSpinner
-                    ? x`
-                      <div
-                        style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                      >
-                        <div
-                          class="typing-dot"
-                          style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                        ></div>
-                        <span
-                          style="font-size:13px;font-weight:500;color:#fbbf24;"
-                          >${host._t(
-                            "chat_building_scene",
-                            "Building scene...",
-                          )}</span
-                        >
-                      </div>
-                    `
-                    : ""
-                }
-                ${
-                  msg.config_issue
-                    ? x`
-                      <div style="margin-top: 10px;">
-                        <mwc-button dense raised @click=${host._goToSettings}
-                          >${host._t(
-                            "chat_go_to_settings",
-                            "Go to Settings",
-                          )}</mwc-button
-                        >
-                      </div>
-                    `
-                    : ""
-                }
-                ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
-                ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
-                ${
-                  msg.command_approval
-                    ? renderApprovalCard(
-                        host,
-                        msg,
-                        msg.command_approval,
-                        msg.approval_status,
-                      )
-                    : ""
-                }
-                ${
-                  msg._interrupted
-                    ? x`
-                      <div class="stream-interrupt">
-                        <ha-icon
-                          icon="mdi:alert-circle-outline"
-                          style="--mdc-icon-size:16px;flex-shrink:0;"
-                        ></ha-icon>
-                        <span class="stream-interrupt-text"
-                          >${
-                            msg._interruptReason ||
-                            host._t(
-                              "chat_response_cut_short",
-                              "Response was cut short.",
-                            )
-                          }</span
-                        >
-                      </div>
-                    `
-                    : ""
-                }
-                ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
+          ? b2`
+              <div class="bubble user">
+                <span
+                  class="msg-content"
+                  .textContent=${stripEntityMarkers(msg.content)}
+                ></span>
               </div>
-              ${
-                msg._streaming ||
-                canCopy ||
-                canFeedback ||
-                canRetry ||
-                showQuickActions ||
-                hasProposalActions
-                  ? x`<div
-                    class="bubble-meta"
-                    style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
-                  >
-                    ${
-                      msg._streaming
-                        ? x`<span style="opacity:0.5;">
-                          Selora AI ·
-                          ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
-                        </span>`
-                        : canCopy || canFeedback || canRetry
-                          ? x`<div class="msg-actions">
-                            ${
-                              canCopy
-                                ? x`<button
-                                  class="msg-action-btn"
-                                  title=${host._t(
-                                    isProposal
-                                      ? "chat_copy_yaml"
-                                      : "chat_copy_message",
-                                    isProposal ? "Copy YAML" : "Copy message",
-                                  )}
-                                  aria-label=${host._t(
-                                    isProposal
-                                      ? "chat_copy_yaml"
-                                      : "chat_copy_message",
-                                    isProposal ? "Copy YAML" : "Copy message",
-                                  )}
-                                  @click=${(e6) =>
-                                    host._copyMessageText(
-                                      msg,
-                                      e6.currentTarget,
-                                      copyText,
-                                    )}
-                                >
-                                  <ha-icon
-                                    icon="mdi:content-copy"
-                                    style="--mdc-icon-size:14px;"
-                                  ></ha-icon>
-                                </button>`
-                                : ""
-                            }
-                            ${
-                              canFeedback && host._config?.telemetry_enabled
-                                ? x`<button
-                                    class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
-                                    title=${host._t(
-                                      "chat_feedback_helpful",
-                                      "Good response",
-                                    )}
-                                    aria-label=${host._t(
-                                      "chat_feedback_helpful",
-                                      "Good response",
-                                    )}
-                                    @click=${(e6) =>
-                                      host._recordChatFeedback(
-                                        msg,
-                                        "positive",
-                                        e6.currentTarget,
-                                      )}
-                                  >
-                                    <ha-icon
-                                      icon=${msg._feedback === "positive" ? "mdi:thumb-up" : "mdi:thumb-up-outline"}
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                  </button>
-                                  <button
-                                    class="msg-action-btn${msg._feedback === "negative" ? " active" : ""}"
-                                    title=${host._t(
-                                      "chat_feedback_not_helpful",
-                                      "Bad response",
-                                    )}
-                                    aria-label=${host._t(
-                                      "chat_feedback_not_helpful",
-                                      "Bad response",
-                                    )}
-                                    @click=${(e6) =>
-                                      host._recordChatFeedback(
-                                        msg,
-                                        "negative",
-                                        e6.currentTarget,
-                                      )}
-                                  >
-                                    <ha-icon
-                                      icon=${msg._feedback === "negative" ? "mdi:thumb-down" : "mdi:thumb-down-outline"}
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                  </button>`
-                                : ""
-                            }
-                            ${
-                              msg._interrupted && msg._retryWith
-                                ? x`<button
-                                  class="msg-action-btn"
-                                  title=${host._t("chat_retry", "Retry")}
-                                  aria-label=${host._t("chat_retry", "Retry")}
-                                  @click=${() => host._retryMessage(msg._retryWith)}
-                                >
-                                  <ha-icon
-                                    icon="mdi:refresh"
-                                    style="--mdc-icon-size:14px;"
-                                  ></ha-icon>
-                                </button>`
-                                : ""
-                            }
-                          </div>`
-                          : ""
-                    }
-                    ${
-                      hasProposalActions || showQuickActions
-                        ? x`<div class="msg-quick">
-                          ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
-                          ${
-                            showQuickActions
-                              ? renderQuickActions(host, msg.quick_actions, {
-                                  used: !!msg._qa_used,
-                                })
+            `
+          : b2`
+              <div
+                class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
+              >
+                ${renderAgentSteps(host, msg.steps)}
+                <div
+                  class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
+                  style="max-width:100%;align-self:auto;"
+                >
+                  ${
+                    msg.command_approval
+                      ? ""
+                      : b2`<span
+                          class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
+                          @click=${host._onCodeCopyClick}
+                          .innerHTML=${renderMarkdown(displayContent)}
+                        ></span>`
+                  }
+                  ${
+                    showAutomationSpinner
+                      ? (() => {
+                          const startedAt = msg._sentAt || Date.now();
+                          const labelIdx =
+                            Math.floor(
+                              (Date.now() - startedAt) /
+                                AUTOMATION_LABEL_INTERVAL_MS,
+                            ) % AUTOMATION_LABEL_KEYS.length;
+                          const [labelKey, labelFallback] =
+                            AUTOMATION_LABEL_KEYS[labelIdx];
+                          return b2`
+                            <div
+                              style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                            >
+                              <div
+                                class="typing-dot"
+                                style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                              ></div>
+                              <span
+                                style="font-size:13px;font-weight:500;color:#fbbf24;"
+                                >${host._t(labelKey, labelFallback)}</span
+                              >
+                            </div>
+                          `;
+                        })()
+                      : ""
+                  }
+                  ${
+                    showSceneSpinner
+                      ? b2`
+                          <div
+                            style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                          >
+                            <div
+                              class="typing-dot"
+                              style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                            ></div>
+                            <span
+                              style="font-size:13px;font-weight:500;color:#fbbf24;"
+                              >${host._t(
+                                "chat_building_scene",
+                                "Building scene...",
+                              )}</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${
+                    msg.config_issue
+                      ? b2`
+                          <div style="margin-top: 10px;">
+                            <mwc-button
+                              dense
+                              raised
+                              @click=${host._goToSettings}
+                              >${host._t(
+                                "chat_go_to_settings",
+                                "Go to Settings",
+                              )}</mwc-button
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
+                  ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
+                  ${
+                    msg.command_approval
+                      ? renderApprovalCard(
+                          host,
+                          msg,
+                          msg.command_approval,
+                          msg.approval_status,
+                        )
+                      : ""
+                  }
+                  ${
+                    msg._interrupted
+                      ? b2`
+                          <div class="stream-interrupt">
+                            <ha-icon
+                              icon="mdi:alert-circle-outline"
+                              style="--mdc-icon-size:16px;flex-shrink:0;"
+                            ></ha-icon>
+                            <span class="stream-interrupt-text"
+                              >${
+                                msg._interruptReason ||
+                                host._t(
+                                  "chat_response_cut_short",
+                                  "Response was cut short.",
+                                )
+                              }</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
+                </div>
+                ${
+                  msg._streaming ||
+                  canCopy ||
+                  canFeedback ||
+                  canRetry ||
+                  showQuickActions ||
+                  hasProposalActions
+                    ? b2`<div
+                        class="bubble-meta"
+                        style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
+                      >
+                        ${
+                          msg._streaming
+                            ? b2`<span style="opacity:0.5;">
+                                Selora AI ·
+                                ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
+                              </span>`
+                            : canCopy || canFeedback || canRetry
+                              ? b2`<div class="msg-actions">
+                                  ${
+                                    canCopy
+                                      ? b2`<button
+                                          class="msg-action-btn"
+                                          title=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          aria-label=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          @click=${(e6) =>
+                                            host._copyMessageText(
+                                              msg,
+                                              e6.currentTarget,
+                                              copyText,
+                                            )}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:content-copy"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    canFeedback &&
+                                    host._config?.telemetry_enabled
+                                      ? b2`<button
+                                            class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
+                                            title=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            @click=${(e6) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "positive",
+                                                e6.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${msg._feedback === "positive" ? "mdi:thumb-up" : "mdi:thumb-up-outline"}
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>
+                                          <button
+                                            class="msg-action-btn${msg._feedback === "negative" ? " active" : ""}"
+                                            title=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            @click=${(e6) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "negative",
+                                                e6.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${msg._feedback === "negative" ? "mdi:thumb-down" : "mdi:thumb-down-outline"}
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    msg._interrupted && msg._retryWith
+                                      ? b2`<button
+                                          class="msg-action-btn"
+                                          title=${host._t("chat_retry", "Retry")}
+                                          aria-label=${host._t("chat_retry", "Retry")}
+                                          @click=${() => host._retryMessage(msg._retryWith)}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:refresh"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                </div>`
                               : ""
-                          }
-                        </div>`
-                        : ""
-                    }
-                  </div>`
-                  : ""
-              }
-            </div>
-          `
+                        }
+                        ${
+                          hasProposalActions || showQuickActions
+                            ? b2`<div class="msg-quick">
+                                ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
+                                ${
+                                  showQuickActions
+                                    ? renderQuickActions(
+                                        host,
+                                        msg.quick_actions,
+                                        {
+                                          used: !!msg._qa_used,
+                                        },
+                                      )
+                                    : ""
+                                }
+                              </div>`
+                            : ""
+                        }
+                      </div>`
+                    : ""
+                }
+              </div>
+            `
       }
     </div>
   `;
@@ -27190,7 +27099,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     : (host._editedYaml[key] ?? originalYaml);
   const isDirty = !readOnly && current !== originalYaml;
   const saving = !!host._savingYaml[key];
-  return x`
+  return b2`
     <ha-code-editor
       mode="yaml"
       .value=${current}
@@ -27204,40 +27113,40 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     ></ha-code-editor>
     ${
       isDirty || (onSave && !readOnly)
-        ? x`
-          <div class="yaml-edit-bar">
-            ${
-              isDirty
-                ? x`
-                  <span class="yaml-unsaved">
-                    <ha-icon
-                      icon="mdi:circle-edit-outline"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
-                  </span>
-                `
-                : x`<span style="flex:1;"></span>`
-            }
-            ${
-              onSave
-                ? x`
-                  <button
-                    class="btn btn-primary"
-                    ?disabled=${saving || !isDirty}
-                    @click=${() => onSave(key)}
-                  >
-                    <ha-icon
-                      icon="mdi:content-save"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
-                  </button>
-                `
-                : ""
-            }
-          </div>
-        `
+        ? b2`
+            <div class="yaml-edit-bar">
+              ${
+                isDirty
+                  ? b2`
+                      <span class="yaml-unsaved">
+                        <ha-icon
+                          icon="mdi:circle-edit-outline"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
+                      </span>
+                    `
+                  : b2`<span style="flex:1;"></span>`
+              }
+              ${
+                onSave
+                  ? b2`
+                      <button
+                        class="btn btn-primary"
+                        ?disabled=${saving || !isDirty}
+                        @click=${() => onSave(key)}
+                      >
+                        <ha-icon
+                          icon="mdi:content-save"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
+                      </button>
+                    `
+                  : ""
+              }
+            </div>
+          `
         : ""
     }
   `;
@@ -27248,7 +27157,7 @@ function humanizeToken(value) {
   if (value == null || value === "") return "";
   return String(value)
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (c3) => c3.toUpperCase());
+    .replace(/\b\w/g, (c4) => c4.toUpperCase());
 }
 function fmtEntity(hass, id) {
   if (!id) return "";
@@ -27261,7 +27170,7 @@ function fmtEntity(hass, id) {
     /_/g,
     " ",
   );
-  return raw.replace(/\b\w/g, (c3) => c3.toUpperCase());
+  return raw.replace(/\b\w/g, (c4) => c4.toUpperCase());
 }
 var _LIST_CONNECTORS = {
   en: { last: " and ", oxford: ", and " },
@@ -27282,15 +27191,15 @@ function fmtEntities(hass, val, language) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
   if (arr.length === 1) return fmtEntity(hass, arr[0]);
-  const c3 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
+  const c4 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
   if (arr.length === 2)
-    return `${fmtEntity(hass, arr[0])}${c3.last}${fmtEntity(hass, arr[1])}`;
+    return `${fmtEntity(hass, arr[0])}${c4.last}${fmtEntity(hass, arr[1])}`;
   return (
     arr
       .slice(0, -1)
       .map((e6) => fmtEntity(hass, e6))
       .join(", ") +
-    c3.oxford +
+    c4.oxford +
     fmtEntity(hass, arr[arr.length - 1])
   );
 }
@@ -27403,9 +27312,9 @@ var _STATE_NAMES = {
 };
 function fmtState(state, language) {
   if (state == null) return null;
-  const s6 = String(state);
+  const s4 = String(state);
   const table = _STATE_NAMES[_langKey2(language, _STATE_NAMES)];
-  return table[s6] || s6.replace(/_/g, " ");
+  return table[s4] || s4.replace(/_/g, " ");
 }
 function fmtDuration(value) {
   if (!value) return "";
@@ -27503,31 +27412,31 @@ function fmtNumericValue(entityId, value) {
 }
 function fmtTime(hass, val) {
   if (val == null) return String(val);
-  const s6 = String(val).trim();
-  if (s6.includes("{{") || s6.includes("{%")) {
-    const m2 = s6.match(/states\(['"]([^'"]+)['"]\)/);
-    if (m2) return fmtEntity(hass, m2[1]);
-    const m22 = s6.match(/state_attr\(['"]([^'"]+)['"]/);
+  const s4 = String(val).trim();
+  if (s4.includes("{{") || s4.includes("{%")) {
+    const m3 = s4.match(/states\(['"]([^'"]+)['"]\)/);
+    if (m3) return fmtEntity(hass, m3[1]);
+    const m22 = s4.match(/state_attr\(['"]([^'"]+)['"]/);
     if (m22) return fmtEntity(hass, m22[1]);
     return "a calculated time";
   }
-  const num = Number(s6);
-  if (!isNaN(num) && num >= 0 && num <= 86400 && !s6.includes(":")) {
+  const num = Number(s4);
+  if (!isNaN(num) && num >= 0 && num <= 86400 && !s4.includes(":")) {
     const h3 = Math.floor(num / 3600);
-    const m2 = Math.floor((num % 3600) / 60);
-    return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
+    const m3 = Math.floor((num % 3600) / 60);
+    return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
   }
-  const parts = s6.split(":");
+  const parts = s4.split(":");
   if (parts.length >= 2) {
     const h3 = parseInt(parts[0], 10);
-    const m2 = parseInt(parts[1], 10);
-    if (!isNaN(h3) && !isNaN(m2)) {
-      return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
+    const m3 = parseInt(parts[1], 10);
+    if (!isNaN(h3) && !isNaN(m3)) {
+      return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
     }
   }
-  if (s6.startsWith("input_datetime.") || s6.startsWith("sensor."))
-    return fmtEntity(hass, s6);
-  return s6;
+  if (s4.startsWith("input_datetime.") || s4.startsWith("sensor."))
+    return fmtEntity(hass, s4);
+  return s4;
 }
 
 // src/shared/flow-description.js
@@ -27536,7 +27445,7 @@ function asArray(v2) {
 }
 var PHRASES = {
   en: {
-    when_time_is: (t4) => `When the time is ${t4}`,
+    when_time_is: (t5) => `When the time is ${t5}`,
     when_time_is_any: (list) => `When the time is ${list}`,
     or: " or ",
     when_it_is: (ev) => `When it is ${ev}`,
@@ -27551,7 +27460,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `When ${eid} becomes ${st}${dur}`,
     when_changes_state: (eid, dur) => `When ${eid} changes state${dur}`,
     for_duration: (d3) => ` for ${d3}`,
-    when_between: (eid, a4, b2) => `When ${eid} is between ${a4} and ${b2}`,
+    when_between: (eid, a3, b3) => `When ${eid} is between ${a3} and ${b3}`,
     when_rises_above: (eid, v2) => `When ${eid} rises above ${v2}`,
     when_drops_below: (eid, v2) => `When ${eid} drops below ${v2}`,
     when_value_changes: (eid) => `When ${eid} value changes`,
@@ -27559,22 +27468,22 @@ var PHRASES = {
     ha_starts: "starts",
     ha_shuts_down: "shuts down",
     ha_changes_state: "changes state",
-    every_seconds: (n5) => `Every ${n5} second${Number(n5) === 1 ? "" : "s"}`,
-    every_minutes: (n5) => `Every ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
-    every_hours: (n5) => `Every ${n5} hour${Number(n5) === 1 ? "" : "s"}`,
+    every_seconds: (n4) => `Every ${n4} second${Number(n4) === 1 ? "" : "s"}`,
+    every_minutes: (n4) => `Every ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
+    every_hours: (n4) => `Every ${n4} hour${Number(n4) === 1 ? "" : "s"}`,
     on_time_pattern: "On a time pattern",
     when_template_entity: (e6) => `When ${e6} condition is met`,
     when_template_met: "When a template condition is met",
-    when_event: (n5) => `When ${n5} happens`,
+    when_event: (n4) => `When ${n4} happens`,
     when_event_generic: "When an event happens",
-    when_device_triggered: (t4) => `When a device ${t4}`,
+    when_device_triggered: (t5) => `When a device ${t5}`,
     when_named_device: (name, ty) => `When ${name} ${ty}`,
     cond_named_device: (name, ty) => `${name} ${ty}`,
-    when_device_is: (t4) => `When a device is ${t4}`,
+    when_device_is: (t5) => `When a device is ${t5}`,
     triggered: "triggered",
     zone_enters: "enters",
     zone_leaves: "leaves",
-    when_mqtt_topic: (t4) => `When a device message arrives (${t4})`,
+    when_mqtt_topic: (t5) => `When a device message arrives (${t5})`,
     when_mqtt: "When a device message arrives",
     when_webhook: "When an outside service sends an update",
     when_tag: (id) => `When a tag is scanned${id ? ` (${id})` : ""}`,
@@ -27584,22 +27493,22 @@ var PHRASES = {
     on_entity: (e6) => ` on ${e6}`,
     when_trigger_happens: "When this trigger happens",
     cond_is: (eid, st) => `${eid} is ${st}`,
-    cond_between: (eid, a4, b2) => `${eid} between ${a4} and ${b2}`,
+    cond_between: (eid, a3, b3) => `${eid} between ${a3} and ${b3}`,
     cond_above: (eid, v2) => `${eid} above ${v2}`,
     cond_below: (eid, v2) => `${eid} below ${v2}`,
     cond_at_least: (eid, v2) => `${eid} at least ${v2}`,
     cond_at_most: (eid, v2) => `${eid} at most ${v2}`,
     cond_numeric: (eid) => `${eid} numeric check`,
-    cond_after_time: (t4) => `after ${t4}`,
-    cond_before_time: (t4) => `before ${t4}`,
+    cond_after_time: (t5) => `after ${t5}`,
+    cond_before_time: (t5) => `before ${t5}`,
     cond_on_weekday: (d3) => `on ${d3}`,
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
-    cond_after_sun: (s6) => `after ${s6}`,
-    cond_before_sun: (s6) => `before ${s6}`,
+    cond_after_sun: (s4) => `after ${s4}`,
+    cond_before_sun: (s4) => `before ${s4}`,
     cond_sun_position: "Sun position",
-    cond_all: (n5) => `All ${n5} conditions must be true`,
-    cond_any: (n5) => `Any of ${n5} conditions is true`,
+    cond_all: (n4) => `All ${n4} conditions must be true`,
+    cond_any: (n4) => `Any of ${n4} conditions is true`,
     cond_none: "None of the conditions are true",
     cond_triggered_by: (label) => `Triggered by \u201C${label}\u201D`,
     cond_at_time: (x2) => `at ${x2}`,
@@ -27626,26 +27535,26 @@ var PHRASES = {
     extra_temp: (v2) => `to ${v2}\xB0`,
     extra_color_temp: (v2) => `color temp ${v2}`,
     wait_str: (d3) => `Wait ${d3}`,
-    wait_parts: (p2) => `Wait ${p2}`,
+    wait_parts: (p4) => `Wait ${p4}`,
     wait_plain: "Wait",
     wait_until: "Wait until condition is met",
     wait_for_trigger: "Wait for a trigger",
     activate_scene: (e6) => `Activate scene: ${e6}`,
-    choose_between: (n5) => `Choose between ${n5} option${n5 !== 1 ? "s" : ""}`,
-    repeat_count: (n5) => `Repeat ${n5} time${n5 !== 1 ? "s" : ""}`,
+    choose_between: (n4) => `Choose between ${n4} option${n4 !== 1 ? "s" : ""}`,
+    repeat_count: (n4) => `Repeat ${n4} time${n4 !== 1 ? "s" : ""}`,
     repeat_while: "Repeat while condition holds",
     repeat_until: "Repeat until condition is met",
     repeat: "Repeat",
-    parallel: (n5) => `Run ${n5} actions in parallel`,
-    sequence: (n5) => `Run a sequence of ${n5} steps`,
+    parallel: (n4) => `Run ${n4} actions in parallel`,
+    sequence: (n4) => `Run a sequence of ${n4} steps`,
     set_variables: "Set variables",
-    stop_label: (s6) => `Stop: ${s6}`,
+    stop_label: (s4) => `Stop: ${s4}`,
     fire_event: (e6) => `Fire event: ${e6}`,
     automation_step: "Automation step",
     joiner_dot: " \xB7 ",
   },
   fr: {
-    when_time_is: (t4) => `Quand l'heure est ${t4}`,
+    when_time_is: (t5) => `Quand l'heure est ${t5}`,
     when_time_is_any: (list) => `Quand l'heure est ${list}`,
     or: " ou ",
     when_it_is: (ev) => `Quand c'est ${ev}`,
@@ -27660,7 +27569,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Quand ${eid} devient ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quand ${eid} change d'\xE9tat${dur}`,
     for_duration: (d3) => ` pendant ${d3}`,
-    when_between: (eid, a4, b2) => `Quand ${eid} est entre ${a4} et ${b2}`,
+    when_between: (eid, a3, b3) => `Quand ${eid} est entre ${a3} et ${b3}`,
     when_rises_above: (eid, v2) => `Quand ${eid} d\xE9passe ${v2}`,
     when_drops_below: (eid, v2) => `Quand ${eid} descend sous ${v2}`,
     when_value_changes: (eid) => `Quand la valeur de ${eid} change`,
@@ -27668,24 +27577,24 @@ var PHRASES = {
     ha_starts: "d\xE9marre",
     ha_shuts_down: "s'arr\xEAte",
     ha_changes_state: "change d'\xE9tat",
-    every_seconds: (n5) =>
-      `Toutes les ${n5} seconde${Number(n5) === 1 ? "" : "s"}`,
-    every_minutes: (n5) =>
-      `Toutes les ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
-    every_hours: (n5) => `Toutes les ${n5} heure${Number(n5) === 1 ? "" : "s"}`,
+    every_seconds: (n4) =>
+      `Toutes les ${n4} seconde${Number(n4) === 1 ? "" : "s"}`,
+    every_minutes: (n4) =>
+      `Toutes les ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
+    every_hours: (n4) => `Toutes les ${n4} heure${Number(n4) === 1 ? "" : "s"}`,
     on_time_pattern: "Selon un sch\xE9ma temporel",
     when_template_entity: (e6) => `Quand la condition sur ${e6} est vraie`,
     when_template_met: "Quand une condition mod\xE8le est vraie",
-    when_event: (n5) => `Quand ${n5} se produit`,
+    when_event: (n4) => `Quand ${n4} se produit`,
     when_event_generic: "Quand un \xE9v\xE9nement se produit",
-    when_device_triggered: (t4) => `Quand un appareil ${t4}`,
+    when_device_triggered: (t5) => `Quand un appareil ${t5}`,
     when_named_device: (name, ty) => `Quand ${name} ${ty}`,
     cond_named_device: (name, ty) => `${name} ${ty}`,
-    when_device_is: (t4) => `Quand un appareil est ${t4}`,
+    when_device_is: (t5) => `Quand un appareil est ${t5}`,
     triggered: "d\xE9clench\xE9",
     zone_enters: "entre dans",
     zone_leaves: "quitte",
-    when_mqtt_topic: (t4) => `Quand un message d'appareil arrive (${t4})`,
+    when_mqtt_topic: (t5) => `Quand un message d'appareil arrive (${t5})`,
     when_mqtt: "Quand un message d'appareil arrive",
     when_webhook: "Quand un service externe envoie une mise \xE0 jour",
     when_tag: (id) => `Quand un tag est scann\xE9${id ? ` (${id})` : ""}`,
@@ -27696,22 +27605,22 @@ var PHRASES = {
     on_entity: (e6) => ` sur ${e6}`,
     when_trigger_happens: "Quand ce d\xE9clencheur se produit",
     cond_is: (eid, st) => `${eid} est ${st}`,
-    cond_between: (eid, a4, b2) => `${eid} entre ${a4} et ${b2}`,
+    cond_between: (eid, a3, b3) => `${eid} entre ${a3} et ${b3}`,
     cond_above: (eid, v2) => `${eid} au-dessus de ${v2}`,
     cond_below: (eid, v2) => `${eid} en dessous de ${v2}`,
     cond_at_least: (eid, v2) => `${eid} d'au moins ${v2}`,
     cond_at_most: (eid, v2) => `${eid} d'au plus ${v2}`,
     cond_numeric: (eid) => `v\xE9rification num\xE9rique de ${eid}`,
-    cond_after_time: (t4) => `apr\xE8s ${t4}`,
-    cond_before_time: (t4) => `avant ${t4}`,
+    cond_after_time: (t5) => `apr\xE8s ${t5}`,
+    cond_before_time: (t5) => `avant ${t5}`,
     cond_on_weekday: (d3) => `le ${d3}`,
     cond_time_window: "Fen\xEAtre temporelle",
     cond_template_true: "Le mod\xE8le est \xE9valu\xE9 \xE0 vrai",
-    cond_after_sun: (s6) => `apr\xE8s ${s6}`,
-    cond_before_sun: (s6) => `avant ${s6}`,
+    cond_after_sun: (s4) => `apr\xE8s ${s4}`,
+    cond_before_sun: (s4) => `avant ${s4}`,
     cond_sun_position: "Position du soleil",
-    cond_all: (n5) => `Les ${n5} conditions doivent \xEAtre vraies`,
-    cond_any: (n5) => `L'une des ${n5} conditions est vraie`,
+    cond_all: (n4) => `Les ${n4} conditions doivent \xEAtre vraies`,
+    cond_any: (n4) => `L'une des ${n4} conditions est vraie`,
     cond_none: "Aucune des conditions n'est vraie",
     cond_triggered_by: (label) => `D\xE9clench\xE9 par \xAB ${label} \xBB`,
     cond_at_time: (x2) => `\xE0 ${x2}`,
@@ -27738,26 +27647,26 @@ var PHRASES = {
     extra_temp: (v2) => `\xE0 ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. de couleur ${v2}`,
     wait_str: (d3) => `Attendre ${d3}`,
-    wait_parts: (p2) => `Attendre ${p2}`,
+    wait_parts: (p4) => `Attendre ${p4}`,
     wait_plain: "Attendre",
     wait_until: "Attendre que la condition soit vraie",
     wait_for_trigger: "Attendre un d\xE9clencheur",
     activate_scene: (e6) => `Activer la sc\xE8ne : ${e6}`,
-    choose_between: (n5) => `Choisir parmi ${n5} option${n5 !== 1 ? "s" : ""}`,
-    repeat_count: (n5) => `R\xE9p\xE9ter ${n5} fois`,
+    choose_between: (n4) => `Choisir parmi ${n4} option${n4 !== 1 ? "s" : ""}`,
+    repeat_count: (n4) => `R\xE9p\xE9ter ${n4} fois`,
     repeat_while: "R\xE9p\xE9ter tant que la condition est vraie",
     repeat_until: "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit vraie",
     repeat: "R\xE9p\xE9ter",
-    parallel: (n5) => `Ex\xE9cuter ${n5} actions en parall\xE8le`,
-    sequence: (n5) => `Ex\xE9cuter une s\xE9quence de ${n5} \xE9tapes`,
+    parallel: (n4) => `Ex\xE9cuter ${n4} actions en parall\xE8le`,
+    sequence: (n4) => `Ex\xE9cuter une s\xE9quence de ${n4} \xE9tapes`,
     set_variables: "D\xE9finir des variables",
-    stop_label: (s6) => `Arr\xEAter : ${s6}`,
+    stop_label: (s4) => `Arr\xEAter : ${s4}`,
     fire_event: (e6) => `D\xE9clencher l'\xE9v\xE9nement : ${e6}`,
     automation_step: "\xC9tape d'automatisation",
     joiner_dot: " \xB7 ",
   },
   de: {
-    when_time_is: (t4) => `Wenn die Uhrzeit ${t4} ist`,
+    when_time_is: (t5) => `Wenn die Uhrzeit ${t5} ist`,
     when_time_is_any: (list) => `Wenn die Uhrzeit ${list} ist`,
     or: " oder ",
     when_it_is: (ev) => `Wenn ${ev} ist`,
@@ -27771,7 +27680,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Wenn ${eid} zu ${st} wird${dur}`,
     when_changes_state: (eid, dur) => `Wenn ${eid} den Zustand \xE4ndert${dur}`,
     for_duration: (d3) => ` f\xFCr ${d3}`,
-    when_between: (eid, a4, b2) => `Wenn ${eid} zwischen ${a4} und ${b2} liegt`,
+    when_between: (eid, a3, b3) => `Wenn ${eid} zwischen ${a3} und ${b3} liegt`,
     when_rises_above: (eid, v2) => `Wenn ${eid} \xFCber ${v2} steigt`,
     when_drops_below: (eid, v2) => `Wenn ${eid} unter ${v2} f\xE4llt`,
     when_value_changes: (eid) => `Wenn sich der Wert von ${eid} \xE4ndert`,
@@ -27779,22 +27688,22 @@ var PHRASES = {
     ha_starts: "startet",
     ha_shuts_down: "herunterf\xE4hrt",
     ha_changes_state: "den Zustand \xE4ndert",
-    every_seconds: (n5) => `Alle ${n5} Sekunde${Number(n5) === 1 ? "" : "n"}`,
-    every_minutes: (n5) => `Alle ${n5} Minute${Number(n5) === 1 ? "" : "n"}`,
-    every_hours: (n5) => `Alle ${n5} Stunde${Number(n5) === 1 ? "" : "n"}`,
+    every_seconds: (n4) => `Alle ${n4} Sekunde${Number(n4) === 1 ? "" : "n"}`,
+    every_minutes: (n4) => `Alle ${n4} Minute${Number(n4) === 1 ? "" : "n"}`,
+    every_hours: (n4) => `Alle ${n4} Stunde${Number(n4) === 1 ? "" : "n"}`,
     on_time_pattern: "Nach einem Zeitmuster",
     when_template_entity: (e6) => `Wenn Bedingung f\xFCr ${e6} erf\xFCllt ist`,
     when_template_met: "Wenn eine Template-Bedingung erf\xFCllt ist",
-    when_event: (n5) => `Wenn ${n5} eintritt`,
+    when_event: (n4) => `Wenn ${n4} eintritt`,
     when_event_generic: "Wenn ein Ereignis eintritt",
-    when_device_triggered: (t4) => `Wenn ein Ger\xE4t ${t4}`,
+    when_device_triggered: (t5) => `Wenn ein Ger\xE4t ${t5}`,
     when_named_device: (name, ty) => `Wenn ${name} ${ty}`,
     cond_named_device: (name, ty) => `${name} ${ty}`,
-    when_device_is: (t4) => `Wenn ein Ger\xE4t ${t4} ist`,
+    when_device_is: (t5) => `Wenn ein Ger\xE4t ${t5} ist`,
     triggered: "ausgel\xF6st",
     zone_enters: "betritt",
     zone_leaves: "verl\xE4sst",
-    when_mqtt_topic: (t4) => `Wenn eine Ger\xE4tenachricht eintrifft (${t4})`,
+    when_mqtt_topic: (t5) => `Wenn eine Ger\xE4tenachricht eintrifft (${t5})`,
     when_mqtt: "Wenn eine Ger\xE4tenachricht eintrifft",
     when_webhook: "Wenn ein externer Dienst ein Update sendet",
     when_tag: (id) => `Wenn ein Tag gescannt wird${id ? ` (${id})` : ""}`,
@@ -27804,22 +27713,22 @@ var PHRASES = {
     on_entity: (e6) => ` auf ${e6}`,
     when_trigger_happens: "Wenn dieser Ausl\xF6ser eintritt",
     cond_is: (eid, st) => `${eid} ist ${st}`,
-    cond_between: (eid, a4, b2) => `${eid} zwischen ${a4} und ${b2}`,
+    cond_between: (eid, a3, b3) => `${eid} zwischen ${a3} und ${b3}`,
     cond_above: (eid, v2) => `${eid} \xFCber ${v2}`,
     cond_below: (eid, v2) => `${eid} unter ${v2}`,
     cond_at_least: (eid, v2) => `${eid} mindestens ${v2}`,
     cond_at_most: (eid, v2) => `${eid} h\xF6chstens ${v2}`,
     cond_numeric: (eid) => `${eid} numerische Pr\xFCfung`,
-    cond_after_time: (t4) => `nach ${t4}`,
-    cond_before_time: (t4) => `vor ${t4}`,
+    cond_after_time: (t5) => `nach ${t5}`,
+    cond_before_time: (t5) => `vor ${t5}`,
     cond_on_weekday: (d3) => `am ${d3}`,
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
-    cond_after_sun: (s6) => `nach ${s6}`,
-    cond_before_sun: (s6) => `vor ${s6}`,
+    cond_after_sun: (s4) => `nach ${s4}`,
+    cond_before_sun: (s4) => `vor ${s4}`,
     cond_sun_position: "Sonnenposition",
-    cond_all: (n5) => `Alle ${n5} Bedingungen m\xFCssen erf\xFCllt sein`,
-    cond_any: (n5) => `Eine der ${n5} Bedingungen ist erf\xFCllt`,
+    cond_all: (n4) => `Alle ${n4} Bedingungen m\xFCssen erf\xFCllt sein`,
+    cond_any: (n4) => `Eine der ${n4} Bedingungen ist erf\xFCllt`,
     cond_none: "Keine der Bedingungen ist erf\xFCllt",
     cond_triggered_by: (label) => `Ausgel\xF6st durch \u201E${label}\u201C`,
     cond_at_time: (x2) => `um ${x2}`,
@@ -27846,26 +27755,26 @@ var PHRASES = {
     extra_temp: (v2) => `auf ${v2}\xB0`,
     extra_color_temp: (v2) => `Farbtemp. ${v2}`,
     wait_str: (d3) => `${d3} warten`,
-    wait_parts: (p2) => `${p2} warten`,
+    wait_parts: (p4) => `${p4} warten`,
     wait_plain: "Warten",
     wait_until: "Warten bis Bedingung erf\xFCllt ist",
     wait_for_trigger: "Auf Ausl\xF6ser warten",
     activate_scene: (e6) => `Szene aktivieren: ${e6}`,
-    choose_between: (n5) => `Aus ${n5} Optionen w\xE4hlen`,
-    repeat_count: (n5) => `${n5}-mal wiederholen`,
+    choose_between: (n4) => `Aus ${n4} Optionen w\xE4hlen`,
+    repeat_count: (n4) => `${n4}-mal wiederholen`,
     repeat_while: "Wiederholen solange Bedingung erf\xFCllt ist",
     repeat_until: "Wiederholen bis Bedingung erf\xFCllt ist",
     repeat: "Wiederholen",
-    parallel: (n5) => `${n5} Aktionen parallel ausf\xFChren`,
-    sequence: (n5) => `Eine Sequenz von ${n5} Schritten ausf\xFChren`,
+    parallel: (n4) => `${n4} Aktionen parallel ausf\xFChren`,
+    sequence: (n4) => `Eine Sequenz von ${n4} Schritten ausf\xFChren`,
     set_variables: "Variablen setzen",
-    stop_label: (s6) => `Stoppen: ${s6}`,
+    stop_label: (s4) => `Stoppen: ${s4}`,
     fire_event: (e6) => `Ereignis ausl\xF6sen: ${e6}`,
     automation_step: "Automatisierungsschritt",
     joiner_dot: " \xB7 ",
   },
   es: {
-    when_time_is: (t4) => `Cuando la hora sea ${t4}`,
+    when_time_is: (t5) => `Cuando la hora sea ${t5}`,
     when_time_is_any: (list) => `Cuando la hora sea ${list}`,
     or: " o ",
     when_it_is: (ev) => `Cuando sea ${ev}`,
@@ -27880,7 +27789,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Cuando ${eid} pase a ${st}${dur}`,
     when_changes_state: (eid, dur) => `Cuando ${eid} cambie de estado${dur}`,
     for_duration: (d3) => ` durante ${d3}`,
-    when_between: (eid, a4, b2) => `Cuando ${eid} est\xE9 entre ${a4} y ${b2}`,
+    when_between: (eid, a3, b3) => `Cuando ${eid} est\xE9 entre ${a3} y ${b3}`,
     when_rises_above: (eid, v2) => `Cuando ${eid} supere ${v2}`,
     when_drops_below: (eid, v2) => `Cuando ${eid} baje de ${v2}`,
     when_value_changes: (eid) => `Cuando cambie el valor de ${eid}`,
@@ -27888,22 +27797,22 @@ var PHRASES = {
     ha_starts: "se inicie",
     ha_shuts_down: "se apague",
     ha_changes_state: "cambie de estado",
-    every_seconds: (n5) => `Cada ${n5} segundo${Number(n5) === 1 ? "" : "s"}`,
-    every_minutes: (n5) => `Cada ${n5} minuto${Number(n5) === 1 ? "" : "s"}`,
-    every_hours: (n5) => `Cada ${n5} hora${Number(n5) === 1 ? "" : "s"}`,
+    every_seconds: (n4) => `Cada ${n4} segundo${Number(n4) === 1 ? "" : "s"}`,
+    every_minutes: (n4) => `Cada ${n4} minuto${Number(n4) === 1 ? "" : "s"}`,
+    every_hours: (n4) => `Cada ${n4} hora${Number(n4) === 1 ? "" : "s"}`,
     on_time_pattern: "En un patr\xF3n temporal",
     when_template_entity: (e6) => `Cuando se cumpla la condici\xF3n de ${e6}`,
     when_template_met: "Cuando se cumpla una condici\xF3n de plantilla",
-    when_event: (n5) => `Cuando ocurra ${n5}`,
+    when_event: (n4) => `Cuando ocurra ${n4}`,
     when_event_generic: "Cuando ocurra un evento",
-    when_device_triggered: (t4) => `Cuando un dispositivo ${t4}`,
+    when_device_triggered: (t5) => `Cuando un dispositivo ${t5}`,
     when_named_device: (name, ty) => `Cuando ${name} ${ty}`,
     cond_named_device: (name, ty) => `${name} ${ty}`,
-    when_device_is: (t4) => `Cuando un dispositivo est\xE9 ${t4}`,
+    when_device_is: (t5) => `Cuando un dispositivo est\xE9 ${t5}`,
     triggered: "activado",
     zone_enters: "entra en",
     zone_leaves: "sale de",
-    when_mqtt_topic: (t4) => `Cuando llegue un mensaje de dispositivo (${t4})`,
+    when_mqtt_topic: (t5) => `Cuando llegue un mensaje de dispositivo (${t5})`,
     when_mqtt: "Cuando llegue un mensaje de dispositivo",
     when_webhook: "Cuando un servicio externo env\xEDe una actualizaci\xF3n",
     when_tag: (id) => `Cuando se escanee una etiqueta${id ? ` (${id})` : ""}`,
@@ -27914,22 +27823,22 @@ var PHRASES = {
     on_entity: (e6) => ` en ${e6}`,
     when_trigger_happens: "Cuando ocurra este disparador",
     cond_is: (eid, st) => `${eid} es ${st}`,
-    cond_between: (eid, a4, b2) => `${eid} entre ${a4} y ${b2}`,
+    cond_between: (eid, a3, b3) => `${eid} entre ${a3} y ${b3}`,
     cond_above: (eid, v2) => `${eid} por encima de ${v2}`,
     cond_below: (eid, v2) => `${eid} por debajo de ${v2}`,
     cond_at_least: (eid, v2) => `${eid} al menos ${v2}`,
     cond_at_most: (eid, v2) => `${eid} como m\xE1ximo ${v2}`,
     cond_numeric: (eid) => `verificaci\xF3n num\xE9rica de ${eid}`,
-    cond_after_time: (t4) => `despu\xE9s de ${t4}`,
-    cond_before_time: (t4) => `antes de ${t4}`,
+    cond_after_time: (t5) => `despu\xE9s de ${t5}`,
+    cond_before_time: (t5) => `antes de ${t5}`,
     cond_on_weekday: (d3) => `el ${d3}`,
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se eval\xFAa como verdadera",
-    cond_after_sun: (s6) => `despu\xE9s de ${s6}`,
-    cond_before_sun: (s6) => `antes de ${s6}`,
+    cond_after_sun: (s4) => `despu\xE9s de ${s4}`,
+    cond_before_sun: (s4) => `antes de ${s4}`,
     cond_sun_position: "Posici\xF3n del sol",
-    cond_all: (n5) => `Las ${n5} condiciones deben ser verdaderas`,
-    cond_any: (n5) => `Cualquiera de las ${n5} condiciones es verdadera`,
+    cond_all: (n4) => `Las ${n4} condiciones deben ser verdaderas`,
+    cond_any: (n4) => `Cualquiera de las ${n4} condiciones es verdadera`,
     cond_none: "Ninguna de las condiciones es verdadera",
     cond_triggered_by: (label) => `Activado por \xAB${label}\xBB`,
     cond_at_time: (x2) => `a las ${x2}`,
@@ -27956,27 +27865,27 @@ var PHRASES = {
     extra_temp: (v2) => `a ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. de color ${v2}`,
     wait_str: (d3) => `Esperar ${d3}`,
-    wait_parts: (p2) => `Esperar ${p2}`,
+    wait_parts: (p4) => `Esperar ${p4}`,
     wait_plain: "Esperar",
     wait_until: "Esperar hasta que se cumpla la condici\xF3n",
     wait_for_trigger: "Esperar un disparador",
     activate_scene: (e6) => `Activar escena: ${e6}`,
-    choose_between: (n5) =>
-      `Elegir entre ${n5} opci${n5 !== 1 ? "ones" : "\xF3n"}`,
-    repeat_count: (n5) => `Repetir ${n5} ve${n5 !== 1 ? "ces" : "z"}`,
+    choose_between: (n4) =>
+      `Elegir entre ${n4} opci${n4 !== 1 ? "ones" : "\xF3n"}`,
+    repeat_count: (n4) => `Repetir ${n4} ve${n4 !== 1 ? "ces" : "z"}`,
     repeat_while: "Repetir mientras la condici\xF3n sea verdadera",
     repeat_until: "Repetir hasta que la condici\xF3n sea verdadera",
     repeat: "Repetir",
-    parallel: (n5) => `Ejecutar ${n5} acciones en paralelo`,
-    sequence: (n5) => `Ejecutar una secuencia de ${n5} pasos`,
+    parallel: (n4) => `Ejecutar ${n4} acciones en paralelo`,
+    sequence: (n4) => `Ejecutar una secuencia de ${n4} pasos`,
     set_variables: "Establecer variables",
-    stop_label: (s6) => `Detener: ${s6}`,
+    stop_label: (s4) => `Detener: ${s4}`,
     fire_event: (e6) => `Disparar evento: ${e6}`,
     automation_step: "Paso de automatizaci\xF3n",
     joiner_dot: " \xB7 ",
   },
   it: {
-    when_time_is: (t4) => `Quando l'ora \xE8 ${t4}`,
+    when_time_is: (t5) => `Quando l'ora \xE8 ${t5}`,
     when_time_is_any: (list) => `Quando l'ora \xE8 ${list}`,
     or: " o ",
     when_it_is: (ev) => `Quando \xE8 ${ev}`,
@@ -27990,7 +27899,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Quando ${eid} diventa ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quando ${eid} cambia stato${dur}`,
     for_duration: (d3) => ` per ${d3}`,
-    when_between: (eid, a4, b2) => `Quando ${eid} \xE8 tra ${a4} e ${b2}`,
+    when_between: (eid, a3, b3) => `Quando ${eid} \xE8 tra ${a3} e ${b3}`,
     when_rises_above: (eid, v2) => `Quando ${eid} supera ${v2}`,
     when_drops_below: (eid, v2) => `Quando ${eid} scende sotto ${v2}`,
     when_value_changes: (eid) => `Quando il valore di ${eid} cambia`,
@@ -27998,24 +27907,24 @@ var PHRASES = {
     ha_starts: "si avvia",
     ha_shuts_down: "si arresta",
     ha_changes_state: "cambia stato",
-    every_seconds: (n5) => `Ogni ${n5} second${Number(n5) === 1 ? "o" : "i"}`,
-    every_minutes: (n5) => `Ogni ${n5} minut${Number(n5) === 1 ? "o" : "i"}`,
-    every_hours: (n5) => `Ogni ${n5} or${Number(n5) === 1 ? "a" : "e"}`,
+    every_seconds: (n4) => `Ogni ${n4} second${Number(n4) === 1 ? "o" : "i"}`,
+    every_minutes: (n4) => `Ogni ${n4} minut${Number(n4) === 1 ? "o" : "i"}`,
+    every_hours: (n4) => `Ogni ${n4} or${Number(n4) === 1 ? "a" : "e"}`,
     on_time_pattern: "Su uno schema temporale",
     when_template_entity: (e6) =>
       `Quando la condizione su ${e6} \xE8 soddisfatta`,
     when_template_met: "Quando una condizione del modello \xE8 soddisfatta",
-    when_event: (n5) => `Quando ${n5} si verifica`,
+    when_event: (n4) => `Quando ${n4} si verifica`,
     when_event_generic: "Quando si verifica un evento",
-    when_device_triggered: (t4) => `Quando un dispositivo ${t4}`,
+    when_device_triggered: (t5) => `Quando un dispositivo ${t5}`,
     when_named_device: (name, ty) => `Quando ${name} ${ty}`,
     cond_named_device: (name, ty) => `${name} ${ty}`,
-    when_device_is: (t4) => `Quando un dispositivo \xE8 ${t4}`,
+    when_device_is: (t5) => `Quando un dispositivo \xE8 ${t5}`,
     triggered: "attivato",
     zone_enters: "entra in",
     zone_leaves: "esce da",
-    when_mqtt_topic: (t4) =>
-      `Quando arriva un messaggio del dispositivo (${t4})`,
+    when_mqtt_topic: (t5) =>
+      `Quando arriva un messaggio del dispositivo (${t5})`,
     when_mqtt: "Quando arriva un messaggio del dispositivo",
     when_webhook: "Quando un servizio esterno invia un aggiornamento",
     when_tag: (id) => `Quando un tag viene scansionato${id ? ` (${id})` : ""}`,
@@ -28026,22 +27935,22 @@ var PHRASES = {
     on_entity: (e6) => ` su ${e6}`,
     when_trigger_happens: "Quando si verifica questo trigger",
     cond_is: (eid, st) => `${eid} \xE8 ${st}`,
-    cond_between: (eid, a4, b2) => `${eid} tra ${a4} e ${b2}`,
+    cond_between: (eid, a3, b3) => `${eid} tra ${a3} e ${b3}`,
     cond_above: (eid, v2) => `${eid} sopra ${v2}`,
     cond_below: (eid, v2) => `${eid} sotto ${v2}`,
     cond_at_least: (eid, v2) => `${eid} almeno ${v2}`,
     cond_at_most: (eid, v2) => `${eid} al massimo ${v2}`,
     cond_numeric: (eid) => `verifica numerica di ${eid}`,
-    cond_after_time: (t4) => `dopo ${t4}`,
-    cond_before_time: (t4) => `prima di ${t4}`,
+    cond_after_time: (t5) => `dopo ${t5}`,
+    cond_before_time: (t5) => `prima di ${t5}`,
     cond_on_weekday: (d3) => `il ${d3}`,
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello \xE8 valutato vero",
-    cond_after_sun: (s6) => `dopo ${s6}`,
-    cond_before_sun: (s6) => `prima di ${s6}`,
+    cond_after_sun: (s4) => `dopo ${s4}`,
+    cond_before_sun: (s4) => `prima di ${s4}`,
     cond_sun_position: "Posizione del sole",
-    cond_all: (n5) => `Tutte le ${n5} condizioni devono essere vere`,
-    cond_any: (n5) => `Una delle ${n5} condizioni \xE8 vera`,
+    cond_all: (n4) => `Tutte le ${n4} condizioni devono essere vere`,
+    cond_any: (n4) => `Una delle ${n4} condizioni \xE8 vera`,
     cond_none: "Nessuna delle condizioni \xE8 vera",
     cond_triggered_by: (label) => `Attivato da \xAB${label}\xBB`,
     cond_at_time: (x2) => `alle ${x2}`,
@@ -28068,26 +27977,26 @@ var PHRASES = {
     extra_temp: (v2) => `a ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. colore ${v2}`,
     wait_str: (d3) => `Attendi ${d3}`,
-    wait_parts: (p2) => `Attendi ${p2}`,
+    wait_parts: (p4) => `Attendi ${p4}`,
     wait_plain: "Attendi",
     wait_until: "Attendi finch\xE9 la condizione non \xE8 soddisfatta",
     wait_for_trigger: "Attendi un trigger",
     activate_scene: (e6) => `Attiva scena: ${e6}`,
-    choose_between: (n5) => `Scegli tra ${n5} opzion${n5 !== 1 ? "i" : "e"}`,
-    repeat_count: (n5) => `Ripeti ${n5} volt${n5 !== 1 ? "e" : "a"}`,
+    choose_between: (n4) => `Scegli tra ${n4} opzion${n4 !== 1 ? "i" : "e"}`,
+    repeat_count: (n4) => `Ripeti ${n4} volt${n4 !== 1 ? "e" : "a"}`,
     repeat_while: "Ripeti finch\xE9 la condizione \xE8 vera",
     repeat_until: "Ripeti finch\xE9 la condizione non \xE8 vera",
     repeat: "Ripeti",
-    parallel: (n5) => `Esegui ${n5} azioni in parallelo`,
-    sequence: (n5) => `Esegui una sequenza di ${n5} passaggi`,
+    parallel: (n4) => `Esegui ${n4} azioni in parallelo`,
+    sequence: (n4) => `Esegui una sequenza di ${n4} passaggi`,
     set_variables: "Imposta variabili",
-    stop_label: (s6) => `Ferma: ${s6}`,
+    stop_label: (s4) => `Ferma: ${s4}`,
     fire_event: (e6) => `Lancia evento: ${e6}`,
     automation_step: "Passo di automazione",
     joiner_dot: " \xB7 ",
   },
   nl: {
-    when_time_is: (t4) => `Wanneer het tijdstip ${t4} is`,
+    when_time_is: (t5) => `Wanneer het tijdstip ${t5} is`,
     when_time_is_any: (list) => `Wanneer het tijdstip ${list} is`,
     or: " of ",
     when_it_is: (ev) => `Wanneer het ${ev} is`,
@@ -28103,7 +28012,7 @@ var PHRASES = {
     when_changes_state: (eid, dur) =>
       `Wanneer ${eid} van status verandert${dur}`,
     for_duration: (d3) => ` gedurende ${d3}`,
-    when_between: (eid, a4, b2) => `Wanneer ${eid} tussen ${a4} en ${b2} is`,
+    when_between: (eid, a3, b3) => `Wanneer ${eid} tussen ${a3} en ${b3} is`,
     when_rises_above: (eid, v2) => `Wanneer ${eid} boven ${v2} stijgt`,
     when_drops_below: (eid, v2) => `Wanneer ${eid} onder ${v2} zakt`,
     when_value_changes: (eid) => `Wanneer de waarde van ${eid} verandert`,
@@ -28111,25 +28020,25 @@ var PHRASES = {
     ha_starts: "start",
     ha_shuts_down: "afsluit",
     ha_changes_state: "van status verandert",
-    every_seconds: (n5) =>
-      `Elke ${n5} ${Number(n5) === 1 ? "seconde" : "seconden"}`,
-    every_minutes: (n5) =>
-      `Elke ${n5} ${Number(n5) === 1 ? "minuut" : "minuten"}`,
-    every_hours: (n5) => `Elke ${n5} uur`,
+    every_seconds: (n4) =>
+      `Elke ${n4} ${Number(n4) === 1 ? "seconde" : "seconden"}`,
+    every_minutes: (n4) =>
+      `Elke ${n4} ${Number(n4) === 1 ? "minuut" : "minuten"}`,
+    every_hours: (n4) => `Elke ${n4} uur`,
     on_time_pattern: "Op een tijdpatroon",
     when_template_entity: (e6) => `Wanneer de voorwaarde op ${e6} klopt`,
     when_template_met: "Wanneer aan een sjabloonvoorwaarde wordt voldaan",
-    when_event: (n5) => `Wanneer ${n5} gebeurt`,
+    when_event: (n4) => `Wanneer ${n4} gebeurt`,
     when_event_generic: "Wanneer een gebeurtenis plaatsvindt",
-    when_device_triggered: (t4) => `Wanneer een apparaat ${t4}`,
+    when_device_triggered: (t5) => `Wanneer een apparaat ${t5}`,
     when_named_device: (name, ty) => `Wanneer ${name} ${ty}`,
     cond_named_device: (name, ty) => `${name} ${ty}`,
-    when_device_is: (t4) => `Wanneer een apparaat ${t4} is`,
+    when_device_is: (t5) => `Wanneer een apparaat ${t5} is`,
     triggered: "geactiveerd",
     zone_enters: "betreedt",
     zone_leaves: "verlaat",
-    when_mqtt_topic: (t4) =>
-      `Wanneer er een apparaatbericht binnenkomt (${t4})`,
+    when_mqtt_topic: (t5) =>
+      `Wanneer er een apparaatbericht binnenkomt (${t5})`,
     when_mqtt: "Wanneer er een apparaatbericht binnenkomt",
     when_webhook: "Wanneer een externe service een update stuurt",
     when_tag: (id) => `Wanneer een tag wordt gescand${id ? ` (${id})` : ""}`,
@@ -28139,22 +28048,22 @@ var PHRASES = {
     on_entity: (e6) => ` op ${e6}`,
     when_trigger_happens: "Wanneer deze trigger optreedt",
     cond_is: (eid, st) => `${eid} is ${st}`,
-    cond_between: (eid, a4, b2) => `${eid} tussen ${a4} en ${b2}`,
+    cond_between: (eid, a3, b3) => `${eid} tussen ${a3} en ${b3}`,
     cond_above: (eid, v2) => `${eid} boven ${v2}`,
     cond_below: (eid, v2) => `${eid} onder ${v2}`,
     cond_at_least: (eid, v2) => `${eid} minstens ${v2}`,
     cond_at_most: (eid, v2) => `${eid} hoogstens ${v2}`,
     cond_numeric: (eid) => `${eid} numerieke controle`,
-    cond_after_time: (t4) => `na ${t4}`,
-    cond_before_time: (t4) => `v\xF3\xF3r ${t4}`,
+    cond_after_time: (t5) => `na ${t5}`,
+    cond_before_time: (t5) => `v\xF3\xF3r ${t5}`,
     cond_on_weekday: (d3) => `op ${d3}`,
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
-    cond_after_sun: (s6) => `na ${s6}`,
-    cond_before_sun: (s6) => `v\xF3\xF3r ${s6}`,
+    cond_after_sun: (s4) => `na ${s4}`,
+    cond_before_sun: (s4) => `v\xF3\xF3r ${s4}`,
     cond_sun_position: "Zonpositie",
-    cond_all: (n5) => `Alle ${n5} voorwaarden moeten waar zijn`,
-    cond_any: (n5) => `E\xE9n van de ${n5} voorwaarden is waar`,
+    cond_all: (n4) => `Alle ${n4} voorwaarden moeten waar zijn`,
+    cond_any: (n4) => `E\xE9n van de ${n4} voorwaarden is waar`,
     cond_none: "Geen van de voorwaarden is waar",
     cond_triggered_by: (label) => `Geactiveerd door \u201E${label}\u201D`,
     cond_at_time: (x2) => `om ${x2}`,
@@ -28181,27 +28090,27 @@ var PHRASES = {
     extra_temp: (v2) => `naar ${v2}\xB0`,
     extra_color_temp: (v2) => `kleurtemp. ${v2}`,
     wait_str: (d3) => `Wacht ${d3}`,
-    wait_parts: (p2) => `Wacht ${p2}`,
+    wait_parts: (p4) => `Wacht ${p4}`,
     wait_plain: "Wacht",
     wait_until: "Wacht tot aan de voorwaarde is voldaan",
     wait_for_trigger: "Wacht op een trigger",
     activate_scene: (e6) => `Sc\xE8ne activeren: ${e6}`,
-    choose_between: (n5) =>
-      `Kies tussen ${n5} ${n5 !== 1 ? "opties" : "optie"}`,
-    repeat_count: (n5) => `Herhaal ${n5} ${n5 !== 1 ? "keer" : "keer"}`,
+    choose_between: (n4) =>
+      `Kies tussen ${n4} ${n4 !== 1 ? "opties" : "optie"}`,
+    repeat_count: (n4) => `Herhaal ${n4} ${n4 !== 1 ? "keer" : "keer"}`,
     repeat_while: "Herhaal zolang de voorwaarde geldt",
     repeat_until: "Herhaal totdat de voorwaarde wordt voldaan",
     repeat: "Herhalen",
-    parallel: (n5) => `Voer ${n5} acties parallel uit`,
-    sequence: (n5) => `Voer een reeks van ${n5} stappen uit`,
+    parallel: (n4) => `Voer ${n4} acties parallel uit`,
+    sequence: (n4) => `Voer een reeks van ${n4} stappen uit`,
     set_variables: "Variabelen instellen",
-    stop_label: (s6) => `Stop: ${s6}`,
+    stop_label: (s4) => `Stop: ${s4}`,
     fire_event: (e6) => `Gebeurtenis afvuren: ${e6}`,
     automation_step: "Automatiseringsstap",
     joiner_dot: " \xB7 ",
   },
   hu: {
-    when_time_is: (t4) => `Amikor az id\u0151 ${t4}`,
+    when_time_is: (t5) => `Amikor az id\u0151 ${t5}`,
     when_time_is_any: (list) => `Amikor az id\u0151 ${list}`,
     or: " vagy ",
     when_it_is: (ev) => `Amikor ${ev} van`,
@@ -28217,8 +28126,8 @@ var PHRASES = {
     when_changes_state: (eid, dur) =>
       `Amikor ${eid} \xE1llapotot v\xE1lt${dur}`,
     for_duration: (d3) => ` ${d3}-ig`,
-    when_between: (eid, a4, b2) =>
-      `Amikor ${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt van`,
+    when_between: (eid, a3, b3) =>
+      `Amikor ${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt van`,
     when_rises_above: (eid, v2) => `Amikor ${eid} ${v2} f\xF6l\xE9 emelkedik`,
     when_drops_below: (eid, v2) => `Amikor ${eid} ${v2} al\xE1 esik`,
     when_value_changes: (eid) => `Amikor ${eid} \xE9rt\xE9ke v\xE1ltozik`,
@@ -28226,22 +28135,22 @@ var PHRASES = {
     ha_starts: "elindul",
     ha_shuts_down: "le\xE1ll",
     ha_changes_state: "\xE1llapotot v\xE1lt",
-    every_seconds: (n5) => `Minden ${n5} m\xE1sodperc`,
-    every_minutes: (n5) => `Minden ${n5} perc`,
-    every_hours: (n5) => `Minden ${n5} \xF3ra`,
+    every_seconds: (n4) => `Minden ${n4} m\xE1sodperc`,
+    every_minutes: (n4) => `Minden ${n4} perc`,
+    every_hours: (n4) => `Minden ${n4} \xF3ra`,
     on_time_pattern: "Id\u0151minta szerint",
     when_template_entity: (e6) => `Amikor a ${e6} felt\xE9tel teljes\xFCl`,
     when_template_met: "Amikor egy sablonfelt\xE9tel teljes\xFCl",
-    when_event: (n5) => `Amikor ${n5} t\xF6rt\xE9nik`,
+    when_event: (n4) => `Amikor ${n4} t\xF6rt\xE9nik`,
     when_event_generic: "Amikor egy esem\xE9ny t\xF6rt\xE9nik",
-    when_device_triggered: (t4) => `Amikor egy eszk\xF6z ${t4}`,
+    when_device_triggered: (t5) => `Amikor egy eszk\xF6z ${t5}`,
     when_named_device: (name, ty) => `Amikor ${name} ${ty}`,
     cond_named_device: (name, ty) => `${name} ${ty}`,
-    when_device_is: (t4) => `Amikor egy eszk\xF6z ${t4}`,
+    when_device_is: (t5) => `Amikor egy eszk\xF6z ${t5}`,
     triggered: "kiv\xE1lt\xF3dik",
     zone_enters: "bel\xE9p ide:",
     zone_leaves: "elhagyja ezt:",
-    when_mqtt_topic: (t4) => `Amikor eszk\xF6z\xFCzenet \xE9rkezik (${t4})`,
+    when_mqtt_topic: (t5) => `Amikor eszk\xF6z\xFCzenet \xE9rkezik (${t5})`,
     when_mqtt: "Amikor eszk\xF6z\xFCzenet \xE9rkezik",
     when_webhook:
       "Amikor egy k\xFCls\u0151 szolg\xE1ltat\xE1s friss\xEDt\xE9st k\xFCld",
@@ -28254,22 +28163,22 @@ var PHRASES = {
     on_entity: (e6) => ` itt: ${e6}`,
     when_trigger_happens: "Amikor ez a trigger bek\xF6vetkezik",
     cond_is: (eid, st) => `${eid} \xE9rt\xE9ke ${st}`,
-    cond_between: (eid, a4, b2) => `${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt`,
+    cond_between: (eid, a3, b3) => `${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt`,
     cond_above: (eid, v2) => `${eid} ${v2} f\xF6l\xF6tt`,
     cond_below: (eid, v2) => `${eid} ${v2} alatt`,
     cond_at_least: (eid, v2) => `${eid} legal\xE1bb ${v2}`,
     cond_at_most: (eid, v2) => `${eid} legfeljebb ${v2}`,
     cond_numeric: (eid) => `${eid} numerikus ellen\u0151rz\xE9s`,
-    cond_after_time: (t4) => `${t4} ut\xE1n`,
-    cond_before_time: (t4) => `${t4} el\u0151tt`,
+    cond_after_time: (t5) => `${t5} ut\xE1n`,
+    cond_before_time: (t5) => `${t5} el\u0151tt`,
     cond_on_weekday: (d3) => `${d3} napokon`,
     cond_time_window: "Id\u0151ablak",
     cond_template_true: "A sablon igaznak \xE9rt\xE9kel\u0151dik",
-    cond_after_sun: (s6) => `${s6} ut\xE1n`,
-    cond_before_sun: (s6) => `${s6} el\u0151tt`,
+    cond_after_sun: (s4) => `${s4} ut\xE1n`,
+    cond_before_sun: (s4) => `${s4} el\u0151tt`,
     cond_sun_position: "Nappoz\xEDci\xF3",
-    cond_all: (n5) => `Mind a ${n5} felt\xE9telnek igaznak kell lennie`,
-    cond_any: (n5) => `A ${n5} felt\xE9tel egyike igaz`,
+    cond_all: (n4) => `Mind a ${n4} felt\xE9telnek igaznak kell lennie`,
+    cond_any: (n4) => `A ${n4} felt\xE9tel egyike igaz`,
     cond_none: "Egyik felt\xE9tel sem igaz",
     cond_triggered_by: (label) => `Kiv\xE1ltotta: \u201E${label}\u201D`,
     cond_at_time: (x2) => `${x2}-kor`,
@@ -28296,20 +28205,20 @@ var PHRASES = {
     extra_temp: (v2) => `${v2}\xB0-ra`,
     extra_color_temp: (v2) => `sz\xEDnh\u0151m\xE9rs\xE9klet ${v2}`,
     wait_str: (d3) => `V\xE1rakoz\xE1s: ${d3}`,
-    wait_parts: (p2) => `V\xE1rakoz\xE1s: ${p2}`,
+    wait_parts: (p4) => `V\xE1rakoz\xE1s: ${p4}`,
     wait_plain: "V\xE1rakoz\xE1s",
     wait_until: "V\xE1rakoz\xE1s, am\xEDg a felt\xE9tel teljes\xFCl",
     wait_for_trigger: "V\xE1rakoz\xE1s triggerre",
     activate_scene: (e6) => `Jelenet aktiv\xE1l\xE1sa: ${e6}`,
-    choose_between: (n5) => `V\xE1laszt\xE1s ${n5} opci\xF3 k\xF6z\xFCl`,
-    repeat_count: (n5) => `Ism\xE9tl\xE9s ${n5}-szor`,
+    choose_between: (n4) => `V\xE1laszt\xE1s ${n4} opci\xF3 k\xF6z\xFCl`,
+    repeat_count: (n4) => `Ism\xE9tl\xE9s ${n4}-szor`,
     repeat_while: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel fenn\xE1ll",
     repeat_until: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel teljes\xFCl",
     repeat: "Ism\xE9tl\xE9s",
-    parallel: (n5) => `${n5} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
-    sequence: (n5) => `${n5} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
+    parallel: (n4) => `${n4} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
+    sequence: (n4) => `${n4} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
     set_variables: "V\xE1ltoz\xF3k be\xE1ll\xEDt\xE1sa",
-    stop_label: (s6) => `Meg\xE1ll\xEDt\xE1s: ${s6}`,
+    stop_label: (s4) => `Meg\xE1ll\xEDt\xE1s: ${s4}`,
     fire_event: (e6) => `Esem\xE9ny kiv\xE1lt\xE1sa: ${e6}`,
     automation_step: "Automatizmus l\xE9p\xE9se",
     joiner_dot: " \xB7 ",
@@ -28334,17 +28243,17 @@ function _deviceName(hass, deviceId) {
 function _triggerEffectiveId(tr, index) {
   return tr?.id != null ? String(tr.id) : String(index);
 }
-function _entityNamesOr(hass, val, t4) {
+function _entityNamesOr(hass, val, t5) {
   const arr = asArray(val);
   if (arr.length <= 1) return fmtEntity(hass, arr[0]);
   const names = arr.map((e6) => fmtEntity(hass, e6));
-  return names.slice(0, -1).join(", ") + t4("or") + names[names.length - 1];
+  return names.slice(0, -1).join(", ") + t5("or") + names[names.length - 1];
 }
 var _CLAUSE_RE =
   /^\(?\s*(?:states\(\s*['"]([^'"]+)['"]\s*\)|state_attr\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\))(?:\s*\|\s*(?:int|float)\b(?:\([^()]*\))?)*\s*\)?\s*(<=?|>=?)\s*(-?\d+(?:\.\d+)?)\s*$/;
 var _IS_STATE_RE =
   /^is_state\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\)$/;
-function _describeComparisonTemplate(hass, template, t4, lang) {
+function _describeComparisonTemplate(hass, template, t5, lang) {
   const inner = String(template || "")
     .replace(/^\s*\{\{-?/, "")
     .replace(/-?\}\}\s*$/, "")
@@ -28353,7 +28262,7 @@ function _describeComparisonTemplate(hass, template, t4, lang) {
   if (/\b(not|or|if|else)\b/.test(inner)) return null;
   const isState = inner.match(_IS_STATE_RE);
   if (isState)
-    return t4(
+    return t5(
       "cond_is",
       fmtEntity(hass, isState[1]),
       fmtState(isState[2], lang),
@@ -28368,25 +28277,25 @@ function _describeComparisonTemplate(hass, template, t4, lang) {
   let below = null;
   let belowIncl = false;
   for (const clause of clauses) {
-    const m2 = clause.match(_CLAUSE_RE);
-    if (!m2) return null;
-    const eid = m2[1] ?? m2[2];
-    const key = `${eid}|${m2[3] ?? ""}`;
+    const m3 = clause.match(_CLAUSE_RE);
+    if (!m3) return null;
+    const eid = m3[1] ?? m3[2];
+    const key = `${eid}|${m3[3] ?? ""}`;
     if (refKey == null) {
       refKey = key;
       entityId = eid;
-      attr = m2[3] ?? null;
+      attr = m3[3] ?? null;
     } else if (key !== refKey) {
       return null;
     }
-    const inclusive = m2[4].includes("=");
-    if (m2[4][0] === ">") {
+    const inclusive = m3[4].includes("=");
+    if (m3[4][0] === ">") {
       if (above != null) return null;
-      above = m2[5];
+      above = m3[5];
       aboveIncl = inclusive;
     } else {
       if (below != null) return null;
-      below = m2[5];
+      below = m3[5];
       belowIncl = inclusive;
     }
   }
@@ -28395,12 +28304,12 @@ function _describeComparisonTemplate(hass, template, t4, lang) {
   const subject = attr ? `${name} ${humanizeToken(attr).toLowerCase()}` : name;
   if (above != null && below != null)
     return aboveIncl && belowIncl
-      ? t4("cond_between", subject, above, below)
+      ? t5("cond_between", subject, above, below)
       : null;
   if (above != null)
-    return t4(aboveIncl ? "cond_at_least" : "cond_above", subject, above);
+    return t5(aboveIncl ? "cond_at_least" : "cond_above", subject, above);
   if (below != null)
-    return t4(belowIncl ? "cond_at_most" : "cond_below", subject, below);
+    return t5(belowIncl ? "cond_at_most" : "cond_below", subject, below);
   return null;
 }
 function _templateHasConcreteDescription(template) {
@@ -28409,167 +28318,167 @@ function _templateHasConcreteDescription(template) {
 function describeFlowItem(hass, item, ctx) {
   if (!item || typeof item !== "object") return String(item ?? "");
   const T2 = _phrases(hass);
-  const t4 = (k2, ...a4) => _val(T2, k2, ...a4);
+  const t5 = (k2, ...a3) => _val(T2, k2, ...a3);
   const lang = hass?.language;
-  const p2 = item.platform || item.trigger;
-  if (p2 === "time") {
+  const p4 = item.platform || item.trigger;
+  if (p4 === "time") {
     const raw = item.at;
     if (Array.isArray(raw)) {
-      return t4(
+      return t5(
         "when_time_is_any",
-        raw.map((x2) => fmtTime(hass, x2)).join(t4("or")),
+        raw.map((x2) => fmtTime(hass, x2)).join(t5("or")),
       );
     }
-    return t4("when_time_is", fmtTime(hass, raw));
+    return t5("when_time_is", fmtTime(hass, raw));
   }
-  if (p2 === "sun") {
+  if (p4 === "sun") {
     const ev =
       item.event === "sunset"
-        ? t4("sunset")
+        ? t5("sunset")
         : item.event === "sunrise"
-          ? t4("sunrise")
+          ? t5("sunrise")
           : humanizeToken(item.event || "sun event").toLowerCase();
     if (item.offset) {
       const neg = item.offset.startsWith("-");
       const raw = neg ? item.offset.slice(1) : item.offset;
-      const [h3, m2, s6] = raw.split(":").map(Number);
+      const [h3, m3, s4] = raw.split(":").map(Number);
       const parts = [];
       if (h3) parts.push(`${h3}h`);
-      if (m2) parts.push(`${m2}min`);
-      if (s6) parts.push(`${s6}s`);
+      if (m3) parts.push(`${m3}min`);
+      if (s4) parts.push(`${s4}s`);
       const label = parts.join(" ") || item.offset;
-      return t4("sun_offset", label, neg, ev);
+      return t5("sun_offset", label, neg, ev);
     }
-    return t4("when_it_is", ev);
+    return t5("when_it_is", ev);
   }
-  if (p2 === "state") {
-    const eid = _entityNamesOr(hass, item.entity_id, t4);
+  if (p4 === "state") {
+    const eid = _entityNamesOr(hass, item.entity_id, t5);
     const rawTo = item.to == null ? null : String(item.to);
     const fromState = fmtState(item.from, lang);
     const toState = fmtState(item.to, lang);
     const duration = fmtDuration(item.for);
-    const dur = duration ? t4("for_duration", duration) : "";
-    if (rawTo === "on") return t4("when_turns_on", eid, dur);
-    if (rawTo === "off") return t4("when_turns_off", eid, dur);
+    const dur = duration ? t5("for_duration", duration) : "";
+    if (rawTo === "on") return t5("when_turns_on", eid, dur);
+    if (rawTo === "off") return t5("when_turns_off", eid, dur);
     if (toState && fromState)
-      return t4("when_changes_from_to", eid, fromState, toState, dur);
-    if (toState) return t4("when_becomes", eid, toState, dur);
+      return t5("when_changes_from_to", eid, fromState, toState, dur);
+    if (toState) return t5("when_becomes", eid, toState, dur);
     const firstId = String(asArray(item.entity_id)[0] || "");
     if (!item.from && firstId.startsWith("sensor."))
-      return `${t4("when_value_changes", eid)}${dur}`;
-    return t4("when_changes_state", eid, dur);
+      return `${t5("when_value_changes", eid)}${dur}`;
+    return t5("when_changes_state", eid, dur);
   }
-  if (p2 === "numeric_state") {
-    const eid = _entityNamesOr(hass, item.entity_id, t4);
+  if (p4 === "numeric_state") {
+    const eid = _entityNamesOr(hass, item.entity_id, t5);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
     if (item.above != null && item.below != null)
-      return t4("when_between", eid, above, below);
-    if (item.above != null) return t4("when_rises_above", eid, above);
-    if (item.below != null) return t4("when_drops_below", eid, below);
-    return t4("when_value_changes", eid);
+      return t5("when_between", eid, above, below);
+    if (item.above != null) return t5("when_rises_above", eid, above);
+    if (item.below != null) return t5("when_drops_below", eid, below);
+    return t5("when_value_changes", eid);
   }
-  if (p2 === "homeassistant") {
+  if (p4 === "homeassistant") {
     const ev =
       item.event === "start"
-        ? t4("ha_starts")
+        ? t5("ha_starts")
         : item.event === "shutdown"
-          ? t4("ha_shuts_down")
-          : t4("ha_changes_state");
-    return t4("when_ha", ev);
+          ? t5("ha_shuts_down")
+          : t5("ha_changes_state");
+    return t5("when_ha", ev);
   }
-  if (p2 === "time_pattern") {
-    if (item.seconds != null) return t4("every_seconds", item.seconds);
-    if (item.minutes != null) return t4("every_minutes", item.minutes);
-    if (item.hours != null) return t4("every_hours", item.hours);
-    return t4("on_time_pattern");
+  if (p4 === "time_pattern") {
+    if (item.seconds != null) return t5("every_seconds", item.seconds);
+    if (item.minutes != null) return t5("every_minutes", item.minutes);
+    if (item.hours != null) return t5("every_hours", item.hours);
+    return t5("on_time_pattern");
   }
-  if (p2 === "template") {
+  if (p4 === "template") {
     const tmpl = item.value_template || "";
     const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
     if (entityMatch)
-      return t4("when_template_entity", fmtEntity(hass, entityMatch[1]));
-    return t4("when_template_met");
+      return t5("when_template_entity", fmtEntity(hass, entityMatch[1]));
+    return t5("when_template_met");
   }
-  if (p2 === "event") {
+  if (p4 === "event") {
     if (item.event_type)
-      return t4("when_event", humanizeToken(item.event_type).toLowerCase());
-    return t4("when_event_generic");
+      return t5("when_event", humanizeToken(item.event_type).toLowerCase());
+    return t5("when_event_generic");
   }
-  if (p2 === "device") {
+  if (p4 === "device") {
     const triggerType = item.type
       ? humanizeToken(item.type).toLowerCase()
-      : t4("triggered");
+      : t5("triggered");
     const devName = _deviceName(hass, item.device_id);
-    if (devName) return t4("when_named_device", devName, triggerType);
+    if (devName) return t5("when_named_device", devName, triggerType);
     return item.device_id
-      ? t4("when_device_triggered", triggerType)
-      : t4("when_device_is", triggerType);
+      ? t5("when_device_triggered", triggerType)
+      : t5("when_device_is", triggerType);
   }
-  if (p2 === "zone") {
+  if (p4 === "zone") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const zone = fmtEntity(hass, item.zone);
     const rawEvent = String(item.event || "enter");
     const ev =
       rawEvent === "enter"
-        ? t4("zone_enters")
+        ? t5("zone_enters")
         : rawEvent === "leave"
-          ? t4("zone_leaves")
+          ? t5("zone_leaves")
           : humanizeToken(rawEvent).toLowerCase();
     return `${eid} ${ev} ${zone}`.trim();
   }
-  if (p2 === "mqtt")
-    return item.topic ? t4("when_mqtt_topic", item.topic) : t4("when_mqtt");
-  if (p2 === "webhook") return t4("when_webhook");
-  if (p2 === "tag") return t4("when_tag", item.tag_id || "");
-  if (p2 === "geo_location") return t4("when_geo");
-  if (p2 === "calendar") {
+  if (p4 === "mqtt")
+    return item.topic ? t5("when_mqtt_topic", item.topic) : t5("when_mqtt");
+  if (p4 === "webhook") return t5("when_webhook");
+  if (p4 === "tag") return t5("when_tag", item.tag_id || "");
+  if (p4 === "geo_location") return t5("when_geo");
+  if (p4 === "calendar") {
     const eventName = item.event
       ? humanizeToken(item.event).toLowerCase()
-      : t4("calendar_event");
+      : t5("calendar_event");
     const entity = item.entity_id
-      ? t4("on_entity", fmtEntity(hass, item.entity_id))
+      ? t5("on_entity", fmtEntity(hass, item.entity_id))
       : "";
-    return t4("when_calendar", eventName, entity);
+    return t5("when_calendar", eventName, entity);
   }
-  if (p2) return t4("when_trigger_happens");
+  if (p4) return t5("when_trigger_happens");
   const cond = item.condition;
   if (cond === "state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const st = fmtState(item.state ?? item.to, lang);
-    return t4("cond_is", eid, st);
+    return t5("cond_is", eid, st);
   }
   if (cond === "numeric_state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     if (item.above != null && item.below != null)
-      return t4("cond_between", eid, item.above, item.below);
-    if (item.above != null) return t4("cond_above", eid, item.above);
-    if (item.below != null) return t4("cond_below", eid, item.below);
-    return t4("cond_numeric", eid);
+      return t5("cond_between", eid, item.above, item.below);
+    if (item.above != null) return t5("cond_above", eid, item.above);
+    if (item.below != null) return t5("cond_below", eid, item.below);
+    return t5("cond_numeric", eid);
   }
   if (cond === "time") {
     const parts = [];
     if (item.after)
-      parts.push(t4("cond_after_time", fmtTime(hass, item.after)));
+      parts.push(t5("cond_after_time", fmtTime(hass, item.after)));
     if (item.before)
-      parts.push(t4("cond_before_time", fmtTime(hass, item.before)));
+      parts.push(t5("cond_before_time", fmtTime(hass, item.before)));
     if (item.weekday)
-      parts.push(t4("cond_on_weekday", fmtWeekdays(item.weekday, lang)));
-    return parts.length ? parts.join(t4("joiner_dot")) : t4("cond_time_window");
+      parts.push(t5("cond_on_weekday", fmtWeekdays(item.weekday, lang)));
+    return parts.length ? parts.join(t5("joiner_dot")) : t5("cond_time_window");
   }
   if (cond === "template") {
     const parsed = _describeComparisonTemplate(
       hass,
       item.value_template,
-      t4,
+      t5,
       lang,
     );
-    return parsed || t4("cond_template_true");
+    return parsed || t5("cond_template_true");
   }
   if (cond === "trigger") {
     const ids = asArray(item.id).map(String);
-    const matched = asArray(ctx?.triggers).filter((tr, i5) =>
-      ids.includes(_triggerEffectiveId(tr, i5)),
+    const matched = asArray(ctx?.triggers).filter((tr, i7) =>
+      ids.includes(_triggerEffectiveId(tr, i7)),
     );
     if (
       matched.length &&
@@ -28578,32 +28487,32 @@ function describeFlowItem(hass, item, ctx) {
       const times = matched
         .flatMap((tr) => asArray(tr.at))
         .map((x2) => fmtTime(hass, x2));
-      if (times.length) return t4("cond_at_time", times.join(t4("or")));
+      if (times.length) return t5("cond_at_time", times.join(t5("or")));
     }
     const labels = matched.map((tr) => describeFlowItem(hass, tr, ctx));
-    const label = (labels.length ? labels : ids).join(t4("or"));
-    return t4("cond_triggered_by", label);
+    const label = (labels.length ? labels : ids).join(t5("or"));
+    return t5("cond_triggered_by", label);
   }
   if (cond === "sun") {
     const parts = [];
     if (item.after)
-      parts.push(t4("cond_after_sun", String(item.after).replace(/_/g, " ")));
+      parts.push(t5("cond_after_sun", String(item.after).replace(/_/g, " ")));
     if (item.before)
-      parts.push(t4("cond_before_sun", String(item.before).replace(/_/g, " ")));
-    return parts.join(", ") || t4("cond_sun_position");
+      parts.push(t5("cond_before_sun", String(item.before).replace(/_/g, " ")));
+    return parts.join(", ") || t5("cond_sun_position");
   }
-  if (cond === "and") return t4("cond_all", asArray(item.conditions).length);
-  if (cond === "or") return t4("cond_any", asArray(item.conditions).length);
-  if (cond === "not") return t4("cond_none");
+  if (cond === "and") return t5("cond_all", asArray(item.conditions).length);
+  if (cond === "or") return t5("cond_any", asArray(item.conditions).length);
+  if (cond === "not") return t5("cond_none");
   if (cond === "zone") {
     const eid = fmtEntities(hass, item.entity_id, lang);
-    return t4("cond_in_zone", eid, fmtEntity(hass, item.zone));
+    return t5("cond_in_zone", eid, fmtEntity(hass, item.zone));
   }
   if (cond === "device") {
     const ty = item.type ? String(item.type).replace(/_/g, " ") : null;
     const devName = _deviceName(hass, item.device_id);
-    if (devName && ty) return t4("cond_named_device", devName, ty);
-    return ty || t4("cond_device");
+    if (devName && ty) return t5("cond_named_device", devName, ty);
+    return ty || t5("cond_device");
   }
   if (cond) return String(cond).replace(/_/g, " ");
   const svc = item.service || item.action;
@@ -28616,33 +28525,33 @@ function describeFlowItem(hass, item, ctx) {
     ) {
       const title = item.data?.title;
       const msg = item.data?.message;
-      if (title) return t4("notify_quoted", title);
+      if (title) return t5("notify_quoted", title);
       if (msg) {
         const short = msg.length > 60 ? msg.slice(0, 57) + "\u2026" : msg;
-        return t4("notify_quoted", short);
+        return t5("notify_quoted", short);
       }
-      return t4("send_notification");
+      return t5("send_notification");
     }
     if (domain === "notify") {
       const target = svcName
         .replace(/_/g, " ")
-        .replace(/\b\w/g, (c3) => c3.toUpperCase());
+        .replace(/\b\w/g, (c4) => c4.toUpperCase());
       const msg = item.data?.message;
       const title = item.data?.title;
-      if (title) return t4("notify_target", target, title);
+      if (title) return t5("notify_target", target, title);
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return t4("notify_target", target, short);
+        return t5("notify_target", target, short);
       }
-      return t4("notify_via", target);
+      return t5("notify_via", target);
     }
     if (domain === "tts") {
       const msg = item.data?.message;
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return t4("say_quoted", short);
+        return t5("say_quoted", short);
       }
-      return t4("tts");
+      return t5("tts");
     }
     const ACTION_KEYS = {
       turn_on: "action_turn_on",
@@ -28659,17 +28568,17 @@ function describeFlowItem(hass, item, ctx) {
     };
     const actionKey = ACTION_KEYS[svcName];
     const name = actionKey
-      ? t4(actionKey)
-      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+      ? t5(actionKey)
+      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c4) => c4.toUpperCase());
     const targets = item.target?.entity_id ?? item.data?.entity_id;
     const tgt = fmtEntities(hass, targets, lang);
     const extras = [];
     if (item.data?.brightness_pct != null)
-      extras.push(t4("extra_brightness", item.data.brightness_pct));
+      extras.push(t5("extra_brightness", item.data.brightness_pct));
     if (item.data?.temperature != null)
-      extras.push(t4("extra_temp", item.data.temperature));
+      extras.push(t5("extra_temp", item.data.temperature));
     if (item.data?.color_temp != null)
-      extras.push(t4("extra_color_temp", item.data.color_temp));
+      extras.push(t5("extra_color_temp", item.data.color_temp));
     if (item.data?.message && !String(item.data.message).includes("{{")) {
       const short =
         item.data.message.length > 50
@@ -28684,30 +28593,30 @@ function describeFlowItem(hass, item, ctx) {
   }
   if (item.delay) {
     const d3 = item.delay;
-    if (typeof d3 === "string") return t4("wait_str", d3);
+    if (typeof d3 === "string") return t5("wait_str", d3);
     const parts = [];
     if (d3.hours) parts.push(`${d3.hours}h`);
     if (d3.minutes) parts.push(`${d3.minutes}m`);
     if (d3.seconds) parts.push(`${d3.seconds}s`);
-    return parts.length ? t4("wait_parts", parts.join(" ")) : t4("wait_plain");
+    return parts.length ? t5("wait_parts", parts.join(" ")) : t5("wait_plain");
   }
-  if (item.wait_template) return t4("wait_until");
-  if (item.wait_for_trigger) return t4("wait_for_trigger");
-  if (item.scene) return t4("activate_scene", fmtEntity(hass, item.scene));
-  if (item.choose) return t4("choose_between", asArray(item.choose).length);
+  if (item.wait_template) return t5("wait_until");
+  if (item.wait_for_trigger) return t5("wait_for_trigger");
+  if (item.scene) return t5("activate_scene", fmtEntity(hass, item.scene));
+  if (item.choose) return t5("choose_between", asArray(item.choose).length);
   if (item.repeat) {
     const r4 = item.repeat;
-    if (r4.count != null) return t4("repeat_count", r4.count);
-    if (r4.while) return t4("repeat_while");
-    if (r4.until) return t4("repeat_until");
-    return t4("repeat");
+    if (r4.count != null) return t5("repeat_count", r4.count);
+    if (r4.while) return t5("repeat_while");
+    if (r4.until) return t5("repeat_until");
+    return t5("repeat");
   }
-  if (item.parallel) return t4("parallel", asArray(item.parallel).length);
-  if (item.sequence) return t4("sequence", asArray(item.sequence).length);
-  if (item.variables) return t4("set_variables");
-  if (item.stop) return t4("stop_label", item.stop);
+  if (item.parallel) return t5("parallel", asArray(item.parallel).length);
+  if (item.sequence) return t5("sequence", asArray(item.sequence).length);
+  if (item.variables) return t5("set_variables");
+  if (item.stop) return t5("stop_label", item.stop);
   if (item.event)
-    return t4("fire_event", String(item.event).replace(/_/g, " "));
+    return t5("fire_event", String(item.event).replace(/_/g, " "));
   const SKIP = /* @__PURE__ */ new Set([
     "id",
     "enabled",
@@ -28733,8 +28642,8 @@ function describeFlowItem(hass, item, ctx) {
     .filter(Boolean)
     .slice(0, 3);
   return readable.length
-    ? readable.join(t4("joiner_dot"))
-    : t4("automation_step");
+    ? readable.join(t5("joiner_dot"))
+    : t5("automation_step");
 }
 function collectFlowEntityIds(item) {
   if (!item || typeof item !== "object") return [];
@@ -28755,10 +28664,10 @@ function collectFlowEntityIds(item) {
   push(item.target?.entity_id);
   push(item.data?.entity_id);
   if (typeof item.value_template === "string") {
-    for (const m2 of item.value_template.matchAll(
+    for (const m3 of item.value_template.matchAll(
       /(?:states|state_attr|is_state|is_state_attr)\(\s*['"]([^'"]+)['"]/g,
     )) {
-      push(m2[1]);
+      push(m3[1]);
     }
   }
   return out;
@@ -28775,9 +28684,9 @@ function collectFlowDeviceRefs(hass, item) {
 }
 function _isBareStateTrigger(tr) {
   if (!tr || typeof tr !== "object") return false;
-  const p2 = tr.platform || tr.trigger;
+  const p4 = tr.platform || tr.trigger;
   return (
-    p2 === "state" &&
+    p4 === "state" &&
     tr.to == null &&
     tr.from == null &&
     tr.not_to == null &&
@@ -28786,19 +28695,19 @@ function _isBareStateTrigger(tr) {
     !tr.attribute
   );
 }
-function _actionRunsUnconditionally(a4) {
-  if (!a4 || typeof a4 !== "object") return true;
-  if (Array.isArray(a4.choose)) return asArray(a4.default).length > 0;
-  if (a4.if != null) return asArray(a4.else).length > 0;
-  if (Array.isArray(a4.parallel))
-    return a4.parallel.some(_actionRunsUnconditionally);
-  if (Array.isArray(a4.sequence))
-    return a4.sequence.some(_actionRunsUnconditionally);
-  if (a4.repeat)
-    return asArray(a4.repeat.sequence ?? a4.repeat.actions).some(
+function _actionRunsUnconditionally(a3) {
+  if (!a3 || typeof a3 !== "object") return true;
+  if (Array.isArray(a3.choose)) return asArray(a3.default).length > 0;
+  if (a3.if != null) return asArray(a3.else).length > 0;
+  if (Array.isArray(a3.parallel))
+    return a3.parallel.some(_actionRunsUnconditionally);
+  if (Array.isArray(a3.sequence))
+    return a3.sequence.some(_actionRunsUnconditionally);
+  if (a3.repeat)
+    return asArray(a3.repeat.sequence ?? a3.repeat.actions).some(
       _actionRunsUnconditionally,
     );
-  if (a4.condition != null) return false;
+  if (a3.condition != null) return false;
   return true;
 }
 function _hasUnconditionalActionPath(actions) {
@@ -28826,36 +28735,36 @@ function displayTriggers(triggers, conditions, actions) {
   if (!trigs.length) return [];
   const refIds = /* @__PURE__ */ new Set();
   const condEntities = /* @__PURE__ */ new Set();
-  const visitCondition = (c3) => {
-    if (!c3 || typeof c3 !== "object") return;
-    if (c3.condition === "trigger")
-      for (const id of asArray(c3.id)) refIds.add(String(id));
+  const visitCondition = (c4) => {
+    if (!c4 || typeof c4 !== "object") return;
+    if (c4.condition === "trigger")
+      for (const id of asArray(c4.id)) refIds.add(String(id));
     if (
-      c3.condition !== "template" ||
-      _templateHasConcreteDescription(c3.value_template)
+      c4.condition !== "template" ||
+      _templateHasConcreteDescription(c4.value_template)
     ) {
-      for (const eid of collectFlowEntityIds(c3)) condEntities.add(eid);
+      for (const eid of collectFlowEntityIds(c4)) condEntities.add(eid);
     }
-    for (const sub of asArray(c3.conditions)) visitCondition(sub);
+    for (const sub of asArray(c4.conditions)) visitCondition(sub);
   };
-  const visitAction = (a4) => {
-    if (!a4 || typeof a4 !== "object") return;
-    for (const branch of asArray(a4.choose)) {
-      for (const c3 of asArray(branch?.conditions)) visitCondition(c3);
-      for (const s6 of asArray(branch?.sequence)) visitAction(s6);
+  const visitAction = (a3) => {
+    if (!a3 || typeof a3 !== "object") return;
+    for (const branch of asArray(a3.choose)) {
+      for (const c4 of asArray(branch?.conditions)) visitCondition(c4);
+      for (const s4 of asArray(branch?.sequence)) visitAction(s4);
     }
     for (const key of ["default", "sequence", "parallel"]) {
-      for (const s6 of asArray(a4[key])) visitAction(s6);
+      for (const s4 of asArray(a3[key])) visitAction(s4);
     }
-    for (const s6 of asArray(a4.repeat?.sequence)) visitAction(s6);
+    for (const s4 of asArray(a3.repeat?.sequence)) visitAction(s4);
   };
   asArray(conditions).forEach(visitCondition);
   asArray(actions).forEach(visitAction);
   const hasUnconditional = _hasUnconditionalActionPath(actions);
-  const isRedundant = (tr, i5) => {
+  const isRedundant = (tr, i7) => {
     if (!tr || typeof tr !== "object") return false;
     if (hasUnconditional) return false;
-    if (refIds.has(_triggerEffectiveId(tr, i5))) return true;
+    if (refIds.has(_triggerEffectiveId(tr, i7))) return true;
     if (!_isBareStateTrigger(tr)) return false;
     const ids = asArray(tr.entity_id).filter((e6) => typeof e6 === "string");
     return ids.length > 0 && ids.every((e6) => condEntities.has(e6));
@@ -28865,7 +28774,7 @@ function displayTriggers(triggers, conditions, actions) {
 }
 
 // src/panel/render-suggestions.js
-var ClampCursorDirective = class extends i3 {
+var ClampCursorDirective = class extends i5 {
   update(part, [force]) {
     const el = part.element;
     if (force) {
@@ -28887,17 +28796,17 @@ function collapsedSuggestionCount() {
   const w2 = window.innerWidth;
   return w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : COLLAPSED_COUNT;
 }
-function normalizeProactive(s6) {
+function normalizeProactive(s4) {
   return {
     type: "proactive",
-    cardKey: `proactive_${s6.suggestion_id}`,
-    title: s6.description,
-    subtitle: s6.evidence_summary || null,
+    cardKey: `proactive_${s4.suggestion_id}`,
+    title: s4.description,
+    subtitle: s4.evidence_summary || null,
     risk: null,
-    automationYaml: s6.automation_yaml || "",
-    automationData: s6.automation_data || null,
-    _original: s6,
-    _suggestionId: s6.suggestion_id,
+    automationYaml: s4.automation_yaml || "",
+    automationData: s4.automation_data || null,
+    _original: s4,
+    _suggestionId: s4.suggestion_id,
   };
 }
 function normalizeLLM(item) {
@@ -28917,12 +28826,12 @@ function normalizeLLM(item) {
 function buildQualified(host) {
   const seenKeys = /* @__PURE__ */ new Set();
   const qualified = [];
-  for (const s6 of host._proactiveSuggestions || []) {
-    if ((s6.confidence || 0) < MIN_CONF) continue;
-    const key = (s6.description || "").toLowerCase().trim();
+  for (const s4 of host._proactiveSuggestions || []) {
+    if ((s4.confidence || 0) < MIN_CONF) continue;
+    const key = (s4.description || "").toLowerCase().trim();
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
-    qualified.push(normalizeProactive(s6));
+    qualified.push(normalizeProactive(s4));
   }
   for (const item of host._suggestions || []) {
     const auto = item.automation || item.automation_data;
@@ -28948,12 +28857,12 @@ function applyFilters(host, qualified) {
     return true;
   });
   if (sortBy === "alpha") {
-    filtered.sort((a4, b2) => (a4.title || "").localeCompare(b2.title || ""));
+    filtered.sort((a3, b3) => (a3.title || "").localeCompare(b3.title || ""));
   } else {
-    filtered.sort((a4, b2) => {
-      if (a4.type !== b2.type) return a4.type === "llm" ? -1 : 1;
-      const confA = a4._original?.confidence || 0;
-      const confB = b2._original?.confidence || 0;
+    filtered.sort((a3, b3) => {
+      if (a3.type !== b3.type) return a3.type === "llm" ? -1 : 1;
+      const confA = a3._original?.confidence || 0;
+      const confB = b3._original?.confidence || 0;
       return confB - confA;
     });
   }
@@ -28987,7 +28896,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     };
   };
   const expandedClass = expandedText ? "expanded" : "";
-  return x`
+  return b2`
     <div
       class="card${fadingOut ? " fading-out" : ""}"
       style="padding:16px 18px;display:flex;flex-direction:column;"
@@ -28995,20 +28904,20 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       <div class="card-header" style="margin-bottom:0;">
         ${
           bulkMode
-            ? x`
-              <label class="card-select">
-                <input
-                  type="checkbox"
-                  .checked=${!!selectedKeys[cardKey]}
-                  @change=${(e6) => {
-                    host._selectedSuggestionKeys = {
-                      ...host._selectedSuggestionKeys,
-                      [cardKey]: e6.target.checked,
-                    };
-                  }}
-                />
-              </label>
-            `
+            ? b2`
+                <label class="card-select">
+                  <input
+                    type="checkbox"
+                    .checked=${!!selectedKeys[cardKey]}
+                    @change=${(e6) => {
+                      host._selectedSuggestionKeys = {
+                        ...host._selectedSuggestionKeys,
+                        [cardKey]: e6.target.checked,
+                      };
+                    }}
+                  />
+                </label>
+              `
             : ""
         }
         <h3
@@ -29024,54 +28933,54 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
 
       ${
         item.subtitle
-          ? x`
-            <div
-              class="clamp-2 ${expandedClass}"
-              style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;"
-              title=${expandedText ? "" : item.subtitle}
-              @click=${toggleText}
-              ${clampCursor(expandedText)}
-            >
-              ${item.subtitle}
-            </div>
-          `
+          ? b2`
+              <div
+                class="clamp-2 ${expandedClass}"
+                style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;"
+                title=${expandedText ? "" : item.subtitle}
+                @click=${toggleText}
+                ${clampCursor(expandedText)}
+              >
+                ${item.subtitle}
+              </div>
+            `
           : ""
       }
       ${
         item.risk?.level === "elevated"
-          ? x`
-            <div
-              class="proposal-status"
-              style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-top:8px;font-size:12px;"
-            >
-              <ha-icon icon="mdi:alert-outline"></ha-icon>
-              <span>${item.risk.summary}</span>
-            </div>
-          `
+          ? b2`
+              <div
+                class="proposal-status"
+                style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-top:8px;font-size:12px;"
+              >
+                <ha-icon icon="mdi:alert-outline"></ha-icon>
+                <span>${item.risk.summary}</span>
+              </div>
+            `
           : ""
       }
 
       <div class="card-tabs" style="margin-top:12px;">
         ${
           hasFlow
-            ? x`
-              <button
-                class="card-tab ${activeTab === "flow" ? "active" : ""}"
-                @click=${() => {
-                  host._cardActiveTab = {
-                    ...host._cardActiveTab,
-                    [cardKey]: activeTab === "flow" ? null : "flow",
-                  };
-                }}
-              >
-                <ha-icon
-                  icon="mdi:sitemap-outline"
-                  style="--mdc-icon-size:14px;"
-                ></ha-icon>
-                ${host._t("suggestions_tab_flow", "Flow")}
-              </button>
-              <span class="card-tab-sep">|</span>
-            `
+            ? b2`
+                <button
+                  class="card-tab ${activeTab === "flow" ? "active" : ""}"
+                  @click=${() => {
+                    host._cardActiveTab = {
+                      ...host._cardActiveTab,
+                      [cardKey]: activeTab === "flow" ? null : "flow",
+                    };
+                  }}
+                >
+                  <ha-icon
+                    icon="mdi:sitemap-outline"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${host._t("suggestions_tab_flow", "Flow")}
+                </button>
+                <span class="card-tab-sep">|</span>
+              `
             : ""
         }
         <button
@@ -29105,22 +29014,22 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       ${activeTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
       ${
         activeTab === "yaml"
-          ? x`
-            <div style="margin-top:6px;">
-              <ha-code-editor
-                mode="yaml"
-                .value=${displayYaml}
-                @value-changed=${(e6) => {
-                  host._editedYaml = {
-                    ...host._editedYaml,
-                    [cardKey]: e6.detail.value,
-                  };
-                }}
-                autocomplete-entities
-                style="--code-mirror-font-size:12px;"
-              ></ha-code-editor>
-            </div>
-          `
+          ? b2`
+              <div style="margin-top:6px;">
+                <ha-code-editor
+                  mode="yaml"
+                  .value=${displayYaml}
+                  @value-changed=${(e6) => {
+                    host._editedYaml = {
+                      ...host._editedYaml,
+                      [cardKey]: e6.detail.value,
+                    };
+                  }}
+                  autocomplete-entities
+                  style="--code-mirror-font-size:12px;"
+                ></ha-code-editor>
+              </div>
+            `
           : ""
       }
 
@@ -29169,7 +29078,7 @@ function renderSuggestionsSection(host) {
   const bulkMode = !!host._suggestionBulkMode;
   const selectedKeys = host._selectedSuggestionKeys || {};
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
-  return x`
+  return b2`
     <div class="suggestions-section">
       <div class="page-section-header">
         <div class="section-card-title-group">
@@ -29178,63 +29087,64 @@ function renderSuggestionsSection(host) {
           >
           ${
             totalCount > 0
-              ? x`<span class="badge"
-                >${totalCount} ${host._t("suggestions_badge_new", "new")}</span
-              >`
+              ? b2`<span class="badge"
+                  >${totalCount}
+                  ${host._t("suggestions_badge_new", "new")}</span
+                >`
               : ""
           }
         </div>
         ${
           isDev
-            ? x`
-              <div class="section-card-actions">
-                <button
-                  class="filter-row-secondary"
-                  ?disabled=${host._loadingProactive || host._llmNeedsSetup}
-                  title=${
-                    host._llmNeedsSetup
-                      ? host._t(
-                          "suggestions_llm_setup_required",
-                          "Configure an LLM provider first",
-                        )
-                      : ""
-                  }
-                  @click=${() => host._triggerPatternScan()}
-                >
-                  <ha-icon
-                    icon="mdi:refresh"
-                    style="--mdc-icon-size:14px;"
-                  ></ha-icon>
-                  ${host._loadingProactive ? host._t("suggestions_btn_scanning", "Scanning\u2026") : host._t("suggestions_btn_scan_now", "Scan Now")}
-                </button>
-                <button
-                  class="filter-row-action"
-                  ?disabled=${host._generatingSuggestions || host._llmNeedsSetup}
-                  title=${
-                    host._llmNeedsSetup
-                      ? host._t(
-                          "suggestions_llm_setup_required",
-                          "Configure an LLM provider first",
-                        )
-                      : ""
-                  }
-                  @click=${() => host._triggerGenerateSuggestions()}
-                >
-                  ${
-                    host._generatingSuggestions
-                      ? x`<span
-                        class="spinner"
-                        style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
-                      ></span>`
-                      : x`<ha-icon
-                        icon="mdi:auto-fix"
-                        style="--mdc-icon-size:14px;"
-                      ></ha-icon>`
-                  }
-                  ${host._generatingSuggestions ? host._t("suggestions_btn_analyzing", "Analyzing\u2026") : host._t("suggestions_btn_generate", "Generate")}
-                </button>
-              </div>
-            `
+            ? b2`
+                <div class="section-card-actions">
+                  <button
+                    class="filter-row-secondary"
+                    ?disabled=${host._loadingProactive || host._llmNeedsSetup}
+                    title=${
+                      host._llmNeedsSetup
+                        ? host._t(
+                            "suggestions_llm_setup_required",
+                            "Configure an LLM provider first",
+                          )
+                        : ""
+                    }
+                    @click=${() => host._triggerPatternScan()}
+                  >
+                    <ha-icon
+                      icon="mdi:refresh"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${host._loadingProactive ? host._t("suggestions_btn_scanning", "Scanning\u2026") : host._t("suggestions_btn_scan_now", "Scan Now")}
+                  </button>
+                  <button
+                    class="filter-row-action"
+                    ?disabled=${host._generatingSuggestions || host._llmNeedsSetup}
+                    title=${
+                      host._llmNeedsSetup
+                        ? host._t(
+                            "suggestions_llm_setup_required",
+                            "Configure an LLM provider first",
+                          )
+                        : ""
+                    }
+                    @click=${() => host._triggerGenerateSuggestions()}
+                  >
+                    ${
+                      host._generatingSuggestions
+                        ? b2`<span
+                            class="spinner"
+                            style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
+                          ></span>`
+                        : b2`<ha-icon
+                            icon="mdi:auto-fix"
+                            style="--mdc-icon-size:14px;"
+                          ></ha-icon>`
+                    }
+                    ${host._generatingSuggestions ? host._t("suggestions_btn_analyzing", "Analyzing\u2026") : host._t("suggestions_btn_generate", "Generate")}
+                  </button>
+                </div>
+              `
             : ""
         }
       </div>
@@ -29248,206 +29158,214 @@ function renderSuggestionsSection(host) {
 
       ${
         totalCount === 0
-          ? x`
-            <p style="opacity:0.45;margin:0;font-size:13px;">
-              ${host._t(
-                "suggestions_empty_state",
-                'No suggestions yet. Tap "Generate" to analyze your home.',
-              )}
-            </p>
-          `
-          : x`
-            ${
-              expanded
-                ? x`<div class="filter-row" style="margin-bottom:12px;">
-                  <div class="filter-input-wrap" style="flex:0 1 260px;">
-                    <ha-icon icon="mdi:magnify"></ha-icon>
-                    <input
-                      type="text"
-                      placeholder=${host._t(
-                        "suggestions_filter_placeholder",
-                        "Filter suggestions\u2026",
-                      )}
-                      .value=${host._suggestionFilter}
-                      @input=${(e6) => {
-                        host._suggestionFilter = e6.target.value;
-                        host._suggestionsVisibleCount =
-                          collapsedSuggestionCount();
-                      }}
-                    />
-                    ${
-                      host._suggestionFilter
-                        ? x`<ha-icon
-                          icon="mdi:close-circle"
-                          style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                          @click=${() => {
-                            host._suggestionFilter = "";
+          ? b2`
+              <p style="opacity:0.45;margin:0;font-size:13px;">
+                ${host._t(
+                  "suggestions_empty_state",
+                  'No suggestions yet. Tap "Generate" to analyze your home.',
+                )}
+              </p>
+            `
+          : b2`
+              ${
+                expanded
+                  ? b2`<div class="filter-row" style="margin-bottom:12px;">
+                      <div class="filter-input-wrap" style="flex:0 1 260px;">
+                        <ha-icon icon="mdi:magnify"></ha-icon>
+                        <input
+                          type="text"
+                          placeholder=${host._t(
+                            "suggestions_filter_placeholder",
+                            "Filter suggestions\u2026",
+                          )}
+                          .value=${host._suggestionFilter}
+                          @input=${(e6) => {
+                            host._suggestionFilter = e6.target.value;
                             host._suggestionsVisibleCount =
                               collapsedSuggestionCount();
                           }}
-                        ></ha-icon>`
-                        : ""
-                    }
-                  </div>
-                  ${
-                    isDev
-                      ? x`
-                        <div class="status-pills">
-                          ${[
-                            ["all", host._t("suggestions_filter_all", "All")],
-                            [
-                              "pattern",
-                              host._t(
-                                "suggestions_filter_patterns",
-                                "Patterns",
-                              ),
-                            ],
-                            ["ai", host._t("suggestions_filter_ai", "AI")],
-                          ].map(
-                            ([val, label]) => x`
-                              <button
-                                class="status-pill ${(host._suggestionSourceFilter || "all") === val ? "active" : ""}"
+                        />
+                        ${
+                          host._suggestionFilter
+                            ? b2`<ha-icon
+                                icon="mdi:close-circle"
+                                style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                                 @click=${() => {
-                                  host._suggestionSourceFilter = val;
+                                  host._suggestionFilter = "";
                                   host._suggestionsVisibleCount =
                                     collapsedSuggestionCount();
                                 }}
-                              >
-                                ${label}
-                              </button>
-                            `,
-                          )}
-                        </div>
-                      `
-                      : ""
-                  }
-                  <select
-                    class="sort-select"
-                    .value=${host._suggestionSortBy || "recent"}
-                    @change=${(e6) => {
-                      host._suggestionSortBy = e6.target.value;
-                    }}
-                  >
-                    <option value="recent">
-                      ${host._t("suggestions_sort_recent", "Recent")}
-                    </option>
-                    <option value="alpha">
-                      ${host._t("suggestions_sort_alpha", "Alphabetical")}
-                    </option>
-                  </select>
-                  <div
-                    style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-                  >
-                    ${
-                      bulkMode
-                        ? x`
-                          <span style="font-size:12px;opacity:0.7;">
-                            ${selectedCount}
-                            ${host._t("suggestions_bulk_selected", "selected")}
-                          </span>
-                          <button
-                            class="btn btn-primary"
-                            ?disabled=${selectedCount === 0}
-                            @click=${() => {
-                              for (const item of filtered) {
-                                if (selectedKeys[item.cardKey]) {
-                                  if (item.type === "proactive") {
-                                    host._acceptProactiveSuggestion(
-                                      item._suggestionId,
-                                    );
-                                  } else {
-                                    host._createSuggestionWithEdits(
-                                      item._auto,
-                                      item.cardKey,
-                                      item.automationYaml,
-                                    );
-                                  }
-                                }
-                              }
-                              host._selectedSuggestionKeys = {};
-                              host._suggestionBulkMode = false;
-                            }}
-                          >
-                            ${host._t(
-                              "suggestions_bulk_accept_selected",
-                              "Accept selected",
-                            )}
-                          </button>
-                          <button
-                            class="btn btn-outline"
-                            ?disabled=${selectedCount === 0}
-                            @click=${() => {
-                              for (const item of filtered) {
-                                if (selectedKeys[item.cardKey]) {
-                                  if (item.type === "proactive") {
-                                    host._dismissProactiveSuggestion(
-                                      item._suggestionId,
-                                    );
-                                  } else {
-                                    host._discardSuggestion(item._original);
-                                  }
-                                }
-                              }
-                              host._selectedSuggestionKeys = {};
-                              host._suggestionBulkMode = false;
-                            }}
-                          >
-                            ${host._t(
-                              "suggestions_bulk_dismiss_selected",
-                              "Dismiss selected",
-                            )}
-                          </button>
-                          <button
-                            class="btn btn-outline"
-                            @click=${() => {
-                              host._suggestionBulkMode = false;
-                              host._selectedSuggestionKeys = {};
-                            }}
-                          >
-                            ${host._t("suggestions_bulk_done", "Done")}
-                          </button>
-                        `
-                        : x`
-                          <button
-                            class="btn btn-outline"
-                            @click=${() => {
-                              host._suggestionBulkMode = true;
-                            }}
-                          >
-                            <ha-icon
-                              icon="mdi:checkbox-multiple-outline"
-                              style="--mdc-icon-size:14px;"
-                            ></ha-icon>
-                            ${host._t("suggestions_bulk_edit", "Bulk edit")}
-                          </button>
-                        `
-                    }
-                  </div>
-                </div>`
-                : ""
-            }
+                              ></ha-icon>`
+                            : ""
+                        }
+                      </div>
+                      ${
+                        isDev
+                          ? b2`
+                              <div class="status-pills">
+                                ${[
+                                  [
+                                    "all",
+                                    host._t("suggestions_filter_all", "All"),
+                                  ],
+                                  [
+                                    "pattern",
+                                    host._t(
+                                      "suggestions_filter_patterns",
+                                      "Patterns",
+                                    ),
+                                  ],
+                                  [
+                                    "ai",
+                                    host._t("suggestions_filter_ai", "AI"),
+                                  ],
+                                ].map(
+                                  ([val, label]) => b2`
+                                    <button
+                                      class="status-pill ${(host._suggestionSourceFilter || "all") === val ? "active" : ""}"
+                                      @click=${() => {
+                                        host._suggestionSourceFilter = val;
+                                        host._suggestionsVisibleCount =
+                                          collapsedSuggestionCount();
+                                      }}
+                                    >
+                                      ${label}
+                                    </button>
+                                  `,
+                                )}
+                              </div>
+                            `
+                          : ""
+                      }
+                      <select
+                        class="sort-select"
+                        .value=${host._suggestionSortBy || "recent"}
+                        @change=${(e6) => {
+                          host._suggestionSortBy = e6.target.value;
+                        }}
+                      >
+                        <option value="recent">
+                          ${host._t("suggestions_sort_recent", "Recent")}
+                        </option>
+                        <option value="alpha">
+                          ${host._t("suggestions_sort_alpha", "Alphabetical")}
+                        </option>
+                      </select>
+                      <div
+                        style="margin-left:auto;display:flex;align-items:center;gap:8px;"
+                      >
+                        ${
+                          bulkMode
+                            ? b2`
+                                <span style="font-size:12px;opacity:0.7;">
+                                  ${selectedCount}
+                                  ${host._t("suggestions_bulk_selected", "selected")}
+                                </span>
+                                <button
+                                  class="btn btn-primary"
+                                  ?disabled=${selectedCount === 0}
+                                  @click=${() => {
+                                    for (const item of filtered) {
+                                      if (selectedKeys[item.cardKey]) {
+                                        if (item.type === "proactive") {
+                                          host._acceptProactiveSuggestion(
+                                            item._suggestionId,
+                                          );
+                                        } else {
+                                          host._createSuggestionWithEdits(
+                                            item._auto,
+                                            item.cardKey,
+                                            item.automationYaml,
+                                          );
+                                        }
+                                      }
+                                    }
+                                    host._selectedSuggestionKeys = {};
+                                    host._suggestionBulkMode = false;
+                                  }}
+                                >
+                                  ${host._t(
+                                    "suggestions_bulk_accept_selected",
+                                    "Accept selected",
+                                  )}
+                                </button>
+                                <button
+                                  class="btn btn-outline"
+                                  ?disabled=${selectedCount === 0}
+                                  @click=${() => {
+                                    for (const item of filtered) {
+                                      if (selectedKeys[item.cardKey]) {
+                                        if (item.type === "proactive") {
+                                          host._dismissProactiveSuggestion(
+                                            item._suggestionId,
+                                          );
+                                        } else {
+                                          host._discardSuggestion(
+                                            item._original,
+                                          );
+                                        }
+                                      }
+                                    }
+                                    host._selectedSuggestionKeys = {};
+                                    host._suggestionBulkMode = false;
+                                  }}
+                                >
+                                  ${host._t(
+                                    "suggestions_bulk_dismiss_selected",
+                                    "Dismiss selected",
+                                  )}
+                                </button>
+                                <button
+                                  class="btn btn-outline"
+                                  @click=${() => {
+                                    host._suggestionBulkMode = false;
+                                    host._selectedSuggestionKeys = {};
+                                  }}
+                                >
+                                  ${host._t("suggestions_bulk_done", "Done")}
+                                </button>
+                              `
+                            : b2`
+                                <button
+                                  class="btn btn-outline"
+                                  @click=${() => {
+                                    host._suggestionBulkMode = true;
+                                  }}
+                                >
+                                  <ha-icon
+                                    icon="mdi:checkbox-multiple-outline"
+                                    style="--mdc-icon-size:14px;"
+                                  ></ha-icon>
+                                  ${host._t("suggestions_bulk_edit", "Bulk edit")}
+                                </button>
+                              `
+                        }
+                      </div>
+                    </div>`
+                  : ""
+              }
 
-            <div class="automations-grid">
-              ${visibleItems.map((item) =>
-                renderSuggestionCard(host, item, bulkMode, selectedKeys),
-              )}
-            </div>
+              <div class="automations-grid">
+                ${visibleItems.map((item) =>
+                  renderSuggestionCard(host, item, bulkMode, selectedKeys),
+                )}
+              </div>
 
-            ${
-              remainingCount > 0
-                ? x`
-                  <button
-                    class="show-more-link"
-                    @click=${() => {
-                      host._suggestionsVisibleCount = visibleCount + 10;
-                    }}
-                  >
-                    ${host._t("suggestions_show_more", "Show more suggestions")}
-                  </button>
-                `
-                : ""
-            }
-          `
+              ${
+                remainingCount > 0
+                  ? b2`
+                      <button
+                        class="show-more-link"
+                        @click=${() => {
+                          host._suggestionsVisibleCount = visibleCount + 10;
+                        }}
+                      >
+                        ${host._t("suggestions_show_more", "Show more suggestions")}
+                      </button>
+                    `
+                  : ""
+              }
+            `
       }
     </div>
   `;
@@ -29489,18 +29407,18 @@ function getStaleAutomations(host) {
     }
   }
   if (dirty) _saveKept(kept);
-  return host._automations.filter((a4) => {
-    if (!host._automationIsEnabled(a4)) return false;
-    if (!a4.automation_id?.startsWith("selora_ai_")) return false;
-    if (kept[a4.automation_id]) return false;
-    if (!a4.last_triggered) {
-      if (a4.last_updated) {
-        const created = new Date(a4.last_updated).getTime();
+  return host._automations.filter((a3) => {
+    if (!host._automationIsEnabled(a3)) return false;
+    if (!a3.automation_id?.startsWith("selora_ai_")) return false;
+    if (kept[a3.automation_id]) return false;
+    if (!a3.last_triggered) {
+      if (a3.last_updated) {
+        const created = new Date(a3.last_updated).getTime();
         if (created >= cutoff) return false;
       }
       return true;
     }
-    return new Date(a4.last_triggered).getTime() < cutoff;
+    return new Date(a3.last_triggered).getTime() < cutoff;
   });
 }
 
@@ -29512,7 +29430,7 @@ function renderFlowEntityLink(host, entityId) {
     stateObj?.attributes?.icon ||
     DOMAIN_ICONS3[entityId.split(".")[0]] ||
     "mdi:circle-medium";
-  return x`<button
+  return b2`<button
     type="button"
     class="flow-entity-link"
     title=${`Open ${friendly} (${entityId})`}
@@ -29532,7 +29450,7 @@ function renderFlowEntityLink(host, entityId) {
 }
 function renderFlowDeviceLink(host, deviceId, name, domain) {
   const icon = (domain && DOMAIN_ICONS3[domain]) || "mdi:devices";
-  return x`<button
+  return b2`<button
     type="button"
     class="flow-entity-link"
     title=${`Open ${name}`}
@@ -29547,14 +29465,14 @@ function renderFlowDeviceLink(host, deviceId, name, domain) {
 }
 var DURATION_RE =
   /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
-function expandDurationAbbrev(s6) {
-  return s6
+function expandDurationAbbrev(s4) {
+  return s4
     .replace(/(\d+)\s*h\b/g, "$1 hr")
     .replace(/(\d+)\s*m\b/g, "$1 min")
     .replace(/(\d+)\s*s\b/g, "$1 sec");
 }
 function renderFlowDuration(raw) {
-  return x`<span class="flow-duration"
+  return b2`<span class="flow-duration"
     ><ha-icon icon="mdi:clock-outline"></ha-icon>${expandDurationAbbrev(
       raw,
     )}</span
@@ -29563,17 +29481,17 @@ function renderFlowDuration(raw) {
 function splitDurations(text) {
   const out = [];
   let last = 0;
-  for (const m2 of text.matchAll(DURATION_RE)) {
-    if (m2.index > last) out.push(text.slice(last, m2.index));
-    out.push({ duration: m2[0] });
-    last = m2.index + m2[0].length;
+  for (const m3 of text.matchAll(DURATION_RE)) {
+    if (m3.index > last) out.push(text.slice(last, m3.index));
+    out.push({ duration: m3[0] });
+    last = m3.index + m3[0].length;
   }
   if (last < text.length) out.push(text.slice(last));
   return out;
 }
 function renderFlowDescription(host, item, ctx) {
   const description = describeFlowItem(host.hass, item, ctx);
-  if (!description) return x`${description}`;
+  if (!description) return b2`${description}`;
   const lookups = [
     ...collectFlowEntityIds(item).map((eid) => ({
       name: fmtEntity(host.hass, eid),
@@ -29584,19 +29502,19 @@ function renderFlowDescription(host, item, ctx) {
       link: { device: d3 },
     })),
   ]
-    .filter((l5) => l5.name)
-    .sort((a4, b2) => b2.name.length - a4.name.length);
+    .filter((l3) => l3.name)
+    .sort((a3, b3) => b3.name.length - a3.name.length);
   const segments = [];
   let remaining = description;
   let safety = 32;
   while (remaining && safety-- > 0) {
     let bestIdx = -1;
     let bestMatch = null;
-    for (const l5 of lookups) {
-      const idx = remaining.indexOf(l5.name);
+    for (const l3 of lookups) {
+      const idx = remaining.indexOf(l3.name);
       if (idx >= 0 && (bestIdx === -1 || idx < bestIdx)) {
         bestIdx = idx;
-        bestMatch = l5;
+        bestMatch = l3;
       }
     }
     if (!bestMatch) {
@@ -29618,19 +29536,19 @@ function renderFlowDescription(host, item, ctx) {
       final.push(piece);
     }
   }
-  return x`${final.map((s6) => {
-    if (typeof s6 === "string") return s6;
-    if (s6.link?.entity) return renderFlowEntityLink(host, s6.link.entity);
-    if (s6.link?.device) {
-      const d3 = s6.link.device;
+  return b2`${final.map((s4) => {
+    if (typeof s4 === "string") return s4;
+    if (s4.link?.entity) return renderFlowEntityLink(host, s4.link.entity);
+    if (s4.link?.device) {
+      const d3 = s4.link.device;
       return renderFlowDeviceLink(host, d3.deviceId, d3.name, d3.domain);
     }
-    if (s6.duration) return renderFlowDuration(s6.duration);
+    if (s4.duration) return renderFlowDuration(s4.duration);
     return "";
   })}`;
 }
 function renderFlowNode(host, item, kind, ctx) {
-  return x`<div class="flow-node ${kind}-node">
+  return b2`<div class="flow-node ${kind}-node">
     ${renderFlowDescription(host, item, ctx)}
   </div>`;
 }
@@ -29638,11 +29556,11 @@ function renderConditionItem(host, cond, ctx, implicitAll = true) {
   if (cond && typeof cond === "object") {
     const type = cond.condition;
     if (type === "and") {
-      const children = asArray(cond.conditions).map((c3) =>
-        renderConditionItem(host, c3, ctx, true),
+      const children = asArray(cond.conditions).map((c4) =>
+        renderConditionItem(host, c4, ctx, true),
       );
-      if (implicitAll) return x`${children}`;
-      return x`<div class="flow-branch">
+      if (implicitAll) return b2`${children}`;
+      return b2`<div class="flow-branch">
         <div class="flow-branch-label">
           ${host._t("automations_flow_group_all_of", "All of the following:")}
         </div>
@@ -29654,10 +29572,10 @@ function renderConditionItem(host, cond, ctx, implicitAll = true) {
         type === "or"
           ? host._t("automations_flow_group_any_of", "Any of the following:")
           : host._t("automations_flow_group_none_of", "None of the following:");
-      return x`<div class="flow-branch">
+      return b2`<div class="flow-branch">
         <div class="flow-branch-label">${label}</div>
-        ${asArray(cond.conditions).map((c3) =>
-          renderConditionItem(host, c3, ctx, false),
+        ${asArray(cond.conditions).map((c4) =>
+          renderConditionItem(host, c4, ctx, false),
         )}
       </div>`;
     }
@@ -29666,49 +29584,49 @@ function renderConditionItem(host, cond, ctx, implicitAll = true) {
 }
 function renderActionItem(host, action, ctx) {
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
-    return x`<div class="flow-choose">
+    return b2`<div class="flow-choose">
       ${action.choose.map(
-        (branch, i5) => x`
+        (branch, i7) => b2`
           <div class="flow-branch">
             <div class="flow-branch-label">
-              ${i5 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
+              ${i7 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
-            ${asArray(branch.conditions).map((c3) =>
-              renderConditionItem(host, c3, ctx),
+            ${asArray(branch.conditions).map((c4) =>
+              renderConditionItem(host, c4, ctx),
             )}
             <div class="flow-arrow-sm">↓</div>
-            ${asArray(branch.sequence).map((s6) =>
-              renderActionItem(host, s6, ctx),
+            ${asArray(branch.sequence).map((s4) =>
+              renderActionItem(host, s4, ctx),
             )}
           </div>
         `,
       )}
       ${
         Array.isArray(action.default) && action.default.length
-          ? x`<div class="flow-branch">
-            <div class="flow-branch-label">
-              ${host._t("automations_flow_branch_otherwise", "Otherwise")}
-            </div>
-            ${action.default.map((s6) => renderActionItem(host, s6, ctx))}
-          </div>`
+          ? b2`<div class="flow-branch">
+              <div class="flow-branch-label">
+                ${host._t("automations_flow_branch_otherwise", "Otherwise")}
+              </div>
+              ${action.default.map((s4) => renderActionItem(host, s4, ctx))}
+            </div>`
           : ""
       }
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.parallel)) {
-    return x`<div class="flow-branch">
+    return b2`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${action.parallel.map((s6) => renderActionItem(host, s6, ctx))}
+      ${action.parallel.map((s4) => renderActionItem(host, s4, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.sequence)) {
-    return x`<div class="flow-branch">
+    return b2`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${action.sequence.map((s6) => renderActionItem(host, s6, ctx))}
+      ${action.sequence.map((s4) => renderActionItem(host, s4, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -29729,10 +29647,10 @@ function renderActionItem(host, action, ctx) {
         );
       return host._t("automations_flow_repeat", "Repeat");
     })();
-    return x`<div class="flow-branch">
+    return b2`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${(Array.isArray(inner) ? inner : [inner]).map((s6) =>
-        renderActionItem(host, s6, ctx),
+      ${(Array.isArray(inner) ? inner : [inner]).map((s4) =>
+        renderActionItem(host, s4, ctx),
       )}
     </div>`;
   }
@@ -29751,7 +29669,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     /^\[Selora AI\]\s*/,
     "",
   );
-  return x`
+  return b2`
     <ha-icon
       icon=${icon}
       class="auto-row-icon"
@@ -29761,88 +29679,88 @@ function renderAutomationIdentity(alias, description, opts = {}) {
       ${
         nameOverride
           ? nameOverride
-          : x`<div class="auto-row-title-row">
-            <span class="auto-row-title">${alias}</span>
-            ${
-              isSelora && !badge
-                ? x`<ha-icon
-                  class="selora-ai-mark"
-                  icon="mdi:creation"
-                  title="Created by Selora AI"
-                ></ha-icon>`
-                : ""
-            }
-            ${titleSuffix || ""}
-            ${
-              badge
-                ? x`<span
-                  style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
-                  >${badge}</span
-                >`
-                : ""
-            }
-          </div>`
+          : b2`<div class="auto-row-title-row">
+              <span class="auto-row-title">${alias}</span>
+              ${
+                isSelora && !badge
+                  ? b2`<ha-icon
+                      class="selora-ai-mark"
+                      icon="mdi:creation"
+                      title="Created by Selora AI"
+                    ></ha-icon>`
+                  : ""
+              }
+              ${titleSuffix || ""}
+              ${
+                badge
+                  ? b2`<span
+                      style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
+                      >${badge}</span
+                    >`
+                  : ""
+              }
+            </div>`
       }
-      ${cleanedDescription ? x`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
+      ${cleanedDescription ? b2`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
       ${tail || ""}
     </div>
   `;
 }
 function renderAutomationFlowchart(host, auto) {
-  if (!auto) return x``;
+  if (!auto) return b2``;
   const triggers = (() => {
-    const t4 = auto.triggers ?? auto.trigger ?? [];
-    return Array.isArray(t4) ? t4 : [t4];
+    const t5 = auto.triggers ?? auto.trigger ?? [];
+    return Array.isArray(t5) ? t5 : [t5];
   })();
   const conditions = (() => {
-    const c3 = auto.conditions ?? auto.condition ?? [];
-    return Array.isArray(c3) ? c3 : [c3];
+    const c4 = auto.conditions ?? auto.condition ?? [];
+    return Array.isArray(c4) ? c4 : [c4];
   })().filter(Boolean);
   const actions = (() => {
-    const a4 = auto.actions ?? auto.action ?? [];
-    return Array.isArray(a4) ? a4 : [a4];
+    const a3 = auto.actions ?? auto.action ?? [];
+    return Array.isArray(a3) ? a3 : [a3];
   })();
-  if (!triggers.length && !actions.length) return x``;
+  if (!triggers.length && !actions.length) return b2``;
   const ctx = { triggers };
   const shownTriggers = displayTriggers(triggers, conditions, actions);
-  return x`
+  return b2`
     <div class="flow-chart">
       ${
         shownTriggers.length
-          ? x`<div class="flow-section flow-section--inline">
-            <div class="flow-label">
-              ${
-                shownTriggers.length > 1
-                  ? host._t(
-                      "automations_flow_label_trigger_any",
-                      "Trigger (any of these)",
-                    )
-                  : host._t("automations_flow_label_trigger", "Trigger")
-              }
-            </div>
-            ${shownTriggers.map((t4) => renderFlowNode(host, t4, "trigger", ctx))}
-          </div>`
+          ? b2`<div class="flow-section flow-section--inline">
+              <div class="flow-label">
+                ${
+                  shownTriggers.length > 1
+                    ? host._t(
+                        "automations_flow_label_trigger_any",
+                        "Trigger (any of these)",
+                      )
+                    : host._t("automations_flow_label_trigger", "Trigger")
+                }
+              </div>
+              ${shownTriggers.map((t5) => renderFlowNode(host, t5, "trigger", ctx))}
+            </div>`
           : ""
       }
       ${
         conditions.length
-          ? x`
-            ${shownTriggers.length ? x`<div class="flow-arrow">↓</div>` : ""}
-            <div class="flow-section flow-section--inline">
-              <div class="flow-label">
-                ${host._t("automations_flow_label_condition", "Condition")}
+          ? b2`
+              ${shownTriggers.length ? b2`<div class="flow-arrow">↓</div>` : ""}
+              <div class="flow-section flow-section--inline">
+                <div class="flow-label">
+                  ${host._t("automations_flow_label_condition", "Condition")}
+                </div>
+                ${conditions.map((c4) => renderConditionItem(host, c4, ctx))}
               </div>
-              ${conditions.map((c3) => renderConditionItem(host, c3, ctx))}
-            </div>
-          `
+            `
           : ""
       }
-      ${shownTriggers.length || conditions.length ? x`<div class="flow-arrow">↓</div>` : ""}
+      ${shownTriggers.length || conditions.length ? b2`<div class="flow-arrow">↓</div>` : ""}
       <div class="flow-section flow-section--stacked">
         <div class="flow-label">
           ${host._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a4) => renderActionItem(host, a4, ctx))}
+        ${actions.map((a3) => renderActionItem(host, a3, ctx))}
       </div>
     </div>
   `;
@@ -29857,7 +29775,7 @@ function renderProposalCard(host, msg, msgIndex) {
     const isEnabled = _savedIsEnabled(host, msg);
     const yamlKey2 = `saved_${msgIndex}`;
     const yamlOpen2 = host._yamlOpen && host._yamlOpen[msgIndex];
-    return x`
+    return b2`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -29870,28 +29788,28 @@ function renderProposalCard(host, msg, msgIndex) {
           ${renderAutomationFlowchart(host, automation)}
           ${
             yaml
-              ? x`
-                <div
-                  class="yaml-toggle"
-                  style="margin-top:12px;"
-                  @click=${() => toggleYaml(host, msgIndex)}
-                >
-                  <ha-icon
-                    icon="mdi:code-braces"
-                    style="--mdc-icon-size:14px;"
-                  ></ha-icon>
-                  ${yamlOpen2 ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_view", "View YAML")}
-                </div>
-                ${
-                  yamlOpen2
-                    ? x`<div style="margin-top:6px;">
-                      ${host._renderYamlEditor(yamlKey2, yaml, null, {
-                        readOnly: true,
-                      })}
-                    </div>`
-                    : ""
-                }
-              `
+              ? b2`
+                  <div
+                    class="yaml-toggle"
+                    style="margin-top:12px;"
+                    @click=${() => toggleYaml(host, msgIndex)}
+                  >
+                    <ha-icon
+                      icon="mdi:code-braces"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${yamlOpen2 ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_view", "View YAML")}
+                  </div>
+                  ${
+                    yamlOpen2
+                      ? b2`<div style="margin-top:6px;">
+                          ${host._renderYamlEditor(yamlKey2, yaml, null, {
+                            readOnly: true,
+                          })}
+                        </div>`
+                      : ""
+                  }
+                `
               : ""
           }
         </div>
@@ -29899,7 +29817,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return x`
+    return b2`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -29921,7 +29839,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return x`
+    return b2`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(
@@ -29945,7 +29863,7 @@ function renderProposalCard(host, msg, msgIndex) {
   const yamlKey = `proposal_${msgIndex}`;
   const hasEdits =
     host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
-  return x`
+  return b2`
     <div class="automation-subcard">
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -29955,30 +29873,30 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="automation-subcard-body">
         ${
           risk?.level === "elevated"
-            ? x`
-              <div
-                class="proposal-status"
-                style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);"
-              >
-                <ha-icon icon="mdi:alert-outline"></ha-icon>
-                <div>
-                  <strong
-                    >${host._t(
-                      "automations_proposal_elevated_risk",
-                      "Elevated risk review recommended.",
-                    )}</strong
-                  >
-                  <div style="margin-top:4px;">${risk.summary}</div>
-                  ${
-                    risk.reasons?.length
-                      ? x`<div style="margin-top:6px; font-size:12px;">
-                        ${risk.reasons.join(" ")}
-                      </div>`
-                      : ""
-                  }
+            ? b2`
+                <div
+                  class="proposal-status"
+                  style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);"
+                >
+                  <ha-icon icon="mdi:alert-outline"></ha-icon>
+                  <div>
+                    <strong
+                      >${host._t(
+                        "automations_proposal_elevated_risk",
+                        "Elevated risk review recommended.",
+                      )}</strong
+                    >
+                    <div style="margin-top:4px;">${risk.summary}</div>
+                    ${
+                      risk.reasons?.length
+                        ? b2`<div style="margin-top:6px; font-size:12px;">
+                            ${risk.reasons.join(" ")}
+                          </div>`
+                        : ""
+                    }
+                  </div>
                 </div>
-              </div>
-            `
+              `
             : ""
         }
         ${renderAutomationFlowchart(host, automation)}
@@ -29996,19 +29914,19 @@ function renderProposalCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen
-            ? x`<div style="margin-top:6px;">
-              ${host._renderYamlEditor(yamlKey, yaml)}
-              ${
-                hasEdits
-                  ? x`<div class="proposal-verify">
-                    ${host._t(
-                      "automations_proposal_yaml_edits_note",
-                      "Your YAML edits will be used when you accept.",
-                    )}
-                  </div>`
-                  : ""
-              }
-            </div>`
+            ? b2`<div style="margin-top:6px;">
+                ${host._renderYamlEditor(yamlKey, yaml)}
+                ${
+                  hasEdits
+                    ? b2`<div class="proposal-verify">
+                        ${host._t(
+                          "automations_proposal_yaml_edits_note",
+                          "Your YAML edits will be used when you accept.",
+                        )}
+                      </div>`
+                    : ""
+                }
+              </div>`
             : ""
         }
       </div>
@@ -30019,7 +29937,7 @@ function _savedIsEnabled(host, msg) {
   const savedAutomationId = msg.automation_id || null;
   if (!savedAutomationId) return false;
   const created = (host._automations || []).find(
-    (a4) => a4.automation_id === savedAutomationId,
+    (a3) => a3.automation_id === savedAutomationId,
   );
   return created ? host._automationIsEnabled(created) : false;
 }
@@ -30032,7 +29950,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const savedAutomationId = msg.automation_id || null;
     const created = savedAutomationId
       ? (host._automations || []).find(
-          (a4) => a4.automation_id === savedAutomationId,
+          (a3) => a3.automation_id === savedAutomationId,
         )
       : null;
     if (!created) return "";
@@ -30040,7 +29958,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
     const elevated = risk?.level === "elevated";
     if (isEnabled) {
-      return x`<div class="qa-group automation-card-actions">
+      return b2`<div class="qa-group automation-card-actions">
         <button
           class="qa-suggestion"
           ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
@@ -30076,7 +29994,7 @@ function renderProposalActions(host, msg, msgIndex) {
         </button>
       </div>`;
     }
-    return x`
+    return b2`
       <div class="automation-card-actions">
         <button
           class="btn btn-success"
@@ -30099,16 +30017,16 @@ function renderProposalActions(host, msg, msgIndex) {
       </div>
       ${
         elevated
-          ? x`<p class="automation-workflow-note elevated">
-            <ha-icon
-              icon="mdi:shield-alert-outline"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>
-            ${host._t(
-              "automations_elevated_risk_note",
-              "Uses elevated-risk actions \u2014 review the flow and YAML before enabling.",
-            )}
-          </p>`
+          ? b2`<p class="automation-workflow-note elevated">
+              <ha-icon
+                icon="mdi:shield-alert-outline"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              ${host._t(
+                "automations_elevated_risk_note",
+                "Uses elevated-risk actions \u2014 review the flow and YAML before enabling.",
+              )}
+            </p>`
           : ""
       }
     `;
@@ -30117,7 +30035,7 @@ function renderProposalActions(host, msg, msgIndex) {
     return "";
   }
   const yamlKey = `proposal_${msgIndex}`;
-  return x`<div
+  return b2`<div
     class="automation-card-actions ${(host._acceptAnimating || {})[msgIndex] ? "exiting" : ""}"
   >
     <button
@@ -30141,10 +30059,10 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
   const w2 = window.innerWidth;
   const numCols = w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : cols;
   const buckets = Array.from({ length: numCols }, () => []);
-  cards.forEach((c3, i5) => buckets[i5 % numCols].push(c3));
+  cards.forEach((c4, i7) => buckets[i7 % numCols].push(c4));
   return buckets.map(
-    (col, i5) => x`<div class="masonry-col">
-        ${col}${i5 === 0 && firstColFooter ? firstColFooter : ""}
+    (col, i7) => b2`<div class="masonry-col">
+        ${col}${i7 === 0 && firstColFooter ? firstColFooter : ""}
       </div>`,
   );
 }
@@ -30155,44 +30073,44 @@ function renderAutomations(host) {
   const sortDir = host._sortDir || "desc";
   let filteredAutomations = [...host._automations];
   const staleList = getStaleAutomations(host);
-  const staleSet = new Set(staleList.map((a4) => a4.automation_id));
+  const staleSet = new Set(staleList.map((a3) => a3.automation_id));
   if (statusFilter === "enabled") {
-    filteredAutomations = filteredAutomations.filter((a4) =>
-      host._automationIsEnabled(a4),
+    filteredAutomations = filteredAutomations.filter((a3) =>
+      host._automationIsEnabled(a3),
     );
   } else if (statusFilter === "disabled") {
     filteredAutomations = filteredAutomations.filter(
-      (a4) => !host._automationIsEnabled(a4),
+      (a3) => !host._automationIsEnabled(a3),
     );
   } else if (statusFilter === "stale") {
-    filteredAutomations = filteredAutomations.filter((a4) =>
-      staleSet.has(a4.automation_id),
+    filteredAutomations = filteredAutomations.filter((a3) =>
+      staleSet.has(a3.automation_id),
     );
   }
   if (filterText) {
-    filteredAutomations = filteredAutomations.filter((a4) =>
-      (a4.alias || "").toLowerCase().includes(filterText),
+    filteredAutomations = filteredAutomations.filter((a3) =>
+      (a3.alias || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", enabled_first: "asc" };
   if (sortBy === "recent") {
-    filteredAutomations.sort((a4, b2) => {
-      const aTime = a4.last_triggered
-        ? new Date(a4.last_triggered).getTime()
+    filteredAutomations.sort((a3, b3) => {
+      const aTime = a3.last_triggered
+        ? new Date(a3.last_triggered).getTime()
         : 0;
-      const bTime = b2.last_triggered
-        ? new Date(b2.last_triggered).getTime()
+      const bTime = b3.last_triggered
+        ? new Date(b3.last_triggered).getTime()
         : 0;
       return bTime - aTime;
     });
   } else if (sortBy === "alpha") {
-    filteredAutomations.sort((a4, b2) =>
-      (a4.alias || "").localeCompare(b2.alias || ""),
+    filteredAutomations.sort((a3, b3) =>
+      (a3.alias || "").localeCompare(b3.alias || ""),
     );
   } else if (sortBy === "enabled_first") {
-    filteredAutomations.sort((a4, b2) => {
-      const aOn = host._automationIsEnabled(a4) ? 0 : 1;
-      const bOn = host._automationIsEnabled(b2) ? 0 : 1;
+    filteredAutomations.sort((a3, b3) => {
+      const aOn = host._automationIsEnabled(a3) ? 0 : 1;
+      const bOn = host._automationIsEnabled(b3) ? 0 : 1;
       return aOn - bOn;
     });
   }
@@ -30210,9 +30128,9 @@ function renderAutomations(host) {
     safeAutoPage * perPage,
   );
   const selectableAutomations = filteredAutomations.filter(
-    (a4) => !a4._draft && a4.automation_id,
+    (a3) => !a3._draft && a3.automation_id,
   );
-  const selectableIds = selectableAutomations.map((a4) => a4.automation_id);
+  const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
   const selectedIds = host._getSelectedAutomationIds();
   const selectedVisibleCount = selectableIds.filter(
     (id) => host._selectedAutomationIds[id],
@@ -30226,7 +30144,7 @@ function renderAutomations(host) {
     selectedIds.length - selectedVisibleCount,
   );
   const bulkDisabled = selectedIds.length === 0 || host._bulkActionInProgress;
-  return x`
+  return b2`
     <div class="scroll-view" @click=${() => host._closeBurgerMenus()}>
       <div class="page-root">
         <div class="page-header">
@@ -30235,28 +30153,28 @@ function renderAutomations(host) {
           </h1>
           ${
             host._automations.length > 0
-              ? x`<button
-                class="filter-row-action"
-                ?disabled=${host._llmNeedsSetup}
-                title=${
-                  host._llmNeedsSetup
-                    ? host._t(
-                        "automations_llm_setup_required_tooltip",
-                        "Configure an LLM provider first",
-                      )
-                    : ""
-                }
-                @click=${() => host._startNewAutomationChat()}
-              >
-                <ha-icon
-                  icon="mdi:plus"
-                  style="--mdc-icon-size:13px;"
-                ></ha-icon>
-                ${host._t(
-                  "automations_new_automation_button",
-                  "New Automation",
-                )}
-              </button>`
+              ? b2`<button
+                  class="filter-row-action"
+                  ?disabled=${host._llmNeedsSetup}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "automations_llm_setup_required_tooltip",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
+                  @click=${() => host._startNewAutomationChat()}
+                >
+                  <ha-icon
+                    icon="mdi:plus"
+                    style="--mdc-icon-size:13px;"
+                  ></ha-icon>
+                  ${host._t(
+                    "automations_new_automation_button",
+                    "New Automation",
+                  )}
+                </button>`
               : ""
           }
         </div>
@@ -30266,952 +30184,970 @@ function renderAutomations(host) {
         </div>
         ${
           host._automations.length > 0
-            ? x`
-              <div class="filter-tabs-row" style="margin-top:12px;">
-                <div class="filter-tabs" role="tablist">
-                  ${["all", "enabled", "disabled"].map(
-                    (s6) => x`
-                      <button
-                        role="tab"
-                        aria-selected=${host._statusFilter === s6}
-                        class="filter-tab ${host._statusFilter === s6 ? "active" : ""}"
-                        @click=${() => {
-                          host._statusFilter = s6;
-                          host._automationsPage = 1;
-                        }}
-                      >
-                        ${host._t(
-                          `automations_status_tab_${s6}`,
-                          s6.charAt(0).toUpperCase() + s6.slice(1),
-                        )}
-                      </button>
-                    `,
-                  )}
-                  ${
-                    staleSet.size > 0
-                      ? x`<button
-                        role="tab"
-                        aria-selected=${host._statusFilter === "stale"}
-                        class="filter-tab ${host._statusFilter === "stale" ? "active" : ""}"
-                        title=${staleTooltip(host)}
-                        @click=${() => {
-                          host._statusFilter = "stale";
-                          host._automationsPage = 1;
-                        }}
-                      >
-                        <ha-icon
-                          icon="mdi:alert-outline"
-                          style="--mdc-icon-size:14px;color:#f59e0b;display:block;"
-                        ></ha-icon>
-                        <span
-                          >${host._t("automations_status_tab_stale", "Stale")}
-                          (${staleSet.size})</span
-                        >
-                      </button>`
-                      : ""
-                  }
-                </div>
-                <div class="filter-tabs-actions">
-                  ${
-                    host._bulkEditMode
-                      ? x`
-                        <label class="bulk-select-all">
-                          <input
-                            type="checkbox"
-                            ?checked=${allVisibleSelected}
-                            .indeterminate=${partiallyVisibleSelected}
-                            ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
-                            @change=${(e6) =>
-                              host._toggleSelectAllFiltered(
-                                filteredAutomations,
-                                e6.target.checked,
-                              )}
-                          />
-                          <span
-                            >${host._t(
-                              "automations_bulk_select_all",
-                              "Select all",
-                            )}</span
-                          >
-                        </label>
+            ? b2`
+                <div class="filter-tabs-row" style="margin-top:12px;">
+                  <div class="filter-tabs" role="tablist">
+                    ${["all", "enabled", "disabled"].map(
+                      (s4) => b2`
                         <button
-                          class="filter-row-secondary"
+                          role="tab"
+                          aria-selected=${host._statusFilter === s4}
+                          class="filter-tab ${host._statusFilter === s4 ? "active" : ""}"
                           @click=${() => {
-                            host._bulkEditMode = false;
-                            host._clearAutomationSelection();
-                          }}
-                        >
-                          ${host._t("automations_bulk_done", "Done")}
-                        </button>
-                      `
-                      : x`
-                        <button
-                          class="filter-row-secondary"
-                          @click=${() => {
-                            host._bulkEditMode = true;
-                          }}
-                        >
-                          <ha-icon
-                            icon="mdi:checkbox-multiple-outline"
-                            style="--mdc-icon-size:14px;"
-                          ></ha-icon>
-                          ${host._t("automations_bulk_edit", "Bulk edit")}
-                        </button>
-                      `
-                  }
-                </div>
-              </div>
-              <div class="filter-row">
-                <div class="filter-input-wrap" style="flex:1 1 260px;">
-                  <ha-icon icon="mdi:magnify"></ha-icon>
-                  <input
-                    type="text"
-                    placeholder=${host._t(
-                      "automations_filter_placeholder",
-                      "Filter automations\u2026",
-                    )}
-                    .value=${host._automationFilter}
-                    @input=${(e6) => {
-                      host._automationFilter = e6.target.value;
-                      host._automationsPage = 1;
-                    }}
-                  />
-                  ${
-                    host._automationFilter
-                      ? x`<ha-icon
-                        icon="mdi:close-circle"
-                        style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                        @click=${() => {
-                          host._automationFilter = "";
-                          host._automationsPage = 1;
-                        }}
-                      ></ha-icon>`
-                      : ""
-                  }
-                </div>
-                <div class="sort-group">
-                  <select
-                    class="sort-select"
-                    .value=${host._sortBy}
-                    @change=${(e6) => {
-                      host._sortBy = e6.target.value;
-                    }}
-                  >
-                    <option value="recent">
-                      ${host._t("automations_sort_recent", "Recent activity")}
-                    </option>
-                    <option value="alpha">
-                      ${host._t("automations_sort_alpha", "Alphabetical")}
-                    </option>
-                    <option value="enabled_first">
-                      ${host._t(
-                        "automations_sort_enabled_first",
-                        "Enabled first",
-                      )}
-                    </option>
-                  </select>
-                  <button
-                    class="sort-dir-toggle"
-                    title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
-                    @click=${() => {
-                      host._sortDir = sortDir === "desc" ? "asc" : "desc";
-                    }}
-                  >
-                    <ha-icon
-                      icon=${sortDir === "desc" ? "mdi:sort-descending" : "mdi:sort-ascending"}
-                      style="--mdc-icon-size:18px;"
-                    ></ha-icon>
-                  </button>
-                </div>
-              </div>
-              ${
-                host._bulkEditMode && selectedIds.length > 0
-                  ? x`
-                    <div class="bulk-actions-row">
-                      <div class="left">
-                        ${selectedIds.length}
-                        selected${
-                          hiddenSelectedCount > 0
-                            ? x` <span style="opacity:0.65;font-weight:500;"
-                              >(${hiddenSelectedCount} hidden by filter)</span
-                            >`
-                            : ""
-                        }
-                        ${
-                          host._bulkActionInProgress
-                            ? x`<span style="opacity:0.75;font-weight:500;">
-                              · ${host._bulkActionLabel}</span
-                            >`
-                            : ""
-                        }
-                      </div>
-                      <div class="actions">
-                        <button
-                          class="btn btn-outline"
-                          ?disabled=${bulkDisabled}
-                          @click=${() => host._bulkToggleSelected(true)}
-                        >
-                          ${
-                            host._bulkActionInProgress
-                              ? host._t(
-                                  "automations_bulk_working",
-                                  "Working\u2026",
-                                )
-                              : host._t(
-                                  "automations_bulk_enable_all",
-                                  "Enable all",
-                                )
-                          }
-                        </button>
-                        <button
-                          class="btn btn-outline"
-                          ?disabled=${bulkDisabled}
-                          @click=${() => host._bulkToggleSelected(false)}
-                        >
-                          ${
-                            host._bulkActionInProgress
-                              ? host._t(
-                                  "automations_bulk_working",
-                                  "Working\u2026",
-                                )
-                              : host._t(
-                                  "automations_bulk_disable_all",
-                                  "Disable all",
-                                )
-                          }
-                        </button>
-                        <button
-                          class="btn btn-outline btn-danger"
-                          ?disabled=${bulkDisabled}
-                          @click=${() => host._bulkSoftDeleteSelected()}
-                        >
-                          ${
-                            host._bulkActionInProgress
-                              ? host._t(
-                                  "automations_bulk_working",
-                                  "Working\u2026",
-                                )
-                              : host._t(
-                                  "automations_bulk_delete_selected",
-                                  "Delete selected",
-                                )
-                          }
-                        </button>
-                        <button
-                          class="btn btn-ghost"
-                          ?disabled=${host._bulkActionInProgress}
-                          @click=${() => host._clearAutomationSelection()}
-                        >
-                          ${host._t("automations_bulk_clear", "Clear")}
-                        </button>
-                      </div>
-                    </div>
-                  `
-                  : ""
-              }
-              <div class="automations-list">
-                ${pagedAutomations.map((a4) => {
-                  const isDraft = !!a4._draft;
-                  const isOn = host._automationIsEnabled(a4);
-                  const isUnavailable = a4.state === "unavailable";
-                  const automationId = a4.automation_id || "";
-                  const hasAutomationId = !!automationId;
-                  const canToggle =
-                    hasAutomationId && !host._bulkActionInProgress;
-                  const deleting = host._deletingAutomation[automationId];
-                  const loadingChat = host._loadingToChat[automationId];
-                  const runKey = automationId || a4.entity_id;
-                  const running = !!host._runningAutomation?.[runKey];
-                  const burgerOpen = host._openBurgerMenu === automationId;
-                  const cardExpanded = !!host._cardActiveTab[a4.entity_id];
-                  const ago = formatTimeAgo(a4.last_triggered);
-                  const lastRun = ago
-                    ? ago
-                    : !isOn
-                      ? host._t("automations_last_run_disabled", "Disabled")
-                      : host._t("automations_last_run_never", "Never");
-                  return x`
-                    <div
-                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a4.entity_id ? " highlighted" : ""}"
-                      data-entity-id="${a4.entity_id}"
-                    >
-                      <div
-                        class="auto-row-main"
-                        @click=${(e6) => {
-                          if (
-                            e6.target.closest(
-                              ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .card-select, .rename-input, .rename-save-btn, .btn",
-                            )
-                          )
-                            return;
-                          const current = host._cardActiveTab[a4.entity_id];
-                          if (current) {
-                            host._cardActiveTab = {
-                              ...host._cardActiveTab,
-                              [a4.entity_id]: null,
-                            };
-                          } else {
-                            const defaultTab =
-                              (a4.triggers ?? a4.trigger)?.length ||
-                              (a4.actions ?? a4.action)?.length
-                                ? "flow"
-                                : a4.yaml_text
-                                  ? "yaml"
-                                  : hasAutomationId
-                                    ? "history"
-                                    : null;
-                            host._cardActiveTab = {
-                              ...host._cardActiveTab,
-                              [a4.entity_id]: defaultTab,
-                            };
-                          }
-                        }}
-                      >
-                        ${
-                          host._bulkEditMode && hasAutomationId
-                            ? x`
-                              <label class="card-select">
-                                <input
-                                  type="checkbox"
-                                  .checked=${!!host._selectedAutomationIds[automationId]}
-                                  ?disabled=${host._bulkActionInProgress}
-                                  @click=${(e6) => e6.stopPropagation()}
-                                  @change=${(e6) =>
-                                    host._toggleAutomationSelection(
-                                      automationId,
-                                      e6,
-                                    )}
-                                />
-                              </label>
-                            `
-                            : ""
-                        }
-                        ${renderAutomationIdentity(a4.alias, a4.description, {
-                          isSelora: !!a4.is_selora,
-                          icon:
-                            !isDraft && !isOn ? "mdi:robot-off" : "mdi:robot",
-                          titleSuffix: x`
-                            ${
-                              a4.recipe_title
-                                ? x`<span
-                                  class="recipe-pill"
-                                  title=${host._t(
-                                    "automations_recipe_pill_tooltip",
-                                    "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
-                                  )}
-                                >
-                                  <ha-icon
-                                    icon="mdi:book-open-variant"
-                                  ></ha-icon>
-                                  <span class="recipe-pill-name"
-                                    >${a4.recipe_title}</span
-                                  >
-                                </span>`
-                                : ""
-                            }
-                            ${
-                              isUnavailable
-                                ? x`<span
-                                  class="needs-attention-pill"
-                                  @click=${(e6) => {
-                                    e6.stopPropagation();
-                                    host._unavailableAutoId = automationId;
-                                    host._unavailableAutoName = a4.alias;
-                                  }}
-                                  >${host._t(
-                                    "automations_needs_attention_pill",
-                                    "Needs attention",
-                                  )}</span
-                                >`
-                                : ""
-                            }
-                            ${
-                              staleSet.has(automationId)
-                                ? x`<span
-                                  class="stale-pill"
-                                  title=${staleTooltip(host)}
-                                >
-                                  <ha-icon
-                                    icon="mdi:alert-outline"
-                                    style="--mdc-icon-size:12px;"
-                                  ></ha-icon>
-                                  Stale
-                                </span>`
-                                : ""
-                            }
-                            ${
-                              !isDraft && !isOn
-                                ? x`<span class="disabled-pill">
-                                  <ha-icon
-                                    icon="mdi:pause-circle-outline"
-                                    style="--mdc-icon-size:12px;"
-                                  ></ha-icon>
-                                  ${host._t(
-                                    "automations_status_tab_disabled",
-                                    "Disabled",
-                                  )}
-                                </span>`
-                                : ""
-                            }
-                          `,
-                          nameOverride:
-                            host._editingAlias === automationId
-                              ? x`
-                                  <input
-                                    class="rename-input"
-                                    data-id="${automationId}"
-                                    .value=${host._editingAliasValue}
-                                    @input=${(e6) => {
-                                      host._editingAliasValue = e6.target.value;
-                                    }}
-                                    @click=${(e6) => e6.stopPropagation()}
-                                    @keydown=${(e6) => {
-                                      if (e6.key === "Enter")
-                                        host._saveRenameAutomation(
-                                          automationId,
-                                        );
-                                      if (e6.key === "Escape")
-                                        host._cancelRenameAutomation();
-                                    }}
-                                  />
-                                  <button
-                                    class="rename-save-btn"
-                                    title=${host._t(
-                                      "automations_rename_save_tooltip",
-                                      "Save",
-                                    )}
-                                    @click=${() => host._saveRenameAutomation(automationId)}
-                                  >
-                                    <ha-icon
-                                      icon="mdi:check"
-                                      style="--mdc-icon-size:16px;"
-                                    ></ha-icon>
-                                  </button>
-                                `
-                              : null,
-                          tail: x`<span class="auto-row-mobile-meta">
-                            <span
-                              >${host._t(
-                                "automations_last_run_prefix",
-                                "Last run:",
-                              )}
-                              ${lastRun}</span
-                            >
-                            <ha-icon
-                              icon="mdi:chevron-down"
-                              class="card-chevron ${cardExpanded ? "open" : ""}"
-                              style="--mdc-icon-size:16px;"
-                            ></ha-icon>
-                          </span>`,
-                        })}
-                        <span class="auto-row-last-run"
-                          ><span class="last-run-prefix"
-                            >${host._t(
-                              "automations_last_run_prefix_inline",
-                              "Last run:",
-                            )} </span
-                          >${lastRun}${
-                            a4.last_triggered
-                              ? x`<span class="setting-tooltip"
-                                >Last run:
-                                ${new Date(
-                                  a4.last_triggered,
-                                ).toLocaleString()}</span
-                              >`
-                              : ""
-                          }
-                        </span>
-                        <div
-                          class="auto-row-actions${hasAutomationId ? " has-menu" : ""}"
-                        >
-                          <label
-                            class="toggle-switch"
-                            title="${
-                              canToggle
-                                ? isOn
-                                  ? host._t(
-                                      "automations_toggle_enabled",
-                                      "Enabled",
-                                    )
-                                  : host._t(
-                                      "automations_toggle_disabled",
-                                      "Disabled",
-                                    )
-                                : host._t(
-                                    "automations_toggle_unavailable",
-                                    "Unavailable",
-                                  )
-                            }"
-                            style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
-                            @click=${(e6) => {
-                              e6.stopPropagation();
-                              if (!canToggle) {
-                                host._showToast(
-                                  host._t(
-                                    "automations_toast_toggle_unresolved",
-                                    "Unable to toggle: automation id was not resolved. Reload and try again.",
-                                  ),
-                                  "error",
-                                );
-                              }
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              .checked=${isOn}
-                              ?disabled=${!canToggle}
-                              @click=${(e6) => e6.stopPropagation()}
-                              @change=${(e6) => {
-                                if (!canToggle) return;
-                                host._toggleAutomation(
-                                  a4.entity_id,
-                                  automationId,
-                                  e6.target.checked,
-                                );
-                              }}
-                            />
-                            <div class="toggle-track ${isOn ? "on" : ""}">
-                              <div class="toggle-thumb"></div>
-                            </div>
-                          </label>
-                          <div class="auto-row-btns">
-                            ${
-                              !isDraft && a4.entity_id
-                                ? x`
-                                  <button
-                                    class="row-action-btn"
-                                    ?disabled=${running || isUnavailable}
-                                    @click=${(e6) => {
-                                      e6.stopPropagation();
-                                      if (running || isUnavailable) return;
-                                      host._runAutomation(
-                                        a4.entity_id,
-                                        automationId,
-                                      );
-                                    }}
-                                    title=${host._t(
-                                      "automations_run_tooltip",
-                                      "Run Automation",
-                                    )}
-                                  >
-                                    <ha-icon
-                                      icon="mdi:play"
-                                      style="--mdc-icon-size:16px;"
-                                    ></ha-icon>
-                                  </button>
-                                `
-                                : ""
-                            }
-                            ${
-                              hasAutomationId
-                                ? x`
-                                  <div class="burger-menu-wrapper">
-                                    <button
-                                      class="burger-btn"
-                                      @click=${(e6) => host._toggleBurgerMenu(automationId, e6)}
-                                      ?disabled=${host._bulkActionInProgress}
-                                      title=${host._t(
-                                        "automations_more_actions_tooltip",
-                                        "More actions",
-                                      )}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:dots-vertical"
-                                        style="--mdc-icon-size:16px;"
-                                      ></ha-icon>
-                                    </button>
-                                    ${
-                                      burgerOpen
-                                        ? x`
-                                          <div
-                                            class="burger-dropdown"
-                                            style=${host._openBurgerMenuStyle}
-                                          >
-                                            <button
-                                              class="burger-item burger-item-toggle"
-                                              ?disabled=${!canToggle}
-                                              @click=${(e6) => {
-                                                e6.stopPropagation();
-                                                host._openBurgerMenu = null;
-                                                if (!canToggle) return;
-                                                host._toggleAutomation(
-                                                  a4.entity_id,
-                                                  automationId,
-                                                  !isOn,
-                                                );
-                                              }}
-                                            >
-                                              <ha-icon
-                                                icon=${isOn ? "mdi:toggle-switch-off-outline" : "mdi:toggle-switch-outline"}
-                                                style="--mdc-icon-size:14px;"
-                                              ></ha-icon>
-                                              ${
-                                                isOn
-                                                  ? host._t(
-                                                      "automations_burger_disable",
-                                                      "Disable",
-                                                    )
-                                                  : host._t(
-                                                      "automations_burger_enable",
-                                                      "Enable",
-                                                    )
-                                              }
-                                            </button>
-                                            <button
-                                              class="burger-item"
-                                              @click=${(e6) => {
-                                                e6.stopPropagation();
-                                                host._openBurgerMenu = null;
-                                                host._loadAutomationToChat(
-                                                  automationId,
-                                                );
-                                              }}
-                                              ?disabled=${loadingChat}
-                                            >
-                                              <ha-icon
-                                                icon="mdi:chat-processing-outline"
-                                                style="--mdc-icon-size:14px;"
-                                              ></ha-icon>
-                                              ${
-                                                loadingChat
-                                                  ? host._t(
-                                                      "automations_burger_loading",
-                                                      "Loading\u2026",
-                                                    )
-                                                  : host._t(
-                                                      "automations_burger_refine_in_chat",
-                                                      "Refine in chat",
-                                                    )
-                                              }
-                                            </button>
-                                            <button
-                                              class="burger-item"
-                                              @click=${(e6) => {
-                                                e6.stopPropagation();
-                                                host._startRenameAutomation(
-                                                  automationId,
-                                                  a4.alias,
-                                                );
-                                              }}
-                                            >
-                                              <ha-icon
-                                                icon="mdi:pencil-outline"
-                                                style="--mdc-icon-size:14px;"
-                                              ></ha-icon>
-                                              ${host._t(
-                                                "automations_burger_rename",
-                                                "Rename",
-                                              )}
-                                            </button>
-                                            <button
-                                              class="burger-item"
-                                              @click=${(e6) => {
-                                                e6.stopPropagation();
-                                                host._openBurgerMenu = null;
-                                                window.history.pushState(
-                                                  null,
-                                                  "",
-                                                  `/config/automation/edit/${automationId}`,
-                                                );
-                                                window.dispatchEvent(
-                                                  new Event("location-changed"),
-                                                );
-                                              }}
-                                            >
-                                              <ha-icon
-                                                icon="mdi:open-in-new"
-                                                style="--mdc-icon-size:14px;"
-                                              ></ha-icon>
-                                              ${host._t(
-                                                "automations_burger_view_in_ha",
-                                                "View in HA",
-                                              )}
-                                            </button>
-                                            <button
-                                              class="burger-item danger"
-                                              ?disabled=${deleting}
-                                              @click=${(e6) => {
-                                                e6.stopPropagation();
-                                                host._openBurgerMenu = null;
-                                                host._deleteAutomation(
-                                                  automationId,
-                                                );
-                                              }}
-                                            >
-                                              <ha-icon
-                                                icon="mdi:trash-can-outline"
-                                                style="--mdc-icon-size:14px;"
-                                              ></ha-icon>
-                                              ${
-                                                deleting
-                                                  ? host._t(
-                                                      "automations_burger_deleting",
-                                                      "Deleting\u2026",
-                                                    )
-                                                  : host._t(
-                                                      "automations_burger_delete",
-                                                      "Delete",
-                                                    )
-                                              }
-                                            </button>
-                                          </div>
-                                        `
-                                        : ""
-                                    }
-                                  </div>
-                                `
-                                : isDraft
-                                  ? ""
-                                  : x`
-                                    <div class="burger-menu-wrapper">
-                                      <button
-                                        class="burger-btn"
-                                        disabled
-                                        title=${host._t(
-                                          "automations_more_actions_external",
-                                          "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
-                                        )}
-                                      >
-                                        <ha-icon
-                                          icon="mdi:dots-vertical"
-                                          style="--mdc-icon-size:16px;"
-                                        ></ha-icon>
-                                      </button>
-                                    </div>
-                                  `
-                            }
-                          </div>
-                        </div>
-                      </div>
-                      ${
-                        cardExpanded
-                          ? x`
-                            <div class="auto-row-expand">
-                              ${(() => {
-                                const fullDesc = (a4.description || "").replace(
-                                  /^\[Selora AI\]\s*/,
-                                  "",
-                                );
-                                return fullDesc
-                                  ? x`<div class="auto-row-full-desc">
-                                      ${fullDesc}
-                                    </div>`
-                                  : "";
-                              })()}
-                              <div class="card-tabs" style="margin-top:0;">
-                                ${
-                                  (a4.triggers ?? a4.trigger)?.length ||
-                                  (a4.actions ?? a4.action)?.length
-                                    ? x`
-                                      <button
-                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "flow" ? "active" : ""}"
-                                        @click=${() => {
-                                          host._cardActiveTab = {
-                                            ...host._cardActiveTab,
-                                            [a4.entity_id]:
-                                              host._cardActiveTab[
-                                                a4.entity_id
-                                              ] === "flow"
-                                                ? null
-                                                : "flow",
-                                          };
-                                        }}
-                                      >
-                                        <ha-icon
-                                          icon="mdi:sitemap-outline"
-                                          style="--mdc-icon-size:16px;"
-                                        ></ha-icon>
-                                        ${host._t(
-                                          "automations_card_tab_flow",
-                                          "Flow",
-                                        )}
-                                      </button>
-                                      <span class="card-tab-sep">|</span>
-                                    `
-                                    : ""
-                                }
-                                ${
-                                  a4.yaml_text
-                                    ? x`
-                                      <button
-                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "yaml" ? "active" : ""}"
-                                        @click=${() => {
-                                          host._cardActiveTab = {
-                                            ...host._cardActiveTab,
-                                            [a4.entity_id]:
-                                              host._cardActiveTab[
-                                                a4.entity_id
-                                              ] === "yaml"
-                                                ? null
-                                                : "yaml",
-                                          };
-                                        }}
-                                      >
-                                        <ha-icon
-                                          icon="mdi:code-braces"
-                                          style="--mdc-icon-size:16px;"
-                                        ></ha-icon>
-                                        ${host._t(
-                                          "automations_card_tab_yaml",
-                                          "YAML",
-                                        )}
-                                      </button>
-                                      <span class="card-tab-sep">|</span>
-                                    `
-                                    : ""
-                                }
-                                ${
-                                  hasAutomationId
-                                    ? x`
-                                      <button
-                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "history" ? "active" : ""}"
-                                        @click=${() => {
-                                          const isActive =
-                                            host._cardActiveTab[
-                                              a4.entity_id
-                                            ] === "history";
-                                          host._cardActiveTab = {
-                                            ...host._cardActiveTab,
-                                            [a4.entity_id]: isActive
-                                              ? null
-                                              : "history",
-                                          };
-                                          if (
-                                            !isActive &&
-                                            !host._versions[automationId]
-                                          ) {
-                                            host._versionHistoryOpen = {
-                                              ...host._versionHistoryOpen,
-                                              [automationId]: true,
-                                            };
-                                            host._loadVersionHistory(
-                                              automationId,
-                                            );
-                                          }
-                                        }}
-                                      >
-                                        ${host._t(
-                                          "automations_card_tab_history",
-                                          "History",
-                                        )}
-                                      </button>
-                                    `
-                                    : ""
-                                }
-                              </div>
-                              ${host._cardActiveTab[a4.entity_id] === "flow" && ((a4.triggers ?? a4.trigger)?.length || (a4.actions ?? a4.action)?.length) ? renderAutomationFlowchart(host, a4) : ""}
-                              ${
-                                host._cardActiveTab[a4.entity_id] === "yaml" &&
-                                a4.yaml_text
-                                  ? host._renderYamlEditor(
-                                      `yaml_${a4.entity_id}`,
-                                      a4.yaml_text,
-                                      (key) =>
-                                        host._saveActiveAutomationYaml(
-                                          a4.automation_id,
-                                          key,
-                                        ),
-                                    )
-                                  : ""
-                              }
-                              ${host._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a4) : ""}
-                            </div>
-                          `
-                          : ""
-                      }
-                    </div>
-                  `;
-                })}
-              </div>
-              ${
-                totalAutoPages > 1
-                  ? x`
-                    <div class="pagination">
-                      <button
-                        class="btn btn-outline"
-                        ?disabled=${safeAutoPage <= 1}
-                        @click=${() => {
-                          host._automationsPage = safeAutoPage - 1;
-                        }}
-                      >
-                        ${host._t("automations_pagination_prev", "\u2039 Prev")}
-                      </button>
-                      <span class="page-info"
-                        >Page ${safeAutoPage} of ${totalAutoPages} ·
-                        ${filteredAutomations.length} automations</span
-                      >
-                      <label class="per-page-label"
-                        >${host._t(
-                          "automations_pagination_per_page",
-                          "Per page:",
-                        )}
-                        <select
-                          class="per-page-select"
-                          .value=${String(host._autosPerPage)}
-                          @change=${(e6) => {
-                            host._autosPerPage = Number(e6.target.value);
+                            host._statusFilter = s4;
                             host._automationsPage = 1;
                           }}
                         >
-                          <option value="10">10</option>
-                          <option value="20">20</option>
-                          <option value="50">50</option>
-                        </select>
-                      </label>
-                      <button
-                        class="btn btn-outline"
-                        ?disabled=${safeAutoPage >= totalAutoPages}
-                        @click=${() => {
-                          host._automationsPage = safeAutoPage + 1;
-                        }}
-                      >
-                        ${host._t("automations_pagination_next", "Next \u203A")}
-                      </button>
-                    </div>
-                  `
-                  : ""
-              }
-              ${
-                filteredAutomations.length === 0 && host._automations.length > 0
-                  ? x`<div
-                    style="text-align:center;opacity:0.45;padding:24px 0;"
-                  >
-                    No automations match "${host._automationFilter}"
-                  </div>`
-                  : ""
-              }
-            `
-            : x`<div style="text-align:center;padding:32px 0;">
-              <ha-icon
-                icon="mdi:robot-vacuum-variant"
-                style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
-              ></ha-icon>
-              <p style="opacity:0.45;margin:0 0 12px;">
-                ${host._t("automations_empty_state", "No automations yet.")}
-              </p>
-              <button
-                class="btn btn-accent"
-                ?disabled=${host._llmNeedsSetup}
-                title=${
-                  host._llmNeedsSetup
-                    ? host._t(
-                        "automations_llm_setup_required_tooltip",
-                        "Configure an LLM provider first",
-                      )
+                          ${host._t(
+                            `automations_status_tab_${s4}`,
+                            s4.charAt(0).toUpperCase() + s4.slice(1),
+                          )}
+                        </button>
+                      `,
+                    )}
+                    ${
+                      staleSet.size > 0
+                        ? b2`<button
+                            role="tab"
+                            aria-selected=${host._statusFilter === "stale"}
+                            class="filter-tab ${host._statusFilter === "stale" ? "active" : ""}"
+                            title=${staleTooltip(host)}
+                            @click=${() => {
+                              host._statusFilter = "stale";
+                              host._automationsPage = 1;
+                            }}
+                          >
+                            <ha-icon
+                              icon="mdi:alert-outline"
+                              style="--mdc-icon-size:14px;color:#f59e0b;display:block;"
+                            ></ha-icon>
+                            <span
+                              >${host._t("automations_status_tab_stale", "Stale")}
+                              (${staleSet.size})</span
+                            >
+                          </button>`
+                        : ""
+                    }
+                  </div>
+                  <div class="filter-tabs-actions">
+                    ${
+                      host._bulkEditMode
+                        ? b2`
+                            <label class="bulk-select-all">
+                              <input
+                                type="checkbox"
+                                ?checked=${allVisibleSelected}
+                                .indeterminate=${partiallyVisibleSelected}
+                                ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
+                                @change=${(e6) =>
+                                  host._toggleSelectAllFiltered(
+                                    filteredAutomations,
+                                    e6.target.checked,
+                                  )}
+                              />
+                              <span
+                                >${host._t(
+                                  "automations_bulk_select_all",
+                                  "Select all",
+                                )}</span
+                              >
+                            </label>
+                            <button
+                              class="filter-row-secondary"
+                              @click=${() => {
+                                host._bulkEditMode = false;
+                                host._clearAutomationSelection();
+                              }}
+                            >
+                              ${host._t("automations_bulk_done", "Done")}
+                            </button>
+                          `
+                        : b2`
+                            <button
+                              class="filter-row-secondary"
+                              @click=${() => {
+                                host._bulkEditMode = true;
+                              }}
+                            >
+                              <ha-icon
+                                icon="mdi:checkbox-multiple-outline"
+                                style="--mdc-icon-size:14px;"
+                              ></ha-icon>
+                              ${host._t("automations_bulk_edit", "Bulk edit")}
+                            </button>
+                          `
+                    }
+                  </div>
+                </div>
+                <div class="filter-row">
+                  <div class="filter-input-wrap" style="flex:1 1 260px;">
+                    <ha-icon icon="mdi:magnify"></ha-icon>
+                    <input
+                      type="text"
+                      placeholder=${host._t(
+                        "automations_filter_placeholder",
+                        "Filter automations\u2026",
+                      )}
+                      .value=${host._automationFilter}
+                      @input=${(e6) => {
+                        host._automationFilter = e6.target.value;
+                        host._automationsPage = 1;
+                      }}
+                    />
+                    ${
+                      host._automationFilter
+                        ? b2`<ha-icon
+                            icon="mdi:close-circle"
+                            style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                            @click=${() => {
+                              host._automationFilter = "";
+                              host._automationsPage = 1;
+                            }}
+                          ></ha-icon>`
+                        : ""
+                    }
+                  </div>
+                  <div class="sort-group">
+                    <select
+                      class="sort-select"
+                      .value=${host._sortBy}
+                      @change=${(e6) => {
+                        host._sortBy = e6.target.value;
+                      }}
+                    >
+                      <option value="recent">
+                        ${host._t("automations_sort_recent", "Recent activity")}
+                      </option>
+                      <option value="alpha">
+                        ${host._t("automations_sort_alpha", "Alphabetical")}
+                      </option>
+                      <option value="enabled_first">
+                        ${host._t(
+                          "automations_sort_enabled_first",
+                          "Enabled first",
+                        )}
+                      </option>
+                    </select>
+                    <button
+                      class="sort-dir-toggle"
+                      title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
+                      @click=${() => {
+                        host._sortDir = sortDir === "desc" ? "asc" : "desc";
+                      }}
+                    >
+                      <ha-icon
+                        icon=${sortDir === "desc" ? "mdi:sort-descending" : "mdi:sort-ascending"}
+                        style="--mdc-icon-size:18px;"
+                      ></ha-icon>
+                    </button>
+                  </div>
+                </div>
+                ${
+                  host._bulkEditMode && selectedIds.length > 0
+                    ? b2`
+                        <div class="bulk-actions-row">
+                          <div class="left">
+                            ${selectedIds.length}
+                            selected${
+                              hiddenSelectedCount > 0
+                                ? b2` <span
+                                    style="opacity:0.65;font-weight:500;"
+                                    >(${hiddenSelectedCount} hidden by
+                                    filter)</span
+                                  >`
+                                : ""
+                            }
+                            ${
+                              host._bulkActionInProgress
+                                ? b2`<span
+                                    style="opacity:0.75;font-weight:500;"
+                                  >
+                                    · ${host._bulkActionLabel}</span
+                                  >`
+                                : ""
+                            }
+                          </div>
+                          <div class="actions">
+                            <button
+                              class="btn btn-outline"
+                              ?disabled=${bulkDisabled}
+                              @click=${() => host._bulkToggleSelected(true)}
+                            >
+                              ${
+                                host._bulkActionInProgress
+                                  ? host._t(
+                                      "automations_bulk_working",
+                                      "Working\u2026",
+                                    )
+                                  : host._t(
+                                      "automations_bulk_enable_all",
+                                      "Enable all",
+                                    )
+                              }
+                            </button>
+                            <button
+                              class="btn btn-outline"
+                              ?disabled=${bulkDisabled}
+                              @click=${() => host._bulkToggleSelected(false)}
+                            >
+                              ${
+                                host._bulkActionInProgress
+                                  ? host._t(
+                                      "automations_bulk_working",
+                                      "Working\u2026",
+                                    )
+                                  : host._t(
+                                      "automations_bulk_disable_all",
+                                      "Disable all",
+                                    )
+                              }
+                            </button>
+                            <button
+                              class="btn btn-outline btn-danger"
+                              ?disabled=${bulkDisabled}
+                              @click=${() => host._bulkSoftDeleteSelected()}
+                            >
+                              ${
+                                host._bulkActionInProgress
+                                  ? host._t(
+                                      "automations_bulk_working",
+                                      "Working\u2026",
+                                    )
+                                  : host._t(
+                                      "automations_bulk_delete_selected",
+                                      "Delete selected",
+                                    )
+                              }
+                            </button>
+                            <button
+                              class="btn btn-ghost"
+                              ?disabled=${host._bulkActionInProgress}
+                              @click=${() => host._clearAutomationSelection()}
+                            >
+                              ${host._t("automations_bulk_clear", "Clear")}
+                            </button>
+                          </div>
+                        </div>
+                      `
                     : ""
                 }
-                @click=${() => host._startNewAutomationChat()}
-              >
+                <div class="automations-list">
+                  ${pagedAutomations.map((a3) => {
+                    const isDraft = !!a3._draft;
+                    const isOn = host._automationIsEnabled(a3);
+                    const isUnavailable = a3.state === "unavailable";
+                    const automationId = a3.automation_id || "";
+                    const hasAutomationId = !!automationId;
+                    const canToggle =
+                      hasAutomationId && !host._bulkActionInProgress;
+                    const deleting = host._deletingAutomation[automationId];
+                    const loadingChat = host._loadingToChat[automationId];
+                    const runKey = automationId || a3.entity_id;
+                    const running = !!host._runningAutomation?.[runKey];
+                    const burgerOpen = host._openBurgerMenu === automationId;
+                    const cardExpanded = !!host._cardActiveTab[a3.entity_id];
+                    const ago = formatTimeAgo(a3.last_triggered);
+                    const lastRun = ago
+                      ? ago
+                      : !isOn
+                        ? host._t("automations_last_run_disabled", "Disabled")
+                        : host._t("automations_last_run_never", "Never");
+                    return b2`
+                      <div
+                        class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
+                        data-entity-id="${a3.entity_id}"
+                      >
+                        <div
+                          class="auto-row-main"
+                          @click=${(e6) => {
+                            if (
+                              e6.target.closest(
+                                ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .card-select, .rename-input, .rename-save-btn, .btn",
+                              )
+                            )
+                              return;
+                            const current = host._cardActiveTab[a3.entity_id];
+                            if (current) {
+                              host._cardActiveTab = {
+                                ...host._cardActiveTab,
+                                [a3.entity_id]: null,
+                              };
+                            } else {
+                              const defaultTab =
+                                (a3.triggers ?? a3.trigger)?.length ||
+                                (a3.actions ?? a3.action)?.length
+                                  ? "flow"
+                                  : a3.yaml_text
+                                    ? "yaml"
+                                    : hasAutomationId
+                                      ? "history"
+                                      : null;
+                              host._cardActiveTab = {
+                                ...host._cardActiveTab,
+                                [a3.entity_id]: defaultTab,
+                              };
+                            }
+                          }}
+                        >
+                          ${
+                            host._bulkEditMode && hasAutomationId
+                              ? b2`
+                                  <label class="card-select">
+                                    <input
+                                      type="checkbox"
+                                      .checked=${!!host._selectedAutomationIds[automationId]}
+                                      ?disabled=${host._bulkActionInProgress}
+                                      @click=${(e6) => e6.stopPropagation()}
+                                      @change=${(e6) =>
+                                        host._toggleAutomationSelection(
+                                          automationId,
+                                          e6,
+                                        )}
+                                    />
+                                  </label>
+                                `
+                              : ""
+                          }
+                          ${renderAutomationIdentity(a3.alias, a3.description, {
+                            isSelora: !!a3.is_selora,
+                            icon:
+                              !isDraft && !isOn ? "mdi:robot-off" : "mdi:robot",
+                            titleSuffix: b2`
+                              ${
+                                a3.recipe_title
+                                  ? b2`<span
+                                      class="recipe-pill"
+                                      title=${host._t(
+                                        "automations_recipe_pill_tooltip",
+                                        "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+                                      )}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:book-open-variant"
+                                      ></ha-icon>
+                                      <span class="recipe-pill-name"
+                                        >${a3.recipe_title}</span
+                                      >
+                                    </span>`
+                                  : ""
+                              }
+                              ${
+                                isUnavailable
+                                  ? b2`<span
+                                      class="needs-attention-pill"
+                                      @click=${(e6) => {
+                                        e6.stopPropagation();
+                                        host._unavailableAutoId = automationId;
+                                        host._unavailableAutoName = a3.alias;
+                                      }}
+                                      >${host._t(
+                                        "automations_needs_attention_pill",
+                                        "Needs attention",
+                                      )}</span
+                                    >`
+                                  : ""
+                              }
+                              ${
+                                staleSet.has(automationId)
+                                  ? b2`<span
+                                      class="stale-pill"
+                                      title=${staleTooltip(host)}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:alert-outline"
+                                        style="--mdc-icon-size:12px;"
+                                      ></ha-icon>
+                                      Stale
+                                    </span>`
+                                  : ""
+                              }
+                              ${
+                                !isDraft && !isOn
+                                  ? b2`<span class="disabled-pill">
+                                      <ha-icon
+                                        icon="mdi:pause-circle-outline"
+                                        style="--mdc-icon-size:12px;"
+                                      ></ha-icon>
+                                      ${host._t(
+                                        "automations_status_tab_disabled",
+                                        "Disabled",
+                                      )}
+                                    </span>`
+                                  : ""
+                              }
+                            `,
+                            nameOverride:
+                              host._editingAlias === automationId
+                                ? b2`
+                                    <input
+                                      class="rename-input"
+                                      data-id="${automationId}"
+                                      .value=${host._editingAliasValue}
+                                      @input=${(e6) => {
+                                        host._editingAliasValue =
+                                          e6.target.value;
+                                      }}
+                                      @click=${(e6) => e6.stopPropagation()}
+                                      @keydown=${(e6) => {
+                                        if (e6.key === "Enter")
+                                          host._saveRenameAutomation(
+                                            automationId,
+                                          );
+                                        if (e6.key === "Escape")
+                                          host._cancelRenameAutomation();
+                                      }}
+                                    />
+                                    <button
+                                      class="rename-save-btn"
+                                      title=${host._t(
+                                        "automations_rename_save_tooltip",
+                                        "Save",
+                                      )}
+                                      @click=${() =>
+                                        host._saveRenameAutomation(
+                                          automationId,
+                                        )}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:check"
+                                        style="--mdc-icon-size:16px;"
+                                      ></ha-icon>
+                                    </button>
+                                  `
+                                : null,
+                            tail: b2`<span class="auto-row-mobile-meta">
+                              <span
+                                >${host._t(
+                                  "automations_last_run_prefix",
+                                  "Last run:",
+                                )}
+                                ${lastRun}</span
+                              >
+                              <ha-icon
+                                icon="mdi:chevron-down"
+                                class="card-chevron ${cardExpanded ? "open" : ""}"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                            </span>`,
+                          })}
+                          <span class="auto-row-last-run"
+                            ><span class="last-run-prefix"
+                              >${host._t(
+                                "automations_last_run_prefix_inline",
+                                "Last run:",
+                              )} </span
+                            >${lastRun}${
+                              a3.last_triggered
+                                ? b2`<span class="setting-tooltip"
+                                    >Last run:
+                                    ${new Date(
+                                      a3.last_triggered,
+                                    ).toLocaleString()}</span
+                                  >`
+                                : ""
+                            }
+                          </span>
+                          <div
+                            class="auto-row-actions${hasAutomationId ? " has-menu" : ""}"
+                          >
+                            <label
+                              class="toggle-switch"
+                              title="${
+                                canToggle
+                                  ? isOn
+                                    ? host._t(
+                                        "automations_toggle_enabled",
+                                        "Enabled",
+                                      )
+                                    : host._t(
+                                        "automations_toggle_disabled",
+                                        "Disabled",
+                                      )
+                                  : host._t(
+                                      "automations_toggle_unavailable",
+                                      "Unavailable",
+                                    )
+                              }"
+                              style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
+                              @click=${(e6) => {
+                                e6.stopPropagation();
+                                if (!canToggle) {
+                                  host._showToast(
+                                    host._t(
+                                      "automations_toast_toggle_unresolved",
+                                      "Unable to toggle: automation id was not resolved. Reload and try again.",
+                                    ),
+                                    "error",
+                                  );
+                                }
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                .checked=${isOn}
+                                ?disabled=${!canToggle}
+                                @click=${(e6) => e6.stopPropagation()}
+                                @change=${(e6) => {
+                                  if (!canToggle) return;
+                                  host._toggleAutomation(
+                                    a3.entity_id,
+                                    automationId,
+                                    e6.target.checked,
+                                  );
+                                }}
+                              />
+                              <div class="toggle-track ${isOn ? "on" : ""}">
+                                <div class="toggle-thumb"></div>
+                              </div>
+                            </label>
+                            <div class="auto-row-btns">
+                              ${
+                                !isDraft && a3.entity_id
+                                  ? b2`
+                                      <button
+                                        class="row-action-btn"
+                                        ?disabled=${running || isUnavailable}
+                                        @click=${(e6) => {
+                                          e6.stopPropagation();
+                                          if (running || isUnavailable) return;
+                                          host._runAutomation(
+                                            a3.entity_id,
+                                            automationId,
+                                          );
+                                        }}
+                                        title=${host._t(
+                                          "automations_run_tooltip",
+                                          "Run Automation",
+                                        )}
+                                      >
+                                        <ha-icon
+                                          icon="mdi:play"
+                                          style="--mdc-icon-size:16px;"
+                                        ></ha-icon>
+                                      </button>
+                                    `
+                                  : ""
+                              }
+                              ${
+                                hasAutomationId
+                                  ? b2`
+                                      <div class="burger-menu-wrapper">
+                                        <button
+                                          class="burger-btn"
+                                          @click=${(e6) =>
+                                            host._toggleBurgerMenu(
+                                              automationId,
+                                              e6,
+                                            )}
+                                          ?disabled=${host._bulkActionInProgress}
+                                          title=${host._t(
+                                            "automations_more_actions_tooltip",
+                                            "More actions",
+                                          )}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:dots-vertical"
+                                            style="--mdc-icon-size:16px;"
+                                          ></ha-icon>
+                                        </button>
+                                        ${
+                                          burgerOpen
+                                            ? b2`
+                                                <div
+                                                  class="burger-dropdown"
+                                                  style=${host._openBurgerMenuStyle}
+                                                >
+                                                  <button
+                                                    class="burger-item burger-item-toggle"
+                                                    ?disabled=${!canToggle}
+                                                    @click=${(e6) => {
+                                                      e6.stopPropagation();
+                                                      host._openBurgerMenu =
+                                                        null;
+                                                      if (!canToggle) return;
+                                                      host._toggleAutomation(
+                                                        a3.entity_id,
+                                                        automationId,
+                                                        !isOn,
+                                                      );
+                                                    }}
+                                                  >
+                                                    <ha-icon
+                                                      icon=${isOn ? "mdi:toggle-switch-off-outline" : "mdi:toggle-switch-outline"}
+                                                      style="--mdc-icon-size:14px;"
+                                                    ></ha-icon>
+                                                    ${
+                                                      isOn
+                                                        ? host._t(
+                                                            "automations_burger_disable",
+                                                            "Disable",
+                                                          )
+                                                        : host._t(
+                                                            "automations_burger_enable",
+                                                            "Enable",
+                                                          )
+                                                    }
+                                                  </button>
+                                                  <button
+                                                    class="burger-item"
+                                                    @click=${(e6) => {
+                                                      e6.stopPropagation();
+                                                      host._openBurgerMenu =
+                                                        null;
+                                                      host._loadAutomationToChat(
+                                                        automationId,
+                                                      );
+                                                    }}
+                                                    ?disabled=${loadingChat}
+                                                  >
+                                                    <ha-icon
+                                                      icon="mdi:chat-processing-outline"
+                                                      style="--mdc-icon-size:14px;"
+                                                    ></ha-icon>
+                                                    ${
+                                                      loadingChat
+                                                        ? host._t(
+                                                            "automations_burger_loading",
+                                                            "Loading\u2026",
+                                                          )
+                                                        : host._t(
+                                                            "automations_burger_refine_in_chat",
+                                                            "Refine in chat",
+                                                          )
+                                                    }
+                                                  </button>
+                                                  <button
+                                                    class="burger-item"
+                                                    @click=${(e6) => {
+                                                      e6.stopPropagation();
+                                                      host._startRenameAutomation(
+                                                        automationId,
+                                                        a3.alias,
+                                                      );
+                                                    }}
+                                                  >
+                                                    <ha-icon
+                                                      icon="mdi:pencil-outline"
+                                                      style="--mdc-icon-size:14px;"
+                                                    ></ha-icon>
+                                                    ${host._t(
+                                                      "automations_burger_rename",
+                                                      "Rename",
+                                                    )}
+                                                  </button>
+                                                  <button
+                                                    class="burger-item"
+                                                    @click=${(e6) => {
+                                                      e6.stopPropagation();
+                                                      host._openBurgerMenu =
+                                                        null;
+                                                      window.history.pushState(
+                                                        null,
+                                                        "",
+                                                        `/config/automation/edit/${automationId}`,
+                                                      );
+                                                      window.dispatchEvent(
+                                                        new Event(
+                                                          "location-changed",
+                                                        ),
+                                                      );
+                                                    }}
+                                                  >
+                                                    <ha-icon
+                                                      icon="mdi:open-in-new"
+                                                      style="--mdc-icon-size:14px;"
+                                                    ></ha-icon>
+                                                    ${host._t(
+                                                      "automations_burger_view_in_ha",
+                                                      "View in HA",
+                                                    )}
+                                                  </button>
+                                                  <button
+                                                    class="burger-item danger"
+                                                    ?disabled=${deleting}
+                                                    @click=${(e6) => {
+                                                      e6.stopPropagation();
+                                                      host._openBurgerMenu =
+                                                        null;
+                                                      host._deleteAutomation(
+                                                        automationId,
+                                                      );
+                                                    }}
+                                                  >
+                                                    <ha-icon
+                                                      icon="mdi:trash-can-outline"
+                                                      style="--mdc-icon-size:14px;"
+                                                    ></ha-icon>
+                                                    ${
+                                                      deleting
+                                                        ? host._t(
+                                                            "automations_burger_deleting",
+                                                            "Deleting\u2026",
+                                                          )
+                                                        : host._t(
+                                                            "automations_burger_delete",
+                                                            "Delete",
+                                                          )
+                                                    }
+                                                  </button>
+                                                </div>
+                                              `
+                                            : ""
+                                        }
+                                      </div>
+                                    `
+                                  : isDraft
+                                    ? ""
+                                    : b2`
+                                        <div class="burger-menu-wrapper">
+                                          <button
+                                            class="burger-btn"
+                                            disabled
+                                            title=${host._t(
+                                              "automations_more_actions_external",
+                                              "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
+                                            )}
+                                          >
+                                            <ha-icon
+                                              icon="mdi:dots-vertical"
+                                              style="--mdc-icon-size:16px;"
+                                            ></ha-icon>
+                                          </button>
+                                        </div>
+                                      `
+                              }
+                            </div>
+                          </div>
+                        </div>
+                        ${
+                          cardExpanded
+                            ? b2`
+                                <div class="auto-row-expand">
+                                  ${(() => {
+                                    const fullDesc = (
+                                      a3.description || ""
+                                    ).replace(/^\[Selora AI\]\s*/, "");
+                                    return fullDesc
+                                      ? b2`<div class="auto-row-full-desc">
+                                          ${fullDesc}
+                                        </div>`
+                                      : "";
+                                  })()}
+                                  <div class="card-tabs" style="margin-top:0;">
+                                    ${
+                                      (a3.triggers ?? a3.trigger)?.length ||
+                                      (a3.actions ?? a3.action)?.length
+                                        ? b2`
+                                            <button
+                                              class="card-tab ${host._cardActiveTab[a3.entity_id] === "flow" ? "active" : ""}"
+                                              @click=${() => {
+                                                host._cardActiveTab = {
+                                                  ...host._cardActiveTab,
+                                                  [a3.entity_id]:
+                                                    host._cardActiveTab[
+                                                      a3.entity_id
+                                                    ] === "flow"
+                                                      ? null
+                                                      : "flow",
+                                                };
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:sitemap-outline"
+                                                style="--mdc-icon-size:16px;"
+                                              ></ha-icon>
+                                              ${host._t(
+                                                "automations_card_tab_flow",
+                                                "Flow",
+                                              )}
+                                            </button>
+                                            <span class="card-tab-sep">|</span>
+                                          `
+                                        : ""
+                                    }
+                                    ${
+                                      a3.yaml_text
+                                        ? b2`
+                                            <button
+                                              class="card-tab ${host._cardActiveTab[a3.entity_id] === "yaml" ? "active" : ""}"
+                                              @click=${() => {
+                                                host._cardActiveTab = {
+                                                  ...host._cardActiveTab,
+                                                  [a3.entity_id]:
+                                                    host._cardActiveTab[
+                                                      a3.entity_id
+                                                    ] === "yaml"
+                                                      ? null
+                                                      : "yaml",
+                                                };
+                                              }}
+                                            >
+                                              <ha-icon
+                                                icon="mdi:code-braces"
+                                                style="--mdc-icon-size:16px;"
+                                              ></ha-icon>
+                                              ${host._t(
+                                                "automations_card_tab_yaml",
+                                                "YAML",
+                                              )}
+                                            </button>
+                                            <span class="card-tab-sep">|</span>
+                                          `
+                                        : ""
+                                    }
+                                    ${
+                                      hasAutomationId
+                                        ? b2`
+                                            <button
+                                              class="card-tab ${host._cardActiveTab[a3.entity_id] === "history" ? "active" : ""}"
+                                              @click=${() => {
+                                                const isActive =
+                                                  host._cardActiveTab[
+                                                    a3.entity_id
+                                                  ] === "history";
+                                                host._cardActiveTab = {
+                                                  ...host._cardActiveTab,
+                                                  [a3.entity_id]: isActive
+                                                    ? null
+                                                    : "history",
+                                                };
+                                                if (
+                                                  !isActive &&
+                                                  !host._versions[automationId]
+                                                ) {
+                                                  host._versionHistoryOpen = {
+                                                    ...host._versionHistoryOpen,
+                                                    [automationId]: true,
+                                                  };
+                                                  host._loadVersionHistory(
+                                                    automationId,
+                                                  );
+                                                }
+                                              }}
+                                            >
+                                              ${host._t(
+                                                "automations_card_tab_history",
+                                                "History",
+                                              )}
+                                            </button>
+                                          `
+                                        : ""
+                                    }
+                                  </div>
+                                  ${host._cardActiveTab[a3.entity_id] === "flow" && ((a3.triggers ?? a3.trigger)?.length || (a3.actions ?? a3.action)?.length) ? renderAutomationFlowchart(host, a3) : ""}
+                                  ${
+                                    host._cardActiveTab[a3.entity_id] ===
+                                      "yaml" && a3.yaml_text
+                                      ? host._renderYamlEditor(
+                                          `yaml_${a3.entity_id}`,
+                                          a3.yaml_text,
+                                          (key) =>
+                                            host._saveActiveAutomationYaml(
+                                              a3.automation_id,
+                                              key,
+                                            ),
+                                        )
+                                      : ""
+                                  }
+                                  ${host._cardActiveTab[a3.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a3) : ""}
+                                </div>
+                              `
+                            : ""
+                        }
+                      </div>
+                    `;
+                  })}
+                </div>
+                ${
+                  totalAutoPages > 1
+                    ? b2`
+                        <div class="pagination">
+                          <button
+                            class="btn btn-outline"
+                            ?disabled=${safeAutoPage <= 1}
+                            @click=${() => {
+                              host._automationsPage = safeAutoPage - 1;
+                            }}
+                          >
+                            ${host._t("automations_pagination_prev", "\u2039 Prev")}
+                          </button>
+                          <span class="page-info"
+                            >Page ${safeAutoPage} of ${totalAutoPages} ·
+                            ${filteredAutomations.length} automations</span
+                          >
+                          <label class="per-page-label"
+                            >${host._t(
+                              "automations_pagination_per_page",
+                              "Per page:",
+                            )}
+                            <select
+                              class="per-page-select"
+                              .value=${String(host._autosPerPage)}
+                              @change=${(e6) => {
+                                host._autosPerPage = Number(e6.target.value);
+                                host._automationsPage = 1;
+                              }}
+                            >
+                              <option value="10">10</option>
+                              <option value="20">20</option>
+                              <option value="50">50</option>
+                            </select>
+                          </label>
+                          <button
+                            class="btn btn-outline"
+                            ?disabled=${safeAutoPage >= totalAutoPages}
+                            @click=${() => {
+                              host._automationsPage = safeAutoPage + 1;
+                            }}
+                          >
+                            ${host._t("automations_pagination_next", "Next \u203A")}
+                          </button>
+                        </div>
+                      `
+                    : ""
+                }
+                ${
+                  filteredAutomations.length === 0 &&
+                  host._automations.length > 0
+                    ? b2`<div
+                        style="text-align:center;opacity:0.45;padding:24px 0;"
+                      >
+                        No automations match "${host._automationFilter}"
+                      </div>`
+                    : ""
+                }
+              `
+            : b2`<div style="text-align:center;padding:32px 0;">
                 <ha-icon
-                  icon="mdi:plus"
-                  style="--mdc-icon-size:14px;"
+                  icon="mdi:robot-vacuum-variant"
+                  style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
                 ></ha-icon>
-                ${host._t(
-                  "automations_new_automation_button",
-                  "New Automation",
-                )}
-              </button>
-            </div>`
+                <p style="opacity:0.45;margin:0 0 12px;">
+                  ${host._t("automations_empty_state", "No automations yet.")}
+                </p>
+                <button
+                  class="btn btn-accent"
+                  ?disabled=${host._llmNeedsSetup}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "automations_llm_setup_required_tooltip",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
+                  @click=${() => host._startNewAutomationChat()}
+                >
+                  <ha-icon
+                    icon="mdi:plus"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${host._t(
+                    "automations_new_automation_button",
+                    "New Automation",
+                  )}
+                </button>
+              </div>`
         }
       </div>
       ${host._renderDiffViewer()} ${renderUnavailableModal(host)}
@@ -31220,7 +31156,7 @@ function renderAutomations(host) {
 }
 function renderUnavailableModal(host) {
   if (!host._unavailableAutoId) return "";
-  return x`
+  return b2`
     <div
       class="modal-overlay"
       @click=${() => {
@@ -31247,10 +31183,7 @@ function renderUnavailableModal(host) {
           style="font-size:14px;line-height:1.6;margin:0 0 8px;color:var(--primary-text-color);"
         >
           <strong
-            >${
-              host._unavailableAutoName ||
-              host._t("automations_unavailable_default_name", "This automation")
-            }</strong
+            >${host._unavailableAutoName || host._t("automations_unavailable_default_name", "This automation")}</strong
           >
           ${host._t(
             "automations_unavailable_modal_intro",
@@ -31395,7 +31328,7 @@ function _toggleAutomationSelection(automationId, evt) {
 }
 function _toggleSelectAllFiltered(filteredAutomations, checked) {
   const selectable = (filteredAutomations || []).filter(
-    (a4) => !a4._draft && a4.automation_id,
+    (a3) => !a3._draft && a3.automation_id,
   );
   const next = { ...this._selectedAutomationIds };
   for (const auto of selectable) {
@@ -31412,12 +31345,12 @@ async function _bulkToggleSelected(enable) {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
+  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a4) => a4 && !a4._draft && a4.automation_id)
-    .filter((a4) =>
-      enable ? !this._automationIsEnabled(a4) : this._automationIsEnabled(a4),
+    .filter((a3) => a3 && !a3._draft && a3.automation_id)
+    .filter((a3) =>
+      enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3),
     );
   const skippedCount = selectedIds.length - targets.length;
   if (!targets.length) {
@@ -31469,10 +31402,10 @@ async function _bulkSoftDeleteSelected() {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
+  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a4) => a4 && !a4._draft && a4.automation_id);
+    .filter((a3) => a3 && !a3._draft && a3.automation_id);
   if (!targets.length) return;
   if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
   this._bulkActionInProgress = true;
@@ -31536,8 +31469,8 @@ async function _enableSavedAutomation(entityId, automationId) {
       entity_id: entityId,
       enabled: true,
     });
-    this._automations = (this._automations || []).map((a4) =>
-      a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
+    this._automations = (this._automations || []).map((a3) =>
+      a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
     );
   } catch (err) {
     const message = err?.message || "unknown error";
@@ -31832,7 +31765,7 @@ async function _loadAutomationToChat(automationId) {
 
 // src/panel/render-scenes.js
 function _sceneCardHeader(name, badge) {
-  return x`
+  return b2`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <ha-icon
         icon="mdi:palette"
@@ -31861,7 +31794,7 @@ function _renderTargetRow(host, entityId, stateData, editSceneId) {
       ? host._sceneEditedEntities(editSceneId)[entityId]
       : stateData;
   const single = JSON.stringify({ [entityId]: target });
-  return x`
+  return b2`
     <div class="scene-ent-row">
       <div
         class="selora-entity-grid scene-ent-tile"
@@ -31889,23 +31822,23 @@ function _renderEntityList(host, entities, editSceneId = null) {
     if (!groups.has(area)) groups.set(area, []);
     groups.get(area).push(id);
   }
-  const sorted = [...groups.entries()].sort((a4, b2) => {
-    if (!a4[0]) return 1;
-    if (!b2[0]) return -1;
-    return a4[0].localeCompare(b2[0]);
+  const sorted = [...groups.entries()].sort((a3, b3) => {
+    if (!a3[0]) return 1;
+    if (!b3[0]) return -1;
+    return a3[0].localeCompare(b3[0]);
   });
   const showHeaders = groups.size > 1;
-  return x`
+  return b2`
     ${
       editSceneId
-        ? x`<div class="scene-ent-hint">
-          <ha-icon icon="mdi:gesture-tap"></ha-icon>
-          <span
-            >Adjust each entity's desired state on the <strong>right</strong>.
-            Edits don't touch your devices until you <strong>Test</strong> or
-            activate the scene.</span
-          >
-        </div>`
+        ? b2`<div class="scene-ent-hint">
+            <ha-icon icon="mdi:gesture-tap"></ha-icon>
+            <span
+              >Adjust each entity's desired state on the <strong>right</strong>.
+              Edits don't touch your devices until you <strong>Test</strong> or
+              activate the scene.</span
+            >
+          </div>`
         : ""
     }
     <div class="scene-ent-list">
@@ -31915,13 +31848,13 @@ function _renderEntityList(host, entities, editSceneId = null) {
         <span class="scene-ent-cap--target">Scene sets</span>
       </div>
       ${sorted.map(
-        ([area, areaIds]) => x`
+        ([area, areaIds]) => b2`
           ${
             showHeaders
-              ? x`<div class="scene-ent-area">
-                <ha-icon icon="mdi:floor-plan"></ha-icon>
-                <span>${area || "Unassigned"}</span>
-              </div>`
+              ? b2`<div class="scene-ent-area">
+                  <ha-icon icon="mdi:floor-plan"></ha-icon>
+                  <span>${area || "Unassigned"}</span>
+                </div>`
               : ""
           }
           ${areaIds.map((id) =>
@@ -31932,43 +31865,44 @@ function _renderEntityList(host, entities, editSceneId = null) {
     </div>
     ${
       editSceneId && host._sceneIsDirty(editSceneId)
-        ? x`<div class="scene-edit-bar">
-          <span class="scene-edit-bar-msg">
-            <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this scene
-          </span>
-          <span class="scene-edit-bar-actions">
-            <button
-              class="btn btn-outline"
-              ?disabled=${host._savingScene?.[editSceneId] || host._testingScene?.[editSceneId]}
-              title="Apply these states to your devices now, without saving"
-              @click=${() => host._testSceneEdits(editSceneId)}
-            >
-              <ha-icon
-                icon="mdi:flask-outline"
-                style="--mdc-icon-size:14px;"
-              ></ha-icon>
-              ${host._testingScene?.[editSceneId] ? "Testing\u2026" : "Test"}
-            </button>
-            <button
-              class="btn btn-outline"
-              ?disabled=${host._savingScene?.[editSceneId]}
-              @click=${() => host._discardSceneEdits(editSceneId)}
-            >
-              Discard
-            </button>
-            <button
-              class="btn btn-success"
-              ?disabled=${host._savingScene?.[editSceneId]}
-              @click=${() => host._saveSceneEdits(editSceneId)}
-            >
-              <ha-icon
-                icon="mdi:content-save"
-                style="--mdc-icon-size:14px;"
-              ></ha-icon>
-              ${host._savingScene?.[editSceneId] ? "Saving\u2026" : "Save changes"}
-            </button>
-          </span>
-        </div>`
+        ? b2`<div class="scene-edit-bar">
+            <span class="scene-edit-bar-msg">
+              <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this
+              scene
+            </span>
+            <span class="scene-edit-bar-actions">
+              <button
+                class="btn btn-outline"
+                ?disabled=${host._savingScene?.[editSceneId] || host._testingScene?.[editSceneId]}
+                title="Apply these states to your devices now, without saving"
+                @click=${() => host._testSceneEdits(editSceneId)}
+              >
+                <ha-icon
+                  icon="mdi:flask-outline"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                ${host._testingScene?.[editSceneId] ? "Testing\u2026" : "Test"}
+              </button>
+              <button
+                class="btn btn-outline"
+                ?disabled=${host._savingScene?.[editSceneId]}
+                @click=${() => host._discardSceneEdits(editSceneId)}
+              >
+                Discard
+              </button>
+              <button
+                class="btn btn-success"
+                ?disabled=${host._savingScene?.[editSceneId]}
+                @click=${() => host._saveSceneEdits(editSceneId)}
+              >
+                <ha-icon
+                  icon="mdi:content-save"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                ${host._savingScene?.[editSceneId] ? "Saving\u2026" : "Save changes"}
+              </button>
+            </span>
+          </div>`
         : ""
     }
   `;
@@ -31980,7 +31914,7 @@ function renderSceneCard(host, msg, msgIndex) {
   const yamlKey = `scene_${msgIndex}`;
   const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
   if (status === "saved") {
-    return x`
+    return b2`
       <div style="margin-top:12px;padding:14px 0 0;">
         <div class="scene-saved-head">
           <ha-icon icon="mdi:check-circle" class="scene-saved-icon"></ha-icon>
@@ -31993,27 +31927,27 @@ function renderSceneCard(host, msg, msgIndex) {
           ${_renderEntityList(host, scene.entities || {})}
           ${
             msg.scene_yaml
-              ? x`<div
-                  class="yaml-toggle"
-                  style="margin-top:10px;margin-bottom:0;"
-                  @click=${() => toggleYaml(host, yamlKey)}
-                >
-                  <ha-icon
-                    icon="mdi:code-braces"
-                    style="--mdc-icon-size:14px;"
-                  ></ha-icon>
-                  ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
-                </div>
-                ${
-                  yamlOpen
-                    ? x`<ha-code-editor
-                      mode="yaml"
-                      .value=${msg.scene_yaml}
-                      read-only
-                      style="--code-mirror-font-size:12px;margin-top:10px;"
-                    ></ha-code-editor>`
-                    : ""
-                }`
+              ? b2`<div
+                    class="yaml-toggle"
+                    style="margin-top:10px;margin-bottom:0;"
+                    @click=${() => toggleYaml(host, yamlKey)}
+                  >
+                    <ha-icon
+                      icon="mdi:code-braces"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+                  </div>
+                  ${
+                    yamlOpen
+                      ? b2`<ha-code-editor
+                          mode="yaml"
+                          .value=${msg.scene_yaml}
+                          read-only
+                          style="--code-mirror-font-size:12px;margin-top:10px;"
+                        ></ha-code-editor>`
+                      : ""
+                  }`
               : ""
           }
           <div class="proposal-actions" style="margin-top:14px;">
@@ -32048,7 +31982,7 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return x`
+    return b2`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -32067,7 +32001,7 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return x`
+    return b2`
       <div style="margin-top:12px;padding:14px 0 0;">
         ${_sceneCardHeader(
           scene.name,
@@ -32077,36 +32011,36 @@ function renderSceneCard(host, msg, msgIndex) {
           ${_renderEntityList(host, scene.entities || {})}
           ${
             msg.scene_yaml
-              ? x`<div
-                class="yaml-toggle"
-                style="margin-top:10px;margin-bottom:0;"
-                @click=${() => toggleYaml(host, yamlKey)}
-              >
-                <ha-icon
-                  icon="mdi:code-braces"
-                  style="--mdc-icon-size:14px;"
-                ></ha-icon>
-                ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
-              </div>`
+              ? b2`<div
+                  class="yaml-toggle"
+                  style="margin-top:10px;margin-bottom:0;"
+                  @click=${() => toggleYaml(host, yamlKey)}
+                >
+                  <ha-icon
+                    icon="mdi:code-braces"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+                </div>`
               : ""
           }
           ${
             yamlOpen && msg.scene_yaml
-              ? x`
-                <ha-code-editor
-                  mode="yaml"
-                  .value=${msg.scene_yaml}
-                  read-only
-                  style="--code-mirror-font-size:12px;margin-top:10px;"
-                ></ha-code-editor>
-              `
+              ? b2`
+                  <ha-code-editor
+                    mode="yaml"
+                    .value=${msg.scene_yaml}
+                    read-only
+                    style="--code-mirror-font-size:12px;margin-top:10px;"
+                  ></ha-code-editor>
+                `
               : ""
           }
         </div>
       </div>
     `;
   }
-  return x`
+  return b2`
     <div style="margin-top:12px;padding:14px 0 0;">
       ${_sceneCardHeader(
         scene.name,
@@ -32128,14 +32062,14 @@ function renderSceneCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen && msg.scene_yaml
-            ? x`
-              <ha-code-editor
-                mode="yaml"
-                .value=${msg.scene_yaml}
-                read-only
-                style="--code-mirror-font-size:12px;margin-top:6px;"
-              ></ha-code-editor>
-            `
+            ? b2`
+                <ha-code-editor
+                  mode="yaml"
+                  .value=${msg.scene_yaml}
+                  read-only
+                  style="--code-mirror-font-size:12px;margin-top:6px;"
+                ></ha-code-editor>
+              `
             : ""
         }
         <div style="display:flex;justify-content:flex-end;margin-top:12px;">
@@ -32161,35 +32095,35 @@ function renderScenes(host) {
   const sortDir = host._sceneSortDir || "desc";
   const statusFilter = host._sceneStatusFilter || "all";
   const allScenes = host._scenes || [];
-  const seloraCount = allScenes.filter((s6) => s6.source === "selora").length;
+  const seloraCount = allScenes.filter((s4) => s4.source === "selora").length;
   const manualCount = allScenes.length - seloraCount;
   let filtered = [...allScenes];
   if (statusFilter === "selora") {
-    filtered = filtered.filter((s6) => s6.source === "selora");
+    filtered = filtered.filter((s4) => s4.source === "selora");
   } else if (statusFilter === "manual") {
-    filtered = filtered.filter((s6) => s6.source !== "selora");
+    filtered = filtered.filter((s4) => s4.source !== "selora");
   }
   if (filterText) {
-    filtered = filtered.filter((s6) =>
-      (s6.name || "").toLowerCase().includes(filterText),
+    filtered = filtered.filter((s4) =>
+      (s4.name || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
   if (sortBy === "recent") {
-    filtered.sort((a4, b2) => {
-      const at = a4.updated_at ? new Date(a4.updated_at).getTime() : 0;
-      const bt = b2.updated_at ? new Date(b2.updated_at).getTime() : 0;
+    filtered.sort((a3, b3) => {
+      const at = a3.updated_at ? new Date(a3.updated_at).getTime() : 0;
+      const bt = b3.updated_at ? new Date(b3.updated_at).getTime() : 0;
       return bt - at;
     });
   } else if (sortBy === "alpha") {
-    filtered.sort((a4, b2) => (a4.name || "").localeCompare(b2.name || ""));
+    filtered.sort((a3, b3) => (a3.name || "").localeCompare(b3.name || ""));
   } else if (sortBy === "size") {
-    filtered.sort((a4, b2) => (b2.entity_count || 0) - (a4.entity_count || 0));
+    filtered.sort((a3, b3) => (b3.entity_count || 0) - (a3.entity_count || 0));
   }
   if (sortDir !== naturalDir[sortBy]) {
     filtered.reverse();
   }
-  return x`
+  return b2`
     <div class="scroll-view">
       <div class="page-root">
         <div class="page-header">
@@ -32198,489 +32132,504 @@ function renderScenes(host) {
           </h1>
           ${
             (host._scenes || []).length > 0
-              ? x`<button
-                class="filter-row-action"
-                ?disabled=${host._llmNeedsSetup}
-                title=${
-                  host._llmNeedsSetup
-                    ? host._t(
-                        "scenes_llm_needs_setup_tooltip",
-                        "Configure an LLM provider first",
-                      )
-                    : ""
-                }
-                @click=${() => host._newSceneChat()}
-              >
-                <ha-icon
-                  icon="mdi:plus"
-                  style="--mdc-icon-size:13px;"
-                ></ha-icon>
-                ${host._t("scenes_new_scene_button", "New Scene")}
-              </button>`
+              ? b2`<button
+                  class="filter-row-action"
+                  ?disabled=${host._llmNeedsSetup}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "scenes_llm_needs_setup_tooltip",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
+                  @click=${() => host._newSceneChat()}
+                >
+                  <ha-icon
+                    icon="mdi:plus"
+                    style="--mdc-icon-size:13px;"
+                  ></ha-icon>
+                  ${host._t("scenes_new_scene_button", "New Scene")}
+                </button>`
               : ""
           }
         </div>
         ${
           (host._scenes || []).length > 0
-            ? x`
-              <div class="filter-tabs-row" style="margin-top:12px;">
-                <div class="filter-tabs" role="tablist">
-                  <button
-                    role="tab"
-                    aria-selected=${statusFilter === "all"}
-                    class="filter-tab ${statusFilter === "all" ? "active" : ""}"
-                    @click=${() => {
-                      host._sceneStatusFilter = "all";
-                    }}
-                  >
-                    ${host._t("scenes_status_tab_all", "All")}
-                  </button>
-                  ${
-                    seloraCount > 0 && manualCount > 0
-                      ? x`
-                        <button
-                          role="tab"
-                          aria-selected=${statusFilter === "selora"}
-                          class="filter-tab ${statusFilter === "selora" ? "active" : ""}"
-                          @click=${() => {
-                            host._sceneStatusFilter = "selora";
-                          }}
-                        >
-                          <ha-icon
-                            icon="mdi:creation"
-                            style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
-                          ></ha-icon>
-                          <span
-                            >${host._t("scenes_status_tab_selora", "Selora AI")}
-                            (${seloraCount})</span
-                          >
-                        </button>
-                        <button
-                          role="tab"
-                          aria-selected=${statusFilter === "manual"}
-                          class="filter-tab ${statusFilter === "manual" ? "active" : ""}"
-                          @click=${() => {
-                            host._sceneStatusFilter = "manual";
-                          }}
-                        >
-                          ${host._t("scenes_status_tab_manual", "Manual")}
-                          (${manualCount})
-                        </button>
-                      `
-                      : ""
-                  }
-                </div>
-              </div>
-              <div class="filter-row">
-                <div class="filter-input-wrap" style="flex:1 1 260px;">
-                  <ha-icon icon="mdi:magnify"></ha-icon>
-                  <input
-                    type="text"
-                    placeholder=${host._t(
-                      "scenes_filter_placeholder",
-                      "Filter scenes\u2026",
-                    )}
-                    .value=${host._sceneFilter || ""}
-                    @input=${(e6) => {
-                      host._sceneFilter = e6.target.value;
-                    }}
-                  />
-                  ${
-                    host._sceneFilter
-                      ? x`<ha-icon
-                        icon="mdi:close-circle"
-                        style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                        @click=${() => {
-                          host._sceneFilter = "";
-                        }}
-                      ></ha-icon>`
-                      : ""
-                  }
-                </div>
-                <div class="sort-group">
-                  <select
-                    class="sort-select"
-                    .value=${host._sceneSortBy || "recent"}
-                    @change=${(e6) => {
-                      host._sceneSortBy = e6.target.value;
-                    }}
-                  >
-                    <option value="recent">
-                      ${host._t("scenes_sort_recent", "Recently updated")}
-                    </option>
-                    <option value="alpha">
-                      ${host._t("scenes_sort_alpha", "Alphabetical")}
-                    </option>
-                    <option value="size">
-                      ${host._t("scenes_sort_size", "Most entities")}
-                    </option>
-                  </select>
-                  <button
-                    class="sort-dir-toggle"
-                    title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
-                    @click=${() => {
-                      host._sceneSortDir = sortDir === "desc" ? "asc" : "desc";
-                    }}
-                  >
-                    <ha-icon
-                      icon=${sortDir === "desc" ? "mdi:sort-descending" : "mdi:sort-ascending"}
-                      style="--mdc-icon-size:18px;"
-                    ></ha-icon>
-                  </button>
-                </div>
-              </div>
-              <div class="automations-list">
-                ${filtered.map((s6) => {
-                  const sceneId = s6.scene_id;
-                  const sceneEntityId = s6.entity_id;
-                  const entities = s6.entities || {};
-                  const entityCount = _sceneEntityCount(s6);
-                  const isExpanded = !!host._expandedScenes?.[sceneId];
-                  const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
-                  const burgerOpen = host._openSceneBurger === sceneId;
-                  const deleting = !!host._deletingScene?.[sceneId];
-                  const loadingChat = !!host._loadingToChat?.[sceneId];
-                  const updated = formatTimeAgo(s6.updated_at);
-                  const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
-                  const isSelora = s6.source === "selora";
-                  const recipeTitle = s6.recipe_title || "";
-                  return x`
-                    <div
-                      class="auto-row${isExpanded ? " expanded" : ""}"
-                      data-scene-id="${sceneId}"
+            ? b2`
+                <div class="filter-tabs-row" style="margin-top:12px;">
+                  <div class="filter-tabs" role="tablist">
+                    <button
+                      role="tab"
+                      aria-selected=${statusFilter === "all"}
+                      class="filter-tab ${statusFilter === "all" ? "active" : ""}"
+                      @click=${() => {
+                        host._sceneStatusFilter = "all";
+                      }}
                     >
-                      <div
-                        class="auto-row-main"
-                        @click=${(e6) => {
-                          if (
-                            e6.target.closest(
-                              ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
-                            )
-                          )
-                            return;
-                          host._expandedScenes = {
-                            ...host._expandedScenes,
-                            [sceneId]: !isExpanded,
-                          };
-                        }}
-                      >
-                        <div
-                          style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
-                        >
-                          <ha-icon
-                            icon="mdi:palette"
-                            style="--mdc-icon-size:18px;color:var(--selora-accent);"
-                          ></ha-icon>
-                          ${
-                            !isSelora && !recipeTitle && host.narrow
-                              ? x`<span
-                                style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
-                                >HA</span
-                              >`
-                              : ""
-                          }
-                        </div>
-                        <div class="auto-row-name">
-                          <div class="auto-row-title-row">
-                            <span class="auto-row-title">${s6.name}</span>
-                            ${
-                              recipeTitle
-                                ? x`<span
-                                  class="recipe-pill"
-                                  title=${host._t(
-                                    "automations_recipe_pill_tooltip",
-                                    "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
-                                  )}
-                                >
-                                  <ha-icon
-                                    icon="mdi:book-open-variant"
-                                  ></ha-icon>
-                                  <span class="recipe-pill-name"
-                                    >${recipeTitle}</span
-                                  >
-                                </span>`
-                                : !isSelora && !host.narrow
-                                  ? x`<span
-                                    style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
-                                    >HA</span
-                                  >`
-                                  : ""
-                            }
-                          </div>
-                          <span class="auto-row-desc auto-row-desc--meta-only"
-                            >${meta}</span
-                          >
-                          <span class="auto-row-mobile-meta">
-                            <span>${meta}</span>
-                            <ha-icon
-                              icon="mdi:chevron-down"
-                              class="card-chevron ${isExpanded ? "open" : ""}"
-                              style="--mdc-icon-size:16px;"
-                            ></ha-icon>
-                          </span>
-                        </div>
-                        <div
-                          style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
-                        >
-                          <button
-                            class="row-action-btn"
-                            ?disabled=${!sceneEntityId}
-                            @click=${(e6) => {
-                              e6.stopPropagation();
-                              const id = sceneEntityId
-                                ? sceneEntityId.replace(/^scene\./, "")
-                                : sceneId;
-                              host._activateScene(id, s6.name);
-                            }}
-                            title=${host._t(
-                              "scenes_activate_button",
-                              "Activate",
-                            )}
-                          >
-                            <ha-icon
-                              icon="mdi:play"
-                              style="--mdc-icon-size:16px;"
-                            ></ha-icon>
-                          </button>
-                          <div class="burger-menu-wrapper">
+                      ${host._t("scenes_status_tab_all", "All")}
+                    </button>
+                    ${
+                      seloraCount > 0 && manualCount > 0
+                        ? b2`
                             <button
-                              class="burger-btn"
-                              @click=${(e6) => {
-                                e6.stopPropagation();
-                                if (burgerOpen) {
-                                  host._openSceneBurger = null;
-                                  return;
-                                }
-                                host._openBurgerMenuStyle = burgerMenuAnchor(
-                                  e6.currentTarget,
-                                );
-                                host._openSceneBurger = sceneId;
+                              role="tab"
+                              aria-selected=${statusFilter === "selora"}
+                              class="filter-tab ${statusFilter === "selora" ? "active" : ""}"
+                              @click=${() => {
+                                host._sceneStatusFilter = "selora";
                               }}
-                              title=${host._t(
-                                "scenes_more_actions_tooltip",
-                                "More actions",
-                              )}
                             >
                               <ha-icon
-                                icon="mdi:dots-vertical"
-                                style="--mdc-icon-size:16px;"
+                                icon="mdi:creation"
+                                style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
                               ></ha-icon>
+                              <span
+                                >${host._t("scenes_status_tab_selora", "Selora AI")}
+                                (${seloraCount})</span
+                              >
                             </button>
+                            <button
+                              role="tab"
+                              aria-selected=${statusFilter === "manual"}
+                              class="filter-tab ${statusFilter === "manual" ? "active" : ""}"
+                              @click=${() => {
+                                host._sceneStatusFilter = "manual";
+                              }}
+                            >
+                              ${host._t("scenes_status_tab_manual", "Manual")}
+                              (${manualCount})
+                            </button>
+                          `
+                        : ""
+                    }
+                  </div>
+                </div>
+                <div class="filter-row">
+                  <div class="filter-input-wrap" style="flex:1 1 260px;">
+                    <ha-icon icon="mdi:magnify"></ha-icon>
+                    <input
+                      type="text"
+                      placeholder=${host._t(
+                        "scenes_filter_placeholder",
+                        "Filter scenes\u2026",
+                      )}
+                      .value=${host._sceneFilter || ""}
+                      @input=${(e6) => {
+                        host._sceneFilter = e6.target.value;
+                      }}
+                    />
+                    ${
+                      host._sceneFilter
+                        ? b2`<ha-icon
+                            icon="mdi:close-circle"
+                            style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                            @click=${() => {
+                              host._sceneFilter = "";
+                            }}
+                          ></ha-icon>`
+                        : ""
+                    }
+                  </div>
+                  <div class="sort-group">
+                    <select
+                      class="sort-select"
+                      .value=${host._sceneSortBy || "recent"}
+                      @change=${(e6) => {
+                        host._sceneSortBy = e6.target.value;
+                      }}
+                    >
+                      <option value="recent">
+                        ${host._t("scenes_sort_recent", "Recently updated")}
+                      </option>
+                      <option value="alpha">
+                        ${host._t("scenes_sort_alpha", "Alphabetical")}
+                      </option>
+                      <option value="size">
+                        ${host._t("scenes_sort_size", "Most entities")}
+                      </option>
+                    </select>
+                    <button
+                      class="sort-dir-toggle"
+                      title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
+                      @click=${() => {
+                        host._sceneSortDir =
+                          sortDir === "desc" ? "asc" : "desc";
+                      }}
+                    >
+                      <ha-icon
+                        icon=${sortDir === "desc" ? "mdi:sort-descending" : "mdi:sort-ascending"}
+                        style="--mdc-icon-size:18px;"
+                      ></ha-icon>
+                    </button>
+                  </div>
+                </div>
+                <div class="automations-list">
+                  ${filtered.map((s4) => {
+                    const sceneId = s4.scene_id;
+                    const sceneEntityId = s4.entity_id;
+                    const entities = s4.entities || {};
+                    const entityCount = _sceneEntityCount(s4);
+                    const isExpanded = !!host._expandedScenes?.[sceneId];
+                    const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
+                    const burgerOpen = host._openSceneBurger === sceneId;
+                    const deleting = !!host._deletingScene?.[sceneId];
+                    const loadingChat = !!host._loadingToChat?.[sceneId];
+                    const updated = formatTimeAgo(s4.updated_at);
+                    const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
+                    const isSelora = s4.source === "selora";
+                    const recipeTitle = s4.recipe_title || "";
+                    return b2`
+                      <div
+                        class="auto-row${isExpanded ? " expanded" : ""}"
+                        data-scene-id="${sceneId}"
+                      >
+                        <div
+                          class="auto-row-main"
+                          @click=${(e6) => {
+                            if (
+                              e6.target.closest(
+                                ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
+                              )
+                            )
+                              return;
+                            host._expandedScenes = {
+                              ...host._expandedScenes,
+                              [sceneId]: !isExpanded,
+                            };
+                          }}
+                        >
+                          <div
+                            style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
+                          >
+                            <ha-icon
+                              icon="mdi:palette"
+                              style="--mdc-icon-size:18px;color:var(--selora-accent);"
+                            ></ha-icon>
                             ${
-                              burgerOpen
-                                ? x`
-                                  <div
-                                    class="burger-dropdown"
-                                    style=${host._openBurgerMenuStyle}
-                                  >
-                                    <button
-                                      class="burger-item"
-                                      ?disabled=${loadingChat}
-                                      @click=${(e6) => {
-                                        e6.stopPropagation();
-                                        host._openSceneBurger = null;
-                                        host._loadSceneToChat(sceneId);
-                                      }}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:chat-processing-outline"
-                                        style="--mdc-icon-size:14px;"
-                                      ></ha-icon>
-                                      ${
-                                        loadingChat
-                                          ? host._t(
-                                              "scenes_loading_label",
-                                              "Loading\u2026",
-                                            )
-                                          : host._t(
-                                              "scenes_refine_in_chat_button",
-                                              "Refine in chat",
-                                            )
-                                      }
-                                    </button>
-                                    <button
-                                      class="burger-item"
-                                      @click=${(e6) => {
-                                        e6.stopPropagation();
-                                        host._openSceneBurger = null;
-                                        if (sceneEntityId) {
-                                          host.dispatchEvent(
-                                            new CustomEvent("hass-more-info", {
-                                              bubbles: true,
-                                              composed: true,
-                                              detail: {
-                                                entityId: sceneEntityId,
-                                              },
-                                            }),
-                                          );
-                                        } else {
-                                          window.history.pushState(
-                                            null,
-                                            "",
-                                            "/config/scene/dashboard",
-                                          );
-                                          window.dispatchEvent(
-                                            new Event("location-changed"),
-                                          );
-                                        }
-                                      }}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:open-in-new"
-                                        style="--mdc-icon-size:14px;"
-                                      ></ha-icon>
-                                      ${host._t(
-                                        "scenes_open_in_ha_button",
-                                        "Open in HA",
-                                      )}
-                                    </button>
-                                    ${
-                                      isSelora
-                                        ? x`<button
-                                          class="burger-item danger"
-                                          ?disabled=${deleting}
-                                          @click=${(e6) => {
-                                            e6.stopPropagation();
-                                            host._openSceneBurger = null;
-                                            host._deleteSceneConfirmId =
-                                              sceneId;
-                                            host._deleteSceneConfirmName =
-                                              s6.name;
-                                          }}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:trash-can-outline"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                          ${
-                                            deleting
-                                              ? host._t(
-                                                  "scenes_deleting_label",
-                                                  "Deleting\u2026",
-                                                )
-                                              : host._t(
-                                                  "scenes_delete_button",
-                                                  "Delete",
-                                                )
-                                          }
-                                        </button>`
-                                        : ""
-                                    }
-                                  </div>
-                                `
+                              !isSelora && !recipeTitle && host.narrow
+                                ? b2`<span
+                                    style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
+                                    >HA</span
+                                  >`
                                 : ""
                             }
                           </div>
-                        </div>
-                      </div>
-                      ${
-                        isExpanded
-                          ? x`
-                            <div class="auto-row-expand">
+                          <div class="auto-row-name">
+                            <div class="auto-row-title-row">
+                              <span class="auto-row-title">${s4.name}</span>
                               ${
-                                Object.keys(entities).length
-                                  ? _renderEntityList(
-                                      host,
-                                      entities,
-                                      isSelora ? sceneId : null,
-                                    )
-                                  : x`<div
-                                    style="font-size:12px;opacity:0.6;padding:6px 0;"
-                                  >
-                                    ${host._t(
-                                      "scenes_no_entity_details",
-                                      "No entity details available \u2014 open the scene in Home Assistant to inspect it.",
-                                    )}
-                                  </div>`
+                                recipeTitle
+                                  ? b2`<span
+                                      class="recipe-pill"
+                                      title=${host._t(
+                                        "automations_recipe_pill_tooltip",
+                                        "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+                                      )}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:book-open-variant"
+                                      ></ha-icon>
+                                      <span class="recipe-pill-name"
+                                        >${recipeTitle}</span
+                                      >
+                                    </span>`
+                                  : !isSelora && !host.narrow
+                                    ? b2`<span
+                                        style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
+                                        >HA</span
+                                      >`
+                                    : ""
                               }
-                              <div
-                                class="yaml-toggle"
-                                style="margin-top:10px;"
-                                @click=${() => {
-                                  host._sceneYamlOpen = {
-                                    ...host._sceneYamlOpen,
-                                    [sceneId]: !yamlOpen,
-                                  };
+                            </div>
+                            <span class="auto-row-desc auto-row-desc--meta-only"
+                              >${meta}</span
+                            >
+                            <span class="auto-row-mobile-meta">
+                              <span>${meta}</span>
+                              <ha-icon
+                                icon="mdi:chevron-down"
+                                class="card-chevron ${isExpanded ? "open" : ""}"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                            </span>
+                          </div>
+                          <div
+                            style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
+                          >
+                            <button
+                              class="row-action-btn"
+                              ?disabled=${!sceneEntityId}
+                              @click=${(e6) => {
+                                e6.stopPropagation();
+                                const id = sceneEntityId
+                                  ? sceneEntityId.replace(/^scene\./, "")
+                                  : sceneId;
+                                host._activateScene(id, s4.name);
+                              }}
+                              title=${host._t(
+                                "scenes_activate_button",
+                                "Activate",
+                              )}
+                            >
+                              <ha-icon
+                                icon="mdi:play"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                            </button>
+                            <div class="burger-menu-wrapper">
+                              <button
+                                class="burger-btn"
+                                @click=${(e6) => {
+                                  e6.stopPropagation();
+                                  if (burgerOpen) {
+                                    host._openSceneBurger = null;
+                                    return;
+                                  }
+                                  host._openBurgerMenuStyle = burgerMenuAnchor(
+                                    e6.currentTarget,
+                                  );
+                                  host._openSceneBurger = sceneId;
                                 }}
+                                title=${host._t(
+                                  "scenes_more_actions_tooltip",
+                                  "More actions",
+                                )}
                               >
                                 <ha-icon
-                                  icon="mdi:code-braces"
-                                  style="--mdc-icon-size:14px;"
+                                  icon="mdi:dots-vertical"
+                                  style="--mdc-icon-size:16px;"
                                 ></ha-icon>
-                                ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
-                              </div>
+                              </button>
                               ${
-                                yamlOpen
-                                  ? x`
-                                    <ha-code-editor
-                                      mode="yaml"
-                                      .value=${
-                                        isSelora && host._sceneIsDirty(sceneId)
-                                          ? host._sceneEditYaml(
-                                              sceneId,
-                                              s6.name,
-                                            )
-                                          : s6.yaml ||
-                                            host._t(
-                                              "scenes_yaml_unavailable_comment",
-                                              "# YAML not available \u2014 open the scene in Home Assistant to view it.",
-                                            )
-                                      }
-                                      read-only
-                                      style="--code-mirror-font-size:12px;"
-                                    ></ha-code-editor>
-                                  `
+                                burgerOpen
+                                  ? b2`
+                                      <div
+                                        class="burger-dropdown"
+                                        style=${host._openBurgerMenuStyle}
+                                      >
+                                        <button
+                                          class="burger-item"
+                                          ?disabled=${loadingChat}
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
+                                            host._openSceneBurger = null;
+                                            host._loadSceneToChat(sceneId);
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:chat-processing-outline"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${
+                                            loadingChat
+                                              ? host._t(
+                                                  "scenes_loading_label",
+                                                  "Loading\u2026",
+                                                )
+                                              : host._t(
+                                                  "scenes_refine_in_chat_button",
+                                                  "Refine in chat",
+                                                )
+                                          }
+                                        </button>
+                                        <button
+                                          class="burger-item"
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
+                                            host._openSceneBurger = null;
+                                            if (sceneEntityId) {
+                                              host.dispatchEvent(
+                                                new CustomEvent(
+                                                  "hass-more-info",
+                                                  {
+                                                    bubbles: true,
+                                                    composed: true,
+                                                    detail: {
+                                                      entityId: sceneEntityId,
+                                                    },
+                                                  },
+                                                ),
+                                              );
+                                            } else {
+                                              window.history.pushState(
+                                                null,
+                                                "",
+                                                "/config/scene/dashboard",
+                                              );
+                                              window.dispatchEvent(
+                                                new Event("location-changed"),
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:open-in-new"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${host._t(
+                                            "scenes_open_in_ha_button",
+                                            "Open in HA",
+                                          )}
+                                        </button>
+                                        ${
+                                          isSelora
+                                            ? b2`<button
+                                                class="burger-item danger"
+                                                ?disabled=${deleting}
+                                                @click=${(e6) => {
+                                                  e6.stopPropagation();
+                                                  host._openSceneBurger = null;
+                                                  host._deleteSceneConfirmId =
+                                                    sceneId;
+                                                  host._deleteSceneConfirmName =
+                                                    s4.name;
+                                                }}
+                                              >
+                                                <ha-icon
+                                                  icon="mdi:trash-can-outline"
+                                                  style="--mdc-icon-size:14px;"
+                                                ></ha-icon>
+                                                ${
+                                                  deleting
+                                                    ? host._t(
+                                                        "scenes_deleting_label",
+                                                        "Deleting\u2026",
+                                                      )
+                                                    : host._t(
+                                                        "scenes_delete_button",
+                                                        "Delete",
+                                                      )
+                                                }
+                                              </button>`
+                                            : ""
+                                        }
+                                      </div>
+                                    `
                                   : ""
                               }
                             </div>
-                          `
-                          : ""
-                      }
-                    </div>
-                  `;
-                })}
-              </div>
-              ${
-                filtered.length === 0 && (host._scenes || []).length > 0
-                  ? x`<div
-                    style="text-align:center;opacity:0.45;padding:24px 0;"
-                  >
-                    No scenes match "${host._sceneFilter}"
-                  </div>`
-                  : ""
-              }
-            `
-            : x`<div style="text-align:center;padding:32px 0;">
-              <ha-icon
-                icon="mdi:palette"
-                style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
-              ></ha-icon>
-              <p style="opacity:0.45;margin:0 0 12px;">
-                ${host._t(
-                  "scenes_empty_state",
-                  "No scenes found. Ask Selora to create one.",
-                )}
-              </p>
-              <button
-                class="btn btn-accent"
-                ?disabled=${host._llmNeedsSetup}
-                title=${
-                  host._llmNeedsSetup
-                    ? host._t(
-                        "scenes_llm_needs_setup_tooltip",
-                        "Configure an LLM provider first",
-                      )
+                          </div>
+                        </div>
+                        ${
+                          isExpanded
+                            ? b2`
+                                <div class="auto-row-expand">
+                                  ${
+                                    Object.keys(entities).length
+                                      ? _renderEntityList(
+                                          host,
+                                          entities,
+                                          isSelora ? sceneId : null,
+                                        )
+                                      : b2`<div
+                                          style="font-size:12px;opacity:0.6;padding:6px 0;"
+                                        >
+                                          ${host._t(
+                                            "scenes_no_entity_details",
+                                            "No entity details available \u2014 open the scene in Home Assistant to inspect it.",
+                                          )}
+                                        </div>`
+                                  }
+                                  <div
+                                    class="yaml-toggle"
+                                    style="margin-top:10px;"
+                                    @click=${() => {
+                                      host._sceneYamlOpen = {
+                                        ...host._sceneYamlOpen,
+                                        [sceneId]: !yamlOpen,
+                                      };
+                                    }}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:code-braces"
+                                      style="--mdc-icon-size:14px;"
+                                    ></ha-icon>
+                                    ${
+                                      yamlOpen
+                                        ? host._t(
+                                            "scenes_hide_yaml",
+                                            "Hide YAML",
+                                          )
+                                        : host._t(
+                                            "scenes_view_yaml",
+                                            "View YAML",
+                                          )
+                                    }
+                                  </div>
+                                  ${
+                                    yamlOpen
+                                      ? b2`
+                                          <ha-code-editor
+                                            mode="yaml"
+                                            .value=${
+                                              isSelora &&
+                                              host._sceneIsDirty(sceneId)
+                                                ? host._sceneEditYaml(
+                                                    sceneId,
+                                                    s4.name,
+                                                  )
+                                                : s4.yaml ||
+                                                  host._t(
+                                                    "scenes_yaml_unavailable_comment",
+                                                    "# YAML not available \u2014 open the scene in Home Assistant to view it.",
+                                                  )
+                                            }
+                                            read-only
+                                            style="--code-mirror-font-size:12px;"
+                                          ></ha-code-editor>
+                                        `
+                                      : ""
+                                  }
+                                </div>
+                              `
+                            : ""
+                        }
+                      </div>
+                    `;
+                  })}
+                </div>
+                ${
+                  filtered.length === 0 && (host._scenes || []).length > 0
+                    ? b2`<div
+                        style="text-align:center;opacity:0.45;padding:24px 0;"
+                      >
+                        No scenes match "${host._sceneFilter}"
+                      </div>`
                     : ""
                 }
-                @click=${() => host._newSceneChat()}
-              >
+              `
+            : b2`<div style="text-align:center;padding:32px 0;">
                 <ha-icon
-                  icon="mdi:plus"
-                  style="--mdc-icon-size:14px;"
+                  icon="mdi:palette"
+                  style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
                 ></ha-icon>
-                ${host._t("scenes_new_scene_button", "New Scene")}
-              </button>
-            </div>`
+                <p style="opacity:0.45;margin:0 0 12px;">
+                  ${host._t(
+                    "scenes_empty_state",
+                    "No scenes found. Ask Selora to create one.",
+                  )}
+                </p>
+                <button
+                  class="btn btn-accent"
+                  ?disabled=${host._llmNeedsSetup}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "scenes_llm_needs_setup_tooltip",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
+                  @click=${() => host._newSceneChat()}
+                >
+                  <ha-icon
+                    icon="mdi:plus"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${host._t("scenes_new_scene_button", "New Scene")}
+                </button>
+              </div>`
         }
       </div>
       ${renderDeleteSceneModal(host)}
@@ -32692,7 +32641,7 @@ function renderDeleteSceneModal(host) {
   const name =
     host._deleteSceneConfirmName ||
     host._t("scenes_delete_modal_fallback_name", "this scene");
-  return x`
+  return b2`
     <div
       class="modal-overlay"
       @click=${(e6) => {
@@ -32863,8 +32812,8 @@ function _buildEntityIndex(hass, areasMap, devicesMap, entitiesMap) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areasMap && typeof areasMap === "object") {
-    for (const [id, a4] of Object.entries(areasMap)) {
-      areaById[id] = a4?.name || id;
+    for (const [id, a3] of Object.entries(areasMap)) {
+      areaById[id] = a3?.name || id;
     }
   }
   const entReg = entitiesMap || hass.entities || {};
@@ -32923,17 +32872,17 @@ function _buildDeviceIndex(devicesMap, areasMap) {
 }
 function _interleave(lists, max) {
   const out = [];
-  let i5 = 0;
+  let i7 = 0;
   while (out.length < max) {
     let added = false;
     for (const list of lists) {
-      if (i5 < list.length && out.length < max) {
-        out.push(list[i5]);
+      if (i7 < list.length && out.length < max) {
+        out.push(list[i7]);
         added = true;
       }
     }
     if (!added) break;
-    i5++;
+    i7++;
   }
   return out;
 }
@@ -33004,7 +32953,7 @@ function _navigate(path) {
   window.dispatchEvent(new Event("location-changed"));
 }
 function _renderChipGroup(title, chips) {
-  return x`
+  return b2`
     <div>
       <div
         style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);margin-bottom:6px;"
@@ -33024,7 +32973,7 @@ function _renderChip({
   onOpen,
   onRemove,
 }) {
-  return x`
+  return b2`
     <span class="composer-selection-chip" title=${title || label}>
       <button
         type="button"
@@ -33035,10 +32984,10 @@ function _renderChip({
         <span style="line-height:1;">${label}</span>
         ${
           kindLabel
-            ? x`<span
-              style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
-              >${kindLabel}</span
-            >`
+            ? b2`<span
+                style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
+                >${kindLabel}</span
+              >`
             : ""
         }
       </button>
@@ -33057,7 +33006,7 @@ function _renderChip({
 }
 function _renderDropdown(host, items, activeIndex) {
   if (!items.length) return "";
-  return x`
+  return b2`
     <div
       style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;max-height:240px;overflow-y:auto;"
     >
@@ -33068,7 +33017,7 @@ function _renderDropdown(host, items, activeIndex) {
         else if (item.kind === KIND_HA_DEVICE)
           kindLabel = host._t("ignore_list_dropdown_kind_device", "Device");
         const active = idx === activeIndex;
-        return x`
+        return b2`
           <button
             type="button"
             data-ignore-row=${idx}
@@ -33089,15 +33038,15 @@ function _renderDropdown(host, items, activeIndex) {
             <span style="flex:1;">${item.label}</span>
             ${
               kindLabel
-                ? x`<span
-                  style="font-size:11px;color:var(--secondary-text-color);"
-                  >${kindLabel}</span
-                >`
-                : item.area
-                  ? x`<span
+                ? b2`<span
                     style="font-size:11px;color:var(--secondary-text-color);"
-                    >${item.area}</span
+                    >${kindLabel}</span
                   >`
+                : item.area
+                  ? b2`<span
+                      style="font-size:11px;color:var(--secondary-text-color);"
+                      >${item.area}</span
+                    >`
                   : ""
             }
           </button>
@@ -33107,7 +33056,7 @@ function _renderDropdown(host, items, activeIndex) {
   `;
 }
 function _renderInfoCallout(host, labelName) {
-  return x`
+  return b2`
     <details
       style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
     >
@@ -33179,7 +33128,7 @@ function renderIgnoreList(host) {
   const total =
     tagged.entities.length + tagged.devices.length + tagged.areas.length;
   const labelName = _config(host).exclude_label_name || "Selora exclude";
-  return x`
+  return b2`
     <div class="section-card settings-section">
       <div class="section-card-header">
         <h3>
@@ -33222,71 +33171,73 @@ function renderIgnoreList(host) {
 
       ${
         total === 0
-          ? x`<div
-            style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
-          >
-            ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
-          </div>`
-          : x`
-            <div
-              style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
+          ? b2`<div
+              style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
             >
-              ${
-                tagged.areas.length
-                  ? _renderChipGroup(
-                      "Areas",
-                      tagged.areas.map((aid) =>
-                        _renderChip({
-                          host,
-                          icon: "mdi:floor-plan",
-                          label: _areaLabel(host, aid),
-                          title: `Open area \xB7 ${aid}`,
-                          onOpen: () => _navigate(`/config/areas/area/${aid}`),
-                          onRemove: () => _removeLabel(host, { area_id: aid }),
-                        }),
-                      ),
-                    )
-                  : ""
-              }
-              ${
-                tagged.devices.length
-                  ? _renderChipGroup(
-                      "Devices",
-                      tagged.devices.map((did) =>
-                        _renderChip({
-                          host,
-                          icon: "mdi:chip",
-                          label: _deviceLabel(host, did),
-                          title: `Open device \xB7 ${did}`,
-                          onOpen: () =>
-                            _navigate(`/config/devices/device/${did}`),
-                          onRemove: () =>
-                            _removeLabel(host, { device_id: did }),
-                        }),
-                      ),
-                    )
-                  : ""
-              }
-              ${
-                tagged.entities.length
-                  ? _renderChipGroup(
-                      "Entities",
-                      tagged.entities.map((eid) =>
-                        _renderChip({
-                          host,
-                          icon: _entityIcon(eid),
-                          label: _entityLabel(host, eid),
-                          title: `Open ${eid}`,
-                          onOpen: () => _openEntity(host, eid),
-                          onRemove: () =>
-                            _removeLabel(host, { entity_id: eid }),
-                        }),
-                      ),
-                    )
-                  : ""
-              }
-            </div>
-          `
+              ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
+            </div>`
+          : b2`
+              <div
+                style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
+              >
+                ${
+                  tagged.areas.length
+                    ? _renderChipGroup(
+                        "Areas",
+                        tagged.areas.map((aid) =>
+                          _renderChip({
+                            host,
+                            icon: "mdi:floor-plan",
+                            label: _areaLabel(host, aid),
+                            title: `Open area \xB7 ${aid}`,
+                            onOpen: () =>
+                              _navigate(`/config/areas/area/${aid}`),
+                            onRemove: () =>
+                              _removeLabel(host, { area_id: aid }),
+                          }),
+                        ),
+                      )
+                    : ""
+                }
+                ${
+                  tagged.devices.length
+                    ? _renderChipGroup(
+                        "Devices",
+                        tagged.devices.map((did) =>
+                          _renderChip({
+                            host,
+                            icon: "mdi:chip",
+                            label: _deviceLabel(host, did),
+                            title: `Open device \xB7 ${did}`,
+                            onOpen: () =>
+                              _navigate(`/config/devices/device/${did}`),
+                            onRemove: () =>
+                              _removeLabel(host, { device_id: did }),
+                          }),
+                        ),
+                      )
+                    : ""
+                }
+                ${
+                  tagged.entities.length
+                    ? _renderChipGroup(
+                        "Entities",
+                        tagged.entities.map((eid) =>
+                          _renderChip({
+                            host,
+                            icon: _entityIcon(eid),
+                            label: _entityLabel(host, eid),
+                            title: `Open ${eid}`,
+                            onOpen: () => _openEntity(host, eid),
+                            onRemove: () =>
+                              _removeLabel(host, { entity_id: eid }),
+                          }),
+                        ),
+                      )
+                    : ""
+                }
+              </div>
+            `
       }
     </div>
   `;
@@ -33301,13 +33252,13 @@ function _textInput({
   placeholder = "",
   style = "",
 }) {
-  return x`
+  return b2`
     ${
       label
-        ? x`<label
-          style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
-          >${label}</label
-        >`
+        ? b2`<label
+            style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
+            >${label}</label
+          >`
         : ""
     }
     <input
@@ -33340,7 +33291,7 @@ function _todayCostHint(host) {
 function _renderUsageHeaderLink(host) {
   const cost = _todayCostHint(host);
   const hasData = cost !== null && cost > 0;
-  return x`
+  return b2`
     <button
       class="section-card-action"
       title=${host._t("settings_view_token_usage_title", "View token usage")}
@@ -33373,10 +33324,10 @@ var _PROVIDERS = [
 function _renderProviderPicker(host) {
   const providers = _PROVIDERS;
   const current = providers.find(
-    (p2) => p2.value === host._config.llm_provider,
+    (p4) => p4.value === host._config.llm_provider,
   );
   const open = host._providerDropdownOpen || false;
-  return x`
+  return b2`
     <div style="position:relative;">
       <button
         class="form-select"
@@ -33387,11 +33338,7 @@ function _renderProviderPicker(host) {
         }}
       >
         <span
-          >${
-            current
-              ? current.label
-              : host._t("settings_provider_select_placeholder", "Select...")
-          }</span
+          >${current ? current.label : host._t("settings_provider_select_placeholder", "Select...")}</span
         >
         <ha-icon
           icon="mdi:chevron-down"
@@ -33400,45 +33347,45 @@ function _renderProviderPicker(host) {
       </button>
       ${
         open
-          ? x`
-            <div
-              style="position:fixed;inset:0;z-index:9;"
-              @click=${() => {
-                host._providerDropdownOpen = false;
-                host.requestUpdate();
-              }}
-            ></div>
-            <div
-              style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
-            >
-              ${providers.map(
-                (p2) => x`
-                  <button
-                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p2.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p2.disabled ? "var(--disabled-text-color, #999)" : p2.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p2.disabled ? "default" : "pointer"};opacity:${p2.disabled ? "0.5" : "1"};"
-                    @click=${() => {
-                      if (p2.disabled) return;
-                      host._providerDropdownOpen = false;
-                      host._updateConfig("llm_provider", p2.value);
-                      if (
-                        p2.value === "selora_local" &&
-                        host._config?.selora_local_discovered_host
-                      ) {
-                        host._updateConfig(
-                          "selora_local_host",
-                          host._config.selora_local_discovered_host,
-                        );
-                      }
-                      host._showApiKeyInput = false;
-                      host._newApiKey = "";
-                      host._llmSaveStatus = null;
-                    }}
-                  >
-                    ${p2.label}
-                  </button>
-                `,
-              )}
-            </div>
-          `
+          ? b2`
+              <div
+                style="position:fixed;inset:0;z-index:9;"
+                @click=${() => {
+                  host._providerDropdownOpen = false;
+                  host.requestUpdate();
+                }}
+              ></div>
+              <div
+                style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
+              >
+                ${providers.map(
+                  (p4) => b2`
+                    <button
+                      style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p4.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p4.disabled ? "var(--disabled-text-color, #999)" : p4.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p4.disabled ? "default" : "pointer"};opacity:${p4.disabled ? "0.5" : "1"};"
+                      @click=${() => {
+                        if (p4.disabled) return;
+                        host._providerDropdownOpen = false;
+                        host._updateConfig("llm_provider", p4.value);
+                        if (
+                          p4.value === "selora_local" &&
+                          host._config?.selora_local_discovered_host
+                        ) {
+                          host._updateConfig(
+                            "selora_local_host",
+                            host._config.selora_local_discovered_host,
+                          );
+                        }
+                        host._showApiKeyInput = false;
+                        host._newApiKey = "";
+                        host._llmSaveStatus = null;
+                      }}
+                    >
+                      ${p4.label}
+                    </button>
+                  `,
+                )}
+              </div>
+            `
           : ""
       }
     </div>
@@ -33446,7 +33393,7 @@ function _renderProviderPicker(host) {
 }
 function renderSettings(host) {
   if (!host._config) {
-    return x`
+    return b2`
       <div
         class="scroll-view"
         style="display:flex; justify-content:center; padding-top:64px;"
@@ -33461,7 +33408,7 @@ function renderSettings(host) {
   const isOpenAI = host._config.llm_provider === "openai";
   const isOpenRouter = host._config.llm_provider === "openrouter";
   const isSeloraLocal = host._config.llm_provider === "selora_local";
-  return x`
+  return b2`
     <div class="scroll-view">
       <div class="settings-form">
         <a
@@ -33501,322 +33448,189 @@ function renderSettings(host) {
 
           ${
             isSeloraCloud
-              ? x`
-                <div class="form-group">
-                  <label
-                    >${host._t(
-                      "settings_selora_account_label",
-                      "Selora account",
-                    )}</label
-                  >
-                  ${
-                    host._config.aigateway_linked
-                      ? x`
-                        <div
-                          style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);"
-                        >
-                          <ha-icon
-                            icon="mdi:check-circle"
-                            style="--mdc-icon-size:18px;color:var(--success-color, #22c55e);flex-shrink:0;"
-                          ></ha-icon>
-                          <div style="flex:1;min-width:0;">
+              ? b2`
+                  <div class="form-group">
+                    <label
+                      >${host._t(
+                        "settings_selora_account_label",
+                        "Selora account",
+                      )}</label
+                    >
+                    ${
+                      host._config.aigateway_linked
+                        ? b2`
                             <div
-                              style="font-size:14px;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                              style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);"
                             >
-                              Linked${
-                                host._config.aigateway_user_email
-                                  ? x` as
-                                    <strong
-                                      >${host._config.aigateway_user_email}</strong
-                                    >`
+                              <ha-icon
+                                icon="mdi:check-circle"
+                                style="--mdc-icon-size:18px;color:var(--success-color, #22c55e);flex-shrink:0;"
+                              ></ha-icon>
+                              <div style="flex:1;min-width:0;">
+                                <div
+                                  style="font-size:14px;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                                >
+                                  Linked${
+                                    host._config.aigateway_user_email
+                                      ? b2` as
+                                          <strong
+                                            >${host._config.aigateway_user_email}</strong
+                                          >`
+                                      : ""
+                                  }
+                                </div>
+                                <div
+                                  style="font-size:12px;color:var(--secondary-text-color);"
+                                >
+                                  ${host._t(
+                                    "settings_selora_cloud_backend_desc",
+                                    "Selora Cloud is providing your LLM backend.",
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                class="btn btn-outline"
+                                style="flex-shrink:0;"
+                                @click=${() => host._unlinkAIGateway()}
+                              >
+                                ${host._t("settings_unlink_button", "Unlink")}
+                              </button>
+                            </div>
+                          `
+                        : b2`
+                            <div
+                              style="display:flex;flex-direction:column;gap:10px;"
+                            >
+                              <p
+                                style="font-size:13px;color:var(--secondary-text-color);margin:0;"
+                              >
+                                ${host._t(
+                                  "settings_signin_selora_desc",
+                                  "Sign in with your Selora account to use the hosted LLM backend. No API key required.",
+                                )}
+                              </p>
+                              ${
+                                host._config.developer_mode
+                                  ? b2`
+                                      ${_textInput({
+                                        label: host._t(
+                                          "settings_selora_cloud_url_label",
+                                          "Selora Cloud URL",
+                                        ),
+                                        value:
+                                          host._config.selora_connect_url ||
+                                          "https://connect.selorahomes.com",
+                                        oninput: (e6) =>
+                                          host._updateConfig(
+                                            "selora_connect_url",
+                                            e6.target.value,
+                                          ),
+                                      })}
+                                      <div
+                                        style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
+                                      >
+                                        ${host._t(
+                                          "settings_selora_cloud_url_hint",
+                                          "OAuth and chat completions both use this URL. Saved automatically when you link.",
+                                        )}
+                                      </div>
+                                    `
+                                  : ""
+                              }
+                              ${
+                                host._aigwAuthorizeUrl
+                                  ? b2`<a
+                                      class="btn btn-primary"
+                                      href=${host._aigwAuthorizeUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"
+                                    >
+                                      ${host._t(
+                                        "settings_open_signin_page",
+                                        "Open sign-in page \u2192",
+                                      )}
+                                    </a>`
+                                  : b2`<button
+                                      class="btn btn-primary"
+                                      ?disabled=${host._linkingAIGateway}
+                                      @click=${() => host._startAIGatewayLink()}
+                                      style="align-self:flex-start;"
+                                    >
+                                      ${
+                                        host._linkingAIGateway
+                                          ? b2`<span
+                                                class="spinner"
+                                                style="width:14px;height:14px;"
+                                              ></span>
+                                              ${host._t(
+                                                "settings_preparing_label",
+                                                "Preparing\u2026",
+                                              )}`
+                                          : host._t(
+                                              "settings_link_selora_account_button",
+                                              "Link Selora account",
+                                            )
+                                      }
+                                    </button>`
+                              }
+                              ${
+                                host._aigwAuthorizeUrl
+                                  ? b2`<div
+                                      style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+                                    >
+                                      ${host._t(
+                                        "settings_signin_new_tab_hint",
+                                        "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
+                                      )}
+                                    </div>`
                                   : ""
                               }
                             </div>
-                            <div
-                              style="font-size:12px;color:var(--secondary-text-color);"
-                            >
-                              ${host._t(
-                                "settings_selora_cloud_backend_desc",
-                                "Selora Cloud is providing your LLM backend.",
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            class="btn btn-outline"
-                            style="flex-shrink:0;"
-                            @click=${() => host._unlinkAIGateway()}
+                          `
+                    }
+                    ${
+                      host._aigatewayError
+                        ? b2`<div
+                            style="color:var(--error-color,#d32f2f);font-size:13px;padding:6px 0 0;"
                           >
-                            ${host._t("settings_unlink_button", "Unlink")}
-                          </button>
-                        </div>
-                      `
-                      : x`
-                        <div
-                          style="display:flex;flex-direction:column;gap:10px;"
-                        >
-                          <p
-                            style="font-size:13px;color:var(--secondary-text-color);margin:0;"
-                          >
-                            ${host._t(
-                              "settings_signin_selora_desc",
-                              "Sign in with your Selora account to use the hosted LLM backend. No API key required.",
-                            )}
-                          </p>
-                          ${
-                            host._config.developer_mode
-                              ? x`
-                                ${_textInput({
-                                  label: host._t(
-                                    "settings_selora_cloud_url_label",
-                                    "Selora Cloud URL",
-                                  ),
-                                  value:
-                                    host._config.selora_connect_url ||
-                                    "https://connect.selorahomes.com",
-                                  oninput: (e6) =>
-                                    host._updateConfig(
-                                      "selora_connect_url",
-                                      e6.target.value,
-                                    ),
-                                })}
-                                <div
-                                  style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
-                                >
-                                  ${host._t(
-                                    "settings_selora_cloud_url_hint",
-                                    "OAuth and chat completions both use this URL. Saved automatically when you link.",
-                                  )}
-                                </div>
-                              `
-                              : ""
-                          }
-                          ${
-                            host._aigwAuthorizeUrl
-                              ? x`<a
-                                class="btn btn-primary"
-                                href=${host._aigwAuthorizeUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"
-                              >
-                                ${host._t(
-                                  "settings_open_signin_page",
-                                  "Open sign-in page \u2192",
-                                )}
-                              </a>`
-                              : x`<button
-                                class="btn btn-primary"
-                                ?disabled=${host._linkingAIGateway}
-                                @click=${() => host._startAIGatewayLink()}
-                                style="align-self:flex-start;"
-                              >
-                                ${
-                                  host._linkingAIGateway
-                                    ? x`<span
-                                        class="spinner"
-                                        style="width:14px;height:14px;"
-                                      ></span>
-                                      ${host._t(
-                                        "settings_preparing_label",
-                                        "Preparing\u2026",
-                                      )}`
-                                    : host._t(
-                                        "settings_link_selora_account_button",
-                                        "Link Selora account",
-                                      )
-                                }
-                              </button>`
-                          }
-                          ${
-                            host._aigwAuthorizeUrl
-                              ? x`<div
-                                style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
-                              >
-                                ${host._t(
-                                  "settings_signin_new_tab_hint",
-                                  "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
-                                )}
-                              </div>`
-                              : ""
-                          }
-                        </div>
-                      `
-                  }
+                            ${host._aigatewayError}
+                          </div>`
+                        : ""
+                    }
+                  </div>
                   ${
-                    host._aigatewayError
-                      ? x`<div
-                        style="color:var(--error-color,#d32f2f);font-size:13px;padding:6px 0 0;"
-                      >
-                        ${host._aigatewayError}
-                      </div>`
+                    host._config.aigateway_linked && host._config.developer_mode
+                      ? b2`
+                          <div class="form-group">
+                            ${_textInput({
+                              label: host._t(
+                                "settings_selora_cloud_url_label",
+                                "Selora Cloud URL",
+                              ),
+                              value:
+                                host._config.selora_connect_url ||
+                                "https://connect.selorahomes.com",
+                              oninput: (e6) =>
+                                host._updateConfig(
+                                  "selora_connect_url",
+                                  e6.target.value,
+                                ),
+                            })}
+                          </div>
+                        `
                       : ""
                   }
-                </div>
-                ${
-                  host._config.aigateway_linked && host._config.developer_mode
-                    ? x`
-                      <div class="form-group">
-                        ${_textInput({
-                          label: host._t(
-                            "settings_selora_cloud_url_label",
-                            "Selora Cloud URL",
-                          ),
-                          value:
-                            host._config.selora_connect_url ||
-                            "https://connect.selorahomes.com",
-                          oninput: (e6) =>
-                            host._updateConfig(
-                              "selora_connect_url",
-                              e6.target.value,
-                            ),
-                        })}
-                      </div>
-                    `
-                    : ""
-                }
-              `
-              : isGemini
-                ? x`
-                  <div class="form-group">
-                    <label
-                      >${host._t("settings_api_key_label", "API Key")}</label
-                    >
-                    ${
-                      host._config.gemini_api_key_set
-                        ? x`<button
-                          class="key-hint key-set key-hint-btn"
-                          title=${host._t(
-                            "settings_click_replace_key_title",
-                            "Click to replace key",
-                          )}
-                          @click=${() => {
-                            host._showApiKeyInput = !host._showApiKeyInput;
-                            if (!host._showApiKeyInput) host._newApiKey = "";
-                            host.requestUpdate();
-                          }}
-                        >
-                          <ha-icon
-                            icon="mdi:check-circle"
-                            style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
-                          ></ha-icon>
-                          ${host._config.gemini_api_key_hint}
-                          <ha-icon
-                            icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
-                            class="key-hint-action"
-                          ></ha-icon>
-                        </button>`
-                        : ""
-                    }
-                    ${
-                      !host._config.gemini_api_key_set || host._showApiKeyInput
-                        ? _textInput({
-                            label: host._config.gemini_api_key_set
-                              ? host._t(
-                                  "settings_enter_new_key_label",
-                                  "Enter new key",
-                                )
-                              : host._t(
-                                  "settings_enter_api_key_label",
-                                  "Enter API key",
-                                ),
-                            type: "password",
-                            value: host._newApiKey,
-                            oninput: (e6) =>
-                              (host._newApiKey = e6.target.value),
-                            placeholder: "AIza...",
-                            style: "margin-top:8px;",
-                          })
-                        : ""
-                    }
-                  </div>
-                  <div class="form-group">
-                    ${_textInput({
-                      label: host._t("settings_model_label", "Model"),
-                      value: host._config.gemini_model,
-                      oninput: (e6) =>
-                        host._updateConfig("gemini_model", e6.target.value),
-                    })}
-                  </div>
                 `
-                : isAnthropic
-                  ? x`
+              : isGemini
+                ? b2`
                     <div class="form-group">
                       <label
                         >${host._t("settings_api_key_label", "API Key")}</label
                       >
                       ${
-                        host._config.anthropic_api_key_set
-                          ? x`<button
-                            class="key-hint key-set key-hint-btn"
-                            title=${host._t(
-                              "settings_click_replace_key_title",
-                              "Click to replace key",
-                            )}
-                            @click=${() => {
-                              host._showApiKeyInput = !host._showApiKeyInput;
-                              if (!host._showApiKeyInput) host._newApiKey = "";
-                              host.requestUpdate();
-                            }}
-                          >
-                            <ha-icon
-                              icon="mdi:check-circle"
-                              style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
-                            ></ha-icon>
-                            ${host._config.anthropic_api_key_hint}
-                            <ha-icon
-                              icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
-                              class="key-hint-action"
-                            ></ha-icon>
-                          </button>`
-                          : ""
-                      }
-                      ${
-                        !host._config.anthropic_api_key_set ||
-                        host._showApiKeyInput
-                          ? _textInput({
-                              label: host._config.anthropic_api_key_set
-                                ? host._t(
-                                    "settings_enter_new_key_label",
-                                    "Enter new key",
-                                  )
-                                : host._t(
-                                    "settings_enter_api_key_label",
-                                    "Enter API key",
-                                  ),
-                              type: "password",
-                              value: host._newApiKey,
-                              oninput: (e6) =>
-                                (host._newApiKey = e6.target.value),
-                              placeholder: "sk-ant-...",
-                              style: "margin-top:8px;",
-                            })
-                          : ""
-                      }
-                    </div>
-                    <div class="form-group">
-                      ${_textInput({
-                        label: host._t("settings_model_label", "Model"),
-                        value: host._config.anthropic_model,
-                        oninput: (e6) =>
-                          host._updateConfig(
-                            "anthropic_model",
-                            e6.target.value,
-                          ),
-                      })}
-                    </div>
-                  `
-                  : isOpenAI
-                    ? x`
-                      <div class="form-group">
-                        <label
-                          >${host._t(
-                            "settings_api_key_label",
-                            "API Key",
-                          )}</label
-                        >
-                        ${
-                          host._config.openai_api_key_set
-                            ? x`<button
+                        host._config.gemini_api_key_set
+                          ? b2`<button
                               class="key-hint key-set key-hint-btn"
                               title=${host._t(
                                 "settings_click_replace_key_title",
@@ -33833,58 +33647,55 @@ function renderSettings(host) {
                                 icon="mdi:check-circle"
                                 style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                               ></ha-icon>
-                              ${host._config.openai_api_key_hint}
+                              ${host._config.gemini_api_key_hint}
                               <ha-icon
                                 icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                                 class="key-hint-action"
                               ></ha-icon>
                             </button>`
-                            : ""
-                        }
-                        ${
-                          !host._config.openai_api_key_set ||
-                          host._showApiKeyInput
-                            ? _textInput({
-                                label: host._config.openai_api_key_set
-                                  ? host._t(
-                                      "settings_enter_new_key_label",
-                                      "Enter new key",
-                                    )
-                                  : host._t(
-                                      "settings_enter_api_key_label",
-                                      "Enter API key",
-                                    ),
-                                type: "password",
-                                value: host._newApiKey,
-                                oninput: (e6) =>
-                                  (host._newApiKey = e6.target.value),
-                                placeholder: "sk-...",
-                                style: "margin-top:8px;",
-                              })
-                            : ""
-                        }
-                      </div>
+                          : ""
+                      }
+                      ${
+                        !host._config.gemini_api_key_set ||
+                        host._showApiKeyInput
+                          ? _textInput({
+                              label: host._config.gemini_api_key_set
+                                ? host._t(
+                                    "settings_enter_new_key_label",
+                                    "Enter new key",
+                                  )
+                                : host._t(
+                                    "settings_enter_api_key_label",
+                                    "Enter API key",
+                                  ),
+                              type: "password",
+                              value: host._newApiKey,
+                              oninput: (e6) =>
+                                (host._newApiKey = e6.target.value),
+                              placeholder: "AIza...",
+                              style: "margin-top:8px;",
+                            })
+                          : ""
+                      }
+                    </div>
+                    <div class="form-group">
+                      ${_textInput({
+                        label: host._t("settings_model_label", "Model"),
+                        value: host._config.gemini_model,
+                        oninput: (e6) =>
+                          host._updateConfig("gemini_model", e6.target.value),
+                      })}
+                    </div>
+                  `
+                : isAnthropic
+                  ? b2`
                       <div class="form-group">
-                        ${_textInput({
-                          label: host._t("settings_model_label", "Model"),
-                          value: host._config.openai_model,
-                          oninput: (e6) =>
-                            host._updateConfig("openai_model", e6.target.value),
-                        })}
-                      </div>
-                    `
-                    : isOpenRouter
-                      ? x`
-                        <div class="form-group">
-                          <label
-                            >${host._t(
-                              "settings_api_key_label",
-                              "API Key",
-                            )}</label
-                          >
-                          ${
-                            host._config.openrouter_api_key_set
-                              ? x`<button
+                        <label
+                          >${host._t("settings_api_key_label", "API Key")}</label
+                        >
+                        ${
+                          host._config.anthropic_api_key_set
+                            ? b2`<button
                                 class="key-hint key-set key-hint-btn"
                                 title=${host._t(
                                   "settings_click_replace_key_title",
@@ -33902,19 +33713,91 @@ function renderSettings(host) {
                                   icon="mdi:check-circle"
                                   style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                                 ></ha-icon>
-                                ${host._config.openrouter_api_key_hint}
+                                ${host._config.anthropic_api_key_hint}
                                 <ha-icon
                                   icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                                   class="key-hint-action"
                                 ></ha-icon>
                               </button>`
+                            : ""
+                        }
+                        ${
+                          !host._config.anthropic_api_key_set ||
+                          host._showApiKeyInput
+                            ? _textInput({
+                                label: host._config.anthropic_api_key_set
+                                  ? host._t(
+                                      "settings_enter_new_key_label",
+                                      "Enter new key",
+                                    )
+                                  : host._t(
+                                      "settings_enter_api_key_label",
+                                      "Enter API key",
+                                    ),
+                                type: "password",
+                                value: host._newApiKey,
+                                oninput: (e6) =>
+                                  (host._newApiKey = e6.target.value),
+                                placeholder: "sk-ant-...",
+                                style: "margin-top:8px;",
+                              })
+                            : ""
+                        }
+                      </div>
+                      <div class="form-group">
+                        ${_textInput({
+                          label: host._t("settings_model_label", "Model"),
+                          value: host._config.anthropic_model,
+                          oninput: (e6) =>
+                            host._updateConfig(
+                              "anthropic_model",
+                              e6.target.value,
+                            ),
+                        })}
+                      </div>
+                    `
+                  : isOpenAI
+                    ? b2`
+                        <div class="form-group">
+                          <label
+                            >${host._t(
+                              "settings_api_key_label",
+                              "API Key",
+                            )}</label
+                          >
+                          ${
+                            host._config.openai_api_key_set
+                              ? b2`<button
+                                  class="key-hint key-set key-hint-btn"
+                                  title=${host._t(
+                                    "settings_click_replace_key_title",
+                                    "Click to replace key",
+                                  )}
+                                  @click=${() => {
+                                    host._showApiKeyInput =
+                                      !host._showApiKeyInput;
+                                    if (!host._showApiKeyInput)
+                                      host._newApiKey = "";
+                                    host.requestUpdate();
+                                  }}
+                                >
+                                  <ha-icon
+                                    icon="mdi:check-circle"
+                                    style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
+                                  ></ha-icon>
+                                  ${host._config.openai_api_key_hint}
+                                  <ha-icon
+                                    icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                    class="key-hint-action"
+                                  ></ha-icon>
+                                </button>`
                               : ""
                           }
                           ${
-                            !host._config.openrouter_api_key_set ||
+                            !host._config.openai_api_key_set ||
                             host._showApiKeyInput
                               ? _textInput({
-                                  label: host._config.openrouter_api_key_set
+                                  label: host._config.openai_api_key_set
                                     ? host._t(
                                         "settings_enter_new_key_label",
                                         "Enter new key",
@@ -33927,7 +33810,7 @@ function renderSettings(host) {
                                   value: host._newApiKey,
                                   oninput: (e6) =>
                                     (host._newApiKey = e6.target.value),
-                                  placeholder: "sk-or-...",
+                                  placeholder: "sk-...",
                                   style: "margin-top:8px;",
                                 })
                               : ""
@@ -33936,147 +33819,223 @@ function renderSettings(host) {
                         <div class="form-group">
                           ${_textInput({
                             label: host._t("settings_model_label", "Model"),
-                            value: host._config.openrouter_model,
+                            value: host._config.openai_model,
                             oninput: (e6) =>
                               host._updateConfig(
-                                "openrouter_model",
+                                "openai_model",
                                 e6.target.value,
                               ),
-                            placeholder: "anthropic/claude-sonnet-4.5",
                           })}
                         </div>
                       `
-                      : isSeloraLocal
-                        ? x`
-                          <button
-                            class="btn-link"
-                            style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
-                            @click=${() => {
-                              host._seloraLocalAdvanced =
-                                !host._seloraLocalAdvanced;
-                              host.requestUpdate();
-                            }}
-                          >
-                            ${
-                              host._seloraLocalAdvanced
-                                ? host._t(
-                                    "settings_selora_local_hide_advanced",
-                                    "Hide advanced options",
-                                  )
-                                : host._t(
-                                    "settings_selora_local_show_advanced",
-                                    "Show advanced options",
-                                  )
-                            }
-                          </button>
-                          ${
-                            host._seloraLocalAdvanced
-                              ? x`
-                                <p
-                                  style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
-                                >
-                                  ${host._t(
-                                    "settings_selora_local_advanced_desc",
-                                    "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
-                                  )}
-                                </p>
-                                <div class="form-group" style="margin-top:8px;">
-                                  ${_textInput({
-                                    label: host._t(
-                                      "settings_selora_local_host_label",
-                                      "Host",
-                                    ),
-                                    value: host._config.selora_local_host || "",
-                                    oninput: (e6) =>
-                                      host._updateConfig(
-                                        "selora_local_host",
-                                        e6.target.value,
-                                      ),
-                                    placeholder: "http://localhost:8080",
-                                  })}
-                                  <p
-                                    style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
-                                  >
-                                    ${host._t(
-                                      "settings_selora_local_auto_detected_prefix",
-                                      "Auto-detected:",
-                                    )}
-                                    ${
-                                      host._config
-                                        .selora_local_discovered_host ||
-                                      host._t(
-                                        "settings_selora_local_auto_detected_none",
-                                        "none",
-                                      )
-                                    }.
-                                  </p>
-                                </div>
-                              `
-                              : ""
-                          }
-                        `
-                        : x`
+                    : isOpenRouter
+                      ? b2`
                           <div class="form-group">
-                            ${_textInput({
-                              label: host._t(
-                                "settings_ollama_host_label",
-                                "Host",
-                              ),
-                              value: host._config.ollama_host,
-                              oninput: (e6) =>
-                                host._updateConfig(
-                                  "ollama_host",
-                                  e6.target.value,
-                                ),
-                            })}
+                            <label
+                              >${host._t(
+                                "settings_api_key_label",
+                                "API Key",
+                              )}</label
+                            >
+                            ${
+                              host._config.openrouter_api_key_set
+                                ? b2`<button
+                                    class="key-hint key-set key-hint-btn"
+                                    title=${host._t(
+                                      "settings_click_replace_key_title",
+                                      "Click to replace key",
+                                    )}
+                                    @click=${() => {
+                                      host._showApiKeyInput =
+                                        !host._showApiKeyInput;
+                                      if (!host._showApiKeyInput)
+                                        host._newApiKey = "";
+                                      host.requestUpdate();
+                                    }}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:check-circle"
+                                      style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
+                                    ></ha-icon>
+                                    ${host._config.openrouter_api_key_hint}
+                                    <ha-icon
+                                      icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                      class="key-hint-action"
+                                    ></ha-icon>
+                                  </button>`
+                                : ""
+                            }
+                            ${
+                              !host._config.openrouter_api_key_set ||
+                              host._showApiKeyInput
+                                ? _textInput({
+                                    label: host._config.openrouter_api_key_set
+                                      ? host._t(
+                                          "settings_enter_new_key_label",
+                                          "Enter new key",
+                                        )
+                                      : host._t(
+                                          "settings_enter_api_key_label",
+                                          "Enter API key",
+                                        ),
+                                    type: "password",
+                                    value: host._newApiKey,
+                                    oninput: (e6) =>
+                                      (host._newApiKey = e6.target.value),
+                                    placeholder: "sk-or-...",
+                                    style: "margin-top:8px;",
+                                  })
+                                : ""
+                            }
                           </div>
                           <div class="form-group">
                             ${_textInput({
                               label: host._t("settings_model_label", "Model"),
-                              value: host._config.ollama_model,
+                              value: host._config.openrouter_model,
                               oninput: (e6) =>
                                 host._updateConfig(
-                                  "ollama_model",
+                                  "openrouter_model",
                                   e6.target.value,
                                 ),
+                              placeholder: "anthropic/claude-sonnet-4.5",
                             })}
                           </div>
                         `
+                      : isSeloraLocal
+                        ? b2`
+                            <button
+                              class="btn-link"
+                              style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
+                              @click=${() => {
+                                host._seloraLocalAdvanced =
+                                  !host._seloraLocalAdvanced;
+                                host.requestUpdate();
+                              }}
+                            >
+                              ${
+                                host._seloraLocalAdvanced
+                                  ? host._t(
+                                      "settings_selora_local_hide_advanced",
+                                      "Hide advanced options",
+                                    )
+                                  : host._t(
+                                      "settings_selora_local_show_advanced",
+                                      "Show advanced options",
+                                    )
+                              }
+                            </button>
+                            ${
+                              host._seloraLocalAdvanced
+                                ? b2`
+                                    <p
+                                      style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
+                                    >
+                                      ${host._t(
+                                        "settings_selora_local_advanced_desc",
+                                        "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+                                      )}
+                                    </p>
+                                    <div
+                                      class="form-group"
+                                      style="margin-top:8px;"
+                                    >
+                                      ${_textInput({
+                                        label: host._t(
+                                          "settings_selora_local_host_label",
+                                          "Host",
+                                        ),
+                                        value:
+                                          host._config.selora_local_host || "",
+                                        oninput: (e6) =>
+                                          host._updateConfig(
+                                            "selora_local_host",
+                                            e6.target.value,
+                                          ),
+                                        placeholder: "http://localhost:8080",
+                                      })}
+                                      <p
+                                        style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+                                      >
+                                        ${host._t(
+                                          "settings_selora_local_auto_detected_prefix",
+                                          "Auto-detected:",
+                                        )}
+                                        ${
+                                          host._config
+                                            .selora_local_discovered_host ||
+                                          host._t(
+                                            "settings_selora_local_auto_detected_none",
+                                            "none",
+                                          )
+                                        }.
+                                      </p>
+                                    </div>
+                                  `
+                                : ""
+                            }
+                          `
+                        : b2`
+                            <div class="form-group">
+                              ${_textInput({
+                                label: host._t(
+                                  "settings_ollama_host_label",
+                                  "Host",
+                                ),
+                                value: host._config.ollama_host,
+                                oninput: (e6) =>
+                                  host._updateConfig(
+                                    "ollama_host",
+                                    e6.target.value,
+                                  ),
+                              })}
+                            </div>
+                            <div class="form-group">
+                              ${_textInput({
+                                label: host._t("settings_model_label", "Model"),
+                                value: host._config.ollama_model,
+                                oninput: (e6) =>
+                                  host._updateConfig(
+                                    "ollama_model",
+                                    e6.target.value,
+                                  ),
+                              })}
+                            </div>
+                          `
           }
           ${
             isSeloraCloud && !host._config.aigateway_linked
               ? ""
-              : x`
-                <div class="card-save-bar">
-                  <button
-                    class="btn btn-primary"
-                    @click=${host._saveLlmConfig}
-                    ?disabled=${host._savingLlmConfig}
-                  >
-                    ${
-                      host._savingLlmConfig
-                        ? x`<span
-                            class="spinner"
-                            style="width:14px;height:14px;"
-                          ></span>
-                          ${host._t("settings_validating_label", "Validating\u2026")}`
-                        : host._t("settings_save_button", "Save")
-                    }
-                  </button>
-                </div>
-              `
+              : b2`
+                  <div class="card-save-bar">
+                    <button
+                      class="btn btn-primary"
+                      @click=${host._saveLlmConfig}
+                      ?disabled=${host._savingLlmConfig}
+                    >
+                      ${
+                        host._savingLlmConfig
+                          ? b2`<span
+                                class="spinner"
+                                style="width:14px;height:14px;"
+                              ></span>
+                              ${host._t("settings_validating_label", "Validating\u2026")}`
+                          : host._t("settings_save_button", "Save")
+                      }
+                    </button>
+                  </div>
+                `
           }
           ${
             host._llmSaveStatus
-              ? x`<div
-                class="save-feedback save-feedback--${host._llmSaveStatus.type}"
-              >
-                <ha-icon
-                  icon="${host._llmSaveStatus.type === "success" ? "mdi:check-circle" : "mdi:alert-circle"}"
-                  style="--mdc-icon-size:14px;"
-                ></ha-icon>
-                ${host._llmSaveStatus.message}
-              </div>`
+              ? b2`<div
+                  class="save-feedback save-feedback--${host._llmSaveStatus.type}"
+                >
+                  <ha-icon
+                    icon="${host._llmSaveStatus.type === "success" ? "mdi:check-circle" : "mdi:alert-circle"}"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${host._llmSaveStatus.message}
+                </div>`
               : ""
           }
         </div>
@@ -34125,96 +34084,96 @@ function renderSettings(host) {
             </div>
             ${
               host._connectError
-                ? x`<div
-                  style="color:var(--error-color,#d32f2f);font-size:13px;padding:4px 0 0;"
-                >
-                  ${host._connectError}
-                </div>`
+                ? b2`<div
+                    style="color:var(--error-color,#d32f2f);font-size:13px;padding:4px 0 0;"
+                  >
+                    ${host._connectError}
+                  </div>`
                 : ""
             }
             ${
               host._connectAuthorizeUrl
-                ? x`<div
-                  style="display:flex;flex-direction:column;gap:6px;padding:8px 0 0;"
-                >
-                  <a
-                    class="btn btn-primary"
-                    href=${host._connectAuthorizeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style="align-self:flex-start;text-decoration:none;"
+                ? b2`<div
+                    style="display:flex;flex-direction:column;gap:6px;padding:8px 0 0;"
                   >
-                    ${host._t(
-                      "settings_open_signin_page",
-                      "Open sign-in page \u2192",
-                    )}
-                  </a>
-                  <div
-                    style="font-size:12px;color:var(--secondary-text-color);"
-                  >
-                    ${host._t(
-                      "settings_signin_new_tab_hint",
-                      "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
-                    )}
-                  </div>
-                </div>`
+                    <a
+                      class="btn btn-primary"
+                      href=${host._connectAuthorizeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style="align-self:flex-start;text-decoration:none;"
+                    >
+                      ${host._t(
+                        "settings_open_signin_page",
+                        "Open sign-in page \u2192",
+                      )}
+                    </a>
+                    <div
+                      style="font-size:12px;color:var(--secondary-text-color);"
+                    >
+                      ${host._t(
+                        "settings_signin_new_tab_hint",
+                        "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
+                      )}
+                    </div>
+                  </div>`
                 : ""
             }
             ${
               host._config.selora_connect_enabled
-                ? x`
-                  <div
-                    style="display:flex;align-items:center;gap:8px;padding:8px 0 0;"
-                  >
-                    <code
-                      style="font-size:12px;word-break:break-all;flex:1;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);overflow:hidden;text-overflow:ellipsis;"
-                      >${host._config.selora_mcp_url || `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`}</code
+                ? b2`
+                    <div
+                      style="display:flex;align-items:center;gap:8px;padding:8px 0 0;"
                     >
-                    <ha-icon-button
-                      @click=${() => {
-                        const mcpUrl =
-                          host._config.selora_mcp_url ||
-                          `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`;
-                        navigator.clipboard.writeText(mcpUrl);
-                        host._showToast(
-                          host._t(
-                            "settings_mcp_url_copied_toast",
-                            "MCP URL copied to clipboard",
-                          ),
-                          "success",
-                        );
-                      }}
-                    >
-                      <ha-icon
-                        icon="mdi:content-copy"
-                        style="--mdc-icon-size:20px;"
-                      ></ha-icon>
-                    </ha-icon-button>
-                  </div>
-                `
+                      <code
+                        style="font-size:12px;word-break:break-all;flex:1;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);overflow:hidden;text-overflow:ellipsis;"
+                        >${host._config.selora_mcp_url || `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`}</code
+                      >
+                      <ha-icon-button
+                        @click=${() => {
+                          const mcpUrl =
+                            host._config.selora_mcp_url ||
+                            `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`;
+                          navigator.clipboard.writeText(mcpUrl);
+                          host._showToast(
+                            host._t(
+                              "settings_mcp_url_copied_toast",
+                              "MCP URL copied to clipboard",
+                            ),
+                            "success",
+                          );
+                        }}
+                      >
+                        <ha-icon
+                          icon="mdi:content-copy"
+                          style="--mdc-icon-size:20px;"
+                        ></ha-icon>
+                      </ha-icon-button>
+                    </div>
+                  `
                 : ""
             }
             ${
               host._config.developer_mode &&
               !host._config.selora_connect_enabled
-                ? x`
-                  <div style="padding:8px 0 0;">
-                    ${_textInput({
-                      label: host._t(
-                        "settings_connect_server_url_label",
-                        "Connect Server URL",
-                      ),
-                      value:
-                        host._config.selora_connect_url ||
-                        "https://connect.selorahomes.com",
-                      oninput: (e6) =>
-                        host._updateConfig(
-                          "selora_connect_url",
-                          e6.target.value,
+                ? b2`
+                    <div style="padding:8px 0 0;">
+                      ${_textInput({
+                        label: host._t(
+                          "settings_connect_server_url_label",
+                          "Connect Server URL",
                         ),
-                    })}
-                  </div>
-                `
+                        value:
+                          host._config.selora_connect_url ||
+                          "https://connect.selorahomes.com",
+                        oninput: (e6) =>
+                          host._updateConfig(
+                            "selora_connect_url",
+                            e6.target.value,
+                          ),
+                      })}
+                    </div>
+                  `
                 : ""
             }
           </div>
@@ -34232,72 +34191,74 @@ function renderSettings(host) {
           </p>
           ${
             host._mcpTokens.length === 0
-              ? x`<div
-                style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
-              >
-                ${host._t("settings_no_tokens_yet", "No tokens yet.")}
-              </div>`
-              : x`
-                <div class="mcp-token-list">
-                  ${host._mcpTokens.map(
-                    (t4) => x`
-                      <div class="mcp-token-row">
-                        <ha-icon
-                          icon="mdi:key-variant"
-                          style="--mdc-icon-size:20px;color:var(--selora-accent);flex-shrink:0;"
-                        ></ha-icon>
-                        <div class="mcp-token-info">
-                          <div class="mcp-token-name">
-                            ${t4.name}
-                            <span
-                              class="mcp-token-badge mcp-token-badge--${t4.permission_level}"
-                              >${t4.permission_level.replace("_", " ")}</span
-                            >
+              ? b2`<div
+                  style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
+                >
+                  ${host._t("settings_no_tokens_yet", "No tokens yet.")}
+                </div>`
+              : b2`
+                  <div class="mcp-token-list">
+                    ${host._mcpTokens.map(
+                      (t5) => b2`
+                        <div class="mcp-token-row">
+                          <ha-icon
+                            icon="mdi:key-variant"
+                            style="--mdc-icon-size:20px;color:var(--selora-accent);flex-shrink:0;"
+                          ></ha-icon>
+                          <div class="mcp-token-info">
+                            <div class="mcp-token-name">
+                              ${t5.name}
+                              <span
+                                class="mcp-token-badge mcp-token-badge--${t5.permission_level}"
+                                >${t5.permission_level.replace("_", " ")}</span
+                              >
+                            </div>
+                            <div class="mcp-token-meta">
+                              <span>${t5.token_prefix}${"*".repeat(8)}</span>
+                              ${
+                                t5.expires_at
+                                  ? b2`<span
+                                      >&middot; expires
+                                      ${new Date(
+                                        t5.expires_at,
+                                      ).toLocaleDateString(void 0, {
+                                        month: "short",
+                                        day: "numeric",
+                                      })}</span
+                                    >`
+                                  : ""
+                              }
+                              ${
+                                t5.last_used_at
+                                  ? b2`<span
+                                      >&middot; used
+                                      ${_timeAgo(t5.last_used_at)}</span
+                                    >`
+                                  : ""
+                              }
+                            </div>
                           </div>
-                          <div class="mcp-token-meta">
-                            <span>${t4.token_prefix}${"*".repeat(8)}</span>
+                          <ha-icon-button
+                            ?disabled=${host._revokingTokenId === t5.id}
+                            @click=${() => host._revokeMcpToken(t5.id)}
+                          >
                             ${
-                              t4.expires_at
-                                ? x`<span
-                                  >&middot; expires
-                                  ${new Date(t4.expires_at).toLocaleDateString(
-                                    void 0,
-                                    { month: "short", day: "numeric" },
-                                  )}</span
-                                >`
-                                : ""
+                              host._revokingTokenId === t5.id
+                                ? b2`<span
+                                    class="spinner"
+                                    style="width:14px;height:14px;"
+                                  ></span>`
+                                : b2`<ha-icon
+                                    icon="mdi:delete-outline"
+                                    style="--mdc-icon-size:20px;"
+                                  ></ha-icon>`
                             }
-                            ${
-                              t4.last_used_at
-                                ? x`<span
-                                  >&middot; used
-                                  ${_timeAgo(t4.last_used_at)}</span
-                                >`
-                                : ""
-                            }
-                          </div>
+                          </ha-icon-button>
                         </div>
-                        <ha-icon-button
-                          ?disabled=${host._revokingTokenId === t4.id}
-                          @click=${() => host._revokeMcpToken(t4.id)}
-                        >
-                          ${
-                            host._revokingTokenId === t4.id
-                              ? x`<span
-                                class="spinner"
-                                style="width:14px;height:14px;"
-                              ></span>`
-                              : x`<ha-icon
-                                icon="mdi:delete-outline"
-                                style="--mdc-icon-size:20px;"
-                              ></ha-icon>`
-                          }
-                        </ha-icon-button>
-                      </div>
-                    `,
-                  )}
-                </div>
-              `
+                      `,
+                    )}
+                  </div>
+                `
           }
           <button
             class="btn btn-outline"
@@ -34373,92 +34334,96 @@ function renderSettings(host) {
             </div>
             ${
               host._config.collector_enabled
-                ? x`
-                  <div class="service-details">
-                    <div style="display:flex;gap:12px;">
-                      <div class="form-group" style="flex:1;margin-bottom:0;">
-                        <label>${host._t("settings_mode_label", "Mode")}</label>
-                        <select
-                          class="form-select"
-                          .value=${host._config.collector_mode}
-                          @change=${(e6) =>
-                            host._updateConfig(
-                              "collector_mode",
-                              e6.target.value,
-                            )}
+                ? b2`
+                    <div class="service-details">
+                      <div style="display:flex;gap:12px;">
+                        <div class="form-group" style="flex:1;margin-bottom:0;">
+                          <label
+                            >${host._t("settings_mode_label", "Mode")}</label
+                          >
+                          <select
+                            class="form-select"
+                            .value=${host._config.collector_mode}
+                            @change=${(e6) =>
+                              host._updateConfig(
+                                "collector_mode",
+                                e6.target.value,
+                              )}
+                          >
+                            <option value="continuous">
+                              ${host._t("settings_mode_continuous", "Continuous")}
+                            </option>
+                            <option value="scheduled">
+                              ${host._t(
+                                "settings_mode_scheduled_window",
+                                "Scheduled Window",
+                              )}
+                            </option>
+                          </select>
+                        </div>
+                        <div
+                          class="form-group"
+                          style="width:130px;margin-bottom:0;"
                         >
-                          <option value="continuous">
-                            ${host._t("settings_mode_continuous", "Continuous")}
-                          </option>
-                          <option value="scheduled">
-                            ${host._t(
-                              "settings_mode_scheduled_window",
-                              "Scheduled Window",
-                            )}
-                          </option>
-                        </select>
+                          <label
+                            >${host._t(
+                              "settings_interval_seconds_label",
+                              "Interval (s)",
+                            )}</label
+                          >
+                          <input
+                            class="form-select"
+                            type="number"
+                            .value=${host._config.collector_interval}
+                            @input=${(e6) =>
+                              host._updateConfig(
+                                "collector_interval",
+                                parseInt(e6.target.value),
+                              )}
+                            style="width:100%;box-sizing:border-box;"
+                          />
+                        </div>
                       </div>
-                      <div
-                        class="form-group"
-                        style="width:130px;margin-bottom:0;"
-                      >
-                        <label
-                          >${host._t(
-                            "settings_interval_seconds_label",
-                            "Interval (s)",
-                          )}</label
-                        >
-                        <input
-                          class="form-select"
-                          type="number"
-                          .value=${host._config.collector_interval}
-                          @input=${(e6) =>
-                            host._updateConfig(
-                              "collector_interval",
-                              parseInt(e6.target.value),
-                            )}
-                          style="width:100%;box-sizing:border-box;"
-                        />
-                      </div>
+                      ${
+                        host._config.collector_mode === "scheduled"
+                          ? b2`
+                              <div
+                                style="display:flex;gap:12px;margin-top:12px;"
+                              >
+                                <div style="flex:1;">
+                                  ${_textInput({
+                                    label: host._t(
+                                      "settings_start_hhmm_label",
+                                      "Start (HH:MM)",
+                                    ),
+                                    value: host._config.collector_start_time,
+                                    oninput: (e6) =>
+                                      host._updateConfig(
+                                        "collector_start_time",
+                                        e6.target.value,
+                                      ),
+                                  })}
+                                </div>
+                                <div style="flex:1;">
+                                  ${_textInput({
+                                    label: host._t(
+                                      "settings_end_hhmm_label",
+                                      "End (HH:MM)",
+                                    ),
+                                    value: host._config.collector_end_time,
+                                    oninput: (e6) =>
+                                      host._updateConfig(
+                                        "collector_end_time",
+                                        e6.target.value,
+                                      ),
+                                  })}
+                                </div>
+                              </div>
+                            `
+                          : ""
+                      }
                     </div>
-                    ${
-                      host._config.collector_mode === "scheduled"
-                        ? x`
-                          <div style="display:flex;gap:12px;margin-top:12px;">
-                            <div style="flex:1;">
-                              ${_textInput({
-                                label: host._t(
-                                  "settings_start_hhmm_label",
-                                  "Start (HH:MM)",
-                                ),
-                                value: host._config.collector_start_time,
-                                oninput: (e6) =>
-                                  host._updateConfig(
-                                    "collector_start_time",
-                                    e6.target.value,
-                                  ),
-                              })}
-                            </div>
-                            <div style="flex:1;">
-                              ${_textInput({
-                                label: host._t(
-                                  "settings_end_hhmm_label",
-                                  "End (HH:MM)",
-                                ),
-                                value: host._config.collector_end_time,
-                                oninput: (e6) =>
-                                  host._updateConfig(
-                                    "collector_end_time",
-                                    e6.target.value,
-                                  ),
-                              })}
-                            </div>
-                          </div>
-                        `
-                        : ""
-                    }
-                  </div>
-                `
+                  `
                 : ""
             }
           </div>
@@ -34486,92 +34451,96 @@ function renderSettings(host) {
             </div>
             ${
               host._config.discovery_enabled
-                ? x`
-                  <div class="service-details">
-                    <div style="display:flex;gap:12px;">
-                      <div class="form-group" style="flex:1;margin-bottom:0;">
-                        <label>${host._t("settings_mode_label", "Mode")}</label>
-                        <select
-                          class="form-select"
-                          .value=${host._config.discovery_mode}
-                          @change=${(e6) =>
-                            host._updateConfig(
-                              "discovery_mode",
-                              e6.target.value,
-                            )}
+                ? b2`
+                    <div class="service-details">
+                      <div style="display:flex;gap:12px;">
+                        <div class="form-group" style="flex:1;margin-bottom:0;">
+                          <label
+                            >${host._t("settings_mode_label", "Mode")}</label
+                          >
+                          <select
+                            class="form-select"
+                            .value=${host._config.discovery_mode}
+                            @change=${(e6) =>
+                              host._updateConfig(
+                                "discovery_mode",
+                                e6.target.value,
+                              )}
+                          >
+                            <option value="continuous">
+                              ${host._t("settings_mode_continuous", "Continuous")}
+                            </option>
+                            <option value="scheduled">
+                              ${host._t(
+                                "settings_mode_scheduled_window",
+                                "Scheduled Window",
+                              )}
+                            </option>
+                          </select>
+                        </div>
+                        <div
+                          class="form-group"
+                          style="width:130px;margin-bottom:0;"
                         >
-                          <option value="continuous">
-                            ${host._t("settings_mode_continuous", "Continuous")}
-                          </option>
-                          <option value="scheduled">
-                            ${host._t(
-                              "settings_mode_scheduled_window",
-                              "Scheduled Window",
-                            )}
-                          </option>
-                        </select>
+                          <label
+                            >${host._t(
+                              "settings_interval_seconds_label",
+                              "Interval (s)",
+                            )}</label
+                          >
+                          <input
+                            class="form-select"
+                            type="number"
+                            .value=${host._config.discovery_interval}
+                            @input=${(e6) =>
+                              host._updateConfig(
+                                "discovery_interval",
+                                parseInt(e6.target.value),
+                              )}
+                            style="width:100%;box-sizing:border-box;"
+                          />
+                        </div>
                       </div>
-                      <div
-                        class="form-group"
-                        style="width:130px;margin-bottom:0;"
-                      >
-                        <label
-                          >${host._t(
-                            "settings_interval_seconds_label",
-                            "Interval (s)",
-                          )}</label
-                        >
-                        <input
-                          class="form-select"
-                          type="number"
-                          .value=${host._config.discovery_interval}
-                          @input=${(e6) =>
-                            host._updateConfig(
-                              "discovery_interval",
-                              parseInt(e6.target.value),
-                            )}
-                          style="width:100%;box-sizing:border-box;"
-                        />
-                      </div>
+                      ${
+                        host._config.discovery_mode === "scheduled"
+                          ? b2`
+                              <div
+                                style="display:flex;gap:12px;margin-top:12px;"
+                              >
+                                <div style="flex:1;">
+                                  ${_textInput({
+                                    label: host._t(
+                                      "settings_start_hhmm_label",
+                                      "Start (HH:MM)",
+                                    ),
+                                    value: host._config.discovery_start_time,
+                                    oninput: (e6) =>
+                                      host._updateConfig(
+                                        "discovery_start_time",
+                                        e6.target.value,
+                                      ),
+                                  })}
+                                </div>
+                                <div style="flex:1;">
+                                  ${_textInput({
+                                    label: host._t(
+                                      "settings_end_hhmm_label",
+                                      "End (HH:MM)",
+                                    ),
+                                    value: host._config.discovery_end_time,
+                                    oninput: (e6) =>
+                                      host._updateConfig(
+                                        "discovery_end_time",
+                                        e6.target.value,
+                                      ),
+                                  })}
+                                </div>
+                              </div>
+                            `
+                          : ""
+                      }
                     </div>
-                    ${
-                      host._config.discovery_mode === "scheduled"
-                        ? x`
-                          <div style="display:flex;gap:12px;margin-top:12px;">
-                            <div style="flex:1;">
-                              ${_textInput({
-                                label: host._t(
-                                  "settings_start_hhmm_label",
-                                  "Start (HH:MM)",
-                                ),
-                                value: host._config.discovery_start_time,
-                                oninput: (e6) =>
-                                  host._updateConfig(
-                                    "discovery_start_time",
-                                    e6.target.value,
-                                  ),
-                              })}
-                            </div>
-                            <div style="flex:1;">
-                              ${_textInput({
-                                label: host._t(
-                                  "settings_end_hhmm_label",
-                                  "End (HH:MM)",
-                                ),
-                                value: host._config.discovery_end_time,
-                                oninput: (e6) =>
-                                  host._updateConfig(
-                                    "discovery_end_time",
-                                    e6.target.value,
-                                  ),
-                              })}
-                            </div>
-                          </div>
-                        `
-                        : ""
-                    }
-                  </div>
-                `
+                  `
                 : ""
             }
           </div>
@@ -34626,34 +34595,34 @@ function renderSettings(host) {
             </div>
             ${
               host._config.insights_enabled !== false
-                ? x`
-                  <div class="service-details">
-                    <div
-                      class="form-group"
-                      style="width:150px;margin-bottom:0;"
-                    >
-                      <label
-                        >${host._t(
-                          "settings_scan_interval_seconds_label",
-                          "Scan interval (s)",
-                        )}</label
+                ? b2`
+                    <div class="service-details">
+                      <div
+                        class="form-group"
+                        style="width:150px;margin-bottom:0;"
                       >
-                      <input
-                        class="form-select"
-                        type="number"
-                        min="60"
-                        step="60"
-                        .value=${host._config.insights_interval}
-                        @input=${(e6) =>
-                          host._updateConfig(
-                            "insights_interval",
-                            parseInt(e6.target.value),
-                          )}
-                        style="width:100%;box-sizing:border-box;"
-                      />
+                        <label
+                          >${host._t(
+                            "settings_scan_interval_seconds_label",
+                            "Scan interval (s)",
+                          )}</label
+                        >
+                        <input
+                          class="form-select"
+                          type="number"
+                          min="60"
+                          step="60"
+                          .value=${host._config.insights_interval}
+                          @input=${(e6) =>
+                            host._updateConfig(
+                              "insights_interval",
+                              parseInt(e6.target.value),
+                            )}
+                          style="width:100%;box-sizing:border-box;"
+                        />
+                      </div>
                     </div>
-                  </div>
-                `
+                  `
                 : ""
             }
           </div>
@@ -34842,7 +34811,7 @@ var MCP_TOOLS = [
 function renderApprovalGrants(host) {
   const grants = host._approvalGrants || [];
   if (!grants.length) {
-    return x`<div
+    return b2`<div
       style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
     >
       ${host._t(
@@ -34858,7 +34827,7 @@ function renderApprovalGrants(host) {
     medium: "#f59e0b",
     high: "#ef4444",
   };
-  return x`
+  return b2`
     <div class="mcp-token-list">
       ${grants.map((g2) => {
         const grantKey = g2.key || g2.service;
@@ -34866,7 +34835,7 @@ function renderApprovalGrants(host) {
           ? host?.hass?.states?.[g2.entity_id]?.attributes?.friendly_name ||
             g2.entity_id
           : null;
-        return x`
+        return b2`
           <div class="mcp-token-row">
             <ha-icon
               icon=${entityFriendly ? "mdi:shield-account-outline" : "mdi:shield-check-outline"}
@@ -34887,14 +34856,15 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-name">
                 ${g2.service}${
                   entityFriendly
-                    ? x` <span
-                      style="color:var(--secondary-text-color);font-weight:400;"
-                      >→ ${entityFriendly}</span
-                    >`
-                    : x` <span
-                      style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
-                      >→ ${host._t("settings_approval_all_label", "all")}</span
-                    >`
+                    ? b2` <span
+                        style="color:var(--secondary-text-color);font-weight:400;"
+                        >→ ${entityFriendly}</span
+                      >`
+                    : b2` <span
+                        style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
+                        >→
+                        ${host._t("settings_approval_all_label", "all")}</span
+                      >`
                 }
                 <span
                   class="mcp-token-badge"
@@ -34906,7 +34876,7 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-meta">
                 <span
                   >granted
-                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? x` by <strong>${g2.granted_by_name}</strong>` : ""}</span
+                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? b2` by <strong>${g2.granted_by_name}</strong>` : ""}</span
                 >
               </div>
             </div>
@@ -34916,14 +34886,14 @@ function renderApprovalGrants(host) {
             >
               ${
                 host._revokingApprovalKey === grantKey
-                  ? x`<span
-                    class="spinner"
-                    style="width:14px;height:14px;"
-                  ></span>`
-                  : x`<ha-icon
-                    icon="mdi:delete-outline"
-                    style="--mdc-icon-size:20px;"
-                  ></ha-icon>`
+                  ? b2`<span
+                      class="spinner"
+                      style="width:14px;height:14px;"
+                    ></span>`
+                  : b2`<ha-icon
+                      icon="mdi:delete-outline"
+                      style="--mdc-icon-size:20px;"
+                    ></ha-icon>`
               }
             </ha-icon-button>
           </div>
@@ -34960,7 +34930,7 @@ function _timeAgo(isoString) {
 function renderCreateTokenDialog(host) {
   if (!host._showCreateTokenDialog) return "";
   if (host._createdToken) {
-    return x`
+    return b2`
       <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
         <div
           class="modal-content"
@@ -35014,7 +34984,7 @@ function renderCreateTokenDialog(host) {
     `;
   }
   const permission = host._newTokenPermission;
-  return x`
+  return b2`
     <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
       <div
         class="modal-content"
@@ -35071,45 +35041,45 @@ function renderCreateTokenDialog(host) {
 
         ${
           permission === "custom"
-            ? x`
-              <div class="form-group">
-                <label
-                  >${host._t(
-                    "settings_allowed_tools_label",
-                    "Allowed Tools",
-                  )}</label
-                >
-                <div class="mcp-tool-checklist">
-                  ${MCP_TOOLS.map(
-                    (tool) => x`
-                      <label class="mcp-tool-check">
-                        <input
-                          type="checkbox"
-                          .checked=${host._newTokenTools[tool.name] || false}
-                          @change=${(e6) => {
-                            host._newTokenTools = {
-                              ...host._newTokenTools,
-                              [tool.name]: e6.target.checked,
-                            };
-                            host.requestUpdate();
-                          }}
-                        />
-                        <span>${tool.label}</span>
-                        ${
-                          tool.admin
-                            ? x`<span
-                              class="mcp-token-badge mcp-token-badge--admin"
-                              style="font-size:10px;padding:1px 5px;"
-                              >${host._t("settings_admin_badge", "admin")}</span
-                            >`
-                            : ""
-                        }
-                      </label>
-                    `,
-                  )}
+            ? b2`
+                <div class="form-group">
+                  <label
+                    >${host._t(
+                      "settings_allowed_tools_label",
+                      "Allowed Tools",
+                    )}</label
+                  >
+                  <div class="mcp-tool-checklist">
+                    ${MCP_TOOLS.map(
+                      (tool) => b2`
+                        <label class="mcp-tool-check">
+                          <input
+                            type="checkbox"
+                            .checked=${host._newTokenTools[tool.name] || false}
+                            @change=${(e6) => {
+                              host._newTokenTools = {
+                                ...host._newTokenTools,
+                                [tool.name]: e6.target.checked,
+                              };
+                              host.requestUpdate();
+                            }}
+                          />
+                          <span>${tool.label}</span>
+                          ${
+                            tool.admin
+                              ? b2`<span
+                                  class="mcp-token-badge mcp-token-badge--admin"
+                                  style="font-size:10px;padding:1px 5px;"
+                                  >${host._t("settings_admin_badge", "admin")}</span
+                                >`
+                              : ""
+                          }
+                        </label>
+                      `,
+                    )}
+                  </div>
                 </div>
-              </div>
-            `
+              `
             : ""
         }
 
@@ -35162,10 +35132,10 @@ function renderCreateTokenDialog(host) {
           >
             ${
               host._creatingToken
-                ? x`<span
-                  class="spinner"
-                  style="width:14px;height:14px;"
-                ></span>`
+                ? b2`<span
+                    class="spinner"
+                    style="width:14px;height:14px;"
+                  ></span>`
                 : host._t("settings_create_token_button", "Create Token")
             }
           </button>
@@ -35179,7 +35149,7 @@ function renderCreateTokenDialog(host) {
 function renderTelemetryConsent(host) {
   const cfg = host._config;
   if (!cfg || cfg.telemetry_prompt_seen || cfg.telemetry_enabled) return "";
-  return x`
+  return b2`
     <div
       class="telemetry-consent"
       role="region"
@@ -35253,20 +35223,20 @@ function _findUsageSensors(hass) {
   }
   return result;
 }
-function _fmtTokens(n5) {
-  const v2 = Number(n5) || 0;
+function _fmtTokens(n4) {
+  const v2 = Number(n4) || 0;
   if (v2 >= 1e6) return (v2 / 1e6).toFixed(2) + "M";
   if (v2 >= 1e3) return (v2 / 1e3).toFixed(1) + "k";
   return Math.round(v2).toLocaleString();
 }
-function _fmtUsd(n5) {
-  const v2 = Number(n5) || 0;
+function _fmtUsd(n4) {
+  const v2 = Number(n4) || 0;
   if (v2 === 0) return "$0.00";
   if (v2 < 0.01) return "<$0.01";
   return "$" + v2.toFixed(2);
 }
-function _fmtInt(n5) {
-  return (Number(n5) || 0).toLocaleString();
+function _fmtInt(n4) {
+  return (Number(n4) || 0).toLocaleString();
 }
 async function _fetchPeriodStats(hass, statisticIds, periodStart) {
   if (!hass) return {};
@@ -35287,8 +35257,8 @@ async function _fetchPeriodStats(hass, statisticIds, periodStart) {
 function _sumChange(buckets) {
   if (!Array.isArray(buckets)) return 0;
   let total = 0;
-  for (const b2 of buckets) {
-    const v2 = Number(b2?.change ?? 0);
+  for (const b3 of buckets) {
+    const v2 = Number(b3?.change ?? 0);
     if (Number.isFinite(v2)) total += v2;
   }
   return total;
@@ -35438,9 +35408,9 @@ function _groupByProviderModel(events) {
     g2.cost_usd += Number(e6.cost_usd) || 0;
   }
   return [...groups.values()].sort(
-    (a4, b2) =>
-      b2.cost_usd - a4.cost_usd ||
-      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
+    (a3, b3) =>
+      b3.cost_usd - a3.cost_usd ||
+      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
   );
 }
 function _groupByKind(events) {
@@ -35468,17 +35438,17 @@ function _groupByKind(events) {
     }
   }
   return [...groups.values()].sort(
-    (a4, b2) =>
-      b2.cost_usd - a4.cost_usd ||
-      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
+    (a3, b3) =>
+      b3.cost_usd - a3.cost_usd ||
+      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
   );
 }
 function _formatRelativeTime(iso) {
   if (!iso) return "";
-  const t4 = new Date(iso).getTime();
-  if (Number.isNaN(t4)) return "";
+  const t5 = new Date(iso).getTime();
+  if (Number.isNaN(t5)) return "";
   const now = Date.now();
-  const sec = Math.max(1, Math.round((now - t4) / 1e3));
+  const sec = Math.max(1, Math.round((now - t5) / 1e3));
   if (sec < 60) return `${sec}s ago`;
   const min = Math.round(sec / 60);
   if (min < 60) return `${min}m ago`;
@@ -35509,27 +35479,27 @@ function _highlightYaml(yamlStr) {
     const rest = line.slice(indent.length);
     const listMatch = rest.match(/^(- )(.*)$/);
     if (listMatch) {
-      return x`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
+      return b2`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
     }
     const kvMatch = rest.match(/^([\w_-]+)(:)(.*)$/);
     if (kvMatch) {
       const val = kvMatch[3].trim();
-      return x`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? x` <span class="yaml-val">${val}</span>` : ""}</div>`;
+      return b2`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? b2` <span class="yaml-val">${val}</span>` : ""}</div>`;
     }
-    return x`<div class="yaml-line">${line}</div>`;
+    return b2`<div class="yaml-line">${line}</div>`;
   });
 }
 function _renderDashboardSnippet(host, sensors) {
   const selected = host._dashboardSnippetKey || _USAGE_KEYS[0];
-  const s6 = sensors[selected];
-  const entityId = s6?.entityId || `sensor.${selected}`;
+  const s4 = sensors[selected];
+  const entityId = s4?.entityId || `sensor.${selected}`;
   const label =
-    s6?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
+    s4?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
   const yaml = _yamlForSensor(entityId, label);
-  return x`
+  return b2`
     <div class="usage-snippet-pills">
       ${_USAGE_KEYS.map(
-        (key) => x`
+        (key) => b2`
           <button
             class="usage-snippet-pill ${key === selected ? "active" : ""}"
             @click=${() => {
@@ -35583,20 +35553,27 @@ function _renderDashboardSnippet(host, sensors) {
   `;
 }
 function _renderTile({ label, value, sub, icon }) {
-  return x`
+  return b2`
     <div class="usage-tile">
       <div class="usage-tile-head">
-        ${icon ? x`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
+        ${
+          icon
+            ? b2`<ha-icon
+                icon=${icon}
+                style="--mdc-icon-size:16px;"
+              ></ha-icon>`
+            : ""
+        }
         <span class="usage-tile-label">${label}</span>
       </div>
       <div class="usage-tile-value">${value}</div>
-      ${sub ? x`<div class="usage-tile-sub">${sub}</div>` : ""}
+      ${sub ? b2`<div class="usage-tile-sub">${sub}</div>` : ""}
     </div>
   `;
 }
 function _renderPeriodRow(title, stats) {
   if (!stats) {
-    return x`
+    return b2`
       <div class="usage-period-row usage-period-row--loading">
         <span class="usage-period-title">${title}</span>
         <span class="usage-period-loading">Loading…</span>
@@ -35608,35 +35585,35 @@ function _renderPeriodRow(title, stats) {
   const calls = stats.llm_calls || 0;
   const cost = stats.llm_cost || 0;
   const empty = !tokensIn && !tokensOut && !calls && !cost;
-  return x`
+  return b2`
     <div class="usage-period-row">
       <span class="usage-period-title">${title}</span>
       ${
         empty
-          ? x`<span class="usage-period-empty">No activity</span>`
-          : x`
-            <span class="usage-period-cost">${_fmtUsd(cost)}</span>
-            <span class="usage-period-tokens">
-              ${_fmtTokens(tokensIn + tokensOut)} tokens · ${_fmtInt(calls)}
-              calls
-            </span>
-          `
+          ? b2`<span class="usage-period-empty">No activity</span>`
+          : b2`
+              <span class="usage-period-cost">${_fmtUsd(cost)}</span>
+              <span class="usage-period-tokens">
+                ${_fmtTokens(tokensIn + tokensOut)} tokens · ${_fmtInt(calls)}
+                calls
+              </span>
+            `
       }
     </div>
   `;
 }
 function _renderBreakdown(groups, totalCost) {
   if (!groups || groups.length === 0) return "";
-  return x`
+  return b2`
     <div class="usage-breakdown">
       ${groups.map((g2) => {
         const pct =
           totalCost > 0 ? Math.round((g2.cost_usd / totalCost) * 100) : 0;
         const tokens = g2.input_tokens + g2.output_tokens;
         const intentEntries = [...g2.intents.entries()].sort(
-          (a4, b2) => b2[1] - a4[1],
+          (a3, b3) => b3[1] - a3[1],
         );
-        return x`
+        return b2`
           <div class="usage-breakdown-row">
             <div class="usage-breakdown-head">
               <span class="usage-breakdown-label">${_kindLabel(g2.kind)}</span>
@@ -35652,21 +35629,21 @@ function _renderBreakdown(groups, totalCost) {
               <span>${_fmtInt(g2.calls)} call${g2.calls === 1 ? "" : "s"}</span>
               <span>·</span>
               <span>${_fmtTokens(tokens)} tokens</span>
-              ${totalCost > 0 ? x`<span>·</span> <span>${pct}% of cost</span>` : ""}
+              ${totalCost > 0 ? b2`<span>·</span> <span>${pct}% of cost</span>` : ""}
             </div>
             ${
               intentEntries.length > 0
-                ? x`
-                  <div class="usage-breakdown-intents">
-                    ${intentEntries.map(
-                      ([intent, count]) => x`
-                        <span class="usage-intent-pill">
-                          ${_intentLabel(intent)} · ${_fmtInt(count)}
-                        </span>
-                      `,
-                    )}
-                  </div>
-                `
+                ? b2`
+                    <div class="usage-breakdown-intents">
+                      ${intentEntries.map(
+                        ([intent, count]) => b2`
+                          <span class="usage-intent-pill">
+                            ${_intentLabel(intent)} · ${_fmtInt(count)}
+                          </span>
+                        `,
+                      )}
+                    </div>
+                  `
                 : ""
             }
           </div>
@@ -35676,15 +35653,15 @@ function _renderBreakdown(groups, totalCost) {
   `;
 }
 function _renderRecentList(events) {
-  return x`
+  return b2`
     <div class="usage-recent-list">
       ${events.map((e6) => {
         const intent = _intentLabel(e6.intent);
-        return x`
+        return b2`
           <div class="usage-recent-row">
             <div class="usage-recent-main">
               <span class="usage-recent-kind">${_kindLabel(e6.kind)}</span>
-              ${intent ? x`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
+              ${intent ? b2`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
               <span class="usage-recent-time">
                 ${_formatRelativeTime(e6.timestamp)}
               </span>
@@ -35730,8 +35707,8 @@ var _PROVIDER_LABELS = {
   selora_local: "Selora AI Local",
   selora_cloud: "Selora Cloud",
 };
-function _providerLabel(p2) {
-  return _PROVIDER_LABELS[p2] || p2;
+function _providerLabel(p4) {
+  return _PROVIDER_LABELS[p4] || p4;
 }
 function _defaultPriceFor(host, provider, model) {
   const table = host?._pricingDefaults || {};
@@ -35741,8 +35718,8 @@ function _overridePriceFor(host, provider, model) {
   const overrides = host?._config?.llm_pricing_overrides || {};
   return overrides[provider]?.[model] || null;
 }
-function _formatPrice(n5) {
-  const v2 = Number(n5);
+function _formatPrice(n4) {
+  const v2 = Number(n4);
   if (!Number.isFinite(v2)) return "\u2014";
   return "$" + v2.toFixed(v2 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
 }
@@ -35826,7 +35803,7 @@ var SELORA_CLOUD_USAGE_URL = "https://connect.selorahomes.com/selora-ai";
 function _renderPricingCard(host) {
   const { provider, model } = _activeProviderModel(host);
   if (provider === "selora_cloud") {
-    return x`
+    return b2`
       <div class="section-card">
         <div class="section-card-header">
           <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -35861,7 +35838,7 @@ function _renderPricingCard(host) {
     `;
   }
   if (provider === "ollama" || provider === "selora_local" || !model) {
-    return x`
+    return b2`
       <div class="section-card">
         <div class="section-card-header">
           <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -35893,7 +35870,7 @@ function _renderPricingCard(host) {
     host._pricingEdit?.provider === provider &&
     host._pricingEdit?.model === model;
   const effective = override || defaults;
-  return x`
+  return b2`
     <div class="section-card">
       <div class="section-card-header">
         <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -35928,16 +35905,16 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? x`<span class="usage-pricing-default">
-                ${host._t("usage_pricing_default_prefix", "default")}
-                ${_formatPrice(defaults[0])}
-              </span>`
-              : x`<span class="usage-pricing-default"
-                >${host._t(
-                  "usage_pricing_no_default",
-                  "no built-in default",
-                )}</span
-              >`
+              ? b2`<span class="usage-pricing-default">
+                  ${host._t("usage_pricing_default_prefix", "default")}
+                  ${_formatPrice(defaults[0])}
+                </span>`
+              : b2`<span class="usage-pricing-default"
+                  >${host._t(
+                    "usage_pricing_no_default",
+                    "no built-in default",
+                  )}</span
+                >`
           }
         </div>
         <div class="usage-pricing-cell">
@@ -35949,10 +35926,10 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? x`<span class="usage-pricing-default">
-                ${host._t("usage_pricing_default_prefix", "default")}
-                ${_formatPrice(defaults[1])}
-              </span>`
+              ? b2`<span class="usage-pricing-default">
+                  ${host._t("usage_pricing_default_prefix", "default")}
+                  ${_formatPrice(defaults[1])}
+                </span>`
               : ""
           }
         </div>
@@ -35960,115 +35937,115 @@ function _renderPricingCard(host) {
 
       ${
         editing
-          ? x`
-            <div class="usage-pricing-edit">
-              <ha-textfield
-                label=${host._t(
-                  "usage_pricing_input_field_label",
-                  "Input ($/MTok)",
-                )}
-                type="number"
-                step="0.01"
-                min="0"
-                .value=${String(host._pricingEdit.input ?? "")}
-                @input=${(e6) => {
-                  host._pricingEdit = {
-                    ...host._pricingEdit,
-                    input: e6.target.value,
-                  };
-                }}
-                style="flex:1;min-width:120px;"
-              ></ha-textfield>
-              <ha-textfield
-                label=${host._t(
-                  "usage_pricing_output_field_label",
-                  "Output ($/MTok)",
-                )}
-                type="number"
-                step="0.01"
-                min="0"
-                .value=${String(host._pricingEdit.output ?? "")}
-                @input=${(e6) => {
-                  host._pricingEdit = {
-                    ...host._pricingEdit,
-                    output: e6.target.value,
-                  };
-                }}
-                style="flex:1;min-width:120px;"
-              ></ha-textfield>
+          ? b2`
+              <div class="usage-pricing-edit">
+                <ha-textfield
+                  label=${host._t(
+                    "usage_pricing_input_field_label",
+                    "Input ($/MTok)",
+                  )}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  .value=${String(host._pricingEdit.input ?? "")}
+                  @input=${(e6) => {
+                    host._pricingEdit = {
+                      ...host._pricingEdit,
+                      input: e6.target.value,
+                    };
+                  }}
+                  style="flex:1;min-width:120px;"
+                ></ha-textfield>
+                <ha-textfield
+                  label=${host._t(
+                    "usage_pricing_output_field_label",
+                    "Output ($/MTok)",
+                  )}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  .value=${String(host._pricingEdit.output ?? "")}
+                  @input=${(e6) => {
+                    host._pricingEdit = {
+                      ...host._pricingEdit,
+                      output: e6.target.value,
+                    };
+                  }}
+                  style="flex:1;min-width:120px;"
+                ></ha-textfield>
+                <div class="usage-pricing-actions">
+                  <button
+                    class="btn btn-outline"
+                    @click=${() => {
+                      host._pricingEdit = null;
+                      host.requestUpdate();
+                    }}
+                  >
+                    ${host._t("usage_pricing_cancel_button", "Cancel")}
+                  </button>
+                  <button
+                    class="btn btn-primary"
+                    @click=${() =>
+                      _savePricingOverride(
+                        host,
+                        provider,
+                        model,
+                        host._pricingEdit.input,
+                        host._pricingEdit.output,
+                      )}
+                  >
+                    ${host._t("usage_pricing_save_button", "Save")}
+                  </button>
+                </div>
+              </div>
+            `
+          : b2`
               <div class="usage-pricing-actions">
                 <button
                   class="btn btn-outline"
                   @click=${() => {
-                    host._pricingEdit = null;
+                    host._pricingEdit = {
+                      provider,
+                      model,
+                      input: effective ? effective[0] : "",
+                      output: effective ? effective[1] : "",
+                    };
                     host.requestUpdate();
                   }}
                 >
-                  ${host._t("usage_pricing_cancel_button", "Cancel")}
+                  <ha-icon
+                    icon=${override ? "mdi:pencil" : "mdi:cash-edit"}
+                    style="--mdc-icon-size:16px;"
+                  ></ha-icon>
+                  ${
+                    override
+                      ? host._t(
+                          "usage_pricing_edit_override_button",
+                          "Edit override",
+                        )
+                      : host._t(
+                          "usage_pricing_set_custom_button",
+                          "Set custom pricing",
+                        )
+                  }
                 </button>
-                <button
-                  class="btn btn-primary"
-                  @click=${() =>
-                    _savePricingOverride(
-                      host,
-                      provider,
-                      model,
-                      host._pricingEdit.input,
-                      host._pricingEdit.output,
-                    )}
-                >
-                  ${host._t("usage_pricing_save_button", "Save")}
-                </button>
-              </div>
-            </div>
-          `
-          : x`
-            <div class="usage-pricing-actions">
-              <button
-                class="btn btn-outline"
-                @click=${() => {
-                  host._pricingEdit = {
-                    provider,
-                    model,
-                    input: effective ? effective[0] : "",
-                    output: effective ? effective[1] : "",
-                  };
-                  host.requestUpdate();
-                }}
-              >
-                <ha-icon
-                  icon=${override ? "mdi:pencil" : "mdi:cash-edit"}
-                  style="--mdc-icon-size:16px;"
-                ></ha-icon>
                 ${
                   override
-                    ? host._t(
-                        "usage_pricing_edit_override_button",
-                        "Edit override",
-                      )
-                    : host._t(
-                        "usage_pricing_set_custom_button",
-                        "Set custom pricing",
-                      )
+                    ? b2`
+                        <button
+                          class="btn btn-outline"
+                          @click=${() => _clearPricingOverride(host, provider, model)}
+                        >
+                          ${host._t(
+                            "usage_pricing_reset_default_button",
+                            "Reset to default",
+                          )}
+                        </button>
+                      `
+                    : ""
                 }
-              </button>
-              ${
-                override
-                  ? x`
-                    <button
-                      class="btn btn-outline"
-                      @click=${() => _clearPricingOverride(host, provider, model)}
-                    >
-                      ${host._t(
-                        "usage_pricing_reset_default_button",
-                        "Reset to default",
-                      )}
-                    </button>
-                  `
-                  : ""
-              }
-            </div>
-          `
+              </div>
+            `
       }
     </div>
   `;
@@ -36124,13 +36101,13 @@ function renderUsage(host) {
     ? breakdown.reduce((sum, g2) => sum + g2.cost_usd, 0)
     : 0;
   const bufTokensIn = breakdown
-    ? breakdown.reduce((s6, g2) => s6 + g2.input_tokens, 0)
+    ? breakdown.reduce((s4, g2) => s4 + g2.input_tokens, 0)
     : 0;
   const bufTokensOut = breakdown
-    ? breakdown.reduce((s6, g2) => s6 + g2.output_tokens, 0)
+    ? breakdown.reduce((s4, g2) => s4 + g2.output_tokens, 0)
     : 0;
   const bufCalls = breakdown
-    ? breakdown.reduce((s6, g2) => s6 + g2.calls, 0)
+    ? breakdown.reduce((s4, g2) => s4 + g2.calls, 0)
     : 0;
   let dispTokensIn;
   let dispTokensOut;
@@ -36138,14 +36115,14 @@ function renderUsage(host) {
   let dispCost;
   let periodStats = stats;
   if (filterActive && filteredTotals?.totals) {
-    const t4 = filteredTotals.totals;
-    dispTokensIn = t4.input || 0;
-    dispTokensOut = t4.output || 0;
-    dispCalls = t4.calls || 0;
-    dispCost = t4.cost_usd || 0;
-    const p2 = filteredTotals.periods || {};
+    const t5 = filteredTotals.totals;
+    dispTokensIn = t5.input || 0;
+    dispTokensOut = t5.output || 0;
+    dispCalls = t5.calls || 0;
+    dispCost = t5.cost_usd || 0;
+    const p4 = filteredTotals.periods || {};
     const pick = (k2) => {
-      const v2 = p2[k2] || {};
+      const v2 = p4[k2] || {};
       return {
         llm_tokens_in: v2.input || 0,
         llm_tokens_out: v2.output || 0,
@@ -36176,7 +36153,7 @@ function renderUsage(host) {
   const filterChips =
     providerOptions.length === 0
       ? ""
-      : x`
+      : b2`
           <div class="usage-snippet-pills" style="margin-bottom:12px;">
             <button
               class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
@@ -36185,42 +36162,42 @@ function renderUsage(host) {
               ${host._t("usage_filter_all_providers", "All providers")}
             </button>
             ${providerOptions.map(
-              (p2) => x`
+              (p4) => b2`
                 <button
-                  class="usage-snippet-pill ${filter.provider === p2 && filter.model == null ? "active" : ""}"
-                  @click=${() => setFilter(p2, null)}
+                  class="usage-snippet-pill ${filter.provider === p4 && filter.model == null ? "active" : ""}"
+                  @click=${() => setFilter(p4, null)}
                 >
-                  ${_providerLabel(p2)}
+                  ${_providerLabel(p4)}
                 </button>
               `,
             )}
           </div>
           ${
             filter.provider && modelOptions.length > 1
-              ? x`
-                <div class="usage-snippet-pills" style="margin-bottom:12px;">
-                  <button
-                    class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
-                    @click=${() => setFilter(filter.provider, null)}
-                  >
-                    ${host._t("usage_filter_all_models", "All models")}
-                  </button>
-                  ${modelOptions.map(
-                    (m2) => x`
-                      <button
-                        class="usage-snippet-pill ${filter.model === m2 ? "active" : ""}"
-                        @click=${() => setFilter(filter.provider, m2)}
-                      >
-                        ${m2 || host._t("usage_filter_no_model", "(no model)")}
-                      </button>
-                    `,
-                  )}
-                </div>
-              `
+              ? b2`
+                  <div class="usage-snippet-pills" style="margin-bottom:12px;">
+                    <button
+                      class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
+                      @click=${() => setFilter(filter.provider, null)}
+                    >
+                      ${host._t("usage_filter_all_models", "All models")}
+                    </button>
+                    ${modelOptions.map(
+                      (m3) => b2`
+                        <button
+                          class="usage-snippet-pill ${filter.model === m3 ? "active" : ""}"
+                          @click=${() => setFilter(filter.provider, m3)}
+                        >
+                          ${m3 || host._t("usage_filter_no_model", "(no model)")}
+                        </button>
+                      `,
+                    )}
+                  </div>
+                `
               : ""
           }
         `;
-  return x`
+  return b2`
     <div class="scroll-view">
       <div class="usage-view">
         <a
@@ -36239,11 +36216,11 @@ function renderUsage(host) {
           <h2>${host._t("usage_token_usage_title", "Token usage")}</h2>
           ${
             lastProvider
-              ? x`
-                <span class="usage-subtitle">
-                  ${lastProvider}${lastModel ? ` \xB7 ${lastModel}` : ""}
-                </span>
-              `
+              ? b2`
+                  <span class="usage-subtitle">
+                    ${lastProvider}${lastModel ? ` \xB7 ${lastModel}` : ""}
+                  </span>
+                `
               : ""
           }
         </div>
@@ -36251,231 +36228,234 @@ function renderUsage(host) {
         ${filterChips}
         ${
           sensorsMissing && recent !== null && recent.length === 0
-            ? x`
-              <div class="section-card usage-empty">
-                <ha-icon
-                  icon="mdi:information-outline"
-                  style="--mdc-icon-size:20px;"
-                ></ha-icon>
-                <div>
-                  <strong
-                    >${host._t(
-                      "usage_empty_title",
-                      "No usage data yet.",
-                    )}</strong
-                  >
-                  <p>
-                    ${host._t(
-                      "usage_empty_body",
-                      "Usage will appear after the first LLM call. Try chatting with Selora AI or running a suggestion cycle. If you've already used Selora AI and still see this, restart Home Assistant so the new sensors get registered.",
-                    )}
-                  </p>
+            ? b2`
+                <div class="section-card usage-empty">
+                  <ha-icon
+                    icon="mdi:information-outline"
+                    style="--mdc-icon-size:20px;"
+                  ></ha-icon>
+                  <div>
+                    <strong
+                      >${host._t(
+                        "usage_empty_title",
+                        "No usage data yet.",
+                      )}</strong
+                    >
+                    <p>
+                      ${host._t(
+                        "usage_empty_body",
+                        "Usage will appear after the first LLM call. Try chatting with Selora AI or running a suggestion cycle. If you've already used Selora AI and still see this, restart Home Assistant so the new sensors get registered.",
+                      )}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            `
-            : x`
-              ${
-                hasTotals
-                  ? x`
-                    <div class="section-card">
-                      <div class="section-card-header">
-                        <h3>${host._t("usage_totals_title", "Totals")}</h3>
-                      </div>
-                      <div class="usage-tile-grid">
-                        ${_renderTile({
-                          label: host._t("usage_tile_cost_label", "Cost"),
-                          value: _fmtUsd(dispCost),
-                          sub: host._t("usage_tile_cost_sub", "USD estimate"),
-                          icon: "mdi:cash",
-                        })}
-                        ${_renderTile({
-                          label: host._t("usage_tile_calls_label", "Calls"),
-                          value: _fmtInt(dispCalls),
-                          icon: "mdi:counter",
-                        })}
-                        ${_renderTile({
-                          label: host._t(
-                            "usage_tile_tokens_in_label",
-                            "Tokens in",
-                          ),
-                          value: _fmtTokens(dispTokensIn),
-                          icon: "mdi:upload",
-                        })}
-                        ${_renderTile({
-                          label: host._t(
-                            "usage_tile_tokens_out_label",
-                            "Tokens out",
-                          ),
-                          value: _fmtTokens(dispTokensOut),
-                          icon: "mdi:download",
-                        })}
-                      </div>
-                    </div>
-                  `
-                  : ""
-              }
-              ${
-                !sensorsMissing || filterActive
-                  ? x`
-                    <div class="section-card">
-                      <div class="section-card-header">
-                        <h3>
-                          ${host._t("usage_by_period_title", "By period")}
-                        </h3>
-                      </div>
-                      ${_renderPeriodRow(
-                        host._t("usage_period_today", "Today"),
-                        periodStats?.today,
-                      )}
-                      ${_renderPeriodRow(
-                        host._t("usage_period_last_7_days", "Last 7 days"),
-                        periodStats?.week,
-                      )}
-                      ${_renderPeriodRow(
-                        host._t("usage_period_this_month", "This month"),
-                        periodStats?.month,
-                      )}
-                      <div class="usage-period-note">
-                        ${
-                          filterActive
-                            ? host._t(
-                                "usage_period_note_filtered",
-                                "Period buckets come from the integration's usage store (kept for 30 days).",
-                              )
-                            : host._t(
-                                "usage_period_note_unfiltered",
-                                "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here.",
-                              )
-                        }
-                      </div>
-                    </div>
-                  `
-                  : ""
-              }
-
-              <div class="section-card">
-                <div class="section-card-header">
-                  <h3>
-                    ${host._t("usage_where_tokens_go_title", "Where tokens go")}
-                  </h3>
-                  <span class="usage-section-sub">
-                    ${host._t("usage_where_tokens_last_prefix", "Last")}
-                    ${filteredRecent === null ? "\u2026" : filteredRecent.length}
-                    call${filteredRecent && filteredRecent.length === 1 ? "" : "s"}
-                    ${host._t(
-                      "usage_where_tokens_resets_suffix",
-                      "\xB7 resets on HA restart",
-                    )}
-                  </span>
-                </div>
+              `
+            : b2`
                 ${
-                  filteredRecent && filteredRecent.length > 0
-                    ? x`
-                      <div
-                        class="usage-snippet-pills"
-                        style="margin-bottom:12px;"
-                      >
-                        <button
-                          class="usage-snippet-pill ${groupingMode === "kind" ? "active" : ""}"
-                          @click=${() => {
-                            host._usageGrouping = "kind";
-                            host.requestUpdate();
-                          }}
-                        >
-                          ${host._t("usage_group_by_kind_button", "By kind")}
-                        </button>
-                        <button
-                          class="usage-snippet-pill ${groupingMode === "provider" ? "active" : ""}"
-                          @click=${() => {
-                            host._usageGrouping = "provider";
-                            host.requestUpdate();
-                          }}
-                        >
-                          ${host._t(
-                            "usage_group_by_provider_button",
-                            "By provider",
-                          )}
-                        </button>
-                      </div>
-                    `
+                  hasTotals
+                    ? b2`
+                        <div class="section-card">
+                          <div class="section-card-header">
+                            <h3>${host._t("usage_totals_title", "Totals")}</h3>
+                          </div>
+                          <div class="usage-tile-grid">
+                            ${_renderTile({
+                              label: host._t("usage_tile_cost_label", "Cost"),
+                              value: _fmtUsd(dispCost),
+                              sub: host._t(
+                                "usage_tile_cost_sub",
+                                "USD estimate",
+                              ),
+                              icon: "mdi:cash",
+                            })}
+                            ${_renderTile({
+                              label: host._t("usage_tile_calls_label", "Calls"),
+                              value: _fmtInt(dispCalls),
+                              icon: "mdi:counter",
+                            })}
+                            ${_renderTile({
+                              label: host._t(
+                                "usage_tile_tokens_in_label",
+                                "Tokens in",
+                              ),
+                              value: _fmtTokens(dispTokensIn),
+                              icon: "mdi:upload",
+                            })}
+                            ${_renderTile({
+                              label: host._t(
+                                "usage_tile_tokens_out_label",
+                                "Tokens out",
+                              ),
+                              value: _fmtTokens(dispTokensOut),
+                              icon: "mdi:download",
+                            })}
+                          </div>
+                        </div>
+                      `
                     : ""
                 }
                 ${
-                  filteredRecent === null
-                    ? x`<div class="usage-period-loading">
-                      ${host._t("usage_loading", "Loading\u2026")}
-                    </div>`
-                    : filteredRecent.length === 0
-                      ? x`<div class="usage-period-empty">
-                        ${host._t(
-                          "usage_no_calls_recorded",
-                          "No calls recorded yet.",
-                        )}
-                      </div>`
-                      : _renderBreakdown(breakdown, totalCost)
+                  !sensorsMissing || filterActive
+                    ? b2`
+                        <div class="section-card">
+                          <div class="section-card-header">
+                            <h3>
+                              ${host._t("usage_by_period_title", "By period")}
+                            </h3>
+                          </div>
+                          ${_renderPeriodRow(
+                            host._t("usage_period_today", "Today"),
+                            periodStats?.today,
+                          )}
+                          ${_renderPeriodRow(
+                            host._t("usage_period_last_7_days", "Last 7 days"),
+                            periodStats?.week,
+                          )}
+                          ${_renderPeriodRow(
+                            host._t("usage_period_this_month", "This month"),
+                            periodStats?.month,
+                          )}
+                          <div class="usage-period-note">
+                            ${
+                              filterActive
+                                ? host._t(
+                                    "usage_period_note_filtered",
+                                    "Period buckets come from the integration's usage store (kept for 30 days).",
+                                  )
+                                : host._t(
+                                    "usage_period_note_unfiltered",
+                                    "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here.",
+                                  )
+                            }
+                          </div>
+                        </div>
+                      `
+                    : ""
                 }
-              </div>
 
-              ${
-                filteredRecent && filteredRecent.length > 0
-                  ? x`
-                    <div class="section-card">
-                      <div class="section-card-header">
-                        <h3>
-                          ${host._t("usage_recent_calls_title", "Recent calls")}
-                        </h3>
-                      </div>
-                      ${_renderRecentList(filteredRecent.slice(-15).reverse())}
-                    </div>
-                  `
-                  : ""
-              }
-              ${_renderPricingCard(host)}
-              ${
-                sensorsMissing
-                  ? x`
-                    <div class="section-card">
-                      <div class="section-card-header">
-                        <h3>
-                          ${host._t(
-                            "usage_dashboard_sensors_title",
-                            "Dashboard sensors",
-                          )}
-                        </h3>
-                      </div>
-                      <p class="usage-help">
-                        ${host._t(
-                          "usage_dashboard_sensors_help_prefix",
-                          "Restart Home Assistant to register the usage sensors. Once registered, you can add them to any dashboard with a",
-                        )}
-                        <code>statistics-graph</code> ${host._t(
-                          "usage_dashboard_sensors_help_suffix",
-                          "card.",
-                        )}
-                      </p>
-                    </div>
-                  `
-                  : x`
-                    <div class="section-card">
-                      <div class="section-card-header">
-                        <h3>
-                          ${host._t(
-                            "usage_add_to_dashboard_title",
-                            "Add to your dashboard",
-                          )}
-                        </h3>
-                      </div>
-                      <p class="usage-help">
-                        ${host._t(
-                          "usage_add_to_dashboard_help",
-                          "Each metric has a different scale \u2014 create one card per sensor. Pick a metric, copy the YAML, then paste it in a dashboard's YAML editor.",
-                        )}
-                      </p>
-                      ${_renderDashboardSnippet(host, sensors)}
-                    </div>
-                  `
-              }
-            `
+                <div class="section-card">
+                  <div class="section-card-header">
+                    <h3>
+                      ${host._t("usage_where_tokens_go_title", "Where tokens go")}
+                    </h3>
+                    <span class="usage-section-sub">
+                      ${host._t("usage_where_tokens_last_prefix", "Last")}
+                      ${filteredRecent === null ? "\u2026" : filteredRecent.length}
+                      call${filteredRecent && filteredRecent.length === 1 ? "" : "s"}
+                      ${host._t(
+                        "usage_where_tokens_resets_suffix",
+                        "\xB7 resets on HA restart",
+                      )}
+                    </span>
+                  </div>
+                  ${
+                    filteredRecent && filteredRecent.length > 0
+                      ? b2`
+                          <div
+                            class="usage-snippet-pills"
+                            style="margin-bottom:12px;"
+                          >
+                            <button
+                              class="usage-snippet-pill ${groupingMode === "kind" ? "active" : ""}"
+                              @click=${() => {
+                                host._usageGrouping = "kind";
+                                host.requestUpdate();
+                              }}
+                            >
+                              ${host._t("usage_group_by_kind_button", "By kind")}
+                            </button>
+                            <button
+                              class="usage-snippet-pill ${groupingMode === "provider" ? "active" : ""}"
+                              @click=${() => {
+                                host._usageGrouping = "provider";
+                                host.requestUpdate();
+                              }}
+                            >
+                              ${host._t(
+                                "usage_group_by_provider_button",
+                                "By provider",
+                              )}
+                            </button>
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${
+                    filteredRecent === null
+                      ? b2`<div class="usage-period-loading">
+                          ${host._t("usage_loading", "Loading\u2026")}
+                        </div>`
+                      : filteredRecent.length === 0
+                        ? b2`<div class="usage-period-empty">
+                            ${host._t(
+                              "usage_no_calls_recorded",
+                              "No calls recorded yet.",
+                            )}
+                          </div>`
+                        : _renderBreakdown(breakdown, totalCost)
+                  }
+                </div>
+
+                ${
+                  filteredRecent && filteredRecent.length > 0
+                    ? b2`
+                        <div class="section-card">
+                          <div class="section-card-header">
+                            <h3>
+                              ${host._t("usage_recent_calls_title", "Recent calls")}
+                            </h3>
+                          </div>
+                          ${_renderRecentList(filteredRecent.slice(-15).reverse())}
+                        </div>
+                      `
+                    : ""
+                }
+                ${_renderPricingCard(host)}
+                ${
+                  sensorsMissing
+                    ? b2`
+                        <div class="section-card">
+                          <div class="section-card-header">
+                            <h3>
+                              ${host._t(
+                                "usage_dashboard_sensors_title",
+                                "Dashboard sensors",
+                              )}
+                            </h3>
+                          </div>
+                          <p class="usage-help">
+                            ${host._t(
+                              "usage_dashboard_sensors_help_prefix",
+                              "Restart Home Assistant to register the usage sensors. Once registered, you can add them to any dashboard with a",
+                            )}
+                            <code>statistics-graph</code> ${host._t(
+                              "usage_dashboard_sensors_help_suffix",
+                              "card.",
+                            )}
+                          </p>
+                        </div>
+                      `
+                    : b2`
+                        <div class="section-card">
+                          <div class="section-card-header">
+                            <h3>
+                              ${host._t(
+                                "usage_add_to_dashboard_title",
+                                "Add to your dashboard",
+                              )}
+                            </h3>
+                          </div>
+                          <p class="usage-help">
+                            ${host._t(
+                              "usage_add_to_dashboard_help",
+                              "Each metric has a different scale \u2014 create one card per sensor. Pick a metric, copy the YAML, then paste it in a dashboard's YAML editor.",
+                            )}
+                          </p>
+                          ${_renderDashboardSnippet(host, sensors)}
+                        </div>
+                      `
+                }
+              `
         }
       </div>
     </div>
@@ -36504,7 +36484,7 @@ function renderHealthGauge(host) {
   const color = _bandColor(band);
   const pct = Math.max(0, Math.min(100, score)) / 100;
   const valueLen = TRACK_LEN * pct;
-  return x`
+  return b2`
     <div
       class="health-gauge"
       style="--gauge-color:${color};"
@@ -36562,7 +36542,7 @@ var _CATEGORY_LABEL = {
 function _entityCards(host, entityIds) {
   const ids = (entityIds || []).filter((e6) => host.hass?.states?.[e6]);
   if (!ids.length) return "";
-  return x`<div
+  return b2`<div
     class="selora-entity-grid audit-card-tiles"
     data-entity-ids=${ids.join(",")}
   ></div>`;
@@ -36586,7 +36566,7 @@ function _recCard(host, rec) {
     `insights_kind_${rec.category}`,
     _CATEGORY_LABEL[rec.category] || rec.category,
   );
-  return x`
+  return b2`
     <div class="audit-card">
       <div class="audit-card-bar" style="background:${meta.color};"></div>
       <div class="audit-card-body">
@@ -36598,7 +36578,7 @@ function _recCard(host, rec) {
           <span class="audit-card-title">${rec.title}</span>
           <span class="badge audit-card-badge">${category}</span>
         </div>
-        ${rec.detail ? x`<div class="audit-card-detail">${rec.detail}</div>` : ""}
+        ${rec.detail ? b2`<div class="audit-card-detail">${rec.detail}</div>` : ""}
         ${_entityCards(host, rec.entities)}
         <div class="audit-card-actions">
           <button
@@ -36610,24 +36590,24 @@ function _recCard(host, rec) {
           </button>
           ${
             rec.link
-              ? x`<a class="btn btn-outline btn-sm" href=${rec.link}>
-                <ha-icon icon="mdi:open-in-new"></ha-icon>
-                ${host._t(
-                  "insights_open_settings",
-                  rec.link_label || "Open in Settings",
-                )}
-              </a>`
+              ? b2`<a class="btn btn-outline btn-sm" href=${rec.link}>
+                  <ha-icon icon="mdi:open-in-new"></ha-icon>
+                  ${host._t(
+                    "insights_open_settings",
+                    rec.link_label || "Open in Settings",
+                  )}
+                </a>`
               : ""
           }
           ${
             rec.device_id || (rec.entities && rec.entities.length)
-              ? x`<button
-                class="btn btn-outline btn-sm"
-                @click=${() => host._ignoreFix(rec)}
-              >
-                <ha-icon icon="mdi:bell-off-outline"></ha-icon>
-                ${host._t("insights_ignore_short", "Ignore")}
-              </button>`
+              ? b2`<button
+                  class="btn btn-outline btn-sm"
+                  @click=${() => host._ignoreFix(rec)}
+                >
+                  <ha-icon icon="mdi:bell-off-outline"></ha-icon>
+                  ${host._t("insights_ignore_short", "Ignore")}
+                </button>`
               : ""
           }
         </div>
@@ -36655,19 +36635,19 @@ function _checkRow(host, check) {
       ? "check-issues"
       : "check-clear";
   const badgeClass = errored ? "error" : issues ? "issues" : "clear";
-  return x`
+  return b2`
     <div class="check-item ${issues ? "check-item-issues" : ""}">
       <div class="check-head">
         <ha-icon class="check-icon ${iconClass}" icon=${iconName}></ha-icon>
         <span class="check-title">${check.title}</span>
-        ${check.kind === "model" ? x`<span class="badge check-ai">AI</span>` : ""}
+        ${check.kind === "model" ? b2`<span class="badge check-ai">AI</span>` : ""}
         <span class="check-badge ${badgeClass}">${statusText}</span>
       </div>
       ${
         issues
-          ? x`<div class="audit-cards check-findings">
-            ${findings.map((f2) => _recCard(host, f2))}
-          </div>`
+          ? b2`<div class="audit-cards check-findings">
+              ${findings.map((f3) => _recCard(host, f3))}
+            </div>`
           : ""
       }
     </div>
@@ -36675,7 +36655,7 @@ function _checkRow(host, check) {
 }
 function _auditBody(host) {
   if (host._auditRunning || !host._auditLoaded) {
-    return x`<div class="insight-audit-card">
+    return b2`<div class="insight-audit-card">
       <div class="insight-audit-status insight-audit-running">
         <span class="spinner"></span>
         <div>
@@ -36687,12 +36667,12 @@ function _auditBody(host) {
   const status = host._auditStatus;
   const checks = host._auditChecks || [];
   if (checks.length) {
-    return x`<div class="check-list">
-      ${checks.map((c3) => _checkRow(host, c3))}
+    return b2`<div class="check-list">
+      ${checks.map((c4) => _checkRow(host, c4))}
     </div>`;
   }
   if (status === "no_llm") {
-    return x`<div class="insight-audit-card">
+    return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
         ${host._t(
           "insights_audit_no_llm",
@@ -36702,7 +36682,7 @@ function _auditBody(host) {
     </div>`;
   }
   if (status === "unsupported") {
-    return x`<div class="insight-audit-card">
+    return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
         ${host._t(
           "insights_audit_unsupported",
@@ -36712,21 +36692,21 @@ function _auditBody(host) {
     </div>`;
   }
   if (status === "error") {
-    return x`<div class="insight-audit-card">
+    return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
         ${host._t("insights_audit_error", "The last audit failed.")}
-        ${host._auditError ? x`<div class="insight-audit-err">${host._auditError}</div>` : ""}
+        ${host._auditError ? b2`<div class="insight-audit-err">${host._auditError}</div>` : ""}
       </div>
     </div>`;
   }
   const recs = host._auditRecommendations || [];
   if (status === "ok" && recs.length) {
-    return x`<div class="audit-cards">
+    return b2`<div class="audit-cards">
       ${recs.map((r4) => _recCard(host, r4))}
     </div>`;
   }
   if (status === "ok" && host._auditResponse) {
-    return x`
+    return b2`
       <div class="insight-audit-card">
         <div
           class="insight-audit-md"
@@ -36734,16 +36714,16 @@ function _auditBody(host) {
         ></div>
         ${
           host._auditQuickActions && host._auditQuickActions.length
-            ? x`<div class="insight-audit-actions">
-              ${renderQuickActions(host, host._auditQuickActions, {})}
-            </div>`
+            ? b2`<div class="insight-audit-actions">
+                ${renderQuickActions(host, host._auditQuickActions, {})}
+              </div>`
             : ""
         }
       </div>
     `;
   }
   if (status === "ok") {
-    return x`<div class="insight-audit-card">
+    return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
         ${host._t(
           "insights_audit_empty_ok",
@@ -36752,7 +36732,7 @@ function _auditBody(host) {
       </div>
     </div>`;
   }
-  return x`<div class="insight-audit-card">
+  return b2`<div class="insight-audit-card">
     <div class="insight-audit-status">
       ${host._t(
         "insights_audit_pending",
@@ -36763,7 +36743,7 @@ function _auditBody(host) {
 }
 function renderInsights(host) {
   if (host._insightsEnabled === false) {
-    return x`
+    return b2`
       <div class="scroll-view">
         <div class="page-root">
           <div class="empty-state" style="text-align:center;padding:48px 16px;">
@@ -36782,7 +36762,7 @@ function renderInsights(host) {
       </div>
     `;
   }
-  return x`
+  return b2`
     <div class="scroll-view">
       <div class="page-root">
         <div class="page-header">
@@ -36809,29 +36789,29 @@ function renderInsights(host) {
 }
 
 // node_modules/lit-html/directives/unsafe-html.js
-var e5 = class extends i3 {
-  constructor(i5) {
-    if ((super(i5), (this.et = A), i5.type !== t3.CHILD))
+var e5 = class extends i5 {
+  constructor(i7) {
+    if ((super(i7), (this.it = A), i7.type !== t3.CHILD))
       throw Error(
         this.constructor.directiveName +
           "() can only be used in child bindings",
       );
   }
   render(r4) {
-    if (r4 === A || null == r4) return ((this.ft = void 0), (this.et = r4));
-    if (r4 === T) return r4;
+    if (r4 === A || null == r4) return ((this._t = void 0), (this.it = r4));
+    if (r4 === E) return r4;
     if ("string" != typeof r4)
       throw Error(
         this.constructor.directiveName + "() called with a non-string value",
       );
-    if (r4 === this.et) return this.ft;
-    this.et = r4;
-    const s6 = [r4];
+    if (r4 === this.it) return this._t;
+    this.it = r4;
+    const s4 = [r4];
     return (
-      (s6.raw = s6),
-      (this.ft = {
+      (s4.raw = s4),
+      (this._t = {
         _$litType$: this.constructor.resultType,
-        strings: s6,
+        strings: s4,
         values: [],
       })
     );
@@ -36896,31 +36876,31 @@ function _entityFriendlyName(hass, entityId) {
 }
 var _YAML_ESCAPE_RE = /[&<>]/g;
 var _YAML_ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
-function _escape(s6) {
-  return s6.replace(_YAML_ESCAPE_RE, (c3) => _YAML_ESC[c3]);
+function _escape(s4) {
+  return s4.replace(_YAML_ESCAPE_RE, (c4) => _YAML_ESC[c4]);
 }
 function _highlightYamlValue(rest) {
   const out = [];
-  let i5 = 0;
-  while (i5 < rest.length) {
-    if (rest[i5] === "{" && rest[i5 + 1] === "{") {
-      const end = rest.indexOf("}}", i5 + 2);
+  let i7 = 0;
+  while (i7 < rest.length) {
+    if (rest[i7] === "{" && rest[i7 + 1] === "{") {
+      const end = rest.indexOf("}}", i7 + 2);
       if (end !== -1) {
-        out.push(`<span class="yp">${_escape(rest.slice(i5, end + 2))}</span>`);
-        i5 = end + 2;
+        out.push(`<span class="yp">${_escape(rest.slice(i7, end + 2))}</span>`);
+        i7 = end + 2;
         continue;
       }
     }
-    if (rest[i5] === '"' || rest[i5] === "'") {
-      const quote = rest[i5];
-      let end = i5 + 1;
+    if (rest[i7] === '"' || rest[i7] === "'") {
+      const quote = rest[i7];
+      let end = i7 + 1;
       while (end < rest.length && rest[end] !== quote) end++;
-      out.push(`<span class="ys">${_escape(rest.slice(i5, end + 1))}</span>`);
-      i5 = end + 1;
+      out.push(`<span class="ys">${_escape(rest.slice(i7, end + 1))}</span>`);
+      i7 = end + 1;
       continue;
     }
-    out.push(_escape(rest[i5]));
-    i5++;
+    out.push(_escape(rest[i7]));
+    i7++;
   }
   let joined = out.join("");
   const bareValue = rest.trim();
@@ -36961,9 +36941,9 @@ function _highlightYaml2(text) {
           _highlightYamlValue(rest)
         );
       }
-      const m2 = body.match(/^([^\s:#][^:]*?):(\s*)(.*)$/);
-      if (m2) {
-        const [, key, sp, val] = m2;
+      const m3 = body.match(/^([^\s:#][^:]*?):(\s*)(.*)$/);
+      if (m3) {
+        const [, key, sp, val] = m3;
         let valOut = val;
         let trailing = "";
         const cIdx = val.indexOf("#");
@@ -36984,9 +36964,9 @@ function _highlightYaml2(text) {
 }
 function _hasAcceptedSuffix(name) {
   const lower = (name || "").toLowerCase();
-  return _ACCEPTED_SUFFIXES.some((s6) => lower.endsWith(s6));
+  return _ACCEPTED_SUFFIXES.some((s4) => lower.endsWith(s4));
 }
-var _STYLE = x`
+var _STYLE = b2`
   <style>
     /* Type scale. The --selora-fs-* tokens are referenced throughout
        this stylesheet but were never defined globally, so every
@@ -40116,7 +40096,7 @@ function _renderInstallSourceCard(host) {
     }
     host._uploadRecipeArchive(file);
   };
-  return x`
+  return b2`
     <details class="install-disclosure" ?open=${!!error}>
       <summary class="install-disclosure-summary">
         <ha-icon icon="mdi:package-variant-closed"></ha-icon>
@@ -40238,7 +40218,7 @@ function _renderInstallSourceCard(host) {
           />
         </div>
 
-        ${error ? x`<div class="install-error">${error}</div>` : ""}
+        ${error ? b2`<div class="install-error">${error}</div>` : ""}
       </div>
     </details>
   `;
@@ -40265,7 +40245,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
       navigator.clipboard.writeText(record.package_path).catch(() => {});
     }
   };
-  return x`
+  return b2`
     <details
       class="recipe-details ${asCard ? "recipe-details-card" : ""}"
       ?open=${asCard}
@@ -40279,22 +40259,22 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
       </summary>
       ${
         !asCard && description
-          ? x`<div class="recipe-card-desc recipe-details-desc">
-            ${description}
-          </div>`
+          ? b2`<div class="recipe-card-desc recipe-details-desc">
+              ${description}
+            </div>`
           : ""
       }
       <div class="recipe-details-grid">
         ${
           pkg?.counts && Object.keys(pkg.counts).length
-            ? x`
-              <div class="recipe-details-key">
-                ${host._t("recipes_details_creates_key", "Creates")}
-              </div>
-              <div class="recipe-details-val">
-                ${_formatPackageCounts(host, pkg.counts)}
-              </div>
-            `
+            ? b2`
+                <div class="recipe-details-key">
+                  ${host._t("recipes_details_creates_key", "Creates")}
+                </div>
+                <div class="recipe-details-val">
+                  ${_formatPackageCounts(host, pkg.counts)}
+                </div>
+              `
             : ""
         }
         <div class="recipe-details-key">
@@ -40312,35 +40292,35 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
             <code>${record.package_path || "\u2014"}</code>
             ${
               record.package_path
-                ? x`<button
-                  class="recipe-details-copy"
-                  title=${host._t(
-                    "recipes_details_copy_path_title",
-                    "Copy path",
-                  )}
-                  @click=${copyPath}
-                >
-                  <ha-icon icon="mdi:content-copy"></ha-icon>
-                </button>`
+                ? b2`<button
+                    class="recipe-details-copy"
+                    title=${host._t(
+                      "recipes_details_copy_path_title",
+                      "Copy path",
+                    )}
+                    @click=${copyPath}
+                  >
+                    <ha-icon icon="mdi:content-copy"></ha-icon>
+                  </button>`
                 : ""
             }
           </span>
           ${
             pkg?.yaml
-              ? x`<details class="recipe-package-view">
-                <summary class="recipe-details-summary">
-                  <ha-icon icon="mdi:chevron-down"></ha-icon>
-                  ${host._t(
-                    "recipes_details_view_package",
-                    "View package file",
+              ? b2`<details class="recipe-package-view">
+                  <summary class="recipe-details-summary">
+                    <ha-icon icon="mdi:chevron-down"></ha-icon>
+                    ${host._t(
+                      "recipes_details_view_package",
+                      "View package file",
+                    )}
+                  </summary>
+                  ${o5(
+                    '<div class="yaml-preview">' +
+                      _highlightYaml2(pkg.yaml) +
+                      "</div>",
                   )}
-                </summary>
-                ${o5(
-                  '<div class="yaml-preview">' +
-                    _highlightYaml2(pkg.yaml) +
-                    "</div>",
-                )}
-              </details>`
+                </details>`
               : ""
           }
         </div>
@@ -40351,97 +40331,99 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
         <div class="recipe-details-val">
           ${
             bindingRoles.length === 0
-              ? x`<span class="recipe-details-empty"
-                >${host._t(
-                  "recipes_details_no_bound_devices",
-                  "No bound devices",
-                )}</span
-              >`
+              ? b2`<span class="recipe-details-empty"
+                  >${host._t(
+                    "recipes_details_no_bound_devices",
+                    "No bound devices",
+                  )}</span
+                >`
               : bindingRoles.map((role) => {
                   const ents = bindings[role] || [];
-                  return x`<div class="recipe-details-binding">
-                  <div class="recipe-details-role">${_humanizeRole(role)}</div>
-                  <div class="recipe-details-entities">
-                    ${
-                      ents.length === 0
-                        ? x`<span class="recipe-details-empty"
-                          >${host._t(
-                            "recipes_details_none_selected_optional",
-                            "None selected (optional)",
-                          )}</span
-                        >`
-                        : ents.map((id) => {
-                            const name = _entityFriendlyName(host.hass, id);
-                            const inner = x`<ha-icon
-                              icon=${_entityIcon2(host.hass, id)}
-                            ></ha-icon>
-                            ${name}`;
-                            if (!host.hass?.states?.[id]) {
-                              return x`<span class="recipe-details-chip"
-                              >${inner}</span
-                            >`;
-                            }
-                            return x`<button
-                            type="button"
-                            class="recipe-details-chip recipe-details-chip--clickable"
-                            title=${`Open ${name} (${id})`}
-                            @click=${(e6) => {
-                              e6.stopPropagation();
-                              host.dispatchEvent(
-                                new CustomEvent("hass-more-info", {
-                                  bubbles: true,
-                                  composed: true,
-                                  detail: { entityId: id },
-                                }),
-                              );
-                            }}
-                          >
-                            ${inner}
-                          </button>`;
-                          })
-                    }
-                  </div>
-                </div>`;
+                  return b2`<div class="recipe-details-binding">
+                    <div class="recipe-details-role">
+                      ${_humanizeRole(role)}
+                    </div>
+                    <div class="recipe-details-entities">
+                      ${
+                        ents.length === 0
+                          ? b2`<span class="recipe-details-empty"
+                              >${host._t(
+                                "recipes_details_none_selected_optional",
+                                "None selected (optional)",
+                              )}</span
+                            >`
+                          : ents.map((id) => {
+                              const name = _entityFriendlyName(host.hass, id);
+                              const inner = b2`<ha-icon
+                                  icon=${_entityIcon2(host.hass, id)}
+                                ></ha-icon>
+                                ${name}`;
+                              if (!host.hass?.states?.[id]) {
+                                return b2`<span class="recipe-details-chip"
+                                  >${inner}</span
+                                >`;
+                              }
+                              return b2`<button
+                                type="button"
+                                class="recipe-details-chip recipe-details-chip--clickable"
+                                title=${`Open ${name} (${id})`}
+                                @click=${(e6) => {
+                                  e6.stopPropagation();
+                                  host.dispatchEvent(
+                                    new CustomEvent("hass-more-info", {
+                                      bubbles: true,
+                                      composed: true,
+                                      detail: { entityId: id },
+                                    }),
+                                  );
+                                }}
+                              >
+                                ${inner}
+                              </button>`;
+                            })
+                      }
+                    </div>
+                  </div>`;
                 })
           }
         </div>
 
         ${
           inputKeys.length
-            ? x`
-              <div class="recipe-details-key">
-                ${host._t("recipes_details_settings_key", "Settings")}
-              </div>
-              <div class="recipe-details-val">
-                ${inputKeys.map(
-                  (k2) => x`<div>
-                      <span class="recipe-details-role"
-                        >${_humanizeRole(k2)}:</span
-                      >
-                      ${String(inputs[k2])}
-                    </div>`,
-                )}
-              </div>
-            `
+            ? b2`
+                <div class="recipe-details-key">
+                  ${host._t("recipes_details_settings_key", "Settings")}
+                </div>
+                <div class="recipe-details-val">
+                  ${inputKeys.map(
+                    (k2) => b2`<div>
+                        <span class="recipe-details-role"
+                          >${_humanizeRole(k2)}:</span
+                        >
+                        ${String(inputs[k2])}
+                      </div>`,
+                  )}
+                </div>
+              `
             : ""
         }
         ${
           integrationDomains.length
-            ? x`
-              <div class="recipe-details-key">
-                ${host._t("recipes_details_integrations_key", "Integrations")}
-              </div>
-              <div class="recipe-details-val">
-                <div class="recipe-details-entities">
-                  ${integrationDomains.map(
-                    (dom) => x`<span class="recipe-details-chip">
-                        <ha-icon icon="mdi:puzzle"></ha-icon>
-                        ${dom}
-                      </span>`,
-                  )}
+            ? b2`
+                <div class="recipe-details-key">
+                  ${host._t("recipes_details_integrations_key", "Integrations")}
                 </div>
-              </div>
-            `
+                <div class="recipe-details-val">
+                  <div class="recipe-details-entities">
+                    ${integrationDomains.map(
+                      (dom) => b2`<span class="recipe-details-chip">
+                          <ha-icon icon="mdi:puzzle"></ha-icon>
+                          ${dom}
+                        </span>`,
+                    )}
+                  </div>
+                </div>
+              `
             : ""
         }
       </div>
@@ -40466,46 +40448,46 @@ var _PACKAGE_SECTION_LABELS = {
 };
 function _formatPackageCounts(host, counts) {
   const parts = Object.entries(counts || {})
-    .filter(([, n5]) => n5 > 0)
-    .map(([key, n5]) => {
+    .filter(([, n4]) => n4 > 0)
+    .map(([key, n4]) => {
       const labels = _PACKAGE_SECTION_LABELS[key] || [key, `${key}s`];
-      return `${n5} ${n5 === 1 ? labels[0] : labels[1]}`;
+      return `${n4} ${n4 === 1 ? labels[0] : labels[1]}`;
     });
   if (!parts.length)
-    return x`<span class="recipe-details-empty"
+    return b2`<span class="recipe-details-empty"
       >${host._t("recipes_details_creates_nothing", "Nothing")}</span
     >`;
   return parts.join(" \xB7 ");
 }
-function _humanizeRole(s6) {
-  if (!s6) return "";
-  const spaced = s6.replace(/_/g, " ");
+function _humanizeRole(s4) {
+  if (!s4) return "";
+  const spaced = s4.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 function _renderListView(host) {
   const available = host._recipesList?.available || [];
   const installed = host._recipesList?.installed || [];
   const availableBySlug = Object.fromEntries(
-    available.map((m2) => [m2.slug, m2]),
+    available.map((m3) => [m3.slug, m3]),
   );
   const installedSlugs = new Set(installed.map((r4) => r4.slug));
   const onlyInstalled = installed.filter((r4) => !availableBySlug[r4.slug]);
-  const installedAvailable = available.filter((m2) =>
-    installedSlugs.has(m2.slug),
+  const installedAvailable = available.filter((m3) =>
+    installedSlugs.has(m3.slug),
   );
   const catalogBySlug = new Map(
     (host._recipesCatalog?.recipes || []).map((r4) => [r4.slug, r4]),
   );
   const catalogSlugs = new Set(catalogBySlug.keys());
   const stagedLocal = available.filter(
-    (m2) => !installedSlugs.has(m2.slug) && !catalogSlugs.has(m2.slug),
+    (m3) => !installedSlugs.has(m3.slug) && !catalogSlugs.has(m3.slug),
   );
-  const withCategory = (m2) => {
-    if (m2.category_title) return m2;
-    const cat = catalogBySlug.get(m2.slug)?.category_title;
-    return cat ? { ...m2, category_title: cat } : m2;
+  const withCategory = (m3) => {
+    if (m3.category_title) return m3;
+    const cat = catalogBySlug.get(m3.slug)?.category_title;
+    return cat ? { ...m3, category_title: cat } : m3;
   };
-  return x`
+  return b2`
     <div class="recipes-root">
       <div class="recipes-header">
         <div class="recipes-h1">
@@ -40527,7 +40509,14 @@ function _renderListView(host) {
             class=${host._recipesCatalogBusy ? "icon-spin" : ""}
             icon="mdi:refresh"
           ></ha-icon>
-          ${host._recipesCatalogBusy ? host._t("recipes_list_checking", "Checking\u2026") : host._t("recipes_list_check_updates_button", "Check for updates")}
+          ${
+            host._recipesCatalogBusy
+              ? host._t("recipes_list_checking", "Checking\u2026")
+              : host._t(
+                  "recipes_list_check_updates_button",
+                  "Check for updates",
+                )
+          }
         </button>
       </div>
 
@@ -40541,75 +40530,75 @@ function _renderListView(host) {
       ${_renderInstallSourceCard(host)} ${_renderCatalogSection(host)}
       ${
         installedAvailable.length > 0
-          ? x`
-            <div class="recipes-section-title">
-              ${host._t("recipes_list_installed_section", "Installed recipes")}
-            </div>
-            <div class="catalog-grid">
-              ${installedAvailable.map((m2) =>
-                _renderCatalogCard(host, withCategory(m2), true),
-              )}
-            </div>
-          `
+          ? b2`
+              <div class="recipes-section-title">
+                ${host._t("recipes_list_installed_section", "Installed recipes")}
+              </div>
+              <div class="catalog-grid">
+                ${installedAvailable.map((m3) =>
+                  _renderCatalogCard(host, withCategory(m3), true),
+                )}
+              </div>
+            `
           : ""
       }
       ${
         stagedLocal.length > 0
-          ? x`
-            <div class="recipes-section-title">
-              ${host._t("recipes_list_staged", "On this device")}
-            </div>
-            <div class="catalog-grid">
-              ${stagedLocal.map((m2) =>
-                _renderCatalogCard(host, withCategory(m2), false),
-              )}
-            </div>
-          `
+          ? b2`
+              <div class="recipes-section-title">
+                ${host._t("recipes_list_staged", "On this device")}
+              </div>
+              <div class="catalog-grid">
+                ${stagedLocal.map((m3) =>
+                  _renderCatalogCard(host, withCategory(m3), false),
+                )}
+              </div>
+            `
           : ""
       }
       ${
         onlyInstalled.length > 0
-          ? x`
-            <div class="recipes-section-title">
-              ${host._t(
-                "recipes_list_installed_missing_bundle",
-                "Installed (bundle missing from disk)",
-              )}
-            </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${onlyInstalled.map(
-                (rec) => x`
-                  <div class="recipe-card">
-                    <div class="recipe-card-body">
-                      <div class="recipe-card-title">
-                        ${rec.title}
-                        <span class="recipe-installed-badge"
-                          >${host._t(
-                            "recipes_card_installed_badge",
-                            "Installed",
-                          )}</span
+          ? b2`
+              <div class="recipes-section-title">
+                ${host._t(
+                  "recipes_list_installed_missing_bundle",
+                  "Installed (bundle missing from disk)",
+                )}
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                ${onlyInstalled.map(
+                  (rec) => b2`
+                    <div class="recipe-card">
+                      <div class="recipe-card-body">
+                        <div class="recipe-card-title">
+                          ${rec.title}
+                          <span class="recipe-installed-badge"
+                            >${host._t(
+                              "recipes_card_installed_badge",
+                              "Installed",
+                            )}</span
+                          >
+                        </div>
+                        <div class="recipe-card-meta">
+                          v${rec.version} ·
+                          ${host._t("recipes_list_package_label", "package:")}
+                          ${rec.package_path}
+                        </div>
+                      </div>
+                      <div class="recipe-card-actions">
+                        <button
+                          class="btn btn-outline"
+                          @click=${() => host._uninstallRecipe(rec.slug)}
+                          ?disabled=${host._recipesBusy}
                         >
-                      </div>
-                      <div class="recipe-card-meta">
-                        v${rec.version} ·
-                        ${host._t("recipes_list_package_label", "package:")}
-                        ${rec.package_path}
+                          ${host._t("recipes_card_uninstall_button", "Uninstall")}
+                        </button>
                       </div>
                     </div>
-                    <div class="recipe-card-actions">
-                      <button
-                        class="btn btn-outline"
-                        @click=${() => host._uninstallRecipe(rec.slug)}
-                        ?disabled=${host._recipesBusy}
-                      >
-                        ${host._t("recipes_card_uninstall_button", "Uninstall")}
-                      </button>
-                    </div>
-                  </div>
-                `,
-              )}
-            </div>
-          `
+                  `,
+                )}
+              </div>
+            `
           : ""
       }
     </div>
@@ -40627,7 +40616,7 @@ function _renderCatalogSection(host) {
     ? host._catalogUrlOverride()
     : "";
   const isDev = !!host._config?.developer_mode;
-  return x`
+  return b2`
     <div class="catalog-section">
       <div class="filter-row">
         <div class="filter-input-wrap" style="flex:1 1 260px;">
@@ -40643,96 +40632,96 @@ function _renderCatalogSection(host) {
           />
           ${
             host._recipesCatalogSearch
-              ? x`<ha-icon
-                icon="mdi:close-circle"
-                style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                @click=${() => host._onRecipesCatalogSearch("")}
-              ></ha-icon>`
+              ? b2`<ha-icon
+                  icon="mdi:close-circle"
+                  style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                  @click=${() => host._onRecipesCatalogSearch("")}
+                ></ha-icon>`
               : ""
           }
         </div>
         <div class="catalog-controls">
           ${
             isDev
-              ? x`<button
-                class="sort-dir-toggle"
-                @click=${() => {
-                  const next = window.prompt(
-                    host._t(
-                      "recipes_catalog_url_prompt",
-                      "Catalog URL (leave blank to reset to selorahomes.com):",
-                    ),
-                    currentOverride,
-                  );
-                  if (next === null) return;
-                  host._setCatalogUrlOverride(next.trim());
-                }}
-                title=${
-                  currentOverride
-                    ? `${host._t("recipes_catalog_using_override", "Using override:")} ${currentOverride}`
-                    : host._t(
-                        "recipes_catalog_set_url_title",
-                        "Set a catalog URL (dev / staging)",
-                      )
-                }
-              >
-                <ha-icon icon="mdi:cog-outline"></ha-icon>
-              </button>`
+              ? b2`<button
+                  class="sort-dir-toggle"
+                  @click=${() => {
+                    const next = window.prompt(
+                      host._t(
+                        "recipes_catalog_url_prompt",
+                        "Catalog URL (leave blank to reset to selorahomes.com):",
+                      ),
+                      currentOverride,
+                    );
+                    if (next === null) return;
+                    host._setCatalogUrlOverride(next.trim());
+                  }}
+                  title=${
+                    currentOverride
+                      ? `${host._t("recipes_catalog_using_override", "Using override:")} ${currentOverride}`
+                      : host._t(
+                          "recipes_catalog_set_url_title",
+                          "Set a catalog URL (dev / staging)",
+                        )
+                  }
+                >
+                  <ha-icon icon="mdi:cog-outline"></ha-icon>
+                </button>`
               : ""
           }
         </div>
       </div>
       ${
         currentOverride && isDev
-          ? x`<div class="catalog-override-banner">
-            <ha-icon icon="mdi:flask-outline"></ha-icon>
-            ${host._t(
-              "recipes_catalog_source_overridden",
-              "Catalog source overridden:",
-            )}
-            <code>${currentOverride}</code>
-          </div>`
+          ? b2`<div class="catalog-override-banner">
+              <ha-icon icon="mdi:flask-outline"></ha-icon>
+              ${host._t(
+                "recipes_catalog_source_overridden",
+                "Catalog source overridden:",
+              )}
+              <code>${currentOverride}</code>
+            </div>`
           : ""
       }
       ${
         host._recipesCatalogError
-          ? x`<div class="catalog-error">
-            <ha-icon icon="mdi:cloud-off-outline"></ha-icon>
-            ${host._t(
-              "recipes_catalog_unreachable",
-              "Couldn't reach the recipes catalog:",
-            )}
-            ${host._recipesCatalogError}
-          </div>`
-          : !cat
-            ? x`<div class="catalog-loading">
-              ${
-                host._recipesCatalogBusy
-                  ? host._t(
-                      "recipes_catalog_fetching",
-                      "Fetching catalog\u2026",
-                    )
-                  : host._t(
-                      "recipes_catalog_will_load",
-                      "Catalog will load here.",
-                    )
-              }
+          ? b2`<div class="catalog-error">
+              <ha-icon icon="mdi:cloud-off-outline"></ha-icon>
+              ${host._t(
+                "recipes_catalog_unreachable",
+                "Couldn't reach the recipes catalog:",
+              )}
+              ${host._recipesCatalogError}
             </div>`
+          : !cat
+            ? b2`<div class="catalog-loading">
+                ${
+                  host._recipesCatalogBusy
+                    ? host._t(
+                        "recipes_catalog_fetching",
+                        "Fetching catalog\u2026",
+                      )
+                    : host._t(
+                        "recipes_catalog_will_load",
+                        "Catalog will load here.",
+                      )
+                }
+              </div>`
             : filtered.length === 0
               ? (host._recipesCatalogSearch || "").trim()
-                ? x`<div class="catalog-loading">
-                  ${host._t(
-                    "recipes_catalog_no_matches_prefix",
-                    "No matches for",
-                  )}
-                  &ldquo;${host._recipesCatalogSearch}&rdquo;.
-                </div>`
-                : x`<div class="catalog-loading">
-                  ${host._t(
-                    "recipes_catalog_empty",
-                    "No recipes in this catalog yet.",
-                  )}
-                </div>`
+                ? b2`<div class="catalog-loading">
+                    ${host._t(
+                      "recipes_catalog_no_matches_prefix",
+                      "No matches for",
+                    )}
+                    &ldquo;${host._recipesCatalogSearch}&rdquo;.
+                  </div>`
+                : b2`<div class="catalog-loading">
+                    ${host._t(
+                      "recipes_catalog_empty",
+                      "No recipes in this catalog yet.",
+                    )}
+                  </div>`
               : _renderCatalogResults(host, filtered, installedSlugs)
       }
     </div>
@@ -40745,8 +40734,8 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
   let featured = [];
   let rest = browseable;
   if (!searching) {
-    const byDate = [...browseable].sort((a4, b2) =>
-      String(b2.released || "").localeCompare(String(a4.released || "")),
+    const byDate = [...browseable].sort((a3, b3) =>
+      String(b3.released || "").localeCompare(String(a3.released || "")),
     );
     featured = byDate.slice(0, 2);
     rest = byDate.slice(2);
@@ -40757,40 +40746,40 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
   const pageItems = rest.slice(start, start + _CATALOG_PAGE_SIZE);
   const card = (entry, isFeatured) =>
     _renderCatalogCard(host, entry, false, isFeatured);
-  return x`
+  return b2`
     ${
       featured.length
-        ? x`
-          <div class="recipes-section-title">
-            ${host._t("recipes_catalog_featured", "Featured")}
-          </div>
-          <div class="catalog-grid catalog-grid-featured">
-            ${featured.map((e6) => card(e6, true))}
-          </div>
-        `
+        ? b2`
+            <div class="recipes-section-title">
+              ${host._t("recipes_catalog_featured", "Featured")}
+            </div>
+            <div class="catalog-grid catalog-grid-featured">
+              ${featured.map((e6) => card(e6, true))}
+            </div>
+          `
         : ""
     }
     ${
       rest.length
-        ? x`
-          ${
-            !searching
-              ? x`<div class="recipes-section-title">
-                ${host._t("recipes_catalog_all", "Available recipes")}
-              </div>`
-              : ""
-          }
-          <div class="catalog-grid">
-            ${pageItems.map((e6) => card(e6, false))}
-          </div>
-          ${totalPages > 1 ? _renderCatalogPagination(host, page, totalPages) : ""}
-        `
+        ? b2`
+            ${
+              !searching
+                ? b2`<div class="recipes-section-title">
+                    ${host._t("recipes_catalog_all", "Available recipes")}
+                  </div>`
+                : ""
+            }
+            <div class="catalog-grid">
+              ${pageItems.map((e6) => card(e6, false))}
+            </div>
+            ${totalPages > 1 ? _renderCatalogPagination(host, page, totalPages) : ""}
+          `
         : ""
     }
   `;
 }
 function _renderCatalogPagination(host, page, totalPages) {
-  return x`
+  return b2`
     <div class="catalog-pagination">
       <button
         class="btn btn-outline"
@@ -40820,8 +40809,8 @@ function _recipeIntegrationBrands(entry) {
   for (const item of [...(entry.required || []), ...(entry.optional || [])]) {
     if (item && item.integration) domains.add(item.integration);
   }
-  for (const i5 of entry.integrations || []) {
-    if (i5 && i5.domain) domains.add(i5.domain);
+  for (const i7 of entry.integrations || []) {
+    if (i7 && i7.domain) domains.add(i7.domain);
   }
   for (const r4 of entry.roles || []) {
     if (r4 && r4.integration) domains.add(r4.integration);
@@ -40830,20 +40819,20 @@ function _recipeIntegrationBrands(entry) {
 }
 function _renderRecipeBrandStrip(brands) {
   if (!brands || !brands.length) return "";
-  return x`
+  return b2`
     <div class="recipe-brands">
       ${brands.map(
-        (b2) => x`<span class="recipe-brand" title=${b2.reason || b2.title}>
+        (b3) => b2`<span class="recipe-brand" title=${b3.reason || b3.title}>
             <img
               class="recipe-brand-logo"
-              src=${`https://brands.home-assistant.io/_/${b2.domain}/icon@2x.png`}
+              src=${`https://brands.home-assistant.io/_/${b3.domain}/icon@2x.png`}
               alt=""
               loading="lazy"
               @error=${(e6) => {
                 e6.target.style.display = "none";
               }}
             />
-            <span class="recipe-brand-name">${b2.title}</span>
+            <span class="recipe-brand-name">${b3.title}</span>
           </span>`,
       )}
     </div>
@@ -40864,7 +40853,7 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
   };
   const meta = entry.released || entry.author || "";
   const staging = host._recipesStagingSlug === slug;
-  return x`
+  return b2`
     <div
       class="catalog-card catalog-card-clickable ${featured ? "catalog-card-featured" : ""} ${staging ? "is-staging" : ""}"
       role="button"
@@ -40882,26 +40871,26 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
         <div class="catalog-card-pills">
           ${
             entry.category_title
-              ? x`<span class="catalog-card-category"
-                >${entry.category_title}</span
-              >`
+              ? b2`<span class="catalog-card-category"
+                  >${entry.category_title}</span
+                >`
               : ""
           }
         </div>
         ${
           staging
-            ? x`<ha-icon
-              class="catalog-card-spinner icon-spin"
-              icon="mdi:loading"
-            ></ha-icon>`
+            ? b2`<ha-icon
+                class="catalog-card-spinner icon-spin"
+                icon="mdi:loading"
+              ></ha-icon>`
             : ""
         }
         ${
           installed
-            ? x`<span class="catalog-installed-badge">
-              <ha-icon icon="mdi:check"></ha-icon>
-              ${host._t("recipes_card_installed_badge", "Installed")}
-            </span>`
+            ? b2`<span class="catalog-installed-badge">
+                <ha-icon icon="mdi:check"></ha-icon>
+                ${host._t("recipes_card_installed_badge", "Installed")}
+              </span>`
             : ""
         }
       </div>
@@ -40909,19 +40898,21 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
       <div class="catalog-card-meta">
         v${entry.version}${meta ? ` \xB7 ${meta}` : ""}
       </div>
-      ${entry.description ? x`<div class="catalog-card-desc">${entry.description}</div>` : ""}
+      ${entry.description ? b2`<div class="catalog-card-desc">${entry.description}</div>` : ""}
       ${
         entry.tags?.length
-          ? x`<div class="catalog-card-tags">
-            ${entry.tags.map((t4) => x`<span class="catalog-tag">${t4}</span>`)}
-          </div>`
+          ? b2`<div class="catalog-card-tags">
+              ${entry.tags.map(
+                (t5) => b2`<span class="catalog-tag">${t5}</span>`,
+              )}
+            </div>`
           : ""
       }
       ${
         _recipeIntegrationBrands(entry).length
-          ? x`<div class="catalog-card-footer">
-            ${_renderRecipeBrandStrip(_recipeIntegrationBrands(entry))}
-          </div>`
+          ? b2`<div class="catalog-card-footer">
+              ${_renderRecipeBrandStrip(_recipeIntegrationBrands(entry))}
+            </div>`
           : ""
       }
     </div>
@@ -40940,33 +40931,33 @@ function _renderInputField(host, input) {
     host._updateRecipeInput(input.id, v2);
   };
   if (input.type === "boolean") {
-    return x`
+    return b2`
       <div class="wizard-field">
         <label style="display:flex;gap:8px;align-items:center;">
           <input type="checkbox" .checked=${!!value} @change=${onInput} />
           ${input.label}
         </label>
-        ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
+        ${input.description ? b2`<span class="hint">${input.description}</span>` : ""}
       </div>
     `;
   }
   if (input.type === "select") {
-    return x`
+    return b2`
       <div class="wizard-field">
         <label>${input.label}</label>
-        ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
+        ${input.description ? b2`<span class="hint">${input.description}</span>` : ""}
         <select .value=${String(value ?? "")} @change=${onInput}>
           ${(input.choices || []).map(
-            (choice) => x`<option value=${choice}>${choice}</option>`,
+            (choice) => b2`<option value=${choice}>${choice}</option>`,
           )}
         </select>
       </div>
     `;
   }
-  return x`
+  return b2`
     <div class="wizard-field">
       <label>${input.label}</label>
-      ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
+      ${input.description ? b2`<span class="hint">${input.description}</span>` : ""}
       <input
         type=${input.type === "number" ? "number" : "text"}
         .value=${String(value ?? "")}
@@ -41031,16 +41022,16 @@ function _navigateInHA(path) {
 }
 function _renderPunchList(host, items) {
   if (!items || items.length === 0) return "";
-  return x`
+  return b2`
     <div class="wizard-section">
       <h3>${host._t("recipes_punch_list_title", "Punch list")}</h3>
       <div class="punch">
         ${items.map(
-          (item) => x`
+          (item) => b2`
             <div class="punch-item">
               <span class="stage-pill">${item.stage}</span>
               <div>
-                ${item.target ? x`<strong>${item.target}</strong>: ` : ""}${item.message}
+                ${item.target ? b2`<strong>${item.target}</strong>: ` : ""}${item.message}
               </div>
             </div>
           `,
@@ -41072,13 +41063,13 @@ function _statusLabel(host, status) {
 function _activeItem(host, items) {
   if (!items?.length) return null;
   if (host._recipeActiveItemId) {
-    const found = items.find((i5) => i5.id === host._recipeActiveItemId);
+    const found = items.find((i7) => i7.id === host._recipeActiveItemId);
     if (found) return found;
   }
   return (
-    items.find((i5) => i5.status === "needs_input" || i5.status === "failed") ||
-    items.find((i5) => i5.status === "running") ||
-    items.find((i5) => i5.status === "pending") ||
+    items.find((i7) => i7.status === "needs_input" || i7.status === "failed") ||
+    items.find((i7) => i7.status === "running") ||
+    items.find((i7) => i7.status === "pending") ||
     items[items.length - 1]
   );
 }
@@ -41092,20 +41083,20 @@ function _renderActionPanel(host, item) {
   return _renderSystemPanel(host, item);
 }
 function _panelShell(host, title, statusKind, body, footer) {
-  return x`
+  return b2`
     <div class="panel-shell">
       <div class="panel-head">
         <div class="panel-title">${title}</div>
         ${
           statusKind
-            ? x`<span class="panel-status ${statusKind}"
-              >${_statusLabel(host, statusKind)}</span
-            >`
+            ? b2`<span class="panel-status ${statusKind}"
+                >${_statusLabel(host, statusKind)}</span
+              >`
             : ""
         }
       </div>
       <div class="panel-body">${body}</div>
-      ${footer ? x`<div class="panel-footer">${footer}</div>` : ""}
+      ${footer ? b2`<div class="panel-footer">${footer}</div>` : ""}
     </div>
   `;
 }
@@ -41115,8 +41106,8 @@ function _renderSystemPanel(host, item) {
     item.title,
     item.status,
     item.detail
-      ? x`<p class="panel-prose">${item.detail}</p>`
-      : x`<p class="panel-prose panel-muted">
+      ? b2`<p class="panel-prose">${item.detail}</p>`
+      : b2`<p class="panel-prose panel-muted">
           ${host._t(
             "recipes_system_panel_auto",
             "This step runs automatically. No action needed from you.",
@@ -41131,7 +41122,7 @@ function _renderInputsPanel(host, item) {
     host,
     host._t("recipes_inputs_panel_title", "Recipe settings"),
     item.status,
-    x`<div class="panel-fields">
+    b2`<div class="panel-fields">
       ${inputs.map((input) => _renderInputField(host, input))}
     </div>`,
     null,
@@ -41173,7 +41164,7 @@ function _renderRoleSelectionPanel(host, item) {
       })
     : candidatesT;
   const ordered = [...matched].sort(
-    (a4, b2) => (selected.has(b2) ? 1 : 0) - (selected.has(a4) ? 1 : 0),
+    (a3, b3) => (selected.has(b3) ? 1 : 0) - (selected.has(a3) ? 1 : 0),
   );
   const CHIP_CAP = 12;
   const expanded = !!host._recipeRoleExpanded?.[roleId] || !!filterText;
@@ -41187,135 +41178,137 @@ function _renderRoleSelectionPanel(host, item) {
     host,
     `${host._t("recipes_role_pick_prefix", "Pick:")} ${item.title}`,
     item.status,
-    x`
-      ${role.description ? x`<p class="panel-prose">${role.description}</p>` : ""}
+    b2`
+      ${role.description ? b2`<p class="panel-prose">${role.description}</p>` : ""}
       ${
         pinned.length > 0
-          ? x`
-            <div class="panel-prose panel-muted">
-              ${pinned.length}
-              ${host._t(
-                "recipes_role_pinned_count_suffix",
-                "pinned by the recipe (always included).",
-              )}
-            </div>
-            <div class="panel-chips">
-              ${pinned.map(
-                (id) => x`
-                  <span class="role-entity-chip is-pinned" title=${id}>
-                    <span class="chip-icon-tile">
-                      <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
-                    </span>
-                    <span class="chip-text">
-                      <span class="chip-name">
-                        ${_entityFriendlyName(host.hass, id)}
-                        <ha-icon
-                          class="pin-badge"
-                          icon="mdi:lock-outline"
-                        ></ha-icon>
+          ? b2`
+              <div class="panel-prose panel-muted">
+                ${pinned.length}
+                ${host._t(
+                  "recipes_role_pinned_count_suffix",
+                  "pinned by the recipe (always included).",
+                )}
+              </div>
+              <div class="panel-chips">
+                ${pinned.map(
+                  (id) => b2`
+                    <span class="role-entity-chip is-pinned" title=${id}>
+                      <span class="chip-icon-tile">
+                        <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
                       </span>
-                      <span class="chip-id">${id}</span>
+                      <span class="chip-text">
+                        <span class="chip-name">
+                          ${_entityFriendlyName(host.hass, id)}
+                          <ha-icon
+                            class="pin-badge"
+                            icon="mdi:lock-outline"
+                          ></ha-icon>
+                        </span>
+                        <span class="chip-id">${id}</span>
+                      </span>
                     </span>
-                  </span>
-                `,
-              )}
-            </div>
-          `
+                  `,
+                )}
+              </div>
+            `
           : ""
       }
       ${
         candidates.length > 0
-          ? x`
-            <p class="panel-prose panel-muted">
-              ${host._t("recipes_role_pick_one_or_more", "Pick one or more")}
-              ${filterLabel}${role.max_count ? ` (${host._t("recipes_role_up_to", "up to")} ${role.max_count})` : ""}.
-              ${host._t(
-                "recipes_role_run_against",
-                "Selora will run the recipe against the ones you tick.",
-              )}
-            </p>
-            ${
-              showFilter
-                ? x`<input
-                  class="role-filter-input"
-                  type="text"
-                  .value=${host._recipeRoleFilters?.[roleId] || ""}
-                  placeholder=${host._t(
-                    "recipes_role_filter_placeholder",
-                    "Filter by name\u2026",
-                  )}
-                  @input=${(e6) => host._setRecipeRoleFilter(roleId, e6.target.value)}
-                />`
-                : ""
-            }
-            ${
-              ordered.length === 0
-                ? x`<p class="panel-prose panel-muted">
-                  ${host._t(
-                    "recipes_role_filter_no_matches",
-                    "No entities match your filter.",
-                  )}
-                </p>`
-                : x`
-                  <div class="panel-chips">
-                    ${shown.map((id) => {
-                      const on = selected.has(id);
-                      return x`
-                        <button
-                          class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
-                          type="button"
-                          title=${id}
-                          @click=${() =>
-                            host._toggleRecipeRoleEntity(
-                              role.id,
-                              id,
-                              role.max_count,
-                            )}
-                          ?disabled=${host._recipesBusy}
-                        >
-                          <span class="chip-icon-tile">
-                            <ha-icon
-                              icon=${_entityIcon2(host.hass, id)}
-                            ></ha-icon>
-                          </span>
-                          <span class="chip-text">
-                            <span class="chip-name">
-                              ${_entityFriendlyName(host.hass, id)}
-                            </span>
-                            <span class="chip-id">${id}</span>
-                          </span>
-                        </button>
-                      `;
-                    })}
-                  </div>
-                  ${
-                    hiddenCount > 0
-                      ? x`<button
-                        class="role-show-more"
-                        type="button"
-                        @click=${() => host._toggleRecipeRoleExpanded(roleId)}
-                      >
-                        ${host._t("recipes_role_show_all", "Show all")}
-                        (${ordered.length})
-                      </button>`
-                      : expanded && !filterText && candidatesT.length > CHIP_CAP
-                        ? x`<button
-                          class="role-show-more"
-                          type="button"
-                          @click=${() => host._toggleRecipeRoleExpanded(roleId)}
-                        >
-                          ${host._t("recipes_role_show_less", "Show less")}
-                        </button>`
-                        : ""
-                  }
-                `
-            }
-          `
+          ? b2`
+              <p class="panel-prose panel-muted">
+                ${host._t("recipes_role_pick_one_or_more", "Pick one or more")}
+                ${filterLabel}${role.max_count ? ` (${host._t("recipes_role_up_to", "up to")} ${role.max_count})` : ""}.
+                ${host._t(
+                  "recipes_role_run_against",
+                  "Selora will run the recipe against the ones you tick.",
+                )}
+              </p>
+              ${
+                showFilter
+                  ? b2`<input
+                      class="role-filter-input"
+                      type="text"
+                      .value=${host._recipeRoleFilters?.[roleId] || ""}
+                      placeholder=${host._t(
+                        "recipes_role_filter_placeholder",
+                        "Filter by name\u2026",
+                      )}
+                      @input=${(e6) => host._setRecipeRoleFilter(roleId, e6.target.value)}
+                    />`
+                  : ""
+              }
+              ${
+                ordered.length === 0
+                  ? b2`<p class="panel-prose panel-muted">
+                      ${host._t(
+                        "recipes_role_filter_no_matches",
+                        "No entities match your filter.",
+                      )}
+                    </p>`
+                  : b2`
+                      <div class="panel-chips">
+                        ${shown.map((id) => {
+                          const on = selected.has(id);
+                          return b2`
+                            <button
+                              class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
+                              type="button"
+                              title=${id}
+                              @click=${() =>
+                                host._toggleRecipeRoleEntity(
+                                  role.id,
+                                  id,
+                                  role.max_count,
+                                )}
+                              ?disabled=${host._recipesBusy}
+                            >
+                              <span class="chip-icon-tile">
+                                <ha-icon
+                                  icon=${_entityIcon2(host.hass, id)}
+                                ></ha-icon>
+                              </span>
+                              <span class="chip-text">
+                                <span class="chip-name">
+                                  ${_entityFriendlyName(host.hass, id)}
+                                </span>
+                                <span class="chip-id">${id}</span>
+                              </span>
+                            </button>
+                          `;
+                        })}
+                      </div>
+                      ${
+                        hiddenCount > 0
+                          ? b2`<button
+                              class="role-show-more"
+                              type="button"
+                              @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                            >
+                              ${host._t("recipes_role_show_all", "Show all")}
+                              (${ordered.length})
+                            </button>`
+                          : expanded &&
+                              !filterText &&
+                              candidatesT.length > CHIP_CAP
+                            ? b2`<button
+                                class="role-show-more"
+                                type="button"
+                                @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                              >
+                                ${host._t("recipes_role_show_less", "Show less")}
+                              </button>`
+                            : ""
+                      }
+                    `
+              }
+            `
           : ""
       }
     `,
     candidates.length === 0
-      ? x`
+      ? b2`
           <div class="role-empty-help">
             <ha-icon icon="mdi:radar" class="role-empty-icon"></ha-icon>
             <div class="role-empty-body">
@@ -41326,7 +41319,7 @@ function _renderRoleSelectionPanel(host, item) {
               </div>
               <p class="role-empty-prose">
                 ${host._t("recipes_role_empty_pair", "Pair")}
-                ${role.min_count > 0 ? x`${host._t("recipes_role_empty_at_least", "at least")} ` : ""}${host._t(
+                ${role.min_count > 0 ? b2`${host._t("recipes_role_empty_at_least", "at least")} ` : ""}${host._t(
                   "recipes_role_empty_one_prose",
                   "one and it'll appear here automatically \u2014 you can leave this page to add a device and the wizard keeps your progress on Back.",
                 )}
@@ -41376,8 +41369,8 @@ function _renderPinPanel(host, item) {
     host,
     item.title,
     item.status,
-    x`
-      ${model ? x`<div class="panel-prose panel-muted">${model}</div>` : ""}
+    b2`
+      ${model ? b2`<div class="panel-prose panel-muted">${model}</div>` : ""}
       <p class="panel-prose">${action}</p>
       <p class="panel-prose panel-muted">
         ${host._t("recipes_pin_expected_entity", "Expected entity id:")}
@@ -41390,7 +41383,7 @@ function _renderPinPanel(host, item) {
         )}
       </p>
     `,
-    x`
+    b2`
       <button
         class="panel-btn primary"
         type="button"
@@ -41430,20 +41423,20 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       item.status,
-      x`
+      b2`
         <p class="panel-prose">
           ${label}
           ${host._t("recipes_integration_ready", "is set up and ready to use.")}
         </p>
         ${
           entryTitle
-            ? x`<div class="integration-entry-meta">
-              <ha-icon icon="mdi:identifier"></ha-icon>
-              <span class="panel-muted"
-                >${host._t("recipes_integration_entry_label", "Entry:")}</span
-              >
-              <code>${entryTitle}</code>
-            </div>`
+            ? b2`<div class="integration-entry-meta">
+                <ha-icon icon="mdi:identifier"></ha-icon>
+                <span class="panel-muted"
+                  >${host._t("recipes_integration_entry_label", "Entry:")}</span
+                >
+                <code>${entryTitle}</code>
+              </div>`
             : ""
         }
         <p class="panel-prose panel-muted">
@@ -41453,7 +41446,7 @@ function _renderIntegrationPanel(host, item) {
           )}
         </p>
       `,
-      x`
+      b2`
         <button
           class="panel-btn secondary"
           type="button"
@@ -41471,13 +41464,13 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       item.status,
-      x`
+      b2`
         <p class="panel-prose">
           ${autoSetup ? `${item.title} ${host._t("recipes_integration_autosetup_prose", "can be set up automatically using your Home Assistant location. No questions for you to answer.")}` : `${item.title} ${host._t("recipes_integration_needs_setup_prose", "needs to be set up before this recipe can install. You can start it without leaving this page.")}`}
         </p>
-        ${flow?.error ? x`<div class="panel-error">${flow.error}</div>` : ""}
+        ${flow?.error ? b2`<div class="panel-error">${flow.error}</div>` : ""}
       `,
-      x`
+      b2`
         <button
           class="panel-btn primary"
           type="button"
@@ -41486,10 +41479,10 @@ function _renderIntegrationPanel(host, item) {
         >
           ${
             host._recipesBusy
-              ? x`<span class="spinner"></span>`
-              : x`<ha-icon
-                icon=${autoSetup ? "mdi:auto-fix" : "mdi:play"}
-              ></ha-icon>`
+              ? b2`<span class="spinner"></span>`
+              : b2`<ha-icon
+                  icon=${autoSetup ? "mdi:auto-fix" : "mdi:play"}
+                ></ha-icon>`
           }
           ${
             host._recipesBusy
@@ -41524,7 +41517,7 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       "failed",
-      x`<p class="panel-prose">
+      b2`<p class="panel-prose">
         ${
           flow.error ||
           host._t(
@@ -41533,7 +41526,7 @@ function _renderIntegrationPanel(host, item) {
           )
         }
       </p>`,
-      x`
+      b2`
         <button
           class="panel-btn secondary"
           type="button"
@@ -41549,7 +41542,7 @@ function _renderIntegrationPanel(host, item) {
       host,
       item.title,
       "ok",
-      x`<p class="panel-prose">
+      b2`<p class="panel-prose">
         ${copy?.label || domain}
         ${host._t(
           "recipes_integration_was_set_up",
@@ -41563,7 +41556,7 @@ function _renderIntegrationPanel(host, item) {
     host,
     item.title,
     "running",
-    x`<p>${host._t("recipes_working", "Working\u2026")}</p>`,
+    b2`<p>${host._t("recipes_working", "Working\u2026")}</p>`,
     null,
   );
 }
@@ -41575,23 +41568,23 @@ function _renderFlowForm(host, item, flow) {
     host,
     item.title,
     "needs_input",
-    x`
-      ${flow.step?.description ? x`<p class="panel-prose">${flow.step.description}</p>` : ""}
-      ${errors.base ? x`<div class="panel-error">${errors.base}</div>` : ""}
+    b2`
+      ${flow.step?.description ? b2`<p class="panel-prose">${flow.step.description}</p>` : ""}
+      ${errors.base ? b2`<div class="panel-error">${errors.base}</div>` : ""}
       <div class="panel-fields">
-        ${fields.map((f2) =>
+        ${fields.map((f3) =>
           _renderFlowField(
             host,
             item,
             flow,
-            f2,
-            values[f2.name],
-            errors[f2.name],
+            f3,
+            values[f3.name],
+            errors[f3.name],
           ),
         )}
       </div>
     `,
-    x`
+    b2`
       <button
         class="panel-btn secondary"
         type="button"
@@ -41621,49 +41614,49 @@ function _renderFlowField(host, item, flow, field, value, error) {
   const ftype = field.type || (field.selector ? "select" : "string");
   let control;
   if (ftype === "boolean") {
-    control = x`<input
+    control = b2`<input
       type="checkbox"
       .checked=${value ?? field.default ?? false}
       @change=${(e6) => update(e6.target.checked)}
     />`;
   } else if (ftype === "integer" || ftype === "number") {
-    control = x`<input
+    control = b2`<input
       type="number"
       .value=${String(value ?? field.default ?? "")}
       @input=${(e6) => update(e6.target.value === "" ? null : Number(e6.target.value))}
     />`;
   } else if (field.options || ftype === "select") {
-    control = x`<select
+    control = b2`<select
       .value=${String(value ?? field.default ?? "")}
       @change=${(e6) => update(e6.target.value)}
     >
       ${(field.options || []).map(
-        (opt) => x`
+        (opt) => b2`
           <option value=${opt.value ?? opt}>${opt.label ?? opt}</option>
         `,
       )}
     </select>`;
   } else {
-    control = x`<input
+    control = b2`<input
       type="text"
       .value=${String(value ?? field.default ?? "")}
       @input=${(e6) => update(e6.target.value)}
     />`;
   }
-  return x`
+  return b2`
     <label class="panel-field">
       <span class="panel-field-label">
         ${field.description || field.name}
         ${
           field.required === false
-            ? x`<em class="panel-field-optional"
-              >${host._t("recipes_field_optional", "(optional)")}</em
-            >`
+            ? b2`<em class="panel-field-optional"
+                >${host._t("recipes_field_optional", "(optional)")}</em
+              >`
             : ""
         }
       </span>
       ${control}
-      ${error ? x`<span class="panel-field-error">${error}</span>` : ""}
+      ${error ? b2`<span class="panel-field-error">${error}</span>` : ""}
     </label>
   `;
 }
@@ -41676,7 +41669,7 @@ function _stepLabels(host) {
     host._t("recipes_step_activate", "Activate"),
   ];
 }
-function _humaniseSection(host, key, n5) {
+function _humaniseSection(host, key, n4) {
   const map = {
     automation: [
       host._t("recipes_section_automation_singular", "automation"),
@@ -41772,7 +41765,7 @@ function _humaniseSection(host, key, n5) {
     ],
   };
   const [singular, plural] = map[key] || [key, key];
-  return `${n5} ${n5 === 1 ? singular : plural}`;
+  return `${n4} ${n4 === 1 ? singular : plural}`;
 }
 function _roleIconForKind(role) {
   const k2 = role.kind || "";
@@ -41818,8 +41811,8 @@ function _renderWhatYouNeedRail(host, manifest) {
   const optional = roles.filter((r4) => (r4.min_count || 0) === 0);
   const hasPin = (role) => Boolean((manifest.bindings || {})[role.id]?.length);
   const brandMap = /* @__PURE__ */ new Map();
-  for (const i5 of integrations) {
-    if (i5.domain) brandMap.set(i5.domain, i5.title || i5.domain);
+  for (const i7 of integrations) {
+    if (i7.domain) brandMap.set(i7.domain, i7.title || i7.domain);
   }
   for (const r4 of roles) {
     if (r4.integration && !brandMap.has(r4.integration)) {
@@ -41827,28 +41820,28 @@ function _renderWhatYouNeedRail(host, manifest) {
     }
   }
   const brands = [...brandMap].map(([domain, title]) => ({ domain, title }));
-  return x`
+  return b2`
     <aside class="need-rail">
       <div class="need-rail-title">
         ${host._t("recipes_what_you_need_title", "What you need")}
       </div>
       ${
         brands.length
-          ? x`<div class="need-integrations">
-            ${brands.map((b2) => _renderIntegrationBanner(host, b2))}
-          </div>`
+          ? b2`<div class="need-integrations">
+              ${brands.map((b3) => _renderIntegrationBanner(host, b3))}
+            </div>`
           : ""
       }
       <div class="need-rail-list">
         ${required.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
         ${
           optional.length
-            ? x`
-              <div class="need-rail-eyebrow">
-                ${host._t("recipes_optional_eyebrow", "Optional")}
-              </div>
-              ${optional.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
-            `
+            ? b2`
+                <div class="need-rail-eyebrow">
+                  ${host._t("recipes_optional_eyebrow", "Optional")}
+                </div>
+                ${optional.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
+              `
             : ""
         }
       </div>
@@ -41857,7 +41850,7 @@ function _renderWhatYouNeedRail(host, manifest) {
 }
 function _renderIntegrationBanner(host, brand) {
   const iconUrl = `https://brands.home-assistant.io/_/${brand.domain}/icon@2x.png`;
-  return x`
+  return b2`
     <div class="need-integration">
       <div class="need-integration-logo-wrap">
         <img
@@ -41886,14 +41879,14 @@ function _renderIntegrationBanner(host, brand) {
 function _renderNeedRoleCard(role, pinned) {
   const count = role.min_count > 1 ? `${role.min_count}+ ` : "";
   const variant = pinned ? "pin" : "role";
-  return x`
+  return b2`
     <div class="need-card">
       <div class="need-card-icon need-card-icon--${variant}">
         <ha-icon icon=${_roleIconForKind(role)}></ha-icon>
       </div>
       <div class="need-card-body">
         <div class="need-card-title">${count}${role.title || role.id}</div>
-        ${role.description ? x`<div class="need-card-desc">${role.description}</div>` : ""}
+        ${role.description ? b2`<div class="need-card-desc">${role.description}</div>` : ""}
       </div>
     </div>
   `;
@@ -41901,7 +41894,7 @@ function _renderNeedRoleCard(role, pinned) {
 function _renderWizardStepper(host) {
   const current = host._recipeWizardStep || 1;
   const labels = _stepLabels(host).slice(1);
-  return x`
+  return b2`
     <aside class="step-rail">
       <div class="step-rail-title">
         ${host._t("recipes_progress_title", "Progress")}
@@ -41923,7 +41916,7 @@ function _renderWizardStepper(host) {
               : state === "current"
                 ? "mdi:circle-slice-8"
                 : "mdi:circle-outline";
-          return x`
+          return b2`
             <button
               class="step-rail-row step-${state}"
               type="button"
@@ -41944,7 +41937,7 @@ function _renderWizardFooter(host, opts) {
   const current = host._recipeWizardStep || 1;
   const { primary, primaryDisabled, hint, hideBack, hideSecondary } =
     opts || {};
-  return x`
+  return b2`
     <div class="step-footer">
       <div class="step-footer-hint">${hint || ""}</div>
       <div class="step-footer-actions">
@@ -41952,32 +41945,32 @@ function _renderWizardFooter(host, opts) {
           hideSecondary
             ? ""
             : current > 1 && !hideBack
-              ? x`<button
-                class="panel-btn secondary"
-                type="button"
-                @click=${() => host._retreatRecipeStep()}
-              >
-                ${host._t("recipes_footer_back", "Back")}
-              </button>`
-              : x`<button
-                class="panel-btn secondary"
-                type="button"
-                @click=${() => host._closeRecipeWizard()}
-              >
-                ${host._t("recipes_footer_cancel", "Cancel")}
-              </button>`
+              ? b2`<button
+                  class="panel-btn secondary"
+                  type="button"
+                  @click=${() => host._retreatRecipeStep()}
+                >
+                  ${host._t("recipes_footer_back", "Back")}
+                </button>`
+              : b2`<button
+                  class="panel-btn secondary"
+                  type="button"
+                  @click=${() => host._closeRecipeWizard()}
+                >
+                  ${host._t("recipes_footer_cancel", "Cancel")}
+                </button>`
         }
         ${
           primary
-            ? x`<button
-              class="panel-btn primary"
-              type="button"
-              ?disabled=${primaryDisabled}
-              @click=${primary.onClick}
-            >
-              ${primary.label}
-              ${primary.icon ? x`<ha-icon icon=${primary.icon}></ha-icon>` : ""}
-            </button>`
+            ? b2`<button
+                class="panel-btn primary"
+                type="button"
+                ?disabled=${primaryDisabled}
+                @click=${primary.onClick}
+              >
+                ${primary.label}
+                ${primary.icon ? b2`<ha-icon icon=${primary.icon}></ha-icon>` : ""}
+              </button>`
             : ""
         }
       </div>
@@ -41987,7 +41980,7 @@ function _renderWizardFooter(host, opts) {
 function _renderWizardHero(host, manifest, opts) {
   const compact = opts?.compact === true;
   if (compact) {
-    return x`
+    return b2`
       <div class="wizard-header wizard-header-compact">
         <button
           class="wizard-back-compact"
@@ -42001,9 +41994,9 @@ function _renderWizardHero(host, manifest, opts) {
           <div class="wizard-compact-title">${manifest.title}</div>
           ${
             manifest.version
-              ? x`<div class="wizard-compact-version">
-                v${manifest.version}
-              </div>`
+              ? b2`<div class="wizard-compact-version">
+                  v${manifest.version}
+                </div>`
               : ""
           }
         </div>
@@ -42017,7 +42010,7 @@ function _renderWizardHero(host, manifest, opts) {
         day: "numeric",
       })
     : null;
-  return x`
+  return b2`
     <div class="wizard-header">
       <div class="wizard-hero">
         <div class="wizard-eyebrow">
@@ -42027,44 +42020,43 @@ function _renderWizardHero(host, manifest, opts) {
           >
           ${
             manifest.version
-              ? x`<span class="wizard-eyebrow-sep">·</span>
-                <span class="wizard-eyebrow-meta">v${manifest.version}</span>`
+              ? b2`<span class="wizard-eyebrow-sep">·</span>
+                  <span class="wizard-eyebrow-meta">v${manifest.version}</span>`
               : ""
           }
           ${
             released
-              ? x`<span class="wizard-eyebrow-sep">·</span>
-                <span class="wizard-eyebrow-meta"
-                  >${host._t("recipes_eyebrow_released", "Released")}
-                  ${released}</span
-                >`
+              ? b2`<span class="wizard-eyebrow-sep">·</span>
+                  <span class="wizard-eyebrow-meta"
+                    >${host._t("recipes_eyebrow_released", "Released")}
+                    ${released}</span
+                  >`
               : ""
           }
         </div>
         <div class="wizard-hero-title">${manifest.title}</div>
-        ${manifest.tagline ? x`<div class="wizard-hero-tagline">${manifest.tagline}</div>` : ""}
+        ${manifest.tagline ? b2`<div class="wizard-hero-tagline">${manifest.tagline}</div>` : ""}
         ${
           manifest.tags?.length
-            ? x`
-              <div class="wizard-hero-tags">
-                ${manifest.tags.map(
-                  (
-                    t4,
-                    idx,
-                  ) => x`<span class="wizard-tag ${idx === 0 ? "primary" : ""}">
-                      ${idx === 0 ? x`<ha-icon icon="mdi:bookmark"></ha-icon>` : ""}
-                      ${t4}
-                    </span>`,
-                )}
-              </div>
-            `
+            ? b2`
+                <div class="wizard-hero-tags">
+                  ${manifest.tags.map(
+                    (t5, idx) => b2`<span
+                        class="wizard-tag ${idx === 0 ? "primary" : ""}"
+                      >
+                        ${idx === 0 ? b2`<ha-icon icon="mdi:bookmark"></ha-icon>` : ""}
+                        ${t5}
+                      </span>`,
+                  )}
+                </div>
+              `
             : ""
         }
         ${
           manifest.description
-            ? x`<div class="wizard-hero-description">
-              ${manifest.description}
-            </div>`
+            ? b2`<div class="wizard-hero-description">
+                ${manifest.description}
+              </div>`
             : ""
         }
       </div>
@@ -42073,7 +42065,7 @@ function _renderWizardHero(host, manifest, opts) {
 }
 function _renderStep1Overview(host) {
   const { manifest } = host._recipeWizardDetail;
-  const backLink = x`<button
+  const backLink = b2`<button
     class="wizard-back"
     @click=${() => host._closeRecipeWizard()}
   >
@@ -42084,7 +42076,7 @@ function _renderStep1Overview(host) {
     (r4) => r4.slug === manifest.slug,
   );
   if (record) {
-    return x`
+    return b2`
       <div class="step-pane">
         ${_renderInstalledDetails(host, record, null, { asCard: true })}
         <div class="overview-actions">
@@ -42092,16 +42084,16 @@ function _renderStep1Overview(host) {
           <div class="overview-actions-group">
             ${
               manifest.binding_mode === "group"
-                ? x`<button
-                  class="btn btn-outline"
-                  @click=${() => host._openManageDevices(manifest.slug)}
-                  ?disabled=${host._recipesBusy}
-                >
-                  ${host._t(
-                    "recipes_card_manage_devices_button",
-                    "Manage devices",
-                  )}
-                </button>`
+                ? b2`<button
+                    class="btn btn-outline"
+                    @click=${() => host._openManageDevices(manifest.slug)}
+                    ?disabled=${host._recipesBusy}
+                  >
+                    ${host._t(
+                      "recipes_card_manage_devices_button",
+                      "Manage devices",
+                    )}
+                  </button>`
                 : ""
             }
             <button
@@ -42126,27 +42118,27 @@ function _renderStep1Overview(host) {
   const preview = host._recipeWizardPreview;
   const counts = preview?.preview?.created_counts || {};
   const bullets = Object.entries(counts)
-    .filter(([, n5]) => n5 > 0)
-    .map(([k2, n5]) => _humaniseSection(host, k2, n5));
-  return x`
+    .filter(([, n4]) => n4 > 0)
+    .map(([k2, n4]) => _humaniseSection(host, k2, n4));
+  return b2`
     <div class="step-pane">
       ${
         bullets.length
-          ? x`
-            <section class="overview-card">
-              <h3 class="overview-card-title">
-                ${host._t("recipes_this_recipe_creates", "This recipe creates")}
-              </h3>
-              <ul class="overview-list">
-                ${bullets.map(
-                  (b2) => x`<li>
-                      <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                      ${b2[0].toUpperCase() + b2.slice(1)}
-                    </li>`,
-                )}
-              </ul>
-            </section>
-          `
+          ? b2`
+              <section class="overview-card">
+                <h3 class="overview-card-title">
+                  ${host._t("recipes_this_recipe_creates", "This recipe creates")}
+                </h3>
+                <ul class="overview-list">
+                  ${bullets.map(
+                    (b3) => b2`<li>
+                        <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+                        ${b3[0].toUpperCase() + b3.slice(1)}
+                      </li>`,
+                  )}
+                </ul>
+              </section>
+            `
           : ""
       }
       <div class="overview-actions">
@@ -42154,9 +42146,9 @@ function _renderStep1Overview(host) {
         <div class="overview-actions-group">
           ${
             host._recipesBusy
-              ? x`<span class="overview-actions-hint"
-                >${host._t("recipes_loading_recipe", "Loading recipe\u2026")}</span
-              >`
+              ? b2`<span class="overview-actions-hint"
+                  >${host._t("recipes_loading_recipe", "Loading recipe\u2026")}</span
+                >`
               : ""
           }
           <button
@@ -42174,7 +42166,7 @@ function _renderStep1Overview(host) {
 }
 function _renderStepHeading(host, stepNum, label, subline, required) {
   const displayNum = stepNum - 1;
-  return x`
+  return b2`
     <header class="step-heading">
       <div class="step-heading-eyebrow">
         <span class="step-heading-num"
@@ -42183,26 +42175,26 @@ function _renderStepHeading(host, stepNum, label, subline, required) {
         >
         ${
           required === false
-            ? x`<span class="step-heading-optional"
-              >${host._t("recipes_optional_eyebrow", "Optional")}</span
-            >`
-            : required === true
-              ? x`<span class="step-heading-required"
-                >${host._t("recipes_required_eyebrow", "Required")}</span
+            ? b2`<span class="step-heading-optional"
+                >${host._t("recipes_optional_eyebrow", "Optional")}</span
               >`
+            : required === true
+              ? b2`<span class="step-heading-required"
+                  >${host._t("recipes_required_eyebrow", "Required")}</span
+                >`
               : ""
         }
       </div>
       <h2 class="step-heading-title">${label}</h2>
-      ${subline ? x`<p class="step-heading-sub">${subline}</p>` : ""}
+      ${subline ? b2`<p class="step-heading-sub">${subline}</p>` : ""}
     </header>
   `;
 }
 function _renderStep2Settings(host) {
   const { manifest } = host._recipeWizardDetail;
-  const inputs = (manifest.inputs || []).filter((i5) => !i5.resolver);
-  const required = inputs.some((i5) => i5.required !== false);
-  return x`
+  const inputs = (manifest.inputs || []).filter((i7) => !i7.resolver);
+  const required = inputs.some((i7) => i7.required !== false);
+  return b2`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -42222,13 +42214,13 @@ function _renderStep2Settings(host) {
       ${
         inputs.length === 0
           ? ""
-          : x`
-            <section class="overview-card">
-              <div class="panel-fields">
-                ${inputs.map((input) => _renderInputField(host, input))}
-              </div>
-            </section>
-          `
+          : b2`
+              <section class="overview-card">
+                <div class="panel-fields">
+                  ${inputs.map((input) => _renderInputField(host, input))}
+                </div>
+              </section>
+            `
       }
       ${_renderWizardFooter(host, {
         primary: {
@@ -42250,7 +42242,7 @@ function _step3BlockReason(host, preview, needsAction) {
     );
   }
   const punch = (preview?.punch_list || []).find(
-    (p2) => p2.code !== "binding_pending" && p2.message,
+    (p4) => p4.code !== "binding_pending" && p4.message,
   );
   if (punch?.message) return punch.message;
   return host._t(
@@ -42273,7 +42265,7 @@ function _renderStep3Match(host) {
   const needsAction = matchItems.some(
     (it) => it.status === "needs_input" || it.status === "failed",
   );
-  return x`
+  return b2`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -42294,19 +42286,19 @@ function _renderStep3Match(host) {
         </div>
         ${
           matchItems.length === 0
-            ? x`<div class="match-empty">
-              ${
-                host._recipesBusy
-                  ? host._t(
-                      "recipes_match_scanning",
-                      "Scanning your home\u2026",
-                    )
-                  : host._t(
-                      "recipes_match_nothing",
-                      "Nothing to match \u2014 this recipe runs without device setup.",
-                    )
-              }
-            </div>`
+            ? b2`<div class="match-empty">
+                ${
+                  host._recipesBusy
+                    ? host._t(
+                        "recipes_match_scanning",
+                        "Scanning your home\u2026",
+                      )
+                    : host._t(
+                        "recipes_match_nothing",
+                        "Nothing to match \u2014 this recipe runs without device setup.",
+                      )
+                }
+              </div>`
             : matchItems.map((it) =>
                 _renderMatchRow(host, it, it.id === active?.id),
               )
@@ -42315,9 +42307,9 @@ function _renderStep3Match(host) {
 
       ${
         active
-          ? x`<div class="match-detail">
-            ${_renderActionPanel(host, active)}
-          </div>`
+          ? b2`<div class="match-detail">
+              ${_renderActionPanel(host, active)}
+            </div>`
           : ""
       }
       ${_renderWizardFooter(host, {
@@ -42376,7 +42368,7 @@ function _renderMatchRow(host, item, active) {
   }
   const selected = _matchRowSelected(host, item);
   const visual = _matchRowVisual(item);
-  return x`
+  return b2`
     <button
       type="button"
       class="match-row match-data ${active ? "is-active" : ""}"
@@ -42394,11 +42386,11 @@ function _renderMatchRow(host, item, active) {
           <div class="match-title">${item.title}</div>
           ${
             flowError
-              ? x`<div class="match-sub is-error" title=${flowError}>
-                ${flowError}
-              </div>`
+              ? b2`<div class="match-sub is-error" title=${flowError}>
+                  ${flowError}
+                </div>`
               : item.detail
-                ? x`<div class="match-sub">${item.detail}</div>`
+                ? b2`<div class="match-sub">${item.detail}</div>`
                 : ""
           }
         </div>
@@ -42416,7 +42408,7 @@ function _matchRowSelected(host, item) {
     const pinned = item.payload?.pinned || [];
     const total = bound.length + pinned.length;
     if (total === 0)
-      return x`<span class="panel-muted"
+      return b2`<span class="panel-muted"
         >${host._t("recipes_selected_none", "None")}</span
       >`;
     if (total === 1)
@@ -42428,17 +42420,17 @@ function _matchRowSelected(host, item) {
     const label = [id.manufacturer, id.model].filter(Boolean).join(" ");
     return (
       label ||
-      x`<span class="panel-muted"
+      b2`<span class="panel-muted"
         >${host._t("recipes_selected_awaiting_pair", "Awaiting pair")}</span
       >`
     );
   }
   if (item.kind === "integration") {
-    return x`<span class="panel-muted">—</span>`;
+    return b2`<span class="panel-muted">—</span>`;
   }
   if (item.kind === "inputs") {
-    const n5 = item.payload?.inputs?.length || 0;
-    return `${n5} ${n5 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
+    const n4 = item.payload?.inputs?.length || 0;
+    return `${n4} ${n4 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
   }
   return "";
 }
@@ -42462,7 +42454,7 @@ function _renderStep4Resolve(host) {
   const allDone =
     installOk || (apply.length > 0 && completed.length === apply.length);
   const errorPunch = installFailed ? result.punch_list || [] : [];
-  return x`
+  return b2`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -42485,96 +42477,96 @@ function _renderStep4Resolve(host) {
       )}
       ${
         installFailed
-          ? x`
-            <section class="bucket bucket-failed">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-                ${host._t("recipes_bucket_install_failed", "Install failed")}
-              </h3>
-              ${
-                errorPunch.length
-                  ? x`<ul class="install-fail-list">
-                    ${errorPunch.map(
-                      (p2) => x`<li>
-                          <span class="install-fail-stage">${p2.stage}</span>
-                          ${p2.message}
-                        </li>`,
-                    )}
-                  </ul>`
-                  : x`<p class="panel-prose panel-muted">
-                    ${host._t(
-                      "recipes_bucket_no_details",
-                      "No details available. Check the Home Assistant log for the underlying error.",
-                    )}
-                  </p>`
-              }
-            </section>
-          `
+          ? b2`
+              <section class="bucket bucket-failed">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+                  ${host._t("recipes_bucket_install_failed", "Install failed")}
+                </h3>
+                ${
+                  errorPunch.length
+                    ? b2`<ul class="install-fail-list">
+                        ${errorPunch.map(
+                          (p4) => b2`<li>
+                              <span class="install-fail-stage">${p4.stage}</span>
+                              ${p4.message}
+                            </li>`,
+                        )}
+                      </ul>`
+                    : b2`<p class="panel-prose panel-muted">
+                        ${host._t(
+                          "recipes_bucket_no_details",
+                          "No details available. Check the Home Assistant log for the underlying error.",
+                        )}
+                      </p>`
+                }
+              </section>
+            `
           : ""
       }
       ${
         interrupts.length
-          ? x`
-            <section class="bucket bucket-waiting">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
-                ${host._t("recipes_bucket_waiting_for_you", "Waiting for you")}
-              </h3>
-              ${interrupts.map((it) => _renderBucketItem(host, it, true))}
-            </section>
-          `
+          ? b2`
+              <section class="bucket bucket-waiting">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
+                  ${host._t("recipes_bucket_waiting_for_you", "Waiting for you")}
+                </h3>
+                ${interrupts.map((it) => _renderBucketItem(host, it, true))}
+              </section>
+            `
           : ""
       }
       ${
         failed.length
-          ? x`
-            <section class="bucket bucket-failed">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-                ${host._t("recipes_bucket_failed", "Failed")}
-              </h3>
-              ${failed.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
+          ? b2`
+              <section class="bucket bucket-failed">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+                  ${host._t("recipes_bucket_failed", "Failed")}
+                </h3>
+                ${failed.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
           : ""
       }
       ${
         running.length
-          ? x`
-            <section class="bucket bucket-running">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:cog-sync-outline"></ha-icon>
-                ${host._t("recipes_bucket_in_progress", "In progress")}
-              </h3>
-              ${running.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
+          ? b2`
+              <section class="bucket bucket-running">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:cog-sync-outline"></ha-icon>
+                  ${host._t("recipes_bucket_in_progress", "In progress")}
+                </h3>
+                ${running.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
           : ""
       }
       ${
         upcoming.length
-          ? x`
-            <section class="bucket bucket-upcoming">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:tray-arrow-down"></ha-icon>
-                ${host._t("recipes_bucket_up_next", "Up next")}
-              </h3>
-              ${upcoming.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
+          ? b2`
+              <section class="bucket bucket-upcoming">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:tray-arrow-down"></ha-icon>
+                  ${host._t("recipes_bucket_up_next", "Up next")}
+                </h3>
+                ${upcoming.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
           : ""
       }
       ${
         completed.length
-          ? x`
-            <section class="bucket bucket-done">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                ${host._t("recipes_bucket_completed", "Completed")}
-              </h3>
-              ${completed.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
+          ? b2`
+              <section class="bucket bucket-done">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+                  ${host._t("recipes_bucket_completed", "Completed")}
+                </h3>
+                ${completed.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
           : ""
       }
       ${_renderWizardFooter(host, {
@@ -42608,20 +42600,20 @@ function _renderStep4Resolve(host) {
 }
 function _renderBucketItem(host, item, interactive) {
   const icon = _STATUS_ICON[item.status] || "mdi:circle-outline";
-  return x`
+  return b2`
     <div class="bucket-item">
       <div class="bucket-item-icon-wrap bucket-tile-${item.status}">
         <ha-icon icon=${icon}></ha-icon>
       </div>
       <div class="bucket-item-body">
         <div class="bucket-item-title">${item.title}</div>
-        ${item.detail ? x`<div class="bucket-item-detail">${item.detail}</div>` : ""}
+        ${item.detail ? b2`<div class="bucket-item-detail">${item.detail}</div>` : ""}
       </div>
       ${
         interactive
-          ? x`<div class="bucket-item-action">
-            ${_renderActionPanel(host, item)}
-          </div>`
+          ? b2`<div class="bucket-item-action">
+              ${_renderActionPanel(host, item)}
+            </div>`
           : ""
       }
     </div>
@@ -42635,7 +42627,7 @@ function _renderDashboardOutcome(host) {
   const dashboards = host._recipeDashboards || [];
   const title = host._t("recipes_step5_dashboard_title", "Dashboard card");
   if (placed) {
-    return x`
+    return b2`
       <section class="overview-card">
         <h3 class="overview-card-title">${title}</h3>
         <p class="step-prose">
@@ -42649,7 +42641,7 @@ function _renderDashboardOutcome(host) {
     `;
   }
   if (!dashboards.length) {
-    return x`
+    return b2`
       <section class="overview-card">
         <h3 class="overview-card-title">${title}</h3>
         <p class="step-prose panel-muted">
@@ -42666,7 +42658,7 @@ function _renderDashboardOutcome(host) {
     dashboards[0].url_path == null ? "" : dashboards[0].url_path;
   const selected =
     current === void 0 ? firstValue : current == null ? "" : current;
-  return x`
+  return b2`
     <section class="overview-card">
       <h3 class="overview-card-title">${title}</h3>
       <p class="step-prose panel-muted">
@@ -42682,7 +42674,7 @@ function _renderDashboardOutcome(host) {
         ?disabled=${host._recipesBusy}
       >
         ${dashboards.map(
-          (d3) => x`<option value=${d3.url_path == null ? "" : d3.url_path}>
+          (d3) => b2`<option value=${d3.url_path == null ? "" : d3.url_path}>
               ${d3.title}
             </option>`,
         )}
@@ -42737,9 +42729,9 @@ function _renderStep5Activate(host) {
     },
   ];
   const summaryBullets = Object.entries(counts)
-    .filter(([, n5]) => n5 > 0)
-    .map(([k2, n5]) => _humaniseSection(host, k2, n5));
-  return x`
+    .filter(([, n4]) => n4 > 0)
+    .map(([k2, n4]) => _humaniseSection(host, k2, n4));
+  return b2`
     <div class="step-pane">
       ${_renderStepHeading(
         host,
@@ -42759,20 +42751,20 @@ function _renderStep5Activate(host) {
           </h3>
           ${
             summaryBullets.length
-              ? x`<ul class="overview-list">
-                ${summaryBullets.map(
-                  (b2) => x`<li>
-                      <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
-                      ${b2[0].toUpperCase() + b2.slice(1)}
-                    </li>`,
-                )}
-              </ul>`
-              : x`<p class="step-prose panel-muted">
-                ${host._t(
-                  "recipes_step5_no_entries",
-                  "No entries were generated.",
-                )}
-              </p>`
+              ? b2`<ul class="overview-list">
+                  ${summaryBullets.map(
+                    (b3) => b2`<li>
+                        <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+                        ${b3[0].toUpperCase() + b3.slice(1)}
+                      </li>`,
+                  )}
+                </ul>`
+              : b2`<p class="step-prose panel-muted">
+                  ${host._t(
+                    "recipes_step5_no_entries",
+                    "No entries were generated.",
+                  )}
+                </p>`
           }
         </section>
 
@@ -42782,28 +42774,28 @@ function _renderStep5Activate(host) {
           </h3>
           ${
             uniqueBound.length
-              ? x`<ul class="overview-list compact">
-                ${uniqueBound.slice(0, 8).map(
-                  (id) => x`<li>
-                      <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
-                      ${_entityFriendlyName(host.hass, id)}
-                    </li>`,
-                )}
-                ${
-                  uniqueBound.length > 8
-                    ? x`<li class="panel-muted">
-                      + ${uniqueBound.length - 8}
-                      ${host._t("recipes_step5_more_suffix", "more")}
-                    </li>`
-                    : ""
-                }
-              </ul>`
-              : x`<p class="step-prose panel-muted">
-                ${host._t(
-                  "recipes_step5_no_devices",
-                  "No devices are tied to this recipe.",
-                )}
-              </p>`
+              ? b2`<ul class="overview-list compact">
+                  ${uniqueBound.slice(0, 8).map(
+                    (id) => b2`<li>
+                        <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
+                        ${_entityFriendlyName(host.hass, id)}
+                      </li>`,
+                  )}
+                  ${
+                    uniqueBound.length > 8
+                      ? b2`<li class="panel-muted">
+                          + ${uniqueBound.length - 8}
+                          ${host._t("recipes_step5_more_suffix", "more")}
+                        </li>`
+                      : ""
+                  }
+                </ul>`
+              : b2`<p class="step-prose panel-muted">
+                  ${host._t(
+                    "recipes_step5_no_devices",
+                    "No devices are tied to this recipe.",
+                  )}
+                </p>`
           }
         </section>
 
@@ -42813,12 +42805,12 @@ function _renderStep5Activate(host) {
           </h3>
           <ul class="overview-list compact">
             ${safety.map(
-              (s6) => x`<li>
+              (s4) => b2`<li>
                   <ha-icon
-                    icon=${s6.ok ? "mdi:check-circle" : "mdi:alert-circle"}
-                    class=${s6.ok ? "safety-ok" : "safety-fail"}
+                    icon=${s4.ok ? "mdi:check-circle" : "mdi:alert-circle"}
+                    class=${s4.ok ? "safety-ok" : "safety-fail"}
                   ></ha-icon>
-                  ${s6.label}
+                  ${s4.label}
                 </li>`,
             )}
           </ul>
@@ -42846,7 +42838,7 @@ function _renderStep5Activate(host) {
 function _renderWizardView(host) {
   const detail = host._recipeWizardDetail;
   if (!detail) {
-    return x`<div class="recipes-empty">
+    return b2`<div class="recipes-empty">
       ${host._t("recipes_loading", "Loading\u2026")}
     </div>`;
   }
@@ -42865,7 +42857,7 @@ function _renderWizardView(host) {
     step === 1
       ? _renderWhatYouNeedRail(host, detail.manifest)
       : _renderWizardStepper(host);
-  return x`
+  return b2`
     <div class="wizard-root ${step === 1 ? "wizard-root-overview" : ""}">
       <div class="wizard-main">
         ${_renderWizardHero(host, detail.manifest, { compact: step !== 1 })}
@@ -42878,7 +42870,7 @@ function _renderWizardView(host) {
 function _renderResultView(host) {
   const result = host._recipeWizardResult;
   if (!result) return "";
-  return x`
+  return b2`
     <div class="recipes-root">
       <button
         class="wizard-back"
@@ -42897,81 +42889,83 @@ function _renderResultView(host) {
       </button>
       ${
         result.ok
-          ? x`
-            <div class="install-success">
-              <div
-                style="font-size:var(--selora-fs-xl);font-weight:700;display:flex;align-items:center;gap:8px;"
-              >
-                <ha-icon icon="mdi:check-circle"></ha-icon>
-                ${host._t(
-                  "recipes_result_install_complete",
-                  "Installation complete",
-                )}
+          ? b2`
+              <div class="install-success">
+                <div
+                  style="font-size:var(--selora-fs-xl);font-weight:700;display:flex;align-items:center;gap:8px;"
+                >
+                  <ha-icon icon="mdi:check-circle"></ha-icon>
+                  ${host._t(
+                    "recipes_result_install_complete",
+                    "Installation complete",
+                  )}
+                </div>
+                ${
+                  result.record
+                    ? b2`
+                        <div
+                          style="font-size:var(--selora-fs-md);line-height:1.6;"
+                        >
+                          ${result.record.title} v${result.record.version}
+                          ${host._t(
+                            "recipes_result_installed_reloaded",
+                            "was installed and Home Assistant has been reloaded. Package file:",
+                          )}
+                          <code>${result.record.package_path}</code>
+                        </div>
+                      `
+                    : ""
+                }
               </div>
               ${
-                result.record
-                  ? x`
-                    <div style="font-size:var(--selora-fs-md);line-height:1.6;">
-                      ${result.record.title} v${result.record.version}
-                      ${host._t(
-                        "recipes_result_installed_reloaded",
-                        "was installed and Home Assistant has been reloaded. Package file:",
-                      )}
-                      <code>${result.record.package_path}</code>
-                    </div>
-                  `
+                result.preview?.yaml
+                  ? b2`
+                      <details class="wizard-section package-disclosure">
+                        <summary>
+                          <ha-icon
+                            class="chevron"
+                            icon="mdi:chevron-right"
+                          ></ha-icon>
+                          <ha-icon icon="mdi:file-document-outline"></ha-icon>
+                          ${host._t(
+                            "recipes_result_view_yaml",
+                            "View generated package YAML",
+                          )}
+                          <span class="filler"></span>
+                          <span class="package-disclosure-hint"
+                            >${host._t("recipes_result_advanced", "advanced")}</span
+                          >
+                        </summary>
+                        ${o5(
+                          '<div class="yaml-preview">' +
+                            _highlightYaml2(result.preview.yaml) +
+                            "</div>",
+                        )}
+                      </details>
+                    `
                   : ""
               }
-            </div>
-            ${
-              result.preview?.yaml
-                ? x`
-                  <details class="wizard-section package-disclosure">
-                    <summary>
-                      <ha-icon
-                        class="chevron"
-                        icon="mdi:chevron-right"
-                      ></ha-icon>
-                      <ha-icon icon="mdi:file-document-outline"></ha-icon>
-                      ${host._t(
-                        "recipes_result_view_yaml",
-                        "View generated package YAML",
-                      )}
-                      <span class="filler"></span>
-                      <span class="package-disclosure-hint"
-                        >${host._t("recipes_result_advanced", "advanced")}</span
-                      >
-                    </summary>
-                    ${o5(
-                      '<div class="yaml-preview">' +
-                        _highlightYaml2(result.preview.yaml) +
-                        "</div>",
-                    )}
-                  </details>
-                `
-                : ""
-            }
-          `
-          : x`
-            <div class="wizard-section">
-              <h3 style="color:var(--error-color,#c62828);">
-                ${host._t(
-                  "recipes_result_halted_at_stage",
-                  "Installation halted at stage:",
-                )}
-                ${result.stage_reached}
-              </h3>
-              <p
-                style="font-size:var(--selora-fs-md);color:var(--secondary-text-color);"
-              >
-                ${host._t(
-                  "recipes_result_fix_retry",
-                  "Fix the items below, then re-open the recipe to retry.",
-                )}
-              </p>
-            </div>
-            ${_renderPunchList(host, result.punch_list)}
-          `
+            `
+          : b2`
+              <div class="wizard-section">
+                <h3 style="color:var(--error-color,#c62828);">
+                  ${host._t(
+                    "recipes_result_halted_at_stage",
+                    "Installation halted at stage:",
+                  )}
+                  ${result.stage_reached}
+                </h3>
+                <p
+                  style="font-size:var(--selora-fs-md);color:var(--secondary-text-color);"
+                >
+                  ${host._t(
+                    "recipes_result_fix_retry",
+                    "Fix the items below, then re-open the recipe to retry.",
+                  )}
+                </p>
+              </div>
+              ${_renderPunchList(host, result.punch_list)}
+            `
       }
     </div>
   `;
@@ -42995,7 +42989,7 @@ function _renderUninstallModal(host) {
       host._cancelRecipeUninstall();
     }
   };
-  return x`
+  return b2`
     <div
       class="modal-overlay"
       @click=${(e6) => {
@@ -43023,67 +43017,69 @@ function _renderUninstallModal(host) {
         </p>
         ${
           integrationDomains.length
-            ? x`
-              <div class="uninstall-integrations">
-                <div class="uninstall-integrations-title">
-                  ${host._t(
-                    "recipes_uninstall_integrations_title",
-                    "Integrations this recipe installed",
-                  )}
+            ? b2`
+                <div class="uninstall-integrations">
+                  <div class="uninstall-integrations-title">
+                    ${host._t(
+                      "recipes_uninstall_integrations_title",
+                      "Integrations this recipe installed",
+                    )}
+                  </div>
+                  <p class="uninstall-integrations-sub">
+                    ${host._t(
+                      "recipes_uninstall_integrations_sub",
+                      "Tick any that should be removed along with the recipe. Anything you leave unchecked stays in Home Assistant.",
+                    )}
+                  </p>
+                  ${integrationDomains.map((domain) => {
+                    const entryId = installedIntegrations[domain];
+                    const checked = !!selectedEntries[entryId];
+                    const others = host._otherUsersOfDomain(domain, slug);
+                    const iconUrl = `https://brands.home-assistant.io/_/${domain}/icon@2x.png`;
+                    return b2`
+                      <label class="uninstall-integration-row">
+                        <input
+                          type="checkbox"
+                          .checked=${checked}
+                          @change=${() => host._toggleUninstallEntry(entryId)}
+                        />
+                        <img
+                          class="uninstall-integration-brand"
+                          src=${iconUrl}
+                          alt=""
+                          loading="lazy"
+                          @error=${(e6) => {
+                            e6.target.style.display = "none";
+                          }}
+                        />
+                        <div class="uninstall-integration-text">
+                          <div class="uninstall-integration-name">
+                            ${domain}
+                          </div>
+                          ${
+                            others.length
+                              ? b2`<div
+                                  class="uninstall-integration-warn"
+                                  title=${host._t(
+                                    "recipes_uninstall_warn_title",
+                                    "Removing this integration will break those recipes.",
+                                  )}
+                                >
+                                  <ha-icon icon="mdi:alert-outline"></ha-icon>
+                                  ${host._t(
+                                    "recipes_uninstall_still_used_by",
+                                    "Still used by",
+                                  )}
+                                  ${others.join(", ")}
+                                </div>`
+                              : ""
+                          }
+                        </div>
+                      </label>
+                    `;
+                  })}
                 </div>
-                <p class="uninstall-integrations-sub">
-                  ${host._t(
-                    "recipes_uninstall_integrations_sub",
-                    "Tick any that should be removed along with the recipe. Anything you leave unchecked stays in Home Assistant.",
-                  )}
-                </p>
-                ${integrationDomains.map((domain) => {
-                  const entryId = installedIntegrations[domain];
-                  const checked = !!selectedEntries[entryId];
-                  const others = host._otherUsersOfDomain(domain, slug);
-                  const iconUrl = `https://brands.home-assistant.io/_/${domain}/icon@2x.png`;
-                  return x`
-                    <label class="uninstall-integration-row">
-                      <input
-                        type="checkbox"
-                        .checked=${checked}
-                        @change=${() => host._toggleUninstallEntry(entryId)}
-                      />
-                      <img
-                        class="uninstall-integration-brand"
-                        src=${iconUrl}
-                        alt=""
-                        loading="lazy"
-                        @error=${(e6) => {
-                          e6.target.style.display = "none";
-                        }}
-                      />
-                      <div class="uninstall-integration-text">
-                        <div class="uninstall-integration-name">${domain}</div>
-                        ${
-                          others.length
-                            ? x`<div
-                              class="uninstall-integration-warn"
-                              title=${host._t(
-                                "recipes_uninstall_warn_title",
-                                "Removing this integration will break those recipes.",
-                              )}
-                            >
-                              <ha-icon icon="mdi:alert-outline"></ha-icon>
-                              ${host._t(
-                                "recipes_uninstall_still_used_by",
-                                "Still used by",
-                              )}
-                              ${others.join(", ")}
-                            </div>`
-                            : ""
-                        }
-                      </div>
-                    </label>
-                  `;
-                })}
-              </div>
-            `
+              `
             : ""
         }
         <div class="modal-actions">
@@ -43110,7 +43106,7 @@ function _renderManageDevicesModal(host) {
   const slug = host._recipeManageSlug;
   if (!slug) return "";
   const detail = host._recipeManageDetail;
-  return x`
+  return b2`
     <div
       class="modal-overlay"
       @click=${(e6) => {
@@ -43128,23 +43124,30 @@ function _renderManageDevicesModal(host) {
             "Manage devices",
           )}${detail ? ` \u2014 ${detail.manifest.title}` : ""}
         </h3>
-        ${host._recipeManageError ? x`<div class="panel-error">${host._recipeManageError}</div>` : ""}
+        ${host._recipeManageError ? b2`<div class="panel-error">${host._recipeManageError}</div>` : ""}
         ${
           !detail
-            ? x`<p class="panel-prose panel-muted">
-              ${host._recipeManageBusy ? host._t("recipes_loading", "Loading\u2026") : host._t("recipes_manage_no_detail", "No detail available.")}
-            </p>`
-            : x`
-              <p class="panel-prose">
-                ${host._t(
-                  "recipes_manage_intro",
-                  "Update which entities back each role. Saves immediately \u2014 automations are not re-rendered, only the group memberships change.",
+            ? b2`<p class="panel-prose panel-muted">
+                ${
+                  host._recipeManageBusy
+                    ? host._t("recipes_loading", "Loading\u2026")
+                    : host._t(
+                        "recipes_manage_no_detail",
+                        "No detail available.",
+                      )
+                }
+              </p>`
+            : b2`
+                <p class="panel-prose">
+                  ${host._t(
+                    "recipes_manage_intro",
+                    "Update which entities back each role. Saves immediately \u2014 automations are not re-rendered, only the group memberships change.",
+                  )}
+                </p>
+                ${detail.manifest.roles.map((role) =>
+                  _renderManageRoleRow(host, role),
                 )}
-              </p>
-              ${detail.manifest.roles.map((role) =>
-                _renderManageRoleRow(host, role),
-              )}
-            `
+              `
         }
         <div class="modal-actions">
           <button
@@ -43177,43 +43180,44 @@ function _renderManageRoleRow(host, role) {
     }
     return true;
   });
-  return x`
+  return b2`
     <div class="manage-role">
       <div class="manage-role-head">
         <div class="manage-role-title">${role.title || role.id}</div>
-        ${role.description ? x`<div class="manage-role-desc">${role.description}</div>` : ""}
+        ${role.description ? b2`<div class="manage-role-desc">${role.description}</div>` : ""}
       </div>
       <div class="panel-chips">
         ${
           candidates.length === 0
-            ? x`<p class="panel-prose panel-muted">
-              ${host._t("recipes_manage_no_entities_prefix", "No")} ${role.kind}
-              ${host._t(
-                "recipes_manage_no_entities_suffix",
-                "entities found in this home.",
-              )}
-            </p>`
+            ? b2`<p class="panel-prose panel-muted">
+                ${host._t("recipes_manage_no_entities_prefix", "No")}
+                ${role.kind}
+                ${host._t(
+                  "recipes_manage_no_entities_suffix",
+                  "entities found in this home.",
+                )}
+              </p>`
             : candidates.map((id) => {
                 const on = selected.has(id);
-                return x`
-                <button
-                  type="button"
-                  class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
-                  title=${id}
-                  @click=${() => host._toggleManageEntity(role.id, id)}
-                  ?disabled=${host._recipeManageBusy}
-                >
-                  <span class="chip-icon-tile">
-                    <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
-                  </span>
-                  <span class="chip-text">
-                    <span class="chip-name">
-                      ${_entityFriendlyName(host.hass, id)}
+                return b2`
+                  <button
+                    type="button"
+                    class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
+                    title=${id}
+                    @click=${() => host._toggleManageEntity(role.id, id)}
+                    ?disabled=${host._recipeManageBusy}
+                  >
+                    <span class="chip-icon-tile">
+                      <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
                     </span>
-                    <span class="chip-id">${id}</span>
-                  </span>
-                </button>
-              `;
+                    <span class="chip-text">
+                      <span class="chip-name">
+                        ${_entityFriendlyName(host.hass, id)}
+                      </span>
+                      <span class="chip-id">${id}</span>
+                    </span>
+                  </button>
+                `;
               })
         }
       </div>
@@ -43225,55 +43229,55 @@ function renderRecipesV2(host) {
   if (host._recipesView === "wizard") body = _renderWizardView(host);
   else if (host._recipesView === "result") body = _renderResultView(host);
   else body = _renderListView(host);
-  return x`
+  return b2`
     <div class="scroll-view">${_STYLE} ${body}</div>
     ${_renderManageDevicesModal(host)} ${_renderUninstallModal(host)}
   `;
 }
 
 // src/panel/render-version-history.js
-function renderVersionHistoryDrawer(host, a4) {
-  const automationId = a4.automation_id || a4.entity_id;
+function renderVersionHistoryDrawer(host, a3) {
+  const automationId = a3.automation_id || a3.entity_id;
   const versions = host._versions[automationId] || [];
   const loading = host._loadingVersions[automationId];
-  return x`
+  return b2`
     <div class="version-history">
       ${
         loading
-          ? x`<div class="version-history-empty">
-            ${host._t("version_history_loading", "Loading\u2026")}
-          </div>`
-          : versions.length === 0
-            ? x`<div class="version-history-empty">
-              ${host._t("version_history_empty", "No version history yet.")}
+          ? b2`<div class="version-history-empty">
+              ${host._t("version_history_loading", "Loading\u2026")}
             </div>`
-            : x`
-              <ol class="version-list">
-                ${versions.map((v2, i5) =>
-                  renderVersionEntry(
-                    host,
-                    automationId,
-                    v2,
-                    i5,
-                    versions.length,
-                  ),
-                )}
-              </ol>
-            `
+          : versions.length === 0
+            ? b2`<div class="version-history-empty">
+                ${host._t("version_history_empty", "No version history yet.")}
+              </div>`
+            : b2`
+                <ol class="version-list">
+                  ${versions.map((v2, i7) =>
+                    renderVersionEntry(
+                      host,
+                      automationId,
+                      v2,
+                      i7,
+                      versions.length,
+                    ),
+                  )}
+                </ol>
+              `
       }
     </div>
   `;
 }
-function renderVersionEntry(host, automationId, v2, i5, total) {
+function renderVersionEntry(host, automationId, v2, i7, total) {
   const key = `${automationId}_${v2.version_id}`;
   const restoring = host._restoringVersion[key];
   const date = new Date(v2.created_at);
   const timeAgo = relativeTime(date);
-  const isCurrent = i5 === 0;
+  const isCurrent = i7 === 0;
   const message = v2.message || v2.version_message;
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
-  const versionNumber = total - i5;
-  return x`
+  const versionNumber = total - i7;
+  return b2`
     <li class="version-entry ${isCurrent ? "current" : ""}">
       <span class="version-entry-dot" aria-hidden="true"></span>
       <div class="version-entry-card">
@@ -43282,9 +43286,9 @@ function renderVersionEntry(host, automationId, v2, i5, total) {
             <span class="version-entry-num">v${versionNumber}</span>
             ${
               isCurrent
-                ? x`<span class="version-entry-badge"
-                  >${host._t("version_history_current_badge", "Current")}</span
-                >`
+                ? b2`<span class="version-entry-badge"
+                    >${host._t("version_history_current_badge", "Current")}</span
+                  >`
                 : ""
             }
           </div>
@@ -43292,7 +43296,7 @@ function renderVersionEntry(host, automationId, v2, i5, total) {
             >${timeAgo}</time
           >
         </header>
-        ${message ? x`<p class="version-entry-message">${message}</p>` : ""}
+        ${message ? b2`<p class="version-entry-message">${message}</p>` : ""}
         <div class="version-entry-actions">
           <button
             class="btn btn-outline version-entry-btn"
@@ -43306,44 +43310,54 @@ function renderVersionEntry(host, automationId, v2, i5, total) {
           </button>
           ${
             !isCurrent
-              ? x`
-                <button
-                  class="btn btn-outline version-entry-btn"
-                  ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
-                  @click=${() =>
-                    host._restoreVersion(
-                      automationId,
-                      v2.version_id,
-                      v2.yaml || v2.yaml_content || "",
-                    )}
-                >
-                  <ha-icon
-                    icon="mdi:restore"
-                    style="--mdc-icon-size:14px;"
-                  ></ha-icon>
-                  ${
-                    restoring
-                      ? host._t("version_history_restoring", "Restoring\u2026")
-                      : host._t(
-                          "version_history_restore_button",
-                          "Restore this version",
-                        )
-                  }
-                </button>
-              `
+              ? b2`
+                  <button
+                    class="btn btn-outline version-entry-btn"
+                    ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
+                    @click=${() =>
+                      host._restoreVersion(
+                        automationId,
+                        v2.version_id,
+                        v2.yaml || v2.yaml_content || "",
+                      )}
+                  >
+                    <ha-icon
+                      icon="mdi:restore"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${
+                      restoring
+                        ? host._t(
+                            "version_history_restoring",
+                            "Restoring\u2026",
+                          )
+                        : host._t(
+                            "version_history_restore_button",
+                            "Restore this version",
+                          )
+                    }
+                  </button>
+                `
               : ""
           }
         </div>
         ${
           yamlOpen
-            ? x`<div class="version-entry-yaml">
-              <ha-code-editor
-                mode="yaml"
-                .value=${v2.yaml || v2.yaml_content || host._t("version_history_no_yaml_stored", "(no YAML stored)")}
-                read-only
-                style="--code-mirror-font-size:13px;"
-              ></ha-code-editor>
-            </div>`
+            ? b2`<div class="version-entry-yaml">
+                <ha-code-editor
+                  mode="yaml"
+                  .value=${
+                    v2.yaml ||
+                    v2.yaml_content ||
+                    host._t(
+                      "version_history_no_yaml_stored",
+                      "(no YAML stored)",
+                    )
+                  }
+                  read-only
+                  style="--code-mirror-font-size:13px;"
+                ></ha-code-editor>
+              </div>`
             : ""
         }
       </div>
@@ -43354,7 +43368,7 @@ function renderDiffViewer(host) {
   if (!host._diffOpen) return "";
   const automationId = host._diffAutomationId;
   const versions = host._versions[automationId] || [];
-  return x`
+  return b2`
     <div
       style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
       @click=${(e6) => {
@@ -43409,8 +43423,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i5) => x`<option value=${v2.version_id}>
-                    v${versions.length - i5} —
+                (v2, i7) => b2`<option value=${v2.version_id}>
+                    v${versions.length - i7} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -43436,8 +43450,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i5) => x`<option value=${v2.version_id}>
-                    v${versions.length - i5} —
+                (v2, i7) => b2`<option value=${v2.version_id}>
+                    v${versions.length - i7} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -43447,16 +43461,16 @@ function renderDiffViewer(host) {
         <div style="flex:1;overflow-y:auto;padding:12px 20px;">
           ${
             host._loadingDiff
-              ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
-                ${host._t("version_history_loading_diff", "Loading diff\u2026")}
-              </div>`
-              : host._diffResult.length === 0
-                ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
-                  ${host._t("version_history_no_diff", "No differences found.")}
+              ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+                  ${host._t("version_history_loading_diff", "Loading diff\u2026")}
                 </div>`
-                : x`<pre
-                  style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
-                >
+              : host._diffResult.length === 0
+                ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+                    ${host._t("version_history_no_diff", "No differences found.")}
+                  </div>`
+                : b2`<pre
+                    style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
+                  >
 ${host._diffResult.map((line) => {
   const bg = line.startsWith("+")
     ? "rgba(40,167,69,0.15)"
@@ -43468,12 +43482,11 @@ ${host._diffResult.map((line) => {
     : line.startsWith("-")
       ? "#fa5252"
       : "var(--primary-text-color)";
-  return x`<span
-                      style="display:block;background:${bg};color:${color};padding:1px 4px;"
-                      >${line}</span
-                    >`;
-})}</pre
-                >`
+  return b2`<span
+    style="display:block;background:${bg};color:${color};padding:1px 4px;"
+    >${line}</span
+  >`;
+})}</pre>`
           }
         </div>
       </div>
@@ -43918,14 +43931,14 @@ function _toggleSessionSelection(sessionId) {
 }
 function _toggleSelectAllSessions() {
   const allSelected = this._sessions.every(
-    (s6) => this._selectedSessionIds[s6.id],
+    (s4) => this._selectedSessionIds[s4.id],
   );
   if (allSelected) {
     this._selectedSessionIds = {};
   } else {
     const selected = {};
-    this._sessions.forEach((s6) => {
-      selected[s6.id] = true;
+    this._sessions.forEach((s4) => {
+      selected[s4.id] = true;
     });
     this._selectedSessionIds = selected;
   }
@@ -43989,17 +44002,17 @@ async function _triggerGenerateSuggestions() {
       type: "selora_ai/generate_suggestions",
     });
     const existingAliases = new Set(
-      (this._suggestions || []).map((s6) => {
-        const a4 = s6.automation || s6.automation_data || {};
-        return (a4.alias || "").toLowerCase();
+      (this._suggestions || []).map((s4) => {
+        const a3 = s4.automation || s4.automation_data || {};
+        return (a3.alias || "").toLowerCase();
       }),
     );
     const added = [];
-    for (const s6 of newSuggestions || []) {
-      const a4 = s6.automation || s6.automation_data || {};
-      const alias = (a4.alias || "").toLowerCase();
+    for (const s4 of newSuggestions || []) {
+      const a3 = s4.automation || s4.automation_data || {};
+      const alias = (a3.alias || "").toLowerCase();
       if (!existingAliases.has(alias)) {
-        added.push(s6);
+        added.push(s4);
         existingAliases.add(alias);
       }
     }
@@ -44036,7 +44049,7 @@ async function _loadAutomations() {
     });
     this._automations = (automations || []).reverse();
     const validIds = new Set(
-      this._automations.map((a4) => a4.automation_id).filter(Boolean),
+      this._automations.map((a3) => a3.automation_id).filter(Boolean),
     );
     this._selectedAutomationIds = Object.fromEntries(
       Object.entries(this._selectedAutomationIds || {}).filter(
@@ -44056,8 +44069,8 @@ async function _loadProactiveSuggestions() {
       status: "pending",
     });
     const seen = /* @__PURE__ */ new Set();
-    this._proactiveSuggestions = (suggestions || []).filter((s6) => {
-      const key = (s6.description || "").toLowerCase().trim();
+    this._proactiveSuggestions = (suggestions || []).filter((s4) => {
+      const key = (s4.description || "").toLowerCase().trim();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -44101,7 +44114,7 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
     await this._loadAutomations();
     await new Promise((r4) => setTimeout(r4, 650));
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s6) => s6.suggestion_id !== suggestionId,
+      (s4) => s4.suggestion_id !== suggestionId,
     );
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -44132,7 +44145,7 @@ async function _dismissProactiveSuggestion(suggestionId) {
       action: "dismissed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s6) => s6.suggestion_id !== suggestionId,
+      (s4) => s4.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_dismissed_toast", "Suggestion dismissed"),
@@ -44154,7 +44167,7 @@ async function _snoozeProactiveSuggestion(suggestionId) {
       action: "snoozed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s6) => s6.suggestion_id !== suggestionId,
+      (s4) => s4.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_snoozed_toast", "Suggestion snoozed for 24h"),
@@ -44596,7 +44609,7 @@ async function _sendMessage() {
       } else if (event.type === "step" && event.step && event.step.id) {
         lastActivityAt = Date.now();
         const steps = assistantMsg.steps ? [...assistantMsg.steps] : [];
-        const at = steps.findIndex((s6) => s6.id === event.step.id);
+        const at = steps.findIndex((s4) => s4.id === event.step.id);
         if (at >= 0) steps[at] = event.step;
         else steps.push(event.step);
         assistantMsg.steps = steps;
@@ -44892,10 +44905,10 @@ function _getRefiningAutomationId(msgIndex = null) {
   if (msg?.refining_automation_id) return msg.refining_automation_id;
   if (msg?.automation_id) return msg.automation_id;
   if (msg?.automation?.id) return msg.automation.id;
-  for (const m2 of this._messages) {
-    if (m2.automation_status === "refining") {
-      if (m2.automation_id) return m2.automation_id;
-      if (m2.automation?.id) return m2.automation.id;
+  for (const m3 of this._messages) {
+    if (m3.automation_status === "refining") {
+      if (m3.automation_id) return m3.automation_id;
+      if (m3.automation?.id) return m3.automation.id;
     }
   }
   return null;
@@ -44987,14 +45000,14 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     msg?.risk_assessment?.level === "elevated";
   if (elevated) return;
   const created = (this._automations || []).find(
-    (a4) => a4.automation_id === automationId,
+    (a3) => a3.automation_id === automationId,
   );
   if (!created?.entity_id) {
     await new Promise((r4) => setTimeout(r4, 250));
     await this._loadAutomations();
   }
   const target = (this._automations || []).find(
-    (a4) => a4.automation_id === automationId,
+    (a3) => a3.automation_id === automationId,
   );
   if (!target?.entity_id) {
     console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
@@ -45007,8 +45020,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     );
     return;
   }
-  this._automations = (this._automations || []).map((a4) =>
-    a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
+  this._automations = (this._automations || []).map((a3) =>
+    a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
   );
   this.requestUpdate();
   try {
@@ -45019,8 +45032,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
       enabled: true,
     });
   } catch (err) {
-    this._automations = (this._automations || []).map((a4) =>
-      a4.automation_id === automationId ? { ...a4, state: "off" } : a4,
+    this._automations = (this._automations || []).map((a3) =>
+      a3.automation_id === automationId ? { ...a3, state: "off" } : a3,
     );
     this.requestUpdate();
     console.error("Failed to auto-enable new automation", err);
@@ -45044,7 +45057,7 @@ async function _removeDraftForSession(sessionId) {
   if (!sessionId) return;
   try {
     const draft = this._automations.find(
-      (a4) => a4._draft && a4._linked_session === sessionId,
+      (a3) => a3._draft && a3._linked_session === sessionId,
     );
     if (draft && draft._draft_id) {
       await this.hass.callWS({
@@ -45141,7 +45154,7 @@ async function _createAutomationFromSuggestion(automation) {
   }
 }
 function _discardSuggestion(suggestion) {
-  this._suggestions = this._suggestions.filter((s6) => s6 !== suggestion);
+  this._suggestions = this._suggestions.filter((s4) => s4 !== suggestion);
 }
 var ACCEPT_ANIM_MS = 240;
 async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
@@ -45249,9 +45262,9 @@ async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     const toast = _createdToast(auto.alias, createResult);
     this._showToast(toast.message, toast.type);
     await new Promise((r4) => setTimeout(r4, 650));
-    this._suggestions = this._suggestions.filter((s6) => {
-      const a4 = s6.automation || s6.automation_data;
-      return `sug_${a4?.alias}` !== yamlKey;
+    this._suggestions = this._suggestions.filter((s4) => {
+      const a3 = s4.automation || s4.automation_data;
+      return `sug_${a3?.alias}` !== yamlKey;
     });
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -45454,11 +45467,11 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "close_cover")
         return { ...base, state: "closed", current_position: 0 };
       if (service === "set_cover_position" && data.position != null) {
-        const p2 = Number(data.position);
+        const p4 = Number(data.position);
         return {
           ...base,
-          state: p2 > 0 ? "open" : "closed",
-          current_position: p2,
+          state: p4 > 0 ? "open" : "closed",
+          current_position: p4,
         };
       }
       return null;
@@ -45467,8 +45480,8 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "turn_off") return { state: "off" };
       if (service === "turn_on") return { ...base, state: "on" };
       if (service === "set_percentage" && data.percentage != null) {
-        const p2 = Number(data.percentage);
-        return { ...base, state: p2 > 0 ? "on" : "off", percentage: p2 };
+        const p4 = Number(data.percentage);
+        return { ...base, state: p4 > 0 ? "on" : "off", percentage: p4 };
       }
       if (service === "set_preset_mode" && data.preset_mode != null) {
         return { ...base, state: "on", preset_mode: data.preset_mode };
@@ -45528,7 +45541,7 @@ function _cleanSceneEntities(entities) {
 function _sceneEditedEntities(sceneId) {
   const edited = this._sceneEdits?.[sceneId];
   if (edited) return edited;
-  const scene = (this._scenes || []).find((s6) => s6.scene_id === sceneId);
+  const scene = (this._scenes || []).find((s4) => s4.scene_id === sceneId);
   return scene?.entities || {};
 }
 function _applySceneTileEdit(sceneId, entityId, domain, service, data) {
@@ -45637,8 +45650,8 @@ function scoreText(hayLower, queryLower, allowSubsequence = true) {
   if (hayLower.includes(queryLower)) return 100;
   if (!allowSubsequence) return 0;
   let qi = 0;
-  for (let i5 = 0; i5 < hayLower.length && qi < queryLower.length; i5++) {
-    if (hayLower[i5] === queryLower[qi]) qi += 1;
+  for (let i7 = 0; i7 < hayLower.length && qi < queryLower.length; i7++) {
+    if (hayLower[i7] === queryLower[qi]) qi += 1;
   }
   return qi === queryLower.length ? 10 : 0;
 }
@@ -45650,9 +45663,9 @@ function extractSnippet(text, queryLower) {
   if (idx < 0) {
     matchLen = 0;
     let qi = 0;
-    for (let i5 = 0; i5 < lower.length && qi < queryLower.length; i5++) {
-      if (lower[i5] === queryLower[qi]) {
-        if (qi === 0) idx = i5;
+    for (let i7 = 0; i7 < lower.length && qi < queryLower.length; i7++) {
+      if (lower[i7] === queryLower[qi]) {
+        if (qi === 0) idx = i7;
         qi += 1;
       }
     }
@@ -45695,7 +45708,7 @@ function filterSessions(sessions, query) {
     scored.push({ session, snippet, rank, updated: session.updated_at || "" });
   }
   scored.sort(
-    (a4, b2) => b2.rank - a4.rank || b2.updated.localeCompare(a4.updated),
+    (a3, b3) => b3.rank - a3.rank || b3.updated.localeCompare(a3.updated),
   );
   return scored.map(({ session, snippet }) => ({ session, snippet }));
 }
@@ -45735,8 +45748,8 @@ function filterSessions(sessions, query) {
     }
     for (const pc of resolver.querySelectorAll("ha-panel-custom")) fix(pc);
     new MutationObserver((muts) => {
-      for (const m2 of muts) {
-        for (const n5 of m2.addedNodes) if (n5.nodeType === 1) fix(n5);
+      for (const m3 of muts) {
+        for (const n4 of m3.addedNodes) if (n4.nodeType === 1) fix(n4);
       }
     }).observe(resolver, { childList: true });
   };
@@ -45756,7 +45769,7 @@ var _SHA256_K = new Uint32Array([
   2756734187, 3204031479, 3329325298,
 ]);
 function _sha256(msgBytes) {
-  const rotr = (x2, n5) => (x2 >>> n5) | (x2 << (32 - n5));
+  const rotr = (x2, n4) => (x2 >>> n4) | (x2 << (32 - n4));
   const len = msgBytes.length;
   const bitLen = len * 8;
   const blocks = Math.ceil((len + 9) / 64);
@@ -45770,49 +45783,49 @@ function _sha256(msgBytes) {
     528734635, 1541459225,
   ];
   const w2 = new Uint32Array(64);
-  for (let i5 = 0; i5 < padded.length; i5 += 64) {
-    for (let t4 = 0; t4 < 16; t4++) w2[t4] = dv.getUint32(i5 + t4 * 4, false);
-    for (let t4 = 16; t4 < 64; t4++) {
+  for (let i7 = 0; i7 < padded.length; i7 += 64) {
+    for (let t5 = 0; t5 < 16; t5++) w2[t5] = dv.getUint32(i7 + t5 * 4, false);
+    for (let t5 = 16; t5 < 64; t5++) {
       const s0 =
-        rotr(w2[t4 - 15], 7) ^ rotr(w2[t4 - 15], 18) ^ (w2[t4 - 15] >>> 3);
+        rotr(w2[t5 - 15], 7) ^ rotr(w2[t5 - 15], 18) ^ (w2[t5 - 15] >>> 3);
       const s1 =
-        rotr(w2[t4 - 2], 17) ^ rotr(w2[t4 - 2], 19) ^ (w2[t4 - 2] >>> 10);
-      w2[t4] = (w2[t4 - 16] + s0 + w2[t4 - 7] + s1) | 0;
+        rotr(w2[t5 - 2], 17) ^ rotr(w2[t5 - 2], 19) ^ (w2[t5 - 2] >>> 10);
+      w2[t5] = (w2[t5 - 16] + s0 + w2[t5 - 7] + s1) | 0;
     }
-    let [a4, b2, c3, d3, e6, f2, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
-    for (let t4 = 0; t4 < 64; t4++) {
+    let [a3, b3, c4, d3, e6, f3, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
+    for (let t5 = 0; t5 < 64; t5++) {
       const S1 = rotr(e6, 6) ^ rotr(e6, 11) ^ rotr(e6, 25);
-      const ch = (e6 & f2) ^ (~e6 & g2);
-      const t1 = (h8 + S1 + ch + _SHA256_K[t4] + w2[t4]) | 0;
-      const S0 = rotr(a4, 2) ^ rotr(a4, 13) ^ rotr(a4, 22);
-      const maj = (a4 & b2) ^ (a4 & c3) ^ (b2 & c3);
+      const ch = (e6 & f3) ^ (~e6 & g2);
+      const t1 = (h8 + S1 + ch + _SHA256_K[t5] + w2[t5]) | 0;
+      const S0 = rotr(a3, 2) ^ rotr(a3, 13) ^ rotr(a3, 22);
+      const maj = (a3 & b3) ^ (a3 & c4) ^ (b3 & c4);
       const t22 = (S0 + maj) | 0;
       h8 = g2;
-      g2 = f2;
-      f2 = e6;
+      g2 = f3;
+      f3 = e6;
       e6 = (d3 + t1) | 0;
-      d3 = c3;
-      c3 = b2;
-      b2 = a4;
-      a4 = (t1 + t22) | 0;
+      d3 = c4;
+      c4 = b3;
+      b3 = a3;
+      a3 = (t1 + t22) | 0;
     }
-    h0 = (h0 + a4) | 0;
-    h1 = (h1 + b2) | 0;
-    h22 = (h22 + c3) | 0;
+    h0 = (h0 + a3) | 0;
+    h1 = (h1 + b3) | 0;
+    h22 = (h22 + c4) | 0;
     h3 = (h3 + d3) | 0;
     h4 = (h4 + e6) | 0;
-    h5 = (h5 + f2) | 0;
+    h5 = (h5 + f3) | 0;
     h6 = (h6 + g2) | 0;
     h7 = (h7 + h8) | 0;
   }
   const out = new Uint8Array(32);
   const ov = new DataView(out.buffer);
-  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i5) =>
-    ov.setUint32(i5 * 4, v2, false),
+  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i7) =>
+    ov.setUint32(i7 * 4, v2, false),
   );
   return out;
 }
-var SeloraAIPanel = class extends s4 {
+var SeloraAIPanel = class extends i4 {
   // HA's recent panel resolver wraps each panel in a scoped custom-element
   // registry (via @webcomponents/scoped-custom-element-registry). With the
   // default attachShadow options, our shadow root gets a fresh per-panel
@@ -45824,7 +45837,7 @@ var SeloraAIPanel = class extends s4 {
   // so attachShadow uses the global registry. Lit reads this static for
   // its default createRenderRoot, which keeps style adoption intact.
   static shadowRootOptions = {
-    ...s4.shadowRootOptions,
+    ...i4.shadowRootOptions,
     customElements: window.customElements,
   };
   static get properties() {
@@ -46520,13 +46533,13 @@ var SeloraAIPanel = class extends s4 {
     this.requestUpdate();
   }
   _quotaProviderLabel() {
-    const p2 = this._quotaAlert?.provider;
-    if (p2 === "selora_cloud") return "Selora Cloud";
-    if (p2 === "anthropic") return "Anthropic";
-    if (p2 === "openai") return "OpenAI";
-    if (p2 === "openrouter") return "OpenRouter";
-    if (p2 === "gemini") return "Gemini";
-    if (p2 === "ollama") return "Ollama";
+    const p4 = this._quotaAlert?.provider;
+    if (p4 === "selora_cloud") return "Selora Cloud";
+    if (p4 === "anthropic") return "Anthropic";
+    if (p4 === "openai") return "OpenAI";
+    if (p4 === "openrouter") return "OpenRouter";
+    if (p4 === "gemini") return "Gemini";
+    if (p4 === "ollama") return "Ollama";
     return this._t("panel_quota_provider_default", "your LLM provider");
   }
   _renderQuotaBanner() {
@@ -46535,7 +46548,7 @@ var SeloraAIPanel = class extends s4 {
       0,
       Math.ceil((this._quotaAlert.until - Date.now()) / 1e3),
     );
-    return x`
+    return b2`
       <div class="quota-banner" role="alert">
         <ha-icon icon="mdi:speedometer-slow"></ha-icon>
         <div class="quota-banner-text">
@@ -46545,8 +46558,8 @@ var SeloraAIPanel = class extends s4 {
           >
           ${
             remaining > 0
-              ? x` ${this._t("panel_quota_try_again_prefix", "Try again in")}
-              ${remaining}s.`
+              ? b2` ${this._t("panel_quota_try_again_prefix", "Try again in")}
+                ${remaining}s.`
               : ` ${this._t("panel_quota_retrying_now", "Retrying now\u2026")}`
           }
         </div>
@@ -46855,9 +46868,9 @@ var SeloraAIPanel = class extends s4 {
     while (result.length < length) {
       const arr = new Uint8Array(length - result.length);
       crypto.getRandomValues(arr);
-      for (const b2 of arr) {
-        if (b2 < limit && result.length < length) {
-          result.push(chars[b2 % chars.length]);
+      for (const b3 of arr) {
+        if (b3 < limit && result.length < length) {
+          result.push(chars[b3 % chars.length]);
         }
       }
     }
@@ -47120,7 +47133,7 @@ var SeloraAIPanel = class extends s4 {
       };
       if (this._newTokenPermission === "custom") {
         payload.allowed_tools = Object.keys(this._newTokenTools).filter(
-          (t4) => this._newTokenTools[t4],
+          (t5) => this._newTokenTools[t5],
         );
       }
       if (this._newTokenExpiry) {
@@ -47379,11 +47392,11 @@ var SeloraAIPanel = class extends s4 {
       this.shadowRoot?.appendChild(probe);
       const resolved = getComputedStyle(probe).color;
       probe.remove();
-      const m2 = resolved.match(/\d+/g);
-      if (m2 && m2.length >= 3) {
+      const m3 = resolved.match(/\d+/g);
+      if (m3 && m3.length >= 3) {
         this._primaryColor =
           "#" +
-          [m2[0], m2[1], m2[2]]
+          [m3[0], m3[1], m3[2]]
             .map((v2) => parseInt(v2, 10).toString(16).padStart(2, "0"))
             .join("");
       }
@@ -47460,21 +47473,21 @@ var SeloraAIPanel = class extends s4 {
     let lastTop = container ? container.scrollTop : 0;
     const tick = () => {
       if (!this._chatPinDeadline) return;
-      const c3 = this.shadowRoot?.getElementById("chat-messages");
-      if (!c3) {
+      const c4 = this.shadowRoot?.getElementById("chat-messages");
+      if (!c4) {
         this._chatPinDeadline = 0;
         return;
       }
       const userScrolled =
-        c3.scrollTop < lastTop - 2 && c3.scrollHeight === lastHeight;
+        c4.scrollTop < lastTop - 2 && c4.scrollHeight === lastHeight;
       if (userScrolled) {
         this._chatScrolledAway = true;
         this._chatPinDeadline = 0;
         return;
       }
-      c3.scrollTop = c3.scrollHeight;
-      lastHeight = c3.scrollHeight;
-      lastTop = c3.scrollTop;
+      c4.scrollTop = c4.scrollHeight;
+      lastHeight = c4.scrollHeight;
+      lastTop = c4.scrollTop;
       if (Date.now() >= this._chatPinDeadline) {
         this._chatPinDeadline = 0;
         return;
@@ -47567,7 +47580,7 @@ var SeloraAIPanel = class extends s4 {
       if (!wired) {
         const ids = (grid.dataset.entityIds || "")
           .split(",")
-          .map((s6) => s6.trim())
+          .map((s4) => s4.trim())
           .filter(Boolean);
         const noFeatures = grid.dataset.noFeatures === "true";
         grid.replaceChildren();
@@ -47587,10 +47600,10 @@ var SeloraAIPanel = class extends s4 {
             if (!groups.has(areaName)) groups.set(areaName, []);
             groups.get(areaName).push(id);
           }
-          const sortedGroups = [...groups.entries()].sort((a4, b2) => {
-            if (!a4[0]) return 1;
-            if (!b2[0]) return -1;
-            return a4[0].localeCompare(b2[0]);
+          const sortedGroups = [...groups.entries()].sort((a3, b3) => {
+            if (!a3[0]) return 1;
+            if (!b3[0]) return -1;
+            return a3[0].localeCompare(b3[0]);
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
@@ -47613,8 +47626,8 @@ var SeloraAIPanel = class extends s4 {
             return card;
           };
           const areaIdByName = /* @__PURE__ */ new Map();
-          for (const a4 of Object.values(registries.areas || {})) {
-            if (a4.name) areaIdByName.set(a4.name, a4.area_id);
+          for (const a3 of Object.values(registries.areas || {})) {
+            if (a3.name) areaIdByName.set(a3.name, a3.area_id);
           }
           for (const [areaName, areaIds] of sortedGroups) {
             if (showHeaders) {
@@ -47755,7 +47768,7 @@ var SeloraAIPanel = class extends s4 {
         const devices = {};
         for (const d3 of deviceList) devices[d3.id] = d3;
         const areas = {};
-        for (const a4 of areaList) areas[a4.area_id] = a4;
+        for (const a3 of areaList) areas[a3.area_id] = a3;
         return { entities, devices, areas };
       } catch (e6) {
         console.warn("Selora: registry list failed", e6);
@@ -47929,7 +47942,7 @@ var SeloraAIPanel = class extends s4 {
     if (!scene) return;
     const sessionId = scene.session_id;
     const known = sessionId
-      ? this._sessions.find((s6) => s6.id === sessionId)
+      ? this._sessions.find((s4) => s4.id === sessionId)
       : null;
     try {
       if (known) {
@@ -48165,8 +48178,8 @@ var SeloraAIPanel = class extends s4 {
     this._recipesCatalogSearch = value || "";
     this._catalogPage = 1;
   }
-  _setCatalogPage(n5) {
-    this._catalogPage = Math.max(1, n5);
+  _setCatalogPage(n4) {
+    this._catalogPage = Math.max(1, n4);
   }
   // Install a recipe from a catalog entry — same backend path as
   // the "paste a URL" install card, just pre-filled.
@@ -48434,7 +48447,7 @@ var SeloraAIPanel = class extends s4 {
         (it) => it.kind === "inputs" && it.status === "needs_input",
       );
       const inputPunch = (preview?.punch_list || []).some(
-        (p2) => p2.code === "input_invalid",
+        (p4) => p4.code === "input_invalid",
       );
       return !badInputs && !inputPunch;
     }
@@ -48450,7 +48463,7 @@ var SeloraAIPanel = class extends s4 {
           it.stage === "configure",
       );
       const earlyPunch = (preview.punch_list || []).some(
-        (p2) => p2.stage !== "resolve" || p2.code !== "binding_pending",
+        (p4) => p4.stage !== "resolve" || p4.code !== "binding_pending",
       );
       return !blockingNeedsInput && !earlyPunch;
     }
@@ -49025,12 +49038,12 @@ var SeloraAIPanel = class extends s4 {
       available.map((r4) => [r4.slug, r4.title || r4.slug]),
     );
     const usingDomain = (manifest) =>
-      (manifest?.integrations || []).some((i5) => i5.domain === domain);
+      (manifest?.integrations || []).some((i7) => i7.domain === domain);
     return installed
       .filter((rec) => rec.slug !== exceptSlug)
       .filter((rec) => {
-        const m2 = available.find((a4) => a4.slug === rec.slug);
-        return usingDomain(m2);
+        const m3 = available.find((a3) => a3.slug === rec.slug);
+        return usingDomain(m3);
       })
       .map((rec) => titleBySlug[rec.slug] || rec.title || rec.slug);
   }
@@ -49073,8 +49086,8 @@ var SeloraAIPanel = class extends s4 {
   _renderInsights() {
     return renderInsights(this);
   }
-  _renderVersionHistoryDrawer(a4) {
-    return renderVersionHistoryDrawer(this, a4);
+  _renderVersionHistoryDrawer(a3) {
+    return renderVersionHistoryDrawer(this, a3);
   }
   _renderDiffViewer() {
     return renderDiffViewer(this);
@@ -49109,7 +49122,7 @@ var SeloraAIPanel = class extends s4 {
         label: this._t("feedback_category_general", "General"),
       },
     ];
-    return x`
+    return b2`
       <div
         class="modal-overlay"
         @click=${(e6) => {
@@ -49165,7 +49178,7 @@ var SeloraAIPanel = class extends s4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
             ${ratingOptions.map(
-              (opt) => x`
+              (opt) => b2`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackRating === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -49190,7 +49203,7 @@ var SeloraAIPanel = class extends s4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
             ${categoryOptions.map(
-              (opt) => x`
+              (opt) => b2`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackCategory === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -49248,23 +49261,23 @@ var SeloraAIPanel = class extends s4 {
   // Render
   // -------------------------------------------------------------------------
   render() {
-    return x`
+    return b2`
       <div class="header">
         <div class="header-toolbar">
           ${
             this.narrow
-              ? x`<button
-                class="menu-btn"
-                @click=${() =>
-                  this.dispatchEvent(
-                    new Event("hass-toggle-menu", {
-                      bubbles: true,
-                      composed: true,
-                    }),
-                  )}
-              >
-                <ha-icon icon="mdi:menu"></ha-icon>
-              </button>`
+              ? b2`<button
+                  class="menu-btn"
+                  @click=${() =>
+                    this.dispatchEvent(
+                      new Event("hass-toggle-menu", {
+                        bubbles: true,
+                        composed: true,
+                      }),
+                    )}
+                >
+                  <ha-icon icon="mdi:menu"></ha-icon>
+                </button>`
               : ""
           }
           <img
@@ -49361,25 +49374,25 @@ var SeloraAIPanel = class extends s4 {
           <span class="header-spacer"></span>
           ${
             this._activeTab !== "chat" || this._messages.length > 0
-              ? x`<button
-                class="header-new-chat"
-                title=${this._t("nav_new_chat", "New chat")}
-                aria-label=${this._t("nav_new_chat", "New chat")}
-                @click=${() => {
-                  this._showOverflowMenu = false;
-                  if (this._messages.length === 0) {
-                    this._setActiveTab("chat");
-                    if (this.narrow) this._showSidebar = false;
-                  } else {
-                    this._newSession();
-                  }
-                }}
-              >
-                <ha-icon icon="mdi:square-edit-outline"></ha-icon>
-                <span class="header-new-chat-label"
-                  >${this._t("nav_new_chat", "New chat")}</span
+              ? b2`<button
+                  class="header-new-chat"
+                  title=${this._t("nav_new_chat", "New chat")}
+                  aria-label=${this._t("nav_new_chat", "New chat")}
+                  @click=${() => {
+                    this._showOverflowMenu = false;
+                    if (this._messages.length === 0) {
+                      this._setActiveTab("chat");
+                      if (this.narrow) this._showSidebar = false;
+                    } else {
+                      this._newSession();
+                    }
+                  }}
                 >
-              </button>`
+                  <ha-icon icon="mdi:square-edit-outline"></ha-icon>
+                  <span class="header-new-chat-label"
+                    >${this._t("nav_new_chat", "New chat")}</span
+                  >
+                </button>`
               : ""
           }
           <div class="overflow-btn-wrap">
@@ -49397,158 +49410,158 @@ var SeloraAIPanel = class extends s4 {
             </button>
             ${
               this._showOverflowMenu
-                ? x`
-                  <div class="overflow-menu selora-menu">
-                    <div class="overflow-section narrow-only">
+                ? b2`
+                    <div class="overflow-menu selora-menu">
+                      <div class="overflow-section narrow-only">
+                        <button
+                          class="overflow-item"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("chat");
+                            this._showSidebar = true;
+                          }}
+                        >
+                          <ha-icon icon="mdi:chat-outline"></ha-icon>
+                          ${this._t("nav_conversations", "Conversations")}
+                        </button>
+                        <button
+                          class="overflow-item ${this._activeTab === "automations" ? "active" : ""}"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("automations");
+                            this._showSidebar = false;
+                            this._loadAutomations();
+                          }}
+                        >
+                          <ha-icon icon="mdi:robot-outline"></ha-icon>
+                          ${this._t("nav_automations", "Automations")}
+                        </button>
+                        <button
+                          class="overflow-item ${this._activeTab === "scenes" ? "active" : ""}"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("scenes");
+                            this._showSidebar = false;
+                            this._loadScenes();
+                          }}
+                        >
+                          <ha-icon icon="mdi:palette-outline"></ha-icon>
+                          ${this._t("nav_scenes", "Scenes")}
+                        </button>
+                        <button
+                          class="overflow-item ${this._activeTab === "recipes" ? "active" : ""}"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("recipes");
+                            this._showSidebar = false;
+                            this._recipesView = "list";
+                            this._loadRecipesList();
+                          }}
+                        >
+                          <ha-icon icon="mdi:book-open-variant"></ha-icon>
+                          Recipes
+                        </button>
+                        <button
+                          class="overflow-item ${this._activeTab === "insights" ? "active" : ""}"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("insights");
+                            this._showSidebar = false;
+                            this._openInsights();
+                          }}
+                        >
+                          <ha-icon icon="mdi:heart-pulse"></ha-icon>
+                          ${this._t("insights_tab", "Health")}
+                        </button>
+                        <div class="overflow-divider"></div>
+                      </div>
+                      <button
+                        class="overflow-item ${this._activeTab === "settings" ? "active" : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._setActiveTab("settings");
+                          this._showSidebar = false;
+                          this._loadConfig();
+                        }}
+                      >
+                        <ha-icon icon="mdi:cog-outline"></ha-icon>
+                        ${this._t("nav_settings", "Settings")}
+                      </button>
+                      <div class="overflow-divider"></div>
+                      <a
+                        class="overflow-item"
+                        href="https://selorahomes.com/docs/selora-ai/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                        }}
+                      >
+                        <ha-icon icon="mdi:book-open-variant"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t("nav_documentation", "Documentation")}</span
+                        >
+                        <ha-icon
+                          icon="mdi:open-in-new"
+                          class="overflow-item-external"
+                        ></ha-icon>
+                      </a>
                       <button
                         class="overflow-item"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._setActiveTab("chat");
-                          this._showSidebar = true;
+                          this._openFeedback();
                         }}
                       >
-                        <ha-icon icon="mdi:chat-outline"></ha-icon>
-                        ${this._t("nav_conversations", "Conversations")}
+                        <ha-icon icon="mdi:message-alert-outline"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t(
+                            "feedback_button_label",
+                            "Give Feedback",
+                          )}</span
+                        >
                       </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "automations" ? "active" : ""}"
+                      <a
+                        class="overflow-item"
+                        href="https://github.com/SeloraHomes/ha-selora-ai/issues"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._setActiveTab("automations");
-                          this._showSidebar = false;
-                          this._loadAutomations();
                         }}
                       >
-                        <ha-icon icon="mdi:robot-outline"></ha-icon>
-                        ${this._t("nav_automations", "Automations")}
-                      </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "scenes" ? "active" : ""}"
+                        <ha-icon icon="mdi:github"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t("nav_github_issues", "GitHub Issues")}</span
+                        >
+                        <ha-icon
+                          icon="mdi:open-in-new"
+                          class="overflow-item-external"
+                        ></ha-icon>
+                      </a>
+                      <a
+                        class="overflow-item"
+                        href="https://gitlab.com/selorahomes/products/selora-ai/ha-integration/"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._setActiveTab("scenes");
-                          this._showSidebar = false;
-                          this._loadScenes();
                         }}
                       >
-                        <ha-icon icon="mdi:palette-outline"></ha-icon>
-                        ${this._t("nav_scenes", "Scenes")}
-                      </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "recipes" ? "active" : ""}"
-                        @click=${() => {
-                          this._showOverflowMenu = false;
-                          this._setActiveTab("recipes");
-                          this._showSidebar = false;
-                          this._recipesView = "list";
-                          this._loadRecipesList();
-                        }}
-                      >
-                        <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                        Recipes
-                      </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "insights" ? "active" : ""}"
-                        @click=${() => {
-                          this._showOverflowMenu = false;
-                          this._setActiveTab("insights");
-                          this._showSidebar = false;
-                          this._openInsights();
-                        }}
-                      >
-                        <ha-icon icon="mdi:heart-pulse"></ha-icon>
-                        ${this._t("insights_tab", "Health")}
-                      </button>
-                      <div class="overflow-divider"></div>
+                        <ha-icon icon="mdi:gitlab"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t(
+                            "nav_gitlab_repo",
+                            "GitLab Repository",
+                          )}</span
+                        >
+                        <ha-icon
+                          icon="mdi:open-in-new"
+                          class="overflow-item-external"
+                        ></ha-icon>
+                      </a>
                     </div>
-                    <button
-                      class="overflow-item ${this._activeTab === "settings" ? "active" : ""}"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                        this._setActiveTab("settings");
-                        this._showSidebar = false;
-                        this._loadConfig();
-                      }}
-                    >
-                      <ha-icon icon="mdi:cog-outline"></ha-icon>
-                      ${this._t("nav_settings", "Settings")}
-                    </button>
-                    <div class="overflow-divider"></div>
-                    <a
-                      class="overflow-item"
-                      href="https://selorahomes.com/docs/selora-ai/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                      }}
-                    >
-                      <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t("nav_documentation", "Documentation")}</span
-                      >
-                      <ha-icon
-                        icon="mdi:open-in-new"
-                        class="overflow-item-external"
-                      ></ha-icon>
-                    </a>
-                    <button
-                      class="overflow-item"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                        this._openFeedback();
-                      }}
-                    >
-                      <ha-icon icon="mdi:message-alert-outline"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t(
-                          "feedback_button_label",
-                          "Give Feedback",
-                        )}</span
-                      >
-                    </button>
-                    <a
-                      class="overflow-item"
-                      href="https://github.com/SeloraHomes/ha-selora-ai/issues"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                      }}
-                    >
-                      <ha-icon icon="mdi:github"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t("nav_github_issues", "GitHub Issues")}</span
-                      >
-                      <ha-icon
-                        icon="mdi:open-in-new"
-                        class="overflow-item-external"
-                      ></ha-icon>
-                    </a>
-                    <a
-                      class="overflow-item"
-                      href="https://gitlab.com/selorahomes/products/selora-ai/ha-integration/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                      }}
-                    >
-                      <ha-icon icon="mdi:gitlab"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t(
-                          "nav_gitlab_repo",
-                          "GitLab Repository",
-                        )}</span
-                      >
-                      <ha-icon
-                        icon="mdi:open-in-new"
-                        class="overflow-item-external"
-                      ></ha-icon>
-                    </a>
-                  </div>
-                `
+                  `
                 : ""
             }
           </div>
@@ -49566,33 +49579,33 @@ var SeloraAIPanel = class extends s4 {
             >
               ${
                 this._sessions.length > 0
-                  ? x`
-                    ${
-                      this._selectChatsMode
-                        ? x`
-                          <button
-                            class="sidebar-select-btn"
-                            @click=${() => {
-                              this._selectChatsMode = false;
-                              this._selectedSessionIds = {};
-                            }}
-                          >
-                            ${this._t("panel_sidebar_done", "Done")}
-                          </button>
-                        `
-                        : x`
-                          <button
-                            class="sidebar-select-btn"
-                            @click=${() => {
-                              this._sessionSearch = "";
-                              this._selectChatsMode = true;
-                            }}
-                          >
-                            ${this._t("panel_sidebar_select", "Select")}
-                          </button>
-                        `
-                    }
-                  `
+                  ? b2`
+                      ${
+                        this._selectChatsMode
+                          ? b2`
+                              <button
+                                class="sidebar-select-btn"
+                                @click=${() => {
+                                  this._selectChatsMode = false;
+                                  this._selectedSessionIds = {};
+                                }}
+                              >
+                                ${this._t("panel_sidebar_done", "Done")}
+                              </button>
+                            `
+                          : b2`
+                              <button
+                                class="sidebar-select-btn"
+                                @click=${() => {
+                                  this._sessionSearch = "";
+                                  this._selectChatsMode = true;
+                                }}
+                              >
+                                ${this._t("panel_sidebar_select", "Select")}
+                              </button>
+                            `
+                      }
+                    `
                   : ""
               }
               <ha-icon
@@ -49604,219 +49617,222 @@ var SeloraAIPanel = class extends s4 {
           </div>
           ${
             this._selectChatsMode
-              ? x`
-                <div class="select-actions-bar">
-                  <label
-                    class="select-all-label"
-                    @click=${() => this._toggleSelectAllSessions()}
-                  >
-                    <input
-                      type="checkbox"
-                      .checked=${
-                        this._sessions.length > 0 &&
-                        this._sessions.every(
-                          (s6) => this._selectedSessionIds[s6.id],
-                        )
-                      }
-                    />
-                    <span
-                      >${this._t(
-                        "panel_sidebar_select_all",
-                        "Select all",
-                      )}</span
+              ? b2`
+                  <div class="select-actions-bar">
+                    <label
+                      class="select-all-label"
+                      @click=${() => this._toggleSelectAllSessions()}
                     >
-                  </label>
+                      <input
+                        type="checkbox"
+                        .checked=${
+                          this._sessions.length > 0 &&
+                          this._sessions.every(
+                            (s4) => this._selectedSessionIds[s4.id],
+                          )
+                        }
+                      />
+                      <span
+                        >${this._t(
+                          "panel_sidebar_select_all",
+                          "Select all",
+                        )}</span
+                      >
+                    </label>
+                    <button
+                      class="btn-delete-selected"
+                      ?disabled=${Object.values(this._selectedSessionIds).filter(Boolean).length === 0}
+                      @click=${() => this._requestBulkDeleteSessions()}
+                    >
+                      <ha-icon
+                        icon="mdi:delete-outline"
+                        style="--mdc-icon-size:14px;"
+                      ></ha-icon>
+                      ${this._t("panel_sidebar_delete", "Delete")}
+                      (${Object.values(this._selectedSessionIds).filter(Boolean).length})
+                    </button>
+                  </div>
+                `
+              : b2`
                   <button
-                    class="btn-delete-selected"
-                    ?disabled=${
-                      Object.values(this._selectedSessionIds).filter(Boolean)
-                        .length === 0
-                    }
-                    @click=${() => this._requestBulkDeleteSessions()}
+                    class="btn btn-primary new-chat-btn"
+                    style="width:calc(100% - 24px);"
+                    @click=${this._newSession}
                   >
                     <ha-icon
-                      icon="mdi:delete-outline"
-                      style="--mdc-icon-size:14px;"
+                      icon="mdi:plus"
+                      style="--mdc-icon-size:16px;"
                     ></ha-icon>
-                    ${this._t("panel_sidebar_delete", "Delete")}
-                    (${Object.values(this._selectedSessionIds).filter(Boolean).length})
+                    ${this._t("panel_sidebar_new_chat", "New Chat")}
                   </button>
-                </div>
-              `
-              : x`
-                <button
-                  class="btn btn-primary new-chat-btn"
-                  style="width:calc(100% - 24px);"
-                  @click=${this._newSession}
-                >
-                  <ha-icon
-                    icon="mdi:plus"
-                    style="--mdc-icon-size:16px;"
-                  ></ha-icon>
-                  ${this._t("panel_sidebar_new_chat", "New Chat")}
-                </button>
-              `
+                `
           }
           ${
             this._sessions.length > 0 && !this._selectChatsMode
-              ? x`
-                <div class="session-search">
-                  <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
-                  <input
-                    type="text"
-                    .value=${this._sessionSearch}
-                    placeholder=${this._t(
-                      "panel_sidebar_search",
-                      "Search conversations",
-                    )}
-                    @input=${(e6) => (this._sessionSearch = e6.target.value)}
-                  />
-                  ${
-                    this._sessionSearch
-                      ? x`<ha-icon
-                        class="search-clear"
-                        icon="mdi:close-circle"
-                        @click=${() => (this._sessionSearch = "")}
-                      ></ha-icon>`
-                      : ""
-                  }
-                </div>
-              `
+              ? b2`
+                  <div class="session-search">
+                    <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
+                    <input
+                      type="text"
+                      .value=${this._sessionSearch}
+                      placeholder=${this._t(
+                        "panel_sidebar_search",
+                        "Search conversations",
+                      )}
+                      @input=${(e6) => (this._sessionSearch = e6.target.value)}
+                    />
+                    ${
+                      this._sessionSearch
+                        ? b2`<ha-icon
+                            class="search-clear"
+                            icon="mdi:close-circle"
+                            @click=${() => (this._sessionSearch = "")}
+                          ></ha-icon>`
+                        : ""
+                    }
+                  </div>
+                `
               : ""
           }
           <div class="session-list">
             ${
               this._sessions.length === 0
-                ? x`<div class="session-search-empty">
-                  ${this._t(
-                    "panel_sidebar_no_conversations",
-                    "No conversations yet.",
-                  )}
-                </div>`
+                ? b2`<div class="session-search-empty">
+                    ${this._t(
+                      "panel_sidebar_no_conversations",
+                      "No conversations yet.",
+                    )}
+                  </div>`
                 : (() => {
                     const visible = filterSessions(
                       this._sessions,
                       this._sessionSearch,
                     );
                     if (visible.length === 0) {
-                      return x`<div class="session-search-empty">
-                      ${this._t(
-                        "panel_sidebar_no_matches",
-                        "No conversations match your search.",
-                      )}
-                    </div>`;
+                      return b2`<div class="session-search-empty">
+                        ${this._t(
+                          "panel_sidebar_no_matches",
+                          "No conversations match your search.",
+                        )}
+                      </div>`;
                     }
                     return visible.map(
-                      ({ session: s6, snippet }) => x`
-                      <div
-                        class="session-item-wrapper ${this._swipedSessionId === s6.id ? "reveal-delete" : ""}"
-                      >
+                      ({ session: s4, snippet }) => b2`
                         <div
-                          class="session-item-delete-bg"
-                          @click=${(e6) => this._deleteSession(s6.id, e6)}
+                          class="session-item-wrapper ${this._swipedSessionId === s4.id ? "reveal-delete" : ""}"
                         >
-                          <ha-icon icon="mdi:delete-outline"></ha-icon>
-                        </div>
-                        ${
-                          this._deleteConfirmSessionId === s6.id
-                            ? x`
-                              <div class="session-item session-delete-confirm">
-                                <span class="session-delete-confirm-label"
-                                  >${this._t(
-                                    "panel_session_delete_confirm",
-                                    "Delete?",
-                                  )}</span
-                                >
-                                <div
-                                  style="display:flex;gap:6px;margin-left:auto;"
-                                >
-                                  <button
-                                    class="btn btn-sm"
-                                    style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
-                                    @click=${(e6) => {
-                                      e6.stopPropagation();
-                                      this._confirmDeleteSession();
-                                    }}
+                          <div
+                            class="session-item-delete-bg"
+                            @click=${(e6) => this._deleteSession(s4.id, e6)}
+                          >
+                            <ha-icon icon="mdi:delete-outline"></ha-icon>
+                          </div>
+                          ${
+                            this._deleteConfirmSessionId === s4.id
+                              ? b2`
+                                  <div
+                                    class="session-item session-delete-confirm"
                                   >
-                                    ${this._t("panel_session_delete", "Delete")}
-                                  </button>
-                                  <button
-                                    class="btn btn-outline btn-sm"
-                                    style="padding:3px 10px;font-size:12px;"
-                                    @click=${(e6) => {
-                                      e6.stopPropagation();
-                                      this._deleteConfirmSessionId = null;
-                                    }}
-                                  >
-                                    ${this._t("panel_session_cancel", "Cancel")}
-                                  </button>
-                                </div>
-                              </div>
-                            `
-                            : x`
-                              <div
-                                class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
-                                @click=${() => {
-                                  if (this._swipedSessionId === s6.id) {
-                                    this._swipedSessionId = null;
-                                    return;
-                                  }
-                                  this._selectChatsMode
-                                    ? this._toggleSessionSelection(s6.id)
-                                    : this._openSession(s6.id);
-                                }}
-                                @touchstart=${(e6) => this._onSessionTouchStart(e6, s6.id)}
-                                @touchmove=${(e6) => this._onSessionTouchMove(e6, s6.id)}
-                                @touchend=${(e6) => this._onSessionTouchEnd(e6, s6.id)}
-                              >
-                                ${
-                                  this._selectChatsMode
-                                    ? x`
-                                      <input
-                                        type="checkbox"
-                                        class="session-checkbox"
-                                        .checked=${!!this._selectedSessionIds[s6.id]}
+                                    <span class="session-delete-confirm-label"
+                                      >${this._t(
+                                        "panel_session_delete_confirm",
+                                        "Delete?",
+                                      )}</span
+                                    >
+                                    <div
+                                      style="display:flex;gap:6px;margin-left:auto;"
+                                    >
+                                      <button
+                                        class="btn btn-sm"
+                                        style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
                                         @click=${(e6) => {
                                           e6.stopPropagation();
-                                          this._toggleSessionSelection(s6.id);
+                                          this._confirmDeleteSession();
                                         }}
-                                      />
-                                    `
-                                    : ""
-                                }
-                                <div style="flex:1; min-width:0;">
-                                  <div class="session-title">${s6.title}</div>
-                                  ${
-                                    snippet
-                                      ? x`<div class="session-snippet">
-                                        ${snippet.before}<mark>${snippet.match}</mark>${snippet.after}
-                                      </div>`
-                                      : ""
-                                  }
-                                  <div class="session-meta">
-                                    ${formatDate(s6.updated_at)}
+                                      >
+                                        ${this._t("panel_session_delete", "Delete")}
+                                      </button>
+                                      <button
+                                        class="btn btn-outline btn-sm"
+                                        style="padding:3px 10px;font-size:12px;"
+                                        @click=${(e6) => {
+                                          e6.stopPropagation();
+                                          this._deleteConfirmSessionId = null;
+                                        }}
+                                      >
+                                        ${this._t("panel_session_cancel", "Cancel")}
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                                ${
-                                  !this._selectChatsMode
-                                    ? x`
-                                      <ha-icon
-                                        class="session-delete"
-                                        icon="mdi:delete-outline"
-                                        @click=${(e6) => this._deleteSession(s6.id, e6)}
-                                        title=${this._t(
-                                          "panel_session_delete_title",
-                                          "Delete",
-                                        )}
-                                      ></ha-icon>
-                                    `
-                                    : ""
-                                }
-                              </div>
-                            `
-                        }
-                      </div>
-                    `,
+                                `
+                              : b2`
+                                  <div
+                                    class="session-item ${s4.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s4.id ? "swiped" : ""}"
+                                    @click=${() => {
+                                      if (this._swipedSessionId === s4.id) {
+                                        this._swipedSessionId = null;
+                                        return;
+                                      }
+                                      this._selectChatsMode
+                                        ? this._toggleSessionSelection(s4.id)
+                                        : this._openSession(s4.id);
+                                    }}
+                                    @touchstart=${(e6) => this._onSessionTouchStart(e6, s4.id)}
+                                    @touchmove=${(e6) => this._onSessionTouchMove(e6, s4.id)}
+                                    @touchend=${(e6) => this._onSessionTouchEnd(e6, s4.id)}
+                                  >
+                                    ${
+                                      this._selectChatsMode
+                                        ? b2`
+                                            <input
+                                              type="checkbox"
+                                              class="session-checkbox"
+                                              .checked=${!!this._selectedSessionIds[s4.id]}
+                                              @click=${(e6) => {
+                                                e6.stopPropagation();
+                                                this._toggleSessionSelection(
+                                                  s4.id,
+                                                );
+                                              }}
+                                            />
+                                          `
+                                        : ""
+                                    }
+                                    <div style="flex:1; min-width:0;">
+                                      <div class="session-title">
+                                        ${s4.title}
+                                      </div>
+                                      ${
+                                        snippet
+                                          ? b2`<div class="session-snippet">
+                                              ${snippet.before}<mark>${snippet.match}</mark>${snippet.after}
+                                            </div>`
+                                          : ""
+                                      }
+                                      <div class="session-meta">
+                                        ${formatDate(s4.updated_at)}
+                                      </div>
+                                    </div>
+                                    ${
+                                      !this._selectChatsMode
+                                        ? b2`
+                                            <ha-icon
+                                              class="session-delete"
+                                              icon="mdi:delete-outline"
+                                              @click=${(e6) => this._deleteSession(s4.id, e6)}
+                                              title=${this._t(
+                                                "panel_session_delete_title",
+                                                "Delete",
+                                              )}
+                                            ></ha-icon>
+                                          `
+                                        : ""
+                                    }
+                                  </div>
+                                `
+                          }
+                        </div>
+                      `,
                     );
                   })()
             }
@@ -49849,60 +49865,62 @@ var SeloraAIPanel = class extends s4 {
       ${this._renderFeedbackModal()}
       ${
         this._deleteConfirmSessionId === "__bulk__"
-          ? x`
-            <div
-              class="modal-overlay"
-              @click=${(e6) => {
-                if (e6.target === e6.currentTarget)
-                  this._deleteConfirmSessionId = null;
-              }}
-            >
+          ? b2`
               <div
-                class="modal-content"
-                style="max-width:400px;text-align:center;"
+                class="modal-overlay"
+                @click=${(e6) => {
+                  if (e6.target === e6.currentTarget)
+                    this._deleteConfirmSessionId = null;
+                }}
               >
-                <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-                  ${this._t("panel_bulk_delete_title", "Delete Conversations")}
-                </div>
-                <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
-                  Delete
-                  ${Object.values(this._selectedSessionIds).filter(Boolean).length}
-                  selected conversation(s)? This cannot be undone.
-                </div>
-                <div style="display:flex;gap:10px;justify-content:center;">
-                  <button
-                    class="btn btn-outline"
-                    @click=${() => {
-                      this._deleteConfirmSessionId = null;
-                    }}
+                <div
+                  class="modal-content"
+                  style="max-width:400px;text-align:center;"
+                >
+                  <div
+                    style="font-size:17px;font-weight:600;margin-bottom:8px;"
                   >
-                    ${this._t("panel_bulk_delete_cancel", "Cancel")}
-                  </button>
-                  <button
-                    class="btn"
-                    style="background:#ef4444;color:#fff;border-color:#ef4444;"
-                    @click=${() => this._confirmBulkDeleteSessions()}
-                  >
-                    ${this._t("panel_bulk_delete_confirm", "Delete")}
-                  </button>
+                    ${this._t("panel_bulk_delete_title", "Delete Conversations")}
+                  </div>
+                  <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+                    Delete
+                    ${Object.values(this._selectedSessionIds).filter(Boolean).length}
+                    selected conversation(s)? This cannot be undone.
+                  </div>
+                  <div style="display:flex;gap:10px;justify-content:center;">
+                    <button
+                      class="btn btn-outline"
+                      @click=${() => {
+                        this._deleteConfirmSessionId = null;
+                      }}
+                    >
+                      ${this._t("panel_bulk_delete_cancel", "Cancel")}
+                    </button>
+                    <button
+                      class="btn"
+                      style="background:#ef4444;color:#fff;border-color:#ef4444;"
+                      @click=${() => this._confirmBulkDeleteSessions()}
+                    >
+                      ${this._t("panel_bulk_delete_confirm", "Delete")}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          `
+            `
           : ""
       }
       ${
         this._toast
-          ? x`
-            <div class="toast ${this._toastType}">
-              <span>${this._toast}</span>
-              <ha-icon
-                class="toast-close"
-                icon="mdi:close"
-                @click=${() => this._dismissToast()}
-              ></ha-icon>
-            </div>
-          `
+          ? b2`
+              <div class="toast ${this._toastType}">
+                <span>${this._toast}</span>
+                <ha-icon
+                  class="toast-close"
+                  icon="mdi:close"
+                  @click=${() => this._dismissToast()}
+                ></ha-icon>
+              </div>
+            `
           : ""
       }
     `;

@@ -1047,10 +1047,12 @@ class SeloraAIPanel extends LitElement {
             >${this._quotaProviderLabel()}
             ${this._t("panel_quota_reached", "quota reached.")}</strong
           >
-          ${remaining > 0
-            ? html` ${this._t("panel_quota_try_again_prefix", "Try again in")}
-              ${remaining}s.`
-            : ` ${this._t("panel_quota_retrying_now", "Retrying now…")}`}
+          ${
+            remaining > 0
+              ? html` ${this._t("panel_quota_try_again_prefix", "Try again in")}
+                ${remaining}s.`
+              : ` ${this._t("panel_quota_retrying_now", "Retrying now…")}`
+          }
         </div>
         <button
           class="quota-banner-close"
@@ -4226,12 +4228,14 @@ class SeloraAIPanel extends LitElement {
               (opt) => html`
                 <button
                   class="btn btn-outline"
-                  style="padding:6px 10px;${this._feedbackRating === opt.value
-                    ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);"
-                    : ""}"
-                  aria-pressed=${this._feedbackRating === opt.value
-                    ? "true"
-                    : "false"}
+                  style="padding:6px 10px;${
+                    this._feedbackRating === opt.value
+                      ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);"
+                      : ""
+                  }"
+                  aria-pressed=${
+                    this._feedbackRating === opt.value ? "true" : "false"
+                  }
                   title=${opt.label}
                   @click=${() => {
                     this._feedbackRating =
@@ -4255,12 +4259,14 @@ class SeloraAIPanel extends LitElement {
               (opt) => html`
                 <button
                   class="btn btn-outline"
-                  style="padding:6px 10px;${this._feedbackCategory === opt.value
-                    ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);"
-                    : ""}"
-                  aria-pressed=${this._feedbackCategory === opt.value
-                    ? "true"
-                    : "false"}
+                  style="padding:6px 10px;${
+                    this._feedbackCategory === opt.value
+                      ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);"
+                      : ""
+                  }"
+                  aria-pressed=${
+                    this._feedbackCategory === opt.value ? "true" : "false"
+                  }
                   @click=${() => {
                     this._feedbackCategory =
                       this._feedbackCategory === opt.value ? "" : opt.value;
@@ -4303,9 +4309,11 @@ class SeloraAIPanel extends LitElement {
               ?disabled=${this._submittingFeedback || tooShort}
               @click=${() => this._submitFeedback()}
             >
-              ${this._submittingFeedback
-                ? this._t("feedback_submitting", "Sending…")
-                : this._t("feedback_submit", "Send Feedback")}
+              ${
+                this._submittingFeedback
+                  ? this._t("feedback_submitting", "Sending…")
+                  : this._t("feedback_submit", "Send Feedback")
+              }
             </button>
           </div>
         </div>
@@ -4321,20 +4329,22 @@ class SeloraAIPanel extends LitElement {
     return html`
       <div class="header">
         <div class="header-toolbar">
-          ${this.narrow
-            ? html`<button
-                class="menu-btn"
-                @click=${() =>
-                  this.dispatchEvent(
-                    new Event("hass-toggle-menu", {
-                      bubbles: true,
-                      composed: true,
-                    }),
-                  )}
-              >
-                <ha-icon icon="mdi:menu"></ha-icon>
-              </button>`
-            : ""}
+          ${
+            this.narrow
+              ? html`<button
+                  class="menu-btn"
+                  @click=${() =>
+                    this.dispatchEvent(
+                      new Event("hass-toggle-menu", {
+                        bubbles: true,
+                        composed: true,
+                      }),
+                    )}
+                >
+                  <ha-icon icon="mdi:menu"></ha-icon>
+                </button>`
+              : ""
+          }
           <img
             src="/api/selora_ai/${this._isDark ? "logo" : "logo-light"}.png"
             alt=""
@@ -4427,27 +4437,29 @@ class SeloraAIPanel extends LitElement {
             </div>
           </div>
           <span class="header-spacer"></span>
-          ${this._activeTab !== "chat" || this._messages.length > 0
-            ? html`<button
-                class="header-new-chat"
-                title=${this._t("nav_new_chat", "New chat")}
-                aria-label=${this._t("nav_new_chat", "New chat")}
-                @click=${() => {
-                  this._showOverflowMenu = false;
-                  if (this._messages.length === 0) {
-                    this._setActiveTab("chat");
-                    if (this.narrow) this._showSidebar = false;
-                  } else {
-                    this._newSession();
-                  }
-                }}
-              >
-                <ha-icon icon="mdi:square-edit-outline"></ha-icon>
-                <span class="header-new-chat-label"
-                  >${this._t("nav_new_chat", "New chat")}</span
+          ${
+            this._activeTab !== "chat" || this._messages.length > 0
+              ? html`<button
+                  class="header-new-chat"
+                  title=${this._t("nav_new_chat", "New chat")}
+                  aria-label=${this._t("nav_new_chat", "New chat")}
+                  @click=${() => {
+                    this._showOverflowMenu = false;
+                    if (this._messages.length === 0) {
+                      this._setActiveTab("chat");
+                      if (this.narrow) this._showSidebar = false;
+                    } else {
+                      this._newSession();
+                    }
+                  }}
                 >
-              </button>`
-            : ""}
+                  <ha-icon icon="mdi:square-edit-outline"></ha-icon>
+                  <span class="header-new-chat-label"
+                    >${this._t("nav_new_chat", "New chat")}</span
+                  >
+                </button>`
+              : ""
+          }
           <div class="overflow-btn-wrap">
             <button
               class="overflow-btn selora-menu-btn"
@@ -4464,170 +4476,172 @@ class SeloraAIPanel extends LitElement {
             >
               <ha-icon icon="mdi:dots-grid"></ha-icon>
             </button>
-            ${this._showOverflowMenu
-              ? html`
-                  <div class="overflow-menu selora-menu">
-                    <div class="overflow-section narrow-only">
+            ${
+              this._showOverflowMenu
+                ? html`
+                    <div class="overflow-menu selora-menu">
+                      <div class="overflow-section narrow-only">
+                        <button
+                          class="overflow-item"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("chat");
+                            this._showSidebar = true;
+                          }}
+                        >
+                          <ha-icon icon="mdi:chat-outline"></ha-icon>
+                          ${this._t("nav_conversations", "Conversations")}
+                        </button>
+                        <button
+                          class="overflow-item ${
+                            this._activeTab === "automations" ? "active" : ""
+                          }"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("automations");
+                            this._showSidebar = false;
+                            this._loadAutomations();
+                          }}
+                        >
+                          <ha-icon icon="mdi:robot-outline"></ha-icon>
+                          ${this._t("nav_automations", "Automations")}
+                        </button>
+                        <button
+                          class="overflow-item ${
+                            this._activeTab === "scenes" ? "active" : ""
+                          }"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("scenes");
+                            this._showSidebar = false;
+                            this._loadScenes();
+                          }}
+                        >
+                          <ha-icon icon="mdi:palette-outline"></ha-icon>
+                          ${this._t("nav_scenes", "Scenes")}
+                        </button>
+                        <button
+                          class="overflow-item ${
+                            this._activeTab === "recipes" ? "active" : ""
+                          }"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("recipes");
+                            this._showSidebar = false;
+                            this._recipesView = "list";
+                            this._loadRecipesList();
+                          }}
+                        >
+                          <ha-icon icon="mdi:book-open-variant"></ha-icon>
+                          Recipes
+                        </button>
+                        <button
+                          class="overflow-item ${
+                            this._activeTab === "insights" ? "active" : ""
+                          }"
+                          @click=${() => {
+                            this._showOverflowMenu = false;
+                            this._setActiveTab("insights");
+                            this._showSidebar = false;
+                            this._openInsights();
+                          }}
+                        >
+                          <ha-icon icon="mdi:heart-pulse"></ha-icon>
+                          ${this._t("insights_tab", "Health")}
+                        </button>
+                        <div class="overflow-divider"></div>
+                      </div>
+                      <button
+                        class="overflow-item ${
+                          this._activeTab === "settings" ? "active" : ""
+                        }"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._setActiveTab("settings");
+                          this._showSidebar = false;
+                          this._loadConfig();
+                        }}
+                      >
+                        <ha-icon icon="mdi:cog-outline"></ha-icon>
+                        ${this._t("nav_settings", "Settings")}
+                      </button>
+                      <div class="overflow-divider"></div>
+                      <a
+                        class="overflow-item"
+                        href="https://selorahomes.com/docs/selora-ai/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                        }}
+                      >
+                        <ha-icon icon="mdi:book-open-variant"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t("nav_documentation", "Documentation")}</span
+                        >
+                        <ha-icon
+                          icon="mdi:open-in-new"
+                          class="overflow-item-external"
+                        ></ha-icon>
+                      </a>
                       <button
                         class="overflow-item"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._setActiveTab("chat");
-                          this._showSidebar = true;
+                          this._openFeedback();
                         }}
                       >
-                        <ha-icon icon="mdi:chat-outline"></ha-icon>
-                        ${this._t("nav_conversations", "Conversations")}
+                        <ha-icon icon="mdi:message-alert-outline"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t(
+                            "feedback_button_label",
+                            "Give Feedback",
+                          )}</span
+                        >
                       </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "automations"
-                          ? "active"
-                          : ""}"
+                      <a
+                        class="overflow-item"
+                        href="https://github.com/SeloraHomes/ha-selora-ai/issues"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._setActiveTab("automations");
-                          this._showSidebar = false;
-                          this._loadAutomations();
                         }}
                       >
-                        <ha-icon icon="mdi:robot-outline"></ha-icon>
-                        ${this._t("nav_automations", "Automations")}
-                      </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "scenes"
-                          ? "active"
-                          : ""}"
+                        <ha-icon icon="mdi:github"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t("nav_github_issues", "GitHub Issues")}</span
+                        >
+                        <ha-icon
+                          icon="mdi:open-in-new"
+                          class="overflow-item-external"
+                        ></ha-icon>
+                      </a>
+                      <a
+                        class="overflow-item"
+                        href="https://gitlab.com/selorahomes/products/selora-ai/ha-integration/"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._setActiveTab("scenes");
-                          this._showSidebar = false;
-                          this._loadScenes();
                         }}
                       >
-                        <ha-icon icon="mdi:palette-outline"></ha-icon>
-                        ${this._t("nav_scenes", "Scenes")}
-                      </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "recipes"
-                          ? "active"
-                          : ""}"
-                        @click=${() => {
-                          this._showOverflowMenu = false;
-                          this._setActiveTab("recipes");
-                          this._showSidebar = false;
-                          this._recipesView = "list";
-                          this._loadRecipesList();
-                        }}
-                      >
-                        <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                        Recipes
-                      </button>
-                      <button
-                        class="overflow-item ${this._activeTab === "insights"
-                          ? "active"
-                          : ""}"
-                        @click=${() => {
-                          this._showOverflowMenu = false;
-                          this._setActiveTab("insights");
-                          this._showSidebar = false;
-                          this._openInsights();
-                        }}
-                      >
-                        <ha-icon icon="mdi:heart-pulse"></ha-icon>
-                        ${this._t("insights_tab", "Health")}
-                      </button>
-                      <div class="overflow-divider"></div>
+                        <ha-icon icon="mdi:gitlab"></ha-icon>
+                        <span class="overflow-item-label"
+                          >${this._t(
+                            "nav_gitlab_repo",
+                            "GitLab Repository",
+                          )}</span
+                        >
+                        <ha-icon
+                          icon="mdi:open-in-new"
+                          class="overflow-item-external"
+                        ></ha-icon>
+                      </a>
                     </div>
-                    <button
-                      class="overflow-item ${this._activeTab === "settings"
-                        ? "active"
-                        : ""}"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                        this._setActiveTab("settings");
-                        this._showSidebar = false;
-                        this._loadConfig();
-                      }}
-                    >
-                      <ha-icon icon="mdi:cog-outline"></ha-icon>
-                      ${this._t("nav_settings", "Settings")}
-                    </button>
-                    <div class="overflow-divider"></div>
-                    <a
-                      class="overflow-item"
-                      href="https://selorahomes.com/docs/selora-ai/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                      }}
-                    >
-                      <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t("nav_documentation", "Documentation")}</span
-                      >
-                      <ha-icon
-                        icon="mdi:open-in-new"
-                        class="overflow-item-external"
-                      ></ha-icon>
-                    </a>
-                    <button
-                      class="overflow-item"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                        this._openFeedback();
-                      }}
-                    >
-                      <ha-icon icon="mdi:message-alert-outline"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t(
-                          "feedback_button_label",
-                          "Give Feedback",
-                        )}</span
-                      >
-                    </button>
-                    <a
-                      class="overflow-item"
-                      href="https://github.com/SeloraHomes/ha-selora-ai/issues"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                      }}
-                    >
-                      <ha-icon icon="mdi:github"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t("nav_github_issues", "GitHub Issues")}</span
-                      >
-                      <ha-icon
-                        icon="mdi:open-in-new"
-                        class="overflow-item-external"
-                      ></ha-icon>
-                    </a>
-                    <a
-                      class="overflow-item"
-                      href="https://gitlab.com/selorahomes/products/selora-ai/ha-integration/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      @click=${() => {
-                        this._showOverflowMenu = false;
-                      }}
-                    >
-                      <ha-icon icon="mdi:gitlab"></ha-icon>
-                      <span class="overflow-item-label"
-                        >${this._t(
-                          "nav_gitlab_repo",
-                          "GitLab Repository",
-                        )}</span
-                      >
-                      <ha-icon
-                        icon="mdi:open-in-new"
-                        class="overflow-item-external"
-                      ></ha-icon>
-                    </a>
-                  </div>
-                `
-              : ""}
+                  `
+                : ""
+            }
           </div>
         </div>
       </div>
@@ -4641,36 +4655,40 @@ class SeloraAIPanel extends LitElement {
             <div
               style="display:flex;align-items:center;gap:6px;margin-left:auto;"
             >
-              ${this._sessions.length > 0
-                ? html`
-                    ${this._selectChatsMode
-                      ? html`
-                          <button
-                            class="sidebar-select-btn"
-                            @click=${() => {
-                              this._selectChatsMode = false;
-                              this._selectedSessionIds = {};
-                            }}
-                          >
-                            ${this._t("panel_sidebar_done", "Done")}
-                          </button>
-                        `
-                      : html`
-                          <button
-                            class="sidebar-select-btn"
-                            @click=${() => {
-                              // Drop any active filter so selection (and
-                              // Select all) operate on the full visible list —
-                              // never on hidden, unrelated conversations.
-                              this._sessionSearch = "";
-                              this._selectChatsMode = true;
-                            }}
-                          >
-                            ${this._t("panel_sidebar_select", "Select")}
-                          </button>
-                        `}
-                  `
-                : ""}
+              ${
+                this._sessions.length > 0
+                  ? html`
+                      ${
+                        this._selectChatsMode
+                          ? html`
+                              <button
+                                class="sidebar-select-btn"
+                                @click=${() => {
+                                  this._selectChatsMode = false;
+                                  this._selectedSessionIds = {};
+                                }}
+                              >
+                                ${this._t("panel_sidebar_done", "Done")}
+                              </button>
+                            `
+                          : html`
+                              <button
+                                class="sidebar-select-btn"
+                                @click=${() => {
+                                  // Drop any active filter so selection (and
+                                  // Select all) operate on the full visible list —
+                                  // never on hidden, unrelated conversations.
+                                  this._sessionSearch = "";
+                                  this._selectChatsMode = true;
+                                }}
+                              >
+                                ${this._t("panel_sidebar_select", "Select")}
+                              </button>
+                            `
+                      }
+                    `
+                  : ""
+              }
               <ha-icon
                 icon="mdi:close"
                 style="--mdc-icon-size:18px;cursor:pointer;opacity:0.6;"
@@ -4678,220 +4696,250 @@ class SeloraAIPanel extends LitElement {
               ></ha-icon>
             </div>
           </div>
-          ${this._selectChatsMode
-            ? html`
-                <div class="select-actions-bar">
-                  <label
-                    class="select-all-label"
-                    @click=${() => this._toggleSelectAllSessions()}
-                  >
-                    <input
-                      type="checkbox"
-                      .checked=${this._sessions.length > 0 &&
-                      this._sessions.every(
-                        (s) => this._selectedSessionIds[s.id],
-                      )}
-                    />
-                    <span
-                      >${this._t(
-                        "panel_sidebar_select_all",
-                        "Select all",
-                      )}</span
+          ${
+            this._selectChatsMode
+              ? html`
+                  <div class="select-actions-bar">
+                    <label
+                      class="select-all-label"
+                      @click=${() => this._toggleSelectAllSessions()}
                     >
-                  </label>
+                      <input
+                        type="checkbox"
+                        .checked=${
+                          this._sessions.length > 0 &&
+                          this._sessions.every(
+                            (s) => this._selectedSessionIds[s.id],
+                          )
+                        }
+                      />
+                      <span
+                        >${this._t(
+                          "panel_sidebar_select_all",
+                          "Select all",
+                        )}</span
+                      >
+                    </label>
+                    <button
+                      class="btn-delete-selected"
+                      ?disabled=${
+                        Object.values(this._selectedSessionIds).filter(Boolean)
+                          .length === 0
+                      }
+                      @click=${() => this._requestBulkDeleteSessions()}
+                    >
+                      <ha-icon
+                        icon="mdi:delete-outline"
+                        style="--mdc-icon-size:14px;"
+                      ></ha-icon>
+                      ${this._t("panel_sidebar_delete", "Delete")}
+                      (${
+                        Object.values(this._selectedSessionIds).filter(Boolean)
+                          .length
+                      })
+                    </button>
+                  </div>
+                `
+              : html`
                   <button
-                    class="btn-delete-selected"
-                    ?disabled=${Object.values(this._selectedSessionIds).filter(
-                      Boolean,
-                    ).length === 0}
-                    @click=${() => this._requestBulkDeleteSessions()}
+                    class="btn btn-primary new-chat-btn"
+                    style="width:calc(100% - 24px);"
+                    @click=${this._newSession}
                   >
                     <ha-icon
-                      icon="mdi:delete-outline"
-                      style="--mdc-icon-size:14px;"
+                      icon="mdi:plus"
+                      style="--mdc-icon-size:16px;"
                     ></ha-icon>
-                    ${this._t("panel_sidebar_delete", "Delete")}
-                    (${Object.values(this._selectedSessionIds).filter(Boolean)
-                      .length})
+                    ${this._t("panel_sidebar_new_chat", "New Chat")}
                   </button>
-                </div>
-              `
-            : html`
-                <button
-                  class="btn btn-primary new-chat-btn"
-                  style="width:calc(100% - 24px);"
-                  @click=${this._newSession}
-                >
-                  <ha-icon
-                    icon="mdi:plus"
-                    style="--mdc-icon-size:16px;"
-                  ></ha-icon>
-                  ${this._t("panel_sidebar_new_chat", "New Chat")}
-                </button>
-              `}
-          ${this._sessions.length > 0 && !this._selectChatsMode
-            ? html`
-                <div class="session-search">
-                  <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
-                  <input
-                    type="text"
-                    .value=${this._sessionSearch}
-                    placeholder=${this._t(
-                      "panel_sidebar_search",
-                      "Search conversations",
-                    )}
-                    @input=${(e) => (this._sessionSearch = e.target.value)}
-                  />
-                  ${this._sessionSearch
-                    ? html`<ha-icon
-                        class="search-clear"
-                        icon="mdi:close-circle"
-                        @click=${() => (this._sessionSearch = "")}
-                      ></ha-icon>`
-                    : ""}
-                </div>
-              `
-            : ""}
-          <div class="session-list">
-            ${this._sessions.length === 0
-              ? html`<div class="session-search-empty">
-                  ${this._t(
-                    "panel_sidebar_no_conversations",
-                    "No conversations yet.",
-                  )}
-                </div>`
-              : (() => {
-                  const visible = filterSessions(
-                    this._sessions,
-                    this._sessionSearch,
-                  );
-                  if (visible.length === 0) {
-                    return html`<div class="session-search-empty">
-                      ${this._t(
-                        "panel_sidebar_no_matches",
-                        "No conversations match your search.",
+                `
+          }
+          ${
+            this._sessions.length > 0 && !this._selectChatsMode
+              ? html`
+                  <div class="session-search">
+                    <ha-icon class="search-icon" icon="mdi:magnify"></ha-icon>
+                    <input
+                      type="text"
+                      .value=${this._sessionSearch}
+                      placeholder=${this._t(
+                        "panel_sidebar_search",
+                        "Search conversations",
                       )}
-                    </div>`;
-                  }
-                  return visible.map(
-                    ({ session: s, snippet }) => html`
-                      <div
-                        class="session-item-wrapper ${this._swipedSessionId ===
-                        s.id
-                          ? "reveal-delete"
-                          : ""}"
-                      >
+                      @input=${(e) => (this._sessionSearch = e.target.value)}
+                    />
+                    ${
+                      this._sessionSearch
+                        ? html`<ha-icon
+                            class="search-clear"
+                            icon="mdi:close-circle"
+                            @click=${() => (this._sessionSearch = "")}
+                          ></ha-icon>`
+                        : ""
+                    }
+                  </div>
+                `
+              : ""
+          }
+          <div class="session-list">
+            ${
+              this._sessions.length === 0
+                ? html`<div class="session-search-empty">
+                    ${this._t(
+                      "panel_sidebar_no_conversations",
+                      "No conversations yet.",
+                    )}
+                  </div>`
+                : (() => {
+                    const visible = filterSessions(
+                      this._sessions,
+                      this._sessionSearch,
+                    );
+                    if (visible.length === 0) {
+                      return html`<div class="session-search-empty">
+                        ${this._t(
+                          "panel_sidebar_no_matches",
+                          "No conversations match your search.",
+                        )}
+                      </div>`;
+                    }
+                    return visible.map(
+                      ({ session: s, snippet }) => html`
                         <div
-                          class="session-item-delete-bg"
-                          @click=${(e) => this._deleteSession(s.id, e)}
+                          class="session-item-wrapper ${
+                            this._swipedSessionId === s.id
+                              ? "reveal-delete"
+                              : ""
+                          }"
                         >
-                          <ha-icon icon="mdi:delete-outline"></ha-icon>
-                        </div>
-                        ${this._deleteConfirmSessionId === s.id
-                          ? html`
-                              <div class="session-item session-delete-confirm">
-                                <span class="session-delete-confirm-label"
-                                  >${this._t(
-                                    "panel_session_delete_confirm",
-                                    "Delete?",
-                                  )}</span
-                                >
-                                <div
-                                  style="display:flex;gap:6px;margin-left:auto;"
-                                >
-                                  <button
-                                    class="btn btn-sm"
-                                    style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
-                                    @click=${(e) => {
-                                      e.stopPropagation();
-                                      this._confirmDeleteSession();
-                                    }}
+                          <div
+                            class="session-item-delete-bg"
+                            @click=${(e) => this._deleteSession(s.id, e)}
+                          >
+                            <ha-icon icon="mdi:delete-outline"></ha-icon>
+                          </div>
+                          ${
+                            this._deleteConfirmSessionId === s.id
+                              ? html`
+                                  <div
+                                    class="session-item session-delete-confirm"
                                   >
-                                    ${this._t("panel_session_delete", "Delete")}
-                                  </button>
-                                  <button
-                                    class="btn btn-outline btn-sm"
-                                    style="padding:3px 10px;font-size:12px;"
-                                    @click=${(e) => {
-                                      e.stopPropagation();
-                                      this._deleteConfirmSessionId = null;
-                                    }}
-                                  >
-                                    ${this._t("panel_session_cancel", "Cancel")}
-                                  </button>
-                                </div>
-                              </div>
-                            `
-                          : html`
-                              <div
-                                class="session-item ${s.id ===
-                                this._activeSessionId
-                                  ? "active"
-                                  : ""} ${this._swipedSessionId === s.id
-                                  ? "swiped"
-                                  : ""}"
-                                @click=${() => {
-                                  if (this._swipedSessionId === s.id) {
-                                    this._swipedSessionId = null;
-                                    return;
-                                  }
-                                  this._selectChatsMode
-                                    ? this._toggleSessionSelection(s.id)
-                                    : this._openSession(s.id);
-                                }}
-                                @touchstart=${(e) =>
-                                  this._onSessionTouchStart(e, s.id)}
-                                @touchmove=${(e) =>
-                                  this._onSessionTouchMove(e, s.id)}
-                                @touchend=${(e) =>
-                                  this._onSessionTouchEnd(e, s.id)}
-                              >
-                                ${this._selectChatsMode
-                                  ? html`
-                                      <input
-                                        type="checkbox"
-                                        class="session-checkbox"
-                                        .checked=${!!this._selectedSessionIds[
-                                          s.id
-                                        ]}
+                                    <span class="session-delete-confirm-label"
+                                      >${this._t(
+                                        "panel_session_delete_confirm",
+                                        "Delete?",
+                                      )}</span
+                                    >
+                                    <div
+                                      style="display:flex;gap:6px;margin-left:auto;"
+                                    >
+                                      <button
+                                        class="btn btn-sm"
+                                        style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
                                         @click=${(e) => {
                                           e.stopPropagation();
-                                          this._toggleSessionSelection(s.id);
+                                          this._confirmDeleteSession();
                                         }}
-                                      />
-                                    `
-                                  : ""}
-                                <div style="flex:1; min-width:0;">
-                                  <div class="session-title">${s.title}</div>
-                                  ${snippet
-                                    ? html`<div class="session-snippet">
-                                        ${snippet.before}<mark>${snippet.match}</mark>${snippet.after}
-                                      </div>`
-                                    : ""}
-                                  <div class="session-meta">
-                                    ${formatDate(s.updated_at)}
+                                      >
+                                        ${this._t("panel_session_delete", "Delete")}
+                                      </button>
+                                      <button
+                                        class="btn btn-outline btn-sm"
+                                        style="padding:3px 10px;font-size:12px;"
+                                        @click=${(e) => {
+                                          e.stopPropagation();
+                                          this._deleteConfirmSessionId = null;
+                                        }}
+                                      >
+                                        ${this._t("panel_session_cancel", "Cancel")}
+                                      </button>
+                                    </div>
                                   </div>
-                                </div>
-                                ${!this._selectChatsMode
-                                  ? html`
-                                      <ha-icon
-                                        class="session-delete"
-                                        icon="mdi:delete-outline"
-                                        @click=${(e) =>
-                                          this._deleteSession(s.id, e)}
-                                        title=${this._t(
-                                          "panel_session_delete_title",
-                                          "Delete",
-                                        )}
-                                      ></ha-icon>
-                                    `
-                                  : ""}
-                              </div>
-                            `}
-                      </div>
-                    `,
-                  );
-                })()}
+                                `
+                              : html`
+                                  <div
+                                    class="session-item ${
+                                      s.id === this._activeSessionId
+                                        ? "active"
+                                        : ""
+                                    } ${
+                                      this._swipedSessionId === s.id
+                                        ? "swiped"
+                                        : ""
+                                    }"
+                                    @click=${() => {
+                                      if (this._swipedSessionId === s.id) {
+                                        this._swipedSessionId = null;
+                                        return;
+                                      }
+                                      this._selectChatsMode
+                                        ? this._toggleSessionSelection(s.id)
+                                        : this._openSession(s.id);
+                                    }}
+                                    @touchstart=${(e) =>
+                                      this._onSessionTouchStart(e, s.id)}
+                                    @touchmove=${(e) =>
+                                      this._onSessionTouchMove(e, s.id)}
+                                    @touchend=${(e) =>
+                                      this._onSessionTouchEnd(e, s.id)}
+                                  >
+                                    ${
+                                      this._selectChatsMode
+                                        ? html`
+                                            <input
+                                              type="checkbox"
+                                              class="session-checkbox"
+                                              .checked=${!!this
+                                                ._selectedSessionIds[s.id]}
+                                              @click=${(e) => {
+                                                e.stopPropagation();
+                                                this._toggleSessionSelection(
+                                                  s.id,
+                                                );
+                                              }}
+                                            />
+                                          `
+                                        : ""
+                                    }
+                                    <div style="flex:1; min-width:0;">
+                                      <div class="session-title">
+                                        ${s.title}
+                                      </div>
+                                      ${
+                                        snippet
+                                          ? html`<div class="session-snippet">
+                                              ${snippet.before}<mark>${snippet.match}</mark>${snippet.after}
+                                            </div>`
+                                          : ""
+                                      }
+                                      <div class="session-meta">
+                                        ${formatDate(s.updated_at)}
+                                      </div>
+                                    </div>
+                                    ${
+                                      !this._selectChatsMode
+                                        ? html`
+                                            <ha-icon
+                                              class="session-delete"
+                                              icon="mdi:delete-outline"
+                                              @click=${(e) =>
+                                                this._deleteSession(s.id, e)}
+                                              title=${this._t(
+                                                "panel_session_delete_title",
+                                                "Delete",
+                                              )}
+                                            ></ha-icon>
+                                          `
+                                        : ""
+                                    }
+                                  </div>
+                                `
+                          }
+                        </div>
+                      `,
+                    );
+                  })()
+            }
           </div>
         </div>
 
@@ -4902,18 +4950,22 @@ class SeloraAIPanel extends LitElement {
           }}
         >
           <selora-particles
-            .count=${this._quotaAlert
-              ? this._isDark
-                ? 1600
-                : 600
-              : this._isDark
-                ? 1200
-                : 400}
-            .color=${this._quotaAlert
-              ? "#ef4444"
-              : this._isDark
-                ? "#C7AE6A"
-                : this._primaryColor || "#03a9f4"}
+            .count=${
+              this._quotaAlert
+                ? this._isDark
+                  ? 1600
+                  : 600
+                : this._isDark
+                  ? 1200
+                  : 400
+            }
+            .color=${
+              this._quotaAlert
+                ? "#ef4444"
+                : this._isDark
+                  ? "#C7AE6A"
+                  : this._primaryColor || "#03a9f4"
+            }
             .maxOpacity=${this._quotaAlert ? 1.0 : this._isDark ? 1.0 : 0.5}
             .speed=${this._streaming || this._loading ? 2.2 : 1}
           ></selora-particles>
@@ -4929,61 +4981,69 @@ class SeloraAIPanel extends LitElement {
       </div>
 
       ${this._renderFeedbackModal()}
-      ${this._deleteConfirmSessionId === "__bulk__"
-        ? html`
-            <div
-              class="modal-overlay"
-              @click=${(e) => {
-                if (e.target === e.currentTarget)
-                  this._deleteConfirmSessionId = null;
-              }}
-            >
+      ${
+        this._deleteConfirmSessionId === "__bulk__"
+          ? html`
               <div
-                class="modal-content"
-                style="max-width:400px;text-align:center;"
+                class="modal-overlay"
+                @click=${(e) => {
+                  if (e.target === e.currentTarget)
+                    this._deleteConfirmSessionId = null;
+                }}
               >
-                <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-                  ${this._t("panel_bulk_delete_title", "Delete Conversations")}
-                </div>
-                <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
-                  Delete
-                  ${Object.values(this._selectedSessionIds).filter(Boolean)
-                    .length}
-                  selected conversation(s)? This cannot be undone.
-                </div>
-                <div style="display:flex;gap:10px;justify-content:center;">
-                  <button
-                    class="btn btn-outline"
-                    @click=${() => {
-                      this._deleteConfirmSessionId = null;
-                    }}
+                <div
+                  class="modal-content"
+                  style="max-width:400px;text-align:center;"
+                >
+                  <div
+                    style="font-size:17px;font-weight:600;margin-bottom:8px;"
                   >
-                    ${this._t("panel_bulk_delete_cancel", "Cancel")}
-                  </button>
-                  <button
-                    class="btn"
-                    style="background:#ef4444;color:#fff;border-color:#ef4444;"
-                    @click=${() => this._confirmBulkDeleteSessions()}
-                  >
-                    ${this._t("panel_bulk_delete_confirm", "Delete")}
-                  </button>
+                    ${this._t("panel_bulk_delete_title", "Delete Conversations")}
+                  </div>
+                  <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+                    Delete
+                    ${
+                      Object.values(this._selectedSessionIds).filter(Boolean)
+                        .length
+                    }
+                    selected conversation(s)? This cannot be undone.
+                  </div>
+                  <div style="display:flex;gap:10px;justify-content:center;">
+                    <button
+                      class="btn btn-outline"
+                      @click=${() => {
+                        this._deleteConfirmSessionId = null;
+                      }}
+                    >
+                      ${this._t("panel_bulk_delete_cancel", "Cancel")}
+                    </button>
+                    <button
+                      class="btn"
+                      style="background:#ef4444;color:#fff;border-color:#ef4444;"
+                      @click=${() => this._confirmBulkDeleteSessions()}
+                    >
+                      ${this._t("panel_bulk_delete_confirm", "Delete")}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          `
-        : ""}
-      ${this._toast
-        ? html`
-            <div class="toast ${this._toastType}">
-              <span>${this._toast}</span>
-              <ha-icon
-                class="toast-close"
-                icon="mdi:close"
-                @click=${() => this._dismissToast()}
-              ></ha-icon>
-            </div>
-          `
-        : ""}
+            `
+          : ""
+      }
+      ${
+        this._toast
+          ? html`
+              <div class="toast ${this._toastType}">
+                <span>${this._toast}</span>
+                <ha-icon
+                  class="toast-close"
+                  icon="mdi:close"
+                  @click=${() => this._dismissToast()}
+                ></ha-icon>
+              </div>
+            `
+          : ""
+      }
     `;
   }
 }
