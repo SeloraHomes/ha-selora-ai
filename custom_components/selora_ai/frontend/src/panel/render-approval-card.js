@@ -105,13 +105,15 @@ function _renderCallRow(host, call, reason) {
         ></ha-icon>
         ${rightSide}
       </div>
-      ${reason
-        ? html`<div
-            style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
-          >
-            ${reason}
-          </div>`
-        : ""}
+      ${
+        reason
+          ? html`<div
+              style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+            >
+              ${reason}
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -201,9 +203,11 @@ export function renderApprovalCard(host, msg, approval, approvalStatus) {
           style="--mdc-icon-size:16px;flex-shrink:0;"
         ></ha-icon>
         <span
-          >${approvalStatus === "approved"
-            ? host._t("approval_status_approved", "Approved")
-            : host._t("approval_status_denied", "Denied")}</span
+          >${
+            approvalStatus === "approved"
+              ? host._t("approval_status_approved", "Approved")
+              : host._t("approval_status_denied", "Denied")
+          }</span
         >
       </div>
     `;
@@ -247,40 +251,42 @@ export function renderApprovalCard(host, msg, approval, approvalStatus) {
       <div style="display:flex;flex-direction:column;">
         ${calls.map((c, i) => _renderCallRow(host, c, reasonFor(i)))}
       </div>
-      ${entityIds.length
-        ? html`
-            <div
-              style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
-            >
-              <span
-                >${host._t(
-                  "approval_scope_label",
-                  "For Session / Always:",
-                )}</span
+      ${
+        entityIds.length
+          ? html`
+              <div
+                style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
               >
-              <button
-                @click=${() => host._toggleApprovalScope?.(msg)}
-                title=${host._t(
-                  "approval_scope_button_title",
-                  "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
-                )}
-                style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
-              >
-                <ha-icon
-                  icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
-                  style="--mdc-icon-size:14px;color:${scope === "all"
-                    ? "#f59e0b"
-                    : "#10b981"};"
-                ></ha-icon>
-                <span>${_scopeLabel(host, scope, entityIds)}</span>
-                <ha-icon
-                  icon="mdi:chevron-down"
-                  style="--mdc-icon-size:14px;opacity:0.6;"
-                ></ha-icon>
-              </button>
-            </div>
-          `
-        : ""}
+                <span
+                  >${host._t(
+                    "approval_scope_label",
+                    "For Session / Always:",
+                  )}</span
+                >
+                <button
+                  @click=${() => host._toggleApprovalScope?.(msg)}
+                  title=${host._t(
+                    "approval_scope_button_title",
+                    "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
+                  )}
+                  style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
+                >
+                  <ha-icon
+                    icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
+                    style="--mdc-icon-size:14px;color:${
+                      scope === "all" ? "#f59e0b" : "#10b981"
+                    };"
+                  ></ha-icon>
+                  <span>${_scopeLabel(host, scope, entityIds)}</span>
+                  <ha-icon
+                    icon="mdi:chevron-down"
+                    style="--mdc-icon-size:14px;opacity:0.6;"
+                  ></ha-icon>
+                </button>
+              </div>
+            `
+          : ""
+      }
     </div>
   `;
 }

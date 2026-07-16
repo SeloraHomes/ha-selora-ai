@@ -3392,9 +3392,11 @@ function _renderInstallSourceCard(host) {
               ?disabled=${urlBusy || !host._recipesUrl}
               @click=${() => host._installRecipeFromUrl()}
             >
-              ${urlBusy
-                ? host._t("recipes_install_fetching", "Fetching…")
-                : host._t("recipes_install_fetch_button", "Fetch")}
+              ${
+                urlBusy
+                  ? host._t("recipes_install_fetching", "Fetching…")
+                  : host._t("recipes_install_fetch_button", "Fetch")
+              }
             </button>
           </div>
         </div>
@@ -3414,9 +3416,9 @@ function _renderInstallSourceCard(host) {
             )}
           </div>
           <div
-            class="install-dropzone ${dragOver ? "is-drag" : ""} ${uploadBusy
-              ? "is-busy"
-              : ""}"
+            class="install-dropzone ${dragOver ? "is-drag" : ""} ${
+              uploadBusy ? "is-busy" : ""
+            }"
             @click=${onPickFile}
             @dragover=${onDragOver}
             @dragleave=${onDragLeave}
@@ -3424,19 +3426,24 @@ function _renderInstallSourceCard(host) {
           >
             <ha-icon
               class="install-dropzone-icon"
-              icon=${uploadBusy
-                ? "mdi:progress-upload"
-                : "mdi:cloud-upload-outline"}
+              icon=${
+                uploadBusy ? "mdi:progress-upload" : "mdi:cloud-upload-outline"
+              }
             ></ha-icon>
             <div class="install-dropzone-title">
-              ${uploadBusy
-                ? host._t("recipes_install_uploading", "Uploading…")
-                : dragOver
-                  ? host._t("recipes_install_drop_to_upload", "Drop to upload")
-                  : host._t(
-                      "recipes_install_drop_here",
-                      "Drop a recipe archive here",
-                    )}
+              ${
+                uploadBusy
+                  ? host._t("recipes_install_uploading", "Uploading…")
+                  : dragOver
+                    ? host._t(
+                        "recipes_install_drop_to_upload",
+                        "Drop to upload",
+                      )
+                    : host._t(
+                        "recipes_install_drop_here",
+                        "Drop a recipe archive here",
+                      )
+              }
             </div>
             <div class="install-dropzone-hint">
               ${host._t("recipes_install_or_lower", "or")}
@@ -3513,33 +3520,41 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
     >
       <summary class="recipe-details-summary">
         <ha-icon icon="mdi:chevron-down"></ha-icon>
-        ${asCard
-          ? host._t("recipes_details_installed_title", "Installation details")
-          : host._t("recipes_details_summary", "Details")}
+        ${
+          asCard
+            ? host._t("recipes_details_installed_title", "Installation details")
+            : host._t("recipes_details_summary", "Details")
+        }
       </summary>
-      ${!asCard && description
-        ? html`<div class="recipe-card-desc recipe-details-desc">
-            ${description}
-          </div>`
-        : ""}
+      ${
+        !asCard && description
+          ? html`<div class="recipe-card-desc recipe-details-desc">
+              ${description}
+            </div>`
+          : ""
+      }
       <div class="recipe-details-grid">
-        ${pkg?.counts && Object.keys(pkg.counts).length
-          ? html`
-              <div class="recipe-details-key">
-                ${host._t("recipes_details_creates_key", "Creates")}
-              </div>
-              <div class="recipe-details-val">
-                ${_formatPackageCounts(host, pkg.counts)}
-              </div>
-            `
-          : ""}
+        ${
+          pkg?.counts && Object.keys(pkg.counts).length
+            ? html`
+                <div class="recipe-details-key">
+                  ${host._t("recipes_details_creates_key", "Creates")}
+                </div>
+                <div class="recipe-details-val">
+                  ${_formatPackageCounts(host, pkg.counts)}
+                </div>
+              `
+            : ""
+        }
         <div class="recipe-details-key">
           ${host._t("recipes_details_version_key", "Version")}
         </div>
         <div class="recipe-details-val">
-          v${record.version}${installedOn
-            ? ` · ${host._t("recipes_details_installed_on", "installed")} ${installedOn}`
-            : ""}
+          v${record.version}${
+            installedOn
+              ? ` · ${host._t("recipes_details_installed_on", "installed")} ${installedOn}`
+              : ""
+          }
         </div>
 
         <div class="recipe-details-key">
@@ -3548,134 +3563,148 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
         <div class="recipe-details-val">
           <span class="recipe-details-path">
             <code>${record.package_path || "—"}</code>
-            ${record.package_path
-              ? html`<button
-                  class="recipe-details-copy"
-                  title=${host._t(
-                    "recipes_details_copy_path_title",
-                    "Copy path",
-                  )}
-                  @click=${copyPath}
-                >
-                  <ha-icon icon="mdi:content-copy"></ha-icon>
-                </button>`
-              : ""}
+            ${
+              record.package_path
+                ? html`<button
+                    class="recipe-details-copy"
+                    title=${host._t(
+                      "recipes_details_copy_path_title",
+                      "Copy path",
+                    )}
+                    @click=${copyPath}
+                  >
+                    <ha-icon icon="mdi:content-copy"></ha-icon>
+                  </button>`
+                : ""
+            }
           </span>
-          ${pkg?.yaml
-            ? html`<details class="recipe-package-view">
-                <summary class="recipe-details-summary">
-                  <ha-icon icon="mdi:chevron-down"></ha-icon>
-                  ${host._t(
-                    "recipes_details_view_package",
-                    "View package file",
+          ${
+            pkg?.yaml
+              ? html`<details class="recipe-package-view">
+                  <summary class="recipe-details-summary">
+                    <ha-icon icon="mdi:chevron-down"></ha-icon>
+                    ${host._t(
+                      "recipes_details_view_package",
+                      "View package file",
+                    )}
+                  </summary>
+                  ${unsafeHTML(
+                    '<div class="yaml-preview">' +
+                      _highlightYaml(pkg.yaml) +
+                      "</div>",
                   )}
-                </summary>
-                ${unsafeHTML(
-                  '<div class="yaml-preview">' +
-                    _highlightYaml(pkg.yaml) +
-                    "</div>",
-                )}
-              </details>`
-            : ""}
+                </details>`
+              : ""
+          }
         </div>
 
         <div class="recipe-details-key">
           ${host._t("recipes_details_devices_key", "Devices")}
         </div>
         <div class="recipe-details-val">
-          ${bindingRoles.length === 0
-            ? html`<span class="recipe-details-empty"
-                >${host._t(
-                  "recipes_details_no_bound_devices",
-                  "No bound devices",
-                )}</span
-              >`
-            : bindingRoles.map((role) => {
-                const ents = bindings[role] || [];
-                return html`<div class="recipe-details-binding">
-                  <div class="recipe-details-role">${_humanizeRole(role)}</div>
-                  <div class="recipe-details-entities">
-                    ${ents.length === 0
-                      ? html`<span class="recipe-details-empty"
-                          >${host._t(
-                            "recipes_details_none_selected_optional",
-                            "None selected (optional)",
-                          )}</span
-                        >`
-                      : ents.map((id) => {
-                          const name = _entityFriendlyName(host.hass, id);
-                          const inner = html`<ha-icon
-                              icon=${_entityIcon(host.hass, id)}
-                            ></ha-icon>
-                            ${name}`;
-                          // Clickable when the entity is live — opens HA's
-                          // more-info dialog. A bound entity that no longer
-                          // exists (unpaired device) stays a static chip so
-                          // we don't fire more-info on a dead id.
-                          if (!host.hass?.states?.[id]) {
-                            return html`<span class="recipe-details-chip"
-                              >${inner}</span
-                            >`;
-                          }
-                          return html`<button
-                            type="button"
-                            class="recipe-details-chip recipe-details-chip--clickable"
-                            title=${`Open ${name} (${id})`}
-                            @click=${(e) => {
-                              e.stopPropagation();
-                              host.dispatchEvent(
-                                new CustomEvent("hass-more-info", {
-                                  bubbles: true,
-                                  composed: true,
-                                  detail: { entityId: id },
-                                }),
-                              );
-                            }}
-                          >
-                            ${inner}
-                          </button>`;
-                        })}
-                  </div>
-                </div>`;
-              })}
+          ${
+            bindingRoles.length === 0
+              ? html`<span class="recipe-details-empty"
+                  >${host._t(
+                    "recipes_details_no_bound_devices",
+                    "No bound devices",
+                  )}</span
+                >`
+              : bindingRoles.map((role) => {
+                  const ents = bindings[role] || [];
+                  return html`<div class="recipe-details-binding">
+                    <div class="recipe-details-role">
+                      ${_humanizeRole(role)}
+                    </div>
+                    <div class="recipe-details-entities">
+                      ${
+                        ents.length === 0
+                          ? html`<span class="recipe-details-empty"
+                              >${host._t(
+                                "recipes_details_none_selected_optional",
+                                "None selected (optional)",
+                              )}</span
+                            >`
+                          : ents.map((id) => {
+                              const name = _entityFriendlyName(host.hass, id);
+                              const inner = html`<ha-icon
+                                  icon=${_entityIcon(host.hass, id)}
+                                ></ha-icon>
+                                ${name}`;
+                              // Clickable when the entity is live — opens HA's
+                              // more-info dialog. A bound entity that no longer
+                              // exists (unpaired device) stays a static chip so
+                              // we don't fire more-info on a dead id.
+                              if (!host.hass?.states?.[id]) {
+                                return html`<span class="recipe-details-chip"
+                                  >${inner}</span
+                                >`;
+                              }
+                              return html`<button
+                                type="button"
+                                class="recipe-details-chip recipe-details-chip--clickable"
+                                title=${`Open ${name} (${id})`}
+                                @click=${(e) => {
+                                  e.stopPropagation();
+                                  host.dispatchEvent(
+                                    new CustomEvent("hass-more-info", {
+                                      bubbles: true,
+                                      composed: true,
+                                      detail: { entityId: id },
+                                    }),
+                                  );
+                                }}
+                              >
+                                ${inner}
+                              </button>`;
+                            })
+                      }
+                    </div>
+                  </div>`;
+                })
+          }
         </div>
 
-        ${inputKeys.length
-          ? html`
-              <div class="recipe-details-key">
-                ${host._t("recipes_details_settings_key", "Settings")}
-              </div>
-              <div class="recipe-details-val">
-                ${inputKeys.map(
-                  (k) =>
-                    html`<div>
-                      <span class="recipe-details-role"
-                        >${_humanizeRole(k)}:</span
-                      >
-                      ${String(inputs[k])}
-                    </div>`,
-                )}
-              </div>
-            `
-          : ""}
-        ${integrationDomains.length
-          ? html`
-              <div class="recipe-details-key">
-                ${host._t("recipes_details_integrations_key", "Integrations")}
-              </div>
-              <div class="recipe-details-val">
-                <div class="recipe-details-entities">
-                  ${integrationDomains.map(
-                    (dom) =>
-                      html`<span class="recipe-details-chip">
-                        <ha-icon icon="mdi:puzzle"></ha-icon>
-                        ${dom}
-                      </span>`,
+        ${
+          inputKeys.length
+            ? html`
+                <div class="recipe-details-key">
+                  ${host._t("recipes_details_settings_key", "Settings")}
+                </div>
+                <div class="recipe-details-val">
+                  ${inputKeys.map(
+                    (k) =>
+                      html`<div>
+                        <span class="recipe-details-role"
+                          >${_humanizeRole(k)}:</span
+                        >
+                        ${String(inputs[k])}
+                      </div>`,
                   )}
                 </div>
-              </div>
-            `
-          : ""}
+              `
+            : ""
+        }
+        ${
+          integrationDomains.length
+            ? html`
+                <div class="recipe-details-key">
+                  ${host._t("recipes_details_integrations_key", "Integrations")}
+                </div>
+                <div class="recipe-details-val">
+                  <div class="recipe-details-entities">
+                    ${integrationDomains.map(
+                      (dom) =>
+                        html`<span class="recipe-details-chip">
+                          <ha-icon icon="mdi:puzzle"></ha-icon>
+                          ${dom}
+                        </span>`,
+                    )}
+                  </div>
+                </div>
+              `
+            : ""
+        }
       </div>
     </details>
   `;
@@ -3780,9 +3809,14 @@ function _renderListView(host) {
             class=${host._recipesCatalogBusy ? "icon-spin" : ""}
             icon="mdi:refresh"
           ></ha-icon>
-          ${host._recipesCatalogBusy
-            ? host._t("recipes_list_checking", "Checking…")
-            : host._t("recipes_list_check_updates_button", "Check for updates")}
+          ${
+            host._recipesCatalogBusy
+              ? host._t("recipes_list_checking", "Checking…")
+              : host._t(
+                  "recipes_list_check_updates_button",
+                  "Check for updates",
+                )
+          }
         </button>
       </div>
 
@@ -3794,73 +3828,79 @@ function _renderListView(host) {
       </p>
 
       ${_renderInstallSourceCard(host)} ${_renderCatalogSection(host)}
-      ${installedAvailable.length > 0
-        ? html`
-            <div class="recipes-section-title">
-              ${host._t("recipes_list_installed_section", "Installed recipes")}
-            </div>
-            <div class="catalog-grid">
-              ${installedAvailable.map((m) =>
-                _renderCatalogCard(host, withCategory(m), true),
-              )}
-            </div>
-          `
-        : ""}
-      ${stagedLocal.length > 0
-        ? html`
-            <div class="recipes-section-title">
-              ${host._t("recipes_list_staged", "On this device")}
-            </div>
-            <div class="catalog-grid">
-              ${stagedLocal.map((m) =>
-                _renderCatalogCard(host, withCategory(m), false),
-              )}
-            </div>
-          `
-        : ""}
-      ${onlyInstalled.length > 0
-        ? html`
-            <div class="recipes-section-title">
-              ${host._t(
-                "recipes_list_installed_missing_bundle",
-                "Installed (bundle missing from disk)",
-              )}
-            </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${onlyInstalled.map(
-                (rec) => html`
-                  <div class="recipe-card">
-                    <div class="recipe-card-body">
-                      <div class="recipe-card-title">
-                        ${rec.title}
-                        <span class="recipe-installed-badge"
-                          >${host._t(
-                            "recipes_card_installed_badge",
-                            "Installed",
-                          )}</span
+      ${
+        installedAvailable.length > 0
+          ? html`
+              <div class="recipes-section-title">
+                ${host._t("recipes_list_installed_section", "Installed recipes")}
+              </div>
+              <div class="catalog-grid">
+                ${installedAvailable.map((m) =>
+                  _renderCatalogCard(host, withCategory(m), true),
+                )}
+              </div>
+            `
+          : ""
+      }
+      ${
+        stagedLocal.length > 0
+          ? html`
+              <div class="recipes-section-title">
+                ${host._t("recipes_list_staged", "On this device")}
+              </div>
+              <div class="catalog-grid">
+                ${stagedLocal.map((m) =>
+                  _renderCatalogCard(host, withCategory(m), false),
+                )}
+              </div>
+            `
+          : ""
+      }
+      ${
+        onlyInstalled.length > 0
+          ? html`
+              <div class="recipes-section-title">
+                ${host._t(
+                  "recipes_list_installed_missing_bundle",
+                  "Installed (bundle missing from disk)",
+                )}
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                ${onlyInstalled.map(
+                  (rec) => html`
+                    <div class="recipe-card">
+                      <div class="recipe-card-body">
+                        <div class="recipe-card-title">
+                          ${rec.title}
+                          <span class="recipe-installed-badge"
+                            >${host._t(
+                              "recipes_card_installed_badge",
+                              "Installed",
+                            )}</span
+                          >
+                        </div>
+                        <div class="recipe-card-meta">
+                          v${rec.version} ·
+                          ${host._t("recipes_list_package_label", "package:")}
+                          ${rec.package_path}
+                        </div>
+                      </div>
+                      <div class="recipe-card-actions">
+                        <button
+                          class="btn btn-outline"
+                          @click=${() => host._uninstallRecipe(rec.slug)}
+                          ?disabled=${host._recipesBusy}
                         >
-                      </div>
-                      <div class="recipe-card-meta">
-                        v${rec.version} ·
-                        ${host._t("recipes_list_package_label", "package:")}
-                        ${rec.package_path}
+                          ${host._t("recipes_card_uninstall_button", "Uninstall")}
+                        </button>
                       </div>
                     </div>
-                    <div class="recipe-card-actions">
-                      <button
-                        class="btn btn-outline"
-                        @click=${() => host._uninstallRecipe(rec.slug)}
-                        ?disabled=${host._recipesBusy}
-                      >
-                        ${host._t("recipes_card_uninstall_button", "Uninstall")}
-                      </button>
-                    </div>
-                  </div>
-                `,
-              )}
-            </div>
-          `
-        : ""}
+                  `,
+                )}
+              </div>
+            `
+          : ""
+      }
     </div>
   `;
 }
@@ -3898,85 +3938,97 @@ function _renderCatalogSection(host) {
             .value=${host._recipesCatalogSearch || ""}
             @input=${(e) => host._onRecipesCatalogSearch(e.target.value)}
           />
-          ${host._recipesCatalogSearch
-            ? html`<ha-icon
-                icon="mdi:close-circle"
-                style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                @click=${() => host._onRecipesCatalogSearch("")}
-              ></ha-icon>`
-            : ""}
+          ${
+            host._recipesCatalogSearch
+              ? html`<ha-icon
+                  icon="mdi:close-circle"
+                  style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                  @click=${() => host._onRecipesCatalogSearch("")}
+                ></ha-icon>`
+              : ""
+          }
         </div>
         <div class="catalog-controls">
-          ${isDev
-            ? html`<button
-                class="sort-dir-toggle"
-                @click=${() => {
-                  const next = window.prompt(
-                    host._t(
-                      "recipes_catalog_url_prompt",
-                      "Catalog URL (leave blank to reset to selorahomes.com):",
-                    ),
-                    currentOverride,
-                  );
-                  if (next === null) return;
-                  host._setCatalogUrlOverride(next.trim());
-                }}
-                title=${currentOverride
-                  ? `${host._t("recipes_catalog_using_override", "Using override:")} ${currentOverride}`
-                  : host._t(
-                      "recipes_catalog_set_url_title",
-                      "Set a catalog URL (dev / staging)",
-                    )}
-              >
-                <ha-icon icon="mdi:cog-outline"></ha-icon>
-              </button>`
-            : ""}
+          ${
+            isDev
+              ? html`<button
+                  class="sort-dir-toggle"
+                  @click=${() => {
+                    const next = window.prompt(
+                      host._t(
+                        "recipes_catalog_url_prompt",
+                        "Catalog URL (leave blank to reset to selorahomes.com):",
+                      ),
+                      currentOverride,
+                    );
+                    if (next === null) return;
+                    host._setCatalogUrlOverride(next.trim());
+                  }}
+                  title=${
+                    currentOverride
+                      ? `${host._t("recipes_catalog_using_override", "Using override:")} ${currentOverride}`
+                      : host._t(
+                          "recipes_catalog_set_url_title",
+                          "Set a catalog URL (dev / staging)",
+                        )
+                  }
+                >
+                  <ha-icon icon="mdi:cog-outline"></ha-icon>
+                </button>`
+              : ""
+          }
         </div>
       </div>
-      ${currentOverride && isDev
-        ? html`<div class="catalog-override-banner">
-            <ha-icon icon="mdi:flask-outline"></ha-icon>
-            ${host._t(
-              "recipes_catalog_source_overridden",
-              "Catalog source overridden:",
-            )}
-            <code>${currentOverride}</code>
-          </div>`
-        : ""}
-      ${host._recipesCatalogError
-        ? html`<div class="catalog-error">
-            <ha-icon icon="mdi:cloud-off-outline"></ha-icon>
-            ${host._t(
-              "recipes_catalog_unreachable",
-              "Couldn't reach the recipes catalog:",
-            )}
-            ${host._recipesCatalogError}
-          </div>`
-        : !cat
-          ? html`<div class="catalog-loading">
-              ${host._recipesCatalogBusy
-                ? host._t("recipes_catalog_fetching", "Fetching catalog…")
-                : host._t(
-                    "recipes_catalog_will_load",
-                    "Catalog will load here.",
-                  )}
+      ${
+        currentOverride && isDev
+          ? html`<div class="catalog-override-banner">
+              <ha-icon icon="mdi:flask-outline"></ha-icon>
+              ${host._t(
+                "recipes_catalog_source_overridden",
+                "Catalog source overridden:",
+              )}
+              <code>${currentOverride}</code>
             </div>`
-          : filtered.length === 0
-            ? (host._recipesCatalogSearch || "").trim()
-              ? html`<div class="catalog-loading">
-                  ${host._t(
-                    "recipes_catalog_no_matches_prefix",
-                    "No matches for",
-                  )}
-                  &ldquo;${host._recipesCatalogSearch}&rdquo;.
-                </div>`
-              : html`<div class="catalog-loading">
-                  ${host._t(
-                    "recipes_catalog_empty",
-                    "No recipes in this catalog yet.",
-                  )}
-                </div>`
-            : _renderCatalogResults(host, filtered, installedSlugs)}
+          : ""
+      }
+      ${
+        host._recipesCatalogError
+          ? html`<div class="catalog-error">
+              <ha-icon icon="mdi:cloud-off-outline"></ha-icon>
+              ${host._t(
+                "recipes_catalog_unreachable",
+                "Couldn't reach the recipes catalog:",
+              )}
+              ${host._recipesCatalogError}
+            </div>`
+          : !cat
+            ? html`<div class="catalog-loading">
+                ${
+                  host._recipesCatalogBusy
+                    ? host._t("recipes_catalog_fetching", "Fetching catalog…")
+                    : host._t(
+                        "recipes_catalog_will_load",
+                        "Catalog will load here.",
+                      )
+                }
+              </div>`
+            : filtered.length === 0
+              ? (host._recipesCatalogSearch || "").trim()
+                ? html`<div class="catalog-loading">
+                    ${host._t(
+                      "recipes_catalog_no_matches_prefix",
+                      "No matches for",
+                    )}
+                    &ldquo;${host._recipesCatalogSearch}&rdquo;.
+                  </div>`
+                : html`<div class="catalog-loading">
+                    ${host._t(
+                      "recipes_catalog_empty",
+                      "No recipes in this catalog yet.",
+                    )}
+                  </div>`
+              : _renderCatalogResults(host, filtered, installedSlugs)
+      }
     </div>
   `;
 }
@@ -4013,31 +4065,39 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
     _renderCatalogCard(host, entry, false, isFeatured);
 
   return html`
-    ${featured.length
-      ? html`
-          <div class="recipes-section-title">
-            ${host._t("recipes_catalog_featured", "Featured")}
-          </div>
-          <div class="catalog-grid catalog-grid-featured">
-            ${featured.map((e) => card(e, true))}
-          </div>
-        `
-      : ""}
-    ${rest.length
-      ? html`
-          ${!searching
-            ? html`<div class="recipes-section-title">
-                ${host._t("recipes_catalog_all", "Available recipes")}
-              </div>`
-            : ""}
-          <div class="catalog-grid">
-            ${pageItems.map((e) => card(e, false))}
-          </div>
-          ${totalPages > 1
-            ? _renderCatalogPagination(host, page, totalPages)
-            : ""}
-        `
-      : ""}
+    ${
+      featured.length
+        ? html`
+            <div class="recipes-section-title">
+              ${host._t("recipes_catalog_featured", "Featured")}
+            </div>
+            <div class="catalog-grid catalog-grid-featured">
+              ${featured.map((e) => card(e, true))}
+            </div>
+          `
+        : ""
+    }
+    ${
+      rest.length
+        ? html`
+            ${
+              !searching
+                ? html`<div class="recipes-section-title">
+                    ${host._t("recipes_catalog_all", "Available recipes")}
+                  </div>`
+                : ""
+            }
+            <div class="catalog-grid">
+              ${pageItems.map((e) => card(e, false))}
+            </div>
+            ${
+              totalPages > 1
+                ? _renderCatalogPagination(host, page, totalPages)
+                : ""
+            }
+          `
+        : ""
+    }
   `;
 }
 
@@ -4141,9 +4201,9 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
   const staging = host._recipesStagingSlug === slug;
   return html`
     <div
-      class="catalog-card catalog-card-clickable ${featured
-        ? "catalog-card-featured"
-        : ""} ${staging ? "is-staging" : ""}"
+      class="catalog-card catalog-card-clickable ${
+        featured ? "catalog-card-featured" : ""
+      } ${staging ? "is-staging" : ""}"
       role="button"
       tabindex="0"
       aria-busy=${staging ? "true" : "false"}
@@ -4157,44 +4217,56 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
     >
       <div class="catalog-card-top">
         <div class="catalog-card-pills">
-          ${entry.category_title
-            ? html`<span class="catalog-card-category"
-                >${entry.category_title}</span
-              >`
-            : ""}
+          ${
+            entry.category_title
+              ? html`<span class="catalog-card-category"
+                  >${entry.category_title}</span
+                >`
+              : ""
+          }
         </div>
-        ${staging
-          ? html`<ha-icon
-              class="catalog-card-spinner icon-spin"
-              icon="mdi:loading"
-            ></ha-icon>`
-          : ""}
-        ${installed
-          ? html`<span class="catalog-installed-badge">
-              <ha-icon icon="mdi:check"></ha-icon>
-              ${host._t("recipes_card_installed_badge", "Installed")}
-            </span>`
-          : ""}
+        ${
+          staging
+            ? html`<ha-icon
+                class="catalog-card-spinner icon-spin"
+                icon="mdi:loading"
+              ></ha-icon>`
+            : ""
+        }
+        ${
+          installed
+            ? html`<span class="catalog-installed-badge">
+                <ha-icon icon="mdi:check"></ha-icon>
+                ${host._t("recipes_card_installed_badge", "Installed")}
+              </span>`
+            : ""
+        }
       </div>
       <div class="catalog-card-title">${entry.title}</div>
       <div class="catalog-card-meta">
         v${entry.version}${meta ? ` · ${meta}` : ""}
       </div>
-      ${entry.description
-        ? html`<div class="catalog-card-desc">${entry.description}</div>`
-        : ""}
-      ${entry.tags?.length
-        ? html`<div class="catalog-card-tags">
-            ${entry.tags.map(
-              (t) => html`<span class="catalog-tag">${t}</span>`,
-            )}
-          </div>`
-        : ""}
-      ${_recipeIntegrationBrands(entry).length
-        ? html`<div class="catalog-card-footer">
-            ${_renderRecipeBrandStrip(_recipeIntegrationBrands(entry))}
-          </div>`
-        : ""}
+      ${
+        entry.description
+          ? html`<div class="catalog-card-desc">${entry.description}</div>`
+          : ""
+      }
+      ${
+        entry.tags?.length
+          ? html`<div class="catalog-card-tags">
+              ${entry.tags.map(
+                (t) => html`<span class="catalog-tag">${t}</span>`,
+              )}
+            </div>`
+          : ""
+      }
+      ${
+        _recipeIntegrationBrands(entry).length
+          ? html`<div class="catalog-card-footer">
+              ${_renderRecipeBrandStrip(_recipeIntegrationBrands(entry))}
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -4224,9 +4296,11 @@ function _renderInputField(host, input) {
           <input type="checkbox" .checked=${!!value} @change=${onInput} />
           ${input.label}
         </label>
-        ${input.description
-          ? html`<span class="hint">${input.description}</span>`
-          : ""}
+        ${
+          input.description
+            ? html`<span class="hint">${input.description}</span>`
+            : ""
+        }
       </div>
     `;
   }
@@ -4235,9 +4309,11 @@ function _renderInputField(host, input) {
     return html`
       <div class="wizard-field">
         <label>${input.label}</label>
-        ${input.description
-          ? html`<span class="hint">${input.description}</span>`
-          : ""}
+        ${
+          input.description
+            ? html`<span class="hint">${input.description}</span>`
+            : ""
+        }
         <select .value=${String(value ?? "")} @change=${onInput}>
           ${(input.choices || []).map(
             (choice) => html`<option value=${choice}>${choice}</option>`,
@@ -4250,9 +4326,11 @@ function _renderInputField(host, input) {
   return html`
     <div class="wizard-field">
       <label>${input.label}</label>
-      ${input.description
-        ? html`<span class="hint">${input.description}</span>`
-        : ""}
+      ${
+        input.description
+          ? html`<span class="hint">${input.description}</span>`
+          : ""
+      }
       <input
         type=${input.type === "number" ? "number" : "text"}
         .value=${String(value ?? "")}
@@ -4353,9 +4431,9 @@ function _renderPunchList(host, items) {
             <div class="punch-item">
               <span class="stage-pill">${item.stage}</span>
               <div>
-                ${item.target
-                  ? html`<strong>${item.target}</strong>: `
-                  : ""}${item.message}
+                ${
+                  item.target ? html`<strong>${item.target}</strong>: ` : ""
+                }${item.message}
               </div>
             </div>
           `,
@@ -4442,9 +4520,11 @@ function _renderPipelineItem(host, item, active) {
       ></ha-icon>
       <div class="pi-row-body">
         <div class="pi-row-title">${item.title}</div>
-        ${item.detail
-          ? html`<div class="pi-row-detail">${item.detail}</div>`
-          : ""}
+        ${
+          item.detail
+            ? html`<div class="pi-row-detail">${item.detail}</div>`
+            : ""
+        }
       </div>
     </button>
   `;
@@ -4493,11 +4573,13 @@ function _panelShell(host, title, statusKind, body, footer) {
     <div class="panel-shell">
       <div class="panel-head">
         <div class="panel-title">${title}</div>
-        ${statusKind
-          ? html`<span class="panel-status ${statusKind}"
-              >${_statusLabel(host, statusKind)}</span
-            >`
-          : ""}
+        ${
+          statusKind
+            ? html`<span class="panel-status ${statusKind}"
+                >${_statusLabel(host, statusKind)}</span
+              >`
+            : ""
+        }
       </div>
       <div class="panel-body">${body}</div>
       ${footer ? html`<div class="panel-footer">${footer}</div>` : ""}
@@ -4603,132 +4685,148 @@ function _renderRoleSelectionPanel(host, item) {
     `${host._t("recipes_role_pick_prefix", "Pick:")} ${item.title}`,
     item.status,
     html`
-      ${role.description
-        ? html`<p class="panel-prose">${role.description}</p>`
-        : ""}
-      ${pinned.length > 0
-        ? html`
-            <div class="panel-prose panel-muted">
-              ${pinned.length}
-              ${host._t(
-                "recipes_role_pinned_count_suffix",
-                "pinned by the recipe (always included).",
-              )}
-            </div>
-            <div class="panel-chips">
-              ${pinned.map(
-                (id) => html`
-                  <span class="role-entity-chip is-pinned" title=${id}>
-                    <span class="chip-icon-tile">
-                      <ha-icon icon=${_entityIcon(host.hass, id)}></ha-icon>
-                    </span>
-                    <span class="chip-text">
-                      <span class="chip-name">
-                        ${_entityFriendlyName(host.hass, id)}
-                        <ha-icon
-                          class="pin-badge"
-                          icon="mdi:lock-outline"
-                        ></ha-icon>
+      ${
+        role.description
+          ? html`<p class="panel-prose">${role.description}</p>`
+          : ""
+      }
+      ${
+        pinned.length > 0
+          ? html`
+              <div class="panel-prose panel-muted">
+                ${pinned.length}
+                ${host._t(
+                  "recipes_role_pinned_count_suffix",
+                  "pinned by the recipe (always included).",
+                )}
+              </div>
+              <div class="panel-chips">
+                ${pinned.map(
+                  (id) => html`
+                    <span class="role-entity-chip is-pinned" title=${id}>
+                      <span class="chip-icon-tile">
+                        <ha-icon icon=${_entityIcon(host.hass, id)}></ha-icon>
                       </span>
-                      <span class="chip-id">${id}</span>
+                      <span class="chip-text">
+                        <span class="chip-name">
+                          ${_entityFriendlyName(host.hass, id)}
+                          <ha-icon
+                            class="pin-badge"
+                            icon="mdi:lock-outline"
+                          ></ha-icon>
+                        </span>
+                        <span class="chip-id">${id}</span>
+                      </span>
                     </span>
-                  </span>
-                `,
-              )}
-            </div>
-          `
-        : ""}
-      ${candidates.length > 0
-        ? html`
-            <p class="panel-prose panel-muted">
-              ${host._t("recipes_role_pick_one_or_more", "Pick one or more")}
-              ${filterLabel}${role.max_count
-                ? ` (${host._t("recipes_role_up_to", "up to")} ${role.max_count})`
-                : ""}.
-              ${host._t(
-                "recipes_role_run_against",
-                "Selora will run the recipe against the ones you tick.",
-              )}
-            </p>
-            ${showFilter
-              ? html`<input
-                  class="role-filter-input"
-                  type="text"
-                  .value=${host._recipeRoleFilters?.[roleId] || ""}
-                  placeholder=${host._t(
-                    "recipes_role_filter_placeholder",
-                    "Filter by name…",
-                  )}
-                  @input=${(e) =>
-                    host._setRecipeRoleFilter(roleId, e.target.value)}
-                />`
-              : ""}
-            ${ordered.length === 0
-              ? html`<p class="panel-prose panel-muted">
-                  ${host._t(
-                    "recipes_role_filter_no_matches",
-                    "No entities match your filter.",
-                  )}
-                </p>`
-              : html`
-                  <div class="panel-chips">
-                    ${shown.map((id) => {
-                      // Chip state mirrors the user's selection set only —
-                      // ``bound`` is what the backend confirmed and lags
-                      // by one round-trip, so reading from it would make
-                      // chips "stick" after a rolling-window drop.
-                      const on = selected.has(id);
-                      return html`
-                        <button
-                          class="role-entity-chip role-entity-toggle ${on
-                            ? "is-on"
-                            : ""}"
-                          type="button"
-                          title=${id}
-                          @click=${() =>
-                            host._toggleRecipeRoleEntity(
-                              role.id,
-                              id,
-                              role.max_count,
-                            )}
-                          ?disabled=${host._recipesBusy}
-                        >
-                          <span class="chip-icon-tile">
-                            <ha-icon
-                              icon=${_entityIcon(host.hass, id)}
-                            ></ha-icon>
-                          </span>
-                          <span class="chip-text">
-                            <span class="chip-name">
-                              ${_entityFriendlyName(host.hass, id)}
-                            </span>
-                            <span class="chip-id">${id}</span>
-                          </span>
-                        </button>
-                      `;
-                    })}
-                  </div>
-                  ${hiddenCount > 0
-                    ? html`<button
-                        class="role-show-more"
-                        type="button"
-                        @click=${() => host._toggleRecipeRoleExpanded(roleId)}
-                      >
-                        ${host._t("recipes_role_show_all", "Show all")}
-                        (${ordered.length})
-                      </button>`
-                    : expanded && !filterText && candidatesT.length > CHIP_CAP
-                      ? html`<button
-                          class="role-show-more"
-                          type="button"
-                          @click=${() => host._toggleRecipeRoleExpanded(roleId)}
-                        >
-                          ${host._t("recipes_role_show_less", "Show less")}
-                        </button>`
-                      : ""}
-                `}
-          `
-        : ""}
+                  `,
+                )}
+              </div>
+            `
+          : ""
+      }
+      ${
+        candidates.length > 0
+          ? html`
+              <p class="panel-prose panel-muted">
+                ${host._t("recipes_role_pick_one_or_more", "Pick one or more")}
+                ${filterLabel}${
+                  role.max_count
+                    ? ` (${host._t("recipes_role_up_to", "up to")} ${role.max_count})`
+                    : ""
+                }.
+                ${host._t(
+                  "recipes_role_run_against",
+                  "Selora will run the recipe against the ones you tick.",
+                )}
+              </p>
+              ${
+                showFilter
+                  ? html`<input
+                      class="role-filter-input"
+                      type="text"
+                      .value=${host._recipeRoleFilters?.[roleId] || ""}
+                      placeholder=${host._t(
+                        "recipes_role_filter_placeholder",
+                        "Filter by name…",
+                      )}
+                      @input=${(e) =>
+                        host._setRecipeRoleFilter(roleId, e.target.value)}
+                    />`
+                  : ""
+              }
+              ${
+                ordered.length === 0
+                  ? html`<p class="panel-prose panel-muted">
+                      ${host._t(
+                        "recipes_role_filter_no_matches",
+                        "No entities match your filter.",
+                      )}
+                    </p>`
+                  : html`
+                      <div class="panel-chips">
+                        ${shown.map((id) => {
+                          // Chip state mirrors the user's selection set only —
+                          // ``bound`` is what the backend confirmed and lags
+                          // by one round-trip, so reading from it would make
+                          // chips "stick" after a rolling-window drop.
+                          const on = selected.has(id);
+                          return html`
+                            <button
+                              class="role-entity-chip role-entity-toggle ${
+                                on ? "is-on" : ""
+                              }"
+                              type="button"
+                              title=${id}
+                              @click=${() =>
+                                host._toggleRecipeRoleEntity(
+                                  role.id,
+                                  id,
+                                  role.max_count,
+                                )}
+                              ?disabled=${host._recipesBusy}
+                            >
+                              <span class="chip-icon-tile">
+                                <ha-icon
+                                  icon=${_entityIcon(host.hass, id)}
+                                ></ha-icon>
+                              </span>
+                              <span class="chip-text">
+                                <span class="chip-name">
+                                  ${_entityFriendlyName(host.hass, id)}
+                                </span>
+                                <span class="chip-id">${id}</span>
+                              </span>
+                            </button>
+                          `;
+                        })}
+                      </div>
+                      ${
+                        hiddenCount > 0
+                          ? html`<button
+                              class="role-show-more"
+                              type="button"
+                              @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                            >
+                              ${host._t("recipes_role_show_all", "Show all")}
+                              (${ordered.length})
+                            </button>`
+                          : expanded &&
+                              !filterText &&
+                              candidatesT.length > CHIP_CAP
+                            ? html`<button
+                                class="role-show-more"
+                                type="button"
+                                @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                              >
+                                ${host._t("recipes_role_show_less", "Show less")}
+                              </button>`
+                            : ""
+                      }
+                    `
+              }
+            `
+          : ""
+      }
     `,
     candidates.length === 0
       ? html`
@@ -4742,9 +4840,11 @@ function _renderRoleSelectionPanel(host, item) {
               </div>
               <p class="role-empty-prose">
                 ${host._t("recipes_role_empty_pair", "Pair")}
-                ${role.min_count > 0
-                  ? html`${host._t("recipes_role_empty_at_least", "at least")} `
-                  : ""}${host._t(
+                ${
+                  role.min_count > 0
+                    ? html`${host._t("recipes_role_empty_at_least", "at least")} `
+                    : ""
+                }${host._t(
                   "recipes_role_empty_one_prose",
                   "one and it'll appear here automatically — you can leave this page to add a device and the wizard keeps your progress on Back.",
                 )}
@@ -4818,13 +4918,15 @@ function _renderPinPanel(host, item) {
         @click=${() => _navigateInHA(setupPath)}
       >
         <ha-icon icon="mdi:tools"></ha-icon>
-        ${copy?.cta ||
-        (integration
-          ? `${host._t("recipes_pin_open_setup_prefix", "Open")} ${integrationLabel} ${host._t("recipes_pin_open_setup_suffix", "setup")}`
-          : host._t(
-              "recipes_pin_open_ha_integrations",
-              "Open HA integrations",
-            ))}
+        ${
+          copy?.cta ||
+          (integration
+            ? `${host._t("recipes_pin_open_setup_prefix", "Open")} ${integrationLabel} ${host._t("recipes_pin_open_setup_suffix", "setup")}`
+            : host._t(
+                "recipes_pin_open_ha_integrations",
+                "Open HA integrations",
+              ))
+        }
       </button>
       <button
         class="panel-btn secondary"
@@ -4858,15 +4960,17 @@ function _renderIntegrationPanel(host, item) {
           ${label}
           ${host._t("recipes_integration_ready", "is set up and ready to use.")}
         </p>
-        ${entryTitle
-          ? html`<div class="integration-entry-meta">
-              <ha-icon icon="mdi:identifier"></ha-icon>
-              <span class="panel-muted"
-                >${host._t("recipes_integration_entry_label", "Entry:")}</span
-              >
-              <code>${entryTitle}</code>
-            </div>`
-          : ""}
+        ${
+          entryTitle
+            ? html`<div class="integration-entry-meta">
+                <ha-icon icon="mdi:identifier"></ha-icon>
+                <span class="panel-muted"
+                  >${host._t("recipes_integration_entry_label", "Entry:")}</span
+                >
+                <code>${entryTitle}</code>
+              </div>`
+            : ""
+        }
         <p class="panel-prose panel-muted">
           ${host._t(
             "recipes_integration_manage_anytime",
@@ -4899,9 +5003,11 @@ function _renderIntegrationPanel(host, item) {
       item.status,
       html`
         <p class="panel-prose">
-          ${autoSetup
-            ? `${item.title} ${host._t("recipes_integration_autosetup_prose", "can be set up automatically using your Home Assistant location. No questions for you to answer.")}`
-            : `${item.title} ${host._t("recipes_integration_needs_setup_prose", "needs to be set up before this recipe can install. You can start it without leaving this page.")}`}
+          ${
+            autoSetup
+              ? `${item.title} ${host._t("recipes_integration_autosetup_prose", "can be set up automatically using your Home Assistant location. No questions for you to answer.")}`
+              : `${item.title} ${host._t("recipes_integration_needs_setup_prose", "needs to be set up before this recipe can install. You can start it without leaving this page.")}`
+          }
         </p>
         ${flow?.error ? html`<div class="panel-error">${flow.error}</div>` : ""}
       `,
@@ -4915,19 +5021,23 @@ function _renderIntegrationPanel(host, item) {
               ? host._autoSetupIntegration(domain)
               : host._startIntegrationFlow(domain)}
         >
-          ${host._recipesBusy
-            ? html`<span class="spinner"></span>`
-            : html`<ha-icon
-                icon=${autoSetup ? "mdi:auto-fix" : "mdi:play"}
-              ></ha-icon>`}
-          ${host._recipesBusy
-            ? host._t("recipes_setting_up_button", "Setting up…")
-            : autoSetup
-              ? host._t(
-                  "recipes_integration_setup_auto_button",
-                  "Set up automatically",
-                )
-              : `${host._t("recipes_integration_setup_prefix", "Set up")} ${copy?.label || domain}`}
+          ${
+            host._recipesBusy
+              ? html`<span class="spinner"></span>`
+              : html`<ha-icon
+                  icon=${autoSetup ? "mdi:auto-fix" : "mdi:play"}
+                ></ha-icon>`
+          }
+          ${
+            host._recipesBusy
+              ? host._t("recipes_setting_up_button", "Setting up…")
+              : autoSetup
+                ? host._t(
+                    "recipes_integration_setup_auto_button",
+                    "Set up automatically",
+                  )
+                : `${host._t("recipes_integration_setup_prefix", "Set up")} ${copy?.label || domain}`
+          }
         </button>
         <button
           class="panel-btn secondary"
@@ -4954,11 +5064,13 @@ function _renderIntegrationPanel(host, item) {
       item.title,
       "failed",
       html`<p class="panel-prose">
-        ${flow.error ||
-        host._t(
-          "recipes_integration_setup_failed",
-          "Setup failed. Try again or use HA's settings page.",
-        )}
+        ${
+          flow.error ||
+          host._t(
+            "recipes_integration_setup_failed",
+            "Setup failed. Try again or use HA's settings page.",
+          )
+        }
       </p>`,
       html`
         <button
@@ -5011,9 +5123,11 @@ function _renderFlowForm(host, item, flow) {
     item.title,
     "needs_input",
     html`
-      ${flow.step?.description
-        ? html`<p class="panel-prose">${flow.step.description}</p>`
-        : ""}
+      ${
+        flow.step?.description
+          ? html`<p class="panel-prose">${flow.step.description}</p>`
+          : ""
+      }
       ${errors.base ? html`<div class="panel-error">${errors.base}</div>` : ""}
       <div class="panel-fields">
         ${fields.map((f) =>
@@ -5035,9 +5149,11 @@ function _renderFlowForm(host, item, flow) {
         ?disabled=${host._recipesBusy}
         @click=${() => host._submitIntegrationFlow(item.payload.domain)}
       >
-        ${host._recipesBusy
-          ? host._t("recipes_working", "Working…")
-          : host._t("recipes_flow_continue", "Continue")}
+        ${
+          host._recipesBusy
+            ? host._t("recipes_working", "Working…")
+            : host._t("recipes_flow_continue", "Continue")
+        }
       </button>
     `,
   );
@@ -5088,11 +5204,13 @@ function _renderFlowField(host, item, flow, field, value, error) {
     <label class="panel-field">
       <span class="panel-field-label">
         ${field.description || field.name}
-        ${field.required === false
-          ? html`<em class="panel-field-optional"
-              >${host._t("recipes_field_optional", "(optional)")}</em
-            >`
-          : ""}
+        ${
+          field.required === false
+            ? html`<em class="panel-field-optional"
+                >${host._t("recipes_field_optional", "(optional)")}</em
+              >`
+            : ""
+        }
       </span>
       ${control}
       ${error ? html`<span class="panel-field-error">${error}</span>` : ""}
@@ -5297,21 +5415,25 @@ function _renderWhatYouNeedRail(host, manifest) {
       <div class="need-rail-title">
         ${host._t("recipes_what_you_need_title", "What you need")}
       </div>
-      ${brands.length
-        ? html`<div class="need-integrations">
-            ${brands.map((b) => _renderIntegrationBanner(host, b))}
-          </div>`
-        : ""}
+      ${
+        brands.length
+          ? html`<div class="need-integrations">
+              ${brands.map((b) => _renderIntegrationBanner(host, b))}
+            </div>`
+          : ""
+      }
       <div class="need-rail-list">
         ${required.map((r) => _renderNeedRoleCard(r, hasPin(r)))}
-        ${optional.length
-          ? html`
-              <div class="need-rail-eyebrow">
-                ${host._t("recipes_optional_eyebrow", "Optional")}
-              </div>
-              ${optional.map((r) => _renderNeedRoleCard(r, hasPin(r)))}
-            `
-          : ""}
+        ${
+          optional.length
+            ? html`
+                <div class="need-rail-eyebrow">
+                  ${host._t("recipes_optional_eyebrow", "Optional")}
+                </div>
+                ${optional.map((r) => _renderNeedRoleCard(r, hasPin(r)))}
+              `
+            : ""
+        }
       </div>
     </aside>
   `;
@@ -5362,9 +5484,11 @@ function _renderNeedRoleCard(role, pinned) {
       </div>
       <div class="need-card-body">
         <div class="need-card-title">${count}${role.title || role.id}</div>
-        ${role.description
-          ? html`<div class="need-card-desc">${role.description}</div>`
-          : ""}
+        ${
+          role.description
+            ? html`<div class="need-card-desc">${role.description}</div>`
+            : ""
+        }
       </div>
     </div>
   `;
@@ -5429,36 +5553,42 @@ function _renderWizardFooter(host, opts) {
     <div class="step-footer">
       <div class="step-footer-hint">${hint || ""}</div>
       <div class="step-footer-actions">
-        ${hideSecondary
-          ? ""
-          : current > 1 && !hideBack
+        ${
+          hideSecondary
+            ? ""
+            : current > 1 && !hideBack
+              ? html`<button
+                  class="panel-btn secondary"
+                  type="button"
+                  @click=${() => host._retreatRecipeStep()}
+                >
+                  ${host._t("recipes_footer_back", "Back")}
+                </button>`
+              : html`<button
+                  class="panel-btn secondary"
+                  type="button"
+                  @click=${() => host._closeRecipeWizard()}
+                >
+                  ${host._t("recipes_footer_cancel", "Cancel")}
+                </button>`
+        }
+        ${
+          primary
             ? html`<button
-                class="panel-btn secondary"
+                class="panel-btn primary"
                 type="button"
-                @click=${() => host._retreatRecipeStep()}
+                ?disabled=${primaryDisabled}
+                @click=${primary.onClick}
               >
-                ${host._t("recipes_footer_back", "Back")}
+                ${primary.label}
+                ${
+                  primary.icon
+                    ? html`<ha-icon icon=${primary.icon}></ha-icon>`
+                    : ""
+                }
               </button>`
-            : html`<button
-                class="panel-btn secondary"
-                type="button"
-                @click=${() => host._closeRecipeWizard()}
-              >
-                ${host._t("recipes_footer_cancel", "Cancel")}
-              </button>`}
-        ${primary
-          ? html`<button
-              class="panel-btn primary"
-              type="button"
-              ?disabled=${primaryDisabled}
-              @click=${primary.onClick}
-            >
-              ${primary.label}
-              ${primary.icon
-                ? html`<ha-icon icon=${primary.icon}></ha-icon>`
-                : ""}
-            </button>`
-          : ""}
+            : ""
+        }
       </div>
     </div>
   `;
@@ -5487,11 +5617,13 @@ function _renderWizardHero(host, manifest, opts) {
         </button>
         <div class="wizard-compact-meta">
           <div class="wizard-compact-title">${manifest.title}</div>
-          ${manifest.version
-            ? html`<div class="wizard-compact-version">
-                v${manifest.version}
-              </div>`
-            : ""}
+          ${
+            manifest.version
+              ? html`<div class="wizard-compact-version">
+                  v${manifest.version}
+                </div>`
+              : ""
+          }
         </div>
       </div>
     `;
@@ -5511,42 +5643,56 @@ function _renderWizardHero(host, manifest, opts) {
           <span class="wizard-eyebrow-tag"
             >${host._t("recipes_eyebrow_recipe", "RECIPE")}</span
           >
-          ${manifest.version
-            ? html`<span class="wizard-eyebrow-sep">·</span>
-                <span class="wizard-eyebrow-meta">v${manifest.version}</span>`
-            : ""}
-          ${released
-            ? html`<span class="wizard-eyebrow-sep">·</span>
-                <span class="wizard-eyebrow-meta"
-                  >${host._t("recipes_eyebrow_released", "Released")}
-                  ${released}</span
-                >`
-            : ""}
+          ${
+            manifest.version
+              ? html`<span class="wizard-eyebrow-sep">·</span>
+                  <span class="wizard-eyebrow-meta">v${manifest.version}</span>`
+              : ""
+          }
+          ${
+            released
+              ? html`<span class="wizard-eyebrow-sep">·</span>
+                  <span class="wizard-eyebrow-meta"
+                    >${host._t("recipes_eyebrow_released", "Released")}
+                    ${released}</span
+                  >`
+              : ""
+          }
         </div>
         <div class="wizard-hero-title">${manifest.title}</div>
-        ${manifest.tagline
-          ? html`<div class="wizard-hero-tagline">${manifest.tagline}</div>`
-          : ""}
-        ${manifest.tags?.length
-          ? html`
-              <div class="wizard-hero-tags">
-                ${manifest.tags.map(
-                  (t, idx) =>
-                    html`<span class="wizard-tag ${idx === 0 ? "primary" : ""}">
-                      ${idx === 0
-                        ? html`<ha-icon icon="mdi:bookmark"></ha-icon>`
-                        : ""}
-                      ${t}
-                    </span>`,
-                )}
-              </div>
-            `
-          : ""}
-        ${manifest.description
-          ? html`<div class="wizard-hero-description">
-              ${manifest.description}
-            </div>`
-          : ""}
+        ${
+          manifest.tagline
+            ? html`<div class="wizard-hero-tagline">${manifest.tagline}</div>`
+            : ""
+        }
+        ${
+          manifest.tags?.length
+            ? html`
+                <div class="wizard-hero-tags">
+                  ${manifest.tags.map(
+                    (t, idx) =>
+                      html`<span
+                        class="wizard-tag ${idx === 0 ? "primary" : ""}"
+                      >
+                        ${
+                          idx === 0
+                            ? html`<ha-icon icon="mdi:bookmark"></ha-icon>`
+                            : ""
+                        }
+                        ${t}
+                      </span>`,
+                  )}
+                </div>
+              `
+            : ""
+        }
+        ${
+          manifest.description
+            ? html`<div class="wizard-hero-description">
+                ${manifest.description}
+              </div>`
+            : ""
+        }
       </div>
     </div>
   `;
@@ -5581,18 +5727,20 @@ function _renderStep1Overview(host) {
         <div class="overview-actions">
           ${backLink}
           <div class="overview-actions-group">
-            ${manifest.binding_mode === "group"
-              ? html`<button
-                  class="btn btn-outline"
-                  @click=${() => host._openManageDevices(manifest.slug)}
-                  ?disabled=${host._recipesBusy}
-                >
-                  ${host._t(
-                    "recipes_card_manage_devices_button",
-                    "Manage devices",
-                  )}
-                </button>`
-              : ""}
+            ${
+              manifest.binding_mode === "group"
+                ? html`<button
+                    class="btn btn-outline"
+                    @click=${() => host._openManageDevices(manifest.slug)}
+                    ?disabled=${host._recipesBusy}
+                  >
+                    ${host._t(
+                      "recipes_card_manage_devices_button",
+                      "Manage devices",
+                    )}
+                  </button>`
+                : ""
+            }
             <button
               class="btn btn-outline"
               @click=${() => host._uninstallRecipe(manifest.slug)}
@@ -5620,32 +5768,36 @@ function _renderStep1Overview(host) {
 
   return html`
     <div class="step-pane">
-      ${bullets.length
-        ? html`
-            <section class="overview-card">
-              <h3 class="overview-card-title">
-                ${host._t("recipes_this_recipe_creates", "This recipe creates")}
-              </h3>
-              <ul class="overview-list">
-                ${bullets.map(
-                  (b) =>
-                    html`<li>
-                      <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                      ${b[0].toUpperCase() + b.slice(1)}
-                    </li>`,
-                )}
-              </ul>
-            </section>
-          `
-        : ""}
+      ${
+        bullets.length
+          ? html`
+              <section class="overview-card">
+                <h3 class="overview-card-title">
+                  ${host._t("recipes_this_recipe_creates", "This recipe creates")}
+                </h3>
+                <ul class="overview-list">
+                  ${bullets.map(
+                    (b) =>
+                      html`<li>
+                        <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+                        ${b[0].toUpperCase() + b.slice(1)}
+                      </li>`,
+                  )}
+                </ul>
+              </section>
+            `
+          : ""
+      }
       <div class="overview-actions">
         ${backLink}
         <div class="overview-actions-group">
-          ${host._recipesBusy
-            ? html`<span class="overview-actions-hint"
-                >${host._t("recipes_loading_recipe", "Loading recipe…")}</span
-              >`
-            : ""}
+          ${
+            host._recipesBusy
+              ? html`<span class="overview-actions-hint"
+                  >${host._t("recipes_loading_recipe", "Loading recipe…")}</span
+                >`
+              : ""
+          }
           <button
             class="btn btn-primary"
             @click=${() => host._advanceRecipeStep()}
@@ -5690,15 +5842,17 @@ function _renderStepHeading(host, stepNum, label, subline, required) {
           >${host._t("recipes_step_label", "Step")} ${displayNum}
           ${host._t("recipes_step_of_4", "of 4")}</span
         >
-        ${required === false
-          ? html`<span class="step-heading-optional"
-              >${host._t("recipes_optional_eyebrow", "Optional")}</span
-            >`
-          : required === true
-            ? html`<span class="step-heading-required"
-                >${host._t("recipes_required_eyebrow", "Required")}</span
+        ${
+          required === false
+            ? html`<span class="step-heading-optional"
+                >${host._t("recipes_optional_eyebrow", "Optional")}</span
               >`
-            : ""}
+            : required === true
+              ? html`<span class="step-heading-required"
+                  >${host._t("recipes_required_eyebrow", "Required")}</span
+                >`
+              : ""
+        }
       </div>
       <h2 class="step-heading-title">${label}</h2>
       ${subline ? html`<p class="step-heading-sub">${subline}</p>` : ""}
@@ -5731,15 +5885,17 @@ function _renderStep2Settings(host) {
             ),
         inputs.length === 0 ? false : required,
       )}
-      ${inputs.length === 0
-        ? ""
-        : html`
-            <section class="overview-card">
-              <div class="panel-fields">
-                ${inputs.map((input) => _renderInputField(host, input))}
-              </div>
-            </section>
-          `}
+      ${
+        inputs.length === 0
+          ? ""
+          : html`
+              <section class="overview-card">
+                <div class="panel-fields">
+                  ${inputs.map((input) => _renderInputField(host, input))}
+                </div>
+              </section>
+            `
+      }
       ${_renderWizardFooter(host, {
         primary: {
           label: host._t("recipes_continue_button", "Continue"),
@@ -5819,25 +5975,31 @@ function _renderStep3Match(host) {
           <div>${host._t("recipes_match_col_status", "Status")}</div>
           <div>${host._t("recipes_match_col_selected", "Selected")}</div>
         </div>
-        ${matchItems.length === 0
-          ? html`<div class="match-empty">
-              ${host._recipesBusy
-                ? host._t("recipes_match_scanning", "Scanning your home…")
-                : host._t(
-                    "recipes_match_nothing",
-                    "Nothing to match — this recipe runs without device setup.",
-                  )}
-            </div>`
-          : matchItems.map((it) =>
-              _renderMatchRow(host, it, it.id === active?.id),
-            )}
+        ${
+          matchItems.length === 0
+            ? html`<div class="match-empty">
+                ${
+                  host._recipesBusy
+                    ? host._t("recipes_match_scanning", "Scanning your home…")
+                    : host._t(
+                        "recipes_match_nothing",
+                        "Nothing to match — this recipe runs without device setup.",
+                      )
+                }
+              </div>`
+            : matchItems.map((it) =>
+                _renderMatchRow(host, it, it.id === active?.id),
+              )
+        }
       </div>
 
-      ${active
-        ? html`<div class="match-detail">
-            ${_renderActionPanel(host, active)}
-          </div>`
-        : ""}
+      ${
+        active
+          ? html`<div class="match-detail">
+              ${_renderActionPanel(host, active)}
+            </div>`
+          : ""
+      }
       ${_renderWizardFooter(host, {
         primary: {
           label: host._t("recipes_continue_button", "Continue"),
@@ -5926,13 +6088,15 @@ function _renderMatchRow(host, item, active) {
         </div>
         <div class="match-cell-text">
           <div class="match-title">${item.title}</div>
-          ${flowError
-            ? html`<div class="match-sub is-error" title=${flowError}>
-                ${flowError}
-              </div>`
-            : item.detail
-              ? html`<div class="match-sub">${item.detail}</div>`
-              : ""}
+          ${
+            flowError
+              ? html`<div class="match-sub is-error" title=${flowError}>
+                  ${flowError}
+                </div>`
+              : item.detail
+                ? html`<div class="match-sub">${item.detail}</div>`
+                : ""
+          }
         </div>
       </div>
       <div class="match-status pi-${displayStatus}">
@@ -6032,87 +6196,101 @@ function _renderStep4Resolve(host) {
               : host._t("recipes_step4_sub_starting", "Starting setup…"),
         host._recipesBusy || !allDone,
       )}
-      ${installFailed
-        ? html`
-            <section class="bucket bucket-failed">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-                ${host._t("recipes_bucket_install_failed", "Install failed")}
-              </h3>
-              ${errorPunch.length
-                ? html`<ul class="install-fail-list">
-                    ${errorPunch.map(
-                      (p) =>
-                        html`<li>
-                          <span class="install-fail-stage">${p.stage}</span>
-                          ${p.message}
-                        </li>`,
-                    )}
-                  </ul>`
-                : html`<p class="panel-prose panel-muted">
-                    ${host._t(
-                      "recipes_bucket_no_details",
-                      "No details available. Check the Home Assistant log for the underlying error.",
-                    )}
-                  </p>`}
-            </section>
-          `
-        : ""}
-      ${interrupts.length
-        ? html`
-            <section class="bucket bucket-waiting">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
-                ${host._t("recipes_bucket_waiting_for_you", "Waiting for you")}
-              </h3>
-              ${interrupts.map((it) => _renderBucketItem(host, it, true))}
-            </section>
-          `
-        : ""}
-      ${failed.length
-        ? html`
-            <section class="bucket bucket-failed">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-                ${host._t("recipes_bucket_failed", "Failed")}
-              </h3>
-              ${failed.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
-        : ""}
-      ${running.length
-        ? html`
-            <section class="bucket bucket-running">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:cog-sync-outline"></ha-icon>
-                ${host._t("recipes_bucket_in_progress", "In progress")}
-              </h3>
-              ${running.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
-        : ""}
-      ${upcoming.length
-        ? html`
-            <section class="bucket bucket-upcoming">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:tray-arrow-down"></ha-icon>
-                ${host._t("recipes_bucket_up_next", "Up next")}
-              </h3>
-              ${upcoming.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
-        : ""}
-      ${completed.length
-        ? html`
-            <section class="bucket bucket-done">
-              <h3 class="bucket-title">
-                <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                ${host._t("recipes_bucket_completed", "Completed")}
-              </h3>
-              ${completed.map((it) => _renderBucketItem(host, it, false))}
-            </section>
-          `
-        : ""}
+      ${
+        installFailed
+          ? html`
+              <section class="bucket bucket-failed">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+                  ${host._t("recipes_bucket_install_failed", "Install failed")}
+                </h3>
+                ${
+                  errorPunch.length
+                    ? html`<ul class="install-fail-list">
+                        ${errorPunch.map(
+                          (p) =>
+                            html`<li>
+                              <span class="install-fail-stage">${p.stage}</span>
+                              ${p.message}
+                            </li>`,
+                        )}
+                      </ul>`
+                    : html`<p class="panel-prose panel-muted">
+                        ${host._t(
+                          "recipes_bucket_no_details",
+                          "No details available. Check the Home Assistant log for the underlying error.",
+                        )}
+                      </p>`
+                }
+              </section>
+            `
+          : ""
+      }
+      ${
+        interrupts.length
+          ? html`
+              <section class="bucket bucket-waiting">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
+                  ${host._t("recipes_bucket_waiting_for_you", "Waiting for you")}
+                </h3>
+                ${interrupts.map((it) => _renderBucketItem(host, it, true))}
+              </section>
+            `
+          : ""
+      }
+      ${
+        failed.length
+          ? html`
+              <section class="bucket bucket-failed">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+                  ${host._t("recipes_bucket_failed", "Failed")}
+                </h3>
+                ${failed.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
+          : ""
+      }
+      ${
+        running.length
+          ? html`
+              <section class="bucket bucket-running">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:cog-sync-outline"></ha-icon>
+                  ${host._t("recipes_bucket_in_progress", "In progress")}
+                </h3>
+                ${running.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
+          : ""
+      }
+      ${
+        upcoming.length
+          ? html`
+              <section class="bucket bucket-upcoming">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:tray-arrow-down"></ha-icon>
+                  ${host._t("recipes_bucket_up_next", "Up next")}
+                </h3>
+                ${upcoming.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
+          : ""
+      }
+      ${
+        completed.length
+          ? html`
+              <section class="bucket bucket-done">
+                <h3 class="bucket-title">
+                  <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+                  ${host._t("recipes_bucket_completed", "Completed")}
+                </h3>
+                ${completed.map((it) => _renderBucketItem(host, it, false))}
+              </section>
+            `
+          : ""
+      }
       ${_renderWizardFooter(host, {
         primary: {
           label: allDone
@@ -6155,15 +6333,19 @@ function _renderBucketItem(host, item, interactive) {
       </div>
       <div class="bucket-item-body">
         <div class="bucket-item-title">${item.title}</div>
-        ${item.detail
-          ? html`<div class="bucket-item-detail">${item.detail}</div>`
-          : ""}
+        ${
+          item.detail
+            ? html`<div class="bucket-item-detail">${item.detail}</div>`
+            : ""
+        }
       </div>
-      ${interactive
-        ? html`<div class="bucket-item-action">
-            ${_renderActionPanel(host, item)}
-          </div>`
-        : ""}
+      ${
+        interactive
+          ? html`<div class="bucket-item-action">
+              ${_renderActionPanel(host, item)}
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -6324,50 +6506,56 @@ function _renderStep5Activate(host) {
           <h3 class="overview-card-title">
             ${host._t("recipes_step5_created_title", "This recipe created")}
           </h3>
-          ${summaryBullets.length
-            ? html`<ul class="overview-list">
-                ${summaryBullets.map(
-                  (b) =>
-                    html`<li>
-                      <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
-                      ${b[0].toUpperCase() + b.slice(1)}
-                    </li>`,
-                )}
-              </ul>`
-            : html`<p class="step-prose panel-muted">
-                ${host._t(
-                  "recipes_step5_no_entries",
-                  "No entries were generated.",
-                )}
-              </p>`}
+          ${
+            summaryBullets.length
+              ? html`<ul class="overview-list">
+                  ${summaryBullets.map(
+                    (b) =>
+                      html`<li>
+                        <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+                        ${b[0].toUpperCase() + b.slice(1)}
+                      </li>`,
+                  )}
+                </ul>`
+              : html`<p class="step-prose panel-muted">
+                  ${host._t(
+                    "recipes_step5_no_entries",
+                    "No entries were generated.",
+                  )}
+                </p>`
+          }
         </section>
 
         <section class="overview-card">
           <h3 class="overview-card-title">
             ${host._t("recipes_step5_devices_linked", "Devices linked")}
           </h3>
-          ${uniqueBound.length
-            ? html`<ul class="overview-list compact">
-                ${uniqueBound.slice(0, 8).map(
-                  (id) =>
-                    html`<li>
-                      <ha-icon icon=${_entityIcon(host.hass, id)}></ha-icon>
-                      ${_entityFriendlyName(host.hass, id)}
-                    </li>`,
-                )}
-                ${uniqueBound.length > 8
-                  ? html`<li class="panel-muted">
-                      + ${uniqueBound.length - 8}
-                      ${host._t("recipes_step5_more_suffix", "more")}
-                    </li>`
-                  : ""}
-              </ul>`
-            : html`<p class="step-prose panel-muted">
-                ${host._t(
-                  "recipes_step5_no_devices",
-                  "No devices are tied to this recipe.",
-                )}
-              </p>`}
+          ${
+            uniqueBound.length
+              ? html`<ul class="overview-list compact">
+                  ${uniqueBound.slice(0, 8).map(
+                    (id) =>
+                      html`<li>
+                        <ha-icon icon=${_entityIcon(host.hass, id)}></ha-icon>
+                        ${_entityFriendlyName(host.hass, id)}
+                      </li>`,
+                  )}
+                  ${
+                    uniqueBound.length > 8
+                      ? html`<li class="panel-muted">
+                          + ${uniqueBound.length - 8}
+                          ${host._t("recipes_step5_more_suffix", "more")}
+                        </li>`
+                      : ""
+                  }
+                </ul>`
+              : html`<p class="step-prose panel-muted">
+                  ${host._t(
+                    "recipes_step5_no_devices",
+                    "No devices are tied to this recipe.",
+                  )}
+                </p>`
+          }
         </section>
 
         <section class="overview-card safety-card">
@@ -6472,78 +6660,86 @@ function _renderResultView(host) {
           "Back to recipes",
         )}
       </button>
-      ${result.ok
-        ? html`
-            <div class="install-success">
-              <div
-                style="font-size:var(--selora-fs-xl);font-weight:700;display:flex;align-items:center;gap:8px;"
-              >
-                <ha-icon icon="mdi:check-circle"></ha-icon>
-                ${host._t(
-                  "recipes_result_install_complete",
-                  "Installation complete",
-                )}
+      ${
+        result.ok
+          ? html`
+              <div class="install-success">
+                <div
+                  style="font-size:var(--selora-fs-xl);font-weight:700;display:flex;align-items:center;gap:8px;"
+                >
+                  <ha-icon icon="mdi:check-circle"></ha-icon>
+                  ${host._t(
+                    "recipes_result_install_complete",
+                    "Installation complete",
+                  )}
+                </div>
+                ${
+                  result.record
+                    ? html`
+                        <div
+                          style="font-size:var(--selora-fs-md);line-height:1.6;"
+                        >
+                          ${result.record.title} v${result.record.version}
+                          ${host._t(
+                            "recipes_result_installed_reloaded",
+                            "was installed and Home Assistant has been reloaded. Package file:",
+                          )}
+                          <code>${result.record.package_path}</code>
+                        </div>
+                      `
+                    : ""
+                }
               </div>
-              ${result.record
-                ? html`
-                    <div style="font-size:var(--selora-fs-md);line-height:1.6;">
-                      ${result.record.title} v${result.record.version}
-                      ${host._t(
-                        "recipes_result_installed_reloaded",
-                        "was installed and Home Assistant has been reloaded. Package file:",
-                      )}
-                      <code>${result.record.package_path}</code>
-                    </div>
-                  `
-                : ""}
-            </div>
-            ${result.preview?.yaml
-              ? html`
-                  <details class="wizard-section package-disclosure">
-                    <summary>
-                      <ha-icon
-                        class="chevron"
-                        icon="mdi:chevron-right"
-                      ></ha-icon>
-                      <ha-icon icon="mdi:file-document-outline"></ha-icon>
-                      ${host._t(
-                        "recipes_result_view_yaml",
-                        "View generated package YAML",
-                      )}
-                      <span class="filler"></span>
-                      <span class="package-disclosure-hint"
-                        >${host._t("recipes_result_advanced", "advanced")}</span
-                      >
-                    </summary>
-                    ${unsafeHTML(
-                      '<div class="yaml-preview">' +
-                        _highlightYaml(result.preview.yaml) +
-                        "</div>",
-                    )}
-                  </details>
-                `
-              : ""}
-          `
-        : html`
-            <div class="wizard-section">
-              <h3 style="color:var(--error-color,#c62828);">
-                ${host._t(
-                  "recipes_result_halted_at_stage",
-                  "Installation halted at stage:",
-                )}
-                ${result.stage_reached}
-              </h3>
-              <p
-                style="font-size:var(--selora-fs-md);color:var(--secondary-text-color);"
-              >
-                ${host._t(
-                  "recipes_result_fix_retry",
-                  "Fix the items below, then re-open the recipe to retry.",
-                )}
-              </p>
-            </div>
-            ${_renderPunchList(host, result.punch_list)}
-          `}
+              ${
+                result.preview?.yaml
+                  ? html`
+                      <details class="wizard-section package-disclosure">
+                        <summary>
+                          <ha-icon
+                            class="chevron"
+                            icon="mdi:chevron-right"
+                          ></ha-icon>
+                          <ha-icon icon="mdi:file-document-outline"></ha-icon>
+                          ${host._t(
+                            "recipes_result_view_yaml",
+                            "View generated package YAML",
+                          )}
+                          <span class="filler"></span>
+                          <span class="package-disclosure-hint"
+                            >${host._t("recipes_result_advanced", "advanced")}</span
+                          >
+                        </summary>
+                        ${unsafeHTML(
+                          '<div class="yaml-preview">' +
+                            _highlightYaml(result.preview.yaml) +
+                            "</div>",
+                        )}
+                      </details>
+                    `
+                  : ""
+              }
+            `
+          : html`
+              <div class="wizard-section">
+                <h3 style="color:var(--error-color,#c62828);">
+                  ${host._t(
+                    "recipes_result_halted_at_stage",
+                    "Installation halted at stage:",
+                  )}
+                  ${result.stage_reached}
+                </h3>
+                <p
+                  style="font-size:var(--selora-fs-md);color:var(--secondary-text-color);"
+                >
+                  ${host._t(
+                    "recipes_result_fix_retry",
+                    "Fix the items below, then re-open the recipe to retry.",
+                  )}
+                </p>
+              </div>
+              ${_renderPunchList(host, result.punch_list)}
+            `
+      }
     </div>
   `;
 }
@@ -6602,70 +6798,76 @@ function _renderUninstallModal(host) {
             "The package file will be deleted and Home Assistant will reload. The automations this recipe created will be removed.",
           )}
         </p>
-        ${integrationDomains.length
-          ? html`
-              <div class="uninstall-integrations">
-                <div class="uninstall-integrations-title">
-                  ${host._t(
-                    "recipes_uninstall_integrations_title",
-                    "Integrations this recipe installed",
-                  )}
+        ${
+          integrationDomains.length
+            ? html`
+                <div class="uninstall-integrations">
+                  <div class="uninstall-integrations-title">
+                    ${host._t(
+                      "recipes_uninstall_integrations_title",
+                      "Integrations this recipe installed",
+                    )}
+                  </div>
+                  <p class="uninstall-integrations-sub">
+                    ${host._t(
+                      "recipes_uninstall_integrations_sub",
+                      "Tick any that should be removed along with the recipe. Anything you leave unchecked stays in Home Assistant.",
+                    )}
+                  </p>
+                  ${integrationDomains.map((domain) => {
+                    const entryId = installedIntegrations[domain];
+                    const checked = !!selectedEntries[entryId];
+                    const others = host._otherUsersOfDomain(domain, slug);
+                    // HA brand icon CDN — same pattern HA's own
+                    // Integrations page uses. ``onerror`` hides the
+                    // img tag silently when no brand exists.
+                    const iconUrl = `https://brands.home-assistant.io/_/${domain}/icon@2x.png`;
+                    return html`
+                      <label class="uninstall-integration-row">
+                        <input
+                          type="checkbox"
+                          .checked=${checked}
+                          @change=${() => host._toggleUninstallEntry(entryId)}
+                        />
+                        <img
+                          class="uninstall-integration-brand"
+                          src=${iconUrl}
+                          alt=""
+                          loading="lazy"
+                          @error=${(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                        <div class="uninstall-integration-text">
+                          <div class="uninstall-integration-name">
+                            ${domain}
+                          </div>
+                          ${
+                            others.length
+                              ? html`<div
+                                  class="uninstall-integration-warn"
+                                  title=${host._t(
+                                    "recipes_uninstall_warn_title",
+                                    "Removing this integration will break those recipes.",
+                                  )}
+                                >
+                                  <ha-icon icon="mdi:alert-outline"></ha-icon>
+                                  ${host._t(
+                                    "recipes_uninstall_still_used_by",
+                                    "Still used by",
+                                  )}
+                                  ${others.join(", ")}
+                                </div>`
+                              : ""
+                          }
+                        </div>
+                      </label>
+                    `;
+                  })}
                 </div>
-                <p class="uninstall-integrations-sub">
-                  ${host._t(
-                    "recipes_uninstall_integrations_sub",
-                    "Tick any that should be removed along with the recipe. Anything you leave unchecked stays in Home Assistant.",
-                  )}
-                </p>
-                ${integrationDomains.map((domain) => {
-                  const entryId = installedIntegrations[domain];
-                  const checked = !!selectedEntries[entryId];
-                  const others = host._otherUsersOfDomain(domain, slug);
-                  // HA brand icon CDN — same pattern HA's own
-                  // Integrations page uses. ``onerror`` hides the
-                  // img tag silently when no brand exists.
-                  const iconUrl = `https://brands.home-assistant.io/_/${domain}/icon@2x.png`;
-                  return html`
-                    <label class="uninstall-integration-row">
-                      <input
-                        type="checkbox"
-                        .checked=${checked}
-                        @change=${() => host._toggleUninstallEntry(entryId)}
-                      />
-                      <img
-                        class="uninstall-integration-brand"
-                        src=${iconUrl}
-                        alt=""
-                        loading="lazy"
-                        @error=${(e) => {
-                          e.target.style.display = "none";
-                        }}
-                      />
-                      <div class="uninstall-integration-text">
-                        <div class="uninstall-integration-name">${domain}</div>
-                        ${others.length
-                          ? html`<div
-                              class="uninstall-integration-warn"
-                              title=${host._t(
-                                "recipes_uninstall_warn_title",
-                                "Removing this integration will break those recipes.",
-                              )}
-                            >
-                              <ha-icon icon="mdi:alert-outline"></ha-icon>
-                              ${host._t(
-                                "recipes_uninstall_still_used_by",
-                                "Still used by",
-                              )}
-                              ${others.join(", ")}
-                            </div>`
-                          : ""}
-                      </div>
-                    </label>
-                  `;
-                })}
-              </div>
-            `
-          : ""}
+              `
+            : ""
+        }
         <div class="modal-actions">
           <button
             class="modal-btn modal-cancel"
@@ -6715,26 +6917,35 @@ function _renderManageDevicesModal(host) {
             "Manage devices",
           )}${detail ? ` — ${detail.manifest.title}` : ""}
         </h3>
-        ${host._recipeManageError
-          ? html`<div class="panel-error">${host._recipeManageError}</div>`
-          : ""}
-        ${!detail
-          ? html`<p class="panel-prose panel-muted">
-              ${host._recipeManageBusy
-                ? host._t("recipes_loading", "Loading…")
-                : host._t("recipes_manage_no_detail", "No detail available.")}
-            </p>`
-          : html`
-              <p class="panel-prose">
-                ${host._t(
-                  "recipes_manage_intro",
-                  "Update which entities back each role. Saves immediately — automations are not re-rendered, only the group memberships change.",
+        ${
+          host._recipeManageError
+            ? html`<div class="panel-error">${host._recipeManageError}</div>`
+            : ""
+        }
+        ${
+          !detail
+            ? html`<p class="panel-prose panel-muted">
+                ${
+                  host._recipeManageBusy
+                    ? host._t("recipes_loading", "Loading…")
+                    : host._t(
+                        "recipes_manage_no_detail",
+                        "No detail available.",
+                      )
+                }
+              </p>`
+            : html`
+                <p class="panel-prose">
+                  ${host._t(
+                    "recipes_manage_intro",
+                    "Update which entities back each role. Saves immediately — automations are not re-rendered, only the group memberships change.",
+                  )}
+                </p>
+                ${detail.manifest.roles.map((role) =>
+                  _renderManageRoleRow(host, role),
                 )}
-              </p>
-              ${detail.manifest.roles.map((role) =>
-                _renderManageRoleRow(host, role),
-              )}
-            `}
+              `
+        }
         <div class="modal-actions">
           <button
             class="modal-btn modal-cancel"
@@ -6748,9 +6959,11 @@ function _renderManageDevicesModal(host) {
             @click=${() => host._saveManageDevices()}
             ?disabled=${host._recipeManageBusy || !detail}
           >
-            ${host._recipeManageBusy
-              ? host._t("recipes_manage_saving", "Saving…")
-              : host._t("recipes_manage_save", "Save")}
+            ${
+              host._recipeManageBusy
+                ? host._t("recipes_manage_saving", "Saving…")
+                : host._t("recipes_manage_save", "Save")
+            }
           </button>
         </div>
       </div>
@@ -6774,43 +6987,48 @@ function _renderManageRoleRow(host, role) {
     <div class="manage-role">
       <div class="manage-role-head">
         <div class="manage-role-title">${role.title || role.id}</div>
-        ${role.description
-          ? html`<div class="manage-role-desc">${role.description}</div>`
-          : ""}
+        ${
+          role.description
+            ? html`<div class="manage-role-desc">${role.description}</div>`
+            : ""
+        }
       </div>
       <div class="panel-chips">
-        ${candidates.length === 0
-          ? html`<p class="panel-prose panel-muted">
-              ${host._t("recipes_manage_no_entities_prefix", "No")} ${role.kind}
-              ${host._t(
-                "recipes_manage_no_entities_suffix",
-                "entities found in this home.",
-              )}
-            </p>`
-          : candidates.map((id) => {
-              const on = selected.has(id);
-              return html`
-                <button
-                  type="button"
-                  class="role-entity-chip role-entity-toggle ${on
-                    ? "is-on"
-                    : ""}"
-                  title=${id}
-                  @click=${() => host._toggleManageEntity(role.id, id)}
-                  ?disabled=${host._recipeManageBusy}
-                >
-                  <span class="chip-icon-tile">
-                    <ha-icon icon=${_entityIcon(host.hass, id)}></ha-icon>
-                  </span>
-                  <span class="chip-text">
-                    <span class="chip-name">
-                      ${_entityFriendlyName(host.hass, id)}
+        ${
+          candidates.length === 0
+            ? html`<p class="panel-prose panel-muted">
+                ${host._t("recipes_manage_no_entities_prefix", "No")}
+                ${role.kind}
+                ${host._t(
+                  "recipes_manage_no_entities_suffix",
+                  "entities found in this home.",
+                )}
+              </p>`
+            : candidates.map((id) => {
+                const on = selected.has(id);
+                return html`
+                  <button
+                    type="button"
+                    class="role-entity-chip role-entity-toggle ${
+                      on ? "is-on" : ""
+                    }"
+                    title=${id}
+                    @click=${() => host._toggleManageEntity(role.id, id)}
+                    ?disabled=${host._recipeManageBusy}
+                  >
+                    <span class="chip-icon-tile">
+                      <ha-icon icon=${_entityIcon(host.hass, id)}></ha-icon>
                     </span>
-                    <span class="chip-id">${id}</span>
-                  </span>
-                </button>
-              `;
-            })}
+                    <span class="chip-text">
+                      <span class="chip-name">
+                        ${_entityFriendlyName(host.hass, id)}
+                      </span>
+                      <span class="chip-id">${id}</span>
+                    </span>
+                  </button>
+                `;
+              })
+        }
       </div>
     </div>
   `;

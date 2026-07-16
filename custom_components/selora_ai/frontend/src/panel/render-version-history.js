@@ -8,21 +8,29 @@ export function renderVersionHistoryDrawer(host, a) {
 
   return html`
     <div class="version-history">
-      ${loading
-        ? html`<div class="version-history-empty">
-            ${host._t("version_history_loading", "Loading…")}
-          </div>`
-        : versions.length === 0
+      ${
+        loading
           ? html`<div class="version-history-empty">
-              ${host._t("version_history_empty", "No version history yet.")}
+              ${host._t("version_history_loading", "Loading…")}
             </div>`
-          : html`
-              <ol class="version-list">
-                ${versions.map((v, i) =>
-                  renderVersionEntry(host, automationId, v, i, versions.length),
-                )}
-              </ol>
-            `}
+          : versions.length === 0
+            ? html`<div class="version-history-empty">
+                ${host._t("version_history_empty", "No version history yet.")}
+              </div>`
+            : html`
+                <ol class="version-list">
+                  ${versions.map((v, i) =>
+                    renderVersionEntry(
+                      host,
+                      automationId,
+                      v,
+                      i,
+                      versions.length,
+                    ),
+                  )}
+                </ol>
+              `
+      }
     </div>
   `;
 }
@@ -43,11 +51,13 @@ function renderVersionEntry(host, automationId, v, i, total) {
         <header class="version-entry-head">
           <div class="version-entry-title">
             <span class="version-entry-num">v${versionNumber}</span>
-            ${isCurrent
-              ? html`<span class="version-entry-badge"
-                  >${host._t("version_history_current_badge", "Current")}</span
-                >`
-              : ""}
+            ${
+              isCurrent
+                ? html`<span class="version-entry-badge"
+                    >${host._t("version_history_current_badge", "Current")}</span
+                  >`
+                : ""
+            }
           </div>
           <time class="version-entry-time" title=${date.toISOString()}
             >${timeAgo}</time
@@ -63,48 +73,61 @@ function renderVersionEntry(host, automationId, v, i, total) {
               icon=${yamlOpen ? "mdi:eye-off-outline" : "mdi:code-braces"}
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            ${yamlOpen
-              ? host._t("version_history_hide_yaml", "Hide YAML")
-              : host._t("version_history_view_yaml", "View YAML")}
+            ${
+              yamlOpen
+                ? host._t("version_history_hide_yaml", "Hide YAML")
+                : host._t("version_history_view_yaml", "View YAML")
+            }
           </button>
-          ${!isCurrent
-            ? html`
-                <button
-                  class="btn btn-outline version-entry-btn"
-                  ?disabled=${restoring || !(v.yaml || v.yaml_content)}
-                  @click=${() =>
-                    host._restoreVersion(
-                      automationId,
-                      v.version_id,
-                      v.yaml || v.yaml_content || "",
-                    )}
-                >
-                  <ha-icon
-                    icon="mdi:restore"
-                    style="--mdc-icon-size:14px;"
-                  ></ha-icon>
-                  ${restoring
-                    ? host._t("version_history_restoring", "Restoring…")
-                    : host._t(
-                        "version_history_restore_button",
-                        "Restore this version",
+          ${
+            !isCurrent
+              ? html`
+                  <button
+                    class="btn btn-outline version-entry-btn"
+                    ?disabled=${restoring || !(v.yaml || v.yaml_content)}
+                    @click=${() =>
+                      host._restoreVersion(
+                        automationId,
+                        v.version_id,
+                        v.yaml || v.yaml_content || "",
                       )}
-                </button>
-              `
-            : ""}
+                  >
+                    <ha-icon
+                      icon="mdi:restore"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${
+                      restoring
+                        ? host._t("version_history_restoring", "Restoring…")
+                        : host._t(
+                            "version_history_restore_button",
+                            "Restore this version",
+                          )
+                    }
+                  </button>
+                `
+              : ""
+          }
         </div>
-        ${yamlOpen
-          ? html`<div class="version-entry-yaml">
-              <ha-code-editor
-                mode="yaml"
-                .value=${v.yaml ||
-                v.yaml_content ||
-                host._t("version_history_no_yaml_stored", "(no YAML stored)")}
-                read-only
-                style="--code-mirror-font-size:13px;"
-              ></ha-code-editor>
-            </div>`
-          : ""}
+        ${
+          yamlOpen
+            ? html`<div class="version-entry-yaml">
+                <ha-code-editor
+                  mode="yaml"
+                  .value=${
+                    v.yaml ||
+                    v.yaml_content ||
+                    host._t(
+                      "version_history_no_yaml_stored",
+                      "(no YAML stored)",
+                    )
+                  }
+                  read-only
+                  style="--code-mirror-font-size:13px;"
+                ></ha-code-editor>
+              </div>`
+            : ""
+        }
       </div>
     </li>
   `;
@@ -172,9 +195,11 @@ export function renderDiffViewer(host) {
                 (v, i) =>
                   html`<option value=${v.version_id}>
                     v${versions.length - i} —
-                    ${v.message ||
-                    v.version_message ||
-                    new Date(v.created_at).toLocaleDateString()}
+                    ${
+                      v.message ||
+                      v.version_message ||
+                      new Date(v.created_at).toLocaleDateString()
+                    }
                   </option>`,
               )}
             </select>
@@ -202,43 +227,46 @@ export function renderDiffViewer(host) {
                 (v, i) =>
                   html`<option value=${v.version_id}>
                     v${versions.length - i} —
-                    ${v.message ||
-                    v.version_message ||
-                    new Date(v.created_at).toLocaleDateString()}
+                    ${
+                      v.message ||
+                      v.version_message ||
+                      new Date(v.created_at).toLocaleDateString()
+                    }
                   </option>`,
               )}
             </select>
           </div>
         </div>
         <div style="flex:1;overflow-y:auto;padding:12px 20px;">
-          ${host._loadingDiff
-            ? html`<div style="opacity:0.5;text-align:center;padding:24px;">
-                ${host._t("version_history_loading_diff", "Loading diff…")}
-              </div>`
-            : host._diffResult.length === 0
+          ${
+            host._loadingDiff
               ? html`<div style="opacity:0.5;text-align:center;padding:24px;">
-                  ${host._t("version_history_no_diff", "No differences found.")}
+                  ${host._t("version_history_loading_diff", "Loading diff…")}
                 </div>`
-              : html`<pre
-                  style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
-                >
+              : host._diffResult.length === 0
+                ? html`<div style="opacity:0.5;text-align:center;padding:24px;">
+                    ${host._t("version_history_no_diff", "No differences found.")}
+                  </div>`
+                : html`<pre
+                    style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
+                  >
 ${host._diffResult.map((line) => {
-                    const bg = line.startsWith("+")
-                      ? "rgba(40,167,69,0.15)"
-                      : line.startsWith("-")
-                        ? "rgba(220,53,69,0.15)"
-                        : "transparent";
-                    const color = line.startsWith("+")
-                      ? "#40c057"
-                      : line.startsWith("-")
-                        ? "#fa5252"
-                        : "var(--primary-text-color)";
-                    return html`<span
-                      style="display:block;background:${bg};color:${color};padding:1px 4px;"
-                      >${line}</span
-                    >`;
-                  })}</pre
-                >`}
+  const bg = line.startsWith("+")
+    ? "rgba(40,167,69,0.15)"
+    : line.startsWith("-")
+      ? "rgba(220,53,69,0.15)"
+      : "transparent";
+  const color = line.startsWith("+")
+    ? "#40c057"
+    : line.startsWith("-")
+      ? "#fa5252"
+      : "var(--primary-text-color)";
+  return html`<span
+    style="display:block;background:${bg};color:${color};padding:1px 4px;"
+    >${line}</span
+  >`;
+})}</pre>`
+          }
         </div>
       </div>
     </div>

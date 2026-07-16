@@ -93,15 +93,19 @@ function renderToolCalls(host, toolCalls) {
         ${toolCalls.map(
           (tc, i) => html`
             <div
-              style="padding:2px 0;${i > 0
-                ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;"
-                : ""}"
+              style="padding:2px 0;${
+                i > 0
+                  ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;"
+                  : ""
+              }"
             >
               <span style="color:var(--primary-text-color);font-weight:600;"
                 >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length
-                ? html`<span>(${_formatToolArgs(tc.arguments)})</span>`
-                : html`<span>()</span>`}
+              >${
+                tc.arguments && Object.keys(tc.arguments).length
+                  ? html`<span>(${_formatToolArgs(tc.arguments)})</span>`
+                  : html`<span>()</span>`
+              }
             </div>
           `,
         )}
@@ -161,16 +165,20 @@ function renderAutomationSuggestButton(host) {
       ?disabled=${busy || host._loading || host._streaming}
       @click=${() => host._suggestAutomationIdea()}
     >
-      ${busy
-        ? html`<span class="spinner green"></span>`
-        : html`<ha-icon
-            icon="mdi:auto-fix"
-            style="--mdc-icon-size:14px;"
-          ></ha-icon>`}
+      ${
+        busy
+          ? html`<span class="spinner green"></span>`
+          : html`<ha-icon
+              icon="mdi:auto-fix"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>`
+      }
       <span
-        >${busy
-          ? host._t("chat_suggest_thinking", "Thinking…")
-          : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
+        >${
+          busy
+            ? host._t("chat_suggest_thinking", "Thinking…")
+            : host._t("chat_suggest_one_for_me", "Suggest one for me")
+        }</span
       >
     </button>
   `;
@@ -193,99 +201,109 @@ export function renderChat(host) {
                   style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
                 />
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
-                  ${host._newAutomationMode
-                    ? html`${host._t("new_automation_title_prefix", "New")}
-                        <span class="gold-text"
-                          >${host._t("new_automation_gold", "Automation")}</span
-                        >`
-                    : html`${host._t("welcome_title_prefix", "Welcome to")}
-                        <span class="gold-text">Selora AI</span>`}
+                  ${
+                    host._newAutomationMode
+                      ? html`${host._t("new_automation_title_prefix", "New")}
+                          <span class="gold-text"
+                            >${host._t("new_automation_gold", "Automation")}</span
+                          >`
+                      : html`${host._t("welcome_title_prefix", "Welcome to")}
+                          <span class="gold-text">Selora AI</span>`
+                  }
                 </div>
                 <div
                   style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
                 >
-                  ${host._newAutomationMode
-                    ? host._t(
-                        "new_automation_subtitle",
-                        "Describe what you want to automate — mention the devices, times, or conditions involved.",
-                      )
-                    : host._t(
-                        "welcome_subtitle",
-                        "Your intelligent home automation architect",
-                      )}
+                  ${
+                    host._newAutomationMode
+                      ? host._t(
+                          "new_automation_subtitle",
+                          "Describe what you want to automate — mention the devices, times, or conditions involved.",
+                        )
+                      : host._t(
+                          "welcome_subtitle",
+                          "Your intelligent home automation architect",
+                        )
+                  }
                 </div>
 
-                ${host._llmNeedsSetup
-                  ? html`
-                      <div
-                        style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
-                        @click=${() => host._goToSettings()}
-                      >
-                        <ha-icon
-                          icon="mdi:rocket-launch-outline"
-                          style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
-                        ></ha-icon>
+                ${
+                  host._llmNeedsSetup
+                    ? html`
                         <div
-                          style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                          style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
+                          @click=${() => host._goToSettings()}
                         >
-                          ${host._t("get_started", "Get started")}
-                        </div>
-                        <div
-                          style="font-size:13px;opacity:0.6;margin-bottom:16px;"
-                        >
-                          ${host._t(
-                            "get_started_body",
-                            "Configure your LLM provider in the Settings tab to start chatting with your home.",
-                          )}
-                        </div>
-                        <span
-                          style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
-                        >
-                          ${host._t("open_settings", "Open Settings")}
                           <ha-icon
-                            icon="mdi:arrow-right"
-                            style="--mdc-icon-size:16px;"
+                            icon="mdi:rocket-launch-outline"
+                            style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
                           ></ha-icon>
-                        </span>
-                      </div>
-                    `
-                  : html`
-                      <div class="welcome-composer-area">
-                        <selora-particles
-                          class="welcome-composer-particles"
-                          .count=${260}
-                          .color=${host._isDark
-                            ? "#fbbf24"
-                            : host._primaryColor || "#03a9f4"}
-                          .maxOpacity=${host._isDark ? 0.55 : 0.5}
-                          .speed=${host._streaming || host._loading ? 2.2 : 1}
-                        ></selora-particles>
-                        ${_renderComposer(host, { welcome: true })}
-                      </div>
+                          <div
+                            style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                          >
+                            ${host._t("get_started", "Get started")}
+                          </div>
+                          <div
+                            style="font-size:13px;opacity:0.6;margin-bottom:16px;"
+                          >
+                            ${host._t(
+                              "get_started_body",
+                              "Configure your LLM provider in the Settings tab to start chatting with your home.",
+                            )}
+                          </div>
+                          <span
+                            style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
+                          >
+                            ${host._t("open_settings", "Open Settings")}
+                            <ha-icon
+                              icon="mdi:arrow-right"
+                              style="--mdc-icon-size:16px;"
+                            ></ha-icon>
+                          </span>
+                        </div>
+                      `
+                    : html`
+                        <div class="welcome-composer-area">
+                          <selora-particles
+                            class="welcome-composer-particles"
+                            .count=${260}
+                            .color=${
+                              host._isDark
+                                ? "#fbbf24"
+                                : host._primaryColor || "#03a9f4"
+                            }
+                            .maxOpacity=${host._isDark ? 0.55 : 0.5}
+                            .speed=${host._streaming || host._loading ? 2.2 : 1}
+                          ></selora-particles>
+                          ${_renderComposer(host, { welcome: true })}
+                        </div>
 
-                      ${host._newAutomationMode
-                        ? renderAutomationSuggestButton(host)
-                        : html`
-                            <details class="welcome-quickstart">
-                              <summary class="welcome-quickstart-summary">
-                                <span
-                                  >${host._t(
-                                    "quick_start",
-                                    "Quick start",
-                                  )}</span
-                                >
-                                <ha-icon
-                                  icon="mdi:chevron-down"
-                                  class="welcome-quickstart-chevron"
-                                ></ha-icon>
-                              </summary>
-                              ${renderQuickActions(
-                                host,
-                                _welcomeSuggestions(host),
-                              )}
-                            </details>
-                          `}
-                    `}
+                        ${
+                          host._newAutomationMode
+                            ? renderAutomationSuggestButton(host)
+                            : html`
+                                <details class="welcome-quickstart">
+                                  <summary class="welcome-quickstart-summary">
+                                    <span
+                                      >${host._t(
+                                        "quick_start",
+                                        "Quick start",
+                                      )}</span
+                                    >
+                                    <ha-icon
+                                      icon="mdi:chevron-down"
+                                      class="welcome-quickstart-chevron"
+                                    ></ha-icon>
+                                  </summary>
+                                  ${renderQuickActions(
+                                    host,
+                                    _welcomeSuggestions(host),
+                                  )}
+                                </details>
+                              `
+                        }
+                      `
+                }
               </div>
             `,
           )}
@@ -318,42 +336,48 @@ export function renderChat(host) {
       >
         ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
-        ${host._loading
-          ? html`
-              <div class="typing-bubble">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-              </div>
-            `
-          : ""}
+        ${
+          host._loading
+            ? html`
+                <div class="typing-bubble">
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                </div>
+              `
+            : ""
+        }
       </div>
 
       <div class="chat-input-wrapper">
-        ${host._chatScrolledAway && host._messages.length > 0
-          ? html`
-              <button
-                class="chat-jump-bottom"
-                @click=${() => host._scrollChatToBottom()}
-                title=${host._t("chat_jump_to_latest", "Go to latest message")}
-                aria-label=${host._t(
-                  "chat_jump_to_latest",
-                  "Go to latest message",
-                )}
-              >
-                <ha-icon icon="mdi:chevron-down"></ha-icon>
-              </button>
-            `
-          : ""}
-        ${lastQuickActions
-          ? html`
-              <div class="chat-quick-actions">
-                ${renderQuickActions(host, lastQuickActions.quick_actions, {
-                  used: !!lastQuickActions._qa_used,
-                })}
-              </div>
-            `
-          : ""}
+        ${
+          host._chatScrolledAway && host._messages.length > 0
+            ? html`
+                <button
+                  class="chat-jump-bottom"
+                  @click=${() => host._scrollChatToBottom()}
+                  title=${host._t("chat_jump_to_latest", "Go to latest message")}
+                  aria-label=${host._t(
+                    "chat_jump_to_latest",
+                    "Go to latest message",
+                  )}
+                >
+                  <ha-icon icon="mdi:chevron-down"></ha-icon>
+                </button>
+              `
+            : ""
+        }
+        ${
+          lastQuickActions
+            ? html`
+                <div class="chat-quick-actions">
+                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
+                    used: !!lastQuickActions._qa_used,
+                  })}
+                </div>
+              `
+            : ""
+        }
         ${_renderComposer(host)}
       </div>
     </div>
@@ -820,9 +844,11 @@ function _renderAutocompleteRow(host, ac, item) {
   >
     <ha-icon icon=${item.icon}></ha-icon>
     <span class="composer-autocomplete-label">${item.label}</span>
-    ${item.area
-      ? html`<span class="composer-autocomplete-area">${item.area}</span>`
-      : ""}
+    ${
+      item.area
+        ? html`<span class="composer-autocomplete-area">${item.area}</span>`
+        : ""
+    }
   </button>`;
 }
 
@@ -1043,37 +1069,41 @@ function _renderComposer(host, opts = {}) {
                   return;
                 }
               }}
-              placeholder=${host._newAutomationMode
-                ? host._t(
-                    "composer_placeholder_automation",
-                    "Describe the automation you’d like to create…",
-                  )
-                : host._t(
-                    "composer_placeholder_ask",
-                    "Ask Selora AI anything…",
-                  )}
+              placeholder=${
+                host._newAutomationMode
+                  ? host._t(
+                      "composer_placeholder_automation",
+                      "Describe the automation you’d like to create…",
+                    )
+                  : host._t(
+                      "composer_placeholder_ask",
+                      "Ask Selora AI anything…",
+                    )
+              }
               ?disabled=${host._loading || host._streaming}
               rows="1"
             ></textarea>
           </div>
           ${_renderSelectionChips(host)}
         </div>
-        ${host._streaming
-          ? html`<button
-              class="composer-send"
-              @click=${() => host._stopStreaming()}
-              title=${host._t("chat_stop_generating", "Stop generating")}
-            >
-              <ha-icon icon="mdi:stop"></ha-icon>
-            </button>`
-          : html`<button
-              class="composer-send"
-              @click=${() => host._sendMessage()}
-              ?disabled=${host._loading || !host._input.trim()}
-              title=${host._t("chat_send", "Send")}
-            >
-              <ha-icon icon="mdi:arrow-up"></ha-icon>
-            </button>`}
+        ${
+          host._streaming
+            ? html`<button
+                class="composer-send"
+                @click=${() => host._stopStreaming()}
+                title=${host._t("chat_stop_generating", "Stop generating")}
+              >
+                <ha-icon icon="mdi:stop"></ha-icon>
+              </button>`
+            : html`<button
+                class="composer-send"
+                @click=${() => host._sendMessage()}
+                ?disabled=${host._loading || !host._input.trim()}
+                title=${host._t("chat_send", "Send")}
+              >
+                <ha-icon icon="mdi:arrow-up"></ha-icon>
+              </button>`
+        }
       </div>
     </div>
   `;
@@ -1166,274 +1196,332 @@ export function renderMessage(host, msg, idx) {
 
   return html`
     <div class="message-row">
-      ${isUser
-        ? html`
-            <div class="bubble user">
-              <span
-                class="msg-content"
-                .textContent=${stripEntityMarkers(msg.content)}
-              ></span>
-            </div>
-          `
-        : html`
-            <div
-              class="assistant-wrap${msg.command_approval ||
-              msg.automation ||
-              msg.scene
-                ? " assistant-wrap--approval"
-                : ""}"
-            >
-              ${renderAgentSteps(host, msg.steps)}
-              <div
-                class="bubble assistant${msg.command_approval
-                  ? " bubble--approval"
-                  : (showAutomationSpinner || showSceneSpinner) &&
-                      !displayContent?.trim()
-                    ? " bubble--spinner-only"
-                    : ""}"
-                style="max-width:100%;align-self:auto;"
-              >
-                ${msg.command_approval
-                  ? ""
-                  : html`<span
-                      class="msg-content ${msg._streaming &&
-                      !showAutomationSpinner &&
-                      !showSceneSpinner
-                        ? "streaming-cursor"
-                        : ""}"
-                      @click=${host._onCodeCopyClick}
-                      .innerHTML=${renderMarkdown(displayContent)}
-                    ></span>`}
-                ${showAutomationSpinner
-                  ? (() => {
-                      const startedAt = msg._sentAt || Date.now();
-                      const labelIdx =
-                        Math.floor(
-                          (Date.now() - startedAt) /
-                            AUTOMATION_LABEL_INTERVAL_MS,
-                        ) % AUTOMATION_LABEL_KEYS.length;
-                      const [labelKey, labelFallback] =
-                        AUTOMATION_LABEL_KEYS[labelIdx];
-                      return html`
-                        <div
-                          style="display:flex;align-items:center;gap:10px;${displayContent?.trim()
-                            ? "margin-top:12px;"
-                            : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                        >
-                          <div
-                            class="typing-dot"
-                            style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                          ></div>
-                          <span
-                            style="font-size:13px;font-weight:500;color:#fbbf24;"
-                            >${host._t(labelKey, labelFallback)}</span
-                          >
-                        </div>
-                      `;
-                    })()
-                  : ""}
-                ${showSceneSpinner
-                  ? html`
-                      <div
-                        style="display:flex;align-items:center;gap:10px;${displayContent?.trim()
-                          ? "margin-top:12px;"
-                          : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                      >
-                        <div
-                          class="typing-dot"
-                          style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                        ></div>
-                        <span
-                          style="font-size:13px;font-weight:500;color:#fbbf24;"
-                          >${host._t(
-                            "chat_building_scene",
-                            "Building scene...",
-                          )}</span
-                        >
-                      </div>
-                    `
-                  : ""}
-                ${msg.config_issue
-                  ? html`
-                      <div style="margin-top: 10px;">
-                        <mwc-button dense raised @click=${host._goToSettings}
-                          >${host._t(
-                            "chat_go_to_settings",
-                            "Go to Settings",
-                          )}</mwc-button
-                        >
-                      </div>
-                    `
-                  : ""}
-                ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
-                ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
-                ${msg.command_approval
-                  ? renderApprovalCard(
-                      host,
-                      msg,
-                      msg.command_approval,
-                      msg.approval_status,
-                    )
-                  : ""}
-                ${msg._interrupted
-                  ? html`
-                      <div class="stream-interrupt">
-                        <ha-icon
-                          icon="mdi:alert-circle-outline"
-                          style="--mdc-icon-size:16px;flex-shrink:0;"
-                        ></ha-icon>
-                        <span class="stream-interrupt-text"
-                          >${msg._interruptReason ||
-                          host._t(
-                            "chat_response_cut_short",
-                            "Response was cut short.",
-                          )}</span
-                        >
-                      </div>
-                    `
-                  : ""}
-                ${host._config?.developer_mode &&
-                msg.tool_calls &&
-                msg.tool_calls.length
-                  ? renderToolCalls(host, msg.tool_calls)
-                  : ""}
+      ${
+        isUser
+          ? html`
+              <div class="bubble user">
+                <span
+                  class="msg-content"
+                  .textContent=${stripEntityMarkers(msg.content)}
+                ></span>
               </div>
-              ${msg._streaming ||
-              canCopy ||
-              canFeedback ||
-              canRetry ||
-              showQuickActions ||
-              hasProposalActions
-                ? html`<div
-                    class="bubble-meta"
-                    style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
-                  >
-                    ${msg._streaming
-                      ? html`<span style="opacity:0.5;">
-                          Selora AI ·
-                          ${host._config?.developer_mode &&
-                          typeof msg._replyMs === "number"
-                            ? _formatReplyMs(msg._replyMs)
-                            : formatTime(msg.timestamp)}
-                        </span>`
-                      : canCopy || canFeedback || canRetry
-                        ? html`<div class="msg-actions">
-                            ${canCopy
-                              ? html`<button
-                                  class="msg-action-btn"
-                                  title=${host._t(
-                                    isProposal
-                                      ? "chat_copy_yaml"
-                                      : "chat_copy_message",
-                                    isProposal ? "Copy YAML" : "Copy message",
-                                  )}
-                                  aria-label=${host._t(
-                                    isProposal
-                                      ? "chat_copy_yaml"
-                                      : "chat_copy_message",
-                                    isProposal ? "Copy YAML" : "Copy message",
-                                  )}
-                                  @click=${(e) =>
-                                    host._copyMessageText(
-                                      msg,
-                                      e.currentTarget,
-                                      copyText,
-                                    )}
-                                >
-                                  <ha-icon
-                                    icon="mdi:content-copy"
-                                    style="--mdc-icon-size:14px;"
-                                  ></ha-icon>
-                                </button>`
-                              : ""}
-                            ${canFeedback && host._config?.telemetry_enabled
-                              ? html`<button
-                                    class="msg-action-btn${msg._feedback ===
-                                    "positive"
-                                      ? " active"
-                                      : ""}"
-                                    title=${host._t(
-                                      "chat_feedback_helpful",
-                                      "Good response",
-                                    )}
-                                    aria-label=${host._t(
-                                      "chat_feedback_helpful",
-                                      "Good response",
-                                    )}
-                                    @click=${(e) =>
-                                      host._recordChatFeedback(
-                                        msg,
-                                        "positive",
-                                        e.currentTarget,
-                                      )}
-                                  >
-                                    <ha-icon
-                                      icon=${msg._feedback === "positive"
-                                        ? "mdi:thumb-up"
-                                        : "mdi:thumb-up-outline"}
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                  </button>
-                                  <button
-                                    class="msg-action-btn${msg._feedback ===
-                                    "negative"
-                                      ? " active"
-                                      : ""}"
-                                    title=${host._t(
-                                      "chat_feedback_not_helpful",
-                                      "Bad response",
-                                    )}
-                                    aria-label=${host._t(
-                                      "chat_feedback_not_helpful",
-                                      "Bad response",
-                                    )}
-                                    @click=${(e) =>
-                                      host._recordChatFeedback(
-                                        msg,
-                                        "negative",
-                                        e.currentTarget,
-                                      )}
-                                  >
-                                    <ha-icon
-                                      icon=${msg._feedback === "negative"
-                                        ? "mdi:thumb-down"
-                                        : "mdi:thumb-down-outline"}
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                  </button>`
-                              : ""}
-                            ${msg._interrupted && msg._retryWith
-                              ? html`<button
-                                  class="msg-action-btn"
-                                  title=${host._t("chat_retry", "Retry")}
-                                  aria-label=${host._t("chat_retry", "Retry")}
-                                  @click=${() =>
-                                    host._retryMessage(msg._retryWith)}
-                                >
-                                  <ha-icon
-                                    icon="mdi:refresh"
-                                    style="--mdc-icon-size:14px;"
-                                  ></ha-icon>
-                                </button>`
-                              : ""}
-                          </div>`
-                        : ""}
-                    ${hasProposalActions || showQuickActions
-                      ? html`<div class="msg-quick">
-                          ${hasProposalActions
-                            ? host._renderProposalActions(msg, idx)
-                            : ""}
-                          ${showQuickActions
-                            ? renderQuickActions(host, msg.quick_actions, {
-                                used: !!msg._qa_used,
-                              })
-                            : ""}
-                        </div>`
-                      : ""}
-                  </div>`
-                : ""}
-            </div>
-          `}
+            `
+          : html`
+              <div
+                class="assistant-wrap${
+                  msg.command_approval || msg.automation || msg.scene
+                    ? " assistant-wrap--approval"
+                    : ""
+                }"
+              >
+                ${renderAgentSteps(host, msg.steps)}
+                <div
+                  class="bubble assistant${
+                    msg.command_approval
+                      ? " bubble--approval"
+                      : (showAutomationSpinner || showSceneSpinner) &&
+                          !displayContent?.trim()
+                        ? " bubble--spinner-only"
+                        : ""
+                  }"
+                  style="max-width:100%;align-self:auto;"
+                >
+                  ${
+                    msg.command_approval
+                      ? ""
+                      : html`<span
+                          class="msg-content ${
+                            msg._streaming &&
+                            !showAutomationSpinner &&
+                            !showSceneSpinner
+                              ? "streaming-cursor"
+                              : ""
+                          }"
+                          @click=${host._onCodeCopyClick}
+                          .innerHTML=${renderMarkdown(displayContent)}
+                        ></span>`
+                  }
+                  ${
+                    showAutomationSpinner
+                      ? (() => {
+                          const startedAt = msg._sentAt || Date.now();
+                          const labelIdx =
+                            Math.floor(
+                              (Date.now() - startedAt) /
+                                AUTOMATION_LABEL_INTERVAL_MS,
+                            ) % AUTOMATION_LABEL_KEYS.length;
+                          const [labelKey, labelFallback] =
+                            AUTOMATION_LABEL_KEYS[labelIdx];
+                          return html`
+                            <div
+                              style="display:flex;align-items:center;gap:10px;${
+                                displayContent?.trim() ? "margin-top:12px;" : ""
+                              }padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                            >
+                              <div
+                                class="typing-dot"
+                                style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                              ></div>
+                              <span
+                                style="font-size:13px;font-weight:500;color:#fbbf24;"
+                                >${host._t(labelKey, labelFallback)}</span
+                              >
+                            </div>
+                          `;
+                        })()
+                      : ""
+                  }
+                  ${
+                    showSceneSpinner
+                      ? html`
+                          <div
+                            style="display:flex;align-items:center;gap:10px;${
+                              displayContent?.trim() ? "margin-top:12px;" : ""
+                            }padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                          >
+                            <div
+                              class="typing-dot"
+                              style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                            ></div>
+                            <span
+                              style="font-size:13px;font-weight:500;color:#fbbf24;"
+                              >${host._t(
+                                "chat_building_scene",
+                                "Building scene...",
+                              )}</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${
+                    msg.config_issue
+                      ? html`
+                          <div style="margin-top: 10px;">
+                            <mwc-button
+                              dense
+                              raised
+                              @click=${host._goToSettings}
+                              >${host._t(
+                                "chat_go_to_settings",
+                                "Go to Settings",
+                              )}</mwc-button
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
+                  ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
+                  ${
+                    msg.command_approval
+                      ? renderApprovalCard(
+                          host,
+                          msg,
+                          msg.command_approval,
+                          msg.approval_status,
+                        )
+                      : ""
+                  }
+                  ${
+                    msg._interrupted
+                      ? html`
+                          <div class="stream-interrupt">
+                            <ha-icon
+                              icon="mdi:alert-circle-outline"
+                              style="--mdc-icon-size:16px;flex-shrink:0;"
+                            ></ha-icon>
+                            <span class="stream-interrupt-text"
+                              >${
+                                msg._interruptReason ||
+                                host._t(
+                                  "chat_response_cut_short",
+                                  "Response was cut short.",
+                                )
+                              }</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${
+                    host._config?.developer_mode &&
+                    msg.tool_calls &&
+                    msg.tool_calls.length
+                      ? renderToolCalls(host, msg.tool_calls)
+                      : ""
+                  }
+                </div>
+                ${
+                  msg._streaming ||
+                  canCopy ||
+                  canFeedback ||
+                  canRetry ||
+                  showQuickActions ||
+                  hasProposalActions
+                    ? html`<div
+                        class="bubble-meta"
+                        style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
+                      >
+                        ${
+                          msg._streaming
+                            ? html`<span style="opacity:0.5;">
+                                Selora AI ·
+                                ${
+                                  host._config?.developer_mode &&
+                                  typeof msg._replyMs === "number"
+                                    ? _formatReplyMs(msg._replyMs)
+                                    : formatTime(msg.timestamp)
+                                }
+                              </span>`
+                            : canCopy || canFeedback || canRetry
+                              ? html`<div class="msg-actions">
+                                  ${
+                                    canCopy
+                                      ? html`<button
+                                          class="msg-action-btn"
+                                          title=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          aria-label=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          @click=${(e) =>
+                                            host._copyMessageText(
+                                              msg,
+                                              e.currentTarget,
+                                              copyText,
+                                            )}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:content-copy"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    canFeedback &&
+                                    host._config?.telemetry_enabled
+                                      ? html`<button
+                                            class="msg-action-btn${
+                                              msg._feedback === "positive"
+                                                ? " active"
+                                                : ""
+                                            }"
+                                            title=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            @click=${(e) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "positive",
+                                                e.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${
+                                                msg._feedback === "positive"
+                                                  ? "mdi:thumb-up"
+                                                  : "mdi:thumb-up-outline"
+                                              }
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>
+                                          <button
+                                            class="msg-action-btn${
+                                              msg._feedback === "negative"
+                                                ? " active"
+                                                : ""
+                                            }"
+                                            title=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            @click=${(e) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "negative",
+                                                e.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${
+                                                msg._feedback === "negative"
+                                                  ? "mdi:thumb-down"
+                                                  : "mdi:thumb-down-outline"
+                                              }
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    msg._interrupted && msg._retryWith
+                                      ? html`<button
+                                          class="msg-action-btn"
+                                          title=${host._t("chat_retry", "Retry")}
+                                          aria-label=${host._t("chat_retry", "Retry")}
+                                          @click=${() =>
+                                            host._retryMessage(msg._retryWith)}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:refresh"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                </div>`
+                              : ""
+                        }
+                        ${
+                          hasProposalActions || showQuickActions
+                            ? html`<div class="msg-quick">
+                                ${
+                                  hasProposalActions
+                                    ? host._renderProposalActions(msg, idx)
+                                    : ""
+                                }
+                                ${
+                                  showQuickActions
+                                    ? renderQuickActions(
+                                        host,
+                                        msg.quick_actions,
+                                        {
+                                          used: !!msg._qa_used,
+                                        },
+                                      )
+                                    : ""
+                                }
+                              </div>`
+                            : ""
+                        }
+                      </div>`
+                    : ""
+                }
+              </div>
+            `
+      }
     </div>
   `;
 }
@@ -1545,39 +1633,47 @@ export function renderYamlEditor(
       autocomplete-entities
       style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
     ></ha-code-editor>
-    ${isDirty || (onSave && !readOnly)
-      ? html`
-          <div class="yaml-edit-bar">
-            ${isDirty
-              ? html`
-                  <span class="yaml-unsaved">
-                    <ha-icon
-                      icon="mdi:circle-edit-outline"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
-                  </span>
-                `
-              : html`<span style="flex:1;"></span>`}
-            ${onSave
-              ? html`
-                  <button
-                    class="btn btn-primary"
-                    ?disabled=${saving || !isDirty}
-                    @click=${() => onSave(key)}
-                  >
-                    <ha-icon
-                      icon="mdi:content-save"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${saving
-                      ? host._t("chat_yaml_saving", "Saving…")
-                      : host._t("chat_yaml_save_changes", "Save changes")}
-                  </button>
-                `
-              : ""}
-          </div>
-        `
-      : ""}
+    ${
+      isDirty || (onSave && !readOnly)
+        ? html`
+            <div class="yaml-edit-bar">
+              ${
+                isDirty
+                  ? html`
+                      <span class="yaml-unsaved">
+                        <ha-icon
+                          icon="mdi:circle-edit-outline"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
+                      </span>
+                    `
+                  : html`<span style="flex:1;"></span>`
+              }
+              ${
+                onSave
+                  ? html`
+                      <button
+                        class="btn btn-primary"
+                        ?disabled=${saving || !isDirty}
+                        @click=${() => onSave(key)}
+                      >
+                        <ha-icon
+                          icon="mdi:content-save"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${
+                          saving
+                            ? host._t("chat_yaml_saving", "Saving…")
+                            : host._t("chat_yaml_save_changes", "Save changes")
+                        }
+                      </button>
+                    `
+                  : ""
+              }
+            </div>
+          `
+        : ""
+    }
   `;
 }

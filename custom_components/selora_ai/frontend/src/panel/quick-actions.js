@@ -229,9 +229,11 @@ function _renderChoice(host, action) {
           <span class="qa-choice-label" title=${action.label}
             >${action.label}</span
           >
-          ${inlineDescription
-            ? html`<span class="qa-choice-desc">${action.description}</span>`
-            : ""}
+          ${
+            inlineDescription
+              ? html`<span class="qa-choice-desc">${action.description}</span>`
+              : ""
+          }
         </div>
         <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
       </div>
@@ -255,17 +257,21 @@ function _renderConfirmation(host, action) {
         : "";
   return html`
     <button class=${cls} @click=${() => _onSelect(host, action)}>
-      ${action.icon
-        ? html`<ha-icon
-            icon=${action.icon}
-            style="--mdc-icon-size:16px;${iconStyle}"
-          ></ha-icon>`
-        : ""}
+      ${
+        action.icon
+          ? html`<ha-icon
+              icon=${action.icon}
+              style="--mdc-icon-size:16px;${iconStyle}"
+            ></ha-icon>`
+          : ""
+      }
       <span style="display:flex;flex-direction:column;align-items:flex-start;">
         <span class="qa-confirm-label">${action.label}</span>
-        ${action.description
-          ? html`<span class="qa-confirm-desc">${action.description}</span>`
-          : ""}
+        ${
+          action.description
+            ? html`<span class="qa-confirm-desc">${action.description}</span>`
+            : ""
+        }
       </span>
     </button>
   `;

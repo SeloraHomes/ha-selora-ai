@@ -103,11 +103,13 @@ export function renderAgentSteps(host, steps) {
             <div
               style="position:relative;width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"
             >
-              ${showRail
-                ? html`<span
-                    style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
-                  ></span>`
-                : ""}
+              ${
+                showRail
+                  ? html`<span
+                      style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
+                    ></span>`
+                  : ""
+              }
               <ha-icon
                 icon=${_stepIcon(step)}
                 class=${spinning ? "agent-step-spin" : ""}
@@ -115,11 +117,9 @@ export function renderAgentSteps(host, steps) {
               ></ha-icon>
             </div>
             <span
-              style="font-size:12px;line-height:1.3;color:${emphasised
-                ? color
-                : "var(--secondary-text-color)"};${emphasised
-                ? ""
-                : "opacity:0.9;"}"
+              style="font-size:12px;line-height:1.3;color:${
+                emphasised ? color : "var(--secondary-text-color)"
+              };${emphasised ? "" : "opacity:0.9;"}"
               >${step.label}</span
             >
           </div>

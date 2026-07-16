@@ -57,9 +57,9 @@ function _renderTargetRow(host, entityId, stateData, editSceneId) {
       ></div>
       <ha-icon class="scene-ent-arrow" icon="mdi:arrow-right"></ha-icon>
       <div
-        class="selora-entity-grid scene-ent-tile ${editSceneId
-          ? "scene-ent-tile--edit"
-          : "scene-ent-tile--forced"}"
+        class="selora-entity-grid scene-ent-tile ${
+          editSceneId ? "scene-ent-tile--edit" : "scene-ent-tile--forced"
+        }"
         data-entity-ids=${entityId}
         data-scene-states=${single}
         data-scene-edit-id=${editSceneId || ""}
@@ -94,16 +94,18 @@ function _renderEntityList(host, entities, editSceneId = null) {
   const showHeaders = groups.size > 1;
 
   return html`
-    ${editSceneId
-      ? html`<div class="scene-ent-hint">
-          <ha-icon icon="mdi:gesture-tap"></ha-icon>
-          <span
-            >Adjust each entity's desired state on the <strong>right</strong>.
-            Edits don't touch your devices until you <strong>Test</strong> or
-            activate the scene.</span
-          >
-        </div>`
-      : ""}
+    ${
+      editSceneId
+        ? html`<div class="scene-ent-hint">
+            <ha-icon icon="mdi:gesture-tap"></ha-icon>
+            <span
+              >Adjust each entity's desired state on the <strong>right</strong>.
+              Edits don't touch your devices until you <strong>Test</strong> or
+              activate the scene.</span
+            >
+          </div>`
+        : ""
+    }
     <div class="scene-ent-list">
       <div class="scene-ent-head">
         <span>Now</span>
@@ -112,58 +114,65 @@ function _renderEntityList(host, entities, editSceneId = null) {
       </div>
       ${sorted.map(
         ([area, areaIds]) => html`
-          ${showHeaders
-            ? html`<div class="scene-ent-area">
-                <ha-icon icon="mdi:floor-plan"></ha-icon>
-                <span>${area || "Unassigned"}</span>
-              </div>`
-            : ""}
+          ${
+            showHeaders
+              ? html`<div class="scene-ent-area">
+                  <ha-icon icon="mdi:floor-plan"></ha-icon>
+                  <span>${area || "Unassigned"}</span>
+                </div>`
+              : ""
+          }
           ${areaIds.map((id) =>
             _renderTargetRow(host, id, source[id], editSceneId),
           )}
         `,
       )}
     </div>
-    ${editSceneId && host._sceneIsDirty(editSceneId)
-      ? html`<div class="scene-edit-bar">
-          <span class="scene-edit-bar-msg">
-            <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this scene
-          </span>
-          <span class="scene-edit-bar-actions">
-            <button
-              class="btn btn-outline"
-              ?disabled=${host._savingScene?.[editSceneId] ||
-              host._testingScene?.[editSceneId]}
-              title="Apply these states to your devices now, without saving"
-              @click=${() => host._testSceneEdits(editSceneId)}
-            >
-              <ha-icon
-                icon="mdi:flask-outline"
-                style="--mdc-icon-size:14px;"
-              ></ha-icon>
-              ${host._testingScene?.[editSceneId] ? "Testing…" : "Test"}
-            </button>
-            <button
-              class="btn btn-outline"
-              ?disabled=${host._savingScene?.[editSceneId]}
-              @click=${() => host._discardSceneEdits(editSceneId)}
-            >
-              Discard
-            </button>
-            <button
-              class="btn btn-success"
-              ?disabled=${host._savingScene?.[editSceneId]}
-              @click=${() => host._saveSceneEdits(editSceneId)}
-            >
-              <ha-icon
-                icon="mdi:content-save"
-                style="--mdc-icon-size:14px;"
-              ></ha-icon>
-              ${host._savingScene?.[editSceneId] ? "Saving…" : "Save changes"}
-            </button>
-          </span>
-        </div>`
-      : ""}
+    ${
+      editSceneId && host._sceneIsDirty(editSceneId)
+        ? html`<div class="scene-edit-bar">
+            <span class="scene-edit-bar-msg">
+              <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this
+              scene
+            </span>
+            <span class="scene-edit-bar-actions">
+              <button
+                class="btn btn-outline"
+                ?disabled=${
+                  host._savingScene?.[editSceneId] ||
+                  host._testingScene?.[editSceneId]
+                }
+                title="Apply these states to your devices now, without saving"
+                @click=${() => host._testSceneEdits(editSceneId)}
+              >
+                <ha-icon
+                  icon="mdi:flask-outline"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                ${host._testingScene?.[editSceneId] ? "Testing…" : "Test"}
+              </button>
+              <button
+                class="btn btn-outline"
+                ?disabled=${host._savingScene?.[editSceneId]}
+                @click=${() => host._discardSceneEdits(editSceneId)}
+              >
+                Discard
+              </button>
+              <button
+                class="btn btn-success"
+                ?disabled=${host._savingScene?.[editSceneId]}
+                @click=${() => host._saveSceneEdits(editSceneId)}
+              >
+                <ha-icon
+                  icon="mdi:content-save"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                ${host._savingScene?.[editSceneId] ? "Saving…" : "Save changes"}
+              </button>
+            </span>
+          </div>`
+        : ""
+    }
   `;
 }
 
@@ -191,29 +200,35 @@ export function renderSceneCard(host, msg, msgIndex) {
         </div>
         <div class="proposal-body" style="padding:0;">
           ${_renderEntityList(host, scene.entities || {})}
-          ${msg.scene_yaml
-            ? html`<div
-                  class="yaml-toggle"
-                  style="margin-top:10px;margin-bottom:0;"
-                  @click=${() => toggleYaml(host, yamlKey)}
-                >
-                  <ha-icon
-                    icon="mdi:code-braces"
-                    style="--mdc-icon-size:14px;"
-                  ></ha-icon>
-                  ${yamlOpen
-                    ? host._t("scenes_hide_yaml", "Hide YAML")
-                    : host._t("scenes_view_yaml", "View YAML")}
-                </div>
-                ${yamlOpen
-                  ? html`<ha-code-editor
-                      mode="yaml"
-                      .value=${msg.scene_yaml}
-                      read-only
-                      style="--code-mirror-font-size:12px;margin-top:10px;"
-                    ></ha-code-editor>`
-                  : ""}`
-            : ""}
+          ${
+            msg.scene_yaml
+              ? html`<div
+                    class="yaml-toggle"
+                    style="margin-top:10px;margin-bottom:0;"
+                    @click=${() => toggleYaml(host, yamlKey)}
+                  >
+                    <ha-icon
+                      icon="mdi:code-braces"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${
+                      yamlOpen
+                        ? host._t("scenes_hide_yaml", "Hide YAML")
+                        : host._t("scenes_view_yaml", "View YAML")
+                    }
+                  </div>
+                  ${
+                    yamlOpen
+                      ? html`<ha-code-editor
+                          mode="yaml"
+                          .value=${msg.scene_yaml}
+                          read-only
+                          style="--code-mirror-font-size:12px;margin-top:10px;"
+                        ></ha-code-editor>`
+                      : ""
+                  }`
+              : ""
+          }
           <div class="proposal-actions" style="margin-top:14px;">
             <button
               class="btn btn-success"
@@ -278,31 +293,37 @@ export function renderSceneCard(host, msg, msgIndex) {
         )}
         <div class="proposal-body" style="padding:0;">
           ${_renderEntityList(host, scene.entities || {})}
-          ${msg.scene_yaml
-            ? html`<div
-                class="yaml-toggle"
-                style="margin-top:10px;margin-bottom:0;"
-                @click=${() => toggleYaml(host, yamlKey)}
-              >
-                <ha-icon
-                  icon="mdi:code-braces"
-                  style="--mdc-icon-size:14px;"
-                ></ha-icon>
-                ${yamlOpen
-                  ? host._t("scenes_hide_yaml", "Hide YAML")
-                  : host._t("scenes_view_yaml", "View YAML")}
-              </div>`
-            : ""}
-          ${yamlOpen && msg.scene_yaml
-            ? html`
-                <ha-code-editor
-                  mode="yaml"
-                  .value=${msg.scene_yaml}
-                  read-only
-                  style="--code-mirror-font-size:12px;margin-top:10px;"
-                ></ha-code-editor>
-              `
-            : ""}
+          ${
+            msg.scene_yaml
+              ? html`<div
+                  class="yaml-toggle"
+                  style="margin-top:10px;margin-bottom:0;"
+                  @click=${() => toggleYaml(host, yamlKey)}
+                >
+                  <ha-icon
+                    icon="mdi:code-braces"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${
+                    yamlOpen
+                      ? host._t("scenes_hide_yaml", "Hide YAML")
+                      : host._t("scenes_view_yaml", "View YAML")
+                  }
+                </div>`
+              : ""
+          }
+          ${
+            yamlOpen && msg.scene_yaml
+              ? html`
+                  <ha-code-editor
+                    mode="yaml"
+                    .value=${msg.scene_yaml}
+                    read-only
+                    style="--code-mirror-font-size:12px;margin-top:10px;"
+                  ></ha-code-editor>
+                `
+              : ""
+          }
         </div>
       </div>
     `;
@@ -327,20 +348,24 @@ export function renderSceneCard(host, msg, msgIndex) {
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          ${yamlOpen
-            ? host._t("scenes_hide_yaml", "Hide YAML")
-            : host._t("scenes_view_yaml", "View YAML")}
+          ${
+            yamlOpen
+              ? host._t("scenes_hide_yaml", "Hide YAML")
+              : host._t("scenes_view_yaml", "View YAML")
+          }
         </div>
-        ${yamlOpen && msg.scene_yaml
-          ? html`
-              <ha-code-editor
-                mode="yaml"
-                .value=${msg.scene_yaml}
-                read-only
-                style="--code-mirror-font-size:12px;margin-top:6px;"
-              ></ha-code-editor>
-            `
-          : ""}
+        ${
+          yamlOpen && msg.scene_yaml
+            ? html`
+                <ha-code-editor
+                  mode="yaml"
+                  .value=${msg.scene_yaml}
+                  read-only
+                  style="--code-mirror-font-size:12px;margin-top:6px;"
+                ></ha-code-editor>
+              `
+            : ""
+        }
         <div style="display:flex;justify-content:flex-end;margin-top:12px;">
           <button
             class="btn btn-success"
@@ -409,466 +434,519 @@ export function renderScenes(host) {
           <h1 class="page-h1">
             ${host._t("scenes_section_title", "Your Scenes")}
           </h1>
-          ${(host._scenes || []).length > 0
-            ? html`<button
-                class="filter-row-action"
-                ?disabled=${host._llmNeedsSetup}
-                title=${host._llmNeedsSetup
-                  ? host._t(
-                      "scenes_llm_needs_setup_tooltip",
-                      "Configure an LLM provider first",
-                    )
-                  : ""}
-                @click=${() => host._newSceneChat()}
-              >
-                <ha-icon
-                  icon="mdi:plus"
-                  style="--mdc-icon-size:13px;"
-                ></ha-icon>
-                ${host._t("scenes_new_scene_button", "New Scene")}
-              </button>`
-            : ""}
+          ${
+            (host._scenes || []).length > 0
+              ? html`<button
+                  class="filter-row-action"
+                  ?disabled=${host._llmNeedsSetup}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "scenes_llm_needs_setup_tooltip",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
+                  @click=${() => host._newSceneChat()}
+                >
+                  <ha-icon
+                    icon="mdi:plus"
+                    style="--mdc-icon-size:13px;"
+                  ></ha-icon>
+                  ${host._t("scenes_new_scene_button", "New Scene")}
+                </button>`
+              : ""
+          }
         </div>
-        ${(host._scenes || []).length > 0
-          ? html`
-              <div class="filter-tabs-row" style="margin-top:12px;">
-                <div class="filter-tabs" role="tablist">
-                  <button
-                    role="tab"
-                    aria-selected=${statusFilter === "all"}
-                    class="filter-tab ${statusFilter === "all" ? "active" : ""}"
-                    @click=${() => {
-                      host._sceneStatusFilter = "all";
-                    }}
-                  >
-                    ${host._t("scenes_status_tab_all", "All")}
-                  </button>
-                  ${seloraCount > 0 && manualCount > 0
-                    ? html`
-                        <button
-                          role="tab"
-                          aria-selected=${statusFilter === "selora"}
-                          class="filter-tab ${statusFilter === "selora"
-                            ? "active"
-                            : ""}"
-                          @click=${() => {
-                            host._sceneStatusFilter = "selora";
-                          }}
-                        >
-                          <ha-icon
-                            icon="mdi:creation"
-                            style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
-                          ></ha-icon>
-                          <span
-                            >${host._t("scenes_status_tab_selora", "Selora AI")}
-                            (${seloraCount})</span
-                          >
-                        </button>
-                        <button
-                          role="tab"
-                          aria-selected=${statusFilter === "manual"}
-                          class="filter-tab ${statusFilter === "manual"
-                            ? "active"
-                            : ""}"
-                          @click=${() => {
-                            host._sceneStatusFilter = "manual";
-                          }}
-                        >
-                          ${host._t("scenes_status_tab_manual", "Manual")}
-                          (${manualCount})
-                        </button>
-                      `
-                    : ""}
-                </div>
-              </div>
-              <div class="filter-row">
-                <div class="filter-input-wrap" style="flex:1 1 260px;">
-                  <ha-icon icon="mdi:magnify"></ha-icon>
-                  <input
-                    type="text"
-                    placeholder=${host._t(
-                      "scenes_filter_placeholder",
-                      "Filter scenes…",
-                    )}
-                    .value=${host._sceneFilter || ""}
-                    @input=${(e) => {
-                      host._sceneFilter = e.target.value;
-                    }}
-                  />
-                  ${host._sceneFilter
-                    ? html`<ha-icon
-                        icon="mdi:close-circle"
-                        style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                        @click=${() => {
-                          host._sceneFilter = "";
-                        }}
-                      ></ha-icon>`
-                    : ""}
-                </div>
-                <div class="sort-group">
-                  <select
-                    class="sort-select"
-                    .value=${host._sceneSortBy || "recent"}
-                    @change=${(e) => {
-                      host._sceneSortBy = e.target.value;
-                    }}
-                  >
-                    <option value="recent">
-                      ${host._t("scenes_sort_recent", "Recently updated")}
-                    </option>
-                    <option value="alpha">
-                      ${host._t("scenes_sort_alpha", "Alphabetical")}
-                    </option>
-                    <option value="size">
-                      ${host._t("scenes_sort_size", "Most entities")}
-                    </option>
-                  </select>
-                  <button
-                    class="sort-dir-toggle"
-                    title=${sortDir === "desc"
-                      ? "Sort descending (click for ascending)"
-                      : "Sort ascending (click for descending)"}
-                    @click=${() => {
-                      host._sceneSortDir = sortDir === "desc" ? "asc" : "desc";
-                    }}
-                  >
-                    <ha-icon
-                      icon=${sortDir === "desc"
-                        ? "mdi:sort-descending"
-                        : "mdi:sort-ascending"}
-                      style="--mdc-icon-size:18px;"
-                    ></ha-icon>
-                  </button>
-                </div>
-              </div>
-              <div class="automations-list">
-                ${filtered.map((s) => {
-                  const sceneId = s.scene_id;
-                  const sceneEntityId = s.entity_id;
-                  const entities = s.entities || {};
-                  const entityCount = _sceneEntityCount(s);
-                  const isExpanded = !!host._expandedScenes?.[sceneId];
-                  const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
-                  const burgerOpen = host._openSceneBurger === sceneId;
-                  const deleting = !!host._deletingScene?.[sceneId];
-                  const loadingChat = !!host._loadingToChat?.[sceneId];
-                  const updated = formatTimeAgo(s.updated_at);
-                  const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` · updated ${updated}` : ""}`;
-                  const isSelora = s.source === "selora";
-                  const recipeTitle = s.recipe_title || "";
-                  return html`
-                    <div
-                      class="auto-row${isExpanded ? " expanded" : ""}"
-                      data-scene-id="${sceneId}"
+        ${
+          (host._scenes || []).length > 0
+            ? html`
+                <div class="filter-tabs-row" style="margin-top:12px;">
+                  <div class="filter-tabs" role="tablist">
+                    <button
+                      role="tab"
+                      aria-selected=${statusFilter === "all"}
+                      class="filter-tab ${statusFilter === "all" ? "active" : ""}"
+                      @click=${() => {
+                        host._sceneStatusFilter = "all";
+                      }}
                     >
+                      ${host._t("scenes_status_tab_all", "All")}
+                    </button>
+                    ${
+                      seloraCount > 0 && manualCount > 0
+                        ? html`
+                            <button
+                              role="tab"
+                              aria-selected=${statusFilter === "selora"}
+                              class="filter-tab ${
+                                statusFilter === "selora" ? "active" : ""
+                              }"
+                              @click=${() => {
+                                host._sceneStatusFilter = "selora";
+                              }}
+                            >
+                              <ha-icon
+                                icon="mdi:creation"
+                                style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
+                              ></ha-icon>
+                              <span
+                                >${host._t("scenes_status_tab_selora", "Selora AI")}
+                                (${seloraCount})</span
+                              >
+                            </button>
+                            <button
+                              role="tab"
+                              aria-selected=${statusFilter === "manual"}
+                              class="filter-tab ${
+                                statusFilter === "manual" ? "active" : ""
+                              }"
+                              @click=${() => {
+                                host._sceneStatusFilter = "manual";
+                              }}
+                            >
+                              ${host._t("scenes_status_tab_manual", "Manual")}
+                              (${manualCount})
+                            </button>
+                          `
+                        : ""
+                    }
+                  </div>
+                </div>
+                <div class="filter-row">
+                  <div class="filter-input-wrap" style="flex:1 1 260px;">
+                    <ha-icon icon="mdi:magnify"></ha-icon>
+                    <input
+                      type="text"
+                      placeholder=${host._t(
+                        "scenes_filter_placeholder",
+                        "Filter scenes…",
+                      )}
+                      .value=${host._sceneFilter || ""}
+                      @input=${(e) => {
+                        host._sceneFilter = e.target.value;
+                      }}
+                    />
+                    ${
+                      host._sceneFilter
+                        ? html`<ha-icon
+                            icon="mdi:close-circle"
+                            style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                            @click=${() => {
+                              host._sceneFilter = "";
+                            }}
+                          ></ha-icon>`
+                        : ""
+                    }
+                  </div>
+                  <div class="sort-group">
+                    <select
+                      class="sort-select"
+                      .value=${host._sceneSortBy || "recent"}
+                      @change=${(e) => {
+                        host._sceneSortBy = e.target.value;
+                      }}
+                    >
+                      <option value="recent">
+                        ${host._t("scenes_sort_recent", "Recently updated")}
+                      </option>
+                      <option value="alpha">
+                        ${host._t("scenes_sort_alpha", "Alphabetical")}
+                      </option>
+                      <option value="size">
+                        ${host._t("scenes_sort_size", "Most entities")}
+                      </option>
+                    </select>
+                    <button
+                      class="sort-dir-toggle"
+                      title=${
+                        sortDir === "desc"
+                          ? "Sort descending (click for ascending)"
+                          : "Sort ascending (click for descending)"
+                      }
+                      @click=${() => {
+                        host._sceneSortDir =
+                          sortDir === "desc" ? "asc" : "desc";
+                      }}
+                    >
+                      <ha-icon
+                        icon=${
+                          sortDir === "desc"
+                            ? "mdi:sort-descending"
+                            : "mdi:sort-ascending"
+                        }
+                        style="--mdc-icon-size:18px;"
+                      ></ha-icon>
+                    </button>
+                  </div>
+                </div>
+                <div class="automations-list">
+                  ${filtered.map((s) => {
+                    const sceneId = s.scene_id;
+                    const sceneEntityId = s.entity_id;
+                    const entities = s.entities || {};
+                    const entityCount = _sceneEntityCount(s);
+                    const isExpanded = !!host._expandedScenes?.[sceneId];
+                    const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
+                    const burgerOpen = host._openSceneBurger === sceneId;
+                    const deleting = !!host._deletingScene?.[sceneId];
+                    const loadingChat = !!host._loadingToChat?.[sceneId];
+                    const updated = formatTimeAgo(s.updated_at);
+                    const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` · updated ${updated}` : ""}`;
+                    const isSelora = s.source === "selora";
+                    const recipeTitle = s.recipe_title || "";
+                    return html`
                       <div
-                        class="auto-row-main"
-                        @click=${(e) => {
-                          if (
-                            e.target.closest(
-                              ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
-                            )
-                          )
-                            return;
-                          host._expandedScenes = {
-                            ...host._expandedScenes,
-                            [sceneId]: !isExpanded,
-                          };
-                        }}
+                        class="auto-row${isExpanded ? " expanded" : ""}"
+                        data-scene-id="${sceneId}"
                       >
                         <div
-                          style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
+                          class="auto-row-main"
+                          @click=${(e) => {
+                            if (
+                              e.target.closest(
+                                ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
+                              )
+                            )
+                              return;
+                            host._expandedScenes = {
+                              ...host._expandedScenes,
+                              [sceneId]: !isExpanded,
+                            };
+                          }}
                         >
-                          <ha-icon
-                            icon="mdi:palette"
-                            style="--mdc-icon-size:18px;color:var(--selora-accent);"
-                          ></ha-icon>
-                          ${!isSelora && !recipeTitle && host.narrow
-                            ? html`<span
-                                style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
-                                >HA</span
-                              >`
-                            : ""}
-                        </div>
-                        <div class="auto-row-name">
-                          <div class="auto-row-title-row">
-                            <span class="auto-row-title">${s.name}</span>
-                            ${recipeTitle
-                              ? html`<span
-                                  class="recipe-pill"
-                                  title=${host._t(
-                                    "automations_recipe_pill_tooltip",
-                                    "Installed by a Selora recipe — manage it from the Recipes tab.",
-                                  )}
-                                >
-                                  <ha-icon
-                                    icon="mdi:book-open-variant"
-                                  ></ha-icon>
-                                  <span class="recipe-pill-name"
-                                    >${recipeTitle}</span
-                                  >
-                                </span>`
-                              : !isSelora && !host.narrow
+                          <div
+                            style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
+                          >
+                            <ha-icon
+                              icon="mdi:palette"
+                              style="--mdc-icon-size:18px;color:var(--selora-accent);"
+                            ></ha-icon>
+                            ${
+                              !isSelora && !recipeTitle && host.narrow
                                 ? html`<span
-                                    style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
+                                    style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
                                     >HA</span
                                   >`
-                                : ""}
+                                : ""
+                            }
                           </div>
-                          <span class="auto-row-desc auto-row-desc--meta-only"
-                            >${meta}</span
+                          <div class="auto-row-name">
+                            <div class="auto-row-title-row">
+                              <span class="auto-row-title">${s.name}</span>
+                              ${
+                                recipeTitle
+                                  ? html`<span
+                                      class="recipe-pill"
+                                      title=${host._t(
+                                        "automations_recipe_pill_tooltip",
+                                        "Installed by a Selora recipe — manage it from the Recipes tab.",
+                                      )}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:book-open-variant"
+                                      ></ha-icon>
+                                      <span class="recipe-pill-name"
+                                        >${recipeTitle}</span
+                                      >
+                                    </span>`
+                                  : !isSelora && !host.narrow
+                                    ? html`<span
+                                        style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
+                                        >HA</span
+                                      >`
+                                    : ""
+                              }
+                            </div>
+                            <span class="auto-row-desc auto-row-desc--meta-only"
+                              >${meta}</span
+                            >
+                            <span class="auto-row-mobile-meta">
+                              <span>${meta}</span>
+                              <ha-icon
+                                icon="mdi:chevron-down"
+                                class="card-chevron ${isExpanded ? "open" : ""}"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                            </span>
+                          </div>
+                          <div
+                            style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
                           >
-                          <span class="auto-row-mobile-meta">
-                            <span>${meta}</span>
-                            <ha-icon
-                              icon="mdi:chevron-down"
-                              class="card-chevron ${isExpanded ? "open" : ""}"
-                              style="--mdc-icon-size:16px;"
-                            ></ha-icon>
-                          </span>
-                        </div>
-                        <div
-                          style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
-                        >
-                          <button
-                            class="row-action-btn"
-                            ?disabled=${!sceneEntityId}
-                            @click=${(e) => {
-                              e.stopPropagation();
-                              const id = sceneEntityId
-                                ? sceneEntityId.replace(/^scene\./, "")
-                                : sceneId;
-                              host._activateScene(id, s.name);
-                            }}
-                            title=${host._t(
-                              "scenes_activate_button",
-                              "Activate",
-                            )}
-                          >
-                            <ha-icon
-                              icon="mdi:play"
-                              style="--mdc-icon-size:16px;"
-                            ></ha-icon>
-                          </button>
-                          <div class="burger-menu-wrapper">
                             <button
-                              class="burger-btn"
+                              class="row-action-btn"
+                              ?disabled=${!sceneEntityId}
                               @click=${(e) => {
                                 e.stopPropagation();
-                                if (burgerOpen) {
-                                  host._openSceneBurger = null;
-                                  return;
-                                }
-                                host._openBurgerMenuStyle = burgerMenuAnchor(
-                                  e.currentTarget,
-                                );
-                                host._openSceneBurger = sceneId;
+                                const id = sceneEntityId
+                                  ? sceneEntityId.replace(/^scene\./, "")
+                                  : sceneId;
+                                host._activateScene(id, s.name);
                               }}
                               title=${host._t(
-                                "scenes_more_actions_tooltip",
-                                "More actions",
+                                "scenes_activate_button",
+                                "Activate",
                               )}
                             >
                               <ha-icon
-                                icon="mdi:dots-vertical"
+                                icon="mdi:play"
                                 style="--mdc-icon-size:16px;"
                               ></ha-icon>
                             </button>
-                            ${burgerOpen
-                              ? html`
-                                  <div
-                                    class="burger-dropdown"
-                                    style=${host._openBurgerMenuStyle}
-                                  >
-                                    <button
-                                      class="burger-item"
-                                      ?disabled=${loadingChat}
-                                      @click=${(e) => {
-                                        e.stopPropagation();
-                                        host._openSceneBurger = null;
-                                        host._loadSceneToChat(sceneId);
-                                      }}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:chat-processing-outline"
-                                        style="--mdc-icon-size:14px;"
-                                      ></ha-icon>
-                                      ${loadingChat
-                                        ? host._t(
-                                            "scenes_loading_label",
-                                            "Loading…",
-                                          )
-                                        : host._t(
-                                            "scenes_refine_in_chat_button",
-                                            "Refine in chat",
-                                          )}
-                                    </button>
-                                    <button
-                                      class="burger-item"
-                                      @click=${(e) => {
-                                        e.stopPropagation();
-                                        host._openSceneBurger = null;
-                                        if (sceneEntityId) {
-                                          host.dispatchEvent(
-                                            new CustomEvent("hass-more-info", {
-                                              bubbles: true,
-                                              composed: true,
-                                              detail: {
-                                                entityId: sceneEntityId,
-                                              },
-                                            }),
-                                          );
-                                        } else {
-                                          window.history.pushState(
-                                            null,
-                                            "",
-                                            "/config/scene/dashboard",
-                                          );
-                                          window.dispatchEvent(
-                                            new Event("location-changed"),
-                                          );
-                                        }
-                                      }}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:open-in-new"
-                                        style="--mdc-icon-size:14px;"
-                                      ></ha-icon>
-                                      ${host._t(
-                                        "scenes_open_in_ha_button",
-                                        "Open in HA",
-                                      )}
-                                    </button>
-                                    ${isSelora
-                                      ? html`<button
-                                          class="burger-item danger"
-                                          ?disabled=${deleting}
+                            <div class="burger-menu-wrapper">
+                              <button
+                                class="burger-btn"
+                                @click=${(e) => {
+                                  e.stopPropagation();
+                                  if (burgerOpen) {
+                                    host._openSceneBurger = null;
+                                    return;
+                                  }
+                                  host._openBurgerMenuStyle = burgerMenuAnchor(
+                                    e.currentTarget,
+                                  );
+                                  host._openSceneBurger = sceneId;
+                                }}
+                                title=${host._t(
+                                  "scenes_more_actions_tooltip",
+                                  "More actions",
+                                )}
+                              >
+                                <ha-icon
+                                  icon="mdi:dots-vertical"
+                                  style="--mdc-icon-size:16px;"
+                                ></ha-icon>
+                              </button>
+                              ${
+                                burgerOpen
+                                  ? html`
+                                      <div
+                                        class="burger-dropdown"
+                                        style=${host._openBurgerMenuStyle}
+                                      >
+                                        <button
+                                          class="burger-item"
+                                          ?disabled=${loadingChat}
                                           @click=${(e) => {
                                             e.stopPropagation();
                                             host._openSceneBurger = null;
-                                            host._deleteSceneConfirmId =
-                                              sceneId;
-                                            host._deleteSceneConfirmName =
-                                              s.name;
+                                            host._loadSceneToChat(sceneId);
                                           }}
                                         >
                                           <ha-icon
-                                            icon="mdi:trash-can-outline"
+                                            icon="mdi:chat-processing-outline"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          ${deleting
-                                            ? host._t(
-                                                "scenes_deleting_label",
-                                                "Deleting…",
-                                              )
-                                            : host._t(
-                                                "scenes_delete_button",
-                                                "Delete",
-                                              )}
-                                        </button>`
-                                      : ""}
-                                  </div>
-                                `
-                              : ""}
+                                          ${
+                                            loadingChat
+                                              ? host._t(
+                                                  "scenes_loading_label",
+                                                  "Loading…",
+                                                )
+                                              : host._t(
+                                                  "scenes_refine_in_chat_button",
+                                                  "Refine in chat",
+                                                )
+                                          }
+                                        </button>
+                                        <button
+                                          class="burger-item"
+                                          @click=${(e) => {
+                                            e.stopPropagation();
+                                            host._openSceneBurger = null;
+                                            if (sceneEntityId) {
+                                              host.dispatchEvent(
+                                                new CustomEvent(
+                                                  "hass-more-info",
+                                                  {
+                                                    bubbles: true,
+                                                    composed: true,
+                                                    detail: {
+                                                      entityId: sceneEntityId,
+                                                    },
+                                                  },
+                                                ),
+                                              );
+                                            } else {
+                                              window.history.pushState(
+                                                null,
+                                                "",
+                                                "/config/scene/dashboard",
+                                              );
+                                              window.dispatchEvent(
+                                                new Event("location-changed"),
+                                              );
+                                            }
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:open-in-new"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${host._t(
+                                            "scenes_open_in_ha_button",
+                                            "Open in HA",
+                                          )}
+                                        </button>
+                                        ${
+                                          isSelora
+                                            ? html`<button
+                                                class="burger-item danger"
+                                                ?disabled=${deleting}
+                                                @click=${(e) => {
+                                                  e.stopPropagation();
+                                                  host._openSceneBurger = null;
+                                                  host._deleteSceneConfirmId =
+                                                    sceneId;
+                                                  host._deleteSceneConfirmName =
+                                                    s.name;
+                                                }}
+                                              >
+                                                <ha-icon
+                                                  icon="mdi:trash-can-outline"
+                                                  style="--mdc-icon-size:14px;"
+                                                ></ha-icon>
+                                                ${
+                                                  deleting
+                                                    ? host._t(
+                                                        "scenes_deleting_label",
+                                                        "Deleting…",
+                                                      )
+                                                    : host._t(
+                                                        "scenes_delete_button",
+                                                        "Delete",
+                                                      )
+                                                }
+                                              </button>`
+                                            : ""
+                                        }
+                                      </div>
+                                    `
+                                  : ""
+                              }
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      ${isExpanded
-                        ? html`
-                            <div class="auto-row-expand">
-                              ${Object.keys(entities).length
-                                ? _renderEntityList(
-                                    host,
-                                    entities,
-                                    isSelora ? sceneId : null,
-                                  )
-                                : html`<div
-                                    style="font-size:12px;opacity:0.6;padding:6px 0;"
-                                  >
-                                    ${host._t(
-                                      "scenes_no_entity_details",
-                                      "No entity details available — open the scene in Home Assistant to inspect it.",
-                                    )}
-                                  </div>`}
-                              <div
-                                class="yaml-toggle"
-                                style="margin-top:10px;"
-                                @click=${() => {
-                                  host._sceneYamlOpen = {
-                                    ...host._sceneYamlOpen,
-                                    [sceneId]: !yamlOpen,
-                                  };
-                                }}
-                              >
-                                <ha-icon
-                                  icon="mdi:code-braces"
-                                  style="--mdc-icon-size:14px;"
-                                ></ha-icon>
-                                ${yamlOpen
-                                  ? host._t("scenes_hide_yaml", "Hide YAML")
-                                  : host._t("scenes_view_yaml", "View YAML")}
-                              </div>
-                              ${yamlOpen
-                                ? html`
-                                    <ha-code-editor
-                                      mode="yaml"
-                                      .value=${isSelora &&
-                                      host._sceneIsDirty(sceneId)
-                                        ? host._sceneEditYaml(sceneId, s.name)
-                                        : s.yaml ||
-                                          host._t(
-                                            "scenes_yaml_unavailable_comment",
-                                            "# YAML not available — open the scene in Home Assistant to view it.",
+                        ${
+                          isExpanded
+                            ? html`
+                                <div class="auto-row-expand">
+                                  ${
+                                    Object.keys(entities).length
+                                      ? _renderEntityList(
+                                          host,
+                                          entities,
+                                          isSelora ? sceneId : null,
+                                        )
+                                      : html`<div
+                                          style="font-size:12px;opacity:0.6;padding:6px 0;"
+                                        >
+                                          ${host._t(
+                                            "scenes_no_entity_details",
+                                            "No entity details available — open the scene in Home Assistant to inspect it.",
                                           )}
-                                      read-only
-                                      style="--code-mirror-font-size:12px;"
-                                    ></ha-code-editor>
-                                  `
-                                : ""}
-                            </div>
-                          `
-                        : ""}
-                    </div>
-                  `;
-                })}
-              </div>
-              ${filtered.length === 0 && (host._scenes || []).length > 0
-                ? html`<div
-                    style="text-align:center;opacity:0.45;padding:24px 0;"
-                  >
-                    No scenes match "${host._sceneFilter}"
-                  </div>`
-                : ""}
-            `
-          : html`<div style="text-align:center;padding:32px 0;">
-              <ha-icon
-                icon="mdi:palette"
-                style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
-              ></ha-icon>
-              <p style="opacity:0.45;margin:0 0 12px;">
-                ${host._t(
-                  "scenes_empty_state",
-                  "No scenes found. Ask Selora to create one.",
-                )}
-              </p>
-              <button
-                class="btn btn-accent"
-                ?disabled=${host._llmNeedsSetup}
-                title=${host._llmNeedsSetup
-                  ? host._t(
-                      "scenes_llm_needs_setup_tooltip",
-                      "Configure an LLM provider first",
-                    )
-                  : ""}
-                @click=${() => host._newSceneChat()}
-              >
+                                        </div>`
+                                  }
+                                  <div
+                                    class="yaml-toggle"
+                                    style="margin-top:10px;"
+                                    @click=${() => {
+                                      host._sceneYamlOpen = {
+                                        ...host._sceneYamlOpen,
+                                        [sceneId]: !yamlOpen,
+                                      };
+                                    }}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:code-braces"
+                                      style="--mdc-icon-size:14px;"
+                                    ></ha-icon>
+                                    ${
+                                      yamlOpen
+                                        ? host._t(
+                                            "scenes_hide_yaml",
+                                            "Hide YAML",
+                                          )
+                                        : host._t(
+                                            "scenes_view_yaml",
+                                            "View YAML",
+                                          )
+                                    }
+                                  </div>
+                                  ${
+                                    yamlOpen
+                                      ? html`
+                                          <ha-code-editor
+                                            mode="yaml"
+                                            .value=${
+                                              isSelora &&
+                                              host._sceneIsDirty(sceneId)
+                                                ? host._sceneEditYaml(
+                                                    sceneId,
+                                                    s.name,
+                                                  )
+                                                : s.yaml ||
+                                                  host._t(
+                                                    "scenes_yaml_unavailable_comment",
+                                                    "# YAML not available — open the scene in Home Assistant to view it.",
+                                                  )
+                                            }
+                                            read-only
+                                            style="--code-mirror-font-size:12px;"
+                                          ></ha-code-editor>
+                                        `
+                                      : ""
+                                  }
+                                </div>
+                              `
+                            : ""
+                        }
+                      </div>
+                    `;
+                  })}
+                </div>
+                ${
+                  filtered.length === 0 && (host._scenes || []).length > 0
+                    ? html`<div
+                        style="text-align:center;opacity:0.45;padding:24px 0;"
+                      >
+                        No scenes match "${host._sceneFilter}"
+                      </div>`
+                    : ""
+                }
+              `
+            : html`<div style="text-align:center;padding:32px 0;">
                 <ha-icon
-                  icon="mdi:plus"
-                  style="--mdc-icon-size:14px;"
+                  icon="mdi:palette"
+                  style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
                 ></ha-icon>
-                ${host._t("scenes_new_scene_button", "New Scene")}
-              </button>
-            </div>`}
+                <p style="opacity:0.45;margin:0 0 12px;">
+                  ${host._t(
+                    "scenes_empty_state",
+                    "No scenes found. Ask Selora to create one.",
+                  )}
+                </p>
+                <button
+                  class="btn btn-accent"
+                  ?disabled=${host._llmNeedsSetup}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "scenes_llm_needs_setup_tooltip",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
+                  @click=${() => host._newSceneChat()}
+                >
+                  <ha-icon
+                    icon="mdi:plus"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${host._t("scenes_new_scene_button", "New Scene")}
+                </button>
+              </div>`
+        }
       </div>
       ${renderDeleteSceneModal(host)}
     </div>
