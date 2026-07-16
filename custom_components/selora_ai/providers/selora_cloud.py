@@ -9,6 +9,14 @@ is a short-lived RS256 JWT carried as a Bearer credential. When the JWT
 nears expiry the provider refreshes it in-line via Connect's token
 endpoint and persists the new pair back to the config entry.
 
+Expiry is read from the JWT's own ``exp`` claim (at construction and after
+each refresh), not from the token endpoint's ``expires_in`` — the latter
+has been seen omitted, which left the expiry unknown (0.0), defeated the
+proactive refresh, and never wrote a durable expiry to ``.storage``. As a
+backstop, a request rejected with 401 despite a "valid" token (server-side
+revocation, clock skew) forces a token refresh and retries once, so a stale
+bearer self-heals instead of failing forever.
+
 The gateway picks the model from server-side admin config and silently
 overwrites any ``model`` the client sends, so we omit the field
 entirely from chat-completion payloads.
@@ -23,6 +31,8 @@ installation header or query parameter.
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 from collections.abc import AsyncIterator
 from enum import Enum
 import json
@@ -142,6 +152,60 @@ def _is_transient_upstream_error(err: str | None) -> bool:
     return "unable to reach app" in err or "app_start_timeout" in err
 
 
+def _is_auth_error(err: str | None) -> bool:
+    """Return True when an upstream error means the access token was rejected.
+
+    The AI Gateway rejects a stale/revoked bearer with a 401 whose body is
+    ``authentication_error`` / "Invalid or expired token". This is distinct
+    from a transient 5xx: the request will keep failing until we mint a
+    fresh token, so the caller reacts by force-refreshing and retrying once.
+
+    Matches across the two error shapes the base provider produces: the
+    non-streaming / tool paths preserve the ``HTTP 401`` status prefix,
+    while ``send_request_stream`` unwraps the JSON body into just its
+    ``message`` (no status), so we also match the gateway's message text.
+    """
+    if not err:
+        return False
+    lowered = err.lower()
+    return (
+        "http 401" in lowered
+        or "authentication_error" in lowered
+        or "invalid or expired token" in lowered
+        or "expired token" in lowered
+    )
+
+
+def _jwt_expiry(token: str) -> float:
+    """Best-effort read of a JWT's ``exp`` claim as a unix timestamp.
+
+    The access token is an RS256 JWT; its own ``exp`` is the ground-truth
+    expiry and is more reliable than the token endpoint's ``expires_in``,
+    which Connect has been seen to omit — leaving no expiry to schedule a
+    proactive refresh against and letting a dead token be sent until it
+    401s. We only READ the claim to time the refresh; the gateway still
+    verifies the signature on every call, so decoding without verification
+    here is safe.
+
+    Returns 0.0 when the token isn't a well-formed JWT or carries no
+    positive numeric ``exp`` — callers treat 0.0 as "expiry unknown".
+    """
+    try:
+        payload_b64 = token.split(".")[1]
+    except (AttributeError, IndexError):
+        return 0.0
+    # JWT uses unpadded base64url; restore padding before decoding.
+    payload_b64 += "=" * (-len(payload_b64) % 4)
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+    except (ValueError, binascii.Error):
+        return 0.0
+    exp = payload.get("exp") if isinstance(payload, dict) else None
+    if isinstance(exp, (int, float)) and not isinstance(exp, bool) and exp > 0:
+        return float(exp)
+    return 0.0
+
+
 class SeloraCloudProvider(OpenAICompatibleProvider):
     """Selora-hosted LLM provider authenticated via the AI Gateway OAuth flow."""
 
@@ -168,7 +232,15 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         )
         self._access_token = access_token
         self._refresh_token = refresh_token
-        self._expires_at = float(expires_at or 0.0)
+        expires_at = float(expires_at or 0.0)
+        # A provisioned/persisted token may arrive with an unknown expiry
+        # (0.0) — the hub auto-provisioner's nested blob carries no
+        # expires_at. Recover it from the token's own ``exp`` claim so the
+        # proactive refresh path works instead of sending the token until
+        # it 401s.
+        if not expires_at and access_token:
+            expires_at = _jwt_expiry(access_token)
+        self._expires_at = expires_at
         self._client_id = client_id
         self._entry_id = entry_id
         self._refresh_lock = asyncio.Lock()
@@ -279,7 +351,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
             return False
         return time.time() + AIGATEWAY_REFRESH_LEEWAY_SECONDS >= self._expires_at
 
-    async def _refresh_access_token(self) -> _RefreshResult:
+    async def _refresh_access_token(self, *, stale_token: str | None = None) -> _RefreshResult:
         """Refresh the access token using the stored refresh token.
 
         Returns ``_RefreshResult.OK`` on success, ``TERMINAL`` when the
@@ -287,10 +359,27 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         the user must re-link — and ``TRANSIENT`` for a network error,
         timeout, 429, or 5xx that a retry may clear. Persists the new
         tokens on success. Single-flight via ``self._refresh_lock``.
+
+        ``stale_token`` drives reactive 401 recovery: refresh
+        unconditionally — bypassing the not-yet-expired check, since the
+        token is dead despite what our expiry math believes — but only if
+        ``stale_token`` is still the live access token. A concurrent
+        request that shared the same bearer may have already refreshed it,
+        in which case we return OK so the caller reuses the fresh token
+        rather than minting a redundant one (and, worse, discarding the
+        just-issued token). The old bearer is left in place until the new
+        one lands, so a parallel request never builds an empty
+        Authorization header.
         """
         async with self._refresh_lock:
-            # Re-check under the lock — another caller may have refreshed.
-            if not self._needs_refresh():
+            if stale_token is not None:
+                # Reactive path: skip the refresh entirely if someone else
+                # already replaced the rejected token under the lock.
+                if self._access_token != stale_token:
+                    return _RefreshResult.OK
+            # Proactive path: re-check under the lock — another caller may
+            # have refreshed while we waited for it.
+            elif not self._needs_refresh():
                 return _RefreshResult.OK
             if not self._refresh_token:
                 return _RefreshResult.TERMINAL
@@ -337,7 +426,17 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                 return _RefreshResult.TRANSIENT
 
             self._access_token = access
-            self._expires_at = time.time() + expires_in if expires_in > 0 else 0.0
+            # Prefer the JWT's own ``exp`` — it's authoritative and survives
+            # a server that omits ``expires_in`` (which previously left
+            # _expires_at=0.0, i.e. "unknown", defeating proactive refresh
+            # and never getting a durable expiry into .storage).
+            jwt_exp = _jwt_expiry(access)
+            if jwt_exp > 0:
+                self._expires_at = jwt_exp
+            elif expires_in > 0:
+                self._expires_at = time.time() + expires_in
+            else:
+                self._expires_at = 0.0
             if new_refresh:
                 self._refresh_token = new_refresh
 
@@ -361,28 +460,55 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
 
     # -- Request hooks -----------------------------------------------------
 
-    async def _ensure_token(self) -> None:
-        if not self._needs_refresh():
-            return
-        result = await self._refresh_access_token()
+    async def _refresh_with_retry(self, *, stale_token: str | None = None) -> None:
+        """Refresh the token, retrying transient failures over the retry budget.
+
+        On ``TERMINAL`` (rejected credential) fail fast — retrying can't help
+        and the user must re-link; sending the request with the dead token
+        would just return a mystifying 401. On ``TRANSIENT`` (network blip /
+        5xx / 429 / Connect upgrade in progress) retry on the same short
+        budget the upstream path uses, so a momentary hiccup self-heals
+        instead of surfacing. ``stale_token`` is forwarded on every attempt
+        so the reactive path keeps forcing (and deduplicating) the refresh
+        across retries.
+        """
+        result = await self._refresh_access_token(stale_token=stale_token)
         if result is _RefreshResult.OK:
             return
-        # A rejected credential can't be retried away — fail fast and point
-        # the user at the relink flow. Sending the request anyway with an
-        # expired access token would return a mystifying 401.
         if result is _RefreshResult.TERMINAL:
             raise CloudSessionExpiredError(_REFRESH_TERMINAL_MESSAGE)
-        # Transient (network blip / 5xx / Connect upgrade in progress):
-        # retry on the same short budget the upstream path uses before
-        # giving up, so a momentary hiccup self-heals instead of surfacing.
         for delay in _UPSTREAM_RETRY_DELAYS:
             await asyncio.sleep(delay)
-            result = await self._refresh_access_token()
+            result = await self._refresh_access_token(stale_token=stale_token)
             if result is _RefreshResult.OK:
                 return
             if result is _RefreshResult.TERMINAL:
                 raise CloudSessionExpiredError(_REFRESH_TERMINAL_MESSAGE)
         raise CloudUnreachableError(_REFRESH_TRANSIENT_MESSAGE)
+
+    async def _ensure_token(self) -> None:
+        if not self._needs_refresh():
+            return
+        await self._refresh_with_retry()
+
+    async def _force_refresh_after_auth_error(self, rejected_token: str) -> None:
+        """Mint a fresh token after the gateway 401'd ``rejected_token``.
+
+        Called reactively when the gateway rejects a request even though
+        ``_ensure_token`` had judged the token valid — it was invalid for a
+        reason our expiry math can't see (server-side revocation, clock
+        skew, or a token whose ``exp`` we never learned). Delegates to
+        ``_refresh_with_retry(stale_token=…)`` so the refresh is forced past
+        the expiry check, deduplicated against a concurrent request that
+        already replaced the same rejected token, AND retried over the
+        transient budget exactly like the proactive path — a one-off refresh
+        outage shouldn't turn a recoverable 401 into a hard failure.
+
+        Raises the same errors as ``_ensure_token`` so callers surface the
+        right relink/retry message; on success the caller retries the
+        request once with the new bearer.
+        """
+        await self._refresh_with_retry(stale_token=rejected_token)
 
     async def send_request(
         self,
@@ -402,12 +528,22 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         # failure → ERROR (real outage), transient retries exhausted →
         # WARNING (self-healing condition that doesn't deserve HA's
         # "error reported by integration" notification on every restart).
+        auth_retried = False
         for delay in _UPSTREAM_RETRY_DELAYS:
+            used_token = self._access_token
             result, err = await super().send_request(
                 system, messages, max_tokens=max_tokens, log_errors=False, timeout=timeout
             )
             if result is not None:
                 return result, None
+            # A 401 slipped past the proactive expiry check (unknown/stale
+            # expiry, server-side revocation). Force a fresh token and retry
+            # once — never loop, so a token the gateway keeps rejecting still
+            # surfaces instead of hammering the refresh endpoint.
+            if _is_auth_error(err) and not auth_retried:
+                auth_retried = True
+                await self._force_refresh_after_auth_error(used_token)
+                continue
             if not _is_transient_upstream_error(err):
                 if log_errors:
                     _LOGGER.error("Selora Cloud request failed: %s", err)
@@ -419,12 +555,22 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
             )
             await asyncio.sleep(delay)
             await self._ensure_token()
-        # Final attempt after the retry budget.
+        # Final attempt after the retry budget. Keep the caller's timeout —
+        # the hourly analysis cycle asks for a longer one, and dropping it
+        # here (or on the auth retry below) would time out only on this path.
+        used_token = self._access_token
         result, err = await super().send_request(
-            system, messages, max_tokens=max_tokens, log_errors=False
+            system, messages, max_tokens=max_tokens, log_errors=False, timeout=timeout
         )
         if result is not None:
             return result, None
+        if _is_auth_error(err) and not auth_retried:
+            await self._force_refresh_after_auth_error(used_token)
+            result, err = await super().send_request(
+                system, messages, max_tokens=max_tokens, log_errors=False, timeout=timeout
+            )
+            if result is not None:
+                return result, None
         if log_errors:
             if _is_transient_upstream_error(err):
                 _LOGGER.warning(
@@ -444,7 +590,15 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         await self._ensure_token()
-        return await super().raw_request(system, messages, tools=tools)
+        used_token = self._access_token
+        try:
+            return await super().raw_request(system, messages, tools=tools)
+        except ConnectionError as exc:
+            # A 401 despite a "valid" token — force-refresh and retry once.
+            if not _is_auth_error(str(exc)):
+                raise
+            await self._force_refresh_after_auth_error(used_token)
+            return await super().raw_request(system, messages, tools=tools)
 
     async def raw_request_stream(  # type: ignore[override]
         self,
@@ -453,15 +607,22 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
     ) -> AsyncIterator[aiohttp.ClientResponse]:
         # The parent generator raises ConnectionError before yielding
         # anything when the initial POST returns non-200 — so it is safe
-        # to retry the whole generator on a transient cold-start error.
-        # A successful first attempt yields once and we return immediately.
+        # to retry the whole generator on a transient cold-start error (or
+        # a 401 that a fresh token clears). A successful first attempt
+        # yields once and we return immediately.
         await self._ensure_token()
+        auth_retried = False
         for delay in _UPSTREAM_RETRY_DELAYS:
+            used_token = self._access_token
             try:
                 async for item in super().raw_request_stream(*args, **kwargs):
                     yield item
                 return
             except ConnectionError as exc:
+                if _is_auth_error(str(exc)) and not auth_retried:
+                    auth_retried = True
+                    await self._force_refresh_after_auth_error(used_token)
+                    continue
                 if not _is_transient_upstream_error(str(exc)):
                     raise
                 _LOGGER.info(
@@ -471,9 +632,19 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                 )
                 await asyncio.sleep(delay)
                 await self._ensure_token()
-        # Final attempt after the retry budget — let any error propagate.
-        async for item in super().raw_request_stream(*args, **kwargs):
-            yield item
+        # Final attempt after the retry budget. If it is the first to hit a
+        # 401 (all prior attempts were transient), still refresh-and-retry
+        # once so a token that expired mid-retry doesn't propagate unhandled.
+        used_token = self._access_token
+        try:
+            async for item in super().raw_request_stream(*args, **kwargs):
+                yield item
+        except ConnectionError as exc:
+            if not (_is_auth_error(str(exc)) and not auth_retried):
+                raise
+            await self._force_refresh_after_auth_error(used_token)
+            async for item in super().raw_request_stream(*args, **kwargs):
+                yield item
 
     async def send_request_stream(  # type: ignore[override]
         self,
@@ -481,15 +652,21 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         **kwargs: Any,
     ) -> AsyncIterator[str]:
         # See raw_request_stream above for why retrying the parent
-        # generator is safe: the cold-start failure happens at the
-        # initial status check, before any chunk is yielded.
+        # generator is safe: the cold-start (or 401) failure happens at
+        # the initial status check, before any chunk is yielded.
         await self._ensure_token()
+        auth_retried = False
         for delay in _UPSTREAM_RETRY_DELAYS:
+            used_token = self._access_token
             try:
                 async for chunk in super().send_request_stream(*args, **kwargs):
                     yield chunk
                 return
             except ConnectionError as exc:
+                if _is_auth_error(str(exc)) and not auth_retried:
+                    auth_retried = True
+                    await self._force_refresh_after_auth_error(used_token)
+                    continue
                 if not _is_transient_upstream_error(str(exc)):
                     raise
                 _LOGGER.info(
@@ -499,9 +676,19 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                 )
                 await asyncio.sleep(delay)
                 await self._ensure_token()
-        # Final attempt after the retry budget.
-        async for chunk in super().send_request_stream(*args, **kwargs):
-            yield chunk
+        # Final attempt after the retry budget. If it is the first to hit a
+        # 401 (all prior attempts were transient), still refresh-and-retry
+        # once so a token that expired mid-retry doesn't propagate unhandled.
+        used_token = self._access_token
+        try:
+            async for chunk in super().send_request_stream(*args, **kwargs):
+                yield chunk
+        except ConnectionError as exc:
+            if not (_is_auth_error(str(exc)) and not auth_retried):
+                raise
+            await self._force_refresh_after_auth_error(used_token)
+            async for chunk in super().send_request_stream(*args, **kwargs):
+                yield chunk
 
     # -- Health check ------------------------------------------------------
 
