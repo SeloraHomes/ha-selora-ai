@@ -146,4 +146,4 @@ Selora AI is localized on two levels:
 
 ## License
 
-Selora Homes Software License. See [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE) for details.
