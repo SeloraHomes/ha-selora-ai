@@ -2093,6 +2093,483 @@ class TestAsyncUpdateAutomation:
         match = [a for a in content if a.get("id") == "selora_ai_existing1"]
         assert "initial_state" in match[0]
 
+    @staticmethod
+    def _set_disk_initial_state(
+        path: Path, automation_id: str, value: bool | None
+    ) -> None:
+        """Rewrite automations.yaml so ``automation_id`` has (or omits) initial_state."""
+        content = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for a in content:
+            if a.get("id") == automation_id:
+                if value is None:
+                    a.pop("initial_state", None)
+                else:
+                    a["initial_state"] = value
+        path.write_text(yaml.dump(content, default_flow_style=False), encoding="utf-8")
+
+    @pytest.mark.asyncio
+    async def test_refine_mirrors_disk_enabled_over_stale_incoming(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """A refine must keep an on-disk-enabled automation enabled, discarding a
+        stale ``initial_state: False`` carried in the versioned refine YAML."""
+        # selora_ai_existing1 is seeded with initial_state: True on disk.
+        updated = {
+            "alias": "Refined",
+            "initial_state": False,  # stale value from the versioned refine source
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is True
+
+    @pytest.mark.asyncio
+    async def test_refine_mirrors_disk_disabled_over_stale_incoming(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """A refine must keep an on-disk-disabled automation disabled, discarding a
+        stale ``initial_state: True`` carried in the refine YAML.
+
+        No automation entity is registered, so the live state is indeterminate and
+        the write falls back to the on-disk boot override (False)."""
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        updated = {
+            "alias": "Refined",
+            "initial_state": True,  # stale value that would wrongly enable it
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is False
+
+    @pytest.mark.asyncio
+    async def test_refine_preserves_boot_override_and_restores_live_on(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """When the boot override says disabled (disk False) but the automation was
+        toggled ON at runtime, a refine must (a) keep the startup preference False in
+        YAML, and (b) restore the live ON state after reload via a turn_on service
+        call — never rewrite the boot override to match the temporary runtime state."""
+        from homeassistant.helpers import entity_registry as er
+
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create(
+            "automation", "automation", "selora_ai_existing1"
+        )
+        hass.states.async_set(entry.entity_id, "on")
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        # Boot override (startup preference) is preserved verbatim.
+        assert match[0]["initial_state"] is False
+        # Runtime state restored to ON after the reload, without touching YAML.
+        turn_ons = [
+            c for c in automation_service_calls if c[1] == "turn_on" and c[0] == "automation"
+        ]
+        assert turn_ons, "expected automation.turn_on to restore the live ON state"
+        assert turn_ons[-1][2].get("entity_id") == entry.entity_id
+
+    @pytest.mark.asyncio
+    async def test_refine_runtime_restore_is_blocking(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """The runtime-state restore must be awaited (blocking=True) so it completes
+        before the update returns — otherwise a rapid subsequent edit could capture
+        the reload-selected state."""
+        from homeassistant.helpers import entity_registry as er
+
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create(
+            "automation", "automation", "selora_ai_existing1"
+        )
+        hass.states.async_set(entry.entity_id, "on")
+
+        registry_cls = type(hass.services)
+        original = registry_cls.async_call
+        seen: list[tuple[str, bool]] = []
+
+        async def _spy(self, domain, service, *args, **kwargs):
+            if domain == "automation":
+                seen.append((service, bool(kwargs.get("blocking"))))
+            return await original(self, domain, service, *args, **kwargs)
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        with patch.object(registry_cls, "async_call", _spy):
+            await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        restore = [b for svc, b in seen if svc == "turn_on"]
+        assert restore, "expected a turn_on restore call"
+        assert all(restore), "runtime-state restore must use blocking=True"
+
+    @pytest.mark.asyncio
+    async def test_toggle_watcher_records_only_live_transitions(
+        self, hass: MagicMock
+    ) -> None:
+        """The watcher records genuine live transitions (successful toggles) but
+        ignores the reload's own remove/re-add — so a failed call (no change) is not
+        recorded, the reload's rebuild is not mistaken for a toggle, and a real
+        toggle landing *during* the reload (after rebuild) is still honored."""
+        from custom_components.selora_ai.automation_utils import _RuntimeToggleWatcher
+
+        hass.states.async_set("automation.foo", "on")
+        watcher = _RuntimeToggleWatcher(hass, "automation.foo")
+        try:
+            # No change yet → nothing recorded (a rejected/failed call looks like this).
+            assert watcher.latest is None
+
+            # Successful external toggle before reload → recorded.
+            hass.states.async_set("automation.foo", "off")
+            await hass.async_block_till_done()
+            assert watcher.latest is False
+
+            # Reload teardown: entity removed (new_state None) → ignored.
+            hass.states.async_remove("automation.foo")
+            await hass.async_block_till_done()
+            assert watcher.latest is False
+
+            # Reload rebuild: entity re-added to its boot override (old_state None) →
+            # ignored, even though the new state is "on".
+            hass.states.async_set("automation.foo", "on")
+            await hass.async_block_till_done()
+            assert watcher.latest is False  # add not mistaken for a toggle
+
+            # A user toggle DURING the reload (after rebuild, live entity) → recorded.
+            hass.states.async_set("automation.foo", "off")
+            await hass.async_block_till_done()
+            assert watcher.latest is False
+        finally:
+            watcher.stop()
+
+        hass.states.async_set("automation.foo", "on")  # after stop → ignored
+        await hass.async_block_till_done()
+        assert watcher.latest is False
+
+    @pytest.mark.asyncio
+    async def test_refine_applies_watched_runtime_toggle_over_captured(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """A successful runtime toggle observed during the update (captured ON, but
+        the watcher saw a real change to OFF) is restored, overriding the
+        start-of-update snapshot."""
+        from homeassistant.helpers import entity_registry as er
+
+        from custom_components.selora_ai import automation_utils as au
+
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create(
+            "automation", "automation", "selora_ai_existing1"
+        )
+        hass.states.async_set(entry.entity_id, "on")  # captured live = ON
+
+        class _FakeWatcher:
+            def __init__(self, *args: object) -> None:
+                self.latest = False  # observed an actual toggle → OFF
+
+            def ignore_context(self, context: object) -> None:
+                pass
+
+            def stop(self) -> None:
+                pass
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        with patch.object(au, "_RuntimeToggleWatcher", _FakeWatcher):
+            await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        restore_offs = [
+            c for c in automation_service_calls if c[1] == "turn_off" and c[0] == "automation"
+        ]
+        restore_ons = [
+            c for c in automation_service_calls if c[1] == "turn_on" and c[0] == "automation"
+        ]
+        assert restore_offs, "expected restore to honor the observed runtime OFF"
+        assert not restore_ons, "must not restore the stale captured ON state"
+
+    @pytest.mark.asyncio
+    async def test_refine_reapplies_toggle_that_races_the_restore(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """A user toggle landing during the awaited restore must not be clobbered:
+        the still-active watcher observes it and the newer choice is re-applied."""
+        from homeassistant.helpers import entity_registry as er
+
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create(
+            "automation", "automation", "selora_ai_existing1"
+        )
+        hass.states.async_set(entry.entity_id, "on")  # captured live = ON → first restore turn_on
+
+        registry_cls = type(hass.services)
+        original = registry_cls.async_call
+
+        async def _spy(self, domain, service, *args, **kwargs):
+            if domain == "automation" and service == "turn_on":
+                # A user toggles OFF while our first restore (turn_on) is dispatched —
+                # a genuine live transition under a foreign context the watcher sees.
+                hass.states.async_set(entry.entity_id, "off")
+            return await original(self, domain, service, *args, **kwargs)
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        with patch.object(registry_cls, "async_call", _spy):
+            await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        # The racing OFF toggle must be honored via a re-applied turn_off.
+        services = [c[1] for c in automation_service_calls if c[0] == "automation"]
+        assert "turn_off" in services, "expected the racing toggle to be re-applied"
+        assert services[-1] == "turn_off", "final restore must be the newest choice"
+
+    @pytest.mark.asyncio
+    async def test_refine_stops_toggle_watcher_when_preparation_fails(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """A raise during file read (after the watcher is registered) must not leak
+        the state-change listener."""
+        from homeassistant.const import EVENT_STATE_CHANGED
+        from homeassistant.helpers import entity_registry as er
+
+        entity_reg = er.async_get(hass)
+        entity_reg.async_get_or_create(
+            "automation", "automation", "selora_ai_existing1"
+        )
+        hass.states.async_set("automation.selora_ai_existing1", "on")
+
+        before = hass.bus.async_listeners().get(EVENT_STATE_CHANGED, 0)
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        with patch(
+            "custom_components.selora_ai.automation_utils._read_automations_yaml",
+            side_effect=RuntimeError("unreadable file"),
+        ):
+            with pytest.raises(RuntimeError):
+                await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        after = hass.bus.async_listeners().get(EVENT_STATE_CHANGED, 0)
+        assert after == before, "toggle watcher listener leaked after a read failure"
+
+    @pytest.mark.asyncio
+    async def test_refine_preserves_boot_override_and_restores_live_off(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """When the boot override says enabled (disk True) but the automation is
+        live-OFF, a refine must keep initial_state True in YAML and restore the OFF
+        runtime state via a turn_off service call."""
+        from homeassistant.helpers import entity_registry as er
+
+        # selora_ai_existing1 seeds initial_state: True on disk.
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create(
+            "automation", "automation", "selora_ai_existing1"
+        )
+        hass.states.async_set(entry.entity_id, "off")
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is True  # boot preference preserved
+        turn_offs = [
+            c for c in automation_service_calls if c[1] == "turn_off" and c[0] == "automation"
+        ]
+        assert turn_offs, "expected automation.turn_off to restore the live OFF state"
+        assert turn_offs[-1][2].get("entity_id") == entry.entity_id
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("transient", ["unavailable", "unknown"])
+    async def test_refine_no_restore_when_live_indeterminate(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+        transient: str,
+    ) -> None:
+        """A transient live state (startup/reload) must not be read as OFF: the boot
+        override is kept and no runtime restore (turn_on/turn_off) is issued."""
+        from homeassistant.helpers import entity_registry as er
+
+        # disk boot override is True (seeded); transient live state must not flip it.
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create(
+            "automation", "automation", "selora_ai_existing1"
+        )
+        hass.states.async_set(entry.entity_id, transient)
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is True
+        assert not [
+            c for c in automation_service_calls if c[1] in ("turn_on", "turn_off")
+        ]
+
+    @pytest.mark.asyncio
+    async def test_refine_preserves_omission_when_disk_omits(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """When the on-disk entry omits initial_state (enabled-by-default), a refine
+        must leave it omitted so HA keeps restoring the last state on reload — never
+        write False, and never persist a stale incoming True."""
+        # manual_automation_1 is seeded WITHOUT an initial_state key.
+        updated = {
+            "alias": "Refined",
+            "initial_state": True,  # stale incoming value must not be persisted
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(hass, "manual_automation_1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "manual_automation_1"]
+        assert "initial_state" not in match[0]
+
+    @pytest.mark.asyncio
+    async def test_refine_never_pins_boot_override_from_live_state(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """Even with a definitive live 'on' state, a refine of a disk-omitted entry
+        must NOT add initial_state — doing so would pin a permanent boot override
+        (HA treats initial_state as a startup override, not last-state restore)."""
+        from homeassistant.helpers import entity_registry as er
+
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create(
+            "automation", "automation", "manual_automation_1"
+        )
+        hass.states.async_set(entry.entity_id, "on")
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(hass, "manual_automation_1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "manual_automation_1"]
+        assert "initial_state" not in match[0]
+
+    @pytest.mark.asyncio
+    async def test_explicit_mutation_honors_submitted_state(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """With preserve_enabled_state=False (MCP enable/disable, explicit editor
+        save), the caller's submitted initial_state is honored over the on-disk
+        value."""
+        # Disk says enabled; the explicit command disables it.
+        updated = {
+            "alias": "Disabled via MCP",
+            "initial_state": False,
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(
+            hass, "selora_ai_existing1", updated, preserve_enabled_state=False
+        )
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is False
+
+    @pytest.mark.asyncio
+    async def test_explicit_save_without_key_removes_existing_override(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """An explicit save (editor delete / version restore of an entry that
+        omitted the key) that omits initial_state must remove an existing on-disk
+        override, restoring HA's last-state behavior — not copy the old value back."""
+        # selora_ai_existing1 is disk-enabled (initial_state: True); the submitted
+        # YAML deliberately omits the key.
+        updated = {
+            "alias": "Edited",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(
+            hass, "selora_ai_existing1", updated, preserve_enabled_state=False
+        )
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert "initial_state" not in match[0]
+
+    @pytest.mark.asyncio
+    async def test_explicit_save_without_key_preserves_disk_omission(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """An explicit editor save that omits initial_state on a disk-omitted entry
+        must NOT force False — the omission is preserved."""
+        updated = {
+            "alias": "Edited",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        await async_update_automation(
+            hass, "manual_automation_1", updated, preserve_enabled_state=False
+        )
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "manual_automation_1"]
+        assert "initial_state" not in match[0]
+
 
 class TestQuoteYamlBooleans:
     """Tests for _quote_yaml_booleans — wraps YAML-boolean strings for ruamel."""

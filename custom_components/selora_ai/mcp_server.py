@@ -1373,7 +1373,13 @@ async def _tool_accept_automation(hass: HomeAssistant, arguments: dict[str, Any]
             updated: dict[str, Any] = dict(auto)
             updated["initial_state"] = enabled
             success: bool = await async_update_automation(
-                hass, yaml_id, updated, version_message="Accepted via MCP"
+                hass,
+                yaml_id,
+                updated,
+                version_message="Accepted via MCP",
+                # This is an explicit enable/disable; honor initial_state above
+                # instead of preserving the pre-command live state.
+                preserve_enabled_state=False,
             )
         else:
             success = await async_toggle_automation(hass, yaml_id, entity_id, enabled)
