@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING, Any
 import urllib.parse
 import uuid
 
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_STATE_CHANGED, STATE_OFF, STATE_ON
+from homeassistant.core import Context, Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 import yaml
@@ -2069,6 +2070,122 @@ def _get_automation_store(hass: HomeAssistant) -> AutomationStore:
     return get_automation_store(hass)
 
 
+def _resolve_automation_entity_id(hass: HomeAssistant, automation_id: str) -> str | None:
+    """Return the entity_id of the automation with this unique_id, or ``None``."""
+    entity_reg = er.async_get(hass)
+    for entity in entity_reg.entities.values():
+        if entity.platform == "automation" and entity.unique_id == automation_id:
+            return entity.entity_id
+    return None
+
+
+def _resolve_live_enabled_state(hass: HomeAssistant, automation_id: str) -> bool | None:
+    """Return the automation's definitive live enabled state, or ``None``.
+
+    Resolves the automation entity via the registry (unique_id == automation_id)
+    and reads its live state from the state machine. Returns ``True``/``False``
+    only for a definitive `"on"`/`"off"`; returns ``None`` when there is no signal
+    — the entity is missing or the state is transient (`unavailable` / `unknown`
+    during startup or reload) — so callers can fall back rather than treat
+    "unknown" as disabled.
+    """
+    entity_id = _resolve_automation_entity_id(hass, automation_id)
+    if entity_id is None:
+        return None
+    state = hass.states.get(entity_id)
+    if state is not None and state.state in (STATE_ON, STATE_OFF):
+        return state.state == STATE_ON
+    return None
+
+
+class _RuntimeToggleWatcher:
+    """Records the automation's latest externally-applied enabled state during an update.
+
+    Subscribes to the entity's ``state_changed`` events, so only a *successful*
+    toggle counts: a rejected/failed/unauthorized ``turn_on`` / ``turn_off`` /
+    ``toggle`` (however targeted — direct, ``all``, area/device/label, routed
+    ``homeassistant.*``) produces no state change and is ignored.
+
+    Only genuine *live transitions* — where both ``old_state`` and ``new_state``
+    exist — are recorded. Our own ``automation.reload`` tears the entity down and
+    rebuilds it (``EntityComponent`` reset removes every entity, then re-adds from
+    the new config), so its transitions are a removal (``new_state`` is ``None``)
+    and an add (``old_state`` is ``None``) — both ignored. This lets a user toggle
+    that lands *during* the reload (after the rebuild, on the live entity) still be
+    honored, instead of being dropped by a blanket suppression.
+    """
+
+    def __init__(self, hass: HomeAssistant, entity_id: str) -> None:
+        self._entity_id = entity_id
+        self.latest: bool | None = None
+        self._ignore_context_ids: set[str] = set()
+        # A raw EVENT_STATE_CHANGED bus listener (not async_track_state_change_event,
+        # which defers @callback dispatch to the next loop iteration): a @callback bus
+        # listener runs synchronously during async_fire, so `latest` is up to date the
+        # instant a blocking restore/reload returns — required for the restore-race
+        # re-check to be reliable.
+        self._unsub = hass.bus.async_listen(EVENT_STATE_CHANGED, self._on_event)
+
+    def ignore_context(self, context: Context) -> None:
+        """Ignore state changes caused by this context (e.g. our own restore call),
+        so the watcher keeps detecting *external* toggles through the restore."""
+        self._ignore_context_ids.add(context.id)
+
+    @callback
+    def _on_event(self, event: Event) -> None:
+        if event.data.get("entity_id") != self._entity_id:
+            return
+        old_state = event.data.get("old_state")
+        new_state = event.data.get("new_state")
+        # Ignore add (old is None) and remove (new is None): those are the reload
+        # rebuilding the entity, not a user toggle.
+        if old_state is None or new_state is None:
+            return
+        # Ignore our own restore's write so it isn't mistaken for an external toggle.
+        if event.context is not None and event.context.id in self._ignore_context_ids:
+            return
+        if new_state.state in (STATE_ON, STATE_OFF):
+            self.latest = new_state.state == STATE_ON
+
+    def stop(self) -> None:
+        if self._unsub is not None:
+            self._unsub()
+            self._unsub = None
+
+
+async def _restore_runtime_enabled_state(
+    hass: HomeAssistant,
+    automation_id: str,
+    enabled: bool,
+    *,
+    context: Context | None = None,
+) -> None:
+    """Re-apply a runtime enabled state without rewriting automations.yaml.
+
+    Resolves the automation entity and calls ``automation.turn_on``/``turn_off`` so
+    the reload's boot-override/RestoreState result is nudged back to the state the
+    automation was actually in. The YAML `initial_state` (startup preference) is
+    deliberately left untouched. The optional ``context`` tags the call so a
+    concurrency watcher can tell our own write apart from an external toggle.
+    Best-effort: never raises.
+    """
+    entity_id = _resolve_automation_entity_id(hass, automation_id)
+    if entity_id is None:
+        return
+    service = "turn_on" if enabled else "turn_off"
+    try:
+        # blocking so the runtime state is actually applied before we return —
+        # otherwise a rapid subsequent edit could capture the reload-selected
+        # state, and events right after the save could be missed/mishandled.
+        await hass.services.async_call(
+            "automation", service, {"entity_id": entity_id}, blocking=True, context=context
+        )
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.warning(
+            "Could not restore runtime state for %s after reload: %s", automation_id, exc
+        )
+
+
 async def async_update_automation(
     hass: HomeAssistant,
     automation_id: str,
@@ -2076,8 +2193,23 @@ async def async_update_automation(
     *,
     session_id: str | None = None,
     version_message: str = "Updated via YAML editor",
+    preserve_enabled_state: bool = True,
 ) -> bool:
-    """Replace an existing automation (by id) in automations.yaml and reload."""
+    """Replace an existing automation (by id) in automations.yaml and reload.
+
+    ``preserve_enabled_state`` (default) keeps the automation's active/inactive
+    status identical across the forced ``automation.reload`` *without* altering its
+    startup preference: the on-disk `initial_state` boot override is written back
+    verbatim (or left omitted), any stale `initial_state` in ``updated`` is
+    discarded, and the pre-edit live runtime state is re-applied afterwards via a
+    non-persisting ``turn_on``/``turn_off`` (or, if the user toggled during the
+    write+reload, that newer choice). So a temporarily UI/service-toggled automation
+    keeps its current state now yet still honors its configured boot override on the
+    next restart. Callers that mean to change the enabled state (the
+    MCP enable/disable flow, an explicit YAML-editor save, a version restore) pass
+    ``False``: the submitted payload is authoritative as-is — a submitted
+    `initial_state` is honored, and omitting it removes any existing boot override.
+    """
     # Validate and normalize trigger values (coerces boolean to/from → "on"/"off")
     is_valid, reason, normalized = validate_automation_payload(updated, hass)
     if not is_valid or normalized is None:
@@ -2095,43 +2227,122 @@ async def async_update_automation(
 
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        # In preserve mode, capture the current live runtime state so it can be
+        # re-applied after the forced `automation.reload` below. `None` when
+        # indeterminate (missing entity / transient unavailable / unknown) — nothing
+        # to restore then. Captured *inside* the lock, immediately before the
+        # read/write, so a toggle performed while this request was queued behind an
+        # overlapping update isn't clobbered by a stale pre-lock snapshot.
+        captured_live: bool | None = None
+        toggle_watcher: _RuntimeToggleWatcher | None = None
+        if preserve_enabled_state:
+            captured_live = _resolve_live_enabled_state(hass, automation_id)
+            # Watch for runtime toggles that land between now and the restore below.
+            # A user/integration `turn_on`/`turn_off` doesn't take AUTOMATIONS_YAML_LOCK,
+            # so it can slip in during the (potentially slow) write+reload; the watcher
+            # lets us honor that newest choice instead of restoring the older snapshot.
+            watched_entity_id = _resolve_automation_entity_id(hass, automation_id)
+            if watched_entity_id is not None:
+                toggle_watcher = _RuntimeToggleWatcher(hass, watched_entity_id)
 
-        found = False
-        for i, a in enumerate(existing):
-            if a.get("id") == automation_id:
-                # Preserve the original id and keep initial_state from existing unless overridden
-                updated.setdefault("id", automation_id)
-                updated.setdefault("initial_state", a.get("initial_state", False))
-                existing[i] = updated
-                found = True
-                break
-
-        if not found:
-            _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
-            return False
-
-        # Capture the version YAML from the clean dict BEFORE writing. The
-        # writer's _quote_yaml_booleans mutates `updated` in place (it lives
-        # in `existing`), wrapping time/bool strings in ruamel scalar types;
-        # PyYAML's dumper would then serialize those as `!!python/object/new`
-        # tags into the stored version (and the refine context fed to the
-        # LLM). Dumping first keeps the version YAML plain.
-        yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
-
+        # Everything after the watcher exists must run under cleanup: a raise from
+        # the read, the entry loop, or the pre-write dump would otherwise leak the
+        # event-bus listener (it processes every service call until unsubscribed).
         try:
-            await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-            _LOGGER.info("Updated automation: %s", automation_id)
-            await hass.services.async_call("automation", "reload", blocking=True)
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
-            # Record version
-            store = _get_automation_store(hass)
-            await store.add_version(automation_id, yaml_text, updated, version_message, session_id)
+            found = False
+            for i, a in enumerate(existing):
+                if a.get("id") == automation_id:
+                    updated["id"] = automation_id
+                    # `initial_state` is a boot override, not a runtime flag: when
+                    # present HA forces that state on the `automation.reload` below;
+                    # when absent HA restores the automation's last (live) state.
+                    if preserve_enabled_state:
+                        # Refine/content edit: keep the on-disk boot override
+                        # *verbatim* (copy when present, keep omitted when absent),
+                        # discarding any stale `initial_state` in the incoming YAML
+                        # (the store's versioned copy is captured at create time and
+                        # isn't updated when the user later toggles the automation).
+                        # The current runtime state is preserved separately, after
+                        # the reload, so a temporary UI/service toggle never rewrites
+                        # the user's startup preference.
+                        if "initial_state" in a:
+                            updated["initial_state"] = a["initial_state"]
+                        else:
+                            updated.pop("initial_state", None)
+                    # Explicit mode (MCP enable/disable, YAML-editor save, version
+                    # restore): the submitted payload is authoritative exactly as-is —
+                    # a submitted boolean is honored, and an omitted key removes any
+                    # existing boot override (restoring HA's last-state behavior).
+                    existing[i] = updated
+                    found = True
+                    break
 
-            return True
-        except Exception as exc:
-            _LOGGER.exception("Failed to update automation: %s", exc)
-            return False
+            if not found:
+                _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
+                return False
+
+            # Capture the version YAML from the clean dict BEFORE writing. The
+            # writer's _quote_yaml_booleans mutates `updated` in place (it lives
+            # in `existing`), wrapping time/bool strings in ruamel scalar types;
+            # PyYAML's dumper would then serialize those as `!!python/object/new`
+            # tags into the stored version (and the refine context fed to the
+            # LLM). Dumping first keeps the version YAML plain.
+            yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
+
+            try:
+                await hass.async_add_executor_job(
+                    _write_automations_yaml, automations_path, existing
+                )
+                _LOGGER.info("Updated automation: %s", automation_id)
+                await hass.services.async_call("automation", "reload", blocking=True)
+
+                # Restore the runtime state without touching the YAML: the reload
+                # applied the boot override (or RestoreState), which can differ from
+                # the state the automation was actually in. Honor any *successful*
+                # toggle that landed during the write, the reload, OR the restore
+                # itself (an actual live state change — a failed/unauthorized call
+                # leaves the state untouched and is never observed; the reload's own
+                # rebuild is ignored) over the captured snapshot. The watcher stays
+                # active through the restore (our own write filtered out by context),
+                # and we re-apply the newest choice if a user toggle races us — so a
+                # toggle during the awaited restore isn't silently clobbered. Bounded
+                # so a persistent toggler can't loop us. Best-effort.
+                if preserve_enabled_state:
+                    restore_ctx = Context()
+                    if toggle_watcher is not None:
+                        toggle_watcher.ignore_context(restore_ctx)
+                    for _ in range(2):
+                        desired_state = captured_live
+                        if toggle_watcher is not None and toggle_watcher.latest is not None:
+                            desired_state = toggle_watcher.latest
+                        if desired_state is None:
+                            break
+                        await _restore_runtime_enabled_state(
+                            hass, automation_id, desired_state, context=restore_ctx
+                        )
+                        if (
+                            toggle_watcher is None
+                            or toggle_watcher.latest is None
+                            or toggle_watcher.latest == desired_state
+                        ):
+                            break
+
+                # Record version
+                store = _get_automation_store(hass)
+                await store.add_version(
+                    automation_id, yaml_text, updated, version_message, session_id
+                )
+
+                return True
+            except Exception as exc:
+                _LOGGER.exception("Failed to update automation: %s", exc)
+                return False
+        finally:
+            # Idempotent — no-op if already stopped on the success path.
+            if toggle_watcher is not None:
+                toggle_watcher.stop()
 
 
 async def async_create_automation(

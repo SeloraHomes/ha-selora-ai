@@ -31665,6 +31665,9 @@ async function _restoreVersion(automationId, versionId, yamlText) {
       automation_id: automationId,
       yaml_text: yamlText,
       version_message: `Restored from version ${versionId}`,
+      // A restore reverts to the complete saved configuration, including the
+      // version's enabled state — don't preserve the current on-disk value.
+      preserve_enabled_state: false,
     });
     this._versionHistoryOpen = {
       ...this._versionHistoryOpen,
@@ -44880,14 +44883,104 @@ __export(automation_crud_exports, {
   _declineAutomation: () => _declineAutomation,
   _discardSuggestion: () => _discardSuggestion,
   _dismissDraft: () => _dismissDraft,
+  _extractInitialState: () => _extractInitialState,
   _getRefiningAutomationId: () => _getRefiningAutomationId,
   _initYamlEdit: () => _initYamlEdit,
+  _initialStateEdited: () => _initialStateEdited,
   _loadLineage: () => _loadLineage,
   _onYamlInput: () => _onYamlInput,
   _refineAutomation: () => _refineAutomation,
   _removeDraftForSession: () => _removeDraftForSession,
   _saveActiveAutomationYaml: () => _saveActiveAutomationYaml,
 });
+var _INITIAL_STATE_KEY = /(['"]?)initial_state\1[ \t]*:[ \t]*(.*)$/;
+function _normalizeStateToken(token) {
+  return token
+    .replace(/(?:^|\s+)#.*$/, "")
+    .replace(/^["']|["']$/g, "")
+    .trim()
+    .toLowerCase();
+}
+function _topLevelFlowEntries(text) {
+  const inner = text.trim().replace(/^\{/, "").replace(/\}$/, "");
+  const entries = [];
+  let depth = 0;
+  let quote = null;
+  let start = 0;
+  for (let i7 = 0; i7 < inner.length; i7++) {
+    const ch = inner[i7];
+    if (quote) {
+      if (quote === '"' && ch === "\\") {
+        i7++;
+      } else if (ch === quote) {
+        if (quote === "'" && inner[i7 + 1] === "'") {
+          i7++;
+        } else {
+          quote = null;
+        }
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === "{" || ch === "[") {
+      depth++;
+    } else if (ch === "}" || ch === "]") {
+      depth--;
+    } else if (ch === "," && depth === 0) {
+      entries.push(inner.slice(start, i7));
+      start = i7 + 1;
+    }
+  }
+  entries.push(inner.slice(start));
+  return entries;
+}
+function _flowInitialState(text) {
+  for (const entry of _topLevelFlowEntries(text)) {
+    const m3 = entry.match(
+      /^[ \t\r\n]*(['"]?)initial_state\1[ \t]*:([\s\S]*)$/,
+    );
+    if (m3) return _normalizeStateToken(m3[2]);
+  }
+  return void 0;
+}
+function _extractInitialState(yamlText) {
+  if (!yamlText) return void 0;
+  const trimmed = yamlText.trim();
+  if (trimmed.startsWith("{")) {
+    return _flowInitialState(trimmed);
+  }
+  const lines = yamlText.split(/\r?\n/);
+  const isSkippable = (c4) =>
+    !c4 || c4.startsWith("#") || c4 === "---" || c4 === "...";
+  let baseIndent = null;
+  for (let i7 = 0; i7 < lines.length; i7++) {
+    const content = lines[i7].trim();
+    if (isSkippable(content)) continue;
+    const indent = lines[i7].length - lines[i7].trimStart().length;
+    if (baseIndent === null) baseIndent = indent;
+    if (indent !== baseIndent) continue;
+    const m3 = content.match(new RegExp("^" + _INITIAL_STATE_KEY.source)); // nosemgrep
+    if (!m3) continue;
+    let rawValue = m3[2];
+    if (rawValue.replace(/(?:^|\s+)#.*$/, "").trim() === "") {
+      for (let j2 = i7 + 1; j2 < lines.length; j2++) {
+        const c4 = lines[j2].trim();
+        if (!c4 || c4.startsWith("#")) continue;
+        const jIndent = lines[j2].length - lines[j2].trimStart().length;
+        if (jIndent > baseIndent) rawValue = c4;
+        break;
+      }
+    }
+    return _normalizeStateToken(rawValue);
+  }
+  return void 0;
+}
+function _initialStateEdited(originalYaml, editedYaml) {
+  return (
+    _extractInitialState(originalYaml) !== _extractInitialState(editedYaml)
+  );
+}
 function _createdToast(alias, result) {
   if (result && result.risk_level === "elevated") {
     return {
@@ -44946,6 +45039,10 @@ async function _acceptAutomation(msgIndex, automation) {
           yaml_text: yamlText,
           session_id: this._activeSessionId,
           version_message: "Refined via chat",
+          // A generated refinement carries the existing YAML (possibly a stale
+          // initial_state), so preserve the automation's current enabled state.
+          // The endpoint defaults to authoritative, so refinements opt in.
+          preserve_enabled_state: true,
         });
       } else {
         createResult = await this.hass.callWS({
@@ -45166,19 +45263,22 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
   const originalYaml = msg.automation_yaml || "";
   const refiningId = this._getRefiningAutomationId(msgIndex);
   const backendIndex = msg.automation_message_index ?? msgIndex;
-  if (edited && edited !== (this._originalYaml?.[yamlKey] ?? originalYaml)) {
+  const baselineYaml = this._originalYaml?.[yamlKey] ?? originalYaml;
+  if (edited && edited !== baselineYaml) {
     try {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
       this.requestUpdate();
       let createResult = null;
       let resolvedAutomationId = refiningId || null;
       if (refiningId) {
+        const stateEdited = _initialStateEdited(baselineYaml, edited);
         await this.hass.callWS({
           type: "selora_ai/update_automation_yaml",
           automation_id: refiningId,
           yaml_text: edited,
           session_id: this._activeSessionId,
           version_message: "Refined via chat (with edits)",
+          preserve_enabled_state: !stateEdited,
         });
       } else {
         createResult = await this.hass.callWS({
@@ -45293,6 +45393,9 @@ async function _saveActiveAutomationYaml(automationId, yamlKey) {
       type: "selora_ai/update_automation_yaml",
       automation_id: automationId,
       yaml_text: edited,
+      // Explicit editor save: honor any initial_state the user edited in the
+      // YAML rather than mirroring the on-disk value (that's the refine default).
+      preserve_enabled_state: false,
     });
     this._editedYaml = { ...this._editedYaml, [yamlKey]: void 0 };
     await this._loadAutomations();

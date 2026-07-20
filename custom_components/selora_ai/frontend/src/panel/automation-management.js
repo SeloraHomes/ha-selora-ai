@@ -429,6 +429,9 @@ export async function _restoreVersion(automationId, versionId, yamlText) {
       automation_id: automationId,
       yaml_text: yamlText,
       version_message: `Restored from version ${versionId}`,
+      // A restore reverts to the complete saved configuration, including the
+      // version's enabled state — don't preserve the current on-disk value.
+      preserve_enabled_state: false,
     });
     this._versionHistoryOpen = {
       ...this._versionHistoryOpen,

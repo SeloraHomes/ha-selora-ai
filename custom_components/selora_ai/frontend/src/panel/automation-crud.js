@@ -1,5 +1,125 @@
 // Automation CRUD actions (prototype-assigned to SeloraAIArchitectPanel)
 
+// Match the key `initial_state`, optionally quoted, with a value we capture.
+// The backreference \1 makes the closing quote match the opening one (or none).
+// YAML permits whitespace before the `:` separator (`initial_state : false`).
+const _INITIAL_STATE_KEY = /(['"]?)initial_state\1[ \t]*:[ \t]*(.*)$/;
+
+// Drop an inline comment (# at start or preceded by whitespace) and surrounding
+// quotes, then normalize (trim + lowercase). initial_state is always a bare boolean
+// scalar, so this can't clip a legitimate '#' inside the value.
+function _normalizeStateToken(token) {
+  return token
+    .replace(/(?:^|\s+)#.*$/, "")
+    .replace(/^["']|["']$/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+// Split a flow mapping "{a: 1, b: {c: 2}, ...}" into its TOP-LEVEL entries,
+// respecting nested {}/[] and quotes so a nested comma doesn't split an entry.
+function _topLevelFlowEntries(text) {
+  const inner = text.trim().replace(/^\{/, "").replace(/\}$/, "");
+  const entries = [];
+  let depth = 0;
+  let quote = null;
+  let start = 0;
+  for (let i = 0; i < inner.length; i++) {
+    const ch = inner[i];
+    if (quote) {
+      // YAML escape rules: inside a double-quoted scalar a backslash escapes the
+      // next char (so `\"` is not the close); inside a single-quoted scalar a
+      // doubled `''` is a literal quote, not the close.
+      if (quote === '"' && ch === "\\") {
+        i++; // skip the escaped character
+      } else if (ch === quote) {
+        if (quote === "'" && inner[i + 1] === "'") {
+          i++; // doubled '' → literal quote, stay in the string
+        } else {
+          quote = null;
+        }
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === "{" || ch === "[") {
+      depth++;
+    } else if (ch === "}" || ch === "]") {
+      depth--;
+    } else if (ch === "," && depth === 0) {
+      entries.push(inner.slice(start, i));
+      start = i + 1;
+    }
+  }
+  entries.push(inner.slice(start));
+  return entries;
+}
+
+// Find `initial_state`'s value as a TOP-LEVEL key of a flow mapping. Scanning
+// entries at brace depth 0 means a nested key (e.g. `{variables: {initial_state:
+// false}, initial_state: true}`) can't be mistaken for the automation's own.
+function _flowInitialState(text) {
+  for (const entry of _topLevelFlowEntries(text)) {
+    const m = entry.match(/^[ \t\r\n]*(['"]?)initial_state\1[ \t]*:([\s\S]*)$/);
+    if (m) return _normalizeStateToken(m[2]);
+  }
+  return undefined;
+}
+
+// Extract the top-level `initial_state` scalar from automation YAML text,
+// normalized for comparison. Returns undefined when the key is absent at the top
+// level. No YAML lib is bundled, so this handles the valid forms the editor can
+// produce without a full parser: column-0 block, indented root block (matching the
+// document's shallowest key indentation, so nested keys can't be mistaken for the
+// boot override), and single flow mapping.
+export function _extractInitialState(yamlText) {
+  if (!yamlText) return undefined;
+
+  // Flow mapping: {alias: X, initial_state: false, ...}
+  const trimmed = yamlText.trim();
+  if (trimmed.startsWith("{")) {
+    return _flowInitialState(trimmed);
+  }
+
+  // Block mapping: top-level keys share the document's shallowest indentation.
+  const lines = yamlText.split(/\r?\n/);
+  const isSkippable = (c) =>
+    !c || c.startsWith("#") || c === "---" || c === "...";
+  let baseIndent = null;
+  for (let i = 0; i < lines.length; i++) {
+    const content = lines[i].trim();
+    if (isSkippable(content)) continue;
+    const indent = lines[i].length - lines[i].trimStart().length;
+    if (baseIndent === null) baseIndent = indent;
+    if (indent !== baseIndent) continue; // deeper → nested key, not top level
+    const m = content.match(new RegExp("^" + _INITIAL_STATE_KEY.source));
+    if (!m) continue;
+    let rawValue = m[2];
+    // Continuation-line scalar (`initial_state:\n  false`): when nothing follows
+    // the colon, the value is the next non-empty, deeper-indented line.
+    if (rawValue.replace(/(?:^|\s+)#.*$/, "").trim() === "") {
+      for (let j = i + 1; j < lines.length; j++) {
+        const c = lines[j].trim();
+        if (!c || c.startsWith("#")) continue;
+        const jIndent = lines[j].length - lines[j].trimStart().length;
+        if (jIndent > baseIndent) rawValue = c;
+        break;
+      }
+    }
+    return _normalizeStateToken(rawValue);
+  }
+  return undefined;
+}
+
+// Whether the user changed the top-level `initial_state` between the original
+// refinement YAML and their edited version (added, removed, or flipped).
+export function _initialStateEdited(originalYaml, editedYaml) {
+  return (
+    _extractInitialState(originalYaml) !== _extractInitialState(editedYaml)
+  );
+}
+
 // Build the post-create toast. Used by the Suggestions flow (and any
 // future non-chat creation path) — the chat accept/save flow has its
 // own inline workflow row and no longer fires a toast. Every new
@@ -79,6 +199,10 @@ export async function _acceptAutomation(msgIndex, automation) {
           yaml_text: yamlText,
           session_id: this._activeSessionId,
           version_message: "Refined via chat",
+          // A generated refinement carries the existing YAML (possibly a stale
+          // initial_state), so preserve the automation's current enabled state.
+          // The endpoint defaults to authoritative, so refinements opt in.
+          preserve_enabled_state: true,
         });
       } else {
         createResult = await this.hass.callWS({
@@ -359,7 +483,8 @@ export async function _acceptAutomationWithEdits(
   // See note in _acceptAutomation — use the canonical backend index.
   const backendIndex = msg.automation_message_index ?? msgIndex;
 
-  if (edited && edited !== (this._originalYaml?.[yamlKey] ?? originalYaml)) {
+  const baselineYaml = this._originalYaml?.[yamlKey] ?? originalYaml;
+  if (edited && edited !== baselineYaml) {
     try {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
       this.requestUpdate();
@@ -367,12 +492,19 @@ export async function _acceptAutomationWithEdits(
       let createResult = null;
       let resolvedAutomationId = refiningId || null;
       if (refiningId) {
+        // Preserve the current enabled state UNLESS the user actually edited
+        // initial_state. Editing an unrelated field (e.g. an action) must NOT
+        // persist the refinement's possibly-stale initial_state — that would flip
+        // the automation on/off contrary to the user's last toggle. The endpoint
+        // defaults to authoritative, so we send the flag explicitly either way.
+        const stateEdited = _initialStateEdited(baselineYaml, edited);
         await this.hass.callWS({
           type: "selora_ai/update_automation_yaml",
           automation_id: refiningId,
           yaml_text: edited,
           session_id: this._activeSessionId,
           version_message: "Refined via chat (with edits)",
+          preserve_enabled_state: !stateEdited,
         });
       } else {
         createResult = await this.hass.callWS({
@@ -491,6 +623,9 @@ export async function _saveActiveAutomationYaml(automationId, yamlKey) {
       type: "selora_ai/update_automation_yaml",
       automation_id: automationId,
       yaml_text: edited,
+      // Explicit editor save: honor any initial_state the user edited in the
+      // YAML rather than mirroring the on-disk value (that's the refine default).
+      preserve_enabled_state: false,
     });
     // Clear edits and refresh
     this._editedYaml = { ...this._editedYaml, [yamlKey]: undefined };

@@ -139,6 +139,10 @@ async def _handle_websocket_create_automation(
         vol.Required("yaml_text"): str,
         vol.Optional("session_id"): str,
         vol.Optional("automation_id"): str,
+        # General create-or-update: an update honors the submitted `initial_state`
+        # by default. Refinement callers whose YAML may carry a stale value opt IN
+        # to preservation by sending True (mirrors update_automation_yaml).
+        vol.Optional("preserve_enabled_state"): bool,
     }
 )
 async def _handle_websocket_apply_automation_yaml(
@@ -178,6 +182,10 @@ async def _handle_websocket_apply_automation_yaml(
                 parsed,
                 session_id=msg.get("session_id"),
                 version_message="Refined via chat",
+                # Authoritative by default (honor submitted initial_state); refinement
+                # callers opt in to preservation. Keeps this general create-or-update
+                # endpoint working for non-chat/older clients that change the state.
+                preserve_enabled_state=msg.get("preserve_enabled_state", False),
             )
             if success:
                 connection.send_result(msg["id"], {"status": "updated"})
@@ -214,6 +222,12 @@ async def _handle_websocket_apply_automation_yaml(
         vol.Required("yaml_text"): str,
         vol.Optional("session_id"): str,
         vol.Optional("version_message"): str,
+        # This endpoint is an authoritative YAML update by default (its historical
+        # contract): a submitted `initial_state` is honored. Chat refinements — whose
+        # YAML may carry a stale `initial_state` — opt IN to preservation by sending
+        # True. Defaulting to authoritative keeps older/cached panel clients that
+        # change `initial_state` working across an integration upgrade.
+        vol.Optional("preserve_enabled_state"): bool,
     }
 )
 async def _handle_websocket_update_automation_yaml(
@@ -239,6 +253,7 @@ async def _handle_websocket_update_automation_yaml(
             parsed,
             session_id=msg.get("session_id"),
             version_message=msg.get("version_message", "Updated via YAML editor"),
+            preserve_enabled_state=msg.get("preserve_enabled_state", False),
         )
         if success:
             connection.send_result(msg["id"], {"status": "updated"})
