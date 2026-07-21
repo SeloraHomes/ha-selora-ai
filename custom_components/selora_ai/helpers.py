@@ -125,6 +125,48 @@ def is_selora_automation(automation: dict[str, Any]) -> bool:
     return "[Selora AI]" in desc or alias.startswith("[Selora AI]")
 
 
+# ── Integration-error rendering ────────────────────────────────────────────
+
+
+def _integration_error_specifics(evidence: dict[str, Any]) -> str:
+    """One-line human summary of an integration-error signal's evidence.
+
+    Prefers the config-entry failure reason, then the repair issue's rendered
+    title/description (populated by ``health_monitor``'s translation resolver).
+    Returns "" when the evidence carries no legible detail.
+    """
+    reason = evidence.get("reason")
+    if isinstance(reason, str) and reason.strip():
+        text = reason.strip()
+        return text if text.endswith((".", "!", "?")) else f"{text}."
+
+    parts = [evidence.get("issue_title"), evidence.get("issue_description")]
+    text = " — ".join(p.strip() for p in parts if isinstance(p, str) and p.strip())
+    if text:
+        return text if text.endswith((".", "!", "?")) else f"{text}."
+    return ""
+
+
+def integration_error_detail(target: str, evidence: dict[str, Any]) -> str:
+    """User-facing detail for an integration-error signal.
+
+    Shared by the audit checks (``insights_checks``) and the primary insight
+    renderer (``insights``) so the panel and the atomic export say the same
+    thing — leading with the concrete failure when one was captured, and
+    falling back to a generic line otherwise.
+    """
+    specifics = _integration_error_specifics(evidence)
+    if specifics:
+        return (
+            f"The {target} integration reported an error: {specifics} "
+            "Check its configuration or credentials in Settings → Devices & Services."
+        )
+    return (
+        f"The {target} integration reported an error — check its configuration "
+        "or credentials in Settings → Devices & Services."
+    )
+
+
 # ── AutomationStore singleton ──────────────────────────────────────────────
 
 

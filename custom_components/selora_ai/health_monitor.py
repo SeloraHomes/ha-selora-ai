@@ -660,12 +660,31 @@ class HealthMonitor:
             if entry.domain == DOMAIN:
                 continue
             if entry.state in (ConfigEntryState.SETUP_ERROR, ConfigEntryState.SETUP_RETRY):
-                offenders[entry.domain] = {
-                    "reason": str(entry.state),
+                evidence: dict[str, Any] = {
+                    "source": "config_entry",
+                    "state": str(entry.state),
                     "title": entry.title,
                 }
+                # entry.reason is the human-readable failure HA recorded when
+                # setup raised (e.g. "Timeout connecting to 192.168.1.5") — the
+                # single field someone triaging this downstream actually needs.
+                # It's None when the integration reported the failure through a
+                # translation key only; we resolve that below.
+                if entry.reason:
+                    evidence["reason"] = entry.reason
+                if entry.error_reason_translation_key:
+                    evidence["error_translation_key"] = entry.error_reason_translation_key
+                    if entry.error_reason_translation_placeholders:
+                        evidence["error_translation_placeholders"] = dict(
+                            entry.error_reason_translation_placeholders
+                        )
+                offenders[entry.domain] = evidence
 
         issue_reg = ir.async_get(self._hass)
+        # Rank of the repair issue currently chosen per target domain, so a
+        # later issue only wins when it's strictly more severe (first-seen wins
+        # on a tie — stable within a scan).
+        issue_rank: dict[str, int] = {}
         for issue in issue_reg.issues.values():
             # A user who ignores an issue in the Repairs UI leaves active=True
             # but records the choice in dismissed_version — respect it, or we'd
@@ -680,9 +699,51 @@ class HealthMonitor:
                 continue
             if issue.severity not in (ir.IssueSeverity.CRITICAL, ir.IssueSeverity.ERROR):
                 continue
-            offenders.setdefault(target_domain, {"reason": "repair_issue"})["issue"] = (
-                issue.issue_id
-            )
+
+            # A config-entry setup failure is the primary, more actionable
+            # problem — never let a repair issue overwrite it or graft its
+            # fields onto that evidence.
+            existing = offenders.get(target_domain)
+            if existing is not None and existing.get("source") == "config_entry":
+                continue
+
+            # Build this issue's evidence as a self-contained unit: every
+            # issue-specific field is set here or absent, so two different issues
+            # on the same integration can never blend (issue A's translation key
+            # rendered under issue B's id).
+            issue_evidence: dict[str, Any] = {
+                "source": "repair_issue",
+                "issue_id": issue.issue_id,
+                "issue_severity": str(issue.severity),
+            }
+            if issue.translation_key:
+                issue_evidence["issue_translation_key"] = issue.translation_key
+                # The issue's TEXT lives in the CREATOR's catalog
+                # (``issue.domain``), which differs from the affected
+                # ``target_domain`` for on-behalf-of issues (e.g. HA raises
+                # ``config_entry_reauth`` under domain="homeassistant"). Keep it
+                # so the resolver looks up the right component.
+                issue_evidence["issue_creator_domain"] = issue.domain
+            if issue.translation_placeholders:
+                issue_evidence["issue_translation_placeholders"] = dict(
+                    issue.translation_placeholders
+                )
+            if issue.breaks_in_ha_version:
+                issue_evidence["breaks_in_ha_version"] = issue.breaks_in_ha_version
+            if issue.learn_more_url:
+                issue_evidence["learn_more_url"] = issue.learn_more_url
+
+            # One signal per integration → report exactly one issue. When
+            # several target the same domain, keep the most severe.
+            rank = _issue_severity_rank(issue.severity)
+            if rank > issue_rank.get(target_domain, -1):
+                offenders[target_domain] = issue_evidence
+                issue_rank[target_domain] = rank
+
+        # Turn the raw translation keys into legible English text so the
+        # exported evidence stands alone — the Selora OS host / Connect can
+        # surface a real message without holding HA's translation catalogs.
+        await self._resolve_offender_messages(offenders)
 
         await self._reconcile(
             HEALTH_KIND_INTEGRATION_ERROR,
@@ -691,6 +752,63 @@ class HealthMonitor:
             HEALTH_SEVERITY_CRITICAL,
             lambda _t: "",
         )
+
+    async def _resolve_offender_messages(self, offenders: dict[str, dict[str, Any]]) -> None:
+        """Fill in human-readable English text for integration-error evidence.
+
+        Config-entry failures and repair issues often carry only a translation
+        *key* (``error_translation_key`` / ``issue_translation_key``). We look
+        each up in HA's ``exceptions`` / ``issues`` catalogs and store the
+        rendered message alongside the key. Best-effort: an uncached or missing
+        string simply leaves the raw key in place, and any failure is swallowed
+        so a translation hiccup never blocks health detection.
+        """
+        if not offenders:
+            return
+        # Config-entry error text lives under the entry's own domain (the
+        # offender key); repair-issue text lives under the CREATOR domain, which
+        # may differ from the affected target — load both sets.
+        exc_domains = set(offenders)
+        issue_domains = {
+            ev.get("issue_creator_domain", domain)
+            for domain, ev in offenders.items()
+            if ev.get("issue_translation_key")
+        }
+        from homeassistant.helpers import translation  # noqa: PLC0415 — one call site
+
+        try:
+            exc_tr = await translation.async_get_translations(
+                self._hass, "en", "exceptions", exc_domains
+            )
+            issue_tr = (
+                await translation.async_get_translations(self._hass, "en", "issues", issue_domains)
+                if issue_domains
+                else {}
+            )
+        except Exception:  # noqa: BLE001 — message resolution is best-effort
+            _LOGGER.debug("Could not load integration-error translations", exc_info=True)
+            return
+
+        for domain, ev in offenders.items():
+            # Config-entry error whose reason is missing OR is just the raw
+            # translation key (HA stores the key verbatim when the exception
+            # catalog wasn't cached at raise time) — render it to real text.
+            if key := ev.get("error_translation_key"):
+                reason = ev.get("reason")
+                if not reason or reason == key:
+                    msg = exc_tr.get(f"component.{domain}.exceptions.{key}.message")
+                    if msg:
+                        ev["reason"] = _apply_placeholders(
+                            msg, ev.get("error_translation_placeholders")
+                        )
+            # Repair issue — render its title/description from the creator's catalog.
+            if key := ev.get("issue_translation_key"):
+                issue_domain = ev.get("issue_creator_domain", domain)
+                ph = ev.get("issue_translation_placeholders")
+                if title := issue_tr.get(f"component.{issue_domain}.issues.{key}.title"):
+                    ev["issue_title"] = _apply_placeholders(title, ph)
+                if desc := issue_tr.get(f"component.{issue_domain}.issues.{key}.description"):
+                    ev["issue_description"] = _apply_placeholders(desc, ph)
 
     async def _reconcile(
         self,
@@ -727,6 +845,32 @@ class HealthMonitor:
 
 
 # ── Module helpers ────────────────────────────────────────────────────
+
+
+def _issue_severity_rank(severity: ir.IssueSeverity | None) -> int:
+    """Order repair-issue severities so the most severe issue is chosen when
+    several target the same integration (CRITICAL > ERROR > anything else)."""
+    if severity == ir.IssueSeverity.CRITICAL:
+        return 2
+    if severity == ir.IssueSeverity.ERROR:
+        return 1
+    return 0
+
+
+def _apply_placeholders(text: str, placeholders: dict[str, Any] | None) -> str:
+    """Substitute ``{name}`` placeholders in a translated string.
+
+    HA translation messages interpolate ``.format(**placeholders)``. A missing
+    key or stray brace would raise — swallow that and return the raw text so a
+    malformed catalog entry degrades to the un-substituted string rather than
+    dropping the message entirely.
+    """
+    if not placeholders:
+        return text
+    try:
+        return text.format(**placeholders)
+    except (KeyError, IndexError, ValueError):
+        return text
 
 
 def _iso_to_ts(value: Any) -> float | None:

@@ -34,6 +34,7 @@ from .const import (
     INSIGHT_KIND_IMPROVEMENT,
     INSIGHT_KIND_ISSUE,
 )
+from .helpers import integration_error_detail
 
 if TYPE_CHECKING:
     from .health_store import HealthStore
@@ -115,12 +116,10 @@ def _rule_battery(sig: HealthSignal) -> tuple[str, str, str]:
 
 
 def _rule_integration(sig: HealthSignal) -> tuple[str, str, str]:
-    reason = sig["evidence"].get("reason", "an error")
     return (
         INSIGHT_KIND_FIX,
         f"The {sig['target']} integration needs attention",
-        f"The {sig['target']} integration reported {reason}. Check its "
-        "configuration or credentials in Settings → Devices & Services.",
+        integration_error_detail(sig["target"], sig["evidence"]),
     )
 
 
