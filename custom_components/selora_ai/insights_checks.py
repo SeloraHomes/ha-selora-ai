@@ -44,6 +44,7 @@ from .const import (
 )
 from .entity_filter import resolve_ignored_entity_ids
 from .health_store import get_health_store
+from .helpers import integration_error_detail
 
 if TYPE_CHECKING:
     from .types import CheckResult, Finding
@@ -362,16 +363,17 @@ def _check_integration_errors(ctx: _CheckContext) -> list[Finding]:
         if sig.get("kind") != HEALTH_KIND_INTEGRATION_ERROR:
             continue
         domain = sig.get("target", "")
+        evidence = sig.get("evidence") or {}
+        # Lead with the concrete failure HA recorded (connection error, repair
+        # issue text) so the card — and the exported insight — say WHAT went
+        # wrong. Shared with the primary insight renderer so both surfaces agree.
         findings.append(
             {
                 "check_id": "integration_errors",
                 "severity": sig.get("severity", "critical"),
                 "category": "issue",
                 "title": f"{domain} integration needs attention",
-                "detail": (
-                    f"The {domain} integration reported an error — check its configuration "
-                    "or credentials in Settings → Devices & Services."
-                ),
+                "detail": integration_error_detail(domain, evidence),
                 "entities": [],
                 "action": "Open Settings → Devices & Services",
                 "link": f"/config/integrations/integration/{domain}",

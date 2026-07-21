@@ -103,6 +103,28 @@ async def test_insights_sorted_by_severity(health_store, hass):
 
 
 @pytest.mark.asyncio
+async def test_primary_insight_surfaces_repair_detail(health_store, hass):
+    """The primary InsightsEngine path (websocket + atomic exporter) must render
+    the repair issue's resolved text — not just 'reported an error' — for
+    repair-only errors that carry issue_title/issue_description but no reason."""
+    await health_store.record_signal(
+        kind="integration_error",
+        target="zwave_js",
+        target_kind="integration",
+        severity="critical",
+        evidence={
+            "source": "repair_issue",
+            "issue_id": "invalid_server_version",
+            "issue_title": "Z-Wave JS server is outdated",
+            "issue_description": "Update the add-on to continue",
+        },
+    )
+    (ins,) = await InsightsEngine(hass, health_store).async_get_insights()
+    assert "Z-Wave JS server is outdated" in ins["detail"]
+    assert "Update the add-on to continue" in ins["detail"]
+
+
+@pytest.mark.asyncio
 async def test_pattern_suggestion_becomes_improvement(health_store, hass):
     class _FakePatternStore:
         async def get_suggestions(self, status=None):
@@ -141,6 +163,212 @@ async def test_monitor_detects_flapping(health_store, hass):
     assert len(signals) == 1
     assert signals[0]["target"] == "light.flappy"
     assert signals[0]["evidence"]["transitions"] >= 6
+
+
+@pytest.mark.asyncio
+async def test_integration_error_evidence_carries_config_entry_reason(health_store, hass):
+    """A config entry in SETUP_RETRY exports its failure reason as evidence —
+    not just the bare state — so the downstream report says WHAT broke."""
+    from homeassistant.config_entries import ConfigEntryState
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain="reolink",
+        entry_id="reolink1",
+        title="Front Door Camera",
+        state=ConfigEntryState.SETUP_RETRY,
+        reason="Timeout connecting to 192.168.1.5",
+    )
+    entry.add_to_hass(hass)
+
+    monitor = HealthMonitor(hass, health_store)
+    await monitor.async_scan()
+
+    signals = await health_store.get_signals(kind="integration_error")
+    assert len(signals) == 1
+    ev = signals[0]["evidence"]
+    assert signals[0]["target"] == "reolink"
+    assert ev["reason"] == "Timeout connecting to 192.168.1.5"
+    assert ev["title"] == "Front Door Camera"
+    assert ev["source"] == "config_entry"
+
+
+@pytest.mark.asyncio
+async def test_integration_error_evidence_carries_repair_issue(health_store, hass):
+    """A critical repair issue exports its id and rendered title/description so
+    the report can explain the problem, not just name the integration."""
+    ir.async_create_issue(
+        hass,
+        "zwave_js",
+        "invalid_server_version",
+        is_fixable=False,
+        severity=ir.IssueSeverity.ERROR,
+        translation_key="invalid_server_version",
+        learn_more_url="https://example.com/help",
+    )
+
+    monitor = HealthMonitor(hass, health_store)
+    await monitor.async_scan()
+
+    signals = await health_store.get_signals(kind="integration_error")
+    assert len(signals) == 1
+    ev = signals[0]["evidence"]
+    assert signals[0]["target"] == "zwave_js"
+    assert ev["source"] == "repair_issue"
+    assert ev["issue_id"] == "invalid_server_version"
+    assert ev["issue_translation_key"] == "invalid_server_version"
+    assert ev["learn_more_url"] == "https://example.com/help"
+
+
+@pytest.mark.asyncio
+async def test_multiple_repair_issues_dont_blend_evidence(health_store, hass):
+    """Two active issues on one integration must not blend: the reported
+    evidence belongs entirely to one issue — no leaking the other's
+    translation key, placeholders, or URL next to the wrong issue_id. The most
+    severe issue is chosen."""
+    # Lower-severity issue: rich fields (translation key, placeholders, URL).
+    ir.async_create_issue(
+        hass,
+        "reolink",
+        "detailed_error",
+        is_fixable=False,
+        severity=ir.IssueSeverity.ERROR,
+        translation_key="detailed_error",
+        translation_placeholders={"host": "192.168.1.5"},
+        learn_more_url="https://example.com/detailed",
+    )
+    # Higher-severity issue: bare, no optional fields.
+    ir.async_create_issue(
+        hass,
+        "reolink",
+        "bare_critical",
+        is_fixable=False,
+        severity=ir.IssueSeverity.CRITICAL,
+        translation_key="bare_critical",
+    )
+
+    monitor = HealthMonitor(hass, health_store)
+    await monitor.async_scan()
+
+    signals = await health_store.get_signals(kind="integration_error")
+    assert len(signals) == 1
+    ev = signals[0]["evidence"]
+    # The critical issue wins, and NONE of the error issue's fields bleed in.
+    assert ev["issue_id"] == "bare_critical"
+    assert ev["issue_translation_key"] == "bare_critical"
+    assert "issue_translation_placeholders" not in ev
+    assert "learn_more_url" not in ev
+
+
+@pytest.mark.asyncio
+async def test_config_entry_error_wins_over_repair_issue(health_store, hass):
+    """A config-entry setup failure is the primary problem; a coexisting repair
+    issue on the same domain must not overwrite it or graft its fields on."""
+    from homeassistant.config_entries import ConfigEntryState
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain="reolink",
+        entry_id="reolink1",
+        title="Front Door Camera",
+        state=ConfigEntryState.SETUP_RETRY,
+        reason="Timeout connecting to 192.168.1.5",
+    )
+    entry.add_to_hass(hass)
+    ir.async_create_issue(
+        hass,
+        "reolink",
+        "some_repair",
+        is_fixable=False,
+        severity=ir.IssueSeverity.CRITICAL,
+        translation_key="some_repair",
+    )
+
+    monitor = HealthMonitor(hass, health_store)
+    await monitor.async_scan()
+
+    signals = await health_store.get_signals(kind="integration_error")
+    assert len(signals) == 1
+    ev = signals[0]["evidence"]
+    assert ev["source"] == "config_entry"
+    assert ev["reason"] == "Timeout connecting to 192.168.1.5"
+    assert "issue_id" not in ev
+
+
+@pytest.mark.asyncio
+async def test_integration_error_renders_raw_translation_key_reason(health_store, hass):
+    """HA stores the raw translation KEY in entry.reason when the exception
+    catalog wasn't cached at raise time. We must still render it to real text
+    rather than surfacing 'cannot_connect' as the reason."""
+    from homeassistant.config_entries import ConfigEntryState
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(
+        domain="reolink",
+        entry_id="reolink1",
+        title="Front Door Camera",
+        state=ConfigEntryState.SETUP_RETRY,
+        reason="cannot_connect",  # the raw key, not human text
+    )
+    object.__setattr__(entry, "error_reason_translation_key", "cannot_connect")
+    entry.add_to_hass(hass)
+
+    async def fake_translations(_hass, _lang, category, _integrations):
+        if category == "exceptions":
+            return {
+                "component.reolink.exceptions.cannot_connect.message": "Cannot connect to the camera"
+            }
+        return {}
+
+    with patch(
+        "homeassistant.helpers.translation.async_get_translations",
+        side_effect=fake_translations,
+    ):
+        monitor = HealthMonitor(hass, health_store)
+        await monitor.async_scan()
+
+    ev = (await health_store.get_signals(kind="integration_error"))[0]["evidence"]
+    assert ev["reason"] == "Cannot connect to the camera"
+
+
+@pytest.mark.asyncio
+async def test_integration_error_repair_issue_uses_creator_domain(health_store, hass):
+    """An on-behalf-of repair issue (issue.domain != issue_domain) keeps its
+    text in the CREATOR's catalog — HA raises config_entry_reauth under
+    domain='homeassistant' with the affected integration in issue_domain — so
+    the lookup must use the creator domain, not the affected target."""
+    ir.async_create_issue(
+        hass,
+        "homeassistant",  # creator domain
+        "config_entry_reauth_reolink_1",
+        is_fixable=True,
+        issue_domain="reolink",  # affected integration
+        severity=ir.IssueSeverity.ERROR,
+        translation_key="config_entry_reauth",
+    )
+
+    async def fake_translations(_hass, _lang, category, _integrations):
+        if category == "issues":
+            return {
+                "component.homeassistant.issues.config_entry_reauth.title": "Reauthentication needed",
+                "component.homeassistant.issues.config_entry_reauth.description": "Re-enter your credentials",
+            }
+        return {}
+
+    with patch(
+        "homeassistant.helpers.translation.async_get_translations",
+        side_effect=fake_translations,
+    ):
+        monitor = HealthMonitor(hass, health_store)
+        await monitor.async_scan()
+
+    signals = await health_store.get_signals(kind="integration_error")
+    assert len(signals) == 1
+    ev = signals[0]["evidence"]
+    assert signals[0]["target"] == "reolink"
+    assert ev["issue_creator_domain"] == "homeassistant"
+    assert ev["issue_title"] == "Reauthentication needed"
+    assert ev["issue_description"] == "Re-enter your credentials"
 
 
 @pytest.mark.asyncio

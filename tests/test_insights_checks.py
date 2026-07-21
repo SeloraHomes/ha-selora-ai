@@ -327,6 +327,48 @@ async def test_device_health_checks_read_layer1_signals(hass: HomeAssistant, hea
 
 
 @pytest.mark.asyncio
+async def test_integration_error_finding_surfaces_reason(hass: HomeAssistant, health_store) -> None:
+    """The captured failure reason lands in the finding detail — so the card
+    (and the exported insight) say what went wrong, not just that it did."""
+    hass.data.setdefault(DOMAIN, {})["e1"] = {"health_store": health_store}
+    await health_store.record_signal(
+        kind="integration_error",
+        target="reolink",
+        target_kind="integration",
+        severity="critical",
+        evidence={"source": "config_entry", "reason": "Timeout connecting to 192.168.1.5"},
+    )
+    results = {r["check_id"]: r for r in await async_run_checks(hass)}
+    detail = results["integration_errors"]["findings"][0]["detail"]
+    assert "Timeout connecting to 192.168.1.5" in detail
+
+
+@pytest.mark.asyncio
+async def test_integration_error_finding_surfaces_repair_issue_text(
+    hass: HomeAssistant, health_store
+) -> None:
+    """When only a repair issue's rendered text is available, that text carries
+    into the finding detail."""
+    hass.data.setdefault(DOMAIN, {})["e1"] = {"health_store": health_store}
+    await health_store.record_signal(
+        kind="integration_error",
+        target="zwave_js",
+        target_kind="integration",
+        severity="critical",
+        evidence={
+            "source": "repair_issue",
+            "issue_id": "invalid_server_version",
+            "issue_title": "Z-Wave JS server is outdated",
+            "issue_description": "Update the add-on to continue",
+        },
+    )
+    results = {r["check_id"]: r for r in await async_run_checks(hass)}
+    detail = results["integration_errors"]["findings"][0]["detail"]
+    assert "Z-Wave JS server is outdated" in detail
+    assert "Update the add-on to continue" in detail
+
+
+@pytest.mark.asyncio
 async def test_offline_finding_lists_only_primary_entity(hass: HomeAssistant, health_store) -> None:
     """An offline multi-entity device (Sonos) surfaces one card listing only its
     primary entity (the media_player) — not the config entities (bass/crossfade/
