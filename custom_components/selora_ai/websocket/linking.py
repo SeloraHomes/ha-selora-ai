@@ -147,10 +147,20 @@ async def _handle_websocket_get_config(
 
     _integration_version = await hass.async_add_executor_job(integration_version)
 
+    # Whether the ACTIVE provider/model can analyze images — gates the
+    # panel's drop/paste-a-screenshot affordance in the composer. Gateway
+    # providers discover this from their backend (TTL-cached, never raises).
+    _llm = _find_llm(hass)
+    _provider = getattr(_llm, "provider", None)
+    if _provider is not None:
+        await _provider.async_refresh_capabilities()
+    _supports_vision = bool(getattr(_provider, "supports_vision", False))
+
     connection.send_result(
         msg["id"],
         {
             "llm_provider": _resolve_llm_provider(config_data),
+            "supports_vision": _supports_vision,
             "integration_version": _integration_version,
             # Never send the raw key to the frontend — only a safe display hint.
             "anthropic_api_key_hint": _mask_api_key(config_data.get(CONF_ANTHROPIC_API_KEY, "")),

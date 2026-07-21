@@ -1050,6 +1050,23 @@ STREAM_EMPTY_RESPONSE_MESSAGE = (
     "I didn't get a response that time. Please try again, or rephrase if it keeps happening."
 )
 
+# ── Chat image attachments ──────────────────────────────────────────
+# Screenshots dropped/pasted into the composer. The panel downscales to
+# ≤ CHAT_ATTACHMENT_MAX_EDGE_PX before encoding, so a normal attachment
+# is well under 1 MB — the byte caps defend against a client that skips
+# the downscale. HA's websocket keeps aiohttp's default 4 MiB
+# max_msg_size, and a frame past that closes the CONNECTION before any
+# handler validation runs — so the per-image and total budgets must
+# keep the whole JSON frame (message text + base64 + framing) under
+# 4 MiB. Caps are enforced server-side in the chat handlers as a
+# backstop and mirrored in the panel, where they actually prevent the
+# oversized frame from ever being sent.
+CHAT_ATTACHMENT_MAX_COUNT = 4
+CHAT_ATTACHMENT_MAX_B64_BYTES = 2 * 1024 * 1024  # per image, base64 length
+CHAT_ATTACHMENT_MAX_TOTAL_B64_BYTES = 3 * 1024 * 1024  # per message, base64 length
+CHAT_ATTACHMENT_MIME_TYPES = frozenset({"image/jpeg", "image/png", "image/webp", "image/gif"})
+CHAT_ATTACHMENT_MAX_EDGE_PX = 1568  # matches cloud-vision downscale targets
+
 # ── Data Collection ──────────────────────────────────────────────────
 DEFAULT_PUSH_INTERVAL = 3600  # 1 hour — how often we collect + analyze
 CONF_PUSH_INTERVAL = "push_interval"
@@ -1486,6 +1503,14 @@ AIGATEWAY_OAUTH_SCOPE = "ai-gateway"
 AIGATEWAY_AUTHORIZE_PATH = "/oauth/aigw/authorize"
 AIGATEWAY_TOKEN_PATH = "/oauth/aigw/token"
 AIGATEWAY_CHAT_COMPLETIONS_PATH = "/api/v1/ai-gateway/v1/chat/completions"
+# Capability advertisement for the server-side-routed model (vision support
+# etc.). The gateway picks the chat model from admin config, so the client
+# can't know its capabilities statically — it asks. A gateway that predates
+# the endpoint 404s → treated as "no vision".
+AIGATEWAY_CAPABILITIES_PATH = "/api/v1/ai-gateway/v1/capabilities"
+# Re-ask at most this often; the admin model changes rarely and get_config
+# fires on every panel load.
+AIGATEWAY_CAPABILITIES_TTL_S = 900.0
 # Refresh the access token if fewer than this many seconds remain. Generous
 # enough that long-running requests don't get a 401 mid-flight.
 AIGATEWAY_REFRESH_LEEWAY_SECONDS = 120

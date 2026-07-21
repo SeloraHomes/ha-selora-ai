@@ -1260,4 +1260,124 @@ export const chatStyles = css`
   .composer-selection-chip button:hover {
     color: var(--primary-text-color);
   }
+  /* Quiet ghost sibling of .composer-send — opens the image file picker.
+     Only rendered when the active model supports vision. */
+  .composer-attach {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    --mdc-icon-size: 20px;
+  }
+  .composer-attach:hover:not(:disabled) {
+    color: var(--primary-text-color);
+    background: rgba(251, 191, 36, 0.12);
+  }
+  .composer-attach:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  /* Drag-and-drop target state while image files hover the composer. */
+  .composer-styled.composer-dragover {
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25);
+  }
+  /* Full-pane drop target shown while a file drag is in flight anywhere
+     over the panel. Purely visual — pointer events pass through so the
+     drop lands on the composer / global guard. */
+  .chat-drop-overlay {
+    position: absolute;
+    inset: 8px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed rgba(251, 191, 36, 0.65);
+    border-radius: 18px;
+    background: color-mix(
+      in srgb,
+      var(--card-background-color, #27272a) 78%,
+      transparent
+    );
+    pointer-events: none;
+  }
+  .chat-drop-overlay-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+  }
+  .chat-drop-overlay-inner ha-icon {
+    --mdc-icon-size: 40px;
+    color: rgba(251, 191, 36, 0.9);
+  }
+  /* Pending image attachments (dropped/pasted screenshots), rendered as
+     thumbnails above the typed text inside the composer box. */
+  .composer-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .composer-attachment {
+    position: relative;
+    display: inline-flex;
+  }
+  .composer-attachment img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
+  }
+  .composer-attachment-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--secondary-background-color, #3f3f46);
+    color: var(--primary-text-color);
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .composer-attachment-remove:hover {
+    background: var(--divider-color, #52525b);
+  }
+  .composer-attachment-notice {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+  }
+  /* Screenshot thumbnails inside a sent user bubble. */
+  .bubble-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .bubble-attachments img {
+    max-width: 180px;
+    max-height: 140px;
+    border-radius: 10px;
+    border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
+  }
 `;

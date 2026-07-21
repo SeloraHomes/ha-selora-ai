@@ -38,6 +38,7 @@ import * as sessionActions from "./panel/session-actions.js";
 import * as suggestionActions from "./panel/suggestion-actions.js";
 import * as insightsActions from "./panel/insights-actions.js";
 import * as chatActions from "./panel/chat-actions.js";
+import { createGlobalDropGuard } from "./panel/chat-attachments.js";
 import * as automationCrud from "./panel/automation-crud.js";
 import * as automationManagement from "./panel/automation-management.js";
 import * as sceneActions from "./panel/scene-actions.js";
@@ -231,6 +232,17 @@ class SeloraAIPanel extends LitElement {
       _autocompleteSelections: { type: Array },
       // Ghost-text completion of common chat vocabulary
       _ghost: { type: Object },
+      // Pending image attachments (dropped/pasted screenshots) + transient
+      // error notice shown in the composer strip
+      _chatAttachments: { type: Array },
+      _attachmentNotice: { type: String },
+      // Count of in-flight image decode/resize batches — Send is blocked
+      // while non-zero so a mid-processing click can't drop the image.
+      _attachmentsBusy: { type: Number },
+      _composerDragOver: { type: Boolean },
+      // True while a file drag is in flight anywhere over the window
+      // (chat tab + vision model) — drives the full-pane drop overlay.
+      _chatDropActive: { type: Boolean },
 
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
@@ -555,6 +567,14 @@ class SeloraAIPanel extends LitElement {
     };
     this._autocompleteSelections = [];
     this._ghost = null;
+    this._chatAttachments = [];
+    this._attachmentNotice = "";
+    this._attachmentsBusy = 0;
+    // Slots claimed by batches still decoding — not reactive, only read
+    // by addImageAttachments to keep overlapping batches under the cap.
+    this._attachmentSlotsReserved = 0;
+    this._composerDragOver = false;
+    this._chatDropActive = false;
     this._streams = new Set();
     this._showSidebar = false;
     this._activeTab = "chat";
@@ -788,6 +808,10 @@ class SeloraAIPanel extends LitElement {
       this._checkTabParam();
     };
     window.addEventListener("location-changed", this._locationHandler);
+    // A file dropped outside a handled target would navigate the whole
+    // window to the image — swallow stray drops, route chat-tab ones to
+    // the composer's attachment strip.
+    this._dropGuardTeardown = createGlobalDropGuard(this);
     this._keyDownHandler = (e) => {
       if (
         e.key === "Escape" &&
@@ -1072,6 +1096,10 @@ class SeloraAIPanel extends LitElement {
     }
     if (this._locationHandler) {
       window.removeEventListener("location-changed", this._locationHandler);
+    }
+    if (this._dropGuardTeardown) {
+      this._dropGuardTeardown();
+      this._dropGuardTeardown = null;
     }
     if (this._closeOverflowHandler) {
       document.removeEventListener("click", this._closeOverflowHandler);

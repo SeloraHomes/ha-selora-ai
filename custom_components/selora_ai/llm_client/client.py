@@ -42,6 +42,7 @@ from ..types import (
     ArchitectResponse,
     EntitySnapshot,
     HomeSnapshot,
+    ImageAttachment,
     ToolCallLog,
     ToolWriteResult,
 )
@@ -228,6 +229,7 @@ def _pre_provider_short_circuit(
     history: list[dict[str, str]] | None = None,
     *,
     refining: bool = False,
+    has_attachments: bool = False,
     language: str | None = None,
 ) -> dict[str, Any] | None:
     """Return a slim response envelope when a deterministic intent helper
@@ -260,6 +262,13 @@ def _pre_provider_short_circuit(
     envelope = _build_safety_short_circuit(user_message, language)
     if envelope is not None:
         return envelope
+    # An attached image can BE the missing target context ("turn this
+    # off" + a screenshot of the device). The command/clarification
+    # short-circuits below answer from the text alone and would drop the
+    # image precisely when it could resolve the ambiguity — only the
+    # safety refusal above may pre-empt a vision turn.
+    if has_attachments:
+        return None
     # During proposal refinement ("turn off all lights" while editing an
     # automation/scene), command + clarification short-circuits would
     # turn a refinement instruction into a LIVE command — on the
@@ -640,6 +649,7 @@ class LLMClient:
         for_assist: bool = False,
         session_id: str | None = None,
         language: str | None = None,
+        attachments: list[ImageAttachment] | None = None,
     ) -> ArchitectResponse:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
@@ -647,6 +657,8 @@ class LLMClient:
                  Only plain content (no entity context blobs) — home context is only injected
                  on the current turn to keep token usage bounded across a long session.
         tool_executor: optional executor for LLM tool calling (device snapshot, integrations).
+        attachments: base64 images for the current turn. Callers must gate on
+                 provider.supports_vision; the low-context path ignores them.
 
         Returns a dict with at minimum:
           intent: "command" | "automation" | "answer"
@@ -673,8 +685,9 @@ class LLMClient:
         # Models stubbornly volunteer a status dump in response to plain
         # greetings even with the small-talk rule in the system prompt;
         # short-circuit those with a canned reply so we never burn tokens
-        # or risk a hallucinated recap.
-        if _is_pure_greeting(user_message):
+        # or risk a hallucinated recap. Never when an image rides along —
+        # "thanks" + a screenshot is a request about the screenshot.
+        if _is_pure_greeting(user_message) and not attachments:
             return {
                 "intent": "answer",
                 "response": _canned(_CANNED_GREETING, effective_language),
@@ -690,7 +703,12 @@ class LLMClient:
         # a live device).
         refining = bool(refining_context or refining_scene_context or scene_context)
         short_circuit = _pre_provider_short_circuit(
-            user_message, entities, history, refining=refining, language=effective_language
+            user_message,
+            entities,
+            history,
+            refining=refining,
+            has_attachments=bool(attachments),
+            language=effective_language,
         )
         if short_circuit is not None:
             if short_circuit.get("intent") == "command":
@@ -776,6 +794,7 @@ class LLMClient:
                     refining_scene_context=refining_scene_context,
                     scene_context=scene_context,
                     areas=areas,
+                    attachments=attachments,
                 )
             # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
             if tool_executor is not None:
@@ -928,12 +947,15 @@ class LLMClient:
         *,
         session_id: str | None = None,
         language: str | None = None,
+        attachments: list[ImageAttachment] | None = None,
     ) -> AsyncIterator[str]:
         """Async generator — streaming version of architect_chat.
 
         history: prior turns as [{"role": "user"|"assistant", "content": "..."}].
                  Only plain content — home context is only injected on the current
                  turn to keep token usage bounded across a long session.
+        attachments: base64 images for the current turn. Callers must gate on
+                 provider.supports_vision; the low-context path ignores them.
 
         When tool_executor is provided, runs the tool loop first (non-streaming),
         then streams the final text response token-by-token.
@@ -961,8 +983,9 @@ class LLMClient:
 
         # Same short-circuit as architect_chat — a plain "hi"/"thanks"
         # gets a canned reply instead of an LLM round-trip and the
-        # status-dump it tends to produce.
-        if _is_pure_greeting(user_message):
+        # status-dump it tends to produce. Never when an image rides
+        # along — "thanks" + a screenshot is a request about the screenshot.
+        if _is_pure_greeting(user_message) and not attachments:
             yield _canned(_CANNED_GREETING, effective_language)
             return
 
@@ -976,7 +999,12 @@ class LLMClient:
         # of executing against live devices.
         refining = bool(refining_context or refining_scene_context or scene_context)
         short_circuit = _pre_provider_short_circuit(
-            user_message, entities, history, refining=refining, language=effective_language
+            user_message,
+            entities,
+            history,
+            refining=refining,
+            has_attachments=bool(attachments),
+            language=effective_language,
         )
         if short_circuit is not None:
             yield json.dumps(short_circuit)
@@ -1039,6 +1067,7 @@ class LLMClient:
                     refining_scene_context=refining_scene_context,
                     scene_context=scene_context,
                     areas=areas,
+                    attachments=attachments,
                 )
 
             # Tool-aware streaming: streams text tokens, handles tool calls inline
@@ -1656,8 +1685,15 @@ class LLMClient:
         refining_scene_context: tuple[str, str] | None = None,
         scene_context: list[tuple[str, str, str]] | None = None,
         areas: list[str] | None = None,
-    ) -> list[dict[str, str]]:
-        """Build the message list for architect chat / stream."""
+        attachments: list[ImageAttachment] | None = None,
+    ) -> list[dict[str, Any]]:
+        """Build the message list for architect chat / stream.
+
+        With attachments, the current turn's content is a list of neutral
+        blocks (images first, then the text prompt) that each provider's
+        build_payload converts to its wire format; otherwise it stays a
+        plain string.
+        """
         interesting_domains = {
             "light",
             "switch",
@@ -1821,6 +1857,18 @@ class LLMClient:
         # so the LLM can follow the conversational thread without ballooning the prompt.
         messages = self._build_history_messages(history)
         messages = self._trim_history_to_budget(messages, system_prompt, context_prompt)
-        messages.append({"role": "user", "content": context_prompt})
+        if attachments:
+            content_blocks: list[dict[str, Any]] = [
+                {
+                    "type": "image",
+                    "media_type": a["mime_type"],
+                    "data": a["data"],
+                }
+                for a in attachments
+            ]
+            content_blocks.append({"type": "text", "text": context_prompt})
+            messages.append({"role": "user", "content": content_blocks})
+        else:
+            messages.append({"role": "user", "content": context_prompt})
 
         return messages

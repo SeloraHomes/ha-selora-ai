@@ -7,6 +7,7 @@ vendor models behind vendor-prefixed model IDs (e.g. "anthropic/claude-sonnet-4.
 from __future__ import annotations
 
 import logging
+import time
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -28,6 +29,12 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Vision support is per-model on OpenRouter (the same 404 "No endpoints
+# found that support image input" a text-only model returns for images).
+# The catalog is authoritative about it, so ask rather than guess; re-ask
+# at most this often.
+_CAPABILITIES_TTL_S = 900.0
+
 
 class OpenRouterProvider(OpenAICompatibleProvider):
     """OpenRouter API provider (multi-vendor aggregator)."""
@@ -47,6 +54,13 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             host=host or DEFAULT_OPENROUTER_HOST,
             api_key=api_key,
         )
+        # Discovered from the model catalog by async_refresh_capabilities;
+        # None = never fetched (treated as no-vision). The fetch timestamp
+        # also uses None as its never-fetched sentinel — time.monotonic()
+        # counts from boot, so on a freshly started host a 0.0 sentinel
+        # would read as "fetched recently" and suppress the first fetch.
+        self._vision_capable: bool | None = None
+        self._capabilities_fetched_at: float | None = None
 
     @property
     def provider_type(self) -> str:
@@ -55,6 +69,47 @@ class OpenRouterProvider(OpenAICompatibleProvider):
     @property
     def provider_name(self) -> str:
         return f"OpenRouter ({self._model})"
+
+    @property
+    def supports_vision(self) -> bool:
+        # Per-model on OpenRouter — asked via async_refresh_capabilities,
+        # never assumed. Unknown means False: offering an upload the model
+        # will 404 is worse than hiding it.
+        return self._vision_capable is True
+
+    async def async_refresh_capabilities(self) -> None:
+        """Ask OpenRouter whether the configured model accepts image input.
+
+        ``GET /v1/models/{author}/{slug}/endpoints`` reports the model's
+        ``architecture.input_modalities`` — authoritative, so vision-model
+        churn never rots a client-side list. TTL-cached; failures keep the
+        cached value and still stamp the TTL. Never raises.
+        """
+        now = time.monotonic()
+        if (
+            self._capabilities_fetched_at is not None
+            and now - self._capabilities_fetched_at < _CAPABILITIES_TTL_S
+        ):
+            return
+        self._capabilities_fetched_at = now
+        # ":free" / ":extended" variants share the base model's endpoints.
+        base_model = self._model.split(":", 1)[0]
+        try:
+            session = self._get_session()
+            async with session.get(
+                f"{self._host}/v1/models/{base_model}/endpoints",
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status != 200:
+                    self._vision_capable = False
+                    return
+                data = await resp.json()
+            architecture = (data.get("data") or {}).get("architecture") or {}
+            modalities = architecture.get("input_modalities") or []
+            self._vision_capable = "image" in modalities
+        except (aiohttp.ClientError, TimeoutError, ValueError):
+            _LOGGER.debug("OpenRouter capabilities fetch failed; keeping cached value")
 
     def _get_headers(self) -> dict[str, str]:
         headers = super()._get_headers()

@@ -54,6 +54,10 @@ class AnthropicProvider(LLMProvider):
     def provider_name(self) -> str:
         return f"Anthropic ({self._model})"
 
+    @property
+    def supports_vision(self) -> bool:
+        return True
+
     # -- HTTP plumbing -----------------------------------------------------
 
     def _get_headers(self) -> dict[str, str]:
@@ -69,6 +73,40 @@ class AnthropicProvider(LLMProvider):
 
     # -- Payload & response ------------------------------------------------
 
+    @staticmethod
+    def _adapt_image_blocks(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Convert neutral image blocks (see base.supports_vision) to
+        Anthropic ``{"type": "image", "source": {...}}`` blocks. Messages
+        without neutral image blocks pass through untouched, including
+        tool_result / tool_use block lists from the tool loop.
+        """
+        adapted: list[dict[str, Any]] = []
+        for msg in messages:
+            content = msg.get("content")
+            if not isinstance(content, list) or not any(
+                isinstance(b, dict) and b.get("type") == "image" and "source" not in b
+                for b in content
+            ):
+                adapted.append(msg)
+                continue
+            blocks: list[dict[str, Any]] = []
+            for b in content:
+                if isinstance(b, dict) and b.get("type") == "image" and "source" not in b:
+                    blocks.append(
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": b.get("media_type", "image/png"),
+                                "data": b.get("data", ""),
+                            },
+                        }
+                    )
+                else:
+                    blocks.append(b)
+            adapted.append({**msg, "content": blocks})
+        return adapted
+
     def build_payload(
         self,
         system: str,
@@ -82,7 +120,7 @@ class AnthropicProvider(LLMProvider):
             "model": self._model,
             "max_tokens": max_tokens,
             "system": system,
-            "messages": messages,
+            "messages": self._adapt_image_blocks(messages),
         }
         if tools:
             payload["tools"] = tools

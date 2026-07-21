@@ -47,6 +47,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..const import (
+    AIGATEWAY_CAPABILITIES_PATH,
+    AIGATEWAY_CAPABILITIES_TTL_S,
     AIGATEWAY_CHAT_COMPLETIONS_PATH,
     AIGATEWAY_REFRESH_LEEWAY_SECONDS,
     AIGATEWAY_TOKEN_PATH,
@@ -244,6 +246,15 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         self._client_id = client_id
         self._entry_id = entry_id
         self._refresh_lock = asyncio.Lock()
+        # Vision capability is a property of the server-side-routed model,
+        # discovered via the gateway's capabilities endpoint. None = never
+        # fetched (treated as no-vision); refreshed with a TTL by
+        # async_refresh_capabilities. The fetch timestamp also uses None as
+        # its never-fetched sentinel — time.monotonic() counts from boot,
+        # so on a freshly started host a 0.0 sentinel would read as
+        # "fetched recently" and suppress the first fetch entirely.
+        self._vision_capable: bool | None = None
+        self._capabilities_fetched_at: float | None = None
 
     # -- Identity ----------------------------------------------------------
 
@@ -254,6 +265,49 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
     @property
     def provider_name(self) -> str:
         return "Selora Cloud"
+
+    @property
+    def supports_vision(self) -> bool:
+        # The gateway picks the chat model server-side, so vision support
+        # is whatever the admin-configured model can do — asked via
+        # async_refresh_capabilities, never assumed. Unknown (endpoint not
+        # deployed yet, fetch failed) means False: offering an upload the
+        # backend will 404 ("No endpoints found that support image input")
+        # is worse than hiding it.
+        return self._vision_capable is True
+
+    async def async_refresh_capabilities(self) -> None:
+        """Ask the gateway whether its active chat model supports vision.
+
+        TTL-cached; any failure (endpoint missing on an older gateway,
+        auth trouble, network) leaves the cached value in place and still
+        stamps the TTL so a broken gateway isn't polled on every panel
+        load. Never raises.
+        """
+        now = time.monotonic()
+        if (
+            self._capabilities_fetched_at is not None
+            and now - self._capabilities_fetched_at < AIGATEWAY_CAPABILITIES_TTL_S
+        ):
+            return
+        self._capabilities_fetched_at = now
+        try:
+            await self._ensure_token()
+            session = self._get_session()
+            async with session.get(
+                f"{self._host}{AIGATEWAY_CAPABILITIES_PATH}",
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=10),
+            ) as resp:
+                if resp.status != 200:
+                    # A gateway that predates the endpoint 404s — that's a
+                    # definitive "can't do vision", not an error.
+                    self._vision_capable = False
+                    return
+                data = await resp.json()
+            self._vision_capable = bool(data.get("supports_vision"))
+        except (aiohttp.ClientError, TimeoutError, ValueError, ConnectionError):
+            _LOGGER.debug("AI Gateway capabilities fetch failed; keeping cached value")
 
     @property
     def requires_api_key(self) -> bool:
