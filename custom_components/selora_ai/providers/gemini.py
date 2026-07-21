@@ -54,6 +54,10 @@ class GeminiProvider(LLMProvider):
     def provider_name(self) -> str:
         return f"Google Gemini ({self._model})"
 
+    @property
+    def supports_vision(self) -> bool:
+        return True
+
     # -- HTTP plumbing -----------------------------------------------------
 
     def _get_headers(self) -> dict[str, str]:
@@ -92,7 +96,24 @@ class GeminiProvider(LLMProvider):
 
             parts: list[dict[str, Any]] = []
             content = msg.get("content")
-            if content:
+            if isinstance(content, list):
+                # Neutral content blocks (see base.supports_vision) — text
+                # becomes a text part, images become inlineData parts.
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    if block.get("type") == "text" and block.get("text"):
+                        parts.append({"text": block["text"]})
+                    elif block.get("type") == "image":
+                        parts.append(
+                            {
+                                "inlineData": {
+                                    "mimeType": block.get("media_type", "image/png"),
+                                    "data": block.get("data", ""),
+                                }
+                            }
+                        )
+            elif content:
                 parts.append({"text": content})
 
             # Tool call results from our side

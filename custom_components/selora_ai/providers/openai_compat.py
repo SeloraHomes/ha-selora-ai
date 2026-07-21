@@ -40,6 +40,36 @@ class OpenAICompatibleProvider(LLMProvider):
 
     # -- Payload & response ------------------------------------------------
 
+    @staticmethod
+    def _adapt_image_blocks(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Convert neutral image blocks (see base.supports_vision) to
+        OpenAI vision content: ``{"type": "image_url", "image_url": {"url":
+        "data:<mime>;base64,<data>"}}``. Messages without neutral image
+        blocks pass through untouched.
+        """
+        adapted: list[dict[str, Any]] = []
+        for msg in messages:
+            content = msg.get("content")
+            if not isinstance(content, list) or not any(
+                isinstance(b, dict) and b.get("type") == "image" for b in content
+            ):
+                adapted.append(msg)
+                continue
+            blocks: list[dict[str, Any]] = []
+            for b in content:
+                if isinstance(b, dict) and b.get("type") == "image":
+                    mime = b.get("media_type", "image/png")
+                    blocks.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:{mime};base64,{b.get('data', '')}"},
+                        }
+                    )
+                else:
+                    blocks.append(b)
+            adapted.append({**msg, "content": blocks})
+        return adapted
+
     def build_payload(
         self,
         system: str,
@@ -51,7 +81,10 @@ class OpenAICompatibleProvider(LLMProvider):
     ) -> OpenAIChatPayload:
         payload: OpenAIChatPayload = {
             "model": self._model,
-            "messages": [{"role": "system", "content": system}, *messages],
+            "messages": [
+                {"role": "system", "content": system},
+                *self._adapt_image_blocks(messages),
+            ],
             # Serialize the output cap into the body. Without this the
             # OpenAI-compatible cloud providers (OpenAI, OpenRouter, Selora
             # Cloud) fall back to the server's default completion cap and

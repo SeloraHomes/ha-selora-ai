@@ -250,6 +250,22 @@ class SuggestionDict(TypedDict, total=False):
     dismissal_reason: str | None
 
 
+# ── Chat attachments ──────────────────────────────────────────────────
+
+
+class ImageAttachment(TypedDict):
+    """A base64-encoded image the user attached to a chat message.
+
+    ``data`` is the raw base64 payload (no ``data:`` URL prefix);
+    ``mime_type`` is one of ``CHAT_ATTACHMENT_MIME_TYPES`` in const.py.
+    Attachments ride the current turn only — they are never persisted to
+    the conversation store or replayed in history.
+    """
+
+    mime_type: str
+    data: str
+
+
 # ── LLM usage tracking ────────────────────────────────────────────────
 
 

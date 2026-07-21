@@ -17,6 +17,26 @@ from .openai_compat import OpenAICompatibleProvider
 
 _LOGGER = logging.getLogger(__name__)
 
+# Substrings identifying multimodal model families in Ollama's catalog.
+# Vision is per-model there — a text-only model silently ignores (or
+# errors on) image_url blocks, so the capability flag has to look at the
+# configured model name rather than the provider.
+_VISION_MODEL_HINTS = (
+    "llava",
+    "llama4",
+    "llama3.2-vision",
+    "qwen2.5vl",
+    "qwen3-vl",
+    "qwen-vl",
+    "gemma3",
+    "minicpm-v",
+    "moondream",
+    "granite3.2-vision",
+    "mistral-small3",
+    "pixtral",
+    "vision",
+)
+
 
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama local LLM provider."""
@@ -51,6 +71,11 @@ class OllamaProvider(OpenAICompatibleProvider):
     @property
     def is_local(self) -> bool:
         return True
+
+    @property
+    def supports_vision(self) -> bool:
+        model = self._model.lower()
+        return any(hint in model for hint in _VISION_MODEL_HINTS)
 
     async def health_check(self) -> bool:
         """Check Ollama is reachable and the model is pulled."""

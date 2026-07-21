@@ -41,15 +41,20 @@ if TYPE_CHECKING:
     from .automation_store import AutomationStore
     from .device_manager import DeviceManager
     from .health_monitor import HealthMonitor
+    from .llm_client import LLMClient
     from .pattern_store import PatternStore
     from .scene_store import SceneStore
-    from .types import EntitySnapshot
+    from .types import EntitySnapshot, ImageAttachment
 
 from .agent_steps import decode_step, is_step_chunk, make_step
 from .automation_utils import suggestion_content_fingerprint
 from .const import (
     AIGATEWAY_TOKEN_PATH,
     APPROVAL_RISK_LOW,
+    CHAT_ATTACHMENT_MAX_B64_BYTES,
+    CHAT_ATTACHMENT_MAX_COUNT,
+    CHAT_ATTACHMENT_MAX_TOTAL_B64_BYTES,
+    CHAT_ATTACHMENT_MIME_TYPES,
     COLLECTOR_DOMAINS,
     CONF_AIGATEWAY_ACCESS_TOKEN,
     CONF_AIGATEWAY_CLIENT_ID,
@@ -836,6 +841,71 @@ def _sanitize_history_override(req_history: list[Any]) -> list[dict[str, str]]:
         if role in ("user", "assistant") and content:
             history.append({"role": role, "content": content})
     return history
+
+
+# Persisted stand-in for an image-only chat turn. Attachments are
+# deliberately never stored, so an empty typed message would reload as a
+# blank user bubble, drop the image context from later turns' history,
+# and leave the sidebar title empty. Keyed by base language code like the
+# other runtime strings (_APPROVAL_*_BY_LANG); falls back to English.
+_IMAGE_TURN_PLACEHOLDER_BY_LANG = {
+    "en": "[Image attached]",
+    "fr": "[Image jointe]",
+    "de": "[Bild angehängt]",
+    "es": "[Imagen adjunta]",
+    "it": "[Immagine allegata]",
+}
+
+
+def _persistable_user_message(
+    user_message: str,
+    attachments: list[ImageAttachment],
+    language: str | None,
+) -> str:
+    """Return the user-turn text to persist — a placeholder for image-only turns."""
+    if user_message.strip() or not attachments:
+        return user_message
+    base = (language or "en").split("-")[0].lower()
+    return _IMAGE_TURN_PLACEHOLDER_BY_LANG.get(base, _IMAGE_TURN_PLACEHOLDER_BY_LANG["en"])
+
+
+def _validate_chat_attachments(
+    raw: list[dict[str, Any]] | None,
+    llm: LLMClient,
+) -> tuple[list[ImageAttachment], str | None]:
+    """Validate chat image attachments against caps and provider capability.
+
+    Returns (attachments, error). The mime types are already pinned by the
+    websocket schema; this enforces the count/size caps and the
+    supports_vision gate (the panel hides the affordance for non-vision
+    providers, but a raw WS client can still send anything).
+    """
+    if not raw:
+        return [], None
+    if not getattr(llm.provider, "supports_vision", False):
+        return [], (
+            f"{llm.provider_name} can't analyze images. "
+            "Switch to a vision-capable model to send screenshots."
+        )
+    if len(raw) > CHAT_ATTACHMENT_MAX_COUNT:
+        return [], f"Too many images — the limit is {CHAT_ATTACHMENT_MAX_COUNT} per message."
+    attachments: list[ImageAttachment] = []
+    total_b64 = 0
+    for item in raw:
+        data = item.get("data", "")
+        if not data or len(data) > CHAT_ATTACHMENT_MAX_B64_BYTES:
+            return [], "An attached image is empty or too large."
+        total_b64 += len(data)
+        attachments.append({"mime_type": item["mime_type"], "data": data})
+    # Combined budget: HA's websocket closes the connection on frames past
+    # aiohttp's 4 MiB default, so the whole payload must stay under it.
+    # This is a backstop — the panel enforces the same budget before
+    # sending, which is what actually prevents the oversized frame.
+    if total_b64 > CHAT_ATTACHMENT_MAX_TOTAL_B64_BYTES:
+        return [], (
+            "The attached images are too large together — remove one or use smaller screenshots."
+        )
+    return attachments, None
 
 
 def _build_history_from_session(
@@ -1795,6 +1865,13 @@ def _create_tool_executor(
         # history, replaces the session-derived history when present.
         vol.Optional("history"): list,
         vol.Optional("language"): vol.Any(str, None),
+        # Base64 screenshots for the current turn (see _validate_chat_attachments).
+        vol.Optional("attachments"): [
+            {
+                vol.Required("mime_type"): vol.In(CHAT_ATTACHMENT_MIME_TYPES),
+                vol.Required("data"): str,
+            }
+        ],
     }
 )
 async def _handle_websocket_chat(
@@ -1822,6 +1899,20 @@ async def _handle_websocket_chat(
     )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
+
+    if msg.get("attachments"):
+        # TTL-cached; populates dynamic vision flags (OpenRouter, Selora
+        # Cloud) so the gate below reflects the live model, not a cold cache.
+        await llm.provider.async_refresh_capabilities()
+    attachments, attachment_error = _validate_chat_attachments(msg.get("attachments"), llm)
+    if attachment_error:
+        connection.send_error(msg["id"], "invalid_attachments", attachment_error)
+        return
+    # Attachments are never stored, so an image-only turn persists a
+    # placeholder instead of a blank bubble (see _persistable_user_message).
+    persisted_user_message = _persistable_user_message(
+        user_message, attachments, msg.get("language")
+    )
 
     record_activity(hass, "chat_messages")
     if session_created:
@@ -1861,7 +1952,7 @@ async def _handle_websocket_chat(
             skip_refining_scene_yaml=refining_scene is not None,
         )
 
-    await store.append_message(session_id, "user", user_message)
+    await store.append_message(session_id, "user", persisted_user_message)
 
     entities = _collect_entity_states(hass)
     automations = _collect_existing_automations(hass)
@@ -1880,6 +1971,7 @@ async def _handle_websocket_chat(
         areas=area_names,
         session_id=session_id,
         language=msg.get("language"),
+        attachments=attachments or None,
     )
 
     if "error" in result and result.get("intent") != "answer":
@@ -2231,6 +2323,13 @@ async def _retry_invalid_automation(
         # before the handler ever runs, and the chat send raises.
         vol.Optional("history"): list,
         vol.Optional("language"): vol.Any(str, None),
+        # Base64 screenshots for the current turn (see _validate_chat_attachments).
+        vol.Optional("attachments"): [
+            {
+                vol.Required("mime_type"): vol.In(CHAT_ATTACHMENT_MIME_TYPES),
+                vol.Required("data"): str,
+            }
+        ],
     }
 )
 async def _handle_websocket_chat_stream(
@@ -2278,6 +2377,23 @@ async def _handle_websocket_chat_stream(
     )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
+
+    if msg.get("attachments"):
+        # TTL-cached; populates dynamic vision flags (OpenRouter, Selora
+        # Cloud) so the gate below reflects the live model, not a cold cache.
+        await llm.provider.async_refresh_capabilities()
+    attachments, attachment_error = _validate_chat_attachments(msg.get("attachments"), llm)
+    if attachment_error:
+        _safe_send_message(
+            connection,
+            websocket_api.event_message(msg["id"], {"type": "error", "message": attachment_error}),
+        )
+        return
+    # Attachments are never stored, so an image-only turn persists a
+    # placeholder instead of a blank bubble (see _persistable_user_message).
+    persisted_user_message = _persistable_user_message(
+        user_message, attachments, msg.get("language")
+    )
 
     record_activity(hass, "chat_messages")
     if session_created:
@@ -2376,7 +2492,7 @@ async def _handle_websocket_chat_stream(
         # violating the wire-envelope contract.
         executed_records = [_executed_record_from_call(c) for c in executed_calls]
         _redact_executed_entity_ids_for_generic_references(hass, executed_records, user_message)
-        await store.append_message(session_id, "user", user_message)
+        await store.append_message(session_id, "user", persisted_user_message)
         await store.append_message(
             session_id,
             "assistant",
@@ -2524,6 +2640,7 @@ async def _handle_websocket_chat_stream(
                 areas=area_names,
                 session_id=session_id,
                 language=msg.get("language"),
+                attachments=attachments or None,
             ),
             idle_timeout=effective_idle_timeout,
             max_bytes=STREAM_MAX_BYTES,
@@ -2852,7 +2969,7 @@ async def _handle_websocket_chat_stream(
         command_approval_payload = (
             parsed.get("command_approval") if intent_type == "command_approval" else None
         )
-        await store.append_message(session_id, "user", user_message)
+        await store.append_message(session_id, "user", persisted_user_message)
         await store.append_message(
             session_id,
             "assistant",
@@ -2898,14 +3015,16 @@ async def _handle_websocket_chat_stream(
         current_title = (updated_session or {}).get("title", "")
         is_default_title = (
             current_title == "New conversation"
-            or current_title == user_message[:60]
+            or current_title == persisted_user_message[:60]
             or _is_pure_greeting(current_title)
         )
         if is_default_title and not _is_pure_greeting(user_message):
 
             async def _generate_title() -> None:
                 try:
-                    title = await llm.generate_session_title(user_message, response_text)
+                    # The persisted form so an image-only first turn titles
+                    # from "[Image attached]" instead of an empty string.
+                    title = await llm.generate_session_title(persisted_user_message, response_text)
                     await store.update_session_title(session_id, title)
                     _LOGGER.debug("Auto-titled session %s: %s", session_id, title)
                 except Exception:

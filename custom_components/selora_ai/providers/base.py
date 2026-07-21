@@ -257,6 +257,29 @@ class LLMProvider(ABC):
         """
         return False
 
+    @property
+    def supports_vision(self) -> bool:
+        """Whether the provider accepts image content in user messages.
+
+        A provider returning True must handle user messages whose
+        ``content`` is a list of neutral blocks instead of a plain string:
+        ``{"type": "text", "text": str}`` and
+        ``{"type": "image", "media_type": str, "data": <base64 str>}``.
+        ``build_payload`` converts those into the provider's wire format.
+        Gated at the websocket layer, so providers returning False never
+        receive image blocks.
+        """
+        return False
+
+    async def async_refresh_capabilities(self) -> None:  # noqa: B027 — deliberate no-op hook
+        """Refresh dynamically discovered capabilities (e.g. supports_vision).
+
+        No-op for providers whose capabilities are static. Providers that
+        route to a server-side-configured model (Selora Cloud) override
+        this to ask the backend. Called from the ``get_config`` websocket
+        handler before capability flags are read; must never raise.
+        """
+
     # -- HTTP plumbing (abstract) ------------------------------------------
 
     @abstractmethod
@@ -409,7 +432,7 @@ class LLMProvider(ABC):
     async def send_request(
         self,
         system: str,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         *,
         max_tokens: int = 1024,
         log_errors: bool = True,
@@ -548,7 +571,7 @@ class LLMProvider(ABC):
     async def send_request_stream(
         self,
         system: str,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         *,
         max_tokens: int = 1024,
     ) -> AsyncIterator[str]:

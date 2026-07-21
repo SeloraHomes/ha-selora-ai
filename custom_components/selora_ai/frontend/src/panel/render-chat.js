@@ -32,6 +32,12 @@ import {
   stripEntityMarkers,
   findGhostSuggestion,
 } from "./chat-autocomplete.js";
+import {
+  addImageAttachments,
+  renderAttachmentStrip,
+  renderDropOverlay,
+  supportsImageAttachments,
+} from "./chat-attachments.js";
 
 const AUTOCOMPLETE_KIND_LABEL_KEYS = {
   device: ["chat_autocomplete_kind_devices", "Devices"],
@@ -190,6 +196,7 @@ export function renderChat(host) {
   if (isEmpty) {
     return html`
       <div class="chat-pane">
+        ${renderDropOverlay(host)}
         <div class="chat-welcome-center" id="chat-messages">
           ${keyed(
             host._welcomeKey || 0,
@@ -329,6 +336,7 @@ export function renderChat(host) {
 
   return html`
     <div class="chat-pane">
+      ${renderDropOverlay(host)}
       <div
         class="chat-messages"
         id="chat-messages"
@@ -426,12 +434,22 @@ export function _maybeDecodePercentEncoded(text) {
   return null;
 }
 
-// Paste handler for the composer. Transparently decodes percent-encoded
-// clipboard content (see _maybeDecodePercentEncoded); for any other text
-// it does nothing and lets the browser's native paste run.
+// Paste handler for the composer. Pasted screenshots become pending image
+// attachments (when the active model supports vision). For text it
+// transparently decodes percent-encoded clipboard content (see
+// _maybeDecodePercentEncoded); anything else falls through to the
+// browser's native paste.
 function _handlePaste(host, e) {
   const clip = e.clipboardData;
   if (!clip) return;
+  const imageFiles = Array.from(clip.files || []).filter((f) =>
+    f.type.startsWith("image/"),
+  );
+  if (imageFiles.length) {
+    e.preventDefault();
+    addImageAttachments(host, imageFiles);
+    return;
+  }
   const decoded = _maybeDecodePercentEncoded(clip.getData("text"));
   if (decoded === null) return;
   e.preventDefault();
@@ -886,13 +904,38 @@ function _renderComposer(host, opts = {}) {
   // overflow:hidden to contain the welcome-variant glow). Anchoring it
   // outside the clipping box is what lets the suggestions actually
   // appear above the input.
+  // Drag-and-drop screenshots onto the composer. The handlers live on the
+  // composer box (not the textarea) so the whole input area is a target;
+  // dragover must preventDefault or the browser navigates to the file.
+  const onDragOver = (e) => {
+    if (!e.dataTransfer?.types?.includes?.("Files")) return;
+    e.preventDefault();
+    if (!supportsImageAttachments(host)) return;
+    if (!host._composerDragOver) host._composerDragOver = true;
+  };
+  const onDragLeave = (e) => {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    if (host._composerDragOver) host._composerDragOver = false;
+  };
+  const onDrop = (e) => {
+    if (!e.dataTransfer?.files?.length) return;
+    e.preventDefault();
+    host._composerDragOver = false;
+    addImageAttachments(host, e.dataTransfer.files);
+  };
   return html`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
       <div
-        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}"
+        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${
+          host._composerDragOver ? " composer-dragover" : ""
+        }"
+        @dragover=${onDragOver}
+        @dragleave=${onDragLeave}
+        @drop=${onDrop}
       >
         <div class="composer-input-col">
+          ${renderAttachmentStrip(host)}
           <div class="composer-textarea-wrap">
             ${_renderGhostOverlay(host)}
             <textarea
@@ -1087,6 +1130,34 @@ function _renderComposer(host, opts = {}) {
           ${_renderSelectionChips(host)}
         </div>
         ${
+          supportsImageAttachments(host)
+            ? html`<input
+                  type="file"
+                  id="selora-chat-image-input"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                  hidden
+                  @change=${(e) => {
+                    addImageAttachments(host, e.target.files);
+                    e.target.value = "";
+                  }}
+                /><button
+                  class="composer-attach"
+                  title=${host._t(
+                    "chat_attach_image",
+                    "Attach an image — drag & drop or paste works too",
+                  )}
+                  ?disabled=${host._loading || host._streaming}
+                  @click=${() =>
+                    host.renderRoot
+                      ?.querySelector("#selora-chat-image-input")
+                      ?.click()}
+                >
+                  <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+                </button>`
+            : html``
+        }
+        ${
           host._streaming
             ? html`<button
                 class="composer-send"
@@ -1098,7 +1169,11 @@ function _renderComposer(host, opts = {}) {
             : html`<button
                 class="composer-send"
                 @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || !host._input.trim()}
+                ?disabled=${
+                  host._loading ||
+                  !!host._attachmentsBusy ||
+                  (!host._input.trim() && !(host._chatAttachments || []).length)
+                }
                 title=${host._t("chat_send", "Send")}
               >
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
@@ -1200,6 +1275,23 @@ export function renderMessage(host, msg, idx) {
         isUser
           ? html`
               <div class="bubble user">
+                ${
+                  msg.attachments?.length
+                    ? html`
+                        <div class="bubble-attachments">
+                          ${msg.attachments.map(
+                            (a) => html`
+                              <img
+                                src=${a.dataUrl}
+                                alt=${a.name || "image"}
+                                loading="lazy"
+                              />
+                            `,
+                          )}
+                        </div>
+                      `
+                    : html``
+                }
                 <span
                   class="msg-content"
                   .textContent=${stripEntityMarkers(msg.content)}

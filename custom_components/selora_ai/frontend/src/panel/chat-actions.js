@@ -4,6 +4,7 @@ import {
   buildEntityMarker,
   pruneStaleSelections,
 } from "./chat-autocomplete.js";
+import { attachmentsForSend } from "./chat-attachments.js";
 
 export function _quickStart(message) {
   this._input = message;
@@ -217,7 +218,17 @@ function _finaliseInterruption(
 }
 
 export async function _sendMessage() {
-  if (!this._input.trim() || this._loading) return;
+  // A screenshot with no typed text is a valid turn (the backend builds
+  // an image-plus-context message from an empty request). Block while an
+  // image is still decoding/resizing so the send can't miss it.
+  const hasPendingAttachments = (this._chatAttachments || []).length > 0;
+  if (
+    (!this._input.trim() && !hasPendingAttachments) ||
+    this._loading ||
+    this._attachmentsBusy
+  ) {
+    return;
+  }
   const userMsg = this._input;
   // Resolve autocomplete chips into an explicit entity marker so the
   // backend never has to fuzzy-match the device the user named. The marker
@@ -228,7 +239,33 @@ export async function _sendMessage() {
   );
   const marker = buildEntityMarker(activeSelections);
   const userMsgForSend = marker ? userMsg + marker : userMsg;
-  this._messages = [...this._messages, { role: "user", content: userMsg }];
+  // Snapshot pending image attachments for this turn. The wire payload
+  // carries stripped base64 ({mime_type, data}); the local bubble keeps
+  // the dataUrls so the thumbnails render. Attachments are current-turn
+  // only — the backend never persists them, so a session reload shows
+  // just the text.
+  const pendingAttachments = this._chatAttachments || [];
+  const wireAttachments = attachmentsForSend(this);
+  const bubbleAttachments = pendingAttachments.map((a) => ({
+    name: a.name,
+    dataUrl: a.dataUrl,
+  }));
+  // Retry must restore the full attachment objects (dataUrl + mimeType),
+  // not just the text — otherwise retrying a failed image turn silently
+  // re-sends a question about an image the model never receives.
+  const retryPayload = wireAttachments.length
+    ? { message: userMsgForSend, attachments: pendingAttachments }
+    : userMsgForSend;
+  this._chatAttachments = [];
+  this._attachmentNotice = "";
+  this._messages = [
+    ...this._messages,
+    {
+      role: "user",
+      content: userMsg,
+      ...(bubbleAttachments.length ? { attachments: bubbleAttachments } : {}),
+    },
+  ];
   this._input = "";
   // Reset shell-style history cursor — a fresh send starts a new
   // draft. ArrowUp on the next turn begins from the newest message,
@@ -324,6 +361,9 @@ export async function _sendMessage() {
       type: "selora_ai/chat_stream",
       message: userMsgForSend,
     };
+    if (wireAttachments.length) {
+      subscribePayload.attachments = wireAttachments;
+    }
     if (this._activeSessionId) {
       subscribePayload.session_id = this._activeSessionId;
     }
@@ -349,7 +389,7 @@ export async function _sendMessage() {
       _finaliseInterruption(
         this,
         assistantMsg,
-        userMsgForSend,
+        retryPayload,
         this._t(
           "chat_actions_interrupt_disconnect",
           "Connection to Home Assistant was lost mid-response.",
@@ -379,7 +419,7 @@ export async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsgForSend,
+          retryPayload,
           firstTokenSeen
             ? this._t(
                 "chat_actions_interrupt_server_stopped",
@@ -474,7 +514,7 @@ export async function _sendMessage() {
           _finaliseInterruption(
             this,
             assistantMsg,
-            userMsgForSend,
+            retryPayload,
             this._t(
               "chat_actions_interrupt_truncated",
               "Response looks cut short — try again.",
@@ -573,7 +613,7 @@ export async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsgForSend,
+          retryPayload,
           event.message ||
             this._t(
               "chat_actions_interrupt_llm_unreachable",
@@ -593,7 +633,7 @@ export async function _sendMessage() {
     _finaliseInterruption(
       this,
       assistantMsg,
-      userMsgForSend,
+      retryPayload,
       err.message ||
         this._t(
           "chat_actions_interrupt_session_start_failed",
@@ -605,10 +645,22 @@ export async function _sendMessage() {
 }
 
 // Re-send a message that was previously interrupted. Called from the
-// Retry control rendered under interrupted bubbles.
-export function _retryMessage(text) {
-  if (!text || this._loading) return;
-  this._input = text;
+// Retry control rendered under interrupted bubbles. The payload is a
+// plain string for text-only turns, or {message, attachments} when the
+// failed turn carried images — restoring them into the pending strip so
+// _sendMessage re-sends the full turn.
+export function _retryMessage(payload) {
+  if (!payload || this._loading) return;
+  const isObject = typeof payload === "object";
+  const text = isObject ? payload.message : payload;
+  const attachments = isObject ? payload.attachments : null;
+  // An image-only turn retries with an empty message — valid as long as
+  // the attachments are there to re-send.
+  if (!text && !attachments?.length) return;
+  this._input = text || "";
+  if (attachments?.length) {
+    this._chatAttachments = attachments;
+  }
   this._sendMessage();
 }
 

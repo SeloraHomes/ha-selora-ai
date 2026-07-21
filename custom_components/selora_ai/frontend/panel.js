@@ -3833,6 +3833,126 @@ var chatStyles = i`
   .composer-selection-chip button:hover {
     color: var(--primary-text-color);
   }
+  /* Quiet ghost sibling of .composer-send — opens the image file picker.
+     Only rendered when the active model supports vision. */
+  .composer-attach {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    --mdc-icon-size: 20px;
+  }
+  .composer-attach:hover:not(:disabled) {
+    color: var(--primary-text-color);
+    background: rgba(251, 191, 36, 0.12);
+  }
+  .composer-attach:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  /* Drag-and-drop target state while image files hover the composer. */
+  .composer-styled.composer-dragover {
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25);
+  }
+  /* Full-pane drop target shown while a file drag is in flight anywhere
+     over the panel. Purely visual — pointer events pass through so the
+     drop lands on the composer / global guard. */
+  .chat-drop-overlay {
+    position: absolute;
+    inset: 8px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed rgba(251, 191, 36, 0.65);
+    border-radius: 18px;
+    background: color-mix(
+      in srgb,
+      var(--card-background-color, #27272a) 78%,
+      transparent
+    );
+    pointer-events: none;
+  }
+  .chat-drop-overlay-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+  }
+  .chat-drop-overlay-inner ha-icon {
+    --mdc-icon-size: 40px;
+    color: rgba(251, 191, 36, 0.9);
+  }
+  /* Pending image attachments (dropped/pasted screenshots), rendered as
+     thumbnails above the typed text inside the composer box. */
+  .composer-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .composer-attachment {
+    position: relative;
+    display: inline-flex;
+  }
+  .composer-attachment img {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
+  }
+  .composer-attachment-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--secondary-background-color, #3f3f46);
+    color: var(--primary-text-color);
+    font-size: 11px;
+    line-height: 16px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .composer-attachment-remove:hover {
+    background: var(--divider-color, #52525b);
+  }
+  .composer-attachment-notice {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+  }
+  /* Screenshot thumbnails inside a sent user bubble. */
+  .bubble-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .bubble-attachments img {
+    max-width: 180px;
+    max-height: 140px;
+    border-radius: 10px;
+    border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
+  }
 `;
 
 // src/panel/styles/proposals.css.js
@@ -8223,6 +8343,13 @@ var en_default = {
     chat_selection_remove: "Remove",
     chat_stop_generating: "Stop generating",
     chat_send: "Send",
+    chat_attachment_remove: "Remove image",
+    chat_attachment_unsupported: "Your current AI model can't analyze images.",
+    chat_attachment_limit: "You can attach up to 4 images per message.",
+    chat_attachment_read_error: "Couldn't read that image.",
+    chat_attachment_too_large: "That image is too large to send.",
+    chat_attach_image: "Attach an image \u2014 drag & drop or paste works too",
+    chat_attachment_drop_here: "Drop images to attach",
     chat_building_scene: "Building scene...",
     chat_go_to_settings: "Go to Settings",
     chat_response_cut_short: "Response was cut short.",
@@ -9287,6 +9414,17 @@ var fr_default = {
     chat_selection_remove: "Retirer",
     chat_stop_generating: "Arr\xEAter la g\xE9n\xE9ration",
     chat_send: "Envoyer",
+    chat_attachment_remove: "Retirer l'image",
+    chat_attachment_unsupported:
+      "Votre mod\xE8le d'IA actuel ne peut pas analyser les images.",
+    chat_attachment_limit:
+      "Vous pouvez joindre jusqu'\xE0 4 images par message.",
+    chat_attachment_read_error: "Impossible de lire cette image.",
+    chat_attachment_too_large:
+      "Cette image est trop volumineuse pour \xEAtre envoy\xE9e.",
+    chat_attach_image:
+      "Joindre une image \u2014 le glisser-d\xE9poser ou le collage fonctionne aussi",
+    chat_attachment_drop_here: "D\xE9posez des images pour les joindre",
     chat_building_scene: "Cr\xE9ation de la sc\xE8ne...",
     chat_go_to_settings: "Aller aux Param\xE8tres",
     chat_response_cut_short: "La r\xE9ponse a \xE9t\xE9 tronqu\xE9e.",
@@ -10400,6 +10538,16 @@ var de_default = {
     chat_selection_remove: "Entfernen",
     chat_stop_generating: "Generierung stoppen",
     chat_send: "Senden",
+    chat_attachment_remove: "Bild entfernen",
+    chat_attachment_unsupported:
+      "Ihr aktuelles KI-Modell kann keine Bilder analysieren.",
+    chat_attachment_limit:
+      "Sie k\xF6nnen bis zu 4 Bilder pro Nachricht anh\xE4ngen.",
+    chat_attachment_read_error: "Dieses Bild konnte nicht gelesen werden.",
+    chat_attachment_too_large: "Dieses Bild ist zu gro\xDF zum Senden.",
+    chat_attach_image:
+      "Bild anh\xE4ngen \u2014 Ziehen & Ablegen oder Einf\xFCgen funktioniert auch",
+    chat_attachment_drop_here: "Bilder hier ablegen zum Anh\xE4ngen",
     chat_building_scene: "Szene wird erstellt...",
     chat_go_to_settings: "Zu den Einstellungen",
     chat_response_cut_short: "Antwort wurde abgeschnitten.",
@@ -11504,6 +11652,15 @@ var es_default = {
     chat_selection_remove: "Quitar",
     chat_stop_generating: "Detener generaci\xF3n",
     chat_send: "Enviar",
+    chat_attachment_remove: "Quitar imagen",
+    chat_attachment_unsupported:
+      "Tu modelo de IA actual no puede analizar im\xE1genes.",
+    chat_attachment_limit: "Puedes adjuntar hasta 4 im\xE1genes por mensaje.",
+    chat_attachment_read_error: "No se pudo leer esa imagen.",
+    chat_attachment_too_large: "Esa imagen es demasiado grande para enviarla.",
+    chat_attach_image:
+      "Adjuntar una imagen \u2014 tambi\xE9n puedes arrastrar y soltar o pegar",
+    chat_attachment_drop_here: "Suelta im\xE1genes para adjuntarlas",
     chat_building_scene: "Construyendo escena...",
     chat_go_to_settings: "Ir a Configuraci\xF3n",
     chat_response_cut_short: "La respuesta se cort\xF3.",
@@ -12594,6 +12751,16 @@ var it_default = {
     chat_selection_remove: "Rimuovi",
     chat_stop_generating: "Interrompi generazione",
     chat_send: "Invia",
+    chat_attachment_remove: "Rimuovi immagine",
+    chat_attachment_unsupported:
+      "Il tuo modello di IA attuale non pu\xF2 analizzare le immagini.",
+    chat_attachment_limit: "Puoi allegare fino a 4 immagini per messaggio.",
+    chat_attachment_read_error: "Impossibile leggere questa immagine.",
+    chat_attachment_too_large:
+      "Questa immagine \xE8 troppo grande per essere inviata.",
+    chat_attach_image:
+      "Allega un'immagine \u2014 funziona anche trascinare o incollare",
+    chat_attachment_drop_here: "Rilascia le immagini per allegarle",
     chat_building_scene: "Creazione scena in corso...",
     chat_go_to_settings: "Vai a Impostazioni",
     chat_response_cut_short: "La risposta \xE8 stata troncata.",
@@ -13702,6 +13869,16 @@ var nl_default = {
     chat_selection_remove: "Verwijderen",
     chat_stop_generating: "Generatie stoppen",
     chat_send: "Verzenden",
+    chat_attachment_remove: "Afbeelding verwijderen",
+    chat_attachment_unsupported:
+      "Je huidige AI-model kan geen afbeeldingen analyseren.",
+    chat_attachment_limit:
+      "Je kunt maximaal 4 afbeeldingen per bericht bijvoegen.",
+    chat_attachment_read_error: "Kon die afbeelding niet lezen.",
+    chat_attachment_too_large: "Die afbeelding is te groot om te verzenden.",
+    chat_attach_image:
+      "Afbeelding toevoegen \u2014 slepen of plakken werkt ook",
+    chat_attachment_drop_here: "Sleep afbeeldingen hierheen om bij te voegen",
     chat_building_scene: "Sc\xE8ne bouwen...",
     chat_go_to_settings: "Ga naar Instellingen",
     chat_response_cut_short: "Antwoord werd afgekapt.",
@@ -14796,6 +14973,16 @@ var hu_default = {
     chat_selection_remove: "Elt\xE1vol\xEDt\xE1s",
     chat_stop_generating: "Gener\xE1l\xE1s le\xE1ll\xEDt\xE1sa",
     chat_send: "K\xFCld\xE9s",
+    chat_attachment_remove: "K\xE9p elt\xE1vol\xEDt\xE1sa",
+    chat_attachment_unsupported:
+      "A jelenlegi AI-modell nem tud k\xE9peket elemezni.",
+    chat_attachment_limit:
+      "\xDCzenetenk\xE9nt legfeljebb 4 k\xE9pet csatolhatsz.",
+    chat_attachment_read_error: "Nem siker\xFClt beolvasni a k\xE9pet.",
+    chat_attachment_too_large: "Ez a k\xE9p t\xFAl nagy a k\xFCld\xE9shez.",
+    chat_attach_image:
+      "K\xE9p csatol\xE1sa \u2014 h\xFAz\xE1s vagy beilleszt\xE9s is m\u0171k\xF6dik",
+    chat_attachment_drop_here: "H\xFAzd ide a k\xE9peket a csatol\xE1shoz",
     chat_building_scene: "Jelenet \xE9p\xEDt\xE9se...",
     chat_go_to_settings: "Ugr\xE1s a Be\xE1ll\xEDt\xE1sokhoz",
     chat_response_cut_short: "A v\xE1lasz csonka maradt.",
@@ -15911,6 +16098,15 @@ var pt_default = {
     chat_selection_remove: "Remover",
     chat_stop_generating: "Parar de gerar",
     chat_send: "Enviar",
+    chat_attachment_remove: "Remover imagem",
+    chat_attachment_unsupported:
+      "O seu modelo de IA atual n\xE3o consegue analisar imagens.",
+    chat_attachment_limit: "Pode anexar at\xE9 4 imagens por mensagem.",
+    chat_attachment_read_error: "N\xE3o foi poss\xEDvel ler essa imagem.",
+    chat_attachment_too_large: "Essa imagem \xE9 demasiado grande para enviar.",
+    chat_attach_image:
+      "Anexar uma imagem \u2014 arrastar e largar ou colar tamb\xE9m funciona",
+    chat_attachment_drop_here: "Largue imagens para anexar",
     chat_building_scene: "A criar cena...",
     chat_go_to_settings: "Ir para as defini\xE7\xF5es",
     chat_response_cut_short: "A resposta foi interrompida.",
@@ -17076,6 +17272,20 @@ var ru_default = {
     chat_stop_generating:
       "\u041E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044E",
     chat_send: "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C",
+    chat_attachment_remove:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435",
+    chat_attachment_unsupported:
+      "\u0422\u0435\u043A\u0443\u0449\u0430\u044F \u043C\u043E\u0434\u0435\u043B\u044C \u0418\u0418 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442 \u0430\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F.",
+    chat_attachment_limit:
+      "\u041C\u043E\u0436\u043D\u043E \u043F\u0440\u0438\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u043D\u0435 \u0431\u043E\u043B\u0435\u0435 4 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0439 \u043A \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044E.",
+    chat_attachment_read_error:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C \u044D\u0442\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435.",
+    chat_attachment_too_large:
+      "\u042D\u0442\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u0431\u043E\u043B\u044C\u0448\u043E\u0435 \u0434\u043B\u044F \u043E\u0442\u043F\u0440\u0430\u0432\u043A\u0438.",
+    chat_attach_image:
+      "\u041F\u0440\u0438\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u0435\u0440\u0435\u0442\u0430\u0441\u043A\u0438\u0432\u0430\u043D\u0438\u0435 \u0438 \u0432\u0441\u0442\u0430\u0432\u043A\u0430 \u0442\u043E\u0436\u0435 \u0440\u0430\u0431\u043E\u0442\u0430\u044E\u0442",
+    chat_attachment_drop_here:
+      "\u041F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u0435 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u0438\u043A\u0440\u0435\u043F\u0438\u0442\u044C",
     chat_building_scene:
       "\u0421\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u0441\u0446\u0435\u043D\u044B...",
     chat_go_to_settings:
@@ -18672,6 +18882,19 @@ var ja_default = {
     chat_selection_remove: "\u524A\u9664",
     chat_stop_generating: "\u751F\u6210\u3092\u505C\u6B62",
     chat_send: "\u9001\u4FE1",
+    chat_attachment_remove: "\u753B\u50CF\u3092\u524A\u9664",
+    chat_attachment_unsupported:
+      "\u73FE\u5728\u306EAI\u30E2\u30C7\u30EB\u306F\u753B\u50CF\u3092\u89E3\u6790\u3067\u304D\u307E\u305B\u3093\u3002",
+    chat_attachment_limit:
+      "1\u3064\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u306B\u6DFB\u4ED8\u3067\u304D\u308B\u753B\u50CF\u306F4\u679A\u307E\u3067\u3067\u3059\u3002",
+    chat_attachment_read_error:
+      "\u305D\u306E\u753B\u50CF\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    chat_attachment_too_large:
+      "\u3053\u306E\u753B\u50CF\u306F\u5927\u304D\u3059\u304E\u3066\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3002",
+    chat_attach_image:
+      "\u753B\u50CF\u3092\u6DFB\u4ED8 \u2014 \u30C9\u30E9\u30C3\u30B0&\u30C9\u30ED\u30C3\u30D7\u3084\u8CBC\u308A\u4ED8\u3051\u3082\u4F7F\u3048\u307E\u3059",
+    chat_attachment_drop_here:
+      "\u753B\u50CF\u3092\u30C9\u30ED\u30C3\u30D7\u3057\u3066\u6DFB\u4ED8",
     chat_building_scene: "\u30B7\u30FC\u30F3\u3092\u4F5C\u6210\u4E2D...",
     chat_go_to_settings: "\u8A2D\u5B9A\u3078\u79FB\u52D5",
     chat_response_cut_short:
@@ -20003,6 +20226,19 @@ var ko_default = {
     chat_selection_remove: "\uC81C\uAC70",
     chat_stop_generating: "\uC0DD\uC131 \uC911\uC9C0",
     chat_send: "\uBCF4\uB0B4\uAE30",
+    chat_attachment_remove: "\uC774\uBBF8\uC9C0 \uC81C\uAC70",
+    chat_attachment_unsupported:
+      "\uD604\uC7AC AI \uBAA8\uB378\uC740 \uC774\uBBF8\uC9C0\uB97C \uBD84\uC11D\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    chat_attachment_limit:
+      "\uBA54\uC2DC\uC9C0\uB2F9 \uCD5C\uB300 4\uAC1C\uC758 \uC774\uBBF8\uC9C0\uB97C \uCCA8\uBD80\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    chat_attachment_read_error:
+      "\uD574\uB2F9 \uC774\uBBF8\uC9C0\uB97C \uC77D\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    chat_attachment_too_large:
+      "\uC774\uBBF8\uC9C0\uAC00 \uB108\uBB34 \uCEE4\uC11C \uBCF4\uB0BC \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    chat_attach_image:
+      "\uC774\uBBF8\uC9C0 \uCCA8\uBD80 \u2014 \uB4DC\uB798\uADF8 \uC564 \uB4DC\uB86D\uC774\uB098 \uBD99\uC5EC\uB123\uAE30\uB3C4 \uAC00\uB2A5\uD569\uB2C8\uB2E4",
+    chat_attachment_drop_here:
+      "\uC774\uBBF8\uC9C0\uB97C \uB193\uC544 \uCCA8\uBD80",
     chat_building_scene: "\uC7A5\uBA74 \uC0DD\uC131 \uC911...",
     chat_go_to_settings: "\uC124\uC815\uC73C\uB85C \uC774\uB3D9",
     chat_response_cut_short:
@@ -21224,6 +21460,18 @@ var zh_Hans_default = {
     chat_selection_remove: "\u79FB\u9664",
     chat_stop_generating: "\u505C\u6B62\u751F\u6210",
     chat_send: "\u53D1\u9001",
+    chat_attachment_remove: "\u79FB\u9664\u56FE\u7247",
+    chat_attachment_unsupported:
+      "\u5F53\u524D\u7684 AI \u6A21\u578B\u65E0\u6CD5\u5206\u6790\u56FE\u7247\u3002",
+    chat_attachment_limit:
+      "\u6BCF\u6761\u6D88\u606F\u6700\u591A\u53EF\u9644\u52A0 4 \u5F20\u56FE\u7247\u3002",
+    chat_attachment_read_error:
+      "\u65E0\u6CD5\u8BFB\u53D6\u8BE5\u56FE\u7247\u3002",
+    chat_attachment_too_large:
+      "\u8BE5\u56FE\u7247\u592A\u5927\uFF0C\u65E0\u6CD5\u53D1\u9001\u3002",
+    chat_attach_image:
+      "\u9644\u52A0\u56FE\u7247 \u2014 \u4E5F\u53EF\u4EE5\u62D6\u653E\u6216\u7C98\u8D34",
+    chat_attachment_drop_here: "\u62D6\u653E\u56FE\u7247\u4EE5\u9644\u52A0",
     chat_building_scene: "\u6B63\u5728\u6784\u5EFA\u573A\u666F\u2026",
     chat_go_to_settings: "\u524D\u5F80\u8BBE\u7F6E",
     chat_response_cut_short: "\u56DE\u590D\u88AB\u622A\u65AD\u3002",
@@ -22403,6 +22651,18 @@ var zh_Hant_default = {
     chat_selection_remove: "\u79FB\u9664",
     chat_stop_generating: "\u505C\u6B62\u7522\u751F",
     chat_send: "\u50B3\u9001",
+    chat_attachment_remove: "\u79FB\u9664\u5716\u7247",
+    chat_attachment_unsupported:
+      "\u76EE\u524D\u7684 AI \u6A21\u578B\u7121\u6CD5\u5206\u6790\u5716\u7247\u3002",
+    chat_attachment_limit:
+      "\u6BCF\u5247\u8A0A\u606F\u6700\u591A\u53EF\u9644\u52A0 4 \u5F35\u5716\u7247\u3002",
+    chat_attachment_read_error:
+      "\u7121\u6CD5\u8B80\u53D6\u8A72\u5716\u7247\u3002",
+    chat_attachment_too_large:
+      "\u8A72\u5716\u7247\u592A\u5927\uFF0C\u7121\u6CD5\u50B3\u9001\u3002",
+    chat_attach_image:
+      "\u9644\u52A0\u5716\u7247 \u2014 \u4E5F\u53EF\u4EE5\u62D6\u653E\u6216\u8CBC\u4E0A",
+    chat_attachment_drop_here: "\u62D6\u653E\u5716\u7247\u4EE5\u9644\u52A0",
     chat_building_scene: "\u6B63\u5728\u5EFA\u7ACB\u60C5\u5883...",
     chat_go_to_settings: "\u524D\u5F80\u8A2D\u5B9A",
     chat_response_cut_short: "\u56DE\u8986\u88AB\u622A\u65B7\u3002",
@@ -25836,6 +26096,236 @@ function pruneStaleSelections(text, selections) {
   });
 }
 
+// src/panel/chat-attachments.js
+var MAX_CHAT_ATTACHMENTS = 4;
+var MAX_B64_PER_IMAGE = 2 * 1024 * 1024;
+var MAX_B64_TOTAL = 3 * 1024 * 1024;
+var MAX_EDGE_PX = 1568;
+var JPEG_QUALITY = 0.85;
+var KEEP_ORIGINAL_MAX_BYTES = 300 * 1024;
+var ACCEPTED_MIME = /* @__PURE__ */ new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+function supportsImageAttachments(host) {
+  return !!host._config?.supports_vision;
+}
+function _b64Length(attachment) {
+  return Math.max(
+    0,
+    attachment.dataUrl.length - attachment.dataUrl.indexOf(",") - 1,
+  );
+}
+function _readAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+function _loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("decode failed"));
+    img.src = dataUrl;
+  });
+}
+async function _processImageFile(file) {
+  const originalDataUrl = await _readAsDataUrl(file);
+  const img = await _loadImage(originalDataUrl);
+  const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
+  if (maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES) {
+    return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
+  }
+  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return {
+    name: file.name,
+    mimeType: "image/jpeg",
+    dataUrl: canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+  };
+}
+async function addImageAttachments(host, files) {
+  const images = Array.from(files || []).filter((f3) =>
+    ACCEPTED_MIME.has(f3.type),
+  );
+  if (!images.length) return;
+  if (!supportsImageAttachments(host)) {
+    host._attachmentNotice = host._t(
+      "chat_attachment_unsupported",
+      "Your current AI model can't analyze images.",
+    );
+    return;
+  }
+  const reserved = host._attachmentSlotsReserved || 0;
+  const room =
+    MAX_CHAT_ATTACHMENTS - (host._chatAttachments || []).length - reserved;
+  if (room <= 0) {
+    host._attachmentNotice = host._t(
+      "chat_attachment_limit",
+      "You can attach up to 4 images per message.",
+    );
+    return;
+  }
+  const accepted = images.slice(0, room);
+  const results = [];
+  host._attachmentsBusy = (host._attachmentsBusy || 0) + 1;
+  host._attachmentSlotsReserved = reserved + accepted.length;
+  let totalB64 = (host._chatAttachments || []).reduce(
+    (sum, a3) => sum + _b64Length(a3),
+    0,
+  );
+  try {
+    for (const file of accepted) {
+      try {
+        const processed = await _processImageFile(file);
+        const size = _b64Length(processed);
+        if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
+          host._attachmentNotice = host._t(
+            "chat_attachment_too_large",
+            "That image is too large to send.",
+          );
+          continue;
+        }
+        totalB64 += size;
+        results.push(processed);
+      } catch (_2) {
+        host._attachmentNotice = host._t(
+          "chat_attachment_read_error",
+          "Couldn't read that image.",
+        );
+      }
+    }
+  } finally {
+    host._attachmentsBusy = Math.max(0, (host._attachmentsBusy || 1) - 1);
+    host._attachmentSlotsReserved = Math.max(
+      0,
+      (host._attachmentSlotsReserved || accepted.length) - accepted.length,
+    );
+  }
+  if (!results.length) return;
+  host._chatAttachments = [...(host._chatAttachments || []), ...results].slice(
+    0,
+    MAX_CHAT_ATTACHMENTS,
+  );
+  host._attachmentNotice =
+    images.length > room
+      ? host._t(
+          "chat_attachment_limit",
+          "You can attach up to 4 images per message.",
+        )
+      : "";
+}
+function removeChatAttachment(host, idx) {
+  host._chatAttachments = (host._chatAttachments || []).filter(
+    (_2, i7) => i7 !== idx,
+  );
+  host._attachmentNotice = "";
+}
+function attachmentsForSend(host) {
+  return (host._chatAttachments || [])
+    .map((a3) => {
+      const comma = a3.dataUrl.indexOf(",");
+      if (comma < 0) return null;
+      return { mime_type: a3.mimeType, data: a3.dataUrl.slice(comma + 1) };
+    })
+    .filter(Boolean);
+}
+function createGlobalDropGuard(host) {
+  const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
+  let depth = 0;
+  const setDropActive = (value) => {
+    if (host._chatDropActive !== value) host._chatDropActive = value;
+  };
+  const onDragEnter = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth += 1;
+    if (host._activeTab === "chat" && supportsImageAttachments(host)) {
+      setDropActive(true);
+    }
+  };
+  const onDragLeave = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth = Math.max(0, depth - 1);
+    if (depth === 0) setDropActive(false);
+  };
+  const onDragOver = (e6) => {
+    if (isFileDrag(e6)) e6.preventDefault();
+  };
+  const onDrop = (e6) => {
+    depth = 0;
+    setDropActive(false);
+    if (!isFileDrag(e6) || e6.defaultPrevented) return;
+    e6.preventDefault();
+    if (host._activeTab === "chat" && e6.dataTransfer.files?.length) {
+      addImageAttachments(host, e6.dataTransfer.files);
+    }
+  };
+  window.addEventListener("dragenter", onDragEnter);
+  window.addEventListener("dragleave", onDragLeave);
+  window.addEventListener("dragover", onDragOver);
+  window.addEventListener("drop", onDrop);
+  return () => {
+    window.removeEventListener("dragenter", onDragEnter);
+    window.removeEventListener("dragleave", onDragLeave);
+    window.removeEventListener("dragover", onDragOver);
+    window.removeEventListener("drop", onDrop);
+  };
+}
+function renderDropOverlay(host) {
+  if (!host._chatDropActive) return b2``;
+  return b2`
+    <div class="chat-drop-overlay">
+      <div class="chat-drop-overlay-inner">
+        <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+        <span
+          >${host._t("chat_attachment_drop_here", "Drop images to attach")}</span
+        >
+      </div>
+    </div>
+  `;
+}
+function renderAttachmentStrip(host) {
+  const attachments = host._chatAttachments || [];
+  if (!attachments.length && !host._attachmentNotice) return b2``;
+  return b2`
+    <div class="composer-attachments">
+      ${attachments.map(
+        (a3, idx) => b2`
+          <span class="composer-attachment">
+            <img src=${a3.dataUrl} alt=${a3.name || "image"} />
+            <button
+              type="button"
+              class="composer-attachment-remove"
+              title=${host._t("chat_attachment_remove", "Remove image")}
+              @click=${() => removeChatAttachment(host, idx)}
+            >
+              ×
+            </button>
+          </span>
+        `,
+      )}
+      ${
+        host._attachmentNotice
+          ? b2`<span class="composer-attachment-notice"
+              >${host._attachmentNotice}</span
+            >`
+          : b2``
+      }
+    </div>
+  `;
+}
+
 // src/panel/render-chat.js
 var AUTOMATION_LABEL_KEYS = [
   ["chat_automation_label_building", "Building automation..."],
@@ -25978,6 +26468,7 @@ function renderChat(host) {
   if (isEmpty) {
     return b2`
       <div class="chat-pane">
+        ${renderDropOverlay(host)}
         <div class="chat-welcome-center" id="chat-messages">
           ${i6(
             host._welcomeKey || 0,
@@ -26110,6 +26601,7 @@ function renderChat(host) {
       : null;
   return b2`
     <div class="chat-pane">
+      ${renderDropOverlay(host)}
       <div
         class="chat-messages"
         id="chat-messages"
@@ -26182,6 +26674,14 @@ function _maybeDecodePercentEncoded(text) {
 function _handlePaste(host, e6) {
   const clip = e6.clipboardData;
   if (!clip) return;
+  const imageFiles = Array.from(clip.files || []).filter((f3) =>
+    f3.type.startsWith("image/"),
+  );
+  if (imageFiles.length) {
+    e6.preventDefault();
+    addImageAttachments(host, imageFiles);
+    return;
+  }
   const decoded = _maybeDecodePercentEncoded(clip.getData("text"));
   if (decoded === null) return;
   e6.preventDefault();
@@ -26527,13 +27027,33 @@ function _renderSelectionChips(host) {
 }
 function _renderComposer(host, opts = {}) {
   const welcome = !!opts.welcome;
+  const onDragOver = (e6) => {
+    if (!e6.dataTransfer?.types?.includes?.("Files")) return;
+    e6.preventDefault();
+    if (!supportsImageAttachments(host)) return;
+    if (!host._composerDragOver) host._composerDragOver = true;
+  };
+  const onDragLeave = (e6) => {
+    if (e6.currentTarget.contains(e6.relatedTarget)) return;
+    if (host._composerDragOver) host._composerDragOver = false;
+  };
+  const onDrop = (e6) => {
+    if (!e6.dataTransfer?.files?.length) return;
+    e6.preventDefault();
+    host._composerDragOver = false;
+    addImageAttachments(host, e6.dataTransfer.files);
+  };
   return b2`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
       <div
-        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}"
+        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${host._composerDragOver ? " composer-dragover" : ""}"
+        @dragover=${onDragOver}
+        @dragleave=${onDragLeave}
+        @drop=${onDrop}
       >
         <div class="composer-input-col">
+          ${renderAttachmentStrip(host)}
           <div class="composer-textarea-wrap">
             ${_renderGhostOverlay(host)}
             <textarea
@@ -26702,6 +27222,31 @@ function _renderComposer(host, opts = {}) {
           ${_renderSelectionChips(host)}
         </div>
         ${
+          supportsImageAttachments(host)
+            ? b2`<input
+                  type="file"
+                  id="selora-chat-image-input"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                  hidden
+                  @change=${(e6) => {
+                    addImageAttachments(host, e6.target.files);
+                    e6.target.value = "";
+                  }}
+                /><button
+                  class="composer-attach"
+                  title=${host._t(
+                    "chat_attach_image",
+                    "Attach an image \u2014 drag & drop or paste works too",
+                  )}
+                  ?disabled=${host._loading || host._streaming}
+                  @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
+                >
+                  <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+                </button>`
+            : b2``
+        }
+        ${
           host._streaming
             ? b2`<button
                 class="composer-send"
@@ -26713,7 +27258,7 @@ function _renderComposer(host, opts = {}) {
             : b2`<button
                 class="composer-send"
                 @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || !host._input.trim()}
+                ?disabled=${host._loading || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
                 title=${host._t("chat_send", "Send")}
               >
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
@@ -26783,6 +27328,23 @@ function renderMessage(host, msg, idx) {
         isUser
           ? b2`
               <div class="bubble user">
+                ${
+                  msg.attachments?.length
+                    ? b2`
+                        <div class="bubble-attachments">
+                          ${msg.attachments.map(
+                            (a3) => b2`
+                              <img
+                                src=${a3.dataUrl}
+                                alt=${a3.name || "image"}
+                                loading="lazy"
+                              />
+                            `,
+                          )}
+                        </div>
+                      `
+                    : b2``
+                }
                 <span
                   class="msg-content"
                   .textContent=${stripEntityMarkers(msg.content)}
@@ -44480,7 +45042,14 @@ function _finaliseInterruption(
   }
 }
 async function _sendMessage() {
-  if (!this._input.trim() || this._loading) return;
+  const hasPendingAttachments = (this._chatAttachments || []).length > 0;
+  if (
+    (!this._input.trim() && !hasPendingAttachments) ||
+    this._loading ||
+    this._attachmentsBusy
+  ) {
+    return;
+  }
   const userMsg = this._input;
   const activeSelections = pruneStaleSelections(
     userMsg,
@@ -44488,7 +45057,25 @@ async function _sendMessage() {
   );
   const marker = buildEntityMarker(activeSelections);
   const userMsgForSend = marker ? userMsg + marker : userMsg;
-  this._messages = [...this._messages, { role: "user", content: userMsg }];
+  const pendingAttachments = this._chatAttachments || [];
+  const wireAttachments = attachmentsForSend(this);
+  const bubbleAttachments = pendingAttachments.map((a3) => ({
+    name: a3.name,
+    dataUrl: a3.dataUrl,
+  }));
+  const retryPayload = wireAttachments.length
+    ? { message: userMsgForSend, attachments: pendingAttachments }
+    : userMsgForSend;
+  this._chatAttachments = [];
+  this._attachmentNotice = "";
+  this._messages = [
+    ...this._messages,
+    {
+      role: "user",
+      content: userMsg,
+      ...(bubbleAttachments.length ? { attachments: bubbleAttachments } : {}),
+    },
+  ];
   this._input = "";
   this._historyIndex = null;
   this._historyDraft = "";
@@ -44548,6 +45135,9 @@ async function _sendMessage() {
       type: "selora_ai/chat_stream",
       message: userMsgForSend,
     };
+    if (wireAttachments.length) {
+      subscribePayload.attachments = wireAttachments;
+    }
     if (this._activeSessionId) {
       subscribePayload.session_id = this._activeSessionId;
     }
@@ -44561,7 +45151,7 @@ async function _sendMessage() {
       _finaliseInterruption(
         this,
         assistantMsg,
-        userMsgForSend,
+        retryPayload,
         this._t(
           "chat_actions_interrupt_disconnect",
           "Connection to Home Assistant was lost mid-response.",
@@ -44582,7 +45172,7 @@ async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsgForSend,
+          retryPayload,
           firstTokenSeen
             ? this._t(
                 "chat_actions_interrupt_server_stopped",
@@ -44648,7 +45238,7 @@ async function _sendMessage() {
           _finaliseInterruption(
             this,
             assistantMsg,
-            userMsgForSend,
+            retryPayload,
             this._t(
               "chat_actions_interrupt_truncated",
               "Response looks cut short \u2014 try again.",
@@ -44714,7 +45304,7 @@ async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsgForSend,
+          retryPayload,
           event.message ||
             this._t(
               "chat_actions_interrupt_llm_unreachable",
@@ -44731,7 +45321,7 @@ async function _sendMessage() {
     _finaliseInterruption(
       this,
       assistantMsg,
-      userMsgForSend,
+      retryPayload,
       err.message ||
         this._t(
           "chat_actions_interrupt_session_start_failed",
@@ -44741,9 +45331,16 @@ async function _sendMessage() {
     );
   }
 }
-function _retryMessage(text) {
-  if (!text || this._loading) return;
-  this._input = text;
+function _retryMessage(payload) {
+  if (!payload || this._loading) return;
+  const isObject = typeof payload === "object";
+  const text = isObject ? payload.message : payload;
+  const attachments = isObject ? payload.attachments : null;
+  if (!text && !attachments?.length) return;
+  this._input = text || "";
+  if (attachments?.length) {
+    this._chatAttachments = attachments;
+  }
   this._sendMessage();
 }
 function _stopStreaming() {
@@ -45967,6 +46564,17 @@ var SeloraAIPanel = class extends i4 {
       _autocompleteSelections: { type: Array },
       // Ghost-text completion of common chat vocabulary
       _ghost: { type: Object },
+      // Pending image attachments (dropped/pasted screenshots) + transient
+      // error notice shown in the composer strip
+      _chatAttachments: { type: Array },
+      _attachmentNotice: { type: String },
+      // Count of in-flight image decode/resize batches — Send is blocked
+      // while non-zero so a mid-processing click can't drop the image.
+      _attachmentsBusy: { type: Number },
+      _composerDragOver: { type: Boolean },
+      // True while a file drag is in flight anywhere over the window
+      // (chat tab + vision model) — drives the full-pane drop overlay.
+      _chatDropActive: { type: Boolean },
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
       // Tabs
@@ -46252,6 +46860,12 @@ var SeloraAIPanel = class extends i4 {
     };
     this._autocompleteSelections = [];
     this._ghost = null;
+    this._chatAttachments = [];
+    this._attachmentNotice = "";
+    this._attachmentsBusy = 0;
+    this._attachmentSlotsReserved = 0;
+    this._composerDragOver = false;
+    this._chatDropActive = false;
     this._streams = /* @__PURE__ */ new Set();
     this._showSidebar = false;
     this._activeTab = "chat";
@@ -46452,6 +47066,7 @@ var SeloraAIPanel = class extends i4 {
       this._checkTabParam();
     };
     window.addEventListener("location-changed", this._locationHandler);
+    this._dropGuardTeardown = createGlobalDropGuard(this);
     this._keyDownHandler = (e6) => {
       if (
         e6.key === "Escape" &&
@@ -46683,6 +47298,10 @@ var SeloraAIPanel = class extends i4 {
     }
     if (this._locationHandler) {
       window.removeEventListener("location-changed", this._locationHandler);
+    }
+    if (this._dropGuardTeardown) {
+      this._dropGuardTeardown();
+      this._dropGuardTeardown = null;
     }
     if (this._closeOverflowHandler) {
       document.removeEventListener("click", this._closeOverflowHandler);
