@@ -19,8 +19,6 @@ jobs:
         uses: "hacs/action@main"
         with:
           category: "integration"
-          # Proprietary Selora Homes Software License; not SPDX-identifiable
-          ignore: "license"
 
   validate-hassfest:
     runs-on: "ubuntu-latest"
