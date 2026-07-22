@@ -1,6 +1,6 @@
 """Cheap regex heuristics for chat intent classification and entity filtering.
 
-Used by the low-context provider path (e.g. SeloraLocal add-on, max_seq=1024)
+Used by the low-context provider path (e.g. Selora AI Local, max_seq=1024)
 to pre-classify intent before the LLM call, and to filter the AVAILABLE
 ENTITIES list down to the ones the message might be about. Cloud providers
 self-classify in their long system prompt instead.

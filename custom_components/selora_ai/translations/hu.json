@@ -55,9 +55,9 @@
       },
       "selora_local": {
         "title": "Selora AI Local konfiguráció",
-        "description": "Csatlakozzon az eszközön futó Selora AI Local Home Assistant kiegészítőhöz. A kiegészítő a 8080-as porton figyel. Az alábbi alapértelmezett cím HA OS esetén a Supervisor átjárón keresztül működik. A specialista modell automatikusan kerül kiválasztásra kérésenként.",
+        "description": "A Selora AI Local a Selora AI modellt a saját hálózatán futtatja egy önállóan üzemeltetett llama-server segítségével (a 8080-as porton figyel). Adja meg alább a címét — az alapértelmezett érték akkor működik, ha a kiszolgáló a Home Assistanttal azonos gépen fut. A specialista modell kérésenként automatikusan kerül kiválasztásra.",
         "data": {
-          "selora_local_host": "Kiegészítő-kiszolgáló URL"
+          "selora_local_host": "Kiszolgáló URL"
         }
       },
       "select_devices": {
@@ -256,7 +256,7 @@
     "settings_ollama_host_label": "Gazdagép",
     "settings_selora_local_show_advanced": "Speciális beállítások megjelenítése",
     "settings_selora_local_hide_advanced": "Speciális beállítások elrejtése",
-    "settings_selora_local_advanced_desc": "A Selora hubok előre konfigurálva érkeznek. Saját üzemeltetésű, a Selora AI modellt futtató llama-server használatához adja meg annak címét alább.",
+    "settings_selora_local_advanced_desc": "A Selora AI Local a Selora AI modellt a saját hálózatán futtatja egy önállóan üzemeltetett llama-server segítségével (a 8080-as porton figyel). Adja meg alább a címét — az alapértelmezett érték akkor működik, ha a kiszolgáló a Home Assistanttal azonos gépen fut. A specialista modell kérésenként automatikusan kerül kiválasztásra.",
     "settings_selora_local_host_label": "Gazdagép",
     "settings_selora_local_auto_detected_prefix": "Automatikusan észlelve:",
     "settings_selora_local_auto_detected_none": "nincs",

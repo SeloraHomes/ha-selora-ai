@@ -55,7 +55,7 @@
       },
       "selora_local": {
         "title": "Configuração do Selora AI Local",
-        "description": "Os Selora Hubs vêm pré-configurados. Para utilizar um llama-server auto-alojado a executar o modelo Selora AI, introduza o seu endereço abaixo.",
+        "description": "O Selora AI Local executa o modelo Selora AI na sua própria rede através de um llama-server auto-alojado (à escuta na porta 8080). Introduza o seu endereço abaixo — o valor predefinido funciona quando o servidor é executado no mesmo anfitrião que o Home Assistant. O modelo especializado é selecionado automaticamente em cada pedido.",
         "data": {
           "selora_local_host": "URL do anfitrião"
         }
@@ -236,7 +236,7 @@
     "settings_ollama_host_label": "Anfitrião",
     "settings_selora_local_show_advanced": "Mostrar opções avançadas",
     "settings_selora_local_hide_advanced": "Ocultar opções avançadas",
-    "settings_selora_local_advanced_desc": "Os Selora Hubs vêm pré-configurados. Para utilizar um llama-server auto-alojado a executar o modelo Selora AI, introduza o seu endereço abaixo.",
+    "settings_selora_local_advanced_desc": "O Selora AI Local executa o modelo Selora AI na sua própria rede através de um llama-server auto-alojado (à escuta na porta 8080). Introduza o seu endereço abaixo — o valor predefinido funciona quando o servidor é executado no mesmo anfitrião que o Home Assistant. O modelo especializado é selecionado automaticamente em cada pedido.",
     "settings_selora_local_host_label": "Anfitrião",
     "settings_selora_local_auto_detected_prefix": "Detetado automaticamente:",
     "settings_selora_local_auto_detected_none": "nenhum",

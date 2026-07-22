@@ -160,8 +160,8 @@ function _renderProviderPicker(host) {
                         host._updateConfig("llm_provider", p.value);
                         // Switching to Selora Local: if the backend was
                         // detected at a non-default host (typical on HA OS
-                        // where the add-on lives on the Supervisor bridge),
-                        // prefill that host so saving the form doesn't
+                        // where the server is reachable via the Supervisor
+                        // bridge), prefill that host so saving the form doesn't
                         // immediately fail validation against localhost.
                         if (
                           p.value === "selora_local" &&
@@ -750,7 +750,7 @@ export function renderSettings(host) {
                                     >
                                       ${host._t(
                                         "settings_selora_local_advanced_desc",
-                                        "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+                                        "Selora AI Local runs the Selora AI model on your own network via a self-hosted llama-server (listening on port 8080). Enter its address below — the default works when the server runs on the same host as Home Assistant. The specialist model is selected automatically per request.",
                                       )}
                                     </p>
                                     <div

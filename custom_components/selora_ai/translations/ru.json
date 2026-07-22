@@ -55,7 +55,7 @@
       },
       "selora_local": {
         "title": "Настройка Selora AI Local",
-        "description": "Хабы Selora поставляются предварительно настроенными. Чтобы использовать самостоятельно размещённый llama-server с моделью Selora AI, укажите его адрес ниже.",
+        "description": "Selora AI Local запускает модель Selora AI в вашей собственной сети через самостоятельно размещённый llama-server (слушает порт 8080). Укажите его адрес ниже — значение по умолчанию работает, когда сервер запущен на том же хосте, что и Home Assistant. Специализированная модель выбирается автоматически при каждом запросе.",
         "data": {
           "selora_local_host": "URL-адрес хоста"
         }
@@ -236,7 +236,7 @@
     "settings_ollama_host_label": "Хост",
     "settings_selora_local_show_advanced": "Показать расширенные параметры",
     "settings_selora_local_hide_advanced": "Скрыть расширенные параметры",
-    "settings_selora_local_advanced_desc": "Хабы Selora поставляются предварительно настроенными. Чтобы использовать самостоятельно размещённый llama-server с моделью Selora AI, укажите его адрес ниже.",
+    "settings_selora_local_advanced_desc": "Selora AI Local запускает модель Selora AI в вашей собственной сети через самостоятельно размещённый llama-server (слушает порт 8080). Укажите его адрес ниже — значение по умолчанию работает, когда сервер запущен на том же хосте, что и Home Assistant. Специализированная модель выбирается автоматически при каждом запросе.",
     "settings_selora_local_host_label": "Хост",
     "settings_selora_local_auto_detected_prefix": "Автоопределение:",
     "settings_selora_local_auto_detected_none": "нет",

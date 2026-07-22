@@ -28,7 +28,7 @@ Selora AI is a smart-home AI butler for Home Assistant. It connects to an LLM ba
 ## Requirements
 
 - Home Assistant **2025.1** or later
-- For **Selora AI Local**: a reachable Selora Hub (auto-discovered) or a self-hosted [llama-server](https://github.com/ggml-org/llama.cpp) serving the [Selora AI model](https://huggingface.co/selorahomes/Selora-AI). No API key.
+- For **Selora AI Local**: a self-hosted [llama-server](https://github.com/ggml-org/llama.cpp) serving the [Selora AI model](https://huggingface.co/selorahomes/Selora-AI), reachable from your HA host. No API key.
 - For **Anthropic Claude**: an [Anthropic API key](https://console.anthropic.com/)
 - For **OpenAI**: an [OpenAI API key](https://platform.openai.com/)
 - For **Google Gemini**: a [Google AI Studio API key](https://aistudio.google.com/)
@@ -58,10 +58,9 @@ Selora AI Local is our own task-tuned model that runs entirely on your network �
 
 ### Where the model runs
 
-Selora AI Local talks to a `llama-server` instance (from [llama.cpp](https://github.com/ggml-org/llama.cpp)) over its OpenAI-compatible HTTP API. Two deployment options:
+Selora AI Local talks to a `llama-server` instance (from [llama.cpp](https://github.com/ggml-org/llama.cpp)) over its OpenAI-compatible HTTP API. You run llama-server yourself — with the base model loaded and the four LoRAs registered as slots — see [Running with `llama.cpp`](#running-with-llamacpp) below.
 
-1. **Selora Hub add-on** (recommended) — install the Selora Hub add-on from the Home Assistant add-on store. The integration auto-discovers it through Supervisor and pre-fills the host URL during setup.
-2. **Self-hosted llama-server** — run llama-server yourself with the base model loaded and the four LoRAs registered as slots. Point the integration at `http://<host>:8080` during the *Selora AI Local* config step.
+During setup, the integration probes common locations (localhost and the Home Assistant Supervisor bridge network) for a reachable server and pre-fills the host URL. If none is found, point the integration at `http://<host>:8080` during the *Selora AI Local* config step.
 
 The integration handles LoRA-slot activation (`POST /lora-adapters`) per request, so the right specialist answers each call.
 

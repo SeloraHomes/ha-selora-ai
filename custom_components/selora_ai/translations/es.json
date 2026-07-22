@@ -55,9 +55,9 @@
       },
       "selora_local": {
         "title": "Configuración de Selora AI Local",
-        "description": "Conéctese al complemento Selora AI Local Home Assistant que se ejecuta en el dispositivo. El complemento escucha en el puerto 8080. La dirección predeterminada de abajo funciona para HA OS a través de la puerta de enlace Supervisor. El modelo especializado se selecciona automáticamente en cada solicitud.",
+        "description": "Selora AI Local ejecuta el modelo Selora AI en su propia red mediante un llama-server autoalojado (que escucha en el puerto 8080). Introduzca su dirección a continuación: el valor predeterminado funciona cuando el servidor se ejecuta en el mismo host que Home Assistant. El modelo especializado se selecciona automáticamente en cada solicitud.",
         "data": {
-          "selora_local_host": "URL del host del complemento"
+          "selora_local_host": "URL del host"
         }
       },
       "select_devices": {
@@ -236,7 +236,7 @@
     "settings_ollama_host_label": "Host",
     "settings_selora_local_show_advanced": "Mostrar opciones avanzadas",
     "settings_selora_local_hide_advanced": "Ocultar opciones avanzadas",
-    "settings_selora_local_advanced_desc": "Los hubs Selora vienen preconfigurados. Para usar un llama-server autoalojado que ejecute el modelo Selora AI, introduce su dirección a continuación.",
+    "settings_selora_local_advanced_desc": "Selora AI Local ejecuta el modelo Selora AI en su propia red mediante un llama-server autoalojado (que escucha en el puerto 8080). Introduzca su dirección a continuación: el valor predeterminado funciona cuando el servidor se ejecuta en el mismo host que Home Assistant. El modelo especializado se selecciona automáticamente en cada solicitud.",
     "settings_selora_local_host_label": "Host",
     "settings_selora_local_auto_detected_prefix": "Detectado automáticamente:",
     "settings_selora_local_auto_detected_none": "ninguno",

@@ -55,7 +55,7 @@
       },
       "selora_local": {
         "title": "Selora AI Local 구성",
-        "description": "Selora 허브는 사전 구성되어 있습니다. Selora AI 모델을 실행하는 자체 호스팅 llama-server를 사용하려면 아래에 주소를 입력하세요.",
+        "description": "Selora AI Local은 자체 호스팅 llama-server(포트 8080에서 수신 대기)를 통해 사용자 네트워크에서 Selora AI 모델을 실행합니다. 아래에 해당 주소를 입력하세요. 기본값은 서버가 Home Assistant와 동일한 호스트에서 실행될 때 작동합니다. 전문 모델은 요청마다 자동으로 선택됩니다.",
         "data": {
           "selora_local_host": "호스트 URL"
         }
@@ -236,7 +236,7 @@
     "settings_ollama_host_label": "호스트",
     "settings_selora_local_show_advanced": "고급 옵션 표시",
     "settings_selora_local_hide_advanced": "고급 옵션 숨기기",
-    "settings_selora_local_advanced_desc": "Selora 허브는 사전 구성되어 있습니다. Selora AI 모델을 실행하는 자체 호스팅 llama-server를 사용하려면 아래에 주소를 입력하세요.",
+    "settings_selora_local_advanced_desc": "Selora AI Local은 자체 호스팅 llama-server(포트 8080에서 수신 대기)를 통해 사용자 네트워크에서 Selora AI 모델을 실행합니다. 아래에 해당 주소를 입력하세요. 기본값은 서버가 Home Assistant와 동일한 호스트에서 실행될 때 작동합니다. 전문 모델은 요청마다 자동으로 선택됩니다.",
     "settings_selora_local_host_label": "호스트",
     "settings_selora_local_auto_detected_prefix": "자동 감지됨:",
     "settings_selora_local_auto_detected_none": "없음",

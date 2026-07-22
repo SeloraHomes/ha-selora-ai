@@ -719,7 +719,7 @@ class LLMClient:
 
         with self._usage.scope("chat"):
             if self._provider.is_low_context:
-                # Low-context backend (e.g. SeloraLocal add-on, max_seq=1024):
+                # Low-context backend (e.g. Selora AI Local, max_seq=1024):
                 # pre-classify the user's intent so the provider can route
                 # to the right specialist, then use a tight system prompt
                 # + filtered entity list. Tool calling is unsupported —

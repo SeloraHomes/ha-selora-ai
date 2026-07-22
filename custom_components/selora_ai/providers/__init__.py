@@ -44,11 +44,12 @@ _LOGGER = logging.getLogger(__name__)
 
 _SELORA_LOCAL_PROBE_TIMEOUT = 2.0
 
-# Hosts the local add-on can reach us on, in order of likelihood. We try
-# all of them on probe because the HA Core container only sees a
-# Supervisor-managed add-on via its bridge gateway, not `localhost`; the
-# default host string is correct for some deployments and wrong for
-# others, so we don't rely on it.
+# Hosts a locally-run llama-server may be reachable on, in order of
+# likelihood. We try all of them on probe because when the server runs in
+# a separate container (e.g. a Supervisor-managed add-on), the HA Core
+# container reaches it via a bridge gateway, not `localhost`; the default
+# host string is correct for some deployments and wrong for others, so we
+# don't rely on it.
 _SELORA_LOCAL_PROBE_HOSTS: tuple[str, ...] = (
     "http://localhost:8080",
     # Supervisor bridge gateways — HA Core inside HA OS reaches add-ons
@@ -129,51 +130,20 @@ def _split_host_port(url: str) -> tuple[str | None, int | None]:
     return parts.hostname, parts.port
 
 
-def _supervisor_selora_hosts(hass: HomeAssistant) -> list[str]:
-    """Look up installed Selora add-ons via Supervisor and return their
-    hostname-based URLs. Empty list when not on HA OS / Supervised or
-    when no matching add-on is installed.
-    """
-    try:
-        from homeassistant.components.hassio import (
-            get_addons_info,
-            hostname_from_addon_slug,
-        )
-    except ImportError:
-        return []
-
-    try:
-        addons = get_addons_info(hass) or {}
-    except Exception:  # noqa: BLE001 - Supervisor lookup must not break callers
-        _LOGGER.debug("Supervisor add-on lookup failed", exc_info=True)
-        return []
-
-    hosts: list[str] = []
-    for slug in addons:
-        if "selora" not in slug.lower():
-            continue
-        hostname = hostname_from_addon_slug(slug)
-        hosts.append(f"http://{hostname}:8080")
-    return hosts
-
-
 async def discover_selora_local_host(
     hass: HomeAssistant, configured_host: str | None = None
 ) -> str | None:
     """Return the first reachable Selora AI Local host, or ``None``.
 
-    Tries known host candidates in parallel — HA Core inside HA OS only
-    sees a Supervisor-managed add-on via its bridge gateway, not
-    ``localhost``, so the default host alone is not a reliable signal.
-    Also asks Supervisor for any installed Selora add-on and probes its
-    Docker-DNS hostname (e.g. ``http://<repo>_libselora:8080``).
-    The returned host should be used as the form default so a user who
-    accepts the prefilled value does not immediately fail validation.
+    Tries known host candidates in parallel — when the server runs in a
+    separate container, HA Core inside HA OS reaches it via a bridge
+    gateway, not ``localhost``, so the default host alone is not a reliable
+    signal. The returned host should be used as the form default so a user
+    who accepts the prefilled value does not immediately fail validation.
     """
     candidates: tuple[str, ...] = (
         *((configured_host,) if configured_host else ()),
         DEFAULT_SELORA_LOCAL_HOST,
-        *_supervisor_selora_hosts(hass),
         *_SELORA_LOCAL_PROBE_HOSTS,
     )
     hosts = list(dict.fromkeys(candidates))

@@ -218,7 +218,7 @@ async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
 
 
 async def _validate_selora_local(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
-    """Validate that the Selora AI Local add-on is reachable."""
+    """Validate that the Selora AI Local server is reachable."""
     from .providers import create_provider
 
     provider = create_provider(
@@ -227,7 +227,7 @@ async def _validate_selora_local(hass: HomeAssistant, data: dict[str, Any]) -> d
         host=data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
     )
     if not await provider.health_check():
-        raise ConnectionError("Selora AI Local add-on not reachable")
+        raise ConnectionError("Selora AI Local server not reachable")
     return {"title": "Selora AI (Local)"}
 
 
@@ -542,7 +542,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_selora_local(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Configure the Selora AI Local add-on, then chain to discovery."""
+        """Configure the Selora AI Local server, then chain to discovery."""
         errors: dict[str, str] = {}
 
         if user_input is not None:

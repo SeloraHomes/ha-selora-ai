@@ -55,9 +55,9 @@
       },
       "selora_local": {
         "title": "Selora AI Local Konfiguration",
-        "description": "Verbinden Sie sich mit dem Selora AI Local Home Assistant Add-on, das auf dem Gerät läuft. Das Add-on lauscht auf Port 8080. Die Standardadresse unten funktioniert für HA OS über das Supervisor-Gateway. Das Spezialmodell wird pro Anfrage automatisch ausgewählt.",
+        "description": "Selora AI Local führt das Selora-AI-Modell in Ihrem eigenen Netzwerk über einen selbst gehosteten llama-server aus (lauscht auf Port 8080). Geben Sie unten dessen Adresse ein – der Standardwert funktioniert, wenn der Server auf demselben Host wie Home Assistant läuft. Das Spezialmodell wird pro Anfrage automatisch ausgewählt.",
         "data": {
-          "selora_local_host": "Add-on-Host-URL"
+          "selora_local_host": "Host-URL"
         }
       },
       "select_devices": {
@@ -236,7 +236,7 @@
     "settings_ollama_host_label": "Host",
     "settings_selora_local_show_advanced": "Erweiterte Optionen anzeigen",
     "settings_selora_local_hide_advanced": "Erweiterte Optionen ausblenden",
-    "settings_selora_local_advanced_desc": "Selora-Hubs sind vorkonfiguriert. Um einen selbst gehosteten llama-server mit dem Selora-AI-Modell zu verwenden, geben Sie unten dessen Adresse ein.",
+    "settings_selora_local_advanced_desc": "Selora AI Local führt das Selora-AI-Modell in Ihrem eigenen Netzwerk über einen selbst gehosteten llama-server aus (lauscht auf Port 8080). Geben Sie unten dessen Adresse ein – der Standardwert funktioniert, wenn der Server auf demselben Host wie Home Assistant läuft. Das Spezialmodell wird pro Anfrage automatisch ausgewählt.",
     "settings_selora_local_host_label": "Host",
     "settings_selora_local_auto_detected_prefix": "Automatisch erkannt:",
     "settings_selora_local_auto_detected_none": "keine",
