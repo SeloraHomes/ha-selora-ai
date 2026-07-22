@@ -488,6 +488,115 @@ async def async_remove_scene_yaml(
     return True
 
 
+def resolve_yaml_scene_entity_id(hass: HomeAssistant, entry: dict[str, Any]) -> str | None:
+    """Resolve the HA entity_id for a scenes.yaml entry, with or without an id.
+
+    Honors the entity registry (authoritative for HA-side renames and collision
+    suffixes) and falls back to the ``scene.<slug(name)>`` state-machine probe
+    so user-authored yaml entries that omit the optional ``id`` field can still
+    be matched to their loaded entity.
+    """
+    sid = entry.get("id")
+    name = entry.get("name") if isinstance(entry.get("name"), str) else None
+    if isinstance(sid, str) and sid:
+        eid = resolve_scene_entity_id(hass, sid, name)
+        if eid:
+            return eid
+    if name:
+        candidate = f"scene.{slugify(name)}"
+        if hass.states.get(candidate) is not None:
+            return candidate
+    return None
+
+
+async def async_remove_yaml_scene_by_entity(
+    hass: HomeAssistant,
+    entity_id: str,
+) -> tuple[bool, str | None, str | None]:
+    """Remove a non-Selora, yaml-managed scene identified by its HA entity_id.
+
+    Resolves the ``scenes.yaml`` entry whose loaded entity matches *entity_id*
+    (via the registry or the name-slug probe) and removes it, handling both
+    id-bearing and id-less entries. Id-less entries are matched by their unique
+    ``name`` — the only stable handle HA uses to derive the entity slug; an
+    ambiguous name is refused rather than risk removing the wrong scene.
+
+    Shared by the MCP ``delete_scene`` tool and the panel's ``delete_scene``
+    websocket handler so both classify and delete id-less scenes identically.
+
+    Returns ``(removed, error_code, detail)``. On success ``(True, None, None)``.
+    On failure ``removed`` is False and ``error_code`` is one of ``not_found`` /
+    ``yaml_read_failed`` / ``not_yaml_managed`` / ``not_found_in_yaml`` /
+    ``no_identifier`` / ``ambiguous_name`` / ``reload_failed``; ``detail``
+    carries the underlying exception text for the failures that have one.
+    """
+    if hass.states.get(entity_id) is None:
+        return False, "not_found", None
+
+    scenes_path = _get_scenes_path(hass)
+    try:
+        yaml_entries = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    except Exception as exc:  # noqa: BLE001 — surface a clean error to the caller
+        return False, "yaml_read_failed", str(exc)
+
+    yaml_match = next(
+        (
+            e
+            for e in yaml_entries
+            if isinstance(e, dict) and resolve_yaml_scene_entity_id(hass, e) == entity_id
+        ),
+        None,
+    )
+    if yaml_match is None:
+        return False, "not_yaml_managed", None
+
+    yaml_id = yaml_match.get("id")
+    if isinstance(yaml_id, str) and yaml_id:
+        try:
+            removed = await async_remove_scene_yaml(hass, yaml_id)
+        except SceneDeleteError as exc:
+            return False, "reload_failed", str(exc)
+        if not removed:
+            return False, "not_found_in_yaml", None
+        return True, None, None
+
+    # Id-less entry: match by name. Refuse when more than one entry shares the
+    # name to avoid removing the wrong scene.
+    target_name = yaml_match.get("name")
+    if not isinstance(target_name, str) or not target_name.strip():
+        return False, "no_identifier", None
+    normalized = target_name.strip()
+    duplicates = sum(
+        1
+        for e in yaml_entries
+        if isinstance(e, dict)
+        and isinstance(e.get("name"), str)
+        and e.get("name", "").strip() == normalized
+    )
+    if duplicates > 1:
+        return False, "ambiguous_name", None
+
+    remaining = [
+        e
+        for e in yaml_entries
+        if not (
+            isinstance(e, dict)
+            and isinstance(e.get("name"), str)
+            and e.get("name", "").strip() == normalized
+            and not (isinstance(e.get("id"), str) and e["id"])
+        )
+    ]
+    async with _SCENES_YAML_LOCK:
+        previous = list(yaml_entries)
+        await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, remaining)
+        try:
+            await hass.services.async_call("scene", "reload", blocking=True)
+        except Exception as exc:  # noqa: BLE001 — restore yaml on reload failure
+            await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
+            return False, "reload_failed", str(exc)
+    return True, None, None
+
+
 async def get_area_names(hass: HomeAssistant) -> list[str]:
     """Return all area names from the HA area registry."""
     from homeassistant.helpers import area_registry as ar  # noqa: PLC0415

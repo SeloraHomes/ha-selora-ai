@@ -414,6 +414,10 @@ class SceneStore:
         cannot restore the record between the store mutation and the YAML
         removal.
 
+        The scene need not be tracked by the store: an untracked
+        (HA-native) scene present in ``scenes.yaml`` is still removed, and
+        ``found_in_store`` is reported as ``False``.
+
         *remove_yaml_fn* is an ``async`` callable that removes the scene
         from YAML and returns ``bool`` (True if the entry was found).
         Raises on reload failure.
@@ -421,23 +425,23 @@ class SceneStore:
         Returns ``(found_in_store, removed_from_yaml)``.
         """
         async with self._lock:
-            if not await self._soft_delete_locked(scene_id):
-                return False, False
+            found_in_store = await self._soft_delete_locked(scene_id)
 
             removed = await remove_yaml_fn(scene_id)
 
             # Re-stamp deleted_at in case a concurrent reconcile (which
             # could have read YAML before the removal) ran between
             # awaits inside remove_yaml_fn and cleared deleted_at.
-            await self._ensure_loaded()
-            assert self._data is not None
-            record = self._data["scenes"].get(scene_id)
-            if record is not None and record.get("deleted_at") is None:
-                record["deleted_at"] = datetime.now(UTC).isoformat()
-                await self._save()
+            if found_in_store:
+                await self._ensure_loaded()
+                assert self._data is not None
+                record = self._data["scenes"].get(scene_id)
+                if record is not None and record.get("deleted_at") is None:
+                    record["deleted_at"] = datetime.now(UTC).isoformat()
+                    await self._save()
 
             self._last_reconcile = time.monotonic()
-            return True, removed
+            return found_in_store, removed
 
     async def async_restore(self, scene_id: str) -> bool:
         """Un-delete a soft-deleted scene."""

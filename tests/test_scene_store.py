@@ -154,6 +154,43 @@ class TestSceneStoreSoftDelete:
         assert result is False
 
 
+class TestSceneStoreDeleteWithYaml:
+    async def test_deletes_tracked_scene(self, hass) -> None:
+        store, _ = _make_scene_store(hass)
+        await store.async_add_scene("s1", "Test", 2)
+
+        async def _remove(sid):
+            assert sid == "s1"
+            return True
+
+        found, removed = await store.async_delete_with_yaml("s1", _remove)
+        assert (found, removed) == (True, True)
+        record = await store.async_get_scene("s1")
+        assert record["deleted_at"] is not None
+
+    async def test_deletes_untracked_scene_from_yaml(self, hass) -> None:
+        """An HA-native scene not in the store is still removed from YAML."""
+        store, _ = _make_scene_store(hass)
+        calls: list[str] = []
+
+        async def _remove(sid):
+            calls.append(sid)
+            return True
+
+        found, removed = await store.async_delete_with_yaml("ha_scene", _remove)
+        assert (found, removed) == (False, True)
+        assert calls == ["ha_scene"]
+
+    async def test_neither_store_nor_yaml(self, hass) -> None:
+        store, _ = _make_scene_store(hass)
+
+        async def _remove(sid):
+            return False
+
+        found, removed = await store.async_delete_with_yaml("ghost", _remove)
+        assert (found, removed) == (False, False)
+
+
 class TestSceneStoreRestore:
     async def test_restore_deleted_scene(self, hass) -> None:
         store, _ = _make_scene_store(hass)

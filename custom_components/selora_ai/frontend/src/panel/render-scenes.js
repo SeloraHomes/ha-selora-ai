@@ -594,6 +594,10 @@ export function renderScenes(host) {
                     const updated = formatTimeAgo(s.updated_at);
                     const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` · updated ${updated}` : ""}`;
                     const isSelora = s.source === "selora";
+                    // Selora scenes and HA-native scenes that live in
+                    // scenes.yaml can be deleted; scenes from other
+                    // integrations (no YAML entry) cannot.
+                    const deletable = s.deletable !== false;
                     const recipeTitle = s.recipe_title || "";
                     return html`
                       <div
@@ -789,7 +793,7 @@ export function renderScenes(host) {
                                           )}
                                         </button>
                                         ${
-                                          isSelora
+                                          deletable
                                             ? html`<button
                                                 class="burger-item danger"
                                                 ?disabled=${deleting}

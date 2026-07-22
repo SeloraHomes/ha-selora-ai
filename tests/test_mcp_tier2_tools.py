@@ -18,6 +18,7 @@ from homeassistant.helpers import (
 import pytest
 
 from custom_components.selora_ai.mcp_server import (
+    _tool_delete_scene,
     _tool_eval_template,
     _tool_execute_command,
     _tool_get_entity_history,
@@ -128,6 +129,91 @@ async def test_execute_command_runs_service(hass: HomeAssistant, setup_world) ->
     assert calls[0]["service"] == "turn_on"
     assert calls[0]["data"]["entity_id"] == ["light.kitchen_island"]
     assert calls[0]["data"]["brightness_pct"] == 60
+
+
+# ── delete_scene ──────────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_delete_scene_by_id_untracked_yaml_scene(hass: HomeAssistant) -> None:
+    """Deleting a non-Selora scene by its scenes.yaml id reports success.
+
+    Such a scene is absent from the SceneStore, so async_delete_with_yaml
+    returns (found=False, removed=True). The MCP caller must treat that as a
+    successful deletion, not a "not found" error.
+    """
+    from pathlib import Path
+
+    from custom_components.selora_ai.scene_utils import _read_scenes_yaml, _write_scenes_yaml
+
+    scenes_path = Path(hass.config.config_dir) / "scenes.yaml"
+    await hass.async_add_executor_job(
+        _write_scenes_yaml,
+        scenes_path,
+        [{"id": "ha_native_1", "name": "External lights", "entities": {}}],
+    )
+
+    reloaded: list[tuple[str, str]] = []
+
+    async def _reload(call):
+        reloaded.append((call.domain, call.service))
+
+    hass.services.async_register("scene", "reload", _reload)
+
+    result = await _tool_delete_scene(hass, {"scene_id": "ha_native_1"})
+
+    assert result == {"scene_id": "ha_native_1", "status": "deleted"}
+    assert reloaded == [("scene", "reload")]
+    remaining = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    assert all(e.get("id") != "ha_native_1" for e in remaining)
+
+
+@pytest.mark.asyncio
+async def test_delete_scene_idless_by_entity_id(hass: HomeAssistant) -> None:
+    """Deleting an id-less yaml scene by entity_id succeeds via the shared helper."""
+    from pathlib import Path
+
+    from custom_components.selora_ai.scene_utils import _read_scenes_yaml, _write_scenes_yaml
+
+    scenes_path = Path(hass.config.config_dir) / "scenes.yaml"
+    await hass.async_add_executor_job(
+        _write_scenes_yaml,
+        scenes_path,
+        [{"name": "Hand Authored", "entities": {"light.x": {"state": "on"}}}],
+    )
+    hass.states.async_set("scene.hand_authored", "scening")
+
+    async def _reload(call):
+        pass
+
+    hass.services.async_register("scene", "reload", _reload)
+
+    result = await _tool_delete_scene(hass, {"entity_id": "scene.hand_authored"})
+
+    assert result == {"entity_id": "scene.hand_authored", "status": "deleted"}
+    remaining = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    assert remaining == []
+
+
+@pytest.mark.asyncio
+async def test_delete_scene_by_id_truly_missing(hass: HomeAssistant) -> None:
+    """A scene_id in neither the store nor scenes.yaml is a real not-found."""
+    from pathlib import Path
+
+    from custom_components.selora_ai.scene_utils import _write_scenes_yaml
+
+    scenes_path = Path(hass.config.config_dir) / "scenes.yaml"
+    await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, [])
+
+    async def _reload(call):
+        pass
+
+    hass.services.async_register("scene", "reload", _reload)
+
+    result = await _tool_delete_scene(hass, {"scene_id": "ghost"})
+
+    assert "error" in result
+    assert "not found" in result["error"].lower()
 
 
 @pytest.mark.asyncio

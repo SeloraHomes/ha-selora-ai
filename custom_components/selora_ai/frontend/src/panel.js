@@ -2786,6 +2786,10 @@ class SeloraAIPanel extends LitElement {
     const sceneId = this._deleteSceneConfirmId;
     const name = this._deleteSceneConfirmName;
     if (!sceneId) return;
+    // Id-less yaml scenes have no usable scene_id, so pass the entity_id too;
+    // the backend deletes by entity_id when scene_id resolves to nothing.
+    const scene = (this._scenes || []).find((s) => s.scene_id === sceneId);
+    const entityId = scene?.entity_id;
     this._deleteSceneConfirmId = null;
     this._deleteSceneConfirmName = null;
     this._deletingScene = { ...this._deletingScene, [sceneId]: true };
@@ -2793,6 +2797,7 @@ class SeloraAIPanel extends LitElement {
       await this.hass.callWS({
         type: "selora_ai/delete_scene",
         scene_id: sceneId,
+        ...(entityId ? { entity_id: entityId } : {}),
       });
       this._showToast(`Scene "${name || sceneId}" deleted.`, "success");
       await this._loadScenes();
