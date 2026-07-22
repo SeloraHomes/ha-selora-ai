@@ -30,6 +30,24 @@ from ..conversation_store import ConversationStore
 
 _LOGGER = logging.getLogger(__name__)
 
+# Human-readable messages for async_remove_yaml_scene_by_entity error codes.
+_DELETE_SCENE_ERRORS = {
+    "not_found": "Scene not found",
+    "not_yaml_managed": "Scene is not yaml-managed; delete it from Home Assistant instead.",
+    "not_found_in_yaml": "Scene not found in scenes.yaml",
+    "no_identifier": "Scene has no 'id' or 'name' in scenes.yaml; cannot identify it safely.",
+    "ambiguous_name": "Multiple scenes share this name; add an 'id' to delete it safely.",
+}
+
+
+def _delete_scene_error(code: str | None, detail: str | None) -> str:
+    """Map an entity-delete error code (+ optional detail) to a message."""
+    if code == "reload_failed":
+        return f"Scene reload failed: {detail}" if detail else "Scene reload failed"
+    if code == "yaml_read_failed":
+        return f"Failed to read scenes.yaml: {detail}" if detail else "Failed to read scenes.yaml"
+    return _DELETE_SCENE_ERRORS.get(code or "", "Scene deletion failed")
+
 
 @websocket_api.async_response
 @decorators.websocket_command(
@@ -360,13 +378,18 @@ async def _handle_websocket_get_scenes(
     import yaml as pyyaml  # noqa: PLC0415
 
     from ..const import SCENE_ID_PREFIX  # noqa: PLC0415
-    from ..scene_utils import resolve_scene_entity_id  # noqa: PLC0415
+    from ..scene_utils import (  # noqa: PLC0415
+        resolve_scene_entity_id,
+        resolve_yaml_scene_entity_id,
+    )
 
     enriched: list[dict[str, Any]] = []
     for record in scenes:
         entry = yaml_by_id.get(record["scene_id"])
         if entry is None:
-            enriched.append({**record, "entities": {}, "yaml": "", "source": "selora"})
+            enriched.append(
+                {**record, "entities": {}, "yaml": "", "source": "selora", "deletable": True}
+            )
             continue
         entities = entry.get("entities") or {}
         if not isinstance(entities, dict):
@@ -380,7 +403,15 @@ async def _handle_websocket_get_scenes(
             )
         except Exception:  # noqa: BLE001 — fall back to empty YAML, never block the list
             yaml_text = ""
-        enriched.append({**record, "entities": entities, "yaml": yaml_text, "source": "selora"})
+        enriched.append(
+            {
+                **record,
+                "entities": entities,
+                "yaml": yaml_text,
+                "source": "selora",
+                "deletable": True,
+            }
+        )
 
     # Include non-Selora scenes from yaml (e.g. hand-crafted or other-integration scenes)
     covered_scene_ids: set[str] = {r["scene_id"] for r in enriched}
@@ -423,11 +454,26 @@ async def _handle_websocket_get_scenes(
                 "entities": entities,
                 "yaml": yaml_text,
                 "source": "home_assistant",
+                # Present in scenes.yaml → removable via the YAML writer.
+                "deletable": True,
             }
         )
 
-    # Include any remaining HA scene states not covered by yaml at all
-    # (UI-managed scenes stored in HA's own storage, or from other integrations)
+    # Map id-less scenes.yaml entries to their loaded entity_id. These have no
+    # usable `id` (so they're skipped by the id loop above) but are still
+    # yaml-managed and deletable by name — the panel deletes them by entity_id.
+    idless_yaml_by_entity: dict[str, dict[str, Any]] = {}
+    for entry in yaml_entries:
+        if not isinstance(entry, dict):
+            continue
+        sid = entry.get("id")
+        if isinstance(sid, str) and sid:
+            continue  # id-bearing entries are handled above
+        eid = resolve_yaml_scene_entity_id(hass, entry)
+        if eid:
+            idless_yaml_by_entity[eid] = entry
+
+    # Include any remaining HA scene states not covered by yaml-by-id above.
     covered_entity_ids: set[str] = {r["entity_id"] for r in enriched if r.get("entity_id")}
     for state in hass.states.async_all("scene"):
         if state.entity_id in covered_entity_ids:
@@ -436,19 +482,37 @@ async def _handle_websocket_get_scenes(
         if object_id.startswith(SCENE_ID_PREFIX):
             continue
         name = state.attributes.get("friendly_name") or state.name or object_id
+        # An id-less yaml entry is removable (by entity_id); anything else here
+        # is HA UI storage or another integration and cannot be removed.
+        idless_entry = idless_yaml_by_entity.get(state.entity_id)
+        entities = (idless_entry or {}).get("entities") or {}
+        if not isinstance(entities, dict):
+            entities = {}
+        yaml_text = ""
+        if idless_entry is not None:
+            try:
+                yaml_text = pyyaml.dump(
+                    {"name": name, "entities": entities},
+                    default_flow_style=False,
+                    allow_unicode=True,
+                    sort_keys=False,
+                )
+            except Exception:  # noqa: BLE001 — fall back to empty YAML, never block the list
+                yaml_text = ""
         enriched.append(
             {
                 "scene_id": object_id,
                 "name": name,
                 "entity_id": state.entity_id,
-                "entity_count": 0,
+                "entity_count": len(entities),
                 "session_id": None,
                 "created_at": None,
                 "updated_at": None,
                 "deleted_at": None,
-                "entities": {},
-                "yaml": "",
+                "entities": entities,
+                "yaml": yaml_text,
                 "source": "home_assistant",
+                "deletable": idless_entry is not None,
             }
         )
 
@@ -572,6 +636,7 @@ async def _handle_websocket_load_scene_to_session(
     {
         vol.Required("type"): "selora_ai/delete_scene",
         vol.Required("scene_id"): str,
+        vol.Optional("entity_id"): str,
     }
 )
 async def _handle_websocket_delete_scene(
@@ -579,11 +644,18 @@ async def _handle_websocket_delete_scene(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Soft-delete a Selora-managed scene and remove from scenes.yaml."""
+    """Delete a scene — Selora-managed or any yaml-managed HA scene.
+
+    Selora scenes and id-bearing ``scenes.yaml`` entries are removed by
+    ``scene_id``. Id-less yaml entries (no ``id`` field) have no usable id,
+    so they are removed by ``entity_id`` via the shared entity/name resolver
+    — the same path the MCP ``delete_scene`` tool uses.
+    """
     if not _require_admin(connection, msg):
         return
 
     scene_id = msg["scene_id"]
+    entity_id = msg.get("entity_id", "")
     store = _get_scene_store(hass)
     await store.async_reconcile_yaml(force=True)
 
@@ -600,11 +672,24 @@ async def _handle_websocket_delete_scene(
         connection.send_error(msg["id"], "delete_failed", str(exc))
         return
 
-    if not found:
-        connection.send_error(msg["id"], "not_found", "Scene not found")
-        return
+    if not found and not removed:
+        # scene_id matched neither the store nor a scenes.yaml `id`. An id-less
+        # yaml scene has no usable id, so fall back to entity-based removal when
+        # the panel supplied an entity_id; otherwise it's genuinely not ours
+        # (another integration or HA UI storage).
+        if not entity_id:
+            connection.send_error(msg["id"], "not_found", "Scene not found")
+            return
+        from ..scene_utils import async_remove_yaml_scene_by_entity  # noqa: PLC0415
 
-    if not removed:
+        ok, code, detail = await async_remove_yaml_scene_by_entity(hass, entity_id)
+        if not ok:
+            connection.send_error(
+                msg["id"], code or "delete_failed", _delete_scene_error(code, detail)
+            )
+            return
+        # Removed from yaml; fall through to session cleanup + dispatch.
+    elif not removed:
         # The YAML entry is already gone (external edit, another tool, or
         # stale backfill record).  Force a scene.reload so HA unloads the
         # entity if it's still active from a prior load.

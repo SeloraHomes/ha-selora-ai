@@ -3298,28 +3298,33 @@ def _serialize_scene_record(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def _resolve_yaml_scene_entity_id(hass: HomeAssistant, entry: dict[str, Any]) -> str | None:
-    """Resolve the HA entity_id for a scenes.yaml entry, with or without an id.
+    """Resolve the HA entity_id for a scenes.yaml entry (see scene_utils)."""
+    from .scene_utils import resolve_yaml_scene_entity_id  # noqa: PLC0415
 
-    Honors the entity registry (authoritative for HA-side renames and collision
-    suffixes) and falls back to the ``scene.<slug(name)>`` state-machine probe
-    so user-authored yaml entries that omit the optional ``id`` field can still
-    be matched to their loaded entity.
-    """
-    from homeassistant.util import slugify  # noqa: PLC0415
+    return resolve_yaml_scene_entity_id(hass, entry)
 
-    from .scene_utils import resolve_scene_entity_id  # noqa: PLC0415
 
-    sid = entry.get("id")
-    name = entry.get("name") if isinstance(entry.get("name"), str) else None
-    if isinstance(sid, str) and sid:
-        eid = resolve_scene_entity_id(hass, sid, name)
-        if eid:
-            return eid
-    if name:
-        candidate = f"scene.{slugify(name)}"
-        if hass.states.get(candidate) is not None:
-            return candidate
-    return None
+def _yaml_delete_error_message(code: str, detail: str | None, entity_id: str) -> str:
+    """Human-readable message for an async_remove_yaml_scene_by_entity code."""
+    ent = _sanitize(entity_id)
+    messages = {
+        "not_found": f"Scene {ent} not found",
+        "yaml_read_failed": f"Failed to read scenes.yaml: {detail}",
+        "not_yaml_managed": (
+            f"Scene {ent} is not yaml-managed; delete it from the Home Assistant UI instead."
+        ),
+        "not_found_in_yaml": f"Scene {ent} not found in scenes.yaml",
+        "no_identifier": (
+            f"Scene {ent} has no 'id' or 'name' field in scenes.yaml; "
+            "cannot identify the entry safely."
+        ),
+        "ambiguous_name": (
+            f"Scene {ent} has no 'id' field and multiple entries share its name; "
+            "add an 'id' to the target entry to enable safe deletion."
+        ),
+        "reload_failed": f"Scene reload failed: {detail}",
+    }
+    return messages.get(code, "Scene deletion failed")
 
 
 async def _tool_list_scenes(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -3662,9 +3667,8 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     from .helpers import get_scene_store  # noqa: PLC0415
     from .scene_utils import (  # noqa: PLC0415
         SceneDeleteError,
-        _get_scenes_path,
-        _read_scenes_yaml,
         async_remove_scene_yaml,
+        async_remove_yaml_scene_by_entity,
         resolve_scene_entity_id,
     )
 
@@ -3698,90 +3702,12 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         if match is not None:
             scene_id = match["scene_id"]
         else:
-            # Non-Selora scene — find the yaml entry by resolved entity_id
-            if hass.states.get(entity_id_arg) is None:
-                return {"error": f"Scene {_sanitize(entity_id_arg)} not found"}
-            try:
-                yaml_entries = await hass.async_add_executor_job(
-                    _read_scenes_yaml, _get_scenes_path(hass)
-                )
-            except Exception as exc:  # noqa: BLE001
-                return {"error": f"Failed to read scenes.yaml: {exc}"}
-            yaml_match = next(
-                (
-                    e
-                    for e in yaml_entries
-                    if isinstance(e, dict)
-                    and _resolve_yaml_scene_entity_id(hass, e) == entity_id_arg
-                ),
-                None,
-            )
-            if yaml_match is None:
-                return {
-                    "error": (
-                        f"Scene {_sanitize(entity_id_arg)} is not yaml-managed; "
-                        "delete it from the Home Assistant UI instead."
-                    )
-                }
-
-            yaml_id = yaml_match.get("id")
-            if isinstance(yaml_id, str) and yaml_id:
-                try:
-                    removed = await async_remove_scene_yaml(hass, yaml_id)
-                except SceneDeleteError as exc:
-                    return {"error": f"Scene reload failed: {exc}"}
-                if not removed:
-                    return {"error": f"Scene {_sanitize(entity_id_arg)} not found in scenes.yaml"}
-                return {"entity_id": entity_id_arg, "status": "deleted"}
-
-            # Id-less yaml entry: delete by matching the entry's name (the only
-            # stable handle HA uses to derive its entity slug). Reject when more
-            # than one entry shares the name to avoid removing the wrong scene.
-            target_name = yaml_match.get("name")
-            if not isinstance(target_name, str) or not target_name.strip():
-                return {
-                    "error": (
-                        f"Scene {_sanitize(entity_id_arg)} has no 'id' or 'name' field "
-                        "in scenes.yaml; cannot identify the entry safely."
-                    )
-                }
-            duplicates = sum(
-                1
-                for e in yaml_entries
-                if isinstance(e, dict)
-                and isinstance(e.get("name"), str)
-                and e.get("name", "").strip() == target_name.strip()
-            )
-            if duplicates > 1:
-                return {
-                    "error": (
-                        f"Scene {_sanitize(entity_id_arg)} has no 'id' field and "
-                        f"multiple entries share the name {_sanitize(target_name)!r}; "
-                        "add an 'id' to the target entry to enable safe deletion."
-                    )
-                }
-
-            scenes_path = _get_scenes_path(hass)
-            remaining = [
-                e
-                for e in yaml_entries
-                if not (
-                    isinstance(e, dict)
-                    and isinstance(e.get("name"), str)
-                    and e.get("name", "").strip() == target_name.strip()
-                    and not (isinstance(e.get("id"), str) and e["id"])
-                )
-            ]
-            from .scene_utils import _SCENES_YAML_LOCK, _write_scenes_yaml  # noqa: PLC0415
-
-            async with _SCENES_YAML_LOCK:
-                previous = list(yaml_entries)
-                await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, remaining)
-                try:
-                    await hass.services.async_call("scene", "reload", blocking=True)
-                except Exception as exc:  # noqa: BLE001 — restore yaml on reload failure
-                    await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
-                    return {"error": f"Scene reload failed: {exc}"}
+            # Non-Selora scene — resolve its scenes.yaml entry by entity_id and
+            # remove it. Shared with the panel's delete_scene websocket handler
+            # so both paths classify and delete id-less entries identically.
+            _removed, code, detail = await async_remove_yaml_scene_by_entity(hass, entity_id_arg)
+            if code is not None:
+                return {"error": _yaml_delete_error_message(code, detail, entity_id_arg)}
             return {"entity_id": entity_id_arg, "status": "deleted"}
 
     try:
@@ -3797,7 +3723,8 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         await store.async_restore(scene_id)
         return {"error": "Scene deletion failed"}
 
-    if not found:
+    if not found and not removed:
+        # Tracked by neither the store nor scenes.yaml — nothing to delete.
         return {"error": f"Scene {_sanitize(scene_id)} not found"}
 
     if not removed:

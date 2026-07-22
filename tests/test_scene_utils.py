@@ -715,3 +715,102 @@ class TestScenePromptInstructions:
         assert "SCENE RULES" in prompt
         assert '"name"' in prompt
         assert "scene-capable domains" in prompt
+
+
+class TestAsyncRemoveYamlSceneByEntity:
+    """The shared entity/name-based deletion helper for non-Selora scenes."""
+
+    @staticmethod
+    def _scenes_path(hass):
+        from pathlib import Path
+
+        return Path(hass.config.config_dir) / "scenes.yaml"
+
+    async def _write(self, hass, entries):
+        from custom_components.selora_ai.scene_utils import _write_scenes_yaml
+
+        await hass.async_add_executor_job(_write_scenes_yaml, self._scenes_path(hass), entries)
+
+    async def _read(self, hass):
+        from custom_components.selora_ai.scene_utils import _read_scenes_yaml
+
+        return await hass.async_add_executor_job(_read_scenes_yaml, self._scenes_path(hass))
+
+    def _register_reload(self, hass):
+        calls: list[tuple[str, str]] = []
+
+        async def _reload(call):
+            calls.append((call.domain, call.service))
+
+        hass.services.async_register("scene", "reload", _reload)
+        return calls
+
+    async def test_deletes_idless_scene_by_name(self, hass) -> None:
+        from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
+
+        await self._write(
+            hass,
+            [{"name": "External Lights", "entities": {"light.x": {"state": "on"}}}],
+        )
+        hass.states.async_set("scene.external_lights", "scening")
+        calls = self._register_reload(hass)
+
+        removed, code, detail = await async_remove_yaml_scene_by_entity(
+            hass, "scene.external_lights"
+        )
+
+        assert (removed, code, detail) == (True, None, None)
+        assert calls == [("scene", "reload")]
+        assert await self._read(hass) == []
+
+    async def test_deletes_idbearing_scene(self, hass) -> None:
+        from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
+
+        await self._write(hass, [{"id": "abc", "name": "Cozy", "entities": {}}])
+        hass.states.async_set("scene.cozy", "scening")
+        self._register_reload(hass)
+
+        removed, code, _ = await async_remove_yaml_scene_by_entity(hass, "scene.cozy")
+
+        assert removed is True and code is None
+        assert await self._read(hass) == []
+
+    async def test_ambiguous_idless_name_refused(self, hass) -> None:
+        from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
+
+        await self._write(
+            hass,
+            [
+                {"name": "Dup", "entities": {}},
+                {"name": "Dup", "entities": {}},
+            ],
+        )
+        hass.states.async_set("scene.dup", "scening")
+        self._register_reload(hass)
+
+        removed, code, _ = await async_remove_yaml_scene_by_entity(hass, "scene.dup")
+
+        assert removed is False
+        assert code == "ambiguous_name"
+        # Nothing removed — both entries survive.
+        assert len(await self._read(hass)) == 2
+
+    async def test_not_yaml_managed(self, hass) -> None:
+        from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
+
+        await self._write(hass, [])
+        hass.states.async_set("scene.from_integration", "scening")
+        self._register_reload(hass)
+
+        removed, code, _ = await async_remove_yaml_scene_by_entity(hass, "scene.from_integration")
+
+        assert removed is False
+        assert code == "not_yaml_managed"
+
+    async def test_entity_not_found(self, hass) -> None:
+        from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
+
+        removed, code, _ = await async_remove_yaml_scene_by_entity(hass, "scene.ghost")
+
+        assert removed is False
+        assert code == "not_found"
