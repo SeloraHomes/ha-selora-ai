@@ -863,6 +863,7 @@ class Finding(TypedDict, total=False):
     device_id: str | None  # device this concerns (enables per-device Ignore)
     link: str  # optional deep-link URL (e.g. an integration's Settings page)
     link_label: str  # label for ``link``
+    score_points: float  # points this finding took off the health score (set by scoring)
 
 
 class CheckResult(TypedDict):
@@ -874,6 +875,50 @@ class CheckResult(TypedDict):
     kind: str  # "deterministic" | "model"
     status: str  # "clear" | "issues"
     findings: list[Finding]
+
+
+class ScoreContribution(TypedDict):
+    """One finding's contribution to the health score — how many points it
+    subtracted, so the panel can explain "why this score"."""
+
+    check_id: str
+    title: str  # user-facing label (the finding's title)
+    target: str  # device_id or entity_id the points are attributed to
+    severity: str  # critical | warning | info
+    points: float  # points subtracted (rounded to 1 dp)
+    family: str  # "fleet" (per-device outage share) | "other" (fixed-severity)
+
+
+class ScoreFleetShare(TypedDict):
+    """The fleet-fraction inputs behind the device-outage penalty."""
+
+    affected: int  # affected devices counted (deduped)
+    size: int  # active-fleet denominator
+    fraction: float  # affected weight / fleet size, clamped to 1.0
+
+
+class ScoreSection(TypedDict):
+    """Per-check roll-up of the score impact — one row per section (mirrors the
+    checklist cards) so the panel reports "Devices offline: -30.3 (14)" instead
+    of 14 identical per-device rows."""
+
+    check_id: str
+    title: str  # the check's section title (e.g. "Devices offline")
+    points: float  # total points this section subtracted
+    count: int  # findings folded into it
+    family: str  # "fleet" (per-device outage share) | "other" (fixed-severity)
+
+
+class ScoreBreakdown(TypedDict):
+    """Transparent decomposition of the deterministic health score: the number
+    plus per-section roll-ups, per-finding rows, and per-family totals."""
+
+    score: int  # 0-100 (100 = nothing flagged)
+    device_penalty: float  # total fleet-outage penalty
+    other_penalty: float  # total fixed-severity penalty (integrations/hygiene)
+    fleet: ScoreFleetShare
+    sections: list[ScoreSection]  # per-check roll-up, biggest impact first
+    contributions: list[ScoreContribution]  # per-finding, biggest impact first
 
 
 # ── Insights: export handoff to the Selora OS host ────────────────────

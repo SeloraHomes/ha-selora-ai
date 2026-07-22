@@ -7263,6 +7263,32 @@ var insightsStyles = i`
     border-radius: 10px;
     padding: 12px 14px;
     transition: background 0.12s ease;
+    /* Anchored from the breakdown links — offset the scroll target so the row
+       doesn't land flush under the sticky page chrome. */
+    scroll-margin-top: 16px;
+  }
+  /* Brief highlight when a breakdown link jumps here, so the eye lands on the
+     right row instead of hunting the list. */
+  .check-item-flash {
+    animation: check-item-flash 1.2s ease-out;
+  }
+  @keyframes check-item-flash {
+    0%,
+    30% {
+      background: color-mix(
+        in srgb,
+        var(--warning-color, #ffa600) 22%,
+        var(--card-background-color, rgba(255, 255, 255, 0.04))
+      );
+    }
+    100% {
+      background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .check-item-flash {
+      animation: none;
+    }
   }
   /* Only the collapsed (clear) rows brighten on hover — a whole-card tint on an
      expanded issue row would wash out the finding sub-cards nested inside it. */
@@ -7519,6 +7545,198 @@ var insightsStyles = i`
   }
   .ts-item-desc {
     opacity: 0.6;
+  }
+  /* ── Boot-settle hero (home still starting up) ── */
+  .insights-settling {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 14px;
+    padding: 72px 24px;
+    min-height: 40vh;
+  }
+  .insights-settling .spinner {
+    width: 34px;
+    height: 34px;
+    border-width: 3px;
+  }
+  .insights-settling-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .insights-settling-sub {
+    font-size: 13px;
+    opacity: 0.6;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  /* ── Score breakdown ("why this score") ── */
+  .score-breakdown {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    border-radius: 12px;
+    padding: 14px 16px 16px;
+    margin: 0 0 16px;
+    /* Fade the whole card up as it enters, echoing the gauge pop above it. */
+    animation: sb-card-in 0.45s ease-out both;
+  }
+  @keyframes sb-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .sb-head {
+    margin-bottom: 12px;
+  }
+  .sb-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .sb-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  /* name | bar | count | points | arrow — the bar flexes, the rest hold their
+     width so the numbers stay in a clean right-aligned column across rows. */
+  .sb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 3px 6px;
+    margin: -3px -6px;
+    border-radius: 8px;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    /* Staggered fade-in (delay set inline per row) so the chart builds in from
+       the top instead of appearing all at once. */
+    animation: sb-row-in 0.4s ease-out both;
+  }
+  @keyframes sb-row-in {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  /* Rows that link down to a checklist section are buttons — brighten and slide
+     the chevron in on hover so the affordance reads without cluttering rest. */
+  .sb-row-link {
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .sb-row-link:hover,
+  .sb-row-link:focus-visible {
+    background: color-mix(
+      in srgb,
+      var(--primary-text-color, #fff) 7%,
+      transparent
+    );
+    outline: none;
+  }
+  .sb-row-link:hover .sb-row-name {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .sb-row-arrow {
+    flex: 0 0 auto;
+    --mdc-icon-size: 18px;
+    opacity: 0.35;
+    transform: translateX(-3px);
+    transition:
+      opacity 0.12s ease,
+      transform 0.12s ease;
+  }
+  .sb-row-link:hover .sb-row-arrow,
+  .sb-row-link:focus-visible .sb-row-arrow {
+    opacity: 0.85;
+    transform: translateX(0);
+  }
+  .sb-row-arrow-spacer {
+    flex: 0 0 18px;
+  }
+  .sb-row-name {
+    flex: 0 0 34%;
+    max-width: 34%;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sb-track {
+    flex: 1 1 auto;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--divider-color, rgba(255, 255, 255, 0.1));
+    overflow: hidden;
+  }
+  .sb-fill {
+    height: 100%;
+    border-radius: 999px;
+    min-width: 4px;
+    /* Grow out from zero to the target width (--sb-w, set inline) as it enters,
+       delayed per row so bars fill in one after another under the gauge sweep. */
+    animation: sb-fill-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes sb-fill-grow {
+    from {
+      width: 0;
+    }
+    to {
+      width: var(--sb-w);
+    }
+  }
+  .sb-row-count {
+    flex: 0 0 auto;
+    font-size: 12px;
+    opacity: 0.55;
+    white-space: nowrap;
+  }
+  .sb-row-pts {
+    flex: 0 0 auto;
+    min-width: 34px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* No entrance motion — snap to final state (bars keep their inline width). */
+    .score-breakdown,
+    .sb-row,
+    .sb-fill {
+      animation: none;
+    }
+  }
+  @media (max-width: 480px) {
+    /* Drop the "N issues" column on narrow screens — the count is already on
+       each check row below; keep name, bar, and points. */
+    .sb-row-count {
+      display: none;
+    }
+    .sb-row-name {
+      flex-basis: 40%;
+      max-width: 40%;
+    }
   }
 `;
 
@@ -37080,6 +37298,86 @@ function renderHealthGauge(host) {
   `;
 }
 
+// src/panel/health-score-breakdown.js
+function _barColor(points) {
+  if (points >= 20) return "#ef4444";
+  if (points >= 5) return "#f97316";
+  return "#f59e0b";
+}
+function _round(n4) {
+  return Math.round(n4);
+}
+function _jumpToCheck(host, checkId) {
+  const root = host.renderRoot || host.shadowRoot;
+  const el = root && root.getElementById(`hc-${checkId}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+  el.classList.add("check-item-flash");
+  setTimeout(() => el.classList.remove("check-item-flash"), 1200);
+}
+function _sectionRow(host, section, maxPoints, linkable, index) {
+  const color = _barColor(section.points);
+  const width = Math.max(5, Math.round((section.points / maxPoints) * 100));
+  const count = section.count || 0;
+  const countLabel = `${count} ${count === 1 ? host._t("insights_issue_one", "issue") : host._t("insights_issue_many", "issues")}`;
+  const delay = `${index * 90}ms`;
+  const body = b2`
+    <span class="sb-row-name" title=${section.title}>${section.title}</span>
+    <div class="sb-track">
+      <div
+        class="sb-fill"
+        style="width:${width}%;--sb-w:${width}%;background:${color};animation-delay:${delay};"
+      ></div>
+    </div>
+    <span class="sb-row-count">${countLabel}</span>
+    <span class="sb-row-pts">−${_round(section.points)}</span>
+    ${
+      linkable
+        ? b2`<ha-icon
+            class="sb-row-arrow"
+            icon="mdi:chevron-right"
+          ></ha-icon>`
+        : b2`<span class="sb-row-arrow-spacer"></span>`
+    }
+  `;
+  return linkable
+    ? b2`<button
+        class="sb-row sb-row-link"
+        style="animation-delay:${delay};"
+        @click=${() => _jumpToCheck(host, section.check_id)}
+      >
+        ${body}
+      </button>`
+    : b2`<div class="sb-row" style="animation-delay:${delay};">${body}</div>`;
+}
+function renderScoreBreakdown(host) {
+  const bd = host._auditBreakdown;
+  const score = host._auditScore;
+  if (!bd || typeof score !== "number") return "";
+  const sections = Array.isArray(bd.sections)
+    ? bd.sections.filter((s4) => s4 && s4.points > 0)
+    : [];
+  if (!sections.length) return "";
+  const checkIds = new Set(
+    (host._auditChecks || []).map((c4) => c4.check_id).filter(Boolean),
+  );
+  const maxPoints = sections[0].points || 1;
+  return b2`
+    <div class="score-breakdown">
+      <div class="sb-head">
+        <span class="sb-title">
+          ${host._t("insights_score_breakdown", "What's affecting your score")}
+        </span>
+      </div>
+      <div class="sb-rows">
+        ${sections.map((s4, i7) =>
+          _sectionRow(host, s4, maxPoints, checkIds.has(s4.check_id), i7),
+        )}
+      </div>
+    </div>
+  `;
+}
+
 // src/panel/render-insights.js
 var _SEVERITY_META = {
   critical: { color: "#ef4444", icon: "mdi:alert-octagon", order: 0 },
@@ -37201,7 +37499,10 @@ function _checkRow(host, check) {
       : "check-clear";
   const badgeClass = errored ? "error" : issues ? "issues" : "clear";
   return b2`
-    <div class="check-item ${issues ? "check-item-issues" : ""}">
+    <div
+      id=${`hc-${check.check_id}`}
+      class="check-item ${issues ? "check-item-issues" : ""}"
+    >
       <div class="check-head">
         <ha-icon class="check-icon ${iconClass}" icon=${iconName}></ha-icon>
         <span class="check-title">${check.title}</span>
@@ -37327,6 +37628,32 @@ function renderInsights(host) {
       </div>
     `;
   }
+  if (host._auditSettling) {
+    return b2`
+      <div class="scroll-view">
+        <div class="page-root">
+          <div class="page-header">
+            <h1 class="page-h1">${host._t("insights_title", "Health")}</h1>
+          </div>
+          <div class="insights-settling">
+            <span class="spinner"></span>
+            <div class="insights-settling-title">
+              ${host._t(
+                "insights_settling_title",
+                "Your home is still starting up",
+              )}
+            </div>
+            <div class="insights-settling-sub">
+              ${host._t(
+                "insights_settling_sub",
+                "We'll run a health check once your devices are back online.",
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
   return b2`
     <div class="scroll-view">
       <div class="page-root">
@@ -37347,7 +37674,8 @@ function renderInsights(host) {
           ${_relativeTime(host, host._auditGeneratedAt)}
         </div>
 
-        ${renderHealthGauge(host)} ${_auditBody(host)}
+        ${renderHealthGauge(host)} ${renderScoreBreakdown(host)}
+        ${_auditBody(host)}
       </div>
     </div>
   `;
@@ -44788,18 +45116,32 @@ function _applyAudit(host, audit) {
   host._auditChecks = audit?.checks || [];
   host._auditScore = typeof audit?.score === "number" ? audit.score : null;
   host._auditBand = audit?.band || "";
+  host._auditBreakdown = audit?.score_breakdown || null;
   host._auditQuickActions = audit?.quick_actions || [];
   host._auditGeneratedAt = audit?.generated_at || null;
   host._auditError = audit?.error || null;
+  host._auditSettling = audit?.settling === true;
 }
 async function _loadAudit() {
+  if (this._settleRetryTimer) {
+    clearTimeout(this._settleRetryTimer);
+    this._settleRetryTimer = null;
+  }
+  let retryAfter = 15;
   try {
     const audit = await this.hass.callWS({ type: "selora_ai/insights/audit" });
     _applyAudit(this, audit);
+    if (Number(audit?.retry_after) > 0) retryAfter = Number(audit.retry_after);
   } catch (err) {
     console.error("Failed to load home audit", err);
   } finally {
     this._auditLoaded = true;
+    if (this._auditSettling) {
+      this._settleRetryTimer = setTimeout(
+        () => this._loadAudit(),
+        retryAfter * 1e3 + 2e3,
+      );
+    }
   }
 }
 async function _rerunAudit() {
@@ -46663,11 +47005,13 @@ var SeloraAIPanel = class extends i4 {
       _auditChecks: { type: Array },
       _auditScore: { type: Number },
       _auditBand: { type: String },
+      _auditBreakdown: { type: Object },
       _auditQuickActions: { type: Array },
       _auditGeneratedAt: { type: String },
       _auditError: { type: String },
       _auditRunning: { type: Boolean },
       _auditLoaded: { type: Boolean },
+      _auditSettling: { type: Boolean },
       // Automations tab
       _suggestions: { type: Array },
       _automations: { type: Array },
@@ -46924,11 +47268,13 @@ var SeloraAIPanel = class extends i4 {
     this._auditChecks = [];
     this._auditScore = null;
     this._auditBand = "";
+    this._auditBreakdown = null;
     this._auditQuickActions = [];
     this._auditGeneratedAt = null;
     this._auditError = null;
     this._auditRunning = false;
     this._auditLoaded = false;
+    this._auditSettling = false;
     this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
@@ -47033,6 +47379,7 @@ var SeloraAIPanel = class extends i4 {
     this._quotaUnsub = null;
     this._quotaSubPending = false;
     this._quotaClearTimer = null;
+    this._settleRetryTimer = null;
   }
   // Close both row-level (burger) menus — automations and scenes — and drop
   // the cached fixed-position style. Shared by outside-click, scroll, and
@@ -47363,6 +47710,10 @@ var SeloraAIPanel = class extends i4 {
     if (this._quotaTickTimer) {
       clearInterval(this._quotaTickTimer);
       this._quotaTickTimer = null;
+    }
+    if (this._settleRetryTimer) {
+      clearTimeout(this._settleRetryTimer);
+      this._settleRetryTimer = null;
     }
     if (this._streams && this._streams.size > 0) {
       try {

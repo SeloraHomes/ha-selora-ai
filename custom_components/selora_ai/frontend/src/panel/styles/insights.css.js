@@ -265,6 +265,32 @@ export const insightsStyles = css`
     border-radius: 10px;
     padding: 12px 14px;
     transition: background 0.12s ease;
+    /* Anchored from the breakdown links — offset the scroll target so the row
+       doesn't land flush under the sticky page chrome. */
+    scroll-margin-top: 16px;
+  }
+  /* Brief highlight when a breakdown link jumps here, so the eye lands on the
+     right row instead of hunting the list. */
+  .check-item-flash {
+    animation: check-item-flash 1.2s ease-out;
+  }
+  @keyframes check-item-flash {
+    0%,
+    30% {
+      background: color-mix(
+        in srgb,
+        var(--warning-color, #ffa600) 22%,
+        var(--card-background-color, rgba(255, 255, 255, 0.04))
+      );
+    }
+    100% {
+      background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .check-item-flash {
+      animation: none;
+    }
   }
   /* Only the collapsed (clear) rows brighten on hover — a whole-card tint on an
      expanded issue row would wash out the finding sub-cards nested inside it. */
@@ -521,5 +547,197 @@ export const insightsStyles = css`
   }
   .ts-item-desc {
     opacity: 0.6;
+  }
+  /* ── Boot-settle hero (home still starting up) ── */
+  .insights-settling {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 14px;
+    padding: 72px 24px;
+    min-height: 40vh;
+  }
+  .insights-settling .spinner {
+    width: 34px;
+    height: 34px;
+    border-width: 3px;
+  }
+  .insights-settling-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .insights-settling-sub {
+    font-size: 13px;
+    opacity: 0.6;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+
+  /* ── Score breakdown ("why this score") ── */
+  .score-breakdown {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.04));
+    border-radius: 12px;
+    padding: 14px 16px 16px;
+    margin: 0 0 16px;
+    /* Fade the whole card up as it enters, echoing the gauge pop above it. */
+    animation: sb-card-in 0.45s ease-out both;
+  }
+  @keyframes sb-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .sb-head {
+    margin-bottom: 12px;
+  }
+  .sb-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .sb-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  /* name | bar | count | points | arrow — the bar flexes, the rest hold their
+     width so the numbers stay in a clean right-aligned column across rows. */
+  .sb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 3px 6px;
+    margin: -3px -6px;
+    border-radius: 8px;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    /* Staggered fade-in (delay set inline per row) so the chart builds in from
+       the top instead of appearing all at once. */
+    animation: sb-row-in 0.4s ease-out both;
+  }
+  @keyframes sb-row-in {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  /* Rows that link down to a checklist section are buttons — brighten and slide
+     the chevron in on hover so the affordance reads without cluttering rest. */
+  .sb-row-link {
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  .sb-row-link:hover,
+  .sb-row-link:focus-visible {
+    background: color-mix(
+      in srgb,
+      var(--primary-text-color, #fff) 7%,
+      transparent
+    );
+    outline: none;
+  }
+  .sb-row-link:hover .sb-row-name {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .sb-row-arrow {
+    flex: 0 0 auto;
+    --mdc-icon-size: 18px;
+    opacity: 0.35;
+    transform: translateX(-3px);
+    transition:
+      opacity 0.12s ease,
+      transform 0.12s ease;
+  }
+  .sb-row-link:hover .sb-row-arrow,
+  .sb-row-link:focus-visible .sb-row-arrow {
+    opacity: 0.85;
+    transform: translateX(0);
+  }
+  .sb-row-arrow-spacer {
+    flex: 0 0 18px;
+  }
+  .sb-row-name {
+    flex: 0 0 34%;
+    max-width: 34%;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sb-track {
+    flex: 1 1 auto;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--divider-color, rgba(255, 255, 255, 0.1));
+    overflow: hidden;
+  }
+  .sb-fill {
+    height: 100%;
+    border-radius: 999px;
+    min-width: 4px;
+    /* Grow out from zero to the target width (--sb-w, set inline) as it enters,
+       delayed per row so bars fill in one after another under the gauge sweep. */
+    animation: sb-fill-grow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes sb-fill-grow {
+    from {
+      width: 0;
+    }
+    to {
+      width: var(--sb-w);
+    }
+  }
+  .sb-row-count {
+    flex: 0 0 auto;
+    font-size: 12px;
+    opacity: 0.55;
+    white-space: nowrap;
+  }
+  .sb-row-pts {
+    flex: 0 0 auto;
+    min-width: 34px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* No entrance motion — snap to final state (bars keep their inline width). */
+    .score-breakdown,
+    .sb-row,
+    .sb-fill {
+      animation: none;
+    }
+  }
+  @media (max-width: 480px) {
+    /* Drop the "N issues" column on narrow screens — the count is already on
+       each check row below; keep name, bar, and points. */
+    .sb-row-count {
+      display: none;
+    }
+    .sb-row-name {
+      flex-basis: 40%;
+      max-width: 40%;
+    }
   }
 `;

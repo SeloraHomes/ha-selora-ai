@@ -2,6 +2,7 @@ import { html } from "lit";
 import { renderMarkdown } from "../shared/markdown.js";
 import { renderQuickActions } from "./quick-actions.js";
 import { renderHealthGauge } from "./health-gauge.js";
+import { renderScoreBreakdown } from "./health-score-breakdown.js";
 
 // Health tab.
 //   A deterministic health score + a checklist: every check that ran (device
@@ -157,7 +158,10 @@ function _checkRow(host, check) {
       : "check-clear";
   const badgeClass = errored ? "error" : issues ? "issues" : "clear";
   return html`
-    <div class="check-item ${issues ? "check-item-issues" : ""}">
+    <div
+      id=${`hc-${check.check_id}`}
+      class="check-item ${issues ? "check-item-issues" : ""}"
+    >
       <div class="check-head">
         <ha-icon class="check-icon ${iconClass}" icon=${iconName}></ha-icon>
         <span class="check-title">${check.title}</span>
@@ -304,6 +308,36 @@ export function renderInsights(host) {
     `;
   }
 
+  // Home still booting: devices are reconnecting, so any score would over-count
+  // offline devices. Show a spinner instead of a misleading gauge — the panel
+  // re-fetches on its own (insights-actions) once the settle grace elapses.
+  if (host._auditSettling) {
+    return html`
+      <div class="scroll-view">
+        <div class="page-root">
+          <div class="page-header">
+            <h1 class="page-h1">${host._t("insights_title", "Health")}</h1>
+          </div>
+          <div class="insights-settling">
+            <span class="spinner"></span>
+            <div class="insights-settling-title">
+              ${host._t(
+                "insights_settling_title",
+                "Your home is still starting up",
+              )}
+            </div>
+            <div class="insights-settling-sub">
+              ${host._t(
+                "insights_settling_sub",
+                "We'll run a health check once your devices are back online.",
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   return html`
     <div class="scroll-view">
       <div class="page-root">
@@ -324,7 +358,8 @@ export function renderInsights(host) {
           ${_relativeTime(host, host._auditGeneratedAt)}
         </div>
 
-        ${renderHealthGauge(host)} ${_auditBody(host)}
+        ${renderHealthGauge(host)} ${renderScoreBreakdown(host)}
+        ${_auditBody(host)}
       </div>
     </div>
   `;

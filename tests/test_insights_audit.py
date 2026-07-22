@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CoreState, HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 import pytest
@@ -72,6 +73,46 @@ async def test_inflight_periodic_run_cancelled_on_stop(hass, health_store, monke
 
     assert runner._tasks == set()
     assert state["completed"] is False  # cancelled before finishing
+
+
+@pytest.mark.asyncio
+async def test_not_settling_when_ha_already_running(hass, health_store) -> None:
+    """HA already up at setup (a reload / late-added entry) → devices are online,
+    so nothing to settle: the score is trustworthy immediately."""
+    hass.set_state(CoreState.running)
+    runner = AuditRunner(hass, health_store)
+    await runner.async_start(interval_hours=24)
+    try:
+        assert runner.is_settling() is False
+    finally:
+        await runner.async_stop()
+
+
+@pytest.mark.asyncio
+async def test_settling_window_from_boot_until_grace(hass, health_store) -> None:
+    """A home that boots with the entry present is "settling" until HA fires
+    STARTED and a fixed grace elapses — then it latches to trusted."""
+    hass.set_state(CoreState.not_running)
+    runner = AuditRunner(hass, health_store)
+    await runner.async_start(interval_hours=24)
+    try:
+        # Before STARTED: settling, no deadline yet, panel told to poll shortly.
+        assert runner.is_settling() is True
+        assert runner._settle_deadline is None
+        assert runner.settle_retry_seconds() == 15
+
+        # STARTED fires → grace window opens; still settling, retry ≤ grace.
+        runner._on_ha_started(None)
+        assert runner.is_settling() is True
+        assert 0 < runner.settle_retry_seconds() <= 90
+
+        # Grace elapsed → settled, and it latches (never flips back).
+        runner._settle_deadline = datetime.now(UTC) - timedelta(seconds=1)
+        assert runner.is_settling() is False
+        assert runner._settled is True
+        assert runner.is_settling() is False
+    finally:
+        await runner.async_stop()
 
 
 @pytest.mark.asyncio

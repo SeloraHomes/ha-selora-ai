@@ -472,24 +472,13 @@ class HealthMonitor:
         for eid, seen_ts in prior_first_seen.items():
             if eid in offenders or eid in self._excluded:
                 continue
-            entry = ent_reg.async_get(eid)
-            if entry is None or entry.disabled_by is not None:
-                continue
-            state = self._hass.states.get(eid)
-            if (
-                state is not None
-                and state.state.casefold() not in _UNREACHABLE_STATES
-                and not state.attributes.get("restored")
-            ):
-                continue  # back with a real, live value → let the signal resolve
             # ``unknown`` (in _UNREACHABLE_STATES) does NOT count as recovery: it
             # shows up during the same remove/re-add churn and doesn't prove the
             # device is back, so the signal is kept until a genuinely reachable
-            # state appears.
-            ce_id = entry.config_entry_id
-            ce = self._hass.config_entries.async_get_entry(ce_id) if ce_id else None
-            if ce is not None and ce.state is not ConfigEntryState.LOADED:
-                continue  # integration unloaded/failed → not a device outage
+            # state appears (see ``_is_preserved_offline`` for the full rule).
+            if not _is_preserved_offline(self._hass, ent_reg, eid):
+                continue
+            state = self._hass.states.get(eid)
             offenders[eid] = {
                 "state": state.state if state is not None else "unavailable",
                 "unavailable_seconds": int(now_ts - seen_ts),
@@ -632,6 +621,8 @@ class HealthMonitor:
             if state.entity_id in self._excluded:
                 continue
             if _is_transient(state.entity_id, ent_reg):
+                continue
+            if not _is_battery_entity(state):
                 continue
             # A binary_sensor with device_class battery reports on == low (HA's
             # BinarySensorDeviceClass.BATTERY), not a percentage. Flag it with
@@ -918,6 +909,32 @@ def _is_transient(entity_id: str, ent_reg: er.EntityRegistry) -> bool:
     return bool(entry and entry.platform in _TRANSIENT_INTEGRATIONS)
 
 
+def _is_preserved_offline(hass: HomeAssistant, ent_reg: er.EntityRegistry, entity_id: str) -> bool:
+    """True when an already-flagged offline entity should keep its signal while
+    its integration briefly drops the state object (Sonos rediscovery churn):
+    the registry entry is still present and enabled, the entity hasn't returned
+    with a real live value (no state, or an unreachable/restored one), and its
+    config entry is still loaded. Shared by :meth:`HealthMonitor.
+    _keep_vanished_offline` and the audit's fleet eligibility so both agree on
+    what a "preserved offline" device is — a genuinely removed or disabled entity
+    does NOT qualify, so its stale signal can't masquerade as a live outage."""
+    entry = ent_reg.async_get(entity_id)
+    if entry is None or entry.disabled_by is not None:
+        return False
+    state = hass.states.get(entity_id)
+    if (
+        state is not None
+        and state.state.casefold() not in _UNREACHABLE_STATES
+        and not state.attributes.get("restored")
+    ):
+        return False  # back with a real, live value
+    ce_id = entry.config_entry_id
+    ce = hass.config_entries.async_get_entry(ce_id) if ce_id else None
+    # Kept only while the integration is still loaded — an unloaded/failed config
+    # entry is an integration problem, not a device outage.
+    return ce is None or ce.state is ConfigEntryState.LOADED
+
+
 def _device_unreachable(hass: HomeAssistant, ent_reg: er.EntityRegistry, device_id: str) -> bool:
     """True when a device's primary entities are all unreachable.
 
@@ -1038,6 +1055,19 @@ def _battery_level(state: State) -> int | None:
         with suppress(ValueError, TypeError):
             return int(float(raw))
     return None
+
+
+def _is_battery_entity(state: State) -> bool:
+    """True when :meth:`HealthMonitor._detect_battery` treats this entity as a
+    battery reading it could flag — a binary battery sensor (``device_class``
+    battery, on == low) or any entity exposing a numeric level. Intentionally NOT
+    scope-gated, matching the detector: a low battery is actionable on any device
+    (a valve, a siren, a mower) even in a domain we don't otherwise track."""
+    if state.attributes.get("device_class") == "battery" and state.entity_id.startswith(
+        "binary_sensor."
+    ):
+        return True
+    return _battery_level(state) is not None
 
 
 def _resolve_area(
