@@ -335,11 +335,13 @@ class SeloraAIPanel extends LitElement {
       _auditChecks: { type: Array },
       _auditScore: { type: Number },
       _auditBand: { type: String },
+      _auditBreakdown: { type: Object },
       _auditQuickActions: { type: Array },
       _auditGeneratedAt: { type: String },
       _auditError: { type: String },
       _auditRunning: { type: Boolean },
       _auditLoaded: { type: Boolean },
+      _auditSettling: { type: Boolean },
 
       // Automations tab
       _suggestions: { type: Array },
@@ -641,6 +643,7 @@ class SeloraAIPanel extends LitElement {
     this._auditChecks = [];
     this._auditScore = null;
     this._auditBand = "";
+    this._auditBreakdown = null;
     this._auditQuickActions = [];
     this._auditGeneratedAt = null;
     this._auditError = null;
@@ -648,6 +651,9 @@ class SeloraAIPanel extends LitElement {
     // False until the first audit fetch resolves — lets the Health body show a
     // loading spinner instead of flashing the "No audit yet" empty state.
     this._auditLoaded = false;
+    // True while the home is still booting — the panel shows a spinner instead
+    // of a score built on devices that haven't finished reconnecting.
+    this._auditSettling = false;
     this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
@@ -770,6 +776,8 @@ class SeloraAIPanel extends LitElement {
     this._quotaUnsub = null;
     this._quotaSubPending = false;
     this._quotaClearTimer = null;
+    // Pending post-settle audit re-check (see insights-actions._loadAudit).
+    this._settleRetryTimer = null;
   }
 
   // Close both row-level (burger) menus — automations and scenes — and drop
@@ -1163,6 +1171,12 @@ class SeloraAIPanel extends LitElement {
     if (this._quotaTickTimer) {
       clearInterval(this._quotaTickTimer);
       this._quotaTickTimer = null;
+    }
+    // Boot-settle re-check: cancel it so a panel detached mid-settling can't
+    // fire another audit/rescan against a detached host or schedule more retries.
+    if (this._settleRetryTimer) {
+      clearTimeout(this._settleRetryTimer);
+      this._settleRetryTimer = null;
     }
     // Tear down EVERY in-flight chat stream. With background streams
     // allowed across session switches, this._streams can hold more

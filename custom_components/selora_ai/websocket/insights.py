@@ -309,7 +309,14 @@ async def _handle_get_audit(
     # async_stop — otherwise the old runner could persist through a stale
     # HealthStore and clobber the replacement entry's data.
     audit = await runner.async_run_tracked()
-    connection.send_result(msg["id"], audit or {"status": "pending"})
+    payload = dict(audit) if audit else {"status": "pending"}
+    # Flag a just-booted home so the panel shows a spinner instead of a score
+    # built on devices that haven't finished reconnecting; tell it when to
+    # re-check so it swaps in the real score without a manual reload.
+    payload["settling"] = runner.is_settling()
+    if payload["settling"]:
+        payload["retry_after"] = runner.settle_retry_seconds()
+    connection.send_result(msg["id"], payload)
 
 
 @websocket_api.async_response

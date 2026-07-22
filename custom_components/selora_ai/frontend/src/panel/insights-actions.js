@@ -21,20 +21,44 @@ function _applyAudit(host, audit) {
   // Deterministic 0-100 health score + A-F band (null until a run completes).
   host._auditScore = typeof audit?.score === "number" ? audit.score : null;
   host._auditBand = audit?.band || "";
+  // Per-finding point attribution behind the score ("why this score").
+  host._auditBreakdown = audit?.score_breakdown || null;
   host._auditQuickActions = audit?.quick_actions || [];
   host._auditGeneratedAt = audit?.generated_at || null;
   host._auditError = audit?.error || null;
+  // Home still booting — devices are reconnecting, so the score would
+  // over-count offline devices. The panel shows a spinner instead.
+  host._auditSettling = audit?.settling === true;
 }
 
 export async function _loadAudit() {
+  // Cancel any pending settle re-check so retries never stack up.
+  if (this._settleRetryTimer) {
+    clearTimeout(this._settleRetryTimer);
+    this._settleRetryTimer = null;
+  }
+  // Fallback cadence if the request fails before we learn the server's hint —
+  // a transient WS/server error must not strand the page on the spinner.
+  let retryAfter = 15;
   try {
     const audit = await this.hass.callWS({ type: "selora_ai/insights/audit" });
     _applyAudit(this, audit);
+    if (Number(audit?.retry_after) > 0) retryAfter = Number(audit.retry_after);
   } catch (err) {
     console.error("Failed to load home audit", err);
   } finally {
     // First fetch resolved (success or not) — stop showing the loading state.
     this._auditLoaded = true;
+    // Keep polling while the home is still settling, INCLUDING after a failed
+    // fetch (settling stays true from the prior load), so the real score swaps
+    // in on its own and the spinner can never get stuck. A settled/failed-first
+    // load leaves _auditSettling false → no retry.
+    if (this._auditSettling) {
+      this._settleRetryTimer = setTimeout(
+        () => this._loadAudit(),
+        retryAfter * 1000 + 2000,
+      );
+    }
   }
 }
 
