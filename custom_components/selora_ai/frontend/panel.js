@@ -8425,7 +8425,7 @@ var en_default = {
       selora_local: {
         title: "Selora AI Local Configuration",
         description:
-          "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+          "Selora AI Local runs the Selora AI model on your own network via a self-hosted llama-server (listening on port 8080). Enter its address below \u2014 the default works when the server runs on the same host as Home Assistant. The specialist model is selected automatically per request.",
         data: {
           selora_local_host: "Host URL",
         },
@@ -8634,7 +8634,7 @@ var en_default = {
     settings_selora_local_show_advanced: "Show advanced options",
     settings_selora_local_hide_advanced: "Hide advanced options",
     settings_selora_local_advanced_desc:
-      "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+      "Selora AI Local runs the Selora AI model on your own network via a self-hosted llama-server (listening on port 8080). Enter its address below \u2014 the default works when the server runs on the same host as Home Assistant. The specialist model is selected automatically per request.",
     settings_selora_local_host_label: "Host",
     settings_selora_local_auto_detected_prefix: "Auto-detected:",
     settings_selora_local_auto_detected_none: "none",
@@ -9494,9 +9494,9 @@ var fr_default = {
       selora_local: {
         title: "Configuration Selora AI Local",
         description:
-          "Connectez-vous au module compl\xE9mentaire Selora AI Local Home Assistant ex\xE9cut\xE9 sur l'appareil. Le module \xE9coute sur le port 8080. L'adresse par d\xE9faut ci-dessous fonctionne pour HA OS via la passerelle Supervisor. Le mod\xE8le sp\xE9cialis\xE9 est s\xE9lectionn\xE9 automatiquement \xE0 chaque requ\xEAte.",
+          "Selora AI Local ex\xE9cute le mod\xE8le Selora AI sur votre propre r\xE9seau via un llama-server auto-h\xE9berg\xE9 (\xE0 l'\xE9coute sur le port 8080). Saisissez son adresse ci-dessous \u2014 la valeur par d\xE9faut fonctionne lorsque le serveur s'ex\xE9cute sur le m\xEAme h\xF4te que Home Assistant. Le mod\xE8le sp\xE9cialis\xE9 est s\xE9lectionn\xE9 automatiquement \xE0 chaque requ\xEAte.",
         data: {
-          selora_local_host: "URL de l'h\xF4te du module",
+          selora_local_host: "URL de l'h\xF4te",
         },
       },
       select_devices: {
@@ -9711,7 +9711,7 @@ var fr_default = {
     settings_selora_local_show_advanced: "Afficher les options avanc\xE9es",
     settings_selora_local_hide_advanced: "Masquer les options avanc\xE9es",
     settings_selora_local_advanced_desc:
-      "Les hubs Selora sont pr\xE9configur\xE9s. Pour utiliser un llama-server auto-h\xE9berg\xE9 ex\xE9cutant le mod\xE8le Selora AI, saisissez son adresse ci-dessous.",
+      "Selora AI Local ex\xE9cute le mod\xE8le Selora AI sur votre propre r\xE9seau via un llama-server auto-h\xE9berg\xE9 (\xE0 l'\xE9coute sur le port 8080). Saisissez son adresse ci-dessous \u2014 la valeur par d\xE9faut fonctionne lorsque le serveur s'ex\xE9cute sur le m\xEAme h\xF4te que Home Assistant. Le mod\xE8le sp\xE9cialis\xE9 est s\xE9lectionn\xE9 automatiquement \xE0 chaque requ\xEAte.",
     settings_selora_local_host_label: "H\xF4te",
     settings_selora_local_auto_detected_prefix:
       "D\xE9tect\xE9 automatiquement :",
@@ -10617,9 +10617,9 @@ var de_default = {
       selora_local: {
         title: "Selora AI Local Konfiguration",
         description:
-          "Verbinden Sie sich mit dem Selora AI Local Home Assistant Add-on, das auf dem Ger\xE4t l\xE4uft. Das Add-on lauscht auf Port 8080. Die Standardadresse unten funktioniert f\xFCr HA OS \xFCber das Supervisor-Gateway. Das Spezialmodell wird pro Anfrage automatisch ausgew\xE4hlt.",
+          "Selora AI Local f\xFChrt das Selora-AI-Modell in Ihrem eigenen Netzwerk \xFCber einen selbst gehosteten llama-server aus (lauscht auf Port 8080). Geben Sie unten dessen Adresse ein \u2013 der Standardwert funktioniert, wenn der Server auf demselben Host wie Home Assistant l\xE4uft. Das Spezialmodell wird pro Anfrage automatisch ausgew\xE4hlt.",
         data: {
-          selora_local_host: "Add-on-Host-URL",
+          selora_local_host: "Host-URL",
         },
       },
       select_devices: {
@@ -10835,7 +10835,7 @@ var de_default = {
     settings_selora_local_show_advanced: "Erweiterte Optionen anzeigen",
     settings_selora_local_hide_advanced: "Erweiterte Optionen ausblenden",
     settings_selora_local_advanced_desc:
-      "Selora-Hubs sind vorkonfiguriert. Um einen selbst gehosteten llama-server mit dem Selora-AI-Modell zu verwenden, geben Sie unten dessen Adresse ein.",
+      "Selora AI Local f\xFChrt das Selora-AI-Modell in Ihrem eigenen Netzwerk \xFCber einen selbst gehosteten llama-server aus (lauscht auf Port 8080). Geben Sie unten dessen Adresse ein \u2013 der Standardwert funktioniert, wenn der Server auf demselben Host wie Home Assistant l\xE4uft. Das Spezialmodell wird pro Anfrage automatisch ausgew\xE4hlt.",
     settings_selora_local_host_label: "Host",
     settings_selora_local_auto_detected_prefix: "Automatisch erkannt:",
     settings_selora_local_auto_detected_none: "keine",
@@ -11731,9 +11731,9 @@ var es_default = {
       selora_local: {
         title: "Configuraci\xF3n de Selora AI Local",
         description:
-          "Con\xE9ctese al complemento Selora AI Local Home Assistant que se ejecuta en el dispositivo. El complemento escucha en el puerto 8080. La direcci\xF3n predeterminada de abajo funciona para HA OS a trav\xE9s de la puerta de enlace Supervisor. El modelo especializado se selecciona autom\xE1ticamente en cada solicitud.",
+          "Selora AI Local ejecuta el modelo Selora AI en su propia red mediante un llama-server autoalojado (que escucha en el puerto 8080). Introduzca su direcci\xF3n a continuaci\xF3n: el valor predeterminado funciona cuando el servidor se ejecuta en el mismo host que Home Assistant. El modelo especializado se selecciona autom\xE1ticamente en cada solicitud.",
         data: {
-          selora_local_host: "URL del host del complemento",
+          selora_local_host: "URL del host",
         },
       },
       select_devices: {
@@ -11946,7 +11946,7 @@ var es_default = {
     settings_selora_local_show_advanced: "Mostrar opciones avanzadas",
     settings_selora_local_hide_advanced: "Ocultar opciones avanzadas",
     settings_selora_local_advanced_desc:
-      "Los hubs Selora vienen preconfigurados. Para usar un llama-server autoalojado que ejecute el modelo Selora AI, introduce su direcci\xF3n a continuaci\xF3n.",
+      "Selora AI Local ejecuta el modelo Selora AI en su propia red mediante un llama-server autoalojado (que escucha en el puerto 8080). Introduzca su direcci\xF3n a continuaci\xF3n: el valor predeterminado funciona cuando el servidor se ejecuta en el mismo host que Home Assistant. El modelo especializado se selecciona autom\xE1ticamente en cada solicitud.",
     settings_selora_local_host_label: "Host",
     settings_selora_local_auto_detected_prefix: "Detectado autom\xE1ticamente:",
     settings_selora_local_auto_detected_none: "ninguno",
@@ -12832,9 +12832,9 @@ var it_default = {
       selora_local: {
         title: "Configurazione Selora AI Local",
         description:
-          "Connettiti al componente aggiuntivo Selora AI Local Home Assistant in esecuzione sul dispositivo. Il componente aggiuntivo ascolta sulla porta 8080. L'indirizzo predefinito qui sotto funziona per HA OS tramite il gateway Supervisor. Il modello specializzato viene selezionato automaticamente per ogni richiesta.",
+          "Selora AI Local esegue il modello Selora AI sulla tua rete tramite un llama-server self-hosted (in ascolto sulla porta 8080). Inserisci il suo indirizzo qui sotto: il valore predefinito funziona quando il server \xE8 in esecuzione sullo stesso host di Home Assistant. Il modello specializzato viene selezionato automaticamente a ogni richiesta.",
         data: {
-          selora_local_host: "URL dell'host del componente aggiuntivo",
+          selora_local_host: "URL dell'host",
         },
       },
       select_devices: {
@@ -13046,7 +13046,7 @@ var it_default = {
     settings_selora_local_show_advanced: "Mostra opzioni avanzate",
     settings_selora_local_hide_advanced: "Nascondi opzioni avanzate",
     settings_selora_local_advanced_desc:
-      "Gli hub Selora sono preconfigurati. Per usare un llama-server self-hosted che esegue il modello Selora AI, inserisci il suo indirizzo qui sotto.",
+      "Selora AI Local esegue il modello Selora AI sulla tua rete tramite un llama-server self-hosted (in ascolto sulla porta 8080). Inserisci il suo indirizzo qui sotto: il valore predefinito funziona quando il server \xE8 in esecuzione sullo stesso host di Home Assistant. Il modello specializzato viene selezionato automaticamente a ogni richiesta.",
     settings_selora_local_host_label: "Host",
     settings_selora_local_auto_detected_prefix: "Rilevato automaticamente:",
     settings_selora_local_auto_detected_none: "nessuno",
@@ -13931,9 +13931,9 @@ var nl_default = {
       selora_local: {
         title: "Selora AI Local configuratie",
         description:
-          "Maak verbinding met de Selora AI Local Home Assistant-add-on die op het apparaat draait. De add-on luistert op poort 8080. Het standaardadres hieronder werkt voor HA OS via de Supervisor-gateway. Het specialistmodel wordt automatisch per verzoek geselecteerd.",
+          "Selora AI Local draait het Selora AI-model op je eigen netwerk via een zelf-gehoste llama-server (luistert op poort 8080). Voer hieronder het adres in \u2014 de standaardwaarde werkt wanneer de server op dezelfde host als Home Assistant draait. Het specialistmodel wordt automatisch per verzoek geselecteerd.",
         data: {
-          selora_local_host: "Add-on-host-URL",
+          selora_local_host: "Host-URL",
         },
       },
       select_devices: {
@@ -14164,7 +14164,7 @@ var nl_default = {
     settings_selora_local_show_advanced: "Geavanceerde opties tonen",
     settings_selora_local_hide_advanced: "Geavanceerde opties verbergen",
     settings_selora_local_advanced_desc:
-      "Selora-hubs worden voorgeconfigureerd geleverd. Voer hieronder het adres in om een zelf-gehoste llama-server met het Selora AI-model te gebruiken.",
+      "Selora AI Local draait het Selora AI-model op je eigen netwerk via een zelf-gehoste llama-server (luistert op poort 8080). Voer hieronder het adres in \u2014 de standaardwaarde werkt wanneer de server op dezelfde host als Home Assistant draait. Het specialistmodel wordt automatisch per verzoek geselecteerd.",
     settings_selora_local_host_label: "Host",
     settings_selora_local_auto_detected_prefix: "Automatisch gedetecteerd:",
     settings_selora_local_auto_detected_none: "geen",
@@ -15025,9 +15025,9 @@ var hu_default = {
       selora_local: {
         title: "Selora AI Local konfigur\xE1ci\xF3",
         description:
-          "Csatlakozzon az eszk\xF6z\xF6n fut\xF3 Selora AI Local Home Assistant kieg\xE9sz\xEDt\u0151h\xF6z. A kieg\xE9sz\xEDt\u0151 a 8080-as porton figyel. Az al\xE1bbi alap\xE9rtelmezett c\xEDm HA OS eset\xE9n a Supervisor \xE1tj\xE1r\xF3n kereszt\xFCl m\u0171k\xF6dik. A specialista modell automatikusan ker\xFCl kiv\xE1laszt\xE1sra k\xE9r\xE9senk\xE9nt.",
+          "A Selora AI Local a Selora AI modellt a saj\xE1t h\xE1l\xF3zat\xE1n futtatja egy \xF6n\xE1ll\xF3an \xFCzemeltetett llama-server seg\xEDts\xE9g\xE9vel (a 8080-as porton figyel). Adja meg al\xE1bb a c\xEDm\xE9t \u2014 az alap\xE9rtelmezett \xE9rt\xE9k akkor m\u0171k\xF6dik, ha a kiszolg\xE1l\xF3 a Home Assistanttal azonos g\xE9pen fut. A specialista modell k\xE9r\xE9senk\xE9nt automatikusan ker\xFCl kiv\xE1laszt\xE1sra.",
         data: {
-          selora_local_host: "Kieg\xE9sz\xEDt\u0151-kiszolg\xE1l\xF3 URL",
+          selora_local_host: "Kiszolg\xE1l\xF3 URL",
         },
       },
       select_devices: {
@@ -15273,7 +15273,7 @@ var hu_default = {
     settings_selora_local_hide_advanced:
       "Speci\xE1lis be\xE1ll\xEDt\xE1sok elrejt\xE9se",
     settings_selora_local_advanced_desc:
-      "A Selora hubok el\u0151re konfigur\xE1lva \xE9rkeznek. Saj\xE1t \xFCzemeltet\xE9s\u0171, a Selora AI modellt futtat\xF3 llama-server haszn\xE1lat\xE1hoz adja meg annak c\xEDm\xE9t al\xE1bb.",
+      "A Selora AI Local a Selora AI modellt a saj\xE1t h\xE1l\xF3zat\xE1n futtatja egy \xF6n\xE1ll\xF3an \xFCzemeltetett llama-server seg\xEDts\xE9g\xE9vel (a 8080-as porton figyel). Adja meg al\xE1bb a c\xEDm\xE9t \u2014 az alap\xE9rtelmezett \xE9rt\xE9k akkor m\u0171k\xF6dik, ha a kiszolg\xE1l\xF3 a Home Assistanttal azonos g\xE9pen fut. A specialista modell k\xE9r\xE9senk\xE9nt automatikusan ker\xFCl kiv\xE1laszt\xE1sra.",
     settings_selora_local_host_label: "Gazdag\xE9p",
     settings_selora_local_auto_detected_prefix: "Automatikusan \xE9szlelve:",
     settings_selora_local_auto_detected_none: "nincs",
@@ -16176,7 +16176,7 @@ var pt_default = {
       selora_local: {
         title: "Configura\xE7\xE3o do Selora AI Local",
         description:
-          "Os Selora Hubs v\xEAm pr\xE9-configurados. Para utilizar um llama-server auto-alojado a executar o modelo Selora AI, introduza o seu endere\xE7o abaixo.",
+          "O Selora AI Local executa o modelo Selora AI na sua pr\xF3pria rede atrav\xE9s de um llama-server auto-alojado (\xE0 escuta na porta 8080). Introduza o seu endere\xE7o abaixo \u2014 o valor predefinido funciona quando o servidor \xE9 executado no mesmo anfitri\xE3o que o Home Assistant. O modelo especializado \xE9 selecionado automaticamente em cada pedido.",
         data: {
           selora_local_host: "URL do anfitri\xE3o",
         },
@@ -16394,7 +16394,7 @@ var pt_default = {
     settings_selora_local_show_advanced: "Mostrar op\xE7\xF5es avan\xE7adas",
     settings_selora_local_hide_advanced: "Ocultar op\xE7\xF5es avan\xE7adas",
     settings_selora_local_advanced_desc:
-      "Os Selora Hubs v\xEAm pr\xE9-configurados. Para utilizar um llama-server auto-alojado a executar o modelo Selora AI, introduza o seu endere\xE7o abaixo.",
+      "O Selora AI Local executa o modelo Selora AI na sua pr\xF3pria rede atrav\xE9s de um llama-server auto-alojado (\xE0 escuta na porta 8080). Introduza o seu endere\xE7o abaixo \u2014 o valor predefinido funciona quando o servidor \xE9 executado no mesmo anfitri\xE3o que o Home Assistant. O modelo especializado \xE9 selecionado automaticamente em cada pedido.",
     settings_selora_local_host_label: "Anfitri\xE3o",
     settings_selora_local_auto_detected_prefix: "Detetado automaticamente:",
     settings_selora_local_auto_detected_none: "nenhum",
@@ -17298,7 +17298,7 @@ var ru_default = {
         title:
           "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 Selora AI Local",
         description:
-          "\u0425\u0430\u0431\u044B Selora \u043F\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u044E\u0442\u0441\u044F \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u043C\u0438. \u0427\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0441\u0430\u043C\u043E\u0441\u0442\u043E\u044F\u0442\u0435\u043B\u044C\u043D\u043E \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u044B\u0439 llama-server \u0441 \u043C\u043E\u0434\u0435\u043B\u044C\u044E Selora AI, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0435\u0433\u043E \u0430\u0434\u0440\u0435\u0441 \u043D\u0438\u0436\u0435.",
+          "Selora AI Local \u0437\u0430\u043F\u0443\u0441\u043A\u0430\u0435\u0442 \u043C\u043E\u0434\u0435\u043B\u044C Selora AI \u0432 \u0432\u0430\u0448\u0435\u0439 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0441\u0435\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 \u0441\u0430\u043C\u043E\u0441\u0442\u043E\u044F\u0442\u0435\u043B\u044C\u043D\u043E \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u044B\u0439 llama-server (\u0441\u043B\u0443\u0448\u0430\u0435\u0442 \u043F\u043E\u0440\u0442 8080). \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0435\u0433\u043E \u0430\u0434\u0440\u0435\u0441 \u043D\u0438\u0436\u0435 \u2014 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442, \u043A\u043E\u0433\u0434\u0430 \u0441\u0435\u0440\u0432\u0435\u0440 \u0437\u0430\u043F\u0443\u0449\u0435\u043D \u043D\u0430 \u0442\u043E\u043C \u0436\u0435 \u0445\u043E\u0441\u0442\u0435, \u0447\u0442\u043E \u0438 Home Assistant. \u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u0430\u044F \u043C\u043E\u0434\u0435\u043B\u044C \u0432\u044B\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0438 \u043A\u0430\u0436\u0434\u043E\u043C \u0437\u0430\u043F\u0440\u043E\u0441\u0435.",
         data: {
           selora_local_host:
             "URL-\u0430\u0434\u0440\u0435\u0441 \u0445\u043E\u0441\u0442\u0430",
@@ -17609,7 +17609,7 @@ var ru_default = {
     settings_selora_local_hide_advanced:
       "\u0421\u043A\u0440\u044B\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B",
     settings_selora_local_advanced_desc:
-      "\u0425\u0430\u0431\u044B Selora \u043F\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u044E\u0442\u0441\u044F \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u043C\u0438. \u0427\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0441\u0430\u043C\u043E\u0441\u0442\u043E\u044F\u0442\u0435\u043B\u044C\u043D\u043E \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u044B\u0439 llama-server \u0441 \u043C\u043E\u0434\u0435\u043B\u044C\u044E Selora AI, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0435\u0433\u043E \u0430\u0434\u0440\u0435\u0441 \u043D\u0438\u0436\u0435.",
+      "Selora AI Local \u0437\u0430\u043F\u0443\u0441\u043A\u0430\u0435\u0442 \u043C\u043E\u0434\u0435\u043B\u044C Selora AI \u0432 \u0432\u0430\u0448\u0435\u0439 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0439 \u0441\u0435\u0442\u0438 \u0447\u0435\u0440\u0435\u0437 \u0441\u0430\u043C\u043E\u0441\u0442\u043E\u044F\u0442\u0435\u043B\u044C\u043D\u043E \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u044B\u0439 llama-server (\u0441\u043B\u0443\u0448\u0430\u0435\u0442 \u043F\u043E\u0440\u0442 8080). \u0423\u043A\u0430\u0436\u0438\u0442\u0435 \u0435\u0433\u043E \u0430\u0434\u0440\u0435\u0441 \u043D\u0438\u0436\u0435 \u2014 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442, \u043A\u043E\u0433\u0434\u0430 \u0441\u0435\u0440\u0432\u0435\u0440 \u0437\u0430\u043F\u0443\u0449\u0435\u043D \u043D\u0430 \u0442\u043E\u043C \u0436\u0435 \u0445\u043E\u0441\u0442\u0435, \u0447\u0442\u043E \u0438 Home Assistant. \u0421\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u0430\u044F \u043C\u043E\u0434\u0435\u043B\u044C \u0432\u044B\u0431\u0438\u0440\u0430\u0435\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0438 \u043A\u0430\u0436\u0434\u043E\u043C \u0437\u0430\u043F\u0440\u043E\u0441\u0435.",
     settings_selora_local_host_label: "\u0425\u043E\u0441\u0442",
     settings_selora_local_auto_detected_prefix:
       "\u0410\u0432\u0442\u043E\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435:",
@@ -18927,7 +18927,7 @@ var ja_default = {
       selora_local: {
         title: "Selora AI Local \u306E\u8A2D\u5B9A",
         description:
-          "Selora \u30CF\u30D6\u306F\u4E8B\u524D\u306B\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059\u3002Selora AI \u30E2\u30C7\u30EB\u3092\u5B9F\u884C\u3059\u308B\u81EA\u5DF1\u30DB\u30B9\u30C8\u578B\u306E llama-server \u3092\u4F7F\u7528\u3059\u308B\u306B\u306F\u3001\u4EE5\u4E0B\u306B\u305D\u306E\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+          "Selora AI Local \u306F\u3001\u81EA\u5DF1\u30DB\u30B9\u30C8\u578B\u306E llama-server\uFF08\u30DD\u30FC\u30C8 8080 \u3067\u5F85\u6A5F\uFF09\u3092\u4ECB\u3057\u3066\u3001\u3054\u81EA\u8EAB\u306E\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u3067 Selora AI \u30E2\u30C7\u30EB\u3092\u5B9F\u884C\u3057\u307E\u3059\u3002\u4EE5\u4E0B\u306B\u305D\u306E\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u65E2\u5B9A\u5024\u306F\u3001\u30B5\u30FC\u30D0\u30FC\u304C Home Assistant \u3068\u540C\u3058\u30DB\u30B9\u30C8\u3067\u52D5\u4F5C\u3057\u3066\u3044\u308B\u5834\u5408\u306B\u6A5F\u80FD\u3057\u307E\u3059\u3002\u5C02\u9580\u30E2\u30C7\u30EB\u306F\u30EA\u30AF\u30A8\u30B9\u30C8\u3054\u3068\u306B\u81EA\u52D5\u7684\u306B\u9078\u629E\u3055\u308C\u307E\u3059\u3002",
         data: {
           selora_local_host: "\u30DB\u30B9\u30C8 URL",
         },
@@ -19194,7 +19194,7 @@ var ja_default = {
     settings_selora_local_hide_advanced:
       "\u8A73\u7D30\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u975E\u8868\u793A",
     settings_selora_local_advanced_desc:
-      "Selora \u30CF\u30D6\u306F\u4E8B\u524D\u306B\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059\u3002Selora AI \u30E2\u30C7\u30EB\u3092\u5B9F\u884C\u3059\u308B\u81EA\u5DF1\u30DB\u30B9\u30C8\u578B\u306E llama-server \u3092\u4F7F\u7528\u3059\u308B\u306B\u306F\u3001\u4EE5\u4E0B\u306B\u305D\u306E\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "Selora AI Local \u306F\u3001\u81EA\u5DF1\u30DB\u30B9\u30C8\u578B\u306E llama-server\uFF08\u30DD\u30FC\u30C8 8080 \u3067\u5F85\u6A5F\uFF09\u3092\u4ECB\u3057\u3066\u3001\u3054\u81EA\u8EAB\u306E\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u3067 Selora AI \u30E2\u30C7\u30EB\u3092\u5B9F\u884C\u3057\u307E\u3059\u3002\u4EE5\u4E0B\u306B\u305D\u306E\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u65E2\u5B9A\u5024\u306F\u3001\u30B5\u30FC\u30D0\u30FC\u304C Home Assistant \u3068\u540C\u3058\u30DB\u30B9\u30C8\u3067\u52D5\u4F5C\u3057\u3066\u3044\u308B\u5834\u5408\u306B\u6A5F\u80FD\u3057\u307E\u3059\u3002\u5C02\u9580\u30E2\u30C7\u30EB\u306F\u30EA\u30AF\u30A8\u30B9\u30C8\u3054\u3068\u306B\u81EA\u52D5\u7684\u306B\u9078\u629E\u3055\u308C\u307E\u3059\u3002",
     settings_selora_local_host_label: "\u30DB\u30B9\u30C8",
     settings_selora_local_auto_detected_prefix:
       "\u81EA\u52D5\u691C\u51FA\uFF1A",
@@ -20278,7 +20278,7 @@ var ko_default = {
       selora_local: {
         title: "Selora AI Local \uAD6C\uC131",
         description:
-          "Selora \uD5C8\uBE0C\uB294 \uC0AC\uC804 \uAD6C\uC131\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. Selora AI \uBAA8\uB378\uC744 \uC2E4\uD589\uD558\uB294 \uC790\uCCB4 \uD638\uC2A4\uD305 llama-server\uB97C \uC0AC\uC6A9\uD558\uB824\uBA74 \uC544\uB798\uC5D0 \uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694.",
+          "Selora AI Local\uC740 \uC790\uCCB4 \uD638\uC2A4\uD305 llama-server(\uD3EC\uD2B8 8080\uC5D0\uC11C \uC218\uC2E0 \uB300\uAE30)\uB97C \uD1B5\uD574 \uC0AC\uC6A9\uC790 \uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C Selora AI \uBAA8\uB378\uC744 \uC2E4\uD589\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0 \uD574\uB2F9 \uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694. \uAE30\uBCF8\uAC12\uC740 \uC11C\uBC84\uAC00 Home Assistant\uC640 \uB3D9\uC77C\uD55C \uD638\uC2A4\uD2B8\uC5D0\uC11C \uC2E4\uD589\uB420 \uB54C \uC791\uB3D9\uD569\uB2C8\uB2E4. \uC804\uBB38 \uBAA8\uB378\uC740 \uC694\uCCAD\uB9C8\uB2E4 \uC790\uB3D9\uC73C\uB85C \uC120\uD0DD\uB429\uB2C8\uB2E4.",
         data: {
           selora_local_host: "\uD638\uC2A4\uD2B8 URL",
         },
@@ -20534,7 +20534,7 @@ var ko_default = {
     settings_selora_local_hide_advanced:
       "\uACE0\uAE09 \uC635\uC158 \uC228\uAE30\uAE30",
     settings_selora_local_advanced_desc:
-      "Selora \uD5C8\uBE0C\uB294 \uC0AC\uC804 \uAD6C\uC131\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. Selora AI \uBAA8\uB378\uC744 \uC2E4\uD589\uD558\uB294 \uC790\uCCB4 \uD638\uC2A4\uD305 llama-server\uB97C \uC0AC\uC6A9\uD558\uB824\uBA74 \uC544\uB798\uC5D0 \uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694.",
+      "Selora AI Local\uC740 \uC790\uCCB4 \uD638\uC2A4\uD305 llama-server(\uD3EC\uD2B8 8080\uC5D0\uC11C \uC218\uC2E0 \uB300\uAE30)\uB97C \uD1B5\uD574 \uC0AC\uC6A9\uC790 \uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C Selora AI \uBAA8\uB378\uC744 \uC2E4\uD589\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0 \uD574\uB2F9 \uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694. \uAE30\uBCF8\uAC12\uC740 \uC11C\uBC84\uAC00 Home Assistant\uC640 \uB3D9\uC77C\uD55C \uD638\uC2A4\uD2B8\uC5D0\uC11C \uC2E4\uD589\uB420 \uB54C \uC791\uB3D9\uD569\uB2C8\uB2E4. \uC804\uBB38 \uBAA8\uB378\uC740 \uC694\uCCAD\uB9C8\uB2E4 \uC790\uB3D9\uC73C\uB85C \uC120\uD0DD\uB429\uB2C8\uB2E4.",
     settings_selora_local_host_label: "\uD638\uC2A4\uD2B8",
     settings_selora_local_auto_detected_prefix:
       "\uC790\uB3D9 \uAC10\uC9C0\uB428:",
@@ -21529,7 +21529,7 @@ var zh_Hans_default = {
       selora_local: {
         title: "Selora AI Local \u914D\u7F6E",
         description:
-          "Selora Hub \u5DF2\u9884\u5148\u914D\u7F6E\u3002\u5982\u9700\u4F7F\u7528\u8FD0\u884C Selora AI \u6A21\u578B\u7684\u81EA\u6258\u7BA1 llama-server\uFF0C\u8BF7\u5728\u4E0B\u65B9\u8F93\u5165\u5176\u5730\u5740\u3002",
+          "Selora AI Local \u901A\u8FC7\u81EA\u6258\u7BA1\u7684 llama-server\uFF08\u76D1\u542C 8080 \u7AEF\u53E3\uFF09\u5728\u60A8\u81EA\u5DF1\u7684\u7F51\u7EDC\u4E0A\u8FD0\u884C Selora AI \u6A21\u578B\u3002\u8BF7\u5728\u4E0B\u65B9\u8F93\u5165\u5176\u5730\u5740\u2014\u2014\u5F53\u670D\u52A1\u5668\u4E0E Home Assistant \u8FD0\u884C\u5728\u540C\u4E00\u4E3B\u673A\u4E0A\u65F6\uFF0C\u9ED8\u8BA4\u503C\u5373\u53EF\u4F7F\u7528\u3002\u7CFB\u7EDF\u4F1A\u4E3A\u6BCF\u6B21\u8BF7\u6C42\u81EA\u52A8\u9009\u62E9\u4E13\u7528\u6A21\u578B\u3002",
         data: {
           selora_local_host: "\u4E3B\u673A URL",
         },
@@ -21763,7 +21763,7 @@ var zh_Hans_default = {
     settings_selora_local_show_advanced: "\u663E\u793A\u9AD8\u7EA7\u9009\u9879",
     settings_selora_local_hide_advanced: "\u9690\u85CF\u9AD8\u7EA7\u9009\u9879",
     settings_selora_local_advanced_desc:
-      "Selora Hub \u5DF2\u9884\u5148\u914D\u7F6E\u3002\u5982\u9700\u4F7F\u7528\u8FD0\u884C Selora AI \u6A21\u578B\u7684\u81EA\u6258\u7BA1 llama-server\uFF0C\u8BF7\u5728\u4E0B\u65B9\u8F93\u5165\u5176\u5730\u5740\u3002",
+      "Selora AI Local \u901A\u8FC7\u81EA\u6258\u7BA1\u7684 llama-server\uFF08\u76D1\u542C 8080 \u7AEF\u53E3\uFF09\u5728\u60A8\u81EA\u5DF1\u7684\u7F51\u7EDC\u4E0A\u8FD0\u884C Selora AI \u6A21\u578B\u3002\u8BF7\u5728\u4E0B\u65B9\u8F93\u5165\u5176\u5730\u5740\u2014\u2014\u5F53\u670D\u52A1\u5668\u4E0E Home Assistant \u8FD0\u884C\u5728\u540C\u4E00\u4E3B\u673A\u4E0A\u65F6\uFF0C\u9ED8\u8BA4\u503C\u5373\u53EF\u4F7F\u7528\u3002\u7CFB\u7EDF\u4F1A\u4E3A\u6BCF\u6B21\u8BF7\u6C42\u81EA\u52A8\u9009\u62E9\u4E13\u7528\u6A21\u578B\u3002",
     settings_selora_local_host_label: "\u4E3B\u673A",
     settings_selora_local_auto_detected_prefix:
       "\u81EA\u52A8\u68C0\u6D4B\uFF1A",
@@ -22718,7 +22718,7 @@ var zh_Hant_default = {
       selora_local: {
         title: "Selora AI Local \u8A2D\u5B9A",
         description:
-          "Selora Hub \u51FA\u5EE0\u5373\u5DF2\u9810\u5148\u8A2D\u5B9A\u3002\u82E5\u8981\u4F7F\u7528\u81EA\u884C\u67B6\u8A2D\u3001\u57F7\u884C Selora AI \u6A21\u578B\u7684 llama-server\uFF0C\u8ACB\u5728\u4E0B\u65B9\u8F38\u5165\u5176\u4F4D\u5740\u3002",
+          "Selora AI Local \u900F\u904E\u81EA\u884C\u67B6\u8A2D\u7684 llama-server\uFF08\u76E3\u807D 8080 \u9023\u63A5\u57E0\uFF09\u5728\u60A8\u81EA\u5DF1\u7684\u7DB2\u8DEF\u4E0A\u57F7\u884C Selora AI \u6A21\u578B\u3002\u8ACB\u5728\u4E0B\u65B9\u8F38\u5165\u5176\u4F4D\u5740\u2014\u2014\u7576\u4F3A\u670D\u5668\u8207 Home Assistant \u57F7\u884C\u65BC\u540C\u4E00\u4E3B\u6A5F\u6642\uFF0C\u9810\u8A2D\u503C\u5373\u53EF\u4F7F\u7528\u3002\u7CFB\u7D71\u6703\u70BA\u6BCF\u6B21\u8ACB\u6C42\u81EA\u52D5\u9078\u64C7\u5C08\u7528\u6A21\u578B\u3002",
         data: {
           selora_local_host: "\u4E3B\u6A5F\u7DB2\u5740",
         },
@@ -22953,7 +22953,7 @@ var zh_Hant_default = {
     settings_selora_local_show_advanced: "\u986F\u793A\u9032\u968E\u9078\u9805",
     settings_selora_local_hide_advanced: "\u96B1\u85CF\u9032\u968E\u9078\u9805",
     settings_selora_local_advanced_desc:
-      "Selora Hub \u51FA\u5EE0\u5373\u5DF2\u9810\u5148\u8A2D\u5B9A\u3002\u82E5\u8981\u4F7F\u7528\u81EA\u884C\u67B6\u8A2D\u3001\u57F7\u884C Selora AI \u6A21\u578B\u7684 llama-server\uFF0C\u8ACB\u5728\u4E0B\u65B9\u8F38\u5165\u5176\u4F4D\u5740\u3002",
+      "Selora AI Local \u900F\u904E\u81EA\u884C\u67B6\u8A2D\u7684 llama-server\uFF08\u76E3\u807D 8080 \u9023\u63A5\u57E0\uFF09\u5728\u60A8\u81EA\u5DF1\u7684\u7DB2\u8DEF\u4E0A\u57F7\u884C Selora AI \u6A21\u578B\u3002\u8ACB\u5728\u4E0B\u65B9\u8F38\u5165\u5176\u4F4D\u5740\u2014\u2014\u7576\u4F3A\u670D\u5668\u8207 Home Assistant \u57F7\u884C\u65BC\u540C\u4E00\u4E3B\u6A5F\u6642\uFF0C\u9810\u8A2D\u503C\u5373\u53EF\u4F7F\u7528\u3002\u7CFB\u7D71\u6703\u70BA\u6BCF\u6B21\u8ACB\u6C42\u81EA\u52D5\u9078\u64C7\u5C08\u7528\u6A21\u578B\u3002",
     settings_selora_local_host_label: "\u4E3B\u6A5F",
     settings_selora_local_auto_detected_prefix:
       "\u81EA\u52D5\u5075\u6E2C\uFF1A",
@@ -34715,7 +34715,7 @@ function renderSettings(host) {
                                     >
                                       ${host._t(
                                         "settings_selora_local_advanced_desc",
-                                        "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+                                        "Selora AI Local runs the Selora AI model on your own network via a self-hosted llama-server (listening on port 8080). Enter its address below \u2014 the default works when the server runs on the same host as Home Assistant. The specialist model is selected automatically per request.",
                                       )}
                                     </p>
                                     <div

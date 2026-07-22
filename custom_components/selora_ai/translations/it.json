@@ -55,9 +55,9 @@
       },
       "selora_local": {
         "title": "Configurazione Selora AI Local",
-        "description": "Connettiti al componente aggiuntivo Selora AI Local Home Assistant in esecuzione sul dispositivo. Il componente aggiuntivo ascolta sulla porta 8080. L'indirizzo predefinito qui sotto funziona per HA OS tramite il gateway Supervisor. Il modello specializzato viene selezionato automaticamente per ogni richiesta.",
+        "description": "Selora AI Local esegue il modello Selora AI sulla tua rete tramite un llama-server self-hosted (in ascolto sulla porta 8080). Inserisci il suo indirizzo qui sotto: il valore predefinito funziona quando il server è in esecuzione sullo stesso host di Home Assistant. Il modello specializzato viene selezionato automaticamente a ogni richiesta.",
         "data": {
-          "selora_local_host": "URL dell'host del componente aggiuntivo"
+          "selora_local_host": "URL dell'host"
         }
       },
       "select_devices": {
@@ -236,7 +236,7 @@
     "settings_ollama_host_label": "Host",
     "settings_selora_local_show_advanced": "Mostra opzioni avanzate",
     "settings_selora_local_hide_advanced": "Nascondi opzioni avanzate",
-    "settings_selora_local_advanced_desc": "Gli hub Selora sono preconfigurati. Per usare un llama-server self-hosted che esegue il modello Selora AI, inserisci il suo indirizzo qui sotto.",
+    "settings_selora_local_advanced_desc": "Selora AI Local esegue il modello Selora AI sulla tua rete tramite un llama-server self-hosted (in ascolto sulla porta 8080). Inserisci il suo indirizzo qui sotto: il valore predefinito funziona quando il server è in esecuzione sullo stesso host di Home Assistant. Il modello specializzato viene selezionato automaticamente a ogni richiesta.",
     "settings_selora_local_host_label": "Host",
     "settings_selora_local_auto_detected_prefix": "Rilevato automaticamente:",
     "settings_selora_local_auto_detected_none": "nessuno",

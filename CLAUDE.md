@@ -6,7 +6,7 @@
 ## What This Is
 
 A custom Home Assistant integration (`custom_components/selora_ai/`) that acts as a "smart butler":
-- Analyzes device states and usage patterns via LLM (Anthropic Claude, Google Gemini, OpenAI, or local Ollama)
+- Analyzes device states and usage patterns via LLM — **Selora AI** (Selora Cloud, or the on-device **Selora AI Local** model), Anthropic Claude, Google Gemini, OpenAI, OpenRouter, or local Ollama
 - Auto-generates HA automations (disabled, prefixed `[Selora AI]` for user review)
 - Accepts natural language commands via the Selora panel and Home Assistant Assist
 - Discovers and onboards network devices during initial setup
@@ -17,7 +17,7 @@ A custom Home Assistant integration (`custom_components/selora_ai/`) that acts a
 HA entity registry / state machine / recorder (SQLite)
     |
     v
-DataCollector  ──snapshot──>  LLMClient (Anthropic / Gemini / OpenAI / Ollama)
+DataCollector  ──snapshot──>  LLMClient (Selora Cloud / Selora Local / Anthropic / Gemini / OpenAI / OpenRouter / Ollama)
     |                              |
     |                         suggestions
     v                              v
@@ -31,9 +31,14 @@ custom_components/selora_ai/
 ├── __init__.py          # Integration setup/teardown, entry routing
 ├── config_flow.py       # UI config flow (LLM setup → device discovery → area assignment → results)
 ├── collector.py         # Hourly data collection + LLM automation writer
-├── llm_client.py        # Business-logic LLM facade (prompts, parsing, tool orchestration)
-├── providers/           # Pluggable LLM backends (Anthropic, Gemini, OpenAI, Ollama)
+├── llm_client/          # LLM facade package (client, prompts, parsers, intent, command_policy, lang_detect, state_filter, usage)
+├── providers/           # Pluggable LLM backends (Selora Cloud/Local, Anthropic, Gemini, OpenAI, OpenRouter, Ollama)
 ├── device_manager.py    # Device discovery, pairing, area assignment, dashboard generation
+├── conversation.py      # Assist Conversation Agent — routes natural language to HA service calls
+├── automation_utils.py  # Validation, risk assessment, YAML I/O, async automation CRUD
+├── automation_store.py  # Lifecycle + versioning for [Selora AI] automations
+├── scene_store.py       # Scene creation + persistence
+├── websocket/           # Panel websocket handlers, one module per domain (registered lazily)
 ├── button.py            # Hub action buttons (Discover, Scan, Cleanup, Reset)
 ├── sensor.py            # Hub sensors (Status, Devices, Discovery, Last Activity)
 ├── selora_auth.py       # Multi-auth orchestration (HA token, MCP token, Selora JWT)
@@ -88,8 +93,9 @@ custom_components/selora_ai/
 - First entry: LLM provider selection → credentials → device discovery → area assignment → results
 - Subsequent "Add Entry": skips LLM config, goes straight to device discovery
 - Anthropic step shows a form for the user's API key (never auto-configure)
+- Selora Cloud has no credentials step — OAuth linking happens post-setup from the panel
 - `strings.json` and `translations/en.json` must always stay in sync
-- Step IDs must match keys in strings.json: `user`, `anthropic`, `ollama`, `select_devices`, `results`
+- Step IDs must match keys in strings.json: `user`, `selora_local`, `selora_cloud`, `anthropic`, `openai`, `gemini`, `openrouter`, `ollama`, `select_devices`, `results`
 
 ### i18n / Translations
 - Backend (config flow, entity names, errors): HA standard. `strings.json` is the source of truth (English). `translations/<lang>.json` mirrors its structure for each supported locale.
@@ -177,7 +183,7 @@ JS tests cover shared utilities in `src/shared/__tests__/`:
 
 ### CI
 
-GitLab CI runs both test suites in the `test` stage (`unit` + `frontend` jobs).
+GitLab CI runs lint (`ruff`, `prettier`) then the `test` stage: `validate` (HACS + manifest), `unit` (pytest on a 3.13/3.14 matrix), `soak`, and `frontend` (vitest).
 GitHub Actions runs HACS validation and hassfest (manifest/strings/translations).
 Lefthook runs tests, lint, and validation on `pre-push` locally (including hassfest via Docker).
 
@@ -240,7 +246,10 @@ Shared rules:
 
 | Provider | Config Key | Default Model | Notes |
 |----------|-----------|---------------|-------|
-| Anthropic | `anthropic_api_key` + `anthropic_model` | `claude-sonnet-4-6` | Cloud, recommended |
+| Selora Cloud | — (OAuth linking post-setup) | — | Cloud, Selora-hosted, **default provider** — no API key |
+| Selora AI Local | `selora_local_host` (`http://localhost:8080`) | Selora AI (Qwen3 1.7B + LoRAs) | Local, on-device via llama-server, no API key |
+| Anthropic | `anthropic_api_key` + `anthropic_model` | `claude-sonnet-4-6` | Cloud |
 | Google Gemini | `gemini_api_key` + `gemini_model` | `gemini-2.5-flash` | Cloud, uses native REST API (not OpenAI-compat) |
 | OpenAI | `openai_api_key` + `openai_model` | `gpt-5.4` | Cloud, OpenAI chat completions format |
-| Ollama | `ollama_host` + `ollama_model` | `llama4` at `localhost:11434` | Local, no data leaves network |
+| OpenRouter | `openrouter_api_key` + `openrouter_model` | `anthropic/claude-sonnet-4.5` | Cloud, OpenAI-compat gateway |
+| Ollama | `ollama_host` + `ollama_model` | `llama4` at `host.docker.internal:11434` | Local, no data leaves network |

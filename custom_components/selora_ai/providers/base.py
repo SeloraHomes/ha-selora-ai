@@ -241,7 +241,7 @@ class LLMProvider(ABC):
 
         LLMClient uses this to switch to a minimal system prompt and an
         aggressively filtered entity list — full home-state dumps don't
-        fit in something like the SeloraLocal add-on's 1024-token window.
+        fit in something like Selora AI Local's 1024-token window.
         """
         return False
 

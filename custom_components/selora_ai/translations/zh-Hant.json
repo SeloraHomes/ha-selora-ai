@@ -55,7 +55,7 @@
       },
       "selora_local": {
         "title": "Selora AI Local 設定",
-        "description": "Selora Hub 出廠即已預先設定。若要使用自行架設、執行 Selora AI 模型的 llama-server，請在下方輸入其位址。",
+        "description": "Selora AI Local 透過自行架設的 llama-server（監聽 8080 連接埠）在您自己的網路上執行 Selora AI 模型。請在下方輸入其位址——當伺服器與 Home Assistant 執行於同一主機時，預設值即可使用。系統會為每次請求自動選擇專用模型。",
         "data": {
           "selora_local_host": "主機網址"
         }
@@ -236,7 +236,7 @@
     "settings_ollama_host_label": "主機",
     "settings_selora_local_show_advanced": "顯示進階選項",
     "settings_selora_local_hide_advanced": "隱藏進階選項",
-    "settings_selora_local_advanced_desc": "Selora Hub 出廠即已預先設定。若要使用自行架設、執行 Selora AI 模型的 llama-server，請在下方輸入其位址。",
+    "settings_selora_local_advanced_desc": "Selora AI Local 透過自行架設的 llama-server（監聽 8080 連接埠）在您自己的網路上執行 Selora AI 模型。請在下方輸入其位址——當伺服器與 Home Assistant 執行於同一主機時，預設值即可使用。系統會為每次請求自動選擇專用模型。",
     "settings_selora_local_host_label": "主機",
     "settings_selora_local_auto_detected_prefix": "自動偵測：",
     "settings_selora_local_auto_detected_none": "無",
