@@ -398,7 +398,7 @@ async def test_monitor_drains_inflight_periodic_scan_on_stop(health_store, hass)
     release = asyncio.Event()
     state = {"completed": False}
 
-    async def blocking_scan() -> None:
+    async def blocking_scan(*_args, **_kwargs) -> None:
         started.set()
         await release.wait()
         state["completed"] = True
@@ -425,7 +425,7 @@ async def test_monitor_drains_inflight_rescan_on_stop(health_store, hass):
     release = asyncio.Event()
     state = {"completed": False}
 
-    async def blocking_scan() -> None:
+    async def blocking_scan(*_args, **_kwargs) -> None:
         started.set()
         await release.wait()
         state["completed"] = True
@@ -883,7 +883,7 @@ async def test_get_audit_scans_health_before_building(hass):
     handler = _handle_get_audit.__wrapped__
     order: list[str] = []
     monitor = MagicMock()
-    monitor.async_request_scan = AsyncMock(side_effect=lambda: order.append("scan"))
+    monitor.async_request_scan = AsyncMock(side_effect=lambda *a, **k: order.append("scan"))
     runner = MagicMock()
     # Must use the TRACKED path so a reload mid-load can drain it (async_stop).
     runner.async_run_tracked = AsyncMock(
@@ -898,6 +898,9 @@ async def test_get_audit_scans_health_before_building(hass):
     await handler(hass, conn, {"id": 1})
 
     assert order == ["scan", "audit"]  # scan first, then audit reads fresh signals
+    # The pre-audit scan must suppress its own follow-on audit — the handler
+    # runs one explicitly right after, so triggering would audit twice.
+    monitor.async_request_scan.assert_awaited_once_with(trigger_audit=False)
     runner.async_run.assert_not_called()  # untracked path must not be used
     conn.send_result.assert_called_once()
 
@@ -915,7 +918,7 @@ async def test_rerun_scans_health_before_audit(hass):
     handler = _handle_rerun_audit.__wrapped__
     order: list[str] = []
     monitor = MagicMock()
-    monitor.async_request_scan = AsyncMock(side_effect=lambda: order.append("scan"))
+    monitor.async_request_scan = AsyncMock(side_effect=lambda *a, **k: order.append("scan"))
     runner = MagicMock()
     runner.async_run_tracked = AsyncMock(
         side_effect=lambda *a, **k: order.append("audit") or {"status": "ok"}
@@ -933,6 +936,8 @@ async def test_rerun_scans_health_before_audit(hass):
     await handler(hass, conn, {"id": 1})
 
     assert order == ["scan", "audit"]  # scan first, then audit reads fresh signals
+    # Same suppression as the on-load path: the explicit rerun is the only audit.
+    monitor.async_request_scan.assert_awaited_once_with(trigger_audit=False)
     conn.send_result.assert_called_once()
 
 

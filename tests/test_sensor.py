@@ -12,11 +12,30 @@ from custom_components.selora_ai.const import DOMAIN, SIGNAL_INSIGHTS_UPDATED
 from custom_components.selora_ai.health_store import HealthStore
 from custom_components.selora_ai.sensor import (
     HomeHealthSensor,
-    _compute_health_score,
     _summarise_categories,
 )
 
 from .conftest import MockStore
+
+
+def _audit(
+    score: int | None,
+    *,
+    band: str = "",
+    status: str = "ok",
+    recommendations: list[dict[str, str]] | None = None,
+    sections: list[dict[str, object]] | None = None,
+    generated_at: str = "2026-01-01T06:00:00+00:00",
+) -> dict[str, object]:
+    """A minimal persisted-audit record, matching insights_audit._record."""
+    return {
+        "status": status,
+        "score": score,
+        "band": band,
+        "recommendations": recommendations or [],
+        "score_breakdown": {"sections": sections or []},
+        "generated_at": generated_at,
+    }
 
 
 class TestSummariseCategories:
@@ -57,46 +76,56 @@ class TestSummariseCategories:
             assert not cat_name.endswith("s")
 
 
-def test_compute_health_score() -> None:
-    # No signals → perfect.
-    assert _compute_health_score({}) == 100
-    # Severity-weighted penalties (critical 15, warning 5, info 1).
-    assert _compute_health_score({"warning": 1}) == 95
-    assert _compute_health_score({"critical": 2}) == 70
-    assert _compute_health_score({"critical": 1, "warning": 2, "info": 3}) == 72
-    # Clamped at 0 — a flood of issues never goes negative, and never above 100.
-    assert _compute_health_score({"warning": 100}) == 0
-    assert _compute_health_score({"critical": 50}) == 0
-
-
 @pytest.mark.asyncio
-async def test_home_health_sensor_populates_last_scan(hass: HomeAssistant) -> None:
-    """_async_refresh must surface the store's last_scan (not leave it null)."""
+async def test_home_health_sensor_mirrors_audit(hass: HomeAssistant) -> None:
+    """The sensor reports the exact persisted audit score, with its band and
+    per-severity finding counts as attributes — not a locally recomputed value."""
     with patch("custom_components.selora_ai.health_store.Store") as mock_cls:
         mock_cls.return_value = MockStore()
         store = HealthStore(hass)
         store._store = MockStore()
 
-    await store.record_signal(
-        kind="unavailable",
-        target="light.x",
-        target_kind="entity",
-        severity="warning",
-        evidence={},
+    await store.set_last_audit(
+        _audit(
+            82,
+            band="B",
+            recommendations=[
+                {"severity": "critical"},
+                {"severity": "warning"},
+                {"severity": "warning"},
+            ],
+            sections=[{"title": "Devices offline", "points": 18.0, "count": 3}],
+        )
     )
-    await store.set_last_scan("2026-01-01T06:00:00+00:00")
     hass.data.setdefault(DOMAIN, {})["e1"] = {"health_store": store}
 
     sensor = HomeHealthSensor(hass, entry=None)
     await sensor._async_refresh()
 
-    # A store is wired -> the sensor is available and reports a 0-100 health
-    # score (one warning → 100 - 5); the raw signal count moves to the
-    # ``active_signals`` attribute.
     assert sensor.available is True
-    assert sensor.native_value == 95
-    assert sensor.extra_state_attributes["active_signals"] == 1
-    assert sensor.extra_state_attributes["last_scan"] == "2026-01-01T06:00:00+00:00"
+    assert sensor.native_value == 82
+    attrs = sensor.extra_state_attributes
+    assert attrs["band"] == "B"
+    assert attrs["active_signals"] == 3
+    assert attrs["critical"] == 1
+    assert attrs["warning"] == 2
+    assert attrs["last_scan"] == "2026-01-01T06:00:00+00:00"
+    assert attrs["breakdown"] == [{"title": "Devices offline", "points": 18.0, "count": 3}]
+
+
+@pytest.mark.asyncio
+async def test_home_health_sensor_unavailable_without_audit(hass: HomeAssistant) -> None:
+    """A store with no completed audit yet (first run is ~3 min post-boot) must
+    stay unavailable rather than publishing a placeholder score."""
+    with patch("custom_components.selora_ai.health_store.Store") as mock_cls:
+        mock_cls.return_value = MockStore()
+        store = HealthStore(hass)
+        store._store = MockStore()
+    hass.data.setdefault(DOMAIN, {})["e1"] = {"health_store": store}
+
+    sensor = HomeHealthSensor(hass, entry=None)
+    await sensor._async_refresh()
+    assert sensor.available is False
 
 
 @pytest.mark.asyncio
@@ -128,19 +157,13 @@ async def test_home_health_sensor_refreshes_on_insights_signal(hass: HomeAssista
         mock_cls.return_value = MockStore()
         store = HealthStore(hass)
         store._store = MockStore()
-    await store.record_signal(
-        kind="unavailable",
-        target="light.x",
-        target_kind="entity",
-        severity="critical",
-        evidence={},
-    )
+    await store.set_last_audit(_audit(85, band="B"))
     hass.data.setdefault(DOMAIN, {})["e1"] = {"health_store": store}
 
     async_dispatcher_send(hass, SIGNAL_INSIGHTS_UPDATED)
     await hass.async_block_till_done()
 
     assert sensor.available is True
-    assert sensor.native_value == 85  # one critical -> 100 - 15
+    assert sensor.native_value == 85
     assert sensor.async_write_ha_state.called
     await sensor.async_will_remove_from_hass()

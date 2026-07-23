@@ -70,7 +70,9 @@ async def _rescan_health(bucket: dict[str, Any] | None) -> None:
     monitor = bucket.get("health_monitor") if bucket else None
     if monitor is not None:
         try:
-            await monitor.async_request_scan()
+            # Suppress the scan's follow-on audit: the caller runs one
+            # explicitly right after, so triggering here would audit twice.
+            await monitor.async_request_scan(trigger_audit=False)
         except Exception:  # noqa: BLE001 — a scan failure must not block the audit
             _LOGGER.exception("Pre-audit health rescan failed; using cached signals")
 

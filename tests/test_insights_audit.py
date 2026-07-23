@@ -134,6 +134,85 @@ async def test_periodic_run_spawns_tracked_task_and_persists(hass, health_store)
 
 
 @pytest.mark.asyncio
+async def test_scan_audit_skipped_while_settling(hass, health_store) -> None:
+    """A scan-triggered request during boot-settle is dropped — a just-booted
+    home over-counts offline devices, so no misleading score is persisted."""
+    runner = AuditRunner(hass, health_store)  # not started -> still settling
+    assert runner.is_settling() is True
+
+    runner.async_request_run()
+
+    assert runner._scan_audit_task is None
+    assert runner._tasks == set()
+
+
+@pytest.mark.asyncio
+async def test_scan_audit_coalesces_without_stacking(hass, health_store, monkeypatch) -> None:
+    """A request while a scan-audit is already running doesn't spawn a second
+    concurrent run behind the lock — it marks a trailing rerun instead."""
+    started, release, state = asyncio.Event(), asyncio.Event(), {"completed": False}
+    monkeypatch.setattr(
+        "custom_components.selora_ai.insights_checks.async_run_checks",
+        _blocking_checks(started, release, state),
+    )
+    runner = AuditRunner(hass, health_store)
+    runner._settled = True  # past boot-settle so requests actually spawn
+
+    runner.async_request_run()
+    await started.wait()  # first run is executing (blocked in the checks)
+    first = runner._scan_audit_task
+    assert first is not None and not first.done()
+
+    runner.async_request_run()  # in-flight -> pending, no 2nd concurrent task
+    assert runner._scan_audit_pending is True
+    assert runner._scan_audit_task is first
+    assert len([t for t in runner._tasks if not t.done()]) == 1
+
+    await runner.async_stop()  # _stopping guard blocks the trailing rerun
+
+
+@pytest.mark.asyncio
+async def test_scan_audit_trailing_rerun_after_inflight(hass, health_store, monkeypatch) -> None:
+    """A scan that lands after the running audit read its snapshot isn't dropped:
+    the pending request fires a trailing rerun once the first run finishes, so
+    the newer results still get scored."""
+    calls = {"n": 0}
+    started = asyncio.Event()
+    release_first = asyncio.Event()
+
+    async def counting_checks(_hass) -> list:
+        calls["n"] += 1
+        first_call = calls["n"] == 1
+        started.set()
+        if first_call:
+            await release_first.wait()  # hold the first run open
+        return []
+
+    monkeypatch.setattr(
+        "custom_components.selora_ai.insights_checks.async_run_checks", counting_checks
+    )
+    runner = AuditRunner(hass, health_store)
+    runner._settled = True
+
+    runner.async_request_run()  # first run starts, blocks in checks
+    await started.wait()
+    first = runner._scan_audit_task
+
+    started.clear()
+    runner.async_request_run()  # arrives mid-run -> marks a trailing rerun
+    assert runner._scan_audit_pending is True
+
+    release_first.set()  # let the first run finish -> done-callback reruns
+    await first
+    await started.wait()  # the trailing rerun has started (2nd checks call)
+    await hass.async_block_till_done()
+
+    assert calls["n"] == 2  # exactly one trailing rerun, then it settles
+    assert runner._scan_audit_pending is False
+    await runner.async_stop()
+
+
+@pytest.mark.asyncio
 async def test_manual_rerun_tracked_and_drained_on_stop(hass, health_store, monkeypatch) -> None:
     """A manual rerun (async_run_tracked) in flight during a reload must be
     tracked and cancelled/drained on unload."""

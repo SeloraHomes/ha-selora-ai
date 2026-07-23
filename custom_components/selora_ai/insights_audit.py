@@ -16,7 +16,10 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
+
+from .const import SIGNAL_INSIGHTS_UPDATED
 
 if TYPE_CHECKING:
     from .health_store import HealthStore
@@ -55,6 +58,16 @@ class AuditRunner:
         # instance and save the whole store document over the replacement
         # entry's shared store (clobbering its signals / scan metadata / audit).
         self._tasks: set[asyncio.Task[None]] = set()
+        # Scan-triggered audit coalescing. A new request while one is already
+        # running doesn't stack a second run behind the lock — but it also must
+        # not be dropped: a scan that finished after the running audit snapshotted
+        # its inputs would otherwise never be scored. So we mark a trailing rerun
+        # and launch it once the current run completes (leading + trailing).
+        self._scan_audit_task: asyncio.Task[None] | None = None
+        self._scan_audit_pending: bool = False
+        # Set once async_stop begins so a trailing rerun can't be spawned from a
+        # done-callback after unload and persist over the replacement entry.
+        self._stopping: bool = False
         self._lock = asyncio.Lock()
 
     async def async_start(self, interval_hours: int = _DEFAULT_INTERVAL_HOURS) -> None:
@@ -119,13 +132,14 @@ class AuditRunner:
         self._spawn_audit("selora_ai_periodic_audit")
 
     @callback
-    def _spawn_audit(self, name: str) -> None:
+    def _spawn_audit(self, name: str) -> asyncio.Task[None]:
         # Fires well after bootstrap, so a background task here never blocks
         # startup; it just must not be garbage-collected mid-flight, and must
         # be cancellable on unload.
         task = self._hass.async_create_background_task(self._scheduled_run(None), name=name)
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
+        return task
 
     async def async_stop(self) -> None:
         if self._unsub_timer:
@@ -137,6 +151,10 @@ class AuditRunner:
         if self._unsub_started:
             self._unsub_started()
             self._unsub_started = None
+        # Block any trailing scan-audit rerun that a done-callback would spawn
+        # while we drain — it would land in a set we're about to clear and could
+        # persist over the replacement entry's store.
+        self._stopping = True
         # Cancel and drain EVERY in-flight audit (initial + periodic) so a run
         # awaiting a slow LLM response can't complete after unload and persist a
         # stale store document over the replacement entry's store.
@@ -306,13 +324,56 @@ class AuditRunner:
         (the Re-run click) so it can surface a toast. An error/no_llm is only
         cached when there's no good audit to preserve.
         """
+        stored = False
         if record.get("status") == "ok":
             await self._health_store.set_last_audit(record)
-            return record
-        prior = await self._health_store.get_last_audit()
-        if not (prior and prior.get("status") == "ok"):
-            await self._health_store.set_last_audit(record)
+            stored = True
+        else:
+            prior = await self._health_store.get_last_audit()
+            if not (prior and prior.get("status") == "ok"):
+                await self._health_store.set_last_audit(record)
+                stored = True
+        if stored:
+            # The Home Health sensor mirrors this persisted audit — the score is
+            # computed here, not in the health scan — so nudge it to re-read now
+            # instead of waiting for its poll.
+            async_dispatcher_send(self._hass, SIGNAL_INSIGHTS_UPDATED)
         return record
+
+    def async_request_run(self) -> None:
+        """Run a fresh audit off-schedule (e.g. after a health scan) so the
+        persisted score tracks state changes at the scan cadence rather than the
+        24h periodic cadence. Skipped while the home is still settling — a
+        boot-time audit over-counts devices that haven't reconnected. Spawns a
+        TRACKED background task so a reload drains it via async_stop.
+
+        Leading + trailing coalesce: a request while a scan-triggered audit is
+        already running doesn't stack a second run behind the lock, but it isn't
+        dropped either — it marks a trailing rerun that fires when the current
+        run finishes, so a scan that landed after the running audit read its
+        snapshot still gets scored."""
+        if self.is_settling() or self._stopping:
+            return
+        if self._scan_audit_task is not None and not self._scan_audit_task.done():
+            # A run is in flight and may have already snapshotted its inputs
+            # before this newer scan finished — remember to rerun after it.
+            self._scan_audit_pending = True
+            return
+        self._start_scan_audit()
+
+    def _start_scan_audit(self) -> None:
+        self._scan_audit_pending = False
+        task = self._spawn_audit("selora_ai_scan_audit")
+        self._scan_audit_task = task
+        task.add_done_callback(self._on_scan_audit_done)
+
+    @callback
+    def _on_scan_audit_done(self, _task: asyncio.Task[None]) -> None:
+        # A scan that landed while this audit was running wasn't scored yet
+        # (its results postdate the snapshot the run read). Launch the trailing
+        # rerun now that the lock is free — unless we're settling or unloading.
+        if self._scan_audit_pending and not self.is_settling() and not self._stopping:
+            self._start_scan_audit()
 
 
 def _record(

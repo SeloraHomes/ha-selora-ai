@@ -64,6 +64,7 @@ from .const import (
 
 if TYPE_CHECKING:
     from .health_store import HealthStore
+    from .insights_audit import AuditRunner
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -164,6 +165,11 @@ class HealthMonitor:
     def __init__(self, hass: HomeAssistant, store: HealthStore) -> None:
         self._hass = hass
         self._store = store
+        # Set post-construction (both are built in the same setup block). After a
+        # scan reconciles signals, the monitor triggers a fresh audit so the
+        # deterministic health score — and the Home Health sensor that mirrors
+        # it — track state at the scan cadence, not the 24h audit cadence.
+        self._audit_runner: AuditRunner | None = None
         self._tracks: dict[str, _EntityTrack] = {}
         self._excluded: frozenset[str] = frozenset()
         self._unsub_timer: CALLBACK_TYPE | None = None
@@ -217,11 +223,18 @@ class HealthMonitor:
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
 
-    async def async_request_scan(self) -> None:
+    async def async_request_scan(self, *, trigger_audit: bool = True) -> None:
         """Run a scan now as a TRACKED task and await it — used by the websocket
         rescan so an externally-requested scan in flight during a reload is
-        cancelled/drained by async_stop rather than outliving the entry."""
-        task = self._hass.async_create_task(self.async_scan(), name="selora_ai_rescan")
+        cancelled/drained by async_stop rather than outliving the entry.
+
+        ``trigger_audit=False`` skips the follow-on audit for callers that run
+        one themselves right after (the pre-audit rescan), so a panel load/rerun
+        doesn't audit twice.
+        """
+        task = self._hass.async_create_task(
+            self.async_scan(trigger_audit=trigger_audit), name="selora_ai_rescan"
+        )
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
         await task
@@ -310,12 +323,15 @@ class HealthMonitor:
         except Exception:  # noqa: BLE001 — a scheduled callback must not kill its timer
             _LOGGER.exception("Health scan failed")
 
-    async def async_scan(self) -> None:
+    async def async_scan(self, *, trigger_audit: bool = True) -> None:
         """Run all detectors and reconcile signals against the store.
 
         Serialized (a websocket rescan can't interleave with the scheduled
         tick) and batched: detectors defer their writes, then a single store
         save happens via set_last_scan at the end.
+
+        ``trigger_audit=False`` suppresses the follow-on audit — for the
+        pre-audit rescan, whose caller audits explicitly right after.
         """
         async with self._scan_lock:
             now = datetime.now(UTC)
@@ -347,9 +363,22 @@ class HealthMonitor:
             await self._store.prune_resolved()
             await self._store.set_last_scan(now.isoformat())
 
-        # Nudge the Home Health sensor to refresh off the just-written store
-        # instead of waiting for its 60s poll (outside the lock — pure fan-out).
-        async_dispatcher_send(self._hass, SIGNAL_INSIGHTS_UPDATED)
+        if not trigger_audit:
+            # The caller (pre-audit rescan) runs an audit itself right after, so
+            # a scan-triggered one here would just duplicate it. That explicit
+            # audit persists and dispatches SIGNAL_INSIGHTS_UPDATED, so the
+            # sensor still refreshes.
+            return
+        # Recompute the deterministic health score off the just-reconciled
+        # signals so the Home Health sensor (which mirrors the audit) tracks
+        # state at the scan cadence, not the 24h audit cadence. The audit fires
+        # SIGNAL_INSIGHTS_UPDATED when it persists, which nudges the sensor. If
+        # no audit runner is wired (shouldn't happen while Insights is on), fall
+        # back to nudging the sensor directly. Outside the lock — pure fan-out.
+        if self._audit_runner is not None:
+            self._audit_runner.async_request_run()
+        else:
+            async_dispatcher_send(self._hass, SIGNAL_INSIGHTS_UPDATED)
 
     async def _detect_flapping(self, now_ts: float, area_of: Any) -> None:
         offenders: dict[str, dict[str, Any]] = {}
