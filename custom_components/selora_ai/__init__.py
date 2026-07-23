@@ -4655,6 +4655,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass, health_store, insights_engine, installation_id=installation_id
         )
         audit_runner = AuditRunner(hass, health_store)
+        # Let each scan trigger a fresh audit so the health score (and the Home
+        # Health sensor mirroring it) tracks state at the scan cadence.
+        health_monitor._audit_runner = audit_runner
         entry_bucket = hass.data[DOMAIN][entry.entry_id]
         entry_bucket["health_store"] = health_store
         entry_bucket["health_monitor"] = health_monitor
@@ -4692,10 +4695,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await audit_runner.async_start()
         except Exception:  # noqa: BLE001 — audit startup is independent
             _LOGGER.exception("Audit runner startup failed; continuing without it")
-        # The Home Health sensor was added (with a placeholder score of 100)
-        # before this block wired the store into hass.data. Nudge it to refresh
-        # now so it reflects any persisted active signals instead of reading
-        # falsely-healthy until its 60s poll.
+        # The Home Health sensor was added before this block wired the store
+        # into hass.data. Nudge it to refresh now so it surfaces the last audit
+        # score persisted across restarts (the first fresh audit runs ~3 min
+        # later) instead of staying unavailable until its 60s poll.
         async_dispatcher_send(hass, SIGNAL_INSIGHTS_UPDATED)
         _LOGGER.info("Insights started (health monitoring + host export)")
     else:
