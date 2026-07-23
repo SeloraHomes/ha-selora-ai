@@ -98,6 +98,8 @@ class ToolExecutor:
             "list_suggestions": self._list_suggestions,
             "accept_suggestion": self._accept_suggestion,
             "dismiss_suggestion": self._dismiss_suggestion,
+            "delete_automation": self._delete_automation,
+            "delete_scene": self._delete_scene,
         }
 
     # ── Read tools ──────────────────────────────────────────────────
@@ -310,6 +312,29 @@ class ToolExecutor:
             "status": "dismissed",
             "reason": reason,
         }
+
+    async def _delete_automation(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card.
+
+        The tool never deletes directly — it returns a ``requires_approval``
+        result carrying a ``delete`` descriptor. The tool loop short-circuits
+        on ``requires_approval`` and the synthesizer turns it into a
+        ``command_approval`` card; the actual delete runs only when the user
+        taps Delete (``_resolve_approval`` in ``__init__``).
+        """
+        from .mcp_server import _preview_delete_automation
+
+        return await _preview_delete_automation(self._hass, arguments)
+
+    async def _delete_scene(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card.
+
+        See :meth:`_delete_automation` — deletion is deferred to the user's
+        tap on the confirmation card.
+        """
+        from .mcp_server import _preview_delete_scene
+
+        return await _preview_delete_scene(self._hass, arguments)
 
     async def _start_device_flow(self, arguments: dict[str, Any]) -> dict[str, Any]:
         domain = str(arguments.get("domain", "")).strip()

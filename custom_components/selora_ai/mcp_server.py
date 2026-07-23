@@ -1418,6 +1418,66 @@ async def _tool_accept_automation(hass: HomeAssistant, arguments: dict[str, Any]
 # ── Tool: selora_delete_automation ────────────────────────────────────────────
 
 
+async def _delete_idless_automation_by_alias(
+    hass: HomeAssistant, expected_alias: str
+) -> dict[str, Any]:
+    """Atomically delete the id-less yaml automation whose alias equals
+    *expected_alias*, holding ``AUTOMATIONS_YAML_LOCK`` across the find,
+    ambiguity check, and removal.
+
+    Used by the chat delete-confirmation flow, where the identity fingerprint
+    (the alias) was captured when the card was shown. Enforcing it here — under
+    the lock, re-reading the file inside the lock — closes the TOCTOU window
+    between a separate identity check and the delete: the entry removed is
+    always the one matching the confirmed alias, never whatever a since-changed
+    entity_id now resolves to. Refuses on 0 matches ("changed since shown") or
+    >1 (ambiguous), so the wrong entry is never removed.
+    """
+    from .automation_utils import (  # noqa: PLC0415
+        AUTOMATIONS_YAML_LOCK,
+        _read_automations_yaml,
+        _write_automations_yaml,
+    )
+
+    target = expected_alias.strip()
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+
+    def _is_idless_match(entry: Any) -> bool:
+        return (
+            isinstance(entry, dict)
+            and isinstance(entry.get("alias"), str)
+            and entry.get("alias", "").strip() == target
+            and not (isinstance(entry.get("id"), str) and entry["id"])
+        )
+
+    async with AUTOMATIONS_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        matches = [a for a in existing if _is_idless_match(a)]
+        if not matches:
+            return {
+                "error": (
+                    f"Automation “{_sanitize(target)}” changed since it was shown; not deleted."
+                )
+            }
+        if len(matches) > 1:
+            return {
+                "error": (
+                    f"Multiple id-less entries share the alias {_sanitize(target)!r}; "
+                    "add an 'id' to the target entry to enable safe deletion."
+                )
+            }
+        previous = list(existing)
+        remaining = [a for a in existing if not _is_idless_match(a)]
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+        try:
+            await hass.services.async_call("automation", "reload", blocking=True)
+        except Exception as exc:  # noqa: BLE001 — restore on reload failure
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, previous)
+            return {"error": f"Automation reload failed: {exc}"}
+
+    return {"status": "deleted"}
+
+
 async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Delete any yaml-managed HA automation.
 
@@ -1428,6 +1488,14 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
 
     automation_id: str = str(arguments.get("automation_id", "")).strip()
     entity_id_arg: str = str(arguments.get("entity_id", "")).strip()
+
+    # Delete-confirmation path for id-less entries: an ``expected_alias`` was
+    # captured when the card was shown. Enforce it atomically and ignore the
+    # (mutable) entity_id entirely, so an entity remap between render and click
+    # can't redirect the delete to a different entry.
+    expected_alias: str = str(arguments.get("expected_alias", "")).strip()
+    if expected_alias:
+        return await _delete_idless_automation_by_alias(hass, expected_alias)
 
     if not automation_id and not entity_id_arg:
         return {"error": "automation_id or entity_id is required"}
@@ -1540,6 +1608,94 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
             return {"error": f"Automation reload failed: {exc}"}
 
     return {"entity_id": entity_id, "status": "deleted"}
+
+
+async def _preview_delete_automation(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Resolve a delete_automation target WITHOUT deleting it.
+
+    Read-only counterpart of :func:`_tool_delete_automation` used by the
+    chat ``delete_automation`` tool: it identifies the yaml-managed target
+    and returns a ``{kind, target_id, entity_id, label}`` descriptor for
+    the confirmation card. The authoritative safeguards (yaml-managed only,
+    alias disambiguation, reload rollback) still run at confirm time when
+    ``_tool_delete_automation`` executes — this preview just needs enough to
+    show the user what they're about to delete, and to refuse early when
+    there's nothing deletable.
+    """
+    automation_id: str = str(arguments.get("automation_id", "")).strip()
+    entity_id_arg: str = str(arguments.get("entity_id", "")).strip()
+
+    if not automation_id and not entity_id_arg:
+        return {"error": "automation_id or entity_id is required"}
+
+    state, resolved_id, resolved_entity = _resolve_automation(
+        hass, automation_id=automation_id, entity_id=entity_id_arg
+    )
+    # Preserve the caller-provided identifiers when the automation isn't
+    # currently loaded: ``_resolve_automation`` returns empty ids for an
+    # unloaded YAML entry, but the delete backend supports removing such an
+    # entry by id — so the preview must keep the id to find it below.
+    automation_id = resolved_id or automation_id
+    entity_id = resolved_entity or entity_id_arg
+
+    yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
+    entry: dict[str, Any] | None = None
+    if automation_id:
+        entry = next(
+            (a for a in yaml_automations if str(a.get("id")) == automation_id),
+            None,
+        )
+    if entry is None and entity_id:
+        entry = next(
+            (
+                a
+                for a in yaml_automations
+                if isinstance(a, dict) and _resolve_yaml_automation_entity_id(hass, a) == entity_id
+            ),
+            None,
+        )
+
+    if entry is None:
+        if state is None:
+            ref = entity_id_arg or automation_id
+            return {"error": f"Automation {_sanitize(ref)} not found"}
+        return {
+            "error": (
+                f"Automation {_sanitize(entity_id)} is not yaml-managed; "
+                "delete it from the Home Assistant UI instead."
+            )
+        }
+
+    # Derive the stable id from the resolved entry itself, never from the
+    # caller's input. If both identifiers were supplied and entity_id resolved
+    # to an id-less entry, the caller's automation_id is stale — keeping it as
+    # target_id would make the confirm delete by that id and return not found.
+    # An empty target_id routes the confirm through the entity + alias
+    # fingerprint path instead (mirrors the scene preview's stale-id handling).
+    entry_id_raw = entry.get("id")
+    entry_id = entry_id_raw if isinstance(entry_id_raw, str) and entry_id_raw else ""
+    entry_alias = entry.get("alias") if isinstance(entry.get("alias"), str) else None
+    label = (
+        entry_alias
+        or (state.attributes.get("friendly_name") if state is not None else None)
+        or entity_id
+        or entry_id
+    )
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "automation",
+            "target_id": entry_id,
+            "entity_id": entity_id,
+            # Immutable fingerprint for the id-less confirm path: entity_id is
+            # mutable, so the confirm handler re-checks this alias before the
+            # by-entity fallback delete to be sure it's still the same entry.
+            "alias": entry_alias or "",
+            "label": str(label),
+        },
+    }
 
 
 # ── Tool: selora_trigger_automation ───────────────────────────────────────────
@@ -3674,11 +3830,28 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
 
     scene_id = str(arguments.get("scene_id", "")).strip()
     entity_id_arg = str(arguments.get("entity_id", "")).strip()
+    # Confirmed name fingerprint for the id-less delete-confirmation path.
+    expected_name: str = str(arguments.get("expected_name", "")).strip()
 
     if not scene_id and not entity_id_arg:
         return {"error": "scene_id or entity_id is required"}
     if entity_id_arg and not entity_id_arg.startswith("scene."):
         return {"error": f"entity_id must be a scene entity, got {_sanitize(entity_id_arg)}"}
+
+    # Confirmed id-less fingerprint path: enforce the captured name directly
+    # against scenes.yaml BEFORE any SceneStore/entity resolution. If a new
+    # Selora scene has since claimed this entity_id, the store lookup below
+    # would find and delete THAT record — a scene the user never saw. Keying
+    # on the confirmed name (and refusing when it's gone) avoids that.
+    if expected_name and not scene_id:
+        if not entity_id_arg:
+            return {"error": "entity_id is required with expected_name"}
+        _removed, code, detail = await async_remove_yaml_scene_by_entity(
+            hass, entity_id_arg, expected_name=expected_name
+        )
+        if code is not None:
+            return {"error": _yaml_delete_error_message(code, detail, entity_id_arg)}
+        return {"entity_id": entity_id_arg, "status": "deleted"}
 
     store = get_scene_store(hass)
     await store.async_reconcile_yaml(force=True)
@@ -3705,6 +3878,8 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
             # Non-Selora scene — resolve its scenes.yaml entry by entity_id and
             # remove it. Shared with the panel's delete_scene websocket handler
             # so both paths classify and delete id-less entries identically.
+            # (The chat confirm path with a captured fingerprint is handled by
+            # the expected_name short-circuit above, before this resolution.)
             _removed, code, detail = await async_remove_yaml_scene_by_entity(hass, entity_id_arg)
             if code is not None:
                 return {"error": _yaml_delete_error_message(code, detail, entity_id_arg)}
@@ -3741,6 +3916,137 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     async_dispatcher_send(hass, SIGNAL_SCENE_DELETED, scene_id)
 
     return {"scene_id": scene_id, "status": "deleted"}
+
+
+async def _preview_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a delete_scene target WITHOUT deleting it.
+
+    Read-only counterpart of :func:`_tool_delete_scene` used by the chat
+    ``delete_scene`` tool: it identifies the scene and returns a
+    ``{kind, target_id, entity_id, label}`` descriptor for the confirmation
+    card. The full deletability safeguards (yaml-managed only, soft-delete +
+    reload rollback, session purge) run at confirm time in
+    ``_tool_delete_scene`` — the preview only needs to confirm the scene
+    exists and produce a human-readable label.
+    """
+    from .helpers import get_scene_store  # noqa: PLC0415
+    from .scene_utils import resolve_scene_entity_id  # noqa: PLC0415
+
+    scene_id = str(arguments.get("scene_id", "")).strip()
+    entity_id_arg = str(arguments.get("entity_id", "")).strip()
+
+    if not scene_id and not entity_id_arg:
+        return {"error": "scene_id or entity_id is required"}
+    if entity_id_arg and not entity_id_arg.startswith("scene."):
+        return {"error": f"entity_id must be a scene entity, got {_sanitize(entity_id_arg)}"}
+
+    store = get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+    records = await store.async_list_scenes()
+
+    entity_id = entity_id_arg
+    label: str | None = None
+    # Immutable identity fingerprint for the id-less confirm path (see the
+    # native-scene branch below). Empty unless the scene has no stable id.
+    name_fingerprint: str = ""
+
+    # Prefer a Selora SceneStore record so the confirm-time delete gets the
+    # scene_id (soft-delete + session purge). Match by scene_id, then by the
+    # record's *current* entity_id (resolved through the registry so a rename
+    # in HA doesn't cause a miss).
+    match: dict[str, Any] | None = None
+    if scene_id:
+        match = next((r for r in records if r["scene_id"] == scene_id), None)
+    if match is None and entity_id_arg:
+        for r in records:
+            current = resolve_scene_entity_id(hass, r["scene_id"], r.get("name")) or r.get(
+                "entity_id"
+            )
+            if current == entity_id_arg:
+                match = r
+                break
+    if match is not None:
+        scene_id = match["scene_id"]
+        entity_id = (
+            resolve_scene_entity_id(hass, scene_id, match.get("name"))
+            or match.get("entity_id")
+            or entity_id
+        )
+        label = match.get("name") or None
+
+    if not entity_id:
+        return {"error": f"Scene {_sanitize(scene_id)} not found"}
+
+    state = hass.states.get(entity_id)
+
+    if match is None:
+        # No SceneStore record: this is a native (user-authored) scene. A
+        # caller-supplied ``scene_id`` here is stale or non-Selora — it names
+        # no store record — so discard it and derive identity from the actual
+        # scenes.yaml entry instead. A storage/UI-managed scene has live state
+        # but no yaml entry; offering a Delete button for it would surface a
+        # card that ``_tool_delete_scene`` rejects at confirm time, so refuse
+        # up front and point the user at the HA UI.
+        from .scene_utils import (  # noqa: PLC0415
+            _get_scenes_path,
+            _read_scenes_yaml,
+            resolve_yaml_scene_entity_id,
+        )
+
+        if state is None:
+            return {"error": f"Scene {_sanitize(entity_id)} not found"}
+        try:
+            yaml_entries = await hass.async_add_executor_job(
+                _read_scenes_yaml, _get_scenes_path(hass)
+            )
+        except Exception:  # noqa: BLE001 — treat an unreadable file as no match
+            yaml_entries = []
+        yaml_match = next(
+            (
+                e
+                for e in yaml_entries
+                if isinstance(e, dict) and resolve_yaml_scene_entity_id(hass, e) == entity_id
+            ),
+            None,
+        )
+        if yaml_match is None:
+            return {
+                "error": (
+                    f"Scene {_sanitize(entity_id)} is not yaml-managed; "
+                    "delete it from the Home Assistant UI instead."
+                )
+            }
+        yaml_id = yaml_match.get("id")
+        if isinstance(yaml_id, str) and yaml_id:
+            # The yaml entry has its own stable id — confirm by that id, the
+            # same way SceneStore scenes and id-bearing automations delete.
+            scene_id = yaml_id
+        else:
+            # Id-less entry: no stable handle, so the confirm delete must
+            # re-resolve the mutable entity_id. Capture the entry's name as an
+            # immutable fingerprint the confirm handler revalidates against the
+            # current yaml before that irreversible by-entity delete — an edit
+            # + reload could otherwise remap the entity to a different scene.
+            scene_id = ""
+            name_fingerprint = str(yaml_match.get("name") or "")
+        label = yaml_match.get("name") or label
+
+    if label is None:
+        label = (state.attributes.get("friendly_name") if state is not None else None) or entity_id
+
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "scene",
+            # target_id carries the SceneStore id or the yaml entry's own id
+            # when either is known; the confirm-time delete falls back to
+            # entity_id (revalidated via ``name``) for id-less native scenes.
+            "target_id": scene_id,
+            "entity_id": entity_id,
+            "name": name_fingerprint,
+            "label": str(label),
+        },
+    }
 
 
 async def _tool_activate_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:

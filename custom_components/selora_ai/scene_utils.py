@@ -509,9 +509,57 @@ def resolve_yaml_scene_entity_id(hass: HomeAssistant, entry: dict[str, Any]) -> 
     return None
 
 
+async def _remove_idless_scene_by_name(
+    hass: HomeAssistant,
+    expected_name: str,
+) -> tuple[bool, str | None, str | None]:
+    """Atomically remove the id-less ``scenes.yaml`` entry whose name equals
+    *expected_name*, holding ``_SCENES_YAML_LOCK`` across the find, ambiguity
+    check, and removal.
+
+    Used by the chat delete-confirmation flow, where the name fingerprint was
+    captured when the card was shown. Enforcing it here — re-reading the file
+    inside the lock — closes the TOCTOU window between a separate identity
+    check and the delete: the entry removed is always the one matching the
+    confirmed name, never whatever a since-changed entity_id now resolves to.
+    """
+    scenes_path = _get_scenes_path(hass)
+    normalized = expected_name.strip()
+
+    def _is_idless_match(entry: object) -> bool:
+        return (
+            isinstance(entry, dict)
+            and isinstance(entry.get("name"), str)
+            and entry.get("name", "").strip() == normalized
+            and not (isinstance(entry.get("id"), str) and entry["id"])
+        )
+
+    async with _SCENES_YAML_LOCK:
+        try:
+            yaml_entries = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+        except Exception as exc:  # noqa: BLE001 — surface a clean error
+            return False, "yaml_read_failed", str(exc)
+        matches = [e for e in yaml_entries if _is_idless_match(e)]
+        if not matches:
+            return False, "not_found_in_yaml", None
+        if len(matches) > 1:
+            return False, "ambiguous_name", None
+        previous = list(yaml_entries)
+        remaining = [e for e in yaml_entries if not _is_idless_match(e)]
+        await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, remaining)
+        try:
+            await hass.services.async_call("scene", "reload", blocking=True)
+        except Exception as exc:  # noqa: BLE001 — restore yaml on reload failure
+            await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
+            return False, "reload_failed", str(exc)
+    return True, None, None
+
+
 async def async_remove_yaml_scene_by_entity(
     hass: HomeAssistant,
     entity_id: str,
+    *,
+    expected_name: str | None = None,
 ) -> tuple[bool, str | None, str | None]:
     """Remove a non-Selora, yaml-managed scene identified by its HA entity_id.
 
@@ -524,12 +572,25 @@ async def async_remove_yaml_scene_by_entity(
     Shared by the MCP ``delete_scene`` tool and the panel's ``delete_scene``
     websocket handler so both classify and delete id-less scenes identically.
 
+    When *expected_name* is given (the chat delete-confirmation flow), the
+    id-less removal is keyed on that confirmed fingerprint and performed
+    atomically under the yaml lock, so a since-changed entity mapping can't
+    redirect the delete to a different entry.
+
     Returns ``(removed, error_code, detail)``. On success ``(True, None, None)``.
     On failure ``removed`` is False and ``error_code`` is one of ``not_found`` /
     ``yaml_read_failed`` / ``not_yaml_managed`` / ``not_found_in_yaml`` /
     ``no_identifier`` / ``ambiguous_name`` / ``reload_failed``; ``detail``
     carries the underlying exception text for the failures that have one.
     """
+    # Confirmed-fingerprint path: enforce the captured name atomically instead
+    # of trusting the (mutable) entity → yaml mapping at delete time. This runs
+    # BEFORE the live-state check on purpose — the path is independent of the
+    # entity mapping, so a scene whose entity became unloaded or remapped after
+    # the card was shown must still be deletable by its confirmed yaml name.
+    if expected_name is not None:
+        return await _remove_idless_scene_by_name(hass, expected_name)
+
     if hass.states.get(entity_id) is None:
         return False, "not_found", None
 

@@ -3537,6 +3537,54 @@ _APPROVAL_DENIED_BY_LANG: dict[str, str] = {
 }
 
 
+# Delete-confirmation card outcomes. ``_DELETE_DONE_BY_LANG`` carries an
+# ``{items}`` placeholder for the quoted list of deleted labels.
+_DELETE_CANCELLED_BY_LANG: dict[str, str] = {
+    "en": "Deletion cancelled. Nothing was removed.",
+    "fr": "Suppression annulée. Rien n'a été supprimé.",
+    "de": "Löschung abgebrochen. Es wurde nichts entfernt.",
+    "es": "Eliminación cancelada. No se eliminó nada.",
+    "it": "Eliminazione annullata. Non è stato rimosso nulla.",
+    "nl": "Verwijdering geannuleerd. Er is niets verwijderd.",
+    "hu": "Törlés megszakítva. Semmi sem lett eltávolítva.",
+    "zh": "已取消删除。未删除任何内容。",
+    "pt": "Eliminação cancelada. Nada foi removido.",
+    "ja": "削除をキャンセルしました。何も削除されていません。",
+    "ko": "삭제가 취소되었습니다. 아무것도 제거되지 않았습니다.",
+    "ru": "Удаление отменено. Ничего не было удалено.",
+}
+
+_DELETE_DONE_BY_LANG: dict[str, str] = {
+    "en": "Deleted {items}.",
+    "fr": "Supprimé {items}.",
+    "de": "{items} gelöscht.",
+    "es": "Eliminado {items}.",
+    "it": "Eliminato {items}.",
+    "nl": "{items} verwijderd.",
+    "hu": "{items} törölve.",
+    "zh": "已删除 {items}。",
+    "pt": "{items} eliminado.",
+    "ja": "{items} を削除しました。",
+    "ko": "{items}을(를) 삭제했습니다.",
+    "ru": "Удалено: {items}.",
+}
+
+_DELETE_NONE_BY_LANG: dict[str, str] = {
+    "en": "Nothing was deleted.",
+    "fr": "Rien n'a été supprimé.",
+    "de": "Es wurde nichts gelöscht.",
+    "es": "No se eliminó nada.",
+    "it": "Non è stato eliminato nulla.",
+    "nl": "Er is niets verwijderd.",
+    "hu": "Semmi sem lett törölve.",
+    "zh": "未删除任何内容。",
+    "pt": "Nada foi eliminado.",
+    "ja": "何も削除されませんでした。",
+    "ko": "아무것도 삭제되지 않았습니다.",
+    "ru": "Ничего не было удалено.",
+}
+
+
 # No-response fallback, localized like the runtime approval/exhaustion
 # strings. Chat replies follow ``hass.config.language``, so the silent-empty
 # substitute must too — an English bubble for a French user is non-silent but
@@ -3727,6 +3775,132 @@ def _find_pending_approval(
     return None
 
 
+async def _resolve_delete_approval(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    store: ConversationStore,
+    session_id: str,
+    message_index: int,
+    approval: dict[str, Any],
+    scope: str,
+    *,
+    language: str | None = None,
+) -> None:
+    """Resolve a delete-confirmation card (approval_kind == "delete").
+
+    ``scope == "delete"`` performs the deletions by calling the backend
+    delete tools (which enforce the yaml-managed-only, alias-disambiguation
+    and reload-rollback safeguards); anything else (``cancel``/``deny``)
+    dismisses the card without touching anything.
+    """
+    deletes: list[dict[str, Any]] = approval.get("deletes", []) or []
+
+    if scope != "delete":
+        await store.set_approval_status(session_id, message_index, "denied")
+        cancel_text = _approval_phrase(_DELETE_CANCELLED_BY_LANG, language)
+        persisted = await store.append_message(
+            session_id, "assistant", cancel_text, intent="answer"
+        )
+        connection.send_result(
+            msg["id"],
+            {"status": "denied", "executed": [], "result_message": persisted},
+        )
+        return
+
+    from .mcp_server import _tool_delete_automation, _tool_delete_scene
+
+    deleted_labels: list[str] = []
+    errors: list[str] = []
+    for descriptor in deletes:
+        kind = str(descriptor.get("kind", ""))
+        target_id = str(descriptor.get("target_id", "")).strip()
+        entity_id = str(descriptor.get("entity_id", "")).strip()
+        label = str(descriptor.get("label") or entity_id or "")
+        try:
+            if kind == "automation":
+                # Delete by the stable automation_id confirmed on the card.
+                # Passing entity_id too would let _resolve_automation prefer
+                # it, and if the entity mapping changed between rendering the
+                # card and this click, that entity could now point at a
+                # DIFFERENT automation than the one the user saw.
+                if target_id:
+                    res = await _tool_delete_automation(hass, {"automation_id": target_id})
+                else:
+                    # Id-less yaml entry — no stable id. Hand the confirmed
+                    # alias fingerprint to the backend, which finds + removes
+                    # the matching entry atomically under the yaml lock (so
+                    # there's no check-then-delete window an edit could exploit)
+                    # and refuses if it's gone or ambiguous. The mutable
+                    # entity_id is deliberately NOT used to identify the entry.
+                    alias = str(descriptor.get("alias") or "")
+                    if not alias:
+                        errors.append(f"{label}: can't verify identity; not deleted")
+                        continue
+                    res = await _tool_delete_automation(hass, {"expected_alias": alias})
+            elif kind == "scene":
+                # A stable target_id (SceneStore id or the yaml entry's own
+                # id) is used directly. Only an id-less native scene has none,
+                # and then the confirmed name fingerprint is enforced atomically
+                # by the backend (mirroring the id-less automation path).
+                if target_id:
+                    res = await _tool_delete_scene(
+                        hass, {"scene_id": target_id, "entity_id": entity_id}
+                    )
+                else:
+                    name = str(descriptor.get("name") or "")
+                    if not name:
+                        errors.append(f"{label}: can't verify identity; not deleted")
+                        continue
+                    res = await _tool_delete_scene(
+                        hass, {"entity_id": entity_id, "expected_name": name}
+                    )
+            else:
+                errors.append(f"{label or kind}: unknown delete kind")
+                continue
+        except Exception as exc:  # noqa: BLE001 — surface to user
+            _LOGGER.warning("Delete of %s failed: %s", label or kind, exc)
+            errors.append(f"{label}: {exc}")
+            continue
+        if isinstance(res, dict) and res.get("error"):
+            errors.append(f"{label}: {res['error']}")
+        else:
+            deleted_labels.append(label)
+
+    if not deleted_labels:
+        # Nothing was removed. Do NOT mark the card approved — the frontend
+        # renders "approved" as a terminal "Deleted", which would be both
+        # wrong and unretryable. send_error keeps the proposal pending and
+        # drives the frontend's restore-buttons path so a transient failure
+        # can be retried from the card.
+        detail = "; ".join(errors) or _approval_phrase(_DELETE_NONE_BY_LANG, language)
+        connection.send_error(msg["id"], "delete_failed", detail)
+        return
+
+    # At least one target was deleted — the card is terminal. Partial
+    # failures are listed in the result text (re-running would only hit the
+    # already-deleted targets).
+    await store.set_approval_status(session_id, message_index, "approved")
+    result_text = _approval_phrase(_DELETE_DONE_BY_LANG, language).format(
+        items="“" + "”, “".join(deleted_labels) + "”"
+    )
+    if errors:
+        errors_label = _approval_phrase(_APPROVAL_ERRORS_BY_LANG, language)
+        result_text += f"\n\n{errors_label} {'; '.join(errors)}"
+
+    persisted = await store.append_message(session_id, "assistant", result_text, intent="answer")
+    connection.send_result(
+        msg["id"],
+        {
+            "status": "approved",
+            "scope": scope,
+            "executed": deleted_labels,
+            "errors": errors,
+            "result_message": persisted,
+        },
+    )
+
+
 async def _resolve_approval(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -3763,6 +3937,42 @@ async def _resolve_approval(
     # we don't end up with one English sentence next to a localized one
     # on the same persisted bubble.
     effective_language = language or hass.config.language
+
+    # Validate the scope against the proposal kind before doing anything.
+    # The scope vocabularies are disjoint: delete cards use delete/cancel,
+    # service-call cards use once/session/always. A mismatched client (or an
+    # extra model-supplied quick action) must not cross over — otherwise a
+    # ``cancel``/``delete`` sent for a service-call card would fall through to
+    # the allow path below and execute the call, and an allow scope sent for a
+    # delete card would hit the delete resolver.
+    is_delete_card = approval.get("approval_kind") == "delete"
+    if is_delete_card and scope not in ("delete", "cancel", "deny"):
+        connection.send_error(
+            msg["id"], "invalid_scope", "Scope not valid for a delete confirmation"
+        )
+        return
+    if not is_delete_card and scope in ("delete", "cancel"):
+        connection.send_error(msg["id"], "invalid_scope", "Scope not valid for this approval")
+        return
+
+    # Delete-confirmation cards (approval_kind == "delete") don't run
+    # service calls — they call the backend delete tools. Route them to a
+    # dedicated resolver before any of the service-call validation/grant
+    # logic below (which would try to execute a nonexistent delete
+    # service).
+    if is_delete_card:
+        await _resolve_delete_approval(
+            hass,
+            connection,
+            msg,
+            store,
+            session_id,
+            message_index,
+            approval,
+            scope,
+            language=effective_language,
+        )
+        return
 
     if scope == "deny":
         await store.set_approval_status(session_id, message_index, "denied")
