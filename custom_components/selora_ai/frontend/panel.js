@@ -9025,6 +9025,15 @@ var en_default = {
     quick_actions_approve_always_desc: "Remember this approval",
     quick_actions_deny_label: "Deny",
     quick_actions_deny_desc: "Do not run this request",
+    approval_status_deleted: "Deleted",
+    approval_status_cancelled: "Cancelled",
+    delete_approval_title: "Delete this?",
+    delete_approval_title_plural: "Delete these?",
+    delete_approval_warning: "This permanently removes it and can't be undone.",
+    quick_actions_delete_label: "Delete",
+    quick_actions_delete_desc: "Permanently delete this",
+    quick_actions_cancel_label: "Cancel",
+    quick_actions_cancel_desc: "Keep it",
     stale_modal_title: "Stale Automations",
     stale_select_all: "Select all",
     stale_last_triggered_label: "Last triggered:",
@@ -10122,6 +10131,16 @@ var fr_default = {
     quick_actions_approve_always_desc: "M\xE9moriser cette approbation",
     quick_actions_deny_label: "Refuser",
     quick_actions_deny_desc: "Ne pas ex\xE9cuter cette requ\xEAte",
+    approval_status_deleted: "Supprim\xE9",
+    approval_status_cancelled: "Annul\xE9",
+    delete_approval_title: "Supprimer ceci ?",
+    delete_approval_title_plural: "Supprimer ces \xE9l\xE9ments ?",
+    delete_approval_warning:
+      "Cette action le supprime d\xE9finitivement et est irr\xE9versible.",
+    quick_actions_delete_label: "Supprimer",
+    quick_actions_delete_desc: "Supprimer d\xE9finitivement",
+    quick_actions_cancel_label: "Annuler",
+    quick_actions_cancel_desc: "Le conserver",
     stale_modal_title: "Automatisations obsol\xE8tes",
     stale_select_all: "Tout s\xE9lectionner",
     stale_last_triggered_label: "Dernier d\xE9clenchement :",
@@ -11240,6 +11259,16 @@ var de_default = {
     quick_actions_approve_always_desc: "Diese Genehmigung merken",
     quick_actions_deny_label: "Ablehnen",
     quick_actions_deny_desc: "Diese Anfrage nicht ausf\xFChren",
+    approval_status_deleted: "Gel\xF6scht",
+    approval_status_cancelled: "Abgebrochen",
+    delete_approval_title: "Dies l\xF6schen?",
+    delete_approval_title_plural: "Diese l\xF6schen?",
+    delete_approval_warning:
+      "Dadurch wird es dauerhaft entfernt und kann nicht r\xFCckg\xE4ngig gemacht werden.",
+    quick_actions_delete_label: "L\xF6schen",
+    quick_actions_delete_desc: "Endg\xFCltig l\xF6schen",
+    quick_actions_cancel_label: "Abbrechen",
+    quick_actions_cancel_desc: "Behalten",
     stale_modal_title: "Veraltete Automatisierungen",
     stale_select_all: "Alle ausw\xE4hlen",
     stale_last_triggered_label: "Zuletzt ausgel\xF6st:",
@@ -12349,6 +12378,16 @@ var es_default = {
     quick_actions_approve_always_desc: "Recordar esta aprobaci\xF3n",
     quick_actions_deny_label: "Denegar",
     quick_actions_deny_desc: "No ejecutar esta solicitud",
+    approval_status_deleted: "Eliminado",
+    approval_status_cancelled: "Cancelado",
+    delete_approval_title: "\xBFEliminar esto?",
+    delete_approval_title_plural: "\xBFEliminar estos?",
+    delete_approval_warning:
+      "Esto lo elimina permanentemente y no se puede deshacer.",
+    quick_actions_delete_label: "Eliminar",
+    quick_actions_delete_desc: "Eliminar permanentemente",
+    quick_actions_cancel_label: "Cancelar",
+    quick_actions_cancel_desc: "Conservarlo",
     stale_modal_title: "Automatizaciones obsoletas",
     stale_select_all: "Seleccionar todo",
     stale_last_triggered_label: "\xDAltima activaci\xF3n:",
@@ -13447,6 +13486,16 @@ var it_default = {
     quick_actions_approve_always_desc: "Ricorda questa approvazione",
     quick_actions_deny_label: "Nega",
     quick_actions_deny_desc: "Non eseguire questa richiesta",
+    approval_status_deleted: "Eliminato",
+    approval_status_cancelled: "Annullato",
+    delete_approval_title: "Eliminare questo?",
+    delete_approval_title_plural: "Eliminare questi?",
+    delete_approval_warning:
+      "Questa azione lo rimuove definitivamente e non pu\xF2 essere annullata.",
+    quick_actions_delete_label: "Elimina",
+    quick_actions_delete_desc: "Elimina definitivamente",
+    quick_actions_cancel_label: "Annulla",
+    quick_actions_cancel_desc: "Mantienilo",
     stale_modal_title: "Automazioni obsolete",
     stale_select_all: "Seleziona tutto",
     stale_last_triggered_label: "Ultima attivazione:",
@@ -14563,6 +14612,16 @@ var nl_default = {
     quick_actions_approve_always_desc: "Onthoud deze goedkeuring",
     quick_actions_deny_label: "Weigeren",
     quick_actions_deny_desc: "Dit verzoek niet uitvoeren",
+    approval_status_deleted: "Verwijderd",
+    approval_status_cancelled: "Geannuleerd",
+    delete_approval_title: "Dit verwijderen?",
+    delete_approval_title_plural: "Deze verwijderen?",
+    delete_approval_warning:
+      "Hiermee wordt het permanent verwijderd en dit kan niet ongedaan worden gemaakt.",
+    quick_actions_delete_label: "Verwijderen",
+    quick_actions_delete_desc: "Permanent verwijderen",
+    quick_actions_cancel_label: "Annuleren",
+    quick_actions_cancel_desc: "Behouden",
     stale_modal_title: "Verouderde automatiseringen",
     stale_select_all: "Alles selecteren",
     stale_last_triggered_label: "Laatst geactiveerd:",
@@ -15691,6 +15750,16 @@ var hu_default = {
     quick_actions_approve_always_desc: "J\xF3v\xE1hagy\xE1s megjegyz\xE9se",
     quick_actions_deny_label: "Megtagad\xE1s",
     quick_actions_deny_desc: "Ne futtassa ezt a k\xE9r\xE9st",
+    approval_status_deleted: "T\xF6r\xF6lve",
+    approval_status_cancelled: "Megszak\xEDtva",
+    delete_approval_title: "T\xF6rli ezt?",
+    delete_approval_title_plural: "T\xF6rli ezeket?",
+    delete_approval_warning:
+      "Ez v\xE9glegesen elt\xE1vol\xEDtja, \xE9s nem vonhat\xF3 vissza.",
+    quick_actions_delete_label: "T\xF6rl\xE9s",
+    quick_actions_delete_desc: "V\xE9gleges t\xF6rl\xE9s",
+    quick_actions_cancel_label: "M\xE9gse",
+    quick_actions_cancel_desc: "Megtart\xE1s",
     stale_modal_title: "Elavult automatizmusok",
     stale_select_all: "\xD6sszes kiv\xE1laszt\xE1sa",
     stale_last_triggered_label: "Utolj\xE1ra aktiv\xE1lva:",
@@ -16801,6 +16870,16 @@ var pt_default = {
     quick_actions_approve_always_desc: "Memorizar esta aprova\xE7\xE3o",
     quick_actions_deny_label: "Recusar",
     quick_actions_deny_desc: "N\xE3o executar este pedido",
+    approval_status_deleted: "Eliminado",
+    approval_status_cancelled: "Cancelado",
+    delete_approval_title: "Eliminar isto?",
+    delete_approval_title_plural: "Eliminar estes?",
+    delete_approval_warning:
+      "Isto remove-o permanentemente e n\xE3o pode ser anulado.",
+    quick_actions_delete_label: "Eliminar",
+    quick_actions_delete_desc: "Eliminar permanentemente",
+    quick_actions_cancel_label: "Cancelar",
+    quick_actions_cancel_desc: "Mant\xEA-lo",
     stale_modal_title: "Automa\xE7\xF5es obsoletas",
     stale_select_all: "Selecionar tudo",
     stale_last_triggered_label: "\xDAltima ativa\xE7\xE3o:",
@@ -18231,6 +18310,21 @@ var ru_default = {
       "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C",
     quick_actions_deny_desc:
       "\u041D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0442\u044C \u044D\u0442\u043E\u0442 \u0437\u0430\u043F\u0440\u043E\u0441",
+    approval_status_deleted: "\u0423\u0434\u0430\u043B\u0435\u043D\u043E",
+    approval_status_cancelled:
+      "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E",
+    delete_approval_title:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u043E?",
+    delete_approval_title_plural:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0438\u0445?",
+    delete_approval_warning:
+      "\u042D\u0442\u043E \u0443\u0434\u0430\u043B\u0438\u0442 \u0435\u0433\u043E \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430, \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043D\u0435\u043E\u0431\u0440\u0430\u0442\u0438\u043C\u043E.",
+    quick_actions_delete_label: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    quick_actions_delete_desc:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430",
+    quick_actions_cancel_label: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    quick_actions_cancel_desc:
+      "\u041E\u0441\u0442\u0430\u0432\u0438\u0442\u044C",
     stale_modal_title:
       "\u0423\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0438\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
     stale_select_all:
@@ -19686,6 +19780,19 @@ var ja_default = {
     quick_actions_deny_label: "\u62D2\u5426",
     quick_actions_deny_desc:
       "\u3053\u306E\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u5B9F\u884C\u3057\u306A\u3044",
+    approval_status_deleted: "\u524A\u9664\u3057\u307E\u3057\u305F",
+    approval_status_cancelled:
+      "\u30AD\u30E3\u30F3\u30BB\u30EB\u3057\u307E\u3057\u305F",
+    delete_approval_title:
+      "\u3053\u308C\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
+    delete_approval_title_plural:
+      "\u3053\u308C\u3089\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
+    delete_approval_warning:
+      "\u5B8C\u5168\u306B\u524A\u9664\u3055\u308C\u3001\u5143\u306B\u623B\u305B\u307E\u305B\u3093\u3002",
+    quick_actions_delete_label: "\u524A\u9664",
+    quick_actions_delete_desc: "\u5B8C\u5168\u306B\u524A\u9664",
+    quick_actions_cancel_label: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    quick_actions_cancel_desc: "\u305D\u306E\u307E\u307E\u6B8B\u3059",
     stale_modal_title:
       "\u53E4\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
     stale_select_all: "\u3059\u3079\u3066\u9078\u629E",
@@ -20983,6 +21090,17 @@ var ko_default = {
     quick_actions_deny_label: "\uAC70\uBD80",
     quick_actions_deny_desc:
       "\uC774 \uC694\uCCAD\uC744 \uC2E4\uD589\uD558\uC9C0 \uC54A\uC74C",
+    approval_status_deleted: "\uC0AD\uC81C\uB428",
+    approval_status_cancelled: "\uCDE8\uC18C\uB428",
+    delete_approval_title: "\uC0AD\uC81C\uD560\uAE4C\uC694?",
+    delete_approval_title_plural:
+      "\uC774\uAC83\uB4E4\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?",
+    delete_approval_warning:
+      "\uC601\uAD6C\uC801\uC73C\uB85C \uC0AD\uC81C\uB418\uBA70 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    quick_actions_delete_label: "\uC0AD\uC81C",
+    quick_actions_delete_desc: "\uC601\uAD6C\uC801\uC73C\uB85C \uC0AD\uC81C",
+    quick_actions_cancel_label: "\uCDE8\uC18C",
+    quick_actions_cancel_desc: "\uADF8\uB300\uB85C \uB450\uAE30",
     stale_modal_title: "\uC624\uB798\uB41C \uC790\uB3D9\uD654",
     stale_select_all: "\uBAA8\uB450 \uC120\uD0DD",
     stale_last_triggered_label: "\uB9C8\uC9C0\uB9C9 \uD2B8\uB9AC\uAC70:",
@@ -22198,6 +22316,16 @@ var zh_Hans_default = {
     quick_actions_approve_always_desc: "\u8BB0\u4F4F\u6B64\u6388\u6743",
     quick_actions_deny_label: "\u62D2\u7EDD",
     quick_actions_deny_desc: "\u4E0D\u8981\u8FD0\u884C\u6B64\u8BF7\u6C42",
+    approval_status_deleted: "\u5DF2\u5220\u9664",
+    approval_status_cancelled: "\u5DF2\u53D6\u6D88",
+    delete_approval_title: "\u5220\u9664\u6B64\u9879\uFF1F",
+    delete_approval_title_plural: "\u5220\u9664\u8FD9\u4E9B\uFF1F",
+    delete_approval_warning:
+      "\u8FD9\u5C06\u6C38\u4E45\u5220\u9664\u5B83\uFF0C\u4E14\u65E0\u6CD5\u64A4\u9500\u3002",
+    quick_actions_delete_label: "\u5220\u9664",
+    quick_actions_delete_desc: "\u6C38\u4E45\u5220\u9664",
+    quick_actions_cancel_label: "\u53D6\u6D88",
+    quick_actions_cancel_desc: "\u4FDD\u7559",
     stale_modal_title: "\u5931\u6548\u7684\u81EA\u52A8\u5316",
     stale_select_all: "\u5168\u9009",
     stale_last_triggered_label: "\u4E0A\u6B21\u89E6\u53D1\uFF1A",
@@ -23389,6 +23517,16 @@ var zh_Hant_default = {
     quick_actions_approve_always_desc: "\u8A18\u4F4F\u6B64\u6388\u6B0A",
     quick_actions_deny_label: "\u62D2\u7D55",
     quick_actions_deny_desc: "\u4E0D\u8981\u57F7\u884C\u6B64\u8ACB\u6C42",
+    approval_status_deleted: "\u5DF2\u522A\u9664",
+    approval_status_cancelled: "\u5DF2\u53D6\u6D88",
+    delete_approval_title: "\u522A\u9664\u6B64\u9805\uFF1F",
+    delete_approval_title_plural: "\u522A\u9664\u9019\u4E9B\uFF1F",
+    delete_approval_warning:
+      "\u9019\u5C07\u6C38\u4E45\u522A\u9664\u5B83\uFF0C\u4E14\u7121\u6CD5\u5FA9\u539F\u3002",
+    quick_actions_delete_label: "\u522A\u9664",
+    quick_actions_delete_desc: "\u6C38\u4E45\u522A\u9664",
+    quick_actions_cancel_label: "\u53D6\u6D88",
+    quick_actions_cancel_desc: "\u4FDD\u7559",
     stale_modal_title: "\u904E\u6642\u7684\u81EA\u52D5\u5316",
     stale_select_all: "\u5168\u9078",
     stale_last_triggered_label: "\u4E0A\u6B21\u89F8\u767C\uFF1A",
@@ -24508,6 +24646,24 @@ function _approvalPresentation(host) {
         "Do not run this request",
       ),
     },
+    // Delete-confirmation card (approval_kind === "delete"): a destructive
+    // confirm + a neutral cancel. The confirm is styled red (deny tone) so
+    // it reads as destructive rather than as a friendly "approve".
+    delete: {
+      label: host._t("quick_actions_delete_label", "Delete"),
+      icon: "mdi:delete-outline",
+      tone: "deny",
+      description: host._t(
+        "quick_actions_delete_desc",
+        "Permanently delete this",
+      ),
+    },
+    cancel: {
+      label: host._t("quick_actions_cancel_label", "Cancel"),
+      icon: "mdi:close",
+      tone: null,
+      description: host._t("quick_actions_cancel_desc", "Keep it"),
+    },
   };
 }
 function _approvalScope(value) {
@@ -24836,6 +24992,94 @@ var RISK_LEVEL_STYLES = {
       "High risk: physical access, security, or host-level impact (unlocking a door, disarming the alarm, running shell commands).",
   },
 };
+var _DELETE_KIND_LABELS = {
+  automation: "automation",
+  scene: "scene",
+};
+function renderDeleteApprovalCard(host, approval, approvalStatus) {
+  const accent = "#ef4444";
+  const deletes = approval.deletes || [];
+  if (approvalStatus === "approved" || approvalStatus === "denied") {
+    const resolved = approvalStatus === "approved";
+    return b2`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolved ? "var(--secondary-text-color)" : "var(--secondary-text-color)"};"
+      >
+        <ha-icon
+          icon=${resolved ? "mdi:trash-can-outline" : "mdi:close-circle-outline"}
+          style="--mdc-icon-size:16px;flex-shrink:0;"
+        ></ha-icon>
+        <span
+          >${resolved ? host._t("approval_status_deleted", "Deleted") : host._t("approval_status_cancelled", "Cancelled")}</span
+        >
+      </div>
+    `;
+  }
+  if (approvalStatus === "resolving") {
+    return b2`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+      >
+        <span class="spinner" style="width:14px;height:14px;"></span>
+        <span>${host._t("approval_working", "Working\u2026")}</span>
+      </div>
+    `;
+  }
+  return b2`
+    <div
+      style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
+    >
+      <div
+        style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:4px;"
+      >
+        <ha-icon
+          icon="mdi:alert-outline"
+          style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
+        ></ha-icon>
+        <span
+          >${deletes.length > 1 ? host._t("delete_approval_title_plural", "Delete these?") : host._t("delete_approval_title", "Delete this?")}</span
+        >
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        ${deletes.map((d3) => _renderDeleteRow(host, d3))}
+      </div>
+      <div
+        style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+      >
+        ${host._t(
+          "delete_approval_warning",
+          "This permanently removes it and can't be undone.",
+        )}
+      </div>
+    </div>
+  `;
+}
+function _renderDeleteRow(host, d3) {
+  const label = d3.label || d3.entity_id || d3.target_id || "";
+  const entityId = d3.entity_id || "";
+  const kind = _DELETE_KIND_LABELS[d3.kind] || "";
+  return b2`
+    <div
+      style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:10px;"
+    >
+      <ha-icon
+        icon=${d3.kind === "scene" ? "mdi:palette-outline" : "mdi:robot-outline"}
+        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
+      ></ha-icon>
+      <div style="display:flex;flex-direction:column;min-width:0;">
+        <span
+          style="font-size:13px;font-weight:600;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          title=${label}
+          >${label}</span
+        >
+        <span
+          style="font-size:11px;color:var(--secondary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          >${entityId || kind}</span
+        >
+      </div>
+    </div>
+  `;
+}
 function _renderActionTile(call) {
   const service = call?.service || "";
   const icon = actionIcon(service);
@@ -24935,6 +25179,9 @@ function _scopeLabel(host, scope, entityIds) {
 }
 function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
+  if (approval.approval_kind === "delete") {
+    return renderDeleteApprovalCard(host, approval, approvalStatus);
+  }
   const level = (approval.risk_level || "low").toLowerCase();
   const { accent, icon, explainerKey, explainerFallback } =
     RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;

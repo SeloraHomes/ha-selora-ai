@@ -47,6 +47,116 @@ const RISK_LEVEL_STYLES = {
   },
 };
 
+const _DELETE_KIND_LABELS = {
+  automation: "automation",
+  scene: "scene",
+};
+
+// Render the delete-confirmation card. Destructive accent (red), a row per
+// target showing its friendly label + entity_id, and the terminal
+// approved/denied/resolving states. The Delete / Cancel buttons themselves
+// come from ``msg.quick_actions`` (rendered in the composer row).
+function renderDeleteApprovalCard(host, approval, approvalStatus) {
+  const accent = "#ef4444";
+  const deletes = approval.deletes || [];
+
+  if (approvalStatus === "approved" || approvalStatus === "denied") {
+    const resolved = approvalStatus === "approved";
+    return html`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${
+          resolved
+            ? "var(--secondary-text-color)"
+            : "var(--secondary-text-color)"
+        };"
+      >
+        <ha-icon
+          icon=${resolved ? "mdi:trash-can-outline" : "mdi:close-circle-outline"}
+          style="--mdc-icon-size:16px;flex-shrink:0;"
+        ></ha-icon>
+        <span
+          >${
+            resolved
+              ? host._t("approval_status_deleted", "Deleted")
+              : host._t("approval_status_cancelled", "Cancelled")
+          }</span
+        >
+      </div>
+    `;
+  }
+
+  if (approvalStatus === "resolving") {
+    return html`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+      >
+        <span class="spinner" style="width:14px;height:14px;"></span>
+        <span>${host._t("approval_working", "Working…")}</span>
+      </div>
+    `;
+  }
+
+  return html`
+    <div
+      style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
+    >
+      <div
+        style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:4px;"
+      >
+        <ha-icon
+          icon="mdi:alert-outline"
+          style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
+        ></ha-icon>
+        <span
+          >${
+            deletes.length > 1
+              ? host._t("delete_approval_title_plural", "Delete these?")
+              : host._t("delete_approval_title", "Delete this?")
+          }</span
+        >
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        ${deletes.map((d) => _renderDeleteRow(host, d))}
+      </div>
+      <div
+        style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+      >
+        ${host._t(
+          "delete_approval_warning",
+          "This permanently removes it and can't be undone.",
+        )}
+      </div>
+    </div>
+  `;
+}
+
+function _renderDeleteRow(host, d) {
+  const label = d.label || d.entity_id || d.target_id || "";
+  const entityId = d.entity_id || "";
+  const kind = _DELETE_KIND_LABELS[d.kind] || "";
+  return html`
+    <div
+      style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:10px;"
+    >
+      <ha-icon
+        icon=${d.kind === "scene" ? "mdi:palette-outline" : "mdi:robot-outline"}
+        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
+      ></ha-icon>
+      <div style="display:flex;flex-direction:column;min-width:0;">
+        <span
+          style="font-size:13px;font-weight:600;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          title=${label}
+          >${label}</span
+        >
+        <span
+          style="font-size:11px;color:var(--secondary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          >${entityId || kind}</span
+        >
+      </div>
+    </div>
+  `;
+}
+
 function _renderActionTile(call) {
   const service = call?.service || "";
   const icon = actionIcon(service);
@@ -176,6 +286,11 @@ function _scopeLabel(host, scope, entityIds) {
  */
 export function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
+  // Delete-confirmation cards are a distinct shape (no service calls, no
+  // risk level, no scope chip) — render them separately.
+  if (approval.approval_kind === "delete") {
+    return renderDeleteApprovalCard(host, approval, approvalStatus);
+  }
   const level = (approval.risk_level || "low").toLowerCase();
   const { accent, icon, explainerKey, explainerFallback } =
     RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;

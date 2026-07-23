@@ -63,6 +63,30 @@ def approval_pending_hint(language: str | None = None) -> str:
     return _APPROVAL_PENDING_HINT_BY_LANG.get(base, APPROVAL_PENDING_HINT)
 
 
+DELETE_PENDING_HINT = "Confirm below to delete it — this can't be undone."
+
+_DELETE_PENDING_HINT_BY_LANG: dict[str, str] = {
+    "en": DELETE_PENDING_HINT,
+    "fr": "Confirmez ci-dessous pour le supprimer — action irréversible.",
+    "de": "Bestätigen Sie unten, um es zu löschen — dies kann nicht rückgängig gemacht werden.",
+    "es": "Confirma abajo para eliminarlo — esta acción no se puede deshacer.",
+    "it": "Conferma qui sotto per eliminarlo — l'azione è irreversibile.",
+    "nl": "Bevestig hieronder om het te verwijderen — dit kan niet ongedaan worden gemaakt.",
+    "hu": "Erősítse meg lent a törléshez – ez nem vonható vissza.",
+    "zh": "在下方确认以删除——此操作无法撤销。",
+    "pt": "Confirme abaixo para eliminar — esta ação não pode ser desfeita.",
+    "ja": "削除するには下で確認してください。この操作は取り消せません。",
+    "ko": "삭제하려면 아래에서 확인하세요. 이 작업은 되돌릴 수 없습니다.",
+    "ru": "Подтвердите ниже, чтобы удалить — это действие необратимо.",
+}
+
+
+def delete_pending_hint(language: str | None = None) -> str:
+    """Localized hint shown when a delete-confirmation card is pending."""
+    base = (language or "en").lower().split("-")[0]
+    return _DELETE_PENDING_HINT_BY_LANG.get(base, DELETE_PENDING_HINT)
+
+
 def _all_targets_approved(
     approval_store: ApprovalStore | None,
     service: str,
@@ -2384,6 +2408,137 @@ def _normalize_explicit_approval(
     return normalized
 
 
+_DELETE_TOOLS = frozenset({"delete_automation", "delete_scene"})
+
+
+def _pending_deletes_from_log(
+    tool_log: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Extract delete-confirmation descriptors from the tool log.
+
+    The ``delete_automation`` / ``delete_scene`` chat tools never delete
+    directly — they return ``requires_approval=True`` plus a ``delete``
+    descriptor (``kind``/``target_id``/``entity_id``/``label`` plus an
+    immutable identity fingerprint: ``alias`` for automations, ``name`` for
+    scenes). This helper collects those descriptors so the synthesizer can
+    build a single delete-confirmation card, deduplicating repeated attempts
+    on the same target.
+
+    The fingerprint MUST survive here: an id-less yaml target has no stable
+    id, so the confirm handler revalidates it against the current yaml before
+    the irreversible by-entity delete. Dropping it makes that check reject
+    every id-less deletion.
+    """
+    deletes: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for entry in tool_log or []:
+        if entry.get("tool") not in _DELETE_TOOLS:
+            continue
+        result = entry.get("result")
+        if not isinstance(result, dict) or not result.get("requires_approval"):
+            continue
+        descriptor = result.get("delete")
+        if not isinstance(descriptor, dict):
+            continue
+        kind = str(descriptor.get("kind", "")).strip()
+        target_id = str(descriptor.get("target_id", "")).strip()
+        entity_id = str(descriptor.get("entity_id", "")).strip()
+        if kind not in ("automation", "scene") or not (target_id or entity_id):
+            continue
+        signature = (kind, target_id, entity_id)
+        if signature in seen:
+            continue
+        seen.add(signature)
+        deletes.append(
+            {
+                "kind": kind,
+                "target_id": target_id,
+                "entity_id": entity_id,
+                # Identity fingerprints for the id-less confirm path — carried
+                # through verbatim so _verify_idless_*_identity can re-check
+                # them at confirm time.
+                "alias": str(descriptor.get("alias") or ""),
+                "name": str(descriptor.get("name") or ""),
+                "label": str(descriptor.get("label") or entity_id or target_id),
+            }
+        )
+    return deletes
+
+
+def _delete_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
+    """Two-button action row for the delete-confirmation card.
+
+    Sentinel scopes ``delete`` (confirm) and ``cancel`` (dismiss) are routed
+    by the chat handler to the same ``resolve_approval`` WS command as the
+    command-approval scopes, but land in the delete branch of
+    ``_resolve_approval``.
+    """
+    return [
+        {
+            "label": "Delete",
+            "description": "Permanently delete this",
+            "value": f"approve:delete:{proposal_id}",
+            "mode": "choice",
+            "icon": "mdi:delete-outline",
+            "tone": "deny",
+        },
+        {
+            "label": "Cancel",
+            "description": "Keep it",
+            "value": f"approve:cancel:{proposal_id}",
+            "mode": "choice",
+            "icon": "mdi:close",
+        },
+    ]
+
+
+def _build_delete_approval_response(
+    result: ArchitectResponse,
+    deletes: list[dict[str, Any]],
+    tool_log: list[dict[str, Any]] | None,
+    hass: HomeAssistant | None,
+    *,
+    language: str | None,
+) -> ArchitectResponse:
+    """Upgrade *result* to a delete-confirmation ``command_approval`` card.
+
+    Reuses the ``command_approval`` intent + payload key so the existing
+    session-persistence and card-rendering plumbing applies unchanged; the
+    ``approval_kind: "delete"`` discriminator routes both the frontend card
+    and ``_resolve_approval`` to the delete-specific branch instead of the
+    service-call path (which would try to run a nonexistent delete service).
+    """
+    proposal: dict[str, Any] = {
+        "proposal_id": str(uuid.uuid4()),
+        "approval_kind": "delete",
+        # No service calls — kept empty so downstream code that reads
+        # ``command_approval["calls"]`` stays safe.
+        "calls": [],
+        "deletes": deletes,
+    }
+    upgraded: ArchitectResponse = dict(result)
+    upgraded["intent"] = "command_approval"
+    upgraded["calls"] = []
+    upgraded["command_approval"] = proposal
+    upgraded["quick_actions"] = _delete_approval_quick_actions(proposal["proposal_id"])
+    effective_language = language or (hass.config.language if hass is not None else None)
+    hint = delete_pending_hint(effective_language)
+    # A single tool round can mix a safe write that ALREADY executed (e.g.
+    # "turn off the kitchen light and delete the movie scene" — the light
+    # fires, the delete holds for confirmation) with the delete preview.
+    # Acknowledge the executed action alongside the hint so its confirmation
+    # + entity tile isn't dropped behind the delete card — mirroring the
+    # service-call approval synthesis path.
+    executed = _iter_executed_write_actions(tool_log)
+    if executed:
+        resolver = _friendly_name_resolver(hass)
+        confirmation = build_executed_confirmation(executed, resolver, language=effective_language)
+        upgraded["response"] = f"{confirmation}\n\n{hint}"
+    else:
+        upgraded["response"] = hint
+    return upgraded
+
+
 def synthesize_approval_from_tool_log(
     result: ArchitectResponse,
     tool_log: list[dict[str, Any]] | None,
@@ -2408,7 +2563,20 @@ def synthesize_approval_from_tool_log(
         return result
     if result.get("intent") in ("command", "delayed_command"):
         return result
+    # A single turn can emit both a delete tool and a review-level
+    # execute_command, each returning requires_approval. Only one
+    # command_approval proposal fits per message, and the two proposal
+    # shapes have different resolution semantics, so we must pick one.
+    # Service-call approvals win: a pending service call is a real action
+    # the user requested that would be silently lost. A delete preview is
+    # read-only (nothing was deleted), so deferring it loses nothing the
+    # user can't re-request.
     pending = _pending_approval_calls_from_log(tool_log)
+    pending_deletes = _pending_deletes_from_log(tool_log)
+    if pending_deletes and not pending:
+        return _build_delete_approval_response(
+            result, pending_deletes, tool_log, hass, language=language
+        )
     if not pending:
         return result
 

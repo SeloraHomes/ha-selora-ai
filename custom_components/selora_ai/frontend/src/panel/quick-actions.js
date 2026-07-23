@@ -47,6 +47,24 @@ function _approvalPresentation(host) {
         "Do not run this request",
       ),
     },
+    // Delete-confirmation card (approval_kind === "delete"): a destructive
+    // confirm + a neutral cancel. The confirm is styled red (deny tone) so
+    // it reads as destructive rather than as a friendly "approve".
+    delete: {
+      label: host._t("quick_actions_delete_label", "Delete"),
+      icon: "mdi:delete-outline",
+      tone: "deny",
+      description: host._t(
+        "quick_actions_delete_desc",
+        "Permanently delete this",
+      ),
+    },
+    cancel: {
+      label: host._t("quick_actions_cancel_label", "Cancel"),
+      icon: "mdi:close",
+      tone: null,
+      description: host._t("quick_actions_cancel_desc", "Keep it"),
+    },
   };
 }
 

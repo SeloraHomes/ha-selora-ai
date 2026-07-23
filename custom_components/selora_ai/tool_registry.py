@@ -544,6 +544,64 @@ TOOL_DISMISS_SUGGESTION = ToolDef(
     requires_admin=True,
 )
 
+TOOL_DELETE_AUTOMATION = ToolDef(
+    name="delete_automation",
+    description=(
+        "Delete a yaml-managed Home Assistant automation. Use when the user "
+        "asks to delete, remove, or get rid of an automation. Identify the "
+        "target by its entity_id (e.g. 'automation.evening_lights') — resolve "
+        "the name to an entity_id with search_entities first if the user names "
+        "it informally — or by its automation_id. "
+        "This does NOT delete immediately: it surfaces a confirmation card the "
+        "user must tap to approve, so do not ask 'are you sure?' in prose — "
+        "just call the tool and the card handles confirmation. Only "
+        "yaml-managed automations can be deleted; storage/UI-managed ones must "
+        "be removed from the Home Assistant UI."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Automation entity_id (e.g. 'automation.evening_lights').",
+        ),
+        ToolParam(
+            name="automation_id",
+            type="string",
+            description="The automation id from automations.yaml, if known.",
+        ),
+    ),
+    requires_admin=True,
+)
+
+TOOL_DELETE_SCENE = ToolDef(
+    name="delete_scene",
+    description=(
+        "Delete a yaml-managed Home Assistant scene. Use when the user asks to "
+        "delete, remove, or get rid of a scene. Identify the target by its "
+        "entity_id (e.g. 'scene.movie_night') — resolve the name to an "
+        "entity_id with search_entities using domain='scene' first if the user "
+        "names it informally — or by a Selora scene_id. "
+        "This does NOT delete immediately: it surfaces a confirmation card the "
+        "user must tap to approve, so do not ask 'are you sure?' in prose — "
+        "just call the tool and the card handles confirmation. Only "
+        "yaml-managed scenes can be deleted; storage/UI-managed ones must be "
+        "removed from the Home Assistant UI."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Scene entity_id (must start with 'scene.').",
+        ),
+        ToolParam(
+            name="scene_id",
+            type="string",
+            description="The Selora SceneStore scene_id, if known.",
+        ),
+    ),
+    requires_admin=True,
+)
+
 
 # Single registry of all chat tools
 CHAT_TOOLS: tuple[ToolDef, ...] = (
@@ -568,6 +626,8 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_LIST_SUGGESTIONS,
     TOOL_ACCEPT_SUGGESTION,
     TOOL_DISMISS_SUGGESTION,
+    TOOL_DELETE_AUTOMATION,
+    TOOL_DELETE_SCENE,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -577,6 +637,9 @@ TOOL_MAP: dict[str, ToolDef] = {t.name: t for t in CHAT_TOOLS}
 # Used to trim the tool schema on command-intent turns so the model
 # isn't handed device-discovery / suggestion / history tools it can't
 # use for "lock the door" — smaller schema = less prefill latency.
+# The delete tools are included because "get rid of the Movie Night scene"
+# classifies as a command intent, and without them the trimmed schema would
+# hide the very operation the request needs.
 COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
     {
         "execute_command",
@@ -585,6 +648,8 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "search_entities",
         "get_entity_state",
         "validate_action",
+        "delete_automation",
+        "delete_scene",
     }
 )
 

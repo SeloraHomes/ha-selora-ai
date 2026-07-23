@@ -161,7 +161,9 @@ async def _handle_websocket_revoke_mcp_token(
         vol.Required("type"): "selora_ai/resolve_approval",
         vol.Required("session_id"): str,
         vol.Required("proposal_id"): str,
-        vol.Required("scope"): vol.In(["once", "session", "always", "deny"]),
+        # ``delete`` / ``cancel`` are the delete-confirmation-card scopes
+        # (approval_kind == "delete"); the rest drive service-call approvals.
+        vol.Required("scope"): vol.In(["once", "session", "always", "deny", "delete", "cancel"]),
         # Per-entity vs wildcard recording of Session/Always grants:
         # - "this": grant only for the entities in this proposal
         #   (default; least-privilege).
