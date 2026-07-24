@@ -69,6 +69,18 @@ export function _setActiveTab(tab) {
   }
 }
 
+// Jump from a recipe pill (on an automation/scene row) to the recipe that
+// installed it. Switches to the Recipes tab, closes the mobile sidebar, then
+// routes through the deep-link opener so a recipe that's in the catalog but
+// not yet staged on disk still resolves.
+export function _openRecipeFromPill(slug) {
+  if (!slug) return;
+  this._setActiveTab("recipes");
+  this._showSidebar = false;
+  this._recipesView = "list";
+  this._openRecipeFromDeepLink?.(slug);
+}
+
 // URL helper for the recipes wizard. ``slug`` null →
 // ``/selora-ai/recipes``; otherwise → ``/selora-ai/recipes/<slug>``.
 //

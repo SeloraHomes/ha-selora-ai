@@ -380,6 +380,7 @@
     "automations_run_tooltip": "Esegui automazione",
     "automations_more_actions_external": "Gestita al di fuori di Selora AI — modificala dove è definita, ad es. in una ricetta installata.",
     "automations_recipe_pill_tooltip": "Installata da una ricetta Selora — gestiscila dalla scheda Ricette.",
+    "automations_recipe_pill_link_tooltip": "Apri la ricetta che l'ha installata.",
     "automations_burger_loading": "Caricamento…",
     "automations_burger_refine_in_chat": "Perfeziona in chat",
     "automations_burger_rename": "Rinomina",

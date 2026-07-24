@@ -400,6 +400,7 @@
     "automations_run_tooltip": "Automatizálás futtatása",
     "automations_more_actions_external": "A Selora AI-n kívül kezelve — ott szerkeszd, ahol meg van határozva, pl. egy telepített receptben.",
     "automations_recipe_pill_tooltip": "Egy Selora recept telepítette — kezeld a Receptek lapon.",
+    "automations_recipe_pill_link_tooltip": "A telepítő recept megnyitása.",
     "automations_burger_loading": "Betöltés…",
     "automations_burger_refine_in_chat": "Finomítás a beszélgetésben",
     "automations_burger_rename": "Átnevezés",

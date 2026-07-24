@@ -380,6 +380,7 @@
     "automations_run_tooltip": "运行自动化",
     "automations_more_actions_external": "在 Selora AI 之外管理 — 请在其定义处（例如已安装的配方）进行编辑。",
     "automations_recipe_pill_tooltip": "由 Selora 配方安装 — 请在“配方”标签页中管理。",
+    "automations_recipe_pill_link_tooltip": "打开安装此项的配方。",
     "automations_burger_loading": "加载中…",
     "automations_burger_refine_in_chat": "在对话中完善",
     "automations_burger_rename": "重命名",

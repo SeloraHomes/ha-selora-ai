@@ -1,4 +1,4 @@
-import { html } from "lit";
+import { html, nothing } from "lit";
 import { toggleYaml } from "./render-automations.js";
 import { burgerMenuAnchor } from "./automation-management.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
@@ -599,6 +599,7 @@ export function renderScenes(host) {
                     // integrations (no YAML entry) cannot.
                     const deletable = s.deletable !== false;
                     const recipeTitle = s.recipe_title || "";
+                    const recipeSlug = s.recipe_slug || "";
                     return html`
                       <div
                         class="auto-row${isExpanded ? " expanded" : ""}"
@@ -641,11 +642,48 @@ export function renderScenes(host) {
                               ${
                                 recipeTitle
                                   ? html`<span
-                                      class="recipe-pill"
-                                      title=${host._t(
-                                        "automations_recipe_pill_tooltip",
-                                        "Installed by a Selora recipe — manage it from the Recipes tab.",
-                                      )}
+                                      class="recipe-pill ${
+                                        recipeSlug ? "recipe-pill-link" : ""
+                                      }"
+                                      role=${recipeSlug ? "button" : nothing}
+                                      tabindex=${recipeSlug ? "0" : nothing}
+                                      title=${
+                                        recipeSlug
+                                          ? host._t(
+                                              "automations_recipe_pill_link_tooltip",
+                                              "Open the recipe that installed this.",
+                                            )
+                                          : host._t(
+                                              "automations_recipe_pill_tooltip",
+                                              "Installed by a Selora recipe — manage it from the Recipes tab.",
+                                            )
+                                      }
+                                      @click=${
+                                        recipeSlug
+                                          ? (e) => {
+                                              e.stopPropagation();
+                                              host._openRecipeFromPill(
+                                                recipeSlug,
+                                              );
+                                            }
+                                          : nothing
+                                      }
+                                      @keydown=${
+                                        recipeSlug
+                                          ? (e) => {
+                                              if (
+                                                e.key === "Enter" ||
+                                                e.key === " "
+                                              ) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                host._openRecipeFromPill(
+                                                  recipeSlug,
+                                                );
+                                              }
+                                            }
+                                          : nothing
+                                      }
                                     >
                                       <ha-icon
                                         icon="mdi:book-open-variant"

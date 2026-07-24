@@ -1,4 +1,4 @@
-import { html } from "lit";
+import { html, nothing } from "lit";
 import {
   describeFlowItem,
   collectFlowEntityIds,
@@ -1305,11 +1305,48 @@ export function renderAutomations(host) {
                               ${
                                 a.recipe_title
                                   ? html`<span
-                                      class="recipe-pill"
-                                      title=${host._t(
-                                        "automations_recipe_pill_tooltip",
-                                        "Installed by a Selora recipe — manage it from the Recipes tab.",
-                                      )}
+                                      class="recipe-pill ${
+                                        a.recipe_slug ? "recipe-pill-link" : ""
+                                      }"
+                                      role=${a.recipe_slug ? "button" : nothing}
+                                      tabindex=${a.recipe_slug ? "0" : nothing}
+                                      title=${
+                                        a.recipe_slug
+                                          ? host._t(
+                                              "automations_recipe_pill_link_tooltip",
+                                              "Open the recipe that installed this.",
+                                            )
+                                          : host._t(
+                                              "automations_recipe_pill_tooltip",
+                                              "Installed by a Selora recipe — manage it from the Recipes tab.",
+                                            )
+                                      }
+                                      @click=${
+                                        a.recipe_slug
+                                          ? (e) => {
+                                              e.stopPropagation();
+                                              host._openRecipeFromPill(
+                                                a.recipe_slug,
+                                              );
+                                            }
+                                          : nothing
+                                      }
+                                      @keydown=${
+                                        a.recipe_slug
+                                          ? (e) => {
+                                              if (
+                                                e.key === "Enter" ||
+                                                e.key === " "
+                                              ) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                host._openRecipeFromPill(
+                                                  a.recipe_slug,
+                                                );
+                                              }
+                                            }
+                                          : nothing
+                                      }
                                     >
                                       <ha-icon
                                         icon="mdi:book-open-variant"

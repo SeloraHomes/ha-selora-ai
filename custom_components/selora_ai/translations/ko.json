@@ -380,6 +380,7 @@
     "automations_run_tooltip": "자동화 실행",
     "automations_more_actions_external": "Selora AI 외부에서 관리됩니다 — 정의된 위치(설치된 레시피 등)에서 편집하세요.",
     "automations_recipe_pill_tooltip": "Selora 레시피로 설치됨 — 레시피 탭에서 관리하세요.",
+    "automations_recipe_pill_link_tooltip": "이것을 설치한 레시피 열기.",
     "automations_burger_loading": "불러오는 중…",
     "automations_burger_refine_in_chat": "채팅에서 수정",
     "automations_burger_rename": "이름 변경",
