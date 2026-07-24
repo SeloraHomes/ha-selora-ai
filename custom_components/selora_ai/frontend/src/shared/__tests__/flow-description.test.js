@@ -898,9 +898,9 @@ describe("displayTriggers", () => {
     expect(displayTriggers(triggers, [], actions)).toEqual([]);
   });
 
-  it("keeps a trigger whose only overlap is an unrendered if condition", () => {
-    // renderActionItem does not expand `if`, so its condition never shows —
-    // suppressing the trigger would hide both the timing and the check.
+  it("suppresses a trigger whose only overlap is an if condition", () => {
+    // renderActionItem expands `if` into an IF branch, so the condition is
+    // visible and the trigger would only re-state it.
     const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
     const actions = [
       {
@@ -912,6 +912,52 @@ describe("displayTriggers", () => {
           },
         ],
         then: [{ service: "light.turn_on" }],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toEqual([]);
+  });
+
+  it("suppresses a trigger overlapping a shorthand template if condition", () => {
+    // The renderer expands the shorthand to a template condition and shows
+    // "Light A is on", so the trigger only re-states it.
+    const triggers = [{ trigger: "state", entity_id: "light.a" }];
+    const actions = [
+      {
+        if: "{{ is_state('light.a', 'on') }}",
+        then: [{ service: "light.turn_on" }],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toEqual([]);
+  });
+
+  it("keeps a trigger when the shorthand template stays opaque", () => {
+    // A negated template renders as "Template evaluates to true" with no
+    // entity visible, so the trigger is the only place light.a appears.
+    const triggers = [{ trigger: "state", entity_id: "light.a" }];
+    const actions = [
+      {
+        if: "{{ not is_state('light.a', 'on') }}",
+        then: [{ service: "light.turn_on" }],
+      },
+    ];
+    expect(displayTriggers(triggers, [], actions)).toHaveLength(1);
+  });
+
+  it("keeps that trigger when the if has an else branch", () => {
+    // An `if`/`else` always runs one side, so the trigger's timing is
+    // load-bearing on every firing.
+    const triggers = [{ trigger: "state", entity_id: "sensor.temperature" }];
+    const actions = [
+      {
+        if: [
+          {
+            condition: "numeric_state",
+            entity_id: "sensor.temperature",
+            above: 20,
+          },
+        ],
+        then: [{ service: "light.turn_on" }],
+        else: [{ service: "light.turn_off" }],
       },
     ];
     expect(displayTriggers(triggers, [], actions)).toHaveLength(1);

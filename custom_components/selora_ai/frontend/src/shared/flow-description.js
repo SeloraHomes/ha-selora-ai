@@ -126,6 +126,10 @@ const PHRASES = {
     wait_for_trigger: "Wait for a trigger",
     activate_scene: (e) => `Activate scene: ${e}`,
     choose_between: (n) => `Choose between ${n} option${n !== 1 ? "s" : ""}`,
+    if_then: (n) =>
+      `If conditions are met, run ${n} action${n !== 1 ? "s" : ""}`,
+    if_then_else: (n, m) =>
+      `If conditions are met, run ${n} action${n !== 1 ? "s" : ""}, otherwise ${m}`,
     repeat_count: (n) => `Repeat ${n} time${n !== 1 ? "s" : ""}`,
     repeat_while: "Repeat while condition holds",
     repeat_until: "Repeat until condition is met",
@@ -236,6 +240,10 @@ const PHRASES = {
     wait_for_trigger: "Attendre un déclencheur",
     activate_scene: (e) => `Activer la scène : ${e}`,
     choose_between: (n) => `Choisir parmi ${n} option${n !== 1 ? "s" : ""}`,
+    if_then: (n) =>
+      `Si les conditions sont remplies, exécuter ${n} action${n !== 1 ? "s" : ""}`,
+    if_then_else: (n, m) =>
+      `Si les conditions sont remplies, exécuter ${n} action${n !== 1 ? "s" : ""}, sinon ${m}`,
     repeat_count: (n) => `Répéter ${n} fois`,
     repeat_while: "Répéter tant que la condition est vraie",
     repeat_until: "Répéter jusqu'à ce que la condition soit vraie",
@@ -344,6 +352,10 @@ const PHRASES = {
     wait_for_trigger: "Auf Auslöser warten",
     activate_scene: (e) => `Szene aktivieren: ${e}`,
     choose_between: (n) => `Aus ${n} Optionen wählen`,
+    if_then: (n) =>
+      `Wenn die Bedingungen erfüllt sind, ${n} Aktion${n !== 1 ? "en" : ""} ausführen`,
+    if_then_else: (n, m) =>
+      `Wenn die Bedingungen erfüllt sind, ${n} Aktion${n !== 1 ? "en" : ""} ausführen, sonst ${m}`,
     repeat_count: (n) => `${n}-mal wiederholen`,
     repeat_while: "Wiederholen solange Bedingung erfüllt ist",
     repeat_until: "Wiederholen bis Bedingung erfüllt ist",
@@ -454,6 +466,10 @@ const PHRASES = {
     wait_for_trigger: "Esperar un disparador",
     activate_scene: (e) => `Activar escena: ${e}`,
     choose_between: (n) => `Elegir entre ${n} opci${n !== 1 ? "ones" : "ón"}`,
+    if_then: (n) =>
+      `Si se cumplen las condiciones, ejecutar ${n} acci${n !== 1 ? "ones" : "ón"}`,
+    if_then_else: (n, m) =>
+      `Si se cumplen las condiciones, ejecutar ${n} acci${n !== 1 ? "ones" : "ón"}; si no, ${m}`,
     repeat_count: (n) => `Repetir ${n} ve${n !== 1 ? "ces" : "z"}`,
     repeat_while: "Repetir mientras la condición sea verdadera",
     repeat_until: "Repetir hasta que la condición sea verdadera",
@@ -563,6 +579,10 @@ const PHRASES = {
     wait_for_trigger: "Attendi un trigger",
     activate_scene: (e) => `Attiva scena: ${e}`,
     choose_between: (n) => `Scegli tra ${n} opzion${n !== 1 ? "i" : "e"}`,
+    if_then: (n) =>
+      `Se le condizioni sono soddisfatte, esegui ${n} azion${n !== 1 ? "i" : "e"}`,
+    if_then_else: (n, m) =>
+      `Se le condizioni sono soddisfatte, esegui ${n} azion${n !== 1 ? "i" : "e"}, altrimenti ${m}`,
     repeat_count: (n) => `Ripeti ${n} volt${n !== 1 ? "e" : "a"}`,
     repeat_while: "Ripeti finché la condizione è vera",
     repeat_until: "Ripeti finché la condizione non è vera",
@@ -673,6 +693,10 @@ const PHRASES = {
     wait_for_trigger: "Wacht op een trigger",
     activate_scene: (e) => `Scène activeren: ${e}`,
     choose_between: (n) => `Kies tussen ${n} ${n !== 1 ? "opties" : "optie"}`,
+    if_then: (n) =>
+      `Als aan de voorwaarden is voldaan, voer ${n} ${n !== 1 ? "acties" : "actie"} uit`,
+    if_then_else: (n, m) =>
+      `Als aan de voorwaarden is voldaan, voer ${n} ${n !== 1 ? "acties" : "actie"} uit, anders ${m}`,
     repeat_count: (n) => `Herhaal ${n} ${n !== 1 ? "keer" : "keer"}`,
     repeat_while: "Herhaal zolang de voorwaarde geldt",
     repeat_until: "Herhaal totdat de voorwaarde wordt voldaan",
@@ -782,6 +806,9 @@ const PHRASES = {
     wait_for_trigger: "Várakozás triggerre",
     activate_scene: (e) => `Jelenet aktiválása: ${e}`,
     choose_between: (n) => `Választás ${n} opció közül`,
+    if_then: (n) => `Ha a feltételek teljesülnek, ${n} művelet futtatása`,
+    if_then_else: (n, m) =>
+      `Ha a feltételek teljesülnek, ${n} művelet futtatása, egyébként ${m}`,
     repeat_count: (n) => `Ismétlés ${n}-szor`,
     repeat_while: "Ismétlés, amíg a feltétel fennáll",
     repeat_until: "Ismétlés, amíg a feltétel teljesül",
@@ -945,6 +972,24 @@ function _templateHasConcreteDescription(template) {
   return (
     _describeComparisonTemplate(null, template, () => "x", undefined) != null
   );
+}
+
+/**
+ * Expand HA's shorthand condition syntax — a bare template string, accepted
+ * anywhere a condition is (`if:`, `conditions:`, nested and/or/not lists) —
+ * into the equivalent `template` condition. Every consumer then sees one
+ * shape: `describeFlowItem` returns any non-object verbatim, so an
+ * un-normalized shorthand renders as raw Jinja, and `collectFlowEntityIds`
+ * skips non-objects, so its entities get no links either. Anything already
+ * in object form passes through untouched.
+ *
+ * @param {Object|string} cond - condition, possibly in shorthand form
+ * @returns {Object|string} object-form condition (non-string input unchanged)
+ */
+export function normalizeCondition(cond) {
+  return typeof cond === "string"
+    ? { condition: "template", value_template: cond }
+    : cond;
 }
 
 /**
@@ -1268,6 +1313,16 @@ export function describeFlowItem(hass, item, ctx) {
   if (item.wait_for_trigger) return t("wait_for_trigger");
   if (item.scene) return t("activate_scene", fmtEntity(hass, item.scene));
   if (item.choose) return t("choose_between", asArray(item.choose).length);
+  // Callers that expand `if`/`then`/`else` structurally never reach this;
+  // it keeps a collapsed conditional readable instead of letting the generic
+  // key/value fallback print "if: … · then: …, …".
+  if (item.if != null) {
+    const thenCount = asArray(item.then).length;
+    const elseCount = asArray(item.else).length;
+    return elseCount
+      ? t("if_then_else", thenCount, elseCount)
+      : t("if_then", thenCount);
+  }
   if (item.repeat) {
     const r = item.repeat;
     if (r.count != null) return t("repeat_count", r.count);
@@ -1474,7 +1529,10 @@ export function displayTriggers(triggers, conditions, actions) {
   if (!trigs.length) return [];
   const refIds = new Set();
   const condEntities = new Set();
-  const visitCondition = (c) => {
+  const visitCondition = (raw) => {
+    // Match what the renderer shows: it normalizes shorthand template
+    // strings, so their entities count toward suppression too.
+    const c = normalizeCondition(raw);
     if (!c || typeof c !== "object") return;
     if (c.condition === "trigger")
       for (const id of asArray(c.id)) refIds.add(String(id));
@@ -1491,16 +1549,16 @@ export function displayTriggers(triggers, conditions, actions) {
   };
   const visitAction = (a) => {
     if (!a || typeof a !== "object") return;
-    // Only walk into constructs renderActionItem actually expands. An
-    // `if`/`then`/`else` action is rendered as ONE opaque node — its
-    // conditions and nested actions never appear — so counting them toward
-    // trigger suppression would hide a trigger whose overlap is invisible
-    // to the user. Excluding if/then/else keeps such triggers shown.
+    // Only walk into constructs renderActionItem actually expands — a
+    // construct rendered as one opaque node hides its conditions, so counting
+    // them toward trigger suppression would drop a trigger whose overlap the
+    // user can't see.
     for (const branch of asArray(a.choose)) {
       for (const c of asArray(branch?.conditions)) visitCondition(c);
       for (const s of asArray(branch?.sequence)) visitAction(s);
     }
-    for (const key of ["default", "sequence", "parallel"]) {
+    for (const c of asArray(a.if)) visitCondition(c);
+    for (const key of ["then", "else", "default", "sequence", "parallel"]) {
       for (const s of asArray(a[key])) visitAction(s);
     }
     for (const s of asArray(a.repeat?.sequence)) visitAction(s);

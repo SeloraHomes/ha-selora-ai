@@ -28692,6 +28692,10 @@ var PHRASES = {
     wait_for_trigger: "Wait for a trigger",
     activate_scene: (e6) => `Activate scene: ${e6}`,
     choose_between: (n4) => `Choose between ${n4} option${n4 !== 1 ? "s" : ""}`,
+    if_then: (n4) =>
+      `If conditions are met, run ${n4} action${n4 !== 1 ? "s" : ""}`,
+    if_then_else: (n4, m3) =>
+      `If conditions are met, run ${n4} action${n4 !== 1 ? "s" : ""}, otherwise ${m3}`,
     repeat_count: (n4) => `Repeat ${n4} time${n4 !== 1 ? "s" : ""}`,
     repeat_while: "Repeat while condition holds",
     repeat_until: "Repeat until condition is met",
@@ -28804,6 +28808,10 @@ var PHRASES = {
     wait_for_trigger: "Attendre un d\xE9clencheur",
     activate_scene: (e6) => `Activer la sc\xE8ne : ${e6}`,
     choose_between: (n4) => `Choisir parmi ${n4} option${n4 !== 1 ? "s" : ""}`,
+    if_then: (n4) =>
+      `Si les conditions sont remplies, ex\xE9cuter ${n4} action${n4 !== 1 ? "s" : ""}`,
+    if_then_else: (n4, m3) =>
+      `Si les conditions sont remplies, ex\xE9cuter ${n4} action${n4 !== 1 ? "s" : ""}, sinon ${m3}`,
     repeat_count: (n4) => `R\xE9p\xE9ter ${n4} fois`,
     repeat_while: "R\xE9p\xE9ter tant que la condition est vraie",
     repeat_until: "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit vraie",
@@ -28912,6 +28920,10 @@ var PHRASES = {
     wait_for_trigger: "Auf Ausl\xF6ser warten",
     activate_scene: (e6) => `Szene aktivieren: ${e6}`,
     choose_between: (n4) => `Aus ${n4} Optionen w\xE4hlen`,
+    if_then: (n4) =>
+      `Wenn die Bedingungen erf\xFCllt sind, ${n4} Aktion${n4 !== 1 ? "en" : ""} ausf\xFChren`,
+    if_then_else: (n4, m3) =>
+      `Wenn die Bedingungen erf\xFCllt sind, ${n4} Aktion${n4 !== 1 ? "en" : ""} ausf\xFChren, sonst ${m3}`,
     repeat_count: (n4) => `${n4}-mal wiederholen`,
     repeat_while: "Wiederholen solange Bedingung erf\xFCllt ist",
     repeat_until: "Wiederholen bis Bedingung erf\xFCllt ist",
@@ -29023,6 +29035,10 @@ var PHRASES = {
     activate_scene: (e6) => `Activar escena: ${e6}`,
     choose_between: (n4) =>
       `Elegir entre ${n4} opci${n4 !== 1 ? "ones" : "\xF3n"}`,
+    if_then: (n4) =>
+      `Si se cumplen las condiciones, ejecutar ${n4} acci${n4 !== 1 ? "ones" : "\xF3n"}`,
+    if_then_else: (n4, m3) =>
+      `Si se cumplen las condiciones, ejecutar ${n4} acci${n4 !== 1 ? "ones" : "\xF3n"}; si no, ${m3}`,
     repeat_count: (n4) => `Repetir ${n4} ve${n4 !== 1 ? "ces" : "z"}`,
     repeat_while: "Repetir mientras la condici\xF3n sea verdadera",
     repeat_until: "Repetir hasta que la condici\xF3n sea verdadera",
@@ -29134,6 +29150,10 @@ var PHRASES = {
     wait_for_trigger: "Attendi un trigger",
     activate_scene: (e6) => `Attiva scena: ${e6}`,
     choose_between: (n4) => `Scegli tra ${n4} opzion${n4 !== 1 ? "i" : "e"}`,
+    if_then: (n4) =>
+      `Se le condizioni sono soddisfatte, esegui ${n4} azion${n4 !== 1 ? "i" : "e"}`,
+    if_then_else: (n4, m3) =>
+      `Se le condizioni sono soddisfatte, esegui ${n4} azion${n4 !== 1 ? "i" : "e"}, altrimenti ${m3}`,
     repeat_count: (n4) => `Ripeti ${n4} volt${n4 !== 1 ? "e" : "a"}`,
     repeat_while: "Ripeti finch\xE9 la condizione \xE8 vera",
     repeat_until: "Ripeti finch\xE9 la condizione non \xE8 vera",
@@ -29248,6 +29268,10 @@ var PHRASES = {
     activate_scene: (e6) => `Sc\xE8ne activeren: ${e6}`,
     choose_between: (n4) =>
       `Kies tussen ${n4} ${n4 !== 1 ? "opties" : "optie"}`,
+    if_then: (n4) =>
+      `Als aan de voorwaarden is voldaan, voer ${n4} ${n4 !== 1 ? "acties" : "actie"} uit`,
+    if_then_else: (n4, m3) =>
+      `Als aan de voorwaarden is voldaan, voer ${n4} ${n4 !== 1 ? "acties" : "actie"} uit, anders ${m3}`,
     repeat_count: (n4) => `Herhaal ${n4} ${n4 !== 1 ? "keer" : "keer"}`,
     repeat_while: "Herhaal zolang de voorwaarde geldt",
     repeat_until: "Herhaal totdat de voorwaarde wordt voldaan",
@@ -29362,6 +29386,10 @@ var PHRASES = {
     wait_for_trigger: "V\xE1rakoz\xE1s triggerre",
     activate_scene: (e6) => `Jelenet aktiv\xE1l\xE1sa: ${e6}`,
     choose_between: (n4) => `V\xE1laszt\xE1s ${n4} opci\xF3 k\xF6z\xFCl`,
+    if_then: (n4) =>
+      `Ha a felt\xE9telek teljes\xFClnek, ${n4} m\u0171velet futtat\xE1sa`,
+    if_then_else: (n4, m3) =>
+      `Ha a felt\xE9telek teljes\xFClnek, ${n4} m\u0171velet futtat\xE1sa, egy\xE9bk\xE9nt ${m3}`,
     repeat_count: (n4) => `Ism\xE9tl\xE9s ${n4}-szor`,
     repeat_while: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel fenn\xE1ll",
     repeat_until: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel teljes\xFCl",
@@ -29465,6 +29493,11 @@ function _describeComparisonTemplate(hass, template, t5, lang) {
 }
 function _templateHasConcreteDescription(template) {
   return _describeComparisonTemplate(null, template, () => "x", void 0) != null;
+}
+function normalizeCondition(cond) {
+  return typeof cond === "string"
+    ? { condition: "template", value_template: cond }
+    : cond;
 }
 function describeFlowItem(hass, item, ctx) {
   if (!item || typeof item !== "object") return String(item ?? "");
@@ -29755,6 +29788,13 @@ function describeFlowItem(hass, item, ctx) {
   if (item.wait_for_trigger) return t5("wait_for_trigger");
   if (item.scene) return t5("activate_scene", fmtEntity(hass, item.scene));
   if (item.choose) return t5("choose_between", asArray(item.choose).length);
+  if (item.if != null) {
+    const thenCount = asArray(item.then).length;
+    const elseCount = asArray(item.else).length;
+    return elseCount
+      ? t5("if_then_else", thenCount, elseCount)
+      : t5("if_then", thenCount);
+  }
   if (item.repeat) {
     const r4 = item.repeat;
     if (r4.count != null) return t5("repeat_count", r4.count);
@@ -29886,7 +29926,8 @@ function displayTriggers(triggers, conditions, actions) {
   if (!trigs.length) return [];
   const refIds = /* @__PURE__ */ new Set();
   const condEntities = /* @__PURE__ */ new Set();
-  const visitCondition = (c4) => {
+  const visitCondition = (raw) => {
+    const c4 = normalizeCondition(raw);
     if (!c4 || typeof c4 !== "object") return;
     if (c4.condition === "trigger")
       for (const id of asArray(c4.id)) refIds.add(String(id));
@@ -29904,7 +29945,8 @@ function displayTriggers(triggers, conditions, actions) {
       for (const c4 of asArray(branch?.conditions)) visitCondition(c4);
       for (const s4 of asArray(branch?.sequence)) visitAction(s4);
     }
-    for (const key of ["default", "sequence", "parallel"]) {
+    for (const c4 of asArray(a3.if)) visitCondition(c4);
+    for (const key of ["then", "else", "default", "sequence", "parallel"]) {
       for (const s4 of asArray(a3[key])) visitAction(s4);
     }
     for (const s4 of asArray(a3.repeat?.sequence)) visitAction(s4);
@@ -30703,7 +30745,8 @@ function renderFlowNode(host, item, kind, ctx) {
     ${renderFlowDescription(host, item, ctx)}
   </div>`;
 }
-function renderConditionItem(host, cond, ctx, implicitAll = true) {
+function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
+  const cond = normalizeCondition(rawCond);
   if (cond && typeof cond === "object") {
     const type = cond.condition;
     if (type === "and") {
@@ -30734,6 +30777,29 @@ function renderConditionItem(host, cond, ctx, implicitAll = true) {
   return renderFlowNode(host, cond, "condition", ctx);
 }
 function renderActionItem(host, action, ctx) {
+  if (action && typeof action === "object" && action.if != null) {
+    const elseSteps = asArray(action.else);
+    return b2`<div class="flow-choose">
+      <div class="flow-branch">
+        <div class="flow-branch-label">
+          ${host._t("automations_flow_branch_if", "If")}
+        </div>
+        ${asArray(action.if).map((c4) => renderConditionItem(host, c4, ctx))}
+        <div class="flow-arrow-sm">↓</div>
+        ${asArray(action.then).map((s4) => renderActionItem(host, s4, ctx))}
+      </div>
+      ${
+        elseSteps.length
+          ? b2`<div class="flow-branch">
+              <div class="flow-branch-label">
+                ${host._t("automations_flow_branch_otherwise", "Otherwise")}
+              </div>
+              ${elseSteps.map((s4) => renderActionItem(host, s4, ctx))}
+            </div>`
+          : ""
+      }
+    </div>`;
+  }
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
     return b2`<div class="flow-choose">
       ${action.choose.map(
