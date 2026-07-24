@@ -8671,6 +8671,12 @@ var en_default = {
     settings_add_token_button: "Add token",
     settings_command_approvals_heading: "Command Approvals",
     settings_advanced_settings_heading: "Advanced settings",
+    settings_household_profile_title: "Selora's Memory",
+    settings_household_profile_desc:
+      "Free-form context about your home \u2014 members, preferences, notes, known issues, patterns, conflicts. Selora keeps this in mind when it chats and when it proposes automations and scenes. Keep it short; it counts toward every request.",
+    settings_household_profile_placeholder:
+      "e.g. Family of 4. Kids in bed by 20:30. Grandma visits weekends \u2014 she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
+    settings_household_profile_saved: "Household profile saved.",
     settings_background_services_title: "BACKGROUND SERVICES",
     settings_data_collector_label: "Data collector (AI analysis)",
     settings_data_collector_desc: "Feeds entity history to Selora AI",
@@ -9760,6 +9766,12 @@ var fr_default = {
     settings_add_token_button: "Ajouter un jeton",
     settings_command_approvals_heading: "Approbations de commandes",
     settings_advanced_settings_heading: "Param\xE8tres avanc\xE9s",
+    settings_household_profile_title: "M\xE9moire de Selora",
+    settings_household_profile_desc:
+      "Contexte libre sur votre maison \u2014 occupants, pr\xE9f\xE9rences, notes, probl\xE8mes connus, habitudes, conflits. Selora en tient compte dans ses r\xE9ponses et lorsqu'elle propose des automatisations et des sc\xE8nes. Restez concis ; ce texte compte dans chaque requ\xEAte.",
+    settings_household_profile_placeholder:
+      "ex. Famille de 4. Enfants au lit \xE0 20h30. Grand-m\xE8re vient le week-end \u2014 elle est frileuse. Lumi\xE8res chaudes et tamis\xE9es apr\xE8s le coucher du soleil. Ne jamais verrouiller le garage automatiquement (chati\xE8re).",
+    settings_household_profile_saved: "Profil du foyer enregistr\xE9.",
     settings_background_services_title: "SERVICES EN ARRI\xC8RE-PLAN",
     settings_data_collector_label: "Collecteur de donn\xE9es (analyse IA)",
     settings_data_collector_desc:
@@ -10895,6 +10907,12 @@ var de_default = {
     settings_add_token_button: "Token hinzuf\xFCgen",
     settings_command_approvals_heading: "Befehlsgenehmigungen",
     settings_advanced_settings_heading: "Erweiterte Einstellungen",
+    settings_household_profile_title: "Seloras Ged\xE4chtnis",
+    settings_household_profile_desc:
+      "Freier Text \xFCber Ihr Zuhause \u2014 Bewohner, Vorlieben, Notizen, bekannte Probleme, Muster, Konflikte. Selora ber\xFCcksichtigt dies im Chat und beim Vorschlagen von Automationen und Szenen. Halten Sie es kurz; es z\xE4hlt zu jeder Anfrage.",
+    settings_household_profile_placeholder:
+      "z. B. Vierk\xF6pfige Familie. Kinder um 20:30 im Bett. Oma kommt am Wochenende \u2014 sie friert leicht. Warmes, ged\xE4mpftes Licht nach Sonnenuntergang. Garage nie automatisch abschlie\xDFen (Katzenklappe).",
+    settings_household_profile_saved: "Haushaltsprofil gespeichert.",
     settings_background_services_title: "HINTERGRUNDDIENSTE",
     settings_data_collector_label: "Datensammler (KI-Analyse)",
     settings_data_collector_desc:
@@ -12018,6 +12036,12 @@ var es_default = {
     settings_add_token_button: "A\xF1adir token",
     settings_command_approvals_heading: "Aprobaciones de comandos",
     settings_advanced_settings_heading: "Configuraci\xF3n avanzada",
+    settings_household_profile_title: "Memoria de Selora",
+    settings_household_profile_desc:
+      "Contexto libre sobre tu hogar: miembros, preferencias, notas, problemas conocidos, patrones, conflictos. Selora lo tiene en cuenta al conversar y al proponer automatizaciones y escenas. S\xE9 breve; cuenta en cada solicitud.",
+    settings_household_profile_placeholder:
+      "p. ej. Familia de 4. Ni\xF1os en la cama a las 20:30. La abuela viene los fines de semana \u2014 es friolera. Luces c\xE1lidas y tenues tras el atardecer. Nunca bloquear el garaje autom\xE1ticamente (gatera).",
+    settings_household_profile_saved: "Perfil del hogar guardado.",
     settings_background_services_title: "SERVICIOS EN SEGUNDO PLANO",
     settings_data_collector_label: "Recopilador de datos (an\xE1lisis de IA)",
     settings_data_collector_desc:
@@ -13129,6 +13153,12 @@ var it_default = {
     settings_add_token_button: "Aggiungi token",
     settings_command_approvals_heading: "Approvazioni comandi",
     settings_advanced_settings_heading: "Impostazioni avanzate",
+    settings_household_profile_title: "Memoria di Selora",
+    settings_household_profile_desc:
+      "Contesto libero sulla tua casa: membri, preferenze, note, problemi noti, abitudini, conflitti. Selora ne tiene conto quando conversa e quando propone automazioni e scene. Sii breve; incide su ogni richiesta.",
+    settings_household_profile_placeholder:
+      "es. Famiglia di 4. Bambini a letto alle 20:30. La nonna viene nei weekend \u2014 \xE8 freddolosa. Luci calde e soffuse dopo il tramonto. Non bloccare mai il garage automaticamente (gattaiola).",
+    settings_household_profile_saved: "Profilo della casa salvato.",
     settings_background_services_title: "SERVIZI IN BACKGROUND",
     settings_data_collector_label: "Raccoglitore dati (analisi AI)",
     settings_data_collector_desc:
@@ -14259,6 +14289,12 @@ var nl_default = {
     settings_add_token_button: "Token toevoegen",
     settings_command_approvals_heading: "Commandogoedkeuringen",
     settings_advanced_settings_heading: "Geavanceerde instellingen",
+    settings_household_profile_title: "Selora's geheugen",
+    settings_household_profile_desc:
+      "Vrije tekst over je huis \u2014 bewoners, voorkeuren, notities, bekende problemen, patronen, conflicten. Selora houdt hier rekening mee in gesprekken en bij het voorstellen van automatiseringen en sc\xE8nes. Houd het kort; het telt mee bij elke aanvraag.",
+    settings_household_profile_placeholder:
+      "bijv. Gezin van 4. Kinderen om 20:30 naar bed. Oma komt in het weekend \u2014 ze heeft het snel koud. Warm, gedimd licht na zonsondergang. Garage nooit automatisch vergrendelen (kattenluik).",
+    settings_household_profile_saved: "Huishoudprofiel opgeslagen.",
     settings_background_services_title: "ACHTERGRONDDIENSTEN",
     settings_data_collector_label: "Gegevensverzamelaar (AI-analyse)",
     settings_data_collector_desc: "Voert entiteitsgeschiedenis aan Selora AI",
@@ -15381,6 +15417,12 @@ var hu_default = {
     settings_add_token_button: "Token hozz\xE1ad\xE1sa",
     settings_command_approvals_heading: "Parancsj\xF3v\xE1hagy\xE1sok",
     settings_advanced_settings_heading: "Speci\xE1lis be\xE1ll\xEDt\xE1sok",
+    settings_household_profile_title: "Selora mem\xF3ri\xE1ja",
+    settings_household_profile_desc:
+      "Szabad sz\xF6veges h\xE1tt\xE9r az otthon\xE1r\xF3l \u2014 lak\xF3k, preferenci\xE1k, jegyzetek, ismert probl\xE9m\xE1k, szok\xE1sok, \xFCtk\xF6z\xE9sek. A Selora ezt figyelembe veszi a besz\xE9lget\xE9s sor\xE1n \xE9s amikor automatiz\xE1l\xE1sokat \xE9s jeleneteket javasol. Legyen r\xF6vid; minden k\xE9r\xE9shez hozz\xE1sz\xE1m\xEDt.",
+    settings_household_profile_placeholder:
+      "pl. N\xE9gyf\u0151s csal\xE1d. A gyerekek 20:30-kor lefekszenek. A nagymama h\xE9tv\xE9g\xE9n j\xF6n \u2014 f\xE1z\xF3s. Naplemente ut\xE1n meleg, tomp\xEDtott f\xE9ny. Soha ne z\xE1rja automatikusan a gar\xE1zst (macskaajt\xF3).",
+    settings_household_profile_saved: "H\xE1ztart\xE1si profil elmentve.",
     settings_background_services_title: "H\xC1TT\xC9RSZOLG\xC1LTAT\xC1SOK",
     settings_data_collector_label: "Adatgy\u0171jt\u0151 (AI-elemz\xE9s)",
     settings_data_collector_desc:
@@ -16514,6 +16556,12 @@ var pt_default = {
     settings_add_token_button: "Adicionar token",
     settings_command_approvals_heading: "Aprova\xE7\xF5es de comandos",
     settings_advanced_settings_heading: "Defini\xE7\xF5es avan\xE7adas",
+    settings_household_profile_title: "Mem\xF3ria da Selora",
+    settings_household_profile_desc:
+      "Contexto livre sobre a sua casa \u2014 membros, prefer\xEAncias, notas, problemas conhecidos, padr\xF5es, conflitos. A Selora tem isto em conta ao conversar e ao propor automa\xE7\xF5es e cenas. Seja breve; conta em cada pedido.",
+    settings_household_profile_placeholder:
+      "ex. Fam\xEDlia de 4. Crian\xE7as na cama \xE0s 20:30. A av\xF3 vem aos fins de semana \u2014 \xE9 friorenta. Luzes quentes e t\xE9nues ap\xF3s o p\xF4r do sol. Nunca trancar a garagem automaticamente (porta do gato).",
+    settings_household_profile_saved: "Perfil do agregado familiar guardado.",
     settings_background_services_title: "SERVI\xC7OS EM SEGUNDO PLANO",
     settings_data_collector_label: "Recoletor de dados (an\xE1lise por IA)",
     settings_data_collector_desc:
@@ -17750,6 +17798,14 @@ var ru_default = {
       "\u0420\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u0430\u043D\u0434",
     settings_advanced_settings_heading:
       "\u0420\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    settings_household_profile_title:
+      "\u041F\u0430\u043C\u044F\u0442\u044C Selora",
+    settings_household_profile_desc:
+      "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0439 \u0442\u0435\u043A\u0441\u0442 \u043E \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435 \u2014 \u0436\u0438\u043B\u044C\u0446\u044B, \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0442\u0435\u043D\u0438\u044F, \u0437\u0430\u043C\u0435\u0442\u043A\u0438, \u0438\u0437\u0432\u0435\u0441\u0442\u043D\u044B\u0435 \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u044B, \u043F\u0440\u0438\u0432\u044B\u0447\u043A\u0438, \u043A\u043E\u043D\u0444\u043B\u0438\u043A\u0442\u044B. Selora \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442 \u044D\u0442\u043E \u0432 \u0434\u0438\u0430\u043B\u043E\u0433\u0435 \u0438 \u043F\u0440\u0438 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0439 \u0438 \u0441\u0446\u0435\u043D. \u041F\u0438\u0448\u0438\u0442\u0435 \u043A\u0440\u0430\u0442\u043A\u043E; \u0442\u0435\u043A\u0441\u0442 \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0432 \u043A\u0430\u0436\u0434\u043E\u043C \u0437\u0430\u043F\u0440\u043E\u0441\u0435.",
+    settings_household_profile_placeholder:
+      "\u043D\u0430\u043F\u0440. \u0421\u0435\u043C\u044C\u044F \u0438\u0437 4 \u0447\u0435\u043B\u043E\u0432\u0435\u043A. \u0414\u0435\u0442\u0438 \u043B\u043E\u0436\u0430\u0442\u0441\u044F \u0432 20:30. \u0411\u0430\u0431\u0443\u0448\u043A\u0430 \u043F\u0440\u0438\u0435\u0437\u0436\u0430\u0435\u0442 \u043F\u043E \u0432\u044B\u0445\u043E\u0434\u043D\u044B\u043C \u2014 \u043E\u043D\u0430 \u043C\u0451\u0440\u0437\u043D\u0435\u0442. \u041F\u043E\u0441\u043B\u0435 \u0437\u0430\u043A\u0430\u0442\u0430 \u0442\u0451\u043F\u043B\u044B\u0439 \u043F\u0440\u0438\u0433\u043B\u0443\u0448\u0451\u043D\u043D\u044B\u0439 \u0441\u0432\u0435\u0442. \u041D\u0438\u043A\u043E\u0433\u0434\u0430 \u043D\u0435 \u0437\u0430\u043F\u0438\u0440\u0430\u0442\u044C \u0433\u0430\u0440\u0430\u0436 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 (\u043A\u043E\u0448\u0430\u0447\u044C\u044F \u0434\u0432\u0435\u0440\u0446\u0430).",
+    settings_household_profile_saved:
+      "\u041F\u0440\u043E\u0444\u0438\u043B\u044C \u0434\u043E\u043C\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D.",
     settings_background_services_title:
       "\u0424\u041E\u041D\u041E\u0412\u042B\u0415 \u0421\u041B\u0423\u0416\u0411\u042B",
     settings_data_collector_label:
@@ -19346,6 +19402,13 @@ var ja_default = {
     settings_command_approvals_heading:
       "\u30B3\u30DE\u30F3\u30C9\u306E\u627F\u8A8D",
     settings_advanced_settings_heading: "\u8A73\u7D30\u8A2D\u5B9A",
+    settings_household_profile_title: "Selora \u306E\u30E1\u30E2\u30EA\u30FC",
+    settings_household_profile_desc:
+      "\u81EA\u5B85\u306B\u95A2\u3059\u308B\u81EA\u7531\u8A18\u8FF0\u306E\u30E1\u30E2 \u2014 \u5BB6\u65CF\u3001\u597D\u307F\u3001\u30E1\u30E2\u3001\u65E2\u77E5\u306E\u554F\u984C\u3001\u7FD2\u6163\u3001\u6CE8\u610F\u70B9\u3002Selora \u306F\u4F1A\u8A71\u3084\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u30FB\u30B7\u30FC\u30F3\u306E\u63D0\u6848\u6642\u306B\u3053\u308C\u3092\u8003\u616E\u3057\u307E\u3059\u3002\u77ED\u304F\u307E\u3068\u3081\u3066\u304F\u3060\u3055\u3044\u3002\u3059\u3079\u3066\u306E\u30EA\u30AF\u30A8\u30B9\u30C8\u306B\u542B\u307E\u308C\u307E\u3059\u3002",
+    settings_household_profile_placeholder:
+      "\u4F8B: 4\u4EBA\u5BB6\u65CF\u3002\u5B50\u3069\u3082\u306F20:30\u5C31\u5BDD\u3002\u7956\u6BCD\u306F\u9031\u672B\u306B\u6765\u8A2A \u2014 \u5BD2\u304C\u308A\u3002\u65E5\u6CA1\u5F8C\u306F\u6696\u8272\u306E\u6DE1\u3044\u7167\u660E\u3002\u30AC\u30EC\u30FC\u30B8\u306F\u81EA\u52D5\u65BD\u9320\u3057\u306A\u3044\uFF08\u732B\u7528\u30C9\u30A2\u3042\u308A\uFF09\u3002",
+    settings_household_profile_saved:
+      "\u4E16\u5E2F\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
     settings_background_services_title:
       "\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u30B5\u30FC\u30D3\u30B9",
     settings_data_collector_label:
@@ -20700,6 +20763,13 @@ var ko_default = {
     settings_add_token_button: "\uD1A0\uD070 \uCD94\uAC00",
     settings_command_approvals_heading: "\uBA85\uB839 \uC2B9\uC778",
     settings_advanced_settings_heading: "\uACE0\uAE09 \uC124\uC815",
+    settings_household_profile_title: "Selora\uC758 \uAE30\uC5B5",
+    settings_household_profile_desc:
+      "\uC9D1\uC5D0 \uB300\uD55C \uC790\uC720 \uD615\uC2DD\uC758 \uC815\uBCF4 \u2014 \uAD6C\uC131\uC6D0, \uC120\uD638, \uBA54\uBAA8, \uC54C\uB824\uC9C4 \uBB38\uC81C, \uD328\uD134, \uCDA9\uB3CC. Selora\uB294 \uB300\uD654\uD560 \uB54C\uC640 \uC790\uB3D9\uD654\xB7\uC52C\uC744 \uC81C\uC548\uD560 \uB54C \uC774\uB97C \uCC38\uACE0\uD569\uB2C8\uB2E4. \uC9E7\uAC8C \uC791\uC131\uD558\uC138\uC694. \uBAA8\uB4E0 \uC694\uCCAD\uC5D0 \uD3EC\uD568\uB429\uB2C8\uB2E4.",
+    settings_household_profile_placeholder:
+      "\uC608: 4\uC778 \uAC00\uC871. \uC544\uC774\uB4E4\uC740 20:30 \uCDE8\uCE68. \uD560\uBA38\uB2C8\uB294 \uC8FC\uB9D0\uC5D0 \uBC29\uBB38 \u2014 \uCD94\uC704\uB97C \uB9CE\uC774 \uD0D0. \uC77C\uBAB0 \uD6C4 \uB530\uB73B\uD558\uACE0 \uC740\uC740\uD55C \uC870\uBA85. \uCC28\uACE0\uB294 \uC790\uB3D9 \uC7A0\uAE08 \uAE08\uC9C0(\uACE0\uC591\uC774 \uBB38).",
+    settings_household_profile_saved:
+      "\uAC00\uC815 \uD504\uB85C\uD544\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4.",
     settings_background_services_title:
       "\uBC31\uADF8\uB77C\uC6B4\uB4DC \uC11C\uBE44\uC2A4",
     settings_data_collector_label:
@@ -21941,6 +22011,13 @@ var zh_Hans_default = {
     settings_add_token_button: "\u6DFB\u52A0\u4EE4\u724C",
     settings_command_approvals_heading: "\u547D\u4EE4\u6388\u6743",
     settings_advanced_settings_heading: "\u9AD8\u7EA7\u8BBE\u7F6E",
+    settings_household_profile_title: "Selora \u7684\u8BB0\u5FC6",
+    settings_household_profile_desc:
+      "\u5173\u4E8E\u60A8\u5BB6\u7684\u81EA\u7531\u6587\u672C\u2014\u2014\u6210\u5458\u3001\u504F\u597D\u3001\u5907\u6CE8\u3001\u5DF2\u77E5\u95EE\u9898\u3001\u4E60\u60EF\u3001\u6CE8\u610F\u4E8B\u9879\u3002Selora \u5728\u5BF9\u8BDD\u4EE5\u53CA\u5EFA\u8BAE\u81EA\u52A8\u5316\u548C\u573A\u666F\u65F6\u4F1A\u53C2\u8003\u8FD9\u4E9B\u5185\u5BB9\u3002\u8BF7\u4FDD\u6301\u7B80\u77ED\uFF1B\u5B83\u4F1A\u8BA1\u5165\u6BCF\u6B21\u8BF7\u6C42\u3002",
+    settings_household_profile_placeholder:
+      "\u4F8B\u5982\uFF1A\u56DB\u53E3\u4E4B\u5BB6\u3002\u5B69\u5B50 20:30 \u4E0A\u5E8A\u3002\u5976\u5976\u5468\u672B\u6765\u8BBF\u2014\u2014\u5979\u6015\u51B7\u3002\u65E5\u843D\u540E\u4F7F\u7528\u6696\u8272\u67D4\u548C\u706F\u5149\u3002\u5207\u52FF\u81EA\u52A8\u9501\u8F66\u5E93\uFF08\u6709\u732B\u95E8\uFF09\u3002",
+    settings_household_profile_saved:
+      "\u5BB6\u5EAD\u6863\u6848\u5DF2\u4FDD\u5B58\u3002",
     settings_background_services_title: "\u540E\u53F0\u670D\u52A1",
     settings_data_collector_label:
       "\u6570\u636E\u91C7\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
@@ -23143,6 +23220,13 @@ var zh_Hant_default = {
     settings_add_token_button: "\u65B0\u589E\u6B0A\u6756",
     settings_command_approvals_heading: "\u6307\u4EE4\u6388\u6B0A",
     settings_advanced_settings_heading: "\u9032\u968E\u8A2D\u5B9A",
+    settings_household_profile_title: "Selora \u7684\u8A18\u61B6",
+    settings_household_profile_desc:
+      "\u95DC\u65BC\u60A8\u5BB6\u7684\u81EA\u7531\u6587\u5B57\u2014\u2014\u6210\u54E1\u3001\u504F\u597D\u3001\u5099\u8A3B\u3001\u5DF2\u77E5\u554F\u984C\u3001\u7FD2\u6163\u3001\u6CE8\u610F\u4E8B\u9805\u3002Selora \u5728\u5C0D\u8A71\u4EE5\u53CA\u5EFA\u8B70\u81EA\u52D5\u5316\u548C\u5834\u666F\u6642\u6703\u53C3\u8003\u9019\u4E9B\u5167\u5BB9\u3002\u8ACB\u4FDD\u6301\u7C21\u77ED\uFF1B\u5B83\u6703\u8A08\u5165\u6BCF\u6B21\u8ACB\u6C42\u3002",
+    settings_household_profile_placeholder:
+      "\u4F8B\u5982\uFF1A\u56DB\u53E3\u4E4B\u5BB6\u3002\u5B69\u5B50 20:30 \u4E0A\u5E8A\u3002\u5976\u5976\u9031\u672B\u4F86\u8A2A\u2014\u2014\u5979\u6015\u51B7\u3002\u65E5\u843D\u5F8C\u4F7F\u7528\u6696\u8272\u67D4\u548C\u71C8\u5149\u3002\u5207\u52FF\u81EA\u52D5\u9396\u8ECA\u5EAB\uFF08\u6709\u8C93\u9580\uFF09\u3002",
+    settings_household_profile_saved:
+      "\u5BB6\u5EAD\u6A94\u6848\u5DF2\u5132\u5B58\u3002",
     settings_background_services_title: "\u80CC\u666F\u670D\u52D9",
     settings_data_collector_label:
       "\u8CC7\u6599\u6536\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
@@ -35180,6 +35264,47 @@ function renderSettings(host) {
                 </div>`
               : ""
           }
+        </div>
+
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>
+              ${host._t("settings_household_profile_title", "Selora's Memory")}
+            </h3>
+          </div>
+          <p class="section-card-subtitle">
+            ${host._t(
+              "settings_household_profile_desc",
+              "Free-form context about your home \u2014 members, preferences, notes, known issues, patterns, conflicts. Selora keeps this in mind when it chats and when it proposes automations and scenes. Keep it short; it counts toward every request.",
+            )}
+          </p>
+          <textarea
+            class="form-select"
+            rows="6"
+            maxlength=${host._config.household_profile_max_chars || 2e3}
+            .value=${host._config.household_profile || ""}
+            @input=${(e6) => host._updateConfig("household_profile", e6.target.value)}
+            placeholder=${host._t(
+              "settings_household_profile_placeholder",
+              "e.g. Family of 4. Kids (L\xE9a 7, Tom 5) in bed by 20:30. Grandma visits weekends \u2014 she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
+            )}
+            style="width:100%;box-sizing:border-box;resize:vertical;min-height:120px;font-family:inherit;"
+          ></textarea>
+          <div
+            style="text-align:right;font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+          >
+            ${(host._config.household_profile || "").length} /
+            ${host._config.household_profile_max_chars || 2e3}
+          </div>
+          <div class="card-save-bar">
+            <button
+              class="btn btn-primary"
+              @click=${host._saveHouseholdProfile}
+              ?disabled=${host._savingHouseholdProfile}
+            >
+              ${host._savingHouseholdProfile ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
+            </button>
+          </div>
         </div>
 
         <div class="section-card settings-section">
@@ -47387,6 +47512,7 @@ var SeloraAIPanel = class extends i4 {
       _config: { type: Object },
       _savingLlmConfig: { type: Boolean },
       _savingAdvancedConfig: { type: Boolean },
+      _savingHouseholdProfile: { type: Boolean },
       _clearingCache: { type: Boolean },
       _llmSaveStatus: { type: Object },
       _showApiKeyInput: { type: Boolean },
@@ -47648,6 +47774,7 @@ var SeloraAIPanel = class extends i4 {
     this._config = null;
     this._savingLlmConfig = false;
     this._savingAdvancedConfig = false;
+    this._savingHouseholdProfile = false;
     this._clearingCache = false;
     this._llmSaveStatus = null;
     this._showApiKeyInput = false;
@@ -48229,6 +48356,25 @@ var SeloraAIPanel = class extends i4 {
       this._updateConfig("telemetry_prompt_seen", true);
     } catch (err) {
       this._showToast("Failed to save: " + err.message, "error");
+    }
+  }
+  async _saveHouseholdProfile() {
+    if (!this._config || this._savingHouseholdProfile) return;
+    this._savingHouseholdProfile = true;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/update_config",
+        config: { household_profile: this._config.household_profile || "" },
+      });
+      await this._loadConfig();
+      this._showToast(
+        this._t("settings_household_profile_saved", "Household profile saved."),
+        "success",
+      );
+    } catch (err) {
+      this._showToast("Failed to save: " + err.message, "error");
+    } finally {
+      this._savingHouseholdProfile = false;
     }
   }
   async _saveAdvancedConfig() {

@@ -966,6 +966,20 @@ LLM_PRICING_USD_PER_MTOK: dict[str, dict[str, tuple[float, float]]] = {
 CONF_LLM_PRICING_OVERRIDES = "llm_pricing_overrides"
 
 
+# ── Household profile ("soul/memory") ───────────────────────────────
+# Free-form, user-authored context about the home — members, preferences,
+# notes, known issues, patterns, conflicts — injected into the LLM system
+# prompt so replies and generated automations/scenes/suggestions reflect
+# the real household. Lives in the config entry's options. It is
+# user-authored free text that reaches the model, so it is sanitized and
+# hard-capped; the cloud cap keeps per-call token cost bounded and the
+# local cap respects the ~1024-token on-device engine.
+CONF_HOUSEHOLD_PROFILE = "household_profile"
+DEFAULT_HOUSEHOLD_PROFILE = ""
+HOUSEHOLD_PROFILE_MAX_CHARS = 2000
+HOUSEHOLD_PROFILE_LOCAL_MAX_CHARS = 250
+
+
 # ── LLM Timeout ─────────────────────────────────────────────────────
 DEFAULT_LLM_TIMEOUT = 120  # seconds — per-request timeout for LLM calls
 # Heavier ceiling for the hourly home-analysis cycle. The full snapshot

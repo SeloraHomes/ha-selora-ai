@@ -41,6 +41,39 @@ def format_untrusted_text(value: object) -> str:
     return json.dumps(sanitize_untrusted_text(value, limit=160), ensure_ascii=True)
 
 
+def sanitize_household_profile(value: object, limit: int) -> str:
+    """Normalize and truncate the user-authored household profile.
+
+    Unlike :func:`sanitize_untrusted_text`, this preserves newlines so a
+    bullet-style profile survives, while still stripping other control
+    characters (which could smuggle formatting/escapes into the prompt),
+    collapsing trailing whitespace and runs of blank lines, and hard-capping
+    the total length. The result still flows into the LLM as clearly-labeled
+    informational context — never as instructions.
+    """
+    text = str(value or "")
+    # Normalize newlines, then drop every control char except newline.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = [
+        "".join(ch for ch in line if ch == "\t" or ch >= " ").rstrip() for line in text.split("\n")
+    ]
+    # Collapse 3+ consecutive blank lines down to a single blank line.
+    cleaned: list[str] = []
+    blank_run = 0
+    for line in lines:
+        if line:
+            blank_run = 0
+            cleaned.append(line)
+        else:
+            blank_run += 1
+            if blank_run == 1:
+                cleaned.append(line)
+    result = "\n".join(cleaned).strip()
+    if len(result) > limit:
+        result = result[: limit - 3].rstrip() + "..."
+    return result
+
+
 # ── Entity state formatting ─────────────────────────────────────────────────
 
 

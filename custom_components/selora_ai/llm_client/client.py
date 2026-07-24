@@ -410,11 +410,13 @@ class LLMClient:
         max_suggestions: int = DEFAULT_MAX_SUGGESTIONS,
         lookback_days: int = DEFAULT_RECORDER_LOOKBACK_DAYS,
         pricing_overrides: dict[str, dict[str, tuple[float, float] | list[float]]] | None = None,
+        household_profile: str = "",
     ) -> None:
         self._hass = hass
         self._provider = provider
         self._max_suggestions = max_suggestions
         self._lookback_days = lookback_days
+        self._household_profile = household_profile or ""
         self._usage = UsageTracker(hass, provider, pricing_overrides)
 
     def set_pricing_overrides(
@@ -423,6 +425,14 @@ class LLMClient:
     ) -> None:
         """Replace the in-memory pricing overrides used by the cost estimator."""
         self._usage.set_pricing_overrides(overrides)
+
+    def set_household_profile(self, profile: str | None) -> None:
+        """Replace the in-memory household profile injected into prompts.
+
+        Called from the update-config websocket so an edit applies live to the
+        running client without an integration reload.
+        """
+        self._household_profile = profile or ""
 
     @property
     def provider_name(self) -> str:
@@ -607,7 +617,9 @@ class LLMClient:
             _LOGGER.debug("Skipping analysis: low-context provider cannot fit home snapshot")
             return []
 
-        system_prompt = build_suggestions_system_prompt(self._max_suggestions)
+        system_prompt = build_suggestions_system_prompt(
+            self._max_suggestions, household_profile=self._household_profile
+        )
         user_prompt = build_analysis_prompt(
             home_snapshot,
             max_suggestions=self._max_suggestions,
@@ -760,7 +772,9 @@ class LLMClient:
                     language=language or self._hass.config.language,
                 )
                 system_prompt = build_minimal_architect_system_prompt(
-                    intent_hint, language=language or self._hass.config.language
+                    intent_hint,
+                    language=language or self._hass.config.language,
+                    household_profile=self._household_profile,
                 )
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
@@ -783,6 +797,7 @@ class LLMClient:
                     for_assist=for_assist,
                     slim=cloud_intent_hint == "command",
                     language=language or self._hass.config.language,
+                    household_profile=self._household_profile,
                 )
                 messages = self._build_chat_messages(
                     user_message,
@@ -1036,7 +1051,9 @@ class LLMClient:
                     language=language or self._hass.config.language,
                 )
                 system_prompt = build_minimal_architect_system_prompt(
-                    intent_hint, language=language or self._hass.config.language
+                    intent_hint,
+                    language=language or self._hass.config.language,
+                    household_profile=self._household_profile,
                 )
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
@@ -1056,6 +1073,7 @@ class LLMClient:
                     tools_available=tool_executor is not None,
                     slim=cloud_intent_hint == "command",
                     language=language or self._hass.config.language,
+                    household_profile=self._household_profile,
                 )
                 messages = self._build_chat_messages(
                     user_message,

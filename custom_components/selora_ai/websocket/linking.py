@@ -49,6 +49,7 @@ from ..const import (
     CONF_ENTRY_TYPE,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
+    CONF_HOUSEHOLD_PROFILE,
     CONF_INSIGHTS_ENABLED,
     CONF_INSIGHTS_INTERVAL,
     CONF_LLM_PRICING_OVERRIDES,
@@ -81,6 +82,7 @@ from ..const import (
     DEFAULT_DISCOVERY_MODE,
     DEFAULT_DISCOVERY_START_TIME,
     DEFAULT_GEMINI_MODEL,
+    DEFAULT_HOUSEHOLD_PROFILE,
     DEFAULT_INSIGHTS_INTERVAL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
@@ -93,6 +95,7 @@ from ..const import (
     DEFAULT_TELEMETRY_ENABLED,
     DEFAULT_TELEMETRY_PROMPT_SEEN,
     DOMAIN,
+    HOUSEHOLD_PROFILE_MAX_CHARS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
@@ -103,6 +106,7 @@ from ..const import (
     SELORA_EXCLUDE_LABEL_ID,
     SELORA_EXCLUDE_LABEL_NAME,
 )
+from ..helpers import sanitize_household_profile
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -230,6 +234,9 @@ async def _handle_websocket_get_config(
             "aigateway_user_email": aigw["user_email"],
             # LLM pricing overrides — shape: {provider: {model: [in_per_mtok, out_per_mtok]}}
             "llm_pricing_overrides": config_data.get(CONF_LLM_PRICING_OVERRIDES, {}),
+            # Household profile — free-form "soul/memory" injected into prompts
+            "household_profile": config_data.get(CONF_HOUSEHOLD_PROFILE, DEFAULT_HOUSEHOLD_PROFILE),
+            "household_profile_max_chars": HOUSEHOLD_PROFILE_MAX_CHARS,
         },
     )
 
@@ -303,6 +310,7 @@ async def _handle_websocket_update_config(
         CONF_TELEMETRY_ENABLED,
         CONF_TELEMETRY_PROMPT_SEEN,
         CONF_LLM_PRICING_OVERRIDES,
+        CONF_HOUSEHOLD_PROFILE,
         "pattern_detection_enabled",  # frontend key (see get_config)
         "developer_mode",
     }
@@ -313,6 +321,15 @@ async def _handle_websocket_update_config(
         )
         for k in unknown_keys:
             new_options.pop(k, None)
+
+    # Sanitize + hard-cap the household profile before it is stored. It is
+    # user-authored free text that flows into the LLM system prompt, so we
+    # strip control chars and truncate here (defense in depth — the prompt
+    # builder re-truncates at injection time too).
+    if CONF_HOUSEHOLD_PROFILE in new_options:
+        new_options[CONF_HOUSEHOLD_PROFILE] = sanitize_household_profile(
+            new_options[CONF_HOUSEHOLD_PROFILE], HOUSEHOLD_PROFILE_MAX_CHARS
+        )
 
     # Never store a null/empty provider — fall back to the existing value.
     if CONF_LLM_PROVIDER in new_data and not new_data[CONF_LLM_PROVIDER]:
@@ -339,7 +356,9 @@ async def _handle_websocket_update_config(
     # for subsequent calls, so a hot update is enough. The telemetry
     # toggle is read live by ``TelemetryClient`` on every emit, so flipping
     # it needs no reload either.
-    hot_option_keys = {CONF_LLM_PRICING_OVERRIDES, CONF_TELEMETRY_ENABLED}
+    # The household profile is pushed to the running client below, so editing
+    # it applies live without an integration reload.
+    hot_option_keys = {CONF_LLM_PRICING_OVERRIDES, CONF_TELEMETRY_ENABLED, CONF_HOUSEHOLD_PROFILE}
 
     # Check if any backend-relevant keys actually changed
     old_data = {**entry.data}
@@ -361,10 +380,13 @@ async def _handle_websocket_update_config(
     )
 
     # Apply hot-reloadable option changes directly to the running client.
-    if CONF_LLM_PRICING_OVERRIDES in new_options:
+    if CONF_LLM_PRICING_OVERRIDES in new_options or CONF_HOUSEHOLD_PROFILE in new_options:
         llm = _find_llm(hass)
-        if llm is not None and hasattr(llm, "set_pricing_overrides"):
-            llm.set_pricing_overrides(new_options[CONF_LLM_PRICING_OVERRIDES] or {})
+        if llm is not None:
+            if CONF_LLM_PRICING_OVERRIDES in new_options and hasattr(llm, "set_pricing_overrides"):
+                llm.set_pricing_overrides(new_options[CONF_LLM_PRICING_OVERRIDES] or {})
+            if CONF_HOUSEHOLD_PROFILE in new_options and hasattr(llm, "set_household_profile"):
+                llm.set_household_profile(new_options[CONF_HOUSEHOLD_PROFILE])
 
     # Send result BEFORE reload so the frontend gets a response
     connection.send_result(msg["id"], {"status": "success"})

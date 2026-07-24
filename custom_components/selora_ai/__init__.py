@@ -73,6 +73,7 @@ from .const import (
     CONF_ENTRY_TYPE,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
+    CONF_HOUSEHOLD_PROFILE,
     CONF_INSIGHTS_ENABLED,
     CONF_INSIGHTS_EXPORT_CADENCE,
     CONF_INSIGHTS_EXPORT_RETENTION,
@@ -99,6 +100,7 @@ from .const import (
     DEFAULT_DISCOVERY_MODE,
     DEFAULT_ENRICHMENT_INTERVAL,
     DEFAULT_GEMINI_MODEL,
+    DEFAULT_HOUSEHOLD_PROFILE,
     DEFAULT_INSIGHTS_EXPORT_CADENCE,
     DEFAULT_INSIGHTS_EXPORT_RETENTION,
     DEFAULT_INSIGHTS_INTERVAL,
@@ -4445,6 +4447,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     lookback = entry.data.get(CONF_RECORDER_LOOKBACK_DAYS, DEFAULT_RECORDER_LOOKBACK_DAYS)
     pricing_overrides = entry.options.get(CONF_LLM_PRICING_OVERRIDES) or {}
+    household_profile = entry.options.get(CONF_HOUSEHOLD_PROFILE, DEFAULT_HOUSEHOLD_PROFILE)
 
     from .device_manager import DeviceManager
     from .llm_client import LLMClient
@@ -4462,7 +4465,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
         )
         llm = LLMClient(
-            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+            hass,
+            llm_provider,
+            lookback_days=lookback,
+            pricing_overrides=pricing_overrides,
+            household_profile=household_profile,
         )
     elif provider == LLM_PROVIDER_GEMINI:
         llm_provider = create_provider(
@@ -4472,7 +4479,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=entry.data.get(CONF_GEMINI_MODEL, DEFAULT_GEMINI_MODEL),
         )
         llm = LLMClient(
-            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+            hass,
+            llm_provider,
+            lookback_days=lookback,
+            pricing_overrides=pricing_overrides,
+            household_profile=household_profile,
         )
     elif provider == LLM_PROVIDER_OPENAI:
         llm_provider = create_provider(
@@ -4482,7 +4493,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=entry.data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
         )
         llm = LLMClient(
-            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+            hass,
+            llm_provider,
+            lookback_days=lookback,
+            pricing_overrides=pricing_overrides,
+            household_profile=household_profile,
         )
     elif provider == LLM_PROVIDER_OPENROUTER:
         llm_provider = create_provider(
@@ -4492,7 +4507,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=entry.data.get(CONF_OPENROUTER_MODEL, DEFAULT_OPENROUTER_MODEL),
         )
         llm = LLMClient(
-            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+            hass,
+            llm_provider,
+            lookback_days=lookback,
+            pricing_overrides=pricing_overrides,
+            household_profile=household_profile,
         )
     elif provider == LLM_PROVIDER_OLLAMA:
         llm_provider = create_provider(
@@ -4502,7 +4521,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
         )
         llm = LLMClient(
-            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+            hass,
+            llm_provider,
+            lookback_days=lookback,
+            pricing_overrides=pricing_overrides,
+            household_profile=household_profile,
         )
     elif provider == LLM_PROVIDER_SELORA_LOCAL:
         llm_provider = create_provider(
@@ -4511,7 +4534,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             host=entry.data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
         )
         llm = LLMClient(
-            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+            hass,
+            llm_provider,
+            lookback_days=lookback,
+            pricing_overrides=pricing_overrides,
+            household_profile=household_profile,
         )
     elif provider == LLM_PROVIDER_SELORA_CLOUD:
         aigw = _aigateway_view(entry.data)
@@ -4526,7 +4553,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry_id=entry.entry_id,
         )
         llm = LLMClient(
-            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+            hass,
+            llm_provider,
+            lookback_days=lookback,
+            pricing_overrides=pricing_overrides,
+            household_profile=household_profile,
         )
 
     from .collector import DataCollector
@@ -5007,13 +5038,14 @@ _AIGW_TOKEN_FIELDS = frozenset(
 
 # Option keys that are applied live (no entry reload needed). Must mirror
 # the ``hot_option_keys`` + ``frontend_only_keys`` classification in
-# ``_handle_websocket_update_config``: pricing overrides are pushed to the
-# running client, telemetry flags are read live on each use, and
-# developer_mode only affects the frontend. An options-only change confined
-# to these must NOT trigger ``async_reload_entry``'s reload.
+# ``_handle_websocket_update_config``: pricing overrides and the household
+# profile are pushed to the running client, telemetry flags are read live on
+# each use, and developer_mode only affects the frontend. An options-only
+# change confined to these must NOT trigger ``async_reload_entry``'s reload.
 _NO_RELOAD_OPTION_KEYS = frozenset(
     {
         CONF_LLM_PRICING_OVERRIDES,
+        CONF_HOUSEHOLD_PROFILE,
         CONF_TELEMETRY_ENABLED,
         CONF_TELEMETRY_PROMPT_SEEN,
         "developer_mode",
