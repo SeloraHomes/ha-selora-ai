@@ -380,6 +380,7 @@
     "automations_run_tooltip": "Запустить автоматизацию",
     "automations_more_actions_external": "Управляется вне Selora AI — измените её там, где она определена, например в установленном рецепте.",
     "automations_recipe_pill_tooltip": "Установлено рецептом Selora — управляйте им на вкладке «Рецепты».",
+    "automations_recipe_pill_link_tooltip": "Открыть рецепт, который это установил.",
     "automations_burger_loading": "Загрузка…",
     "automations_burger_refine_in_chat": "Доработать в чате",
     "automations_burger_rename": "Переименовать",

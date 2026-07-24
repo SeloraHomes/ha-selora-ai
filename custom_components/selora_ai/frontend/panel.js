@@ -5179,6 +5179,22 @@ var automationsStyles = i`
     flex-shrink: 0;
     cursor: help;
   }
+  /* When the row records the installing recipe's slug the pill is a link
+     into the Recipes tab — signal interactivity and lift the accent tint. */
+  .recipe-pill.recipe-pill-link {
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      border-color 0.12s ease;
+  }
+  .recipe-pill.recipe-pill-link:hover {
+    background: color-mix(in srgb, var(--selora-accent) 24%, transparent);
+    border-color: color-mix(in srgb, var(--selora-accent) 60%, transparent);
+  }
+  .recipe-pill.recipe-pill-link:focus-visible {
+    outline: 2px solid var(--selora-accent);
+    outline-offset: 1px;
+  }
   .recipe-pill .recipe-pill-name {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -8797,6 +8813,8 @@ var en_default = {
       "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
     automations_recipe_pill_tooltip:
       "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+    automations_recipe_pill_link_tooltip:
+      "Open the recipe that installed this.",
     automations_burger_loading: "Loading\u2026",
     automations_burger_refine_in_chat: "Refine in chat",
     automations_burger_rename: "Rename",
@@ -9894,6 +9912,8 @@ var fr_default = {
       "G\xE9r\xE9e en dehors de Selora AI \u2014 modifiez-la l\xE0 o\xF9 elle est d\xE9finie, par ex. une recette install\xE9e.",
     automations_recipe_pill_tooltip:
       "Install\xE9e par une recette Selora \u2014 g\xE9rez-la depuis l'onglet Recettes.",
+    automations_recipe_pill_link_tooltip:
+      "Ouvrir la recette qui l'a install\xE9e.",
     automations_burger_loading: "Chargement\u2026",
     automations_burger_refine_in_chat: "Affiner dans le chat",
     automations_burger_rename: "Renommer",
@@ -11025,6 +11045,8 @@ var de_default = {
       "Au\xDFerhalb von Selora AI verwaltet \u2014 bearbeite sie dort, wo sie definiert ist, z. B. in einem installierten Rezept.",
     automations_recipe_pill_tooltip:
       "Von einem Selora-Rezept installiert \u2014 verwalte es im Tab \u201ERezepte\u201C.",
+    automations_recipe_pill_link_tooltip:
+      "Rezept \xF6ffnen, das dies installiert hat.",
     automations_burger_loading: "Lade\u2026",
     automations_burger_refine_in_chat: "Im Chat verfeinern",
     automations_burger_rename: "Umbenennen",
@@ -12146,6 +12168,7 @@ var es_default = {
       "Gestionada fuera de Selora AI \u2014 ed\xEDtala donde est\xE1 definida, p. ej. en una receta instalada.",
     automations_recipe_pill_tooltip:
       "Instalada por una receta de Selora \u2014 gesti\xF3nala desde la pesta\xF1a Recetas.",
+    automations_recipe_pill_link_tooltip: "Abrir la receta que la instal\xF3.",
     automations_burger_loading: "Cargando\u2026",
     automations_burger_refine_in_chat: "Refinar en el chat",
     automations_burger_rename: "Cambiar nombre",
@@ -13255,6 +13278,8 @@ var it_default = {
       "Gestita al di fuori di Selora AI \u2014 modificala dove \xE8 definita, ad es. in una ricetta installata.",
     automations_recipe_pill_tooltip:
       "Installata da una ricetta Selora \u2014 gestiscila dalla scheda Ricette.",
+    automations_recipe_pill_link_tooltip:
+      "Apri la ricetta che l'ha installata.",
     automations_burger_loading: "Caricamento\u2026",
     automations_burger_refine_in_chat: "Perfeziona in chat",
     automations_burger_rename: "Rinomina",
@@ -14381,6 +14406,8 @@ var nl_default = {
       "Beheerd buiten Selora AI \u2014 bewerk het waar het is gedefinieerd, bijv. een ge\xEFnstalleerd recept.",
     automations_recipe_pill_tooltip:
       "Ge\xEFnstalleerd door een Selora-recept \u2014 beheer het via het tabblad Recepten.",
+    automations_recipe_pill_link_tooltip:
+      "Open het recept dat dit heeft ge\xEFnstalleerd.",
     automations_burger_loading: "Laden\u2026",
     automations_burger_refine_in_chat: "Verfijnen in chat",
     automations_burger_rename: "Naam wijzigen",
@@ -15506,6 +15533,8 @@ var hu_default = {
       "A Selora AI-n k\xEDv\xFCl kezelve \u2014 ott szerkeszd, ahol meg van hat\xE1rozva, pl. egy telep\xEDtett receptben.",
     automations_recipe_pill_tooltip:
       "Egy Selora recept telep\xEDtette \u2014 kezeld a Receptek lapon.",
+    automations_recipe_pill_link_tooltip:
+      "A telep\xEDt\u0151 recept megnyit\xE1sa.",
     automations_burger_loading: "Bet\xF6lt\xE9s\u2026",
     automations_burger_refine_in_chat: "Finom\xEDt\xE1s a besz\xE9lget\xE9sben",
     automations_burger_rename: "\xC1tnevez\xE9s",
@@ -16637,6 +16666,7 @@ var pt_default = {
       "Gerida fora do Selora AI \u2014 edite-a onde est\xE1 definida, por ex. numa receita instalada.",
     automations_recipe_pill_tooltip:
       "Instalada por uma receita Selora \u2014 fa\xE7a a gest\xE3o no separador Receitas.",
+    automations_recipe_pill_link_tooltip: "Abrir a receita que a instalou.",
     automations_burger_loading: "A carregar\u2026",
     automations_burger_refine_in_chat: "Aperfei\xE7oar na conversa",
     automations_burger_rename: "Mudar o nome",
@@ -17955,6 +17985,8 @@ var ru_default = {
       "\u0423\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0432\u043D\u0435 Selora AI \u2014 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u0435 \u0435\u0451 \u0442\u0430\u043C, \u0433\u0434\u0435 \u043E\u043D\u0430 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \u0432 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u043E\u043C \u0440\u0435\u0446\u0435\u043F\u0442\u0435.",
     automations_recipe_pill_tooltip:
       "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C Selora \u2014 \u0443\u043F\u0440\u0430\u0432\u043B\u044F\u0439\u0442\u0435 \u0438\u043C \u043D\u0430 \u0432\u043A\u043B\u0430\u0434\u043A\u0435 \xAB\u0420\u0435\u0446\u0435\u043F\u0442\u044B\xBB.",
+    automations_recipe_pill_link_tooltip:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0440\u0435\u0446\u0435\u043F\u0442, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u044D\u0442\u043E \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u043B.",
     automations_burger_loading:
       "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
     automations_burger_refine_in_chat:
@@ -19494,6 +19526,8 @@ var ja_default = {
       "Selora AI \u306E\u5916\u3067\u7BA1\u7406\u3055\u308C\u3066\u3044\u307E\u3059 \u2014 \u5B9A\u7FA9\u5143\uFF08\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u30EC\u30B7\u30D4\u306A\u3069\uFF09\u3067\u7DE8\u96C6\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
     automations_recipe_pill_tooltip:
       "Selora \u30EC\u30B7\u30D4\u306B\u3088\u3063\u3066\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3055\u308C\u307E\u3057\u305F \u2014 \u300C\u30EC\u30B7\u30D4\u300D\u30BF\u30D6\u304B\u3089\u7BA1\u7406\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    automations_recipe_pill_link_tooltip:
+      "\u3053\u308C\u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u305F\u30EC\u30B7\u30D4\u3092\u958B\u304D\u307E\u3059\u3002",
     automations_burger_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
     automations_burger_refine_in_chat:
       "\u30C1\u30E3\u30C3\u30C8\u3067\u8ABF\u6574",
@@ -20832,6 +20866,8 @@ var ko_default = {
       "Selora AI \uC678\uBD80\uC5D0\uC11C \uAD00\uB9AC\uB429\uB2C8\uB2E4 \u2014 \uC815\uC758\uB41C \uC704\uCE58(\uC124\uCE58\uB41C \uB808\uC2DC\uD53C \uB4F1)\uC5D0\uC11C \uD3B8\uC9D1\uD558\uC138\uC694.",
     automations_recipe_pill_tooltip:
       "Selora \uB808\uC2DC\uD53C\uB85C \uC124\uCE58\uB428 \u2014 \uB808\uC2DC\uD53C \uD0ED\uC5D0\uC11C \uAD00\uB9AC\uD558\uC138\uC694.",
+    automations_recipe_pill_link_tooltip:
+      "\uC774\uAC83\uC744 \uC124\uCE58\uD55C \uB808\uC2DC\uD53C \uC5F4\uAE30.",
     automations_burger_loading: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
     automations_burger_refine_in_chat: "\uCC44\uD305\uC5D0\uC11C \uC218\uC815",
     automations_burger_rename: "\uC774\uB984 \uBCC0\uACBD",
@@ -22066,6 +22102,8 @@ var zh_Hans_default = {
       "\u5728 Selora AI \u4E4B\u5916\u7BA1\u7406 \u2014 \u8BF7\u5728\u5176\u5B9A\u4E49\u5904\uFF08\u4F8B\u5982\u5DF2\u5B89\u88C5\u7684\u914D\u65B9\uFF09\u8FDB\u884C\u7F16\u8F91\u3002",
     automations_recipe_pill_tooltip:
       "\u7531 Selora \u914D\u65B9\u5B89\u88C5 \u2014 \u8BF7\u5728\u201C\u914D\u65B9\u201D\u6807\u7B7E\u9875\u4E2D\u7BA1\u7406\u3002",
+    automations_recipe_pill_link_tooltip:
+      "\u6253\u5F00\u5B89\u88C5\u6B64\u9879\u7684\u914D\u65B9\u3002",
     automations_burger_loading: "\u52A0\u8F7D\u4E2D\u2026",
     automations_burger_refine_in_chat: "\u5728\u5BF9\u8BDD\u4E2D\u5B8C\u5584",
     automations_burger_rename: "\u91CD\u547D\u540D",
@@ -23266,6 +23304,8 @@ var zh_Hant_default = {
       "\u5728 Selora AI \u4E4B\u5916\u7BA1\u7406 \u2014 \u8ACB\u5728\u5176\u5B9A\u7FA9\u8655\uFF08\u4F8B\u5982\u5DF2\u5B89\u88DD\u7684\u914D\u65B9\uFF09\u9032\u884C\u7DE8\u8F2F\u3002",
     automations_recipe_pill_tooltip:
       "\u7531 Selora \u914D\u65B9\u5B89\u88DD \u2014 \u8ACB\u5728\u300C\u914D\u65B9\u300D\u5206\u9801\u4E2D\u7BA1\u7406\u3002",
+    automations_recipe_pill_link_tooltip:
+      "\u958B\u555F\u5B89\u88DD\u6B64\u9805\u76EE\u7684\u914D\u65B9\u3002",
     automations_burger_loading: "\u8F09\u5165\u4E2D\u2026",
     automations_burger_refine_in_chat: "\u5728\u5C0D\u8A71\u4E2D\u8ABF\u6574",
     automations_burger_rename: "\u91CD\u65B0\u547D\u540D",
@@ -31543,11 +31583,46 @@ function renderAutomations(host) {
                               ${
                                 a3.recipe_title
                                   ? b2`<span
-                                      class="recipe-pill"
-                                      title=${host._t(
-                                        "automations_recipe_pill_tooltip",
-                                        "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
-                                      )}
+                                      class="recipe-pill ${a3.recipe_slug ? "recipe-pill-link" : ""}"
+                                      role=${a3.recipe_slug ? "button" : A}
+                                      tabindex=${a3.recipe_slug ? "0" : A}
+                                      title=${
+                                        a3.recipe_slug
+                                          ? host._t(
+                                              "automations_recipe_pill_link_tooltip",
+                                              "Open the recipe that installed this.",
+                                            )
+                                          : host._t(
+                                              "automations_recipe_pill_tooltip",
+                                              "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+                                            )
+                                      }
+                                      @click=${
+                                        a3.recipe_slug
+                                          ? (e6) => {
+                                              e6.stopPropagation();
+                                              host._openRecipeFromPill(
+                                                a3.recipe_slug,
+                                              );
+                                            }
+                                          : A
+                                      }
+                                      @keydown=${
+                                        a3.recipe_slug
+                                          ? (e6) => {
+                                              if (
+                                                e6.key === "Enter" ||
+                                                e6.key === " "
+                                              ) {
+                                                e6.preventDefault();
+                                                e6.stopPropagation();
+                                                host._openRecipeFromPill(
+                                                  a3.recipe_slug,
+                                                );
+                                              }
+                                            }
+                                          : A
+                                      }
                                     >
                                       <ha-icon
                                         icon="mdi:book-open-variant"
@@ -33310,6 +33385,7 @@ function renderScenes(host) {
                     const isSelora = s4.source === "selora";
                     const deletable = s4.deletable !== false;
                     const recipeTitle = s4.recipe_title || "";
+                    const recipeSlug = s4.recipe_slug || "";
                     return b2`
                       <div
                         class="auto-row${isExpanded ? " expanded" : ""}"
@@ -33352,11 +33428,46 @@ function renderScenes(host) {
                               ${
                                 recipeTitle
                                   ? b2`<span
-                                      class="recipe-pill"
-                                      title=${host._t(
-                                        "automations_recipe_pill_tooltip",
-                                        "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
-                                      )}
+                                      class="recipe-pill ${recipeSlug ? "recipe-pill-link" : ""}"
+                                      role=${recipeSlug ? "button" : A}
+                                      tabindex=${recipeSlug ? "0" : A}
+                                      title=${
+                                        recipeSlug
+                                          ? host._t(
+                                              "automations_recipe_pill_link_tooltip",
+                                              "Open the recipe that installed this.",
+                                            )
+                                          : host._t(
+                                              "automations_recipe_pill_tooltip",
+                                              "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+                                            )
+                                      }
+                                      @click=${
+                                        recipeSlug
+                                          ? (e6) => {
+                                              e6.stopPropagation();
+                                              host._openRecipeFromPill(
+                                                recipeSlug,
+                                              );
+                                            }
+                                          : A
+                                      }
+                                      @keydown=${
+                                        recipeSlug
+                                          ? (e6) => {
+                                              if (
+                                                e6.key === "Enter" ||
+                                                e6.key === " "
+                                              ) {
+                                                e6.preventDefault();
+                                                e6.stopPropagation();
+                                                host._openRecipeFromPill(
+                                                  recipeSlug,
+                                                );
+                                              }
+                                            }
+                                          : A
+                                      }
                                     >
                                       <ha-icon
                                         icon="mdi:book-open-variant"
@@ -44648,6 +44759,7 @@ __export(session_actions_exports, {
   _onSessionTouchEnd: () => _onSessionTouchEnd,
   _onSessionTouchMove: () => _onSessionTouchMove,
   _onSessionTouchStart: () => _onSessionTouchStart,
+  _openRecipeFromPill: () => _openRecipeFromPill,
   _openSession: () => _openSession,
   _requestBulkDeleteSessions: () => _requestBulkDeleteSessions,
   _setActiveTab: () => _setActiveTab,
@@ -44699,6 +44811,13 @@ function _setActiveTab(tab) {
     url.pathname = target;
     window.history.replaceState({}, "", url);
   }
+}
+function _openRecipeFromPill(slug) {
+  if (!slug) return;
+  this._setActiveTab("recipes");
+  this._showSidebar = false;
+  this._recipesView = "list";
+  this._openRecipeFromDeepLink?.(slug);
 }
 function _setRecipeWizardUrl(slug) {
   const target = slug

@@ -380,6 +380,7 @@
     "automations_run_tooltip": "オートメーションを実行",
     "automations_more_actions_external": "Selora AI の外で管理されています — 定義元（インストール済みレシピなど）で編集してください。",
     "automations_recipe_pill_tooltip": "Selora レシピによってインストールされました — 「レシピ」タブから管理してください。",
+    "automations_recipe_pill_link_tooltip": "これをインストールしたレシピを開きます。",
     "automations_burger_loading": "読み込み中…",
     "automations_burger_refine_in_chat": "チャットで調整",
     "automations_burger_rename": "名前を変更",

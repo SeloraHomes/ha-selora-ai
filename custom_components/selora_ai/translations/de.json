@@ -380,6 +380,7 @@
     "automations_run_tooltip": "Automatisierung ausführen",
     "automations_more_actions_external": "Außerhalb von Selora AI verwaltet — bearbeite sie dort, wo sie definiert ist, z. B. in einem installierten Rezept.",
     "automations_recipe_pill_tooltip": "Von einem Selora-Rezept installiert — verwalte es im Tab „Rezepte“.",
+    "automations_recipe_pill_link_tooltip": "Rezept öffnen, das dies installiert hat.",
     "automations_burger_loading": "Lade…",
     "automations_burger_refine_in_chat": "Im Chat verfeinern",
     "automations_burger_rename": "Umbenennen",

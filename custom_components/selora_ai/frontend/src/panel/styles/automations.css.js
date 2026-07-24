@@ -195,6 +195,22 @@ export const automationsStyles = css`
     flex-shrink: 0;
     cursor: help;
   }
+  /* When the row records the installing recipe's slug the pill is a link
+     into the Recipes tab — signal interactivity and lift the accent tint. */
+  .recipe-pill.recipe-pill-link {
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      border-color 0.12s ease;
+  }
+  .recipe-pill.recipe-pill-link:hover {
+    background: color-mix(in srgb, var(--selora-accent) 24%, transparent);
+    border-color: color-mix(in srgb, var(--selora-accent) 60%, transparent);
+  }
+  .recipe-pill.recipe-pill-link:focus-visible {
+    outline: 2px solid var(--selora-accent);
+    outline-offset: 1px;
+  }
   .recipe-pill .recipe-pill-name {
     overflow: hidden;
     text-overflow: ellipsis;
