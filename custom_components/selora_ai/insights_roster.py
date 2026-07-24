@@ -35,7 +35,11 @@ from homeassistant.helpers import (
     issue_registry as ir,
 )
 
-from .const import AUTOMATION_ID_PREFIX, INSIGHTS_ROSTER_MAX_ENTITIES
+from .const import (
+    AUTOMATION_ID_PREFIX,
+    INSIGHTS_ROSTER_MAX_ENTITIES,
+    TRANSIENT_INTEGRATIONS,
+)
 
 if TYPE_CHECKING:
     from .types import (
@@ -263,6 +267,12 @@ def build_home_roster(
         integration = entry_meta.get(primary_entry, ("", "", ""))[0] if primary_entry else ""
         for entry_id in dev.config_entries:
             dev_count_by_entry[entry_id] += 1
+        # Transient only when EVERY associated integration is transient — a real
+        # device merged with a BLE integration (shared entry) must not be hidden.
+        # Derived from all config entries, not just the primary/arbitrary one, so
+        # the flag is deterministic regardless of registry iteration order.
+        entry_domains = {entry_meta[e][0] for e in dev.config_entries if e in entry_meta}
+        transient = bool(entry_domains) and entry_domains <= TRANSIENT_INTEGRATIONS
         devices.append(
             {
                 "id": dev.id,
@@ -276,6 +286,7 @@ def build_home_roster(
                 "unavailable_entities": unavail_by_device.get(dev.id, 0),
                 "disabled_entities": disabled_by_device.get(dev.id, 0),
                 "url": _strip_url_credentials(dev.configuration_url or ""),
+                "transient": transient,
             }
         )
 

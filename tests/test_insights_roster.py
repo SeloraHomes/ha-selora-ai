@@ -62,6 +62,7 @@ async def test_roster_captures_running_and_not_running(hass: HomeAssistant) -> N
     assert dev_row["entities"] == 2
     assert dev_row["unavailable_entities"] == 1
     assert dev_row["manufacturer"] == "Signify"
+    assert dev_row["transient"] is False  # a real Hue device, not a BLE advert
 
     # Entities carry running/not-running state + their device_id.
     ents = {e["entity_id"]: e for e in roster["entities"]}
@@ -86,6 +87,69 @@ async def test_roster_flags_custom_integrations(hass: HomeAssistant) -> None:
     # No custom_domains passed → everything defaults to False.
     roster2 = build_home_roster(hass)
     assert all(i["custom"] is False for i in roster2["integrations"])
+
+
+@pytest.mark.asyncio
+async def test_roster_flags_transient_ble_devices(hass: HomeAssistant) -> None:
+    """BLE-beacon / presence-advert devices (out-of-range != broken) are flagged
+    transient so consumers can drop them from the "needs attention" tally, while
+    real devices stay transient=False."""
+    ble = MockConfigEntry(
+        domain="private_ble_device", entry_id="ble1", title="Phone Tag"
+    )
+    ble.add_to_hass(hass)
+    hue = MockConfigEntry(domain="hue", entry_id="h1", title="Hue")
+    hue.add_to_hass(hass)
+
+    dev_reg = dr.async_get(hass)
+    beacon = dev_reg.async_get_or_create(
+        config_entry_id="ble1",
+        identifiers={("private_ble_device", "AA:BB:CC:DD:EE:FF")},
+        name="S19ef93db0f79b545C",
+    )
+    lamp = dev_reg.async_get_or_create(
+        config_entry_id="h1",
+        identifiers={("hue", "lamp-1")},
+        name="Living Room Lamp",
+    )
+
+    roster = build_home_roster(hass)
+    by_id = {d["id"]: d for d in roster["devices"]}
+    assert by_id[beacon.id]["transient"] is True
+    assert by_id[lamp.id]["transient"] is False
+
+
+@pytest.mark.asyncio
+async def test_roster_merged_device_not_transient_if_any_real(hass: HomeAssistant) -> None:
+    """A device merged across config entries is transient only when EVERY backing
+    integration is transient. A real integration in the mix keeps it visible,
+    deterministically — regardless of which entry is primary or iteration order."""
+    ble = MockConfigEntry(domain="private_ble_device", entry_id="ble1", title="BLE")
+    ble.add_to_hass(hass)
+    hue = MockConfigEntry(domain="hue", entry_id="h1", title="Hue")
+    hue.add_to_hass(hass)
+    ble2 = MockConfigEntry(domain="bermuda", entry_id="ble2", title="Bermuda")
+    ble2.add_to_hass(hass)
+
+    dev_reg = dr.async_get(hass)
+    # Real device (hue) later also picked up by a BLE presence integration.
+    merged = dev_reg.async_get_or_create(
+        config_entry_id="h1",
+        identifiers={("hue", "lamp-1")},
+        name="Living Room Lamp",
+    )
+    merged = dev_reg.async_update_device(merged.id, add_config_entry_id="ble1")
+    # Device backed only by transient integrations stays transient.
+    all_ble = dev_reg.async_get_or_create(
+        config_entry_id="ble1",
+        identifiers={("private_ble_device", "AA:BB:CC:DD:EE:FF")},
+        name="Tag",
+    )
+    all_ble = dev_reg.async_update_device(all_ble.id, add_config_entry_id="ble2")
+
+    by_id = {d["id"]: d for d in build_home_roster(hass)["devices"]}
+    assert by_id[merged.id]["transient"] is False  # hue keeps it visible
+    assert by_id[all_ble.id]["transient"] is True  # all-transient stays flagged
 
 
 @pytest.mark.asyncio
