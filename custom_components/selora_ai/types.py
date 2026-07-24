@@ -983,6 +983,7 @@ class RosterIntegration(TypedDict):
     has_issue: bool  # an active HA repair issue targets this domain
     custom: bool  # custom component (not built into Home Assistant)
     url: str  # manifest documentation URL (e.g. integration docs page), "" if unknown
+    version: str  # manifest version (custom components); "" for core/unversioned
 
 
 class RosterDevice(TypedDict):
@@ -1000,6 +1001,21 @@ class RosterDevice(TypedDict):
     disabled_entities: int  # intentionally-off entities (neutral, not broken)
     url: str  # device configuration_url (e.g. add-on homepage), "" if none
     transient: bool  # BLE beacon / presence advert (out-of-range != broken)
+
+
+class RosterApp(TypedDict):
+    """One installed Supervisor app (formerly "add-on") and its version state.
+
+    Present only on supervised installs; the list is empty otherwise.
+    """
+
+    slug: str
+    name: str
+    version: str  # installed version; "" if the Supervisor didn't report one
+    version_latest: str  # latest available version; "" if unknown
+    update_available: bool
+    state: str  # started | stopped | startup | error | unknown
+    url: str  # app homepage / management URL, credential-stripped; "" if none
 
 
 class RosterEntity(TypedDict):
@@ -1048,6 +1064,7 @@ class HomeRoster(TypedDict):
     """The complete device-plane inventory shipped in the export envelope."""
 
     integrations: list[RosterIntegration]
+    apps: list[RosterApp]  # Supervisor apps (add-ons); empty on unsupervised installs
     devices: list[RosterDevice]
     entities: list[RosterEntity]
     automations: list[RosterAutomation]

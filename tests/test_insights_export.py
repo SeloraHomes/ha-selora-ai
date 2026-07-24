@@ -230,6 +230,7 @@ async def test_stop_waits_for_executor_write_to_finish(hass: HomeAssistant) -> N
     roster = {
         "truncated": False,
         "integrations": [],
+        "apps": [],
         "devices": [],
         "entities": [],
         "unavailable_total": 0,

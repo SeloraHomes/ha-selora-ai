@@ -250,19 +250,33 @@ class InsightsExporter:
         domains = {entry.domain for entry in self._hass.config_entries.async_entries()}
         integration_names: dict[str, str] = {}
         integration_urls: dict[str, str] = {}
+        integration_versions: dict[str, str] = {}
         try:
             for domain, integration in (await async_get_integrations(self._hass, domains)).items():
                 if not isinstance(integration, Exception):
                     integration_names[domain] = integration.name
                     # Manifest documentation URL (e.g. the integration's docs
-                    # page) so a roster consumer can link each app; "" when the
-                    # manifest omits it.
+                    # page) so a roster consumer can link each integration; ""
+                    # when the manifest omits it.
                     if integration.documentation:
                         integration_urls[domain] = integration.documentation
+                    # Manifest version — populated for custom components; core
+                    # integrations are unversioned and track ha_version.
+                    if integration.version:
+                        integration_versions[domain] = str(integration.version)
         except Exception:  # noqa: BLE001 — names/urls are best-effort; fall back to title/domain
             _LOGGER.debug("Could not resolve integration names; falling back to title/domain")
 
-        roster = build_home_roster(self._hass, custom_domains, integration_names, integration_urls)
+        apps = self._gather_apps()
+
+        roster = build_home_roster(
+            self._hass,
+            custom_domains,
+            integration_names,
+            integration_urls,
+            integration_versions,
+            apps,
+        )
         if roster["truncated"]:
             collection = {**collection, "roster_truncated": True}
         generated_iso = generated_at.isoformat()
@@ -283,6 +297,7 @@ class InsightsExporter:
             "signals_critical": sum(1 for s in signals if s.get("severity") == "critical"),
             "insights_total": len(insights),
             "integrations": len(roster["integrations"]),
+            "apps": len(roster["apps"]),
             "devices": len(roster["devices"]),
             "entities": len(roster["entities"]),
             "entities_unavailable": roster["unavailable_total"],
@@ -344,6 +359,29 @@ class InsightsExporter:
         if removed:
             _LOGGER.info("Swept %d orphaned export tmp files", removed)
         return removed
+
+    def _gather_apps(self) -> list[dict[str, Any]]:
+        """Return the installed Supervisor apps (add-ons), or ``[]``.
+
+        Only supervised installs have a Supervisor; unsupervised (Core/Container)
+        installs return an empty list. The hassio helpers are ``@callback`` reads
+        of ``hass.data`` — cheap, sync, no I/O. Imported locally so the roster
+        path carries no hard dependency on the hassio component.
+        """
+        try:
+            from homeassistant.components.hassio import (  # noqa: PLC0415 — local, one call site
+                get_apps_list,
+            )
+            from homeassistant.helpers.hassio import is_hassio  # noqa: PLC0415
+        except ImportError:
+            return []
+        if not is_hassio(self._hass):
+            return []
+        try:
+            return get_apps_list(self._hass) or []
+        except Exception:  # noqa: BLE001 — apps are best-effort; never fail the export
+            _LOGGER.debug("Could not resolve Supervisor apps; roster apps stay empty")
+            return []
 
     def _gather_inventory(self) -> dict[str, int]:
         ent_reg = er.async_get(self._hass)

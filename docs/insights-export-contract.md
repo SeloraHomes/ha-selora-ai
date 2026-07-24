@@ -116,6 +116,15 @@ Additive within v2 (nullable/optional, no version bump):
 - `roster.integrations[].name` — human manifest name (e.g. "National Weather
   Service (NWS)"). Consumers label by `name` → `title` → `domain`; empty when
   unresolved.
+- `roster.integrations[].version` — integration manifest version. Populated for
+  custom components (which declare a `version`); empty for core integrations,
+  which are unversioned and track the `producer.ha_version`.
+- `roster.apps` — installed **Supervisor apps** (formerly "add-ons"). Present
+  only on supervised installs; an **empty array** on Core/Container installs (no
+  Supervisor). Each entry: `slug`, `name`, `version` (installed), `version_latest`,
+  `update_available` (bool), `state` (`started`/`stopped`/`startup`/`error`/
+  `unknown`), and `url` (app homepage/management page, credential-stripped, `""`
+  if none). Absent on older producers → treat as `[]`.
 - `roster.devices[].disabled_entities` — count of intentionally-disabled
   entities on the device. Neutral (surface like HA's "+N disabled"), not a
   health problem.
