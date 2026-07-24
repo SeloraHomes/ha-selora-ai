@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit, urlunsplit
 
 from homeassistant.core import HomeAssistant
@@ -44,6 +44,7 @@ from .const import (
 if TYPE_CHECKING:
     from .types import (
         HomeRoster,
+        RosterApp,
         RosterAutomation,
         RosterDevice,
         RosterEntity,
@@ -104,19 +105,27 @@ def build_home_roster(
     custom_domains: set[str] | None = None,
     integration_names: dict[str, str] | None = None,
     integration_urls: dict[str, str] | None = None,
+    integration_versions: dict[str, str] | None = None,
+    apps: list[dict[str, Any]] | None = None,
 ) -> HomeRoster:
     """Build the full home roster. Must run on the event loop (registry reads).
 
     ``custom_domains`` (set of custom-component domains), ``integration_names``
-    (domain -> manifest name) and ``integration_urls`` (domain -> manifest
-    documentation URL) are resolved by the async caller and threaded in because
-    this builder is synchronous — see ``insights_export.publish``. Absent →
-    ``custom`` defaults False, ``name`` falls back to the config-entry title,
-    and ``url`` defaults to "".
+    (domain -> manifest name), ``integration_urls`` (domain -> manifest
+    documentation URL) and ``integration_versions`` (domain -> manifest version)
+    are resolved by the async caller and threaded in because this builder is
+    synchronous — see ``insights_export.publish``. Absent → ``custom`` defaults
+    False, ``name`` falls back to the config-entry title, and ``url`` /
+    ``version`` default to "".
+
+    ``apps`` is the raw Supervisor app (add-on) list from ``get_apps_list`` —
+    only populated on supervised installs, ``None``/empty otherwise. It's
+    normalized into ``RosterApp`` rows here.
     """
     custom_domains = custom_domains or set()
     integration_names = integration_names or {}
     integration_urls = integration_urls or {}
+    integration_versions = integration_versions or {}
     ent_reg = er.async_get(hass)
     dev_reg = dr.async_get(hass)
     area_reg = ar.async_get(hass)
@@ -304,6 +313,26 @@ def build_home_roster(
                 "has_issue": domain in issue_domains,
                 "custom": domain in custom_domains,
                 "url": _strip_url_credentials(integration_urls.get(domain, "")),
+                "version": integration_versions.get(domain, ""),
+            }
+        )
+
+    # ── Apps (Supervisor add-ons) ──────────────────────────────────────
+    # Only present on supervised installs; the raw list is threaded in from the
+    # async caller (get_apps_list). Normalize to RosterApp — the Supervisor
+    # already reports installed vs latest version + update availability, so
+    # consumers get app versions without a separate query.
+    roster_apps: list[RosterApp] = []
+    for app in apps or []:
+        roster_apps.append(
+            {
+                "slug": str(app.get("slug", "")),
+                "name": str(app.get("name", "")),
+                "version": str(app.get("version") or ""),
+                "version_latest": str(app.get("version_latest") or ""),
+                "update_available": bool(app.get("update_available", False)),
+                "state": str(app.get("state") or ""),
+                "url": _strip_url_credentials(str(app.get("url") or "")),
             }
         )
 
@@ -347,6 +376,7 @@ def build_home_roster(
 
     return {
         "integrations": integrations,
+        "apps": roster_apps,
         "devices": devices,
         "entities": entities,
         "automations": automations,

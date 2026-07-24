@@ -193,6 +193,75 @@ async def test_roster_includes_integration_documentation_url(hass: HomeAssistant
 
 
 @pytest.mark.asyncio
+async def test_roster_exposes_integration_version(hass: HomeAssistant) -> None:
+    """Each integration carries its manifest version (custom components declare
+    one; core integrations are unversioned → "")."""
+    custom = MockConfigEntry(domain="hacs", entry_id="hacs1", title="HACS")
+    custom.add_to_hass(hass)
+    core = MockConfigEntry(domain="hue", entry_id="h1", title="Hue")
+    core.add_to_hass(hass)
+
+    roster = build_home_roster(hass, integration_versions={"hacs": "2.0.1"})
+    by_domain = {i["domain"]: i for i in roster["integrations"]}
+    assert by_domain["hacs"]["version"] == "2.0.1"
+    assert by_domain["hue"]["version"] == ""  # unversioned/core → empty
+
+    # Absent map → every version falls back to empty.
+    assert all(i["version"] == "" for i in build_home_roster(hass)["integrations"])
+
+
+@pytest.mark.asyncio
+async def test_roster_exposes_supervisor_apps(hass: HomeAssistant) -> None:
+    """The Supervisor app (add-on) list is normalized into RosterApp rows —
+    version + latest + update availability + state, with URL credentials
+    stripped."""
+    apps = [
+        {
+            "slug": "core_mosquitto",
+            "name": "Mosquitto broker",
+            "version": "6.4.0",
+            "version_latest": "6.5.0",
+            "update_available": True,
+            "state": "started",
+            "url": "https://github.com/home-assistant/addons/tree/master/mosquitto",
+        },
+        {
+            "slug": "a0d7b954_nodered",
+            "name": "Node-RED",
+            "version": "18.0.3",
+            "version_latest": "18.0.3",
+            "update_available": False,
+            "state": "stopped",
+            "url": "http://admin:secret@nodered.local/",
+        },
+    ]
+
+    roster = build_home_roster(hass, apps=apps)
+    by_slug = {a["slug"]: a for a in roster["apps"]}
+
+    mqtt = by_slug["core_mosquitto"]
+    assert mqtt["name"] == "Mosquitto broker"
+    assert mqtt["version"] == "6.4.0"
+    assert mqtt["version_latest"] == "6.5.0"
+    assert mqtt["update_available"] is True
+    assert mqtt["state"] == "started"
+
+    nodered = by_slug["a0d7b954_nodered"]
+    assert nodered["update_available"] is False
+    assert nodered["state"] == "stopped"
+    # Embedded basic-auth credentials are stripped before export.
+    assert nodered["url"] == "http://nodered.local/"
+
+
+@pytest.mark.asyncio
+async def test_roster_apps_default_empty_unsupervised(hass: HomeAssistant) -> None:
+    """No apps threaded in (unsupervised Core/Container install) → empty list,
+    never missing from the roster."""
+    roster = build_home_roster(hass)
+    assert roster["apps"] == []
+
+
+@pytest.mark.asyncio
 async def test_roster_unknown_is_available_not_offline(hass: HomeAssistant) -> None:
     """An ``unknown`` entity (e.g. a TTS/notify service) is a valid no-value
     state, not offline — it must count as available."""

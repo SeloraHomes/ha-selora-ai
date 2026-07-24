@@ -125,7 +125,27 @@
               "devices": { "type": "integer" },
               "entities": { "type": "integer" },
               "has_issue": { "type": "boolean" },
-              "custom": { "type": "boolean", "description": "True when the integration is a custom component (not built into Home Assistant)." }
+              "custom": { "type": "boolean", "description": "True when the integration is a custom component (not built into Home Assistant)." },
+              "url": { "type": "string", "description": "Manifest documentation URL (integration docs page); empty string when unknown." },
+              "version": { "type": "string", "description": "Integration manifest version. Populated for custom components; empty for core integrations, which are unversioned and track producer.ha_version. Optional (additive to v2)." }
+            }
+          }
+        },
+        "apps": {
+          "type": "array",
+          "description": "Installed Supervisor apps (formerly 'add-ons'). Present only on supervised installs; empty array on Core/Container installs. Optional (additive to v2); absent on older producers, treat as [].",
+          "items": {
+            "type": "object",
+            "required": ["slug", "name", "version", "version_latest", "update_available", "state"],
+            "additionalProperties": true,
+            "properties": {
+              "slug": { "type": "string" },
+              "name": { "type": "string" },
+              "version": { "type": "string", "description": "Installed version; empty string when the Supervisor reported none." },
+              "version_latest": { "type": "string", "description": "Latest available version; empty string when unknown." },
+              "update_available": { "type": "boolean" },
+              "state": { "type": "string", "description": "started | stopped | startup | error | unknown" },
+              "url": { "type": "string", "description": "App homepage / management URL, credential-stripped; empty string when none." }
             }
           }
         },
