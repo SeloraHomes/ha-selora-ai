@@ -1418,6 +1418,22 @@ INSIGHTS_EXPORT_SCHEMA_VERSION = 2
 # pathological install shouldn't produce an unbounded artifact. Truncation is
 # logged (never silent) and flagged in the envelope's collection block.
 INSIGHTS_ROSTER_MAX_ENTITIES = 5000
+# Integrations whose entities/devices are inherently transient — BLE beacons and
+# presence advertisements that HA materializes per detected device. They go
+# "unavailable" simply when out of range, and are often not even the user's
+# devices (a passing car's TPMS, a neighbour's tag). The health monitor excludes
+# them from offline-device detection; the roster flags each such device
+# (RosterDevice.transient) so consumers can drop them from the "needs attention"
+# tally and the default device view.
+TRANSIENT_INTEGRATIONS = frozenset(
+    {
+        "ibeacon",
+        "private_ble_device",
+        "bluetooth_le_tracker",
+        "ble_monitor",
+        "bermuda",
+    }
+)
 # Path parts under hass.config.config_dir.
 INSIGHTS_EXPORT_PATH_PARTS = ("selora_ai", "insights")
 INSIGHTS_EXPORT_ARTIFACT_DIR = "exports"

@@ -999,6 +999,7 @@ class RosterDevice(TypedDict):
     unavailable_entities: int  # ENABLED, visible entities with no usable state
     disabled_entities: int  # intentionally-off entities (neutral, not broken)
     url: str  # device configuration_url (e.g. add-on homepage), "" if none
+    transient: bool  # BLE beacon / presence advert (out-of-range != broken)
 
 
 class RosterEntity(TypedDict):

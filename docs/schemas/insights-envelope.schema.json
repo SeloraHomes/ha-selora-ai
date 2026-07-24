@@ -155,6 +155,10 @@
               "url": {
                 "type": "string",
                 "description": "Device configuration_url (e.g. an add-on's homepage / management page); empty string when the device has none."
+              },
+              "transient": {
+                "type": "boolean",
+                "description": "True when EVERY integration backing the device is a transient BLE beacon / presence-advert source (ibeacon, private_ble_device, bluetooth_le_tracker, ble_monitor, bermuda). Such devices go unavailable simply when out of range and are often not the user's — consumers should drop them from the 'needs attention' tally and default device view (behind a toggle). Optional (additive to v2); absent on older producers, treat as false."
               }
             }
           }

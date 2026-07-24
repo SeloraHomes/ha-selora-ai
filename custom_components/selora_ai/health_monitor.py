@@ -60,6 +60,7 @@ from .const import (
     HEALTH_SILENT_MULTIPLIER,
     HEALTH_UNAVAILABLE_GRACE_SECS,
     SIGNAL_INSIGHTS_UPDATED,
+    TRANSIENT_INTEGRATIONS,
 )
 
 if TYPE_CHECKING:
@@ -907,22 +908,6 @@ def _in_scope(entity_id: str) -> bool:
     return domain in COLLECTOR_DOMAINS
 
 
-# Integrations whose entities are inherently transient — BLE beacons / presence
-# advertisements that HA materializes per detected device. They go "unavailable"
-# simply when out of range, are often not even the user's devices (a passing
-# car's TPMS, a neighbour's tag), and must never be reported as an offline
-# device-health issue.
-_TRANSIENT_INTEGRATIONS = frozenset(
-    {
-        "ibeacon",
-        "private_ble_device",
-        "bluetooth_le_tracker",
-        "ble_monitor",
-        "bermuda",
-    }
-)
-
-
 _PRESENCE_DOMAINS = frozenset({"device_tracker", "person"})
 
 
@@ -930,12 +915,12 @@ def _is_transient(entity_id: str, ent_reg: er.EntityRegistry) -> bool:
     """Fast-path exclusion for entities whose absence is normal, not a device
     fault: presence entities (``device_tracker`` / ``person`` — away or out of
     range is expected) and entities from known BLE-beacon integrations (see
-    ``_TRANSIENT_INTEGRATIONS``). Immediate and restart-proof; the availability
+    ``TRANSIENT_INTEGRATIONS``). Immediate and restart-proof; the availability
     ratio gate below catches the general (unlisted) case after observation."""
     if entity_id.split(".")[0] in _PRESENCE_DOMAINS:
         return True
     entry = ent_reg.async_get(entity_id)
-    return bool(entry and entry.platform in _TRANSIENT_INTEGRATIONS)
+    return bool(entry and entry.platform in TRANSIENT_INTEGRATIONS)
 
 
 def _is_preserved_offline(hass: HomeAssistant, ent_reg: er.EntityRegistry, entity_id: str) -> bool:

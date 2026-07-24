@@ -121,6 +121,13 @@ Additive within v2 (nullable/optional, no version bump):
   health problem.
 - `roster.devices[].url` — device `configuration_url` (e.g. an add-on's
   homepage / management page); empty string when none.
+- `roster.devices[].transient` — `true` when **every** integration backing
+  the device is a transient BLE beacon / presence-advert source (`ibeacon`,
+  `private_ble_device`, `bluetooth_le_tracker`, `ble_monitor`, `bermuda`).
+  Those devices go unavailable simply when out of range and are often not the
+  user's (a passing car's TPMS, a neighbour's tag). Consumers should exclude
+  them from the "needs attention" tally and the default device view, keeping
+  them behind a toggle. Absent on older producers → treat as `false`.
 
 `roster.devices[].unavailable_entities` counts only **enabled, visible**
 entities with no usable state — it excludes disabled and hidden entities.
