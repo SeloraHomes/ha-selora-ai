@@ -4,6 +4,7 @@ import {
   collectFlowEntityIds,
   collectFlowDeviceRefs,
   displayTriggers,
+  normalizeCondition,
   asArray,
 } from "../shared/flow-description.js";
 import { fmtEntity } from "../shared/formatting.js";
@@ -201,7 +202,11 @@ function renderFlowNode(host, item, kind, ctx) {
 // an explicit "All of the following" group, or `(A and B) or C` would
 // read as "any of A, B, C" and invert the logic. `or` / `not` always draw
 // a labeled group, and their children are no longer in an all-of context.
-function renderConditionItem(host, cond, ctx, implicitAll = true) {
+function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
+  // Shorthand template strings arrive from `if:` / `conditions:` / nested
+  // and-or-not lists; expand them so they get the template description and
+  // clickable entities instead of raw Jinja.
+  const cond = normalizeCondition(rawCond);
   if (cond && typeof cond === "object") {
     const type = cond.condition;
     if (type === "and") {
@@ -240,8 +245,34 @@ function renderConditionItem(host, cond, ctx, implicitAll = true) {
 // branching structure: each ``choose`` branch is shown as
 // "IF <conditions> THEN <sequence>", with a final "OTHERWISE
 // <default>" panel when one is present. The same pattern handles
-// ``parallel`` / ``sequence`` lists.
+// ``if``/``then``/``else`` and ``parallel`` / ``sequence`` lists.
 function renderActionItem(host, action, ctx) {
+  // `if`/`then`/`else` — HA's single-branch conditional. Rendered with the
+  // same IF/OTHERWISE panels as a `choose` so the two read alike. `if` takes
+  // a condition list (or a single condition / shorthand template string).
+  if (action && typeof action === "object" && action.if != null) {
+    const elseSteps = asArray(action.else);
+    return html`<div class="flow-choose">
+      <div class="flow-branch">
+        <div class="flow-branch-label">
+          ${host._t("automations_flow_branch_if", "If")}
+        </div>
+        ${asArray(action.if).map((c) => renderConditionItem(host, c, ctx))}
+        <div class="flow-arrow-sm">↓</div>
+        ${asArray(action.then).map((s) => renderActionItem(host, s, ctx))}
+      </div>
+      ${
+        elseSteps.length
+          ? html`<div class="flow-branch">
+              <div class="flow-branch-label">
+                ${host._t("automations_flow_branch_otherwise", "Otherwise")}
+              </div>
+              ${elseSteps.map((s) => renderActionItem(host, s, ctx))}
+            </div>`
+          : ""
+      }
+    </div>`;
+  }
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
     return html`<div class="flow-choose">
       ${action.choose.map(
