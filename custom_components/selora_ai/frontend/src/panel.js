@@ -352,6 +352,7 @@ class SeloraAIPanel extends LitElement {
       _config: { type: Object },
       _savingLlmConfig: { type: Boolean },
       _savingAdvancedConfig: { type: Boolean },
+      _savingHouseholdProfile: { type: Boolean },
       _clearingCache: { type: Boolean },
       _llmSaveStatus: { type: Object },
       _showApiKeyInput: { type: Boolean },
@@ -660,6 +661,7 @@ class SeloraAIPanel extends LitElement {
     this._config = null;
     this._savingLlmConfig = false;
     this._savingAdvancedConfig = false;
+    this._savingHouseholdProfile = false;
     this._clearingCache = false;
     this._llmSaveStatus = null;
     this._showApiKeyInput = false;
@@ -1357,6 +1359,26 @@ class SeloraAIPanel extends LitElement {
       this._updateConfig("telemetry_prompt_seen", true);
     } catch (err) {
       this._showToast("Failed to save: " + err.message, "error");
+    }
+  }
+
+  async _saveHouseholdProfile() {
+    if (!this._config || this._savingHouseholdProfile) return;
+    this._savingHouseholdProfile = true;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/update_config",
+        config: { household_profile: this._config.household_profile || "" },
+      });
+      await this._loadConfig();
+      this._showToast(
+        this._t("settings_household_profile_saved", "Household profile saved."),
+        "success",
+      );
+    } catch (err) {
+      this._showToast("Failed to save: " + err.message, "error");
+    } finally {
+      this._savingHouseholdProfile = false;
     }
   }
 
