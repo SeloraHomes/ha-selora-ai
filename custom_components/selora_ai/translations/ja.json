@@ -916,7 +916,12 @@
     "recipes_step5_dashboard_help": "チャットで追加",
     "recipes_refine_chat_failed": "このレシピのチャットを開けませんでした。",
     "recipes_step3_hint_blocked": "このレシピはまだ準備できません。レシピのエラーを確認してから再試行してください。",
-    "recipes_catalog_empty": "このカタログにはまだレシピがありません。"
+    "recipes_catalog_empty": "このカタログにはまだレシピがありません。",
+    "automations_flow_repeat_count": "{count}回繰り返す",
+    "automations_flow_repeat_for_each": "各項目で繰り返す（{count}）",
+    "automations_flow_disabled": "無効",
+    "automations_flow_disabled_block": "無効 — 実行されません",
+    "automations_flow_repeat_for_each_dynamic": "各項目で繰り返す"
   },
   "options": {
     "step": {

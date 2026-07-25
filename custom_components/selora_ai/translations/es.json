@@ -916,7 +916,12 @@
     "recipes_step5_dashboard_help": "Añadirla en el chat",
     "recipes_refine_chat_failed": "No se pudo abrir un chat para esta receta.",
     "recipes_step3_hint_blocked": "Esta receta aún no se puede preparar: revisa la receta en busca de errores e inténtalo de nuevo.",
-    "recipes_catalog_empty": "Aún no hay recetas en este catálogo."
+    "recipes_catalog_empty": "Aún no hay recetas en este catálogo.",
+    "automations_flow_repeat_count": "Repetir {count}×",
+    "automations_flow_repeat_for_each": "Repetir para cada elemento ({count})",
+    "automations_flow_disabled": "desactivado",
+    "automations_flow_disabled_block": "Desactivado — no se ejecuta",
+    "automations_flow_repeat_for_each_dynamic": "Repetir para cada elemento"
   },
   "options": {
     "step": {

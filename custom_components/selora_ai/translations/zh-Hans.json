@@ -916,7 +916,12 @@
     "recipes_step5_dashboard_help": "在对话中添加",
     "recipes_refine_chat_failed": "无法为此配方打开对话。",
     "recipes_step3_hint_blocked": "此配方尚无法准备——请检查配方是否有错误后重试。",
-    "recipes_catalog_empty": "此目录中暂无配方。"
+    "recipes_catalog_empty": "此目录中暂无配方。",
+    "automations_flow_repeat_count": "重复 {count} 次",
+    "automations_flow_repeat_for_each": "对每个项重复（{count}）",
+    "automations_flow_disabled": "已禁用",
+    "automations_flow_disabled_block": "已禁用 — 不会运行",
+    "automations_flow_repeat_for_each_dynamic": "对每个项重复"
   },
   "options": {
     "step": {

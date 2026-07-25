@@ -659,18 +659,36 @@ async def _handle_websocket_delete_scene(
     store = _get_scene_store(hass)
     await store.async_reconcile_yaml(force=True)
 
-    try:
-        from ..scene_utils import async_remove_scene_yaml  # noqa: PLC0415
+    # Id-less scenes.yaml rows are listed with scene_id set to their entity
+    # object_id, which is NOT a yaml `id`. If an unrelated entry happens to carry
+    # that string as its `id`, removing by id would delete that other scene and
+    # report success. Whenever the caller told us which entity they picked, verify
+    # the id doesn't point somewhere else — checked regardless of whether the
+    # store tracks scene_id, so this can't be defeated by a record existing for
+    # the colliding id. The check reports only positive collision evidence, so a
+    # scene whose entity isn't loaded still takes the id path below.
+    found = removed = False
+    take_id_path = True
+    if entity_id:
+        from ..scene_utils import async_yaml_scene_id_conflicts_with_entity  # noqa: PLC0415
 
-        found, removed = await store.async_delete_with_yaml(
-            scene_id,
-            lambda sid: async_remove_scene_yaml(hass, sid),
+        take_id_path = not await async_yaml_scene_id_conflicts_with_entity(
+            hass, scene_id, entity_id
         )
-    except Exception as exc:  # noqa: BLE001 — propagate failure and undo soft-delete
-        _LOGGER.warning("Failed to delete scene %s: %s", scene_id, exc)
-        await store.async_restore(scene_id)
-        connection.send_error(msg["id"], "delete_failed", str(exc))
-        return
+
+    if take_id_path:
+        try:
+            from ..scene_utils import async_remove_scene_yaml  # noqa: PLC0415
+
+            found, removed = await store.async_delete_with_yaml(
+                scene_id,
+                lambda sid: async_remove_scene_yaml(hass, sid),
+            )
+        except Exception as exc:  # noqa: BLE001 — propagate failure and undo soft-delete
+            _LOGGER.warning("Failed to delete scene %s: %s", scene_id, exc)
+            await store.async_restore(scene_id)
+            connection.send_error(msg["id"], "delete_failed", str(exc))
+            return
 
     if not found and not removed:
         # scene_id matched neither the store nor a scenes.yaml `id`. An id-less

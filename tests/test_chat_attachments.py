@@ -374,7 +374,11 @@ class TestBuildChatMessages:
         )
         content = messages[-1]["content"]
         assert isinstance(content, list)
-        assert content[0] == {"type": "image", "media_type": "image/png", "data": PNG_B64}
+        # Images are preceded by an untrusted-data preamble so rendered text
+        # inside a screenshot can't read as an instruction to the tool loop.
+        assert content[0]["type"] == "text"
+        assert "untrusted data" in content[0]["text"]
+        assert content[1] == {"type": "image", "media_type": "image/png", "data": PNG_B64}
         assert content[-1]["type"] == "text"
         assert "USER REQUEST: what's this?" in content[-1]["text"]
 
@@ -395,7 +399,8 @@ class TestBuildChatMessages:
             attachments=[{"mime_type": "image/png", "data": PNG_B64}],
         )
         content = messages[-1]["content"]
-        assert content[0]["type"] == "image"
+        assert content[0]["type"] == "text"  # untrusted-data preamble
+        assert content[1]["type"] == "image"
         assert content[-1]["text"].startswith("USER REQUEST: ")
 
 

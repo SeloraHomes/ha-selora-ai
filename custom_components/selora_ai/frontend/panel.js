@@ -4461,6 +4461,39 @@ var proposalStyles = i`
     border-radius: 10px;
     background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.025);
   }
+  /* Steps carrying "enabled: false": dimmed and tagged so they never read as
+     part of the live flow, while staying inspectable. */
+  .flow-node--off {
+    opacity: 0.5;
+    border-style: dashed;
+  }
+  .flow-off-tag {
+    margin-left: 6px;
+    padding: 1px 5px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.1);
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+  .flow-off-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    opacity: 0.55;
+  }
+  .flow-off-wrap-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
   .flow-branch-label {
     font-size: 11px;
     font-weight: 700;
@@ -9438,6 +9471,11 @@ var en_default = {
     recipes_step3_hint_blocked:
       "This recipe can't be prepared yet \u2014 check the recipe for errors, then try again.",
     recipes_catalog_empty: "No recipes in this catalog yet.",
+    automations_flow_repeat_count: "Repeat {count}\xD7",
+    automations_flow_repeat_for_each: "Repeat for each item ({count})",
+    automations_flow_disabled: "disabled",
+    automations_flow_disabled_block: "Disabled \u2014 does not run",
+    automations_flow_repeat_for_each_dynamic: "Repeat for each item",
   },
   options: {
     step: {
@@ -10578,6 +10616,14 @@ var fr_default = {
     recipes_step3_hint_blocked:
       "Cette recette ne peut pas encore \xEAtre pr\xE9par\xE9e \u2014 v\xE9rifiez les erreurs de la recette, puis r\xE9essayez.",
     recipes_catalog_empty: "Aucune recette dans ce catalogue pour le moment.",
+    automations_flow_repeat_count: "R\xE9p\xE9ter {count}\xD7",
+    automations_flow_repeat_for_each:
+      "R\xE9p\xE9ter pour chaque \xE9l\xE9ment ({count})",
+    automations_flow_disabled: "d\xE9sactiv\xE9",
+    automations_flow_disabled_block:
+      "D\xE9sactiv\xE9 \u2014 ne s'ex\xE9cute pas",
+    automations_flow_repeat_for_each_dynamic:
+      "R\xE9p\xE9ter pour chaque \xE9l\xE9ment",
   },
   options: {
     step: {
@@ -11711,6 +11757,14 @@ var de_default = {
     recipes_step3_hint_blocked:
       "Dieses Rezept kann noch nicht vorbereitet werden \u2014 pr\xFCfen Sie das Rezept auf Fehler und versuchen Sie es erneut.",
     recipes_catalog_empty: "Noch keine Rezepte in diesem Katalog.",
+    automations_flow_repeat_count: "{count}\xD7 wiederholen",
+    automations_flow_repeat_for_each:
+      "F\xFCr jedes Element wiederholen ({count})",
+    automations_flow_disabled: "deaktiviert",
+    automations_flow_disabled_block:
+      "Deaktiviert \u2014 wird nicht ausgef\xFChrt",
+    automations_flow_repeat_for_each_dynamic:
+      "F\xFCr jedes Element wiederholen",
   },
   options: {
     step: {
@@ -12829,6 +12883,11 @@ var es_default = {
     recipes_step3_hint_blocked:
       "Esta receta a\xFAn no se puede preparar: revisa la receta en busca de errores e int\xE9ntalo de nuevo.",
     recipes_catalog_empty: "A\xFAn no hay recetas en este cat\xE1logo.",
+    automations_flow_repeat_count: "Repetir {count}\xD7",
+    automations_flow_repeat_for_each: "Repetir para cada elemento ({count})",
+    automations_flow_disabled: "desactivado",
+    automations_flow_disabled_block: "Desactivado \u2014 no se ejecuta",
+    automations_flow_repeat_for_each_dynamic: "Repetir para cada elemento",
   },
   options: {
     step: {
@@ -13946,6 +14005,11 @@ var it_default = {
     recipes_step3_hint_blocked:
       "Questa ricetta non pu\xF2 ancora essere preparata \u2014 controlla la ricetta per errori e riprova.",
     recipes_catalog_empty: "Nessuna ricetta in questo catalogo per ora.",
+    automations_flow_repeat_count: "Ripeti {count}\xD7",
+    automations_flow_repeat_for_each: "Ripeti per ogni elemento ({count})",
+    automations_flow_disabled: "disattivato",
+    automations_flow_disabled_block: "Disattivato \u2014 non viene eseguito",
+    automations_flow_repeat_for_each_dynamic: "Ripeti per ogni elemento",
   },
   options: {
     step: {
@@ -15078,6 +15142,12 @@ var nl_default = {
     recipes_step3_hint_blocked:
       "Dit recept kan nog niet worden voorbereid \u2014 controleer het recept op fouten en probeer het opnieuw.",
     recipes_catalog_empty: "Nog geen recepten in deze catalogus.",
+    automations_flow_repeat_count: "{count}\xD7 herhalen",
+    automations_flow_repeat_for_each: "Herhalen voor elk item ({count})",
+    automations_flow_disabled: "uitgeschakeld",
+    automations_flow_disabled_block:
+      "Uitgeschakeld \u2014 wordt niet uitgevoerd",
+    automations_flow_repeat_for_each_dynamic: "Herhalen voor elk item",
   },
 };
 
@@ -16247,6 +16317,11 @@ var hu_default = {
     recipes_step3_hint_blocked:
       "Ez a recept m\xE9g nem k\xE9sz\xEDthet\u0151 el\u0151 \u2014 ellen\u0151rizd a receptet hib\xE1k\xE9rt, majd pr\xF3b\xE1ld \xFAjra.",
     recipes_catalog_empty: "Ebben a katal\xF3gusban m\xE9g nincsenek receptek.",
+    automations_flow_repeat_count: "{count}\xD7 ism\xE9tl\xE9s",
+    automations_flow_repeat_for_each: "Ism\xE9tl\xE9s minden elemre ({count})",
+    automations_flow_disabled: "letiltva",
+    automations_flow_disabled_block: "Letiltva \u2014 nem fut le",
+    automations_flow_repeat_for_each_dynamic: "Ism\xE9tl\xE9s minden elemre",
   },
 };
 
@@ -17357,6 +17432,11 @@ var pt_default = {
     recipes_step3_hint_blocked:
       "Esta receita ainda n\xE3o pode ser preparada \u2014 verifique se h\xE1 erros na receita e tente novamente.",
     recipes_catalog_empty: "Ainda n\xE3o h\xE1 receitas neste cat\xE1logo.",
+    automations_flow_repeat_count: "Repetir {count}\xD7",
+    automations_flow_repeat_for_each: "Repetir para cada item ({count})",
+    automations_flow_disabled: "desativado",
+    automations_flow_disabled_block: "Desativado \u2014 n\xE3o \xE9 executado",
+    automations_flow_repeat_for_each_dynamic: "Repetir para cada item",
   },
   options: {
     step: {
@@ -19008,6 +19088,16 @@ var ru_default = {
       "\u042D\u0442\u043E\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u043F\u043E\u043A\u0430 \u043D\u0435\u043B\u044C\u0437\u044F \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u0438\u0442\u044C \u2014 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0440\u0435\u0446\u0435\u043F\u0442 \u043D\u0430 \u043E\u0448\u0438\u0431\u043A\u0438 \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
     recipes_catalog_empty:
       "\u0412 \u044D\u0442\u043E\u043C \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0435 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432.",
+    automations_flow_repeat_count:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C {count}\xD7",
+    automations_flow_repeat_for_each:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0430 ({count})",
+    automations_flow_disabled:
+      "\u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E",
+    automations_flow_disabled_block:
+      "\u041E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E \u2014 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F",
+    automations_flow_repeat_for_each_dynamic:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0430",
   },
   options: {
     step: {
@@ -20385,6 +20475,14 @@ var ja_default = {
       "\u3053\u306E\u30EC\u30B7\u30D4\u306F\u307E\u3060\u6E96\u5099\u3067\u304D\u307E\u305B\u3093\u3002\u30EC\u30B7\u30D4\u306E\u30A8\u30E9\u30FC\u3092\u78BA\u8A8D\u3057\u3066\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
     recipes_catalog_empty:
       "\u3053\u306E\u30AB\u30BF\u30ED\u30B0\u306B\u306F\u307E\u3060\u30EC\u30B7\u30D4\u304C\u3042\u308A\u307E\u305B\u3093\u3002",
+    automations_flow_repeat_count: "{count}\u56DE\u7E70\u308A\u8FD4\u3059",
+    automations_flow_repeat_for_each:
+      "\u5404\u9805\u76EE\u3067\u7E70\u308A\u8FD4\u3059\uFF08{count}\uFF09",
+    automations_flow_disabled: "\u7121\u52B9",
+    automations_flow_disabled_block:
+      "\u7121\u52B9 \u2014 \u5B9F\u884C\u3055\u308C\u307E\u305B\u3093",
+    automations_flow_repeat_for_each_dynamic:
+      "\u5404\u9805\u76EE\u3067\u7E70\u308A\u8FD4\u3059",
   },
   options: {
     step: {
@@ -21661,6 +21759,14 @@ var ko_default = {
       "\uC774 \uB808\uC2DC\uD53C\uB294 \uC544\uC9C1 \uC900\uBE44\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 \uB808\uC2DC\uD53C\uC758 \uC624\uB958\uB97C \uD655\uC778\uD55C \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
     recipes_catalog_empty:
       "\uC774 \uCE74\uD0C8\uB85C\uADF8\uC5D0 \uC544\uC9C1 \uB808\uC2DC\uD53C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    automations_flow_repeat_count: "{count}\uD68C \uBC18\uBCF5",
+    automations_flow_repeat_for_each:
+      "\uAC01 \uD56D\uBAA9\uB9C8\uB2E4 \uBC18\uBCF5 ({count})",
+    automations_flow_disabled: "\uBE44\uD65C\uC131\uD654",
+    automations_flow_disabled_block:
+      "\uBE44\uD65C\uC131\uD654 \u2014 \uC2E4\uD589\uB418\uC9C0 \uC54A\uC74C",
+    automations_flow_repeat_for_each_dynamic:
+      "\uAC01 \uD56D\uBAA9\uB9C8\uB2E4 \uBC18\uBCF5",
   },
   options: {
     step: {
@@ -22870,6 +22976,14 @@ var zh_Hans_default = {
       "\u6B64\u914D\u65B9\u5C1A\u65E0\u6CD5\u51C6\u5907\u2014\u2014\u8BF7\u68C0\u67E5\u914D\u65B9\u662F\u5426\u6709\u9519\u8BEF\u540E\u91CD\u8BD5\u3002",
     recipes_catalog_empty:
       "\u6B64\u76EE\u5F55\u4E2D\u6682\u65E0\u914D\u65B9\u3002",
+    automations_flow_repeat_count: "\u91CD\u590D {count} \u6B21",
+    automations_flow_repeat_for_each:
+      "\u5BF9\u6BCF\u4E2A\u9879\u91CD\u590D\uFF08{count}\uFF09",
+    automations_flow_disabled: "\u5DF2\u7981\u7528",
+    automations_flow_disabled_block:
+      "\u5DF2\u7981\u7528 \u2014 \u4E0D\u4F1A\u8FD0\u884C",
+    automations_flow_repeat_for_each_dynamic:
+      "\u5BF9\u6BCF\u4E2A\u9879\u91CD\u590D",
   },
   options: {
     step: {
@@ -24084,6 +24198,14 @@ var zh_Hant_default = {
       "\u6B64\u98DF\u8B5C\u5C1A\u7121\u6CD5\u6E96\u5099\u2014\u2014\u8ACB\u6AA2\u67E5\u98DF\u8B5C\u662F\u5426\u6709\u932F\u8AA4\u5F8C\u91CD\u8A66\u3002",
     recipes_catalog_empty:
       "\u6B64\u76EE\u9304\u4E2D\u5C1A\u7121\u98DF\u8B5C\u3002",
+    automations_flow_repeat_count: "\u91CD\u8907 {count} \u6B21",
+    automations_flow_repeat_for_each:
+      "\u5C0D\u6BCF\u500B\u9805\u76EE\u91CD\u8907\uFF08{count}\uFF09",
+    automations_flow_disabled: "\u5DF2\u505C\u7528",
+    automations_flow_disabled_block:
+      "\u5DF2\u505C\u7528 \u2014 \u4E0D\u6703\u57F7\u884C",
+    automations_flow_repeat_for_each_dynamic:
+      "\u5C0D\u6BCF\u500B\u9805\u76EE\u91CD\u8907",
   },
   options: {
     step: {
@@ -26727,21 +26849,30 @@ async function _processImageFile(file) {
   const originalDataUrl = await _readAsDataUrl(file);
   const img = await _loadImage(originalDataUrl);
   const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
-  if (maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES) {
+  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const fitsAsIs =
+    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
+  if (file.type === "image/gif" && fitsAsIs) {
     return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
   }
-  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const lossless = file.type === "image/png" || file.type === "image/gif";
+  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
   canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (outMime === "image/jpeg") {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   return {
     name: file.name,
-    mimeType: "image/jpeg",
-    dataUrl: canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+    mimeType: outMime,
+    dataUrl:
+      outMime === "image/png"
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
   };
 }
 async function addImageAttachments(host, files) {
@@ -28609,6 +28740,17 @@ var PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `When ${eid} changes from ${from} to ${to}${dur}`,
     when_becomes: (eid, st, dur) => `When ${eid} becomes ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `When ${eid} changes from ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `When ${eid} changes from ${from} to anything other than ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `When ${eid} changes from anything other than ${from} to ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `When ${eid} changes from anything other than ${from} to anything other than ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `When ${eid} changes to anything other than ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `When ${eid} changes away from anything other than ${st}${dur}`,
     when_changes_state: (eid, dur) => `When ${eid} changes state${dur}`,
     for_duration: (d3) => ` for ${d3}`,
     when_between: (eid, a3, b3) => `When ${eid} is between ${a3} and ${b3}`,
@@ -28722,6 +28864,17 @@ var PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Quand ${eid} passe de ${from} \xE0 ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Quand ${eid} devient ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `Quand ${eid} quitte ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Quand ${eid} passe de ${from} \xE0 autre chose que ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Quand ${eid} passe d'autre chose que ${from} \xE0 ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Quand ${eid} passe d'autre chose que ${from} \xE0 autre chose que ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Quand ${eid} passe \xE0 autre chose que ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Quand ${eid} quitte autre chose que ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quand ${eid} change d'\xE9tat${dur}`,
     for_duration: (d3) => ` pendant ${d3}`,
     when_between: (eid, a3, b3) => `Quand ${eid} est entre ${a3} et ${b3}`,
@@ -28837,6 +28990,17 @@ var PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Wenn ${eid} von ${from} zu ${to} wechselt${dur}`,
     when_becomes: (eid, st, dur) => `Wenn ${eid} zu ${st} wird${dur}`,
+    when_changes_from: (eid, st, dur) => `Wenn ${eid} von ${st} wechselt${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Wenn ${eid} von ${from} zu etwas anderem als ${st} wechselt${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Wenn ${eid} von etwas anderem als ${from} zu ${st} wechselt${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Wenn ${eid} von etwas anderem als ${from} zu etwas anderem als ${st} wechselt${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Wenn ${eid} zu etwas anderem als ${st} wechselt${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Wenn ${eid} von etwas anderem als ${st} wechselt${dur}`,
     when_changes_state: (eid, dur) => `Wenn ${eid} den Zustand \xE4ndert${dur}`,
     for_duration: (d3) => ` f\xFCr ${d3}`,
     when_between: (eid, a3, b3) => `Wenn ${eid} zwischen ${a3} und ${b3} liegt`,
@@ -28950,6 +29114,17 @@ var PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Cuando ${eid} cambie de ${from} a ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Cuando ${eid} pase a ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `Cuando ${eid} salga de ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Cuando ${eid} pase de ${from} a algo distinto de ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Cuando ${eid} pase de algo distinto de ${from} a ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Cuando ${eid} pase de algo distinto de ${from} a algo distinto de ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Cuando ${eid} pase a algo distinto de ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Cuando ${eid} salga de algo distinto de ${st}${dur}`,
     when_changes_state: (eid, dur) => `Cuando ${eid} cambie de estado${dur}`,
     for_duration: (d3) => ` durante ${d3}`,
     when_between: (eid, a3, b3) => `Cuando ${eid} est\xE9 entre ${a3} y ${b3}`,
@@ -29064,6 +29239,17 @@ var PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Quando ${eid} passa da ${from} a ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Quando ${eid} diventa ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `Quando ${eid} esce da ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Quando ${eid} passa da ${from} a qualcosa diverso da ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Quando ${eid} passa da qualcosa diverso da ${from} a ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Quando ${eid} passa da qualcosa diverso da ${from} a qualcosa diverso da ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Quando ${eid} passa a qualcosa diverso da ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Quando ${eid} esce da qualcosa diverso da ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quando ${eid} cambia stato${dur}`,
     for_duration: (d3) => ` per ${d3}`,
     when_between: (eid, a3, b3) => `Quando ${eid} \xE8 tra ${a3} e ${b3}`,
@@ -29180,6 +29366,18 @@ var PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Wanneer ${eid} verandert van ${from} naar ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Wanneer ${eid} ${st} wordt${dur}`,
+    when_changes_from: (eid, st, dur) =>
+      `Wanneer ${eid} van ${st} verandert${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Wanneer ${eid} van ${from} naar iets anders dan ${st} verandert${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Wanneer ${eid} van iets anders dan ${from} naar ${st} verandert${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Wanneer ${eid} van iets anders dan ${from} naar iets anders dan ${st} verandert${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Wanneer ${eid} iets anders dan ${st} wordt${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Wanneer ${eid} van iets anders dan ${st} verandert${dur}`,
     when_changes_state: (eid, dur) =>
       `Wanneer ${eid} van status verandert${dur}`,
     for_duration: (d3) => ` gedurende ${d3}`,
@@ -29298,6 +29496,18 @@ var PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Amikor ${eid} ${from}-r\xF3l ${to}-ra v\xE1lt${dur}`,
     when_becomes: (eid, st, dur) => `Amikor ${eid} ${st} lesz${dur}`,
+    when_changes_from: (eid, st, dur) =>
+      `Amikor ${eid} ${st} \xE1llapotb\xF3l v\xE1ltozik${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Amikor ${eid} ${from} \xE1llapotb\xF3l ${st}-t\xF3l elt\xE9r\u0151re v\xE1ltozik${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Amikor ${eid} ${from}-t\xF3l elt\xE9r\u0151r\u0151l ${st} \xE1llapotba v\xE1ltozik${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Amikor ${eid} ${from}-t\xF3l elt\xE9r\u0151r\u0151l ${st}-t\xF3l elt\xE9r\u0151re v\xE1ltozik${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Amikor ${eid} ${st}-t\xF3l elt\xE9r\u0151re v\xE1ltozik${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Amikor ${eid} ${st}-t\xF3l elt\xE9r\u0151r\u0151l v\xE1ltozik${dur}`,
     when_changes_state: (eid, dur) =>
       `Amikor ${eid} \xE1llapotot v\xE1lt${dur}`,
     for_duration: (d3) => ` ${d3}-ig`,
@@ -29428,6 +29638,15 @@ function _entityNamesOr(hass, val, t5) {
   const names = arr.map((e6) => fmtEntity(hass, e6));
   return names.slice(0, -1).join(", ") + t5("or") + names[names.length - 1];
 }
+function _statesOr(val, lang, t5) {
+  if (val == null) return null;
+  const arr = asArray(val);
+  if (!arr.length) return null;
+  const names = arr.map((s4) => fmtState(s4, lang)).filter(Boolean);
+  if (!names.length) return null;
+  if (names.length === 1) return names[0];
+  return names.slice(0, -1).join(", ") + t5("or") + names[names.length - 1];
+}
 var _CLAUSE_RE =
   /^\(?\s*(?:states\(\s*['"]([^'"]+)['"]\s*\)|state_attr\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\))(?:\s*\|\s*(?:int|float)\b(?:\([^()]*\))?)*\s*\)?\s*(<=?|>=?)\s*(-?\d+(?:\.\d+)?)\s*$/;
 var _IS_STATE_RE =
@@ -29537,18 +29756,40 @@ function describeFlowItem(hass, item, ctx) {
   }
   if (p4 === "state") {
     const eid = _entityNamesOr(hass, item.entity_id, t5);
-    const rawTo = item.to == null ? null : String(item.to);
-    const fromState = fmtState(item.from, lang);
-    const toState = fmtState(item.to, lang);
+    const rawTo = Array.isArray(item.to)
+      ? null
+      : item.to == null
+        ? null
+        : String(item.to);
+    const fromList = item.from == null ? null : asArray(item.from).map(String);
+    const fromState = _statesOr(item.from, lang, t5);
+    const toState = _statesOr(item.to, lang, t5);
+    const notFrom = _statesOr(item.not_from, lang, t5);
+    const notTo = _statesOr(item.not_to, lang, t5);
     const duration = fmtDuration(item.for);
     const dur = duration ? t5("for_duration", duration) : "";
-    if (rawTo === "on") return t5("when_turns_on", eid, dur);
-    if (rawTo === "off") return t5("when_turns_off", eid, dur);
-    if (toState && fromState)
+    const sourceIsOnly = (state) =>
+      fromList === null || (fromList.length === 1 && fromList[0] === state);
+    const sourceImplied =
+      !notFrom &&
+      ((rawTo === "on" && sourceIsOnly("off")) ||
+        (rawTo === "off" && sourceIsOnly("on")));
+    if (sourceImplied && rawTo === "on") return t5("when_turns_on", eid, dur);
+    if (sourceImplied && rawTo === "off") return t5("when_turns_off", eid, dur);
+    if (fromState && toState)
       return t5("when_changes_from_to", eid, fromState, toState, dur);
+    if (fromState && notTo)
+      return t5("when_changes_from_to_other", eid, fromState, notTo, dur);
+    if (notFrom && toState)
+      return t5("when_changes_from_other_to", eid, notFrom, toState, dur);
+    if (notFrom && notTo)
+      return t5("when_changes_from_other_to_other", eid, notFrom, notTo, dur);
     if (toState) return t5("when_becomes", eid, toState, dur);
+    if (notTo) return t5("when_changes_to_other", eid, notTo, dur);
+    if (fromState) return t5("when_changes_from", eid, fromState, dur);
+    if (notFrom) return t5("when_changes_from_other", eid, notFrom, dur);
     const firstId = String(asArray(item.entity_id)[0] || "");
-    if (!item.from && firstId.startsWith("sensor."))
+    if (firstId.startsWith("sensor."))
       return `${t5("when_value_changes", eid)}${dur}`;
     return t5("when_changes_state", eid, dur);
   }
@@ -29556,11 +29797,15 @@ function describeFlowItem(hass, item, ctx) {
     const eid = _entityNamesOr(hass, item.entity_id, t5);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
+    const nsDuration = fmtDuration(item.for);
+    const nsDur = nsDuration ? t5("for_duration", nsDuration) : "";
     if (item.above != null && item.below != null)
-      return t5("when_between", eid, above, below);
-    if (item.above != null) return t5("when_rises_above", eid, above);
-    if (item.below != null) return t5("when_drops_below", eid, below);
-    return t5("when_value_changes", eid);
+      return `${t5("when_between", eid, above, below)}${nsDur}`;
+    if (item.above != null)
+      return `${t5("when_rises_above", eid, above)}${nsDur}`;
+    if (item.below != null)
+      return `${t5("when_drops_below", eid, below)}${nsDur}`;
+    return `${t5("when_value_changes", eid)}${nsDur}`;
   }
   if (p4 === "homeassistant") {
     const ev =
@@ -29629,8 +29874,10 @@ function describeFlowItem(hass, item, ctx) {
   const cond = item.condition;
   if (cond === "state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
-    const st = fmtState(item.state ?? item.to, lang);
-    return t5("cond_is", eid, st);
+    const st = _statesOr(item.state ?? item.to, lang, t5);
+    const condDuration = fmtDuration(item.for);
+    const condDur = condDuration ? t5("for_duration", condDuration) : "";
+    return `${t5("cond_is", eid, st)}${condDur}`;
   }
   if (cond === "numeric_state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
@@ -29888,6 +30135,7 @@ function _isBareStateTrigger(tr) {
 }
 function _actionRunsUnconditionally(a3) {
   if (!a3 || typeof a3 !== "object") return true;
+  if (a3.enabled === false) return false;
   if (Array.isArray(a3.choose)) return asArray(a3.default).length > 0;
   if (a3.if != null) return asArray(a3.else).length > 0;
   if (Array.isArray(a3.parallel))
@@ -29908,7 +30156,7 @@ function mergeEquivalentTriggers(triggers) {
   const out = [];
   let merged = null;
   for (const tr of asArray(triggers)) {
-    if (!_isBareStateTrigger(tr) || tr.id != null) {
+    if (!_isBareStateTrigger(tr) || tr.id != null || tr?.enabled === false) {
       out.push(tr);
       continue;
     }
@@ -29926,10 +30174,11 @@ function displayTriggers(triggers, conditions, actions) {
   if (!trigs.length) return [];
   const refIds = /* @__PURE__ */ new Set();
   const condEntities = /* @__PURE__ */ new Set();
-  const visitCondition = (raw) => {
+  const visitCondition = (raw, negated = false) => {
     const c4 = normalizeCondition(raw);
     if (!c4 || typeof c4 !== "object") return;
-    if (c4.condition === "trigger")
+    if (c4.enabled === false) return;
+    if (c4.condition === "trigger" && !negated)
       for (const id of asArray(c4.id)) refIds.add(String(id));
     if (
       c4.condition !== "template" ||
@@ -29937,10 +30186,12 @@ function displayTriggers(triggers, conditions, actions) {
     ) {
       for (const eid of collectFlowEntityIds(c4)) condEntities.add(eid);
     }
-    for (const sub of asArray(c4.conditions)) visitCondition(sub);
+    for (const sub of asArray(c4.conditions))
+      visitCondition(sub, negated || c4.condition === "not");
   };
   const visitAction = (a3) => {
     if (!a3 || typeof a3 !== "object") return;
+    if (a3.enabled === false) return;
     for (const branch of asArray(a3.choose)) {
       for (const c4 of asArray(branch?.conditions)) visitCondition(c4);
       for (const s4 of asArray(branch?.sequence)) visitAction(s4);
@@ -29951,11 +30202,12 @@ function displayTriggers(triggers, conditions, actions) {
     }
     for (const s4 of asArray(a3.repeat?.sequence)) visitAction(s4);
   };
-  asArray(conditions).forEach(visitCondition);
+  asArray(conditions).forEach((c4) => visitCondition(c4));
   asArray(actions).forEach(visitAction);
   const hasUnconditional = _hasUnconditionalActionPath(actions);
   const isRedundant = (tr, i7) => {
     if (!tr || typeof tr !== "object") return false;
+    if (tr.enabled === false) return false;
     if (hasUnconditional) return false;
     if (refIds.has(_triggerEffectiveId(tr, i7))) return true;
     if (!_isBareStateTrigger(tr)) return false;
@@ -30697,6 +30949,18 @@ function renderFlowDescription(host, item, ctx) {
   ]
     .filter((l3) => l3.name)
     .sort((a3, b3) => b3.name.length - a3.name.length);
+  const targetsByName = /* @__PURE__ */ new Map();
+  for (const l3 of lookups) {
+    if (!targetsByName.has(l3.name)) targetsByName.set(l3.name, []);
+    targetsByName.get(l3.name).push(l3.link);
+  }
+  const nameCursor = /* @__PURE__ */ new Map();
+  const nextLinkFor = (name) => {
+    const queue = targetsByName.get(name) || [];
+    const i7 = nameCursor.get(name) ?? 0;
+    nameCursor.set(name, i7 + 1);
+    return queue[Math.min(i7, queue.length - 1)];
+  };
   const segments = [];
   let remaining = description;
   let safety = 32;
@@ -30715,7 +30979,7 @@ function renderFlowDescription(host, item, ctx) {
       break;
     }
     if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
-    segments.push({ link: bestMatch.link });
+    segments.push({ link: nextLinkFor(bestMatch.name) });
     remaining = remaining.slice(bestIdx + bestMatch.name.length);
   }
   if (remaining && safety <= 0) segments.push(remaining);
@@ -30741,11 +31005,34 @@ function renderFlowDescription(host, item, ctx) {
   })}`;
 }
 function renderFlowNode(host, item, kind, ctx) {
-  return b2`<div class="flow-node ${kind}-node">
-    ${renderFlowDescription(host, item, ctx)}
+  const off = item?.enabled === false;
+  return b2`<div
+    class="flow-node ${kind}-node ${off ? "flow-node--off" : ""}"
+  >
+    ${renderFlowDescription(host, item, ctx)}${
+      off
+        ? b2`<span class="flow-off-tag"
+            >${host._t("automations_flow_disabled", "disabled")}</span
+          >`
+        : ""
+    }
   </div>`;
 }
 function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
+  if (
+    rawCond &&
+    typeof rawCond === "object" &&
+    rawCond.enabled === false &&
+    (rawCond.condition === "and" ||
+      rawCond.condition === "or" ||
+      rawCond.condition === "not")
+  ) {
+    const { enabled: _drop, ...rest } = rawCond;
+    return renderOffWrap(
+      host,
+      renderConditionItem(host, rest, ctx, implicitAll),
+    );
+  }
   const cond = normalizeCondition(rawCond);
   if (cond && typeof cond === "object") {
     const type = cond.condition;
@@ -30776,17 +31063,54 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
   }
   return renderFlowNode(host, cond, "condition", ctx);
 }
+function renderOffWrap(host, inner) {
+  return b2`<div class="flow-off-wrap">
+    <div class="flow-off-wrap-label">
+      ${host._t("automations_flow_disabled_block", "Disabled \u2014 does not run")}
+    </div>
+    ${inner}
+  </div>`;
+}
 function renderActionItem(host, action, ctx) {
+  if (
+    action &&
+    typeof action === "object" &&
+    action.enabled === false &&
+    _isBlockAction(action)
+  ) {
+    const { enabled: _drop, ...rest } = action;
+    return renderOffWrap(host, renderActionItem(host, rest, ctx));
+  }
+  return renderActionItemBody(host, action, ctx);
+}
+function _isBlockAction(action) {
+  return (
+    action.if != null ||
+    action.choose != null ||
+    action.parallel != null ||
+    action.sequence != null ||
+    action.repeat != null
+  );
+}
+function renderActionItemBody(host, action, ctx) {
   if (action && typeof action === "object" && action.if != null) {
     const elseSteps = asArray(action.else);
+    const ifConds = asArray(action.if);
+    const thenSteps = asArray(action.then);
     return b2`<div class="flow-choose">
       <div class="flow-branch">
         <div class="flow-branch-label">
           ${host._t("automations_flow_branch_if", "If")}
         </div>
-        ${asArray(action.if).map((c4) => renderConditionItem(host, c4, ctx))}
-        <div class="flow-arrow-sm">↓</div>
-        ${asArray(action.then).map((s4) => renderActionItem(host, s4, ctx))}
+        ${ifConds.map((c4) => renderConditionItem(host, c4, ctx))}
+        ${
+          // An arrow only means something with a step on each side; an empty
+          // `then` otherwise left it dangling into nothing.
+          ifConds.length && thenSteps.length
+            ? b2`<div class="flow-arrow-sm">↓</div>`
+            : ""
+        }
+        ${thenSteps.map((s4) => renderActionItem(host, s4, ctx))}
       </div>
       ${
         elseSteps.length
@@ -30800,58 +31124,81 @@ function renderActionItem(host, action, ctx) {
       }
     </div>`;
   }
-  if (action && typeof action === "object" && Array.isArray(action.choose)) {
+  if (action && typeof action === "object" && action.choose != null) {
     return b2`<div class="flow-choose">
-      ${action.choose.map(
+      ${asArray(action.choose).map(
         (branch, i7) => b2`
           <div class="flow-branch">
             <div class="flow-branch-label">
               ${i7 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
-            ${asArray(branch.conditions).map((c4) =>
+            ${asArray(branch?.conditions).map((c4) =>
               renderConditionItem(host, c4, ctx),
             )}
-            <div class="flow-arrow-sm">↓</div>
-            ${asArray(branch.sequence).map((s4) =>
+            ${asArray(branch?.conditions).length && asArray(branch?.sequence).length ? b2`<div class="flow-arrow-sm">↓</div>` : ""}
+            ${asArray(branch?.sequence).map((s4) =>
               renderActionItem(host, s4, ctx),
             )}
           </div>
         `,
       )}
       ${
-        Array.isArray(action.default) && action.default.length
+        asArray(action.default).length
           ? b2`<div class="flow-branch">
               <div class="flow-branch-label">
                 ${host._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${action.default.map((s4) => renderActionItem(host, s4, ctx))}
+              ${asArray(action.default).map((s4) => renderActionItem(host, s4, ctx))}
             </div>`
           : ""
       }
     </div>`;
   }
-  if (action && typeof action === "object" && Array.isArray(action.parallel)) {
+  if (action && typeof action === "object" && action.parallel != null) {
     return b2`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${action.parallel.map((s4) => renderActionItem(host, s4, ctx))}
+      ${asArray(action.parallel).map((s4) => renderActionItem(host, s4, ctx))}
     </div>`;
   }
-  if (action && typeof action === "object" && Array.isArray(action.sequence)) {
+  if (action && typeof action === "object" && action.sequence != null) {
     return b2`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${action.sequence.map((s4) => renderActionItem(host, s4, ctx))}
+      ${asArray(action.sequence).map((s4) => renderActionItem(host, s4, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
-    const inner = action.repeat.sequence || action.repeat.actions || [];
+    const inner = asArray(action.repeat.sequence ?? action.repeat.actions);
     const repeatLabel = (() => {
       const r4 = action.repeat;
-      if (r4.count != null)
-        return `Repeat ${r4.count} time${r4.count !== 1 ? "s" : ""}`;
+      if (r4.count != null) {
+        const literal =
+          typeof r4.count === "number"
+            ? r4.count
+            : /^\d+$/.test(String(r4.count).trim())
+              ? Number(String(r4.count).trim())
+              : null;
+        return literal == null
+          ? host._t("automations_flow_repeat", "Repeat")
+          : host
+              ._t("automations_flow_repeat_count", "Repeat {count}\xD7")
+              .replace("{count}", String(literal));
+      }
+      if (r4.for_each != null)
+        return Array.isArray(r4.for_each)
+          ? host
+              ._t(
+                "automations_flow_repeat_for_each",
+                "Repeat for each item ({count})",
+              )
+              .replace("{count}", String(r4.for_each.length))
+          : host._t(
+              "automations_flow_repeat_for_each_dynamic",
+              "Repeat for each item",
+            );
       if (r4.while)
         return host._t(
           "automations_flow_repeat_while",
@@ -30866,9 +31213,7 @@ function renderActionItem(host, action, ctx) {
     })();
     return b2`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${(Array.isArray(inner) ? inner : [inner]).map((s4) =>
-        renderActionItem(host, s4, ctx),
-      )}
+      ${inner.map((s4) => renderActionItem(host, s4, ctx))}
     </div>`;
   }
   return renderFlowNode(host, action, "action", ctx);
@@ -32917,9 +33262,12 @@ async function _restoreVersion(automationId, versionId, yamlText) {
       automation_id: automationId,
       yaml_text: yamlText,
       version_message: `Restored from version ${versionId}`,
-      // A restore reverts to the complete saved configuration, including the
-      // version's enabled state — don't preserve the current on-disk value.
-      preserve_enabled_state: false,
+      // A restore reverts the configuration (triggers/conditions/actions), not
+      // the on/off switch: enabled state is runtime state, persisted separately
+      // by the toggle path and never re-captured into a version snapshot. A
+      // create-time snapshot always carries initial_state:false, so honouring
+      // the snapshot here would silently kill a running automation.
+      preserve_enabled_state: true,
     });
     this._versionHistoryOpen = {
       ...this._versionHistoryOpen,
@@ -48468,6 +48816,12 @@ var SeloraAIPanel = class extends i4 {
           return Number.isFinite(v2) && v2 >= 60 ? v2 : 900;
         })(),
         auto_purge_stale: this._config.auto_purge_stale || false,
+        // Carry the Memory + pricing cards' current text through this save. Both
+        // edit `_config` live from their own textareas, and `_loadConfig()` below
+        // replaces `_config` wholesale from the server — so omitting them here
+        // discards an unsaved edit and snaps the field back under a success toast.
+        household_profile: this._config.household_profile ?? "",
+        llm_pricing_overrides: this._config.llm_pricing_overrides ?? {},
         telemetry_enabled: this._config.telemetry_enabled === true,
         // Deciding the toggle here counts as seeing the prompt — mark it
         // so the one-time consent banner never reappears afterwards.

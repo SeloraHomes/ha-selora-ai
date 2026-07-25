@@ -936,6 +936,11 @@
     "recipes_step5_dashboard_help": "Toevoegen in chat",
     "recipes_refine_chat_failed": "Kon geen chat openen voor dit recept.",
     "recipes_step3_hint_blocked": "Dit recept kan nog niet worden voorbereid — controleer het recept op fouten en probeer het opnieuw.",
-    "recipes_catalog_empty": "Nog geen recepten in deze catalogus."
+    "recipes_catalog_empty": "Nog geen recepten in deze catalogus.",
+    "automations_flow_repeat_count": "{count}× herhalen",
+    "automations_flow_repeat_for_each": "Herhalen voor elk item ({count})",
+    "automations_flow_disabled": "uitgeschakeld",
+    "automations_flow_disabled_block": "Uitgeschakeld — wordt niet uitgevoerd",
+    "automations_flow_repeat_for_each_dynamic": "Herhalen voor elk item"
   }
 }

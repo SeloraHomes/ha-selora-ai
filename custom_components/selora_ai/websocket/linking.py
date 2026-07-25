@@ -17,7 +17,6 @@ import voluptuous as vol
 
 from .. import (
     _aigateway_view,
-    _decode_jwt_claims,
     _ensure_exclude_label,
     _find_llm,
     _mask_api_key,
@@ -95,13 +94,13 @@ from ..const import (
     DEFAULT_TELEMETRY_ENABLED,
     DEFAULT_TELEMETRY_PROMPT_SEEN,
     DOMAIN,
+    HOUSEHOLD_PROFILE_LOCAL_MAX_CHARS,
     HOUSEHOLD_PROFILE_MAX_CHARS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
-    LLM_PROVIDER_SELORA_CLOUD,
     LLM_PROVIDER_SELORA_LOCAL,
     SELORA_EXCLUDE_LABEL_ID,
     SELORA_EXCLUDE_LABEL_NAME,
@@ -236,7 +235,15 @@ async def _handle_websocket_get_config(
             "llm_pricing_overrides": config_data.get(CONF_LLM_PRICING_OVERRIDES, {}),
             # Household profile — free-form "soul/memory" injected into prompts
             "household_profile": config_data.get(CONF_HOUSEHOLD_PROFILE, DEFAULT_HOUSEHOLD_PROFILE),
-            "household_profile_max_chars": HOUSEHOLD_PROFILE_MAX_CHARS,
+            # Provider-aware: the low-context local model truncates the profile far
+            # earlier in the prompt (see _household_profile_block(local=True)), so
+            # the editor must advertise that smaller budget rather than promise
+            # 2000 chars and silently drop most of them at request time.
+            "household_profile_max_chars": (
+                HOUSEHOLD_PROFILE_LOCAL_MAX_CHARS
+                if _resolve_llm_provider(config_data) == LLM_PROVIDER_SELORA_LOCAL
+                else HOUSEHOLD_PROFILE_MAX_CHARS
+            ),
         },
     )
 
@@ -594,173 +601,6 @@ async def _handle_websocket_validate_llm_key(
 
 
 @websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/exchange_connect_code",
-        vol.Required("code"): str,
-        vol.Required("code_verifier"): str,
-        vol.Required("redirect_uri"): str,
-        vol.Optional("connect_url", default=""): str,
-    }
-)
-async def _handle_websocket_exchange_connect_code(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Exchange an OAuth authorization code for Connect installation credentials."""
-    if not _require_admin(connection, msg):
-        return
-
-    entry = _resolve_llm_entry(hass)
-    if entry is None:
-        connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
-        return
-
-    connect_url = (
-        msg["connect_url"] or entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL)
-    ).rstrip("/")
-
-    import aiohttp
-
-    timeout = aiohttp.ClientTimeout(total=15)
-    async with aiohttp.ClientSession() as session:
-        # Step 1: Exchange authorization code for an access token
-        try:
-            async with session.post(
-                f"{connect_url}/oauth/token",
-                data={
-                    "grant_type": "authorization_code",
-                    "code": msg["code"],
-                    "code_verifier": msg["code_verifier"],
-                    "client_id": msg["redirect_uri"],
-                    "redirect_uri": msg["redirect_uri"],
-                },
-                timeout=timeout,
-            ) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    _LOGGER.warning("Connect token exchange failed (%s): %s", resp.status, body)
-                    connection.send_error(
-                        msg["id"],
-                        "token_exchange_failed",
-                        f"Connect returned HTTP {resp.status}",
-                    )
-                    return
-                token_data = await resp.json()
-        except (aiohttp.ClientError, TimeoutError) as err:
-            connection.send_error(msg["id"], "connect_unreachable", f"Cannot reach Connect: {err}")
-            return
-
-        access_token = token_data.get("access_token")
-        if not access_token:
-            connection.send_error(msg["id"], "token_exchange_failed", "No access_token in response")
-            return
-
-        # Step 2: Register this HA instance as an MCP device
-        try:
-            async with session.post(
-                f"{connect_url}/api/v1/mcp/devices/register",
-                json={"device_name": hass.config.location_name or "Home Assistant"},
-                headers={"Authorization": f"Bearer {access_token}"},
-                timeout=timeout,
-            ) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    _LOGGER.warning(
-                        "Connect device registration failed (%s): %s",
-                        resp.status,
-                        body,
-                    )
-                    connection.send_error(
-                        msg["id"],
-                        "registration_failed",
-                        f"Device registration returned HTTP {resp.status}",
-                    )
-                    return
-                device_data = await resp.json()
-        except (aiohttp.ClientError, TimeoutError) as err:
-            connection.send_error(
-                msg["id"],
-                "connect_unreachable",
-                f"Cannot reach Connect for device registration: {err}",
-            )
-            return
-
-        device_id = device_data.get("device_id")
-        installation_id = device_data.get("installation_id")
-        scope_id_from_device = device_data.get("scope_id")
-        if not device_id:
-            connection.send_error(
-                msg["id"],
-                "invalid_response",
-                "Connect response missing device_id",
-            )
-            return
-
-        # Step 3: Fetch installation MCP auth config (installation-scoped JWT key)
-        # Claude's OAuth flow issues tokens signed with the installation key,
-        # not the per-device key from registration.
-        jwt_key = None
-        scope_id = None
-        if installation_id:
-            try:
-                async with session.get(
-                    f"{connect_url}/api/v1/installations/{installation_id}/mcp-auth-config",
-                    headers={"Authorization": f"Bearer {access_token}"},
-                    timeout=timeout,
-                ) as resp:
-                    if resp.status == 200:
-                        auth_config = await resp.json()
-                        jwt_key = auth_config.get("jwt_key")
-                        scope_id = auth_config.get("scope_id")
-                    else:
-                        _LOGGER.warning(
-                            "Failed to fetch MCP auth config (%s), using device key",
-                            resp.status,
-                        )
-            except (aiohttp.ClientError, TimeoutError) as err:
-                _LOGGER.warning("Could not reach Connect for MCP auth config: %s", err)
-
-    # Fall back to device key only when there is no installation
-    if not jwt_key:
-        jwt_key = device_data.get("jwt_key")
-
-    if not jwt_key:
-        connection.send_error(
-            msg["id"],
-            "invalid_response",
-            "Connect response missing jwt_key",
-        )
-        return
-
-    hass.config_entries.async_update_entry(
-        entry,
-        data={
-            **entry.data,
-            CONF_SELORA_CONNECT_ENABLED: True,
-            CONF_SELORA_CONNECT_URL: connect_url,
-            CONF_SELORA_INSTALLATION_ID: scope_id
-            or scope_id_from_device
-            or installation_id
-            or device_id,
-            CONF_SELORA_JWT_KEY: jwt_key,
-        },
-    )
-
-    connection.send_result(msg["id"], {"status": "linked", "device_id": device_id})
-
-    # Reload so the JWT validator picks up the new credentials
-    async def _reload() -> None:
-        try:
-            await hass.config_entries.async_reload(entry.entry_id)
-        except Exception:
-            _LOGGER.exception("Failed to reload entry after Connect linking")
-
-    hass.async_create_task(_reload())
-
-
-@websocket_api.async_response
 @decorators.websocket_command({vol.Required("type"): "selora_ai/unlink_connect"})
 async def _handle_websocket_unlink_connect(
     hass: HomeAssistant,
@@ -795,108 +635,6 @@ async def _handle_websocket_unlink_connect(
             await hass.config_entries.async_reload(entry.entry_id)
         except Exception:
             _LOGGER.exception("Failed to reload entry after Connect unlinking")
-
-    hass.async_create_task(_reload())
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/exchange_aigateway_code",
-        vol.Required("code"): str,
-        vol.Required("code_verifier"): str,
-        vol.Required("redirect_uri"): str,
-        vol.Required("client_id"): str,
-        vol.Optional("connect_url", default=""): str,
-    }
-)
-async def _handle_websocket_exchange_aigateway_code(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Exchange an AI Gateway OAuth code for access + refresh tokens."""
-    if not _require_admin(connection, msg):
-        return
-
-    entry = _resolve_llm_entry(hass)
-    if entry is None:
-        connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
-        return
-
-    connect_url = (msg["connect_url"] or _aigateway_view(entry.data)["connect_url"]).rstrip("/")
-
-    import time as _time
-
-    import aiohttp
-
-    timeout = aiohttp.ClientTimeout(total=15)
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(
-                f"{connect_url}/oauth/aigw/token",
-                data={
-                    "grant_type": "authorization_code",
-                    "code": msg["code"],
-                    "code_verifier": msg["code_verifier"],
-                    "client_id": msg["client_id"],
-                    "redirect_uri": msg["redirect_uri"],
-                },
-                timeout=timeout,
-            ) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    _LOGGER.warning("AI Gateway token exchange failed (%s): %s", resp.status, body)
-                    connection.send_error(
-                        msg["id"],
-                        "token_exchange_failed",
-                        f"AI Gateway returned HTTP {resp.status}",
-                    )
-                    return
-                token_data = await resp.json()
-        except (aiohttp.ClientError, TimeoutError) as err:
-            connection.send_error(msg["id"], "connect_unreachable", f"Cannot reach Connect: {err}")
-            return
-
-    access_token = token_data.get("access_token")
-    refresh_token = token_data.get("refresh_token")
-    expires_in = int(token_data.get("expires_in") or 0)
-    if not access_token or not refresh_token:
-        connection.send_error(
-            msg["id"], "token_exchange_failed", "Missing access_token or refresh_token"
-        )
-        return
-
-    claims = _decode_jwt_claims(access_token)
-    user_email = claims.get("email") or ""
-    user_id = str(claims.get("sub") or "")
-    expires_at = _time.time() + expires_in if expires_in > 0 else 0.0
-
-    hass.config_entries.async_update_entry(
-        entry,
-        data={
-            **entry.data,
-            CONF_LLM_PROVIDER: LLM_PROVIDER_SELORA_CLOUD,
-            CONF_AIGATEWAY_ACCESS_TOKEN: access_token,
-            CONF_AIGATEWAY_REFRESH_TOKEN: refresh_token,
-            CONF_AIGATEWAY_EXPIRES_AT: expires_at,
-            CONF_AIGATEWAY_USER_EMAIL: user_email,
-            CONF_AIGATEWAY_USER_ID: user_id,
-            CONF_AIGATEWAY_CLIENT_ID: msg["client_id"],
-            CONF_SELORA_CONNECT_URL: connect_url,
-        },
-    )
-
-    connection.send_result(
-        msg["id"],
-        {"status": "linked", "user_email": user_email},
-    )
-
-    async def _reload() -> None:
-        try:
-            await hass.config_entries.async_reload(entry.entry_id)
-        except Exception:
-            _LOGGER.exception("Failed to reload entry after AI Gateway linking")
 
     hass.async_create_task(_reload())
 
@@ -962,7 +700,5 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _handle_websocket_apply_exclude_label)
     websocket_api.async_register_command(hass, _handle_websocket_remove_exclude_label)
     websocket_api.async_register_command(hass, _handle_websocket_validate_llm_key)
-    websocket_api.async_register_command(hass, _handle_websocket_exchange_connect_code)
     websocket_api.async_register_command(hass, _handle_websocket_unlink_connect)
-    websocket_api.async_register_command(hass, _handle_websocket_exchange_aigateway_code)
     websocket_api.async_register_command(hass, _handle_websocket_unlink_aigateway)

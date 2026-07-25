@@ -916,7 +916,12 @@
     "recipes_step5_dashboard_help": "在對話中新增",
     "recipes_refine_chat_failed": "無法為此食譜開啟對話。",
     "recipes_step3_hint_blocked": "此食譜尚無法準備——請檢查食譜是否有錯誤後重試。",
-    "recipes_catalog_empty": "此目錄中尚無食譜。"
+    "recipes_catalog_empty": "此目錄中尚無食譜。",
+    "automations_flow_repeat_count": "重複 {count} 次",
+    "automations_flow_repeat_for_each": "對每個項目重複（{count}）",
+    "automations_flow_disabled": "已停用",
+    "automations_flow_disabled_block": "已停用 — 不會執行",
+    "automations_flow_repeat_for_each_dynamic": "對每個項目重複"
   },
   "options": {
     "step": {

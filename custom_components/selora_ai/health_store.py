@@ -51,6 +51,52 @@ def health_signal_id(kind: str, target: str) -> str:
     return f"{kind}:{target}"
 
 
+# Audit fields that move on every run even when nothing about the home changed.
+# Excluded when deciding whether an audit is worth a disk write.
+_AUDIT_VOLATILE_KEYS = frozenset({"generated_at"})
+
+# How stale the PERSISTED audit timestamp may get while content is unchanged.
+# The Home Health sensor surfaces `generated_at` as its `last_scan` attribute and
+# reads it from the store, so skipping every unchanged write outright would make
+# that read back an arbitrarily old time after a restart. Checkpointing bounds
+# the inaccuracy while keeping most of the write reduction (at the default 15-min
+# scan cadence: ~24 writes/day instead of ~96).
+_AUDIT_TIMESTAMP_CHECKPOINT = timedelta(hours=1)
+
+
+def _audit_material(audit: dict[str, Any]) -> dict[str, Any]:
+    """The part of an audit record that represents real state, for change detection."""
+    return {k: v for k, v in audit.items() if k not in _AUDIT_VOLATILE_KEYS}
+
+
+def _parse_iso(value: object) -> datetime | None:
+    """Parse an ISO-8601 string, or None when it isn't one."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _checkpoint_due(baseline: datetime | None, current: datetime | None) -> bool:
+    """Whether a timestamp-only write is due. Errs toward writing when unsure —
+    an unparseable pair, mismatched awareness, or a backwards clock must not
+    silently freeze the persisted timestamp forever."""
+    if baseline is None or current is None:
+        return True
+    if (baseline.tzinfo is None) != (current.tzinfo is None):
+        return True
+    elapsed = current - baseline
+    if elapsed < timedelta(0):
+        # The persisted stamp is in the FUTURE of the current audit — an NTP
+        # correction after a fast-clock boot, or a backup written under one.
+        # Waiting for the window to elapse would pin a future `last_scan` across
+        # restarts until wall time caught up, so write now to correct it.
+        return True
+    return elapsed >= _AUDIT_TIMESTAMP_CHECKPOINT
+
+
 class HealthStore:
     """Persistent store for health signals and export sequence bookkeeping."""
 
@@ -60,6 +106,9 @@ class HealthStore:
             hass, version=_STORE_VERSION, key=HEALTH_STORE_KEY
         )
         self._data: HealthStoreData | None = None
+        # `generated_at` of the audit record actually written to disk, so an
+        # unchanged-content run can tell how stale the persisted copy has become.
+        self._audit_persisted_ts: datetime | None = None
 
     async def _ensure_loaded(self) -> None:
         if self._data is not None:
@@ -71,6 +120,12 @@ class HealthStore:
             self._data.setdefault("meta", {})
         else:
             self._data = {"signals": {}, "meta": {}}
+        # Seed the checkpoint baseline from what is actually on disk. Deriving it
+        # from the in-memory record instead would slide forward on every skipped
+        # write, so the staleness window could never elapse after a restart.
+        loaded_audit = self._data["meta"].get("last_audit")
+        if isinstance(loaded_audit, dict):
+            self._audit_persisted_ts = _parse_iso(loaded_audit.get("generated_at"))
 
     async def _get_loaded_data(self) -> HealthStoreData:
         await self._ensure_loaded()
@@ -82,6 +137,14 @@ class HealthStore:
         if self._data is not None:
             self._enforce_cap(self._data["signals"])
             await self._store.async_save(self._data)
+            # Any write persists the whole document, so it flushes whatever
+            # `last_audit` currently holds — including writes driven by other
+            # callers (set_last_scan, record_signal). Tracking the baseline here
+            # rather than at the audit call site keeps it truthful about disk
+            # state and avoids a redundant checkpoint write.
+            saved_audit = self._data["meta"].get("last_audit")
+            if isinstance(saved_audit, dict):
+                self._audit_persisted_ts = _parse_iso(saved_audit.get("generated_at"))
 
     @staticmethod
     def _enforce_cap(signals: dict[str, HealthSignal]) -> int:
@@ -294,8 +357,30 @@ class HealthStore:
         return dict(audit) if isinstance(audit, dict) else None
 
     async def set_last_audit(self, audit: dict[str, Any]) -> None:
+        """Cache the latest audit, persisting only when its content actually moved.
+
+        The audit re-runs on every health scan (default every 15 min) so the Home
+        Health sensor tracks state at the scan cadence rather than the 24h one.
+        Persisting each run rewrote this whole document ~96x/day for no gain — a
+        steady home produces a record identical apart from ``generated_at``, and
+        that write amplification is real flash wear on SD-card/eMMC installs. The
+        in-memory copy is always refreshed; only the disk write is conditional.
+        """
         data = await self._get_loaded_data()
+        previous = data["meta"].get("last_audit")
         data["meta"]["last_audit"] = audit
+        current_ts = _parse_iso(audit.get("generated_at"))
+        # Unchanged content: persist only once the copy ON DISK has gone stale.
+        # `self._audit_persisted_ts` tracks exactly that — seeded at load, refreshed
+        # by every `_save`. Deriving the baseline from the in-memory `previous`
+        # instead would move it forward on each skipped write, so the window would
+        # never elapse and the disk copy could stay stale indefinitely.
+        if (
+            isinstance(previous, dict)
+            and _audit_material(previous) == _audit_material(audit)
+            and not _checkpoint_due(self._audit_persisted_ts, current_ts)
+        ):
+            return
         await self._save()
 
     async def get_insight_overrides(self) -> dict[str, str]:

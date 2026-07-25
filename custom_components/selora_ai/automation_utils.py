@@ -2206,9 +2206,15 @@ async def async_update_automation(
     write+reload, that newer choice). So a temporarily UI/service-toggled automation
     keeps its current state now yet still honors its configured boot override on the
     next restart. Callers that mean to change the enabled state (the
-    MCP enable/disable flow, an explicit YAML-editor save, a version restore) pass
+    MCP enable/disable flow, an explicit YAML-editor save) pass
     ``False``: the submitted payload is authoritative as-is — a submitted
     `initial_state` is honored, and omitting it removes any existing boot override.
+
+    In preserve mode an edit that raises the automation's risk to *elevated* (see
+    :func:`assess_automation_risk`) forces it disabled instead of preserving the
+    live state, matching what ``async_create_automation`` does for the same YAML —
+    so the risk gate can't be sidestepped by refining a benign automation into a
+    dangerous one.
     """
     # Validate and normalize trigger values (coerces boolean to/from → "on"/"off")
     is_valid, reason, normalized = validate_automation_payload(updated, hass)
@@ -2225,6 +2231,21 @@ async def async_update_automation(
     updated.pop("action", None)
     updated.pop("condition", None)
 
+    # A content edit must not leave a newly elevated-risk automation live. The
+    # same YAML created fresh is always written disabled (see
+    # async_create_automation), so a refine that *escalates* risk — adding a
+    # shell_command to a benign lights automation, say — has to be forced off for
+    # review as well, otherwise the gate is bypassable by editing instead of
+    # creating. Scoped to preserve mode (refine / content edit): explicit-mode
+    # callers (MCP enable/disable, an explicit YAML-editor save) are deciding the
+    # enabled state deliberately and keep that authority.
+    new_is_elevated = False
+    risk_flags: list[str] | None = None
+    if preserve_enabled_state:
+        risk = assess_automation_risk(normalized)
+        new_is_elevated = risk.get("level") == "elevated"
+        risk_flags = risk.get("flags")
+
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
         # In preserve mode, capture the current live runtime state so it can be
@@ -2235,6 +2256,11 @@ async def async_update_automation(
         # overlapping update isn't clobbered by a stale pre-lock snapshot.
         captured_live: bool | None = None
         toggle_watcher: _RuntimeToggleWatcher | None = None
+        risk_forced_disabled = False
+        # Set once the on-disk entry is read: this edit takes the automation from
+        # non-elevated to elevated. Gates both the boot override below and the
+        # post-reload restore, which must not re-enable it.
+        escalating_risk = False
         if preserve_enabled_state:
             captured_live = _resolve_live_enabled_state(hass, automation_id)
             # Watch for runtime toggles that land between now and the restore below.
@@ -2267,7 +2293,39 @@ async def async_update_automation(
                         # The current runtime state is preserved separately, after
                         # the reload, so a temporary UI/service toggle never rewrites
                         # the user's startup preference.
-                        if "initial_state" in a:
+                        boot_override = a.get("initial_state")
+                        # The gate covers *escalation* only. An automation the user
+                        # already reviewed and deliberately enabled at elevated risk
+                        # stays enabled through ordinary edits — otherwise every tweak
+                        # to a legitimate shell_command automation would silently
+                        # switch it off, which is not what this gate is for.
+                        prior_elevated = (
+                            new_is_elevated and assess_automation_risk(a).get("level") == "elevated"
+                        )
+                        escalating_risk = new_is_elevated and not prior_elevated
+                        # Only skip the gate when the automation is positively known to
+                        # be off AND to stay off. An indeterminate runtime state (entity
+                        # not loaded, unavailable, unknown) with no explicit
+                        # `initial_state: false` must still be forced off: with the
+                        # override absent, HA restores the last runtime state on reload,
+                        # which may be on — that would walk the automation straight past
+                        # this gate while elevated.
+                        definitely_off = boot_override is False or (
+                            captured_live is False and boot_override is not True
+                        )
+                        if escalating_risk and not definitely_off:
+                            # Newly elevated and not known-disabled: write the boot
+                            # override off so the reload forces the entity off, and skip
+                            # the runtime restore that would otherwise turn it back on.
+                            _LOGGER.warning(
+                                "Forcing initial_state=False for automation %s — the "
+                                "refinement raised its risk to elevated (flags=%s)",
+                                automation_id,
+                                risk_flags,
+                            )
+                            risk_forced_disabled = True
+                            updated["initial_state"] = False
+                        elif "initial_state" in a:
                             updated["initial_state"] = a["initial_state"]
                         else:
                             updated.pop("initial_state", None)
@@ -2309,7 +2367,7 @@ async def async_update_automation(
                 # and we re-apply the newest choice if a user toggle races us — so a
                 # toggle during the awaited restore isn't silently clobbered. Bounded
                 # so a persistent toggler can't loop us. Best-effort.
-                if preserve_enabled_state:
+                if preserve_enabled_state and not risk_forced_disabled:
                     restore_ctx = Context()
                     if toggle_watcher is not None:
                         toggle_watcher.ignore_context(restore_ctx)
@@ -2317,6 +2375,21 @@ async def async_update_automation(
                         desired_state = captured_live
                         if toggle_watcher is not None and toggle_watcher.latest is not None:
                             desired_state = toggle_watcher.latest
+                        if escalating_risk and desired_state:
+                            # This edit raised the automation to elevated risk. A toggle
+                            # that landed during the write/reload was aimed at the
+                            # PRE-edit config, so honoring it would enable a newly
+                            # elevated automation nobody has reviewed — the exact
+                            # outcome the gate above exists to prevent. Force off
+                            # instead: the gate skipped the boot override only because
+                            # the automation was observed off before the write.
+                            _LOGGER.warning(
+                                "Ignoring enable of automation %s that raced this "
+                                "refinement — it raised the risk to elevated (flags=%s)",
+                                automation_id,
+                                risk_flags,
+                            )
+                            desired_state = False
                         if desired_state is None:
                             break
                         await _restore_runtime_enabled_state(

@@ -526,11 +526,17 @@ async def _remove_idless_scene_by_name(
     scenes_path = _get_scenes_path(hass)
     normalized = expected_name.strip()
 
-    def _is_idless_match(entry: object) -> bool:
+    def _name_matches(entry: object) -> bool:
         return (
             isinstance(entry, dict)
             and isinstance(entry.get("name"), str)
             and entry.get("name", "").strip() == normalized
+        )
+
+    def _is_idless_match(entry: object) -> bool:
+        return (
+            _name_matches(entry)
+            and isinstance(entry, dict)
             and not (isinstance(entry.get("id"), str) and entry["id"])
         )
 
@@ -544,6 +550,17 @@ async def _remove_idless_scene_by_name(
             return False, "not_found_in_yaml", None
         if len(matches) > 1:
             return False, "ambiguous_name", None
+        # An id-BEARING entry sharing the name is ambiguity too, and it is not
+        # resolvable from here: HA derives a scene's entity slug from its name, so
+        # two same-named entries produce `scene.<slug>` and `scene.<slug>_2` with
+        # no way to tell from the file which got which. The caller's entity_id was
+        # matched against `resolve_yaml_scene_entity_id`, whose name-slug branch
+        # returns the slug whenever *a* state exists there — so it can hand back
+        # the id-less entry for an entity the id-bearing one actually owns.
+        # Deleting on that basis removes the row the caller did not pick, so refuse
+        # and let them disambiguate by adding an `id`.
+        if any(_name_matches(e) and not _is_idless_match(e) for e in yaml_entries):
+            return False, "ambiguous_name", None
         previous = list(yaml_entries)
         remaining = [e for e in yaml_entries if not _is_idless_match(e)]
         await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, remaining)
@@ -553,6 +570,38 @@ async def _remove_idless_scene_by_name(
             await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
             return False, "reload_failed", str(exc)
     return True, None, None
+
+
+async def async_yaml_scene_id_conflicts_with_entity(
+    hass: HomeAssistant,
+    scene_id: str,
+    entity_id: str,
+) -> bool:
+    """Return True when a ``scenes.yaml`` entry carries ``id: scene_id`` but that
+    entry loaded as a **different** entity than *entity_id*.
+
+    Guards the delete-by-id path. Id-less yaml entries are listed to the panel
+    with ``scene_id`` set to their entity object_id, which is not a yaml ``id``;
+    if an unrelated entry happens to carry that string as its ``id``, removing by
+    id would delete that other scene and report success. A caller that knows
+    which entity the user picked routes to the entity resolver instead.
+
+    Deliberately reports only *positive* evidence of a collision. A missing entry
+    (already deleted externally) or one whose entity can't be resolved (not
+    loaded) is NOT a conflict — those must keep taking the id path, which is the
+    only one that works when there is no live entity to resolve from.
+    """
+    scenes_path = _get_scenes_path(hass)
+    try:
+        yaml_entries = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    except Exception:  # noqa: BLE001 — unreadable file proves nothing; caller keeps its path
+        return False
+    for entry in yaml_entries:
+        if not isinstance(entry, dict) or entry.get("id") != scene_id:
+            continue
+        resolved = resolve_yaml_scene_entity_id(hass, entry)
+        return resolved is not None and resolved != entity_id
+    return False
 
 
 async def async_remove_yaml_scene_by_entity(
@@ -621,41 +670,15 @@ async def async_remove_yaml_scene_by_entity(
             return False, "not_found_in_yaml", None
         return True, None, None
 
-    # Id-less entry: match by name. Refuse when more than one entry shares the
-    # name to avoid removing the wrong scene.
+    # Id-less entry: match by name, the only stable handle. Delegate to the
+    # locked resolver so the find, ambiguity check, and write all run under
+    # _SCENES_YAML_LOCK against a single read — the snapshot above was taken
+    # outside the lock to classify the entry and may already be stale, so
+    # writing a list derived from it would clobber a concurrent create.
     target_name = yaml_match.get("name")
     if not isinstance(target_name, str) or not target_name.strip():
         return False, "no_identifier", None
-    normalized = target_name.strip()
-    duplicates = sum(
-        1
-        for e in yaml_entries
-        if isinstance(e, dict)
-        and isinstance(e.get("name"), str)
-        and e.get("name", "").strip() == normalized
-    )
-    if duplicates > 1:
-        return False, "ambiguous_name", None
-
-    remaining = [
-        e
-        for e in yaml_entries
-        if not (
-            isinstance(e, dict)
-            and isinstance(e.get("name"), str)
-            and e.get("name", "").strip() == normalized
-            and not (isinstance(e.get("id"), str) and e["id"])
-        )
-    ]
-    async with _SCENES_YAML_LOCK:
-        previous = list(yaml_entries)
-        await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, remaining)
-        try:
-            await hass.services.async_call("scene", "reload", blocking=True)
-        except Exception as exc:  # noqa: BLE001 — restore yaml on reload failure
-            await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
-            return False, "reload_failed", str(exc)
-    return True, None, None
+    return await _remove_idless_scene_by_name(hass, target_name)
 
 
 async def get_area_names(hass: HomeAssistant) -> list[str]:

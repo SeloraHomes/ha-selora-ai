@@ -936,6 +936,11 @@
     "recipes_step5_dashboard_help": "Hozzáadás csevegésben",
     "recipes_refine_chat_failed": "Nem sikerült csevegést nyitni ehhez a recepthez.",
     "recipes_step3_hint_blocked": "Ez a recept még nem készíthető elő — ellenőrizd a receptet hibákért, majd próbáld újra.",
-    "recipes_catalog_empty": "Ebben a katalógusban még nincsenek receptek."
+    "recipes_catalog_empty": "Ebben a katalógusban még nincsenek receptek.",
+    "automations_flow_repeat_count": "{count}× ismétlés",
+    "automations_flow_repeat_for_each": "Ismétlés minden elemre ({count})",
+    "automations_flow_disabled": "letiltva",
+    "automations_flow_disabled_block": "Letiltva — nem fut le",
+    "automations_flow_repeat_for_each_dynamic": "Ismétlés minden elemre"
   }
 }

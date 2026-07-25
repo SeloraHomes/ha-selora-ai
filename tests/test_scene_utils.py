@@ -795,6 +795,62 @@ class TestAsyncRemoveYamlSceneByEntity:
         # Nothing removed — both entries survive.
         assert len(await self._read(hass)) == 2
 
+    async def test_idless_sharing_a_name_with_an_idbearing_entry_is_refused(
+        self, hass
+    ) -> None:
+        """Cross-ID name ambiguity must refuse rather than guess.
+
+        HA derives a scene's entity slug from its name, so two same-named entries
+        become `scene.<slug>` and `scene.<slug>_2` with nothing in the file saying
+        which got which. `resolve_yaml_scene_entity_id`'s name-slug branch returns
+        the slug whenever *a* state exists there, so the id-less entry (listed
+        first) matches an entity the id-bearing entry actually owns — deleting on
+        that basis removes the row the caller did not select.
+        """
+        from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
+
+        await self._write(
+            hass,
+            [
+                # Id-less, FIRST in the file, so it wins the entity match.
+                {"name": "Movie Night", "entities": {"light.a": {"state": "on"}}},
+                # Same name, id-bearing — the entity the caller actually picked.
+                {"id": "abc", "name": "Movie Night", "entities": {"light.b": {"state": "on"}}},
+            ],
+        )
+        hass.states.async_set("scene.movie_night", "scening")
+        self._register_reload(hass)
+
+        removed, code, _ = await async_remove_yaml_scene_by_entity(hass, "scene.movie_night")
+
+        assert removed is False
+        assert code == "ambiguous_name"
+        # Neither row deleted — the destructive guess is what we're preventing.
+        assert len(await self._read(hass)) == 2
+
+    async def test_confirmed_name_path_also_refuses_cross_id_ambiguity(self, hass) -> None:
+        """The chat delete-confirmation path shares the same resolver, so a
+        confirmed name fingerprint must not delete under the same ambiguity."""
+        from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
+
+        await self._write(
+            hass,
+            [
+                {"name": "Movie Night", "entities": {}},
+                {"id": "abc", "name": "Movie Night", "entities": {}},
+            ],
+        )
+        hass.states.async_set("scene.movie_night", "scening")
+        self._register_reload(hass)
+
+        removed, code, _ = await async_remove_yaml_scene_by_entity(
+            hass, "scene.movie_night", expected_name="Movie Night"
+        )
+
+        assert removed is False
+        assert code == "ambiguous_name"
+        assert len(await self._read(hass)) == 2
+
     async def test_not_yaml_managed(self, hass) -> None:
         from custom_components.selora_ai.scene_utils import async_remove_yaml_scene_by_entity
 

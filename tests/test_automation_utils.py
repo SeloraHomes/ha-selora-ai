@@ -2107,6 +2107,15 @@ class TestAsyncUpdateAutomation:
                     a["initial_state"] = value
         path.write_text(yaml.dump(content, default_flow_style=False), encoding="utf-8")
 
+    @staticmethod
+    def _set_disk_actions(path: Path, automation_id: str, actions: list) -> None:
+        """Rewrite ``automation_id``'s on-disk actions (to change its risk level)."""
+        content = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for a in content:
+            if a.get("id") == automation_id:
+                a["action"] = actions
+        path.write_text(yaml.dump(content, default_flow_style=False), encoding="utf-8")
+
     @pytest.mark.asyncio
     async def test_refine_mirrors_disk_enabled_over_stale_incoming(
         self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
@@ -2186,6 +2195,221 @@ class TestAsyncUpdateAutomation:
         ]
         assert turn_ons, "expected automation.turn_on to restore the live ON state"
         assert turn_ons[-1][2].get("entity_id") == entry.entity_id
+
+    @pytest.mark.asyncio
+    async def test_refine_escalating_risk_forces_disabled(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """A refine that raises risk to elevated must disable the automation.
+
+        The same YAML created fresh is always written disabled, so refining a
+        benign enabled automation into one that can execute arbitrary code must
+        not leave it live — otherwise the risk gate is bypassable by editing
+        instead of creating.
+        """
+        from homeassistant.helpers import entity_registry as er
+
+        async def _noop(call):
+            return None
+
+        hass.services.async_register("shell_command", "backup", _noop)
+
+        # Enabled on disk and live ON — the pre-fix behaviour preserved both.
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", True)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
+        hass.states.async_set(entry.entity_id, "on")
+
+        updated = {
+            "alias": "Refined with a shell command",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "shell_command.backup"}],
+        }
+        assert await async_update_automation(hass, "selora_ai_existing1", updated) is True
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is False
+        # And the post-reload runtime restore must not turn it back on.
+        turn_ons = [
+            c for c in automation_service_calls if c[1] == "turn_on" and c[0] == "automation"
+        ]
+        assert not turn_ons, "elevated-risk refine must not restore the live ON state"
+
+    @pytest.mark.asyncio
+    async def test_refine_keeping_risk_benign_still_preserves_enabled(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """The risk gate must not disable a refine that stays benign."""
+        from homeassistant.helpers import entity_registry as er
+
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", True)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
+        hass.states.async_set(entry.entity_id, "on")
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_off"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is True
+
+    @pytest.mark.asyncio
+    async def test_refine_escalating_risk_disables_unloaded_but_boot_enabled(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """No entity loaded → live state indeterminate, but the on-disk override
+        still says enabled, so an escalating refine must clear it."""
+
+        async def _noop(call):
+            return None
+
+        hass.services.async_register("shell_command", "backup", _noop)
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", True)
+
+        updated = {
+            "alias": "Refined with a shell command",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "shell_command.backup"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is False
+
+    @pytest.mark.asyncio
+    async def test_escalating_refine_disables_when_runtime_state_unknown(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """Indeterminate runtime state + no boot override must still be forced off.
+
+        With `initial_state` absent HA restores the automation's LAST runtime state
+        on reload — which may be on. Treating "unknown" as "safe" let an escalating
+        refine walk straight past the gate.
+        """
+
+        async def _noop(call):
+            return None
+
+        hass.services.async_register("shell_command", "backup", _noop)
+        # No entity registered -> live state indeterminate; no boot override on disk.
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", None)
+
+        updated = {
+            "alias": "Refined with a shell command",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "shell_command.backup"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is False
+
+    @pytest.mark.asyncio
+    async def test_editing_an_already_elevated_automation_keeps_it_enabled(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """The gate covers escalation, not ordinary edits to an already-elevated rule.
+
+        A shell_command automation the user reviewed and enabled must survive a
+        trigger tweak; disabling it on every edit would make it un-editable.
+        """
+        from homeassistant.helpers import entity_registry as er
+
+        async def _noop(call):
+            return None
+
+        hass.services.async_register("shell_command", "backup", _noop)
+        # Already elevated AND enabled on disk + live.
+        self._set_disk_actions(
+            tmp_automations_yaml, "selora_ai_existing1", [{"action": "shell_command.backup"}]
+        )
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", True)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
+        hass.states.async_set(entry.entity_id, "on")
+
+        # Same elevated action, different trigger — risk level unchanged.
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "time", "at": "23:00"}],
+            "action": [{"action": "shell_command.backup"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is True
+        turn_ons = [
+            c for c in automation_service_calls if c[1] == "turn_on" and c[0] == "automation"
+        ]
+        assert turn_ons, "an unchanged-risk edit must still restore the live ON state"
+
+    @pytest.mark.asyncio
+    async def test_escalating_refine_leaves_an_already_disabled_automation_alone(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """An explicit `initial_state: false` is already safe — no spurious gate fire."""
+
+        async def _noop(call):
+            return None
+
+        hass.services.async_register("shell_command", "backup", _noop)
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+
+        updated = {
+            "alias": "Refined with a shell command",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "shell_command.backup"}],
+        }
+        await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is False
+
+    @pytest.mark.asyncio
+    async def test_explicit_mode_keeps_authority_over_risk_gate(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        """Explicit mode (MCP enable/disable, YAML-editor save) still decides the
+        enabled state itself — the gate only covers content edits."""
+
+        async def _noop(call):
+            return None
+
+        hass.services.async_register("shell_command", "backup", _noop)
+        # Seed the opposite of the expected outcome so the assertion can't pass
+        # just because the update was rejected.
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        updated = {
+            "alias": "Deliberately enabled",
+            "initial_state": True,
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "shell_command.backup"}],
+        }
+        await async_update_automation(
+            hass, "selora_ai_existing1", updated, preserve_enabled_state=False
+        )
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["initial_state"] is True
 
     @pytest.mark.asyncio
     async def test_refine_runtime_restore_is_blocking(
@@ -2315,6 +2539,100 @@ class TestAsyncUpdateAutomation:
         ]
         assert restore_offs, "expected restore to honor the observed runtime OFF"
         assert not restore_ons, "must not restore the stale captured ON state"
+
+    @pytest.mark.asyncio
+    async def test_escalating_refine_ignores_an_enable_that_races_the_write(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """A toggle racing an escalating edit must not re-enable the automation.
+
+        The gate skips the boot override when the automation is observed OFF, so
+        the post-reload restore was the remaining way in: a toggle landing during
+        the write/reload was aimed at the PRE-edit (benign) config, and honoring
+        it would enable a newly elevated automation nobody reviewed.
+        """
+        from homeassistant.helpers import entity_registry as er
+
+        from custom_components.selora_ai import automation_utils as au
+
+        async def _noop(call):
+            return None
+
+        hass.services.async_register("shell_command", "backup", _noop)
+        # Observed OFF, and explicitly off at boot -> definitely_off, gate skipped.
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
+        hass.states.async_set(entry.entity_id, "off")
+
+        class _FakeWatcher:
+            def __init__(self, *args: object) -> None:
+                self.latest = True  # a user turned it ON mid-write
+
+            def ignore_context(self, context: object) -> None:
+                pass
+
+            def stop(self) -> None:
+                pass
+
+        updated = {
+            "alias": "Refined with a shell command",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "shell_command.backup"}],
+        }
+        with patch.object(au, "_RuntimeToggleWatcher", _FakeWatcher):
+            await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        restore_ons = [
+            c for c in automation_service_calls if c[1] == "turn_on" and c[0] == "automation"
+        ]
+        assert not restore_ons, "an escalating edit must never restore an ON state"
+
+    @pytest.mark.asyncio
+    async def test_non_escalating_refine_still_honors_a_racing_enable(
+        self,
+        hass: MagicMock,
+        tmp_automations_yaml: Path,
+        _patch_store: MagicMock,
+        automation_service_calls: list[tuple[str, str, dict]],
+    ) -> None:
+        """The suppression is scoped to escalation — ordinary edits keep honoring
+        a racing enable, which is the whole point of the toggle watcher."""
+        from homeassistant.helpers import entity_registry as er
+
+        from custom_components.selora_ai import automation_utils as au
+
+        self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
+        entity_reg = er.async_get(hass)
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
+        hass.states.async_set(entry.entity_id, "off")
+
+        class _FakeWatcher:
+            def __init__(self, *args: object) -> None:
+                self.latest = True
+
+            def ignore_context(self, context: object) -> None:
+                pass
+
+            def stop(self) -> None:
+                pass
+
+        updated = {
+            "alias": "Refined",
+            "trigger": [{"platform": "sun", "event": "sunset"}],
+            "action": [{"action": "light.turn_off"}],
+        }
+        with patch.object(au, "_RuntimeToggleWatcher", _FakeWatcher):
+            await async_update_automation(hass, "selora_ai_existing1", updated)
+
+        restore_ons = [
+            c for c in automation_service_calls if c[1] == "turn_on" and c[0] == "automation"
+        ]
+        assert restore_ons, "a benign edit must still honor the racing enable"
 
     @pytest.mark.asyncio
     async def test_refine_reapplies_toggle_that_races_the_restore(
