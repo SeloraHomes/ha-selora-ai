@@ -56,28 +56,52 @@ function _loadImage(dataUrl) {
   });
 }
 
-// Downscale to MAX_EDGE_PX and re-encode as JPEG. Small originals that
-// need no resize are kept verbatim (better text fidelity for screenshots).
-async function _processImageFile(file) {
+// Downscale to MAX_EDGE_PX and re-encode.
+//
+// Every image goes through the canvas, including ones small enough to need no
+// resize: the re-encode is what drops embedded metadata. A photo straight off a
+// phone carries EXIF GPS coordinates, capture time, and camera serial, and
+// passing a small original through verbatim shipped all of that to the model
+// provider. Larger images were only stripped as a side effect of the downscale.
+//
+// Small PNG/GIF sources re-encode losslessly back to PNG so screenshot text
+// stays crisp (the reason originals used to be kept); everything else goes to
+// JPEG as before.
+export async function _processImageFile(file) {
   const originalDataUrl = await _readAsDataUrl(file);
   const img = await _loadImage(originalDataUrl);
   const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
-  if (maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES) {
+  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const fitsAsIs =
+    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
+  // GIFs that need no resize pass through untouched. A canvas only ever holds
+  // the decoded FIRST frame, so re-encoding one silently throws away the
+  // animation — and GIF carries no EXIF, so there's no camera GPS or serial to
+  // strip here (that risk is JPEG/PNG metadata, both still re-encoded below).
+  // A GIF too large to send as-is still has to be downscaled, and loses its
+  // animation in the process — unavoidable without a real GIF encoder.
+  if (file.type === "image/gif" && fitsAsIs) {
     return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
   }
-  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const lossless = file.type === "image/png" || file.type === "image/gif";
+  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
   canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
   const ctx = canvas.getContext("2d");
-  // JPEG has no alpha — flatten transparency onto white instead of black.
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  if (outMime === "image/jpeg") {
+    // JPEG has no alpha — flatten transparency onto white instead of black.
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   return {
     name: file.name,
-    mimeType: "image/jpeg",
-    dataUrl: canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+    mimeType: outMime,
+    dataUrl:
+      outMime === "image/png"
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
   };
 }
 

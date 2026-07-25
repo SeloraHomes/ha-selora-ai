@@ -59,6 +59,7 @@ import logging
 from pathlib import Path
 import time
 from typing import TYPE_CHECKING, Any
+import weakref
 
 import aiohttp
 from aiohttp import web
@@ -452,15 +453,41 @@ def _can_access_tool(auth_ctx: SeloraAuthContext, tool_name: str) -> bool:
 # ── Registration ───────────────────────────────────────────────────────────────
 
 
+# Registration is process-lifetime: aiohttp's UrlDispatcher has no unregister,
+# so anything added here stays for as long as HA runs.
+#
+# Tracked per STEP rather than per instance. A step that fails (HTTP not up,
+# frozen router) stays absent so the next config-entry reload retries just that
+# one — marking the whole instance done would leave a failed view dead until HA
+# restarts, while retrying everything would re-add router resources for the
+# steps that already succeeded.
+_REGISTERED_STEPS: weakref.WeakKeyDictionary[HomeAssistant, set[str]] = weakref.WeakKeyDictionary()
+
+
 def register_mcp_server(hass: HomeAssistant) -> None:
     """Register the Selora AI MCP HTTP views with HA's HTTP server.
 
-    Each view is registered independently so a reload/upgrade that already
-    has one view registered doesn't prevent the other from being added.
+    Idempotent per HomeAssistant instance, step by step. This runs from
+    ``async_setup_entry``, which also fires on every reload, and aiohttp offers no
+    way to remove a route — so re-registering appended a fresh resource plus routes
+    each time, every one retaining a closure over the superseded view instance.
+    Requests kept being served by the FIRST registration, so the later copies were
+    pure growth for the lifetime of the process.
+
+    Registration is therefore skipped per completed step rather than per instance:
+    a step that fails is left unmarked and retried on the next reload, so a
+    transient failure can't leave an endpoint dead until HA restarts, while the
+    steps that already succeeded are never re-added.
 
     CORS: each view has an options() handler for preflight, and
     on_response_prepare adds CORS headers to all responses on MCP paths.
     """
+    done = _REGISTERED_STEPS.get(hass)
+    if done is None:
+        done = set()
+        _REGISTERED_STEPS[hass] = done
+    expected = 0
+
     app: web.Application = hass.http.app
 
     # Views under /api/ — registered via HA's standard mechanism.
@@ -468,10 +495,21 @@ def register_mcp_server(hass: HomeAssistant) -> None:
         SeloraAIMCPView(),
         OAuthTokenProxyView(),
     ):
+        expected += 1
+        if view.name in done:
+            continue
+        # The except is not a duplicate guard: HomeAssistantView.register adds its
+        # route with no name, so aiohttp never raises for a repeat. The `done`
+        # check above is what makes this idempotent. A genuine failure is logged
+        # and left unmarked so the next reload retries it.
         try:
             hass.http.register_view(view)
-        except ValueError:
-            _LOGGER.debug("View %s already registered, skipping", view.name)
+        except (ValueError, RuntimeError):
+            _LOGGER.warning(
+                "Failed to register MCP view %s — retrying on the next reload", view.name
+            )
+        else:
+            done.add(view.name)
 
     # RFC 9728 protected resource metadata at the domain root — HA doesn't
     # allow HomeAssistantView outside /api/, so register as raw aiohttp route.
@@ -493,10 +531,30 @@ def register_mcp_server(hass: HomeAssistant) -> None:
         )
 
     for method, handler in [("GET", _protected_resource_get), ("OPTIONS", _cors_preflight)]:
-        with contextlib.suppress(Exception):
+        step = f"{_PROTECTED_RESOURCE_URL}:{method}"
+        expected += 1
+        if step in done:
+            continue
+        try:
             app.router.add_route(method, _PROTECTED_RESOURCE_URL, handler)
+        except Exception:  # noqa: BLE001 — one method must not block the other, nor setup
+            _LOGGER.warning(
+                "Failed to register %s %s — retrying on the next reload",
+                method,
+                _PROTECTED_RESOURCE_URL,
+            )
+        else:
+            done.add(step)
 
-    _LOGGER.info("Selora AI MCP server registered at %s", _MCP_URL)
+    if len(done) >= expected:
+        _LOGGER.info("Selora AI MCP server registered at %s", _MCP_URL)
+    else:
+        _LOGGER.warning(
+            "Selora AI MCP server only partially registered (%d/%d steps) — "
+            "the rest will be retried on the next reload",
+            len(done),
+            expected,
+        )
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

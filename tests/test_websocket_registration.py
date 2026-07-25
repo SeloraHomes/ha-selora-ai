@@ -31,8 +31,6 @@ EXPECTED_COMMANDS = frozenset(
         "selora_ai/delete_automation",
         "selora_ai/delete_scene",
         "selora_ai/delete_session",
-        "selora_ai/exchange_aigateway_code",
-        "selora_ai/exchange_connect_code",
         "selora_ai/generate_suggestions",
         "selora_ai/get_analytics",
         "selora_ai/get_automation_diff",

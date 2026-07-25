@@ -254,3 +254,203 @@ async def test_prune_resolved_drops_orphaned_overrides(health_store):
     assert f"signal:{health_signal_id('flapping', 'light.live')}" in overrides  # live → kept
     assert "signal:unavailable:light.gone" not in overrides  # orphaned → pruned
     assert overrides["suggestion:abc"] == "dismissed"  # non-signal → untouched
+
+
+@pytest.mark.asyncio
+async def test_set_last_audit_skips_write_when_only_timestamp_moved(health_store):
+    """The audit re-runs every health scan (~96x/day); persisting an unchanged
+    record each time is pure flash wear on SD-card installs."""
+    hs, store_inst = health_store
+
+    first = {"status": "ok", "score": 91, "band": "A", "generated_at": "2026-07-24T10:00:00+00:00"}
+    await hs.set_last_audit(first)
+    assert len(store_inst.saved_data) == 1
+
+    # Same home, next scan — identical apart from the timestamp: no disk write.
+    await hs.set_last_audit({**first, "generated_at": "2026-07-24T10:15:00+00:00"})
+    assert len(store_inst.saved_data) == 1
+    # ...but the in-memory record is still refreshed for readers.
+    assert (await hs.get_last_audit())["generated_at"] == "2026-07-24T10:15:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_set_last_audit_persists_when_content_changes(health_store):
+    hs, store_inst = health_store
+
+    base = {"status": "ok", "score": 91, "band": "A", "generated_at": "2026-07-24T10:00:00+00:00"}
+    await hs.set_last_audit(base)
+    assert len(store_inst.saved_data) == 1
+
+    # Score moved → must persist.
+    await hs.set_last_audit({**base, "score": 84, "generated_at": "2026-07-24T10:15:00+00:00"})
+    assert len(store_inst.saved_data) == 2
+
+    # Nested findings changed while the score happens to match → must persist.
+    await hs.set_last_audit(
+        {
+            **base,
+            "score": 84,
+            "checks": [{"check_id": "offline_devices", "severity": "warning"}],
+            "generated_at": "2026-07-24T10:30:00+00:00",
+        }
+    )
+    assert len(store_inst.saved_data) == 3
+
+
+@pytest.mark.asyncio
+async def test_set_last_audit_checkpoints_a_stale_timestamp(health_store):
+    """Unchanged content must still be checkpointed once the stored timestamp ages.
+
+    sensor.py reads `generated_at` from the persisted audit and exposes it as the
+    Home Health sensor's `last_scan`; skipping every unchanged write outright made
+    that read back an arbitrarily old time after a restart.
+    """
+    hs, store_inst = health_store
+    base = {"status": "ok", "score": 91, "band": "A", "generated_at": "2026-07-24T10:00:00+00:00"}
+    await hs.set_last_audit(base)
+    assert len(store_inst.saved_data) == 1
+
+    # Well inside the checkpoint window — still skipped.
+    await hs.set_last_audit({**base, "generated_at": "2026-07-24T10:45:00+00:00"})
+    assert len(store_inst.saved_data) == 1
+
+    # Past the window — persisted even though nothing about the home changed.
+    await hs.set_last_audit({**base, "generated_at": "2026-07-24T11:15:00+00:00"})
+    assert len(store_inst.saved_data) == 2
+    assert store_inst.saved_data[-1]["meta"]["last_audit"]["generated_at"] == (
+        "2026-07-24T11:15:00+00:00"
+    )
+
+    # The window restarts from the checkpoint, not from the original write.
+    await hs.set_last_audit({**base, "generated_at": "2026-07-24T11:50:00+00:00"})
+    assert len(store_inst.saved_data) == 2
+
+
+@pytest.mark.asyncio
+async def test_set_last_audit_persists_when_timestamp_is_unparseable(health_store):
+    """An unusable timestamp must not freeze the persisted copy forever."""
+    hs, store_inst = health_store
+    base = {"status": "ok", "score": 91, "band": "A", "generated_at": "not-a-timestamp"}
+    await hs.set_last_audit(base)
+    assert len(store_inst.saved_data) == 1
+    await hs.set_last_audit({**base, "generated_at": "also-not-a-timestamp"})
+    assert len(store_inst.saved_data) == 2
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_baseline_survives_a_restart(hass):
+    """After a restart the baseline must come from DISK, not the in-memory record.
+
+    The in-memory audit is refreshed on every call even when the save is skipped,
+    so deriving the baseline from it slid the window forward each scan and the
+    checkpoint could never fire — leaving the persisted `generated_at` (surfaced
+    as the sensor's `last_scan`) stale indefinitely.
+    """
+    base = {"status": "ok", "score": 91, "band": "A"}
+    # A store that comes up with a record already on disk, timestamped 11:50.
+    persisted = {
+        "signals": {},
+        "meta": {"last_audit": {**base, "generated_at": "2026-07-24T11:50:00+00:00"}},
+    }
+    with patch("custom_components.selora_ai.health_store.Store") as mock_cls:
+        store_inst = MockStore(persisted)
+        mock_cls.return_value = store_inst
+        hs = HealthStore(hass)
+        hs._store = store_inst
+
+        # Three unchanged 15-minute scans. Each one is inside the window measured
+        # from the DISK timestamp (11:50) until the third.
+        await hs.set_last_audit({**base, "generated_at": "2026-07-24T12:05:00+00:00"})
+        assert len(store_inst.saved_data) == 0
+        await hs.set_last_audit({**base, "generated_at": "2026-07-24T12:20:00+00:00"})
+        assert len(store_inst.saved_data) == 0
+        await hs.set_last_audit({**base, "generated_at": "2026-07-24T12:35:00+00:00"})
+        # 11:50 -> 12:35 is 45min, still inside the hour.
+        assert len(store_inst.saved_data) == 0
+        # 11:50 -> 12:55 crosses it: the disk copy must be refreshed.
+        await hs.set_last_audit({**base, "generated_at": "2026-07-24T12:55:00+00:00"})
+        assert len(store_inst.saved_data) == 1
+        assert store_inst.saved_data[-1]["meta"]["last_audit"]["generated_at"] == (
+            "2026-07-24T12:55:00+00:00"
+        )
+
+
+@pytest.mark.asyncio
+async def test_any_write_refreshes_the_checkpoint_baseline(health_store):
+    """A save driven by another caller flushes `last_audit` too, so it advances the
+    baseline — no second write for a record already on disk.
+
+    The baseline is the timestamp OF THE PERSISTED RECORD, not the wall-clock time
+    of the flush: set_last_scan writes whatever `last_audit` currently holds.
+    """
+    hs, store_inst = health_store
+    base = {"status": "ok", "score": 91, "band": "A"}
+
+    await hs.set_last_audit({**base, "generated_at": "2026-07-24T10:00:00+00:00"})
+    assert len(store_inst.saved_data) == 1  # first record always persists
+
+    # Unchanged, 20min later -> in-memory only. Disk still holds 10:00.
+    await hs.set_last_audit({**base, "generated_at": "2026-07-24T10:20:00+00:00"})
+    assert len(store_inst.saved_data) == 1
+
+    # set_last_scan writes the whole document, flushing the 10:20 audit with it.
+    await hs.set_last_scan("2026-07-24T10:21:00+00:00")
+    assert len(store_inst.saved_data) == 2
+
+    # 11:10 is 70min past the ORIGINAL write but only 50min past what the flush
+    # actually persisted (10:20), so no checkpoint is owed. Without tracking the
+    # baseline in _save this would have written again for data already on disk.
+    await hs.set_last_audit({**base, "generated_at": "2026-07-24T11:10:00+00:00"})
+    assert len(store_inst.saved_data) == 2
+
+    # 11:25 is past an hour from the persisted 10:20 -> checkpoint.
+    await hs.set_last_audit({**base, "generated_at": "2026-07-24T11:25:00+00:00"})
+    assert len(store_inst.saved_data) == 3
+
+
+@pytest.mark.asyncio
+async def test_checkpoint_corrects_a_future_persisted_timestamp(hass):
+    """A persisted stamp ahead of the current audit must be rewritten, not waited out.
+
+    A fast-clock boot (RPi with no RTC) or a restored backup can leave
+    `generated_at` in the future. Subtracting gives a negative delta, so the
+    window never elapses and the sensor's `last_scan` stays in the future across
+    restarts until wall time catches up.
+    """
+    base = {"status": "ok", "score": 91, "band": "A"}
+    persisted = {
+        "signals": {},
+        # Written under a clock running months fast.
+        "meta": {"last_audit": {**base, "generated_at": "2027-01-01T00:00:00+00:00"}},
+    }
+    with patch("custom_components.selora_ai.health_store.Store") as mock_cls:
+        store_inst = MockStore(persisted)
+        mock_cls.return_value = store_inst
+        hs = HealthStore(hass)
+        hs._store = store_inst
+
+        # NTP has since corrected the clock backwards.
+        await hs.set_last_audit({**base, "generated_at": "2026-07-24T12:00:00+00:00"})
+
+        assert len(store_inst.saved_data) == 1, "a future stamp must be corrected now"
+        assert store_inst.saved_data[-1]["meta"]["last_audit"]["generated_at"] == (
+            "2026-07-24T12:00:00+00:00"
+        )
+
+        # Having corrected it, normal throttling resumes from the new baseline.
+        await hs.set_last_audit({**base, "generated_at": "2026-07-24T12:15:00+00:00"})
+        assert len(store_inst.saved_data) == 1
+
+
+def test_checkpoint_due_treats_a_backwards_clock_as_due():
+    """Unit-level: the predicate itself must not return False on a negative delta."""
+    from datetime import UTC, datetime
+
+    from custom_components.selora_ai.health_store import _checkpoint_due
+
+    future = datetime(2027, 1, 1, tzinfo=UTC)
+    now = datetime(2026, 7, 24, 12, 0, tzinfo=UTC)
+    assert _checkpoint_due(future, now) is True
+    # Same instant is not due; a full window is.
+    assert _checkpoint_due(now, now) is False
+    assert _checkpoint_due(datetime(2026, 7, 24, 10, 0, tzinfo=UTC), now) is True

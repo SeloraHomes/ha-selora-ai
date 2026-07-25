@@ -505,6 +505,39 @@ export const proposalStyles = css`
     border-radius: 10px;
     background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.025);
   }
+  /* Steps carrying "enabled: false": dimmed and tagged so they never read as
+     part of the live flow, while staying inspectable. */
+  .flow-node--off {
+    opacity: 0.5;
+    border-style: dashed;
+  }
+  .flow-off-tag {
+    margin-left: 6px;
+    padding: 1px 5px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.1);
+    opacity: 0.85;
+    white-space: nowrap;
+  }
+  .flow-off-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    opacity: 0.55;
+  }
+  .flow-off-wrap-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
   .flow-branch-label {
     font-size: 11px;
     font-weight: 700;

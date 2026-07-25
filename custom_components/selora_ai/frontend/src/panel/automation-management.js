@@ -429,9 +429,12 @@ export async function _restoreVersion(automationId, versionId, yamlText) {
       automation_id: automationId,
       yaml_text: yamlText,
       version_message: `Restored from version ${versionId}`,
-      // A restore reverts to the complete saved configuration, including the
-      // version's enabled state — don't preserve the current on-disk value.
-      preserve_enabled_state: false,
+      // A restore reverts the configuration (triggers/conditions/actions), not
+      // the on/off switch: enabled state is runtime state, persisted separately
+      // by the toggle path and never re-captured into a version snapshot. A
+      // create-time snapshot always carries initial_state:false, so honouring
+      // the snapshot here would silently kill a running automation.
+      preserve_enabled_state: true,
     });
     this._versionHistoryOpen = {
       ...this._versionHistoryOpen,

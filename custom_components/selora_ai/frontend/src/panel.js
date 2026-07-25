@@ -1407,6 +1407,12 @@ class SeloraAIPanel extends LitElement {
           return Number.isFinite(v) && v >= 60 ? v : 900;
         })(),
         auto_purge_stale: this._config.auto_purge_stale || false,
+        // Carry the Memory + pricing cards' current text through this save. Both
+        // edit `_config` live from their own textareas, and `_loadConfig()` below
+        // replaces `_config` wholesale from the server — so omitting them here
+        // discards an unsaved edit and snaps the field back under a success toast.
+        household_profile: this._config.household_profile ?? "",
+        llm_pricing_overrides: this._config.llm_pricing_overrides ?? {},
         telemetry_enabled: this._config.telemetry_enabled === true,
         // Deciding the toggle here counts as seeing the prompt — mark it
         // so the one-time consent banner never reappears afterwards.

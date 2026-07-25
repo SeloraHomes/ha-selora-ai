@@ -1128,3 +1128,299 @@ describe("asArray", () => {
     expect(asArray(branch.conditions)).toHaveLength(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Accuracy regressions: state filters, `for:`, negated trigger refs
+// ---------------------------------------------------------------------------
+
+describe("state filter accuracy", () => {
+  it("renders a list `to:` with the locale's or-joiner, not a stringified array", () => {
+    const out = describeFlowItem(mockHass, {
+      platform: "state",
+      entity_id: "device_tracker.phone",
+      to: ["home", "not_home"],
+    });
+    // fmtState maps not_home -> "away", so the joined form is "home or away".
+    expect(out).not.toContain("home,not home");
+    expect(out).toContain("home");
+    expect(out).toContain("away");
+    expect(out).toMatch(/ or /);
+  });
+
+  it("describes not_to as an exclusion instead of a bare state change", () => {
+    const out = describeFlowItem(mockHass, {
+      platform: "state",
+      entity_id: "light.living_room",
+      not_to: "off",
+    });
+    // Pre-fix this fell through to "changes state" — indistinguishable from a
+    // trigger with no filter at all.
+    expect(out).not.toMatch(/changes state$/);
+    expect(out).toContain("other than");
+    expect(out).toContain("off");
+  });
+
+  it("describes not_from as an exclusion", () => {
+    const out = describeFlowItem(mockHass, {
+      platform: "state",
+      entity_id: "light.living_room",
+      not_from: "on",
+    });
+    expect(out).not.toMatch(/changes state$/);
+    expect(out).toContain("other than");
+  });
+
+  it("keeps `for:` on a numeric_state trigger", () => {
+    const out = describeFlowItem(mockHass, {
+      platform: "numeric_state",
+      entity_id: "sensor.temperature",
+      above: 25,
+      for: "00:10:00",
+    });
+    expect(out).toContain("25");
+    expect(out).toContain("00:10:00");
+  });
+
+  it("keeps `for:` on a state condition", () => {
+    const out = describeFlowItem(mockHass, {
+      condition: "state",
+      entity_id: "light.living_room",
+      state: "off",
+      for: { minutes: 10 },
+    });
+    expect(out).toContain("10m");
+  });
+
+  it("joins a list condition state with the or-joiner", () => {
+    const out = describeFlowItem(mockHass, {
+      condition: "state",
+      entity_id: "device_tracker.phone",
+      state: ["home", "not_home"],
+    });
+    expect(out).not.toContain("home,not home");
+    expect(out).toContain("away");
+    expect(out).toMatch(/ or /);
+  });
+});
+
+describe("displayTriggers polarity", () => {
+  const triggers = [
+    { platform: "time", at: "07:00", id: "morning" },
+    { platform: "state", entity_id: "binary_sensor.front_door", id: "motion" },
+  ];
+
+  it("does not suppress a trigger whose only reference sits under a `not`", () => {
+    // "NOT triggered by morning" never tells the user the automation runs at
+    // 07:00, so the trigger section must still list it.
+    const shown = displayTriggers(
+      triggers,
+      [
+        {
+          condition: "not",
+          conditions: [{ condition: "trigger", id: "morning" }],
+        },
+        { condition: "trigger", id: "motion" },
+      ],
+      [],
+    );
+    expect(shown.length).toBeGreaterThan(0);
+    expect(shown.some((t) => t.id === "morning")).toBe(true);
+  });
+
+  it("still suppresses a positively-referenced trigger", () => {
+    const shown = displayTriggers(
+      triggers,
+      [
+        { condition: "trigger", id: "morning" },
+        { condition: "trigger", id: "motion" },
+      ],
+      [],
+    );
+    expect(shown).toEqual([]);
+  });
+});
+
+describe("mergeEquivalentTriggers and disabled triggers", () => {
+  it("does not fold a disabled trigger into a shared pill", () => {
+    const merged = mergeEquivalentTriggers([
+      { platform: "state", entity_id: "sensor.temperature" },
+      { platform: "state", entity_id: "cover.blinds", enabled: false },
+    ]);
+    expect(merged).toHaveLength(2);
+    const active = merged.find((t) => t.enabled !== false);
+    expect(asArray(active.entity_id)).toEqual(["sensor.temperature"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Combined source + destination constraints
+// ---------------------------------------------------------------------------
+// HA allows ONE source constraint (`from` xor `not_from`) alongside ONE
+// destination constraint (`to` xor `not_to`). Describing a single side made a
+// narrow trigger read as broad.
+
+describe("state trigger source+destination combinations", () => {
+  const d = (item) =>
+    describeFlowItem(mockHass, {
+      platform: "state",
+      entity_id: "device_tracker.phone",
+      ...item,
+    });
+
+  it("keeps the from-side when combined with not_to", () => {
+    const out = d({ from: "home", not_to: "unavailable" });
+    expect(out).toContain("home");
+    expect(out).toContain("unavailable");
+    expect(out).toMatch(/other than/);
+  });
+
+  it("keeps the not_from-side when combined with to", () => {
+    const out = d({ not_from: "unavailable", to: "home" });
+    expect(out).toContain("unavailable");
+    expect(out).toContain("home");
+    expect(out).toMatch(/other than/);
+  });
+
+  it("describes both sides when both are exclusions", () => {
+    const out = d({ not_from: "unknown", not_to: "unavailable" });
+    expect(out).toContain("unknown");
+    expect(out).toContain("unavailable");
+    expect(out.match(/other than/g)).toHaveLength(2);
+  });
+
+  it("describes a from-only trigger instead of a bare state change", () => {
+    const out = d({ from: "home" });
+    expect(out).toContain("home");
+    expect(out).not.toMatch(/changes state$/);
+  });
+
+  it("still uses the idiomatic shortcut when the source is implied", () => {
+    expect(d({ from: "off", to: "on" })).toBe("When Phone turns on");
+  });
+
+  it("spells out a non-implied source rather than saying just 'turns on'", () => {
+    const out = d({ from: "unavailable", to: "on" });
+    expect(out).toContain("unavailable");
+    expect(out).not.toBe("When Phone turns on");
+  });
+
+  it("spells out not_from even when the destination is on", () => {
+    const out = d({ not_from: "unavailable", to: "on" });
+    expect(out).toContain("unavailable");
+    expect(out).not.toBe("When Phone turns on");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// List-valued `from` must not be mistaken for an unconstrained source
+// ---------------------------------------------------------------------------
+
+describe("list-valued state sources", () => {
+  const d = (item) =>
+    describeFlowItem(mockHass, {
+      platform: "state",
+      entity_id: "light.living_room",
+      ...item,
+    });
+
+  it("spells out a multi-state from list instead of saying just 'turns on'", () => {
+    const out = d({ from: ["off", "unavailable"], to: "on" });
+    expect(out).not.toBe("When Living Room Light turns on");
+    expect(out).toContain("off");
+    expect(out).toContain("unavailable");
+  });
+
+  it("still uses the shortcut for a single-element list matching the complement", () => {
+    expect(d({ from: ["off"], to: "on" })).toBe(
+      "When Living Room Light turns on",
+    );
+    expect(d({ from: ["on"], to: "off" })).toBe(
+      "When Living Room Light turns off",
+    );
+  });
+
+  it("spells out a single-element list that is NOT the complement", () => {
+    const out = d({ from: ["unavailable"], to: "on" });
+    expect(out).not.toBe("When Living Room Light turns on");
+    expect(out).toContain("unavailable");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Disabled steps must not participate in trigger-redundancy analysis
+// ---------------------------------------------------------------------------
+
+describe("displayTriggers and disabled steps", () => {
+  it("does not let a DISABLED condition suppress an active trigger", () => {
+    // The condition re-checks the trigger's entity, which would normally make the
+    // bare trigger redundant — but it never runs, so the trigger is load-bearing.
+    const shown = displayTriggers(
+      [{ platform: "state", entity_id: "binary_sensor.front_door" }],
+      [
+        {
+          condition: "state",
+          entity_id: "binary_sensor.front_door",
+          state: "on",
+          enabled: false,
+        },
+      ],
+      [],
+    );
+    expect(shown).toHaveLength(1);
+  });
+
+  it("does not let a DISABLED condition: trigger reference suppress a trigger", () => {
+    const shown = displayTriggers(
+      [{ platform: "time", at: "07:00", id: "morning" }],
+      [{ condition: "trigger", id: "morning", enabled: false }],
+      [],
+    );
+    expect(shown).toHaveLength(1);
+  });
+
+  it("keeps a disabled trigger visible instead of hiding the section", () => {
+    // Both triggers look redundant against the condition, but the disabled one
+    // cannot fire, so "every trigger is redundant" must not hide the section.
+    const shown = displayTriggers(
+      [
+        { platform: "state", entity_id: "cover.blinds", enabled: false },
+        { platform: "state", entity_id: "binary_sensor.front_door" },
+      ],
+      [
+        { condition: "state", entity_id: "cover.blinds", state: "open" },
+        {
+          condition: "state",
+          entity_id: "binary_sensor.front_door",
+          state: "on",
+        },
+      ],
+      [],
+    );
+    expect(shown.length).toBeGreaterThan(0);
+  });
+
+  it("ignores conditions inside a disabled action block", () => {
+    const shown = displayTriggers(
+      [{ platform: "state", entity_id: "binary_sensor.front_door" }],
+      [],
+      [
+        {
+          enabled: false,
+          choose: [
+            {
+              conditions: [
+                {
+                  condition: "state",
+                  entity_id: "binary_sensor.front_door",
+                  state: "on",
+                },
+              ],
+              sequence: [{ service: "light.turn_on" }],
+            },
+          ],
+        },
+      ],
+    );
+    expect(shown).toHaveLength(1);
+  });
+});

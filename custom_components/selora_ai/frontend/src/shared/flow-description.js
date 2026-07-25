@@ -43,6 +43,17 @@ const PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `When ${eid} changes from ${from} to ${to}${dur}`,
     when_becomes: (eid, st, dur) => `When ${eid} becomes ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `When ${eid} changes from ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `When ${eid} changes from ${from} to anything other than ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `When ${eid} changes from anything other than ${from} to ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `When ${eid} changes from anything other than ${from} to anything other than ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `When ${eid} changes to anything other than ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `When ${eid} changes away from anything other than ${st}${dur}`,
     when_changes_state: (eid, dur) => `When ${eid} changes state${dur}`,
     for_duration: (d) => ` for ${d}`,
     when_between: (eid, a, b) => `When ${eid} is between ${a} and ${b}`,
@@ -155,6 +166,17 @@ const PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Quand ${eid} passe de ${from} à ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Quand ${eid} devient ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `Quand ${eid} quitte ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Quand ${eid} passe de ${from} à autre chose que ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Quand ${eid} passe d'autre chose que ${from} à ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Quand ${eid} passe d'autre chose que ${from} à autre chose que ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Quand ${eid} passe à autre chose que ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Quand ${eid} quitte autre chose que ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quand ${eid} change d'état${dur}`,
     for_duration: (d) => ` pendant ${d}`,
     when_between: (eid, a, b) => `Quand ${eid} est entre ${a} et ${b}`,
@@ -269,6 +291,17 @@ const PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Wenn ${eid} von ${from} zu ${to} wechselt${dur}`,
     when_becomes: (eid, st, dur) => `Wenn ${eid} zu ${st} wird${dur}`,
+    when_changes_from: (eid, st, dur) => `Wenn ${eid} von ${st} wechselt${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Wenn ${eid} von ${from} zu etwas anderem als ${st} wechselt${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Wenn ${eid} von etwas anderem als ${from} zu ${st} wechselt${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Wenn ${eid} von etwas anderem als ${from} zu etwas anderem als ${st} wechselt${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Wenn ${eid} zu etwas anderem als ${st} wechselt${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Wenn ${eid} von etwas anderem als ${st} wechselt${dur}`,
     when_changes_state: (eid, dur) => `Wenn ${eid} den Zustand ändert${dur}`,
     for_duration: (d) => ` für ${d}`,
     when_between: (eid, a, b) => `Wenn ${eid} zwischen ${a} und ${b} liegt`,
@@ -382,6 +415,17 @@ const PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Cuando ${eid} cambie de ${from} a ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Cuando ${eid} pase a ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `Cuando ${eid} salga de ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Cuando ${eid} pase de ${from} a algo distinto de ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Cuando ${eid} pase de algo distinto de ${from} a ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Cuando ${eid} pase de algo distinto de ${from} a algo distinto de ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Cuando ${eid} pase a algo distinto de ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Cuando ${eid} salga de algo distinto de ${st}${dur}`,
     when_changes_state: (eid, dur) => `Cuando ${eid} cambie de estado${dur}`,
     for_duration: (d) => ` durante ${d}`,
     when_between: (eid, a, b) => `Cuando ${eid} esté entre ${a} y ${b}`,
@@ -495,6 +539,17 @@ const PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Quando ${eid} passa da ${from} a ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Quando ${eid} diventa ${st}${dur}`,
+    when_changes_from: (eid, st, dur) => `Quando ${eid} esce da ${st}${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Quando ${eid} passa da ${from} a qualcosa diverso da ${st}${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Quando ${eid} passa da qualcosa diverso da ${from} a ${st}${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Quando ${eid} passa da qualcosa diverso da ${from} a qualcosa diverso da ${st}${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Quando ${eid} passa a qualcosa diverso da ${st}${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Quando ${eid} esce da qualcosa diverso da ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quando ${eid} cambia stato${dur}`,
     for_duration: (d) => ` per ${d}`,
     when_between: (eid, a, b) => `Quando ${eid} è tra ${a} e ${b}`,
@@ -608,6 +663,18 @@ const PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Wanneer ${eid} verandert van ${from} naar ${to}${dur}`,
     when_becomes: (eid, st, dur) => `Wanneer ${eid} ${st} wordt${dur}`,
+    when_changes_from: (eid, st, dur) =>
+      `Wanneer ${eid} van ${st} verandert${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Wanneer ${eid} van ${from} naar iets anders dan ${st} verandert${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Wanneer ${eid} van iets anders dan ${from} naar ${st} verandert${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Wanneer ${eid} van iets anders dan ${from} naar iets anders dan ${st} verandert${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Wanneer ${eid} iets anders dan ${st} wordt${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Wanneer ${eid} van iets anders dan ${st} verandert${dur}`,
     when_changes_state: (eid, dur) =>
       `Wanneer ${eid} van status verandert${dur}`,
     for_duration: (d) => ` gedurende ${d}`,
@@ -722,6 +789,18 @@ const PHRASES = {
     when_changes_from_to: (eid, from, to, dur) =>
       `Amikor ${eid} ${from}-ról ${to}-ra vált${dur}`,
     when_becomes: (eid, st, dur) => `Amikor ${eid} ${st} lesz${dur}`,
+    when_changes_from: (eid, st, dur) =>
+      `Amikor ${eid} ${st} állapotból változik${dur}`,
+    when_changes_from_to_other: (eid, from, st, dur) =>
+      `Amikor ${eid} ${from} állapotból ${st}-tól eltérőre változik${dur}`,
+    when_changes_from_other_to: (eid, from, st, dur) =>
+      `Amikor ${eid} ${from}-tól eltérőről ${st} állapotba változik${dur}`,
+    when_changes_from_other_to_other: (eid, from, st, dur) =>
+      `Amikor ${eid} ${from}-tól eltérőről ${st}-tól eltérőre változik${dur}`,
+    when_changes_to_other: (eid, st, dur) =>
+      `Amikor ${eid} ${st}-tól eltérőre változik${dur}`,
+    when_changes_from_other: (eid, st, dur) =>
+      `Amikor ${eid} ${st}-tól eltérőről változik${dur}`,
     when_changes_state: (eid, dur) => `Amikor ${eid} állapotot vált${dur}`,
     for_duration: (d) => ` ${d}-ig`,
     when_between: (eid, a, b) => `Amikor ${eid} ${a} és ${b} között van`,
@@ -860,6 +939,19 @@ function _entityNamesOr(hass, val, t) {
   const arr = asArray(val);
   if (arr.length <= 1) return fmtEntity(hass, arr[0]);
   const names = arr.map((e) => fmtEntity(hass, e));
+  return names.slice(0, -1).join(", ") + t("or") + names[names.length - 1];
+}
+
+// Same joiner for state values. HA allows `to:` / `from:` / `not_to` / `not_from`
+// to be a list; passing that straight to fmtState stringifies the array, so
+// `to: [home, not_home]` rendered as the single token "home,not home".
+function _statesOr(val, lang, t) {
+  if (val == null) return null;
+  const arr = asArray(val);
+  if (!arr.length) return null;
+  const names = arr.map((s) => fmtState(s, lang)).filter(Boolean);
+  if (!names.length) return null;
+  if (names.length === 1) return names[0];
   return names.slice(0, -1).join(", ") + t("or") + names[names.length - 1];
 }
 
@@ -1049,22 +1141,63 @@ export function describeFlowItem(hass, item, ctx) {
   }
   if (p === "state") {
     const eid = _entityNamesOr(hass, item.entity_id, t);
-    const rawTo = item.to == null ? null : String(item.to);
-    const fromState = fmtState(item.from, lang);
-    const toState = fmtState(item.to, lang);
+    const rawTo = Array.isArray(item.to)
+      ? null // a list can't match the on/off shortcuts below
+      : item.to == null
+        ? null
+        : String(item.to);
+    // A list of source states is NOT the same as no source constraint. Collapsing
+    // an array to null made `from: ["off", "unavailable"], to: "on"` render as a
+    // bare "turns on", hiding the restriction. `null` here means absent; anything
+    // present becomes a list so a single-element `["off"]` and a scalar `"off"`
+    // compare identically below.
+    const fromList = item.from == null ? null : asArray(item.from).map(String);
+    // HA allows ONE source constraint (`from` xor `not_from`) alongside ONE
+    // destination constraint (`to` xor `not_to`). Describing a single side left a
+    // constrained trigger reading broader than it actually is — `from: home` with
+    // `not_to: unavailable` claimed it fires on leaving ANY state.
+    const fromState = _statesOr(item.from, lang, t);
+    const toState = _statesOr(item.to, lang, t);
+    const notFrom = _statesOr(item.not_from, lang, t);
+    const notTo = _statesOr(item.not_to, lang, t);
     const duration = fmtDuration(item.for);
     const dur = duration ? t("for_duration", duration) : "";
-    // Branch on the raw state token (locale-independent), then render
-    // the localized label only when emitting a generic phrase.
-    if (rawTo === "on") return t("when_turns_on", eid, dur);
-    if (rawTo === "off") return t("when_turns_off", eid, dur);
-    if (toState && fromState)
+
+    // "turns on" already implies coming from off, so that phrasing stays correct
+    // when the source is either unconstrained or exactly the implied complement.
+    // Any other source constraint has to be spelled out. Branch on the raw state
+    // token (locale-independent); localized labels are only for output.
+    // Implied only when the source is absent, or is exactly the one complementary
+    // state. A multi-state list always says something the shortcut would drop.
+    const sourceIsOnly = (state) =>
+      fromList === null || (fromList.length === 1 && fromList[0] === state);
+    const sourceImplied =
+      !notFrom &&
+      ((rawTo === "on" && sourceIsOnly("off")) ||
+        (rawTo === "off" && sourceIsOnly("on")));
+    if (sourceImplied && rawTo === "on") return t("when_turns_on", eid, dur);
+    if (sourceImplied && rawTo === "off") return t("when_turns_off", eid, dur);
+
+    // Both sides present — one phrase per source×destination combination.
+    if (fromState && toState)
       return t("when_changes_from_to", eid, fromState, toState, dur);
+    if (fromState && notTo)
+      return t("when_changes_from_to_other", eid, fromState, notTo, dur);
+    if (notFrom && toState)
+      return t("when_changes_from_other_to", eid, notFrom, toState, dur);
+    if (notFrom && notTo)
+      return t("when_changes_from_other_to_other", eid, notFrom, notTo, dur);
+
+    // One side only.
     if (toState) return t("when_becomes", eid, toState, dur);
+    if (notTo) return t("when_changes_to_other", eid, notTo, dur);
+    if (fromState) return t("when_changes_from", eid, fromState, dur);
+    if (notFrom) return t("when_changes_from_other", eid, notFrom, dur);
+
     // A bare state trigger on a sensor fires on every reported value —
     // "value changes" says that; "changes state" reads like on/off.
     const firstId = String(asArray(item.entity_id)[0] || "");
-    if (!item.from && firstId.startsWith("sensor."))
+    if (firstId.startsWith("sensor."))
       return `${t("when_value_changes", eid)}${dur}`;
     return t("when_changes_state", eid, dur);
   }
@@ -1072,11 +1205,17 @@ export function describeFlowItem(hass, item, ctx) {
     const eid = _entityNamesOr(hass, item.entity_id, t);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
+    // `for:` is as load-bearing here as on a state trigger — a threshold that
+    // must hold for 10 minutes is a different rule from one that fires instantly.
+    const nsDuration = fmtDuration(item.for);
+    const nsDur = nsDuration ? t("for_duration", nsDuration) : "";
     if (item.above != null && item.below != null)
-      return t("when_between", eid, above, below);
-    if (item.above != null) return t("when_rises_above", eid, above);
-    if (item.below != null) return t("when_drops_below", eid, below);
-    return t("when_value_changes", eid);
+      return `${t("when_between", eid, above, below)}${nsDur}`;
+    if (item.above != null)
+      return `${t("when_rises_above", eid, above)}${nsDur}`;
+    if (item.below != null)
+      return `${t("when_drops_below", eid, below)}${nsDur}`;
+    return `${t("when_value_changes", eid)}${nsDur}`;
   }
   if (p === "homeassistant") {
     const ev =
@@ -1147,8 +1286,12 @@ export function describeFlowItem(hass, item, ctx) {
   const cond = item.condition;
   if (cond === "state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
-    const st = fmtState(item.state ?? item.to, lang);
-    return t("cond_is", eid, st);
+    const st = _statesOr(item.state ?? item.to, lang, t);
+    // A state condition takes `for:` too ("has been off for 10 minutes");
+    // dropping it made a debounced check read as an instantaneous one.
+    const condDuration = fmtDuration(item.for);
+    const condDur = condDuration ? t("for_duration", condDuration) : "";
+    return `${t("cond_is", eid, st)}${condDur}`;
   }
   if (cond === "numeric_state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
@@ -1458,6 +1601,9 @@ function _isBareStateTrigger(tr) {
 // matches). An inline `condition` action is a guard, not an action.
 function _actionRunsUnconditionally(a) {
   if (!a || typeof a !== "object") return true;
+  // Disabled actions never run, so one cannot be the unconditional path that
+  // makes every trigger load-bearing.
+  if (a.enabled === false) return false;
   if (Array.isArray(a.choose)) return asArray(a.default).length > 0;
   if (a.if != null) return asArray(a.else).length > 0;
   if (Array.isArray(a.parallel))
@@ -1493,7 +1639,9 @@ export function mergeEquivalentTriggers(triggers) {
   const out = [];
   let merged = null;
   for (const tr of asArray(triggers)) {
-    if (!_isBareStateTrigger(tr) || tr.id != null) {
+    // A disabled trigger cannot fire. Folding it into a shared pill would claim
+    // the automation runs on an entity it ignores, so keep it out of the merge.
+    if (!_isBareStateTrigger(tr) || tr.id != null || tr?.enabled === false) {
       out.push(tr);
       continue;
     }
@@ -1529,12 +1677,21 @@ export function displayTriggers(triggers, conditions, actions) {
   if (!trigs.length) return [];
   const refIds = new Set();
   const condEntities = new Set();
-  const visitCondition = (raw) => {
+  // `negated` tracks whether we're inside a `not` group. A `condition: trigger`
+  // under a `not` renders as "NOT triggered by X" — that does NOT tell the user
+  // the automation runs on X, so it must not suppress the trigger. Ignoring
+  // polarity here hid the trigger entirely and the chart never stated when the
+  // automation fires.
+  const visitCondition = (raw, negated = false) => {
     // Match what the renderer shows: it normalizes shorthand template
     // strings, so their entities count toward suppression too.
     const c = normalizeCondition(raw);
     if (!c || typeof c !== "object") return;
-    if (c.condition === "trigger")
+    // A disabled condition never runs, so it can neither "already show" a
+    // trigger via `condition: trigger` nor make a trigger redundant by
+    // re-checking its entity. Counting it hid triggers that really do fire.
+    if (c.enabled === false) return;
+    if (c.condition === "trigger" && !negated)
       for (const id of asArray(c.id)) refIds.add(String(id));
     // A template condition's entities are shown only when it gets a concrete
     // description; an opaque template renders as "Template evaluates to true"
@@ -1545,10 +1702,14 @@ export function displayTriggers(triggers, conditions, actions) {
     ) {
       for (const eid of collectFlowEntityIds(c)) condEntities.add(eid);
     }
-    for (const sub of asArray(c.conditions)) visitCondition(sub);
+    for (const sub of asArray(c.conditions))
+      visitCondition(sub, negated || c.condition === "not");
   };
   const visitAction = (a) => {
     if (!a || typeof a !== "object") return;
+    // Same for a disabled action block: its conditions are not evaluated, so
+    // they must not suppress a trigger.
+    if (a.enabled === false) return;
     // Only walk into constructs renderActionItem actually expands — a
     // construct rendered as one opaque node hides its conditions, so counting
     // them toward trigger suppression would drop a trigger whose overlap the
@@ -1563,7 +1724,10 @@ export function displayTriggers(triggers, conditions, actions) {
     }
     for (const s of asArray(a.repeat?.sequence)) visitAction(s);
   };
-  asArray(conditions).forEach(visitCondition);
+  // Arrow-wrapped: forEach passes (element, index), and the index would land in
+  // visitCondition's `negated` parameter — making every condition after the
+  // first look negated.
+  asArray(conditions).forEach((c) => visitCondition(c));
   asArray(actions).forEach(visitAction);
   // If any action runs unconditionally, every trigger drives it on each
   // firing, so the trigger section's timing is load-bearing and no trigger
@@ -1573,6 +1737,10 @@ export function displayTriggers(triggers, conditions, actions) {
   const hasUnconditional = _hasUnconditionalActionPath(actions);
   const isRedundant = (tr, i) => {
     if (!tr || typeof tr !== "object") return false;
+    // A disabled trigger cannot fire, so "redundant" doesn't apply — and it must
+    // not count toward the all-redundant check that hides the whole section.
+    // It still renders (marked disabled) so the YAML and the chart agree.
+    if (tr.enabled === false) return false;
     if (hasUnconditional) return false;
     // Quoted by a `condition: trigger` — that branch already shows it.
     if (refIds.has(_triggerEffectiveId(tr, i))) return true;

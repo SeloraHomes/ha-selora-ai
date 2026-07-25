@@ -916,7 +916,12 @@
     "recipes_step5_dashboard_help": "Добавить в чате",
     "recipes_refine_chat_failed": "Не удалось открыть чат для этого рецепта.",
     "recipes_step3_hint_blocked": "Этот рецепт пока нельзя подготовить — проверьте рецепт на ошибки и повторите попытку.",
-    "recipes_catalog_empty": "В этом каталоге пока нет рецептов."
+    "recipes_catalog_empty": "В этом каталоге пока нет рецептов.",
+    "automations_flow_repeat_count": "Повторить {count}×",
+    "automations_flow_repeat_for_each": "Повторить для каждого элемента ({count})",
+    "automations_flow_disabled": "отключено",
+    "automations_flow_disabled_block": "Отключено — не выполняется",
+    "automations_flow_repeat_for_each_dynamic": "Повторить для каждого элемента"
   },
   "options": {
     "step": {

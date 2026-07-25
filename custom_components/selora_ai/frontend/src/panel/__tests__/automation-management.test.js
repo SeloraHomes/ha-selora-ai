@@ -41,7 +41,7 @@ describe("_automationIsEnabled", () => {
 });
 
 describe("_restoreVersion", () => {
-  it("opts out of enabled-state preservation so the version's initial_state is restored", async () => {
+  it("preserves the live enabled state so restoring a create-time snapshot can't disable a running automation", async () => {
     const callWS = vi.fn().mockResolvedValue(undefined);
     const host = {
       hass: { callWS },
@@ -65,6 +65,8 @@ describe("_restoreVersion", () => {
       ([arg]) => arg?.type === "selora_ai/update_automation_yaml",
     );
     expect(call).toBeDefined();
-    expect(call[0].preserve_enabled_state).toBe(false);
+    // The snapshot's own `initial_state: false` must NOT be honoured — version
+    // snapshots are captured at create time and never re-capture a later toggle.
+    expect(call[0].preserve_enabled_state).toBe(true);
   });
 });

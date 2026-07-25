@@ -181,3 +181,49 @@ describe("flow chart if/then/else expansion", () => {
     );
   });
 });
+
+// ── repeat labels: literal vs templated ──────────────────────────────────────
+// `count` and `for_each` both accept a template resolved at runtime; the label
+// must not claim an iteration count it can't know.
+describe("repeat label counting", () => {
+  const label = (repeat) =>
+    flatten(
+      renderAutomationFlowchart(host, {
+        triggers: [{ trigger: "state", entity_id: "light.main", to: "on" }],
+        actions: [{ repeat }],
+      }),
+    );
+
+  const step = {
+    service: "light.turn_off",
+    target: { entity_id: "light.main" },
+  };
+
+  it("counts a literal for_each array", () => {
+    expect(label({ for_each: ["a", "b", "c"], sequence: [step] })).toContain(
+      "Repeat for each item (3)",
+    );
+  });
+
+  it("does not claim a count for a templated for_each", () => {
+    const out = label({ for_each: "{{ dynamic_items }}", sequence: [step] });
+    expect(out).toContain("Repeat for each item");
+    // No parenthesised count of ANY value — the old code ran the template string
+    // through asArray() and confidently reported "(1)".
+    expect(out).not.toMatch(/Repeat for each item \(\d+\)/);
+  });
+
+  it("counts a literal numeric count", () => {
+    expect(label({ count: 4, sequence: [step] })).toContain("Repeat 4");
+  });
+
+  it("counts a numeric string count", () => {
+    expect(label({ count: "4", sequence: [step] })).toContain("Repeat 4");
+  });
+
+  it("falls back to an uncounted label for a templated count", () => {
+    const out = label({ count: "{{ n_items }}", sequence: [step] });
+    expect(out).not.toContain("{{ n_items }}");
+    expect(out).toContain("Repeat");
+  });
+});

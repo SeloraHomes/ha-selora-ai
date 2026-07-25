@@ -133,6 +133,26 @@ function renderFlowDescription(host, item, ctx) {
     .filter((l) => l.name)
     .sort((a, b) => b.name.length - a.name.length);
 
+  // Two entities can share a friendly name ("Hall Light" in two areas). Keying
+  // the link purely by display name pointed every occurrence at whichever one
+  // sorted first, so both chips opened the same entity. Queue the targets per
+  // name instead and hand them out in order — the description lists them in
+  // entity order. The last target is reused once the queue runs dry, so a
+  // single entity mentioned twice ("turn on X … later turn off X") still links
+  // both mentions.
+  const targetsByName = new Map();
+  for (const l of lookups) {
+    if (!targetsByName.has(l.name)) targetsByName.set(l.name, []);
+    targetsByName.get(l.name).push(l.link);
+  }
+  const nameCursor = new Map();
+  const nextLinkFor = (name) => {
+    const queue = targetsByName.get(name) || [];
+    const i = nameCursor.get(name) ?? 0;
+    nameCursor.set(name, i + 1);
+    return queue[Math.min(i, queue.length - 1)];
+  };
+
   // Pass 1: split description on referenced names → text + link segments.
   const segments = [];
   let remaining = description;
@@ -155,7 +175,7 @@ function renderFlowDescription(host, item, ctx) {
       break;
     }
     if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
-    segments.push({ link: bestMatch.link });
+    segments.push({ link: nextLinkFor(bestMatch.name) });
     remaining = remaining.slice(bestIdx + bestMatch.name.length);
   }
   if (remaining && safety <= 0) segments.push(remaining);
@@ -187,8 +207,19 @@ function renderFlowDescription(host, item, ctx) {
 }
 
 function renderFlowNode(host, item, kind, ctx) {
-  return html`<div class="flow-node ${kind}-node">
-    ${renderFlowDescription(host, item, ctx)}
+  // `enabled: false` is valid on any trigger/condition/action. Rendering it as a
+  // live node claimed the step runs when HA skips it entirely.
+  const off = item?.enabled === false;
+  return html`<div
+    class="flow-node ${kind}-node ${off ? "flow-node--off" : ""}"
+  >
+    ${renderFlowDescription(host, item, ctx)}${
+      off
+        ? html`<span class="flow-off-tag"
+            >${host._t("automations_flow_disabled", "disabled")}</span
+          >`
+        : ""
+    }
   </div>`;
 }
 
@@ -203,6 +234,20 @@ function renderFlowNode(host, item, kind, ctx) {
 // read as "any of A, B, C" and invert the logic. `or` / `not` always draw
 // a labeled group, and their children are no longer in an all-of context.
 function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
+  if (
+    rawCond &&
+    typeof rawCond === "object" &&
+    rawCond.enabled === false &&
+    (rawCond.condition === "and" ||
+      rawCond.condition === "or" ||
+      rawCond.condition === "not")
+  ) {
+    const { enabled: _drop, ...rest } = rawCond;
+    return renderOffWrap(
+      host,
+      renderConditionItem(host, rest, ctx, implicitAll),
+    );
+  }
   // Shorthand template strings arrive from `if:` / `conditions:` / nested
   // and-or-not lists; expand them so they get the template description and
   // clickable entities instead of raw Jinja.
@@ -246,20 +291,65 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
 // "IF <conditions> THEN <sequence>", with a final "OTHERWISE
 // <default>" panel when one is present. The same pattern handles
 // ``if``/``then``/``else`` and ``parallel`` / ``sequence`` lists.
+// A disabled block (choose/if/parallel/repeat with `enabled: false`) still gets
+// expanded so its logic stays inspectable, but inside a marked container so it
+// never reads as part of the live flow.
+function renderOffWrap(host, inner) {
+  return html`<div class="flow-off-wrap">
+    <div class="flow-off-wrap-label">
+      ${host._t("automations_flow_disabled_block", "Disabled — does not run")}
+    </div>
+    ${inner}
+  </div>`;
+}
+
 function renderActionItem(host, action, ctx) {
+  if (
+    action &&
+    typeof action === "object" &&
+    action.enabled === false &&
+    _isBlockAction(action)
+  ) {
+    // Strip `enabled` for the inner render so this branch can't re-enter.
+    const { enabled: _drop, ...rest } = action;
+    return renderOffWrap(host, renderActionItem(host, rest, ctx));
+  }
+  return renderActionItemBody(host, action, ctx);
+}
+
+// Only block forms need the wrapper; leaf actions are marked by renderFlowNode.
+function _isBlockAction(action) {
+  return (
+    action.if != null ||
+    action.choose != null ||
+    action.parallel != null ||
+    action.sequence != null ||
+    action.repeat != null
+  );
+}
+
+function renderActionItemBody(host, action, ctx) {
   // `if`/`then`/`else` — HA's single-branch conditional. Rendered with the
   // same IF/OTHERWISE panels as a `choose` so the two read alike. `if` takes
   // a condition list (or a single condition / shorthand template string).
   if (action && typeof action === "object" && action.if != null) {
     const elseSteps = asArray(action.else);
+    const ifConds = asArray(action.if);
+    const thenSteps = asArray(action.then);
     return html`<div class="flow-choose">
       <div class="flow-branch">
         <div class="flow-branch-label">
           ${host._t("automations_flow_branch_if", "If")}
         </div>
-        ${asArray(action.if).map((c) => renderConditionItem(host, c, ctx))}
-        <div class="flow-arrow-sm">↓</div>
-        ${asArray(action.then).map((s) => renderActionItem(host, s, ctx))}
+        ${ifConds.map((c) => renderConditionItem(host, c, ctx))}
+        ${
+          // An arrow only means something with a step on each side; an empty
+          // `then` otherwise left it dangling into nothing.
+          ifConds.length && thenSteps.length
+            ? html`<div class="flow-arrow-sm">↓</div>`
+            : ""
+        }
+        ${thenSteps.map((s) => renderActionItem(host, s, ctx))}
       </div>
       ${
         elseSteps.length
@@ -273,9 +363,9 @@ function renderActionItem(host, action, ctx) {
       }
     </div>`;
   }
-  if (action && typeof action === "object" && Array.isArray(action.choose)) {
+  if (action && typeof action === "object" && action.choose != null) {
     return html`<div class="flow-choose">
-      ${action.choose.map(
+      ${asArray(action.choose).map(
         (branch, i) => html`
           <div class="flow-branch">
             <div class="flow-branch-label">
@@ -285,50 +375,82 @@ function renderActionItem(host, action, ctx) {
                   : host._t("automations_flow_branch_else_if", "Else if")
               }
             </div>
-            ${asArray(branch.conditions).map((c) =>
+            ${asArray(branch?.conditions).map((c) =>
               renderConditionItem(host, c, ctx),
             )}
-            <div class="flow-arrow-sm">↓</div>
-            ${asArray(branch.sequence).map((s) =>
+            ${
+              asArray(branch?.conditions).length &&
+              asArray(branch?.sequence).length
+                ? html`<div class="flow-arrow-sm">↓</div>`
+                : ""
+            }
+            ${asArray(branch?.sequence).map((s) =>
               renderActionItem(host, s, ctx),
             )}
           </div>
         `,
       )}
       ${
-        Array.isArray(action.default) && action.default.length
+        asArray(action.default).length
           ? html`<div class="flow-branch">
               <div class="flow-branch-label">
                 ${host._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${action.default.map((s) => renderActionItem(host, s, ctx))}
+              ${asArray(action.default).map((s) => renderActionItem(host, s, ctx))}
             </div>`
           : ""
       }
     </div>`;
   }
-  if (action && typeof action === "object" && Array.isArray(action.parallel)) {
+  if (action && typeof action === "object" && action.parallel != null) {
     return html`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${action.parallel.map((s) => renderActionItem(host, s, ctx))}
+      ${asArray(action.parallel).map((s) => renderActionItem(host, s, ctx))}
     </div>`;
   }
-  if (action && typeof action === "object" && Array.isArray(action.sequence)) {
+  if (action && typeof action === "object" && action.sequence != null) {
     return html`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${action.sequence.map((s) => renderActionItem(host, s, ctx))}
+      ${asArray(action.sequence).map((s) => renderActionItem(host, s, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
-    const inner = action.repeat.sequence || action.repeat.actions || [];
+    const inner = asArray(action.repeat.sequence ?? action.repeat.actions);
     const repeatLabel = (() => {
       const r = action.repeat;
-      if (r.count != null)
-        return `Repeat ${r.count} time${r.count !== 1 ? "s" : ""}`;
+      // `count` and `for_each` both accept a template resolved at runtime. Only
+      // state a number when the YAML literally carries one — running a template
+      // string through asArray() always yields length 1, which reported every
+      // dynamic loop as a single iteration.
+      if (r.count != null) {
+        const literal =
+          typeof r.count === "number"
+            ? r.count
+            : /^\d+$/.test(String(r.count).trim())
+              ? Number(String(r.count).trim())
+              : null;
+        return literal == null
+          ? host._t("automations_flow_repeat", "Repeat")
+          : host
+              ._t("automations_flow_repeat_count", "Repeat {count}\u00d7")
+              .replace("{count}", String(literal));
+      }
+      if (r.for_each != null)
+        return Array.isArray(r.for_each)
+          ? host
+              ._t(
+                "automations_flow_repeat_for_each",
+                "Repeat for each item ({count})",
+              )
+              .replace("{count}", String(r.for_each.length))
+          : host._t(
+              "automations_flow_repeat_for_each_dynamic",
+              "Repeat for each item",
+            );
       if (r.while)
         return host._t(
           "automations_flow_repeat_while",
@@ -343,9 +465,7 @@ function renderActionItem(host, action, ctx) {
     })();
     return html`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${(Array.isArray(inner) ? inner : [inner]).map((s) =>
-        renderActionItem(host, s, ctx),
-      )}
+      ${inner.map((s) => renderActionItem(host, s, ctx))}
     </div>`;
   }
   return renderFlowNode(host, action, "action", ctx);

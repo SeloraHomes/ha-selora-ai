@@ -916,7 +916,12 @@
     "recipes_step5_dashboard_help": "채팅에서 추가",
     "recipes_refine_chat_failed": "이 레시피의 채팅을 열 수 없습니다.",
     "recipes_step3_hint_blocked": "이 레시피는 아직 준비할 수 없습니다 — 레시피의 오류를 확인한 후 다시 시도하세요.",
-    "recipes_catalog_empty": "이 카탈로그에 아직 레시피가 없습니다."
+    "recipes_catalog_empty": "이 카탈로그에 아직 레시피가 없습니다.",
+    "automations_flow_repeat_count": "{count}회 반복",
+    "automations_flow_repeat_for_each": "각 항목마다 반복 ({count})",
+    "automations_flow_disabled": "비활성화",
+    "automations_flow_disabled_block": "비활성화 — 실행되지 않음",
+    "automations_flow_repeat_for_each_dynamic": "각 항목마다 반복"
   },
   "options": {
     "step": {

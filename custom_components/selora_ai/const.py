@@ -1439,12 +1439,18 @@ INSIGHTS_ROSTER_MAX_ENTITIES = 5000
 # them from offline-device detection; the roster flags each such device
 # (RosterDevice.transient) so consumers can drop them from the "needs attention"
 # tally and the default device view.
+#
+# Scope is deliberately *presence/proximity* integrations, which materialize a
+# device per advertisement they happen to hear. Passive BLE **sensor** readers
+# (``ble_monitor`` and friends) are excluded on purpose: they expose permanent
+# household hardware — Xiaomi/ATC thermometers, plant sensors, SwitchBot meters —
+# whose devices the user does want in the attention tally, so a dead battery
+# surfaces instead of being silently filtered out.
 TRANSIENT_INTEGRATIONS = frozenset(
     {
         "ibeacon",
         "private_ble_device",
         "bluetooth_le_tracker",
-        "ble_monitor",
         "bermuda",
     }
 )
