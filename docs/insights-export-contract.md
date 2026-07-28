@@ -86,9 +86,33 @@ nothing). See the envelope schema for the exact shape. Top level:
 | `schema_version`, `sequence`, `generated_at` | identity / versioning |
 | `signals` | active Layer-1 health signals (deduped per `kind`+`target`) |
 | `insights` | deterministic advisor items (issue/fix/improvement) |
+| `health` | deterministic 0-100 health score + `band` + the per-check roll-up explaining it |
 | `roster` | full device-plane inventory — integrations, devices, entities, automations, scripts, scenes, each with state/availability |
 | `inventory` | aggregate counts |
 | `collection` | `{ status, partial_reason, roster_truncated? }` |
+
+### The health score
+
+`health.score` is the deterministic 0-100 roll-up (100 = nothing flagged), with
+`health.band` as its letter grade (A ≥90, B ≥80, C ≥70, D ≥60, else F). It is
+also mirrored into `manifest.summary.health_score`, so a host can **track home
+health by polling `manifest.json` alone** — no artifact copy, no gunzip.
+
+- **`score: null` means unknown, not healthy.** Before the first audit runs there
+  is no score; the manifest omits `health_score` entirely in that case. Never
+  substitute 100.
+- **`computed_at` is the audit's clock, not the envelope's.** The score refreshes
+  on the health-scan cadence (default 15 min), which is independent of the export
+  cadence — so `computed_at` normally predates `generated_at`. Use it to age the
+  score rather than assuming it was computed at publish time.
+- **`sections` explains the number** — one row per check ("Devices offline: -30.3
+  (14)"), biggest impact first, splitting into the two penalty families:
+  `device_penalty` (per-device outages, scaling with the √ of the affected fleet
+  share) and `other_penalty` (integration errors, automation hygiene, updates —
+  fixed-severity with diminishing returns).
+- Per-*finding* contribution rows are **not** exported. They scale with the fleet
+  (thousands of rows on a large home) and carry no detail the host lacks — the
+  per-target view is already in `signals` and `roster`.
 
 **Privacy note:** unlike the anonymous PostHog telemetry (counts only), this
 export carries **real identities and state** (entity_ids, names, states). That's
@@ -97,7 +121,9 @@ intentional — it's the user's own home going to their own account, keyed by
 
 **Not included:** the panel's LLM "home audit" (the natural-language,
 per-household recommendation cards) is **not** exported — it stays on the home.
-Only the deterministic signals/insights/roster cross the boundary.
+Only the deterministic signals/insights/health/roster cross the boundary. The
+score and its check roll-up are pure rules over HA state, so they travel; the
+model-written prose that sits beside them in the same audit record does not.
 
 ## Versioning
 
@@ -108,6 +134,9 @@ consumers must ignore unknown fields. Pin the schemas in this directory to the
 
 Additive within v2 (nullable/optional, no version bump):
 
+- `health` — the deterministic score + band + per-check roll-up (see above), and
+  `manifest.summary.health_score` mirroring the number. Absent on older
+  producers → treat the score as unknown.
 - `signals[].device_id` — device the target belongs to when `target_kind`
   is `entity`; `null` for device/integration targets or unassigned entities.
 - `roster.entities[].device_id` — device the entity belongs to, or `null`.

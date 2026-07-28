@@ -924,6 +924,24 @@ class ScoreBreakdown(TypedDict):
 # ── Insights: export handoff to the Selora OS host ────────────────────
 
 
+class InsightsHealth(TypedDict):
+    """The deterministic health score as exported alongside the roster.
+
+    A roll-up of :class:`ScoreBreakdown` minus its ``contributions`` (the
+    per-finding rows stay local — see ``_health_block``). ``score`` is ``None``
+    when no audit has run yet, which a consumer must read as *unknown* rather
+    than as a healthy 100.
+    """
+
+    score: int | None  # 0-100 (100 = nothing flagged), None = not computed yet
+    band: str  # A-F letter band for the score, "" when there is no score
+    computed_at: str | None  # ISO-8601 of the audit behind the score (VM clock)
+    device_penalty: float  # total fleet-outage penalty
+    other_penalty: float  # total fixed-severity penalty (integrations/hygiene)
+    fleet: ScoreFleetShare
+    sections: list[ScoreSection]  # per-check roll-up, biggest impact first
+
+
 class InsightsArtifactRef(TypedDict):
     """Pointer + integrity metadata for the immutable export artifact."""
 
@@ -959,6 +977,7 @@ class InsightsEnvelope(TypedDict):
     generated_at: str
     signals: list[HealthSignal]
     insights: list[Insight]
+    health: InsightsHealth
     inventory: dict[str, int]
     roster: HomeRoster
     collection: dict[str, Any]

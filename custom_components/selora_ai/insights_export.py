@@ -59,6 +59,8 @@ if TYPE_CHECKING:
     from .insights import InsightsEngine
     from .types import (
         InsightsExportManifest,
+        InsightsHealth,
+        ScoreFleetShare,
     )
 
 _LOGGER = logging.getLogger(__name__)
@@ -232,6 +234,7 @@ class InsightsExporter:
             insights = []
             collection = {"status": "partial", "partial_reason": "insight_build_failed"}
 
+        health = await self._gather_health()
         inventory = self._gather_inventory()
         # Resolve custom-component domains + human integration names here
         # (async) and thread them into the synchronous roster builder: it flags
@@ -288,6 +291,7 @@ class InsightsExporter:
             "generated_at": generated_iso,
             "signals": signals,
             "insights": insights,
+            "health": health,
             "inventory": inventory,
             "roster": roster,
             "collection": collection,
@@ -303,6 +307,12 @@ class InsightsExporter:
             "entities_unavailable": roster["unavailable_total"],
             "entities_disabled": roster["disabled_total"],
         }
+        # Mirror the score into the small, uncompressed manifest so the host can
+        # track home health by polling manifest.json alone — no artifact copy, no
+        # gunzip. Omitted rather than null when no audit has run yet: the summary
+        # is all-integer counts, and an absent key already reads as "unknown".
+        if health["score"] is not None:
+            summary["health_score"] = health["score"]
         producer = {"integration_version": _integration_version(), "ha_version": HA_VERSION}
         if self._installation_id:
             producer["installation_id"] = self._installation_id
@@ -383,6 +393,23 @@ class InsightsExporter:
             _LOGGER.debug("Could not resolve Supervisor apps; roster apps stay empty")
             return []
 
+    async def _gather_health(self) -> InsightsHealth:
+        """The deterministic health score + the per-section "why" behind it.
+
+        Read from the persisted audit rather than recomputed: the audit re-runs
+        after every health scan, so the stored score is already current at the
+        scan cadence (tighter than the export cadence), and re-running the whole
+        check catalog on the publish path would duplicate that work. The audit's
+        own timestamp rides along as ``computed_at`` so the host can tell how
+        fresh the score is independently of the envelope stamp.
+        """
+        try:
+            audit = await self._health_store.get_last_audit()
+        except Exception:  # noqa: BLE001 — the score is best-effort, never fail the export
+            _LOGGER.debug("Could not read the last audit; exporting an unknown health score")
+            audit = None
+        return _health_block(audit)
+
     def _gather_inventory(self) -> dict[str, int]:
         ent_reg = er.async_get(self._hass)
         dev_reg = dr.async_get(self._hass)
@@ -393,6 +420,54 @@ class InsightsExporter:
             "areas": len(area_reg.areas),
             "integrations": len({e.domain for e in self._hass.config_entries.async_entries()}),
         }
+
+
+def _health_block(audit: dict[str, Any] | None) -> InsightsHealth:
+    """Shape a persisted audit record into the envelope's ``health`` block.
+
+    Deliberately defensive about the record's shape: it is loaded from the
+    on-disk store, so an older record (or one written by a run that errored
+    before scoring) may carry no score and no breakdown. A missing score exports
+    as ``None`` — never a fabricated 100, which would read as a clean bill of
+    health for a home nobody has scored yet.
+
+    The breakdown's ``contributions`` (per-finding rows) are dropped: they are
+    the panel's local drill-down and scale with the fleet — thousands of rows on
+    a large home, for detail the host already has per-target in ``signals`` and
+    ``roster``. ``sections`` is bounded by the check catalog and is what explains
+    the number ("Devices offline: -30.3 (14)").
+    """
+    empty_fleet: ScoreFleetShare = {"affected": 0, "size": 0, "fraction": 0.0}
+    if not audit:
+        return {
+            "score": None,
+            "band": "",
+            "computed_at": None,
+            "device_penalty": 0.0,
+            "other_penalty": 0.0,
+            "fleet": empty_fleet,
+            "sections": [],
+        }
+    raw_score = audit.get("score")
+    score = raw_score if isinstance(raw_score, int) else None
+    computed_at = audit.get("generated_at")
+    breakdown = audit.get("score_breakdown")
+    if not isinstance(breakdown, dict):
+        breakdown = {}
+    fleet = breakdown.get("fleet")
+    sections = breakdown.get("sections")
+    return {
+        "score": score,
+        # A band only means something with a score behind it: an errored record
+        # can carry a stale band and no score, and exporting that would hand the
+        # host a grade for a number it was told is unknown.
+        "band": str(audit.get("band") or "") if score is not None else "",
+        "computed_at": computed_at if isinstance(computed_at, str) else None,
+        "device_penalty": float(breakdown.get("device_penalty") or 0.0),
+        "other_penalty": float(breakdown.get("other_penalty") or 0.0),
+        "fleet": fleet if isinstance(fleet, dict) else empty_fleet,
+        "sections": sections if isinstance(sections, list) else [],
+    }
 
 
 # ── Blocking filesystem helpers (run on the executor) ─────────────────

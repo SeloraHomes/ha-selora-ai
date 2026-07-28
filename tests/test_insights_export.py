@@ -25,6 +25,7 @@ import pytest
 
 from custom_components.selora_ai.insights_export import (
     InsightsExporter,
+    _health_block,
     _prune_artifacts,
     _publish_blocking,
 )
@@ -193,12 +194,63 @@ async def test_exporter_drains_inflight_publish_on_stop(hass: HomeAssistant) -> 
     assert state["completed"] is False  # cancelled before finishing
 
 
+_AUDIT = {
+    "status": "ok",
+    "score": 72,
+    "band": "C",
+    "generated_at": "2026-07-20T10:00:00+00:00",
+    "score_breakdown": {
+        "score": 72,
+        "device_penalty": 24.5,
+        "other_penalty": 3.5,
+        "fleet": {"affected": 14, "size": 96, "fraction": 0.146},
+        "sections": [
+            {
+                "check_id": "devices_offline",
+                "title": "Devices offline",
+                "points": 24.5,
+                "count": 14,
+                "family": "fleet",
+            }
+        ],
+        "contributions": [
+            {
+                "check_id": "devices_offline",
+                "title": "Sonos Kitchen offline",
+                "target": "dev-1",
+                "severity": "warning",
+                "points": 1.8,
+                "family": "fleet",
+            }
+        ],
+    },
+}
+
+# The roster is built by insights_roster (covered in test_insights_roster.py);
+# these tests patch it out and only care about the keys the exporter reads.
+_ROSTER = {
+    "truncated": False,
+    "integrations": [],
+    "apps": [],
+    "devices": [],
+    "entities": [],
+    "unavailable_total": 0,
+    "disabled_total": 0,
+}
+
+
 class _FakeStore:
+    def __init__(self, audit: dict | None = None) -> None:
+        self._audit = audit
+
     async def next_export_sequence(self, epoch_seconds: int) -> int:
         return epoch_seconds
 
     async def get_active_signals(self) -> list:
         return []
+
+    async def get_last_audit(self) -> dict | None:
+        return self._audit
 
 
 class _FakeInsights:
@@ -227,16 +279,6 @@ async def test_stop_waits_for_executor_write_to_finish(hass: HomeAssistant) -> N
         completed.set()
         return {"sequence": args[3]}  # seq is the 4th positional arg
 
-    roster = {
-        "truncated": False,
-        "integrations": [],
-        "apps": [],
-        "devices": [],
-        "entities": [],
-        "unavailable_total": 0,
-        "disabled_total": 0,
-    }
-
     with (
         patch(
             "custom_components.selora_ai.insights_export._publish_blocking",
@@ -244,7 +286,7 @@ async def test_stop_waits_for_executor_write_to_finish(hass: HomeAssistant) -> N
         ),
         patch(
             "custom_components.selora_ai.insights_export.build_home_roster",
-            return_value=roster,
+            return_value=_ROSTER,
         ),
     ):
         # Fire a publish and wait until the write is running on the worker thread.
@@ -265,3 +307,125 @@ async def test_stop_waits_for_executor_write_to_finish(hass: HomeAssistant) -> N
 
     assert completed.is_set()  # the write ran to completion before unload returned
     assert exporter._write_future is None
+
+
+# ── The health score travelling with the roster ────────────────────────
+
+
+def test_health_block_shapes_a_scored_audit() -> None:
+    health = _health_block(_AUDIT)
+
+    assert health["score"] == 72
+    assert health["band"] == "C"
+    # The audit's own clock, not the publish time — the host ages the score by it.
+    assert health["computed_at"] == "2026-07-20T10:00:00+00:00"
+    assert health["device_penalty"] == 24.5
+    assert health["other_penalty"] == 3.5
+    assert health["fleet"] == {"affected": 14, "size": 96, "fraction": 0.146}
+    assert [s["check_id"] for s in health["sections"]] == ["devices_offline"]
+
+
+def test_health_block_drops_per_finding_contributions() -> None:
+    """Per-finding rows are the panel's local drill-down and scale with the fleet;
+    the host gets the bounded per-check roll-up instead."""
+    assert "contributions" not in _health_block(_AUDIT)
+
+
+def test_health_block_reports_unknown_when_no_audit_has_run() -> None:
+    """An unscored home must export a null score, never a fabricated 100 — that
+    would read as a clean bill of health for a home nobody has scored."""
+    health = _health_block(None)
+
+    assert health["score"] is None
+    assert health["band"] == ""
+    assert health["computed_at"] is None
+    assert health["sections"] == []
+    assert health["fleet"] == {"affected": 0, "size": 0, "fraction": 0.0}
+
+
+def test_health_block_survives_an_audit_with_no_breakdown() -> None:
+    """Records come off disk — an older one (or a run that errored before
+    scoring) can carry a score with no breakdown, or no score at all."""
+    partial = _health_block({"score": 88, "band": "B", "generated_at": "2026-07-20T10:00:00+00:00"})
+    assert partial["score"] == 88
+    assert partial["device_penalty"] == 0.0
+    assert partial["sections"] == []
+
+    unscored = _health_block({"status": "error", "score": None, "score_breakdown": None})
+    assert unscored["score"] is None
+    assert unscored["band"] == ""
+    assert unscored["computed_at"] is None
+
+
+def test_health_block_drops_a_band_with_no_score_behind_it() -> None:
+    """An errored record can keep a stale band after losing its score — exporting
+    that would hand the host a grade for a number it was told is unknown."""
+    health = _health_block({"score": None, "band": "A"})
+
+    assert health["score"] is None
+    assert health["band"] == ""
+
+
+async def _publish_capturing(hass: HomeAssistant, store: _FakeStore) -> dict:
+    """Run a real _do_publish, capturing the envelope + summary handed to the
+    (patched-out) atomic write."""
+    exporter = InsightsExporter(hass, health_store=store, insights_engine=_FakeInsights())  # type: ignore[arg-type]
+    exporter.base_dir.mkdir(parents=True, exist_ok=True)
+    exporter.marker_path.write_text("")  # host opt-in
+    captured: dict = {}
+
+    def capture(*args: object, **kwargs: object) -> dict:
+        # (base_dir, artifact_dir, manifest_path, seq, envelope, summary, ...)
+        captured["envelope"] = args[4]
+        captured["summary"] = args[5]
+        return {"sequence": args[3]}
+
+    with (
+        patch("custom_components.selora_ai.insights_export._publish_blocking", capture),
+        patch(
+            "custom_components.selora_ai.insights_export.build_home_roster",
+            return_value=_ROSTER,
+        ),
+    ):
+        await exporter.async_publish()
+    return captured
+
+
+@pytest.mark.asyncio
+async def test_publish_sends_the_health_score_with_the_roster(hass: HomeAssistant) -> None:
+    captured = await _publish_capturing(hass, _FakeStore(_AUDIT))
+
+    envelope = captured["envelope"]
+    assert envelope["health"]["score"] == 72
+    assert envelope["health"]["band"] == "C"
+    assert "roster" in envelope  # score travels alongside the roster, same publish
+    # Mirrored into the small uncompressed manifest so the host can poll the
+    # score without copying and gunzipping the artifact.
+    assert captured["summary"]["health_score"] == 72
+
+
+@pytest.mark.asyncio
+async def test_manifest_summary_omits_health_score_when_unscored(hass: HomeAssistant) -> None:
+    """Absent (not null) in the all-integer summary — absence already reads as
+    "unknown" to the host, and null would break its integer typing."""
+    captured = await _publish_capturing(hass, _FakeStore(None))
+
+    assert captured["envelope"]["health"]["score"] is None
+    assert "health_score" not in captured["summary"]
+
+
+@pytest.mark.asyncio
+async def test_publish_still_exports_when_the_audit_read_fails(hass: HomeAssistant) -> None:
+    """The score is best-effort: a failing store read must not cost the host its
+    signals, insights, and roster."""
+
+    class _BrokenStore(_FakeStore):
+        async def get_last_audit(self) -> dict | None:
+            raise OSError("store unreadable")
+
+    captured = await _publish_capturing(hass, _BrokenStore())
+
+    assert captured["envelope"]["health"]["score"] is None
+    assert "roster" in captured["envelope"]
+    # A best-effort miss is not a partial collection.
+    assert captured["envelope"]["collection"]["status"] == "ok"
