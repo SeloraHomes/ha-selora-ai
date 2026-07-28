@@ -66,6 +66,12 @@
         "entities_disabled": {
           "type": "integer",
           "description": "Intentionally-disabled entities across the home (neutral, not a health problem)."
+        },
+        "health_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "The deterministic 0-100 health score (100 = nothing flagged), mirrored from the envelope so it can be polled without copying the artifact. ABSENT when no audit has run yet — absence means unknown, not healthy. Optional (additive to v2)."
         }
       }
     },

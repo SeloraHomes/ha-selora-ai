@@ -30,6 +30,7 @@
       "description": "Deterministic advisor items derived from signals + patterns.",
       "items": { "$ref": "#/$defs/insight" }
     },
+    "health": { "$ref": "#/$defs/health" },
     "inventory": {
       "type": "object",
       "description": "Aggregate counts.",
@@ -48,6 +49,64 @@
   },
 
   "$defs": {
+    "health": {
+      "type": "object",
+      "description": "The deterministic 0-100 health score and the per-check roll-up explaining it. Optional (additive to v2); absent on older producers, treat as an unknown score. The per-finding contribution rows behind the score are intentionally NOT exported — that detail is available per-target in 'signals' and 'roster'.",
+      "required": ["score", "band", "computed_at"],
+      "additionalProperties": true,
+      "properties": {
+        "score": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "100 = nothing flagged. null means no audit has run yet — read as UNKNOWN, not as healthy."
+        },
+        "band": {
+          "type": "string",
+          "description": "Letter band for the score: A >=90, B >=80, C >=70, D >=60, else F. Empty string when score is null."
+        },
+        "computed_at": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "When the audit behind this score ran (VM clock). Refreshes at the health-scan cadence, which is independent of the export cadence — so it normally predates the envelope's generated_at."
+        },
+        "device_penalty": {
+          "type": "number",
+          "description": "Points subtracted by per-device outages (scales with the sqrt of the share of the fleet affected)."
+        },
+        "other_penalty": {
+          "type": "number",
+          "description": "Points subtracted by integration errors, automation hygiene, and updates (fixed-severity, diminishing returns)."
+        },
+        "fleet": {
+          "type": "object",
+          "description": "Inputs behind device_penalty.",
+          "additionalProperties": true,
+          "properties": {
+            "affected": { "type": "integer", "description": "Affected devices counted (deduped, one per device at its worst severity)." },
+            "size": { "type": "integer", "description": "Active-fleet denominator: devices that could actually produce a finding." },
+            "fraction": { "type": "number", "description": "Severity-weighted affected share of the fleet, clamped to 1.0." }
+          }
+        },
+        "sections": {
+          "type": "array",
+          "description": "Per-check roll-up of the score impact, biggest first — one row per check rather than one per finding.",
+          "items": {
+            "type": "object",
+            "required": ["check_id", "title", "points", "count", "family"],
+            "additionalProperties": true,
+            "properties": {
+              "check_id": { "type": "string" },
+              "title": { "type": "string", "description": "The check's section title, e.g. 'Devices offline'." },
+              "points": { "type": "number", "description": "Total points this section subtracted." },
+              "count": { "type": "integer", "description": "Findings folded into this row." },
+              "family": { "type": "string", "enum": ["fleet", "other"] }
+            }
+          }
+        }
+      }
+    },
+
     "healthSignal": {
       "type": "object",
       "required": [
