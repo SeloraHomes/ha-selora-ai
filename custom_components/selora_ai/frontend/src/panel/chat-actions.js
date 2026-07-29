@@ -527,6 +527,11 @@ export async function _sendMessage() {
         assistantMsg.automation = event.automation || null;
         assistantMsg.automation_yaml = event.automation_yaml || null;
         assistantMsg.automation_status = event.automation ? "pending" : null;
+        // Play the proposal reveal only on arrival. Reopening the session
+        // renders the same pending card and must not replay it.
+        if (event.automation) {
+          this._markProposalRevealing(this._messages.indexOf(assistantMsg));
+        }
         assistantMsg.automation_message_index =
           event.automation_message_index ?? null;
         assistantMsg.refining_automation_id =

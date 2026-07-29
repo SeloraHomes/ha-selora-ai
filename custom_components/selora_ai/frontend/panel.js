@@ -1026,6 +1026,36 @@ var sharedAnimations = i`
       background-position: 100% 50%;
     }
   }
+  /* Self-drawing checkmark (see shared/created-check.js). The path length is
+     ~23.4 units, so a 24 dasharray hides it exactly at full offset. Without
+     .drawing the check renders complete, which is the state an already-saved
+     card should show. */
+  .created-check {
+    flex-shrink: 0;
+    overflow: visible;
+  }
+  .created-check path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 24;
+    stroke-dashoffset: 0;
+  }
+  .created-check.drawing path {
+    animation: check-draw 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes check-draw {
+    from {
+      stroke-dashoffset: 24;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .created-check.drawing path {
+      animation: none;
+    }
+  }
 `;
 
 // src/shared/styles/buttons.css.js
@@ -1722,6 +1752,20 @@ var layoutStyles = i`
     display: flex;
     align-items: center;
     gap: 8px;
+    /* Rises into place instead of teleporting in. Same easing as the saved-card
+       entrance so every success in the panel lands the same way. */
+    animation: toast-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast {
+      animation: none;
+    }
   }
   .toast.info {
     background: #1f6feb;
@@ -4577,6 +4621,119 @@ var proposalStyles = i`
   }
   .toggle-label.on {
     color: var(--selora-accent-text);
+  }
+
+  /* ---- Proposal arrival reveal ---- */
+  /* Plays once, when a proposal streams in (see _markProposalRevealing).
+     Reopening a session renders the same pending card without .revealing, so
+     history never replays. Timings are mirrored by REVEAL_TOTAL_MS in
+     panel/proposal-reveal.js — keep them in sync. */
+  .automation-subcard.revealing {
+    position: relative;
+    overflow: hidden;
+    animation: proposal-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes proposal-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+  }
+  /* Gold edge that settles back to the resting border, so the card reads as
+     having just been struck rather than permanently highlighted. */
+  .automation-subcard.revealing::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    border: 1px solid var(--selora-accent);
+    pointer-events: none;
+    animation: proposal-edge-settle 900ms ease-out both;
+  }
+  @keyframes proposal-edge-settle {
+    from {
+      opacity: 0.75;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  /* Sparkle field, fading out over the card as it settles. It must sit above
+     the card background but BELOW the text, so the content is explicitly
+     lifted to z-index 1 — an absolutely positioned canvas would otherwise
+     paint over static siblings. A negative z-index is not an option: the
+     card's entrance animation applies a transform, which makes it a stacking
+     context and would bury the canvas behind its own background. */
+  .proposal-reveal-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    pointer-events: none;
+    border-radius: 12px;
+    opacity: 0;
+    animation: proposal-particles-out 1200ms ease-out both;
+  }
+  .automation-subcard.revealing > .automation-subcard-header,
+  .automation-subcard.revealing > .automation-subcard-body {
+    position: relative;
+    z-index: 1;
+  }
+  @keyframes proposal-particles-out {
+    0% {
+      opacity: 0;
+    }
+    18% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  /* Assemble the flow in reading order: trigger, arrow, conditions, actions.
+     .flow-chart's direct children are exactly those sections and arrows, so
+     nth-child staggering needs no template changes. */
+  .automation-subcard.revealing .flow-chart > * {
+    animation: proposal-node-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(1) {
+    animation-delay: 180ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(2) {
+    animation-delay: 250ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(3) {
+    animation-delay: 320ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(4) {
+    animation-delay: 390ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(n + 5) {
+    animation-delay: 460ms;
+  }
+  @keyframes proposal-node-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  /* Reduced motion: keep the card and every flow node, drop all movement and
+     the decorative sparkle field. The edge stays as a static, quieter ring —
+     with the entrance gone it is the only "this just arrived" cue left, so it
+     is pinned rather than removed. Without the explicit opacity it would
+     render at full strength, louder than the animation ever gets. */
+  @media (prefers-reduced-motion: reduce) {
+    .automation-subcard.revealing,
+    .automation-subcard.revealing .flow-chart > * {
+      animation: none;
+    }
+    .automation-subcard.revealing::after {
+      animation: none;
+      opacity: 0.35;
+    }
+    .proposal-reveal-particles {
+      display: none;
+    }
   }
 `;
 
@@ -9132,8 +9289,6 @@ var en_default = {
     automation_crud_unknown_error: "unknown error",
     automation_crud_auto_enable_failed_suffix:
       ". Use the Enable button on the card to try again.",
-    automation_crud_draft_dismissed: "Draft dismissed.",
-    automation_crud_dismiss_draft_failed: "Failed to dismiss draft:",
     automation_crud_create_failed: "Failed to create automation:",
     automation_crud_save_edited_yaml_failed:
       "Failed to save automation from edited YAML:",
@@ -10258,9 +10413,6 @@ var fr_default = {
     automation_crud_unknown_error: "erreur inconnue",
     automation_crud_auto_enable_failed_suffix:
       ". Utilisez le bouton Activer sur la carte pour r\xE9essayer.",
-    automation_crud_draft_dismissed: "Brouillon ignor\xE9.",
-    automation_crud_dismiss_draft_failed:
-      "\xC9chec de l'ignorance du brouillon :",
     automation_crud_create_failed:
       "\xC9chec de la cr\xE9ation de l'automatisation :",
     automation_crud_save_edited_yaml_failed:
@@ -11402,9 +11554,6 @@ var de_default = {
     automation_crud_unknown_error: "unbekannter Fehler",
     automation_crud_auto_enable_failed_suffix:
       ". Verwenden Sie die Schaltfl\xE4che Aktivieren auf der Karte, um es erneut zu versuchen.",
-    automation_crud_draft_dismissed: "Entwurf verworfen.",
-    automation_crud_dismiss_draft_failed:
-      "Entwurf konnte nicht verworfen werden:",
     automation_crud_create_failed:
       "Automatisierung konnte nicht erstellt werden:",
     automation_crud_save_edited_yaml_failed:
@@ -12535,8 +12684,6 @@ var es_default = {
     automation_crud_unknown_error: "error desconocido",
     automation_crud_auto_enable_failed_suffix:
       ". Use el bot\xF3n Activar de la tarjeta para volver a intentarlo.",
-    automation_crud_draft_dismissed: "Borrador descartado.",
-    automation_crud_dismiss_draft_failed: "No se pudo descartar el borrador:",
     automation_crud_create_failed: "No se pudo crear la automatizaci\xF3n:",
     automation_crud_save_edited_yaml_failed:
       "No se pudo guardar la automatizaci\xF3n desde el YAML editado:",
@@ -13654,8 +13801,6 @@ var it_default = {
     automation_crud_unknown_error: "errore sconosciuto",
     automation_crud_auto_enable_failed_suffix:
       ". Usi il pulsante Attiva sulla scheda per riprovare.",
-    automation_crud_draft_dismissed: "Bozza ignorata.",
-    automation_crud_dismiss_draft_failed: "Impossibile ignorare la bozza:",
     automation_crud_create_failed: "Impossibile creare l'automazione:",
     automation_crud_save_edited_yaml_failed:
       "Impossibile salvare l'automazione dallo YAML modificato:",
@@ -14793,8 +14938,6 @@ var nl_default = {
     automation_crud_unknown_error: "onbekende fout",
     automation_crud_auto_enable_failed_suffix:
       ". Gebruik de Aanzetten-knop op de kaart om het opnieuw te proberen.",
-    automation_crud_draft_dismissed: "Concept afgewezen.",
-    automation_crud_dismiss_draft_failed: "Afwijzen van concept mislukt:",
     automation_crud_create_failed: "Aanmaken van automatisering mislukt:",
     automation_crud_save_edited_yaml_failed:
       "Opslaan van automatisering uit bewerkte YAML mislukt:",
@@ -15948,9 +16091,6 @@ var hu_default = {
     automation_crud_unknown_error: "ismeretlen hiba",
     automation_crud_auto_enable_failed_suffix:
       ". A k\xE1rty\xE1n tal\xE1lhat\xF3 Bekapcsol\xE1s gombbal pr\xF3b\xE1lkozzon \xFAjra.",
-    automation_crud_draft_dismissed: "V\xE1zlat elvetve.",
-    automation_crud_dismiss_draft_failed:
-      "A v\xE1zlat elvet\xE9se nem siker\xFClt:",
     automation_crud_create_failed:
       "Az automatizmus l\xE9trehoz\xE1sa nem siker\xFClt:",
     automation_crud_save_edited_yaml_failed:
@@ -17079,9 +17219,6 @@ var pt_default = {
     automation_crud_unknown_error: "erro desconhecido",
     automation_crud_auto_enable_failed_suffix:
       ". Utilize o bot\xE3o Ativar no cart\xE3o para tentar novamente.",
-    automation_crud_draft_dismissed: "Rascunho dispensado.",
-    automation_crud_dismiss_draft_failed:
-      "N\xE3o foi poss\xEDvel dispensar o rascunho:",
     automation_crud_create_failed:
       "N\xE3o foi poss\xEDvel criar a automa\xE7\xE3o:",
     automation_crud_save_edited_yaml_failed:
@@ -18555,10 +18692,6 @@ var ru_default = {
       "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430",
     automation_crud_auto_enable_failed_suffix:
       ". \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \xAB\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C\xBB \u043D\u0430 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0435, \u0447\u0442\u043E\u0431\u044B \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
-    automation_crud_draft_dismissed:
-      "\u0427\u0435\u0440\u043D\u043E\u0432\u0438\u043A \u043E\u0442\u043A\u043B\u043E\u043D\u0451\u043D.",
-    automation_crud_dismiss_draft_failed:
-      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C \u0447\u0435\u0440\u043D\u043E\u0432\u0438\u043A:",
     automation_crud_create_failed:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0437\u0434\u0430\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E:",
     automation_crud_save_edited_yaml_failed:
@@ -20036,10 +20169,6 @@ var ja_default = {
     automation_crud_unknown_error: "\u4E0D\u660E\u306A\u30A8\u30E9\u30FC",
     automation_crud_auto_enable_failed_suffix:
       "\u3002\u30AB\u30FC\u30C9\u306E\u6709\u52B9\u5316\u30DC\u30BF\u30F3\u3092\u4F7F\u3063\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
-    automation_crud_draft_dismissed:
-      "\u4E0B\u66F8\u304D\u3092\u5374\u4E0B\u3057\u307E\u3057\u305F\u3002",
-    automation_crud_dismiss_draft_failed:
-      "\u4E0B\u66F8\u304D\u306E\u5374\u4E0B\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
     automation_crud_create_failed:
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E\u4F5C\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
     automation_crud_save_edited_yaml_failed:
@@ -21360,10 +21489,6 @@ var ko_default = {
     automation_crud_unknown_error: "\uC54C \uC218 \uC5C6\uB294 \uC624\uB958",
     automation_crud_auto_enable_failed_suffix:
       ". \uCE74\uB4DC\uC758 \uD65C\uC131\uD654 \uBC84\uD2BC\uC744 \uC0AC\uC6A9\uD558\uC5EC \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
-    automation_crud_draft_dismissed:
-      "\uCD08\uC548\uC774 \uB2EB\uD614\uC2B5\uB2C8\uB2E4.",
-    automation_crud_dismiss_draft_failed:
-      "\uCD08\uC548\uC744 \uB2EB\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
     automation_crud_create_failed:
       "\uC790\uB3D9\uD654\uB97C \uC0DD\uC131\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
     automation_crud_save_edited_yaml_failed:
@@ -22597,9 +22722,6 @@ var zh_Hans_default = {
     automation_crud_unknown_error: "\u672A\u77E5\u9519\u8BEF",
     automation_crud_auto_enable_failed_suffix:
       "\u3002\u8BF7\u4F7F\u7528\u5361\u7247\u4E0A\u7684\u201C\u542F\u7528\u201D\u6309\u94AE\u91CD\u8BD5\u3002",
-    automation_crud_draft_dismissed: "\u8349\u7A3F\u5DF2\u5FFD\u7565\u3002",
-    automation_crud_dismiss_draft_failed:
-      "\u5FFD\u7565\u8349\u7A3F\u5931\u8D25\uFF1A",
     automation_crud_create_failed:
       "\u521B\u5EFA\u81EA\u52A8\u5316\u5931\u8D25\uFF1A",
     automation_crud_save_edited_yaml_failed:
@@ -23817,9 +23939,6 @@ var zh_Hant_default = {
     automation_crud_unknown_error: "\u672A\u77E5\u932F\u8AA4",
     automation_crud_auto_enable_failed_suffix:
       "\u3002\u8ACB\u4F7F\u7528\u5361\u7247\u4E0A\u7684\u300C\u555F\u7528\u300D\u6309\u9215\u518D\u8A66\u4E00\u6B21\u3002",
-    automation_crud_draft_dismissed: "\u8349\u7A3F\u5DF2\u95DC\u9589\u3002",
-    automation_crud_dismiss_draft_failed:
-      "\u7121\u6CD5\u95DC\u9589\u8349\u7A3F\uFF1A",
     automation_crud_create_failed:
       "\u7121\u6CD5\u5EFA\u7ACB\u81EA\u52D5\u5316\uFF1A",
     automation_crud_save_edited_yaml_failed:
@@ -30218,6 +30337,57 @@ function displayTriggers(triggers, conditions, actions) {
   return mergeEquivalentTriggers(trigs);
 }
 
+// src/shared/created-check.js
+function renderCreatedCheck({ animate = false, size = 14 } = {}) {
+  return b2`
+    <svg
+      class="created-check${animate ? " drawing" : ""}"
+      viewBox="0 0 24 24"
+      width=${size}
+      height=${size}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 12.5 L9.5 18 L20 6.5" />
+    </svg>
+  `;
+}
+
+// src/panel/proposal-reveal.js
+var proposal_reveal_exports = {};
+__export(proposal_reveal_exports, {
+  REVEAL_TOTAL_MS: () => REVEAL_TOTAL_MS,
+  _markProposalRevealing: () => _markProposalRevealing,
+  renderRevealParticles: () => renderRevealParticles,
+});
+var REVEAL_TOTAL_MS = 1400;
+function _markProposalRevealing(msgIndex) {
+  if (msgIndex == null || msgIndex < 0) return;
+  this._revealTimers = this._revealTimers || {};
+  if (this._revealTimers[msgIndex]) clearTimeout(this._revealTimers[msgIndex]);
+  this._revealingProposals = {
+    ...this._revealingProposals,
+    [msgIndex]: true,
+  };
+  this._revealTimers[msgIndex] = setTimeout(() => {
+    const { [msgIndex]: _done, ...rest } = this._revealingProposals;
+    this._revealingProposals = rest;
+    delete this._revealTimers[msgIndex];
+    this.requestUpdate();
+  }, REVEAL_TOTAL_MS);
+}
+function renderRevealParticles(host) {
+  return b2`
+    <selora-particles
+      class="proposal-reveal-particles"
+      .count=${90}
+      .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
+      .maxOpacity=${host._isDark ? 0.5 : 0.4}
+      .speed=${2.4}
+    ></selora-particles>
+  `;
+}
+
 // src/panel/render-suggestions.js
 var ClampCursorDirective = class extends i5 {
   update(part, [force]) {
@@ -31221,6 +31391,8 @@ function renderActionItemBody(host, action, ctx) {
 function renderAutomationIdentity(alias, description, opts = {}) {
   const {
     badge = "",
+    badgeCheck = false,
+    badgeCheckAnimate = false,
     titleSuffix = null,
     nameOverride = null,
     tail = null,
@@ -31256,8 +31428,15 @@ function renderAutomationIdentity(alias, description, opts = {}) {
               ${
                 badge
                   ? b2`<span
-                      style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
-                      >${badge}</span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
+                      >${
+                        badgeCheck
+                          ? renderCreatedCheck({
+                              animate: badgeCheckAnimate,
+                              size: 11,
+                            })
+                          : ""
+                      }${badge}</span
                     >`
                   : ""
               }
@@ -31344,6 +31523,9 @@ function renderProposalCard(host, msg, msgIndex) {
             badge: isEnabled
               ? host._t("automations_badge_enabled", "Enabled")
               : host._t("automations_badge_saved", "Saved"),
+            badgeCheck: true,
+            badgeCheckAnimate:
+              !!msg.automation_id && host._justCreatedId === msg.automation_id,
           })}
         </div>
         <div class="automation-subcard-body">
@@ -31425,8 +31607,10 @@ function renderProposalCard(host, msg, msgIndex) {
   const yamlKey = `proposal_${msgIndex}`;
   const hasEdits =
     host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
+  const revealing = !!(host._revealingProposals || {})[msgIndex];
   return b2`
-    <div class="automation-subcard">
+    <div class="automation-subcard${revealing ? " revealing" : ""}">
+      ${revealing ? renderRevealParticles(host) : ""}
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
           badge: host._t("automations_badge_proposal", "Proposal"),
@@ -31690,7 +31874,7 @@ function renderAutomations(host) {
     safeAutoPage * perPage,
   );
   const selectableAutomations = filteredAutomations.filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a3) => a3.automation_id,
   );
   const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
   const selectedIds = host._getSelectedAutomationIds();
@@ -31995,7 +32179,6 @@ function renderAutomations(host) {
                 }
                 <div class="automations-list">
                   ${pagedAutomations.map((a3) => {
-                    const isDraft = !!a3._draft;
                     const isOn = host._automationIsEnabled(a3);
                     const isUnavailable = a3.state === "unavailable";
                     const automationId = a3.automation_id || "";
@@ -32016,7 +32199,7 @@ function renderAutomations(host) {
                         : host._t("automations_last_run_never", "Never");
                     return b2`
                       <div
-                        class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
+                        class="auto-row${cardExpanded ? " expanded" : ""}${!isOn ? " disabled" : ""}${host._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
                         data-entity-id="${a3.entity_id}"
                       >
                         <div
@@ -32072,8 +32255,7 @@ function renderAutomations(host) {
                           }
                           ${renderAutomationIdentity(a3.alias, a3.description, {
                             isSelora: !!a3.is_selora,
-                            icon:
-                              !isDraft && !isOn ? "mdi:robot-off" : "mdi:robot",
+                            icon: !isOn ? "mdi:robot-off" : "mdi:robot",
                             titleSuffix: b2`
                               ${
                                 a3.recipe_title
@@ -32159,7 +32341,7 @@ function renderAutomations(host) {
                                   : ""
                               }
                               ${
-                                !isDraft && !isOn
+                                !isOn
                                   ? b2`<span class="disabled-pill">
                                       <ha-icon
                                         icon="mdi:pause-circle-outline"
@@ -32299,7 +32481,7 @@ function renderAutomations(host) {
                             </label>
                             <div class="auto-row-btns">
                               ${
-                                !isDraft && a3.entity_id
+                                a3.entity_id
                                   ? b2`
                                       <button
                                         class="row-action-btn"
@@ -32493,25 +32675,23 @@ function renderAutomations(host) {
                                         }
                                       </div>
                                     `
-                                  : isDraft
-                                    ? ""
-                                    : b2`
-                                        <div class="burger-menu-wrapper">
-                                          <button
-                                            class="burger-btn"
-                                            disabled
-                                            title=${host._t(
-                                              "automations_more_actions_external",
-                                              "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
-                                            )}
-                                          >
-                                            <ha-icon
-                                              icon="mdi:dots-vertical"
-                                              style="--mdc-icon-size:16px;"
-                                            ></ha-icon>
-                                          </button>
-                                        </div>
-                                      `
+                                  : b2`
+                                      <div class="burger-menu-wrapper">
+                                        <button
+                                          class="burger-btn"
+                                          disabled
+                                          title=${host._t(
+                                            "automations_more_actions_external",
+                                            "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
+                                          )}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:dots-vertical"
+                                            style="--mdc-icon-size:16px;"
+                                          ></ha-icon>
+                                        </button>
+                                      </div>
+                                    `
                               }
                             </div>
                           </div>
@@ -32925,7 +33105,7 @@ function _toggleAutomationSelection(automationId, evt) {
 }
 function _toggleSelectAllFiltered(filteredAutomations, checked) {
   const selectable = (filteredAutomations || []).filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a3) => a3.automation_id,
   );
   const next = { ...this._selectedAutomationIds };
   for (const auto of selectable) {
@@ -32945,7 +33125,7 @@ async function _bulkToggleSelected(enable) {
   const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id)
+    .filter((a3) => a3 && a3.automation_id)
     .filter((a3) =>
       enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3),
     );
@@ -33002,7 +33182,7 @@ async function _bulkSoftDeleteSelected() {
   const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id);
+    .filter((a3) => a3 && a3.automation_id);
   if (!targets.length) return;
   if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
   this._bulkActionInProgress = true;
@@ -33520,7 +33700,12 @@ function renderSceneCard(host, msg, msgIndex) {
     return b2`
       <div style="margin-top:12px;padding:14px 0 0;">
         <div class="scene-saved-head">
-          <ha-icon icon="mdi:check-circle" class="scene-saved-icon"></ha-icon>
+          <span class="scene-saved-icon"
+            >${renderCreatedCheck({
+              animate: !!msg.scene_id && host._justCreatedId === msg.scene_id,
+              size: 20,
+            })}</span
+          >
           <span class="scene-saved-name">${scene.name}</span>
           <span class="scene-saved-tag">
             ${host._t("scenes_card_saved_status", "Saved to Home Assistant")}
@@ -33886,7 +34071,7 @@ function renderScenes(host) {
                     const recipeSlug = s4.recipe_slug || "";
                     return b2`
                       <div
-                        class="auto-row${isExpanded ? " expanded" : ""}"
+                        class="auto-row${isExpanded ? " expanded" : ""}${host._highlightedScene === sceneId ? " highlighted" : ""}"
                         data-scene-id="${sceneId}"
                       >
                         <div
@@ -36430,12 +36615,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.12.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.13.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.12.0"}
+            Selora AI v${"0.13.0"}
           </a>
         </div>
       </div>
@@ -45555,22 +45740,13 @@ async function _newAutomationChat(name) {
     const { session_id } = await this.hass.callWS({
       type: "selora_ai/new_session",
     });
-    await Promise.all([
-      this.hass
-        .callWS({
-          type: "selora_ai/rename_session",
-          session_id,
-          title: trimmed,
-        })
-        .catch(() => {}),
-      this.hass
-        .callWS({
-          type: "selora_ai/create_draft",
-          alias: trimmed,
-          session_id,
-        })
-        .catch(() => {}),
-    ]);
+    await this.hass
+      .callWS({
+        type: "selora_ai/rename_session",
+        session_id,
+        title: trimmed,
+      })
+      .catch(() => {});
     this._activeSessionId = session_id;
     this._sessionSearch = "";
     this._messages = [];
@@ -46499,6 +46675,9 @@ async function _sendMessage() {
         assistantMsg.automation = event.automation || null;
         assistantMsg.automation_yaml = event.automation_yaml || null;
         assistantMsg.automation_status = event.automation ? "pending" : null;
+        if (event.automation) {
+          this._markProposalRevealing(this._messages.indexOf(assistantMsg));
+        }
         assistantMsg.automation_message_index =
           event.automation_message_index ?? null;
         assistantMsg.refining_automation_id =
@@ -46727,7 +46906,6 @@ __export(automation_crud_exports, {
   _createdToast: () => _createdToast,
   _declineAutomation: () => _declineAutomation,
   _discardSuggestion: () => _discardSuggestion,
-  _dismissDraft: () => _dismissDraft,
   _extractInitialState: () => _extractInitialState,
   _getRefiningAutomationId: () => _getRefiningAutomationId,
   _initYamlEdit: () => _initYamlEdit,
@@ -46735,7 +46913,6 @@ __export(automation_crud_exports, {
   _loadLineage: () => _loadLineage,
   _onYamlInput: () => _onYamlInput,
   _refineAutomation: () => _refineAutomation,
-  _removeDraftForSession: () => _removeDraftForSession,
   _saveActiveAutomationYaml: () => _saveActiveAutomationYaml,
 });
 var _INITIAL_STATE_KEY = /(['"]?)initial_state\1[ \t]*:[ \t]*(.*)$/;
@@ -46916,8 +47093,8 @@ async function _acceptAutomation(msgIndex, automation) {
       type: "selora_ai/get_session",
       session_id: this._activeSessionId,
     });
+    if (createResult) this._markJustCreated(resolvedAutomationId);
     this._messages = session.messages || [];
-    await this._removeDraftForSession(this._activeSessionId);
     await this._loadAutomations();
     if (createResult) {
       await this._autoEnableAfterAccept(
@@ -46992,47 +47169,6 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
           ". Use the Enable button on the card to try again.",
         ),
       "warning",
-    );
-  }
-}
-async function _removeDraftForSession(sessionId) {
-  if (!sessionId) return;
-  try {
-    const draft = this._automations.find(
-      (a3) => a3._draft && a3._linked_session === sessionId,
-    );
-    if (draft && draft._draft_id) {
-      await this.hass.callWS({
-        type: "selora_ai/remove_draft",
-        draft_id: draft._draft_id,
-      });
-    }
-  } catch (err) {
-    console.error("Failed to remove draft for session", err);
-  }
-}
-async function _dismissDraft(draftId) {
-  if (!draftId) return;
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/remove_draft",
-      draft_id: draftId,
-    });
-    await this._loadAutomations();
-    this._showToast(
-      this._t("automation_crud_draft_dismissed", "Draft dismissed."),
-      "info",
-    );
-  } catch (err) {
-    console.error("Failed to dismiss draft", err);
-    this._showToast(
-      this._t(
-        "automation_crud_dismiss_draft_failed",
-        "Failed to dismiss draft:",
-      ) +
-        " " +
-        err.message,
-      "error",
     );
   }
 }
@@ -47146,6 +47282,7 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
         type: "selora_ai/get_session",
         session_id: this._activeSessionId,
       });
+      if (createResult) this._markJustCreated(resolvedAutomationId);
       this._messages = session.messages || [];
       await this._loadAutomations();
       if (createResult) {
@@ -47299,8 +47436,10 @@ async function _acceptScene(msgIndex) {
     msg.scene_status = "saved";
     msg.scene_id = result.scene_id;
     msg.entity_id = result.entity_id;
+    this._markJustCreated(result.scene_id);
     this._messages = [...this._messages];
     await this._loadScenes();
+    this._markSceneCreated(result.scene_id);
     this._showToast(`Scene "${scene.name}" created and saved.`, "success");
   } catch (err) {
     this._showToast("Failed to create scene: " + err.message, "error");
@@ -48009,6 +48148,12 @@ var SeloraAIPanel = class extends i4 {
       _selectedSuggestionKeys: { type: Object },
       // Highlight newly accepted automation
       _highlightedAutomation: { type: String },
+      // Highlight a newly created scene once the Scenes tab renders its row
+      _highlightedScene: { type: String },
+      // id (automation_id or scene_id) whose saved card should draw its check
+      _justCreatedId: { type: String },
+      // msgIndex → true while a freshly-arrived proposal card plays its reveal
+      _revealingProposals: { type: Object },
       // Fading out suggestion card keys
       _fadingOutSuggestions: { type: Object },
       // Inline card tabs (flow / yaml / history)
@@ -48165,6 +48310,12 @@ var SeloraAIPanel = class extends i4 {
     this._suggestionsVisibleCount = 3;
     this._suggestionBulkMode = false;
     this._highlightedAutomation = null;
+    this._highlightedScene = null;
+    this._justCreatedId = null;
+    this._justCreatedTimer = null;
+    this._revealingProposals = {};
+    this._revealTimers = {};
+    this._sceneHighlightTimer = null;
     this._fadingOutSuggestions = {};
     this._insightsLoading = false;
     this._insightsEnabled = true;
@@ -48594,6 +48745,19 @@ var SeloraAIPanel = class extends i4 {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    if (this._justCreatedTimer) {
+      clearTimeout(this._justCreatedTimer);
+      this._justCreatedTimer = null;
+    }
+    if (this._sceneHighlightTimer) {
+      clearTimeout(this._sceneHighlightTimer);
+      this._sceneHighlightTimer = null;
+    }
+    for (const timer of Object.values(this._revealTimers || {})) {
+      clearTimeout(timer);
+    }
+    this._revealTimers = {};
+    this._revealingProposals = {};
     clearTimeout(this._nativeSelectTimer);
     this._nativeSelectOpen = false;
     if (this._aigatewayPollTimer) {
@@ -49244,6 +49408,30 @@ var SeloraAIPanel = class extends i4 {
       this._highlightedAutomation = null;
     }, 3e3);
   }
+  // Arm the row highlight for a newly created scene. Unlike the automation
+  // equivalent this can't scroll straight away: scenes are created from the
+  // chat tab, so the Scenes list isn't in the DOM yet. We just record the id
+  // and let updated() fire the scroll + expiry the moment the row mounts.
+  _markSceneCreated(sceneId) {
+    if (!sceneId) return;
+    if (this._sceneHighlightTimer) {
+      clearTimeout(this._sceneHighlightTimer);
+      this._sceneHighlightTimer = null;
+    }
+    this._highlightedScene = sceneId;
+  }
+  // Flag the id whose saved card should draw its checkmark. Cleared on a timer
+  // so a later re-render (or reopening the session) shows the check already
+  // complete rather than replaying the creation moment.
+  _markJustCreated(id) {
+    if (!id) return;
+    if (this._justCreatedTimer) clearTimeout(this._justCreatedTimer);
+    this._justCreatedId = id;
+    this._justCreatedTimer = setTimeout(() => {
+      this._justCreatedId = null;
+      this._justCreatedTimer = null;
+    }, 1500);
+  }
   // -------------------------------------------------------------------------
   // Toast notifications
   // -------------------------------------------------------------------------
@@ -49306,7 +49494,7 @@ var SeloraAIPanel = class extends i4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.12.0" : "unknown",
+        integration_version: true ? "0.13.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -49383,6 +49571,24 @@ var SeloraAIPanel = class extends i4 {
     }
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     this.toggleAttribute("processing", !!(this._streaming || this._loading));
+    if (this._highlightedScene && !this._sceneHighlightTimer) {
+      const row = this.shadowRoot?.querySelector(
+        `.auto-row[data-scene-id="${this._highlightedScene}"]`,
+      );
+      if (row) {
+        row.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches
+            ? "auto"
+            : "smooth",
+          block: "center",
+        });
+        this._sceneHighlightTimer = setTimeout(() => {
+          this._highlightedScene = null;
+          this._sceneHighlightTimer = null;
+        }, 3e3);
+      }
+    }
     if (changedProps.has("hass")) {
       this._attachWsReadyListener();
       this._ensureQuotaSubscription();
@@ -51940,6 +52146,7 @@ Object.assign(SeloraAIPanel.prototype, suggestion_actions_exports);
 Object.assign(SeloraAIPanel.prototype, insights_actions_exports);
 Object.assign(SeloraAIPanel.prototype, chat_actions_exports);
 Object.assign(SeloraAIPanel.prototype, automation_crud_exports);
+Object.assign(SeloraAIPanel.prototype, proposal_reveal_exports);
 Object.assign(SeloraAIPanel.prototype, automation_management_exports);
 Object.assign(SeloraAIPanel.prototype, scene_actions_exports);
 Object.assign(SeloraAIPanel.prototype, scene_edit_exports);

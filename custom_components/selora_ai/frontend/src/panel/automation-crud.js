@@ -231,8 +231,10 @@ export async function _acceptAutomation(msgIndex, automation) {
       type: "selora_ai/get_session",
       session_id: this._activeSessionId,
     });
+    // Only a real create earns the drawn checkmark — a refinement updated an
+    // automation that already existed.
+    if (createResult) this._markJustCreated(resolvedAutomationId);
     this._messages = session.messages || [];
-    await this._removeDraftForSession(this._activeSessionId);
     await this._loadAutomations();
 
     // Refinements preserve the existing automation's enabled state;
@@ -338,49 +340,6 @@ export async function _autoEnableAfterAccept(automationId, createResult, msg) {
           ". Use the Enable button on the card to try again.",
         ),
       "warning",
-    );
-  }
-}
-
-export async function _removeDraftForSession(sessionId) {
-  if (!sessionId) return;
-  try {
-    const draft = this._automations.find(
-      (a) => a._draft && a._linked_session === sessionId,
-    );
-    if (draft && draft._draft_id) {
-      await this.hass.callWS({
-        type: "selora_ai/remove_draft",
-        draft_id: draft._draft_id,
-      });
-    }
-  } catch (err) {
-    console.error("Failed to remove draft for session", err);
-  }
-}
-
-export async function _dismissDraft(draftId) {
-  if (!draftId) return;
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/remove_draft",
-      draft_id: draftId,
-    });
-    await this._loadAutomations();
-    this._showToast(
-      this._t("automation_crud_draft_dismissed", "Draft dismissed."),
-      "info",
-    );
-  } catch (err) {
-    console.error("Failed to dismiss draft", err);
-    this._showToast(
-      this._t(
-        "automation_crud_dismiss_draft_failed",
-        "Failed to dismiss draft:",
-      ) +
-        " " +
-        err.message,
-      "error",
     );
   }
 }
@@ -528,6 +487,7 @@ export async function _acceptAutomationWithEdits(
         type: "selora_ai/get_session",
         session_id: this._activeSessionId,
       });
+      if (createResult) this._markJustCreated(resolvedAutomationId);
       this._messages = session.messages || [];
       await this._loadAutomations();
       if (createResult) {

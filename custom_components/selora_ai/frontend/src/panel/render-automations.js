@@ -9,6 +9,8 @@ import {
 } from "../shared/flow-description.js";
 import { fmtEntity } from "../shared/formatting.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
+import { renderCreatedCheck } from "../shared/created-check.js";
+import { renderRevealParticles } from "./proposal-reveal.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
@@ -480,6 +482,8 @@ function renderActionItemBody(host, action, ctx) {
 export function renderAutomationIdentity(alias, description, opts = {}) {
   const {
     badge = "",
+    badgeCheck = false,
+    badgeCheckAnimate = false,
     titleSuffix = null,
     nameOverride = null,
     tail = null,
@@ -515,8 +519,15 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
               ${
                 badge
                   ? html`<span
-                      style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
-                      >${badge}</span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
+                      >${
+                        badgeCheck
+                          ? renderCreatedCheck({
+                              animate: badgeCheckAnimate,
+                              size: 11,
+                            })
+                          : ""
+                      }${badge}</span
                     >`
                   : ""
               }
@@ -628,6 +639,9 @@ export function renderProposalCard(host, msg, msgIndex) {
             badge: isEnabled
               ? host._t("automations_badge_enabled", "Enabled")
               : host._t("automations_badge_saved", "Saved"),
+            badgeCheck: true,
+            badgeCheckAnimate:
+              !!msg.automation_id && host._justCreatedId === msg.automation_id,
           })}
         </div>
         <div class="automation-subcard-body">
@@ -718,8 +732,10 @@ export function renderProposalCard(host, msg, msgIndex) {
   const hasEdits =
     host._editedYaml[yamlKey] !== undefined &&
     host._editedYaml[yamlKey] !== yaml;
+  const revealing = !!(host._revealingProposals || {})[msgIndex];
   return html`
-    <div class="automation-subcard">
+    <div class="automation-subcard${revealing ? " revealing" : ""}">
+      ${revealing ? renderRevealParticles(host) : ""}
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
           badge: host._t("automations_badge_proposal", "Proposal"),
@@ -1043,7 +1059,7 @@ export function renderAutomations(host) {
     safeAutoPage * perPage,
   );
   const selectableAutomations = filteredAutomations.filter(
-    (a) => !a._draft && a.automation_id,
+    (a) => a.automation_id,
   );
   const selectableIds = selectableAutomations.map((a) => a.automation_id);
   const selectedIds = host._getSelectedAutomationIds();
@@ -1364,7 +1380,6 @@ export function renderAutomations(host) {
                 }
                 <div class="automations-list">
                   ${pagedAutomations.map((a) => {
-                    const isDraft = !!a._draft;
                     const isOn = host._automationIsEnabled(a);
                     const isUnavailable = a.state === "unavailable";
                     const automationId = a.automation_id || "";
@@ -1387,7 +1402,7 @@ export function renderAutomations(host) {
                     return html`
                       <div
                         class="auto-row${cardExpanded ? " expanded" : ""}${
-                          !isDraft && !isOn ? " disabled" : ""
+                          !isOn ? " disabled" : ""
                         }${
                           host._highlightedAutomation === a.entity_id
                             ? " highlighted"
@@ -1450,8 +1465,7 @@ export function renderAutomations(host) {
                           }
                           ${renderAutomationIdentity(a.alias, a.description, {
                             isSelora: !!a.is_selora,
-                            icon:
-                              !isDraft && !isOn ? "mdi:robot-off" : "mdi:robot",
+                            icon: !isOn ? "mdi:robot-off" : "mdi:robot",
                             titleSuffix: html`
                               ${
                                 a.recipe_title
@@ -1539,7 +1553,7 @@ export function renderAutomations(host) {
                                   : ""
                               }
                               ${
-                                !isDraft && !isOn
+                                !isOn
                                   ? html`<span class="disabled-pill">
                                       <ha-icon
                                         icon="mdi:pause-circle-outline"
@@ -1685,7 +1699,7 @@ export function renderAutomations(host) {
                             </label>
                             <div class="auto-row-btns">
                               ${
-                                !isDraft && a.entity_id
+                                a.entity_id
                                   ? html`
                                       <button
                                         class="row-action-btn"
@@ -1883,25 +1897,23 @@ export function renderAutomations(host) {
                                         }
                                       </div>
                                     `
-                                  : isDraft
-                                    ? ""
-                                    : html`
-                                        <div class="burger-menu-wrapper">
-                                          <button
-                                            class="burger-btn"
-                                            disabled
-                                            title=${host._t(
-                                              "automations_more_actions_external",
-                                              "Managed outside Selora AI — edit it where it's defined, e.g. an installed recipe.",
-                                            )}
-                                          >
-                                            <ha-icon
-                                              icon="mdi:dots-vertical"
-                                              style="--mdc-icon-size:16px;"
-                                            ></ha-icon>
-                                          </button>
-                                        </div>
-                                      `
+                                  : html`
+                                      <div class="burger-menu-wrapper">
+                                        <button
+                                          class="burger-btn"
+                                          disabled
+                                          title=${host._t(
+                                            "automations_more_actions_external",
+                                            "Managed outside Selora AI — edit it where it's defined, e.g. an installed recipe.",
+                                          )}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:dots-vertical"
+                                            style="--mdc-icon-size:16px;"
+                                          ></ha-icon>
+                                        </button>
+                                      </div>
+                                    `
                               }
                             </div>
                           </div>

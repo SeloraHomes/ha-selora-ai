@@ -434,72 +434,6 @@ async def _handle_websocket_quick_create_automation(
 @websocket_api.async_response
 @decorators.websocket_command(
     {
-        vol.Required("type"): "selora_ai/create_draft",
-        vol.Required("alias"): str,
-        vol.Required("session_id"): str,
-    }
-)
-async def _handle_websocket_create_draft(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Create a persisted draft automation linked to a chat session."""
-    if not _require_admin(connection, msg):
-        return
-
-    store = _get_automation_store(hass)
-    draft = await store.create_draft(msg["alias"], msg["session_id"])
-    connection.send_result(msg["id"], draft)
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/get_drafts",
-    }
-)
-async def _handle_websocket_get_drafts(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Return all draft automations."""
-    if not _require_admin(connection, msg):
-        return
-
-    store = _get_automation_store(hass)
-    drafts = await store.list_drafts()
-    connection.send_result(msg["id"], drafts)
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/remove_draft",
-        vol.Required("draft_id"): str,
-    }
-)
-async def _handle_websocket_remove_draft(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Remove a draft automation."""
-    if not _require_admin(connection, msg):
-        return
-
-    store = _get_automation_store(hass)
-    ok = await store.remove_draft(msg["draft_id"])
-    if ok:
-        connection.send_result(msg["id"], {"status": "ok"})
-    else:
-        connection.send_error(msg["id"], "not_found", "Draft not found")
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
         vol.Required("type"): "selora_ai/get_automations",
     }
 )
@@ -1017,7 +951,4 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _handle_websocket_get_session_automations)
     websocket_api.async_register_command(hass, _handle_websocket_load_automation_to_session)
     websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
-    websocket_api.async_register_command(hass, _handle_websocket_create_draft)
-    websocket_api.async_register_command(hass, _handle_websocket_get_drafts)
-    websocket_api.async_register_command(hass, _handle_websocket_remove_draft)
     websocket_api.async_register_command(hass, _handle_websocket_quick_create_automation)

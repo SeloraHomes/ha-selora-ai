@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "Automation saved but couldn't be enabled automatically:",
     "automation_crud_unknown_error": "unknown error",
     "automation_crud_auto_enable_failed_suffix": ". Use the Enable button on the card to try again.",
-    "automation_crud_draft_dismissed": "Draft dismissed.",
-    "automation_crud_dismiss_draft_failed": "Failed to dismiss draft:",
     "automation_crud_create_failed": "Failed to create automation:",
     "automation_crud_save_edited_yaml_failed": "Failed to save automation from edited YAML:",
     "automation_crud_yaml_saved": "Automation YAML saved.",

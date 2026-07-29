@@ -377,26 +377,16 @@ export async function _newAutomationChat(name) {
   if (!name || !name.trim()) return;
   const trimmed = name.trim();
   try {
-    // Create session + draft in parallel
     const { session_id } = await this.hass.callWS({
       type: "selora_ai/new_session",
     });
-    await Promise.all([
-      this.hass
-        .callWS({
-          type: "selora_ai/rename_session",
-          session_id,
-          title: trimmed,
-        })
-        .catch(() => {}),
-      this.hass
-        .callWS({
-          type: "selora_ai/create_draft",
-          alias: trimmed,
-          session_id,
-        })
-        .catch(() => {}),
-    ]);
+    await this.hass
+      .callWS({
+        type: "selora_ai/rename_session",
+        session_id,
+        title: trimmed,
+      })
+      .catch(() => {});
 
     // Switch to chat and fire the message immediately — the user
     // already validated their intent in the dialog, so a second

@@ -2,6 +2,7 @@ import { html, nothing } from "lit";
 import { toggleYaml } from "./render-automations.js";
 import { burgerMenuAnchor } from "./automation-management.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
+import { renderCreatedCheck } from "../shared/created-check.js";
 
 // ---------------------------------------------------------------------------
 // Scene card (chat scene confirmations)
@@ -192,7 +193,12 @@ export function renderSceneCard(host, msg, msgIndex) {
     return html`
       <div style="margin-top:12px;padding:14px 0 0;">
         <div class="scene-saved-head">
-          <ha-icon icon="mdi:check-circle" class="scene-saved-icon"></ha-icon>
+          <span class="scene-saved-icon"
+            >${renderCreatedCheck({
+              animate: !!msg.scene_id && host._justCreatedId === msg.scene_id,
+              size: 20,
+            })}</span
+          >
           <span class="scene-saved-name">${scene.name}</span>
           <span class="scene-saved-tag">
             ${host._t("scenes_card_saved_status", "Saved to Home Assistant")}
@@ -602,7 +608,11 @@ export function renderScenes(host) {
                     const recipeSlug = s.recipe_slug || "";
                     return html`
                       <div
-                        class="auto-row${isExpanded ? " expanded" : ""}"
+                        class="auto-row${isExpanded ? " expanded" : ""}${
+                          host._highlightedScene === sceneId
+                            ? " highlighted"
+                            : ""
+                        }"
                         data-scene-id="${sceneId}"
                       >
                         <div

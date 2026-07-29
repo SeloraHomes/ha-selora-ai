@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "自动化已保存，但无法自动启用：",
     "automation_crud_unknown_error": "未知错误",
     "automation_crud_auto_enable_failed_suffix": "。请使用卡片上的“启用”按钮重试。",
-    "automation_crud_draft_dismissed": "草稿已忽略。",
-    "automation_crud_dismiss_draft_failed": "忽略草稿失败：",
     "automation_crud_create_failed": "创建自动化失败：",
     "automation_crud_save_edited_yaml_failed": "从编辑后的 YAML 保存自动化失败：",
     "automation_crud_yaml_saved": "自动化 YAML 已保存。",

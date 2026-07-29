@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "Automação guardada, mas não pôde ser ativada automaticamente:",
     "automation_crud_unknown_error": "erro desconhecido",
     "automation_crud_auto_enable_failed_suffix": ". Utilize o botão Ativar no cartão para tentar novamente.",
-    "automation_crud_draft_dismissed": "Rascunho dispensado.",
-    "automation_crud_dismiss_draft_failed": "Não foi possível dispensar o rascunho:",
     "automation_crud_create_failed": "Não foi possível criar a automação:",
     "automation_crud_save_edited_yaml_failed": "Não foi possível guardar a automação a partir do YAML editado:",
     "automation_crud_yaml_saved": "YAML da automação guardado.",

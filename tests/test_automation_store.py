@@ -54,7 +54,6 @@ def prefilled_store(hass):
             }
         },
         "session_index": {},
-        "drafts": {},
     }
     with patch("custom_components.selora_ai.automation_store.Store") as MockStoreClass:
         mock_store_instance = MockStore(initial_data)
@@ -72,7 +71,7 @@ async def test_ensure_loaded_empty_store(automation_store):
     """Loading from an empty store creates the default structure."""
     store, mock = automation_store
     await store._ensure_loaded()
-    assert store._data == {"records": {}, "session_index": {}, "drafts": {}}
+    assert store._data == {"records": {}, "session_index": {}}
 
 
 @pytest.mark.asyncio
@@ -98,7 +97,6 @@ async def test_ensure_loaded_migrates_missing_session_index(hass):
         store._store = ms
         await store._ensure_loaded()
         assert "session_index" in store._data
-        assert "drafts" in store._data
 
 
 @pytest.mark.asyncio
@@ -241,32 +239,36 @@ async def test_purge_record_unknown_returns_false(automation_store):
     assert await store.purge_record("nope") is False
 
 
-# ── Draft operations ──────────────────────────────────────────────────
+# ── Legacy data migration ─────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_create_and_list_drafts(automation_store):
-    store, mock = automation_store
-    draft = await store.create_draft("My Draft Automation", "sess_42")
-    assert draft["alias"] == "My Draft Automation"
-    assert draft["session_id"] == "sess_42"
-    assert "draft_id" in draft
-    assert "created_at" in draft
+async def test_ensure_loaded_purges_legacy_drafts(hass):
+    """Drops the abandoned drafts bucket left by earlier versions.
 
-    drafts = await store.list_drafts()
-    assert len(drafts) == 1
-    assert drafts[0]["draft_id"] == draft["draft_id"]
-
-
-@pytest.mark.asyncio
-async def test_remove_draft(automation_store):
-    store, _ = automation_store
-    draft = await store.create_draft("Temp", "sess_1")
-    assert await store.remove_draft(draft["draft_id"]) is True
-    assert await store.list_drafts() == []
-
-
-@pytest.mark.asyncio
-async def test_remove_draft_not_found(automation_store):
-    store, _ = automation_store
-    assert await store.remove_draft("nonexistent_draft") is False
+    Draft rows were never surfaced in the panel, so entries written there had
+    no reachable delete path and accumulated on every use of the deep-link
+    "create in chat" entry point.
+    """
+    legacy_data = {
+        "records": {},
+        "session_index": {},
+        "drafts": {
+            "d1": {
+                "draft_id": "d1",
+                "alias": "Leaked draft",
+                "session_id": "sess_1",
+                "created_at": "2026-01-01T00:00:00+00:00",
+            }
+        },
+    }
+    with patch("custom_components.selora_ai.automation_store.Store") as Cls:
+        ms = MockStore(legacy_data)
+        Cls.return_value = ms
+        store = AutomationStore(hass)
+        store._store = ms
+        await store._ensure_loaded()
+        assert "drafts" not in store._data
+        # Records must survive the purge untouched.
+        assert store._data["records"] == {}
+        assert store._data["session_index"] == {}

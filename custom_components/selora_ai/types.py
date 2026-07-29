@@ -162,15 +162,6 @@ class AutomationMetadata(TypedDict):
     current_version_id: str
 
 
-class DraftAutomation(TypedDict):
-    """A draft automation linked to a chat session."""
-
-    draft_id: str
-    alias: str
-    session_id: str
-    created_at: str
-
-
 # ── Pattern structures ────────────────────────────────────────────────
 
 
@@ -686,7 +677,6 @@ class AutomationStoreData(TypedDict):
 
     records: dict[str, AutomationRecord]
     session_index: dict[str, list[str]]
-    drafts: dict[str, DraftAutomation]
 
 
 # ── History summary ────────────────────────────────────────────────────

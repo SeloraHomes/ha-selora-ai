@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "Automazione salvata ma non è stato possibile attivarla automaticamente:",
     "automation_crud_unknown_error": "errore sconosciuto",
     "automation_crud_auto_enable_failed_suffix": ". Usi il pulsante Attiva sulla scheda per riprovare.",
-    "automation_crud_draft_dismissed": "Bozza ignorata.",
-    "automation_crud_dismiss_draft_failed": "Impossibile ignorare la bozza:",
     "automation_crud_create_failed": "Impossibile creare l'automazione:",
     "automation_crud_save_edited_yaml_failed": "Impossibile salvare l'automazione dallo YAML modificato:",
     "automation_crud_yaml_saved": "YAML dell'automazione salvato.",

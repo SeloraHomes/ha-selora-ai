@@ -282,6 +282,20 @@ export const layoutStyles = css`
     display: flex;
     align-items: center;
     gap: 8px;
+    /* Rises into place instead of teleporting in. Same easing as the saved-card
+       entrance so every success in the panel lands the same way. */
+    animation: toast-in 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .toast {
+      animation: none;
+    }
   }
   .toast.info {
     background: #1f6feb;
