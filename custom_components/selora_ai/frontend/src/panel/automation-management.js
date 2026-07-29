@@ -35,9 +35,7 @@ export function _toggleAutomationSelection(automationId, evt) {
 }
 
 export function _toggleSelectAllFiltered(filteredAutomations, checked) {
-  const selectable = (filteredAutomations || []).filter(
-    (a) => !a._draft && a.automation_id,
-  );
+  const selectable = (filteredAutomations || []).filter((a) => a.automation_id);
   const next = { ...this._selectedAutomationIds };
   for (const auto of selectable) {
     next[auto.automation_id] = checked;
@@ -59,7 +57,7 @@ export async function _bulkToggleSelected(enable) {
   const byId = new Map(this._automations.map((a) => [a.automation_id, a]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a) => a && !a._draft && a.automation_id)
+    .filter((a) => a && a.automation_id)
     .filter((a) =>
       enable ? !this._automationIsEnabled(a) : this._automationIsEnabled(a),
     );
@@ -120,7 +118,7 @@ export async function _bulkSoftDeleteSelected() {
   const byId = new Map(this._automations.map((a) => [a.automation_id, a]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a) => a && !a._draft && a.automation_id);
+    .filter((a) => a && a.automation_id);
 
   if (!targets.length) return;
   if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;

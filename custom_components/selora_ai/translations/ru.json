@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "Автоматизация сохранена, но не удалось включить её автоматически:",
     "automation_crud_unknown_error": "неизвестная ошибка",
     "automation_crud_auto_enable_failed_suffix": ". Используйте кнопку «Включить» на карточке, чтобы повторить попытку.",
-    "automation_crud_draft_dismissed": "Черновик отклонён.",
-    "automation_crud_dismiss_draft_failed": "Не удалось отклонить черновик:",
     "automation_crud_create_failed": "Не удалось создать автоматизацию:",
     "automation_crud_save_edited_yaml_failed": "Не удалось сохранить автоматизацию из отредактированного YAML:",
     "automation_crud_yaml_saved": "YAML автоматизации сохранён.",

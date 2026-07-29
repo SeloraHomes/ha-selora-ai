@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "Automatización guardada pero no se pudo activar automáticamente:",
     "automation_crud_unknown_error": "error desconocido",
     "automation_crud_auto_enable_failed_suffix": ". Use el botón Activar de la tarjeta para volver a intentarlo.",
-    "automation_crud_draft_dismissed": "Borrador descartado.",
-    "automation_crud_dismiss_draft_failed": "No se pudo descartar el borrador:",
     "automation_crud_create_failed": "No se pudo crear la automatización:",
     "automation_crud_save_edited_yaml_failed": "No se pudo guardar la automatización desde el YAML editado:",
     "automation_crud_yaml_saved": "YAML de la automatización guardado.",

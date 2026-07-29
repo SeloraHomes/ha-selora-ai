@@ -32,8 +32,10 @@ export async function _acceptScene(msgIndex) {
     // rather than scene.<scene_id>, so keep the resolved value the
     // backend returned for use when the user clicks Activate.
     msg.entity_id = result.entity_id;
+    this._markJustCreated(result.scene_id);
     this._messages = [...this._messages];
     await this._loadScenes();
+    this._markSceneCreated(result.scene_id);
 
     this._showToast(`Scene "${scene.name}" created and saved.`, "success");
   } catch (err) {

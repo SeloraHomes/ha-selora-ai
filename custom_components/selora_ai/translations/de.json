@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "Automatisierung gespeichert, konnte aber nicht automatisch aktiviert werden:",
     "automation_crud_unknown_error": "unbekannter Fehler",
     "automation_crud_auto_enable_failed_suffix": ". Verwenden Sie die Schaltfläche Aktivieren auf der Karte, um es erneut zu versuchen.",
-    "automation_crud_draft_dismissed": "Entwurf verworfen.",
-    "automation_crud_dismiss_draft_failed": "Entwurf konnte nicht verworfen werden:",
     "automation_crud_create_failed": "Automatisierung konnte nicht erstellt werden:",
     "automation_crud_save_edited_yaml_failed": "Automatisierung konnte nicht aus bearbeitetem YAML gespeichert werden:",
     "automation_crud_yaml_saved": "Automatisierungs-YAML gespeichert.",

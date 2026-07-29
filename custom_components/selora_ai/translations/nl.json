@@ -648,8 +648,6 @@
     "automation_crud_auto_enable_failed_prefix": "Automatisering opgeslagen, maar kon niet automatisch worden aangezet:",
     "automation_crud_unknown_error": "onbekende fout",
     "automation_crud_auto_enable_failed_suffix": ". Gebruik de Aanzetten-knop op de kaart om het opnieuw te proberen.",
-    "automation_crud_draft_dismissed": "Concept afgewezen.",
-    "automation_crud_dismiss_draft_failed": "Afwijzen van concept mislukt:",
     "automation_crud_create_failed": "Aanmaken van automatisering mislukt:",
     "automation_crud_save_edited_yaml_failed": "Opslaan van automatisering uit bewerkte YAML mislukt:",
     "automation_crud_yaml_saved": "YAML van automatisering opgeslagen.",

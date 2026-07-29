@@ -648,8 +648,6 @@
     "automation_crud_auto_enable_failed_prefix": "Az automatizmus mentve, de nem sikerült automatikusan bekapcsolni:",
     "automation_crud_unknown_error": "ismeretlen hiba",
     "automation_crud_auto_enable_failed_suffix": ". A kártyán található Bekapcsolás gombbal próbálkozzon újra.",
-    "automation_crud_draft_dismissed": "Vázlat elvetve.",
-    "automation_crud_dismiss_draft_failed": "A vázlat elvetése nem sikerült:",
     "automation_crud_create_failed": "Az automatizmus létrehozása nem sikerült:",
     "automation_crud_save_edited_yaml_failed": "A szerkesztett YAML-ből az automatizmus mentése nem sikerült:",
     "automation_crud_yaml_saved": "Az automatizmus YAML-je mentve.",

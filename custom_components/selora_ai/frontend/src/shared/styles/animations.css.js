@@ -93,4 +93,34 @@ export const sharedAnimations = css`
       background-position: 100% 50%;
     }
   }
+  /* Self-drawing checkmark (see shared/created-check.js). The path length is
+     ~23.4 units, so a 24 dasharray hides it exactly at full offset. Without
+     .drawing the check renders complete, which is the state an already-saved
+     card should show. */
+  .created-check {
+    flex-shrink: 0;
+    overflow: visible;
+  }
+  .created-check path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 24;
+    stroke-dashoffset: 0;
+  }
+  .created-check.drawing path {
+    animation: check-draw 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes check-draw {
+    from {
+      stroke-dashoffset: 24;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .created-check.drawing path {
+      animation: none;
+    }
+  }
 `;

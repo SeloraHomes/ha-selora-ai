@@ -622,4 +622,117 @@ export const proposalStyles = css`
   .toggle-label.on {
     color: var(--selora-accent-text);
   }
+
+  /* ---- Proposal arrival reveal ---- */
+  /* Plays once, when a proposal streams in (see _markProposalRevealing).
+     Reopening a session renders the same pending card without .revealing, so
+     history never replays. Timings are mirrored by REVEAL_TOTAL_MS in
+     panel/proposal-reveal.js — keep them in sync. */
+  .automation-subcard.revealing {
+    position: relative;
+    overflow: hidden;
+    animation: proposal-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes proposal-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+  }
+  /* Gold edge that settles back to the resting border, so the card reads as
+     having just been struck rather than permanently highlighted. */
+  .automation-subcard.revealing::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    border: 1px solid var(--selora-accent);
+    pointer-events: none;
+    animation: proposal-edge-settle 900ms ease-out both;
+  }
+  @keyframes proposal-edge-settle {
+    from {
+      opacity: 0.75;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  /* Sparkle field, fading out over the card as it settles. It must sit above
+     the card background but BELOW the text, so the content is explicitly
+     lifted to z-index 1 — an absolutely positioned canvas would otherwise
+     paint over static siblings. A negative z-index is not an option: the
+     card's entrance animation applies a transform, which makes it a stacking
+     context and would bury the canvas behind its own background. */
+  .proposal-reveal-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    pointer-events: none;
+    border-radius: 12px;
+    opacity: 0;
+    animation: proposal-particles-out 1200ms ease-out both;
+  }
+  .automation-subcard.revealing > .automation-subcard-header,
+  .automation-subcard.revealing > .automation-subcard-body {
+    position: relative;
+    z-index: 1;
+  }
+  @keyframes proposal-particles-out {
+    0% {
+      opacity: 0;
+    }
+    18% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  /* Assemble the flow in reading order: trigger, arrow, conditions, actions.
+     .flow-chart's direct children are exactly those sections and arrows, so
+     nth-child staggering needs no template changes. */
+  .automation-subcard.revealing .flow-chart > * {
+    animation: proposal-node-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(1) {
+    animation-delay: 180ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(2) {
+    animation-delay: 250ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(3) {
+    animation-delay: 320ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(4) {
+    animation-delay: 390ms;
+  }
+  .automation-subcard.revealing .flow-chart > *:nth-child(n + 5) {
+    animation-delay: 460ms;
+  }
+  @keyframes proposal-node-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+  }
+  /* Reduced motion: keep the card and every flow node, drop all movement and
+     the decorative sparkle field. The edge stays as a static, quieter ring —
+     with the entrance gone it is the only "this just arrived" cue left, so it
+     is pinned rather than removed. Without the explicit opacity it would
+     render at full strength, louder than the animation ever gets. */
+  @media (prefers-reduced-motion: reduce) {
+    .automation-subcard.revealing,
+    .automation-subcard.revealing .flow-chart > * {
+      animation: none;
+    }
+    .automation-subcard.revealing::after {
+      animation: none;
+      opacity: 0.35;
+    }
+    .proposal-reveal-particles {
+      display: none;
+    }
+  }
 `;

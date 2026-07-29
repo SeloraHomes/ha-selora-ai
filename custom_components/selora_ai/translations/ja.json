@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "オートメーションを保存しましたが、自動的に有効化できませんでした：",
     "automation_crud_unknown_error": "不明なエラー",
     "automation_crud_auto_enable_failed_suffix": "。カードの有効化ボタンを使ってもう一度お試しください。",
-    "automation_crud_draft_dismissed": "下書きを却下しました。",
-    "automation_crud_dismiss_draft_failed": "下書きの却下に失敗しました：",
     "automation_crud_create_failed": "オートメーションの作成に失敗しました：",
     "automation_crud_save_edited_yaml_failed": "編集した YAML からのオートメーションの保存に失敗しました：",
     "automation_crud_yaml_saved": "オートメーションの YAML を保存しました。",

@@ -40,6 +40,7 @@ import * as insightsActions from "./panel/insights-actions.js";
 import * as chatActions from "./panel/chat-actions.js";
 import { createGlobalDropGuard } from "./panel/chat-attachments.js";
 import * as automationCrud from "./panel/automation-crud.js";
+import * as proposalReveal from "./panel/proposal-reveal.js";
 import * as automationManagement from "./panel/automation-management.js";
 import * as sceneActions from "./panel/scene-actions.js";
 import * as sceneEdit from "./panel/scene-edit.js";
@@ -450,6 +451,12 @@ class SeloraAIPanel extends LitElement {
 
       // Highlight newly accepted automation
       _highlightedAutomation: { type: String },
+      // Highlight a newly created scene once the Scenes tab renders its row
+      _highlightedScene: { type: String },
+      // id (automation_id or scene_id) whose saved card should draw its check
+      _justCreatedId: { type: String },
+      // msgIndex → true while a freshly-arrived proposal card plays its reveal
+      _revealingProposals: { type: Object },
       // Fading out suggestion card keys
       _fadingOutSuggestions: { type: Object },
 
@@ -633,6 +640,12 @@ class SeloraAIPanel extends LitElement {
     this._suggestionsVisibleCount = 3;
     this._suggestionBulkMode = false;
     this._highlightedAutomation = null;
+    this._highlightedScene = null;
+    this._justCreatedId = null;
+    this._justCreatedTimer = null;
+    this._revealingProposals = {};
+    this._revealTimers = {};
+    this._sceneHighlightTimer = null;
     this._fadingOutSuggestions = {};
     // Health tab
     this._insightsLoading = false;
@@ -1147,6 +1160,19 @@ class SeloraAIPanel extends LitElement {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    if (this._justCreatedTimer) {
+      clearTimeout(this._justCreatedTimer);
+      this._justCreatedTimer = null;
+    }
+    if (this._sceneHighlightTimer) {
+      clearTimeout(this._sceneHighlightTimer);
+      this._sceneHighlightTimer = null;
+    }
+    for (const timer of Object.values(this._revealTimers || {})) {
+      clearTimeout(timer);
+    }
+    this._revealTimers = {};
+    this._revealingProposals = {};
     clearTimeout(this._nativeSelectTimer);
     this._nativeSelectOpen = false;
     if (this._aigatewayPollTimer) {
@@ -1887,6 +1913,32 @@ class SeloraAIPanel extends LitElement {
     }, 3000);
   }
 
+  // Arm the row highlight for a newly created scene. Unlike the automation
+  // equivalent this can't scroll straight away: scenes are created from the
+  // chat tab, so the Scenes list isn't in the DOM yet. We just record the id
+  // and let updated() fire the scroll + expiry the moment the row mounts.
+  _markSceneCreated(sceneId) {
+    if (!sceneId) return;
+    if (this._sceneHighlightTimer) {
+      clearTimeout(this._sceneHighlightTimer);
+      this._sceneHighlightTimer = null;
+    }
+    this._highlightedScene = sceneId;
+  }
+
+  // Flag the id whose saved card should draw its checkmark. Cleared on a timer
+  // so a later re-render (or reopening the session) shows the check already
+  // complete rather than replaying the creation moment.
+  _markJustCreated(id) {
+    if (!id) return;
+    if (this._justCreatedTimer) clearTimeout(this._justCreatedTimer);
+    this._justCreatedId = id;
+    this._justCreatedTimer = setTimeout(() => {
+      this._justCreatedId = null;
+      this._justCreatedTimer = null;
+    }, 1500);
+  }
+
   // -------------------------------------------------------------------------
   // Toast notifications
   // -------------------------------------------------------------------------
@@ -2061,6 +2113,27 @@ class SeloraAIPanel extends LitElement {
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     // Reflect active LLM activity so CSS can pulse the header glow line.
     this.toggleAttribute("processing", !!(this._streaming || this._loading));
+    // A scene created from chat highlights when the user reaches the Scenes
+    // tab, however much later that is. Start the expiry timer only once the
+    // row is actually on screen, so the flash isn't spent off-view.
+    if (this._highlightedScene && !this._sceneHighlightTimer) {
+      const row = this.shadowRoot?.querySelector(
+        `.auto-row[data-scene-id="${this._highlightedScene}"]`,
+      );
+      if (row) {
+        row.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches
+            ? "auto"
+            : "smooth",
+          block: "center",
+        });
+        this._sceneHighlightTimer = setTimeout(() => {
+          this._highlightedScene = null;
+          this._sceneHighlightTimer = null;
+        }, 3000);
+      }
+    }
     if (changedProps.has("hass")) {
       // hass can land after connectedCallback (depends on the panel-mount
       // path) — kick the quota subscription as soon as it's available.
@@ -5129,6 +5202,7 @@ Object.assign(SeloraAIPanel.prototype, suggestionActions);
 Object.assign(SeloraAIPanel.prototype, insightsActions);
 Object.assign(SeloraAIPanel.prototype, chatActions);
 Object.assign(SeloraAIPanel.prototype, automationCrud);
+Object.assign(SeloraAIPanel.prototype, proposalReveal);
 Object.assign(SeloraAIPanel.prototype, automationManagement);
 Object.assign(SeloraAIPanel.prototype, sceneActions);
 Object.assign(SeloraAIPanel.prototype, sceneEdit);

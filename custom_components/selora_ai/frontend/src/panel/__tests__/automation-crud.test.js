@@ -320,4 +320,57 @@ describe("_acceptAutomation (generated refinement)", () => {
     expect(update).toBeDefined();
     expect(update[0].preserve_enabled_state).toBe(true);
   });
+
+  it("does not mark a refinement as just-created", async () => {
+    const { host } = makeAcceptHost({ refiningId: "auto_1" });
+    await _acceptAutomation.call(host, 0, {});
+    expect(host._markJustCreated).not.toHaveBeenCalled();
+  });
 });
+
+// The drawn checkmark on the saved card is keyed off _justCreatedId, so the
+// create path has to hand it the id the backend actually resolved.
+describe("_acceptAutomation (fresh create)", () => {
+  it("marks the resolved automation id as just-created", async () => {
+    const { host } = makeAcceptHost({ refiningId: null });
+    await _acceptAutomation.call(host, 0, {});
+    expect(host._showToast).not.toHaveBeenCalled();
+    expect(host._markJustCreated).toHaveBeenCalledWith("auto_new");
+  });
+});
+
+function makeAcceptHost({ refiningId }) {
+  const callWS = vi.fn(async ({ type }) => {
+    if (type === "selora_ai/get_session") return { messages: [] };
+    if (type === "selora_ai/create_automation")
+      return { automation_id: "auto_new" };
+    return {};
+  });
+  const host = {
+    hass: { callWS },
+    _activeSessionId: "s1",
+    _messages: [
+      {
+        automation_message_index: 0,
+        // A refinement only takes the update path when it carries YAML;
+        // without it _acceptAutomation falls through to a real create.
+        ...(refiningId
+          ? {
+              refining_automation_id: refiningId,
+              automation_yaml: "alias: X\n",
+            }
+          : {}),
+      },
+    ],
+    _getRefiningAutomationId: function (i) {
+      return this._messages[i]?.refining_automation_id || null;
+    },
+    _removeDraftForSession: vi.fn().mockResolvedValue(undefined),
+    _loadAutomations: vi.fn().mockResolvedValue(undefined),
+    _autoEnableAfterAccept: vi.fn().mockResolvedValue(undefined),
+    _markJustCreated: vi.fn(),
+    _showToast: vi.fn(),
+    _t: (_key, fallback) => fallback,
+  };
+  return { host, callWS };
+}

@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "자동화가 저장되었지만 자동으로 활성화할 수 없습니다:",
     "automation_crud_unknown_error": "알 수 없는 오류",
     "automation_crud_auto_enable_failed_suffix": ". 카드의 활성화 버튼을 사용하여 다시 시도하세요.",
-    "automation_crud_draft_dismissed": "초안이 닫혔습니다.",
-    "automation_crud_dismiss_draft_failed": "초안을 닫지 못했습니다:",
     "automation_crud_create_failed": "자동화를 생성하지 못했습니다:",
     "automation_crud_save_edited_yaml_failed": "편집한 YAML에서 자동화를 저장하지 못했습니다:",
     "automation_crud_yaml_saved": "자동화 YAML이 저장되었습니다.",

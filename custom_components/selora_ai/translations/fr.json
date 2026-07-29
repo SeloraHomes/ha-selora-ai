@@ -628,8 +628,6 @@
     "automation_crud_auto_enable_failed_prefix": "Automatisation enregistrée mais n'a pas pu être activée automatiquement :",
     "automation_crud_unknown_error": "erreur inconnue",
     "automation_crud_auto_enable_failed_suffix": ". Utilisez le bouton Activer sur la carte pour réessayer.",
-    "automation_crud_draft_dismissed": "Brouillon ignoré.",
-    "automation_crud_dismiss_draft_failed": "Échec de l'ignorance du brouillon :",
     "automation_crud_create_failed": "Échec de la création de l'automatisation :",
     "automation_crud_save_edited_yaml_failed": "Échec de l'enregistrement de l'automatisation depuis le YAML modifié :",
     "automation_crud_yaml_saved": "YAML d'automatisation enregistré.",
