@@ -37,6 +37,7 @@ custom_components/selora_ai/
 ├── conversation.py      # Assist Conversation Agent — routes natural language to HA service calls
 ├── automation_utils.py  # Validation, risk assessment, YAML I/O, async automation CRUD
 ├── automation_store.py  # Lifecycle + versioning for [Selora AI] automations
+├── code_stamp.py        # Source-signature skew detection (restart-required handshake)
 ├── scene_store.py       # Scene creation + persistence
 ├── websocket/           # Panel websocket handlers, one module per domain (registered lazily)
 ├── button.py            # Hub action buttons (Discover, Scan, Cleanup, Reset)
@@ -58,6 +59,8 @@ custom_components/selora_ai/
             ├── render-chat.js        # Chat messages, YAML editor, new-automation dialog
             ├── render-settings.js    # Settings tab
             ├── render-telemetry-consent.js # One-time telemetry opt-in banner
+            ├── render-stale-code-notice.js  # Restart/reload-required banner
+            ├── version-actions.js    # Code-skew handshake (unknown command ⇒ restart)
             ├── render-suggestions.js # Suggestion cards
             ├── render-version-history.js # Version history drawer + diff viewer
             ├── stale-automations.js  # Stale detection helpers + stale modal/detail
@@ -191,6 +194,17 @@ Lefthook runs tests, lint, and validation on `pre-push` locally (including hassf
 
 `just deploy` builds the frontend and syncs files to a dev HA instance over SSH, then restarts HA.
 `just deploy-no-restart` does the same without restarting.
+
+> **A deploy without a restart leaves the instance in skew.** Python modules stay in
+> `sys.modules` — reloading the integration re-runs setup but re-imports nothing — while the
+> panel bundle is served straight off disk, so a page refresh alone gives the browser the new
+> JS. The panel then calls last-deploy's websocket schemas and a new payload key comes back as
+> `extra keys not allowed @ data['<key>']`. `code_stamp.py` hashes the paths and contents of every
+> `*.py` in the component at import time; `selora_ai/version_status` compares that signature with
+> the live one (and the panel's baked build id, from `frontend/panel.build.json`) so the panel can
+> show a restart/reload banner and the log gets a warning. Contents, not mtimes: `rsync -az`
+> preserves each source file's timestamp and `--delete`s removals, so a newest-mtime check misses
+> real deployments. Use `just deploy` when Python changed.
 
 ### Prerequisites
 

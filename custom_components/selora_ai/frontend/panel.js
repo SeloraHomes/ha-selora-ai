@@ -1862,6 +1862,14 @@ var layoutStyles = i`
     color: var(--primary-color);
     flex-shrink: 0;
   }
+  /* Same shell as the consent banner, warning-toned: it reports a state the
+     user has to act on (restart / reload) rather than an invitation. */
+  .stale-code-notice {
+    border-color: var(--warning-color, #ffa726);
+  }
+  .stale-code-notice ha-icon {
+    color: var(--warning-color, #ffa726);
+  }
   .telemetry-consent-text {
     flex: 1;
     min-width: 0;
@@ -8892,6 +8900,14 @@ var en_default = {
       "Share anonymous counts about your setup (devices, integrations, automations\u2026) and how often Selora repairs model output. Never your entity names, prompts, or responses.",
     telemetry_consent_enable: "Enable",
     telemetry_consent_decline: "No thanks",
+    stale_code_restart_title: "Restart to finish updating",
+    stale_code_reload_title: "Reload to finish updating",
+    stale_code_restart_body:
+      "Selora AI's files changed on disk, but Home Assistant is still running the previously loaded code. Restart Home Assistant to finish the update.",
+    stale_code_reload_body:
+      "This page is running an older Selora AI panel. Reload to pick up the deployed version.",
+    stale_code_reload_action: "Reload",
+    stale_code_dismiss: "Dismiss",
     settings_dev_mode_save_failed_toast: "Failed to save developer mode.",
     settings_saving_label: "Saving\u2026",
     settings_clear_cache_label: "Clear learned data",
@@ -9994,6 +10010,14 @@ var fr_default = {
       "Partagez des d\xE9comptes anonymes sur votre installation (appareils, int\xE9grations, automatisations\u2026) et la fr\xE9quence \xE0 laquelle Selora corrige les sorties du mod\xE8le. Jamais vos noms d'entit\xE9s, invites ou r\xE9ponses.",
     telemetry_consent_enable: "Activer",
     telemetry_consent_decline: "Non merci",
+    stale_code_restart_title: "Red\xE9marrez pour terminer la mise \xE0 jour",
+    stale_code_reload_title: "Rechargez pour terminer la mise \xE0 jour",
+    stale_code_restart_body:
+      "Les fichiers de Selora AI ont chang\xE9 sur le disque, mais Home Assistant ex\xE9cute toujours le code charg\xE9 pr\xE9c\xE9demment. Red\xE9marrez Home Assistant pour terminer la mise \xE0 jour.",
+    stale_code_reload_body:
+      "Cette page utilise une ancienne version du panneau Selora AI. Rechargez-la pour charger la version d\xE9ploy\xE9e.",
+    stale_code_reload_action: "Recharger",
+    stale_code_dismiss: "Ignorer",
     settings_dev_mode_save_failed_toast:
       "Impossible d'enregistrer le mode d\xE9veloppeur.",
     settings_saving_label: "Enregistrement\u2026",
@@ -11140,6 +11164,14 @@ var de_default = {
       "Teilen Sie anonyme Z\xE4hlwerte zu Ihrer Installation (Ger\xE4te, Integrationen, Automationen\u2026) und dazu, wie oft Selora die Modellausgabe korrigiert. Niemals Ihre Entit\xE4tsnamen, Prompts oder Antworten.",
     telemetry_consent_enable: "Aktivieren",
     telemetry_consent_decline: "Nein danke",
+    stale_code_restart_title: "Neu starten, um das Update abzuschlie\xDFen",
+    stale_code_reload_title: "Neu laden, um das Update abzuschlie\xDFen",
+    stale_code_restart_body:
+      "Die Dateien von Selora AI wurden auf der Festplatte ge\xE4ndert, Home Assistant f\xFChrt aber weiterhin den zuvor geladenen Code aus. Starte Home Assistant neu, um das Update abzuschlie\xDFen.",
+    stale_code_reload_body:
+      "Diese Seite verwendet eine \xE4ltere Version des Selora-AI-Panels. Lade sie neu, um die bereitgestellte Version zu verwenden.",
+    stale_code_reload_action: "Neu laden",
+    stale_code_dismiss: "Ausblenden",
     settings_dev_mode_save_failed_toast:
       "Entwicklermodus konnte nicht gespeichert werden.",
     settings_saving_label: "Speichere\u2026",
@@ -12274,6 +12306,14 @@ var es_default = {
       "Comparte recuentos an\xF3nimos sobre tu configuraci\xF3n (dispositivos, integraciones, automatizaciones\u2026) y la frecuencia con la que Selora corrige la salida del modelo. Nunca tus nombres de entidades, indicaciones ni respuestas.",
     telemetry_consent_enable: "Activar",
     telemetry_consent_decline: "No, gracias",
+    stale_code_restart_title: "Reinicia para terminar la actualizaci\xF3n",
+    stale_code_reload_title: "Recarga para terminar la actualizaci\xF3n",
+    stale_code_restart_body:
+      "Los archivos de Selora AI cambiaron en el disco, pero Home Assistant sigue ejecutando el c\xF3digo cargado anteriormente. Reinicia Home Assistant para terminar la actualizaci\xF3n.",
+    stale_code_reload_body:
+      "Esta p\xE1gina usa una versi\xF3n anterior del panel de Selora AI. Rec\xE1rgala para cargar la versi\xF3n desplegada.",
+    stale_code_reload_action: "Recargar",
+    stale_code_dismiss: "Descartar",
     settings_dev_mode_save_failed_toast:
       "No se pudo guardar el modo desarrollador.",
     settings_saving_label: "Guardando\u2026",
@@ -13394,6 +13434,14 @@ var it_default = {
       "Condividi conteggi anonimi sulla tua configurazione (dispositivi, integrazioni, automazioni\u2026) e sulla frequenza con cui Selora corregge l'output del modello. Mai i tuoi nomi di entit\xE0, prompt o risposte.",
     telemetry_consent_enable: "Attiva",
     telemetry_consent_decline: "No, grazie",
+    stale_code_restart_title: "Riavvia per completare l'aggiornamento",
+    stale_code_reload_title: "Ricarica per completare l'aggiornamento",
+    stale_code_restart_body:
+      "I file di Selora AI sono cambiati sul disco, ma Home Assistant esegue ancora il codice caricato in precedenza. Riavvia Home Assistant per completare l'aggiornamento.",
+    stale_code_reload_body:
+      "Questa pagina usa una versione precedente del pannello Selora AI. Ricaricala per usare la versione distribuita.",
+    stale_code_reload_action: "Ricarica",
+    stale_code_dismiss: "Ignora",
     settings_dev_mode_save_failed_toast:
       "Impossibile salvare la modalit\xE0 sviluppatore.",
     settings_saving_label: "Salvataggio\u2026",
@@ -14531,6 +14579,14 @@ var nl_default = {
       "Deel anonieme aantallen over je installatie (apparaten, integraties, automatiseringen\u2026) en hoe vaak Selora modeluitvoer corrigeert. Nooit je entiteitsnamen, prompts of antwoorden.",
     telemetry_consent_enable: "Inschakelen",
     telemetry_consent_decline: "Nee, bedankt",
+    stale_code_restart_title: "Start opnieuw op om de update te voltooien",
+    stale_code_reload_title: "Herlaad om de update te voltooien",
+    stale_code_restart_body:
+      "De bestanden van Selora AI zijn op schijf gewijzigd, maar Home Assistant voert nog steeds de eerder geladen code uit. Start Home Assistant opnieuw op om de update te voltooien.",
+    stale_code_reload_body:
+      "Deze pagina gebruikt een oudere versie van het Selora AI-paneel. Herlaad de pagina om de uitgerolde versie te gebruiken.",
+    stale_code_reload_action: "Herladen",
+    stale_code_dismiss: "Negeren",
     settings_dev_mode_save_failed_toast:
       "Opslaan van ontwikkelaarsmodus mislukt.",
     settings_saving_label: "Opslaan\u2026",
@@ -15665,6 +15721,16 @@ var hu_default = {
       "Ossz meg n\xE9vtelen darabsz\xE1mokat a be\xE1ll\xEDt\xE1sodr\xF3l (eszk\xF6z\xF6k, integr\xE1ci\xF3k, automatiz\xE1l\xE1sok\u2026) \xE9s arr\xF3l, hogy a Selora milyen gyakran jav\xEDtja a modell kimenet\xE9t. Soha az entit\xE1sneveidet, k\xE9r\xE9seidet vagy v\xE1laszaidat.",
     telemetry_consent_enable: "Enged\xE9lyez\xE9s",
     telemetry_consent_decline: "Nem, k\xF6sz\xF6n\xF6m",
+    stale_code_restart_title:
+      "Ind\xEDtsa \xFAjra a friss\xEDt\xE9s befejez\xE9s\xE9hez",
+    stale_code_reload_title:
+      "T\xF6ltse \xFAjra a friss\xEDt\xE9s befejez\xE9s\xE9hez",
+    stale_code_restart_body:
+      "A Selora AI f\xE1jljai megv\xE1ltoztak a lemezen, de a Home Assistant m\xE9g a kor\xE1bban bet\xF6lt\xF6tt k\xF3dot futtatja. Ind\xEDtsa \xFAjra a Home Assistantot a friss\xEDt\xE9s befejez\xE9s\xE9hez.",
+    stale_code_reload_body:
+      "Ez az oldal a Selora AI panel r\xE9gebbi verzi\xF3j\xE1t futtatja. T\xF6ltse \xFAjra, hogy a telep\xEDtett verzi\xF3t haszn\xE1lja.",
+    stale_code_reload_action: "\xDAjrat\xF6lt\xE9s",
+    stale_code_dismiss: "Elvet\xE9s",
     settings_dev_mode_save_failed_toast:
       "A fejleszt\u0151i m\xF3d ment\xE9se nem siker\xFClt.",
     settings_saving_label: "Ment\xE9s\u2026",
@@ -16806,6 +16872,14 @@ var pt_default = {
       "Partilhe contagens an\xF3nimas sobre a sua configura\xE7\xE3o (dispositivos, integra\xE7\xF5es, automa\xE7\xF5es\u2026) e a frequ\xEAncia com que o Selora corrige a sa\xEDda do modelo. Nunca os seus nomes de entidades, comandos ou respostas.",
     telemetry_consent_enable: "Ativar",
     telemetry_consent_decline: "N\xE3o, obrigado",
+    stale_code_restart_title: "Reinicie para concluir a atualiza\xE7\xE3o",
+    stale_code_reload_title: "Recarregue para concluir a atualiza\xE7\xE3o",
+    stale_code_restart_body:
+      "Os ficheiros do Selora AI mudaram no disco, mas o Home Assistant continua a executar o c\xF3digo carregado anteriormente. Reinicie o Home Assistant para concluir a atualiza\xE7\xE3o.",
+    stale_code_reload_body:
+      "Esta p\xE1gina est\xE1 a usar uma vers\xE3o anterior do painel Selora AI. Recarregue para usar a vers\xE3o implementada.",
+    stale_code_reload_action: "Recarregar",
+    stale_code_dismiss: "Ignorar",
     settings_dev_mode_save_failed_toast:
       "N\xE3o foi poss\xEDvel guardar o modo de programador.",
     settings_saving_label: "A guardar\u2026",
@@ -18066,6 +18140,17 @@ var ru_default = {
       "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C",
     telemetry_consent_decline:
       "\u041D\u0435\u0442, \u0441\u043F\u0430\u0441\u0438\u0431\u043E",
+    stale_code_restart_title:
+      "\u041F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435",
+    stale_code_reload_title:
+      "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435",
+    stale_code_restart_body:
+      "\u0424\u0430\u0439\u043B\u044B Selora AI \u043D\u0430 \u0434\u0438\u0441\u043A\u0435 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C, \u043D\u043E Home Assistant \u043F\u043E-\u043F\u0440\u0435\u0436\u043D\u0435\u043C\u0443 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442 \u0440\u0430\u043D\u0435\u0435 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u043D\u044B\u0439 \u043A\u043E\u0434. \u041F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 Home Assistant, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435.",
+    stale_code_reload_body:
+      "\u041D\u0430 \u044D\u0442\u043E\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435 \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u0443\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0430\u044F \u0432\u0435\u0440\u0441\u0438\u044F \u043F\u0430\u043D\u0435\u043B\u0438 Selora AI. \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0440\u0430\u0437\u0432\u0451\u0440\u043D\u0443\u0442\u0443\u044E \u0432\u0435\u0440\u0441\u0438\u044E.",
+    stale_code_reload_action:
+      "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C",
+    stale_code_dismiss: "\u0421\u043A\u0440\u044B\u0442\u044C",
     settings_dev_mode_save_failed_toast:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0440\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430.",
     settings_saving_label:
@@ -19666,6 +19751,16 @@ var ja_default = {
       "\u69CB\u6210\u306B\u95A2\u3059\u308B\u533F\u540D\u306E\u30AB\u30A6\u30F3\u30C8\uFF08\u30C7\u30D0\u30A4\u30B9\u3001\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306A\u3069\uFF09\u3068\u3001Selora \u304C\u30E2\u30C7\u30EB\u51FA\u529B\u3092\u4FEE\u6B63\u3059\u308B\u983B\u5EA6\u3092\u5171\u6709\u3057\u307E\u3059\u3002\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u540D\u3001\u30D7\u30ED\u30F3\u30D7\u30C8\u3001\u5FDC\u7B54\u306F\u9001\u4FE1\u3057\u307E\u305B\u3093\u3002",
     telemetry_consent_enable: "\u6709\u52B9\u306B\u3059\u308B",
     telemetry_consent_decline: "\u7D50\u69CB\u3067\u3059",
+    stale_code_restart_title:
+      "\u518D\u8D77\u52D5\u3057\u3066\u66F4\u65B0\u3092\u5B8C\u4E86\u3057\u3066\u304F\u3060\u3055\u3044",
+    stale_code_reload_title:
+      "\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u3066\u66F4\u65B0\u3092\u5B8C\u4E86\u3057\u3066\u304F\u3060\u3055\u3044",
+    stale_code_restart_body:
+      "Selora AI \u306E\u30D5\u30A1\u30A4\u30EB\u304C\u30C7\u30A3\u30B9\u30AF\u4E0A\u3067\u5909\u66F4\u3055\u308C\u307E\u3057\u305F\u304C\u3001Home Assistant \u306F\u4EE5\u524D\u306B\u8AAD\u307F\u8FBC\u3093\u3060\u30B3\u30FC\u30C9\u3092\u5B9F\u884C\u3057\u7D9A\u3051\u3066\u3044\u307E\u3059\u3002Home Assistant \u3092\u518D\u8D77\u52D5\u3057\u3066\u66F4\u65B0\u3092\u5B8C\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    stale_code_reload_body:
+      "\u3053\u306E\u30DA\u30FC\u30B8\u306F\u53E4\u3044\u30D0\u30FC\u30B8\u30E7\u30F3\u306E Selora AI \u30D1\u30CD\u30EB\u3092\u5B9F\u884C\u3057\u3066\u3044\u307E\u3059\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u3066\u30C7\u30D7\u30ED\u30A4\u6E08\u307F\u306E\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u8AAD\u307F\u8FBC\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
+    stale_code_reload_action: "\u518D\u8AAD\u307F\u8FBC\u307F",
+    stale_code_dismiss: "\u9589\u3058\u308B",
     settings_dev_mode_save_failed_toast:
       "\u958B\u767A\u8005\u30E2\u30FC\u30C9\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
     settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
@@ -21029,6 +21124,16 @@ var ko_default = {
       "\uC124\uC815\uC5D0 \uB300\uD55C \uC775\uBA85 \uAC1C\uC218(\uAE30\uAE30, \uD1B5\uD569, \uC790\uB3D9\uD654 \uB4F1)\uC640 Selora\uAC00 \uBAA8\uB378 \uCD9C\uB825\uC744 \uBCF4\uC815\uD558\uB294 \uBE48\uB3C4\uB97C \uACF5\uC720\uD569\uB2C8\uB2E4. \uC5D4\uD130\uD2F0 \uC774\uB984, \uD504\uB86C\uD504\uD2B8, \uC751\uB2F5\uC740 \uBCF4\uB0B4\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
     telemetry_consent_enable: "\uC0AC\uC6A9",
     telemetry_consent_decline: "\uAD1C\uCC2E\uC2B5\uB2C8\uB2E4",
+    stale_code_restart_title:
+      "\uC7AC\uC2DC\uC791\uD558\uC5EC \uC5C5\uB370\uC774\uD2B8\uB97C \uC644\uB8CC\uD558\uC138\uC694",
+    stale_code_reload_title:
+      "\uC0C8\uB85C \uACE0\uCCD0 \uC5C5\uB370\uC774\uD2B8\uB97C \uC644\uB8CC\uD558\uC138\uC694",
+    stale_code_restart_body:
+      "Selora AI \uD30C\uC77C\uC774 \uB514\uC2A4\uD06C\uC5D0\uC11C \uBCC0\uACBD\uB418\uC5C8\uC9C0\uB9CC Home Assistant\uB294 \uC774\uC804\uC5D0 \uB85C\uB4DC\uD55C \uCF54\uB4DC\uB97C \uACC4\uC18D \uC2E4\uD589\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4. Home Assistant\uB97C \uC7AC\uC2DC\uC791\uD558\uC5EC \uC5C5\uB370\uC774\uD2B8\uB97C \uC644\uB8CC\uD558\uC138\uC694.",
+    stale_code_reload_body:
+      "\uC774 \uD398\uC774\uC9C0\uB294 \uC774\uC804 \uBC84\uC804\uC758 Selora AI \uD328\uB110\uC744 \uC2E4\uD589\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C \uACE0\uCCD0 \uBC30\uD3EC\uB41C \uBC84\uC804\uC744 \uBD88\uB7EC\uC624\uC138\uC694.",
+    stale_code_reload_action: "\uC0C8\uB85C \uACE0\uCE68",
+    stale_code_dismiss: "\uB2EB\uAE30",
     settings_dev_mode_save_failed_toast:
       "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC\uB97C \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
     settings_saving_label: "\uC800\uC7A5 \uC911\u2026",
@@ -22279,6 +22384,15 @@ var zh_Hans_default = {
       "\u5206\u4EAB\u6709\u5173\u4F60\u7684\u914D\u7F6E\u7684\u533F\u540D\u8BA1\u6570\uFF08\u8BBE\u5907\u3001\u96C6\u6210\u3001\u81EA\u52A8\u5316\u7B49\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F93\u51FA\u7684\u9891\u7387\u3002\u7EDD\u4E0D\u5305\u542B\u4F60\u7684\u5B9E\u4F53\u540D\u79F0\u3001\u63D0\u793A\u8BCD\u6216\u54CD\u5E94\u5185\u5BB9\u3002",
     telemetry_consent_enable: "\u542F\u7528",
     telemetry_consent_decline: "\u4E0D\u7528\u4E86",
+    stale_code_restart_title: "\u91CD\u542F\u4EE5\u5B8C\u6210\u66F4\u65B0",
+    stale_code_reload_title:
+      "\u91CD\u65B0\u52A0\u8F7D\u4EE5\u5B8C\u6210\u66F4\u65B0",
+    stale_code_restart_body:
+      "Selora AI \u7684\u6587\u4EF6\u5728\u78C1\u76D8\u4E0A\u5DF2\u66F4\u6539\uFF0C\u4F46 Home Assistant \u4ECD\u5728\u8FD0\u884C\u5148\u524D\u52A0\u8F7D\u7684\u4EE3\u7801\u3002\u8BF7\u91CD\u542F Home Assistant \u4EE5\u5B8C\u6210\u66F4\u65B0\u3002",
+    stale_code_reload_body:
+      "\u6B64\u9875\u9762\u8FD0\u884C\u7684\u662F\u65E7\u7248 Selora AI \u9762\u677F\u3002\u8BF7\u91CD\u65B0\u52A0\u8F7D\u4EE5\u4F7F\u7528\u5DF2\u90E8\u7F72\u7684\u7248\u672C\u3002",
+    stale_code_reload_action: "\u91CD\u65B0\u52A0\u8F7D",
+    stale_code_dismiss: "\u5FFD\u7565",
     settings_dev_mode_save_failed_toast:
       "\u4FDD\u5B58\u5F00\u53D1\u8005\u6A21\u5F0F\u5931\u8D25\u3002",
     settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
@@ -23493,6 +23607,16 @@ var zh_Hant_default = {
       "\u5206\u4EAB\u6709\u95DC\u4F60\u7684\u8A2D\u5B9A\u7684\u533F\u540D\u8A08\u6578\uFF08\u88DD\u7F6E\u3001\u6574\u5408\u3001\u81EA\u52D5\u5316\u7B49\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F38\u51FA\u7684\u983B\u7387\u3002\u7D55\u4E0D\u5305\u542B\u4F60\u7684\u5BE6\u9AD4\u540D\u7A31\u3001\u63D0\u793A\u8A5E\u6216\u56DE\u61C9\u5167\u5BB9\u3002",
     telemetry_consent_enable: "\u555F\u7528",
     telemetry_consent_decline: "\u4E0D\u7528\u4E86",
+    stale_code_restart_title:
+      "\u91CD\u65B0\u555F\u52D5\u4EE5\u5B8C\u6210\u66F4\u65B0",
+    stale_code_reload_title:
+      "\u91CD\u65B0\u8F09\u5165\u4EE5\u5B8C\u6210\u66F4\u65B0",
+    stale_code_restart_body:
+      "Selora AI \u7684\u6A94\u6848\u5728\u78C1\u789F\u4E0A\u5DF2\u8B8A\u66F4\uFF0C\u4F46 Home Assistant \u4ECD\u5728\u57F7\u884C\u5148\u524D\u8F09\u5165\u7684\u7A0B\u5F0F\u78BC\u3002\u8ACB\u91CD\u65B0\u555F\u52D5 Home Assistant \u4EE5\u5B8C\u6210\u66F4\u65B0\u3002",
+    stale_code_reload_body:
+      "\u6B64\u9801\u9762\u57F7\u884C\u7684\u662F\u820A\u7248 Selora AI \u9762\u677F\u3002\u8ACB\u91CD\u65B0\u8F09\u5165\u4EE5\u4F7F\u7528\u5DF2\u90E8\u7F72\u7684\u7248\u672C\u3002",
+    stale_code_reload_action: "\u91CD\u65B0\u8F09\u5165",
+    stale_code_dismiss: "\u5FFD\u7565",
     settings_dev_mode_save_failed_toast:
       "\u7121\u6CD5\u5132\u5B58\u958B\u767C\u8005\u6A21\u5F0F\u3002",
     settings_saving_label: "\u5132\u5B58\u4E2D\u2026",
@@ -37051,6 +37175,57 @@ function renderTelemetryConsent(host) {
   `;
 }
 
+// src/panel/render-stale-code-notice.js
+function renderStaleCodeNotice(host) {
+  const status = host._versionStatus;
+  if (!status || host._staleCodeDismissed) return "";
+  const restart = status.restart_required;
+  const reload = status.panel_reload_required;
+  if (!restart && !reload) return "";
+  const title = restart
+    ? host._t("stale_code_restart_title", "Restart to finish updating")
+    : host._t("stale_code_reload_title", "Reload to finish updating");
+  const body = restart
+    ? host._t(
+        "stale_code_restart_body",
+        "Selora AI's files changed on disk, but Home Assistant is still running the previously loaded code. Restart Home Assistant to finish the update.",
+      )
+    : host._t(
+        "stale_code_reload_body",
+        "This page is running an older Selora AI panel. Reload to pick up the deployed version.",
+      );
+  return b2`
+    <div
+      class="telemetry-consent stale-code-notice"
+      role="alert"
+      aria-label=${title}
+    >
+      <ha-icon icon="mdi:update"></ha-icon>
+      <div class="telemetry-consent-text">
+        <strong>${title}</strong>
+        <span>${body}</span>
+      </div>
+      <div class="telemetry-consent-actions">
+        ${
+          reload && !restart
+            ? b2`
+                <button
+                  class="btn btn-primary"
+                  @click=${() => window.location.reload()}
+                >
+                  ${host._t("stale_code_reload_action", "Reload")}
+                </button>
+              `
+            : ""
+        }
+        <button class="btn" @click=${() => host._dismissStaleCodeNotice()}>
+          ${host._t("stale_code_dismiss", "Dismiss")}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 // src/panel/render-usage.js
 var _USAGE_KEYS = ["llm_tokens_in", "llm_tokens_out", "llm_calls", "llm_cost"];
 var _USAGE_SENSOR_LABELS = {
@@ -45948,6 +46123,29 @@ async function _confirmBulkDeleteSessions() {
   await this._loadSessions();
 }
 
+// src/panel/version-actions.js
+var version_actions_exports = {};
+__export(version_actions_exports, {
+  PANEL_BUILD: () => PANEL_BUILD,
+  _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
+  _loadVersionStatus: () => _loadVersionStatus,
+});
+var PANEL_BUILD = true ? "7fe96b382fb3" : "";
+var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
+async function _loadVersionStatus() {
+  try {
+    this._versionStatus = await this.hass.callWS({
+      type: "selora_ai/version_status",
+      panel_build: PANEL_BUILD,
+    });
+  } catch (err) {
+    this._versionStatus = err?.code === "unknown_command" ? RESTART_ONLY : null;
+  }
+}
+function _dismissStaleCodeNotice() {
+  this._staleCodeDismissed = true;
+}
+
 // src/panel/suggestion-actions.js
 var suggestion_actions_exports = {};
 __export(suggestion_actions_exports, {
@@ -48063,6 +48261,8 @@ var SeloraAIPanel = class extends i4 {
       _expandedAutomations: { type: Object },
       // Settings tab
       _config: { type: Object },
+      _versionStatus: { type: Object },
+      _staleCodeDismissed: { type: Boolean },
       _savingLlmConfig: { type: Boolean },
       _savingAdvancedConfig: { type: Boolean },
       _savingHouseholdProfile: { type: Boolean },
@@ -48337,6 +48537,8 @@ var SeloraAIPanel = class extends i4 {
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
+    this._versionStatus = null;
+    this._staleCodeDismissed = false;
     this._savingLlmConfig = false;
     this._savingAdvancedConfig = false;
     this._savingHouseholdProfile = false;
@@ -48464,6 +48666,7 @@ var SeloraAIPanel = class extends i4 {
     this._loadAutomations();
     this._loadScenes();
     this._loadConfig();
+    this._loadVersionStatus();
     this._loadMcpTokens();
     this._loadApprovalGrants();
     this._closeRowMenus();
@@ -48583,6 +48786,7 @@ var SeloraAIPanel = class extends i4 {
     this._loadScenes();
     this._loadConfig();
     this._loadSuggestions();
+    this._loadVersionStatus();
   }
   _ensureQuotaSubscription() {
     if (this._quotaUnsub || this._quotaSubPending) return;
@@ -52066,7 +52270,8 @@ var SeloraAIPanel = class extends i4 {
             .maxOpacity=${this._quotaAlert ? 1 : this._isDark ? 1 : 0.5}
             .speed=${this._streaming || this._loading ? 2.2 : 1}
           ></selora-particles>
-          ${this._renderQuotaBanner()} ${renderTelemetryConsent(this)}
+          ${this._renderQuotaBanner()} ${renderStaleCodeNotice(this)}
+          ${renderTelemetryConsent(this)}
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}
@@ -52142,6 +52347,7 @@ var SeloraAIPanel = class extends i4 {
   }
 };
 Object.assign(SeloraAIPanel.prototype, session_actions_exports);
+Object.assign(SeloraAIPanel.prototype, version_actions_exports);
 Object.assign(SeloraAIPanel.prototype, suggestion_actions_exports);
 Object.assign(SeloraAIPanel.prototype, insights_actions_exports);
 Object.assign(SeloraAIPanel.prototype, chat_actions_exports);

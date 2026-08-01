@@ -23,9 +23,20 @@ from custom_components.selora_ai.websocket.automations import (
 _handler = _handle_websocket_update_automation_yaml.__wrapped__
 _apply_handler = _handle_websocket_apply_automation_yaml.__wrapped__
 
+# Driving __wrapped__ bypasses the @websocket_command voluptuous schema that HA
+# applies to every incoming message, so `_invoke` re-applies it: a test payload
+# carrying a key the schema rejects must fail here rather than only at runtime.
+# `tests/test_websocket_frontend_contract.py` guards the same contract from the
+# panel's side.
+_SCHEMAS = {
+    _handler: _handle_websocket_update_automation_yaml._ws_schema,
+    _apply_handler: _handle_websocket_apply_automation_yaml._ws_schema,
+}
+
 
 async def _invoke(hass: Any, msg: dict[str, Any], handler: Any = _handler) -> AsyncMock:
     """Call the handler with a stub update fn; return the patched AsyncMock."""
+    msg = _SCHEMAS[handler](msg)
     connection = MagicMock()
     update = AsyncMock(return_value=True)
     with (

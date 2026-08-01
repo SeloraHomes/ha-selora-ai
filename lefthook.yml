@@ -52,6 +52,8 @@ pre-push:
     test-frontend:
       glob:
         - "custom_components/selora_ai/frontend/src/**/*.js"
+        - "custom_components/selora_ai/frontend/__tests__/**/*.js"
+        - "custom_components/selora_ai/frontend/build-id.js"
         - "custom_components/selora_ai/frontend/vitest.config.js"
         - "custom_components/selora_ai/frontend/package.json"
         - "custom_components/selora_ai/frontend/package-lock.json"
@@ -62,6 +64,7 @@ pre-push:
       glob:
         - "custom_components/selora_ai/frontend/src/**/*.js"
         - "custom_components/selora_ai/frontend/build.js"
+        - "custom_components/selora_ai/frontend/build-id.js"
         - "custom_components/selora_ai/frontend/postbuild.js"
         - "custom_components/selora_ai/frontend/package.json"
         - "custom_components/selora_ai/frontend/package-lock.json"
