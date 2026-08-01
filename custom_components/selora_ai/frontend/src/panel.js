@@ -27,6 +27,7 @@ import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
 import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
+import { renderStaleCodeNotice } from "./panel/render-stale-code-notice.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
 import { renderInsights } from "./panel/render-insights.js";
 import { renderRecipesV2 } from "./panel/render-recipes.js";
@@ -35,6 +36,7 @@ import {
   renderDiffViewer,
 } from "./panel/render-version-history.js";
 import * as sessionActions from "./panel/session-actions.js";
+import * as versionActions from "./panel/version-actions.js";
 import * as suggestionActions from "./panel/suggestion-actions.js";
 import * as insightsActions from "./panel/insights-actions.js";
 import * as chatActions from "./panel/chat-actions.js";
@@ -351,6 +353,8 @@ class SeloraAIPanel extends LitElement {
 
       // Settings tab
       _config: { type: Object },
+      _versionStatus: { type: Object },
+      _staleCodeDismissed: { type: Boolean },
       _savingLlmConfig: { type: Boolean },
       _savingAdvancedConfig: { type: Boolean },
       _savingHouseholdProfile: { type: Boolean },
@@ -672,6 +676,8 @@ class SeloraAIPanel extends LitElement {
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
+    this._versionStatus = null;
+    this._staleCodeDismissed = false;
     this._savingLlmConfig = false;
     this._savingAdvancedConfig = false;
     this._savingHouseholdProfile = false;
@@ -821,6 +827,7 @@ class SeloraAIPanel extends LitElement {
     this._loadAutomations();
     this._loadScenes();
     this._loadConfig();
+    this._loadVersionStatus();
     this._loadMcpTokens();
     this._loadApprovalGrants();
     // Any open row menu is transient: navigating away or coming back should
@@ -979,6 +986,8 @@ class SeloraAIPanel extends LitElement {
     this._loadScenes();
     this._loadConfig();
     this._loadSuggestions();
+    // A restart is what clears a code skew, and it lands here as a reconnect.
+    this._loadVersionStatus();
   }
 
   _ensureQuotaSubscription() {
@@ -5117,7 +5126,8 @@ class SeloraAIPanel extends LitElement {
             .maxOpacity=${this._quotaAlert ? 1.0 : this._isDark ? 1.0 : 0.5}
             .speed=${this._streaming || this._loading ? 2.2 : 1}
           ></selora-particles>
-          ${this._renderQuotaBanner()} ${renderTelemetryConsent(this)}
+          ${this._renderQuotaBanner()} ${renderStaleCodeNotice(this)}
+          ${renderTelemetryConsent(this)}
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}
@@ -5198,6 +5208,7 @@ class SeloraAIPanel extends LitElement {
 
 // Attach extracted business logic to prototype
 Object.assign(SeloraAIPanel.prototype, sessionActions);
+Object.assign(SeloraAIPanel.prototype, versionActions);
 Object.assign(SeloraAIPanel.prototype, suggestionActions);
 Object.assign(SeloraAIPanel.prototype, insightsActions);
 Object.assign(SeloraAIPanel.prototype, chatActions);

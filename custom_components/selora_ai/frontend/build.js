@@ -1,5 +1,5 @@
-const { readFileSync, readdirSync, statSync } = require("fs");
-const { join } = require("path");
+const { readFileSync, writeFileSync } = require("fs");
+const { bundleInputs, computeBuildId, walkJs } = require("./build-id.js");
 const { execSync } = require("child_process");
 const esbuild = require("esbuild");
 
@@ -13,6 +13,13 @@ const version = JSON.stringify(manifest.version);
 
 const define = { __SELORA_VERSION__: version };
 
+// Build identity for the code-skew handshake: the panel reports it to
+// `selora_ai/version_status`, which compares it with `panel.build.json` on
+// disk. A browser running a bundle built from other sources than the deployed
+// ones is told to reload. Derived from the source contents (not a timestamp) so
+// rebuilding unchanged sources produces no diff — the committed bundle only
+// moves when the code does. Written after the sources are formatted below.
+
 // ─ Pre-build guard: backticks inside lit tagged-template literals ──
 // Lit's html`...` opens with a backtick and ANY raw backtick inside the
 // template — including in CSS or HTML comments — closes the template
@@ -25,16 +32,6 @@ const define = { __SELORA_VERSION__: version };
 // JS-level escape) or the placeholder hole ``${"`"}`` for a literal
 // backtick at runtime. The guard runs before bundling so the failure
 // shows up locally, never in production.
-function* walkJs(dir) {
-  for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name.startsWith(".")) continue;
-    const full = join(dir, name);
-    const st = statSync(full);
-    if (st.isDirectory()) yield* walkJs(full);
-    else if (st.isFile() && name.endsWith(".js")) yield full;
-  }
-}
-
 function scanForUnescapedBackticksInHtmlTemplates(path) {
   const src = readFileSync(path, "utf8");
   const issues = [];
@@ -172,6 +169,12 @@ function preBuildGuard() {
 
 preBuildGuard();
 
+// `bundleInputs()` owns the list of files whose contents reach the bundle
+// (sources, build scripts, dependency manifests); `define` carries the values
+// substituted into it. See build-id.js for why each one matters.
+const buildId = computeBuildId({ files: bundleInputs(), defines: define });
+define.__SELORA_BUILD__ = JSON.stringify(buildId);
+
 async function build() {
   await esbuild.build({
     entryPoints: ["src/panel.js"],
@@ -184,6 +187,14 @@ async function build() {
 
   // Format built output
   execSync("npx prettier --write panel.js", { stdio: "inherit" });
+
+  // Sidecar the backend reads to answer "is this browser's bundle current?".
+  // Ships with the component, so a deploy always carries it alongside panel.js.
+  writeFileSync(
+    "panel.build.json",
+    JSON.stringify({ build: buildId }, null, 2) + "\n",
+    "utf8",
+  );
 }
 
 build();

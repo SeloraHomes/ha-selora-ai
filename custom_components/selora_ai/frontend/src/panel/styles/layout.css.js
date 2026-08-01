@@ -392,6 +392,14 @@ export const layoutStyles = css`
     color: var(--primary-color);
     flex-shrink: 0;
   }
+  /* Same shell as the consent banner, warning-toned: it reports a state the
+     user has to act on (restart / reload) rather than an invitation. */
+  .stale-code-notice {
+    border-color: var(--warning-color, #ffa726);
+  }
+  .stale-code-notice ha-icon {
+    color: var(--warning-color, #ffa726);
+  }
   .telemetry-consent-text {
     flex: 1;
     min-width: 0;

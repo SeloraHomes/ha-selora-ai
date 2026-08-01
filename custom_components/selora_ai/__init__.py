@@ -48,6 +48,10 @@ if TYPE_CHECKING:
 
 from .agent_steps import decode_step, is_step_chunk, make_step
 from .automation_utils import suggestion_content_fingerprint
+
+# Imported here, at the integration's own import time, so the stamp it captures
+# on import belongs to the deploy this process loaded (see code_stamp).
+from .code_stamp import LOADED_PYTHON_SIGNATURE, python_signature
 from .const import (
     AIGATEWAY_TOKEN_PATH,
     APPROVAL_RISK_LOW,
@@ -4401,6 +4405,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Selora AI from a config entry."""
+    # This setup can be a reload that follows a deploy: the files on disk are
+    # already the new ones, but the modules in memory (websocket schemas
+    # included) are still the ones imported at first load, and re-running setup
+    # cannot re-import them. The panel surfaces the same state through
+    # `selora_ai/version_status`; this line puts it in the log for support.
+    if await hass.async_add_executor_job(python_signature) != LOADED_PYTHON_SIGNATURE:
+        _LOGGER.warning(
+            "Selora AI code on disk differs from the loaded code — restart "
+            "Home Assistant to finish the update (a reload re-runs setup but "
+            "cannot re-import Python modules)"
+        )
+
     # Device onboarding entries are records only — no runtime setup needed
     if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
         _LOGGER.info("Selora AI device onboarding entry loaded: %s", entry.title)
