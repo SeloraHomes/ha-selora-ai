@@ -4,7 +4,29 @@ export const layoutStyles = css`
   :host {
     display: flex;
     flex-direction: column;
+    /* Home Assistant does not always give the panel container a definite
+       height. When its parent computes to auto, height:100% resolves to auto
+       too and the shell becomes content-sized. Everything downstream is built
+       on that height: .body and .main clamp with flex:1 + overflow:hidden, and
+       .session-list scrolls with flex:1 + overflow-y:auto. Unclamped, the
+       session list lays out every row at full length (roughly 76px each, and a
+       long-lived install accumulates hundreds), the page grows to several
+       screens, and the header scrolls off the top. A closed sidebar does not
+       save us — it is width:0, but its content still drives the height.
+
+       max-height bites ONLY in that failure case: when the parent IS sized,
+       height:100% already resolves smaller and this never applies, so a panel
+       HA deliberately constrains (e.g. below a toolbar) is unaffected.
+       overflow:hidden keeps a stray child from re-growing the shell, as the
+       original rule did before the CSS split. */
     height: 100%;
+    /* Two declarations, not one: a browser that does not understand dvh drops
+       that line and keeps the vh fallback above it. Declaring only dvh means
+       the clamp silently vanishes on such a browser and the shell goes back to
+       being content-sized, which is indistinguishable from the bug itself. */
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow: hidden;
     background: var(--primary-background-color);
     color: var(--primary-text-color);
   }
