@@ -20,6 +20,19 @@ class ToolParam:
     description: str
     required: bool = False
     enum: tuple[str, ...] | None = None
+    # Element type for ``type="array"`` params. Required in practice: Gemini's
+    # function-declaration schema rejects an ARRAY without ``items``, so a bare
+    # array param would break tool calling on that provider only.
+    items_type: str | None = None
+
+    def to_schema(self) -> dict[str, Any]:
+        """Render this parameter as a JSON Schema property."""
+        prop: dict[str, Any] = {"type": self.type, "description": self.description}
+        if self.enum:
+            prop["enum"] = list(self.enum)
+        if self.type == "array":
+            prop["items"] = {"type": self.items_type or "string"}
+        return prop
 
 
 @dataclass(frozen=True)
@@ -39,10 +52,7 @@ class ToolDef:
         properties: dict[str, Any] = {}
         required: list[str] = []
         for p in self.params:
-            prop: dict[str, Any] = {"type": p.type, "description": p.description}
-            if p.enum:
-                prop["enum"] = list(p.enum)
-            properties[p.name] = prop
+            properties[p.name] = p.to_schema()
             if p.required:
                 required.append(p.name)
         schema: dict[str, Any] = {"type": "object", "properties": properties}
@@ -59,10 +69,7 @@ class ToolDef:
         properties: dict[str, Any] = {}
         required: list[str] = []
         for p in self.params:
-            prop: dict[str, Any] = {"type": p.type, "description": p.description}
-            if p.enum:
-                prop["enum"] = list(p.enum)
-            properties[p.name] = prop
+            properties[p.name] = p.to_schema()
             if p.required:
                 required.append(p.name)
         parameters: dict[str, Any] = {"type": "object", "properties": properties}
@@ -602,6 +609,211 @@ TOOL_DELETE_SCENE = ToolDef(
     requires_admin=True,
 )
 
+# ── Group helpers ───────────────────────────────────────────────────────────
+#
+# A group gives an automation ONE entity_id that fans out to many devices, so
+# the automation never has to be rewritten when membership changes. These four
+# tools are the reason the model can offer that instead of pasting a long
+# entity list into every automation it writes.
+
+TOOL_LIST_GROUPS = ToolDef(
+    name="list_groups",
+    description=(
+        "List the home's existing groups with their members, live state, and "
+        "entity_id. Call this BEFORE creating a group so you extend an existing "
+        "one instead of making a near-duplicate, and to get the entity_id or "
+        "entry_id that update_group / delete_group need. "
+        "'read_only_yaml_groups' in the result are group.* entities defined in "
+        "YAML — they can be referenced in automations but NOT edited here. "
+        "'members' is capped for very large groups: 'member_count' is always the "
+        "true total, and 'members_omitted' says how many were left out."
+    ),
+    params=(
+        ToolParam(
+            name="group_type",
+            type="string",
+            description=(
+                "Optional filter by member domain, e.g. 'light', 'switch', 'cover', "
+                "'lock', 'media_player', 'binary_sensor', 'sensor'."
+            ),
+        ),
+    ),
+)
+
+TOOL_CREATE_GROUP = ToolDef(
+    name="create_group",
+    description=(
+        "Create a group: one entity_id that controls many devices at once. "
+        "Returns the new entity_id (e.g. 'light.evening_lights') — target THAT "
+        "in automations and scenes instead of listing every member, so the user "
+        "can later add or remove devices without the automation changing. "
+        "Prefer this when the user asks to control several devices together as a "
+        "unit, or when an automation would otherwise repeat the same 4+ entity "
+        "list. Do NOT create a group just to run a one-off command on several "
+        "devices — execute_command already accepts multiple entity_ids. "
+        "All members must share ONE domain (a group is per-domain), except that "
+        "sensor/number/input_number combine into a numeric group; for a mixed "
+        "request create one group per domain. Resolve names to real entity_ids "
+        "with search_entities or find_entities_by_area first — unknown "
+        "entity_ids are rejected."
+    ),
+    params=(
+        ToolParam(
+            name="name",
+            type="string",
+            description="Human-readable group name, e.g. 'Downstairs Lights'.",
+            required=True,
+        ),
+        ToolParam(
+            name="entities",
+            type="array",
+            description=(
+                "Member entity_ids. Must all exist and share one domain "
+                "(e.g. ['light.lamp', 'light.ceiling'])."
+            ),
+            required=True,
+            items_type="string",
+        ),
+        ToolParam(
+            name="requires_all_members",
+            type="boolean",
+            description=(
+                "Light/switch/binary_sensor groups only: when true the group reads "
+                "'on' only if EVERY member is on. Default false (on if any member is)."
+            ),
+        ),
+        ToolParam(
+            name="hide_members",
+            type="boolean",
+            description=(
+                "Hide the individual member entities in the Home Assistant UI so only "
+                "the group shows. Default false — only set it if the user asks."
+            ),
+        ),
+        ToolParam(
+            name="statistic",
+            type="string",
+            description=(
+                "ONLY for numeric groups whose members are sensor/number/input_number "
+                "entities: how their values combine into one number. Omit entirely for "
+                "light, switch, cover, lock, fan and every other type — those have no "
+                "numeric state. Omit to use the mean."
+            ),
+            enum=(
+                "last",
+                "first_available",
+                "max",
+                "mean",
+                "median",
+                "min",
+                "product",
+                "range",
+                "stdev",
+                "sum",
+            ),
+        ),
+    ),
+    requires_admin=True,
+)
+
+TOOL_UPDATE_GROUP = ToolDef(
+    name="update_group",
+    description=(
+        "Change which devices belong to an existing group, or rename it. Use "
+        "this — not create_group — when the user wants to add or remove a device "
+        "from a group they already have. Identify the group by entity_id "
+        "(preferred), entry_id, or group_name. Use add_entities / "
+        "remove_entities for a delta; use entities only to replace the whole "
+        "member list. New members must match the group's existing domain. "
+        "Every automation targeting the group picks the change up immediately, "
+        "with no automation edit needed."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="The group's entity_id, e.g. 'light.evening_lights'.",
+        ),
+        ToolParam(
+            name="entry_id",
+            type="string",
+            description="The group's config entry_id, as returned by list_groups.",
+        ),
+        ToolParam(
+            name="group_name",
+            type="string",
+            description="The group's current name, if you have no id for it.",
+        ),
+        ToolParam(
+            name="new_name",
+            type="string",
+            description="Rename the group to this.",
+        ),
+        ToolParam(
+            name="add_entities",
+            type="array",
+            description="entity_ids to ADD to the current members.",
+            items_type="string",
+        ),
+        ToolParam(
+            name="remove_entities",
+            type="array",
+            description="entity_ids to REMOVE from the current members.",
+            items_type="string",
+        ),
+        ToolParam(
+            name="entities",
+            type="array",
+            description=(
+                "Replace the ENTIRE member list with these entity_ids. Prefer "
+                "add_entities/remove_entities unless the user restated the whole list."
+            ),
+            items_type="string",
+        ),
+        ToolParam(
+            name="requires_all_members",
+            type="boolean",
+            description=(
+                "Light/switch/binary_sensor groups only: require EVERY member to be on "
+                "for the group to read 'on'."
+            ),
+        ),
+    ),
+    requires_admin=True,
+)
+
+TOOL_DELETE_GROUP = ToolDef(
+    name="delete_group",
+    description=(
+        "Delete a group. The member devices are NOT affected — only the grouping "
+        "is removed. Identify it by entity_id (preferred), entry_id, or "
+        "group_name. Only helper groups can be deleted; YAML-defined group.* "
+        "entities cannot. "
+        "This does NOT delete immediately: it surfaces a confirmation card the "
+        "user must tap to approve, so do not ask 'are you sure?' in prose — just "
+        "call the tool and the card handles confirmation, including warning the "
+        "user when automations still target the group."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="The group's entity_id, e.g. 'light.evening_lights'.",
+        ),
+        ToolParam(
+            name="entry_id",
+            type="string",
+            description="The group's config entry_id, as returned by list_groups.",
+        ),
+        ToolParam(
+            name="group_name",
+            type="string",
+            description="The group's name, if you have no id for it.",
+        ),
+    ),
+    requires_admin=True,
+)
+
 
 # Single registry of all chat tools
 CHAT_TOOLS: tuple[ToolDef, ...] = (
@@ -628,6 +840,10 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_DISMISS_SUGGESTION,
     TOOL_DELETE_AUTOMATION,
     TOOL_DELETE_SCENE,
+    TOOL_LIST_GROUPS,
+    TOOL_CREATE_GROUP,
+    TOOL_UPDATE_GROUP,
+    TOOL_DELETE_GROUP,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -640,6 +856,11 @@ TOOL_MAP: dict[str, ToolDef] = {t.name: t for t in CHAT_TOOLS}
 # The delete tools are included because "get rid of the Movie Night scene"
 # classifies as a command intent, and without them the trimmed schema would
 # hide the very operation the request needs.
+# The group tools are included for the same reason, and it bites harder there:
+# _classify_chat_intent FALLS THROUGH to "command" for anything that isn't a
+# question or an automation pattern, so "group my bedroom lights" and "add the
+# lamp to the downstairs group" both arrive here. Omitting them would make
+# group management invisible on exactly the phrasings that ask for it.
 COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
     {
         "execute_command",
@@ -650,6 +871,10 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "validate_action",
         "delete_automation",
         "delete_scene",
+        "list_groups",
+        "create_group",
+        "update_group",
+        "delete_group",
     }
 )
 

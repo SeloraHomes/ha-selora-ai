@@ -3814,7 +3814,7 @@ async def _resolve_delete_approval(
         )
         return
 
-    from .mcp_server import _tool_delete_automation, _tool_delete_scene
+    from .mcp_server import _tool_delete_automation, _tool_delete_group, _tool_delete_scene
 
     deleted_labels: list[str] = []
     errors: list[str] = []
@@ -3861,6 +3861,15 @@ async def _resolve_delete_approval(
                     res = await _tool_delete_scene(
                         hass, {"entity_id": entity_id, "expected_name": name}
                     )
+            elif kind == "group":
+                # target_id is the group's config entry_id — immutable for the
+                # entry's lifetime, so it needs no fingerprint re-check. Pass it
+                # alone: entity_id could have been remapped since the card was
+                # rendered, and resolving by it might now hit a different group.
+                if not target_id:
+                    errors.append(f"{label}: missing group id; not deleted")
+                    continue
+                res = await _tool_delete_group(hass, {"entry_id": target_id})
             else:
                 errors.append(f"{label or kind}: unknown delete kind")
                 continue

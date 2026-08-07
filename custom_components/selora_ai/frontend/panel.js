@@ -25506,6 +25506,12 @@ var RISK_LEVEL_STYLES = {
 var _DELETE_KIND_LABELS = {
   automation: "automation",
   scene: "scene",
+  group: "group",
+};
+var _DELETE_KIND_ICONS = {
+  scene: "mdi:palette-outline",
+  group: "mdi:google-circles-communities",
+  automation: "mdi:robot-outline",
 };
 function renderDeleteApprovalCard(host, approval, approvalStatus) {
   const accent = "#ef4444";
@@ -25574,7 +25580,7 @@ function _renderDeleteRow(host, d3) {
       style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:10px;"
     >
       <ha-icon
-        icon=${d3.kind === "scene" ? "mdi:palette-outline" : "mdi:robot-outline"}
+        icon=${_DELETE_KIND_ICONS[d3.kind] || "mdi:robot-outline"}
         style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
       ></ha-icon>
       <div style="display:flex;flex-direction:column;min-width:0;">
@@ -46152,7 +46158,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "897957ead37f" : "";
+var PANEL_BUILD = true ? "5d7380de5e35" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

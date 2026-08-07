@@ -100,6 +100,10 @@ class ToolExecutor:
             "dismiss_suggestion": self._dismiss_suggestion,
             "delete_automation": self._delete_automation,
             "delete_scene": self._delete_scene,
+            "list_groups": self._list_groups,
+            "create_group": self._create_group,
+            "update_group": self._update_group,
+            "delete_group": self._delete_group,
         }
 
     # ── Read tools ──────────────────────────────────────────────────
@@ -205,6 +209,11 @@ class ToolExecutor:
         from .mcp_server import _tool_eval_template
 
         return await _tool_eval_template(self._hass, arguments)
+
+    async def _list_groups(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_list_groups
+
+        return await _tool_list_groups(self._hass, arguments)
 
     _VALID_SUGGESTION_STATUSES = frozenset({"pending", "accepted", "dismissed", "snoozed"})
 
@@ -335,6 +344,28 @@ class ToolExecutor:
         from .mcp_server import _preview_delete_scene
 
         return await _preview_delete_scene(self._hass, arguments)
+
+    async def _create_group(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Create a group helper (executes immediately — creation is reversible)."""
+        from .mcp_server import _tool_create_group
+
+        return await _tool_create_group(self._hass, arguments)
+
+    async def _update_group(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Change a group's members or name (executes immediately)."""
+        from .mcp_server import _tool_update_group
+
+        return await _tool_update_group(self._hass, arguments)
+
+    async def _delete_group(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card.
+
+        See :meth:`_delete_automation` — deletion is deferred to the user's
+        tap on the confirmation card.
+        """
+        from .mcp_server import _preview_delete_group
+
+        return await _preview_delete_group(self._hass, arguments)
 
     async def _start_device_flow(self, arguments: dict[str, Any]) -> dict[str, Any]:
         domain = str(arguments.get("domain", "")).strip()

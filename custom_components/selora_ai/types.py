@@ -120,6 +120,29 @@ class SceneStoreData(TypedDict):
     scenes: dict[str, SceneRecord]
 
 
+class GroupInfo(TypedDict):
+    """A Home Assistant group helper, as reported to the LLM.
+
+    Sourced live from the group config entry — Selora keeps no group store, so
+    there is nothing to drift out of sync with HA.
+    """
+
+    entry_id: str
+    name: str
+    group_type: str
+    entity_id: str | None
+    state: str
+    members: list[str]
+    member_count: int
+    # Present only when set, to keep the common result small.
+    # members_omitted: how many members were left out of ``members``;
+    # ``member_count`` is always the true total.
+    members_omitted: NotRequired[int]
+    hide_members: NotRequired[bool]
+    requires_all_members: NotRequired[bool]
+    statistic: NotRequired[str]
+
+
 # ── Version & lineage structures ──────────────────────────────────────
 
 
