@@ -192,6 +192,28 @@ def validate_members(hass: HomeAssistant, raw: Any) -> tuple[list[str], str | No
     return members, None
 
 
+def _is_empty_delta(raw: Any) -> bool:
+    """Whether *raw* is a member delta that names nobody.
+
+    ``add_entities: []`` carries no intent — "add nothing" is not a request a
+    user can make — but every gate downstream tests ``is not None``, so an
+    empty array reads as a present argument and refuses the rest of the call.
+    Models routinely emit ``[]`` for optional array params they are not using,
+    so without this a plain rename arrives as an error about entities.
+
+    Contrast ``entities``: an empty *replacement* list is a request a user can
+    make ("empty this group"), so it keeps its own refusal pointing at delete.
+    A non-list is left alone for the existing type check to report.
+    """
+    if raw is None:
+        return False
+    if isinstance(raw, str):
+        raw = raw.split(",")
+    if not isinstance(raw, list):
+        return False
+    return not any(str(item or "").strip() for item in raw)
+
+
 def group_entries(hass: HomeAssistant) -> list[ConfigEntry]:
     """Return every group-helper config entry."""
     return list(hass.config_entries.async_entries(GROUP_DOMAIN))
@@ -578,11 +600,23 @@ async def async_create_group(
     # An inapplicable per-type option is refused rather than dropped, because
     # _build_create_payload can only forward an option to the schemas that
     # accept it — so it would otherwise be ignored while the call still
-    # reported success. requires_all_members is user-expressible on any of the
-    # state-combining types ("closed only when every cover is"), so a caller
-    # asking for it on a cover group means something we cannot deliver.
+    # reported success. Asking a cover group for all-members mode ("closed only
+    # when every cover is") means something real that we cannot deliver.
+    #
+    # Only True says that, though. False is what a type without an all-members
+    # mode already does, so it discards no intent — and the tool schema both
+    # declares ``default: false`` and invites models to volunteer it from the
+    # enum, so refusing it makes every cover/lock/fan group a dead end. Dropped like
+    # statistic, and for the same reason.
     if requires_all_members is not None and resolved_type not in _SUPPORTS_ALL:
-        return {"error": _all_members_unsupported_error(resolved_type)}
+        if requires_all_members:
+            return {"error": _all_members_unsupported_error(resolved_type)}
+        _LOGGER.debug(
+            "Dropping requires_all_members=False on a '%s' group, which has no "
+            "all-members mode; False is already its behaviour",
+            resolved_type,
+        )
+        requires_all_members = None
 
     # statistic is the opposite case and is dropped, not refused. Only a sensor
     # group holds a number, so "mean of two lights" is not a request a user can
@@ -726,6 +760,23 @@ async def async_update_group(
     """
     options = dict(entry.options)
     group_type = str(options.get("group_type", ""))
+
+    # Normalised before any gate below, all of which test ``is not None``.
+    if _is_empty_delta(add_entities):
+        add_entities = None
+    if _is_empty_delta(remove_entities):
+        remove_entities = None
+    # Dropped here rather than at the type check further down, so the no-op
+    # guard does not count it as a requested change and report ``updated``
+    # having done nothing. Only True is refused there — see async_create_group.
+    if requires_all_members is False and group_type not in _SUPPORTS_ALL:
+        _LOGGER.debug(
+            "Dropping requires_all_members=False on a '%s' group, which has no "
+            "all-members mode; False is already its behaviour",
+            group_type,
+        )
+        requires_all_members = None
+
     current: list[str] = [str(e) for e in options.get("entities", []) or []]
     new_members = current
     # The stored form is preserved on write: a registry id keeps tracking an
@@ -809,9 +860,11 @@ async def async_update_group(
             held.add(addition)
         new_members = merged
 
-    clean_name = " ".join(str(name or "").split()) if name is not None else None
-    if name is not None and not clean_name:
-        return {"error": "name cannot be empty"}
+    # A blank new_name is treated as absent for the same reason an empty delta
+    # array is: renaming to nothing is not a request a user can make, and
+    # refusing it would discard whatever real change came alongside it. Creation
+    # still requires a name — there it is the one thing that cannot be omitted.
+    clean_name = " ".join(str(name or "").split()) or None
 
     if clean_name is None and new_members == current and requires_all_members is None:
         return {"error": "Nothing to change: provide a new name, members, or all-members flag."}
@@ -966,6 +1019,9 @@ def parent_groups(hass: HomeAssistant, entity_id: str | None) -> list[str]:
     — it only walks the legacy ``group`` component's entities, not helper
     config entries — and a deleted member leaves the parent silently smaller
     rather than broken, so nothing else would surface it.
+
+    The legacy half is :func:`_yaml_parent_groups`; callers wanting every
+    parent need both.
     """
     if not entity_id:
         return []
@@ -975,6 +1031,28 @@ def parent_groups(hass: HomeAssistant, entity_id: str | None) -> list[str]:
         if entity_id in members and (parent := group_entity_id(hass, entry)):
             parents.append(parent)
     return sorted(parents)
+
+
+def _yaml_parent_groups(hass: HomeAssistant, entity_id: str | None) -> list[str]:
+    """Legacy YAML ``group.*`` entities that list *entity_id* as a member.
+
+    The exact complement of :func:`parent_groups`: that one walks helper config
+    entries and never sees a YAML group, while HA's ``groups_with_entity``
+    walks only the legacy component's entities and never sees a helper. A
+    helper group nested in a YAML group is ordinary here — recipes write legacy
+    YAML groups — and deleting it shrinks that group silently, which is exactly
+    what the confirmation card exists to say out loud.
+    """
+    if not entity_id:
+        return []
+    try:
+        from homeassistant.components.group import groups_with_entity  # noqa: PLC0415
+
+        return list(groups_with_entity(hass, entity_id))
+    except (ImportError, KeyError, AttributeError):
+        # Same contract as the automation/script lookups: a missing
+        # blast-radius hint must never block the delete path.
+        return []
 
 
 def scenes_with_entity(hass: HomeAssistant, entity_id: str | None) -> list[str]:
@@ -1026,7 +1104,11 @@ def group_dependents(hass: HomeAssistant, entity_id: str | None) -> dict[str, li
         "automations": automations,
         "scripts": scripts,
         "scenes": scenes_with_entity(hass, entity_id),
-        "groups": parent_groups(hass, entity_id),
+        # Helper parents and legacy YAML parents are disjoint lookups; a group
+        # can sit in both kinds at once.
+        "groups": sorted(
+            set(parent_groups(hass, entity_id)) | set(_yaml_parent_groups(hass, entity_id))
+        ),
     }
 
 
