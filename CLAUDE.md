@@ -280,10 +280,15 @@ edits membership in Settings → Devices & Services → Helpers without the auto
   forward an option to the schemas that accept it (the others are `vol.PREVENT_EXTRA`) and the tool
   schema can't express "only when the members are numeric". Which way depends on whether the option
   can carry user intent for the target type:
-  - `requires_all_members` is **rejected** off `binary_sensor`/`light`/`switch`. Every
+  - `requires_all_members: true` is **rejected** off `binary_sensor`/`light`/`switch`. Every
     state-combining type makes it meaningful ("closed only when every cover is"), so a caller
     asking for it on a cover group wants something real that we cannot deliver — reporting
-    `status: created`/`updated` would claim a setting that was ignored.
+    `status: created`/`updated` would claim a setting that was ignored. **`false` is dropped**,
+    not rejected: it is already the behaviour of a type with no all-members mode, so it discards
+    no intent, and the tool schema declares `default: false` — refusing it makes every
+    cover/lock/fan/valve group a dead end for any client that materializes schema defaults. The
+    drop happens *before* the no-op guard on the update path, or a `false`-only update would
+    reload the entry, write nothing, and still report `status: updated`.
   - `statistic` is **dropped** off `sensor` (with a debug log). Only a sensor group holds a number,
     so "mean of two lights" is not a request a user can make and there is no intent to discard.
     Models volunteer it from the enum, and refusing turned "group my two lights" into a dead end.
@@ -293,6 +298,14 @@ edits membership in Settings → Devices & Services → Helpers without the auto
 - **`entities` and `add_entities`/`remove_entities` are mutually exclusive** — replacement vs delta
   are different intents, and an LLM call can carry both; applying replacement and dropping the
   deltas would report success having ignored part of the request.
+- **An empty optional argument is treated as absent** (`_is_empty_delta`, and the `new_name`
+  normalization). Every gate tests `is not None`, and models routinely emit `[]` / `""` for
+  optional params they are not using — so `add_entities: []` alongside a rename otherwise reads
+  as a present argument and refuses the rename with an error about entities, and alongside
+  `entities` it trips the mutual-exclusivity check. Same question as the per-type options: "add
+  nothing" and "rename to nothing" are not requests a user can make, so there is no intent to
+  discard. `entities: []` is the exception and keeps its refusal — *emptying* a group is
+  something a user can ask for, and the error points at delete instead.
 - **A stored member may be a registry id, not an entity_id.** HA's entity selector validates with
   `cv.entity_id_or_uuid` and keeps whichever form it was given, so a UI-created group's
   `options["entities"]` can hold uuids. Three rules, all served by `_resolve_members()`:
@@ -365,11 +378,13 @@ edits membership in Settings → Devices & Services → Helpers without the auto
   `group_dependents()` because the tool-loop short-circuit discards prose the model writes.
   That covers four referrers, and only the first two have an HA helper: automations and scripts
   (`automations_with_entity` / `scripts_with_entity`), **scenes** (read off the scene state's
-  `entity_id` attribute — `scene` ships no `scenes_with_entity`), and **parent group helpers**
-  (`parent_groups()`, since HA's `groups_with_entity` walks only legacy YAML `group` entities and
-  never sees helper config entries). Nesting is supported, so a parent is ordinary — and it does
-  not break when the child is deleted, it silently gets smaller, which is exactly why the card has
-  to say so.
+  `entity_id` attribute — `scene` ships no `scenes_with_entity`), and **parent groups**. Nesting is
+  supported, so a parent is ordinary — and it does not break when the child is deleted, it silently
+  gets smaller, which is exactly why the card has to say so. Parents need **two** disjoint lookups,
+  unioned in `group_dependents`: `parent_groups()` walks helper config entries and never sees a
+  legacy YAML group, while HA's `groups_with_entity` (`_yaml_parent_groups()`) walks only the legacy
+  component's entities and never sees a helper. A group can sit in both kinds at once, and recipes
+  write legacy YAML groups — so a helper nested in one is ordinary, not a corner case.
 - Adding a tool here means touching `group_manager.py`, `mcp_server.py` (`_tool_*` + `MCPTool`
   schema + name constant + handler map + `_ADMIN_TOOLS`/`_READ_ONLY_TOOLS`), `tool_registry.py`
   (`ToolDef` + `CHAT_TOOLS` + `COMMAND_TOOL_NAMES`), and `tool_executor.py`. `COMMAND_TOOL_NAMES`

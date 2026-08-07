@@ -1356,6 +1356,95 @@ class TestConflictingMembershipModes:
         assert result["members"] == ["light.ceiling", "light.desk"]
 
 
+class TestEmptyOptionalArguments:
+    """Models routinely emit ``[]`` / ``""`` for optional params they are not
+    using. Every gate tests ``is not None``, so an empty value used to read as a
+    present argument and refuse whatever real change came with it."""
+
+    @pytest.mark.asyncio
+    async def test_empty_add_does_not_block_a_rename(self, group_home: HomeAssistant) -> None:
+        created = await _create(group_home)
+        result = await _tool_update_group(
+            group_home,
+            {"entity_id": created["entity_id"], "new_name": "Renamed", "add_entities": []},
+        )
+        await group_home.async_block_till_done()
+        assert result["status"] == "updated"
+        entry = group_home.config_entries.async_get_entry(created["entry_id"])
+        assert entry.options["name"] == "Renamed"
+        assert entry.options["entities"] == ["light.lamp", "light.ceiling"]
+
+    @pytest.mark.asyncio
+    async def test_empty_remove_does_not_block_a_rename(self, group_home: HomeAssistant) -> None:
+        created = await _create(group_home)
+        result = await _tool_update_group(
+            group_home,
+            {"entity_id": created["entity_id"], "new_name": "Renamed", "remove_entities": []},
+        )
+        await group_home.async_block_till_done()
+        assert result["status"] == "updated"
+
+    @pytest.mark.asyncio
+    async def test_empty_deltas_do_not_trip_mutual_exclusivity(
+        self, group_home: HomeAssistant
+    ) -> None:
+        """An empty delta is not a delta, so it cannot conflict with a
+        replacement list."""
+        created = await _create(group_home)
+        result = await _tool_update_group(
+            group_home,
+            {
+                "entity_id": created["entity_id"],
+                "entities": ["light.desk"],
+                "add_entities": [],
+                "remove_entities": [],
+            },
+        )
+        await group_home.async_block_till_done()
+        assert result["status"] == "updated"
+        assert result["members"] == ["light.desk"]
+
+    @pytest.mark.asyncio
+    async def test_blank_new_name_does_not_block_a_member_change(
+        self, group_home: HomeAssistant
+    ) -> None:
+        created = await _create(group_home)
+        result = await _tool_update_group(
+            group_home,
+            {"entity_id": created["entity_id"], "add_entities": ["light.desk"], "new_name": "  "},
+        )
+        await group_home.async_block_till_done()
+        assert result["status"] == "updated"
+        entry = group_home.config_entries.async_get_entry(created["entry_id"])
+        assert entry.options["entities"] == ["light.lamp", "light.ceiling", "light.desk"]
+        # The blank was dropped, not written.
+        assert entry.options["name"] == "Evening Lights"
+
+    @pytest.mark.asyncio
+    async def test_all_empty_is_a_no_op_not_a_member_error(self, group_home: HomeAssistant) -> None:
+        """The caller still gets told nothing was requested — but pointed at
+        what to pass, not at an error about entities."""
+        created = await _create(group_home)
+        result = await _tool_update_group(
+            group_home,
+            {"entity_id": created["entity_id"], "new_name": "", "add_entities": []},
+        )
+        assert "status" not in result
+        assert "Nothing to change" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_empty_replacement_list_still_refused(self, group_home: HomeAssistant) -> None:
+        """``entities: []`` is a request a user CAN make ("empty this group"),
+        so it keeps its own refusal pointing at delete instead of being
+        silently ignored."""
+        created = await _create(group_home)
+        result = await _tool_update_group(
+            group_home, {"entity_id": created["entity_id"], "entities": []}
+        )
+        assert "status" not in result
+        assert "error" in result
+
+
 class TestYamlOnlyHome:
     """A home whose ONLY groups are YAML-defined.
 
@@ -1491,12 +1580,85 @@ class TestAllMembersOnUnsupportedType:
             {
                 "entity_id": created["entity_id"],
                 "add_entities": ["cover.shade"],
-                "requires_all_members": False,
+                "requires_all_members": True,
             },
         )
         assert "no all-members mode" in result["error"]
         entry = group_home.config_entries.async_get_entry(created["entry_id"])
         assert entry.options["entities"] == ["cover.blind"]
+
+    @pytest.mark.asyncio
+    async def test_update_drops_false_and_applies_the_rest(self, group_home: HomeAssistant) -> None:
+        """False is what a type without an all-members mode already does, so it
+        discards no intent. Refusing it made the schema's own ``default: false``
+        a dead end for every cover/lock/fan group."""
+        group_home.states.async_set("cover.blind", "open")
+        group_home.states.async_set("cover.shade", "open")
+        await group_home.async_block_till_done()
+        created = await _tool_create_group(
+            group_home, {"name": "Blinds", "entities": ["cover.blind"]}
+        )
+        await group_home.async_block_till_done()
+
+        result = await _tool_update_group(
+            group_home,
+            {
+                "entity_id": created["entity_id"],
+                "add_entities": ["cover.shade"],
+                "requires_all_members": False,
+            },
+        )
+        await group_home.async_block_till_done()
+        assert result["status"] == "updated"
+        entry = group_home.config_entries.async_get_entry(created["entry_id"])
+        assert entry.options["entities"] == ["cover.blind", "cover.shade"]
+        assert "all" not in entry.options
+
+    @pytest.mark.asyncio
+    async def test_update_with_only_false_changes_nothing(self, group_home: HomeAssistant) -> None:
+        """Dropped before the no-op guard, so it cannot report ``updated``
+        having written nothing."""
+        group_home.states.async_set("cover.blind", "open")
+        await group_home.async_block_till_done()
+        created = await _tool_create_group(
+            group_home, {"name": "Blinds", "entities": ["cover.blind"]}
+        )
+        await group_home.async_block_till_done()
+
+        result = await _tool_update_group(
+            group_home, {"entity_id": created["entity_id"], "requires_all_members": False}
+        )
+        assert "status" not in result
+        assert "Nothing to change" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_create_drops_false_for_a_type_without_the_mode(
+        self, group_home: HomeAssistant
+    ) -> None:
+        """The create path is the exposed one: the MCP schema declares
+        ``default: false``, so a client materialising defaults sends it on every
+        call."""
+        group_home.states.async_set("cover.blind", "open")
+        await group_home.async_block_till_done()
+        result = await _tool_create_group(
+            group_home,
+            {"name": "Blinds", "entities": ["cover.blind"], "requires_all_members": False},
+        )
+        await group_home.async_block_till_done()
+        assert result["status"] == "created"
+        entry = group_home.config_entries.async_get_entry(result["entry_id"])
+        assert "all" not in entry.options
+
+    @pytest.mark.asyncio
+    async def test_create_still_rejects_true(self, group_home: HomeAssistant) -> None:
+        group_home.states.async_set("cover.blind", "open")
+        await group_home.async_block_till_done()
+        result = await _tool_create_group(
+            group_home,
+            {"name": "Blinds", "entities": ["cover.blind"], "requires_all_members": True},
+        )
+        assert "status" not in result
+        assert "no all-members mode" in result["error"]
 
     @pytest.mark.asyncio
     async def test_update_applies_it_for_switches(self, group_home: HomeAssistant) -> None:
@@ -1607,6 +1769,44 @@ class TestPreviewDeleteGroup:
         assert dependents["groups"] == [outer["entity_id"]]
         # The parent itself has no parent.
         assert gm.group_dependents(group_home, outer["entity_id"])["groups"] == []
+
+    @pytest.mark.asyncio
+    async def test_legacy_yaml_parent_is_reported_as_a_dependent(self, hass: HomeAssistant) -> None:
+        """parent_groups walks helper config entries and never sees a YAML
+        group; HA's groups_with_entity walks only YAML and never sees a helper.
+        Recipes write legacy YAML groups, so a helper nested in one is ordinary
+        — and deleting it shrinks that group silently.
+
+        Not the group_home fixture: it already sets ``group`` up with an empty
+        config, so a second async_setup_component would return True having
+        applied nothing.
+        """
+        for entity_id in ("light.lamp", "light.ceiling"):
+            hass.states.async_set(entity_id, "off")
+        # Declared before the helper exists — a YAML group tracks the ids in
+        # its config whether or not they resolve yet.
+        assert await async_setup_component(
+            hass,
+            "group",
+            {
+                "group": {
+                    "whole_house": {
+                        "name": "Whole House",
+                        "entities": ["light.evening_lights"],
+                    }
+                }
+            },
+        )
+        await hass.async_block_till_done()
+
+        created = await _create(hass)
+        assert created["entity_id"] == "light.evening_lights", "the YAML above references this id"
+
+        dependents = gm.group_dependents(hass, created["entity_id"])
+
+        assert dependents["groups"] == ["group.whole_house"]
+        preview = await _preview_delete_group(hass, {"entity_id": created["entity_id"]})
+        assert "used by 1 group" in preview["delete"]["label"]
 
 
 class TestDeleteGroup:
