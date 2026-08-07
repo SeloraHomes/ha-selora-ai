@@ -74,6 +74,12 @@ from .const import (
     SELORA_JWT_WRITE_SCOPE,
 )
 from .entity_capabilities import is_actionable_entity
+from .group_manager import (
+    SENSOR_STATISTICS as _SENSOR_STATISTIC_ENUM,
+)
+from .group_manager import (
+    SUPPORTED_GROUP_TYPES as _GROUP_TYPE_ENUM,
+)
 from .lexical import (
     SEARCH_FUZZY_FLOOR,
     SEARCH_W_FUZZY,
@@ -333,6 +339,10 @@ TOOL_VALIDATE_SCENE = "selora_validate_scene"
 TOOL_CREATE_SCENE = "selora_create_scene"
 TOOL_DELETE_SCENE = "selora_delete_scene"
 TOOL_ACTIVATE_SCENE = "selora_activate_scene"
+TOOL_LIST_GROUPS = "selora_list_groups"
+TOOL_CREATE_GROUP = "selora_create_group"
+TOOL_UPDATE_GROUP = "selora_update_group"
+TOOL_DELETE_GROUP = "selora_delete_group"
 
 # Tools that require admin / write scope: mutating operations plus
 # eval_template, which exposes HA's full Jinja engine — broad state
@@ -353,6 +363,9 @@ _ADMIN_TOOLS = frozenset(
         TOOL_ACTIVATE_SCENE,
         TOOL_EXECUTE_COMMAND,
         TOOL_EVAL_TEMPLATE,
+        TOOL_CREATE_GROUP,
+        TOOL_UPDATE_GROUP,
+        TOOL_DELETE_GROUP,
     }
 )
 
@@ -378,6 +391,7 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_SCENES,
         TOOL_GET_SCENE,
         TOOL_VALIDATE_SCENE,
+        TOOL_LIST_GROUPS,
     }
 )
 
@@ -895,6 +909,10 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_CREATE_SCENE: _tool_create_scene,
         TOOL_DELETE_SCENE: _tool_delete_scene,
         TOOL_ACTIVATE_SCENE: _tool_activate_scene,
+        TOOL_LIST_GROUPS: _tool_list_groups,
+        TOOL_CREATE_GROUP: _tool_create_group,
+        TOOL_UPDATE_GROUP: _tool_update_group,
+        TOOL_DELETE_GROUP: _tool_delete_group,
     }
 
 
@@ -4160,6 +4178,154 @@ async def _tool_activate_scene(hass: HomeAssistant, arguments: dict[str, Any]) -
     return {"entity_id": entity_id, "status": "activated"}
 
 
+# ── Phase 4: Group helpers ────────────────────────────────────────────────────
+
+
+async def _tool_list_groups(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """List group helpers with their members.
+
+    ``group_type`` narrows the result (e.g. only light groups). YAML-defined
+    ``group.*`` entities are reported separately as read-only so the model can
+    explain why they aren't editable instead of proposing a duplicate.
+    """
+    from .group_manager import (  # noqa: PLC0415
+        describe_group,
+        group_entries,
+        unmanaged_yaml_groups,
+    )
+
+    wanted = str(arguments.get("group_type", "")).strip()
+    groups = [describe_group(hass, entry) for entry in group_entries(hass)]
+    if wanted:
+        groups = [g for g in groups if g["group_type"] == wanted]
+    groups.sort(key=lambda g: g["name"].casefold())
+
+    result: dict[str, Any] = {"groups": groups, "count": len(groups)}
+    yaml_groups = unmanaged_yaml_groups(hass)
+    if yaml_groups:
+        result["read_only_yaml_groups"] = yaml_groups
+    return result
+
+
+async def _tool_create_group(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create a Home Assistant group helper from a member list."""
+    from .group_manager import async_create_group  # noqa: PLC0415
+
+    return await async_create_group(
+        hass,
+        name=str(arguments.get("name", "")),
+        entities=arguments.get("entities"),
+        group_type=str(arguments.get("group_type", "")).strip() or None,
+        hide_members=bool(arguments.get("hide_members", False)),
+        requires_all_members=(
+            bool(arguments["requires_all_members"]) if "requires_all_members" in arguments else None
+        ),
+        statistic=str(arguments.get("statistic", "")).strip() or None,
+    )
+
+
+async def _tool_update_group(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Rename a group helper and/or change which entities belong to it."""
+    from .group_manager import async_update_group, resolve_group  # noqa: PLC0415
+
+    entry, error = resolve_group(
+        hass,
+        entity_id=str(arguments.get("entity_id", "")).strip(),
+        entry_id=str(arguments.get("entry_id", "")).strip(),
+        name=str(arguments.get("group_name", "")).strip(),
+    )
+    if error or entry is None:
+        return {"error": error or "Group not found"}
+
+    new_name = arguments.get("new_name")
+    return await async_update_group(
+        hass,
+        entry,
+        name=str(new_name) if new_name is not None else None,
+        entities=arguments.get("entities"),
+        add_entities=arguments.get("add_entities"),
+        remove_entities=arguments.get("remove_entities"),
+        requires_all_members=(
+            bool(arguments["requires_all_members"]) if "requires_all_members" in arguments else None
+        ),
+    )
+
+
+async def _tool_delete_group(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete a group helper.
+
+    Identified by ``entry_id`` (what the confirmation card carries), or by
+    ``entity_id`` / ``group_name`` for direct MCP callers.
+    """
+    from .group_manager import async_delete_group, resolve_group  # noqa: PLC0415
+
+    entry_id = str(arguments.get("entry_id", "")).strip()
+    if not entry_id:
+        entry, error = resolve_group(
+            hass,
+            entity_id=str(arguments.get("entity_id", "")).strip(),
+            name=str(arguments.get("group_name", "")).strip(),
+        )
+        if error or entry is None:
+            return {"error": error or "Group not found"}
+        entry_id = entry.entry_id
+
+    return await async_delete_group(hass, entry_id)
+
+
+async def _preview_delete_group(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a delete_group target WITHOUT deleting it.
+
+    Read-only counterpart of :func:`_tool_delete_group` used by the chat
+    ``delete_group`` tool: it identifies the group and returns a
+    ``{kind, target_id, entity_id, label}`` descriptor for the confirmation
+    card. ``target_id`` is the config entry_id — immutable for the entry's
+    lifetime, so unlike the id-less scene/automation paths there is no
+    fingerprint to re-verify at confirm time.
+
+    The label carries the blast radius: deleting a group that automations
+    target breaks them silently, so the count belongs on the card the user
+    actually reads, not in prose the tool-loop short-circuit discards.
+    """
+    from .group_manager import group_dependents, group_entity_id, resolve_group  # noqa: PLC0415
+
+    entry, error = resolve_group(
+        hass,
+        entity_id=str(arguments.get("entity_id", "")).strip(),
+        entry_id=str(arguments.get("entry_id", "")).strip(),
+        name=str(arguments.get("group_name", "")).strip(),
+    )
+    if error or entry is None:
+        return {"error": error or "Group not found"}
+
+    entity_id = group_entity_id(hass, entry)
+    name = str(entry.options.get("name") or entry.title or "")
+    label = _sanitize(name) or entity_id or entry.entry_id
+
+    dependents = group_dependents(hass, entity_id)
+    # Each kind is named rather than summed: an automation breaks, a parent
+    # group quietly gets smaller, and the user needs to know which.
+    in_use = len(dependents["automations"]) + len(dependents["scripts"])
+    counts = (
+        (in_use, f"automation{'s' if in_use != 1 else ''}/script"),
+        (len(dependents["scenes"]), f"scene{'s' if len(dependents['scenes']) != 1 else ''}"),
+        (len(dependents["groups"]), f"group{'s' if len(dependents['groups']) != 1 else ''}"),
+    )
+    if used_by := [f"{count} {noun}" for count, noun in counts if count]:
+        label = f"{label} — used by {', '.join(used_by)}"
+
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "group",
+            "target_id": entry.entry_id,
+            "entity_id": entity_id or "",
+            "name": _sanitize(name),
+            "label": label,
+        },
+    }
+
+
 # ── Tool definitions (MCP schema) ─────────────────────────────────────────────
 
 
@@ -4816,6 +4982,162 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                 "scene_id": {
                     "type": "string",
                     "description": "Selora scene store ID. Resolved to an entity_id via the SceneStore.",
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_LIST_GROUPS,
+        description=(
+            "List Home Assistant group helpers with their members, live state, and "
+            "config entry_id. Optionally filter by group_type. Also reports "
+            "read_only_yaml_groups: group.* entities defined in YAML, which cannot be "
+            "edited through this API. 'members' is capped for very large groups: "
+            "'member_count' is always the true total, and 'members_omitted' says how "
+            "many were left out."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "group_type": {
+                    "type": "string",
+                    "enum": list(_GROUP_TYPE_ENUM),
+                    "description": "Only return groups of this type (e.g. 'light').",
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_CREATE_GROUP,
+        description=(
+            "Create a Home Assistant group helper: one entity_id that controls many "
+            "devices. All members must share a domain (a group helper is per-domain); "
+            "sensor/number/input_number may be combined into a numeric 'sensor' group. "
+            "group_type is inferred from the members. Returns the new entity_id "
+            "(e.g. 'light.evening_lights'), which is what automations should target. "
+            "Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable group name (e.g. 'Evening Lights').",
+                },
+                "entities": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Member entity_ids. Must all exist and share one domain.",
+                },
+                "group_type": {
+                    "type": "string",
+                    "enum": list(_GROUP_TYPE_ENUM),
+                    "description": (
+                        "Optional assertion of the group's domain. Inferred from the "
+                        "members when omitted; a mismatch is an error."
+                    ),
+                },
+                "hide_members": {
+                    "type": "boolean",
+                    "description": "Hide the individual members from the HA UI. Default false.",
+                    "default": False,
+                },
+                "requires_all_members": {
+                    "type": "boolean",
+                    "description": (
+                        "binary_sensor/light/switch only: when true the group is 'on' "
+                        "only if ALL members are on, instead of any. Default false."
+                    ),
+                    "default": False,
+                },
+                "statistic": {
+                    "type": "string",
+                    "enum": list(_SENSOR_STATISTIC_ENUM),
+                    "description": (
+                        "ONLY for numeric groups whose members are sensor/number/"
+                        "input_number entities: how their values combine into one "
+                        "number. Omit entirely for light, switch, cover, lock, fan and "
+                        "every other type — those have no numeric state. Omit to use "
+                        "the mean."
+                    ),
+                },
+            },
+            "required": ["name", "entities"],
+        },
+    ),
+    MCPTool(
+        name=TOOL_UPDATE_GROUP,
+        description=(
+            "Change a group helper's members and/or name. Identify the group by "
+            "entity_id, entry_id, or group_name. Use add_entities/remove_entities for a "
+            "delta, or entities to replace the whole member list. Members cannot change "
+            "domain. Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity_id": {
+                    "type": "string",
+                    "description": "The group's entity_id (e.g. 'light.evening_lights').",
+                },
+                "entry_id": {
+                    "type": "string",
+                    "description": "The group's config entry_id, from list_groups.",
+                },
+                "group_name": {
+                    "type": "string",
+                    "description": "The group's current name, if no id is known.",
+                },
+                "new_name": {
+                    "type": "string",
+                    "description": "Rename the group to this.",
+                },
+                "entities": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Replace the member list entirely with these entity_ids.",
+                },
+                "add_entities": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Add these entity_ids to the existing members.",
+                },
+                "remove_entities": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Remove these entity_ids from the existing members.",
+                },
+                "requires_all_members": {
+                    "type": "boolean",
+                    "description": (
+                        "binary_sensor/light/switch only: require ALL members to be on "
+                        "for the group to read 'on'."
+                    ),
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_DELETE_GROUP,
+        description=(
+            "Delete a Home Assistant group helper, identified by entry_id, entity_id, or "
+            "group_name. Members themselves are untouched, but automations targeting the "
+            "group will break. Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entry_id": {
+                    "type": "string",
+                    "description": "The group's config entry_id, from list_groups.",
+                },
+                "entity_id": {
+                    "type": "string",
+                    "description": "The group's entity_id (e.g. 'light.evening_lights').",
+                },
+                "group_name": {
+                    "type": "string",
+                    "description": "The group's name, if no id is known.",
                 },
             },
         },

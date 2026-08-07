@@ -2408,7 +2408,12 @@ def _normalize_explicit_approval(
     return normalized
 
 
-_DELETE_TOOLS = frozenset({"delete_automation", "delete_scene"})
+_DELETE_TOOLS = frozenset({"delete_automation", "delete_scene", "delete_group"})
+
+# Delete kinds the confirm handler knows how to execute. A descriptor with any
+# other kind is dropped rather than rendered, so a card can never offer a
+# Delete button that resolves to nothing.
+_DELETE_KINDS = frozenset({"automation", "scene", "group"})
 
 
 def _pending_deletes_from_log(
@@ -2416,13 +2421,16 @@ def _pending_deletes_from_log(
 ) -> list[dict[str, Any]]:
     """Extract delete-confirmation descriptors from the tool log.
 
-    The ``delete_automation`` / ``delete_scene`` chat tools never delete
-    directly — they return ``requires_approval=True`` plus a ``delete``
-    descriptor (``kind``/``target_id``/``entity_id``/``label`` plus an
-    immutable identity fingerprint: ``alias`` for automations, ``name`` for
+    The ``delete_automation`` / ``delete_scene`` / ``delete_group`` chat tools
+    never delete directly — they return ``requires_approval=True`` plus a
+    ``delete`` descriptor (``kind``/``target_id``/``entity_id``/``label`` plus
+    an immutable identity fingerprint: ``alias`` for automations, ``name`` for
     scenes). This helper collects those descriptors so the synthesizer can
     build a single delete-confirmation card, deduplicating repeated attempts
     on the same target.
+
+    Groups need no fingerprint: ``target_id`` is the config entry_id, which is
+    immutable for the entry's lifetime, so there is no id-less confirm path.
 
     The fingerprint MUST survive here: an id-less yaml target has no stable
     id, so the confirm handler revalidates it against the current yaml before
@@ -2443,7 +2451,7 @@ def _pending_deletes_from_log(
         kind = str(descriptor.get("kind", "")).strip()
         target_id = str(descriptor.get("target_id", "")).strip()
         entity_id = str(descriptor.get("entity_id", "")).strip()
-        if kind not in ("automation", "scene") or not (target_id or entity_id):
+        if kind not in _DELETE_KINDS or not (target_id or entity_id):
             continue
         signature = (kind, target_id, entity_id)
         if signature in seen:

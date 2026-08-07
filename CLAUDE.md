@@ -37,6 +37,7 @@ custom_components/selora_ai/
 ├── conversation.py      # Assist Conversation Agent — routes natural language to HA service calls
 ├── automation_utils.py  # Validation, risk assessment, YAML I/O, async automation CRUD
 ├── automation_store.py  # Lifecycle + versioning for [Selora AI] automations
+├── group_manager.py     # HA group-helper CRUD (drives HA's own `group` config flow)
 ├── code_stamp.py        # Source-signature skew detection (restart-required handshake)
 ├── scene_store.py       # Scene creation + persistence
 ├── websocket/           # Panel websocket handlers, one module per domain (registered lazily)
@@ -168,6 +169,7 @@ Tests live in `tests/` and cover:
 - `test_selora_auth.py` — JWT validation, dual/multi-auth, MCP token auth path
 - `test_mcp_token_store.py` — token CRUD, hash validation, expiry, revocation
 - `test_telemetry.py` — opt-in gating, payload allowlist (no PII), dedup, install-id, error-swallowing
+- `test_group_tools.py` — group-helper CRUD tools; drives HA's real `group` config flow
 
 ### JavaScript (Vitest)
 
@@ -255,6 +257,124 @@ Shared rules:
 - **How repairs are recorded:** pure helpers call `record_repair("<type>")` (a no-op outside an LLM call). `UsageTracker.scope` opens a per-call ContextVar buffer and drains it at the call boundary, where provider/model are known, then POSTs fire-and-forget (never raises). To add a repair counter: add the type to `REPAIR_TYPES`, call `record_repair(...)` at the repair site, cover it in `tests/test_telemetry.py`. The instrumented paths: `service_name_inference`, `state_info_strip`, `trailing_marker_reposition`, `friendly_name_strip`, `tool_markup_leak` (`llm_client/parsers.py`, `command_policy.py`), `qwen_normalize` (`providers/_qwen_repair.py`), `cloud_json_salvage`. `tool_markup_leak` fires when a model emits its tool-call syntax as plain text (`<invoke …>` / mangled `< | DSML | …`) instead of a real tool_use block — stripped non-streaming by `strip_leaked_tool_markup` and mid-stream by `MarkupLeakGuard` in `llm_client/parsers.py`, both called from the tool loop in `llm_client/client.py`.
 - To add a snapshot count: add the key to `_SNAPSHOT_PROPERTY_KEYS` and populate it in `TelemetryClient._gather_snapshot`.
 - To add an activity counter: add the name to `_ACTIVITY_COUNTER_KEYS`, call `record_activity(hass, "<name>"[, n])` at the action's chokepoint (instrumented sites today: `automation_store.add_version`/`purge_record`, `automation_utils.async_toggle_automation`, `scene_store.async_add_scene`, `pattern_store.save_pattern`/`save_suggestion`/`update_suggestion_status`, the chat/command handlers + `_execute_command_calls` in `__init__.py`, `conversation._async_handle_message`, `device_manager.discover_network_devices`/`_count_if_paired`, `llm_client/usage.flush`, `providers/base._emit_quota_exceeded`), and cover it in `tests/test_telemetry.py`. The helper never raises and counts even when opted out (the flush is what's gated).
+
+## Groups
+
+`group_manager.py` backs four chat tools — `list_groups`, `create_group`, `update_group`,
+`delete_group` — so the LLM can offer a group when an automation would otherwise repeat the
+same long entity list. The automation then targets one stable entity_id and the homeowner
+edits membership in Settings → Devices & Services → Helpers without the automation changing.
+
+- **Helper config entries, not YAML.** We drive HA's own `group` config flow
+  (`flow.async_init("group")` → **menu** step `{"next_step_id": <group_type>}` → form). Note the
+  first step is a `SchemaFlowMenuStep`, so the form-only loop in `recipes/ws.py` does *not*
+  work here. All state lands in `entry.options` (`group_type`/`name`/`entities` + per-type
+  extras); `entry.data` stays empty. This is deliberately **not** the legacy `group:` YAML route
+  that recipes v3 uses (`recipes/renderer.py`) — that one is scoped to a self-contained package
+  file, while chat-created groups must be first-class, UI-editable helpers.
+- **Per-domain by construction.** A helper group holds one domain, so `infer_group_type()`
+  refuses mixed light+switch membership with guidance instead of dropping members.
+  `sensor`/`number`/`input_number` are the one exception — they combine into a numeric `sensor`
+  group, which additionally *requires* a `type` statistic (defaults to `mean`).
+- **Inapplicable per-type options are policed in code**, since `_build_create_payload` can only
+  forward an option to the schemas that accept it (the others are `vol.PREVENT_EXTRA`) and the tool
+  schema can't express "only when the members are numeric". Which way depends on whether the option
+  can carry user intent for the target type:
+  - `requires_all_members` is **rejected** off `binary_sensor`/`light`/`switch`. Every
+    state-combining type makes it meaningful ("closed only when every cover is"), so a caller
+    asking for it on a cover group wants something real that we cannot deliver — reporting
+    `status: created`/`updated` would claim a setting that was ignored.
+  - `statistic` is **dropped** off `sensor` (with a debug log). Only a sensor group holds a number,
+    so "mean of two lights" is not a request a user can make and there is no intent to discard.
+    Models volunteer it from the enum, and refusing turned "group my two lights" into a dead end.
+    Its value is validated *after* the drop, so a bogus statistic on a light group is ignored too.
+  - **A new per-type option needs one of these two treatments** — pick by asking whether a user
+    could have meant it for the types that cannot store it.
+- **`entities` and `add_entities`/`remove_entities` are mutually exclusive** — replacement vs delta
+  are different intents, and an LLM call can carry both; applying replacement and dropping the
+  deltas would report success having ignored part of the request.
+- **A stored member may be a registry id, not an entity_id.** HA's entity selector validates with
+  `cv.entity_id_or_uuid` and keeps whichever form it was given, so a UI-created group's
+  `options["entities"]` can hold uuids. Three rules, all served by `_resolve_members()`:
+  - **Compare resolved.** Domain inference, the self-reference guard, removal matching, addition
+    dedup, and the added/removed diff all run on entity_ids. Raw comparison makes a rename fail
+    (`infer_group_type()` reads the uuid as a domain), a removal-by-entity_id miss, an add-existing
+    duplicate the member, and a same-list replacement read as "all removed, all added" — which
+    then unhides members the group still holds.
+  - **Store the form already on record.** A registry id survives an entity_id rename, so a
+    *retained* member keeps its stored representation even when the caller named it by entity_id
+    (`stored_by_entity_id`); only genuinely new members are stored as given. Normalizing would
+    quietly weaken a group the user built in the UI.
+  - **Report resolved.** `describe_group`/`list_groups` and every update result return entity_ids —
+    the caller is an LLM that quotes them back and feeds them to entity-based tools.
+
+  A stored id whose entity was since **deleted** stays unresolved, and `async_update_group`
+  **refuses any update while one is present**. It is not merely cosmetic: the group platform
+  re-runs the saved list through `er.async_validate_entity_ids` on setup, which raises on an id
+  resolving to nothing, so the post-save reload leaves the group entity `unavailable` — while the
+  config entry still reports `LOADED`, meaning neither `async_reload()`'s result nor `entry.state`
+  detects it. A plain rename would brick the group and return `status: updated`. The error names
+  the exact stale string, because with no entity_id left that is the caller's only handle on it;
+  `remove_entities` with that string, or a replacement list omitting it, clears the block. Reads
+  (`describe_group`) still surface the raw id — only *writes* are gated.
+- **Unhiding a member is conditional on the other groups.** `hide_members` hides the *entity*, not
+  the membership, and an entity can sit in several hidden groups. Both paths that unhide have to
+  check `_members_free_to_unhide()` first, or a surviving hidden group is left with a visible
+  member and nothing in its own config to explain why:
+  - *Update* — a removed member is released only if no other `hide_members` group lists it.
+  - *Delete* — `group.async_remove_entry` unhides unconditionally, so
+    `_hides_to_restore_after_delete()` captures the still-claimed members **before** removal (the
+    options are gone after) and re-applies the hide, restricted to members HA will actually clear
+    (`hidden_by == INTEGRATION`).
+- **A `hidden_by == USER` entity is never touched, in either direction.** `_apply_member_visibility`
+  skips it before doing anything. Unhiding it would undo the user's choice outright; *re-hiding* it
+  looks like a no-op — it stays hidden — but it transfers ownership to the integration, so removing
+  that member later, or deleting the group, releases a hide the user set for their own reasons.
+  Creation can't use that guard — it runs HA's real flow, and
+  `async_config_flow_finished` → `_async_hide_members` writes `INTEGRATION` unconditionally with no
+  opt-out — so `async_create_group` captures `_user_hidden_members()` before the flow and
+  `_restore_user_hides()` after it.
+- **`describe_group` caps `members` at `_MAX_LISTED_MEMBERS`** (`member_count` stays exact,
+  `members_omitted` reports the difference). Not cosmetic: `ToolExecutor._find_longest_list` only
+  looks at top-level lists and lists inside top-level dicts — it never descends into a list *of*
+  dicts — so one oversized group made it pop the entire `groups[0]` record and the chat caller got
+  `count: 1` with no name, entity_id, or members. Any tool returning a list of records with inner
+  lists has the same exposure.
+- **A numeric group refuses a member that reports text** (`_non_numeric_members`, checked on create
+  *and* on update). `ignore_non_numeric` defaults to False, which does **not** mean "refuse":
+  `SensorGroup` drops the unparseable member from the calculation and logs a warning, so the group
+  is created, reports success, and lists a member contributing nothing (all-text members →
+  `unknown`). `unknown`/`unavailable` states are allowed through — a numeric sensor reads both
+  while its device is offline, and refusing then would tie group creation to a flat battery.
+- **A group may not contain its own entity.** HA's options flow makes that unrepresentable via
+  `entity_selector_without_own_entities`; we bypass that flow, so `async_update_group` checks
+  `own_entity_ids()` before saving — a self-referential group tracks its own state and can loop.
+  Nesting a *different* group stays legal.
+- **No store.** Groups are read live from config entries — nothing to reconcile or drift.
+  `unmanaged_yaml_groups()` surfaces legacy `group.*` entities read-only so a request to edit one
+  gets an explanation rather than a duplicate. `resolve_group()` checks the YAML case **before**
+  the "no group helpers yet" shortcut and on the by-name path as well as by-entity_id — a home
+  whose only groups are YAML-defined must still get that explanation, or the model reports a group
+  the user can plainly see as missing and offers to create a duplicate.
+- **Updates must reload.** `group`'s `async_setup_entry` registers no update listener and we
+  bypass the options flow, so `async_update_group` calls `async_reload` itself — without it the
+  live entity keeps tracking the old member list.
+- **Create/update execute directly; delete goes through the confirmation card** (`kind: "group"`,
+  `target_id` = the immutable config `entry_id`, so unlike the id-less scene/automation paths
+  there is no fingerprint to re-verify). The card label carries the blast radius from
+  `group_dependents()` because the tool-loop short-circuit discards prose the model writes.
+  That covers four referrers, and only the first two have an HA helper: automations and scripts
+  (`automations_with_entity` / `scripts_with_entity`), **scenes** (read off the scene state's
+  `entity_id` attribute — `scene` ships no `scenes_with_entity`), and **parent group helpers**
+  (`parent_groups()`, since HA's `groups_with_entity` walks only legacy YAML `group` entities and
+  never sees helper config entries). Nesting is supported, so a parent is ordinary — and it does
+  not break when the child is deleted, it silently gets smaller, which is exactly why the card has
+  to say so.
+- Adding a tool here means touching `group_manager.py`, `mcp_server.py` (`_tool_*` + `MCPTool`
+  schema + name constant + handler map + `_ADMIN_TOOLS`/`_READ_ONLY_TOOLS`), `tool_registry.py`
+  (`ToolDef` + `CHAT_TOOLS` + `COMMAND_TOOL_NAMES`), and `tool_executor.py`. `COMMAND_TOOL_NAMES`
+  is not optional: `_classify_chat_intent` falls through to `"command"` for group phrasings, which
+  trims the schema to that set.
 
 ## LLM Providers
 

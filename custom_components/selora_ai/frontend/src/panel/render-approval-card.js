@@ -50,6 +50,13 @@ const RISK_LEVEL_STYLES = {
 const _DELETE_KIND_LABELS = {
   automation: "automation",
   scene: "scene",
+  group: "group",
+};
+
+const _DELETE_KIND_ICONS = {
+  scene: "mdi:palette-outline",
+  group: "mdi:google-circles-communities",
+  automation: "mdi:robot-outline",
 };
 
 // Render the delete-confirmation card. Destructive accent (red), a row per
@@ -139,7 +146,7 @@ function _renderDeleteRow(host, d) {
       style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:10px;"
     >
       <ha-icon
-        icon=${d.kind === "scene" ? "mdi:palette-outline" : "mdi:robot-outline"}
+        icon=${_DELETE_KIND_ICONS[d.kind] || "mdi:robot-outline"}
         style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
       ></ha-icon>
       <div style="display:flex;flex-direction:column;min-width:0;">
