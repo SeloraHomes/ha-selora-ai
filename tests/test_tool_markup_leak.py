@@ -69,10 +69,79 @@ class TestStripLeakedToolMarkup:
         assert strip_leaked_tool_markup(text) == text
 
 
+# DeepSeek fences its special tokens with U+FF5C FULLWIDTH VERTICAL LINE, not
+# ASCII "|", and writes U+2581 where the token name has an underscore. Built
+# from codepoints so the intent survives an editor that "helpfully" normalises
+# the glyphs — matching only ASCII "|" let every DeepSeek leak reach the panel
+# while the ASCII fixtures above kept CI green.
+_FW = "｜"  # ｜
+_SEP = "▁"  # ▁
+
+FULLWIDTH_LEAK = (
+    "Let me check the Lutron Caséta integration for any Pico remotes.\n\n"
+    f"<{_FW}DSML{_FW}tool_calls>\n"
+    f'<{_FW}DSML{_FW}invoke name="get_entity_history">\n'
+    f'<{_FW}DSML{_FW}parameter name="entity_id" string="true">light.master_bedroom_main_lights'
+    f"</{_FW}DSML{_FW}parameter>\n"
+    f"</{_FW}DSML{_FW}invoke>\n"
+    f"</{_FW}DSML{_FW}tool_calls>"
+)
+
+# DeepSeek's native token names, with no DSML connective at all.
+NATIVE_LEAK = (
+    f"Checking now.\n\n<{_FW}tool{_SEP}calls{_SEP}begin{_FW}>\n"
+    f"<{_FW}tool{_SEP}call{_SEP}begin{_FW}>get_entity_history"
+)
+
+
 def _drive(guard: MarkupLeakGuard, chunks: list[str]) -> str:
     """Feed chunks through the guard and return the concatenated emission."""
     out = "".join(guard.feed(c) for c in chunks)
     return out + guard.flush()
+
+
+def _chunked(text: str, size: int) -> list[str]:
+    return [text[i : i + size] for i in range(0, len(text), size)]
+
+
+class TestFullwidthPipeLeak:
+    """The delimiter is not always ASCII — see the module constants above."""
+
+    def test_strip_removes_fullwidth_leak(self) -> None:
+        assert strip_leaked_tool_markup(FULLWIDTH_LEAK) == (
+            "Let me check the Lutron Caséta integration for any Pico remotes."
+        )
+
+    def test_strip_removes_native_token_leak(self) -> None:
+        assert strip_leaked_tool_markup(NATIVE_LEAK) == "Checking now."
+
+    @pytest.mark.parametrize("size", [1, 2, 3, 5, 11, 64])
+    def test_guard_suppresses_fullwidth_at_every_chunk_boundary(self, size: int) -> None:
+        guard = MarkupLeakGuard()
+        out = _drive(guard, _chunked(FULLWIDTH_LEAK, size))
+        assert guard.suppressed
+        assert out == "Let me check the Lutron Caséta integration for any Pico remotes."
+
+    @pytest.mark.parametrize("size", [1, 2, 3, 5, 11, 64])
+    def test_guard_suppresses_native_tokens_at_every_chunk_boundary(self, size: int) -> None:
+        guard = MarkupLeakGuard()
+        out = _drive(guard, _chunked(NATIVE_LEAK, size))
+        assert guard.suppressed
+        assert out == "Checking now."
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "The reading is 12│34 on the display.",
+            "Use a ｜ to separate the columns.",
+            "temp < 20 and a < b",
+        ],
+    )
+    def test_no_false_positive_on_prose_containing_pipes(self, text: str) -> None:
+        assert strip_leaked_tool_markup(text) == text
+        guard = MarkupLeakGuard()
+        assert _drive(guard, _chunked(text, 3)) == text
+        assert not guard.suppressed
 
 
 class TestMarkupLeakGuard:

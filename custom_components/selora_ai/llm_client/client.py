@@ -142,6 +142,57 @@ _FINAL_ROUND_DIRECTIVE = (
     "finish, say so plainly in prose."
 )
 
+# A round that produced NO structured tool call but tripped the leak guard is
+# a failed tool call, not a final answer: the model wrote the call as prose, so
+# nothing ran and nothing was observed. Treating it as an answer ends the turn
+# mid-investigation with rounds still unspent — the user then has to type
+# "continue" to restart a loop that gave up. Instead, tell the model what
+# happened and let it re-issue the call properly.
+_LEAK_RETRY_DIRECTIVE = (
+    "Your last message contained tool-call syntax written as plain text, so "
+    "NO tool ran and you received no results. Re-issue it as a real tool call "
+    "using the function-calling interface. Do not write the call as text, and "
+    "do not repeat your previous explanation."
+)
+# Bounded independently of the round budget: a model that leaks every round
+# would otherwise spend all eight on retries. Two is enough for a transient
+# formatting slip, and falling through to a normal final answer beats burning
+# the budget on a model that cannot do structured calls at all.
+_MAX_LEAK_RETRIES = 2
+
+
+def _grant_leak_retry(
+    messages: list[dict[str, Any]],
+    said: str,
+    *,
+    round_budget: int,
+    round_index: int,
+    retry_number: int,
+) -> int:
+    """Queue a correction round for a tool call the model wrote as text.
+
+    Appends what the model said (markup already stripped) plus the directive,
+    and returns the round budget extended by one.
+
+    The extension is the point: a round spent on a leak observed nothing, so
+    charging it against the budget would push the retry onto the forced-final
+    round — which withholds tools. The model would be told to re-issue a real
+    tool call while the request carries no tool definitions, so a compliant
+    provider cannot make one, and the directive contradicts the final-round
+    directive telling it not to write tool syntax at all.
+    """
+    _LOGGER.info(
+        "Tool call leaked as text (round %d, retry %d/%d) — asking the model "
+        "to re-issue it structurally",
+        round_index,
+        retry_number,
+        _MAX_LEAK_RETRIES,
+    )
+    if said.strip():
+        messages.append({"role": "assistant", "content": said})
+    messages.append({"role": "user", "content": _LEAK_RETRY_DIRECTIVE})
+    return min(round_budget + 1, MAX_TOOL_CALL_ROUNDS + _MAX_LEAK_RETRIES)
+
 
 def _join_stream_boundary(streamed: str, synthesized: str) -> str:
     """Return the synthesized tool-loop chunk prefixed so it does not fuse
@@ -1312,14 +1363,22 @@ class LLMClient:
         Returns: (final_text, error_message, tool_calls_log)
         """
         tool_calls_log: list[ToolCallLog] = []
+        leak_retries = 0
+        # Grows by one per granted leak retry (see _grant_leak_retry). A round
+        # spent on a leak observed nothing, so charging it against the budget
+        # would push the retry onto the forced-final round — which withholds
+        # tools, leaving the model told to re-issue a call it has no way to make.
+        round_budget = MAX_TOOL_CALL_ROUNDS
 
-        for _round in range(MAX_TOOL_CALL_ROUNDS):
+        for _round in range(MAX_TOOL_CALL_ROUNDS + _MAX_LEAK_RETRIES):
+            if _round >= round_budget:
+                break
             # On the last permitted round, withhold tools so the model commits
             # a final answer from what it has gathered instead of spending the
             # round on another read and dead-ending below. Every provider omits
             # an empty/None tools list (``if tools:`` guard), so this forces a
             # text turn — which is exactly where automation YAML is parsed from.
-            is_final_round = _round == MAX_TOOL_CALL_ROUNDS - 1
+            is_final_round = _round == round_budget - 1
             round_tools = None if is_final_round else tools
             round_system = system + _FINAL_ROUND_DIRECTIVE if is_final_round else system
             try:
@@ -1337,7 +1396,26 @@ class LLMClient:
                     # as text (instead of a real tool_use block) lands here with
                     # markup in ``text`` and nothing executed. Cut the leaked
                     # tail so it never reaches the panel.
-                    text = strip_leaked_tool_markup(text) if text else text
+                    repaired = strip_leaked_tool_markup(text) if text else text
+                    # A changed string means markup WAS present, so this is a
+                    # failed tool call rather than an answer. Same reasoning as
+                    # the streaming loop — re-ask instead of ending the turn.
+                    if (
+                        text
+                        and repaired != text
+                        and not is_final_round
+                        and leak_retries < _MAX_LEAK_RETRIES
+                    ):
+                        leak_retries += 1
+                        round_budget = _grant_leak_retry(
+                            messages,
+                            repaired,
+                            round_budget=round_budget,
+                            round_index=_round,
+                            retry_number=leak_retries,
+                        )
+                        continue
+                    text = repaired
                     # A blank forced-final answer — or one that was ENTIRELY a
                     # leaked tool call — falls through to the acknowledgement
                     # below rather than returning an empty/garbage turn.
@@ -1475,11 +1553,17 @@ class LLMClient:
         """
         streamed_text_parts: list[str] = []
         tool_step_seq = 0
-        for _round in range(MAX_TOOL_CALL_ROUNDS):
+        leak_retries = 0
+        # See _grant_leak_retry — a leaked round must not consume the budget
+        # that funds the tool-enabled rounds.
+        round_budget = MAX_TOOL_CALL_ROUNDS
+        for _round in range(MAX_TOOL_CALL_ROUNDS + _MAX_LEAK_RETRIES):
+            if _round >= round_budget:
+                break
             # Final round withholds tools so the model streams a committed
             # answer (the terminal automation block) instead of requesting
             # another tool and exhausting into the dead-end message below.
-            is_final_round = _round == MAX_TOOL_CALL_ROUNDS - 1
+            is_final_round = _round == round_budget - 1
             round_tools = None if is_final_round else tools
             round_system = system + _FINAL_ROUND_DIRECTIVE if is_final_round else system
             tool_calls: list[dict[str, Any]] = []
@@ -1533,6 +1617,24 @@ class LLMClient:
             # Leave usage in the buffer so the calling architect_chat_stream
             # flushes it under "chat".
             if not tool_calls:
+                # ...unless the round WANTED a tool and wrote it as text. The
+                # guard suppressed the markup, so the panel is clean, but the
+                # turn is not finished — nothing ran. Hand the model the reason
+                # and let it try again rather than ending here.
+                if (
+                    leak_guard.suppressed
+                    and not is_final_round
+                    and leak_retries < _MAX_LEAK_RETRIES
+                ):
+                    leak_retries += 1
+                    round_budget = _grant_leak_retry(
+                        messages,
+                        "".join(streamed_text_parts[text_len_before:]),
+                        round_budget=round_budget,
+                        round_index=_round,
+                        retry_number=leak_retries,
+                    )
+                    continue
                 # If the forced final round committed nothing substantive, emit
                 # the acknowledgement so the user isn't left with an empty turn.
                 # Match the sync path's ``strip()`` test: a round that streams
