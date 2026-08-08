@@ -181,12 +181,22 @@ def _strip_trigger_action_recap(text: str) -> str:
 # ``_LEAK_TOKENS`` are the keywords that head such a block; the connective
 # run (pipes / whitespace / ``DSML`` / ``antml:``) between ``<`` and the
 # keyword is tolerated so the mangled form matches too.
-_LEAK_KEYWORDS = ("function_calls", "tool_calls", "invoke", "parameter")
+_LEAK_KEYWORDS = ("function_calls", "tool_calls", "tool_call", "invoke", "parameter")
 _LEAK_CONNECTIVE_TOKENS = ("dsml", "antml:")
-_LEAK_CONNECTIVE_RE = re.compile(r"(?:\|+\s*|dsml\s*|antml:\s*)", re.IGNORECASE)
+# The delimiter is NOT always ASCII U+007C. DeepSeek's tokenizer fences every
+# special token with U+FF5C FULLWIDTH VERTICAL LINE (``<｜tool▁calls▁begin｜>``),
+# and it renders as a pipe with padding, so a leak looks ASCII in a bug report
+# while matching none of it. U+2502 BOX DRAWINGS LIGHT VERTICAL shows up the
+# same way. Matching only ``\|`` let every DeepSeek leak through to the panel.
+_LEAK_PIPE = r"[|｜│]"
+# Likewise the word separator: the same tokenizers write U+2581 LOWER ONE
+# EIGHTH BLOCK where the documented token name has an underscore.
+_LEAK_SEP = r"[_▁]"
+_LEAK_SEP_CHARS = "_▁"
+_LEAK_CONNECTIVE_RE = re.compile(rf"(?:{_LEAK_PIPE}+\s*|dsml\s*|antml:\s*)", re.IGNORECASE)
 _TOOL_MARKUP_LEAK_RE = re.compile(
-    r"</?\s*(?:\|+\s*)*(?:dsml\s*(?:\|+\s*)*)?(?:antml:\s*)?"
-    r"(?:function_calls|tool_calls|invoke|parameter)\b",
+    rf"</?\s*(?:{_LEAK_PIPE}+\s*)*(?:dsml\s*(?:{_LEAK_PIPE}+\s*)*)?(?:antml:\s*)?"
+    rf"(?:function{_LEAK_SEP}calls|tool{_LEAK_SEP}calls?|invoke|parameter)\b",
     re.IGNORECASE,
 )
 
@@ -212,7 +222,9 @@ def _leak_marker_prefix_could_match(chunk: str) -> bool:
     body = body.lstrip()
     if not body:
         return True  # only connective filler so far — undecided
-    low = body.lower()
+    # Folded to the ASCII separator so a half-arrived ``tool▁ca`` is still
+    # recognised as a prefix of ``tool_calls`` and held back.
+    low = body.lower().translate(str.maketrans(_LEAK_SEP_CHARS, "_" * len(_LEAK_SEP_CHARS)))
     return any(kw.startswith(low) for kw in (*_LEAK_KEYWORDS, *_LEAK_CONNECTIVE_TOKENS))
 
 
@@ -305,6 +317,13 @@ class MarkupLeakGuard:
         A leftover ``<…`` that still looks like a partial marker (stream
         ended mid-``<invoke``) is dropped, keeping the prose before it;
         ordinary trailing text is emitted intact.
+
+        Dropping here latches ``suppressed`` too. It reads like a no-op —
+        the round is over, nothing more will be emitted — but the flag is
+        what the tool loop reads to tell "the model finished" from "the
+        model wrote its call as text and nothing ran". Left false, a leak
+        that arrives truncated is the one shape that still ends the turn
+        without a retry.
         """
         if self._suppressing:
             self._buf = ""
@@ -313,6 +332,7 @@ class MarkupLeakGuard:
         self._buf = ""
         lt = leftover.find("<")
         if lt != -1 and _leak_marker_prefix_could_match(leftover[lt:]):
+            self._suppressing = True
             record_repair("tool_markup_leak")
             return leftover[:lt]
         return leftover

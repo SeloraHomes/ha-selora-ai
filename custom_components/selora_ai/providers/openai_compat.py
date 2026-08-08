@@ -178,24 +178,32 @@ class OpenAICompatibleProvider(LLMProvider):
         tool_calls: list[dict[str, Any]],
         results: list[dict[str, Any]],
     ) -> None:
+        # The prose this round streamed, collected by stream_with_tools. Carried
+        # on the FIRST synthesized assistant message only — repeating it per
+        # tool call would read as the model having said it several times.
+        narration = "".join(
+            str(block.get("text", "")) for block in content_blocks if block.get("type") == "text"
+        ).strip()
         # strict=False: cancel/watchdog early-break can leave results
         # shorter than tool_calls; pair what we have.
         for tc, res in zip(tool_calls, results, strict=False):
-            messages.append(
-                {
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "id": tc["id"],
-                            "type": "function",
-                            "function": {
-                                "name": tc["name"],
-                                "arguments": json.dumps(tc["arguments"]),
-                            },
-                        }
-                    ],
-                }
-            )
+            assistant_msg: dict[str, Any] = {
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "id": tc["id"],
+                        "type": "function",
+                        "function": {
+                            "name": tc["name"],
+                            "arguments": json.dumps(tc["arguments"]),
+                        },
+                    }
+                ],
+            }
+            if narration:
+                assistant_msg["content"] = narration
+                narration = ""
+            messages.append(assistant_msg)
             messages.append(
                 {
                     "role": "tool",
@@ -294,6 +302,12 @@ class OpenAICompatibleProvider(LLMProvider):
 
                 content = delta.get("content")
                 if content:
+                    # Also recorded, not just yielded: append_streaming_tool_results
+                    # replays this round back to the model, and without the prose
+                    # the model sees its own tool calls with no memory of what it
+                    # said — so it re-orients from scratch and re-narrates the
+                    # same sentence every round.
+                    content_blocks.append({"type": "text", "text": content})
                     yield content
 
                 for tc_delta in delta.get("tool_calls", []):
