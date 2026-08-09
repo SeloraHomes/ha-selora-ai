@@ -46158,7 +46158,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "5d7380de5e35" : "";
+var PANEL_BUILD = true ? "51aa6fa780e5" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
