@@ -87,7 +87,12 @@ const plugins = [
     },
   ],
 
-  // 5. (stable only) Commit the updated CHANGELOG.md + manifest.json back to main.
+  // 5. (stable only) Commit the updated CHANGELOG.md + manifest.json back to main,
+  //    along with the bundle step 4 rebuilt from them. The version reaches the
+  //    bundle through the `__SELORA_VERSION__` define, so a release that only
+  //    bumps manifest.json still rewrites panel.js and moves the build id —
+  //    leaving those two out commits a manifest the committed bundle disagrees
+  //    with, which the `frontend` job's freshness check then fails on main.
   //    Skipped for prereleases so a plain push to main doesn't churn the branch
   //    with a [skip ci] commit on every merge.
   ...(isPrerelease
@@ -99,6 +104,8 @@ const plugins = [
             assets: [
               "CHANGELOG.md",
               "custom_components/selora_ai/manifest.json",
+              "custom_components/selora_ai/frontend/panel.js",
+              "custom_components/selora_ai/frontend/panel.build.json",
             ],
             message:
               "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
