@@ -7,5 +7,15 @@
   "lockFileMaintenance": {
     "enabled": true
   },
-  "osvVulnerabilityAlerts": true
+  "osvVulnerabilityAlerts": true,
+  "postUpgradeTasks": {
+    "commands": [
+      "cd custom_components/selora_ai/frontend && npm ci && npm run build"
+    ],
+    "fileFilters": [
+      "custom_components/selora_ai/frontend/panel.js",
+      "custom_components/selora_ai/frontend/panel.build.json"
+    ],
+    "executionMode": "branch"
+  }
 }

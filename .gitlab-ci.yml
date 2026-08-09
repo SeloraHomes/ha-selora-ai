@@ -120,6 +120,17 @@ frontend:
     # the bundle going stale — the panel would then report a build id that
     # disagrees with panel.build.json and show every user a restart banner.
     # node:lts-slim ships no git, so compare bytes instead of diffing.
+    #
+    # This job only DETECTS staleness; two other places have to produce the
+    # rebuild, and a frontend dependency MR sits red until one of them does:
+    #   - renovate.json's postUpgradeTasks, so a dep bump carries its own
+    #     rebuild (needs the command in the self-hosted allowedCommands — an
+    #     unlisted command is skipped silently, which looks exactly like the
+    #     config not being there at all);
+    #   - release.config.js's git assets, so the manifest bump that reaches the
+    #     bundle via __SELORA_VERSION__ is committed together with it.
+    # Only the frontend package files feed the build id — a root package.json
+    # bump (semantic-release, commitlint) cannot make the bundle stale.
     - cp panel.js /tmp/panel.js.committed
     - cp panel.build.json /tmp/panel.build.json.committed
     - npm run build
