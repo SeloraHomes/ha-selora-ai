@@ -112,6 +112,24 @@ frontend:
     - cd custom_components/selora_ai/frontend
     - npm ci
     - npx vitest run
+    # The committed bundle must equal a fresh build of the committed inputs.
+    # build-id.js hashes package-lock.json among those inputs (Lit ships inside
+    # panel.js, so a dependency bump rewrites the bundle without touching src/),
+    # which means a lockfile-only change still moves the build id. Renovate
+    # automerges lockFileMaintenance MRs, and nothing else in CI would notice
+    # the bundle going stale — the panel would then report a build id that
+    # disagrees with panel.build.json and show every user a restart banner.
+    # node:lts-slim ships no git, so compare bytes instead of diffing.
+    - cp panel.js /tmp/panel.js.committed
+    - cp panel.build.json /tmp/panel.build.json.committed
+    - npm run build
+    - |
+      if ! cmp -s panel.js /tmp/panel.js.committed \
+         || ! cmp -s panel.build.json /tmp/panel.build.json.committed; then
+        echo "Committed panel bundle is stale — run 'node build.js' in"
+        echo "custom_components/selora_ai/frontend and commit the result."
+        exit 1
+      fi
 
 release-script:
   stage: test
