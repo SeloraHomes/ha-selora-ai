@@ -34,6 +34,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 
 from ..const import (
+    CONTEXT_WINDOW_PROBE_TTL_S,
     DEFAULT_SELORA_LOCAL_HOST,
     HEALTH_CHECK_TIMEOUT,
     SELORA_LOCAL_DEFAULT_INTENT,
@@ -42,6 +43,7 @@ from ..const import (
     SELORA_LOCAL_LORA_FILENAME_KEYWORDS,
     SELORA_LOCAL_MAX_TOKENS_BY_KIND,
 )
+from .base import _positive_int
 from .openai_compat import OpenAICompatibleProvider
 
 _LOGGER = logging.getLogger(__name__)
@@ -701,6 +703,15 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         # ``model`` field; llama-server ignores it but it makes requests
         # inspectable. Falls back to the resolved intent name.
         self._base_model_id: str | None = None
+        # Context window llama-server is actually serving, read from the
+        # same GET /v1/models body (``data[0].meta.n_ctx``). None = never
+        # asked or the probe failed — see LLMProvider.context_window; it
+        # does NOT mean "unlimited". The fetch timestamp uses None as its
+        # never-fetched sentinel because time.monotonic() counts from
+        # boot: a 0.0 sentinel reads as "just fetched" on a host with
+        # less uptime than the TTL and would suppress the first probe.
+        self._context_window: int | None = None
+        self._context_probe_at: float | None = None
         # Serializes discovery so concurrent first-use requests don't
         # all race the GET /lora-adapters endpoint.
         self._slot_lock: asyncio.Lock = asyncio.Lock()
@@ -886,6 +897,99 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
     @property
     def is_local(self) -> bool:
         return True
+
+    @property
+    def context_window(self) -> int | None:
+        # Whatever llama-server was launched with (`-c`), discovered from
+        # GET /v1/models. Distinct from ``is_low_context``: that is a
+        # static "assume a tight window" policy flag, this is the measured
+        # number — and it can be much larger than the 1024 the policy
+        # assumes when the hub operator raised it. None until a probe
+        # succeeds; see LLMProvider.context_window.
+        return self._context_window
+
+    async def async_refresh_capabilities(self) -> None:
+        """Ask the hub what context window llama-server is serving.
+
+        ``GET /v1/models`` reports the live server config in
+        ``data[0].meta.n_ctx`` — authoritative, because the operator
+        fixes it with ``-c`` at launch and it cannot be changed
+        per-request. ``meta.n_ctx_train`` sits next to it and is the
+        model's trained maximum; we deliberately read the served one.
+
+        TTL-cached, and the timestamp is stamped before the request so a
+        hub that is down doesn't get re-probed on every panel load. Any
+        failure (hub off, older build with no ``meta`` block, malformed
+        body) leaves the cached value untouched rather than erasing a
+        good reading. Never raises.
+        """
+        now = time.monotonic()
+        if (
+            self._context_probe_at is not None
+            and now - self._context_probe_at < CONTEXT_WINDOW_PROBE_TTL_S
+        ):
+            return
+        self._context_probe_at = now
+        try:
+            session = self._get_session()
+            async with session.get(
+                f"{self._host}/v1/models",
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.debug("Selora Local context-window probe returned HTTP %s", resp.status)
+                    return
+                data = await resp.json()
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            _LOGGER.debug("Selora Local context-window probe failed: %s", exc)
+            return
+        self._apply_models_payload(data)
+
+    def _apply_models_payload(self, data: object) -> None:
+        """Read the base model id and served context window out of a
+        ``GET /v1/models`` body.
+
+        Shared by ``async_refresh_capabilities`` and the LoRA discovery
+        pass so both fill the same cache from one response shape — LoRA
+        discovery already fetches this endpoint, so it costs it nothing
+        to record the window while the body is in hand. Missing or
+        malformed fields are skipped, never written as None: the hub is
+        the only source for these and a partial body must not clobber an
+        earlier good reading.
+
+        The envelope is shape-checked before anything is read out of it,
+        not just the fields inside. ``host`` is user-configured, so a
+        proxy or an unrelated server on that port can answer 200 with a
+        JSON array or scalar, and ``.get`` on one of those raises
+        ``AttributeError`` — which neither caller catches. That would
+        break the non-raising contract of ``async_refresh_capabilities``
+        (reached from the ``get_config`` websocket handler) and would
+        surface on the completion path through the LoRA discovery pass.
+        """
+        if not isinstance(data, dict):
+            _LOGGER.debug(
+                "Selora Local /v1/models answered with a %s, not an object — ignoring",
+                type(data).__name__,
+            )
+            return
+        raw_entries = data.get("data")
+        entries = (
+            [entry for entry in raw_entries if isinstance(entry, dict)]
+            if isinstance(raw_entries, list)
+            else []
+        )
+        for entry in entries:
+            if model_id := entry.get("id"):
+                self._base_model_id = str(model_id)
+                break
+        for entry in entries:
+            meta = entry.get("meta")
+            if not isinstance(meta, dict):
+                continue
+            if n_ctx := _positive_int(meta.get("n_ctx")):
+                self._context_window = n_ctx
+                break
 
     @property
     def supports_streaming(self) -> bool:
@@ -1226,6 +1330,10 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             timeout = aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT)
             # Discover the loaded base model id. Used as the OpenAI
             # ``model`` field for inspectability and as a telemetry tag.
+            # The same body carries ``meta.n_ctx``, so _apply_models_payload
+            # records the served context window here too — free, and it
+            # means the window is known from first use rather than only
+            # after the panel triggers a capability refresh.
             try:
                 async with session.get(
                     f"{self._host}/v1/models",
@@ -1233,11 +1341,8 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
                     timeout=timeout,
                 ) as resp:
                     if resp.status == 200:
-                        data = await resp.json()
-                        ids = [m["id"] for m in (data.get("data") or []) if m.get("id")]
-                        if ids:
-                            self._base_model_id = ids[0]
-            except (aiohttp.ClientError, TimeoutError) as exc:
+                        self._apply_models_payload(await resp.json())
+            except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
                 _LOGGER.debug("Selora Local /v1/models probe failed: %s", exc)
             # Discover loaded LoRAs. Treat any non-200 status or
             # transport error as transient — arm the backoff and leave

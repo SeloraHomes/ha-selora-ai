@@ -10,10 +10,12 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 
 from ..const import (
+    CONTEXT_WINDOW_PROBE_TTL_S,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
     HEALTH_CHECK_TIMEOUT,
 )
+from .base import _positive_int
 from .openai_compat import OpenAICompatibleProvider
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,6 +63,18 @@ _CAPABILITIES_TTL_S = 300.0
 # recovered tool-capable server must not stay pinned tool-less.
 _RETRYABLE_STATUSES = frozenset({408, 425, 429})
 
+# GGUF header key holding the model's trained context length. It is
+# architecture-prefixed — "llama.context_length", "qwen3.context_length",
+# "gemma3.context_length" — and Ollama's catalog grows new architectures
+# constantly, so match on the suffix instead of maintaining a list that
+# would silently go stale. The suffix has to be exact: the same map
+# carries "<arch>.embedding_length", "<arch>.attention.key_length" and
+# friends.
+_CONTEXT_LENGTH_SUFFIX = ".context_length"
+
+# Modelfile PARAMETER name that sets the served window.
+_NUM_CTX_PARAMETER = "num_ctx"
+
 
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama local LLM provider."""
@@ -89,6 +103,15 @@ class OllamaProvider(OpenAICompatibleProvider):
         # first probe.
         self._tools_capable: bool | None = None
         self._capabilities_fetched_at: float | None = None
+        # Served context window, discovered from POST /api/show by
+        # async_refresh_capabilities. None = never asked or the probe
+        # failed; it does NOT mean "unlimited" (see
+        # LLMProvider.context_window). The fetch timestamp uses None as
+        # its never-fetched sentinel because time.monotonic() counts from
+        # boot: a 0.0 sentinel reads as "just fetched" on a host with less
+        # uptime than the TTL and would suppress the first probe.
+        self._context_window: int | None = None
+        self._context_probe_at: float | None = None
 
     @property
     def provider_type(self) -> str:
@@ -119,13 +142,55 @@ class OllamaProvider(OpenAICompatibleProvider):
         # HTTP 400, while withholding it only loses tool calling.
         return self._tools_capable is True
 
-    async def async_refresh_capabilities(self) -> None:
-        """Refresh the discovered capabilities — here, only tool support.
+    @property
+    def context_window(self) -> int | None:
+        # Discovered from POST /api/show; None until a probe succeeds.
+        # See LLMProvider.context_window — None is "unknown", not
+        # "unlimited".
+        return self._context_window
 
-        Vision is inferred from the model name (``_VISION_MODEL_HINTS``), so
-        the tool probe is the only thing to do.
+    async def async_refresh_capabilities(self) -> None:
+        """Ask Ollama about the configured model's tools and context window.
+
+        Vision is inferred from the model name (``_VISION_MODEL_HINTS``),
+        so what is left to discover is tool support and the served context
+        window — and ``POST /api/show`` reports both in one body, so the
+        broad hook makes a single request and reads both out of it (see
+        ``_async_probe_show``).
+
+        On the context window, that body answers with two relevant pieces:
+
+        * ``parameters`` — the model's Modelfile ``PARAMETER`` lines. A
+          ``num_ctx`` there is what the server will actually allocate,
+          because Ollama resolves the window as
+          default < Modelfile < per-request options, and this provider
+          sends no per-request options (see the note below). This is the
+          reported value.
+        * ``model_info`` — the GGUF header, carrying the model's
+          **trained** context length under an architecture-prefixed key
+          (see ``_CONTEXT_LENGTH_SUFFIX``). Advisory only: it neither
+          raises nor caps the reported window, because llama.cpp serves
+          whatever window it was asked for. It is used to tell the user
+          when their model is being served in less room than it was
+          trained for — a 40K-trained model routinely runs in 4K.
+
+        So the window is known only when the Modelfile sets ``num_ctx``.
+        Without it the daemon's own default applies, which ``/api/show``
+        does not report and no constant can stand in for — the value is
+        unknown rather than guessed (see ``_apply_context_window``).
+
+        Note on the missing per-request field: Ollama's *native*
+        ``/api/chat`` accepts ``options.num_ctx``, but this provider
+        speaks the OpenAI-compatible ``/v1/chat/completions`` endpoint,
+        whose request schema has no context field at any level — upstream
+        maps only stop / num_predict / temperature / seed / penalties /
+        top_p onto Ollama options, and the PR proposing ``num_ctx`` there
+        was closed unmerged. Sending one would be silently dropped, so we
+        read the window and report it rather than pretend to set it. If a
+        model is running smaller than it was trained for, the log line in
+        ``_apply_context_window`` tells the user the two knobs that do work.
         """
-        await self.async_refresh_tool_capability()
+        await self._async_probe_show(want_context=True)
 
     async def async_refresh_tool_capability(self) -> None:
         """Ask Ollama whether the configured model's template accepts tools.
@@ -141,13 +206,40 @@ class OllamaProvider(OpenAICompatibleProvider):
         rather than flapping to False on a blip. Never raises — this runs
         from the ``get_config`` websocket handler and, more importantly, on
         every tool-bearing chat turn.
+
+        The context window lives in the same response but is deliberately
+        left to the broad hook: this one runs per turn and must stay on the
+        tool TTL, which is the shorter and more urgent of the two.
+        """
+        await self._async_probe_show(want_context=False)
+
+    async def _async_probe_show(self, *, want_context: bool) -> None:
+        """Run ``POST /api/show`` once and update whichever answer is due.
+
+        Both discovered capabilities come out of this one body, so the
+        request is shared — but each keeps its own TTL and its own
+        failure semantics, because they fail differently:
+
+        * Tools stamp only on a *conclusive* answer, so a blip re-probes
+          on the next turn instead of pinning a capable model tool-less.
+        * The context window stamps before the request, so a stopped
+          Ollama isn't re-probed on every panel load.
+
+        Never raises: a failure leaves both cached values untouched.
         """
         now = time.monotonic()
-        if (
-            self._capabilities_fetched_at is not None
-            and now - self._capabilities_fetched_at < _CAPABILITIES_TTL_S
-        ):
+        tools_due = (
+            self._capabilities_fetched_at is None
+            or now - self._capabilities_fetched_at >= _CAPABILITIES_TTL_S
+        )
+        context_due = want_context and (
+            self._context_probe_at is None
+            or now - self._context_probe_at >= CONTEXT_WINDOW_PROBE_TTL_S
+        )
+        if not tools_due and not context_due:
             return
+        if context_due:
+            self._context_probe_at = now
         try:
             session = self._get_session()
             async with session.post(
@@ -157,7 +249,7 @@ class OllamaProvider(OpenAICompatibleProvider):
                 data=self._encode_body({"model": self._model}),
             ) as resp:
                 if resp.status != 200:
-                    if resp.status >= 500 or resp.status in _RETRYABLE_STATUSES:
+                    if not tools_due or resp.status >= 500 or resp.status in _RETRYABLE_STATUSES:
                         # The server is reachable but not answering for a
                         # reason that says nothing about the model: still
                         # loading, rate-limited, or a proxy timeout. Leave
@@ -175,19 +267,111 @@ class OllamaProvider(OpenAICompatibleProvider):
                     self._capabilities_fetched_at = now
                     return
                 data = await resp.json()
-        except (aiohttp.ClientError, TimeoutError, ValueError):
-            _LOGGER.debug("Ollama capabilities fetch failed; keeping cached value")
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            _LOGGER.debug("Ollama /api/show probe failed (%s); keeping cached values", exc)
             return
         # Shape-check the body rather than trusting it: this runs on the
         # per-turn chat gate, so a TypeError/AttributeError here would take
-        # down a chat turn, not just a capability read. The list check is
-        # not only about raising — ``in`` against a bare string is a
-        # substring test, so a scalar ``"capabilities": "tools_only"``
-        # would otherwise report tool support that isn't there.
-        raw = data.get("capabilities") if isinstance(data, dict) else None
+        # down a chat turn, not just a capability read.
+        if not isinstance(data, dict):
+            return
+        if tools_due:
+            self._apply_tool_capability(data, now)
+        if context_due:
+            self._apply_context_window(data)
+
+    def _apply_tool_capability(self, data: dict[str, Any], now: float) -> None:
+        """Record whether the model's template accepts a tool schema."""
+        # The list check is not only about raising — ``in`` against a bare
+        # string is a substring test, so a scalar
+        # ``"capabilities": "tools_only"`` would otherwise report tool
+        # support that isn't there.
+        raw = data.get("capabilities")
         capabilities = raw if isinstance(raw, list) else []
         self._tools_capable = _TOOLS_CAPABILITY in capabilities
         self._capabilities_fetched_at = now
+
+    def _apply_context_window(self, data: dict[str, Any]) -> None:
+        """Record the served window from a body the probe managed to read.
+
+        Only reached for a 200 whose body parsed as an object, so the
+        absence of a ``num_ctx`` here is the server's answer, not a
+        failure — which is why this may write ``None`` where the
+        transport- and status-failure paths must not. A model recreated
+        under the same name without ``PARAMETER num_ctx`` swaps a known
+        window for the daemon default, and entry.data doesn't change, so
+        nothing else would ever invalidate the old number; keeping it would
+        report 32768 for a 4096-token window on every refresh from then on.
+        Unknown is the safe state for this property, so a read that finds
+        no window resets to it.
+        """
+        model_info = data.get("model_info")
+        trained = self._trained_context_length(model_info) if isinstance(model_info, dict) else None
+        parameters = data.get("parameters")
+        configured = self._modelfile_num_ctx(parameters) if isinstance(parameters, str) else None
+
+        if configured is None:
+            # Without a Modelfile ``num_ctx`` the daemon's own default
+            # applies, and ``/api/show`` never reports it. It is not a
+            # constant either: the operator sets it with
+            # ``OLLAMA_CONTEXT_LENGTH``, and it has changed between Ollama
+            # releases. Substituting a compiled-in guess could report a
+            # window *larger* than a server configured smaller — callers
+            # would size prompts to room that isn't there, which is the one
+            # direction this property must never be wrong in. The trained
+            # length is no substitute: it is what the model was trained
+            # for, not what the runtime allocates.
+            if self._context_window is not None:
+                _LOGGER.debug(
+                    "Ollama model '%s' no longer sets `PARAMETER num_ctx`; "
+                    "served context window is unknown again",
+                    self._model,
+                )
+            self._context_window = None
+            return
+        # Reported as configured, deliberately not clamped to ``trained``:
+        # llama.cpp allocates the window it is asked for and extrapolates
+        # past the trained length (with a warning), so the larger number is
+        # the one really being served. Clamping would under-report it and
+        # make prompt sizing truncate room that exists.
+        window = configured
+
+        previous = self._context_window
+        self._context_window = window
+        if previous != window and trained is not None and window < trained:
+            _LOGGER.info(
+                "Ollama model '%s' is being served with a %d-token context window although it "
+                "was trained for %d. The OpenAI-compatible API has no per-request context "
+                "setting, so raise it with `PARAMETER num_ctx` in the model's Modelfile or the "
+                "OLLAMA_CONTEXT_LENGTH environment variable on the Ollama server.",
+                self._model,
+                window,
+                trained,
+            )
+
+    @staticmethod
+    def _trained_context_length(model_info: dict[str, Any]) -> int | None:
+        """Pull the trained context length out of a GGUF header map."""
+        for key, value in model_info.items():
+            if key.endswith(_CONTEXT_LENGTH_SUFFIX) and (parsed := _positive_int(value)):
+                return parsed
+        return None
+
+    @staticmethod
+    def _modelfile_num_ctx(parameters: str) -> int | None:
+        """Parse ``num_ctx`` out of the Modelfile PARAMETER block.
+
+        ``parameters`` is the raw text Ollama echoes back — one
+        ``<name><whitespace><value>`` per line, e.g. ``num_ctx  32768``
+        — and is absent entirely for a model that sets no parameters.
+        """
+        for line in parameters.splitlines():
+            # split(maxsplit=1) collapses the run of padding spaces Ollama
+            # uses to align values, and tolerates a tab.
+            parts = line.split(maxsplit=1)
+            if len(parts) == 2 and parts[0] == _NUM_CTX_PARAMETER:
+                return _positive_int(parts[1])
+        return None
 
     async def health_check(self) -> bool:
         """Check Ollama is reachable and the model is pulled."""

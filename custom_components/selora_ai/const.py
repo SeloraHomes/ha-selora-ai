@@ -781,8 +781,9 @@ DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
 ANTHROPIC_API_VERSION = "2023-06-01"
 
 # ── Ollama (Local LLM) ──────────────────────────────────────────────
-# Uses Anthropic-compatible API: same /v1/messages endpoint format
-#   https://docs.ollama.com/api/anthropic-compatibility
+# Talks OpenAI-compatible chat completions (/v1/chat/completions) via
+# OpenAICompatibleProvider:
+#   https://docs.ollama.com/api/openai-compatibility
 CONF_OLLAMA_HOST = "ollama_host"
 CONF_OLLAMA_MODEL = "ollama_model"
 
@@ -991,6 +992,18 @@ ANALYSIS_LLM_TIMEOUT = 300
 # user-hostile; 15 s is plenty for a model-list call to a healthy upstream
 # and short enough that a misconfigured key/network surfaces quickly.
 HEALTH_CHECK_TIMEOUT = 15
+
+# ── Context Window Discovery ────────────────────────────────────────
+# Local backends serve whatever window they were started with, and the
+# integration has no way to know it without asking: llama-server takes
+# it from `-c` at launch, Ollama from the Modelfile / OLLAMA_CONTEXT_LENGTH.
+# Providers that can ask do so in async_refresh_capabilities and cache the
+# answer for this long. The number only changes when the server is
+# restarted or a Modelfile is edited, so a short TTL would just add a
+# round-trip to every panel load (get_config refreshes capabilities);
+# 15 minutes still picks a change up inside one session. Matches
+# AIGATEWAY_CAPABILITIES_TTL_S, which exists for the same reason.
+CONTEXT_WINDOW_PROBE_TTL_S = 900.0
 
 # ── Cloud Gateway Sampling ──────────────────────────────────────────
 # Sampling temperature for the gateway providers (Selora Cloud, OpenRouter)

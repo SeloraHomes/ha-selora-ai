@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Callable
 import json
 import logging
+import math
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -66,6 +67,50 @@ class RateLimitError(ConnectionError):
         self.provider = provider
         self.retry_after = retry_after
         self.message = message
+
+
+def _positive_int(value: object) -> int | None:
+    """Coerce a scalar from a server's JSON metadata to a positive int.
+
+    Capability probes read numbers straight out of upstream payloads, so
+    the type is whatever the server felt like emitting: llama-server
+    sends ``n_ctx`` as a JSON number, Ollama echoes GGUF integers that
+    can arrive as ``40960.0``, and Modelfile ``PARAMETER`` lines are
+    plain text. Anything non-numeric, non-integral, or ``<= 0`` is
+    rejected as "no reading" rather than guessed at. Bools are rejected
+    explicitly — ``isinstance(True, int)`` is True in Python, and a flag
+    silently becoming a 1-token window is exactly the kind of nonsense
+    these probes exist to prevent.
+
+    Every rejection returns ``None``; nothing here raises. The callers are
+    probes that promise a malformed body is non-fatal, and one of them
+    runs on the chat path, so an exception escaping this coercion would
+    cost a turn rather than a capability reading.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value > 0 else None
+    if isinstance(value, float):
+        # NaN and ±inf reach here: Python's json module accepts the
+        # non-standard NaN/Infinity literals by default, and a numeric
+        # literal too large for a float (1e400) parses to inf. int()
+        # raises ValueError on the former and OverflowError on the latter,
+        # so neither may be handed to it.
+        if not math.isfinite(value):
+            return None
+        as_int = int(value)
+        return as_int if as_int > 0 and float(as_int) == value else None
+    if isinstance(value, str):
+        try:
+            as_int = int(value.strip())
+        except (
+            TypeError,
+            ValueError,
+        ):
+            return None
+        return as_int if as_int > 0 else None
+    return None
 
 
 def _parse_retry_after(value: str | None) -> int | None:
@@ -287,13 +332,34 @@ class LLMProvider(ABC):
         """
         return True
 
+    @property
+    def context_window(self) -> int | None:
+        """Total tokens the backend serves for one request, or ``None``.
+
+        ``None`` means **unknown** — never "unlimited". It is the value
+        before anything has asked the server, after a probe failed, and
+        for every provider that has no way to report it. Callers must
+        read it as "no information" and keep whatever conservative
+        behaviour they already had; deciding a prompt fits because the
+        window is ``None`` gets that decision exactly backwards.
+
+        The number is the *served* window (prompt + completion together),
+        not the model's trained maximum: a model trained for 40K tokens
+        loaded into a 4K runtime window serves 4K. Providers that can ask
+        their backend populate it from ``async_refresh_capabilities``.
+        """
+        return None
+
     async def async_refresh_capabilities(self) -> None:  # noqa: B027 — deliberate no-op hook
         """Refresh every dynamically discovered capability.
 
-        No-op for providers whose capabilities are static. Providers that
-        route to a server-side-configured model (Selora Cloud) or expose a
-        catalog of them (OpenRouter) override this to ask the backend.
-        Called from the ``get_config`` websocket handler and before an
+        Covers ``supports_vision`` and ``context_window`` — anything the
+        server owns and the client can only learn by asking. No-op for
+        providers whose capabilities are static. Providers that route to a
+        server-side-configured model (Selora Cloud), expose a catalog of
+        them (OpenRouter), or run against a user-managed local server
+        (Selora AI Local, Ollama) override this to ask the backend. Called
+        from the ``get_config`` websocket handler and before an
         attachment-bearing turn, i.e. where a UI affordance depends on the
         answer; must never raise. This is the broad hook and may cost a
         request — do not call it on the per-turn chat path, which wants
