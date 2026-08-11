@@ -781,6 +781,31 @@ class LLMClient:
             return short_circuit
 
         with self._usage.scope("chat"):
+            if tool_executor is not None:
+                # Ask on every tool-bearing turn, not only when the flag
+                # already reads False. Ollama reports tool support per
+                # model and the answer goes stale in BOTH directions: a
+                # model re-pulled under the same name may gain a tool
+                # block (so a cached False must be overturnable) or lose
+                # one (so a cached True must be re-checked — otherwise
+                # every turn attaches tools and collects an HTTP 400).
+                # The tool-only hook, not async_refresh_capabilities: the
+                # broad one also discovers vision, which costs OpenRouter a
+                # catalog fetch and Selora Cloud a token refresh that no
+                # text turn needs. This one TTL-caches, never raises, and
+                # is a no-op wherever supports_tools is statically True —
+                # a method call per turn, not a request per turn.
+                await self._provider.async_refresh_tool_capability()
+                if not self._provider.supports_tools:
+                    # The model's chat template can't take a tool schema —
+                    # an Ollama model without one rejects the whole request
+                    # with HTTP 400 rather than ignoring the tools. Drop
+                    # the executor so the turn takes the no-tools path.
+                    _LOGGER.debug(
+                        "%s reports no tool support — sending this turn without tools",
+                        self._provider.provider_name,
+                    )
+                    tool_executor = None
             if self._provider.is_low_context:
                 # Low-context backend (e.g. Selora AI Local, max_seq=1024):
                 # pre-classify the user's intent so the provider can route
@@ -1077,6 +1102,18 @@ class LLMClient:
             return
 
         with self._usage.scope("chat"):
+            if tool_executor is not None:
+                # See architect_chat — revalidate the TTL-cached tool
+                # capability (the narrow hook, no vision discovery) on every
+                # tool-bearing turn, then withhold tools from a model whose
+                # template rejects them.
+                await self._provider.async_refresh_tool_capability()
+                if not self._provider.supports_tools:
+                    _LOGGER.debug(
+                        "%s reports no tool support — streaming this turn without tools",
+                        self._provider.provider_name,
+                    )
+                    tool_executor = None
             if self._provider.is_low_context:
                 # See architect_chat — same low-context shortcut.
                 intent_hint = _classify_chat_intent(user_message, entities)

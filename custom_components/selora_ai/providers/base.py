@@ -271,13 +271,45 @@ class LLMProvider(ABC):
         """
         return False
 
+    @property
+    def supports_tools(self) -> bool:
+        """Whether the model behind this provider accepts a tool schema.
+
+        Defaults to True — every cloud API this integration talks to takes
+        a ``tools`` array on every model it exposes. Backends that serve
+        arbitrary user-supplied models (Ollama) override this, because
+        tool support there is a property of the *model's chat template*:
+        a model without a tool block makes the server reject the whole
+        request (Ollama answers HTTP 400 ``"<model> does not support
+        tools"``), so the schema has to be withheld rather than sent
+        hopefully. LLMClient gates tool-schema emission on this flag
+        alongside ``is_low_context``.
+        """
+        return True
+
     async def async_refresh_capabilities(self) -> None:  # noqa: B027 — deliberate no-op hook
-        """Refresh dynamically discovered capabilities (e.g. supports_vision).
+        """Refresh every dynamically discovered capability.
 
         No-op for providers whose capabilities are static. Providers that
-        route to a server-side-configured model (Selora Cloud) override
-        this to ask the backend. Called from the ``get_config`` websocket
-        handler before capability flags are read; must never raise.
+        route to a server-side-configured model (Selora Cloud) or expose a
+        catalog of them (OpenRouter) override this to ask the backend.
+        Called from the ``get_config`` websocket handler and before an
+        attachment-bearing turn, i.e. where a UI affordance depends on the
+        answer; must never raise. This is the broad hook and may cost a
+        request — do not call it on the per-turn chat path, which wants
+        ``async_refresh_tool_capability`` instead.
+        """
+
+    async def async_refresh_tool_capability(self) -> None:  # noqa: B027 — deliberate no-op hook
+        """Refresh ``supports_tools`` alone.
+
+        Split out from ``async_refresh_capabilities`` because the chat tool
+        gate runs on every tool-bearing turn and must not pay for the vision
+        discovery (a catalog fetch, and for Selora Cloud a token refresh)
+        that no text turn needs. No-op by default, which is correct for
+        every provider whose ``supports_tools`` is the static True: there is
+        nothing to discover. Ollama overrides it — its answer is per-model
+        and mutable — and must keep it cached and non-raising.
         """
 
     # -- HTTP plumbing (abstract) ------------------------------------------
