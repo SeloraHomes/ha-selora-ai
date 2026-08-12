@@ -2799,6 +2799,7 @@ async def _handle_websocket_chat_stream(
             session_id=session_id,
             user_message=user_message,
             language=msg.get("language"),
+            refining=refining is not None,
         )
 
         # Surface the automation lifecycle on the activity timeline: drafted →

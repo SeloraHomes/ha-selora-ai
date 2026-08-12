@@ -2894,6 +2894,7 @@ def parse_streamed_response(
     session_id: str | None = None,
     user_message: str | None = None,
     language: str | None = None,
+    refining: bool = False,
 ) -> ArchitectResponse:
     """Parse completed streamed text.
 
@@ -2908,6 +2909,10 @@ def parse_streamed_response(
     When *tool_log* is provided and includes an ``execute_command``
     invocation, command JSON that duplicates an already-executed tool
     call is suppressed to prevent double execution.
+
+    *refining* means the turn is editing an automation the user already
+    loaded into the session; it stands in for the create-intent the
+    message itself no longer carries (see ``_is_proposal``).
     """
     # Extract quick_actions block first — it's supplementary and can
     # appear alongside any other block type. Removing it now also lets
@@ -3143,7 +3148,17 @@ def parse_streamed_response(
     # the user actually asked to CREATE an automation. A how-to /
     # "show me an example" question (``_is_definite_automation`` is False)
     # leaves its non-terminal example rendered as code.
-    wants_automation = _is_definite_automation(user_message or "")
+    #
+    # A REFINEMENT turn carries that intent in the session, not in the
+    # message: "change the threshold to 18" / "say Larry is at the door
+    # instead" match none of ``_is_definite_automation``'s recurring /
+    # conditional phrasings, yet the model reliably closes with a summary
+    # of what it changed ("The rest of the automation is unchanged."). Read
+    # off the message alone, every such block is non-terminal AND
+    # non-definite, so it is dropped — the panel strips the fence either
+    # way, so the user sees a confirmation with no updated card. ``refining``
+    # supplies the missing signal.
+    wants_automation = refining or _is_definite_automation(user_message or "")
 
     def _is_proposal(end_pos: int) -> bool:
         return text[end_pos:].strip() == "" or wants_automation
