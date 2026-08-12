@@ -130,6 +130,21 @@ _SELORA_LOCAL_MAX_ENTITY_LINES = 60
 # the LoRA enough variety to pick from.
 _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION = 25
 
+# Tokens spent on everything in the payload that is NOT the entity block,
+# used to turn a known hub context window into an entity-line budget. Both
+# figures are the trained system prompt (estimated by
+# ``context_budget.estimate_tokens``) plus that kind's ``max_tokens``
+# ceiling plus headroom for USER REQUEST / EXISTING AUTOMATIONS / the
+# IMPORTANT block / the last-3-turn history:
+#   automation     ~2958 prompt + 400 output + ~240 body
+#   command/answer  ~390 prompt (command, the largest) + 192 output + ~120 body
+# The derived cap is only ever used to TIGHTEN the constants above, never
+# to loosen them — the LoRAs go out-of-distribution on prompt-shape drift,
+# so a bigger window is not a licence to send a bigger entity block than
+# the one the model was tuned against.
+_SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = 3598
+_SELORA_LOCAL_RESERVED_TOKENS = 702
+
 # Selora AI Local — backoff between retries when GET /lora-adapters
 # fails (hub still booting, transient network blip). Without this the
 # prewarm task's first call would lock in "no LoRA routing" for the
@@ -1082,16 +1097,63 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         )
         return max(1, min(int(requested), cap))
 
+    def _entity_line_cap(self) -> int:
+        """Entity-block line cap for the call kind currently in flight.
+
+        The stricter cap applies to ``chat_automation``: its trained system
+        prompt is by far the largest, leaving least headroom for entities.
+
+        When the hub has told us its context window the cap is derived from
+        a token budget, so a hub configured with a smaller window than the
+        one these constants were tuned against stops overflowing instead of
+        returning HTTP 500. The derived value can only tighten the constant
+        — never raise it — because the LoRAs were trained against entity
+        blocks of that size and grow unreliable outside it.
+
+        ``context_window`` is populated by ``async_refresh_capabilities``
+        from ``GET /v1/models`` (``data[0].meta.n_ctx``) — the window
+        llama-server was actually launched with, which is what makes the
+        derived path live rather than theoretical. It stays ``None`` until
+        a probe succeeds and whenever one fails, and that case returns the
+        hand-tuned constants unchanged: an unknown window must not be read
+        as a large one.
+        """
+        # Deferred: ``context_budget`` itself is dependency-free, but
+        # reaching it imports the ``llm_client`` package __init__, which
+        # pulls in ``client`` and its Home Assistant imports. A provider
+        # module should not drag the facade in at import time.
+        from ..llm_client.context_budget import LOCAL_ENTITY_LINE_TOKENS, entity_budget
+
+        automation = self._call_kind.get() == "chat_automation"
+        fallback = (
+            _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION
+            if automation
+            else _SELORA_LOCAL_MAX_ENTITY_LINES
+        )
+        window = getattr(self, "context_window", None)
+        if window is None:
+            return fallback
+        derived = entity_budget(
+            window,
+            reserved=(
+                _SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS
+                if automation
+                else _SELORA_LOCAL_RESERVED_TOKENS
+            ),
+            tokens_per_line=LOCAL_ENTITY_LINE_TOKENS,
+        )
+        return min(fallback, derived)
+
     def _format_entities_block(self, entities: list[Any]) -> str:
         """Render the entity list in the EXACT shape the v0.4.2 corpus
         used (model-tester ENTITIES fixture format). One entity per
         line: ``- entity_id=X; state=Y; friendly_name="Z"``.
 
-        Capped at ``_SELORA_LOCAL_MAX_ENTITY_LINES`` so a 200-entity
-        HA install doesn't push the prompt past the hub's 4096 ctx
-        and trip a 500 'Context size has been exceeded'. Overflow is
-        summarized as a trailing line so the LoRA still knows there
-        are more devices than the listed ones.
+        Capped by ``_entity_line_cap`` so a 200-entity HA install
+        doesn't push the prompt past the hub's 4096 ctx and trip a 500
+        'Context size has been exceeded'. Overflow is summarized as a
+        trailing line so the LoRA still knows there are more devices
+        than the listed ones.
 
         ``state`` and ``friendly_name`` come from devices / user
         metadata so we run them through ``sanitize_untrusted_text``
@@ -1103,14 +1165,7 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         """
         from ..helpers import sanitize_untrusted_text
 
-        # Use the stricter cap for chat_automation since its system
-        # prompt is ~2500 tokens and leaves less headroom for the
-        # entity block.
-        cap = (
-            _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION
-            if self._call_kind.get() == "chat_automation"
-            else _SELORA_LOCAL_MAX_ENTITY_LINES
-        )
+        cap = self._entity_line_cap()
         lines: list[str] = ["AVAILABLE ENTITIES:"]
         rendered = 0
         skipped = 0
