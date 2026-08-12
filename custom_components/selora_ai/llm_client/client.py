@@ -1458,6 +1458,7 @@ class LLMClient:
         session_id: str | None = None,
         user_message: str | None = None,
         language: str | None = None,
+        refining: bool = False,
     ) -> ArchitectResponse:
         """Parse completed streamed text — thin wrapper over the module-level parser.
 
@@ -1466,6 +1467,10 @@ class LLMClient:
         can't see the original prompt and the duration_misread /
         presence_duration buckets fall through to the unhumanised
         validator error.
+
+        ``refining`` tells the parser this turn edits an automation already
+        loaded into the session, so a proposal followed by a summary of the
+        change still builds a card.
         """
         # Repairs (friendly_name_strip, state_info_strip,
         # trailing_marker_reposition, streamed Qwen normalize) fire here,
@@ -1485,6 +1490,7 @@ class LLMClient:
                 session_id=session_id,
                 user_message=user_message,
                 language=language,
+                refining=refining,
             )
 
     # ------------------------------------------------------------------

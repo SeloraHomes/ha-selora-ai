@@ -264,3 +264,46 @@ def test_bare_scene_block_without_opening_fence(hass, client) -> None:
     assert result["scene"]["name"] == "Movie Time"
     assert "Movie Time" not in result["response"]
     assert "Here is the scene" in result["response"]
+
+
+def test_refinement_block_with_trailing_summary_builds_card(hass, client) -> None:
+    """A refinement turn's proposal survives the change summary that follows it.
+
+    Reported twice against 0.14.0: the user edits a loaded automation
+    ("change the temperature threshold to 18"), the model emits the updated
+    block and closes with "The rest of the automation is unchanged." The
+    message carries none of ``_is_definite_automation``'s recurring /
+    conditional phrasings, so without the session's refinement signal the
+    non-terminal block was dropped — and the panel strips the fence either
+    way, leaving a confirmation with no updated card.
+    """
+    hass.states.async_set("sensor.uv_index", "4")
+    hass.states.async_set("cover.shades", "open")
+    text = (
+        "Updating the thresholds.\n\n"
+        "```automation\n"
+        "{\n"
+        '  "alias": "Stores UV Management",\n'
+        '  "triggers": [{"platform": "numeric_state", '
+        '"entity_id": "sensor.uv_index", "above": 6}],\n'
+        '  "conditions": [],\n'
+        '  "actions": [{"service": "cover.close_cover", '
+        '"target": {"entity_id": "cover.shades"}}]\n'
+        "}\n"
+        "```\n\n"
+        "Updated the UV threshold from 5 to 6. The rest of the automation is unchanged."
+    )
+    user_message = "Change the temperature threshold to 18 degrees and IV index to 6"
+
+    # Without the refinement signal the block reads as a non-terminal
+    # example and is dropped — this is the reported bug.
+    dropped = client.parse_streamed_response(text, user_message=user_message)
+    assert dropped["intent"] != "automation"
+
+    result = client.parse_streamed_response(text, user_message=user_message, refining=True)
+    assert result["intent"] == "automation"
+    assert result["automation"]["alias"] == "Stores UV Management"
+    assert '"alias"' not in result["response"]
+    # Both halves of the prose survive in the bubble.
+    assert "Updating the thresholds" in result["response"]
+    assert "Updated the UV threshold" in result["response"]
