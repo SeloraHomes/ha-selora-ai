@@ -10,7 +10,7 @@
   "osvVulnerabilityAlerts": true,
   "postUpgradeTasks": {
     "commands": [
-      "cd custom_components/selora_ai/frontend && npm ci && npm run build"
+      "make generate"
     ],
     "fileFilters": [
       "custom_components/selora_ai/frontend/panel.js",
