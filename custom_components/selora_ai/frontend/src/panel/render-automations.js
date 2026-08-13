@@ -11,6 +11,12 @@ import { fmtEntity } from "../shared/formatting.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 import { renderCreatedCheck } from "../shared/created-check.js";
 import { renderRevealParticles } from "./proposal-reveal.js";
+import {
+  proposalDiff,
+  renderProposalDiffToggle,
+  renderProposalDiffPanel,
+  revealPanel,
+} from "./render-proposal-diff.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
@@ -733,6 +739,9 @@ export function renderProposalCard(host, msg, msgIndex) {
     host._editedYaml[yamlKey] !== undefined &&
     host._editedYaml[yamlKey] !== yaml;
   const revealing = !!(host._revealingProposals || {})[msgIndex];
+  // Null unless an earlier version of this same automation is in the session —
+  // a first-time proposal has nothing to compare against.
+  const diff = proposalDiff(host, msgIndex);
   return html`
     <div class="automation-subcard${revealing ? " revealing" : ""}">
       ${revealing ? renderRevealParticles(host) : ""}
@@ -771,25 +780,29 @@ export function renderProposalCard(host, msg, msgIndex) {
             : ""
         }
         ${renderAutomationFlowchart(host, automation)}
-
-        <div
-          class="yaml-toggle"
-          style="margin-top:12px;"
-          @click=${() => toggleYaml(host, msgIndex)}
-        >
-          <ha-icon
-            icon="mdi:code-braces"
-            style="--mdc-icon-size:14px;"
-          ></ha-icon>
-          ${
-            yamlOpen
-              ? host._t("automations_yaml_toggle_hide", "Hide YAML")
-              : host._t("automations_yaml_toggle_edit", "Edit YAML")
-          }
+      </div>
+      <!-- Third section, ruled off from the flow above it: the card's own
+           controls, with whatever they open unfolding beneath them. -->
+      <div class="automation-subcard-footer">
+        <div class="subcard-actions">
+          ${renderProposalDiffToggle(host, msgIndex, diff)}
+          <button
+            type="button"
+            class="subcard-action-link ${yamlOpen ? "active" : ""}"
+            @click=${() => toggleYaml(host, msgIndex)}
+          >
+            <ha-icon icon="mdi:code-braces"></ha-icon>
+            ${
+              yamlOpen
+                ? host._t("automations_yaml_toggle_hide", "Hide YAML")
+                : host._t("automations_yaml_toggle_edit", "Edit YAML")
+            }
+          </button>
         </div>
+        ${renderProposalDiffPanel(host, msgIndex, diff)}
         ${
           yamlOpen
-            ? html`<div style="margin-top:6px;">
+            ? html`<div class="proposal-yaml-panel" data-yaml-panel=${msgIndex}>
                 ${host._renderYamlEditor(yamlKey, yaml)}
                 ${
                   hasEdits
@@ -961,11 +974,18 @@ export function renderProposalActions(host, msg, msgIndex) {
 // ---------------------------------------------------------------------------
 
 export function toggleYaml(host, msgIndex) {
+  const opening = !(host._yamlOpen || {})[msgIndex];
   host._yamlOpen = {
     ...(host._yamlOpen || {}),
-    [msgIndex]: !(host._yamlOpen || {})[msgIndex],
+    [msgIndex]: opening,
   };
+  // requestUpdate first: revealPanel waits on updateComplete, which resolves
+  // straight away when no render is pending yet and would then look for a
+  // panel that does not exist.
   host.requestUpdate();
+  // The editor unfolds under the card's footer links, which can leave it below
+  // the fold on a tall card.
+  if (opening) revealPanel(host, `[data-yaml-panel="${msgIndex}"]`);
 }
 
 // ---------------------------------------------------------------------------

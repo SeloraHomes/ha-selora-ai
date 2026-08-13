@@ -217,6 +217,111 @@ async def _handle_websocket_apply_automation_yaml(
 @websocket_api.async_response
 @decorators.websocket_command(
     {
+        vol.Required("type"): "selora_ai/preview_automation_write",
+        vol.Required("automation_id"): str,
+        vol.Required("yaml_text"): str,
+        # Mirrors update_automation_yaml's flag so a preview describes the call
+        # the caller is actually about to make.
+        vol.Optional("preserve_enabled_state"): bool,
+    }
+)
+async def _handle_websocket_preview_automation_write(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return what an update would overwrite and write, without writing it.
+
+    Read-only counterpart to update_automation_yaml, for a UI that shows the
+    user what accepting will do. Both sides come back as YAML dumped by the same
+    call the writer uses, so a diff between them contains only real changes:
+
+    - ``current_yaml`` is read from automations.yaml, not from the version
+      store, so an automation edited in HA's own editor compares against what
+      is actually on disk.
+    - ``proposed_yaml`` is the submitted text parsed, validated and re-dumped
+      through the writer's own helpers, so formatting, key order and comments —
+      none of which survive a save — never show up as changes, while the fields
+      the save owns (``id``, and an ``initial_state`` that risk escalation
+      forces off) do.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    from pathlib import Path
+
+    from ..automation_utils import (
+        AUTOMATIONS_YAML_LOCK,
+        _parse_automation_yaml,
+        _read_automations_yaml,
+        _resolve_live_enabled_state,
+        apply_managed_fields,
+        assess_automation_risk,
+        prepare_write_payload,
+    )
+
+    automation_id = msg["automation_id"]
+    preserve_enabled_state = msg.get("preserve_enabled_state", False)
+
+    parsed = await hass.async_add_executor_job(_parse_automation_yaml, msg["yaml_text"])
+    if parsed is None:
+        connection.send_error(msg["id"], "parse_error", "Invalid YAML — could not parse automation")
+        return
+
+    # On the event loop, like the writer: validation reads the state, entity and
+    # service registries (hass.states.async_entity_ids, er.async_get,
+    # hass.services.async_services_for_domain), none of which are thread-safe.
+    # Only the YAML parse and the file read above go to the executor.
+    is_valid, reason, normalized = prepare_write_payload(hass, parsed)
+    if not is_valid or normalized is None:
+        connection.send_error(msg["id"], "invalid_format", reason)
+        return
+
+    new_is_elevated = False
+    risk_flags: list[str] | None = None
+    if preserve_enabled_state:
+        risk = assess_automation_risk(normalized)
+        new_is_elevated = risk.get("level") == "elevated"
+        risk_flags = risk.get("flags")
+
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    try:
+        # Under the writer's lock: a torn read during an overlapping write would
+        # describe a state that never existed on disk.
+        async with AUTOMATIONS_YAML_LOCK:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+            entry = next((a for a in existing if a.get("id") == automation_id), None)
+            if entry is None:
+                connection.send_error(
+                    msg["id"], "not_found", "Automation not found in automations.yaml"
+                )
+                return
+            current_yaml = yaml.dump(entry, allow_unicode=True, default_flow_style=False)
+            captured_live = (
+                _resolve_live_enabled_state(hass, automation_id) if preserve_enabled_state else None
+            )
+            apply_managed_fields(
+                entry,
+                parsed,
+                automation_id,
+                preserve_enabled_state=preserve_enabled_state,
+                new_is_elevated=new_is_elevated,
+                captured_live=captured_live,
+                risk_flags=risk_flags,
+                dry_run=True,
+            )
+        proposed_yaml = yaml.dump(parsed, allow_unicode=True, default_flow_style=False)
+        connection.send_result(
+            msg["id"], {"current_yaml": current_yaml, "proposed_yaml": proposed_yaml}
+        )
+    except (OSError, yaml.YAMLError) as exc:
+        _LOGGER.exception("Error in preview_automation_write")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
         vol.Required("type"): "selora_ai/update_automation_yaml",
         vol.Required("automation_id"): str,
         vol.Required("yaml_text"): str,
@@ -952,3 +1057,4 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _handle_websocket_load_automation_to_session)
     websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
     websocket_api.async_register_command(hass, _handle_websocket_quick_create_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_preview_automation_write)

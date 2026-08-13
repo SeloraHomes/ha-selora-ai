@@ -1,5 +1,7 @@
 // Suggestion and data-loading actions (prototype-assigned to SeloraAIArchitectPanel)
 
+import { invalidateProposalPreviews } from "./render-proposal-diff.js";
+
 export async function _loadSuggestions() {
   try {
     const suggestions = await this.hass.callWS({
@@ -75,6 +77,9 @@ export async function _loadAutomations() {
         ([id, selected]) => selected && validIds.has(id),
       ),
     );
+    // Automations were just re-read, so any proposal card's write preview may
+    // describe a document that has since changed on disk.
+    invalidateProposalPreviews(this);
   } catch (err) {
     console.error("Failed to load automations", err);
   }
