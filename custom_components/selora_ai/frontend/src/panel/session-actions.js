@@ -1,6 +1,7 @@
 // Session management actions (prototype-assigned to SeloraAIArchitectPanel)
 
 import { stripEntityMarkers } from "./chat-autocomplete.js";
+import { resetProposalDiffState } from "./render-proposal-diff.js";
 
 const PANEL_PREFIX = "/selora-ai";
 const VALID_TABS = [
@@ -238,6 +239,7 @@ export async function _openSession(sessionId) {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    resetProposalDiffState(this);
     // Restore in-flight OR interrupted background turns that the
     // backend hasn't persisted. session.messages only contains pairs
     // that reached ``done``, so anything still streaming (or that
@@ -308,6 +310,7 @@ export async function _newSession() {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    resetProposalDiffState(this);
     this._loading = false;
     this._streaming = false;
     this._setActiveTab("chat");
@@ -343,6 +346,7 @@ export async function _startNewAutomationChat() {
     this._activeSessionId = session_id;
     this._sessionSearch = "";
     this._messages = [];
+    resetProposalDiffState(this);
     this._input = "";
     this._autocompleteSelections = [];
     this._newAutomationMode = true;
@@ -398,6 +402,7 @@ export async function _newAutomationChat(name) {
     this._activeSessionId = session_id;
     this._sessionSearch = "";
     this._messages = [];
+    resetProposalDiffState(this);
     this._input = `Create a new automation called "${trimmed}".`;
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
@@ -559,6 +564,7 @@ export async function _confirmDeleteSession() {
     if (this._activeSessionId === sessionId) {
       this._activeSessionId = null;
       this._messages = [];
+      resetProposalDiffState(this);
     }
     await this._loadSessions();
   } catch (err) {
@@ -633,6 +639,7 @@ export async function _confirmBulkDeleteSessions() {
       if (this._activeSessionId === id) {
         this._activeSessionId = null;
         this._messages = [];
+        resetProposalDiffState(this);
       }
     } catch (err) {
       console.error("Failed to delete session", id, err);

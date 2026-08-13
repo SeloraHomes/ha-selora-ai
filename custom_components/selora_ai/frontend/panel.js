@@ -4156,6 +4156,211 @@ var proposalStyles = i`
     opacity: 0.65;
     margin-bottom: 10px;
   }
+
+  /* ---- Card footer (Edit YAML / View changes) ----
+     Its own section, ruled off from the flow the way the header is, so the
+     controls stop reading as part of the diagram. What they open unfolds
+     underneath them, where the click was. */
+  .automation-subcard-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--divider-color);
+  }
+  .subcard-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  /* Links, not buttons: these disclose part of the card, they do not act on
+     the automation. A <button> underneath keeps them keyboard-reachable. */
+  .subcard-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  /* Hovered, and open, both brighten to full text colour. The open one needs
+     no accent: its label already says Hide rather than View. */
+  .subcard-action-link:hover,
+  .subcard-action-link.active {
+    color: var(--primary-text-color);
+  }
+  .subcard-action-link ha-icon {
+    flex: 0 0 auto;
+    display: block;
+    width: 14px;
+    height: 14px;
+    --mdc-icon-size: 14px;
+  }
+
+  /* ---- Proposal YAML diff ---- */
+  .diff-stat-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "Fira Code", "Cascadia Code", monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .diff-stat.add {
+    color: var(--success-color, #2e7d32);
+  }
+  .diff-stat.del {
+    color: var(--error-color, #c62828);
+  }
+  .proposal-yaml-panel {
+    margin-top: 12px;
+  }
+  .proposal-diff {
+    margin-top: 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--primary-background-color);
+  }
+  .proposal-diff-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--divider-color);
+    font-size: 11px;
+  }
+  .proposal-diff-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--secondary-text-color);
+  }
+  .proposal-diff-empty {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .proposal-diff-body {
+    max-height: 320px;
+    overflow: auto;
+    padding: 6px 0;
+    font-family: "Fira Code", "Cascadia Code", monospace;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  /* Flex container on purpose: whitespace-only text nodes in a flex box are
+     not rendered, so the markup's own indentation never reaches the
+     clipboard. The +/- gutter is generated content for the same reason —
+     browsers leave ::before out of a copied selection. */
+  .proposal-diff-line {
+    display: flex;
+    align-items: flex-start;
+    padding: 0 12px;
+  }
+  .proposal-diff-line::before {
+    flex: 0 0 auto;
+    width: 12px;
+    opacity: 0.75;
+    content: " ";
+  }
+  .proposal-diff-line.add::before {
+    content: "+";
+  }
+  .proposal-diff-line.del::before {
+    content: "−";
+  }
+  .proposal-diff-text {
+    flex: 1 1 auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  /* Tints stay low-alpha so they read on both the light and dark card
+     backgrounds; the text colour carries the meaning for anyone who can't
+     separate the two hues. */
+  .proposal-diff-line.add {
+    background: rgba(76, 175, 80, 0.14);
+    color: var(--success-color, #2e7d32);
+  }
+  .proposal-diff-line.del {
+    background: rgba(244, 67, 54, 0.13);
+    color: var(--error-color, #c62828);
+  }
+  .proposal-diff-line.ctx {
+    color: var(--secondary-text-color);
+  }
+  /* Clickable hunk separator: reveals the run it hides and names the key the
+     next change sits under. */
+  .proposal-diff-gap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3px 12px;
+    border: none;
+    border-top: 1px solid var(--divider-color);
+    border-bottom: 1px solid var(--divider-color);
+    background: var(--divider-color);
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 10px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .proposal-diff-gap:hover {
+    color: var(--primary-text-color);
+    filter: brightness(1.25);
+  }
+  .proposal-diff-gap ha-icon {
+    flex: 0 0 auto;
+    display: block;
+    width: 13px;
+    height: 13px;
+  }
+  .proposal-diff-gap-path {
+    margin-left: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: "Fira Code", "Cascadia Code", monospace;
+    opacity: 0.85;
+  }
+  .proposal-diff-head-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .proposal-diff-expand-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .proposal-diff-expand-all:hover {
+    color: var(--primary-text-color);
+  }
+  .proposal-diff-expand-all ha-icon {
+    flex: 0 0 auto;
+    display: block;
+    width: 13px;
+    height: 13px;
+  }
   .proposal-actions {
     display: flex;
     gap: 8px;
@@ -8991,6 +9196,16 @@ var en_default = {
     automations_yaml_toggle_hide: "Hide YAML",
     automations_yaml_toggle_view: "View YAML",
     automations_yaml_toggle_edit: "Edit YAML",
+    automations_diff_toggle_view: "View changes",
+    automations_diff_toggle_hide: "Hide changes",
+    automations_diff_legend_previous: "Previous",
+    automations_diff_legend_proposed: "Proposed",
+    automations_diff_unchanged_lines: "{count} unchanged lines",
+    automations_diff_identical:
+      "Identical to the previous version \u2014 nothing changed.",
+    automations_diff_show_all: "Whole file",
+    automations_diff_changes_only: "Changes only",
+    automations_diff_expand_tooltip: "Show these lines",
     automations_proposal_declined_title: "Automation Declined",
     automations_proposal_declined_body:
       "Dismissed. You can refine it by replying below.",
@@ -10105,6 +10320,16 @@ var fr_default = {
     automations_yaml_toggle_hide: "Masquer le YAML",
     automations_yaml_toggle_view: "Afficher le YAML",
     automations_yaml_toggle_edit: "Modifier le YAML",
+    automations_diff_toggle_view: "Voir les modifications",
+    automations_diff_toggle_hide: "Masquer les modifications",
+    automations_diff_legend_previous: "Pr\xE9c\xE9dent",
+    automations_diff_legend_proposed: "Propos\xE9",
+    automations_diff_unchanged_lines: "{count} lignes inchang\xE9es",
+    automations_diff_identical:
+      "Identique \xE0 la version pr\xE9c\xE9dente \u2014 aucun changement.",
+    automations_diff_show_all: "Fichier entier",
+    automations_diff_changes_only: "Modifications seules",
+    automations_diff_expand_tooltip: "Afficher ces lignes",
     automations_proposal_declined_title: "Automatisation refus\xE9e",
     automations_proposal_declined_body:
       "Ignor\xE9e. Vous pouvez l'affiner en r\xE9pondant ci-dessous.",
@@ -11257,6 +11482,16 @@ var de_default = {
     automations_yaml_toggle_hide: "YAML ausblenden",
     automations_yaml_toggle_view: "YAML anzeigen",
     automations_yaml_toggle_edit: "YAML bearbeiten",
+    automations_diff_toggle_view: "\xC4nderungen anzeigen",
+    automations_diff_toggle_hide: "\xC4nderungen ausblenden",
+    automations_diff_legend_previous: "Vorher",
+    automations_diff_legend_proposed: "Vorgeschlagen",
+    automations_diff_unchanged_lines: "{count} unver\xE4nderte Zeilen",
+    automations_diff_identical:
+      "Identisch mit der vorherigen Version \u2014 nichts ge\xE4ndert.",
+    automations_diff_show_all: "Ganze Datei",
+    automations_diff_changes_only: "Nur \xC4nderungen",
+    automations_diff_expand_tooltip: "Diese Zeilen anzeigen",
     automations_proposal_declined_title: "Automatisierung abgelehnt",
     automations_proposal_declined_body:
       "Abgelehnt. Sie k\xF6nnen sie verfeinern, indem Sie unten antworten.",
@@ -12399,6 +12634,16 @@ var es_default = {
     automations_yaml_toggle_hide: "Ocultar YAML",
     automations_yaml_toggle_view: "Ver YAML",
     automations_yaml_toggle_edit: "Editar YAML",
+    automations_diff_toggle_view: "Ver cambios",
+    automations_diff_toggle_hide: "Ocultar cambios",
+    automations_diff_legend_previous: "Anterior",
+    automations_diff_legend_proposed: "Propuesto",
+    automations_diff_unchanged_lines: "{count} l\xEDneas sin cambios",
+    automations_diff_identical:
+      "Id\xE9ntico a la versi\xF3n anterior: sin cambios.",
+    automations_diff_show_all: "Archivo completo",
+    automations_diff_changes_only: "Solo cambios",
+    automations_diff_expand_tooltip: "Mostrar estas l\xEDneas",
     automations_proposal_declined_title: "Automatizaci\xF3n rechazada",
     automations_proposal_declined_body:
       "Descartada. Puede refinarla respondiendo abajo.",
@@ -13527,6 +13772,16 @@ var it_default = {
     automations_yaml_toggle_hide: "Nascondi YAML",
     automations_yaml_toggle_view: "Visualizza YAML",
     automations_yaml_toggle_edit: "Modifica YAML",
+    automations_diff_toggle_view: "Mostra modifiche",
+    automations_diff_toggle_hide: "Nascondi modifiche",
+    automations_diff_legend_previous: "Precedente",
+    automations_diff_legend_proposed: "Proposto",
+    automations_diff_unchanged_lines: "{count} righe invariate",
+    automations_diff_identical:
+      "Identico alla versione precedente: nessuna modifica.",
+    automations_diff_show_all: "File intero",
+    automations_diff_changes_only: "Solo modifiche",
+    automations_diff_expand_tooltip: "Mostra queste righe",
     automations_proposal_declined_title: "Automazione rifiutata",
     automations_proposal_declined_body:
       "Ignorata. Pu\xF2 perfezionarla rispondendo qui sotto.",
@@ -14671,6 +14926,16 @@ var nl_default = {
     automations_yaml_toggle_hide: "YAML verbergen",
     automations_yaml_toggle_view: "YAML bekijken",
     automations_yaml_toggle_edit: "YAML bewerken",
+    automations_diff_toggle_view: "Wijzigingen tonen",
+    automations_diff_toggle_hide: "Wijzigingen verbergen",
+    automations_diff_legend_previous: "Vorige",
+    automations_diff_legend_proposed: "Voorgesteld",
+    automations_diff_unchanged_lines: "{count} ongewijzigde regels",
+    automations_diff_identical:
+      "Identiek aan de vorige versie \u2014 niets gewijzigd.",
+    automations_diff_show_all: "Hele bestand",
+    automations_diff_changes_only: "Alleen wijzigingen",
+    automations_diff_expand_tooltip: "Deze regels tonen",
     automations_proposal_declined_title: "Automatisering geweigerd",
     automations_proposal_declined_body:
       "Afgewezen. U kunt deze verfijnen door hieronder te reageren.",
@@ -15818,6 +16083,16 @@ var hu_default = {
     automations_yaml_toggle_hide: "YAML elrejt\xE9se",
     automations_yaml_toggle_view: "YAML megtekint\xE9se",
     automations_yaml_toggle_edit: "YAML szerkeszt\xE9se",
+    automations_diff_toggle_view: "V\xE1ltoz\xE1sok megtekint\xE9se",
+    automations_diff_toggle_hide: "V\xE1ltoz\xE1sok elrejt\xE9se",
+    automations_diff_legend_previous: "El\u0151z\u0151",
+    automations_diff_legend_proposed: "Javasolt",
+    automations_diff_unchanged_lines: "{count} v\xE1ltozatlan sor",
+    automations_diff_identical:
+      "Megegyezik az el\u0151z\u0151 verzi\xF3val \u2013 nincs v\xE1ltoz\xE1s.",
+    automations_diff_show_all: "Teljes f\xE1jl",
+    automations_diff_changes_only: "Csak a v\xE1ltoz\xE1sok",
+    automations_diff_expand_tooltip: "Ezek a sorok megjelen\xEDt\xE9se",
     automations_proposal_declined_title: "Automatizmus elutas\xEDtva",
     automations_proposal_declined_body:
       "Elvetve. Az al\xE1bbi v\xE1lasszal finom\xEDthatja.",
@@ -16967,6 +17242,16 @@ var pt_default = {
     automations_yaml_toggle_hide: "Ocultar YAML",
     automations_yaml_toggle_view: "Ver YAML",
     automations_yaml_toggle_edit: "Editar YAML",
+    automations_diff_toggle_view: "Ver altera\xE7\xF5es",
+    automations_diff_toggle_hide: "Ocultar altera\xE7\xF5es",
+    automations_diff_legend_previous: "Anterior",
+    automations_diff_legend_proposed: "Proposto",
+    automations_diff_unchanged_lines: "{count} linhas inalteradas",
+    automations_diff_identical:
+      "Id\xEAntico \xE0 vers\xE3o anterior \u2014 nada mudou.",
+    automations_diff_show_all: "Ficheiro completo",
+    automations_diff_changes_only: "Apenas altera\xE7\xF5es",
+    automations_diff_expand_tooltip: "Mostrar estas linhas",
     automations_proposal_declined_title: "Automa\xE7\xE3o recusada",
     automations_proposal_declined_body:
       "Dispensada. Pode aperfei\xE7o\xE1-la respondendo abaixo.",
@@ -18273,6 +18558,23 @@ var ru_default = {
       "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C YAML",
     automations_yaml_toggle_edit:
       "\u0420\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C YAML",
+    automations_diff_toggle_view:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F",
+    automations_diff_toggle_hide:
+      "\u0421\u043A\u0440\u044B\u0442\u044C \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F",
+    automations_diff_legend_previous: "\u0411\u044B\u043B\u043E",
+    automations_diff_legend_proposed:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u043E",
+    automations_diff_unchanged_lines:
+      "\u0421\u0442\u0440\u043E\u043A \u0431\u0435\u0437 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0439: {count}",
+    automations_diff_identical:
+      "\u0418\u0434\u0435\u043D\u0442\u0438\u0447\u043D\u043E \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0435\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u2014 \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C.",
+    automations_diff_show_all:
+      "\u0412\u0435\u0441\u044C \u0444\u0430\u0439\u043B",
+    automations_diff_changes_only:
+      "\u0422\u043E\u043B\u044C\u043A\u043E \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F",
+    automations_diff_expand_tooltip:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u044D\u0442\u0438 \u0441\u0442\u0440\u043E\u043A\u0438",
     automations_proposal_declined_title:
       "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0430",
     automations_proposal_declined_body:
@@ -19863,6 +20165,18 @@ var ja_default = {
     automations_yaml_toggle_hide: "YAML \u3092\u975E\u8868\u793A",
     automations_yaml_toggle_view: "YAML \u3092\u8868\u793A",
     automations_yaml_toggle_edit: "YAML \u3092\u7DE8\u96C6",
+    automations_diff_toggle_view: "\u5909\u66F4\u3092\u8868\u793A",
+    automations_diff_toggle_hide: "\u5909\u66F4\u3092\u975E\u8868\u793A",
+    automations_diff_legend_previous: "\u5909\u66F4\u524D",
+    automations_diff_legend_proposed: "\u63D0\u6848",
+    automations_diff_unchanged_lines:
+      "\u5909\u66F4\u306E\u306A\u3044\u884C {count} \u884C",
+    automations_diff_identical:
+      "\u524D\u306E\u30D0\u30FC\u30B8\u30E7\u30F3\u3068\u540C\u4E00\u3067\u3059 \u2014 \u5909\u66F4\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    automations_diff_show_all: "\u30D5\u30A1\u30A4\u30EB\u5168\u4F53",
+    automations_diff_changes_only: "\u5909\u66F4\u306E\u307F",
+    automations_diff_expand_tooltip:
+      "\u3053\u308C\u3089\u306E\u884C\u3092\u8868\u793A",
     automations_proposal_declined_title:
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F",
     automations_proposal_declined_body:
@@ -21229,6 +21543,18 @@ var ko_default = {
     automations_yaml_toggle_hide: "YAML \uC228\uAE30\uAE30",
     automations_yaml_toggle_view: "YAML \uBCF4\uAE30",
     automations_yaml_toggle_edit: "YAML \uD3B8\uC9D1",
+    automations_diff_toggle_view: "\uBCC0\uACBD \uC0AC\uD56D \uBCF4\uAE30",
+    automations_diff_toggle_hide:
+      "\uBCC0\uACBD \uC0AC\uD56D \uC228\uAE30\uAE30",
+    automations_diff_legend_previous: "\uC774\uC804",
+    automations_diff_legend_proposed: "\uC81C\uC548",
+    automations_diff_unchanged_lines:
+      "\uBCC0\uACBD\uB418\uC9C0 \uC54A\uC740 \uC904 {count}\uAC1C",
+    automations_diff_identical:
+      "\uC774\uC804 \uBC84\uC804\uACFC \uB3D9\uC77C\uD569\uB2C8\uB2E4 \u2014 \uBCC0\uACBD\uB41C \uB0B4\uC6A9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    automations_diff_show_all: "\uC804\uCCB4 \uD30C\uC77C",
+    automations_diff_changes_only: "\uBCC0\uACBD \uC0AC\uD56D\uB9CC",
+    automations_diff_expand_tooltip: "\uC774 \uC904 \uD45C\uC2DC",
     automations_proposal_declined_title:
       "\uC790\uB3D9\uD654 \uAC70\uBD80\uB428",
     automations_proposal_declined_body:
@@ -22488,6 +22814,16 @@ var zh_Hans_default = {
     automations_yaml_toggle_hide: "\u9690\u85CF YAML",
     automations_yaml_toggle_view: "\u67E5\u770B YAML",
     automations_yaml_toggle_edit: "\u7F16\u8F91 YAML",
+    automations_diff_toggle_view: "\u67E5\u770B\u66F4\u6539",
+    automations_diff_toggle_hide: "\u9690\u85CF\u66F4\u6539",
+    automations_diff_legend_previous: "\u4E4B\u524D",
+    automations_diff_legend_proposed: "\u63D0\u8BAE",
+    automations_diff_unchanged_lines: "{count} \u884C\u672A\u66F4\u6539",
+    automations_diff_identical:
+      "\u4E0E\u4E0A\u4E00\u7248\u672C\u76F8\u540C \u2014 \u6CA1\u6709\u4EFB\u4F55\u66F4\u6539\u3002",
+    automations_diff_show_all: "\u5B8C\u6574\u6587\u4EF6",
+    automations_diff_changes_only: "\u4EC5\u663E\u793A\u66F4\u6539",
+    automations_diff_expand_tooltip: "\u663E\u793A\u8FD9\u4E9B\u884C",
     automations_proposal_declined_title: "\u81EA\u52A8\u5316\u5DF2\u62D2\u7EDD",
     automations_proposal_declined_body:
       "\u5DF2\u5FFD\u7565\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u590D\u4EE5\u8FDB\u4E00\u6B65\u5B8C\u5584\u5B83\u3002",
@@ -23712,6 +24048,16 @@ var zh_Hant_default = {
     automations_yaml_toggle_hide: "\u96B1\u85CF YAML",
     automations_yaml_toggle_view: "\u6AA2\u8996 YAML",
     automations_yaml_toggle_edit: "\u7DE8\u8F2F YAML",
+    automations_diff_toggle_view: "\u6AA2\u8996\u8B8A\u66F4",
+    automations_diff_toggle_hide: "\u96B1\u85CF\u8B8A\u66F4",
+    automations_diff_legend_previous: "\u4E4B\u524D",
+    automations_diff_legend_proposed: "\u63D0\u8B70",
+    automations_diff_unchanged_lines: "{count} \u884C\u672A\u8B8A\u66F4",
+    automations_diff_identical:
+      "\u8207\u4E0A\u4E00\u7248\u672C\u76F8\u540C \u2014 \u6C92\u6709\u4EFB\u4F55\u8B8A\u66F4\u3002",
+    automations_diff_show_all: "\u5B8C\u6574\u6A94\u6848",
+    automations_diff_changes_only: "\u50C5\u986F\u793A\u8B8A\u66F4",
+    automations_diff_expand_tooltip: "\u986F\u793A\u9019\u4E9B\u884C",
     automations_proposal_declined_title: "\u81EA\u52D5\u5316\u5DF2\u62D2\u7D55",
     automations_proposal_declined_body:
       "\u5DF2\u95DC\u9589\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u8986\u4EE5\u9032\u4E00\u6B65\u8ABF\u6574\u3002",
@@ -30540,6 +30886,939 @@ function renderRevealParticles(host) {
   `;
 }
 
+// src/shared/yaml-diff.js
+var MAX_DIFF_LINES = 800;
+var DEFAULT_CONTEXT_RADIUS = 2;
+var BLOCK_SCALAR_HEADER = /(?:^|\s)[|>]([+-]?[0-9]*[+-]?)[ \t]*$/;
+var indentOf = (line) => /^[ \t]*/.exec(line)[0].length;
+function splitLines(text) {
+  const raw = String(text ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n");
+  const lines = [];
+  let blockIndent = null;
+  let blockKeepsTrailing = false;
+  for (const line of raw) {
+    if (blockIndent !== null) {
+      if (line.trim() === "" || indentOf(line) > blockIndent) {
+        lines.push(line);
+        continue;
+      }
+      blockIndent = null;
+      blockKeepsTrailing = false;
+    }
+    lines.push(line.replace(/[ \t]+$/, ""));
+    const header = BLOCK_SCALAR_HEADER.exec(line);
+    if (header) {
+      blockIndent = indentOf(line);
+      blockKeepsTrailing = header[1].includes("+");
+    }
+  }
+  if (!blockKeepsTrailing) {
+    while (lines.length && lines[lines.length - 1] === "") lines.pop();
+  }
+  return lines;
+}
+var KEY_RE =
+  /^([ \t]*)((?:-[ \t]+)*)(['"]?)([A-Za-z_][A-Za-z0-9_.-]*)\3[ \t]*:(?:[ \t]|$)/;
+function lineShape(text) {
+  const m3 = KEY_RE.exec(text);
+  if (m3) return { key: m3[4], start: m3[1].length + m3[2].length };
+  return { key: null, start: indentOf(text) };
+}
+function lcsTable(a3, b3) {
+  const n4 = a3.length;
+  const m3 = b3.length;
+  const width = m3 + 1;
+  const dp = new Uint32Array((n4 + 1) * width);
+  for (let i7 = n4 - 1; i7 >= 0; i7--) {
+    for (let j2 = m3 - 1; j2 >= 0; j2--) {
+      dp[i7 * width + j2] =
+        a3[i7] === b3[j2]
+          ? dp[(i7 + 1) * width + (j2 + 1)] + 1
+          : Math.max(dp[(i7 + 1) * width + j2], dp[i7 * width + (j2 + 1)]);
+    }
+  }
+  return dp;
+}
+function diffLines(before, after) {
+  const a3 = splitLines(before);
+  const b3 = splitLines(after);
+  if (a3.length > MAX_DIFF_LINES || b3.length > MAX_DIFF_LINES) return null;
+  const width = b3.length + 1;
+  const dp = lcsTable(a3, b3);
+  const lines = [];
+  let added = 0;
+  let removed = 0;
+  let i7 = 0;
+  let j2 = 0;
+  while (i7 < a3.length && j2 < b3.length) {
+    if (a3[i7] === b3[j2]) {
+      lines.push({ type: "ctx", text: a3[i7] });
+      i7++;
+      j2++;
+    } else if (dp[(i7 + 1) * width + j2] >= dp[i7 * width + (j2 + 1)]) {
+      lines.push({ type: "del", text: a3[i7] });
+      removed++;
+      i7++;
+    } else {
+      lines.push({ type: "add", text: b3[j2] });
+      added++;
+      j2++;
+    }
+  }
+  for (; i7 < a3.length; i7++) {
+    lines.push({ type: "del", text: a3[i7] });
+    removed++;
+  }
+  for (; j2 < b3.length; j2++) {
+    lines.push({ type: "add", text: b3[j2] });
+    added++;
+  }
+  return { lines, added, removed };
+}
+function yamlContextPath(lines, index) {
+  if (index < 0 || index >= lines.length) return [];
+  const path = [];
+  let depth = lineShape(lines[index].text).start;
+  for (let i7 = index - 1; i7 >= 0 && depth > 0; i7--) {
+    const shape = lineShape(lines[i7].text);
+    if (shape.key === null || shape.start >= depth) continue;
+    path.push(shape.key);
+    depth = shape.start;
+  }
+  return path.reverse();
+}
+function collapseDiff(lines, radius = DEFAULT_CONTEXT_RADIUS, expanded = []) {
+  const revealed = expanded instanceof Set ? expanded : new Set(expanded);
+  const keep = new Array(lines.length).fill(false);
+  lines.forEach((line, idx) => {
+    if (line.type === "ctx") return;
+    for (
+      let k2 = Math.max(0, idx - radius);
+      k2 <= Math.min(lines.length - 1, idx + radius);
+      k2++
+    ) {
+      keep[k2] = true;
+    }
+  });
+  const out = [];
+  let hidden = 0;
+  const flush = (end) => {
+    if (hidden === 0) return;
+    const start = end - hidden;
+    if (hidden === 1 || revealed.has(start)) {
+      for (let k2 = start; k2 < end; k2++) out.push(lines[k2]);
+    } else {
+      out.push({
+        type: "gap",
+        count: hidden,
+        start,
+        path: yamlContextPath(lines, end),
+      });
+    }
+    hidden = 0;
+  };
+  lines.forEach((line, idx) => {
+    if (keep[idx]) {
+      flush(idx);
+      out.push(line);
+      return;
+    }
+    hidden++;
+  });
+  flush(lines.length);
+  return out;
+}
+
+// src/panel/automation-crud.js
+var automation_crud_exports = {};
+__export(automation_crud_exports, {
+  _acceptAutomation: () => _acceptAutomation,
+  _acceptAutomationWithEdits: () => _acceptAutomationWithEdits,
+  _autoEnableAfterAccept: () => _autoEnableAfterAccept,
+  _createAutomationFromSuggestion: () => _createAutomationFromSuggestion,
+  _createSuggestionWithEdits: () => _createSuggestionWithEdits,
+  _createdToast: () => _createdToast,
+  _declineAutomation: () => _declineAutomation,
+  _discardSuggestion: () => _discardSuggestion,
+  _extractInitialState: () => _extractInitialState,
+  _getRefiningAutomationId: () => _getRefiningAutomationId,
+  _initYamlEdit: () => _initYamlEdit,
+  _initialStateEdited: () => _initialStateEdited,
+  _loadLineage: () => _loadLineage,
+  _onYamlInput: () => _onYamlInput,
+  _refineAutomation: () => _refineAutomation,
+  _saveActiveAutomationYaml: () => _saveActiveAutomationYaml,
+});
+var _INITIAL_STATE_KEY = /(['"]?)initial_state\1[ \t]*:[ \t]*(.*)$/;
+function _normalizeStateToken(token) {
+  return token
+    .replace(/(?:^|\s+)#.*$/, "")
+    .replace(/^["']|["']$/g, "")
+    .trim()
+    .toLowerCase();
+}
+function _topLevelFlowEntries(text) {
+  const inner = text.trim().replace(/^\{/, "").replace(/\}$/, "");
+  const entries = [];
+  let depth = 0;
+  let quote = null;
+  let start = 0;
+  for (let i7 = 0; i7 < inner.length; i7++) {
+    const ch = inner[i7];
+    if (quote) {
+      if (quote === '"' && ch === "\\") {
+        i7++;
+      } else if (ch === quote) {
+        if (quote === "'" && inner[i7 + 1] === "'") {
+          i7++;
+        } else {
+          quote = null;
+        }
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === "{" || ch === "[") {
+      depth++;
+    } else if (ch === "}" || ch === "]") {
+      depth--;
+    } else if (ch === "," && depth === 0) {
+      entries.push(inner.slice(start, i7));
+      start = i7 + 1;
+    }
+  }
+  entries.push(inner.slice(start));
+  return entries;
+}
+function _flowInitialState(text) {
+  for (const entry of _topLevelFlowEntries(text)) {
+    const m3 = entry.match(
+      /^[ \t\r\n]*(['"]?)initial_state\1[ \t]*:([\s\S]*)$/,
+    );
+    if (m3) return _normalizeStateToken(m3[2]);
+  }
+  return void 0;
+}
+function _extractInitialState(yamlText) {
+  if (!yamlText) return void 0;
+  const trimmed = yamlText.trim();
+  if (trimmed.startsWith("{")) {
+    return _flowInitialState(trimmed);
+  }
+  const lines = yamlText.split(/\r?\n/);
+  const isSkippable = (c4) =>
+    !c4 || c4.startsWith("#") || c4 === "---" || c4 === "...";
+  let baseIndent = null;
+  for (let i7 = 0; i7 < lines.length; i7++) {
+    const content = lines[i7].trim();
+    if (isSkippable(content)) continue;
+    const indent = lines[i7].length - lines[i7].trimStart().length;
+    if (baseIndent === null) baseIndent = indent;
+    if (indent !== baseIndent) continue;
+    const m3 = content.match(new RegExp("^" + _INITIAL_STATE_KEY.source)); // nosemgrep
+    if (!m3) continue;
+    let rawValue = m3[2];
+    if (rawValue.replace(/(?:^|\s+)#.*$/, "").trim() === "") {
+      for (let j2 = i7 + 1; j2 < lines.length; j2++) {
+        const c4 = lines[j2].trim();
+        if (!c4 || c4.startsWith("#")) continue;
+        const jIndent = lines[j2].length - lines[j2].trimStart().length;
+        if (jIndent > baseIndent) rawValue = c4;
+        break;
+      }
+    }
+    return _normalizeStateToken(rawValue);
+  }
+  return void 0;
+}
+function _initialStateEdited(originalYaml, editedYaml) {
+  return (
+    _extractInitialState(originalYaml) !== _extractInitialState(editedYaml)
+  );
+}
+function _createdToast(alias, result) {
+  if (result && result.risk_level === "elevated") {
+    return {
+      message: `Automation "${alias}" created (DISABLED) \u2014 uses elevated-risk actions (shell_command, python_script, webhook, etc.). Review carefully before enabling it from the Automations tab.`,
+      type: "warning",
+    };
+  }
+  return {
+    message: `Automation "${alias}" created (disabled) \u2014 enable it from the Automations tab when you're ready.`,
+    type: "info",
+  };
+}
+function _getRefiningAutomationId(msgIndex = null) {
+  const msg = msgIndex == null ? null : this._messages[msgIndex];
+  if (msg?.refining_automation_id) return msg.refining_automation_id;
+  if (msg?.automation_id) return msg.automation_id;
+  if (msg?.automation?.id) return msg.automation.id;
+  for (const m3 of this._messages) {
+    if (m3.automation_status === "refining") {
+      if (m3.automation_id) return m3.automation_id;
+      if (m3.automation?.id) return m3.automation.id;
+    }
+  }
+  return null;
+}
+async function _loadLineage(automationId) {
+  this._loadingLineage = { ...this._loadingLineage, [automationId]: true };
+  this.requestUpdate();
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/get_automation_lineage",
+      automation_id: automationId,
+    });
+    this._lineage = { ...this._lineage, [automationId]: result };
+  } catch (err) {
+    console.error("Failed to load lineage", err);
+    this._lineage = { ...this._lineage, [automationId]: [] };
+  } finally {
+    this._loadingLineage = { ...this._loadingLineage, [automationId]: false };
+    this.requestUpdate();
+  }
+}
+async function _acceptAutomation(msgIndex, automation) {
+  try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
+    const refiningId = this._getRefiningAutomationId(msgIndex);
+    let createResult = null;
+    let resolvedAutomationId = refiningId || null;
+    if (refiningId) {
+      const yamlText = msg.automation_yaml || "";
+      if (yamlText) {
+        await this.hass.callWS({
+          type: "selora_ai/update_automation_yaml",
+          automation_id: refiningId,
+          yaml_text: yamlText,
+          session_id: this._activeSessionId,
+          version_message: "Refined via chat",
+          // A generated refinement carries the existing YAML (possibly a stale
+          // initial_state), so preserve the automation's current enabled state.
+          // The endpoint defaults to authoritative, so refinements opt in.
+          preserve_enabled_state: true,
+        });
+      } else {
+        createResult = await this.hass.callWS({
+          type: "selora_ai/create_automation",
+          automation,
+          session_id: this._activeSessionId,
+        });
+        resolvedAutomationId = createResult?.automation_id || null;
+      }
+    } else {
+      createResult = await this.hass.callWS({
+        type: "selora_ai/create_automation",
+        automation,
+        session_id: this._activeSessionId,
+      });
+      resolvedAutomationId = createResult?.automation_id || null;
+    }
+    await this.hass.callWS({
+      type: "selora_ai/set_automation_status",
+      session_id: this._activeSessionId,
+      message_index: backendIndex,
+      status: "saved",
+      ...(resolvedAutomationId ? { automation_id: resolvedAutomationId } : {}),
+    });
+    const session = await this.hass.callWS({
+      type: "selora_ai/get_session",
+      session_id: this._activeSessionId,
+    });
+    if (createResult) this._markJustCreated(resolvedAutomationId);
+    this._messages = session.messages || [];
+    await this._loadAutomations();
+    if (createResult) {
+      await this._autoEnableAfterAccept(
+        resolvedAutomationId,
+        createResult,
+        msg,
+      );
+    }
+  } catch (err) {
+    this._showToast(
+      this._t("automation_crud_save_failed", "Failed to save automation:") +
+        " " +
+        err.message,
+      "error",
+    );
+  }
+}
+async function _autoEnableAfterAccept(automationId, createResult, msg) {
+  if (!automationId) return;
+  const elevated =
+    (createResult && createResult.risk_level === "elevated") ||
+    msg?.risk_assessment?.level === "elevated";
+  if (elevated) return;
+  const created = (this._automations || []).find(
+    (a3) => a3.automation_id === automationId,
+  );
+  if (!created?.entity_id) {
+    await new Promise((r4) => setTimeout(r4, 250));
+    await this._loadAutomations();
+  }
+  const target = (this._automations || []).find(
+    (a3) => a3.automation_id === automationId,
+  );
+  if (!target?.entity_id) {
+    console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
+    this._showToast(
+      this._t(
+        "automation_crud_entity_not_surfaced",
+        "Automation saved, but Home Assistant hasn't surfaced the entity yet \u2014 toggle it on from the Automations tab once it appears.",
+      ),
+      "warning",
+    );
+    return;
+  }
+  this._automations = (this._automations || []).map((a3) =>
+    a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+  );
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/toggle_automation",
+      automation_id: automationId,
+      entity_id: target.entity_id,
+      enabled: true,
+    });
+  } catch (err) {
+    this._automations = (this._automations || []).map((a3) =>
+      a3.automation_id === automationId ? { ...a3, state: "off" } : a3,
+    );
+    this.requestUpdate();
+    console.error("Failed to auto-enable new automation", err);
+    this._showToast(
+      this._t(
+        "automation_crud_auto_enable_failed_prefix",
+        "Automation saved but couldn't be enabled automatically:",
+      ) +
+        " " +
+        (err?.message ||
+          this._t("automation_crud_unknown_error", "unknown error")) +
+        this._t(
+          "automation_crud_auto_enable_failed_suffix",
+          ". Use the Enable button on the card to try again.",
+        ),
+      "warning",
+    );
+  }
+}
+async function _declineAutomation(msgIndex) {
+  try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
+    await this.hass.callWS({
+      type: "selora_ai/set_automation_status",
+      session_id: this._activeSessionId,
+      message_index: backendIndex,
+      status: "declined",
+    });
+    const session = await this.hass.callWS({
+      type: "selora_ai/get_session",
+      session_id: this._activeSessionId,
+    });
+    this._messages = session.messages || [];
+  } catch (err) {
+    console.error("Failed to decline automation", err);
+  }
+}
+async function _refineAutomation(msgIndex, automation, description) {
+  try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
+    await this.hass.callWS({
+      type: "selora_ai/set_automation_status",
+      session_id: this._activeSessionId,
+      message_index: backendIndex,
+      status: "refining",
+    });
+    const session = await this.hass.callWS({
+      type: "selora_ai/get_session",
+      session_id: this._activeSessionId,
+    });
+    this._messages = session.messages || [];
+  } catch (err) {
+    console.error("Failed to mark automation as refining", err);
+  }
+  const ctx = description ? ` (${description})` : "";
+  this._input = `Refine "${automation.alias}"${ctx}: `;
+  this.shadowRoot.querySelector(".composer-textarea")?.focus();
+}
+async function _createAutomationFromSuggestion(automation) {
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/create_automation",
+      automation,
+    });
+    await this._loadAutomations();
+    const toast = _createdToast(automation.alias, result);
+    this._showToast(toast.message, toast.type);
+  } catch (err) {
+    this._showToast(
+      this._t("automation_crud_create_failed", "Failed to create automation:") +
+        " " +
+        err.message,
+      "error",
+    );
+  }
+}
+function _discardSuggestion(suggestion) {
+  this._suggestions = this._suggestions.filter((s4) => s4 !== suggestion);
+}
+var ACCEPT_ANIM_MS = 240;
+async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
+  this._acceptAnimating = { ...this._acceptAnimating, [msgIndex]: true };
+  this.requestUpdate();
+  await new Promise((r4) => setTimeout(r4, ACCEPT_ANIM_MS));
+  const edited = this._editedYaml[yamlKey];
+  const msg = this._messages[msgIndex] || {};
+  const originalYaml = msg.automation_yaml || "";
+  const refiningId = this._getRefiningAutomationId(msgIndex);
+  const backendIndex = msg.automation_message_index ?? msgIndex;
+  const baselineYaml = this._originalYaml?.[yamlKey] ?? originalYaml;
+  if (edited && edited !== baselineYaml) {
+    try {
+      this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
+      this.requestUpdate();
+      let createResult = null;
+      let resolvedAutomationId = refiningId || null;
+      if (refiningId) {
+        const stateEdited = _initialStateEdited(baselineYaml, edited);
+        await this.hass.callWS({
+          type: "selora_ai/update_automation_yaml",
+          automation_id: refiningId,
+          yaml_text: edited,
+          session_id: this._activeSessionId,
+          version_message: "Refined via chat (with edits)",
+          preserve_enabled_state: !stateEdited,
+        });
+      } else {
+        createResult = await this.hass.callWS({
+          type: "selora_ai/apply_automation_yaml",
+          yaml_text: edited,
+          session_id: this._activeSessionId,
+        });
+        resolvedAutomationId = createResult?.automation_id || null;
+      }
+      await this.hass.callWS({
+        type: "selora_ai/set_automation_status",
+        session_id: this._activeSessionId,
+        message_index: backendIndex,
+        status: "saved",
+        ...(resolvedAutomationId
+          ? { automation_id: resolvedAutomationId }
+          : {}),
+      });
+      const session = await this.hass.callWS({
+        type: "selora_ai/get_session",
+        session_id: this._activeSessionId,
+      });
+      if (createResult) this._markJustCreated(resolvedAutomationId);
+      this._messages = session.messages || [];
+      await this._loadAutomations();
+      if (createResult) {
+        await this._autoEnableAfterAccept(
+          resolvedAutomationId,
+          createResult,
+          msg,
+        );
+      }
+    } catch (err) {
+      this._showToast(
+        this._t(
+          "automation_crud_save_edited_yaml_failed",
+          "Failed to save automation from edited YAML:",
+        ) +
+          " " +
+          err.message,
+        "error",
+      );
+    } finally {
+      this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
+      this._acceptAnimating = {
+        ...this._acceptAnimating,
+        [msgIndex]: false,
+      };
+      this.requestUpdate();
+    }
+  } else {
+    await this._acceptAutomation(msgIndex, automation);
+    this._acceptAnimating = {
+      ...this._acceptAnimating,
+      [msgIndex]: false,
+    };
+    this.requestUpdate();
+  }
+}
+async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
+  const edited = this._editedYaml[yamlKey];
+  try {
+    this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
+    this.requestUpdate();
+    let createResult;
+    if (edited && edited !== originalYaml) {
+      createResult = await this.hass.callWS({
+        type: "selora_ai/apply_automation_yaml",
+        yaml_text: edited,
+      });
+    } else {
+      createResult = await this.hass.callWS({
+        type: "selora_ai/create_automation",
+        automation: auto,
+      });
+    }
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [yamlKey]: true,
+    };
+    await this._loadAutomations();
+    const toast = _createdToast(auto.alias, createResult);
+    this._showToast(toast.message, toast.type);
+    await new Promise((r4) => setTimeout(r4, 650));
+    this._suggestions = this._suggestions.filter((s4) => {
+      const a3 = s4.automation || s4.automation_data;
+      return `sug_${a3?.alias}` !== yamlKey;
+    });
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [yamlKey]: false,
+    };
+    this._highlightAndScrollToNew();
+  } catch (err) {
+    this._showToast(
+      this._t("automation_crud_create_failed", "Failed to create automation:") +
+        " " +
+        err.message,
+      "error",
+    );
+  } finally {
+    this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
+    this.requestUpdate();
+  }
+}
+async function _saveActiveAutomationYaml(automationId, yamlKey) {
+  const edited = this._editedYaml[yamlKey];
+  if (!edited) return;
+  try {
+    this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
+    this.requestUpdate();
+    await this.hass.callWS({
+      type: "selora_ai/update_automation_yaml",
+      automation_id: automationId,
+      yaml_text: edited,
+      // Explicit editor save: honor any initial_state the user edited in the
+      // YAML rather than mirroring the on-disk value (that's the refine default).
+      preserve_enabled_state: false,
+    });
+    this._editedYaml = { ...this._editedYaml, [yamlKey]: void 0 };
+    await this._loadAutomations();
+    this._showToast(
+      this._t("automation_crud_yaml_saved", "Automation YAML saved."),
+      "success",
+    );
+  } catch (err) {
+    this._showToast(
+      this._t(
+        "automation_crud_save_changes_failed",
+        "Failed to save changes:",
+      ) +
+        " " +
+        err.message,
+      "error",
+    );
+  } finally {
+    this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
+    this.requestUpdate();
+  }
+}
+function _initYamlEdit(key, originalYaml) {
+  if (this._editedYaml[key] === void 0) {
+    this._editedYaml = { ...this._editedYaml, [key]: originalYaml };
+  }
+}
+function _onYamlInput(key, value) {
+  this._editedYaml = { ...this._editedYaml, [key]: value };
+  this.requestUpdate();
+}
+
+// src/panel/render-proposal-diff.js
+var PREVIEW_DEBOUNCE_MS = 350;
+function requestPreview(host, entry, delay) {
+  const generation = ++entry.generation;
+  entry.pending = true;
+  entry.timer = setTimeout(async () => {
+    entry.timer = null;
+    let current = "";
+    let proposed = "";
+    try {
+      const result = await host.hass?.callWS({
+        type: "selora_ai/preview_automation_write",
+        automation_id: entry.targetId,
+        yaml_text: entry.yamlText,
+        preserve_enabled_state: entry.preserveEnabledState,
+      });
+      current = result?.current_yaml || "";
+      proposed = result?.proposed_yaml || "";
+    } catch {}
+    if (generation !== entry.generation) return;
+    entry.current = current;
+    entry.proposed = proposed;
+    entry.loading = false;
+    entry.pending = false;
+    if (entry.stale) {
+      entry.stale = false;
+      requestPreview(host, entry, 0);
+    }
+    host.requestUpdate?.();
+  }, delay);
+}
+function previewWrite(host, msgIndex, request) {
+  if (!host._previewCache) host._previewCache = /* @__PURE__ */ new Map();
+  const cached = host._previewCache.get(msgIndex);
+  const sameRequest =
+    cached &&
+    cached.targetId === request.targetId &&
+    cached.yamlText === request.yamlText &&
+    cached.preserveEnabledState === request.preserveEnabledState;
+  if (sameRequest) {
+    if (cached.stale && !cached.pending) {
+      cached.stale = false;
+      requestPreview(host, cached, 0);
+    }
+    return cached;
+  }
+  if (cached?.timer) clearTimeout(cached.timer);
+  const entry = {
+    ...request,
+    stale: false,
+    loading: true,
+    pending: false,
+    generation: 0,
+    current: "",
+    proposed: "",
+    timer: null,
+  };
+  host._previewCache.set(msgIndex, entry);
+  requestPreview(host, entry, cached ? PREVIEW_DEBOUNCE_MS : 0);
+  return entry;
+}
+function invalidateProposalPreviews(host, msgIndex = null) {
+  if (!host._previewCache) return;
+  const entries =
+    msgIndex === null
+      ? host._previewCache.values()
+      : [host._previewCache.get(msgIndex)].filter(Boolean);
+  for (const entry of entries) entry.stale = true;
+}
+function proposalDiff(host, msgIndex) {
+  const msg = (host._messages || [])[msgIndex];
+  if (!msg?.automation) return null;
+  const yamlKey = `proposal_${msgIndex}`;
+  const edited = host._editedYaml?.[yamlKey];
+  const after = edited === void 0 ? msg.automation_yaml || "" : edited;
+  if (!after) return null;
+  const targetId = _getRefiningAutomationId.call(host, msgIndex);
+  if (!targetId) return null;
+  const generated = msg.automation_yaml || "";
+  const proposalBaseline = host._originalYaml?.[yamlKey] ?? generated;
+  const stateEdited =
+    !!edited &&
+    edited !== proposalBaseline &&
+    _initialStateEdited(proposalBaseline, edited);
+  const preview = previewWrite(host, msgIndex, {
+    targetId,
+    yamlText: after,
+    preserveEnabledState: !stateEdited,
+  });
+  if (preview.loading || !preview.current || !preview.proposed) return null;
+  if (!host._proposalDiffCache)
+    host._proposalDiffCache = /* @__PURE__ */ new Map();
+  const cached = host._proposalDiffCache.get(msgIndex);
+  if (
+    cached &&
+    cached.before === preview.current &&
+    cached.after === preview.proposed
+  ) {
+    return cached.diff;
+  }
+  const diff = diffLines(preview.current, preview.proposed);
+  host._proposalDiffCache.set(msgIndex, {
+    before: preview.current,
+    after: preview.proposed,
+    diff,
+  });
+  return diff;
+}
+function resetProposalDiffState(host) {
+  host._proposalDiffOpen = {};
+  host._proposalDiffExpanded = {};
+  host._proposalDiffFull = {};
+  host._proposalDiffCache = null;
+  for (const entry of host._previewCache?.values() || []) {
+    if (entry.timer) clearTimeout(entry.timer);
+  }
+  host._previewCache = null;
+}
+var REVEAL_SETTLE_MS = 800;
+async function revealPanel(host, selector) {
+  await host.updateComplete;
+  const panel = host.shadowRoot?.querySelector(selector);
+  if (!panel) return;
+  const bring = () =>
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  bring();
+  if (typeof ResizeObserver === "undefined") return;
+  const observer = new ResizeObserver(bring);
+  observer.observe(panel);
+  setTimeout(() => observer.disconnect(), REVEAL_SETTLE_MS);
+}
+function toggleProposalDiff(host, msgIndex) {
+  const opening = !(host._proposalDiffOpen || {})[msgIndex];
+  host._proposalDiffOpen = {
+    ...(host._proposalDiffOpen || {}),
+    [msgIndex]: opening,
+  };
+  if (opening) invalidateProposalPreviews(host, msgIndex);
+  host.requestUpdate();
+  if (opening) revealPanel(host, `[data-diff-panel="${msgIndex}"]`);
+}
+function expandGap(host, msgIndex, start) {
+  const current = (host._proposalDiffExpanded || {})[msgIndex] || [];
+  host._proposalDiffExpanded = {
+    ...(host._proposalDiffExpanded || {}),
+    [msgIndex]: [...current, start],
+  };
+  host.requestUpdate();
+}
+function toggleFullDiff(host, msgIndex) {
+  const full = !(host._proposalDiffFull || {})[msgIndex];
+  host._proposalDiffFull = {
+    ...(host._proposalDiffFull || {}),
+    [msgIndex]: full,
+  };
+  if (!full) {
+    host._proposalDiffExpanded = {
+      ...(host._proposalDiffExpanded || {}),
+      [msgIndex]: [],
+    };
+  }
+  host.requestUpdate();
+}
+function renderProposalDiffToggle(host, msgIndex, diff) {
+  if (!diff) return "";
+  const open = !!(host._proposalDiffOpen || {})[msgIndex];
+  const changed = diff.added > 0 || diff.removed > 0;
+  return b2`
+    <button
+      type="button"
+      class="subcard-action-link ${open ? "active" : ""}"
+      @click=${() => toggleProposalDiff(host, msgIndex)}
+    >
+      <ha-icon icon="mdi:file-compare"></ha-icon>
+      ${open ? host._t("automations_diff_toggle_hide", "Hide changes") : host._t("automations_diff_toggle_view", "View changes")}
+      ${
+        changed
+          ? b2`<span class="diff-stat-inline">
+              <span class="diff-stat add">+${diff.added}</span>
+              <span class="diff-stat del">−${diff.removed}</span>
+            </span>`
+          : ""
+      }
+    </button>
+  `;
+}
+function renderProposalDiffPanel(host, msgIndex, diff) {
+  if (!diff) return "";
+  if (!(host._proposalDiffOpen || {})[msgIndex]) return "";
+  if (diff.added === 0 && diff.removed === 0) {
+    return b2`<div class="proposal-diff" data-diff-panel=${msgIndex}>
+      <div class="proposal-diff-empty">
+        ${host._t(
+          "automations_diff_identical",
+          "Identical to the previous version \u2014 nothing changed.",
+        )}
+      </div>
+    </div>`;
+  }
+  const full = !!(host._proposalDiffFull || {})[msgIndex];
+  const expanded = (host._proposalDiffExpanded || {})[msgIndex] || [];
+  const collapsed = collapseDiff(diff.lines, DEFAULT_CONTEXT_RADIUS, expanded);
+  const entries = full ? diff.lines : collapsed;
+  const foldable = full || collapsed.some((e6) => e6.type === "gap");
+  return b2`
+    <div class="proposal-diff" data-diff-panel=${msgIndex}>
+      <div class="proposal-diff-head">
+        <span class="proposal-diff-legend">
+          ${host._t("automations_diff_legend_previous", "Previous")}
+          <ha-icon
+            icon="mdi:arrow-right"
+            style="--mdc-icon-size:13px;"
+          ></ha-icon>
+          ${host._t("automations_diff_legend_proposed", "Proposed")}
+        </span>
+        <span class="proposal-diff-head-right">
+          ${
+            foldable
+              ? b2`<button
+                  type="button"
+                  class="proposal-diff-expand-all"
+                  @click=${() => toggleFullDiff(host, msgIndex)}
+                >
+                  <ha-icon
+                    icon=${full ? "mdi:unfold-less-horizontal" : "mdi:unfold-more-horizontal"}
+                    style="--mdc-icon-size:13px;"
+                  ></ha-icon>
+                  ${full ? host._t("automations_diff_changes_only", "Changes only") : host._t("automations_diff_show_all", "Whole file")}
+                </button>`
+              : ""
+          }
+          <span class="diff-stat-inline">
+            <span class="diff-stat add">+${diff.added}</span>
+            <span class="diff-stat del">−${diff.removed}</span>
+          </span>
+        </span>
+      </div>
+      <div class="proposal-diff-body">
+        ${entries.map((entry) => renderDiffEntry(host, msgIndex, entry))}
+      </div>
+    </div>
+  `;
+}
+function renderDiffEntry(host, msgIndex, entry) {
+  if (entry.type === "gap") {
+    const path = entry.path || [];
+    return b2`<button
+      type="button"
+      class="proposal-diff-gap"
+      title=${host._t("automations_diff_expand_tooltip", "Show these lines")}
+      @click=${() => expandGap(host, msgIndex, entry.start)}
+    >
+      <ha-icon
+        icon="mdi:unfold-more-horizontal"
+        style="--mdc-icon-size:13px;"
+      ></ha-icon>
+      <span
+        >${host._t("automations_diff_unchanged_lines", "{count} unchanged lines").replace("{count}", String(entry.count))}</span
+      >
+      ${
+        path.length
+          ? b2`<span class="proposal-diff-gap-path"
+              >${path.join(" \u203A ")}</span
+            >`
+          : ""
+      }
+    </button>`;
+  }
+  return b2`<div class="proposal-diff-line ${entry.type}">
+    <span class="proposal-diff-text">${entry.text || " "}</span>
+  </div>`;
+}
+
 // src/panel/render-suggestions.js
 var ClampCursorDirective = class extends i5 {
   update(part, [force]) {
@@ -31760,6 +33039,7 @@ function renderProposalCard(host, msg, msgIndex) {
   const hasEdits =
     host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
   const revealing = !!(host._revealingProposals || {})[msgIndex];
+  const diff = proposalDiff(host, msgIndex);
   return b2`
     <div class="automation-subcard${revealing ? " revealing" : ""}">
       ${revealing ? renderRevealParticles(host) : ""}
@@ -31798,21 +33078,25 @@ function renderProposalCard(host, msg, msgIndex) {
             : ""
         }
         ${renderAutomationFlowchart(host, automation)}
-
-        <div
-          class="yaml-toggle"
-          style="margin-top:12px;"
-          @click=${() => toggleYaml(host, msgIndex)}
-        >
-          <ha-icon
-            icon="mdi:code-braces"
-            style="--mdc-icon-size:14px;"
-          ></ha-icon>
-          ${yamlOpen ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_edit", "Edit YAML")}
+      </div>
+      <!-- Third section, ruled off from the flow above it: the card's own
+           controls, with whatever they open unfolding beneath them. -->
+      <div class="automation-subcard-footer">
+        <div class="subcard-actions">
+          ${renderProposalDiffToggle(host, msgIndex, diff)}
+          <button
+            type="button"
+            class="subcard-action-link ${yamlOpen ? "active" : ""}"
+            @click=${() => toggleYaml(host, msgIndex)}
+          >
+            <ha-icon icon="mdi:code-braces"></ha-icon>
+            ${yamlOpen ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_edit", "Edit YAML")}
+          </button>
         </div>
+        ${renderProposalDiffPanel(host, msgIndex, diff)}
         ${
           yamlOpen
-            ? b2`<div style="margin-top:6px;">
+            ? b2`<div class="proposal-yaml-panel" data-yaml-panel=${msgIndex}>
                 ${host._renderYamlEditor(yamlKey, yaml)}
                 ${
                   hasEdits
@@ -31947,11 +33231,13 @@ function renderProposalActions(host, msg, msgIndex) {
   </div>`;
 }
 function toggleYaml(host, msgIndex) {
+  const opening = !(host._yamlOpen || {})[msgIndex];
   host._yamlOpen = {
     ...(host._yamlOpen || {}),
-    [msgIndex]: !(host._yamlOpen || {})[msgIndex],
+    [msgIndex]: opening,
   };
   host.requestUpdate();
+  if (opening) revealPanel(host, `[data-yaml-panel="${msgIndex}"]`);
 }
 function masonryColumns(cards, cols = 3, firstColFooter = null) {
   const w2 = window.innerWidth;
@@ -45840,6 +47126,7 @@ async function _openSession(sessionId) {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    resetProposalDiffState(this);
     const sessionEntries = [...(this._streams || [])].filter(
       (e6) =>
         e6.sessionId === session.id &&
@@ -45883,6 +47170,7 @@ async function _newSession() {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    resetProposalDiffState(this);
     this._loading = false;
     this._streaming = false;
     this._setActiveTab("chat");
@@ -45912,6 +47200,7 @@ async function _startNewAutomationChat() {
     this._activeSessionId = session_id;
     this._sessionSearch = "";
     this._messages = [];
+    resetProposalDiffState(this);
     this._input = "";
     this._autocompleteSelections = [];
     this._newAutomationMode = true;
@@ -45953,6 +47242,7 @@ async function _newAutomationChat(name) {
     this._activeSessionId = session_id;
     this._sessionSearch = "";
     this._messages = [];
+    resetProposalDiffState(this);
     this._input = `Create a new automation called "${trimmed}".`;
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
@@ -46082,6 +47372,7 @@ async function _confirmDeleteSession() {
     if (this._activeSessionId === sessionId) {
       this._activeSessionId = null;
       this._messages = [];
+      resetProposalDiffState(this);
     }
     await this._loadSessions();
   } catch (err) {
@@ -46141,6 +47432,7 @@ async function _confirmBulkDeleteSessions() {
       if (this._activeSessionId === id) {
         this._activeSessionId = null;
         this._messages = [];
+        resetProposalDiffState(this);
       }
     } catch (err) {
       console.error("Failed to delete session", id, err);
@@ -46158,7 +47450,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "98a3e781103e" : "";
+var PANEL_BUILD = true ? "9de7782def97" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -46257,6 +47549,7 @@ async function _loadAutomations() {
         ([id, selected]) => selected && validIds.has(id),
       ),
     );
+    invalidateProposalPreviews(this);
   } catch (err) {
     console.error("Failed to load automations", err);
   }
@@ -47119,521 +48412,6 @@ async function _copyMessageText(msg, btn, text) {
     btn.classList.remove("copied");
     if (icon) icon.setAttribute("icon", "mdi:content-copy");
   }, 1500);
-}
-
-// src/panel/automation-crud.js
-var automation_crud_exports = {};
-__export(automation_crud_exports, {
-  _acceptAutomation: () => _acceptAutomation,
-  _acceptAutomationWithEdits: () => _acceptAutomationWithEdits,
-  _autoEnableAfterAccept: () => _autoEnableAfterAccept,
-  _createAutomationFromSuggestion: () => _createAutomationFromSuggestion,
-  _createSuggestionWithEdits: () => _createSuggestionWithEdits,
-  _createdToast: () => _createdToast,
-  _declineAutomation: () => _declineAutomation,
-  _discardSuggestion: () => _discardSuggestion,
-  _extractInitialState: () => _extractInitialState,
-  _getRefiningAutomationId: () => _getRefiningAutomationId,
-  _initYamlEdit: () => _initYamlEdit,
-  _initialStateEdited: () => _initialStateEdited,
-  _loadLineage: () => _loadLineage,
-  _onYamlInput: () => _onYamlInput,
-  _refineAutomation: () => _refineAutomation,
-  _saveActiveAutomationYaml: () => _saveActiveAutomationYaml,
-});
-var _INITIAL_STATE_KEY = /(['"]?)initial_state\1[ \t]*:[ \t]*(.*)$/;
-function _normalizeStateToken(token) {
-  return token
-    .replace(/(?:^|\s+)#.*$/, "")
-    .replace(/^["']|["']$/g, "")
-    .trim()
-    .toLowerCase();
-}
-function _topLevelFlowEntries(text) {
-  const inner = text.trim().replace(/^\{/, "").replace(/\}$/, "");
-  const entries = [];
-  let depth = 0;
-  let quote = null;
-  let start = 0;
-  for (let i7 = 0; i7 < inner.length; i7++) {
-    const ch = inner[i7];
-    if (quote) {
-      if (quote === '"' && ch === "\\") {
-        i7++;
-      } else if (ch === quote) {
-        if (quote === "'" && inner[i7 + 1] === "'") {
-          i7++;
-        } else {
-          quote = null;
-        }
-      }
-      continue;
-    }
-    if (ch === '"' || ch === "'") {
-      quote = ch;
-    } else if (ch === "{" || ch === "[") {
-      depth++;
-    } else if (ch === "}" || ch === "]") {
-      depth--;
-    } else if (ch === "," && depth === 0) {
-      entries.push(inner.slice(start, i7));
-      start = i7 + 1;
-    }
-  }
-  entries.push(inner.slice(start));
-  return entries;
-}
-function _flowInitialState(text) {
-  for (const entry of _topLevelFlowEntries(text)) {
-    const m3 = entry.match(
-      /^[ \t\r\n]*(['"]?)initial_state\1[ \t]*:([\s\S]*)$/,
-    );
-    if (m3) return _normalizeStateToken(m3[2]);
-  }
-  return void 0;
-}
-function _extractInitialState(yamlText) {
-  if (!yamlText) return void 0;
-  const trimmed = yamlText.trim();
-  if (trimmed.startsWith("{")) {
-    return _flowInitialState(trimmed);
-  }
-  const lines = yamlText.split(/\r?\n/);
-  const isSkippable = (c4) =>
-    !c4 || c4.startsWith("#") || c4 === "---" || c4 === "...";
-  let baseIndent = null;
-  for (let i7 = 0; i7 < lines.length; i7++) {
-    const content = lines[i7].trim();
-    if (isSkippable(content)) continue;
-    const indent = lines[i7].length - lines[i7].trimStart().length;
-    if (baseIndent === null) baseIndent = indent;
-    if (indent !== baseIndent) continue;
-    const m3 = content.match(new RegExp("^" + _INITIAL_STATE_KEY.source)); // nosemgrep
-    if (!m3) continue;
-    let rawValue = m3[2];
-    if (rawValue.replace(/(?:^|\s+)#.*$/, "").trim() === "") {
-      for (let j2 = i7 + 1; j2 < lines.length; j2++) {
-        const c4 = lines[j2].trim();
-        if (!c4 || c4.startsWith("#")) continue;
-        const jIndent = lines[j2].length - lines[j2].trimStart().length;
-        if (jIndent > baseIndent) rawValue = c4;
-        break;
-      }
-    }
-    return _normalizeStateToken(rawValue);
-  }
-  return void 0;
-}
-function _initialStateEdited(originalYaml, editedYaml) {
-  return (
-    _extractInitialState(originalYaml) !== _extractInitialState(editedYaml)
-  );
-}
-function _createdToast(alias, result) {
-  if (result && result.risk_level === "elevated") {
-    return {
-      message: `Automation "${alias}" created (DISABLED) \u2014 uses elevated-risk actions (shell_command, python_script, webhook, etc.). Review carefully before enabling it from the Automations tab.`,
-      type: "warning",
-    };
-  }
-  return {
-    message: `Automation "${alias}" created (disabled) \u2014 enable it from the Automations tab when you're ready.`,
-    type: "info",
-  };
-}
-function _getRefiningAutomationId(msgIndex = null) {
-  const msg = msgIndex == null ? null : this._messages[msgIndex];
-  if (msg?.refining_automation_id) return msg.refining_automation_id;
-  if (msg?.automation_id) return msg.automation_id;
-  if (msg?.automation?.id) return msg.automation.id;
-  for (const m3 of this._messages) {
-    if (m3.automation_status === "refining") {
-      if (m3.automation_id) return m3.automation_id;
-      if (m3.automation?.id) return m3.automation.id;
-    }
-  }
-  return null;
-}
-async function _loadLineage(automationId) {
-  this._loadingLineage = { ...this._loadingLineage, [automationId]: true };
-  this.requestUpdate();
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/get_automation_lineage",
-      automation_id: automationId,
-    });
-    this._lineage = { ...this._lineage, [automationId]: result };
-  } catch (err) {
-    console.error("Failed to load lineage", err);
-    this._lineage = { ...this._lineage, [automationId]: [] };
-  } finally {
-    this._loadingLineage = { ...this._loadingLineage, [automationId]: false };
-    this.requestUpdate();
-  }
-}
-async function _acceptAutomation(msgIndex, automation) {
-  try {
-    const msg = this._messages[msgIndex] || {};
-    const backendIndex = msg.automation_message_index ?? msgIndex;
-    const refiningId = this._getRefiningAutomationId(msgIndex);
-    let createResult = null;
-    let resolvedAutomationId = refiningId || null;
-    if (refiningId) {
-      const yamlText = msg.automation_yaml || "";
-      if (yamlText) {
-        await this.hass.callWS({
-          type: "selora_ai/update_automation_yaml",
-          automation_id: refiningId,
-          yaml_text: yamlText,
-          session_id: this._activeSessionId,
-          version_message: "Refined via chat",
-          // A generated refinement carries the existing YAML (possibly a stale
-          // initial_state), so preserve the automation's current enabled state.
-          // The endpoint defaults to authoritative, so refinements opt in.
-          preserve_enabled_state: true,
-        });
-      } else {
-        createResult = await this.hass.callWS({
-          type: "selora_ai/create_automation",
-          automation,
-          session_id: this._activeSessionId,
-        });
-        resolvedAutomationId = createResult?.automation_id || null;
-      }
-    } else {
-      createResult = await this.hass.callWS({
-        type: "selora_ai/create_automation",
-        automation,
-        session_id: this._activeSessionId,
-      });
-      resolvedAutomationId = createResult?.automation_id || null;
-    }
-    await this.hass.callWS({
-      type: "selora_ai/set_automation_status",
-      session_id: this._activeSessionId,
-      message_index: backendIndex,
-      status: "saved",
-      ...(resolvedAutomationId ? { automation_id: resolvedAutomationId } : {}),
-    });
-    const session = await this.hass.callWS({
-      type: "selora_ai/get_session",
-      session_id: this._activeSessionId,
-    });
-    if (createResult) this._markJustCreated(resolvedAutomationId);
-    this._messages = session.messages || [];
-    await this._loadAutomations();
-    if (createResult) {
-      await this._autoEnableAfterAccept(
-        resolvedAutomationId,
-        createResult,
-        msg,
-      );
-    }
-  } catch (err) {
-    this._showToast(
-      this._t("automation_crud_save_failed", "Failed to save automation:") +
-        " " +
-        err.message,
-      "error",
-    );
-  }
-}
-async function _autoEnableAfterAccept(automationId, createResult, msg) {
-  if (!automationId) return;
-  const elevated =
-    (createResult && createResult.risk_level === "elevated") ||
-    msg?.risk_assessment?.level === "elevated";
-  if (elevated) return;
-  const created = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
-  );
-  if (!created?.entity_id) {
-    await new Promise((r4) => setTimeout(r4, 250));
-    await this._loadAutomations();
-  }
-  const target = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
-  );
-  if (!target?.entity_id) {
-    console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
-    this._showToast(
-      this._t(
-        "automation_crud_entity_not_surfaced",
-        "Automation saved, but Home Assistant hasn't surfaced the entity yet \u2014 toggle it on from the Automations tab once it appears.",
-      ),
-      "warning",
-    );
-    return;
-  }
-  this._automations = (this._automations || []).map((a3) =>
-    a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
-  );
-  this.requestUpdate();
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/toggle_automation",
-      automation_id: automationId,
-      entity_id: target.entity_id,
-      enabled: true,
-    });
-  } catch (err) {
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "off" } : a3,
-    );
-    this.requestUpdate();
-    console.error("Failed to auto-enable new automation", err);
-    this._showToast(
-      this._t(
-        "automation_crud_auto_enable_failed_prefix",
-        "Automation saved but couldn't be enabled automatically:",
-      ) +
-        " " +
-        (err?.message ||
-          this._t("automation_crud_unknown_error", "unknown error")) +
-        this._t(
-          "automation_crud_auto_enable_failed_suffix",
-          ". Use the Enable button on the card to try again.",
-        ),
-      "warning",
-    );
-  }
-}
-async function _declineAutomation(msgIndex) {
-  try {
-    const msg = this._messages[msgIndex] || {};
-    const backendIndex = msg.automation_message_index ?? msgIndex;
-    await this.hass.callWS({
-      type: "selora_ai/set_automation_status",
-      session_id: this._activeSessionId,
-      message_index: backendIndex,
-      status: "declined",
-    });
-    const session = await this.hass.callWS({
-      type: "selora_ai/get_session",
-      session_id: this._activeSessionId,
-    });
-    this._messages = session.messages || [];
-  } catch (err) {
-    console.error("Failed to decline automation", err);
-  }
-}
-async function _refineAutomation(msgIndex, automation, description) {
-  try {
-    const msg = this._messages[msgIndex] || {};
-    const backendIndex = msg.automation_message_index ?? msgIndex;
-    await this.hass.callWS({
-      type: "selora_ai/set_automation_status",
-      session_id: this._activeSessionId,
-      message_index: backendIndex,
-      status: "refining",
-    });
-    const session = await this.hass.callWS({
-      type: "selora_ai/get_session",
-      session_id: this._activeSessionId,
-    });
-    this._messages = session.messages || [];
-  } catch (err) {
-    console.error("Failed to mark automation as refining", err);
-  }
-  const ctx = description ? ` (${description})` : "";
-  this._input = `Refine "${automation.alias}"${ctx}: `;
-  this.shadowRoot.querySelector(".composer-textarea")?.focus();
-}
-async function _createAutomationFromSuggestion(automation) {
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/create_automation",
-      automation,
-    });
-    await this._loadAutomations();
-    const toast = _createdToast(automation.alias, result);
-    this._showToast(toast.message, toast.type);
-  } catch (err) {
-    this._showToast(
-      this._t("automation_crud_create_failed", "Failed to create automation:") +
-        " " +
-        err.message,
-      "error",
-    );
-  }
-}
-function _discardSuggestion(suggestion) {
-  this._suggestions = this._suggestions.filter((s4) => s4 !== suggestion);
-}
-var ACCEPT_ANIM_MS = 240;
-async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
-  this._acceptAnimating = { ...this._acceptAnimating, [msgIndex]: true };
-  this.requestUpdate();
-  await new Promise((r4) => setTimeout(r4, ACCEPT_ANIM_MS));
-  const edited = this._editedYaml[yamlKey];
-  const msg = this._messages[msgIndex] || {};
-  const originalYaml = msg.automation_yaml || "";
-  const refiningId = this._getRefiningAutomationId(msgIndex);
-  const backendIndex = msg.automation_message_index ?? msgIndex;
-  const baselineYaml = this._originalYaml?.[yamlKey] ?? originalYaml;
-  if (edited && edited !== baselineYaml) {
-    try {
-      this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
-      this.requestUpdate();
-      let createResult = null;
-      let resolvedAutomationId = refiningId || null;
-      if (refiningId) {
-        const stateEdited = _initialStateEdited(baselineYaml, edited);
-        await this.hass.callWS({
-          type: "selora_ai/update_automation_yaml",
-          automation_id: refiningId,
-          yaml_text: edited,
-          session_id: this._activeSessionId,
-          version_message: "Refined via chat (with edits)",
-          preserve_enabled_state: !stateEdited,
-        });
-      } else {
-        createResult = await this.hass.callWS({
-          type: "selora_ai/apply_automation_yaml",
-          yaml_text: edited,
-          session_id: this._activeSessionId,
-        });
-        resolvedAutomationId = createResult?.automation_id || null;
-      }
-      await this.hass.callWS({
-        type: "selora_ai/set_automation_status",
-        session_id: this._activeSessionId,
-        message_index: backendIndex,
-        status: "saved",
-        ...(resolvedAutomationId
-          ? { automation_id: resolvedAutomationId }
-          : {}),
-      });
-      const session = await this.hass.callWS({
-        type: "selora_ai/get_session",
-        session_id: this._activeSessionId,
-      });
-      if (createResult) this._markJustCreated(resolvedAutomationId);
-      this._messages = session.messages || [];
-      await this._loadAutomations();
-      if (createResult) {
-        await this._autoEnableAfterAccept(
-          resolvedAutomationId,
-          createResult,
-          msg,
-        );
-      }
-    } catch (err) {
-      this._showToast(
-        this._t(
-          "automation_crud_save_edited_yaml_failed",
-          "Failed to save automation from edited YAML:",
-        ) +
-          " " +
-          err.message,
-        "error",
-      );
-    } finally {
-      this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
-      this._acceptAnimating = {
-        ...this._acceptAnimating,
-        [msgIndex]: false,
-      };
-      this.requestUpdate();
-    }
-  } else {
-    await this._acceptAutomation(msgIndex, automation);
-    this._acceptAnimating = {
-      ...this._acceptAnimating,
-      [msgIndex]: false,
-    };
-    this.requestUpdate();
-  }
-}
-async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
-  const edited = this._editedYaml[yamlKey];
-  try {
-    this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
-    this.requestUpdate();
-    let createResult;
-    if (edited && edited !== originalYaml) {
-      createResult = await this.hass.callWS({
-        type: "selora_ai/apply_automation_yaml",
-        yaml_text: edited,
-      });
-    } else {
-      createResult = await this.hass.callWS({
-        type: "selora_ai/create_automation",
-        automation: auto,
-      });
-    }
-    this._fadingOutSuggestions = {
-      ...this._fadingOutSuggestions,
-      [yamlKey]: true,
-    };
-    await this._loadAutomations();
-    const toast = _createdToast(auto.alias, createResult);
-    this._showToast(toast.message, toast.type);
-    await new Promise((r4) => setTimeout(r4, 650));
-    this._suggestions = this._suggestions.filter((s4) => {
-      const a3 = s4.automation || s4.automation_data;
-      return `sug_${a3?.alias}` !== yamlKey;
-    });
-    this._fadingOutSuggestions = {
-      ...this._fadingOutSuggestions,
-      [yamlKey]: false,
-    };
-    this._highlightAndScrollToNew();
-  } catch (err) {
-    this._showToast(
-      this._t("automation_crud_create_failed", "Failed to create automation:") +
-        " " +
-        err.message,
-      "error",
-    );
-  } finally {
-    this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
-    this.requestUpdate();
-  }
-}
-async function _saveActiveAutomationYaml(automationId, yamlKey) {
-  const edited = this._editedYaml[yamlKey];
-  if (!edited) return;
-  try {
-    this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
-    this.requestUpdate();
-    await this.hass.callWS({
-      type: "selora_ai/update_automation_yaml",
-      automation_id: automationId,
-      yaml_text: edited,
-      // Explicit editor save: honor any initial_state the user edited in the
-      // YAML rather than mirroring the on-disk value (that's the refine default).
-      preserve_enabled_state: false,
-    });
-    this._editedYaml = { ...this._editedYaml, [yamlKey]: void 0 };
-    await this._loadAutomations();
-    this._showToast(
-      this._t("automation_crud_yaml_saved", "Automation YAML saved."),
-      "success",
-    );
-  } catch (err) {
-    this._showToast(
-      this._t(
-        "automation_crud_save_changes_failed",
-        "Failed to save changes:",
-      ) +
-        " " +
-        err.message,
-      "error",
-    );
-  } finally {
-    this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
-    this.requestUpdate();
-  }
-}
-function _initYamlEdit(key, originalYaml) {
-  if (this._editedYaml[key] === void 0) {
-    this._editedYaml = { ...this._editedYaml, [key]: originalYaml };
-  }
-}
-function _onYamlInput(key, value) {
-  this._editedYaml = { ...this._editedYaml, [key]: value };
-  this.requestUpdate();
 }
 
 // src/panel/scene-actions.js
@@ -50438,6 +51216,7 @@ var SeloraAIPanel = class extends i4 {
       });
       this._activeSessionId = session_id;
       this._messages = [];
+      resetProposalDiffState(this);
       this._input = "Create a scene that ";
       this._setActiveTab("chat");
       this._welcomeKey = (this._welcomeKey || 0) + 1;

@@ -126,6 +126,211 @@ export const proposalStyles = css`
     opacity: 0.65;
     margin-bottom: 10px;
   }
+
+  /* ---- Card footer (Edit YAML / View changes) ----
+     Its own section, ruled off from the flow the way the header is, so the
+     controls stop reading as part of the diagram. What they open unfolds
+     underneath them, where the click was. */
+  .automation-subcard-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--divider-color);
+  }
+  .subcard-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  /* Links, not buttons: these disclose part of the card, they do not act on
+     the automation. A <button> underneath keeps them keyboard-reachable. */
+  .subcard-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  /* Hovered, and open, both brighten to full text colour. The open one needs
+     no accent: its label already says Hide rather than View. */
+  .subcard-action-link:hover,
+  .subcard-action-link.active {
+    color: var(--primary-text-color);
+  }
+  .subcard-action-link ha-icon {
+    flex: 0 0 auto;
+    display: block;
+    width: 14px;
+    height: 14px;
+    --mdc-icon-size: 14px;
+  }
+
+  /* ---- Proposal YAML diff ---- */
+  .diff-stat-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "Fira Code", "Cascadia Code", monospace;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .diff-stat.add {
+    color: var(--success-color, #2e7d32);
+  }
+  .diff-stat.del {
+    color: var(--error-color, #c62828);
+  }
+  .proposal-yaml-panel {
+    margin-top: 12px;
+  }
+  .proposal-diff {
+    margin-top: 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--primary-background-color);
+  }
+  .proposal-diff-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--divider-color);
+    font-size: 11px;
+  }
+  .proposal-diff-legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--secondary-text-color);
+  }
+  .proposal-diff-empty {
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .proposal-diff-body {
+    max-height: 320px;
+    overflow: auto;
+    padding: 6px 0;
+    font-family: "Fira Code", "Cascadia Code", monospace;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  /* Flex container on purpose: whitespace-only text nodes in a flex box are
+     not rendered, so the markup's own indentation never reaches the
+     clipboard. The +/- gutter is generated content for the same reason —
+     browsers leave ::before out of a copied selection. */
+  .proposal-diff-line {
+    display: flex;
+    align-items: flex-start;
+    padding: 0 12px;
+  }
+  .proposal-diff-line::before {
+    flex: 0 0 auto;
+    width: 12px;
+    opacity: 0.75;
+    content: " ";
+  }
+  .proposal-diff-line.add::before {
+    content: "+";
+  }
+  .proposal-diff-line.del::before {
+    content: "−";
+  }
+  .proposal-diff-text {
+    flex: 1 1 auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  /* Tints stay low-alpha so they read on both the light and dark card
+     backgrounds; the text colour carries the meaning for anyone who can't
+     separate the two hues. */
+  .proposal-diff-line.add {
+    background: rgba(76, 175, 80, 0.14);
+    color: var(--success-color, #2e7d32);
+  }
+  .proposal-diff-line.del {
+    background: rgba(244, 67, 54, 0.13);
+    color: var(--error-color, #c62828);
+  }
+  .proposal-diff-line.ctx {
+    color: var(--secondary-text-color);
+  }
+  /* Clickable hunk separator: reveals the run it hides and names the key the
+     next change sits under. */
+  .proposal-diff-gap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3px 12px;
+    border: none;
+    border-top: 1px solid var(--divider-color);
+    border-bottom: 1px solid var(--divider-color);
+    background: var(--divider-color);
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 10px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .proposal-diff-gap:hover {
+    color: var(--primary-text-color);
+    filter: brightness(1.25);
+  }
+  .proposal-diff-gap ha-icon {
+    flex: 0 0 auto;
+    display: block;
+    width: 13px;
+    height: 13px;
+  }
+  .proposal-diff-gap-path {
+    margin-left: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: "Fira Code", "Cascadia Code", monospace;
+    opacity: 0.85;
+  }
+  .proposal-diff-head-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .proposal-diff-expand-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--secondary-text-color);
+    font-family: inherit;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .proposal-diff-expand-all:hover {
+    color: var(--primary-text-color);
+  }
+  .proposal-diff-expand-all ha-icon {
+    flex: 0 0 auto;
+    display: block;
+    width: 13px;
+    height: 13px;
+  }
   .proposal-actions {
     display: flex;
     gap: 8px;

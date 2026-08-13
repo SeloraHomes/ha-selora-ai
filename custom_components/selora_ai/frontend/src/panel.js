@@ -23,6 +23,7 @@ import {
   toggleYaml,
   masonryColumns,
 } from "./panel/render-automations.js";
+import { resetProposalDiffState } from "./panel/render-proposal-diff.js";
 import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
@@ -2925,6 +2926,7 @@ class SeloraAIPanel extends LitElement {
       });
       this._activeSessionId = session_id;
       this._messages = [];
+      resetProposalDiffState(this);
       this._input = "Create a scene that ";
       this._setActiveTab("chat");
       this._welcomeKey = (this._welcomeKey || 0) + 1;

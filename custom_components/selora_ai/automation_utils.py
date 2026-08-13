@@ -2186,6 +2186,110 @@ async def _restore_runtime_enabled_state(
         )
 
 
+def prepare_write_payload(
+    hass: HomeAssistant, updated: dict[str, Any]
+) -> tuple[bool, str, dict[str, Any] | None]:
+    """Validate a payload and fold it into the shape the writer stores.
+
+    Coerces trigger values (boolean to/from → "on"/"off") and moves the result
+    onto HA 2024+ plural keys, dropping the singular ones. ``updated`` is
+    mutated in place; the returned dict is the validated normal form used for
+    risk assessment.
+
+    Shared with the write preview so a previewed document is normalized exactly
+    as the saved one is — the panel's whole claim is that they match.
+    """
+    is_valid, reason, normalized = validate_automation_payload(updated, hass)
+    if not is_valid or normalized is None:
+        return False, reason, None
+
+    updated["triggers"] = normalized["triggers"]
+    updated["actions"] = normalized["actions"]
+    updated["conditions"] = normalized.get("conditions", [])
+    updated.pop("trigger", None)
+    updated.pop("action", None)
+    updated.pop("condition", None)
+    return True, reason, normalized
+
+
+def apply_managed_fields(
+    existing_entry: dict[str, Any],
+    updated: dict[str, Any],
+    automation_id: str,
+    *,
+    preserve_enabled_state: bool,
+    new_is_elevated: bool,
+    captured_live: bool | None,
+    risk_flags: list[str] | None = None,
+    dry_run: bool = False,
+) -> tuple[bool, bool]:
+    """Settle the fields the save owns rather than the payload: id, initial_state.
+
+    Mutates ``updated`` into what will be written for that automation and
+    returns ``(escalating_risk, risk_forced_disabled)``.
+
+    ``dry_run`` only downgrades the forced-disable log — the decisions are
+    identical, which is the point: the write preview calls this so what it
+    shows and what :func:`async_update_automation` writes cannot diverge.
+    """
+    updated["id"] = automation_id
+    escalating_risk = False
+    risk_forced_disabled = False
+
+    # `initial_state` is a boot override, not a runtime flag: when present HA
+    # forces that state on `automation.reload`; when absent HA restores the
+    # automation's last (live) state.
+    if not preserve_enabled_state:
+        # Explicit mode (MCP enable/disable, YAML-editor save, version restore):
+        # the submitted payload is authoritative exactly as-is — a submitted
+        # boolean is honored, and an omitted key removes any existing boot
+        # override (restoring HA's last-state behavior).
+        return escalating_risk, risk_forced_disabled
+
+    # Refine/content edit: keep the on-disk boot override *verbatim* (copy when
+    # present, keep omitted when absent), discarding any stale `initial_state`
+    # in the incoming YAML (the store's versioned copy is captured at create
+    # time and isn't updated when the user later toggles the automation). The
+    # current runtime state is preserved separately, after the reload, so a
+    # temporary UI/service toggle never rewrites the user's startup preference.
+    boot_override = existing_entry.get("initial_state")
+    # The gate covers *escalation* only. An automation the user already reviewed
+    # and deliberately enabled at elevated risk stays enabled through ordinary
+    # edits — otherwise every tweak to a legitimate shell_command automation
+    # would silently switch it off, which is not what this gate is for.
+    prior_elevated = (
+        new_is_elevated and assess_automation_risk(existing_entry).get("level") == "elevated"
+    )
+    escalating_risk = new_is_elevated and not prior_elevated
+    # Only skip the gate when the automation is positively known to be off AND
+    # to stay off. An indeterminate runtime state (entity not loaded, transient
+    # unavailable/unknown) with no explicit `initial_state: false` must still be
+    # forced off: with the override absent, HA restores the last runtime state on
+    # reload, which may be on — that would walk the automation straight past this
+    # gate while elevated.
+    definitely_off = boot_override is False or (
+        captured_live is False and boot_override is not True
+    )
+    if escalating_risk and not definitely_off:
+        # Newly elevated and not known-disabled: write the boot override off so
+        # the reload forces the entity off, and skip the runtime restore that
+        # would otherwise turn it back on.
+        log = _LOGGER.debug if dry_run else _LOGGER.warning
+        log(
+            "Forcing initial_state=False for automation %s — the refinement "
+            "raised its risk to elevated (flags=%s)",
+            automation_id,
+            risk_flags,
+        )
+        risk_forced_disabled = True
+        updated["initial_state"] = False
+    elif "initial_state" in existing_entry:
+        updated["initial_state"] = existing_entry["initial_state"]
+    else:
+        updated.pop("initial_state", None)
+    return escalating_risk, risk_forced_disabled
+
+
 async def async_update_automation(
     hass: HomeAssistant,
     automation_id: str,
@@ -2216,20 +2320,10 @@ async def async_update_automation(
     so the risk gate can't be sidestepped by refining a benign automation into a
     dangerous one.
     """
-    # Validate and normalize trigger values (coerces boolean to/from → "on"/"off")
-    is_valid, reason, normalized = validate_automation_payload(updated, hass)
+    is_valid, reason, normalized = prepare_write_payload(hass, updated)
     if not is_valid or normalized is None:
         _LOGGER.error("Invalid automation update for %s: %s", automation_id, reason)
         return False
-
-    # Merge normalized trigger/action/condition back using plural keys (HA 2024+)
-    updated["triggers"] = normalized["triggers"]
-    updated["actions"] = normalized["actions"]
-    updated["conditions"] = normalized.get("conditions", [])
-    # Remove old singular keys if present
-    updated.pop("trigger", None)
-    updated.pop("action", None)
-    updated.pop("condition", None)
 
     # A content edit must not leave a newly elevated-risk automation live. The
     # same YAML created fresh is always written disabled (see
@@ -2280,59 +2374,15 @@ async def async_update_automation(
             found = False
             for i, a in enumerate(existing):
                 if a.get("id") == automation_id:
-                    updated["id"] = automation_id
-                    # `initial_state` is a boot override, not a runtime flag: when
-                    # present HA forces that state on the `automation.reload` below;
-                    # when absent HA restores the automation's last (live) state.
-                    if preserve_enabled_state:
-                        # Refine/content edit: keep the on-disk boot override
-                        # *verbatim* (copy when present, keep omitted when absent),
-                        # discarding any stale `initial_state` in the incoming YAML
-                        # (the store's versioned copy is captured at create time and
-                        # isn't updated when the user later toggles the automation).
-                        # The current runtime state is preserved separately, after
-                        # the reload, so a temporary UI/service toggle never rewrites
-                        # the user's startup preference.
-                        boot_override = a.get("initial_state")
-                        # The gate covers *escalation* only. An automation the user
-                        # already reviewed and deliberately enabled at elevated risk
-                        # stays enabled through ordinary edits — otherwise every tweak
-                        # to a legitimate shell_command automation would silently
-                        # switch it off, which is not what this gate is for.
-                        prior_elevated = (
-                            new_is_elevated and assess_automation_risk(a).get("level") == "elevated"
-                        )
-                        escalating_risk = new_is_elevated and not prior_elevated
-                        # Only skip the gate when the automation is positively known to
-                        # be off AND to stay off. An indeterminate runtime state (entity
-                        # not loaded, unavailable, unknown) with no explicit
-                        # `initial_state: false` must still be forced off: with the
-                        # override absent, HA restores the last runtime state on reload,
-                        # which may be on — that would walk the automation straight past
-                        # this gate while elevated.
-                        definitely_off = boot_override is False or (
-                            captured_live is False and boot_override is not True
-                        )
-                        if escalating_risk and not definitely_off:
-                            # Newly elevated and not known-disabled: write the boot
-                            # override off so the reload forces the entity off, and skip
-                            # the runtime restore that would otherwise turn it back on.
-                            _LOGGER.warning(
-                                "Forcing initial_state=False for automation %s — the "
-                                "refinement raised its risk to elevated (flags=%s)",
-                                automation_id,
-                                risk_flags,
-                            )
-                            risk_forced_disabled = True
-                            updated["initial_state"] = False
-                        elif "initial_state" in a:
-                            updated["initial_state"] = a["initial_state"]
-                        else:
-                            updated.pop("initial_state", None)
-                    # Explicit mode (MCP enable/disable, YAML-editor save, version
-                    # restore): the submitted payload is authoritative exactly as-is —
-                    # a submitted boolean is honored, and an omitted key removes any
-                    # existing boot override (restoring HA's last-state behavior).
+                    escalating_risk, risk_forced_disabled = apply_managed_fields(
+                        a,
+                        updated,
+                        automation_id,
+                        preserve_enabled_state=preserve_enabled_state,
+                        new_is_elevated=new_is_elevated,
+                        captured_live=captured_live,
+                        risk_flags=risk_flags,
+                    )
                     existing[i] = updated
                     found = True
                     break
