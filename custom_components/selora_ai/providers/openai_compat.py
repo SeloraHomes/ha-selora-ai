@@ -10,7 +10,8 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+import re
+from typing import TYPE_CHECKING, Any, cast
 
 import aiohttp
 
@@ -22,9 +23,66 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# The two spellings of the output-token cap on the chat-completions
+# schema. Which one a request must use is a property of the *model*, not
+# of the endpoint: OpenAI's reasoning families (o-series, GPT-5) reject
+# ``max_tokens`` outright, while every other OpenAI-compatible backend —
+# Ollama, LMStudio, gateways — only knows that name. The model field in
+# settings is free text, so the pair is resolved per instance
+# (``_token_cap_key``) and corrected from the server's own error when the
+# guess is wrong (``repair_payload``).
+TOKEN_CAP_KEYS = ("max_tokens", "max_completion_tokens")
+
+# OpenAI answers a wrong spelling with HTTP 400 and names the replacement:
+# "Unsupported parameter: 'max_tokens' is not supported with this model.
+# Use 'max_completion_tokens' instead." Read the instruction rather than
+# matching the sentence — other gateways phrase the surrounding prose
+# differently while quoting the parameter the same way.
+_USE_INSTEAD_RE = re.compile(r"[Uu]se '(?P<replacement>[A-Za-z0-9_]+)' instead")
+
+# A 400 can also name a value the request has to carry rather than a key
+# to rename: "Function tools with reasoning_effort are not supported for
+# <model> in /v1/chat/completions. To use function tools, use
+# /v1/responses or set reasoning_effort to 'none'." The parameter is one
+# we never send — the model applies its own default — so the request
+# cannot be fixed by editing what it already contains, only by stating
+# the value explicitly.
+_SET_PARAM_RE = re.compile(
+    r"set '?(?P<param>[A-Za-z0-9_]+)'? to '(?P<value>[A-Za-z0-9_.-]+)'",
+)
+
+# A parameter another backend then rejects outright, so a directive
+# picked up from one model can be dropped again rather than poisoning
+# every later request.
+_UNSUPPORTED_PARAM_RE = re.compile(
+    r"[Uu]nsupported parameter: '(?P<param>[A-Za-z0-9_]+)'",
+)
+
+# Parameters a server is allowed to dictate. Narrow on purpose: honouring
+# any "set X to Y" found in an error would let a backend quietly rewrite
+# the sampling settings this integration chooses deliberately (a pinned
+# temperature keeps structured tool-call output near-deterministic). What
+# belongs here is a switch whose value only the server knows — the
+# reasoning knob, whose very existence depends on the model behind a
+# free-text name.
+SERVER_DIRECTED_PARAMS = frozenset({"reasoning_effort"})
+
 
 class OpenAICompatibleProvider(LLMProvider):
     """Shared implementation for OpenAI-compatible chat completions APIs."""
+
+    #: Spelling of the output-token cap this backend accepts. Subclasses
+    #: whose API mandates the other one override it; ``repair_payload``
+    #: flips it at runtime when a model disagrees.
+    _token_cap_key: str = "max_tokens"
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Parameters this backend told us to send, learned from its own
+        # error bodies (see repair_payload). Per instance, never
+        # persisted: a config change rebuilds the provider, and one
+        # retried request re-learns whatever the new model needs.
+        self._server_directed_params: dict[str, Any] = {}
 
     # -- HTTP plumbing -----------------------------------------------------
 
@@ -85,13 +143,14 @@ class OpenAICompatibleProvider(LLMProvider):
                 {"role": "system", "content": system},
                 *self._adapt_image_blocks(messages),
             ],
-            # Serialize the output cap into the body. Without this the
-            # OpenAI-compatible cloud providers (OpenAI, OpenRouter, Selora
-            # Cloud) fall back to the server's default completion cap and
-            # the caller-chosen budget — e.g. the scaled analysis budget —
-            # is silently ignored, truncating large responses.
-            "max_tokens": max_tokens,
         }
+        # Serialize the output cap into the body. Without this the
+        # OpenAI-compatible cloud providers (OpenAI, OpenRouter, Selora
+        # Cloud) fall back to the server's default completion cap and
+        # the caller-chosen budget — e.g. the scaled analysis budget —
+        # is silently ignored, truncating large responses. The key is
+        # per-instance (see TOKEN_CAP_KEYS), so it goes in dynamically.
+        cast("dict[str, Any]", payload)[self._token_cap_key] = max_tokens
         if tools:
             payload["tools"] = tools
         if stream:
@@ -101,6 +160,114 @@ class OpenAICompatibleProvider(LLMProvider):
             # this option ignore it.
             payload["stream_options"] = {"include_usage": True}
         return payload
+
+    def prepare_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Apply what this backend has already told us it needs.
+
+        Runs after ``build_payload`` and after every subclass addition to
+        it, so a directive learned from the server is the last word on the
+        body. Nothing to apply on a provider that has never been
+        corrected.
+        """
+        payload.update(self._server_directed_params)
+        return payload
+
+    def repair_payload(
+        self,
+        payload: dict[str, Any],
+        status: int,
+        body: str,
+    ) -> dict[str, Any] | None:
+        """Correct a rejected body using the instruction in the error itself.
+
+        Three shapes, all of them the server naming its own remedy on a
+        400 — a rename ("Use 'X' instead"), a value the request must state
+        explicitly ("set X to 'Y'"), and the retraction of one
+        ("Unsupported parameter: 'X'"). Everything else returns ``None``
+        so the caller reports the real error.
+
+        Each correction is remembered on the instance, so one rejected
+        request pays the retry and every later call is right the first
+        time. Which model needs which is never assumed: the same free-text
+        model field can name a reasoning model, a legacy snapshot, or a
+        local build, and the error body is the only thing that actually
+        knows.
+        """
+        if status != 400:
+            return None
+        return (
+            self._repair_token_cap_key(payload, body)
+            or self._repair_directed_param(payload, body)
+            or self._repair_rejected_param(payload, body)
+        )
+
+    def _repair_token_cap_key(self, payload: dict[str, Any], body: str) -> dict[str, Any] | None:
+        """Rename the output-token cap when the server names the other spelling."""
+        match = _USE_INSTEAD_RE.search(body)
+        if not match:
+            return None
+        replacement = match.group("replacement")
+        if replacement not in TOKEN_CAP_KEYS or replacement in payload:
+            return None
+        stale = next((key for key in TOKEN_CAP_KEYS if key != replacement), None)
+        if stale is None or stale not in payload:
+            return None
+        repaired = dict(payload)
+        repaired[replacement] = repaired.pop(stale)
+        self._token_cap_key = replacement
+        _LOGGER.debug(
+            "%s: model rejected '%s'; retrying with '%s'",
+            self.provider_name,
+            stale,
+            replacement,
+        )
+        return repaired
+
+    def _repair_directed_param(self, payload: dict[str, Any], body: str) -> dict[str, Any] | None:
+        """State a parameter's value explicitly when the server asks for it."""
+        match = _SET_PARAM_RE.search(body)
+        if not match:
+            return None
+        param = match.group("param")
+        value = match.group("value")
+        if param not in SERVER_DIRECTED_PARAMS or payload.get(param) == value:
+            return None
+        repaired = dict(payload)
+        repaired[param] = value
+        self._server_directed_params[param] = value
+        _LOGGER.debug(
+            "%s: model requires %s=%r; retrying with it set",
+            self.provider_name,
+            param,
+            value,
+        )
+        return repaired
+
+    def _repair_rejected_param(self, payload: dict[str, Any], body: str) -> dict[str, Any] | None:
+        """Withdraw a directed parameter a backend now calls unsupported.
+
+        Only parameters learned from a previous directive are withdrawn.
+        Anything else in the body is ours by construction — dropping
+        ``tools`` or the token cap to make a request succeed would answer
+        the user with a silently degraded turn instead of an error.
+        """
+        match = _UNSUPPORTED_PARAM_RE.search(body)
+        if not match:
+            return None
+        param = match.group("param")
+        if param not in self._server_directed_params:
+            return None
+        self._server_directed_params.pop(param)
+        if param not in payload:
+            return None
+        repaired = dict(payload)
+        repaired.pop(param)
+        _LOGGER.debug(
+            "%s: model rejects '%s'; retrying without it",
+            self.provider_name,
+            param,
+        )
+        return repaired
 
     def extract_text_response(self, response_data: dict[str, Any]) -> str | None:
         choices = response_data.get("choices", [])

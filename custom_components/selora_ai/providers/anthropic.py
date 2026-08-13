@@ -129,10 +129,16 @@ class AnthropicProvider(LLMProvider):
         return payload
 
     def extract_text_response(self, response_data: dict[str, Any]) -> str | None:
-        for block in response_data.get("content", []):
-            if block.get("type") == "text":
-                return block.get("text")
-        return None
+        # Join every text block rather than returning the first: a reply
+        # can arrive as several of them (thinking blocks and tool_use split
+        # the prose around them), and taking one drops the rest of the
+        # answer. Matches how the OpenAI and Gemini adapters read a body.
+        texts = [
+            block["text"]
+            for block in response_data.get("content", [])
+            if block.get("type") == "text" and block.get("text")
+        ]
+        return "".join(texts) if texts else None
 
     def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
         usage = response_data.get("usage")
