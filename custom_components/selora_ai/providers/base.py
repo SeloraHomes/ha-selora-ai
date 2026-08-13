@@ -44,6 +44,13 @@ _PROVIDER_KEY_ECHO_RE = re.compile(
     r"(Incorrect API key provided: )[^\s\"',}]+",
 )
 
+# Attempt indices for one request: the original body, then at most one
+# retry with a body ``repair_payload`` corrected. A second repair is not
+# offered — a server that rejects the corrected body is telling us
+# something the error body no longer explains, and the user is better
+# served by that error than by a provider guessing in a loop.
+_REQUEST_ATTEMPTS = (0, 1)
+
 
 def _sanitize_error(text: str) -> str:
     """Strip API keys / bearer tokens from error bodies."""
@@ -459,6 +466,67 @@ class LLMProvider(ABC):
     async def health_check(self) -> bool:
         """Verify the LLM backend is reachable and configured."""
 
+    # -- Payload repair ----------------------------------------------------
+
+    def prepare_payload(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Last word on a request body, applied after ``build_payload``.
+
+        Subclasses build a body in layers — the compatible base writes the
+        common shape and each subclass adds its own routing and sampling
+        settings on top — so anything that must survive all of them cannot
+        live inside ``build_payload``. This hook runs on the assembled
+        body at the request boundary. Default: unchanged.
+        """
+        return payload
+
+    def repair_payload(
+        self,
+        payload: dict[str, Any],
+        status: int,
+        body: str,
+    ) -> dict[str, Any] | None:
+        """Return a corrected request body for a rejected request, or ``None``.
+
+        A vendor can change which parameters a *model* accepts without
+        changing its API version — OpenAI's reasoning families reject
+        ``max_tokens`` and name the replacement in the error body — so a
+        payload that is right for one model on an endpoint is wrong for
+        the next one the user types into the settings field. Hardcoding
+        which model wants which spelling means shipping a release every
+        time a vendor adds a family; the error body already carries the
+        answer, so the provider reads it instead of guessing.
+
+        Returning a dict makes the request template methods retry **once**
+        with it. Providers that can't repair anything return ``None``
+        (the default), which keeps the original error verbatim. An
+        implementation must be conservative: repair only what the server
+        explicitly asked for, since the alternative to a retry is a clear
+        error message rather than a wrong one.
+        """
+        return None
+
+    def _repaired_payload(
+        self,
+        payload: dict[str, Any],
+        status: int,
+        body: str,
+        attempt: int,
+    ) -> dict[str, Any] | None:
+        """Ask ``repair_payload`` for a corrected body on the first attempt.
+
+        Swallows an exception from the hook: the caller is already holding
+        a perfectly good upstream error, and a bug in a repair heuristic
+        must not replace it with a traceback on paths (``raw_request``,
+        the streaming generators) that would otherwise let it escape.
+        """
+        if attempt != 0:
+            return None
+        try:
+            return self.repair_payload(payload, status, body)
+        except Exception:  # noqa: BLE001 — a repair bug must not mask the real error
+            _LOGGER.exception("%s payload repair failed", self.provider_name)
+            return None
+
     # -- Concrete template methods -----------------------------------------
 
     def _get_session(self) -> aiohttp.ClientSession:
@@ -548,53 +616,61 @@ class LLMProvider(ABC):
         """
         try:
             session = self._get_session()
-            payload = self.build_payload(system, messages, max_tokens=max_tokens)
+            payload = self.prepare_payload(
+                self.build_payload(system, messages, max_tokens=max_tokens)
+            )
             request_timeout = timeout if timeout is not None else DEFAULT_LLM_TIMEOUT
 
-            async with session.post(
-                self._endpoint,
-                headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=request_timeout),
-                data=self._encode_body(payload),
-            ) as resp:
-                if resp.status == 429:
-                    # Helper fires the quota event and raises a
-                    # RateLimitError; convert to the (None, error)
-                    # tuple this method returns.
+            for attempt in _REQUEST_ATTEMPTS:
+                async with session.post(
+                    self._endpoint,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=request_timeout),
+                    data=self._encode_body(payload),
+                ) as resp:
+                    if resp.status == 429:
+                        # Helper fires the quota event and raises a
+                        # RateLimitError; convert to the (None, error)
+                        # tuple this method returns.
+                        try:
+                            await self._raise_if_rate_limited(resp)
+                        except RateLimitError as exc:
+                            return None, str(exc)
+                    if resp.status != 200:
+                        body = _sanitize_error(await resp.text())
+                        repaired = self._repaired_payload(payload, resp.status, body, attempt)
+                        if repaired is not None:
+                            payload = repaired
+                            continue
+                        error_msg = f"HTTP {resp.status}: {body[:200]}"
+                        if log_errors:
+                            _LOGGER.error(
+                                "LLM Request failed: %s returned %s: %s",
+                                self.provider_name,
+                                resp.status,
+                                body[:500],
+                            )
+                        return None, error_msg
+
                     try:
-                        await self._raise_if_rate_limited(resp)
-                    except RateLimitError as exc:
-                        return None, str(exc)
-                if resp.status != 200:
-                    body = _sanitize_error(await resp.text())
-                    error_msg = f"HTTP {resp.status}: {body[:200]}"
-                    if log_errors:
+                        data = await resp.json()
+                    except Exception as exc:
+                        body = await resp.text()
+                        error_msg = f"JSON Parse Error: {str(exc)}"
+                        _LOGGER.error("Failed to parse LLM JSON response: %s. Body: %s", exc, body)
+                        return None, error_msg
+
+                    self._report_usage(self.extract_usage(data))
+                    text = self.extract_text_response(data)
+                    if text is None:
                         _LOGGER.error(
-                            "LLM Request failed: %s returned %s: %s",
+                            "%s response missing expected content: %s",
                             self.provider_name,
-                            resp.status,
-                            body[:500],
+                            data,
                         )
-                    return None, error_msg
-
-                try:
-                    data = await resp.json()
-                except Exception as exc:
-                    body = await resp.text()
-                    error_msg = f"JSON Parse Error: {str(exc)}"
-                    _LOGGER.error("Failed to parse LLM JSON response: %s. Body: %s", exc, body)
-                    return None, error_msg
-
-                self._report_usage(self.extract_usage(data))
-                text = self.extract_text_response(data)
-                if text is None:
-                    _LOGGER.error(
-                        "%s response missing expected content: %s",
-                        self.provider_name,
-                        data,
-                    )
-                    return None, "Response missing expected content"
-                return text, None
+                        return None, "Response missing expected content"
+                    return text, None
+            return None, "Request abandoned after payload repair"
 
         except Exception as exc:
             _LOGGER.exception("Request to %s failed", self.provider_name)
@@ -609,21 +685,29 @@ class LLMProvider(ABC):
     ) -> dict[str, Any]:
         """Low-level request returning the full parsed JSON response body."""
         session = self._get_session()
-        payload = self.build_payload(system, messages, tools=tools, max_tokens=4096)
+        payload = self.prepare_payload(
+            self.build_payload(system, messages, tools=tools, max_tokens=4096)
+        )
 
-        async with session.post(
-            self._endpoint,
-            headers=self._get_headers(),
-            timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-            data=self._encode_body(payload),
-        ) as resp:
-            await self._raise_if_rate_limited(resp)
-            if resp.status != 200:
-                body = _sanitize_error(await resp.text())
-                raise ConnectionError(f"HTTP {resp.status}: {body[:200]}")
-            data = await resp.json()
-            self._report_usage(self.extract_usage(data))
-            return data
+        for attempt in _REQUEST_ATTEMPTS:
+            async with session.post(
+                self._endpoint,
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+                data=self._encode_body(payload),
+            ) as resp:
+                await self._raise_if_rate_limited(resp)
+                if resp.status != 200:
+                    body = _sanitize_error(await resp.text())
+                    repaired = self._repaired_payload(payload, resp.status, body, attempt)
+                    if repaired is not None:
+                        payload = repaired
+                        continue
+                    raise ConnectionError(f"HTTP {resp.status}: {body[:200]}")
+                data = await resp.json()
+                self._report_usage(self.extract_usage(data))
+                return data
+        raise ConnectionError("Request abandoned after payload repair")
 
     async def raw_request_stream(
         self,
@@ -646,25 +730,31 @@ class LLMProvider(ABC):
                     yield text
         """
         session = self._get_session()
-        payload = self.build_payload(
-            system, messages, tools=tools, stream=True, max_tokens=max_tokens
+        payload = self.prepare_payload(
+            self.build_payload(system, messages, tools=tools, stream=True, max_tokens=max_tokens)
         )
 
         # SSE streams: bound the initial connect and the gap between bytes,
         # not the wall-clock total — long completions can legitimately take
         # tens of seconds end-to-end and a `total=` timeout cuts them short.
-        async with session.post(
-            self._endpoint,
-            headers=self._get_headers(),
-            timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
-            data=self._encode_body(payload),
-        ) as resp:
-            await self._raise_if_rate_limited(resp)
-            if resp.status != 200:
-                body = _sanitize_error(await resp.text())
-                _LOGGER.error("LLM stream failed: %s", body[:200])
-                raise ConnectionError(f"LLM stream: HTTP {resp.status}: {body[:200]}")
-            yield resp
+        for attempt in _REQUEST_ATTEMPTS:
+            async with session.post(
+                self._endpoint,
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+                data=self._encode_body(payload),
+            ) as resp:
+                await self._raise_if_rate_limited(resp)
+                if resp.status != 200:
+                    body = _sanitize_error(await resp.text())
+                    repaired = self._repaired_payload(payload, resp.status, body, attempt)
+                    if repaired is not None:
+                        payload = repaired
+                        continue
+                    _LOGGER.error("LLM stream failed: %s", body[:200])
+                    raise ConnectionError(f"LLM stream: HTTP {resp.status}: {body[:200]}")
+                yield resp
+                return
 
     async def send_request_stream(
         self,
@@ -676,51 +766,59 @@ class LLMProvider(ABC):
         """Async generator that yields text chunks from an SSE stream."""
         try:
             session = self._get_session()
-            payload = self.build_payload(system, messages, stream=True, max_tokens=max_tokens)
+            payload = self.prepare_payload(
+                self.build_payload(system, messages, stream=True, max_tokens=max_tokens)
+            )
 
             # See raw_request_stream above for why this uses connect +
             # sock_read instead of a wall-clock total.
-            async with session.post(
-                self._endpoint,
-                headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
-                data=self._encode_body(payload),
-            ) as resp:
-                await self._raise_if_rate_limited(resp)
-                if resp.status != 200:
-                    body = _sanitize_error(await resp.text())
-                    _LOGGER.error(
-                        "LLM stream failed: %s returned %s: %s",
-                        self.provider_name,
-                        resp.status,
-                        body[:200],
-                    )
-                    try:
-                        err_data = json.loads(body)
-                        err_msg = err_data.get("error", {}).get("message", body[:200])
-                    except (
-                        ValueError,
-                        AttributeError,
-                    ):
-                        err_msg = body[:200]
-                    raise ConnectionError(f"{self.provider_name}: {err_msg}")
-
-                buffer = ""
-                stream_usage: LLMUsageInfo = {}
-                async for raw_chunk in resp.content.iter_any():
-                    buffer += raw_chunk.decode("utf-8")
-                    while "\n" in buffer:
-                        line, buffer = buffer.split("\n", 1)
-                        line = line.strip()
-                        if not line:
+            for attempt in _REQUEST_ATTEMPTS:
+                async with session.post(
+                    self._endpoint,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+                    data=self._encode_body(payload),
+                ) as resp:
+                    await self._raise_if_rate_limited(resp)
+                    if resp.status != 200:
+                        body = _sanitize_error(await resp.text())
+                        repaired = self._repaired_payload(payload, resp.status, body, attempt)
+                        if repaired is not None:
+                            payload = repaired
                             continue
-                        usage_part = self.parse_stream_usage(line)
-                        if usage_part:
-                            stream_usage.update(usage_part)
-                        text = self.parse_stream_line(line)
-                        if text:
-                            yield text
-                self._report_usage(stream_usage or None)
+                        _LOGGER.error(
+                            "LLM stream failed: %s returned %s: %s",
+                            self.provider_name,
+                            resp.status,
+                            body[:200],
+                        )
+                        try:
+                            err_data = json.loads(body)
+                            err_msg = err_data.get("error", {}).get("message", body[:200])
+                        except (
+                            ValueError,
+                            AttributeError,
+                        ):
+                            err_msg = body[:200]
+                        raise ConnectionError(f"{self.provider_name}: {err_msg}")
+
+                    buffer = ""
+                    stream_usage: LLMUsageInfo = {}
+                    async for raw_chunk in resp.content.iter_any():
+                        buffer += raw_chunk.decode("utf-8")
+                        while "\n" in buffer:
+                            line, buffer = buffer.split("\n", 1)
+                            line = line.strip()
+                            if not line:
+                                continue
+                            usage_part = self.parse_stream_usage(line)
+                            if usage_part:
+                                stream_usage.update(usage_part)
+                            text = self.parse_stream_line(line)
+                            if text:
+                                yield text
+                    self._report_usage(stream_usage or None)
+                    return
         except RateLimitError:
             # Already structured + telemetered — let it bubble up so the
             # panel surfaces a quota alert instead of a generic error.

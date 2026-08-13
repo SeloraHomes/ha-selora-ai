@@ -534,7 +534,11 @@ class OpenAIChatPayload(TypedDict, total=False):
     tool_choice: Any  # "auto" | "required" | "none" | {"type":"function",...}
     stream: bool
     stream_options: dict[str, Any]
+    # Two spellings of the output cap; exactly one is present per request.
+    # Which one depends on the backing model, not the endpoint — see
+    # providers.openai_compat.TOKEN_CAP_KEYS.
     max_tokens: int
+    max_completion_tokens: int
     temperature: float
     reasoning: dict[str, Any]
     provider: dict[str, Any]  # OpenRouter routing prefs (e.g. {"sort": "latency"})

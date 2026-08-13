@@ -31,6 +31,13 @@ _TEXT_ONLY_MODEL_HINTS = (
 class OpenAIProvider(OpenAICompatibleProvider):
     """OpenAI API provider (GPT models)."""
 
+    # OpenAI's reasoning families (o-series, GPT-5 and later) reject
+    # ``max_tokens`` with HTTP 400 and demand this spelling, while the
+    # older families accept both — so on api.openai.com the newer name is
+    # the one that works for every model the settings field can name. A
+    # model that disagrees corrects it via the base class's repair hook.
+    _token_cap_key = "max_completion_tokens"
+
     def __init__(
         self,
         hass: HomeAssistant,

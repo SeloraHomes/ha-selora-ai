@@ -154,8 +154,17 @@ class GeminiProvider(LLMProvider):
         *,
         tools: list[dict[str, Any]] | None = None,
         stream: bool = False,
-        max_tokens: int = 1024,
+        max_tokens: int = 1024,  # noqa: ARG002 — see the note on generationConfig below
     ) -> dict[str, Any]:
+        """Build a native ``generateContent`` body.
+
+        No ``generationConfig.maxOutputTokens``: on the 2.5 series that cap
+        counts thinking tokens as well as answer tokens, so a chat turn's
+        1024 can be spent entirely on the thinking pass and return an empty
+        candidate with ``finishReason: MAX_TOKENS``. The caller's
+        ``max_tokens`` is therefore a budget this backend does not enforce
+        — it runs against the model's own output limit instead.
+        """
         system_instruction, contents = self._to_gemini_messages(system, messages)
 
         payload: dict[str, Any] = {"contents": contents}
@@ -175,16 +184,29 @@ class GeminiProvider(LLMProvider):
         texts = [p["text"] for p in parts if "text" in p]
         return "".join(texts) if texts else None
 
+    @staticmethod
+    def _usage_from_metadata(meta: dict[str, Any]) -> LLMUsageInfo | None:
+        """Read a Gemini ``usageMetadata`` block into the neutral usage shape.
+
+        ``candidatesTokenCount`` covers only the tokens in the answer. A
+        2.5-series model also emits ``thoughtsTokenCount`` for its thinking
+        pass, which Google bills at the output rate — counting the answer
+        alone under-reports the cost of exactly the models this provider
+        defaults to. The two are summed into ``output_tokens``.
+        """
+        info: LLMUsageInfo = {}
+        if "promptTokenCount" in meta:
+            info["input_tokens"] = int(meta["promptTokenCount"])
+        output = int(meta.get("candidatesTokenCount", 0)) + int(meta.get("thoughtsTokenCount", 0))
+        if output:
+            info["output_tokens"] = output
+        return info or None
+
     def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
         meta = response_data.get("usageMetadata")
         if not isinstance(meta, dict):
             return None
-        info: LLMUsageInfo = {}
-        if "promptTokenCount" in meta:
-            info["input_tokens"] = int(meta["promptTokenCount"])
-        if "candidatesTokenCount" in meta:
-            info["output_tokens"] = int(meta["candidatesTokenCount"])
-        return info or None
+        return self._usage_from_metadata(meta)
 
     def extract_tool_calls(self, response_data: dict[str, Any]) -> list[dict[str, Any]]:
         candidates = response_data.get("candidates", [])
@@ -311,12 +333,7 @@ class GeminiProvider(LLMProvider):
         meta = obj.get("usageMetadata")
         if not isinstance(meta, dict):
             return None
-        info: LLMUsageInfo = {}
-        if "promptTokenCount" in meta:
-            info["input_tokens"] = int(meta["promptTokenCount"])
-        if "candidatesTokenCount" in meta:
-            info["output_tokens"] = int(meta["candidatesTokenCount"])
-        return info or None
+        return self._usage_from_metadata(meta)
 
     async def stream_with_tools(
         self,

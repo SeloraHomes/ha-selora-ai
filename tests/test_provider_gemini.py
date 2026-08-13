@@ -166,6 +166,35 @@ class TestGeminiResponseParsing:
         assert provider.extract_tool_calls(data) == []
 
 
+class TestGeminiUsage:
+    """``usageMetadata`` → the neutral usage shape the cost tracker reads."""
+
+    def test_counts_prompt_and_candidate_tokens(self, provider) -> None:
+        data = {"usageMetadata": {"promptTokenCount": 120, "candidatesTokenCount": 40}}
+        assert provider.extract_usage(data) == {"input_tokens": 120, "output_tokens": 40}
+
+    def test_thinking_tokens_count_as_output(self, provider) -> None:
+        # A 2.5-series model bills its thinking pass at the output rate but
+        # reports it separately from the answer, so counting candidates
+        # alone under-reports the cost of the default model.
+        data = {
+            "usageMetadata": {
+                "promptTokenCount": 120,
+                "candidatesTokenCount": 40,
+                "thoughtsTokenCount": 260,
+            }
+        }
+        assert provider.extract_usage(data) == {"input_tokens": 120, "output_tokens": 300}
+
+    def test_stream_usage_counts_thinking_tokens_too(self, provider) -> None:
+        line = 'data: {"usageMetadata": {"promptTokenCount": 5, "candidatesTokenCount": 7, "thoughtsTokenCount": 3}}'
+        assert provider.parse_stream_usage(line) == {"input_tokens": 5, "output_tokens": 10}
+
+    def test_no_usage_metadata_returns_none(self, provider) -> None:
+        assert provider.extract_usage({}) is None
+        assert provider.extract_usage({"usageMetadata": "nonsense"}) is None
+
+
 class TestGeminiStreamParsing:
     def test_parse_stream_line_text(self, provider) -> None:
         event = {
