@@ -124,9 +124,14 @@ frontend:
     # This job only DETECTS staleness; two other places have to produce the
     # rebuild, and a frontend dependency MR sits red until one of them does:
     #   - renovate.json's postUpgradeTasks, so a dep bump carries its own
-    #     rebuild (needs the command in the self-hosted allowedCommands — an
-    #     unlisted command is skipped silently, which looks exactly like the
-    #     config not being there at all);
+    #     rebuild. It runs `make generate` rather than the build command
+    #     directly: postUpgradeTasks only executes commands the self-hosted
+    #     config allows, that list is admin-only (terraform, not this repo),
+    #     and `^make generate$` is the group-wide entry already on it. A
+    #     command that isn't on the list is refused — the MR then carries a
+    #     "Post-upgrade command ... has not been added to the allowed list"
+    #     note and a stale bundle, which reads exactly like this config not
+    #     existing;
     #   - release.config.js's git assets, so the manifest bump that reaches the
     #     bundle via __SELORA_VERSION__ is committed together with it.
     # Only the frontend package files feed the build id — a root package.json
