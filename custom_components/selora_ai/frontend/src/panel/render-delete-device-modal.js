@@ -12,18 +12,20 @@ import { html } from "lit";
 // Coarse duration for the prompt — days once there's at least one, hours below
 // that. Deliberately not relativeTime(): this reads as a span ("offline for 9
 // days"), not a point in the past ("9 days ago").
+//
+// `_tn`, not `_t`: the count is part of the phrase, so the noun has to follow
+// the locale's plural categories and the number has to sit where that language
+// puts it. An English one/other split renders "2 дней" and "21 дней" in Russian,
+// and a caller-side `${n} ${word}` join inserts a space Japanese does not want.
+// Both counts are >= 1 here, so no locale's `zero` form is reachable.
 function _offlineFor(host, seconds) {
   const secs = Number(seconds) || 0;
   const days = Math.floor(secs / 86400);
   if (days >= 1) {
-    return days === 1
-      ? host._t("insights_offline_one_day", "1 day")
-      : `${days} ${host._t("insights_offline_days", "days")}`;
+    return host._tn("insights_offline_days", days, "{count} days");
   }
   const hours = Math.max(1, Math.floor(secs / 3600));
-  return hours === 1
-    ? host._t("insights_offline_one_hour", "1 hour")
-    : `${hours} ${host._t("insights_offline_hours", "hours")}`;
+  return host._tn("insights_offline_hours", hours, "{count} hours");
 }
 
 export function renderDeleteDeviceModal(host) {

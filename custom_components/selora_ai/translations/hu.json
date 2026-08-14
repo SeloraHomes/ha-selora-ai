@@ -954,6 +954,24 @@
     "automations_flow_repeat_for_each": "Ismétlés minden elemre ({count})",
     "automations_flow_disabled": "letiltva",
     "automations_flow_disabled_block": "Letiltva — nem fut le",
-    "automations_flow_repeat_for_each_dynamic": "Ismétlés minden elemre"
+    "automations_flow_repeat_for_each_dynamic": "Ismétlés minden elemre",
+    "insights_delete_device": "Eszköz törlése",
+    "insights_delete_device_title": "Eszköz törlése",
+    "insights_delete_device_fallback": "ezt az eszközt",
+    "insights_delete_device_offline": "ennyi ideje offline:",
+    "insights_delete_device_body": "A törlés eltávolítja az eszközt és entitásait a Home Assistantból — az ezeket használó automatizálások, szcénák és irányítópult-kártyák leállnak. Csak akkor jelenik meg újra, ha az integrációja ismét felderíti.",
+    "insights_delete_device_cancel": "Mégse",
+    "insights_delete_device_confirm": "Törlés",
+    "insights_device_deleted": "Eszköz törölve",
+    "insights_device_deleted_suffix": "törölve",
+    "insights_device_delete_failed": "Nem sikerült törölni az eszközt",
+    "insights_offline_days_one": "{count} nap",
+    "insights_offline_days_few": "{count} nap",
+    "insights_offline_days_many": "{count} nap",
+    "insights_offline_days_other": "{count} nap",
+    "insights_offline_hours_one": "{count} óra",
+    "insights_offline_hours_few": "{count} óra",
+    "insights_offline_hours_many": "{count} óra",
+    "insights_offline_hours_other": "{count} óra"
   }
 }

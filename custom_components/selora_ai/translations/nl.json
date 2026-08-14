@@ -954,6 +954,24 @@
     "automations_flow_repeat_for_each": "Herhalen voor elk item ({count})",
     "automations_flow_disabled": "uitgeschakeld",
     "automations_flow_disabled_block": "Uitgeschakeld — wordt niet uitgevoerd",
-    "automations_flow_repeat_for_each_dynamic": "Herhalen voor elk item"
+    "automations_flow_repeat_for_each_dynamic": "Herhalen voor elk item",
+    "insights_delete_device": "Apparaat verwijderen",
+    "insights_delete_device_title": "Apparaat verwijderen",
+    "insights_delete_device_fallback": "dit apparaat",
+    "insights_delete_device_offline": "is offline gedurende",
+    "insights_delete_device_body": "Verwijderen haalt het apparaat en zijn entiteiten uit Home Assistant — automatiseringen, scènes en dashboardkaarten die ze gebruiken werken dan niet meer. Het komt alleen terug als de integratie het opnieuw ontdekt.",
+    "insights_delete_device_cancel": "Annuleren",
+    "insights_delete_device_confirm": "Verwijderen",
+    "insights_device_deleted": "Apparaat verwijderd",
+    "insights_device_deleted_suffix": "verwijderd",
+    "insights_device_delete_failed": "Kan dat apparaat niet verwijderen",
+    "insights_offline_days_one": "{count} dag",
+    "insights_offline_days_few": "{count} dagen",
+    "insights_offline_days_many": "{count} dagen",
+    "insights_offline_days_other": "{count} dagen",
+    "insights_offline_hours_one": "{count} uur",
+    "insights_offline_hours_few": "{count} uur",
+    "insights_offline_hours_many": "{count} uur",
+    "insights_offline_hours_other": "{count} uur"
   }
 }

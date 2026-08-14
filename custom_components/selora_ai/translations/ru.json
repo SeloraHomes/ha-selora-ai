@@ -934,7 +934,25 @@
     "automations_flow_repeat_for_each": "Повторить для каждого элемента ({count})",
     "automations_flow_disabled": "отключено",
     "automations_flow_disabled_block": "Отключено — не выполняется",
-    "automations_flow_repeat_for_each_dynamic": "Повторить для каждого элемента"
+    "automations_flow_repeat_for_each_dynamic": "Повторить для каждого элемента",
+    "insights_delete_device": "Удалить устройство",
+    "insights_delete_device_title": "Удалить устройство",
+    "insights_delete_device_fallback": "это устройство",
+    "insights_delete_device_offline": "недоступно уже",
+    "insights_delete_device_body": "Удаление уберёт устройство и его объекты из Home Assistant — автоматизации, сцены и карточки панели, которые их используют, перестанут работать. Оно вернётся только если его интеграция обнаружит его снова.",
+    "insights_delete_device_cancel": "Отмена",
+    "insights_delete_device_confirm": "Удалить",
+    "insights_device_deleted": "Устройство удалено",
+    "insights_device_deleted_suffix": "удалено",
+    "insights_device_delete_failed": "Не удалось удалить это устройство",
+    "insights_offline_days_one": "{count} день",
+    "insights_offline_days_few": "{count} дня",
+    "insights_offline_days_many": "{count} дней",
+    "insights_offline_days_other": "{count} дня",
+    "insights_offline_hours_one": "{count} час",
+    "insights_offline_hours_few": "{count} часа",
+    "insights_offline_hours_many": "{count} часов",
+    "insights_offline_hours_other": "{count} часа"
   },
   "options": {
     "step": {

@@ -9938,6 +9938,25 @@ var en_default = {
     automations_flow_disabled: "disabled",
     automations_flow_disabled_block: "Disabled \u2014 does not run",
     automations_flow_repeat_for_each_dynamic: "Repeat for each item",
+    insights_delete_device: "Delete device",
+    insights_delete_device_title: "Delete device",
+    insights_delete_device_fallback: "this device",
+    insights_delete_device_offline: "has been offline for",
+    insights_delete_device_body:
+      "Deleting removes it and its entities from Home Assistant \u2014 automations, scenes, and dashboard cards that use them will stop working. It only comes back if its integration rediscovers it.",
+    insights_delete_device_cancel: "Cancel",
+    insights_delete_device_confirm: "Delete",
+    insights_device_deleted: "Device deleted",
+    insights_device_deleted_suffix: "deleted",
+    insights_device_delete_failed: "Couldn't delete that device",
+    insights_offline_days_one: "{count} day",
+    insights_offline_days_few: "{count} days",
+    insights_offline_days_many: "{count} days",
+    insights_offline_days_other: "{count} days",
+    insights_offline_hours_one: "{count} hour",
+    insights_offline_hours_few: "{count} hours",
+    insights_offline_hours_many: "{count} hours",
+    insights_offline_hours_other: "{count} hours",
   },
   options: {
     step: {
@@ -11101,6 +11120,25 @@ var fr_default = {
       "D\xE9sactiv\xE9 \u2014 ne s'ex\xE9cute pas",
     automations_flow_repeat_for_each_dynamic:
       "R\xE9p\xE9ter pour chaque \xE9l\xE9ment",
+    insights_delete_device: "Supprimer l'appareil",
+    insights_delete_device_title: "Supprimer l'appareil",
+    insights_delete_device_fallback: "cet appareil",
+    insights_delete_device_offline: "est hors ligne depuis",
+    insights_delete_device_body:
+      "La suppression le retire de Home Assistant avec ses entit\xE9s \u2014 les automatisations, sc\xE8nes et cartes de tableau de bord qui les utilisent cesseront de fonctionner. Il ne reviendra que si son int\xE9gration le red\xE9couvre.",
+    insights_delete_device_cancel: "Annuler",
+    insights_delete_device_confirm: "Supprimer",
+    insights_device_deleted: "Appareil supprim\xE9",
+    insights_device_deleted_suffix: "supprim\xE9",
+    insights_device_delete_failed: "Impossible de supprimer cet appareil",
+    insights_offline_days_one: "{count} jour",
+    insights_offline_days_few: "{count} jours",
+    insights_offline_days_many: "{count} jours",
+    insights_offline_days_other: "{count} jours",
+    insights_offline_hours_one: "{count} heure",
+    insights_offline_hours_few: "{count} heures",
+    insights_offline_hours_many: "{count} heures",
+    insights_offline_hours_other: "{count} heures",
   },
   options: {
     step: {
@@ -12257,6 +12295,25 @@ var de_default = {
       "Deaktiviert \u2014 wird nicht ausgef\xFChrt",
     automations_flow_repeat_for_each_dynamic:
       "F\xFCr jedes Element wiederholen",
+    insights_delete_device: "Ger\xE4t l\xF6schen",
+    insights_delete_device_title: "Ger\xE4t l\xF6schen",
+    insights_delete_device_fallback: "dieses Ger\xE4t",
+    insights_delete_device_offline: "ist offline seit",
+    insights_delete_device_body:
+      "Beim L\xF6schen werden das Ger\xE4t und seine Entit\xE4ten aus Home Assistant entfernt \u2014 Automationen, Szenen und Dashboard-Karten, die sie verwenden, funktionieren dann nicht mehr. Es kommt nur zur\xFCck, wenn seine Integration es erneut erkennt.",
+    insights_delete_device_cancel: "Abbrechen",
+    insights_delete_device_confirm: "L\xF6schen",
+    insights_device_deleted: "Ger\xE4t gel\xF6scht",
+    insights_device_deleted_suffix: "gel\xF6scht",
+    insights_device_delete_failed: "Ger\xE4t konnte nicht gel\xF6scht werden",
+    insights_offline_days_one: "{count} Tag",
+    insights_offline_days_few: "{count} Tagen",
+    insights_offline_days_many: "{count} Tagen",
+    insights_offline_days_other: "{count} Tagen",
+    insights_offline_hours_one: "{count} Stunde",
+    insights_offline_hours_few: "{count} Stunden",
+    insights_offline_hours_many: "{count} Stunden",
+    insights_offline_hours_other: "{count} Stunden",
   },
   options: {
     step: {
@@ -13396,6 +13453,25 @@ var es_default = {
     automations_flow_disabled: "desactivado",
     automations_flow_disabled_block: "Desactivado \u2014 no se ejecuta",
     automations_flow_repeat_for_each_dynamic: "Repetir para cada elemento",
+    insights_delete_device: "Eliminar dispositivo",
+    insights_delete_device_title: "Eliminar dispositivo",
+    insights_delete_device_fallback: "este dispositivo",
+    insights_delete_device_offline: "ha estado sin conexi\xF3n durante",
+    insights_delete_device_body:
+      "Al eliminarlo se quitan el dispositivo y sus entidades de Home Assistant \u2014 las automatizaciones, escenas y tarjetas del panel que las usan dejar\xE1n de funcionar. Solo volver\xE1 si su integraci\xF3n lo redescubre.",
+    insights_delete_device_cancel: "Cancelar",
+    insights_delete_device_confirm: "Eliminar",
+    insights_device_deleted: "Dispositivo eliminado",
+    insights_device_deleted_suffix: "eliminado",
+    insights_device_delete_failed: "No se pudo eliminar ese dispositivo",
+    insights_offline_days_one: "{count} d\xEDa",
+    insights_offline_days_few: "{count} d\xEDas",
+    insights_offline_days_many: "{count} d\xEDas",
+    insights_offline_days_other: "{count} d\xEDas",
+    insights_offline_hours_one: "{count} hora",
+    insights_offline_hours_few: "{count} horas",
+    insights_offline_hours_many: "{count} horas",
+    insights_offline_hours_other: "{count} horas",
   },
   options: {
     step: {
@@ -14534,6 +14610,25 @@ var it_default = {
     automations_flow_disabled: "disattivato",
     automations_flow_disabled_block: "Disattivato \u2014 non viene eseguito",
     automations_flow_repeat_for_each_dynamic: "Ripeti per ogni elemento",
+    insights_delete_device: "Elimina dispositivo",
+    insights_delete_device_title: "Elimina dispositivo",
+    insights_delete_device_fallback: "questo dispositivo",
+    insights_delete_device_offline: "\xE8 offline da",
+    insights_delete_device_body:
+      "L'eliminazione rimuove il dispositivo e le sue entit\xE0 da Home Assistant \u2014 automazioni, scene e schede della dashboard che le usano smetteranno di funzionare. Torner\xE0 solo se la sua integrazione lo rileva di nuovo.",
+    insights_delete_device_cancel: "Annulla",
+    insights_delete_device_confirm: "Elimina",
+    insights_device_deleted: "Dispositivo eliminato",
+    insights_device_deleted_suffix: "eliminato",
+    insights_device_delete_failed: "Impossibile eliminare quel dispositivo",
+    insights_offline_days_one: "{count} giorno",
+    insights_offline_days_few: "{count} giorni",
+    insights_offline_days_many: "{count} giorni",
+    insights_offline_days_other: "{count} giorni",
+    insights_offline_hours_one: "{count} ora",
+    insights_offline_hours_few: "{count} ore",
+    insights_offline_hours_many: "{count} ore",
+    insights_offline_hours_other: "{count} ore",
   },
   options: {
     step: {
@@ -15688,6 +15783,25 @@ var nl_default = {
     automations_flow_disabled_block:
       "Uitgeschakeld \u2014 wordt niet uitgevoerd",
     automations_flow_repeat_for_each_dynamic: "Herhalen voor elk item",
+    insights_delete_device: "Apparaat verwijderen",
+    insights_delete_device_title: "Apparaat verwijderen",
+    insights_delete_device_fallback: "dit apparaat",
+    insights_delete_device_offline: "is offline gedurende",
+    insights_delete_device_body:
+      "Verwijderen haalt het apparaat en zijn entiteiten uit Home Assistant \u2014 automatiseringen, sc\xE8nes en dashboardkaarten die ze gebruiken werken dan niet meer. Het komt alleen terug als de integratie het opnieuw ontdekt.",
+    insights_delete_device_cancel: "Annuleren",
+    insights_delete_device_confirm: "Verwijderen",
+    insights_device_deleted: "Apparaat verwijderd",
+    insights_device_deleted_suffix: "verwijderd",
+    insights_device_delete_failed: "Kan dat apparaat niet verwijderen",
+    insights_offline_days_one: "{count} dag",
+    insights_offline_days_few: "{count} dagen",
+    insights_offline_days_many: "{count} dagen",
+    insights_offline_days_other: "{count} dagen",
+    insights_offline_hours_one: "{count} uur",
+    insights_offline_hours_few: "{count} uur",
+    insights_offline_hours_many: "{count} uur",
+    insights_offline_hours_other: "{count} uur",
   },
 };
 
@@ -16879,6 +16993,26 @@ var hu_default = {
     automations_flow_disabled: "letiltva",
     automations_flow_disabled_block: "Letiltva \u2014 nem fut le",
     automations_flow_repeat_for_each_dynamic: "Ism\xE9tl\xE9s minden elemre",
+    insights_delete_device: "Eszk\xF6z t\xF6rl\xE9se",
+    insights_delete_device_title: "Eszk\xF6z t\xF6rl\xE9se",
+    insights_delete_device_fallback: "ezt az eszk\xF6zt",
+    insights_delete_device_offline: "ennyi ideje offline:",
+    insights_delete_device_body:
+      "A t\xF6rl\xE9s elt\xE1vol\xEDtja az eszk\xF6zt \xE9s entit\xE1sait a Home Assistantb\xF3l \u2014 az ezeket haszn\xE1l\xF3 automatiz\xE1l\xE1sok, szc\xE9n\xE1k \xE9s ir\xE1ny\xEDt\xF3pult-k\xE1rty\xE1k le\xE1llnak. Csak akkor jelenik meg \xFAjra, ha az integr\xE1ci\xF3ja ism\xE9t felder\xEDti.",
+    insights_delete_device_cancel: "M\xE9gse",
+    insights_delete_device_confirm: "T\xF6rl\xE9s",
+    insights_device_deleted: "Eszk\xF6z t\xF6r\xF6lve",
+    insights_device_deleted_suffix: "t\xF6r\xF6lve",
+    insights_device_delete_failed:
+      "Nem siker\xFClt t\xF6r\xF6lni az eszk\xF6zt",
+    insights_offline_days_one: "{count} nap",
+    insights_offline_days_few: "{count} nap",
+    insights_offline_days_many: "{count} nap",
+    insights_offline_days_other: "{count} nap",
+    insights_offline_hours_one: "{count} \xF3ra",
+    insights_offline_hours_few: "{count} \xF3ra",
+    insights_offline_hours_many: "{count} \xF3ra",
+    insights_offline_hours_other: "{count} \xF3ra",
   },
 };
 
@@ -18009,6 +18143,26 @@ var pt_default = {
     automations_flow_disabled: "desativado",
     automations_flow_disabled_block: "Desativado \u2014 n\xE3o \xE9 executado",
     automations_flow_repeat_for_each_dynamic: "Repetir para cada item",
+    insights_delete_device: "Eliminar dispositivo",
+    insights_delete_device_title: "Eliminar dispositivo",
+    insights_delete_device_fallback: "este dispositivo",
+    insights_delete_device_offline: "est\xE1 offline h\xE1",
+    insights_delete_device_body:
+      "Ao eliminar, o dispositivo e as suas entidades s\xE3o removidos do Home Assistant \u2014 automa\xE7\xF5es, cenas e cart\xF5es do painel que as usam deixar\xE3o de funcionar. S\xF3 voltar\xE1 se a sua integra\xE7\xE3o o redescobrir.",
+    insights_delete_device_cancel: "Cancelar",
+    insights_delete_device_confirm: "Eliminar",
+    insights_device_deleted: "Dispositivo eliminado",
+    insights_device_deleted_suffix: "eliminado",
+    insights_device_delete_failed:
+      "N\xE3o foi poss\xEDvel eliminar esse dispositivo",
+    insights_offline_days_one: "{count} dia",
+    insights_offline_days_few: "{count} dias",
+    insights_offline_days_many: "{count} dias",
+    insights_offline_days_other: "{count} dias",
+    insights_offline_hours_one: "{count} hora",
+    insights_offline_hours_few: "{count} horas",
+    insights_offline_hours_many: "{count} horas",
+    insights_offline_hours_other: "{count} horas",
   },
   options: {
     step: {
@@ -19694,6 +19848,33 @@ var ru_default = {
       "\u041E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E \u2014 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F",
     automations_flow_repeat_for_each_dynamic:
       "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u0430",
+    insights_delete_device:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+    insights_delete_device_title:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+    insights_delete_device_fallback:
+      "\u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+    insights_delete_device_offline:
+      "\u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E \u0443\u0436\u0435",
+    insights_delete_device_body:
+      "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0443\u0431\u0435\u0440\u0451\u0442 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0438 \u0435\u0433\u043E \u043E\u0431\u044A\u0435\u043A\u0442\u044B \u0438\u0437 Home Assistant \u2014 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438, \u0441\u0446\u0435\u043D\u044B \u0438 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438 \u043F\u0430\u043D\u0435\u043B\u0438, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0438\u0445 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044E\u0442, \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043D\u0443\u0442 \u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C. \u041E\u043D\u043E \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0435\u0441\u043B\u0438 \u0435\u0433\u043E \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044F \u043E\u0431\u043D\u0430\u0440\u0443\u0436\u0438\u0442 \u0435\u0433\u043E \u0441\u043D\u043E\u0432\u0430.",
+    insights_delete_device_cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    insights_delete_device_confirm:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    insights_device_deleted:
+      "\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0443\u0434\u0430\u043B\u0435\u043D\u043E",
+    insights_device_deleted_suffix:
+      "\u0443\u0434\u0430\u043B\u0435\u043D\u043E",
+    insights_device_delete_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+    insights_offline_days_one: "{count} \u0434\u0435\u043D\u044C",
+    insights_offline_days_few: "{count} \u0434\u043D\u044F",
+    insights_offline_days_many: "{count} \u0434\u043D\u0435\u0439",
+    insights_offline_days_other: "{count} \u0434\u043D\u044F",
+    insights_offline_hours_one: "{count} \u0447\u0430\u0441",
+    insights_offline_hours_few: "{count} \u0447\u0430\u0441\u0430",
+    insights_offline_hours_many: "{count} \u0447\u0430\u0441\u043E\u0432",
+    insights_offline_hours_other: "{count} \u0447\u0430\u0441\u0430",
   },
   options: {
     step: {
@@ -21097,6 +21278,29 @@ var ja_default = {
       "\u7121\u52B9 \u2014 \u5B9F\u884C\u3055\u308C\u307E\u305B\u3093",
     automations_flow_repeat_for_each_dynamic:
       "\u5404\u9805\u76EE\u3067\u7E70\u308A\u8FD4\u3059",
+    insights_delete_device: "\u30C7\u30D0\u30A4\u30B9\u3092\u524A\u9664",
+    insights_delete_device_title: "\u30C7\u30D0\u30A4\u30B9\u3092\u524A\u9664",
+    insights_delete_device_fallback: "\u3053\u306E\u30C7\u30D0\u30A4\u30B9",
+    insights_delete_device_offline:
+      "\u304C\u30AA\u30D5\u30E9\u30A4\u30F3\u306B\u306A\u3063\u3066\u304B\u3089",
+    insights_delete_device_body:
+      "\u524A\u9664\u3059\u308B\u3068\u3001\u30C7\u30D0\u30A4\u30B9\u3068\u305D\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u304C Home Assistant \u304B\u3089\u524A\u9664\u3055\u308C\u307E\u3059\u3002\u305D\u308C\u3089\u3092\u4F7F\u7528\u3057\u3066\u3044\u308B\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3001\u30B7\u30FC\u30F3\u3001\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u30AB\u30FC\u30C9\u306F\u52D5\u4F5C\u3057\u306A\u304F\u306A\u308A\u307E\u3059\u3002\u7D71\u5408\u304C\u518D\u691C\u51FA\u3057\u305F\u5834\u5408\u306B\u306E\u307F\u5FA9\u5E30\u3057\u307E\u3059\u3002",
+    insights_delete_device_cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    insights_delete_device_confirm: "\u524A\u9664",
+    insights_device_deleted:
+      "\u30C7\u30D0\u30A4\u30B9\u3092\u524A\u9664\u3057\u307E\u3057\u305F",
+    insights_device_deleted_suffix:
+      "\u3092\u524A\u9664\u3057\u307E\u3057\u305F",
+    insights_device_delete_failed:
+      "\u305D\u306E\u30C7\u30D0\u30A4\u30B9\u3092\u524A\u9664\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
+    insights_offline_days_one: "{count}\u65E5",
+    insights_offline_days_few: "{count}\u65E5",
+    insights_offline_days_many: "{count}\u65E5",
+    insights_offline_days_other: "{count}\u65E5",
+    insights_offline_hours_one: "{count}\u6642\u9593",
+    insights_offline_hours_few: "{count}\u6642\u9593",
+    insights_offline_hours_many: "{count}\u6642\u9593",
+    insights_offline_hours_other: "{count}\u6642\u9593",
   },
   options: {
     step: {
@@ -22399,6 +22603,28 @@ var ko_default = {
       "\uBE44\uD65C\uC131\uD654 \u2014 \uC2E4\uD589\uB418\uC9C0 \uC54A\uC74C",
     automations_flow_repeat_for_each_dynamic:
       "\uAC01 \uD56D\uBAA9\uB9C8\uB2E4 \uBC18\uBCF5",
+    insights_delete_device: "\uAE30\uAE30 \uC0AD\uC81C",
+    insights_delete_device_title: "\uAE30\uAE30 \uC0AD\uC81C",
+    insights_delete_device_fallback: "\uC774 \uAE30\uAE30",
+    insights_delete_device_offline:
+      "\uC624\uD504\uB77C\uC778 \uACBD\uACFC \uC2DC\uAC04:",
+    insights_delete_device_body:
+      "\uC0AD\uC81C\uD558\uBA74 \uAE30\uAE30\uC640 \uD574\uB2F9 \uC5D4\uD2F0\uD2F0\uAC00 Home Assistant\uC5D0\uC11C \uC81C\uAC70\uB429\uB2C8\uB2E4 \u2014 \uC774\uB97C \uC0AC\uC6A9\uD558\uB294 \uC790\uB3D9\uD654, \uC52C, \uB300\uC2DC\uBCF4\uB4DC \uCE74\uB4DC\uAC00 \uC791\uB3D9\uC744 \uBA48\uCDA5\uB2C8\uB2E4. \uD1B5\uD569\uC774 \uB2E4\uC2DC \uAC80\uC0C9\uD560 \uB54C\uB9CC \uB3CC\uC544\uC635\uB2C8\uB2E4.",
+    insights_delete_device_cancel: "\uCDE8\uC18C",
+    insights_delete_device_confirm: "\uC0AD\uC81C",
+    insights_device_deleted:
+      "\uAE30\uAE30\uAC00 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+    insights_device_deleted_suffix: "\uC0AD\uC81C\uB428",
+    insights_device_delete_failed:
+      "\uD574\uB2F9 \uAE30\uAE30\uB97C \uC0AD\uC81C\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
+    insights_offline_days_one: "{count}\uC77C",
+    insights_offline_days_few: "{count}\uC77C",
+    insights_offline_days_many: "{count}\uC77C",
+    insights_offline_days_other: "{count}\uC77C",
+    insights_offline_hours_one: "{count}\uC2DC\uAC04",
+    insights_offline_hours_few: "{count}\uC2DC\uAC04",
+    insights_offline_hours_many: "{count}\uC2DC\uAC04",
+    insights_offline_hours_other: "{count}\uC2DC\uAC04",
   },
   options: {
     step: {
@@ -23632,6 +23858,25 @@ var zh_Hans_default = {
       "\u5DF2\u7981\u7528 \u2014 \u4E0D\u4F1A\u8FD0\u884C",
     automations_flow_repeat_for_each_dynamic:
       "\u5BF9\u6BCF\u4E2A\u9879\u91CD\u590D",
+    insights_delete_device: "\u5220\u9664\u8BBE\u5907",
+    insights_delete_device_title: "\u5220\u9664\u8BBE\u5907",
+    insights_delete_device_fallback: "\u6B64\u8BBE\u5907",
+    insights_delete_device_offline: "\u5DF2\u79BB\u7EBF",
+    insights_delete_device_body:
+      "\u5220\u9664\u4F1A\u5C06\u8BE5\u8BBE\u5907\u53CA\u5176\u5B9E\u4F53\u4ECE Home Assistant \u4E2D\u79FB\u9664 \u2014 \u4F7F\u7528\u5B83\u4EEC\u7684\u81EA\u52A8\u5316\u3001\u573A\u666F\u548C\u4EEA\u8868\u677F\u5361\u7247\u5C06\u505C\u6B62\u5DE5\u4F5C\u3002\u53EA\u6709\u5176\u96C6\u6210\u91CD\u65B0\u53D1\u73B0\u5B83\u65F6\u624D\u4F1A\u6062\u590D\u3002",
+    insights_delete_device_cancel: "\u53D6\u6D88",
+    insights_delete_device_confirm: "\u5220\u9664",
+    insights_device_deleted: "\u8BBE\u5907\u5DF2\u5220\u9664",
+    insights_device_deleted_suffix: "\u5DF2\u5220\u9664",
+    insights_device_delete_failed: "\u65E0\u6CD5\u5220\u9664\u8BE5\u8BBE\u5907",
+    insights_offline_days_one: "{count} \u5929",
+    insights_offline_days_few: "{count} \u5929",
+    insights_offline_days_many: "{count} \u5929",
+    insights_offline_days_other: "{count} \u5929",
+    insights_offline_hours_one: "{count} \u5C0F\u65F6",
+    insights_offline_hours_few: "{count} \u5C0F\u65F6",
+    insights_offline_hours_many: "{count} \u5C0F\u65F6",
+    insights_offline_hours_other: "{count} \u5C0F\u65F6",
   },
   options: {
     step: {
@@ -24871,6 +25116,25 @@ var zh_Hant_default = {
       "\u5DF2\u505C\u7528 \u2014 \u4E0D\u6703\u57F7\u884C",
     automations_flow_repeat_for_each_dynamic:
       "\u5C0D\u6BCF\u500B\u9805\u76EE\u91CD\u8907",
+    insights_delete_device: "\u522A\u9664\u88DD\u7F6E",
+    insights_delete_device_title: "\u522A\u9664\u88DD\u7F6E",
+    insights_delete_device_fallback: "\u6B64\u88DD\u7F6E",
+    insights_delete_device_offline: "\u5DF2\u96E2\u7DDA",
+    insights_delete_device_body:
+      "\u522A\u9664\u6703\u5C07\u8A72\u88DD\u7F6E\u53CA\u5176\u5BE6\u9AD4\u5F9E Home Assistant \u4E2D\u79FB\u9664 \u2014 \u4F7F\u7528\u5B83\u5011\u7684\u81EA\u52D5\u5316\u3001\u5834\u666F\u548C\u5100\u8868\u677F\u5361\u7247\u5C07\u505C\u6B62\u904B\u4F5C\u3002\u53EA\u6709\u5176\u6574\u5408\u91CD\u65B0\u767C\u73FE\u5B83\u6642\u624D\u6703\u6062\u5FA9\u3002",
+    insights_delete_device_cancel: "\u53D6\u6D88",
+    insights_delete_device_confirm: "\u522A\u9664",
+    insights_device_deleted: "\u88DD\u7F6E\u5DF2\u522A\u9664",
+    insights_device_deleted_suffix: "\u5DF2\u522A\u9664",
+    insights_device_delete_failed: "\u7121\u6CD5\u522A\u9664\u8A72\u88DD\u7F6E",
+    insights_offline_days_one: "{count} \u5929",
+    insights_offline_days_few: "{count} \u5929",
+    insights_offline_days_many: "{count} \u5929",
+    insights_offline_days_other: "{count} \u5929",
+    insights_offline_hours_one: "{count} \u5C0F\u6642",
+    insights_offline_hours_few: "{count} \u5C0F\u6642",
+    insights_offline_hours_many: "{count} \u5C0F\u6642",
+    insights_offline_hours_other: "{count} \u5C0F\u6642",
   },
   options: {
     step: {
@@ -24918,6 +25182,17 @@ function pickLocale(hass) {
   if (CATALOG[lower]) return lower;
   const base = lower.split("-")[0];
   return CATALOG[base] ? base : "en";
+}
+function localizePlural(hass, base, count, fallback) {
+  let category = "other";
+  try {
+    category = new Intl.PluralRules(pickLocale(hass)).select(count);
+  } catch {}
+  const phrase =
+    localize(hass, `${base}_${category}`, null) ??
+    localize(hass, `${base}_other`, null) ??
+    fallback;
+  return String(phrase).replace("{count}", String(count));
 }
 function localize(hass, key, fallback) {
   const lang = pickLocale(hass);
@@ -40002,14 +40277,10 @@ function _offlineFor(host, seconds) {
   const secs = Number(seconds) || 0;
   const days = Math.floor(secs / 86400);
   if (days >= 1) {
-    return days === 1
-      ? host._t("insights_offline_one_day", "1 day")
-      : `${days} ${host._t("insights_offline_days", "days")}`;
+    return host._tn("insights_offline_days", days, "{count} days");
   }
   const hours = Math.max(1, Math.floor(secs / 3600));
-  return hours === 1
-    ? host._t("insights_offline_one_hour", "1 hour")
-    : `${hours} ${host._t("insights_offline_hours", "hours")}`;
+  return host._tn("insights_offline_hours", hours, "{count} hours");
 }
 function renderDeleteDeviceModal(host) {
   const target = host._deleteDeviceTarget;
@@ -47577,7 +47848,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "14e0c9bc1094" : "";
+var PANEL_BUILD = true ? "fafada573886" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -50647,6 +50918,12 @@ var SeloraAIPanel = class extends i4 {
   }
   _t(key, fallback) {
     return localize(this.hass, key, fallback);
+  }
+  // Counted phrase — resolves `<key>_<plural category>` for the active locale
+  // and interpolates {count}. Use instead of `_t` wherever a number is read as
+  // part of the sentence; see localizePlural in shared/i18n.js.
+  _tn(key, count, fallback) {
+    return localizePlural(this.hass, key, count, fallback);
   }
   _openFeedback() {
     this._showFeedbackModal = true;
