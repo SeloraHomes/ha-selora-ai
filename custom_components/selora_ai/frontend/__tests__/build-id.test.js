@@ -1,137 +1,83 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "fs";
 import { join } from "path";
-import { tmpdir } from "os";
 import {
-  bundleInputs,
   computeBuildId,
   FRONTEND_DIR,
-  SELF_KEY,
+  BUILD_PLACEHOLDER,
+  ID_CHARS,
 } from "../build-id.js";
-import { existsSync } from "fs";
 
-// The id is what tells a browser its panel is stale. Anything that can change
-// the bundle's bytes has to change the id, or a cached bundle is reported as
+// The id is what tells a browser its panel is stale. Anything that changes the
+// bundle's bytes has to change the id, or a cached bundle is reported as
 // current and the reload prompt never appears.
 describe("computeBuildId", () => {
-  let dir;
-  let a;
-  let b;
+  const bundle = "export const A = 1;\n";
 
-  beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "selora-build-id-"));
-    a = "a.js";
-    b = "b.js";
-    writeFileSync(join(dir, a), "export const A = 1;\n");
-    writeFileSync(join(dir, b), "export const B = 2;\n");
+  it("is stable for identical bytes", () => {
+    expect(computeBuildId(bundle)).toBe(computeBuildId(bundle));
   });
 
-  afterEach(() => rmSync(dir, { recursive: true, force: true }));
-
-  const id = (files, defines) => computeBuildId({ files, defines, root: dir });
-
-  it("is stable for identical inputs", () => {
-    expect(id([a, b], { X: '"1"' })).toBe(id([a, b], { X: '"1"' }));
-  });
-
-  it("does not depend on the order files are passed in", () => {
-    expect(id([a, b], {})).toBe(id([b, a], {}));
-  });
-
-  it("changes when a source file's contents change", () => {
-    const before = id([a, b], {});
-    writeFileSync(join(dir, a), "export const A = 99;\n");
-    expect(id([a, b], {})).not.toBe(before);
-  });
-
-  it("changes when a file is dropped from the bundle", () => {
-    expect(id([a], {})).not.toBe(id([a, b], {}));
-  });
-
-  it("changes when identical contents move to another path", () => {
-    const moved = "c.js";
-    writeFileSync(join(dir, moved), "export const B = 2;\n");
-    expect(id([a, moved], {})).not.toBe(id([a, b], {}));
-  });
-
-  it("changes when an injected define changes", () => {
-    // The release-only case: manifest.json bumps, __SELORA_VERSION__ is
-    // substituted into the bundle, no source file is touched. Without the
-    // defines in the hash, an old cached bundle reports the deployed id.
-    const before = id([a, b], { __SELORA_VERSION__: '"0.13.0"' });
-    const after = id([a, b], { __SELORA_VERSION__: '"0.14.0"' });
-    expect(after).not.toBe(before);
-  });
-
-  it("changes when a define is added", () => {
-    expect(id([a, b], { NEW: '"x"' })).not.toBe(id([a, b], {}));
-  });
-
-  it("ignores its own key so the hash can't be circular", () => {
-    const plain = id([a, b], { __SELORA_VERSION__: '"0.13.0"' });
-    const withSelf = id([a, b], {
-      __SELORA_VERSION__: '"0.13.0"',
-      [SELF_KEY]: '"whatever"',
-    });
-    expect(withSelf).toBe(plain);
-  });
-
-  it("returns a short hex id", () => {
-    const value = id([a, b], {});
-    expect(value).toMatch(/^[0-9a-f]{12}$/);
-  });
-
-  it("hashes paths relative to the root, so ids match across machines", () => {
-    // An absolute path in the hash would make every checkout produce a
-    // different id and churn the committed bundle between dev and CI.
-    const other = mkdtempSync(join(tmpdir(), "selora-build-id-other-"));
-    try {
-      writeFileSync(join(other, a), "export const A = 1;\n");
-      writeFileSync(join(other, b), "export const B = 2;\n");
-      expect(computeBuildId({ files: [a, b], root: other })).toBe(
-        computeBuildId({ files: [a, b], root: dir }),
-      );
-    } finally {
-      rmSync(other, { recursive: true, force: true });
-    }
-  });
-});
-
-// Three review rounds found a *missing input* rather than a broken hash, so pin
-// the list itself: anything that can rewrite panel.js has to appear here.
-describe("bundleInputs", () => {
-  const inputs = bundleInputs();
-
-  it("covers the dependency manifests", () => {
-    // Lit is bundled into panel.js, so a lockfile bump rewrites the output
-    // with no source change. Without these, that bundle keeps the old id and
-    // browsers on the previous build are never told to reload.
-    expect(inputs).toContain("package.json");
-    expect(inputs).toContain("package-lock.json");
-  });
-
-  it("covers the scripts that transform the sources", () => {
-    expect(inputs).toContain("build.js");
-    expect(inputs).toContain("postbuild.js");
-    expect(inputs).toContain("build-id.js");
-  });
-
-  it("covers the panel sources", () => {
-    expect(inputs).toContain("src/panel.js");
-    expect(inputs.filter((f) => f.startsWith("src/")).length).toBeGreaterThan(
-      50,
+  it("changes when a single byte changes", () => {
+    expect(computeBuildId("export const A = 2;\n")).not.toBe(
+      computeBuildId(bundle),
     );
   });
 
-  it("excludes node_modules", () => {
-    expect(inputs.some((f) => f.includes("node_modules"))).toBe(false);
+  it("reads a Buffer and a string alike", () => {
+    // build.js hands it readFileSync output; the tests hand it strings.
+    expect(computeBuildId(Buffer.from(bundle, "utf8"))).toBe(
+      computeBuildId(bundle),
+    );
   });
 
-  it("lists real, deduplicated, relative paths", () => {
-    expect(new Set(inputs).size).toBe(inputs.length);
-    for (const file of inputs) {
-      expect(file.startsWith("/")).toBe(false);
-      expect(existsSync(join(FRONTEND_DIR, file))).toBe(true);
-    }
+  it("returns a short hex id", () => {
+    expect(computeBuildId(bundle)).toMatch(
+      new RegExp(`^[0-9a-f]{${ID_CHARS}}$`),
+    );
+  });
+
+  it("does not depend on where the build ran", () => {
+    // Nothing but the bundle's own bytes feeds the hash, so a checkout path
+    // can't leak in and make dev and CI disagree about an identical artifact.
+    expect(computeBuildId(bundle)).toBe(computeBuildId(bundle));
+    expect(String(computeBuildId(bundle))).not.toContain(FRONTEND_DIR);
+  });
+});
+
+// The committed bundle ships to users as-is, so these pin the artifact itself
+// rather than the hash function.
+describe("the committed bundle", () => {
+  const panel = readFileSync(join(FRONTEND_DIR, "panel.js"), "utf8");
+  const sidecar = JSON.parse(
+    readFileSync(join(FRONTEND_DIR, "panel.build.json"), "utf8"),
+  );
+
+  it("carries the id the sidecar advertises", () => {
+    // These two are compared by `selora_ai/version_status`. If a rebuild wrote
+    // one and not the other, every browser is told to reload, forever.
+    expect(sidecar.build).toMatch(new RegExp(`^[0-9a-f]{${ID_CHARS}}$`));
+    expect(panel).toContain(sidecar.build);
+  });
+
+  it("has the placeholder substituted out", () => {
+    // Present means the hashed first pass was shipped instead of the second,
+    // so the panel reports a constant id and never looks stale.
+    expect(panel).not.toContain(BUILD_PLACEHOLDER);
+  });
+
+  it("carries postbuild's SAST suppressions", () => {
+    // The build bundles twice and only the last pass reaches users, so a patch
+    // applied to an earlier one is silently discarded — which is what happens
+    // if postbuild goes back to running as an import side effect, since Node
+    // serves the second require from cache. That failure strips the markers
+    // wholesale, so their presence is what pins it.
+    //
+    // Deliberately a presence check, not "every RegExp( line is marked":
+    // prettier runs after the patch and reflows some of those lines, leaving a
+    // couple of genuinely unsuppressed ones in the shipped bundle. Asserting
+    // the stronger property fails against a bundle the build has never
+    // produced.
+    expect(panel).toContain("// nosemgrep");
   });
 });

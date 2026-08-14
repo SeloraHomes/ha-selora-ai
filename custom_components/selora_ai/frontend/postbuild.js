@@ -19,7 +19,20 @@ function patchCode(code) {
   return code;
 }
 
-if (fs.existsSync("panel.js")) {
-  var panelCode = fs.readFileSync("panel.js", "utf8");
-  fs.writeFileSync("panel.js", patchCode(panelCode), "utf8");
+/**
+ * Patch `panel.js` in place. Exported as a function rather than left as an
+ * import side effect because `build.js` bundles twice — Node serves the second
+ * `require` from its module cache, so a side effect would run only on the first
+ * pass while esbuild had already overwritten the artifact, shipping a bundle
+ * with none of these suppressions.
+ */
+function patchBuiltBundle() {
+  if (!fs.existsSync("panel.js")) return false;
+  fs.writeFileSync("panel.js", patchCode(fs.readFileSync("panel.js", "utf8")));
+  return true;
 }
+
+module.exports = { patchCode, patchBuiltBundle };
+
+// Still usable as `node postbuild.js` against an already-built bundle.
+if (require.main === module) patchBuiltBundle();
