@@ -880,6 +880,9 @@ class Finding(TypedDict, total=False):
     device_id: str | None  # device this concerns (enables per-device Ignore)
     link: str  # optional deep-link URL (e.g. an integration's Settings page)
     link_label: str  # label for ``link``
+    offline_seconds: int  # offline findings: how long the device has been down
+    removable: bool  # offline long enough AND its integration can delete it
+    device_name: str  # bare device name, for the delete confirmation (removable only)
     score_points: float  # points this finding took off the health score (set by scoring)
 
 

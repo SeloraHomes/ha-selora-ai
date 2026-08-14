@@ -1,7 +1,8 @@
 """Selora AI websocket handlers: Insights (health signals + advisor).
 
 Powers the panel's Insights tab. Read-only listing plus per-insight status
-updates (dismiss / acknowledge / resolve) and an on-demand rescan.
+updates (dismiss / acknowledge / resolve), an on-demand rescan, and deleting a
+device that has been offline long enough to be gone for good.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from typing import Any
 from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
@@ -19,7 +21,10 @@ from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 
 from .. import _require_admin
-from ..const import DOMAIN
+from ..const import DOMAIN, HEALTH_OFFLINE_REMOVABLE_SECS
+from ..device_removal import DeviceRespondingError, async_remove_device, device_is_removable
+from ..health_monitor import _device_unreachable
+from ..insights_checks import device_offline_seconds
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +54,24 @@ def _device_fully_down(hass: HomeAssistant, ent_reg: er.EntityRegistry, device_i
         if state.state in _UNAVAILABLE_STATES:
             unavailable += 1
     return total >= 1 and unavailable == total
+
+
+def _device_is_offline_now(hass: HomeAssistant, device_id: str) -> bool:
+    """Live liveness read for the delete gate — the monitor's own rule.
+
+    Deliberately :func:`_device_unreachable` and not a second definition. It is
+    what decides a device is offline in the first place, and the two must agree:
+    a rule of my own that counted every entity would call the archetypal offline
+    Sonos "responding" — HA holds config and diagnostic entities at their last
+    cached value while a device is down, so its Bass/Treble keep reading normally
+    next to an ``unavailable`` media_player — and the card would offer a delete
+    that always refused.
+
+    Not :func:`_device_fully_down` either: that one needs an entity still in the
+    state machine, so it reads a device whose integration dropped its entities on
+    a rediscovery cycle as "not down" — exactly the long-gone device this deletes.
+    """
+    return _device_unreachable(hass, er.async_get(hass), device_id)
 
 
 def _get_insights_bucket(hass: HomeAssistant) -> dict[str, Any] | None:
@@ -350,6 +373,107 @@ async def _handle_rerun_audit(
 @websocket_api.async_response
 @decorators.websocket_command(
     {
+        vol.Required("type"): "selora_ai/insights/delete_device",
+        vol.Required("device_id"): cv.string,
+    }
+)
+async def _handle_delete_device(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Delete a device that has been offline long enough to be gone for good.
+
+    The panel only shows the button on a finding the checks marked ``removable``,
+    but the conditions are re-verified here: the card the click came from may be
+    minutes old, and by then the device can have come back (deleting a working
+    device is exactly the mistake to prevent) or its integration can have been
+    reloaded.
+
+    Two independent gates, because the deletion is irreversible and health
+    signals are only ever as fresh as the last scan:
+
+    * **How long** it has been down comes from the signals, rescanned first so a
+      device that recovered since the last scan has had its signal resolved
+      rather than read as a week-old outage.
+    * **Whether it is down now** is read straight off the state machine. The scan
+      is best-effort — a failure falls back to cached signals — and a partially
+      recovered device keeps its stale per-entity signals until the scan that
+      drops them, so the duration alone must not be what authorizes a delete.
+
+    The live gate is re-read after every await, because each one is a window in
+    which the device can answer again while the signals still say it is gone: the
+    rescan (recorder history, a store write, and its own state sweep before
+    either), and then loading the owning integration inside the removal. The last
+    read happens there, immediately before the destructive hook, via
+    ``still_gone`` — the checks here are the cheap early exits that keep an
+    obviously-alive device out of a scan and out of the removal path, and that
+    return the precise error code.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    device_id = msg["device_id"]
+    if dr.async_get(hass).async_get(device_id) is None:
+        connection.send_error(msg["id"], "unknown_device", "That device no longer exists")
+        return
+
+    bucket = _get_insights_bucket(hass)
+    store = bucket.get("health_store") if bucket else None
+    if store is None:
+        connection.send_error(msg["id"], "no_insights", "Insights not enabled")
+        return
+
+    if not _device_is_offline_now(hass, device_id):
+        connection.send_error(
+            msg["id"],
+            "device_responding",
+            "That device is reporting again — it's no longer offline",
+        )
+        return
+
+    await _rescan_health(bucket)
+    offline_secs = device_offline_seconds(await store.get_active_signals(), device_id)
+    if offline_secs < HEALTH_OFFLINE_REMOVABLE_SECS:
+        connection.send_error(
+            msg["id"],
+            "not_offline",
+            "That device hasn't been offline long enough to delete — it may be back online",
+        )
+        return
+    if not device_is_removable(hass, device_id):
+        connection.send_error(
+            msg["id"],
+            "not_removable",
+            "That device can't be deleted from here — delete it from Settings",
+        )
+        return
+    if not _device_is_offline_now(hass, device_id):
+        connection.send_error(
+            msg["id"],
+            "device_responding",
+            "That device is reporting again — it's no longer offline",
+        )
+        return
+
+    try:
+        name = await async_remove_device(
+            hass, device_id, still_gone=lambda: _device_is_offline_now(hass, device_id)
+        )
+    except DeviceRespondingError as err:
+        connection.send_error(msg["id"], "device_responding", str(err))
+        return
+    except HomeAssistantError as err:
+        _LOGGER.warning("Deleting offline device %s failed: %s", device_id, err)
+        connection.send_error(msg["id"], "remove_failed", str(err))
+        return
+
+    connection.send_result(msg["id"], {"success": True, "name": name})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
         vol.Required("type"): "selora_ai/insights/set_status",
         vol.Required("insight_id"): cv.string,
         vol.Required("status"): vol.In(_INSIGHT_STATUSES),
@@ -418,3 +542,4 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _handle_rescan)
     websocket_api.async_register_command(hass, _handle_get_audit)
     websocket_api.async_register_command(hass, _handle_rerun_audit)
+    websocket_api.async_register_command(hass, _handle_delete_device)

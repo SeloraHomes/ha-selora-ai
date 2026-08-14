@@ -1401,6 +1401,12 @@ HEALTH_FLAP_WINDOW_SECS = 900
 HEALTH_FLAP_MIN_TRANSITIONS = 6
 # Unavailable continuously for longer than this raises a signal.
 HEALTH_UNAVAILABLE_GRACE_SECS = 300
+# Offline continuously for longer than this and the device reads as gone for
+# good — a decommissioned bulb, a returned speaker — rather than merely unplugged
+# for the evening. The offline finding then offers to delete it (confirmed, and
+# only when the owning integration actually supports device removal). Long
+# enough that a holiday-length outage or a router swap can't surface the offer.
+HEALTH_OFFLINE_REMOVABLE_SECS = 7 * 24 * 3600
 # "Silent": an entity whose observed update cadence has lapsed. Flag when the
 # age since last update exceeds baseline_cadence * multiplier, never under the
 # floor (avoids false positives on naturally slow sensors).
