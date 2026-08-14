@@ -934,7 +934,25 @@
     "automations_flow_repeat_for_each": "Repetir para cada elemento ({count})",
     "automations_flow_disabled": "desactivado",
     "automations_flow_disabled_block": "Desactivado — no se ejecuta",
-    "automations_flow_repeat_for_each_dynamic": "Repetir para cada elemento"
+    "automations_flow_repeat_for_each_dynamic": "Repetir para cada elemento",
+    "insights_delete_device": "Eliminar dispositivo",
+    "insights_delete_device_title": "Eliminar dispositivo",
+    "insights_delete_device_fallback": "este dispositivo",
+    "insights_delete_device_offline": "ha estado sin conexión durante",
+    "insights_delete_device_body": "Al eliminarlo se quitan el dispositivo y sus entidades de Home Assistant — las automatizaciones, escenas y tarjetas del panel que las usan dejarán de funcionar. Solo volverá si su integración lo redescubre.",
+    "insights_delete_device_cancel": "Cancelar",
+    "insights_delete_device_confirm": "Eliminar",
+    "insights_device_deleted": "Dispositivo eliminado",
+    "insights_device_deleted_suffix": "eliminado",
+    "insights_device_delete_failed": "No se pudo eliminar ese dispositivo",
+    "insights_offline_days_one": "{count} día",
+    "insights_offline_days_few": "{count} días",
+    "insights_offline_days_many": "{count} días",
+    "insights_offline_days_other": "{count} días",
+    "insights_offline_hours_one": "{count} hora",
+    "insights_offline_hours_few": "{count} horas",
+    "insights_offline_hours_many": "{count} horas",
+    "insights_offline_hours_other": "{count} horas"
   },
   "options": {
     "step": {

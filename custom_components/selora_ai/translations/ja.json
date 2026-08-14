@@ -934,7 +934,25 @@
     "automations_flow_repeat_for_each": "各項目で繰り返す（{count}）",
     "automations_flow_disabled": "無効",
     "automations_flow_disabled_block": "無効 — 実行されません",
-    "automations_flow_repeat_for_each_dynamic": "各項目で繰り返す"
+    "automations_flow_repeat_for_each_dynamic": "各項目で繰り返す",
+    "insights_delete_device": "デバイスを削除",
+    "insights_delete_device_title": "デバイスを削除",
+    "insights_delete_device_fallback": "このデバイス",
+    "insights_delete_device_offline": "がオフラインになってから",
+    "insights_delete_device_body": "削除すると、デバイスとそのエンティティが Home Assistant から削除されます。それらを使用しているオートメーション、シーン、ダッシュボードカードは動作しなくなります。統合が再検出した場合にのみ復帰します。",
+    "insights_delete_device_cancel": "キャンセル",
+    "insights_delete_device_confirm": "削除",
+    "insights_device_deleted": "デバイスを削除しました",
+    "insights_device_deleted_suffix": "を削除しました",
+    "insights_device_delete_failed": "そのデバイスを削除できませんでした",
+    "insights_offline_days_one": "{count}日",
+    "insights_offline_days_few": "{count}日",
+    "insights_offline_days_many": "{count}日",
+    "insights_offline_days_other": "{count}日",
+    "insights_offline_hours_one": "{count}時間",
+    "insights_offline_hours_few": "{count}時間",
+    "insights_offline_hours_many": "{count}時間",
+    "insights_offline_hours_other": "{count}時間"
   },
   "options": {
     "step": {

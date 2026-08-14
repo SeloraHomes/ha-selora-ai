@@ -14,7 +14,10 @@
     ],
     "fileFilters": [
       "custom_components/selora_ai/frontend/panel.js",
-      "custom_components/selora_ai/frontend/panel.build.json"
+      "custom_components/selora_ai/frontend/panel.build.json",
+      "custom_components/selora_ai/frontend/src/**/*.js",
+      "custom_components/selora_ai/frontend/build.js",
+      "custom_components/selora_ai/frontend/postbuild.js"
     ],
     "executionMode": "branch"
   }

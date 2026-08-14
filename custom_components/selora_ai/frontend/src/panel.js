@@ -9,7 +9,10 @@ import { sharedScrollbar } from "./shared/styles/scrollbar.css.js";
 import { allPanelStyles } from "./panel/styles/index.css.js";
 import "./shared/particles.js";
 import { formatDate } from "./shared/date-utils.js";
-import { localize as i18nLocalize } from "./shared/i18n.js";
+import {
+  localize as i18nLocalize,
+  localizePlural as i18nLocalizePlural,
+} from "./shared/i18n.js";
 import {
   renderChat,
   renderMessage,
@@ -1989,6 +1992,13 @@ class SeloraAIPanel extends LitElement {
 
   _t(key, fallback) {
     return i18nLocalize(this.hass, key, fallback);
+  }
+
+  // Counted phrase — resolves `<key>_<plural category>` for the active locale
+  // and interpolates {count}. Use instead of `_t` wherever a number is read as
+  // part of the sentence; see localizePlural in shared/i18n.js.
+  _tn(key, count, fallback) {
+    return i18nLocalizePlural(this.hass, key, count, fallback);
   }
 
   _openFeedback() {

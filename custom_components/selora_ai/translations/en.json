@@ -934,7 +934,25 @@
     "automations_flow_repeat_for_each": "Repeat for each item ({count})",
     "automations_flow_disabled": "disabled",
     "automations_flow_disabled_block": "Disabled — does not run",
-    "automations_flow_repeat_for_each_dynamic": "Repeat for each item"
+    "automations_flow_repeat_for_each_dynamic": "Repeat for each item",
+    "insights_delete_device": "Delete device",
+    "insights_delete_device_title": "Delete device",
+    "insights_delete_device_fallback": "this device",
+    "insights_delete_device_offline": "has been offline for",
+    "insights_delete_device_body": "Deleting removes it and its entities from Home Assistant — automations, scenes, and dashboard cards that use them will stop working. It only comes back if its integration rediscovers it.",
+    "insights_delete_device_cancel": "Cancel",
+    "insights_delete_device_confirm": "Delete",
+    "insights_device_deleted": "Device deleted",
+    "insights_device_deleted_suffix": "deleted",
+    "insights_device_delete_failed": "Couldn't delete that device",
+    "insights_offline_days_one": "{count} day",
+    "insights_offline_days_few": "{count} days",
+    "insights_offline_days_many": "{count} days",
+    "insights_offline_days_other": "{count} days",
+    "insights_offline_hours_one": "{count} hour",
+    "insights_offline_hours_few": "{count} hours",
+    "insights_offline_hours_many": "{count} hours",
+    "insights_offline_hours_other": "{count} hours"
   },
   "options": {
     "step": {

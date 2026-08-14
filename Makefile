@@ -10,11 +10,18 @@
 # templ/sqlc codegen. Reusing it keeps a dependency bump in this repo from
 # needing an infra change.
 #
-# Why a dependency bump invalidates anything here: build-id.js hashes the
-# frontend package.json and package-lock.json among the bundle's inputs, and Lit
-# ships *inside* panel.js — so a lockfile-only change rewrites the bundle and
-# moves the build id without touching a line of src/. The `frontend` CI job
-# fails the MR when the committed bundle and a fresh build disagree.
+# Why a dependency bump invalidates anything here: Lit ships *inside* panel.js,
+# so a lockfile-only change rewrites the bundle — and with it the build id,
+# which build-id.js derives from the built bundle's own bytes — without touching
+# a line of src/. The `frontend` CI job fails the MR when the committed bundle
+# and a fresh build disagree.
+#
+# Every file this target may rewrite has to be listed in the `fileFilters` of
+# renovate.json's postUpgradeTasks: whatever is missing there is discarded from
+# the Renovate branch. That is more than the bundle. `npm run build` runs
+# `prettier --write` over src/**/*.js, build.js and postbuild.js before it
+# bundles, so dropping those reformats leaves the next prettier bump failing
+# `lint:prettier` against sources Renovate was not allowed to fix.
 
 FRONTEND_DIR := custom_components/selora_ai/frontend
 

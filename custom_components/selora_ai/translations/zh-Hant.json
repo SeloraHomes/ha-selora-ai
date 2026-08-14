@@ -934,7 +934,25 @@
     "automations_flow_repeat_for_each": "對每個項目重複（{count}）",
     "automations_flow_disabled": "已停用",
     "automations_flow_disabled_block": "已停用 — 不會執行",
-    "automations_flow_repeat_for_each_dynamic": "對每個項目重複"
+    "automations_flow_repeat_for_each_dynamic": "對每個項目重複",
+    "insights_delete_device": "刪除裝置",
+    "insights_delete_device_title": "刪除裝置",
+    "insights_delete_device_fallback": "此裝置",
+    "insights_delete_device_offline": "已離線",
+    "insights_delete_device_body": "刪除會將該裝置及其實體從 Home Assistant 中移除 — 使用它們的自動化、場景和儀表板卡片將停止運作。只有其整合重新發現它時才會恢復。",
+    "insights_delete_device_cancel": "取消",
+    "insights_delete_device_confirm": "刪除",
+    "insights_device_deleted": "裝置已刪除",
+    "insights_device_deleted_suffix": "已刪除",
+    "insights_device_delete_failed": "無法刪除該裝置",
+    "insights_offline_days_one": "{count} 天",
+    "insights_offline_days_few": "{count} 天",
+    "insights_offline_days_many": "{count} 天",
+    "insights_offline_days_other": "{count} 天",
+    "insights_offline_hours_one": "{count} 小時",
+    "insights_offline_hours_few": "{count} 小時",
+    "insights_offline_hours_many": "{count} 小時",
+    "insights_offline_hours_other": "{count} 小時"
   },
   "options": {
     "step": {
