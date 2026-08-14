@@ -630,97 +630,88 @@ export function renderScenes(host) {
                             };
                           }}
                         >
-                          <div
-                            style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
-                          >
+                          <div class="auto-row-lead">
                             <ha-icon
+                              class="auto-row-icon"
                               icon="mdi:palette"
-                              style="--mdc-icon-size:18px;color:var(--selora-accent);"
+                              style="color:var(--selora-accent);"
                             ></ha-icon>
-                            ${
-                              !isSelora && !recipeTitle && host.narrow
-                                ? html`<span
-                                    style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
-                                    >HA</span
-                                  >`
-                                : ""
-                            }
-                          </div>
-                          <div class="auto-row-name">
-                            <div class="auto-row-title-row">
-                              <span class="auto-row-title">${s.name}</span>
-                              ${
-                                recipeTitle
-                                  ? html`<span
-                                      class="recipe-pill ${
-                                        recipeSlug ? "recipe-pill-link" : ""
-                                      }"
-                                      role=${recipeSlug ? "button" : nothing}
-                                      tabindex=${recipeSlug ? "0" : nothing}
-                                      title=${
-                                        recipeSlug
-                                          ? host._t(
-                                              "automations_recipe_pill_link_tooltip",
-                                              "Open the recipe that installed this.",
-                                            )
-                                          : host._t(
-                                              "automations_recipe_pill_tooltip",
-                                              "Installed by a Selora recipe — manage it from the Recipes tab.",
-                                            )
-                                      }
-                                      @click=${
-                                        recipeSlug
-                                          ? (e) => {
-                                              e.stopPropagation();
-                                              host._openRecipeFromPill(
-                                                recipeSlug,
-                                              );
-                                            }
-                                          : nothing
-                                      }
-                                      @keydown=${
-                                        recipeSlug
-                                          ? (e) => {
-                                              if (
-                                                e.key === "Enter" ||
-                                                e.key === " "
-                                              ) {
-                                                e.preventDefault();
+                            <div class="auto-row-name">
+                              <div class="auto-row-title-row">
+                                <span class="auto-row-title">${s.name}</span>
+                                ${
+                                  recipeTitle
+                                    ? html`<span
+                                        class="recipe-pill ${
+                                          recipeSlug ? "recipe-pill-link" : ""
+                                        }"
+                                        role=${recipeSlug ? "button" : nothing}
+                                        tabindex=${recipeSlug ? "0" : nothing}
+                                        title=${
+                                          recipeSlug
+                                            ? host._t(
+                                                "automations_recipe_pill_link_tooltip",
+                                                "Open the recipe that installed this.",
+                                              )
+                                            : host._t(
+                                                "automations_recipe_pill_tooltip",
+                                                "Installed by a Selora recipe — manage it from the Recipes tab.",
+                                              )
+                                        }
+                                        @click=${
+                                          recipeSlug
+                                            ? (e) => {
                                                 e.stopPropagation();
                                                 host._openRecipeFromPill(
                                                   recipeSlug,
                                                 );
                                               }
-                                            }
-                                          : nothing
-                                      }
-                                    >
-                                      <ha-icon
-                                        icon="mdi:book-open-variant"
-                                      ></ha-icon>
-                                      <span class="recipe-pill-name"
-                                        >${recipeTitle}</span
+                                            : nothing
+                                        }
+                                        @keydown=${
+                                          recipeSlug
+                                            ? (e) => {
+                                                if (
+                                                  e.key === "Enter" ||
+                                                  e.key === " "
+                                                ) {
+                                                  e.preventDefault();
+                                                  e.stopPropagation();
+                                                  host._openRecipeFromPill(
+                                                    recipeSlug,
+                                                  );
+                                                }
+                                              }
+                                            : nothing
+                                        }
                                       >
-                                    </span>`
-                                  : !isSelora && !host.narrow
-                                    ? html`<span
-                                        style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
-                                        >HA</span
-                                      >`
-                                    : ""
-                              }
+                                        <ha-icon
+                                          icon="mdi:book-open-variant"
+                                        ></ha-icon>
+                                        <span class="recipe-pill-name"
+                                          >${recipeTitle}</span
+                                        >
+                                      </span>`
+                                    : !isSelora
+                                      ? html`<span class="ha-native-pill"
+                                          >HA</span
+                                        >`
+                                      : ""
+                                }
+                              </div>
+                              <span
+                                class="auto-row-desc auto-row-desc--meta-only"
+                                >${meta}</span
+                              >
+                              <span class="auto-row-mobile-meta">
+                                <span>${meta}</span>
+                                <ha-icon
+                                  icon="mdi:chevron-down"
+                                  class="card-chevron ${isExpanded ? "open" : ""}"
+                                  style="--mdc-icon-size:16px;"
+                                ></ha-icon>
+                              </span>
                             </div>
-                            <span class="auto-row-desc auto-row-desc--meta-only"
-                              >${meta}</span
-                            >
-                            <span class="auto-row-mobile-meta">
-                              <span>${meta}</span>
-                              <ha-icon
-                                icon="mdi:chevron-down"
-                                class="card-chevron ${isExpanded ? "open" : ""}"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                            </span>
                           </div>
                           <div
                             style="display:flex;align-items:center;gap:8px;flex-shrink:0;"

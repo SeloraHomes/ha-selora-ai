@@ -501,50 +501,52 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
     "",
   );
   return html`
-    <ha-icon
-      icon=${icon}
-      class="auto-row-icon"
-      style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
-    ></ha-icon>
-    <div class="auto-row-name">
-      ${
-        nameOverride
-          ? nameOverride
-          : html`<div class="auto-row-title-row">
-              <span class="auto-row-title">${alias}</span>
-              ${
-                isSelora && !badge
-                  ? html`<ha-icon
-                      class="selora-ai-mark"
-                      icon="mdi:creation"
-                      title="Created by Selora AI"
-                    ></ha-icon>`
-                  : ""
-              }
-              ${titleSuffix || ""}
-              ${
-                badge
-                  ? html`<span
-                      style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
-                      >${
-                        badgeCheck
-                          ? renderCreatedCheck({
-                              animate: badgeCheckAnimate,
-                              size: 11,
-                            })
-                          : ""
-                      }${badge}</span
-                    >`
-                  : ""
-              }
-            </div>`
-      }
-      ${
-        cleanedDescription
-          ? html`<span class="auto-row-desc">${cleanedDescription}</span>`
-          : ""
-      }
-      ${tail || ""}
+    <div class="auto-row-lead">
+      <ha-icon
+        icon=${icon}
+        class="auto-row-icon"
+        style="color:var(--primary-text-color);"
+      ></ha-icon>
+      <div class="auto-row-name">
+        ${
+          nameOverride
+            ? nameOverride
+            : html`<div class="auto-row-title-row">
+                <span class="auto-row-title">${alias}</span>
+                ${
+                  isSelora && !badge
+                    ? html`<ha-icon
+                        class="selora-ai-mark"
+                        icon="mdi:creation"
+                        title="Created by Selora AI"
+                      ></ha-icon>`
+                    : ""
+                }
+                ${titleSuffix || ""}
+                ${
+                  badge
+                    ? html`<span
+                        style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
+                        >${
+                          badgeCheck
+                            ? renderCreatedCheck({
+                                animate: badgeCheckAnimate,
+                                size: 11,
+                              })
+                            : ""
+                        }${badge}</span
+                      >`
+                    : ""
+                }
+              </div>`
+        }
+        ${
+          cleanedDescription
+            ? html`<span class="auto-row-desc">${cleanedDescription}</span>`
+            : ""
+        }
+        ${tail || ""}
+      </div>
     </div>
   `;
 }

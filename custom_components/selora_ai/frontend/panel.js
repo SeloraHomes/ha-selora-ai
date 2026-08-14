@@ -2802,6 +2802,9 @@ var chatStyles = i`
     display: flex;
     align-items: flex-start;
     gap: 8px;
+    /* The identity block carries its own icon-to-name gap; keep the card's
+       tighter 8px rather than the list row's 12px. */
+    --auto-row-lead-gap: 8px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--divider-color);
   }
@@ -5498,6 +5501,18 @@ var automationsStyles = i`
   .burger-item-toggle {
     display: none;
   }
+  /* Icon + name travel as one unit. The group is what the row centers (rows are
+     routinely taller than their text — the trailing buttons set the height), and
+     inside the group the icon pins to the top, which is the title's line box.
+     Aligning the icon against the row itself instead leaves it above the title
+     on any row whose height does not come from the text. */
+  .auto-row-lead {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--auto-row-lead-gap, 12px);
+    flex: 1;
+    min-width: 0;
+  }
   .auto-row-name {
     flex: 1;
     min-width: 0;
@@ -5508,6 +5523,9 @@ var automationsStyles = i`
   .auto-row-title {
     font-size: 14px;
     font-weight: 500;
+    /* Explicit, so the leading icon slot can be sized to the same box (20px)
+       and land on the title's optical center. */
+    line-height: 20px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -5517,6 +5535,23 @@ var automationsStyles = i`
     align-items: center;
     gap: 8px;
     min-width: 0;
+    /* The pills are shorter than the title's line box; pinning the row to that
+       height keeps the title (and the icon aligned to it) from shifting down
+       when a shorter-but-padded pill is the tallest thing on the line. */
+    min-height: 20px;
+  }
+  /* Leading row icon — a fixed slot as tall as the title's line box (20px), so
+     the glyph sits on the title's optical center whether or not a description
+     follows. Without the fixed height it centers on whatever the name column
+     adds up to, which is the midpoint between title and description. */
+  .auto-row-icon {
+    --mdc-icon-size: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 20px;
   }
   .needs-attention-pill {
     padding: 2px 8px;
@@ -5584,6 +5619,23 @@ var automationsStyles = i`
     color: var(--selora-accent);
     flex-shrink: 0;
     opacity: 0.9;
+  }
+  /* Marks a scene that HA (or another integration) owns rather than Selora.
+     Sits inline on the title line at every width — on mobile it wraps onto its
+     own line with the other pills, so the leading icon keeps a single, stable
+     slot next to the title instead of sharing a column with a badge. Its line
+     box stays under the title's 20px so it never pushes the title down. */
+  .ha-native-pill {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--secondary-background-color);
+    color: var(--secondary-text-color);
+    padding: 0 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
   }
   /* Marks a row installed by a recipe (managed outside the panel). Neutral
      accent tint so it reads as informational, not a warning like stale/error. */
@@ -5848,6 +5900,7 @@ var automationsStyles = i`
       /* Tighter gaps so the icon + toggle + action buttons leave more width
          for the name column on narrow screens. */
       gap: 8px;
+      --auto-row-lead-gap: 8px;
     }
     /* Push the pills (recipe / stale / needs-attention) onto their own wrapped
        line instead of letting them share — and steal — the title's width. The
@@ -5862,7 +5915,8 @@ var automationsStyles = i`
     .recipe-pill,
     .stale-pill,
     .needs-attention-pill,
-    .disabled-pill {
+    .disabled-pill,
+    .ha-native-pill {
       flex-basis: 100%;
       max-width: max-content;
     }
@@ -32835,46 +32889,48 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     "",
   );
   return b2`
-    <ha-icon
-      icon=${icon}
-      class="auto-row-icon"
-      style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
-    ></ha-icon>
-    <div class="auto-row-name">
-      ${
-        nameOverride
-          ? nameOverride
-          : b2`<div class="auto-row-title-row">
-              <span class="auto-row-title">${alias}</span>
-              ${
-                isSelora && !badge
-                  ? b2`<ha-icon
-                      class="selora-ai-mark"
-                      icon="mdi:creation"
-                      title="Created by Selora AI"
-                    ></ha-icon>`
-                  : ""
-              }
-              ${titleSuffix || ""}
-              ${
-                badge
-                  ? b2`<span
-                      style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
-                      >${
-                        badgeCheck
-                          ? renderCreatedCheck({
-                              animate: badgeCheckAnimate,
-                              size: 11,
-                            })
-                          : ""
-                      }${badge}</span
-                    >`
-                  : ""
-              }
-            </div>`
-      }
-      ${cleanedDescription ? b2`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
-      ${tail || ""}
+    <div class="auto-row-lead">
+      <ha-icon
+        icon=${icon}
+        class="auto-row-icon"
+        style="color:var(--primary-text-color);"
+      ></ha-icon>
+      <div class="auto-row-name">
+        ${
+          nameOverride
+            ? nameOverride
+            : b2`<div class="auto-row-title-row">
+                <span class="auto-row-title">${alias}</span>
+                ${
+                  isSelora && !badge
+                    ? b2`<ha-icon
+                        class="selora-ai-mark"
+                        icon="mdi:creation"
+                        title="Created by Selora AI"
+                      ></ha-icon>`
+                    : ""
+                }
+                ${titleSuffix || ""}
+                ${
+                  badge
+                    ? b2`<span
+                        style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
+                        >${
+                          badgeCheck
+                            ? renderCreatedCheck({
+                                animate: badgeCheckAnimate,
+                                size: 11,
+                              })
+                            : ""
+                        }${badge}</span
+                      >`
+                    : ""
+                }
+              </div>`
+        }
+        ${cleanedDescription ? b2`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
+        ${tail || ""}
+      </div>
     </div>
   `;
 }
@@ -35527,95 +35583,86 @@ function renderScenes(host) {
                             };
                           }}
                         >
-                          <div
-                            style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
-                          >
+                          <div class="auto-row-lead">
                             <ha-icon
+                              class="auto-row-icon"
                               icon="mdi:palette"
-                              style="--mdc-icon-size:18px;color:var(--selora-accent);"
+                              style="color:var(--selora-accent);"
                             ></ha-icon>
-                            ${
-                              !isSelora && !recipeTitle && host.narrow
-                                ? b2`<span
-                                    style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
-                                    >HA</span
-                                  >`
-                                : ""
-                            }
-                          </div>
-                          <div class="auto-row-name">
-                            <div class="auto-row-title-row">
-                              <span class="auto-row-title">${s4.name}</span>
-                              ${
-                                recipeTitle
-                                  ? b2`<span
-                                      class="recipe-pill ${recipeSlug ? "recipe-pill-link" : ""}"
-                                      role=${recipeSlug ? "button" : A}
-                                      tabindex=${recipeSlug ? "0" : A}
-                                      title=${
-                                        recipeSlug
-                                          ? host._t(
-                                              "automations_recipe_pill_link_tooltip",
-                                              "Open the recipe that installed this.",
-                                            )
-                                          : host._t(
-                                              "automations_recipe_pill_tooltip",
-                                              "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
-                                            )
-                                      }
-                                      @click=${
-                                        recipeSlug
-                                          ? (e6) => {
-                                              e6.stopPropagation();
-                                              host._openRecipeFromPill(
-                                                recipeSlug,
-                                              );
-                                            }
-                                          : A
-                                      }
-                                      @keydown=${
-                                        recipeSlug
-                                          ? (e6) => {
-                                              if (
-                                                e6.key === "Enter" ||
-                                                e6.key === " "
-                                              ) {
-                                                e6.preventDefault();
+                            <div class="auto-row-name">
+                              <div class="auto-row-title-row">
+                                <span class="auto-row-title">${s4.name}</span>
+                                ${
+                                  recipeTitle
+                                    ? b2`<span
+                                        class="recipe-pill ${recipeSlug ? "recipe-pill-link" : ""}"
+                                        role=${recipeSlug ? "button" : A}
+                                        tabindex=${recipeSlug ? "0" : A}
+                                        title=${
+                                          recipeSlug
+                                            ? host._t(
+                                                "automations_recipe_pill_link_tooltip",
+                                                "Open the recipe that installed this.",
+                                              )
+                                            : host._t(
+                                                "automations_recipe_pill_tooltip",
+                                                "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+                                              )
+                                        }
+                                        @click=${
+                                          recipeSlug
+                                            ? (e6) => {
                                                 e6.stopPropagation();
                                                 host._openRecipeFromPill(
                                                   recipeSlug,
                                                 );
                                               }
-                                            }
-                                          : A
-                                      }
-                                    >
-                                      <ha-icon
-                                        icon="mdi:book-open-variant"
-                                      ></ha-icon>
-                                      <span class="recipe-pill-name"
-                                        >${recipeTitle}</span
+                                            : A
+                                        }
+                                        @keydown=${
+                                          recipeSlug
+                                            ? (e6) => {
+                                                if (
+                                                  e6.key === "Enter" ||
+                                                  e6.key === " "
+                                                ) {
+                                                  e6.preventDefault();
+                                                  e6.stopPropagation();
+                                                  host._openRecipeFromPill(
+                                                    recipeSlug,
+                                                  );
+                                                }
+                                              }
+                                            : A
+                                        }
                                       >
-                                    </span>`
-                                  : !isSelora && !host.narrow
-                                    ? b2`<span
-                                        style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
-                                        >HA</span
-                                      >`
-                                    : ""
-                              }
+                                        <ha-icon
+                                          icon="mdi:book-open-variant"
+                                        ></ha-icon>
+                                        <span class="recipe-pill-name"
+                                          >${recipeTitle}</span
+                                        >
+                                      </span>`
+                                    : !isSelora
+                                      ? b2`<span class="ha-native-pill"
+                                          >HA</span
+                                        >`
+                                      : ""
+                                }
+                              </div>
+                              <span
+                                class="auto-row-desc auto-row-desc--meta-only"
+                                >${meta}</span
+                              >
+                              <span class="auto-row-mobile-meta">
+                                <span>${meta}</span>
+                                <ha-icon
+                                  icon="mdi:chevron-down"
+                                  class="card-chevron ${isExpanded ? "open" : ""}"
+                                  style="--mdc-icon-size:16px;"
+                                ></ha-icon>
+                              </span>
                             </div>
-                            <span class="auto-row-desc auto-row-desc--meta-only"
-                              >${meta}</span
-                            >
-                            <span class="auto-row-mobile-meta">
-                              <span>${meta}</span>
-                              <ha-icon
-                                icon="mdi:chevron-down"
-                                class="card-chevron ${isExpanded ? "open" : ""}"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                            </span>
                           </div>
                           <div
                             style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
@@ -47450,7 +47497,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "f7c5c31a2376" : "";
+var PANEL_BUILD = true ? "9c0f117d7ba9" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
