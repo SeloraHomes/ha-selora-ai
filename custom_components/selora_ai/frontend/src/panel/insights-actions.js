@@ -160,7 +160,61 @@ export async function _ignoreFix(fix) {
   }
 }
 
+// Open the delete confirmation for a long-offline device. The finding carries
+// everything the prompt needs (device name + how long it's been down), so the
+// modal never has to re-derive it from the templated title.
+export function _promptDeleteDevice(fix) {
+  if (!fix?.device_id) return;
+  this._deleteDeviceTarget = {
+    device_id: fix.device_id,
+    name: fix.device_name || "",
+    offline_seconds: fix.offline_seconds || 0,
+  };
+}
+
+export async function _confirmDeleteDevice() {
+  const target = this._deleteDeviceTarget;
+  if (!target?.device_id || this._deletingDevice) return;
+  this._deletingDevice = true;
+  try {
+    const res = await this.hass.callWS({
+      type: "selora_ai/insights/delete_device",
+      device_id: target.device_id,
+    });
+    this._deleteDeviceTarget = null;
+    const name = res?.name || target.name;
+    this._showToast(
+      name
+        ? `${name} ${this._t("insights_device_deleted_suffix", "deleted")}`
+        : this._t("insights_device_deleted", "Device deleted"),
+      "success",
+    );
+    // The device is gone but its signals are still active — rescan resolves
+    // them, then reload so the card (and the score) drop it.
+    await this.hass.callWS({ type: "selora_ai/insights/rescan" });
+    await Promise.all([this._loadInsights(), this._loadAudit()]);
+  } catch (err) {
+    // The backend re-checks live state, so the usual refusal here is a device
+    // that came back since the card was drawn. Surface its reason rather than a
+    // generic failure, and reload — the finding the button sits on is the stale
+    // thing, so leaving it up invites the same click again.
+    console.error("Failed to delete device", err);
+    this._deleteDeviceTarget = null;
+    this._showToast(
+      err?.message ||
+        this._t("insights_device_delete_failed", "Couldn't delete that device"),
+      "error",
+    );
+    await Promise.all([this._loadInsights(), this._loadAudit()]);
+  } finally {
+    this._deletingDevice = false;
+  }
+}
+
 export async function _openInsights() {
+  // A delete prompt left open when the user navigated away must not pop back up
+  // on a tab they just re-entered — and its finding is about to be re-fetched.
+  this._deleteDeviceTarget = null;
   // Called when the Insights tab activates — load the cached audit + signals.
   await Promise.all([this._loadAudit(), this._loadInsights()]);
   // No audit cached yet (first visit before the background run finished) —

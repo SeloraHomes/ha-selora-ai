@@ -39997,6 +39997,72 @@ function renderScoreBreakdown(host) {
   `;
 }
 
+// src/panel/render-delete-device-modal.js
+function _offlineFor(host, seconds) {
+  const secs = Number(seconds) || 0;
+  const days = Math.floor(secs / 86400);
+  if (days >= 1) {
+    return days === 1
+      ? host._t("insights_offline_one_day", "1 day")
+      : `${days} ${host._t("insights_offline_days", "days")}`;
+  }
+  const hours = Math.max(1, Math.floor(secs / 3600));
+  return hours === 1
+    ? host._t("insights_offline_one_hour", "1 hour")
+    : `${hours} ${host._t("insights_offline_hours", "hours")}`;
+}
+function renderDeleteDeviceModal(host) {
+  const target = host._deleteDeviceTarget;
+  if (!target) return "";
+  const name =
+    target.name || host._t("insights_delete_device_fallback", "this device");
+  const close = () => {
+    if (host._deletingDevice) return;
+    host._deleteDeviceTarget = null;
+  };
+  return b2`
+    <div
+      class="modal-overlay"
+      @click=${(e6) => {
+        if (e6.target === e6.currentTarget) close();
+      }}
+    >
+      <div class="modal-content" style="max-width:440px;text-align:center;">
+        <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
+          ${host._t("insights_delete_device_title", "Delete device")}
+        </div>
+        <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+          <strong>${name}</strong>
+          ${host._t("insights_delete_device_offline", "has been offline for")}
+          ${_offlineFor(host, target.offline_seconds)}.
+          ${host._t(
+            "insights_delete_device_body",
+            "Deleting removes it and its entities from Home Assistant \u2014 automations, scenes, and dashboard cards that use them will stop working. It only comes back if its integration rediscovers it.",
+          )}
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button
+            class="btn btn-outline"
+            ?disabled=${host._deletingDevice}
+            @click=${close}
+          >
+            ${host._t("insights_delete_device_cancel", "Cancel")}
+          </button>
+          <button
+            class="btn"
+            style="background:#ef4444;color:#fff;border-color:#ef4444;"
+            ?disabled=${host._deletingDevice}
+            @click=${() => host._confirmDeleteDevice()}
+          >
+            ${host._deletingDevice ? b2`<span class="spinner"></span>` : b2`<ha-icon icon="mdi:trash-can-outline"></ha-icon>`}
+            ${host._t("insights_delete_device_confirm", "Delete")}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 // src/panel/render-insights.js
 var _SEVERITY_META = {
   critical: { color: "#ef4444", icon: "mdi:alert-octagon", order: 0 },
@@ -40079,6 +40145,20 @@ function _recCard(host, rec) {
                     rec.link_label || "Open in Settings",
                   )}
                 </a>`
+              : ""
+          }
+          ${
+            // Offline past the removable threshold, and its integration can
+            // actually release the device — both decided by the backend, so the
+            // button never offers a deletion that would fail.
+            rec.removable && rec.device_id
+              ? b2`<button
+                  class="btn btn-danger btn-sm"
+                  @click=${() => host._promptDeleteDevice(rec)}
+                >
+                  <ha-icon icon="mdi:trash-can-outline"></ha-icon>
+                  ${host._t("insights_delete_device", "Delete device")}
+                </button>`
               : ""
           }
           ${
@@ -40294,7 +40374,7 @@ function renderInsights(host) {
         </div>
 
         ${renderHealthGauge(host)} ${renderScoreBreakdown(host)}
-        ${_auditBody(host)}
+        ${_auditBody(host)} ${renderDeleteDeviceModal(host)}
       </div>
     </div>
   `;
@@ -47497,7 +47577,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "9bde67d8ecf9" : "";
+var PANEL_BUILD = true ? "14e0c9bc1094" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -47742,10 +47822,12 @@ async function _triggerPatternScan() {
 // src/panel/insights-actions.js
 var insights_actions_exports = {};
 __export(insights_actions_exports, {
+  _confirmDeleteDevice: () => _confirmDeleteDevice,
   _ignoreFix: () => _ignoreFix,
   _loadAudit: () => _loadAudit,
   _loadInsights: () => _loadInsights,
   _openInsights: () => _openInsights,
+  _promptDeleteDevice: () => _promptDeleteDevice,
   _rerunAudit: () => _rerunAudit,
 });
 async function _loadInsights() {
@@ -47883,7 +47965,48 @@ async function _ignoreFix(fix) {
     );
   }
 }
+function _promptDeleteDevice(fix) {
+  if (!fix?.device_id) return;
+  this._deleteDeviceTarget = {
+    device_id: fix.device_id,
+    name: fix.device_name || "",
+    offline_seconds: fix.offline_seconds || 0,
+  };
+}
+async function _confirmDeleteDevice() {
+  const target = this._deleteDeviceTarget;
+  if (!target?.device_id || this._deletingDevice) return;
+  this._deletingDevice = true;
+  try {
+    const res = await this.hass.callWS({
+      type: "selora_ai/insights/delete_device",
+      device_id: target.device_id,
+    });
+    this._deleteDeviceTarget = null;
+    const name = res?.name || target.name;
+    this._showToast(
+      name
+        ? `${name} ${this._t("insights_device_deleted_suffix", "deleted")}`
+        : this._t("insights_device_deleted", "Device deleted"),
+      "success",
+    );
+    await this.hass.callWS({ type: "selora_ai/insights/rescan" });
+    await Promise.all([this._loadInsights(), this._loadAudit()]);
+  } catch (err) {
+    console.error("Failed to delete device", err);
+    this._deleteDeviceTarget = null;
+    this._showToast(
+      err?.message ||
+        this._t("insights_device_delete_failed", "Couldn't delete that device"),
+      "error",
+    );
+    await Promise.all([this._loadInsights(), this._loadAudit()]);
+  } finally {
+    this._deletingDevice = false;
+  }
+}
 async function _openInsights() {
+  this._deleteDeviceTarget = null;
   await Promise.all([this._loadAudit(), this._loadInsights()]);
   if (this._auditStatus === "pending" && !this._auditRunning) {
     this._rerunAudit();
@@ -49108,6 +49231,9 @@ var SeloraAIPanel = class extends i4 {
       _auditRunning: { type: Boolean },
       _auditLoaded: { type: Boolean },
       _auditSettling: { type: Boolean },
+      // Pending long-offline device deletion (the confirmation modal's target).
+      _deleteDeviceTarget: { type: Object },
+      _deletingDevice: { type: Boolean },
       // Automations tab
       _suggestions: { type: Array },
       _automations: { type: Array },
@@ -49386,6 +49512,8 @@ var SeloraAIPanel = class extends i4 {
     this._auditRunning = false;
     this._auditLoaded = false;
     this._auditSettling = false;
+    this._deleteDeviceTarget = null;
+    this._deletingDevice = false;
     this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};

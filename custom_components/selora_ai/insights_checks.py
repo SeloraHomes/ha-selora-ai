@@ -19,7 +19,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable
+from contextlib import suppress
 from dataclasses import dataclass
+from datetime import datetime
 import logging
 import math
 from pathlib import Path
@@ -28,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
 
 from .automation_utils import (
     _collect_referenced_entity_ids,
@@ -42,7 +45,9 @@ from .const import (
     HEALTH_KIND_INTEGRATION_ERROR,
     HEALTH_KIND_SILENT,
     HEALTH_KIND_UNAVAILABLE,
+    HEALTH_OFFLINE_REMOVABLE_SECS,
 )
+from .device_removal import device_is_removable
 from .entity_filter import resolve_ignored_entity_ids
 from .health_store import get_health_store
 from .helpers import integration_error_detail
@@ -549,27 +554,118 @@ def _primary_entities(hass: HomeAssistant, entity_ids: list[str]) -> list[str]:
     return primary or entity_ids
 
 
+def signal_offline_seconds(sig: dict[str, Any], now_ts: float | None = None) -> int:
+    """How long this ``unavailable`` signal's target has been down, in seconds.
+
+    Prefers the monitor's own ``unavailable_seconds`` — it anchors to the
+    persisted ``first_seen`` so a restart doesn't reset the clock (see
+    ``health_monitor._detect_unavailable``) — and falls back to the signal's
+    ``first_seen`` age when a signal predates that evidence. Returns 0 when
+    neither is usable, so callers read "not long enough" rather than crashing on
+    a partial record.
+    """
+    evidence = sig.get("evidence") or {}
+    secs = evidence.get("unavailable_seconds")
+    if isinstance(secs, (int, float)) and secs > 0:
+        return int(secs)
+    first_seen = sig.get("first_seen")
+    if isinstance(first_seen, str):
+        with suppress(ValueError):
+            age = (now_ts or dt_util.utcnow().timestamp()) - datetime.fromisoformat(
+                first_seen
+            ).timestamp()
+            return int(max(0.0, age))
+    return 0
+
+
+def device_offline_seconds(signals: Iterable[dict[str, Any]], device_id: str) -> int:
+    """How long the *whole* device has been unreachable (0 when it isn't).
+
+    Bounded by the newest outage on the device, not the longest: the device only
+    went dark when its last still-answering entity dropped, so the most recently
+    started outage is when that happened.
+
+    The longest overstates it, and not by a little. A primary entity can sit
+    unavailable for weeks while the device works — an EV charger's charging
+    sensors with nothing plugged in, a media player's source entity — and the
+    monitor suppresses its signal for exactly that reason, until the whole device
+    goes down. It then re-raises that signal anchored to the entity's own
+    ``last_changed``, weeks back, because a reactivated episode has no prior
+    active signal to anchor to. Taking the longest would read that as a
+    weeks-long device outage the moment the device actually went down, and
+    authorize deleting it minutes into a fault.
+
+    Understating is the safe direction here: it delays an irreversible action
+    rather than permitting one early. A newly-registered entity on an
+    already-dead device does hold the number down until it too ages past the
+    threshold — accepted, and rare, since integrations don't usually add entities
+    to a device they can't reach.
+    """
+    return min(
+        (
+            signal_offline_seconds(sig)
+            for sig in signals
+            if sig.get("kind") == HEALTH_KIND_UNAVAILABLE and sig.get("device_id") == device_id
+        ),
+        default=0,
+    )
+
+
+def _format_offline_duration(secs: int) -> str:
+    """Coarse English duration for the finding detail ("9 days", "36 hours")."""
+    days = secs // 86400
+    if days >= 1:
+        return f"{days} day" if days == 1 else f"{days} days"
+    hours = max(1, secs // 3600)
+    return f"{hours} hour" if hours == 1 else f"{hours} hours"
+
+
 def _check_offline(ctx: _CheckContext) -> list[Finding]:
     """Devices whose entities are unavailable (a genuine outage)."""
     findings: list[Finding] = []
     sigs = [s for s in ctx.signals if s.get("kind") == HEALTH_KIND_UNAVAILABLE]
+    now_ts = dt_util.utcnow().timestamp()
+    ages = {s.get("target", ""): signal_offline_seconds(s, now_ts) for s in sigs}
     for g in _collapse_signals_by_device(ctx, sigs):
         area = f" ({g['area']})" if g["area"] else ""
-        findings.append(
-            {
-                "check_id": "offline_devices",
-                "severity": g["severity"] or "warning",
-                "category": "issue",
-                "title": f"{g['name']} is offline",
-                "detail": (
-                    f"{g['name']}{area} is unavailable — check its power, battery, "
-                    "or network/hub connection."
-                ),
-                "entities": _primary_entities(ctx.hass, g["entities"])[:_MAX_LISTED],
-                "action": "Check the device",
-                "device_id": g["device_id"],
-            }
+        # Same rule as the delete endpoint — the card must not claim a longer
+        # outage than the one that would authorize the deletion it offers.
+        if g["device_id"]:
+            offline_secs = device_offline_seconds(sigs, g["device_id"])
+        else:
+            # No device to be wholly down; the entity's own outage is the outage.
+            offline_secs = max((ages.get(eid, 0) for eid in g["entities"]), default=0)
+        detail = (
+            f"{g['name']}{area} is unavailable — check its power, battery, "
+            "or network/hub connection."
         )
+        # Long-gone device: say how long, and offer deletion. The duration is
+        # what justifies the delete button, so the card has to state it.
+        removable = (
+            offline_secs >= HEALTH_OFFLINE_REMOVABLE_SECS
+            and bool(g["device_id"])
+            and device_is_removable(ctx.hass, g["device_id"])
+        )
+        if offline_secs >= HEALTH_OFFLINE_REMOVABLE_SECS:
+            detail += f" It's been offline for {_format_offline_duration(offline_secs)}."
+        finding: Finding = {
+            "check_id": "offline_devices",
+            "severity": g["severity"] or "warning",
+            "category": "issue",
+            "title": f"{g['name']} is offline",
+            "detail": detail,
+            "entities": _primary_entities(ctx.hass, g["entities"])[:_MAX_LISTED],
+            "action": "Check the device",
+            "device_id": g["device_id"],
+            "offline_seconds": offline_secs,
+        }
+        if removable:
+            finding["removable"] = True
+            # The delete confirmation names the device; the title is a templated
+            # sentence, so carry the bare name rather than have the panel slice
+            # " is offline" back off it.
+            finding["device_name"] = g["name"]
+        findings.append(finding)
     return findings
 
 

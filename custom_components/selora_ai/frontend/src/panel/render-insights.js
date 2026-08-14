@@ -3,6 +3,7 @@ import { renderMarkdown } from "../shared/markdown.js";
 import { renderQuickActions } from "./quick-actions.js";
 import { renderHealthGauge } from "./health-gauge.js";
 import { renderScoreBreakdown } from "./health-score-breakdown.js";
+import { renderDeleteDeviceModal } from "./render-delete-device-modal.js";
 
 // Health tab.
 //   A deterministic health score + a checklist: every check that ran (device
@@ -115,6 +116,20 @@ function _recCard(host, rec) {
                     rec.link_label || "Open in Settings",
                   )}
                 </a>`
+              : ""
+          }
+          ${
+            // Offline past the removable threshold, and its integration can
+            // actually release the device — both decided by the backend, so the
+            // button never offers a deletion that would fail.
+            rec.removable && rec.device_id
+              ? html`<button
+                  class="btn btn-danger btn-sm"
+                  @click=${() => host._promptDeleteDevice(rec)}
+                >
+                  <ha-icon icon="mdi:trash-can-outline"></ha-icon>
+                  ${host._t("insights_delete_device", "Delete device")}
+                </button>`
               : ""
           }
           ${
@@ -359,7 +374,7 @@ export function renderInsights(host) {
         </div>
 
         ${renderHealthGauge(host)} ${renderScoreBreakdown(host)}
-        ${_auditBody(host)}
+        ${_auditBody(host)} ${renderDeleteDeviceModal(host)}
       </div>
     </div>
   `;

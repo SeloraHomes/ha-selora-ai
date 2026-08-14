@@ -346,6 +346,9 @@ class SeloraAIPanel extends LitElement {
       _auditRunning: { type: Boolean },
       _auditLoaded: { type: Boolean },
       _auditSettling: { type: Boolean },
+      // Pending long-offline device deletion (the confirmation modal's target).
+      _deleteDeviceTarget: { type: Object },
+      _deletingDevice: { type: Boolean },
 
       // Automations tab
       _suggestions: { type: Array },
@@ -673,6 +676,8 @@ class SeloraAIPanel extends LitElement {
     // True while the home is still booting — the panel shows a spinner instead
     // of a score built on devices that haven't finished reconnecting.
     this._auditSettling = false;
+    this._deleteDeviceTarget = null;
+    this._deletingDevice = false;
     this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
