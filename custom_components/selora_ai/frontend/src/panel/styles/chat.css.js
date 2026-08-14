@@ -155,6 +155,9 @@ export const chatStyles = css`
     display: flex;
     align-items: flex-start;
     gap: 8px;
+    /* The identity block carries its own icon-to-name gap; keep the card's
+       tighter 8px rather than the list row's 12px. */
+    --auto-row-lead-gap: 8px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--divider-color);
   }

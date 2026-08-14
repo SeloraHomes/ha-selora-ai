@@ -89,6 +89,18 @@ export const automationsStyles = css`
   .burger-item-toggle {
     display: none;
   }
+  /* Icon + name travel as one unit. The group is what the row centers (rows are
+     routinely taller than their text — the trailing buttons set the height), and
+     inside the group the icon pins to the top, which is the title's line box.
+     Aligning the icon against the row itself instead leaves it above the title
+     on any row whose height does not come from the text. */
+  .auto-row-lead {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--auto-row-lead-gap, 12px);
+    flex: 1;
+    min-width: 0;
+  }
   .auto-row-name {
     flex: 1;
     min-width: 0;
@@ -99,6 +111,9 @@ export const automationsStyles = css`
   .auto-row-title {
     font-size: 14px;
     font-weight: 500;
+    /* Explicit, so the leading icon slot can be sized to the same box (20px)
+       and land on the title's optical center. */
+    line-height: 20px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -108,6 +123,23 @@ export const automationsStyles = css`
     align-items: center;
     gap: 8px;
     min-width: 0;
+    /* The pills are shorter than the title's line box; pinning the row to that
+       height keeps the title (and the icon aligned to it) from shifting down
+       when a shorter-but-padded pill is the tallest thing on the line. */
+    min-height: 20px;
+  }
+  /* Leading row icon — a fixed slot as tall as the title's line box (20px), so
+     the glyph sits on the title's optical center whether or not a description
+     follows. Without the fixed height it centers on whatever the name column
+     adds up to, which is the midpoint between title and description. */
+  .auto-row-icon {
+    --mdc-icon-size: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 20px;
   }
   .needs-attention-pill {
     padding: 2px 8px;
@@ -175,6 +207,23 @@ export const automationsStyles = css`
     color: var(--selora-accent);
     flex-shrink: 0;
     opacity: 0.9;
+  }
+  /* Marks a scene that HA (or another integration) owns rather than Selora.
+     Sits inline on the title line at every width — on mobile it wraps onto its
+     own line with the other pills, so the leading icon keeps a single, stable
+     slot next to the title instead of sharing a column with a badge. Its line
+     box stays under the title's 20px so it never pushes the title down. */
+  .ha-native-pill {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--secondary-background-color);
+    color: var(--secondary-text-color);
+    padding: 0 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
   }
   /* Marks a row installed by a recipe (managed outside the panel). Neutral
      accent tint so it reads as informational, not a warning like stale/error. */
@@ -439,6 +488,7 @@ export const automationsStyles = css`
       /* Tighter gaps so the icon + toggle + action buttons leave more width
          for the name column on narrow screens. */
       gap: 8px;
+      --auto-row-lead-gap: 8px;
     }
     /* Push the pills (recipe / stale / needs-attention) onto their own wrapped
        line instead of letting them share — and steal — the title's width. The
@@ -453,7 +503,8 @@ export const automationsStyles = css`
     .recipe-pill,
     .stale-pill,
     .needs-attention-pill,
-    .disabled-pill {
+    .disabled-pill,
+    .ha-native-pill {
       flex-basis: 100%;
       max-width: max-content;
     }
