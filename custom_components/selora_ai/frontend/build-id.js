@@ -1,48 +1,47 @@
 /**
- * Build identity for the code-skew handshake — and the list of inputs it covers.
+ * Build identity for the code-skew handshake.
  *
  * The panel reports this id to `selora_ai/version_status`, which compares it
  * with `panel.build.json` on disk; a mismatch means the browser is running a
- * bundle other than the deployed one and is told to reload. So the id has to
- * cover EVERY input that can change the bundle's bytes:
+ * bundle other than the deployed one and is told to reload. The question that
+ * handshake asks is only ever about the artifact — "are these the bytes on
+ * disk?" — so the id is the hash of the built bundle itself, taken after every
+ * transform that shapes it (esbuild, `postbuild.js`, prettier).
  *
- * - the panel sources under `src/`;
- * - the scripts that transform them (`build.js`, `postbuild.js`, this file);
- * - the dependency manifests — Lit ships *inside* the bundle, so upgrading it
- *   (or esbuild) rewrites `panel.js` without touching a single source file;
- * - the values esbuild substitutes via `define` (`__SELORA_VERSION__` comes from
- *   manifest.json, so a release that only bumps the version still produces a
- *   different bundle).
+ * Hashing the *inputs* instead answers a strictly broader question, and the
+ * excess is not free. Every input that can't change the output still moves the
+ * id: `package.json`/`package-lock.json` were hashed whole, so bumping a
+ * devDependency that never reaches the bundle — prettier, vitest, eslint —
+ * rewrote `panel.build.json` and, since the id is substituted *into* the
+ * bundle, one line of the committed `panel.js` too. Renovate rebuilds on every
+ * branch, so all of them edited those same two generated lines and the first to
+ * merge conflicted the rest. Deriving from output makes a no-op upgrade a no-op
+ * diff, while a bump that genuinely rewrites the bundle (Lit ships *inside* it;
+ * esbuild and prettier decide its formatting) still moves the id — the coverage
+ * that matters is kept, the churn is not.
  *
- * manifest.json is deliberately covered through that define rather than hashed
- * whole: its other fields (requirements, iot_class…) don't reach the bundle, and
- * hashing them would churn the id — and the committed `panel.js` — for nothing.
+ * The id can't be hashed from the bundle it lives in, so `build.js` builds
+ * twice: once with `BUILD_PLACEHOLDER` standing in, whose output is hashed, then
+ * again with the real id. The id therefore identifies the bundle modulo itself.
  *
- * Derived from contents rather than a timestamp so rebuilding unchanged inputs
- * produces no diff. Paths are hashed relative to this directory so the id is
- * identical on every machine.
+ * Derived from contents rather than a timestamp so rebuilding unchanged sources
+ * produces no diff.
  */
 
 const { createHash } = require("crypto");
-const { readFileSync, readdirSync, statSync } = require("fs");
+const { readdirSync, statSync } = require("fs");
 const { join } = require("path");
 
 const FRONTEND_DIR = __dirname;
 
-// Excluded from the hash because it *is* the hash — including it would be
-// circular. Kept as a named constant so the exclusion can't drift silently.
+// Substituted for the id on the hashed pass. Its value is arbitrary — it just
+// has to be constant, so that identical sources hash identically.
+const BUILD_PLACEHOLDER = "__selora_build_placeholder__";
+
+// The define esbuild substitutes the id through.
 const SELF_KEY = "__SELORA_BUILD__";
 
 const ID_CHARS = 12;
-
-// Inputs that aren't panel sources but still decide the bundle's bytes.
-const NON_SOURCE_INPUTS = [
-  "package.json",
-  "package-lock.json",
-  "build.js",
-  "postbuild.js",
-  "build-id.js",
-];
 
 /** Yield every `*.js` path under `dir`, relative to the frontend directory. */
 function* walkJs(dir) {
@@ -55,42 +54,22 @@ function* walkJs(dir) {
   }
 }
 
-/** Every file whose contents feed the bundle. */
-function bundleInputs() {
-  return [...walkJs("src"), ...NON_SOURCE_INPUTS].sort();
-}
-
 /**
- * @param {object} args
- * @param {string[]} args.files - paths, relative to `root`, of the bundle inputs
- * @param {Record<string, string>} args.defines - esbuild `define` map
- * @param {string} [args.root] - directory the paths are relative to
+ * Hash the built bundle into a build id.
+ *
+ * @param {Buffer|string} bundle - the finished `panel.js` bytes, built with
+ *   `BUILD_PLACEHOLDER` in place of the id
  * @returns {string} hex build id
  */
-function computeBuildId({ files, defines = {}, root = FRONTEND_DIR }) {
-  const hash = createHash("sha256");
-  for (const file of [...files].sort()) {
-    hash.update(file);
-    hash.update("\0");
-    hash.update(readFileSync(join(root, file)));
-    hash.update("\0");
-  }
-  for (const key of Object.keys(defines).sort()) {
-    if (key === SELF_KEY) continue;
-    hash.update(key);
-    hash.update("\0");
-    hash.update(String(defines[key]));
-    hash.update("\0");
-  }
-  return hash.digest("hex").slice(0, ID_CHARS);
+function computeBuildId(bundle) {
+  return createHash("sha256").update(bundle).digest("hex").slice(0, ID_CHARS);
 }
 
 module.exports = {
-  bundleInputs,
   computeBuildId,
   walkJs,
   FRONTEND_DIR,
-  NON_SOURCE_INPUTS,
+  BUILD_PLACEHOLDER,
   SELF_KEY,
   ID_CHARS,
 };

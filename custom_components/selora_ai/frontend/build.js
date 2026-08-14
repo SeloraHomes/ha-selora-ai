@@ -1,7 +1,13 @@
 const { readFileSync, writeFileSync } = require("fs");
-const { bundleInputs, computeBuildId, walkJs } = require("./build-id.js");
+const {
+  computeBuildId,
+  walkJs,
+  BUILD_PLACEHOLDER,
+  SELF_KEY,
+} = require("./build-id.js");
 const { execSync } = require("child_process");
 const esbuild = require("esbuild");
+const { patchBuiltBundle } = require("./postbuild.js");
 
 // Format source files first
 execSync("npx prettier --write 'src/**/*.js' build.js postbuild.js", {
@@ -16,9 +22,10 @@ const define = { __SELORA_VERSION__: version };
 // Build identity for the code-skew handshake: the panel reports it to
 // `selora_ai/version_status`, which compares it with `panel.build.json` on
 // disk. A browser running a bundle built from other sources than the deployed
-// ones is told to reload. Derived from the source contents (not a timestamp) so
-// rebuilding unchanged sources produces no diff — the committed bundle only
-// moves when the code does. Written after the sources are formatted below.
+// ones is told to reload. Derived from the built bundle's bytes (not a
+// timestamp) so rebuilding unchanged sources produces no diff — the committed
+// bundle only moves when the artifact does. Written after the sources are
+// formatted below.
 
 // ─ Pre-build guard: backticks inside lit tagged-template literals ──
 // Lit's html`...` opens with a backtick and ANY raw backtick inside the
@@ -169,24 +176,30 @@ function preBuildGuard() {
 
 preBuildGuard();
 
-// `bundleInputs()` owns the list of files whose contents reach the bundle
-// (sources, build scripts, dependency manifests); `define` carries the values
-// substituted into it. See build-id.js for why each one matters.
-const buildId = computeBuildId({ files: bundleInputs(), defines: define });
-define.__SELORA_BUILD__ = JSON.stringify(buildId);
-
-async function build() {
+/** Bundle, patch and format `panel.js` with `buildId` baked in. */
+async function emitBundle(buildId) {
   await esbuild.build({
     entryPoints: ["src/panel.js"],
     bundle: true,
     format: "esm",
     outfile: "panel.js",
-    define,
+    define: { ...define, [SELF_KEY]: JSON.stringify(buildId) },
   });
-  require("./postbuild.js");
+  patchBuiltBundle();
 
   // Format built output
   execSync("npx prettier --write panel.js", { stdio: "inherit" });
+}
+
+async function build() {
+  // The id identifies the built bundle, which it also lives inside — so build
+  // once with a placeholder standing in for it, hash *that* artifact, then
+  // build again for real. See build-id.js for why the id tracks the output
+  // rather than the inputs. The extra pass costs about half a second.
+  await emitBundle(BUILD_PLACEHOLDER);
+  const buildId = computeBuildId(readFileSync("panel.js"));
+
+  await emitBundle(buildId);
 
   // Sidecar the backend reads to answer "is this browser's bundle current?".
   // Ships with the component, so a deploy always carries it alongside panel.js.
