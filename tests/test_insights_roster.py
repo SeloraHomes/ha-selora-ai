@@ -290,11 +290,53 @@ async def test_roster_apps_resolve_installing_store(hass: HomeAssistant) -> None
     assert community["repository_url"] == "https://hacs.xyz"
     assert community["repository_maintainer"] == "HACS <hi@hacs.xyz>"
 
-    # The built-in stores have no URL: "core"/"local" are literals, not links.
+    # Built-in stores are exported without a URL so a consumer renders them by
+    # name. Note these rows carry url: "" — see the test below for the case
+    # where the Supervisor does populate one.
     assert by_slug["core_mosquitto"]["repository_name"] == "Official add-ons"
     assert by_slug["core_mosquitto"]["repository_url"] == ""
     assert by_slug["local_thing"]["repository_url"] == ""
     assert by_slug["local_thing"]["repository_maintainer"] == ""
+
+
+@pytest.mark.asyncio
+async def test_roster_builtin_store_url_is_dropped(hass: HomeAssistant) -> None:
+    """A built-in store is identified by slug, not by lacking a URL.
+
+    The Supervisor does populate ``url`` on the core row, so selecting it
+    before checking the slug published a link the export contract promises is
+    absent (``repository_url`` is "" for core/local — render by name only).
+    Guarding only the ``source`` fallback missed this, because ``source`` is
+    the literal "core"/"local" and never looked like a URL.
+    """
+    apps = [
+        {"slug": "core_mosquitto", "name": "Mosquitto broker", "repository": "core"},
+        {"slug": "local_thing", "name": "Thing", "repository": "local"},
+    ]
+    repositories = {
+        "core": {
+            "slug": "core",
+            "name": "Official add-ons",
+            "source": "core",
+            "url": "https://github.com/home-assistant/addons",
+            "maintainer": "Home Assistant",
+        },
+        "local": {
+            "slug": "local",
+            "name": "Local add-ons",
+            "source": "local",
+            "url": "https://example.invalid/local",
+        },
+    }
+
+    by_slug = {
+        a["slug"]: a
+        for a in build_home_roster(hass, apps=apps, app_repositories=repositories)["apps"]
+    }
+    assert by_slug["core_mosquitto"]["repository_url"] == ""
+    assert by_slug["local_thing"]["repository_url"] == ""
+    # The name still resolves — only the link is withheld.
+    assert by_slug["core_mosquitto"]["repository_name"] == "Official add-ons"
 
 
 @pytest.mark.asyncio
