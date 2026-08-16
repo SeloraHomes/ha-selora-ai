@@ -3782,6 +3782,160 @@ def _find_pending_approval(
     return None
 
 
+def _fingerprint_changed(descriptor: dict[str, Any], created_at: Any) -> bool:
+    """True when the object at this id is not the one the card described.
+
+    Area and label ids are derived from the name, so they are stable for an
+    object's life and reusable the moment it ends. Deleting "Study" and creating
+    a new "Study" with the card still open produces the same id, and the confirm
+    would then act on an area the user never saw. The creation timestamp is what
+    separates the two instances.
+
+    An absent fingerprint means the card predates this check; those are allowed
+    through rather than failing every card in flight across an upgrade.
+    """
+    expected = str(descriptor.get("fingerprint") or "")
+    if not expected or created_at is None:
+        return False
+    return expected != created_at.isoformat()
+
+
+def _stale_entity(hass: HomeAssistant, entity_id: str, fingerprint: str) -> str | None:
+    """Why this entity_id no longer identifies the entity the card described.
+
+    An entity_id is mutable — renaming one is itself an action on this card —
+    so it cannot carry identity across the card's life. ``RegistryEntry.id`` is
+    the registry's own immutable handle; if the entity_id now resolves to a
+    different one, the entity the user approved is not the entity we would act
+    on, and refusing is the only safe answer.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    entry = er.async_get(hass).async_get(entity_id)
+    if entry is None:
+        return f"'{entity_id}' no longer exists"
+    if fingerprint and entry.id != fingerprint:
+        return f"'{entity_id}' now refers to a different entity; not applied"
+    return None
+
+
+async def _apply_destructive_actions(
+    hass: HomeAssistant, actions: list[dict[str, Any]]
+) -> tuple[list[str], list[str]]:
+    """Apply confirmed destructive actions. Returns (applied labels, errors).
+
+    Shared by the destructive resolver and the delete resolver, because one card
+    can carry both kinds and each must be applied exactly once by exactly one
+    implementation.
+    """
+    from .mcp_server import _tool_set_script, _tool_update_device, _tool_update_entity
+
+    applied: list[str] = []
+    errors: list[str] = []
+    for action in actions:
+        kind = str(action.get("kind", ""))
+        label = str(action.get("label") or action.get("target_id") or "")
+        target_id = str(action.get("target_id", "")).strip()
+        payload = action.get("payload")
+        if not isinstance(payload, dict) or not target_id:
+            errors.append(f"{label}: missing arguments; not applied")
+            continue
+        # Rebind to the identity captured when the card was rendered. The model
+        # may have named the target by something mutable — a device's display
+        # name, a script's alias — and replaying that verbatim would act on
+        # whatever answers to the name NOW. Renaming a device and giving its old
+        # name to another one, with the card still open, would otherwise disable
+        # the wrong device.
+        payload = dict(payload)
+        try:
+            if kind == "entity":
+                if error := _stale_entity(hass, target_id, str(action.get("fingerprint") or "")):
+                    errors.append(f"{label}: {error}")
+                    continue
+                payload["entity_id"] = target_id
+                res = await _tool_update_entity(hass, payload)
+            elif kind == "device":
+                payload["device"] = target_id
+                res = await _tool_update_device(hass, payload)
+            elif kind == "script":
+                # Same reusable-slug hazard as the script DELETE path, plus the
+                # in-place edit case: the card described one version of the
+                # script, and replacing wholesale discards whatever is there
+                # now. Verified inside the manager's lock, not here.
+                payload["object_id"] = target_id
+                payload["expected_fingerprint"] = str(action.get("fingerprint") or "")
+                res = await _tool_set_script(hass, payload)
+            else:
+                errors.append(f"{label or kind}: unknown action kind")
+                continue
+        except Exception as exc:  # noqa: BLE001 — surface to user
+            _LOGGER.warning("Destructive action on %s failed: %s", label or kind, exc)
+            errors.append(f"{label}: {exc}")
+            continue
+        if isinstance(res, dict) and res.get("error"):
+            errors.append(f"{label}: {res['error']}")
+        else:
+            applied.append(label)
+    return applied, errors
+
+
+async def _resolve_destructive_approval(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    store: ConversationStore,
+    session_id: str,
+    message_index: int,
+    approval: dict[str, Any],
+    scope: str,
+    *,
+    language: str | None = None,
+) -> None:
+    """Resolve a destructive non-delete card (approval_kind == "destructive").
+
+    ``scope == "delete"`` (the shared confirm sentinel) replays each held
+    action's original tool arguments against the manager function that would
+    have run directly. Replaying the arguments rather than a reconstructed diff
+    keeps the confirmed write on the same validated path as the direct one —
+    the alternative is a second implementation that drifts.
+
+    Anything else dismisses the card without touching a thing.
+    """
+    actions: list[dict[str, Any]] = approval.get("actions", []) or []
+
+    if scope != "delete":
+        await store.set_approval_status(session_id, message_index, "denied")
+        cancel_text = _approval_phrase(_DELETE_CANCELLED_BY_LANG, language)
+        persisted = await store.append_message(
+            session_id, "assistant", cancel_text, intent="answer"
+        )
+        connection.send_result(
+            msg["id"],
+            {"status": "denied", "executed": [], "result_message": persisted},
+        )
+        return
+
+    applied, errors = await _apply_destructive_actions(hass, actions)
+
+    if not applied:
+        # Keep the card pending so a transient failure can be retried, exactly
+        # as the delete path does — marking it approved renders a terminal
+        # state the user cannot act on.
+        detail = "; ".join(errors) or _approval_phrase(_DELETE_NONE_BY_LANG, language)
+        connection.send_error(msg["id"], "action_failed", detail)
+        return
+
+    await store.set_approval_status(session_id, message_index, "approved")
+    result_text = "; ".join(applied)
+    if errors:
+        result_text = f"{result_text} ({'; '.join(errors)})"
+    persisted = await store.append_message(session_id, "assistant", result_text, intent="answer")
+    connection.send_result(
+        msg["id"],
+        {"status": "approved", "executed": applied, "result_message": persisted},
+    )
+
+
 async def _resolve_delete_approval(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -3871,6 +4025,62 @@ async def _resolve_delete_approval(
                     errors.append(f"{label}: missing group id; not deleted")
                     continue
                 res = await _tool_delete_group(hass, {"entry_id": target_id})
+            elif kind == "area":
+                # An area_id is derived from the NAME, so it is stable for the
+                # area's life but freely REUSABLE after it: delete "Study" and
+                # create a new "Study" while the card sits open and the id
+                # resolves to the new one. Unlike the group path — whose
+                # target_id is a config entry_id nothing else can ever hold —
+                # this needs the creation timestamp re-checked.
+                if not target_id:
+                    errors.append(f"{label}: missing area id; not deleted")
+                    continue
+                from homeassistant.helpers import area_registry as ar  # noqa: PLC0415
+
+                from .registry_manager import async_delete_area  # noqa: PLC0415
+
+                current = ar.async_get(hass).async_get_area(target_id)
+                if current is None:
+                    errors.append(f"{label}: no longer exists; not deleted")
+                    continue
+                if _fingerprint_changed(descriptor, current.created_at):
+                    errors.append(f"{label}: now a different area; not deleted")
+                    continue
+                res = await async_delete_area(hass, target_id)
+            elif kind == "script":
+                # An object_id is a slug and equally reusable, so the alias the
+                # user saw on the card is re-checked before the file is written.
+                if not target_id:
+                    errors.append(f"{label}: missing script id; not deleted")
+                    continue
+                from .script_manager import async_delete_script  # noqa: PLC0415
+
+                # The identity check happens INSIDE the manager, under
+                # SCRIPTS_YAML_LOCK and against the mapping it is about to
+                # write. Checking here would reopen the window: an edit landing
+                # between the check and the write would be deleted anyway.
+                res = await async_delete_script(
+                    hass,
+                    target_id,
+                    expected_fingerprint=str(descriptor.get("fingerprint") or ""),
+                )
+            elif kind == "label":
+                # label_id is name-derived and reusable, same as an area_id.
+                if not target_id:
+                    errors.append(f"{label}: missing label id; not deleted")
+                    continue
+                from homeassistant.helpers import label_registry as lr  # noqa: PLC0415
+
+                from .label_manager import async_delete_label  # noqa: PLC0415
+
+                current_label = lr.async_get(hass).async_get_label(target_id)
+                if current_label is None:
+                    errors.append(f"{label}: no longer exists; not deleted")
+                    continue
+                if _fingerprint_changed(descriptor, current_label.created_at):
+                    errors.append(f"{label}: now a different label; not deleted")
+                    continue
+                res = async_delete_label(hass, target_id)
             else:
                 errors.append(f"{label or kind}: unknown delete kind")
                 continue
@@ -3882,6 +4092,14 @@ async def _resolve_delete_approval(
             errors.append(f"{label}: {res['error']}")
         else:
             deleted_labels.append(label)
+
+    # A single card can carry both kinds. The destructive actions run after the
+    # deletes and their outcomes join the same tallies, so a mixed card reports
+    # one result and cannot silently drop half of what was approved.
+    if actions := approval.get("actions") or []:
+        applied, action_errors = await _apply_destructive_actions(hass, actions)
+        deleted_labels.extend(applied)
+        errors.extend(action_errors)
 
     if not deleted_labels:
         # Nothing was removed. Do NOT mark the card approved — the frontend
@@ -3961,14 +4179,34 @@ async def _resolve_approval(
     # ``cancel``/``delete`` sent for a service-call card would fall through to
     # the allow path below and execute the call, and an allow scope sent for a
     # delete card would hit the delete resolver.
-    is_delete_card = approval.get("approval_kind") == "delete"
-    if is_delete_card and scope not in ("delete", "cancel", "deny"):
-        connection.send_error(
-            msg["id"], "invalid_scope", "Scope not valid for a delete confirmation"
-        )
+    # Destructive non-delete cards (disable, entity_id rename, script replace)
+    # reuse the delete/cancel scope vocabulary, so they share this gate — the
+    # confirm path differs only in what it replays.
+    approval_kind = approval.get("approval_kind")
+    is_delete_card = approval_kind == "delete"
+    is_destructive_card = approval_kind == "destructive"
+    if (is_delete_card or is_destructive_card) and scope not in ("delete", "cancel", "deny"):
+        connection.send_error(msg["id"], "invalid_scope", "Scope not valid for a confirmation card")
         return
-    if not is_delete_card and scope in ("delete", "cancel"):
+    if not (is_delete_card or is_destructive_card) and scope in ("delete", "cancel"):
         connection.send_error(msg["id"], "invalid_scope", "Scope not valid for this approval")
+        return
+
+    # A "destructive" card is one with no deletes at all; a mixed card keeps
+    # kind "delete" and is applied by the delete resolver, which runs its
+    # ``actions`` list afterwards.
+    if is_destructive_card:
+        await _resolve_destructive_approval(
+            hass,
+            connection,
+            msg,
+            store,
+            session_id,
+            message_index,
+            approval,
+            scope,
+            language=effective_language,
+        )
         return
 
     # Delete-confirmation cards (approval_kind == "delete") don't run

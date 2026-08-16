@@ -952,7 +952,11 @@
     "insights_offline_hours_one": "{count} 小時",
     "insights_offline_hours_few": "{count} 小時",
     "insights_offline_hours_many": "{count} 小時",
-    "insights_offline_hours_other": "{count} 小時"
+    "insights_offline_hours_other": "{count} 小時",
+    "approval_status_applied": "已套用",
+    "destructive_approval_title": "套用此變更？",
+    "destructive_approval_title_plural": "套用這些變更？",
+    "destructive_approval_warning": "此操作無法從聊天中復原。"
   },
   "options": {
     "step": {

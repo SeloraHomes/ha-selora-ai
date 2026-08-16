@@ -2408,12 +2408,27 @@ def _normalize_explicit_approval(
     return normalized
 
 
-_DELETE_TOOLS = frozenset({"delete_automation", "delete_scene", "delete_group"})
+_DELETE_TOOLS = frozenset(
+    {
+        "delete_automation",
+        "delete_scene",
+        "delete_group",
+        "delete_area",
+        "delete_script",
+        "delete_label",
+    }
+)
 
 # Delete kinds the confirm handler knows how to execute. A descriptor with any
 # other kind is dropped rather than rendered, so a card can never offer a
 # Delete button that resolves to nothing.
-_DELETE_KINDS = frozenset({"automation", "scene", "group"})
+#
+# Both sets are allowlists, so a new delete tool must be added to BOTH or it
+# fails silently in the worst possible shape: the tool returns
+# ``requires_approval``, the tool loop short-circuits on it and discards the
+# model's prose, and the synthesizer then drops the descriptor — leaving the
+# user an empty reply and no card.
+_DELETE_KINDS = frozenset({"automation", "scene", "group", "area", "script", "label"})
 
 
 def _pending_deletes_from_log(
@@ -2468,9 +2483,105 @@ def _pending_deletes_from_log(
                 "alias": str(descriptor.get("alias") or ""),
                 "name": str(descriptor.get("name") or ""),
                 "label": str(descriptor.get("label") or entity_id or target_id),
+                # Instance identity for targets whose id is derived from their
+                # name and is therefore reusable — areas, labels, scripts. MUST
+                # survive here: without it the confirm path re-resolves the id
+                # and deletes whatever holds it now.
+                "fingerprint": str(descriptor.get("fingerprint") or ""),
             }
         )
     return deletes
+
+
+# Tools that can hold a NON-delete destructive action for confirmation. Same
+# allowlist discipline as ``_DELETE_TOOLS``: a tool missing here returns
+# ``requires_approval``, the loop short-circuits and discards the model's prose,
+# and the synthesizer then drops the descriptor — empty reply, no card.
+_DESTRUCTIVE_TOOLS = frozenset({"update_entity", "update_device", "set_script"})
+
+# Verbs the confirm handler knows how to replay.
+_DESTRUCTIVE_VERBS = frozenset({"disable", "rename_id", "replace"})
+
+
+def _pending_destructive_from_log(
+    tool_log: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Collect pending destructive (non-delete) actions from the tool log.
+
+    The descriptor carries ``payload`` — the tool's full original arguments —
+    which ``_resolve_approval`` replays verbatim on confirm. Replaying the call
+    rather than a reconstructed diff means the confirmed write runs the exact
+    validated path the direct write would have, so there is no second
+    implementation to drift out of step.
+    """
+    actions: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for entry in tool_log or []:
+        if entry.get("tool") not in _DESTRUCTIVE_TOOLS:
+            continue
+        result = entry.get("result")
+        if not isinstance(result, dict) or not result.get("requires_approval"):
+            continue
+        descriptor = result.get("destructive")
+        if not isinstance(descriptor, dict):
+            continue
+        kind = str(descriptor.get("kind", "")).strip()
+        verb = str(descriptor.get("verb", "")).strip()
+        target_id = str(descriptor.get("target_id", "")).strip()
+        # The arguments to replay come from the LOG ENTRY, not the descriptor.
+        # They are the same dict, but this copy never travels back to the model
+        # — so a large script replacement does not re-enter the context, where
+        # nothing can bound it.
+        payload = entry.get("arguments")
+        if verb not in _DESTRUCTIVE_VERBS or not target_id or not isinstance(payload, dict):
+            continue
+        signature = (kind, verb, target_id)
+        if signature in seen:
+            continue
+        seen.add(signature)
+        actions.append(
+            {
+                "kind": kind,
+                "verb": verb,
+                "target_id": target_id,
+                "entity_id": str(descriptor.get("entity_id") or ""),
+                "name": str(descriptor.get("name") or ""),
+                "label": str(descriptor.get("label") or target_id),
+                "payload": payload,
+                # Identity handles the confirm path binds to. MUST survive here
+                # — without them the replay falls back to the mutable name the
+                # model originally passed, and a rename between card and tap
+                # redirects the action to whatever answers to that name now.
+                "fingerprint": str(descriptor.get("fingerprint") or ""),
+            }
+        )
+    return actions
+
+
+def _destructive_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
+    """Two-button row for a non-delete destructive confirmation.
+
+    Reuses the ``delete`` / ``cancel`` sentinel scopes so the routing in the
+    chat handler and ``_resolve_approval`` stays one path; only the button
+    wording differs, because "Delete" would misdescribe a disable or a rename.
+    """
+    return [
+        {
+            "label": "Apply",
+            "description": "Make this change",
+            "value": f"approve:delete:{proposal_id}",
+            "mode": "choice",
+            "icon": "mdi:check",
+            "tone": "deny",
+        },
+        {
+            "label": "Cancel",
+            "description": "Leave it as it is",
+            "value": f"approve:cancel:{proposal_id}",
+            "mode": "choice",
+            "icon": "mdi:close",
+        },
+    ]
 
 
 def _delete_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
@@ -2507,6 +2618,7 @@ def _build_delete_approval_response(
     hass: HomeAssistant | None,
     *,
     language: str | None,
+    actions: list[dict[str, Any]] | None = None,
 ) -> ArchitectResponse:
     """Upgrade *result* to a delete-confirmation ``command_approval`` card.
 
@@ -2516,19 +2628,30 @@ def _build_delete_approval_response(
     and ``_resolve_approval`` to the delete-specific branch instead of the
     service-call path (which would try to run a nonexistent delete service).
     """
+    actions = actions or []
     proposal: dict[str, Any] = {
         "proposal_id": str(uuid.uuid4()),
-        "approval_kind": "delete",
+        # Stays "delete" whenever a delete is present so the existing routing,
+        # scope vocabulary, and resolver keep applying; the resolver applies the
+        # ``actions`` list after the deletes.
+        "approval_kind": "delete" if deletes else "destructive",
         # No service calls — kept empty so downstream code that reads
         # ``command_approval["calls"]`` stays safe.
         "calls": [],
         "deletes": deletes,
+        "actions": actions,
     }
     upgraded: ArchitectResponse = dict(result)
     upgraded["intent"] = "command_approval"
     upgraded["calls"] = []
     upgraded["command_approval"] = proposal
-    upgraded["quick_actions"] = _delete_approval_quick_actions(proposal["proposal_id"])
+    # Neutral wording once the card is not purely deletions — "Delete" would
+    # misdescribe the disable sitting next to it.
+    upgraded["quick_actions"] = (
+        _delete_approval_quick_actions(proposal["proposal_id"])
+        if deletes and not actions
+        else _destructive_approval_quick_actions(proposal["proposal_id"])
+    )
     effective_language = language or (hass.config.language if hass is not None else None)
     hint = delete_pending_hint(effective_language)
     # A single tool round can mix a safe write that ALREADY executed (e.g.
@@ -2581,9 +2704,21 @@ def synthesize_approval_from_tool_log(
     # user can't re-request.
     pending = _pending_approval_calls_from_log(tool_log)
     pending_deletes = _pending_deletes_from_log(tool_log)
-    if pending_deletes and not pending:
+    pending_destructive = _pending_destructive_from_log(tool_log)
+    # A round can hold BOTH — "delete the old scene and disable that sensor".
+    # They go on ONE card carrying both lists, because nothing carries a held
+    # action forward: synthesis only ever sees the current turn's tool_log, and
+    # confirming a delete-only card runs only its deletes. Dropping the other
+    # action here would discard a request the user asked for and was never told
+    # about.
+    if (pending_deletes or pending_destructive) and not pending:
         return _build_delete_approval_response(
-            result, pending_deletes, tool_log, hass, language=language
+            result,
+            pending_deletes,
+            tool_log,
+            hass,
+            language=language,
+            actions=pending_destructive,
         )
     if not pending:
         return result
@@ -2620,6 +2755,25 @@ def synthesize_approval_from_tool_log(
         upgraded["response"] = f"{confirmation}\n\n{hint}"
     else:
         upgraded["response"] = hint
+
+    # A round can hold a REVIEW service call AND a delete/destructive action —
+    # "unlock the door and disable sensor.temperature". They cannot share a
+    # card: this one asks once/session/always about a service, the other asks
+    # yes/no about an irreversible change, and merging those vocabularies would
+    # attach "always allow" to a deletion.
+    #
+    # So the service card wins and the held actions are named as NOT done.
+    # Nothing carries them forward — synthesis only ever sees this turn's
+    # tool_log — so saying so is the difference between the user re-asking and
+    # the request quietly evaporating.
+    if held := [*pending_deletes, *pending_destructive]:
+        labels = ", ".join(
+            str(item.get("label") or item.get("name") or "").strip() for item in held
+        )
+        upgraded["response"] = (
+            f"{upgraded['response']}\n\n"
+            f"I have not touched {labels} — ask again once this is resolved."
+        )
     return upgraded
 
 

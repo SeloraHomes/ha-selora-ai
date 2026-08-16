@@ -815,6 +815,481 @@ TOOL_DELETE_GROUP = ToolDef(
 )
 
 
+# ── Registry management (areas, floors, entities, devices) ──────────────────
+#
+# Every tool below is ``large_context_only``. Two reasons, and the second is
+# the load-bearing one: the low-context path in ``architect_chat`` sets
+# ``tool_executor = None`` outright, so Selora AI Local never receives a tool
+# schema at all — but ``_get_tools_for_provider`` is also reachable from the
+# Assist conversation path, and a 1.7B model handed a registry-editing schema
+# will call it. Config surgery is not something the on-device model should be
+# offered; it has no way to confirm and no way to undo.
+
+TOOL_LIST_AREAS = ToolDef(
+    name="list_areas",
+    description=(
+        "List every area and floor in the home with how many entities and devices "
+        "each holds. Use this before assigning something to an area, to check the "
+        "area exists and to get its exact name."
+    ),
+    params=(
+        ToolParam(
+            name="include_entities",
+            type="boolean",
+            description="Include each area's entity_ids (capped per area). Off by default — counts only.",
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_ASSIGN_AREA = ToolDef(
+    name="assign_area",
+    description=(
+        "Put one or more entities and/or devices into an area. This is how you answer "
+        "'assign the living room lights to the Living Room' or 'move the hallway sensor "
+        "upstairs'. Resolve entity_ids with search_entities first. Prefer assigning the "
+        "DEVICE when the user names a physical thing — its entities follow it."
+    ),
+    params=(
+        ToolParam(
+            name="area",
+            type="string",
+            description="Target area name or area_id. Must already exist — create it with create_area.",
+            required=True,
+        ),
+        ToolParam(
+            name="entity_ids",
+            type="array",
+            items_type="string",
+            description="Entity ids to place in the area.",
+        ),
+        ToolParam(
+            name="device_ids",
+            type="array",
+            items_type="string",
+            description="Device ids to place in the area. Their entities move too.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_CREATE_AREA = ToolDef(
+    name="create_area",
+    description=(
+        "Create a new area (room). If an area with that name already exists this "
+        "reports it instead of creating a duplicate. Naming a floor that does not "
+        "exist creates the floor too."
+    ),
+    params=(
+        ToolParam(
+            name="name",
+            type="string",
+            description="Area name as the user would say it, e.g. 'Living Room'.",
+            required=True,
+        ),
+        ToolParam(
+            name="floor",
+            type="string",
+            description="Floor name or floor_id, e.g. 'Upstairs'. Created if new.",
+        ),
+        ToolParam(name="icon", type="string", description="Optional mdi icon, e.g. 'mdi:sofa'."),
+        ToolParam(
+            name="aliases",
+            type="array",
+            items_type="string",
+            description="Alternative names Assist should also recognise for this area.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_UPDATE_AREA = ToolDef(
+    name="update_area",
+    description=(
+        "Rename an area, move it to a floor, or change its icon or aliases. "
+        "Does not move entities — use assign_area for that."
+    ),
+    params=(
+        ToolParam(
+            name="area",
+            type="string",
+            description="The area to change, by name or area_id.",
+            required=True,
+        ),
+        ToolParam(name="new_name", type="string", description="New name for the area."),
+        ToolParam(
+            name="floor", type="string", description="Floor name or floor_id. Created if new."
+        ),
+        ToolParam(name="icon", type="string", description="Optional mdi icon."),
+        ToolParam(
+            name="aliases",
+            type="array",
+            items_type="string",
+            description=(
+                "Replacement alias list for the area. Send an empty array to "
+                "remove all aliases; omit the argument to leave them unchanged."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_DELETE_AREA = ToolDef(
+    name="delete_area",
+    description=(
+        "Delete an area. Entities and devices in it are NOT deleted — they become "
+        "unassigned — but automations targeting the area silently stop matching. "
+        "The user gets a confirmation card showing what is affected."
+    ),
+    params=(
+        ToolParam(
+            name="area",
+            type="string",
+            description="The area to delete, by name or area_id.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_UPDATE_ENTITY = ToolDef(
+    name="update_entity",
+    description=(
+        "Change one entity's registry settings: friendly name, Assist aliases, icon, "
+        "whether it is hidden or disabled, and whether Assist can see it. Use new_name "
+        "to rename what the user sees — that is what 'rename this to X' means. "
+        "new_entity_id changes the underlying id and is refused when automations, "
+        "scripts, scenes, or groups reference it."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="The entity to change.",
+            required=True,
+        ),
+        ToolParam(name="new_name", type="string", description="New friendly (display) name."),
+        ToolParam(
+            name="aliases",
+            type="array",
+            items_type="string",
+            description=(
+                "Replacement alias list — alternative names Assist should recognise. "
+                "Send an empty array to remove all aliases; omit it to leave them unchanged."
+            ),
+        ),
+        ToolParam(name="icon", type="string", description="Optional mdi icon."),
+        ToolParam(
+            name="hidden",
+            type="boolean",
+            description="Hide the entity from dashboards and Assist without disabling it.",
+        ),
+        ToolParam(
+            name="disabled",
+            type="boolean",
+            description="Disable the entity — it stops updating and leaves the state machine.",
+        ),
+        ToolParam(
+            name="expose_to_assist",
+            type="boolean",
+            description="Whether Home Assistant's Assist voice agent can control this entity.",
+        ),
+        ToolParam(
+            name="new_entity_id",
+            type="string",
+            description="Rename the entity_id itself. Same domain only; refused if anything references it.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_UPDATE_DEVICE = ToolDef(
+    name="update_device",
+    description=(
+        "Rename a device, move it to an area, or disable it. Renaming a device does "
+        "not rename its entities. Moving a device carries its entities with it, except "
+        "any that were individually assigned elsewhere."
+    ),
+    params=(
+        ToolParam(
+            name="device",
+            type="string",
+            description="Device id, or the device's current name.",
+            required=True,
+        ),
+        ToolParam(name="new_name", type="string", description="New name for the device."),
+        ToolParam(name="area", type="string", description="Area name or area_id to move it to."),
+        ToolParam(
+            name="disabled",
+            type="boolean",
+            description="Disable the device and all its entities.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_LIST_SERVICES = ToolDef(
+    name="list_services",
+    description=(
+        "List the services Home Assistant can call, and the fields each accepts. "
+        "Pass a domain (e.g. 'light', 'vacuum', 'media_player') to get that domain's "
+        "services with their fields — without one you get domain names only. Use this "
+        "when you are unsure a service exists or what arguments it takes."
+    ),
+    params=(
+        ToolParam(
+            name="domain",
+            type="string",
+            description="Service domain to expand, e.g. 'climate'. Omit for the domain list.",
+        ),
+    ),
+    large_context_only=True,
+)
+
+
+# ── Scripts, labels, helpers, diagnostics ───────────────────────────────────
+
+TOOL_LIST_SCRIPTS = ToolDef(
+    name="list_scripts",
+    description=(
+        "List the home's scripts — named, reusable action sequences with no trigger. "
+        "Use this before writing an automation that repeats steps another script "
+        "already performs, or when the user asks what scripts they have."
+    ),
+    large_context_only=True,
+)
+
+TOOL_GET_SCRIPT = ToolDef(
+    name="get_script",
+    description=(
+        "Return one script's full configuration, including its action sequence. "
+        "Call this before set_script when editing — set_script REPLACES the whole "
+        "script, so you need the current sequence to preserve the parts being kept. "
+        "The sequence is returned whole or not at all: if 'editable' is false the "
+        "script is too large to return, and you must NOT replace it — say so and "
+        "point the user at Settings → Automations & scenes → Scripts."
+    ),
+    params=(
+        ToolParam(
+            name="script",
+            type="string",
+            description="Script entity_id, object_id, or its exact name.",
+            required=True,
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_SET_SCRIPT = ToolDef(
+    name="set_script",
+    description=(
+        "Create a script, or replace an existing one entirely. A script is the right "
+        "answer when several automations need the same steps, or the user wants a "
+        "button they can press ('Movie Night', 'Leaving the House'). The sequence uses "
+        "the same action syntax as an automation's actions. This REPLACES the script's "
+        "sequence — call get_script first when editing. Settings this tool has no "
+        "parameter for (fields, variables, max, trace) are carried over unchanged."
+    ),
+    params=(
+        ToolParam(
+            name="alias",
+            type="string",
+            description="The script's display name, e.g. 'Movie Night'.",
+            required=True,
+        ),
+        ToolParam(
+            name="sequence",
+            type="array",
+            items_type="object",
+            description="Ordered list of action steps, same syntax as automation actions.",
+            required=True,
+        ),
+        ToolParam(
+            name="object_id",
+            type="string",
+            description="Existing script's object_id when editing. Omit to create; derived from alias.",
+        ),
+        ToolParam(name="description", type="string", description="What the script does."),
+        ToolParam(
+            name="mode",
+            type="string",
+            description="Run mode when re-triggered while already running.",
+            enum=("single", "restart", "queued", "parallel"),
+        ),
+        ToolParam(name="icon", type="string", description="Optional mdi icon."),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_DELETE_SCRIPT = ToolDef(
+    name="delete_script",
+    description=(
+        "Delete a script. Automations and other scripts that call it will break, so "
+        "the user gets a confirmation card naming what depends on it."
+    ),
+    params=(
+        ToolParam(
+            name="script",
+            type="string",
+            description="Script entity_id, object_id, or exact name.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_LIST_LABELS = ToolDef(
+    name="list_labels",
+    description=(
+        "List the home's labels with how many entities, devices, and areas carry each. "
+        "A label is a cross-cutting tag ('holiday', 'kids', 'battery-powered') that "
+        "automations can target directly — the way to group things that span rooms "
+        "and domains, where an area or a group helper cannot."
+    ),
+    large_context_only=True,
+)
+
+TOOL_CREATE_LABEL = ToolDef(
+    name="create_label",
+    description=(
+        "Create a label. Reports the existing one if the name is taken rather than "
+        "making a duplicate. You do not need to call this before assign_labels — that "
+        "creates unknown labels itself."
+    ),
+    params=(
+        ToolParam(name="name", type="string", description="Label name.", required=True),
+        ToolParam(name="icon", type="string", description="Optional mdi icon."),
+        ToolParam(name="color", type="string", description="Optional HA colour name, e.g. 'blue'."),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_ASSIGN_LABELS = ToolDef(
+    name="assign_labels",
+    description=(
+        "Add and/or remove labels on entities, devices, and areas. Labels not yet in "
+        "use are created. This applies deltas — labels already on the target that you "
+        "do not name are left alone."
+    ),
+    params=(
+        ToolParam(
+            name="add_labels",
+            type="array",
+            items_type="string",
+            description="Label names to add. Created if they do not exist.",
+        ),
+        ToolParam(
+            name="remove_labels",
+            type="array",
+            items_type="string",
+            description="Label names to remove.",
+        ),
+        ToolParam(
+            name="entity_ids", type="array", items_type="string", description="Entities to label."
+        ),
+        ToolParam(
+            name="device_ids", type="array", items_type="string", description="Devices to label."
+        ),
+        ToolParam(
+            name="areas",
+            type="array",
+            items_type="string",
+            description="Area names or area_ids to label.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_DELETE_LABEL = ToolDef(
+    name="delete_label",
+    description=(
+        "Delete a label. It is stripped from everything carrying it, and automations "
+        "targeting it stop matching. The user gets a confirmation card."
+    ),
+    params=(
+        ToolParam(
+            name="label",
+            type="string",
+            description="Label name or label_id.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_LIST_HELPERS = ToolDef(
+    name="list_helpers",
+    description=(
+        "List the home's helper entities — input_boolean, input_number, timer, "
+        "counter, schedule, and the config-entry helpers. Use this to find an existing "
+        "toggle or counter to wire an automation to. Creating a helper is not possible "
+        "from chat; direct the user to Settings → Devices & services → Helpers."
+    ),
+    params=(
+        ToolParam(
+            name="domain",
+            type="string",
+            description="Restrict to one helper domain, e.g. 'input_boolean'.",
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_GET_LOGS = ToolDef(
+    name="get_logs",
+    description=(
+        "Return recent errors and warnings from Home Assistant's system log, "
+        "deduplicated with a repeat count. Use this when the user reports something "
+        "broken, an integration is misbehaving, or a device went unavailable."
+    ),
+    params=(
+        ToolParam(
+            name="level",
+            type="string",
+            description="Only entries at this level.",
+            enum=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"),
+        ),
+        ToolParam(
+            name="contains",
+            type="string",
+            description="Only entries whose message or logger name contains this text.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_GET_AUTOMATION_TRACES = ToolDef(
+    name="get_automation_traces",
+    description=(
+        "Return the most recent runs of one automation: when it triggered, whether a "
+        "condition stopped it, and where it ended. This is how to answer 'why didn't "
+        "my automation run?' — do not guess from the YAML when a trace exists."
+    ),
+    params=(
+        ToolParam(
+            name="automation",
+            type="string",
+            description="Automation entity_id or its exact name.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+
 # Single registry of all chat tools
 CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_HOME_SNAPSHOT,
@@ -844,6 +1319,25 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_CREATE_GROUP,
     TOOL_UPDATE_GROUP,
     TOOL_DELETE_GROUP,
+    TOOL_LIST_AREAS,
+    TOOL_ASSIGN_AREA,
+    TOOL_CREATE_AREA,
+    TOOL_UPDATE_AREA,
+    TOOL_DELETE_AREA,
+    TOOL_UPDATE_ENTITY,
+    TOOL_UPDATE_DEVICE,
+    TOOL_LIST_SERVICES,
+    TOOL_LIST_SCRIPTS,
+    TOOL_GET_SCRIPT,
+    TOOL_SET_SCRIPT,
+    TOOL_DELETE_SCRIPT,
+    TOOL_LIST_LABELS,
+    TOOL_CREATE_LABEL,
+    TOOL_ASSIGN_LABELS,
+    TOOL_DELETE_LABEL,
+    TOOL_LIST_HELPERS,
+    TOOL_GET_LOGS,
+    TOOL_GET_AUTOMATION_TRACES,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -875,8 +1369,71 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "create_group",
         "update_group",
         "delete_group",
+        # Same reason the automation/scene deletes are here: "get rid of the
+        # Movie Night script" and "drop the holiday label" fall through
+        # ``_classify_chat_intent`` to ``command``, and the config detector
+        # only claims the phrasings that name the noun explicitly. Without
+        # these two the trimmed schema hides the delete on exactly the
+        # wording that asks for it.
+        "delete_script",
+        "delete_label",
+        "delete_area",
     }
 )
+
+# Tools for a turn that reconfigures the home rather than operating it —
+# "put the lamp in the Study", "call this one the Reading Lamp", "hide that
+# sensor from Assist".
+#
+# This is a SECOND lane rather than more entries in COMMAND_TOOL_NAMES, and
+# the reason is that the two sets barely overlap. Config phrasings fall
+# through ``_classify_chat_intent`` to ``command`` exactly the way group
+# phrasings do, so without a lane of their own the registry tools would be
+# invisible on the requests that need them — but folding them INTO the command
+# lane would hand every "turn off the kitchen light" turn eight registry-editing
+# tools it can never use, and the command lane exists precisely to keep that
+# schema small. A config turn does not need execute_command; a command turn
+# does not need update_entity. What both need is entity resolution, so the
+# search/read tools appear in both.
+CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "search_entities",
+        "get_entity_state",
+        "find_entities_by_area",
+        "list_devices",
+        "get_device",
+        "list_areas",
+        "assign_area",
+        "create_area",
+        "update_area",
+        "delete_area",
+        "update_entity",
+        "update_device",
+        "list_services",
+        "list_labels",
+        "create_label",
+        "assign_labels",
+        "delete_label",
+        "list_helpers",
+        "list_scripts",
+        "get_script",
+        "set_script",
+        "delete_script",
+    }
+)
+
+# intent hint → the tool subset that turn is trimmed to. An intent absent from
+# this map (or ``None``) gets the full schema.
+#
+# Scripts and diagnostics deliberately have NO lane. A script request is
+# automation-shaped ("make me a Movie Night routine") and a diagnostic one is a
+# question ("why didn't it run?"); both classify to intents that already get the
+# full schema, so giving them a lane would only create a way to accidentally
+# trim a tool out of a turn that needs it.
+TOOL_LANES: dict[str, frozenset[str]] = {
+    "command": COMMAND_TOOL_NAMES,
+    "config": CONFIG_TOOL_NAMES,
+}
 
 
 def get_tools_for_provider(provider: str) -> list[dict[str, Any]]:

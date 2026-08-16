@@ -952,7 +952,11 @@
     "insights_offline_hours_one": "{count} час",
     "insights_offline_hours_few": "{count} часа",
     "insights_offline_hours_many": "{count} часов",
-    "insights_offline_hours_other": "{count} часа"
+    "insights_offline_hours_other": "{count} часа",
+    "approval_status_applied": "Применено",
+    "destructive_approval_title": "Применить это изменение?",
+    "destructive_approval_title_plural": "Применить эти изменения?",
+    "destructive_approval_warning": "Это нельзя отменить из чата."
   },
   "options": {
     "step": {

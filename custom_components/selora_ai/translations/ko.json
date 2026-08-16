@@ -952,7 +952,11 @@
     "insights_offline_hours_one": "{count}시간",
     "insights_offline_hours_few": "{count}시간",
     "insights_offline_hours_many": "{count}시간",
-    "insights_offline_hours_other": "{count}시간"
+    "insights_offline_hours_other": "{count}시간",
+    "approval_status_applied": "적용됨",
+    "destructive_approval_title": "이 변경을 적용할까요?",
+    "destructive_approval_title_plural": "이 변경들을 적용할까요?",
+    "destructive_approval_warning": "이 작업은 채팅에서 되돌릴 수 없습니다."
   },
   "options": {
     "step": {

@@ -972,6 +972,10 @@
     "insights_offline_hours_one": "{count} uur",
     "insights_offline_hours_few": "{count} uur",
     "insights_offline_hours_many": "{count} uur",
-    "insights_offline_hours_other": "{count} uur"
+    "insights_offline_hours_other": "{count} uur",
+    "approval_status_applied": "Toegepast",
+    "destructive_approval_title": "Deze wijziging toepassen?",
+    "destructive_approval_title_plural": "Deze wijzigingen toepassen?",
+    "destructive_approval_warning": "Dit kan niet ongedaan worden gemaakt vanuit de chat."
   }
 }

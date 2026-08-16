@@ -972,6 +972,10 @@
     "insights_offline_hours_one": "{count} óra",
     "insights_offline_hours_few": "{count} óra",
     "insights_offline_hours_many": "{count} óra",
-    "insights_offline_hours_other": "{count} óra"
+    "insights_offline_hours_other": "{count} óra",
+    "approval_status_applied": "Alkalmazva",
+    "destructive_approval_title": "Alkalmazza ezt a módosítást?",
+    "destructive_approval_title_plural": "Alkalmazza ezeket a módosításokat?",
+    "destructive_approval_warning": "Ezt a csevegésből nem lehet visszavonni."
   }
 }

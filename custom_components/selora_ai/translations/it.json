@@ -952,7 +952,11 @@
     "insights_offline_hours_one": "{count} ora",
     "insights_offline_hours_few": "{count} ore",
     "insights_offline_hours_many": "{count} ore",
-    "insights_offline_hours_other": "{count} ore"
+    "insights_offline_hours_other": "{count} ore",
+    "approval_status_applied": "Applicato",
+    "destructive_approval_title": "Applicare questa modifica?",
+    "destructive_approval_title_plural": "Applicare queste modifiche?",
+    "destructive_approval_warning": "Questa operazione non può essere annullata dalla chat."
   },
   "options": {
     "step": {

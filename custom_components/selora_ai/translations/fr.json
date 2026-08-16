@@ -952,7 +952,11 @@
     "insights_offline_hours_one": "{count} heure",
     "insights_offline_hours_few": "{count} heures",
     "insights_offline_hours_many": "{count} heures",
-    "insights_offline_hours_other": "{count} heures"
+    "insights_offline_hours_other": "{count} heures",
+    "approval_status_applied": "Appliqué",
+    "destructive_approval_title": "Appliquer ce changement ?",
+    "destructive_approval_title_plural": "Appliquer ces changements ?",
+    "destructive_approval_warning": "Cette action est irréversible depuis le chat."
   },
   "options": {
     "step": {

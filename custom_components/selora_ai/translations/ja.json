@@ -952,7 +952,11 @@
     "insights_offline_hours_one": "{count}時間",
     "insights_offline_hours_few": "{count}時間",
     "insights_offline_hours_many": "{count}時間",
-    "insights_offline_hours_other": "{count}時間"
+    "insights_offline_hours_other": "{count}時間",
+    "approval_status_applied": "適用しました",
+    "destructive_approval_title": "この変更を適用しますか？",
+    "destructive_approval_title_plural": "これらの変更を適用しますか？",
+    "destructive_approval_warning": "この操作はチャットからは元に戻せません。"
   },
   "options": {
     "step": {
