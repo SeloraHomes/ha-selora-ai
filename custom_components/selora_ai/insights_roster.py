@@ -62,6 +62,11 @@ _LOGGER = logging.getLogger(__name__)
 _UNAVAILABLE_STATES = frozenset({"unavailable"})
 _SELORA_ALIAS_PREFIX = "[Selora AI]"
 
+# The Supervisor's own stores. They are identified by slug rather than by the
+# absence of a URL, because they DO carry one — the export contract still says
+# a consumer renders them by name only.
+_BUILTIN_STORE_SLUGS = frozenset({"core", "local"})
+
 
 def _available(state: str) -> bool:
     return state.casefold() not in _UNAVAILABLE_STATES
@@ -90,14 +95,24 @@ def _strip_url_credentials(url: str) -> str:
 def _repository_url(repo: dict[str, Any]) -> str:
     """Resolve a store's linkable URL from its ``get_store`` row.
 
-    Prefers ``url`` (the ``url:`` key of the store's ``repository.yaml``, which
-    is what the Supervisor panel lists) and falls back to ``source``, the git
-    URL the store was added with. ``source`` is only a URL for third-party
-    stores -- the built-in ones report the literals "core" and "local" -- so it
-    is taken only when it parses as http(s), leaving those two with "" rather
-    than a string a consumer would render as a dead link. Credentials are
-    stripped: a private store is added with them embedded in ``source``.
+    The built-in stores are answered first and always with "". The export
+    contract says ``repository_url`` is ``""`` for ``core`` and ``local`` so a
+    consumer renders them by name only, and the Supervisor does populate a
+    ``url`` on those rows (``core`` points at the add-ons repo) — so selecting
+    ``url`` before checking the slug published a link the contract promises is
+    absent. Guarding only the ``source`` fallback was not enough: that key is
+    the literal "core"/"local" for these stores, which is why it never leaked
+    and why the ``url`` branch went unnoticed.
+
+    For everything else it prefers ``url`` (the ``url:`` key of the store's
+    ``repository.yaml``, which is what the Supervisor panel lists) and falls
+    back to ``source``, the git URL the store was added with, taken only when it
+    parses as http(s). Credentials are stripped: a private store is added with
+    them embedded in ``source``.
     """
+    if str(repo.get("slug") or "") in _BUILTIN_STORE_SLUGS:
+        return ""
+
     url = str(repo.get("url") or "")
     if not url:
         source = str(repo.get("source") or "")
