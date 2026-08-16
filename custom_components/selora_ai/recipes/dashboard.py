@@ -27,6 +27,7 @@ Design choices:
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 import logging
 import re
 from typing import TYPE_CHECKING, Any
@@ -362,3 +363,62 @@ async def async_remove_cards(hass: HomeAssistant, slug: str) -> int:
             except Exception as exc:  # noqa: BLE001
                 _LOGGER.warning("Recipe %s: dashboard card removal save failed: %s", slug, exc)
     return removed
+
+
+async def async_dashboards_with_entity(
+    hass: HomeAssistant, entity_id: str
+) -> tuple[list[str], list[str]]:
+    """Dashboards referencing *entity_id*, and dashboards we could not inspect.
+
+    Returns ``(referencing, unreadable)`` — both lists of ``url_path``
+    (``"lovelace"`` for the default dashboard).
+
+    Used to block an entity_id rename. Home Assistant rewrites no references
+    when an id changes, and a Lovelace card is the one referrer with no
+    ``*_with_entity`` helper — automations, scripts, scenes, and groups all
+    have one, so a rename that checked only those would report itself safe
+    while leaving cards pointing at an id that no longer exists.
+
+    **YAML-mode dashboards are scanned too.** They cannot be edited from here,
+    which makes blocking more important rather than less: a storage dashboard
+    the user can repair with a few clicks is the mild case, while a YAML
+    dashboard has to be hand-edited by someone who first has to work out why
+    their card went blank. A dashboard that cannot be read at all is reported
+    as unreadable so the caller can refuse rather than assume it is clean.
+
+    The match is a substring test over the serialised config rather than a walk
+    of every card schema. Cards nest arbitrarily (stacks, grids, custom cards)
+    and third-party cards invent their own keys, so a structural walk would
+    miss references this catches. It over-matches on a shared prefix
+    (``light.kitchen`` inside ``light.kitchen_counter``), which is the safe
+    direction: the cost is refusing a rename the user can still do in the UI,
+    against silently breaking a dashboard they will not think to check.
+    """
+    if not entity_id:
+        return [], []
+    try:
+        from homeassistant.components.lovelace import LovelaceData
+        from homeassistant.components.lovelace.const import LOVELACE_DATA, ConfigNotFound
+    except ImportError:  # pragma: no cover — lovelace ships with core
+        return [], []
+
+    data: LovelaceData | None = hass.data.get(LOVELACE_DATA)
+    if data is None:
+        return [], []
+
+    found: list[str] = []
+    unreadable: list[str] = []
+    for url_path, config in data.dashboards.items():
+        name = url_path or "lovelace"
+        try:
+            cfg = await config.async_load(False)
+        except ConfigNotFound:
+            # No config saved yet — genuinely nothing to reference.
+            continue
+        except Exception as exc:  # noqa: BLE001 — an unreadable board is not a clean one
+            _LOGGER.debug("Could not inspect dashboard %s for references: %s", name, exc)
+            unreadable.append(name)
+            continue
+        if entity_id in json.dumps(cfg, default=str):
+            found.append(name)
+    return found, unreadable

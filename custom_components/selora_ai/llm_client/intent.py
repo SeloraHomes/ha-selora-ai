@@ -8,6 +8,7 @@ self-classify in their long system prompt instead.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import re
 from typing import Any
 
@@ -892,6 +893,279 @@ def _is_definite_automation(user_message: str) -> bool:
     ):
         return False
     return bool(_DEFINITE_AUTOMATION.search(user_message))
+
+
+# ── Config-intent detection (cloud tool-lane selection) ─────────────────────
+#
+# Separate from ``_classify_chat_intent`` on purpose: that function's four
+# return values map to trained LoRA specialists, and adding a fifth would route
+# real traffic at a specialist that does not exist. This one only picks a tool
+# lane on the cloud path.
+#
+# Vocabulary that is config-specific on its own. Each of these is a word a user
+# reaches for when reshaping the home rather than operating it — there is no
+# "hide the lights" or "expose the kettle" device command to collide with.
+_CONFIG_VERB = re.compile(
+    r"\b("
+    r"assign(?:ed|ing|s)?"
+    r"|re-?nam(?:e|ed|es|ing)"
+    r"|alias(?:es)?"
+    r"|(?:un)?expos(?:e|ed|es|ing)"
+    r"|(?:un)?hid(?:e|es|den|ing)"
+    # fr / de / es / it — the same four locales the category-word map covers.
+    r"|assigner?|renomme|renommer|alias"
+    r"|zuweisen|umbenennen"
+    r"|asignar|renombrar"
+    r"|assegnare|rinominare"
+    r")\b",
+    re.I,
+)
+
+# CRUD and placement phrasings that only read as config once the noun is
+# present — "put the lights on" is a command, "put the lamp in the Study area"
+# is not.
+#
+# The ``script`` clause deliberately omits create/make. "Create a script that
+# turns the lights off at 11pm" is automation-shaped, and claiming it for the
+# config lane would strip the device-trigger and template tools that building
+# the sequence needs. Creation phrasings fall through to the automation intent,
+# which gets the FULL schema — ``set_script`` is reachable there. Only the
+# management verbs, where no such tools are wanted, are claimed here.
+_CONFIG_NOUN_PHRASE = re.compile(
+    r"\b(?:create|make|add|new|delete|remove|rename|list|show|drop|get rid of)\s+"
+    r"(?:a\s+|an\s+|the\s+|my\s+)?(?:new\s+)?"
+    r"(?:areas?|rooms?|floors?|labels?|helpers?"
+    r"|pi[eè]ces?|zimmer|habitaci[oó]n(?:es)?|stanz[ae])\b"
+    r"|\b(?:list|show|delete|remove|rename|edit|update)\s+"
+    r"(?:a\s+|an\s+|the\s+|my\s+)?.{0,40}?\bscripts?\b"
+    r"|\b(?:move|put|place)\s+.{0,60}?\b(?:to|in|into|onto)\s+(?:the\s+)?"
+    r".{0,40}?\b(?:areas?|rooms?|floors?)\b"
+    r"|\b(?:what|which)\s+(?:areas?|rooms?|floors?|labels?|helpers?|scripts?)\b",
+    re.I,
+)
+
+
+# "label" and "tag" are NOT config words on their own. Both are ordinary
+# targeting qualifiers in a device command — "turn off all lights tagged
+# holiday", "turn on the light labeled Kitchen" — where claiming the turn for
+# the config lane would strip the ``execute_command`` that carries it out. Only
+# the mutating shapes count: the bare imperative, "X as Y", and the label used
+# as the direct object of a mutation verb.
+#
+# The participle forms are what make this safe to write narrowly: ``\btags?\b``
+# cannot match "tagged" and ``\blabels?\b`` cannot match "labeled", so the
+# qualifier readings are excluded by the word boundary rather than by an
+# exception list that would need extending for every new phrasing.
+_CONFIG_LABEL_PHRASE = re.compile(
+    r"^\s*(?:please\s+)?(?:label|tag)\b"
+    r"|\b(?:label|tag)\s+[^.?!]{0,60}?\bas\b"
+    r"|\b(?:add|remove|apply|assign|clear|strip|delete|give)\s+"
+    r"(?:the\s+|a\s+|an\s+|these\s+|those\s+)?[\w'\"-]{1,30}\s+(?:labels?|tags?)\b"
+    r"|\b(?:labels?|tags?)\s+(?:to|from|off)\s",
+    re.I,
+)
+
+# The area-name fallback's destination clause. A known area name is only
+# evidence of a placement when it is the DESTINATION of a movement — "move the
+# lamp to the Study" — not merely present in the sentence. "Put the Study lamp
+# on" contains both a placement verb and the area name while being a power
+# command, so mere coexistence routes real commands into a lane with no
+# ``execute_command``.
+_MOVE_DESTINATION = re.compile(
+    r"\b(?:move|put|place|assign|reassign|d[ée]place[rz]?|mettre|verschiebe[rn]?|mover|spostare)\b"
+    r"[^.?!]{0,60}?\b(?:to|in|into|onto|dans|au|à|nach|ins|en|al|nel)\s+"
+    r"(?:the\s+|la\s+|le\s+|el\s+|il\s+|der\s+|die\s+|das\s+)?"
+    r"(?P<dest>[^.?!]{0,40})",
+    re.I,
+)
+
+# A power word means the sentence is operating a device, whatever else it
+# contains. "Put the light on in the Study" reads as a placement by shape — the
+# particle is what distinguishes it, so its presence vetoes the fallback.
+# A device command, identified by SYNTAX rather than by vocabulary.
+#
+# A bare power word is not enough: "hide the off light" and "assign the lights
+# that are off to Study" are configuration requests that happen to name a state,
+# and vetoing on the word alone pushed them into the command lane — which has no
+# ``update_entity`` and no ``assign_area``, so the request became impossible
+# instead of falling back to the full schema. That is the same routing trap the
+# lane exists to avoid, just pointed the other way.
+#
+# What actually distinguishes a command is the verb in imperative position. Two
+# shapes:
+#   * an imperative command verb opening the sentence ("turn off the hidden
+#     lights", "open the garage"), optionally behind a polite preamble;
+#   * put/place with a power particle ("put the light on in the Study"), which
+#     is placement-shaped but operates a device. Bare "put the lamp in the
+#     Study" is left alone — that IS a placement.
+_COMMAND_SYNTAX = re.compile(
+    r"^\s*(?:please\s+|can\s+you\s+|could\s+you\s+|would\s+you\s+|hey\s+)*"
+    r"(?:turn|switch|toggle|set|dim|brighten|open|close|lock|unlock"
+    r"|start|stop|pause|play|activate|run|trigger)\b"
+    r"|\b(?:put|place)\s+[^.?!]{0,40}?\b(?:on|off)\b",
+    re.I,
+)
+
+# Nouns whose operations live in the COMMAND lane, not the config lane. A
+# config verb next to one of these describes a group/scene/automation change —
+# "rename the bedroom group", "delete the movie night scene" — and the tools
+# for those are in ``COMMAND_TOOL_NAMES``. Routing them to config would trim
+# the schema to one that cannot perform the request.
+_COMMAND_LANE_NOUN = re.compile(r"\b(?:groups?|scenes?|automations?|routines?)\b", re.I)
+
+# Entity-registry operations that the command veto would otherwise swallow.
+# Checked BEFORE it, because these are the very operations ``update_entity``
+# advertises and the command lane cannot perform:
+#   * "set the icon of sensor.temperature" opens with ``set``, which is command
+#     syntax — but an icon is not something a device command touches;
+#   * "disable the entity sensor.temperature" matches no config verb at all;
+#   * "remove sensor.temperature from Assist" reads as a removal, and the
+#     exposure vocabulary only covered "expose".
+# Each requires registry-specific vocabulary, so none of them can claim an
+# ordinary device command.
+_CONFIG_ENTITY_PHRASE = re.compile(
+    # An icon must be the OBJECT of an edit, not merely mentioned. "Turn on the
+    # light with the bulb icon" names one while asking for a device action, and
+    # matching the bare noun sent it to a lane with no execute_command.
+    r"\b(?:set|change|update|replace|give|assign)\b[^.?!]{0,30}?\bicons?\b"
+    r"|\bicons?\s+(?:to|for)\b"
+    # Aliases and a friendly-name edit are registry-only vocabulary, and both
+    # are commonly phrased with a leading "set" — which the command veto would
+    # otherwise claim before ``_CONFIG_VERB`` ever sees the word.
+    r"|\balias(?:es)?\b"
+    r"|\b(?:set|change|update)\b[^.?!]{0,30}?\b(?:friendly\s+)?names?\s+(?:of|for)\b"
+    r"|\b(?:dis|en)able[ds]?\s+(?:the\s+)?(?:entity|entities|device)\b"
+    r"|\b(?:disable|enable)[ds]?\b[^.?!]{0,40}?\b[a-z_]+\.[a-z0-9_]+\b"
+    # The gap uses ``.`` rather than ``[^.?!]``: an entity_id contains a dot, so
+    # excluding it stopped "remove sensor.temperature from Assist" matching at
+    # all — the exact phrasing this alternative exists for.
+    r"|\b(?:expose|unexpose|remove|hide|show|add|stop)\w*\b.{0,60}?"
+    r"\b(?:assist|voice assistant)\b",
+    re.I,
+)
+
+
+def _is_config_request(user_message: str, area_names: Iterable[str] | None = None) -> bool:
+    """True when the turn reconfigures the home rather than operating it.
+
+    ``area_names`` closes the gap the regexes cannot: "move the kitchen lamp to
+    the Study" carries no area/room noun, and no amount of pattern-writing
+    recovers it without knowing that Study *is* an area. The name must be the
+    **destination** of a movement, though, and the sentence must carry no power
+    word — a name that merely appears somewhere in a placement-shaped sentence
+    describes "put the Study lamp on" just as well.
+
+    A false negative here is cheap — the turn falls back to the full tool
+    schema, which contains the registry tools anyway. A false positive is the
+    expensive one, since it strips ``execute_command`` from a turn that meant
+    to switch something on, so every pattern above requires vocabulary a device
+    command has no reason to use.
+    """
+    msg = str(user_message or "").strip()
+    if not msg:
+        return False
+
+    # Two vetoes, applied to EVERY branch rather than only the area-name
+    # fallback. Each closes a way an ordinary command reached the config lane:
+    #
+    #   * command SYNTAX means the sentence operates a device — "turn off the
+    #     hidden lights" matches ``hidden`` as an adjective, not as a request to
+    #     change visibility. Matched on the imperative verb, not on a bare power
+    #     word, so "hide the off light" stays a config request;
+    #   * a group/scene/automation noun means the operation lives in the
+    #     COMMAND lane, which is where those tools are — "rename the bedroom
+    #     group" is an ``update_group`` call, and claiming it for config would
+    #     hand the turn a schema with no group tools in it.
+    #
+    # Both cost false negatives, which are cheap: the turn falls back to the
+    # full schema, which contains everything.
+    # A group/scene/automation noun always defers to the command lane, since
+    # that is where those tools live — checked before everything else.
+    if _COMMAND_LANE_NOUN.search(msg):
+        return False
+    # Registry operations are recognised BEFORE the command veto, or the veto
+    # eats the ones phrased with a command-shaped verb ("set the icon of …").
+    if _CONFIG_ENTITY_PHRASE.search(msg):
+        return True
+    if _COMMAND_SYNTAX.search(msg):
+        return False
+
+    if (
+        _CONFIG_VERB.search(msg)
+        or _CONFIG_NOUN_PHRASE.search(msg)
+        or _CONFIG_LABEL_PHRASE.search(msg)
+    ):
+        return True
+    if not area_names:
+        return False
+    match = _MOVE_DESTINATION.search(msg)
+    if match is None:
+        return False
+    destination = normalize(match.group("dest"))
+    return any(name and _names_whole_word(destination, name) for name in area_names)
+
+
+# A device command riding alongside a config change, e.g. "…and turn it on".
+# Unanchored, unlike ``_COMMAND_SYNTAX``, because in a compound request the
+# command half is rarely the opening clause. Requires an object pronoun or
+# determiner so it does not fire on "set the icon".
+_COMMAND_CLAUSE = re.compile(
+    r"\b(?:turn|switch|toggle|set|dim|open|close|lock|unlock|start|stop|pause|play|activate)\s+"
+    r"(?:it\b|them\b|these\b|those\b|the\s|that\s|on\b|off\b)",
+    re.I,
+)
+
+# Only treat a command clause as a SECOND request when the sentence actually
+# joins two of them. Without this, "set the icon of sensor.x" reads as compound
+# and loses its trim for no reason.
+_CONJUNCTION = re.compile(r"\band\b|\bthen\b|\balso\b|,", re.I)
+
+
+def _is_compound_request(user_message: str, area_names: Iterable[str] | None = None) -> bool:
+    """True when one turn asks for BOTH a config change and a device command.
+
+    "Rename the lamp to Reading Light and turn it on" needs ``update_entity``
+    AND ``execute_command``, and every lane holds one or the other — so forcing
+    either lane makes half the request impossible. The honest answer is no lane
+    at all: the full schema has both.
+
+    Deliberately narrow. A false positive here only costs the prefill saving of
+    a trimmed schema, while a false negative silently drops half of what the
+    user asked for, so the asymmetry runs the other way from the lane vetoes.
+    """
+    msg = str(user_message or "").strip()
+    if not msg or not _CONJUNCTION.search(msg):
+        return False
+    if _COMMAND_LANE_NOUN.search(msg):
+        return False
+    return bool(_COMMAND_CLAUSE.search(msg)) and _has_config_signal(msg, area_names)
+
+
+def _has_config_signal(msg: str, area_names: Iterable[str] | None = None) -> bool:
+    """The positive config patterns, with no command veto applied."""
+    if (
+        _CONFIG_ENTITY_PHRASE.search(msg)
+        or _CONFIG_VERB.search(msg)
+        or _CONFIG_NOUN_PHRASE.search(msg)
+        or _CONFIG_LABEL_PHRASE.search(msg)
+    ):
+        return True
+    if not area_names:
+        return False
+    match = _MOVE_DESTINATION.search(msg)
+    if match is None:
+        return False
+    destination = normalize(match.group("dest"))
+    return any(name and _names_whole_word(destination, name) for name in area_names)
+
+
+def _names_whole_word(haystack: str, name: str) -> bool:
+    """Whole-word containment, so an area named "Den" does not match "garden".
+
+    Both sides are already ``normalize()``d, which is NFKC + casefold and keeps
+    accents — so this compares the same forms the rest of the module does.
+    """
+    return re.search(rf"(?<!\w){re.escape(normalize(name))}(?!\w)", haystack) is not None
 
 
 def _classify_chat_intent_polite_command_check(msg: str) -> str | None:

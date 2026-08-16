@@ -79,6 +79,8 @@ from .intent import (
     _classify_chat_intent,
     _filter_cloud_entities,
     _filter_entities_by_keywords,
+    _is_compound_request,
+    _is_config_request,
     _is_definite_automation,
     _is_pure_greeting,
     _low_context_keywords,
@@ -949,10 +951,8 @@ class LLMClient:
                 # security system" with no alarm panel) doesn't get the
                 # slim command prompt — the full prompt's classification
                 # rules are needed to route it to a clarification ask.
-                cloud_intent_hint = (
-                    "command"
-                    if not refining and _classify_chat_intent(user_message, entities) == "command"
-                    else None
+                cloud_intent_hint = self._cloud_intent_hint(
+                    user_message, entities, refining=refining
                 )
                 system_prompt = build_architect_system_prompt(
                     tools_available=tool_executor is not None,
@@ -1243,10 +1243,8 @@ class LLMClient:
                 # instead of the full ~18K-token firehose. Skip the slim path
                 # for refinement turns, which need the full automation/scene
                 # rules.
-                cloud_intent_hint = (
-                    "command"
-                    if not refining and _classify_chat_intent(user_message, entities) == "command"
-                    else None
+                cloud_intent_hint = self._cloud_intent_hint(
+                    user_message, entities, refining=refining
                 )
                 system_prompt = build_architect_stream_system_prompt(
                     tools_available=tool_executor is not None,
@@ -1497,26 +1495,71 @@ class LLMClient:
     # Tool-calling orchestration
     # ------------------------------------------------------------------
 
+    def _cloud_intent_hint(
+        self,
+        user_message: str,
+        entities: list[EntitySnapshot] | None,
+        *,
+        refining: bool,
+    ) -> str | None:
+        """Pick the tool lane for a cloud turn, or None for the full schema.
+
+        ``config`` is tested first. A registry request ("assign the living room
+        lights to the Living Room") matches none of the question or automation
+        patterns, so ``_classify_chat_intent`` falls through to ``command`` and
+        would trim the schema to the device-control lane — hiding precisely the
+        tools the request needs. Refinement turns opt out of both lanes; they
+        need the full automation and scene rules.
+        """
+        if refining:
+            return None
+        areas = self._area_names()
+        # A turn asking for both a config change and a device command gets NO
+        # lane: every lane holds one class or the other, so trimming to either
+        # makes half the request impossible to carry out.
+        if _is_compound_request(user_message, areas):
+            return None
+        if _is_config_request(user_message, areas):
+            return "config"
+        if _classify_chat_intent(user_message, entities) == "command":
+            return "command"
+        return None
+
+    def _area_names(self) -> list[str]:
+        """Live area names, for the placement-verb branch of config detection.
+
+        Degrades to an empty list rather than raising: area detection is a
+        refinement on top of the regexes, and a registry that is not ready yet
+        must not take the turn down with it.
+        """
+        try:
+            from homeassistant.helpers import area_registry as ar  # noqa: PLC0415
+
+            return [a.name for a in ar.async_get(self._hass).async_list_areas()]
+        except (KeyError, AttributeError, RuntimeError):
+            return []
+
     def _get_tools_for_provider(self, *, intent_hint: str | None = None) -> list[dict[str, Any]]:
         """Return tool definitions formatted for the current provider.
 
         Tools marked ``large_context_only`` are dropped for providers with
         a tight context window (currently only selora_local).
 
-        When ``intent_hint == "command"`` the schema is trimmed to the
-        command-execution subset (``COMMAND_TOOL_NAMES``) — a plain
-        device-control turn never needs device-discovery, history, or
-        suggestion tools, and a smaller schema cuts prefill latency.
+        ``intent_hint`` selects a lane from ``TOOL_LANES`` and trims the schema
+        to it — a plain device-control turn never needs device-discovery,
+        history, or suggestion tools, and a config turn ("put the lamp in the
+        Study") never needs execute_command. A smaller schema cuts prefill
+        latency on every turn, which is what keeps the tool count from being a
+        tax the whole product pays. An unknown or absent hint gets everything.
         """
-        from ..tool_registry import CHAT_TOOLS, COMMAND_TOOL_NAMES
+        from ..tool_registry import CHAT_TOOLS, TOOL_LANES
 
         low_ctx = self._provider.is_low_context
-        command_only = intent_hint == "command"
+        lane = TOOL_LANES.get(intent_hint or "")
         return [
             self._provider.format_tool(t)
             for t in CHAT_TOOLS
-            if not (low_ctx and t.large_context_only)
-            and not (command_only and t.name not in COMMAND_TOOL_NAMES)
+            if not (low_ctx and t.large_context_only) and (lane is None or t.name in lane)
         ]
 
     async def _send_request_with_tools(

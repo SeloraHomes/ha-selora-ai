@@ -413,3 +413,43 @@ async def test_get_device_triggers_invalid_config_is_empty(
     result = await _tool_get_device_triggers(hass, {"device_id": device_id})
     assert result["triggers"] == []
     assert result["count"] == 0
+
+
+# ── MCP surface completeness ────────────────────────────────────────────────
+
+
+def test_every_mcp_handler_is_declared() -> None:
+    """A handler with no MCPTool entry is unreachable — it never lists.
+
+    ``selora_get_device_triggers`` shipped in exactly that state: dispatch
+    worked, but the tool was absent from ``tools/list``, so no MCP client could
+    discover or call it. Nothing else caught it because both halves are valid
+    on their own.
+    """
+    from custom_components.selora_ai.mcp_server import (
+        _TOOL_DEFINITIONS,
+        _get_tool_handlers,
+    )
+
+    declared = {t.name for t in _TOOL_DEFINITIONS}
+    handlers = set(_get_tool_handlers())
+    assert handlers - declared == set(), "handler with no MCPTool definition"
+    assert declared - handlers == set(), "MCPTool definition with no handler"
+
+
+def test_every_mcp_tool_has_an_access_class() -> None:
+    """Every tool is explicitly admin or read-only, never by fall-through.
+
+    ``_check_tool_access`` permits anything absent from ``_ADMIN_TOOLS``, so an
+    unclassified tool is reachable by a read-only credential because nobody
+    classified it — not because anybody decided it was safe.
+    """
+    from custom_components.selora_ai.mcp_server import (
+        _ADMIN_TOOLS,
+        _READ_ONLY_TOOLS,
+        _get_tool_handlers,
+    )
+
+    unclassified = set(_get_tool_handlers()) - (_ADMIN_TOOLS | _READ_ONLY_TOOLS)
+    assert unclassified == set(), f"unclassified MCP tools: {sorted(unclassified)}"
+    assert not (_ADMIN_TOOLS & _READ_ONLY_TOOLS), "a tool cannot be both"

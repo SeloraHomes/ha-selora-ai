@@ -38,6 +38,10 @@ custom_components/selora_ai/
 ├── automation_utils.py  # Validation, risk assessment, YAML I/O, async automation CRUD
 ├── automation_store.py  # Lifecycle + versioning for [Selora AI] automations
 ├── group_manager.py     # HA group-helper CRUD (drives HA's own `group` config flow)
+├── registry_manager.py  # Area/floor/entity/device registry reads + writes, helper inventory
+├── script_manager.py    # scripts.yaml CRUD (mapping, not a list — unlike automations)
+├── label_manager.py     # Label registry + delta assignment across entities/devices/areas
+├── diagnostics_tools.py # Read-only: system_log errors, automation run traces
 ├── code_stamp.py        # Source-signature skew detection (restart-required handshake)
 ├── scene_store.py       # Scene creation + persistence
 ├── websocket/           # Panel websocket handlers, one module per domain (registered lazily)
@@ -395,6 +399,116 @@ edits membership in Settings → Devices & Services → Helpers without the auto
   (`ToolDef` + `CHAT_TOOLS` + `COMMAND_TOOL_NAMES`), and `tool_executor.py`. `COMMAND_TOOL_NAMES`
   is not optional: `_classify_chat_intent` falls through to `"command"` for group phrasings, which
   trims the schema to that set.
+
+## Registry, script, label, and diagnostic tools
+
+`registry_manager.py`, `script_manager.py`, `label_manager.py`, and
+`diagnostics_tools.py` back the config-management half of the chat tool surface —
+the tools that reshape the home rather than operate it. They exist because the
+model could see every entity's area, name, and alias in the home snapshot but had
+no way to change one, so it fell back to reciting the Settings click-path.
+
+- **An entity's area is an override of its device's area.** `async_assign_area`
+  therefore has two correct outcomes: when the entity's device is *already* in the
+  target area it **clears** `area_id` so the entity inherits, and only otherwise
+  does it write the override. Both look identical today; the stored override
+  outlives the coincidence, so pinning would strand the entity in the old room the
+  next time the device moves, with nothing in the UI to explain why one of a
+  device's entities did not travel with it. The result names the two groups
+  separately (`entities_assigned` vs `entities_now_inheriting`) because a caller
+  reading the registry back would otherwise see a blank `area_id` and read the
+  assignment as failed.
+- **`AreaEntry` exposes `.id`, not `.area_id`.** `FloorEntry` keeps `.floor_id`
+  and entity/device entries keep `.area_id`, so the three read alike and only one
+  is wrong. It fails at runtime as an `AttributeError` inside a tool call, which
+  surfaces to the user as "Tool execution failed".
+- **Renaming an entity_id rewrites nobody's references.** HA does not touch
+  automations, scripts, scenes, or dashboards, so `async_update_entity` refuses
+  `new_entity_id` while anything references the old id and names the referrers
+  (reusing `group_dependents`, which is entity-generic despite the name).
+  `new_name` — the friendly name, which is what "rename this to X" means — is
+  always allowed.
+- **Deleting an area unassigns rather than deletes**, and does so silently: every
+  automation targeting `area_id: living_room` keeps loading, keeps validating, and
+  matches nothing. Hence the confirmation card, whose label carries the counts.
+- **`scripts.yaml` is a mapping keyed by object_id**, not a list of dicts carrying
+  their own `id` like `automations.yaml`. `script_manager` does not reuse
+  `automation_utils`' readers for that reason — the same code shape would write a
+  list HA then ignores. It does reuse `_quote_yaml_booleans` and `_to_plain_types`.
+- **`set_script` replaces wholesale**, so `get_script` must be called first when
+  editing. HA's own `async_validate_config_item` runs **before** the write, or a
+  bad sequence lands in the file, fails at reload, and leaves the user to fix it by
+  hand. A *reload* failure after a successful write is reported as
+  `reload_error` alongside the write rather than raised: raising would tell the
+  user nothing happened on a change that in fact landed and will appear at the
+  next restart.
+- **Label assignment is deltas, never replacement.** Labels are the one registry
+  field several unrelated concerns write to at once, so a replacement call from a
+  model that only knows about `holiday` would drop the `battery-powered` label
+  another flow set. `assign_labels` **creates** an unknown label rather than
+  refusing — a label has no contents and nothing can target one that was never
+  made, so refusing would cost a round-trip and protect nothing. That is the
+  opposite of the area rule, where a typo'd auto-create would silently split a
+  home in two.
+- **`get_logs` reads `hass.data[DATA_SYSTEM_LOG].records`** — the value is the
+  logging *handler*; the deduplicated ring is on `.records`. Traces are keyed
+  `automation.<config id>`, not by entity_id, so `_resolve_trace_key` translates
+  through the state's `id` attribute; a YAML automation with no `id` is never
+  traced and gets that explanation rather than an empty list.
+- **Helpers are read-only from chat.** The `input_*`/`counter`/`timer`/`schedule`
+  storage collections are locals inside each component's `async_setup` and are
+  never published to `hass.data`, so there is no supported in-process way to
+  create one — `list_helpers` finds existing helpers to wire automations to, and
+  `create_helper` is deliberately absent rather than faked.
+
+### Tool lanes
+
+`TOOL_LANES` in `tool_registry.py` maps an intent hint to the tool subset a turn
+is trimmed to; an absent or unknown hint gets the full schema. `LLMClient._cloud_intent_hint`
+tests **`config` first**, then `command`.
+
+Order matters: a registry request matches none of the question or automation
+patterns, so `_classify_chat_intent` falls through to `command` and would trim the
+schema to the device-control lane — hiding exactly the tools the request needs.
+This is the same trap documented for the group tools, and it is why `config` is a
+second lane rather than more entries in `COMMAND_TOOL_NAMES`: the two sets barely
+overlap, and folding them together would hand every "turn off the kitchen light"
+turn a dozen registry-editing tools while the command lane exists precisely to
+keep that schema small. Only the entity-resolution tools appear in both.
+
+- `_is_config_request` in `llm_client/intent.py` is **separate from
+  `_classify_chat_intent`** on purpose: that function's four return values map to
+  trained LoRA specialists, and a fifth would route traffic at one that does not
+  exist. A false negative there is cheap (full schema, which contains everything);
+  a false positive is expensive (strips `execute_command` from a turn meaning to
+  switch something on), so every pattern requires vocabulary a device command has
+  no reason to use. `_PLACEMENT_VERB` plus a **live area name** closes the gap the
+  regexes cannot — "move the lamp to the Study" carries no area noun.
+- Script *creation* is deliberately NOT claimed by the config lane. "Create a
+  script that turns the lights off at 11pm" is automation-shaped and needs the
+  device-trigger and template tools; only the management verbs are claimed.
+- `delete_area` / `delete_script` / `delete_label` are in **both** lanes, for the
+  reason `delete_automation` already is: "get rid of the Movie Night script" falls
+  through to `command`.
+- **Every new tool here is `large_context_only=True`.** The low-context path sets
+  `tool_executor = None` outright so Selora AI Local never receives a schema, but
+  `_get_tools_for_provider` is also reachable from the Assist conversation path,
+  and a 1.7B model handed a registry-editing schema will call it.
+
+### Adding a delete tool
+
+`_DELETE_TOOLS` and `_DELETE_KINDS` in `llm_client/command_policy.py` are both
+allowlists, and a new delete tool must be added to **both** plus a branch in
+`_resolve_approval` (`__init__.py`). Missing either fails silently in the worst
+shape available: the tool returns `requires_approval`, the tool loop
+short-circuits on it and discards the model's prose, and the synthesizer then
+drops the descriptor — the user gets an empty reply and no card.
+
+The MCP definitions for all of these are **derived** from the chat `ToolDef`s
+(`_DERIVED_MCP_TOOLS` / `_mcp_tool_from_chat_tool` in `mcp_server.py`) rather than
+restated. A hand-written second copy drifts on the next parameter added, and the
+failure is quiet: the MCP client rejects an argument chat accepts, on a tool that
+looks identical in both listings.
 
 ## LLM Providers
 

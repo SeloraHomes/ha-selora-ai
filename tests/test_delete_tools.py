@@ -154,6 +154,10 @@ class TestPendingDeletesFromLog:
                 "alias": "X Alias",
                 "name": "",
                 "label": "X",
+                # Instance identity for name-derived, reusable ids (area,
+                # label, script). Empty for an automation, whose target_id is
+                # its own stable config id.
+                "fingerprint": "",
             }
         ]
 

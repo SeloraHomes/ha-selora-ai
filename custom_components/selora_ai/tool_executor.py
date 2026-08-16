@@ -104,6 +104,25 @@ class ToolExecutor:
             "create_group": self._create_group,
             "update_group": self._update_group,
             "delete_group": self._delete_group,
+            "list_areas": self._list_areas,
+            "assign_area": self._assign_area,
+            "create_area": self._create_area,
+            "update_area": self._update_area,
+            "delete_area": self._delete_area,
+            "update_entity": self._update_entity,
+            "update_device": self._update_device,
+            "list_services": self._list_services,
+            "list_scripts": self._list_scripts,
+            "get_script": self._get_script,
+            "set_script": self._set_script,
+            "delete_script": self._delete_script,
+            "list_labels": self._list_labels,
+            "create_label": self._create_label,
+            "assign_labels": self._assign_labels,
+            "delete_label": self._delete_label,
+            "list_helpers": self._list_helpers,
+            "get_logs": self._get_logs,
+            "get_automation_traces": self._get_automation_traces,
         }
 
     # ── Read tools ──────────────────────────────────────────────────
@@ -367,6 +386,164 @@ class ToolExecutor:
 
         return await _preview_delete_group(self._hass, arguments)
 
+    # ── Registry tools ──────────────────────────────────────────────
+
+    async def _list_areas(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import area_overview
+
+        return area_overview(self._hass, include_entities=bool(arguments.get("include_entities")))
+
+    async def _list_services(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import list_services
+
+        return list_services(self._hass, arguments.get("domain"))
+
+    async def _assign_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import async_assign_area
+
+        return await async_assign_area(
+            self._hass,
+            area=str(arguments.get("area", "")),
+            entity_ids=_as_list(arguments.get("entity_ids")),
+            device_ids=_as_list(arguments.get("device_ids")),
+        )
+
+    async def _create_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import async_create_area
+
+        return async_create_area(
+            self._hass,
+            name=str(arguments.get("name", "")),
+            floor=_opt_str(arguments.get("floor")),
+            icon=_opt_str(arguments.get("icon")),
+            aliases=_opt_list(arguments.get("aliases")),
+        )
+
+    async def _update_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import async_update_area
+
+        return async_update_area(
+            self._hass,
+            area=str(arguments.get("area", "")),
+            new_name=_opt_str(arguments.get("new_name")),
+            floor=_opt_str(arguments.get("floor")),
+            icon=_opt_str(arguments.get("icon")),
+            aliases=_opt_list(arguments.get("aliases")),
+        )
+
+    async def _delete_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card.
+
+        See :meth:`_delete_automation` — deletion is deferred to the user's
+        tap on the confirmation card.
+        """
+        from .mcp_server import _preview_delete_area
+
+        return await _preview_delete_area(self._hass, arguments)
+
+    async def _update_entity(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Metadata edits execute; a disable or an entity_id rename asks first.
+
+        See :meth:`_delete_automation` — the irreversible cases are deferred to
+        the user's tap on the confirmation card.
+        """
+        from .mcp_server import _preview_update_entity
+
+        return await _preview_update_entity(self._hass, arguments)
+
+    async def _update_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Rename and area moves execute; a disable asks first."""
+        from .mcp_server import _preview_update_device
+
+        return await _preview_update_device(self._hass, arguments)
+
+    # ── Scripts ─────────────────────────────────────────────────────
+
+    async def _list_scripts(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+        from .script_manager import async_list_scripts
+
+        return await async_list_scripts(self._hass)
+
+    async def _get_script(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .script_manager import async_get_script
+
+        return await async_get_script(self._hass, str(arguments.get("script", "")))
+
+    async def _set_script(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Creating a script executes; replacing an existing one asks first."""
+        from .mcp_server import _preview_set_script
+
+        sequence = arguments.get("sequence")
+        if not isinstance(sequence, list):
+            return {"error": "sequence must be a list of action steps."}
+        return await _preview_set_script(self._hass, arguments)
+
+    async def _delete_script(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card.
+
+        See :meth:`_delete_automation` — deletion is deferred to the user's
+        tap on the confirmation card.
+        """
+        from .mcp_server import _preview_delete_script
+
+        return await _preview_delete_script(self._hass, arguments)
+
+    # ── Labels ──────────────────────────────────────────────────────
+
+    async def _list_labels(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+        from .label_manager import label_overview
+
+        return label_overview(self._hass)
+
+    async def _create_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .label_manager import async_create_label
+
+        return async_create_label(
+            self._hass,
+            name=str(arguments.get("name", "")),
+            icon=_opt_str(arguments.get("icon")),
+            color=_opt_str(arguments.get("color")),
+        )
+
+    async def _assign_labels(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .label_manager import async_assign_labels
+
+        return await async_assign_labels(
+            self._hass,
+            add_labels=_as_list(arguments.get("add_labels")),
+            remove_labels=_as_list(arguments.get("remove_labels")),
+            entity_ids=_as_list(arguments.get("entity_ids")),
+            device_ids=_as_list(arguments.get("device_ids")),
+            areas=_as_list(arguments.get("areas")),
+        )
+
+    async def _delete_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card."""
+        from .mcp_server import _preview_delete_label
+
+        return await _preview_delete_label(self._hass, arguments)
+
+    # ── Helpers and diagnostics ─────────────────────────────────────
+
+    async def _list_helpers(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import helper_overview
+
+        return await helper_overview(self._hass, _opt_str(arguments.get("domain")))
+
+    async def _get_logs(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .diagnostics_tools import get_logs
+
+        return get_logs(
+            self._hass,
+            level=_opt_str(arguments.get("level")),
+            contains=_opt_str(arguments.get("contains")),
+        )
+
+    async def _get_automation_traces(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .diagnostics_tools import get_automation_traces
+
+        return await get_automation_traces(self._hass, str(arguments.get("automation", "")))
+
     async def _start_device_flow(self, arguments: dict[str, Any]) -> dict[str, Any]:
         domain = str(arguments.get("domain", "")).strip()
         host = str(arguments.get("host", "")).strip()
@@ -379,6 +556,79 @@ class ToolExecutor:
         if not flow_id:
             return {"error": "flow_id is required"}
         return await self._device_manager.accept_flow(flow_id)
+
+
+def _as_list(value: Any) -> list[str]:
+    """Coerce a tool argument to a list of non-empty strings.
+
+    Models emit a bare string where the schema says array often enough that
+    treating it as a one-element list is worth more than the strictness — the
+    alternative is refusing "assign_area(entity_ids='light.lamp')" over syntax
+    the user never sees.
+    """
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else []
+    if isinstance(value, (list, tuple, set)):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return []
+
+
+def _opt_list(value: Any) -> list[str] | None:
+    """Absent vs. explicitly-empty, for replacement-list arguments.
+
+    ``None`` means the argument was omitted; ``[]`` means the caller sent a real
+    empty array. The distinction is the only way to clear a replacement list:
+    treating ``[]`` as absent makes "remove the last alias" a silent no-op, and
+    an alias list is documented as a replacement, so an empty one is a request a
+    user can genuinely make.
+
+    An empty *string* still counts as absent. That is not an inconsistency: for
+    an array-typed parameter a real ``[]`` is a deliberate value, whereas ``""``
+    is a type-mismatched filler models routinely emit for params they are not
+    using — honouring it would wipe aliases as a side effect of a rename.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return [value.strip()] if value.strip() else None
+    if isinstance(value, (list, tuple, set)):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return None
+
+
+def _opt_str(value: Any) -> str | None:
+    """None for an absent or blank argument, the trimmed string otherwise.
+
+    A blank string is treated as absent for the same reason the group tools
+    do it: models routinely fill unused optional params with ``""``, and
+    honouring that literally would blank the very field the user asked to keep.
+    """
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _opt_bool(value: Any) -> bool | None:
+    """Tri-state coercion — ``False`` is a real request, absent is not.
+
+    Unlike the string case, a literal ``false`` carries intent here ("unhide
+    it", "stop exposing it"), so only ``None`` and an empty string mean absent.
+    JSON-schema booleans still arrive as the strings "true"/"false" from some
+    providers, hence the text branch.
+    """
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().casefold()
+    if text in ("true", "yes", "1", "on"):
+        return True
+    if text in ("false", "no", "0", "off"):
+        return False
+    return None
 
 
 def _truncate_result(result: dict[str, Any]) -> dict[str, Any]:

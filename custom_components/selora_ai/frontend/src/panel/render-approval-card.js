@@ -51,21 +51,68 @@ const _DELETE_KIND_LABELS = {
   automation: "automation",
   scene: "scene",
   group: "group",
+  area: "area",
+  script: "script",
+  label: "label",
+  entity: "entity",
+  device: "device",
 };
 
 const _DELETE_KIND_ICONS = {
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",
+  area: "mdi:floor-plan",
+  script: "mdi:script-text-outline",
+  label: "mdi:label-outline",
+  entity: "mdi:shape-outline",
+  device: "mdi:devices",
+};
+
+// Wording for the two confirmation shapes. Both use the same layout, rows, and
+// destructive accent — only the copy differs, because calling a disable or a
+// rename "Delete this?" would describe the wrong action on the one screen where
+// the user is deciding whether to let it happen.
+const _CONFIRM_VARIANTS = {
+  delete: {
+    doneIcon: "mdi:trash-can-outline",
+    doneKey: "approval_status_deleted",
+    doneFallback: "Deleted",
+    titleKey: "delete_approval_title",
+    titleFallback: "Delete this?",
+    titlePluralKey: "delete_approval_title_plural",
+    titlePluralFallback: "Delete these?",
+    warningKey: "delete_approval_warning",
+    warningFallback: "This permanently removes it and can't be undone.",
+  },
+  destructive: {
+    doneIcon: "mdi:check-circle-outline",
+    doneKey: "approval_status_applied",
+    doneFallback: "Applied",
+    titleKey: "destructive_approval_title",
+    titleFallback: "Apply this change?",
+    titlePluralKey: "destructive_approval_title_plural",
+    titlePluralFallback: "Apply these changes?",
+    warningKey: "destructive_approval_warning",
+    warningFallback: "This can't be undone from chat.",
+  },
 };
 
 // Render the delete-confirmation card. Destructive accent (red), a row per
 // target showing its friendly label + entity_id, and the terminal
 // approved/denied/resolving states. The Delete / Cancel buttons themselves
 // come from ``msg.quick_actions`` (rendered in the composer row).
-function renderDeleteApprovalCard(host, approval, approvalStatus) {
+function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
   const accent = "#ef4444";
-  const deletes = approval.deletes || [];
+  // One card can carry both deletions and other destructive changes. Every row
+  // is shown: a change the user was not shown is a change they cannot refuse.
+  const deletes = [...(approval.deletes || []), ...(approval.actions || [])];
+  // Delete wording only when the card is purely deletions — otherwise the
+  // neutral copy, which describes a mixed card honestly.
+  const pureDelete = variant === "delete" && !(approval.actions || []).length;
+  const copy = pureDelete
+    ? _CONFIRM_VARIANTS.delete
+    : _CONFIRM_VARIANTS.destructive;
 
   if (approvalStatus === "approved" || approvalStatus === "denied") {
     const resolved = approvalStatus === "approved";
@@ -78,13 +125,13 @@ function renderDeleteApprovalCard(host, approval, approvalStatus) {
         };"
       >
         <ha-icon
-          icon=${resolved ? "mdi:trash-can-outline" : "mdi:close-circle-outline"}
+          icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
           style="--mdc-icon-size:16px;flex-shrink:0;"
         ></ha-icon>
         <span
           >${
             resolved
-              ? host._t("approval_status_deleted", "Deleted")
+              ? host._t(copy.doneKey, copy.doneFallback)
               : host._t("approval_status_cancelled", "Cancelled")
           }</span
         >
@@ -117,8 +164,8 @@ function renderDeleteApprovalCard(host, approval, approvalStatus) {
         <span
           >${
             deletes.length > 1
-              ? host._t("delete_approval_title_plural", "Delete these?")
-              : host._t("delete_approval_title", "Delete this?")
+              ? host._t(copy.titlePluralKey, copy.titlePluralFallback)
+              : host._t(copy.titleKey, copy.titleFallback)
           }</span
         >
       </div>
@@ -128,10 +175,7 @@ function renderDeleteApprovalCard(host, approval, approvalStatus) {
       <div
         style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >
-        ${host._t(
-          "delete_approval_warning",
-          "This permanently removes it and can't be undone.",
-        )}
+        ${host._t(copy.warningKey, copy.warningFallback)}
       </div>
     </div>
   `;
@@ -295,8 +339,16 @@ export function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
   // Delete-confirmation cards are a distinct shape (no service calls, no
   // risk level, no scope chip) — render them separately.
-  if (approval.approval_kind === "delete") {
-    return renderDeleteApprovalCard(host, approval, approvalStatus);
+  if (
+    approval.approval_kind === "delete" ||
+    approval.approval_kind === "destructive"
+  ) {
+    return renderDeleteApprovalCard(
+      host,
+      approval,
+      approvalStatus,
+      approval.approval_kind,
+    );
   }
   const level = (approval.risk_level || "low").toLowerCase();
   const { accent, icon, explainerKey, explainerFallback } =

@@ -343,6 +343,25 @@ TOOL_LIST_GROUPS = "selora_list_groups"
 TOOL_CREATE_GROUP = "selora_create_group"
 TOOL_UPDATE_GROUP = "selora_update_group"
 TOOL_DELETE_GROUP = "selora_delete_group"
+TOOL_LIST_AREAS = "selora_list_areas"
+TOOL_ASSIGN_AREA = "selora_assign_area"
+TOOL_CREATE_AREA = "selora_create_area"
+TOOL_UPDATE_AREA = "selora_update_area"
+TOOL_DELETE_AREA = "selora_delete_area"
+TOOL_UPDATE_ENTITY = "selora_update_entity"
+TOOL_UPDATE_DEVICE = "selora_update_device"
+TOOL_LIST_SERVICES = "selora_list_services"
+TOOL_LIST_SCRIPTS = "selora_list_scripts"
+TOOL_GET_SCRIPT = "selora_get_script"
+TOOL_SET_SCRIPT = "selora_set_script"
+TOOL_DELETE_SCRIPT = "selora_delete_script"
+TOOL_LIST_LABELS = "selora_list_labels"
+TOOL_CREATE_LABEL = "selora_create_label"
+TOOL_ASSIGN_LABELS = "selora_assign_labels"
+TOOL_DELETE_LABEL = "selora_delete_label"
+TOOL_LIST_HELPERS = "selora_list_helpers"
+TOOL_GET_LOGS = "selora_get_logs"
+TOOL_GET_AUTOMATION_TRACES = "selora_get_automation_traces"
 
 # Tools that require admin / write scope: mutating operations plus
 # eval_template, which exposes HA's full Jinja engine — broad state
@@ -366,6 +385,24 @@ _ADMIN_TOOLS = frozenset(
         TOOL_CREATE_GROUP,
         TOOL_UPDATE_GROUP,
         TOOL_DELETE_GROUP,
+        TOOL_ASSIGN_AREA,
+        TOOL_CREATE_AREA,
+        TOOL_UPDATE_AREA,
+        TOOL_DELETE_AREA,
+        TOOL_UPDATE_ENTITY,
+        TOOL_UPDATE_DEVICE,
+        TOOL_SET_SCRIPT,
+        TOOL_DELETE_SCRIPT,
+        TOOL_CREATE_LABEL,
+        TOOL_ASSIGN_LABELS,
+        TOOL_DELETE_LABEL,
+        # Read-only, but admin-gated to match Home Assistant: it guards both
+        # ``system_log/list`` and every ``trace/*`` command with
+        # ``require_admin``. Logs carry exception text and configuration
+        # details, and traces expose what automations do and when they fire —
+        # neither is something a read-only credential should be able to mine.
+        TOOL_GET_LOGS,
+        TOOL_GET_AUTOMATION_TRACES,
     }
 )
 
@@ -382,6 +419,7 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_SUGGESTIONS,
         TOOL_LIST_DEVICES,
         TOOL_GET_DEVICE,
+        TOOL_GET_DEVICE_TRIGGERS,
         TOOL_GET_ENTITY_STATE,
         TOOL_FIND_ENTITIES_BY_AREA,
         TOOL_VALIDATE_ACTION,
@@ -392,6 +430,12 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_GET_SCENE,
         TOOL_VALIDATE_SCENE,
         TOOL_LIST_GROUPS,
+        TOOL_LIST_AREAS,
+        TOOL_LIST_SERVICES,
+        TOOL_LIST_SCRIPTS,
+        TOOL_GET_SCRIPT,
+        TOOL_LIST_LABELS,
+        TOOL_LIST_HELPERS,
     }
 )
 
@@ -913,6 +957,25 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_CREATE_GROUP: _tool_create_group,
         TOOL_UPDATE_GROUP: _tool_update_group,
         TOOL_DELETE_GROUP: _tool_delete_group,
+        TOOL_LIST_AREAS: _tool_list_areas,
+        TOOL_ASSIGN_AREA: _tool_assign_area,
+        TOOL_CREATE_AREA: _tool_create_area,
+        TOOL_UPDATE_AREA: _tool_update_area,
+        TOOL_DELETE_AREA: _tool_delete_area,
+        TOOL_UPDATE_ENTITY: _tool_update_entity,
+        TOOL_UPDATE_DEVICE: _tool_update_device,
+        TOOL_LIST_SERVICES: _tool_list_services,
+        TOOL_LIST_SCRIPTS: _tool_list_scripts,
+        TOOL_GET_SCRIPT: _tool_get_script,
+        TOOL_SET_SCRIPT: _tool_set_script,
+        TOOL_DELETE_SCRIPT: _tool_delete_script,
+        TOOL_LIST_LABELS: _tool_list_labels,
+        TOOL_CREATE_LABEL: _tool_create_label,
+        TOOL_ASSIGN_LABELS: _tool_assign_labels,
+        TOOL_DELETE_LABEL: _tool_delete_label,
+        TOOL_LIST_HELPERS: _tool_list_helpers,
+        TOOL_GET_LOGS: _tool_get_logs,
+        TOOL_GET_AUTOMATION_TRACES: _tool_get_automation_traces,
     }
 
 
@@ -4326,6 +4389,374 @@ async def _preview_delete_group(hass: HomeAssistant, arguments: dict[str, Any]) 
     }
 
 
+# ── Registry tools ────────────────────────────────────────────────────────────
+
+
+async def _tool_list_areas(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Every area and floor with occupancy counts."""
+    from .registry_manager import area_overview  # noqa: PLC0415
+
+    return area_overview(hass, include_entities=bool(arguments.get("include_entities")))
+
+
+async def _tool_list_services(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Callable services, optionally expanded for one domain."""
+    from .registry_manager import list_services  # noqa: PLC0415
+
+    return list_services(hass, arguments.get("domain"))
+
+
+async def _tool_assign_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Place entities and/or devices in an area."""
+    from .registry_manager import async_assign_area  # noqa: PLC0415
+    from .tool_executor import _as_list  # noqa: PLC0415
+
+    return await async_assign_area(
+        hass,
+        area=str(arguments.get("area", "")),
+        entity_ids=_as_list(arguments.get("entity_ids")),
+        device_ids=_as_list(arguments.get("device_ids")),
+    )
+
+
+async def _tool_create_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create an area, reporting an existing one of the same name instead."""
+    from .registry_manager import async_create_area  # noqa: PLC0415
+    from .tool_executor import _opt_list, _opt_str  # noqa: PLC0415
+
+    return async_create_area(
+        hass,
+        name=str(arguments.get("name", "")),
+        floor=_opt_str(arguments.get("floor")),
+        icon=_opt_str(arguments.get("icon")),
+        aliases=_opt_list(arguments.get("aliases")),
+    )
+
+
+async def _tool_update_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Rename an area or change its floor, icon, or aliases."""
+    from .registry_manager import async_update_area  # noqa: PLC0415
+    from .tool_executor import _opt_list, _opt_str  # noqa: PLC0415
+
+    return async_update_area(
+        hass,
+        area=str(arguments.get("area", "")),
+        new_name=_opt_str(arguments.get("new_name")),
+        floor=_opt_str(arguments.get("floor")),
+        icon=_opt_str(arguments.get("icon")),
+        aliases=_opt_list(arguments.get("aliases")),
+    )
+
+
+async def _tool_delete_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete an area outright.
+
+    The MCP surface deletes directly, matching ``_tool_delete_group``: an MCP
+    client runs its own confirmation UX, whereas the chat path routes through
+    :func:`_preview_delete_area` and the user's tap on a card.
+    """
+    from .registry_manager import async_delete_area, resolve_area  # noqa: PLC0415
+
+    entry, error = resolve_area(hass, str(arguments.get("area", "")))
+    if error or entry is None:
+        return {"error": error or "Area not found"}
+    return await async_delete_area(hass, entry.id)
+
+
+async def _tool_update_entity(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Change one entity's registry settings."""
+    from .registry_manager import async_update_entity  # noqa: PLC0415
+    from .tool_executor import _opt_bool, _opt_list, _opt_str  # noqa: PLC0415
+
+    return await async_update_entity(
+        hass,
+        entity_id=str(arguments.get("entity_id", "")),
+        new_name=_opt_str(arguments.get("new_name")),
+        aliases=_opt_list(arguments.get("aliases")),
+        icon=_opt_str(arguments.get("icon")),
+        hidden=_opt_bool(arguments.get("hidden")),
+        disabled=_opt_bool(arguments.get("disabled")),
+        expose_to_assist=_opt_bool(arguments.get("expose_to_assist")),
+        new_entity_id=_opt_str(arguments.get("new_entity_id")),
+    )
+
+
+async def _tool_update_device(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Rename a device, move it to an area, or disable it."""
+    from .registry_manager import async_update_device  # noqa: PLC0415
+    from .tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
+
+    return await async_update_device(
+        hass,
+        device=str(arguments.get("device", "")),
+        new_name=_opt_str(arguments.get("new_name")),
+        area=_opt_str(arguments.get("area")),
+        disabled=_opt_bool(arguments.get("disabled")),
+    )
+
+
+async def _preview_delete_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a delete_area target WITHOUT deleting it.
+
+    Read-only counterpart of :func:`_tool_delete_area` for the chat path.
+    ``target_id`` is the ``area_id``, which HA derives from the name at
+    creation and never rewrites on rename — so it stays valid between the card
+    being shown and the user tapping Delete.
+
+    The label carries the blast radius, because the tool-loop short-circuit on
+    ``requires_approval`` discards whatever prose the model wrote. Entities and
+    devices are counted (they survive, merely unassigned); automations and
+    scripts are called out separately because they do not fail — they keep
+    running against an area that no longer matches anything.
+    """
+    from .registry_manager import area_dependents, resolve_area  # noqa: PLC0415
+
+    entry, error = resolve_area(hass, str(arguments.get("area", "")))
+    if error or entry is None:
+        return {"error": error or "Area not found"}
+
+    dependents = area_dependents(hass, entry.id)
+    label = _sanitize(entry.name) or entry.id
+    counts = (
+        (dependents["entities"], "entity", "entities"),
+        (dependents["devices"], "device", "devices"),
+    )
+    if holds := [f"{n} {one if n == 1 else many}" for n, one, many in counts if n]:
+        label = f"{label} — holds {', '.join(holds)}"
+    breaks = len(dependents["automations"]) + len(dependents["scripts"])
+    if breaks:
+        label = f"{label}; {breaks} automation{'s' if breaks != 1 else ''}/script target it"
+
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "area",
+            "target_id": entry.id,
+            "entity_id": "",
+            "name": _sanitize(entry.name),
+            "label": label,
+            # area_id is derived from the NAME (AreaRegistry._generate_id), so
+            # deleting "Study" and creating a new "Study" while the card is open
+            # yields the same id — the card would then delete the new area. The
+            # creation timestamp distinguishes the instances.
+            "fingerprint": entry.created_at.isoformat() if entry.created_at else "",
+        },
+    }
+
+
+# ── Script / label / helper / diagnostic tools ────────────────────────────────
+
+
+async def _tool_list_scripts(hass: HomeAssistant, _arguments: dict[str, Any]) -> dict[str, Any]:
+    """Every script with its alias and step count."""
+    from .script_manager import async_list_scripts  # noqa: PLC0415
+
+    return await async_list_scripts(hass)
+
+
+async def _tool_get_script(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """One script's full configuration."""
+    from .script_manager import async_get_script  # noqa: PLC0415
+
+    return await async_get_script(hass, str(arguments.get("script", "")))
+
+
+async def _tool_set_script(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create or wholesale-replace a script."""
+    from .script_manager import async_set_script  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    sequence = arguments.get("sequence")
+    if not isinstance(sequence, list):
+        return {"error": "sequence must be a list of action steps."}
+    return await async_set_script(
+        hass,
+        alias=str(arguments.get("alias", "")),
+        sequence=sequence,
+        object_id=_opt_str(arguments.get("object_id")),
+        description=_opt_str(arguments.get("description")),
+        mode=_opt_str(arguments.get("mode")),
+        icon=_opt_str(arguments.get("icon")),
+        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+        expect_create=bool(arguments.get("expect_create")),
+    )
+
+
+async def _tool_delete_script(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete a script outright (MCP clients run their own confirmation)."""
+    from .script_manager import async_delete_script  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return await async_delete_script(
+        hass,
+        str(arguments.get("script", "")),
+        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+    )
+
+
+async def _preview_delete_script(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a delete_script target WITHOUT deleting it.
+
+    ``target_id`` is the object_id, which is the script's key in
+    ``scripts.yaml`` and cannot change without the script being rewritten — so
+    it stays valid between the card being rendered and the user tapping Delete.
+    """
+    from .script_manager import (  # noqa: PLC0415
+        ScriptsFileError,
+        _load,
+        _unreadable,
+        resolve_script,
+        script_dependents,
+        script_fingerprint,
+    )
+
+    try:
+        scripts = await _load(hass)
+    except ScriptsFileError as exc:
+        return _unreadable(exc)
+    object_id, ambiguous = resolve_script(scripts, str(arguments.get("script", "")))
+    if ambiguous:
+        return {"error": ambiguous}
+    if object_id is None:
+        return {"error": f"No script matching '{_sanitize(arguments.get('script'), 60)}'."}
+
+    entity_id = f"script.{object_id}"
+    alias = str((scripts[object_id] or {}).get("alias") or object_id)
+    label = _sanitize(alias) or entity_id
+
+    dependents = script_dependents(hass, entity_id)
+    callers = len(dependents["automations"]) + len(dependents["scripts"])
+    if callers:
+        label = f"{label} — called by {callers} automation{'s' if callers != 1 else ''}/script"
+
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "script",
+            "target_id": object_id,
+            "entity_id": entity_id,
+            "name": _sanitize(alias),
+            "label": label,
+            # An object_id is a slug and freely reusable, and an alias survives
+            # an edit — so neither identifies the script the user approved.
+            # Hashing the stored config catches a recreate AND an in-place edit.
+            "fingerprint": script_fingerprint(scripts[object_id]),
+        },
+    }
+
+
+async def _tool_list_labels(hass: HomeAssistant, _arguments: dict[str, Any]) -> dict[str, Any]:
+    """Every label with per-target-kind usage counts."""
+    from .label_manager import label_overview  # noqa: PLC0415
+
+    return label_overview(hass)
+
+
+async def _tool_create_label(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create a label, or report the existing one with that name."""
+    from .label_manager import async_create_label  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return async_create_label(
+        hass,
+        name=str(arguments.get("name", "")),
+        icon=_opt_str(arguments.get("icon")),
+        color=_opt_str(arguments.get("color")),
+    )
+
+
+async def _tool_assign_labels(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Apply label deltas across entities, devices, and areas."""
+    from .label_manager import async_assign_labels  # noqa: PLC0415
+    from .tool_executor import _as_list  # noqa: PLC0415
+
+    return await async_assign_labels(
+        hass,
+        add_labels=_as_list(arguments.get("add_labels")),
+        remove_labels=_as_list(arguments.get("remove_labels")),
+        entity_ids=_as_list(arguments.get("entity_ids")),
+        device_ids=_as_list(arguments.get("device_ids")),
+        areas=_as_list(arguments.get("areas")),
+    )
+
+
+async def _tool_delete_label(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete a label outright (MCP clients run their own confirmation)."""
+    from .label_manager import async_delete_label, resolve_label  # noqa: PLC0415
+
+    label, error = resolve_label(hass, str(arguments.get("label", "")))
+    if error or label is None:
+        return {"error": error or "Label not found"}
+    return async_delete_label(hass, label.label_id)
+
+
+async def _preview_delete_label(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a delete_label target WITHOUT deleting it."""
+    from .label_manager import label_dependents, label_usage, resolve_label  # noqa: PLC0415
+
+    label, error = resolve_label(hass, str(arguments.get("label", "")))
+    if error or label is None:
+        return {"error": error or "Label not found"}
+
+    counts = label_usage(hass, label.label_id)
+    label_text = _sanitize(label.name) or label.label_id
+    carried = counts["entity_count"] + counts["device_count"] + counts["area_count"]
+    if carried:
+        label_text = f"{label_text} — on {carried} target{'s' if carried != 1 else ''}"
+
+    # Carriers merely lose a tag; a targeter silently stops matching. Named
+    # separately so the card distinguishes the recoverable from the invisible.
+    dependents = label_dependents(hass, label.label_id)
+    targeting = len(dependents["automations"]) + len(dependents["scripts"])
+    if targeting:
+        label_text = (
+            f"{label_text}; {targeting} automation{'s' if targeting != 1 else ''}/script target it"
+        )
+
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "label",
+            "target_id": label.label_id,
+            "entity_id": "",
+            "name": _sanitize(label.name),
+            "label": label_text,
+            # LabelRegistry._generate_id derives the id from the name, exactly
+            # as areas do — same reuse hazard, same fingerprint.
+            "fingerprint": label.created_at.isoformat() if label.created_at else "",
+        },
+    }
+
+
+async def _tool_list_helpers(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Helper entities, optionally for one helper domain."""
+    from .registry_manager import helper_overview  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return await helper_overview(hass, _opt_str(arguments.get("domain")))
+
+
+async def _tool_get_logs(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Recent deduplicated errors and warnings."""
+    from .diagnostics_tools import get_logs  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return get_logs(
+        hass,
+        level=_opt_str(arguments.get("level")),
+        contains=_opt_str(arguments.get("contains")),
+    )
+
+
+async def _tool_get_automation_traces(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Recent runs of one automation."""
+    from .diagnostics_tools import get_automation_traces  # noqa: PLC0415
+
+    return await get_automation_traces(hass, str(arguments.get("automation", "")))
+
+
 # ── Tool definitions (MCP schema) ─────────────────────────────────────────────
 
 
@@ -5143,3 +5574,291 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
         },
     ),
 ]
+
+
+# These tools carry the same schema on both surfaces, so the MCP definitions are
+# derived from the chat ``ToolDef``s rather than restated. A second hand-written
+# copy is a schema that drifts the next time a parameter is added, and the
+# failure is quiet in the worst way: the MCP client rejects an argument chat
+# accepts, on a tool that looks identical in both listings.
+_DERIVED_MCP_TOOLS: dict[str, str] = {
+    # Has had a handler since it was written but no definition, so it never
+    # appeared in tools/list and no MCP client could reach it. Deriving it here
+    # is the whole fix; see ``test_every_mcp_handler_is_declared``.
+    TOOL_GET_DEVICE_TRIGGERS: "get_device_triggers",
+    TOOL_LIST_AREAS: "list_areas",
+    TOOL_ASSIGN_AREA: "assign_area",
+    TOOL_CREATE_AREA: "create_area",
+    TOOL_UPDATE_AREA: "update_area",
+    TOOL_DELETE_AREA: "delete_area",
+    TOOL_UPDATE_ENTITY: "update_entity",
+    TOOL_UPDATE_DEVICE: "update_device",
+    TOOL_LIST_SERVICES: "list_services",
+    TOOL_LIST_SCRIPTS: "list_scripts",
+    TOOL_GET_SCRIPT: "get_script",
+    TOOL_SET_SCRIPT: "set_script",
+    TOOL_DELETE_SCRIPT: "delete_script",
+    TOOL_LIST_LABELS: "list_labels",
+    TOOL_CREATE_LABEL: "create_label",
+    TOOL_ASSIGN_LABELS: "assign_labels",
+    TOOL_DELETE_LABEL: "delete_label",
+    TOOL_LIST_HELPERS: "list_helpers",
+    TOOL_GET_LOGS: "get_logs",
+    TOOL_GET_AUTOMATION_TRACES: "get_automation_traces",
+}
+
+
+def _mcp_tool_from_chat_tool(mcp_name: str, chat_name: str) -> MCPTool:
+    """Render a chat ToolDef as an MCP tool definition."""
+    from .tool_registry import TOOL_MAP  # noqa: PLC0415
+
+    definition = TOOL_MAP[chat_name].to_anthropic()
+    description = definition["description"]
+    if mcp_name in _ADMIN_TOOLS:
+        description = f"{description} Requires admin access."
+    return MCPTool(
+        name=mcp_name,
+        description=description,
+        inputSchema=definition["input_schema"],
+    )
+
+
+_TOOL_DEFINITIONS.extend(
+    _mcp_tool_from_chat_tool(mcp_name, chat_name)
+    for mcp_name, chat_name in _DERIVED_MCP_TOOLS.items()
+)
+
+
+# ── Destructive non-delete previews ───────────────────────────────────────────
+#
+# Deletes are not the only irreversible-in-practice writes here. Disabling an
+# entity removes it from the state machine; disabling a device takes all of its
+# entities with it; renaming an entity_id breaks every reference HA will not
+# rewrite; replacing a script discards the sequence that was there. None of
+# those has an undo the user can reach from chat, so each returns a
+# confirmation descriptor instead of executing, exactly as the deletes do.
+#
+# ``payload`` is the full argument set, replayed verbatim by ``_resolve_approval``
+# on confirm. Replaying the arguments rather than a diff means the confirm path
+# runs the same validated code as the direct path — there is no second
+# implementation to drift.
+
+
+def _destructive_card(
+    *,
+    kind: str,
+    verb: str,
+    target_id: str,
+    entity_id: str,
+    name: str,
+    label: str,
+    fingerprint: str = "",
+) -> dict[str, Any]:
+    """Shape a pending destructive action for the confirmation card.
+
+    ``target_id`` is the immutable handle the confirm path binds to, and it is
+    NOT necessarily what the model passed: a caller can name a device or script
+    by its mutable display name, and between the card being shown and the user
+    tapping Apply that name can move to a different object. Replaying the
+    original argument would then act on whatever answers to the name now.
+
+    ``fingerprint`` carries a second identity check for targets whose id is
+    itself mutable — an entity_id, which is precisely what a rename changes.
+
+    The card deliberately carries NO payload. The arguments to replay live in
+    the tool log entry beside this result, which the synthesizer already reads
+    and which is never echoed back to the model. Embedding them here instead
+    duplicated the model's own arguments into its context — and for a script
+    replacement that means the whole proposed sequence, which
+    ``ToolExecutor._truncate_result`` cannot bound because it only finds lists
+    at the top level or one dict deep.
+    """
+    return {
+        "requires_approval": True,
+        "destructive": {
+            "kind": kind,
+            "verb": verb,
+            "target_id": target_id,
+            "entity_id": entity_id,
+            "name": _sanitize(name),
+            "label": label,
+            "fingerprint": fingerprint,
+        },
+    }
+
+
+async def _preview_update_entity(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Hold a disable or an entity_id rename for confirmation.
+
+    Every other field ``update_entity`` accepts — friendly name, aliases, icon,
+    hidden, Assist exposure — is a metadata edit the user can reverse by asking
+    for the opposite, so those still execute directly. Gating them would put a
+    card in front of "call it the Reading Lamp", which teaches the user to tap
+    through cards without reading them.
+    """
+    from .registry_manager import async_update_entity  # noqa: PLC0415
+    from .tool_executor import _opt_bool, _opt_list, _opt_str  # noqa: PLC0415
+
+    entity_id = str(arguments.get("entity_id", "")).strip()
+    disabling = _opt_bool(arguments.get("disabled")) is True
+    new_entity_id = _opt_str(arguments.get("new_entity_id"))
+    if not disabling and not (new_entity_id and new_entity_id != entity_id):
+        return await async_update_entity(
+            hass,
+            entity_id=entity_id,
+            new_name=_opt_str(arguments.get("new_name")),
+            aliases=_opt_list(arguments.get("aliases")),
+            icon=_opt_str(arguments.get("icon")),
+            hidden=_opt_bool(arguments.get("hidden")),
+            disabled=_opt_bool(arguments.get("disabled")),
+            expose_to_assist=_opt_bool(arguments.get("expose_to_assist")),
+            new_entity_id=None,
+        )
+
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    entry = er.async_get(hass).async_get(entity_id)
+    if entry is None:
+        return {"error": f"'{_sanitize(entity_id, 60)}' is not in the entity registry."}
+
+    # Validate BEFORE offering the card. Asking the user to confirm a rename
+    # that cannot happen — wrong domain, taken id, live references — spends
+    # their attention on a decision with no outcome, and teaches them the card
+    # is noise.
+    if new_entity_id and new_entity_id != entity_id:
+        from .registry_manager import validate_entity_id_rename  # noqa: PLC0415
+
+        if error := await validate_entity_id_rename(hass, entity_id, new_entity_id):
+            return {"error": error}
+
+    friendly = _sanitize(entry.name or entry.original_name or entity_id)
+
+    # EVERY destructive change in this call goes on the label, not just the
+    # first one matched. A single ``update_entity`` can disable an entity AND
+    # rename its id, and the payload replayed on confirm applies both — so a
+    # label naming only the disable would have the user approving a rename they
+    # were never shown. The tool loop short-circuits on ``requires_approval``
+    # and discards the model's prose, so the card is the only place this can be
+    # said.
+    parts: list[str] = []
+    if disabling:
+        parts.append(
+            f"Disable {friendly} ({entity_id}) — it stops updating and leaves the state machine"
+        )
+    renaming = bool(new_entity_id and new_entity_id != entity_id)
+    if renaming:
+        parts.append(f"Rename the id {entity_id} → {new_entity_id}")
+    # The verb drives the confirm-side allowlist; the label carries the detail.
+    # Disable is the stronger of the two, so it names the card when both apply.
+    verb = "disable" if disabling else "rename_id"
+    label = "; ".join(parts)
+
+    return _destructive_card(
+        kind="entity",
+        verb=verb,
+        target_id=entity_id,
+        entity_id=entity_id,
+        name=friendly,
+        label=label,
+        # entity_id is exactly what a rename changes, so it cannot identify the
+        # target across the life of the card. RegistryEntry.id is the registry's
+        # own immutable handle; the confirm path re-resolves through it and
+        # refuses if the entity_id now points somewhere else.
+        fingerprint=entry.id,
+    )
+
+
+async def _preview_update_device(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Hold a device disable for confirmation; rename and area move execute."""
+    from .registry_manager import async_update_device, resolve_device  # noqa: PLC0415
+    from .tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
+
+    if _opt_bool(arguments.get("disabled")) is not True:
+        return await async_update_device(
+            hass,
+            device=str(arguments.get("device", "")),
+            new_name=_opt_str(arguments.get("new_name")),
+            area=_opt_str(arguments.get("area")),
+            disabled=_opt_bool(arguments.get("disabled")),
+        )
+
+    device, error = resolve_device(hass, str(arguments.get("device", "")))
+    if error or device is None:
+        return {"error": error or "Device not found"}
+
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    count = len(er.async_entries_for_device(er.async_get(hass), device.id, True))
+    friendly = _sanitize(device.name_by_user or device.name or device.id)
+    label = f"Disable {friendly}"
+    if count:
+        # The blast radius is the point: disabling a device silently takes every
+        # one of its entities with it, and the user is thinking about one thing.
+        label = f"{label} — and its {count} entit{'ies' if count != 1 else 'y'}"
+
+    return _destructive_card(
+        kind="device",
+        verb="disable",
+        target_id=device.id,
+        entity_id="",
+        name=friendly,
+        label=label,
+    )
+
+
+async def _preview_set_script(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Hold a script REPLACEMENT for confirmation; creation executes directly.
+
+    ``set_script`` replaces wholesale, so overwriting discards the sequence that
+    was there with no undo. Creating a new script discards nothing, and gating
+    it would put a card in front of every "make me a Movie Night routine".
+    """
+    from .script_manager import (  # noqa: PLC0415
+        ScriptsFileError,
+        _load,
+        _unreadable,
+        resolve_write_target,
+        script_fingerprint,
+    )
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    alias = str(arguments.get("alias", "")).strip()
+    try:
+        scripts = await _load(hass)
+    except ScriptsFileError as exc:
+        return _unreadable(exc)
+
+    # The SAME resolver the write uses, so the two cannot disagree about
+    # whether this is a creation. When they disagreed, a slug collision was
+    # classified as a creation here, executed directly, and overwrote an
+    # unrelated script with no card ever shown.
+    existing, replaces, ambiguous = resolve_write_target(
+        scripts, object_id=_opt_str(arguments.get("object_id")), alias=alias
+    )
+    if ambiguous:
+        return {"error": ambiguous}
+    if not replaces:
+        # Creation executes directly, but the classification was made before the
+        # write took the lock. The flag makes the write re-check it atomically
+        # rather than silently becoming a replacement.
+        return await _tool_set_script(hass, {**arguments, "expect_create": True})
+
+    current = scripts[existing] or {}
+    steps = current.get("sequence") or []
+    friendly = _sanitize(current.get("alias") or existing)
+    label = f"Replace the {friendly} script"
+    if isinstance(steps, list) and steps:
+        label = f"{label} — its {len(steps)} existing step{'s' if len(steps) != 1 else ''} are discarded"
+
+    return _destructive_card(
+        kind="script",
+        verb="replace",
+        target_id=existing,
+        entity_id=f"script.{existing}",
+        name=friendly,
+        label=label,
+        # Hash of the config being replaced. An alias survives an in-place
+        # edit, so it cannot tell "the script the user approved overwriting"
+        # from "a newer version of it".
+        fingerprint=script_fingerprint(current),
+    )

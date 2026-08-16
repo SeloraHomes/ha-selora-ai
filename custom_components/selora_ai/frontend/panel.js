@@ -9957,6 +9957,10 @@ var en_default = {
     insights_offline_hours_few: "{count} hours",
     insights_offline_hours_many: "{count} hours",
     insights_offline_hours_other: "{count} hours",
+    approval_status_applied: "Applied",
+    destructive_approval_title: "Apply this change?",
+    destructive_approval_title_plural: "Apply these changes?",
+    destructive_approval_warning: "This can't be undone from chat.",
   },
   options: {
     step: {
@@ -11139,6 +11143,11 @@ var fr_default = {
     insights_offline_hours_few: "{count} heures",
     insights_offline_hours_many: "{count} heures",
     insights_offline_hours_other: "{count} heures",
+    approval_status_applied: "Appliqu\xE9",
+    destructive_approval_title: "Appliquer ce changement ?",
+    destructive_approval_title_plural: "Appliquer ces changements ?",
+    destructive_approval_warning:
+      "Cette action est irr\xE9versible depuis le chat.",
   },
   options: {
     step: {
@@ -12314,6 +12323,11 @@ var de_default = {
     insights_offline_hours_few: "{count} Stunden",
     insights_offline_hours_many: "{count} Stunden",
     insights_offline_hours_other: "{count} Stunden",
+    approval_status_applied: "Angewendet",
+    destructive_approval_title: "Diese \xC4nderung anwenden?",
+    destructive_approval_title_plural: "Diese \xC4nderungen anwenden?",
+    destructive_approval_warning:
+      "Dies kann \xFCber den Chat nicht r\xFCckg\xE4ngig gemacht werden.",
   },
   options: {
     step: {
@@ -13472,6 +13486,10 @@ var es_default = {
     insights_offline_hours_few: "{count} horas",
     insights_offline_hours_many: "{count} horas",
     insights_offline_hours_other: "{count} horas",
+    approval_status_applied: "Aplicado",
+    destructive_approval_title: "\xBFAplicar este cambio?",
+    destructive_approval_title_plural: "\xBFAplicar estos cambios?",
+    destructive_approval_warning: "Esto no se puede deshacer desde el chat.",
   },
   options: {
     step: {
@@ -14629,6 +14647,11 @@ var it_default = {
     insights_offline_hours_few: "{count} ore",
     insights_offline_hours_many: "{count} ore",
     insights_offline_hours_other: "{count} ore",
+    approval_status_applied: "Applicato",
+    destructive_approval_title: "Applicare questa modifica?",
+    destructive_approval_title_plural: "Applicare queste modifiche?",
+    destructive_approval_warning:
+      "Questa operazione non pu\xF2 essere annullata dalla chat.",
   },
   options: {
     step: {
@@ -15802,6 +15825,11 @@ var nl_default = {
     insights_offline_hours_few: "{count} uur",
     insights_offline_hours_many: "{count} uur",
     insights_offline_hours_other: "{count} uur",
+    approval_status_applied: "Toegepast",
+    destructive_approval_title: "Deze wijziging toepassen?",
+    destructive_approval_title_plural: "Deze wijzigingen toepassen?",
+    destructive_approval_warning:
+      "Dit kan niet ongedaan worden gemaakt vanuit de chat.",
   },
 };
 
@@ -17013,6 +17041,12 @@ var hu_default = {
     insights_offline_hours_few: "{count} \xF3ra",
     insights_offline_hours_many: "{count} \xF3ra",
     insights_offline_hours_other: "{count} \xF3ra",
+    approval_status_applied: "Alkalmazva",
+    destructive_approval_title: "Alkalmazza ezt a m\xF3dos\xEDt\xE1st?",
+    destructive_approval_title_plural:
+      "Alkalmazza ezeket a m\xF3dos\xEDt\xE1sokat?",
+    destructive_approval_warning:
+      "Ezt a cseveg\xE9sb\u0151l nem lehet visszavonni.",
   },
 };
 
@@ -18163,6 +18197,11 @@ var pt_default = {
     insights_offline_hours_few: "{count} horas",
     insights_offline_hours_many: "{count} horas",
     insights_offline_hours_other: "{count} horas",
+    approval_status_applied: "Aplicado",
+    destructive_approval_title: "Aplicar esta altera\xE7\xE3o?",
+    destructive_approval_title_plural: "Aplicar estas altera\xE7\xF5es?",
+    destructive_approval_warning:
+      "Isto n\xE3o pode ser desfeito a partir do chat.",
   },
   options: {
     step: {
@@ -19875,6 +19914,14 @@ var ru_default = {
     insights_offline_hours_few: "{count} \u0447\u0430\u0441\u0430",
     insights_offline_hours_many: "{count} \u0447\u0430\u0441\u043E\u0432",
     insights_offline_hours_other: "{count} \u0447\u0430\u0441\u0430",
+    approval_status_applied:
+      "\u041F\u0440\u0438\u043C\u0435\u043D\u0435\u043D\u043E",
+    destructive_approval_title:
+      "\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C \u044D\u0442\u043E \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435?",
+    destructive_approval_title_plural:
+      "\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C \u044D\u0442\u0438 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F?",
+    destructive_approval_warning:
+      "\u042D\u0442\u043E \u043D\u0435\u043B\u044C\u0437\u044F \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u0437 \u0447\u0430\u0442\u0430.",
   },
   options: {
     step: {
@@ -21301,6 +21348,13 @@ var ja_default = {
     insights_offline_hours_few: "{count}\u6642\u9593",
     insights_offline_hours_many: "{count}\u6642\u9593",
     insights_offline_hours_other: "{count}\u6642\u9593",
+    approval_status_applied: "\u9069\u7528\u3057\u307E\u3057\u305F",
+    destructive_approval_title:
+      "\u3053\u306E\u5909\u66F4\u3092\u9069\u7528\u3057\u307E\u3059\u304B\uFF1F",
+    destructive_approval_title_plural:
+      "\u3053\u308C\u3089\u306E\u5909\u66F4\u3092\u9069\u7528\u3057\u307E\u3059\u304B\uFF1F",
+    destructive_approval_warning:
+      "\u3053\u306E\u64CD\u4F5C\u306F\u30C1\u30E3\u30C3\u30C8\u304B\u3089\u306F\u5143\u306B\u623B\u305B\u307E\u305B\u3093\u3002",
   },
   options: {
     step: {
@@ -22625,6 +22679,13 @@ var ko_default = {
     insights_offline_hours_few: "{count}\uC2DC\uAC04",
     insights_offline_hours_many: "{count}\uC2DC\uAC04",
     insights_offline_hours_other: "{count}\uC2DC\uAC04",
+    approval_status_applied: "\uC801\uC6A9\uB428",
+    destructive_approval_title:
+      "\uC774 \uBCC0\uACBD\uC744 \uC801\uC6A9\uD560\uAE4C\uC694?",
+    destructive_approval_title_plural:
+      "\uC774 \uBCC0\uACBD\uB4E4\uC744 \uC801\uC6A9\uD560\uAE4C\uC694?",
+    destructive_approval_warning:
+      "\uC774 \uC791\uC5C5\uC740 \uCC44\uD305\uC5D0\uC11C \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
   },
   options: {
     step: {
@@ -23877,6 +23938,12 @@ var zh_Hans_default = {
     insights_offline_hours_few: "{count} \u5C0F\u65F6",
     insights_offline_hours_many: "{count} \u5C0F\u65F6",
     insights_offline_hours_other: "{count} \u5C0F\u65F6",
+    approval_status_applied: "\u5DF2\u5E94\u7528",
+    destructive_approval_title: "\u5E94\u7528\u6B64\u66F4\u6539\uFF1F",
+    destructive_approval_title_plural:
+      "\u5E94\u7528\u8FD9\u4E9B\u66F4\u6539\uFF1F",
+    destructive_approval_warning:
+      "\u6B64\u64CD\u4F5C\u65E0\u6CD5\u4ECE\u804A\u5929\u4E2D\u64A4\u9500\u3002",
   },
   options: {
     step: {
@@ -25135,6 +25202,12 @@ var zh_Hant_default = {
     insights_offline_hours_few: "{count} \u5C0F\u6642",
     insights_offline_hours_many: "{count} \u5C0F\u6642",
     insights_offline_hours_other: "{count} \u5C0F\u6642",
+    approval_status_applied: "\u5DF2\u5957\u7528",
+    destructive_approval_title: "\u5957\u7528\u6B64\u8B8A\u66F4\uFF1F",
+    destructive_approval_title_plural:
+      "\u5957\u7528\u9019\u4E9B\u8B8A\u66F4\uFF1F",
+    destructive_approval_warning:
+      "\u6B64\u64CD\u4F5C\u7121\u6CD5\u5F9E\u804A\u5929\u4E2D\u5FA9\u539F\u3002",
   },
   options: {
     step: {
@@ -26182,15 +26255,53 @@ var _DELETE_KIND_LABELS = {
   automation: "automation",
   scene: "scene",
   group: "group",
+  area: "area",
+  script: "script",
+  label: "label",
+  entity: "entity",
+  device: "device",
 };
 var _DELETE_KIND_ICONS = {
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",
+  area: "mdi:floor-plan",
+  script: "mdi:script-text-outline",
+  label: "mdi:label-outline",
+  entity: "mdi:shape-outline",
+  device: "mdi:devices",
 };
-function renderDeleteApprovalCard(host, approval, approvalStatus) {
+var _CONFIRM_VARIANTS = {
+  delete: {
+    doneIcon: "mdi:trash-can-outline",
+    doneKey: "approval_status_deleted",
+    doneFallback: "Deleted",
+    titleKey: "delete_approval_title",
+    titleFallback: "Delete this?",
+    titlePluralKey: "delete_approval_title_plural",
+    titlePluralFallback: "Delete these?",
+    warningKey: "delete_approval_warning",
+    warningFallback: "This permanently removes it and can't be undone.",
+  },
+  destructive: {
+    doneIcon: "mdi:check-circle-outline",
+    doneKey: "approval_status_applied",
+    doneFallback: "Applied",
+    titleKey: "destructive_approval_title",
+    titleFallback: "Apply this change?",
+    titlePluralKey: "destructive_approval_title_plural",
+    titlePluralFallback: "Apply these changes?",
+    warningKey: "destructive_approval_warning",
+    warningFallback: "This can't be undone from chat.",
+  },
+};
+function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
   const accent = "#ef4444";
-  const deletes = approval.deletes || [];
+  const deletes = [...(approval.deletes || []), ...(approval.actions || [])];
+  const pureDelete = variant === "delete" && !(approval.actions || []).length;
+  const copy = pureDelete
+    ? _CONFIRM_VARIANTS.delete
+    : _CONFIRM_VARIANTS.destructive;
   if (approvalStatus === "approved" || approvalStatus === "denied") {
     const resolved = approvalStatus === "approved";
     return b2`
@@ -26198,11 +26309,11 @@ function renderDeleteApprovalCard(host, approval, approvalStatus) {
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolved ? "var(--secondary-text-color)" : "var(--secondary-text-color)"};"
       >
         <ha-icon
-          icon=${resolved ? "mdi:trash-can-outline" : "mdi:close-circle-outline"}
+          icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
           style="--mdc-icon-size:16px;flex-shrink:0;"
         ></ha-icon>
         <span
-          >${resolved ? host._t("approval_status_deleted", "Deleted") : host._t("approval_status_cancelled", "Cancelled")}</span
+          >${resolved ? host._t(copy.doneKey, copy.doneFallback) : host._t("approval_status_cancelled", "Cancelled")}</span
         >
       </div>
     `;
@@ -26229,7 +26340,7 @@ function renderDeleteApprovalCard(host, approval, approvalStatus) {
           style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
         ></ha-icon>
         <span
-          >${deletes.length > 1 ? host._t("delete_approval_title_plural", "Delete these?") : host._t("delete_approval_title", "Delete this?")}</span
+          >${deletes.length > 1 ? host._t(copy.titlePluralKey, copy.titlePluralFallback) : host._t(copy.titleKey, copy.titleFallback)}</span
         >
       </div>
       <div style="display:flex;flex-direction:column;">
@@ -26238,10 +26349,7 @@ function renderDeleteApprovalCard(host, approval, approvalStatus) {
       <div
         style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >
-        ${host._t(
-          "delete_approval_warning",
-          "This permanently removes it and can't be undone.",
-        )}
+        ${host._t(copy.warningKey, copy.warningFallback)}
       </div>
     </div>
   `;
@@ -26371,8 +26479,16 @@ function _scopeLabel(host, scope, entityIds) {
 }
 function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
-  if (approval.approval_kind === "delete") {
-    return renderDeleteApprovalCard(host, approval, approvalStatus);
+  if (
+    approval.approval_kind === "delete" ||
+    approval.approval_kind === "destructive"
+  ) {
+    return renderDeleteApprovalCard(
+      host,
+      approval,
+      approvalStatus,
+      approval.approval_kind,
+    );
   }
   const level = (approval.risk_level || "low").toLowerCase();
   const { accent, icon, explainerKey, explainerFallback } =
@@ -47848,7 +47964,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "2cf6d497629e" : "";
+var PANEL_BUILD = true ? "3aef4e2b22c3" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
