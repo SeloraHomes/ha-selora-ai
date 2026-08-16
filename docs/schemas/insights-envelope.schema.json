@@ -204,7 +204,10 @@
               "version_latest": { "type": "string", "description": "Latest available version; empty string when unknown." },
               "update_available": { "type": "boolean" },
               "state": { "type": "string", "description": "started | stopped | startup | error | unknown" },
-              "url": { "type": "string", "description": "App homepage / management URL, credential-stripped; empty string when none." }
+              "url": { "type": "string", "description": "App homepage / management URL, credential-stripped; empty string when none." },
+              "repository_name": { "type": "string", "description": "Name of the store the app was installed from (e.g. 'Home Assistant Community Store'); empty string when unknown. Optional (additive to v2)." },
+              "repository_url": { "type": "string", "description": "URL of that store, credential-stripped; empty string for the built-in 'core' and 'local' stores, which have none. Optional (additive to v2)." },
+              "repository_maintainer": { "type": "string", "description": "Maintainer of that store; empty string when unknown. Optional (additive to v2)." }
             }
           }
         },

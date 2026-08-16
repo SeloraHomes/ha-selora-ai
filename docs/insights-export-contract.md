@@ -154,6 +154,13 @@ Additive within v2 (nullable/optional, no version bump):
   `update_available` (bool), `state` (`started`/`stopped`/`startup`/`error`/
   `unknown`), and `url` (app homepage/management page, credential-stripped, `""`
   if none). Absent on older producers → treat as `[]`.
+- `roster.apps[].repository_name` / `repository_url` / `repository_maintainer` —
+  the store the app was installed from, resolved from the Supervisor's store
+  list. The Supervisor keys an app to its store by an opaque slug (`core`,
+  `local`, or a hash), which is why the slug is resolved here and never
+  exported. `repository_url` is credential-stripped and is `""` for the built-in
+  `core` and `local` stores, which have no URL — render those by name only.
+  Third-party stores are not necessarily on GitHub. Absent on older producers.
 - `roster.devices[].disabled_entities` — count of intentionally-disabled
   entities on the device. Neutral (surface like HA's "+N disabled"), not a
   health problem.

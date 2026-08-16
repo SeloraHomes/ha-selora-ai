@@ -1055,6 +1055,13 @@ class RosterApp(TypedDict):
     update_available: bool
     state: str  # started | stopped | startup | error | unknown
     url: str  # app homepage / management URL, credential-stripped; "" if none
+    # The store the app was installed from. The Supervisor keys an app to its
+    # store by an opaque slug ("core", "local", or a hash), so the slug itself
+    # is resolved against the store list here and never exported -- a consumer
+    # gets the store as it is displayed, not a key it cannot interpret.
+    repository_name: str  # e.g. "Home Assistant Community Store"; "" if unknown
+    repository_url: str  # store homepage, credential-stripped; "" for core/local
+    repository_maintainer: str  # store author; "" if unknown
 
 
 class RosterEntity(TypedDict):

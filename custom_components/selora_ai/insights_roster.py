@@ -16,6 +16,7 @@ attribute bag.
 from __future__ import annotations
 
 from collections import defaultdict
+from contextlib import suppress
 from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any
@@ -86,6 +87,26 @@ def _strip_url_credentials(url: str) -> str:
     return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
 
 
+def _repository_url(repo: dict[str, Any]) -> str:
+    """Resolve a store's linkable URL from its ``get_store`` row.
+
+    Prefers ``url`` (the ``url:`` key of the store's ``repository.yaml``, which
+    is what the Supervisor panel lists) and falls back to ``source``, the git
+    URL the store was added with. ``source`` is only a URL for third-party
+    stores -- the built-in ones report the literals "core" and "local" -- so it
+    is taken only when it parses as http(s), leaving those two with "" rather
+    than a string a consumer would render as a dead link. Credentials are
+    stripped: a private store is added with them embedded in ``source``.
+    """
+    url = str(repo.get("url") or "")
+    if not url:
+        source = str(repo.get("source") or "")
+        with suppress(ValueError):
+            if urlsplit(source).scheme in ("http", "https"):
+                url = source
+    return _strip_url_credentials(url)
+
+
 def _iso_or_none(value: object) -> str | None:
     """Normalize a ``last_triggered`` attribute to an ISO-8601 string.
 
@@ -107,6 +128,7 @@ def build_home_roster(
     integration_urls: dict[str, str] | None = None,
     integration_versions: dict[str, str] | None = None,
     apps: list[dict[str, Any]] | None = None,
+    app_repositories: dict[str, dict[str, Any]] | None = None,
 ) -> HomeRoster:
     """Build the full home roster. Must run on the event loop (registry reads).
 
@@ -121,11 +143,16 @@ def build_home_roster(
     ``apps`` is the raw Supervisor app (add-on) list from ``get_apps_list`` —
     only populated on supervised installs, ``None``/empty otherwise. It's
     normalized into ``RosterApp`` rows here.
+
+    ``app_repositories`` maps a store slug to its ``get_store`` row (``name`` /
+    ``url`` / ``source`` / ``maintainer``), used to resolve which store each app
+    came from. Absent → the repository fields default to "".
     """
     custom_domains = custom_domains or set()
     integration_names = integration_names or {}
     integration_urls = integration_urls or {}
     integration_versions = integration_versions or {}
+    app_repositories = app_repositories or {}
     ent_reg = er.async_get(hass)
     dev_reg = dr.async_get(hass)
     area_reg = ar.async_get(hass)
@@ -324,6 +351,7 @@ def build_home_roster(
     # consumers get app versions without a separate query.
     roster_apps: list[RosterApp] = []
     for app in apps or []:
+        repo = app_repositories.get(str(app.get("repository") or "")) or {}
         roster_apps.append(
             {
                 "slug": str(app.get("slug", "")),
@@ -333,6 +361,9 @@ def build_home_roster(
                 "update_available": bool(app.get("update_available", False)),
                 "state": str(app.get("state") or ""),
                 "url": _strip_url_credentials(str(app.get("url") or "")),
+                "repository_name": str(repo.get("name") or ""),
+                "repository_url": _repository_url(repo),
+                "repository_maintainer": str(repo.get("maintainer") or ""),
             }
         )
 
