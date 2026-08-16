@@ -271,6 +271,7 @@ class InsightsExporter:
             _LOGGER.debug("Could not resolve integration names; falling back to title/domain")
 
         apps = self._gather_apps()
+        app_repositories = self._gather_app_repositories() if apps else {}
 
         roster = build_home_roster(
             self._hass,
@@ -279,6 +280,7 @@ class InsightsExporter:
             integration_urls,
             integration_versions,
             apps,
+            app_repositories,
         )
         if roster["truncated"]:
             collection = {**collection, "roster_truncated": True}
@@ -392,6 +394,33 @@ class InsightsExporter:
         except Exception:  # noqa: BLE001 — apps are best-effort; never fail the export
             _LOGGER.debug("Could not resolve Supervisor apps; roster apps stay empty")
             return []
+
+    def _gather_app_repositories(self) -> dict[str, dict[str, Any]]:
+        """Return the Supervisor add-on stores, keyed by the slug apps refer to.
+
+        An app's ``repository`` field is an opaque slug ("core", "local", or a
+        hash); the name and URL behind it live in the store list, which nothing
+        else joins. Guarded separately from ``get_apps_list``: ``get_store`` is
+        newer, and on an HA that predates it apps must still be exported — just
+        without their origin.
+        """
+        try:
+            from homeassistant.components.hassio import get_store  # noqa: PLC0415
+            from homeassistant.helpers.hassio import is_hassio  # noqa: PLC0415
+        except ImportError:
+            return {}
+        if not is_hassio(self._hass):
+            return {}
+        try:
+            store = get_store(self._hass) or {}
+            return {
+                slug: repo
+                for repo in store.get("repositories") or []
+                if isinstance(repo, dict) and (slug := str(repo.get("slug") or ""))
+            }
+        except Exception:  # noqa: BLE001 — origin is best-effort; never fail the export
+            _LOGGER.debug("Could not resolve Supervisor stores; app origins stay empty")
+            return {}
 
     async def _gather_health(self) -> InsightsHealth:
         """The deterministic health score + the per-section "why" behind it.

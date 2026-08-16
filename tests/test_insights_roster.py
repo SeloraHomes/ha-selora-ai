@@ -254,6 +254,97 @@ async def test_roster_exposes_supervisor_apps(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
+async def test_roster_apps_resolve_installing_store(hass: HomeAssistant) -> None:
+    """Each app carries the store it was installed from, resolved from the
+    opaque repository slug the Supervisor reports."""
+    apps = [
+        {"slug": "core_mosquitto", "name": "Mosquitto broker", "repository": "core"},
+        {"slug": "a0d7b954_nodered", "name": "Node-RED", "repository": "a0d7b954"},
+        {"slug": "local_thing", "name": "Thing", "repository": "local"},
+    ]
+    repositories = {
+        "core": {
+            "slug": "core",
+            "name": "Official add-ons",
+            "source": "core",
+            "url": "",
+            "maintainer": "Home Assistant",
+        },
+        "a0d7b954": {
+            "slug": "a0d7b954",
+            "name": "Home Assistant Community Store",
+            "source": "https://github.com/hacs/addons",
+            "url": "https://hacs.xyz",
+            "maintainer": "HACS <hi@hacs.xyz>",
+        },
+        "local": {"slug": "local", "name": "Local add-ons", "source": "local", "url": ""},
+    }
+
+    by_slug = {
+        a["slug"]: a
+        for a in build_home_roster(hass, apps=apps, app_repositories=repositories)["apps"]
+    }
+
+    community = by_slug["a0d7b954_nodered"]
+    assert community["repository_name"] == "Home Assistant Community Store"
+    assert community["repository_url"] == "https://hacs.xyz"
+    assert community["repository_maintainer"] == "HACS <hi@hacs.xyz>"
+
+    # The built-in stores have no URL: "core"/"local" are literals, not links.
+    assert by_slug["core_mosquitto"]["repository_name"] == "Official add-ons"
+    assert by_slug["core_mosquitto"]["repository_url"] == ""
+    assert by_slug["local_thing"]["repository_url"] == ""
+    assert by_slug["local_thing"]["repository_maintainer"] == ""
+
+
+@pytest.mark.asyncio
+async def test_roster_app_store_url_falls_back_to_source(hass: HomeAssistant) -> None:
+    """``url`` is optional in a store's repository.yaml — fall back to the git
+    URL it was added with, credential-stripped, on any host."""
+    apps = [
+        {"slug": "x_hydroqc", "name": "Hydroqc", "repository": "b1c2"},
+        {"slug": "x_private", "name": "Private", "repository": "d3e4"},
+    ]
+    repositories = {
+        "b1c2": {
+            "slug": "b1c2",
+            "name": "hydroqc-hass-addons",
+            "source": "https://gitlab.com/hydroqc/hydroqc-hass-addons",
+            "url": "",
+        },
+        "d3e4": {
+            "slug": "d3e4",
+            "name": "Private store",
+            "source": "https://user:token@git.example.com/addons",
+            "url": "",
+        },
+    }
+
+    by_slug = {
+        a["slug"]: a
+        for a in build_home_roster(hass, apps=apps, app_repositories=repositories)["apps"]
+    }
+
+    assert (
+        by_slug["x_hydroqc"]["repository_url"] == "https://gitlab.com/hydroqc/hydroqc-hass-addons"
+    )
+    # A private store is added with credentials embedded in its git URL.
+    assert by_slug["x_private"]["repository_url"] == "https://git.example.com/addons"
+
+
+@pytest.mark.asyncio
+async def test_roster_apps_default_empty_store(hass: HomeAssistant) -> None:
+    """No store list resolved (HA too old for get_store, or the lookup failed)
+    → the repository fields are empty, never missing."""
+    apps = [{"slug": "core_mosquitto", "name": "Mosquitto broker", "repository": "core"}]
+
+    app = build_home_roster(hass, apps=apps)["apps"][0]
+    assert app["repository_name"] == ""
+    assert app["repository_url"] == ""
+    assert app["repository_maintainer"] == ""
+
+
+@pytest.mark.asyncio
 async def test_roster_apps_default_empty_unsupervised(hass: HomeAssistant) -> None:
     """No apps threaded in (unsupervised Core/Container install) → empty list,
     never missing from the roster."""
