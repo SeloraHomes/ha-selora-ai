@@ -360,14 +360,14 @@ TOOL_ACTIVATE_SCENE = ToolDef(
 TOOL_LIST_DASHBOARDS = ToolDef(
     name="list_dashboards",
     description=(
-        "List the user's writable (storage-mode) Lovelace dashboards. "
-        "Returns a list of {url_path, title}; url_path is null for the "
-        "default dashboard. Call this before insert_dashboard_card so you "
-        "place the card on a dashboard that actually exists and can be "
-        "edited (YAML-mode dashboards are read-only and not listed)."
+        "List every Lovelace dashboard. Returns {url_path, title, editable}; "
+        "url_path is null for the default dashboard. Call this first to learn "
+        "the url_path to pass as dashboard_target. editable false means it can be "
+        "read but not changed — a YAML dashboard, or one Home Assistant is still "
+        "generating because nobody has taken control of it yet — so do not offer "
+        "to edit it."
     ),
     params=(),
-    requires_admin=True,
 )
 
 TOOL_INSERT_DASHBOARD_CARD = ToolDef(
@@ -378,7 +378,9 @@ TOOL_INSERT_DASHBOARD_CARD = ToolDef(
         "Compose a standard card config in 'card' (type + entity + any "
         "options). Call list_dashboards first to choose 'dashboard_target'. "
         "Idempotent: re-calling with the same 'tag' replaces the prior card "
-        "rather than duplicating it."
+        "rather than duplicating it. Appends to the END of the view — use "
+        "move_dashboard_card to reposition it, and group_dashboard_cards to put "
+        "cards side by side."
     ),
     params=(
         ToolParam(
@@ -1290,6 +1292,305 @@ TOOL_GET_AUTOMATION_TRACES = ToolDef(
 )
 
 
+# ── Dashboards ──────────────────────────────────────────────────────────────
+#
+# ``create_dashboard`` is deliberately absent. Adding a dashboard ENTRY needs
+# ``DashboardsCollection``, which lovelace keeps as a local in ``async_setup``
+# and publishes only to a websocket handler — the same wall the ``input_*``
+# helpers hit. A new *page* is what a user usually means, and that is
+# ``add_dashboard_view``, which is fully supported.
+
+TOOL_GET_DASHBOARD = ToolDef(
+    name="get_dashboard",
+    description=(
+        "Read a dashboard: its views (pages) with card counts, and — when you name "
+        "a view — the cards on it. ALWAYS call this before adding, moving, or "
+        "changing a card: it is the only way to learn which views exist and what is "
+        "already there, and every edit tool addresses cards by the index this "
+        "returns. Also the tool for answering questions about a user's dashboard "
+        "or advising on how to organise it. Works on YAML dashboards too (read-only)."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target",
+            type="string",
+            description="url_path from list_dashboards. Omit for the default dashboard.",
+        ),
+        ToolParam(
+            name="view",
+            type="string",
+            description=(
+                "A view index ('0'), path, or title. Omit to get the view list without cards."
+            ),
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_GET_DASHBOARD_CARD = ToolDef(
+    name="get_dashboard_card",
+    description=(
+        "Return one card's complete configuration plus its fingerprint. Call this "
+        "before update_dashboard_card — that tool REPLACES a card outright, so you "
+        "need the current config to keep the parts you are not changing."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="view", type="string", description="View index, path, or title.", required=True
+        ),
+        ToolParam(
+            name="card_index",
+            type="integer",
+            description="The card's index, from get_dashboard.",
+            required=True,
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_ADD_DASHBOARD_VIEW = ToolDef(
+    name="add_dashboard_view",
+    description=(
+        "Add a new view (page) to a dashboard — this is how you 'create a dashboard' "
+        "for a room or a purpose. Appended after the existing views. Use "
+        "insert_dashboard_card afterwards to fill it."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="title",
+            type="string",
+            description="The page title shown in the tab bar.",
+            required=True,
+        ),
+        ToolParam(name="path", type="string", description="URL slug for the view, e.g. 'garage'."),
+        ToolParam(name="icon", type="string", description="Optional mdi icon for the tab."),
+        ToolParam(
+            name="sections",
+            type="boolean",
+            description=(
+                "Use the newer sections layout instead of the classic masonry one. Off by default."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_UPDATE_DASHBOARD_VIEW = ToolDef(
+    name="update_dashboard_view",
+    description=(
+        "Rename a view or change its URL path or icon. Cards are untouched. Pass "
+        "the view's fingerprint from get_dashboard so the edit cannot land on a "
+        "different page if the dashboard changed meanwhile."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="view", type="string", description="View index, path, or title.", required=True
+        ),
+        ToolParam(name="title", type="string", description="New page title."),
+        ToolParam(name="path", type="string", description="New URL slug."),
+        ToolParam(name="icon", type="string", description="New mdi icon."),
+        ToolParam(
+            name="clear",
+            type="array",
+            description=(
+                "Fields to REMOVE from the view: 'icon' and/or 'path'. Use this "
+                "rather than passing an empty string, which is read as 'not set'."
+            ),
+        ),
+        ToolParam(
+            name="expected_fingerprint",
+            type="string",
+            description="The view's fingerprint from get_dashboard.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_REMOVE_DASHBOARD_VIEW = ToolDef(
+    name="remove_dashboard_view",
+    description=(
+        "Delete a whole view and every card on it. The user gets a confirmation card "
+        "showing how many cards go with it."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="view", type="string", description="View index, path, or title.", required=True
+        ),
+        ToolParam(
+            name="expected_fingerprint",
+            type="string",
+            description="The view's fingerprint from get_dashboard.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_UPDATE_DASHBOARD_CARD = ToolDef(
+    name="update_dashboard_card",
+    description=(
+        "Replace one card with a new config. This REPLACES it outright — call "
+        "get_dashboard_card first and send back the whole card with your changes "
+        "applied. Pass the fingerprint you were given so the edit cannot land on a "
+        "different card if the dashboard changed meanwhile."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="view", type="string", description="View index, path, or title.", required=True
+        ),
+        ToolParam(
+            name="card_index",
+            type="integer",
+            description="Card index from get_dashboard.",
+            required=True,
+        ),
+        ToolParam(
+            name="card",
+            type="object",
+            description="The complete replacement card config, including 'type'.",
+            required=True,
+        ),
+        ToolParam(
+            name="expected_fingerprint",
+            type="string",
+            description="The fingerprint from get_dashboard/get_dashboard_card.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_REMOVE_DASHBOARD_CARD = ToolDef(
+    name="remove_dashboard_card",
+    description=(
+        "Remove one card from a view. The removed card's config comes back in the "
+        "result, so it can be put straight back if the user changes their mind."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="view", type="string", description="View index, path, or title.", required=True
+        ),
+        ToolParam(
+            name="card_index",
+            type="integer",
+            description="Card index from get_dashboard.",
+            required=True,
+        ),
+        ToolParam(
+            name="expected_fingerprint",
+            type="string",
+            description="The fingerprint from get_dashboard/get_dashboard_card.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+
+TOOL_MOVE_DASHBOARD_CARD = ToolDef(
+    name="move_dashboard_card",
+    description=(
+        "Move a card to a different position in the same view — this is the ONLY "
+        "way to reorder. Use it for 'keep the garage door at the top'. Indices come "
+        "from get_dashboard. The card itself is moved untouched, so nothing about "
+        "what it shows can change."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="view", type="string", description="View index, path, or title.", required=True
+        ),
+        ToolParam(
+            name="from_index",
+            type="integer",
+            description="The card's current index.",
+            required=True,
+        ),
+        ToolParam(
+            name="to_index",
+            type="integer",
+            description="The index to move it to. 0 is the top.",
+            required=True,
+        ),
+        ToolParam(
+            name="expected_fingerprint",
+            type="string",
+            description="The fingerprint from get_dashboard, so the move cannot hit a different card.",
+        ),
+        ToolParam(
+            name="expected_view_fingerprint",
+            type="string",
+            description="The view's fingerprint from get_dashboard.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_GROUP_DASHBOARD_CARDS = ToolDef(
+    name="group_dashboard_cards",
+    description=(
+        "Move existing cards into a container card so they sit together — this "
+        "is how cards end up side by side, since a masonry view has no rows. "
+        'Give the container card config you want, e.g. {"type": "grid", '
+        '"columns": 3} or {"type": "horizontal-stack"}; its \'cards\' is '
+        "filled in for you. The cards themselves are moved untouched."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target", type="string", description="url_path, or omit for the default."
+        ),
+        ToolParam(
+            name="view", type="string", description="View index, path, or title.", required=True
+        ),
+        ToolParam(
+            name="card_indices",
+            type="array",
+            description="Indices of the cards to group, from get_dashboard.",
+            required=True,
+        ),
+        ToolParam(
+            name="container",
+            type="object",
+            description="The container card config. Its 'cards' is set for you.",
+            required=True,
+        ),
+        ToolParam(
+            name="expected_view_fingerprint",
+            type="string",
+            description=(
+                "The view's fingerprint from get_dashboard. Every card index above is "
+                "relative to the view as you read it, so pass this."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+
 # Single registry of all chat tools
 CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_HOME_SNAPSHOT,
@@ -1338,6 +1639,15 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_LIST_HELPERS,
     TOOL_GET_LOGS,
     TOOL_GET_AUTOMATION_TRACES,
+    TOOL_GET_DASHBOARD,
+    TOOL_GET_DASHBOARD_CARD,
+    TOOL_ADD_DASHBOARD_VIEW,
+    TOOL_UPDATE_DASHBOARD_VIEW,
+    TOOL_REMOVE_DASHBOARD_VIEW,
+    TOOL_UPDATE_DASHBOARD_CARD,
+    TOOL_REMOVE_DASHBOARD_CARD,
+    TOOL_MOVE_DASHBOARD_CARD,
+    TOOL_GROUP_DASHBOARD_CARDS,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -1378,6 +1688,29 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "delete_script",
         "delete_label",
         "delete_area",
+        # Dashboard tools sit in BOTH lanes, deliberately.
+        #
+        # "Add a thermostat card to my dashboard" classifies as a command;
+        # "reorganise my dashboard" classifies as config; "what's on my
+        # dashboard?" is a question. The same seven tools serve all three, and
+        # this family has no lane of its own to fall back to — before this they
+        # were in NO lane, so a command-classified turn could not see
+        # insert_dashboard_card at all and the request simply failed.
+        #
+        # Duplicating them is the cheap fix and the robust one: the alternative
+        # is another vocabulary heuristic deciding which lane a dashboard
+        # request belongs to, and that decision has been wrong repeatedly.
+        "list_dashboards",
+        "get_dashboard",
+        "get_dashboard_card",
+        "insert_dashboard_card",
+        "add_dashboard_view",
+        "update_dashboard_view",
+        "remove_dashboard_view",
+        "update_dashboard_card",
+        "remove_dashboard_card",
+        "move_dashboard_card",
+        "group_dashboard_cards",
     }
 )
 
@@ -1419,6 +1752,29 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "get_script",
         "set_script",
         "delete_script",
+        # Dashboard tools sit in BOTH lanes, deliberately.
+        #
+        # "Add a thermostat card to my dashboard" classifies as a command;
+        # "reorganise my dashboard" classifies as config; "what's on my
+        # dashboard?" is a question. The same seven tools serve all three, and
+        # this family has no lane of its own to fall back to — before this they
+        # were in NO lane, so a command-classified turn could not see
+        # insert_dashboard_card at all and the request simply failed.
+        #
+        # Duplicating them is the cheap fix and the robust one: the alternative
+        # is another vocabulary heuristic deciding which lane a dashboard
+        # request belongs to, and that decision has been wrong repeatedly.
+        "list_dashboards",
+        "get_dashboard",
+        "get_dashboard_card",
+        "insert_dashboard_card",
+        "add_dashboard_view",
+        "update_dashboard_view",
+        "remove_dashboard_view",
+        "update_dashboard_card",
+        "remove_dashboard_card",
+        "move_dashboard_card",
+        "group_dashboard_cards",
     }
 )
 

@@ -59,9 +59,7 @@ async def test_indexes_automations_and_scenes(hass, tmp_path) -> None:
     attribution = await async_build_recipe_attribution(hass)
 
     ref = {"slug": "leak-lockdown", "title": "Leak Lockdown"}
-    assert (
-        attribution["automations_by_id"]["selora_recipe_leak_lockdown_all_clear"] == ref
-    )
+    assert attribution["automations_by_id"]["selora_recipe_leak_lockdown_all_clear"] == ref
     assert attribution["automations_by_alias"]["Leak Lockdown — all clear"] == ref
     assert attribution["scenes_by_id"]["selora_recipe_leak_lockdown_alarm"] == ref
     assert attribution["scenes_by_name"]["Leak Lockdown — alarm"] == ref

@@ -26,11 +26,19 @@ Design choices:
 
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
 import json
 import logging
 import re
 from typing import TYPE_CHECKING, Any
+
+from ..helpers import (
+    DASHBOARD_LOCK,
+    default_dashboard_key,
+    is_auto_generated_dashboard,
+    is_strategy_document,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -160,7 +168,10 @@ def _get_storage_dashboard(hass: HomeAssistant, target: str | None) -> Any | Non
     data: LovelaceData | None = hass.data.get(LOVELACE_DATA)
     if data is None:
         return None
-    config = data.dashboards.get(target)
+    key = target or None
+    if key in ("lovelace", "", None):
+        key = default_dashboard_key(data.dashboards)
+    config = data.dashboards.get(key)
     if config is None:
         return None
     # Only storage-mode dashboards expose async_save.
@@ -170,16 +181,20 @@ def _get_storage_dashboard(hass: HomeAssistant, target: str | None) -> Any | Non
 
 
 def _find_view(config_dict: dict[str, Any], view: int | str) -> dict[str, Any] | None:
-    views = config_dict.setdefault("views", [])
-    if not isinstance(views, list):
+    raw = config_dict.setdefault("views", [])
+    if not isinstance(raw, list):
         return None
+    # Indexed over the DICT-ONLY views, matching what get_dashboard reports. The
+    # stored list is free-form and may hold a stray non-dict; indexing it raw
+    # means an index the caller was just handed lands on a different page.
+    views = [v for v in raw if isinstance(v, dict)]
     if isinstance(view, int):
         if 0 <= view < len(views):
             return views[view]
-        if view == 0 and not views:
+        if view == 0 and not raw:
             # Empty dashboard: seed a first view so there's somewhere to land.
             first: dict[str, Any] = {"title": "Home", "cards": []}
-            views.append(first)
+            raw.append(first)
             return first
         return None
     # String → match by title or path.
@@ -223,6 +238,63 @@ def _view_card_lists(view_obj: dict[str, Any]) -> list[list[Any]]:
                 out.append(sec.setdefault("cards", []))
         return out
     return [view_obj.setdefault("cards", [])]
+
+
+def _replace_tagged(
+    card_list: list[Any],
+    tag: str,
+    replacement: dict[str, Any] | None,
+    done: list[bool],
+) -> int:
+    """Substitute or drop every card tagged ``tag``. Returns the number dropped.
+
+    ``replacement`` lands on the FIRST tagged card found, wherever it sits, and
+    any others are dropped — so a re-install refreshes the card where the user
+    put it instead of removing it and appending a new one at the end of the
+    view. ``done`` carries "already substituted" across the several card lists a
+    sections view has, and is shared with the recursive calls.
+
+    Pass ``replacement=None`` to remove without substituting, which is uninstall.
+
+    A tagged card can be nested: ``group_dashboard_cards`` wraps existing cards
+    in a container, and organising a recipe's card is an ordinary thing for a
+    user to do. A container emptied by the removal is dropped with its contents
+    — an empty grid renders as a labelled box holding nothing, which reads as
+    breakage rather than as the tidy removal uninstall promised. A container
+    whose card was *substituted* is not empty, so it survives untouched.
+    """
+    removed = 0
+    kept: list[Any] = []
+    for card in card_list:
+        if isinstance(card, dict):
+            if card.get(CARD_TAG_KEY) == tag:
+                if replacement is not None and not done[0]:
+                    done[0] = True
+                    kept.append(replacement)
+                else:
+                    removed += 1
+                continue
+            nested = card.get("cards")
+            if isinstance(nested, list) and nested:
+                removed += _replace_tagged(nested, tag, replacement, done)
+                if not nested:
+                    continue
+        kept.append(card)
+    card_list[:] = kept
+    return removed
+
+
+def purge_tagged_cards(card_list: list[Any], tag: str) -> int:
+    """Drop every card tagged ``tag`` from ``card_list``, nested ones included."""
+    return _replace_tagged(card_list, tag, None, [True])
+
+
+def replace_tagged_card(view_obj: dict[str, Any], tag: str, card: dict[str, Any]) -> bool:
+    """Swap ``card`` in for this tag's existing card, in place. False if absent."""
+    done = [False]
+    for card_list in _view_card_lists(view_obj):
+        _replace_tagged(card_list, tag, card, done)
+    return done[0]
 
 
 def _insert_target_cards(view_obj: dict[str, Any]) -> list[Any]:
@@ -269,35 +341,72 @@ async def async_place_card(
 
     tagged = {**card, CARD_TAG_KEY: tag}
     try:
-        try:
-            config = await dashboard.async_load(False)
-        except ConfigNotFound:
-            # Auto-generated default dashboard that's never been saved —
-            # seed an empty config so we can take it over (same thing HA
-            # does the first time a user edits it).
-            config = {"views": [{"title": "Home", "cards": []}]}
-        # async_load may hand back a shared/immutable view; copy before mutating.
-        config = dict(config)
+        # Held across load→mutate→save: this is a whole-document rewrite, so a
+        # chat edit that loads between our load and our save loses its work.
+        async with DASHBOARD_LOCK:
+            try:
+                config = await dashboard.async_load(False)
+            except ConfigNotFound:
+                # ConfigNotFound is ambiguous: a dashboard HA is still
+                # generating raises it while showing the user a full Overview,
+                # and seeding a document here replaces all of it with one card.
+                # A dashboard that is genuinely blank raises it too, and there
+                # seeding is right — so probe rather than assume.
+                if await is_auto_generated_dashboard(dashboard):
+                    return DashboardInsertResult(
+                        ok=False,
+                        reason="auto_generated",
+                        target=target,
+                        view=view,
+                        message=(
+                            "Home Assistant is still generating that dashboard, so adding "
+                            "a card would replace the page the user can see with just this "
+                            "one. Open it, use the pencil and pick 'Take control' first."
+                        ),
+                    )
+                config = {"views": [{"title": "Home", "cards": []}]}
+            if is_strategy_document(config):
+                # A Map-style dashboard stores a strategy and no views, and
+                # `async_load` succeeds — so seeding a view here saves it
+                # alongside the strategy, reports success, and the frontend
+                # keeps building from the strategy and never shows the card.
+                return DashboardInsertResult(
+                    ok=False,
+                    reason="strategy_dashboard",
+                    target=target,
+                    view=view,
+                    message=(
+                        "That dashboard is built from a strategy, so Home Assistant "
+                        "ignores any cards stored on it. Open it, use the pencil and "
+                        "pick 'Take control' first."
+                    ),
+                )
 
-        view_obj = _find_view(config, view)
-        if view_obj is None:
-            return DashboardInsertResult(
-                ok=False,
-                reason="view_not_found",
-                target=target,
-                view=view,
-                message=f"View {view!r} not found on the target dashboard.",
-            )
+            # async_load hands back HA's cached config object, and dict() copies
+            # only the root — the views and cards inside stay live. Mutating
+            # those edits the cache whether or not the save below succeeds.
+            config = copy.deepcopy(dict(config))
 
-        # Drop our prior card(s) for this tag anywhere in the view —
-        # idempotent re-insert across both classic and sections layouts.
-        for card_list in _view_card_lists(view_obj):
-            card_list[:] = [
-                c for c in card_list if not (isinstance(c, dict) and c.get(CARD_TAG_KEY) == tag)
-            ]
-        _insert_target_cards(view_obj).append(tagged)
+            view_obj = _find_view(config, view)
+            if view_obj is None:
+                return DashboardInsertResult(
+                    ok=False,
+                    reason="view_not_found",
+                    target=target,
+                    view=view,
+                    message=f"View {view!r} not found on the target dashboard.",
+                )
 
-        await dashboard.async_save(config)
+            # Refresh our prior card for this tag IN PLACE, wherever it sits —
+            # across both layouts, and inside any container the user has since
+            # grouped it into. Purging and appending would dedupe correctly and
+            # still undo the grouping, moving the card back to the end of the
+            # view with nothing to say why. Only a genuinely new card is
+            # appended.
+            if not replace_tagged_card(view_obj, tag, tagged):
+                _insert_target_cards(view_obj).append(tagged)
+
+            await dashboard.async_save(config)
     except Exception as exc:  # noqa: BLE001 — never let a card failure abort the caller
         _LOGGER.warning("Dashboard card insert failed (tag %s): %s", tag, exc)
         return DashboardInsertResult(
@@ -331,37 +440,35 @@ async def async_remove_cards(hass: HomeAssistant, slug: str) -> int:
         return 0
 
     removed = 0
-    for config in data.dashboards.values():
-        if getattr(config, "mode", None) != MODE_STORAGE:
-            continue
-        try:
-            cfg = dict(await config.async_load(False))
-        except ConfigNotFound:
-            continue
-        except Exception as exc:  # noqa: BLE001
-            _LOGGER.debug("Skipping dashboard during card removal: %s", exc)
-            continue
-        changed = False
-        for view in cfg.get("views", []) or []:
-            if not isinstance(view, dict):
+    # One acquisition for the whole sweep: each dashboard is a separate
+    # load→save cycle, and releasing between them would let a chat edit land on
+    # a board we have already read but not yet written.
+    async with DASHBOARD_LOCK:
+        for config in data.dashboards.values():
+            if getattr(config, "mode", None) != MODE_STORAGE:
                 continue
-            # Both classic (view["cards"]) and sections
-            # (view["sections"][n]["cards"]) layouts.
-            for card_list in _view_card_lists(view):
-                kept = [
-                    c
-                    for c in card_list
-                    if not (isinstance(c, dict) and c.get(CARD_TAG_KEY) == slug)
-                ]
-                if len(kept) != len(card_list):
-                    removed += len(card_list) - len(kept)
-                    card_list[:] = kept
-                    changed = True
-        if changed:
             try:
-                await config.async_save(cfg)
+                cfg = copy.deepcopy(dict(await config.async_load(False)))
+            except ConfigNotFound:
+                continue
             except Exception as exc:  # noqa: BLE001
-                _LOGGER.warning("Recipe %s: dashboard card removal save failed: %s", slug, exc)
+                _LOGGER.debug("Skipping dashboard during card removal: %s", exc)
+                continue
+            changed = False
+            for view in cfg.get("views", []) or []:
+                if not isinstance(view, dict):
+                    continue
+                # Both classic (view["cards"]) and sections
+                # (view["sections"][n]["cards"]) layouts, and nested containers.
+                for card_list in _view_card_lists(view):
+                    if dropped := purge_tagged_cards(card_list, slug):
+                        removed += dropped
+                        changed = True
+            if changed:
+                try:
+                    await config.async_save(cfg)
+                except Exception as exc:  # noqa: BLE001
+                    _LOGGER.warning("Recipe %s: dashboard card removal save failed: %s", slug, exc)
     return removed
 
 

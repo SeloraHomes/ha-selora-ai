@@ -15,6 +15,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import MAX_TOOL_RESULT_CHARS
 from .device_manager import DeviceManager
+from .helpers import caller_scope
 from .tool_registry import TOOL_MAP
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,7 +63,11 @@ class ToolExecutor:
             return {"error": f"No handler for tool: {tool_name}"}
 
         try:
-            result = await handler(arguments)
+            # Some tools (the dashboard reads) are non-admin but must still
+            # respect a per-dashboard require_admin flag, and the handler
+            # signature carries no identity.
+            with caller_scope(self._is_admin):
+                result = await handler(arguments)
         except Exception as exc:
             _LOGGER.exception("Tool %s execution failed", tool_name)
             err_result = {"error": f"Tool execution failed: {exc}"}
@@ -123,6 +128,15 @@ class ToolExecutor:
             "list_helpers": self._list_helpers,
             "get_logs": self._get_logs,
             "get_automation_traces": self._get_automation_traces,
+            "get_dashboard": self._get_dashboard,
+            "get_dashboard_card": self._get_dashboard_card,
+            "add_dashboard_view": self._add_dashboard_view,
+            "update_dashboard_view": self._update_dashboard_view,
+            "remove_dashboard_view": self._remove_dashboard_view,
+            "update_dashboard_card": self._update_dashboard_card,
+            "remove_dashboard_card": self._remove_dashboard_card,
+            "move_dashboard_card": self._move_dashboard_card,
+            "group_dashboard_cards": self._group_dashboard_cards,
         }
 
     # ── Read tools ──────────────────────────────────────────────────
@@ -180,39 +194,17 @@ class ToolExecutor:
         return await _tool_activate_scene(self._hass, arguments)
 
     async def _list_dashboards(self, _arguments: dict[str, Any]) -> dict[str, Any]:
-        from .recipes.dashboard import list_writable_dashboards
+        # Every dashboard, not just the writable ones: this is how a caller
+        # discovers the url_path for the read tools, which handle YAML boards
+        # fine. `editable` is what keeps it usable as a placement picker.
+        from .dashboard_manager import list_dashboards
 
-        return {"dashboards": list_writable_dashboards(self._hass)}
+        return {"dashboards": await list_dashboards(self._hass)}
 
     async def _insert_dashboard_card(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .recipes.dashboard import async_place_card
+        from .dashboard_manager import async_insert_card
 
-        card = arguments.get("card")
-        if not isinstance(card, dict) or not str(card.get("type", "")).strip():
-            return {"error": "card must be an object with a 'type' field"}
-        # ``view`` arrives as a string; coerce a numeric one to an int so
-        # it indexes the views list rather than matching a title.
-        view_raw = arguments.get("view", 0)
-        view: int | str
-        if isinstance(view_raw, str) and view_raw.strip().lstrip("-").isdigit():
-            view = int(view_raw)
-        else:
-            view = view_raw if view_raw not in ("", None) else 0
-        tag = str(arguments.get("tag") or "selora_chat")
-        result = await async_place_card(
-            self._hass,
-            card=card,
-            tag=tag,
-            target=arguments.get("dashboard_target") or None,
-            view=view,
-        )
-        return {
-            "ok": result.ok,
-            "reason": result.reason,
-            "target": result.target,
-            "view": result.view,
-            "message": result.message,
-        }
+        return await async_insert_card(self._hass, arguments)
 
     async def _search_entities(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server import _tool_search_entities
@@ -544,6 +536,117 @@ class ToolExecutor:
 
         return await get_automation_traces(self._hass, str(arguments.get("automation", "")))
 
+    # ── Dashboards ──────────────────────────────────────────────────
+
+    async def _get_dashboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_get_dashboard
+
+        return await async_get_dashboard(
+            self._hass,
+            _opt_str(arguments.get("dashboard_target")),
+            arguments.get("view"),
+        )
+
+    async def _get_dashboard_card(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_get_card
+
+        return await async_get_card(
+            self._hass,
+            _opt_str(arguments.get("dashboard_target")),
+            arguments.get("view"),
+            _as_index(arguments.get("card_index")),
+        )
+
+    async def _add_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_add_view
+
+        return await async_add_view(
+            self._hass,
+            target=_opt_str(arguments.get("dashboard_target")),
+            title=str(arguments.get("title", "")),
+            path=_opt_str(arguments.get("path")),
+            icon=_opt_str(arguments.get("icon")),
+            sections=bool(_opt_bool(arguments.get("sections"))),
+        )
+
+    async def _update_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_update_view
+
+        return await async_update_view(
+            self._hass,
+            target=_opt_str(arguments.get("dashboard_target")),
+            view=arguments.get("view"),
+            title=_opt_str(arguments.get("title")),
+            path=_opt_str(arguments.get("path")),
+            icon=_opt_str(arguments.get("icon")),
+            clear=_opt_list(arguments.get("clear")),
+            expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+        )
+
+    async def _remove_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a removal target and surface a confirmation card.
+
+        A view takes every card on it, so this defers to the user's tap — see
+        :meth:`_delete_automation`.
+        """
+        from .mcp_server import _preview_remove_dashboard_view
+
+        return await _preview_remove_dashboard_view(self._hass, arguments)
+
+    async def _update_dashboard_card(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_update_card
+
+        card = arguments.get("card")
+        if not isinstance(card, dict):
+            return {"error": "card must be an object with a 'type' field."}
+        return await async_update_card(
+            self._hass,
+            target=_opt_str(arguments.get("dashboard_target")),
+            view=arguments.get("view"),
+            card_index=_as_index(arguments.get("card_index")),
+            card=card,
+            expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+        )
+
+    async def _remove_dashboard_card(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_remove_card
+
+        return await async_remove_card(
+            self._hass,
+            target=_opt_str(arguments.get("dashboard_target")),
+            view=arguments.get("view"),
+            card_index=_as_index(arguments.get("card_index")),
+            expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+        )
+
+    async def _move_dashboard_card(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_move_card
+
+        return await async_move_card(
+            self._hass,
+            target=_opt_str(arguments.get("dashboard_target")),
+            view=arguments.get("view"),
+            from_index=_as_index(arguments.get("from_index")),
+            to_index=_as_index(arguments.get("to_index")),
+            expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+            expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
+        )
+
+    async def _group_dashboard_cards(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_group_cards
+
+        raw = arguments.get("card_indices")
+        indices = [_as_index(i) for i in raw] if isinstance(raw, list) else []
+        container = arguments.get("container")
+        return await async_group_cards(
+            self._hass,
+            target=_opt_str(arguments.get("dashboard_target")),
+            view=arguments.get("view"),
+            card_indices=indices,
+            container=container if isinstance(container, dict) else {},
+            expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
+        )
+
     async def _start_device_flow(self, arguments: dict[str, Any]) -> dict[str, Any]:
         domain = str(arguments.get("domain", "")).strip()
         host = str(arguments.get("host", "")).strip()
@@ -573,6 +676,21 @@ def _as_list(value: Any) -> list[str]:
     if isinstance(value, (list, tuple, set)):
         return [str(v).strip() for v in value if str(v).strip()]
     return []
+
+
+def _as_index(value: Any) -> int:
+    """Coerce a card index, tolerating the string a model often sends.
+
+    A JSON-schema integer still arrives as "2" from some providers. Anything
+    unparseable becomes -1, which every caller rejects as out of range rather
+    than silently addressing card 0.
+    """
+    if isinstance(value, bool):
+        return -1
+    if isinstance(value, int):
+        return value
+    text = str(value or "").strip()
+    return int(text) if text.lstrip("-").isdigit() else -1
 
 
 def _opt_list(value: Any) -> list[str] | None:

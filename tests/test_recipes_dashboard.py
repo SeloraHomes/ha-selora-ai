@@ -47,16 +47,23 @@ class FakeDashboard:
         *,
         mode: str = "storage",
         not_found: bool = False,
+        auto_gen: bool = False,
     ) -> None:
         self.mode = mode
         self._config = config
         self._not_found = not_found
+        self._auto_gen = auto_gen
         self.saved: dict[str, Any] | None = None
 
     async def async_load(self, force: bool) -> dict[str, Any]:
         if self._not_found:
             raise ConfigNotFound
         return self._config if self._config is not None else {"views": []}
+
+    async def async_get_info(self) -> dict[str, Any]:
+        """Every real LovelaceConfig has this; ConfigNotFound alone does not say
+        whether HA is generating the dashboard or it is genuinely blank."""
+        return {"mode": "auto-gen" if self._auto_gen else self.mode}
 
     async def async_save(self, config: dict[str, Any]) -> None:
         self.saved = config
@@ -484,3 +491,32 @@ def test_renderer_preserves_block_scalar_indentation() -> None:
     # YAML treats it as a folded-scalar value, not a stray token.
     parsed = pyyaml.safe_load(out)
     assert "{% set controllers" in parsed["automation"][0]["action"][0]["variables"]["targets"]
+
+
+async def test_insert_refuses_an_auto_generated_dashboard() -> None:
+    """Seeding here would replace the Overview the user can see with one card."""
+    dash = FakeDashboard(not_found=True, auto_gen=True)
+    hass = _hass_with({None: dash})
+
+    result = await async_insert_card(
+        hass, slug="s", spec=_spec(), bindings={"toggle": ["input_boolean.b"]}, inputs={}
+    )
+
+    assert result.ok is False
+    assert result.reason == "auto_generated"
+    assert dash.saved is None
+
+
+async def test_insert_refuses_when_the_mode_probe_fails() -> None:
+    """Fails closed: this probe is the only thing between a transient storage
+    error and a document written over a live Overview."""
+    dash = FakeDashboard(not_found=True)
+    dash.async_get_info = None  # type: ignore[assignment]
+    hass = _hass_with({None: dash})
+
+    result = await async_insert_card(
+        hass, slug="s", spec=_spec(), bindings={"toggle": ["input_boolean.b"]}, inputs={}
+    )
+
+    assert result.ok is False
+    assert dash.saved is None

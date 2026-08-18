@@ -362,6 +362,17 @@ TOOL_DELETE_LABEL = "selora_delete_label"
 TOOL_LIST_HELPERS = "selora_list_helpers"
 TOOL_GET_LOGS = "selora_get_logs"
 TOOL_GET_AUTOMATION_TRACES = "selora_get_automation_traces"
+TOOL_LIST_DASHBOARDS = "selora_list_dashboards"
+TOOL_INSERT_DASHBOARD_CARD = "selora_insert_dashboard_card"
+TOOL_GET_DASHBOARD = "selora_get_dashboard"
+TOOL_GET_DASHBOARD_CARD = "selora_get_dashboard_card"
+TOOL_ADD_DASHBOARD_VIEW = "selora_add_dashboard_view"
+TOOL_UPDATE_DASHBOARD_VIEW = "selora_update_dashboard_view"
+TOOL_REMOVE_DASHBOARD_VIEW = "selora_remove_dashboard_view"
+TOOL_UPDATE_DASHBOARD_CARD = "selora_update_dashboard_card"
+TOOL_REMOVE_DASHBOARD_CARD = "selora_remove_dashboard_card"
+TOOL_MOVE_DASHBOARD_CARD = "selora_move_dashboard_card"
+TOOL_GROUP_DASHBOARD_CARDS = "selora_group_dashboard_cards"
 
 # Tools that require admin / write scope: mutating operations plus
 # eval_template, which exposes HA's full Jinja engine — broad state
@@ -396,6 +407,14 @@ _ADMIN_TOOLS = frozenset(
         TOOL_CREATE_LABEL,
         TOOL_ASSIGN_LABELS,
         TOOL_DELETE_LABEL,
+        TOOL_INSERT_DASHBOARD_CARD,
+        TOOL_ADD_DASHBOARD_VIEW,
+        TOOL_UPDATE_DASHBOARD_VIEW,
+        TOOL_REMOVE_DASHBOARD_VIEW,
+        TOOL_UPDATE_DASHBOARD_CARD,
+        TOOL_REMOVE_DASHBOARD_CARD,
+        TOOL_MOVE_DASHBOARD_CARD,
+        TOOL_GROUP_DASHBOARD_CARDS,
         # Read-only, but admin-gated to match Home Assistant: it guards both
         # ``system_log/list`` and every ``trace/*`` command with
         # ``require_admin``. Logs carry exception text and configuration
@@ -436,6 +455,9 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_GET_SCRIPT,
         TOOL_LIST_LABELS,
         TOOL_LIST_HELPERS,
+        TOOL_GET_DASHBOARD,
+        TOOL_LIST_DASHBOARDS,
+        TOOL_GET_DASHBOARD_CARD,
     }
 )
 
@@ -976,6 +998,17 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_LIST_HELPERS: _tool_list_helpers,
         TOOL_GET_LOGS: _tool_get_logs,
         TOOL_GET_AUTOMATION_TRACES: _tool_get_automation_traces,
+        TOOL_LIST_DASHBOARDS: _tool_list_dashboards,
+        TOOL_INSERT_DASHBOARD_CARD: _tool_insert_dashboard_card,
+        TOOL_GET_DASHBOARD: _tool_get_dashboard,
+        TOOL_GET_DASHBOARD_CARD: _tool_get_dashboard_card,
+        TOOL_ADD_DASHBOARD_VIEW: _tool_add_dashboard_view,
+        TOOL_UPDATE_DASHBOARD_VIEW: _tool_update_dashboard_view,
+        TOOL_REMOVE_DASHBOARD_VIEW: _tool_remove_dashboard_view,
+        TOOL_UPDATE_DASHBOARD_CARD: _tool_update_dashboard_card,
+        TOOL_REMOVE_DASHBOARD_CARD: _tool_remove_dashboard_card,
+        TOOL_MOVE_DASHBOARD_CARD: _tool_move_dashboard_card,
+        TOOL_GROUP_DASHBOARD_CARDS: _tool_group_dashboard_cards,
     }
 
 
@@ -991,13 +1024,29 @@ async def _dispatch(
     try:
         _check_tool_access(auth_ctx, name)
 
+        from .helpers import caller_scope  # noqa: PLC0415
+
         handler = _get_tool_handlers().get(name)
-        if handler is None:
-            result = {"error": f"Unknown tool: {name}"}
-        elif name in _NO_ARGS_TOOLS:
-            result = await handler(hass)
-        else:
-            result = await handler(hass, arguments)
+        # _check_tool_access has already gated the tool itself; this carries the
+        # caller's identity INTO the handler, for the per-object checks a tool
+        # allowlist cannot express — a dashboard's own require_admin flag.
+        # Asked of the same function that gates the call, across EVERY dashboard
+        # mutation: a custom token with an explicit allowlist, or a JWT carrying
+        # the write scope, may write without being an HA admin, and reporting
+        # those dashboards read-only contradicted calls that then succeeded. Any
+        # one of them is enough — an allowlist naming only `insert` authorises a
+        # real editing workflow, and testing a single representative tool called
+        # that credential read-only.
+        with caller_scope(
+            auth_ctx.is_admin,
+            can_write=any(_can_access_tool(auth_ctx, name) for name in _dashboard_write_tools()),
+        ):
+            if handler is None:
+                result = {"error": f"Unknown tool: {name}"}
+            elif name in _NO_ARGS_TOOLS:
+                result = await handler(hass)
+            else:
+                result = await handler(hass, arguments)
     except Unauthorized as exc:
         result = {"error": str(exc)}
     except Exception:
@@ -4757,6 +4806,256 @@ async def _tool_get_automation_traces(
     return await get_automation_traces(hass, str(arguments.get("automation", "")))
 
 
+# ── Dashboard tools ───────────────────────────────────────────────────────────
+
+
+async def _tool_list_dashboards(hass: HomeAssistant, _arguments: dict[str, Any]) -> dict[str, Any]:
+    """Every dashboard, with whether it can be edited.
+
+    Without this an MCP client has no way to learn a non-default dashboard's
+    ``url_path``, which every other tool here takes as ``dashboard_target``.
+    """
+    from .dashboard_manager import list_dashboards  # noqa: PLC0415
+
+    return {"dashboards": await list_dashboards(hass)}
+
+
+async def _tool_insert_dashboard_card(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Append a card to a view.
+
+    The other write tools all edit a card that is already there, so without this
+    a view created with ``selora_add_dashboard_view`` could never be filled.
+    """
+    from .dashboard_manager import async_insert_card  # noqa: PLC0415
+
+    return await async_insert_card(hass, arguments)
+
+
+async def _tool_get_dashboard(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """A dashboard's views, and the cards on one of them."""
+    from .dashboard_manager import async_get_dashboard  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return await async_get_dashboard(
+        hass, _opt_str(arguments.get("dashboard_target")), arguments.get("view")
+    )
+
+
+async def _tool_get_dashboard_card(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """One card's full configuration plus its fingerprint."""
+    from .dashboard_manager import async_get_card  # noqa: PLC0415
+    from .tool_executor import _as_index, _opt_str  # noqa: PLC0415
+
+    return await async_get_card(
+        hass,
+        _opt_str(arguments.get("dashboard_target")),
+        arguments.get("view"),
+        _as_index(arguments.get("card_index")),
+    )
+
+
+async def _tool_add_dashboard_view(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Append a view to a dashboard."""
+    from .dashboard_manager import async_add_view  # noqa: PLC0415
+    from .tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
+
+    return await async_add_view(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        title=str(arguments.get("title", "")),
+        path=_opt_str(arguments.get("path")),
+        icon=_opt_str(arguments.get("icon")),
+        sections=bool(_opt_bool(arguments.get("sections"))),
+    )
+
+
+async def _tool_update_dashboard_view(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Change a view's title, path, or icon."""
+    from .dashboard_manager import async_update_view  # noqa: PLC0415
+    from .tool_executor import _opt_list, _opt_str  # noqa: PLC0415
+
+    return await async_update_view(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        view=arguments.get("view"),
+        title=_opt_str(arguments.get("title")),
+        path=_opt_str(arguments.get("path")),
+        icon=_opt_str(arguments.get("icon")),
+        clear=_opt_list(arguments.get("clear")),
+        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+    )
+
+
+async def _tool_remove_dashboard_view(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Remove a view outright (MCP clients run their own confirmation)."""
+    from .dashboard_manager import async_remove_view  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return await async_remove_view(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        view=arguments.get("view"),
+        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+    )
+
+
+async def _tool_update_dashboard_card(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Replace one card."""
+    from .dashboard_manager import async_update_card  # noqa: PLC0415
+    from .tool_executor import _as_index, _opt_str  # noqa: PLC0415
+
+    card = arguments.get("card")
+    if not isinstance(card, dict):
+        return {"error": "card must be an object with a 'type' field."}
+    return await async_update_card(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        view=arguments.get("view"),
+        card_index=_as_index(arguments.get("card_index")),
+        card=card,
+        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+    )
+
+
+async def _tool_remove_dashboard_card(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Remove one card."""
+    from .dashboard_manager import async_remove_card  # noqa: PLC0415
+    from .tool_executor import _as_index, _opt_str  # noqa: PLC0415
+
+    return await async_remove_card(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        view=arguments.get("view"),
+        card_index=_as_index(arguments.get("card_index")),
+        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+    )
+
+
+async def _tool_move_dashboard_card(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Reposition a card within its view."""
+    from .dashboard_manager import async_move_card  # noqa: PLC0415
+    from .tool_executor import _as_index, _opt_str  # noqa: PLC0415
+
+    return await async_move_card(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        view=arguments.get("view"),
+        from_index=_as_index(arguments.get("from_index")),
+        to_index=_as_index(arguments.get("to_index")),
+        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+        expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
+    )
+
+
+async def _tool_group_dashboard_cards(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Wrap existing cards in a grid or stack."""
+    from .dashboard_manager import async_group_cards  # noqa: PLC0415
+    from .tool_executor import _as_index, _opt_str  # noqa: PLC0415
+
+    raw = arguments.get("card_indices")
+    container = arguments.get("container")
+    return await async_group_cards(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        view=arguments.get("view"),
+        card_indices=[_as_index(i) for i in raw] if isinstance(raw, list) else [],
+        container=container if isinstance(container, dict) else {},
+        expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
+    )
+
+
+async def _preview_remove_dashboard_view(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Resolve a view removal WITHOUT performing it.
+
+    The label carries the card count because that is the blast radius the user
+    cannot see from the request: "delete the Garage page" does not say it takes
+    eleven cards with it, and the tool-loop short-circuit discards whatever
+    prose the model wrote.
+
+    The view's content hash doubles as the identity check. A view has no id, and
+    its index shifts when an earlier view is removed, so the hash is re-verified
+    against the freshly-loaded document at confirm time.
+
+    A caller may also pass ``expected_fingerprint`` from its own earlier read, in
+    which case the mismatch is caught here rather than after the user has already
+    tapped confirm on a card naming the wrong page.
+    """
+    from .dashboard_manager import (  # noqa: PLC0415
+        _flat_cards,
+        _load_config,
+        _views,
+        _writable_dashboard,
+        resolve_view,
+        view_fingerprint,
+    )
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    target = _opt_str(arguments.get("dashboard_target"))
+    config, error = _writable_dashboard(hass, target)
+    if error or config is None:
+        return {"error": error or "Dashboard not found."}
+    document, error = await _load_config(config)
+    if error:
+        return {"error": error}
+
+    index, error = resolve_view(document, arguments.get("view"))
+    if error or index is None:
+        return {"error": error}
+
+    view = _views(document)[index]
+    expected = _opt_str(arguments.get("expected_fingerprint"))
+    if expected and view_fingerprint(view) != expected:
+        return {
+            "error": (
+                "That view has changed since it was read — the index now points at "
+                "a different page. Read the dashboard again and retry."
+            )
+        }
+
+    title = _sanitize(view.get("title") or view.get("path") or f"view {index}")
+    card_count = len(_flat_cards(view))
+    label = f"Delete the {title} page from {target or 'lovelace'}"
+    if card_count:
+        label = f"{label} — and its {card_count} card{'s' if card_count != 1 else ''}"
+
+    return {
+        "requires_approval": True,
+        "destructive": {
+            "kind": "dashboard_view",
+            "verb": "remove_view",
+            "target_id": f"{target or ''}#{index}",
+            "entity_id": "",
+            "name": title,
+            "label": label,
+            # The CONTENT of the view, not its card count. Counts collide — two
+            # pages with two cards each are indistinguishable — so a reorder
+            # between this card and the tap would pass a count check and delete
+            # the wrong page.
+            "fingerprint": view_fingerprint(view),
+        },
+    }
+
+
 # ── Tool definitions (MCP schema) ─────────────────────────────────────────────
 
 
@@ -5581,6 +5880,10 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
 # copy is a schema that drifts the next time a parameter is added, and the
 # failure is quiet in the worst way: the MCP client rejects an argument chat
 # accepts, on a tool that looks identical in both listings.
+# Populated on first use by _dashboard_write_tools(); importing TOOL_MAP at
+# module scope here would be circular.
+_DASHBOARD_WRITE_TOOLS: frozenset[str] | None = None
+
 _DERIVED_MCP_TOOLS: dict[str, str] = {
     # Has had a handler since it was written but no definition, so it never
     # appeared in tools/list and no MCP client could reach it. Deriving it here
@@ -5605,15 +5908,44 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_LIST_HELPERS: "list_helpers",
     TOOL_GET_LOGS: "get_logs",
     TOOL_GET_AUTOMATION_TRACES: "get_automation_traces",
+    TOOL_LIST_DASHBOARDS: "list_dashboards",
+    TOOL_INSERT_DASHBOARD_CARD: "insert_dashboard_card",
+    TOOL_GET_DASHBOARD: "get_dashboard",
+    TOOL_GET_DASHBOARD_CARD: "get_dashboard_card",
+    TOOL_ADD_DASHBOARD_VIEW: "add_dashboard_view",
+    TOOL_UPDATE_DASHBOARD_VIEW: "update_dashboard_view",
+    TOOL_REMOVE_DASHBOARD_VIEW: "remove_dashboard_view",
+    TOOL_UPDATE_DASHBOARD_CARD: "update_dashboard_card",
+    TOOL_REMOVE_DASHBOARD_CARD: "remove_dashboard_card",
+    TOOL_MOVE_DASHBOARD_CARD: "move_dashboard_card",
+    TOOL_GROUP_DASHBOARD_CARDS: "group_dashboard_cards",
 }
 
 
 def _mcp_tool_from_chat_tool(mcp_name: str, chat_name: str) -> MCPTool:
-    """Render a chat ToolDef as an MCP tool definition."""
+    """Render a chat ToolDef as an MCP tool definition.
+
+    The shared description is written for chat, where a delete or other
+    irreversible write returns a preview and the user taps a confirmation card.
+    MCP has no card — the handler runs the write on the spot — so a description
+    promising one reads as a guarantee an agent can act on, and the view is gone
+    before anyone is asked. The correction is derived from the same allowlists
+    the chat previews use, so a tool added there cannot forget it.
+    """
+    from .llm_client.command_policy import (  # noqa: PLC0415
+        _DELETE_TOOLS,
+        _DESTRUCTIVE_TOOLS,
+    )
     from .tool_registry import TOOL_MAP  # noqa: PLC0415
 
     definition = TOOL_MAP[chat_name].to_anthropic()
     description = definition["description"]
+    if chat_name in _DELETE_TOOLS or chat_name in _DESTRUCTIVE_TOOLS:
+        description = (
+            f"{description} NOTE: any confirmation card described above is the "
+            f"chat surface. Over MCP this runs IMMEDIATELY and cannot be undone — "
+            f"confirm with the user yourself before calling it."
+        )
     if mcp_name in _ADMIN_TOOLS:
         description = f"{description} Requires admin access."
     return MCPTool(
@@ -5627,6 +5959,26 @@ _TOOL_DEFINITIONS.extend(
     _mcp_tool_from_chat_tool(mcp_name, chat_name)
     for mcp_name, chat_name in _DERIVED_MCP_TOOLS.items()
 )
+
+
+def _dashboard_write_tools() -> frozenset[str]:
+    """Every MCP tool that mutates a dashboard.
+
+    Derived rather than listed, so a mutation added to the family is covered by
+    the editability report without anyone remembering to name it here — the
+    failure otherwise is quiet, a credential told it cannot edit while its calls
+    succeed.
+    """
+    from .tool_registry import TOOL_MAP  # noqa: PLC0415
+
+    global _DASHBOARD_WRITE_TOOLS
+    if _DASHBOARD_WRITE_TOOLS is None:
+        _DASHBOARD_WRITE_TOOLS = frozenset(
+            mcp_name
+            for mcp_name, chat_name in _DERIVED_MCP_TOOLS.items()
+            if "dashboard" in chat_name and TOOL_MAP[chat_name].requires_admin
+        )
+    return _DASHBOARD_WRITE_TOOLS
 
 
 # ── Destructive non-delete previews ───────────────────────────────────────────

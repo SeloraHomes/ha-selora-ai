@@ -129,7 +129,10 @@ async def test_set_script_replaces_by_alias(script_home: HomeAssistant) -> None:
     # Replacing an existing script discards its sequence, so it asks first.
     held = await executor.execute(
         "set_script",
-        {"alias": "Movie Night", "sequence": [{"delay": {"seconds": 1}}, {"delay": {"seconds": 2}}]},
+        {
+            "alias": "Movie Night",
+            "sequence": [{"delay": {"seconds": 1}}, {"delay": {"seconds": 2}}],
+        },
     )
     assert held["requires_approval"] is True
     assert held["destructive"]["verb"] == "replace"
@@ -140,7 +143,10 @@ async def test_set_script_replaces_by_alias(script_home: HomeAssistant) -> None:
     assert "payload" not in held["destructive"]
     result = await _tool_set_script(
         script_home,
-        {"alias": "Movie Night", "sequence": [{"delay": {"seconds": 1}}, {"delay": {"seconds": 2}}]},
+        {
+            "alias": "Movie Night",
+            "sequence": [{"delay": {"seconds": 1}}, {"delay": {"seconds": 2}}],
+        },
     )
     assert result["status"] == "updated"
     assert result["step_count"] == 2
@@ -243,9 +249,7 @@ async def test_assign_labels_preserves_labels_it_was_not_told_about(
     """The delta semantics exist precisely so an unrelated label survives."""
     registry = lr.async_get(label_home)
     other = registry.async_create("battery-powered")
-    er.async_get(label_home).async_update_entity(
-        "light.kitchen_lamp", labels={other.label_id}
-    )
+    er.async_get(label_home).async_update_entity("light.kitchen_lamp", labels={other.label_id})
 
     await _make_executor(label_home).execute(
         "assign_labels", {"add_labels": ["holiday"], "entity_ids": ["light.kitchen_lamp"]}
@@ -276,9 +280,7 @@ async def test_assign_labels_to_an_area(label_home: HomeAssistant) -> None:
 
 
 async def test_assign_labels_needs_a_target(label_home: HomeAssistant) -> None:
-    result = await _make_executor(label_home).execute(
-        "assign_labels", {"add_labels": ["holiday"]}
-    )
+    result = await _make_executor(label_home).execute("assign_labels", {"add_labels": ["holiday"]})
     assert "entity_id" in result["error"]
 
 
@@ -410,8 +412,14 @@ def test_every_delete_tool_is_in_both_allowlists() -> None:
         _DELETE_TOOLS,
     )
 
-    for tool in ("delete_automation", "delete_scene", "delete_group",
-                 "delete_area", "delete_script", "delete_label"):
+    for tool in (
+        "delete_automation",
+        "delete_scene",
+        "delete_group",
+        "delete_area",
+        "delete_script",
+        "delete_label",
+    ):
         assert tool in _DELETE_TOOLS
     for kind in ("automation", "scene", "group", "area", "script", "label"):
         assert kind in _DELETE_KINDS
@@ -543,9 +551,7 @@ async def test_label_counts_survive_the_overview_cap(label_home: HomeAssistant) 
     for i in range(60):
         registry.async_create(f"zz-label-{i:03d}")
     target = registry.async_create("zzz-last")
-    er.async_get(label_home).async_update_entity(
-        "light.kitchen_lamp", labels={target.label_id}
-    )
+    er.async_get(label_home).async_update_entity("light.kitchen_lamp", labels={target.label_id})
 
     overview = lm.label_overview(label_home)
     assert len(overview["labels"]) < overview["count"]  # capped, as designed
@@ -709,9 +715,7 @@ async def test_script_delete_card_carries_a_config_fingerprint(
         },
     )
 
-    result = await async_delete_script(
-        script_home, "movie_night", expected_fingerprint=fingerprint
-    )
+    result = await async_delete_script(script_home, "movie_night", expected_fingerprint=fingerprint)
     assert "has changed" in result["error"]
     assert (await executor.execute("list_scripts", {}))["count"] == 1
 
@@ -865,14 +869,20 @@ def test_mixed_delete_and_destructive_share_one_card() -> None:
     assert deletes and actions
 
     upgraded = _build_delete_approval_response(
-        {"intent": "answer", "response": ""}, deletes, tool_log, None,
-        language="en", actions=actions,
+        {"intent": "answer", "response": ""},
+        deletes,
+        tool_log,
+        None,
+        language="en",
+        actions=actions,
     )
     proposal = upgraded["command_approval"]
     assert len(proposal["deletes"]) == 1
     assert len(proposal["actions"]) == 1
     # Neutral wording once it is not purely deletions.
-    assert proposal["quick_actions"][0]["label"] != "Delete" if proposal.get("quick_actions") else True
+    assert (
+        proposal["quick_actions"][0]["label"] != "Delete" if proposal.get("quick_actions") else True
+    )
     assert upgraded["quick_actions"][0]["label"] == "Apply"
 
 
@@ -1306,9 +1316,7 @@ async def test_a_large_replacement_card_stays_bounded(script_home: HomeAssistant
     from custom_components.selora_ai.const import MAX_TOOL_RESULT_CHARS
     from custom_components.selora_ai.mcp_server import _tool_set_script
 
-    big = [
-        {"service": "light.turn_on", "target": {"entity_id": f"light.l{i}"}} for i in range(400)
-    ]
+    big = [{"service": "light.turn_on", "target": {"entity_id": f"light.l{i}"}} for i in range(400)]
     await _tool_set_script(
         script_home, {"object_id": "big", "alias": "Big", "sequence": [{"delay": {"seconds": 1}}]}
     )

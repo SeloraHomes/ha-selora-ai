@@ -88,9 +88,7 @@ class TestHouseholdProfileBlock:
 
     def test_local_much_shorter_than_cloud(self) -> None:
         text = "z" * 5000
-        assert len(_household_profile_block(text, local=True)) < len(
-            _household_profile_block(text)
-        )
+        assert len(_household_profile_block(text, local=True)) < len(_household_profile_block(text))
 
 
 class TestBuilderInjection:
@@ -112,18 +110,14 @@ class TestBuilderInjection:
         assert "HOUSEHOLD PROFILE" not in build_architect_stream_system_prompt()
 
     def test_minimal_local_mode(self) -> None:
-        with_p = build_minimal_architect_system_prompt(
-            "answer", household_profile=self.PROFILE
-        )
+        with_p = build_minimal_architect_system_prompt("answer", household_profile=self.PROFILE)
         assert self.PROFILE in with_p
         assert "HOME CONTEXT" in with_p
         assert "HOME CONTEXT" not in build_minimal_architect_system_prompt("answer")
 
     def test_minimal_local_respects_cap(self) -> None:
         long_profile = "w" * 5000
-        prompt = build_minimal_architect_system_prompt(
-            "command", household_profile=long_profile
-        )
+        prompt = build_minimal_architect_system_prompt("command", household_profile=long_profile)
         # The injected profile run is truncated to the local cap: the full
         # 5000-char run never survives, only a capped slice.
         assert "w" * (HOUSEHOLD_PROFILE_LOCAL_MAX_CHARS + 1) not in prompt
