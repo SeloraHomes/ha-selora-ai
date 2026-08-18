@@ -94,9 +94,7 @@ async def test_roster_flags_transient_ble_devices(hass: HomeAssistant) -> None:
     """BLE-beacon / presence-advert devices (out-of-range != broken) are flagged
     transient so consumers can drop them from the "needs attention" tally, while
     real devices stay transient=False."""
-    ble = MockConfigEntry(
-        domain="private_ble_device", entry_id="ble1", title="Phone Tag"
-    )
+    ble = MockConfigEntry(domain="private_ble_device", entry_id="ble1", title="Phone Tag")
     ble.add_to_hass(hass)
     hue = MockConfigEntry(domain="hue", entry_id="h1", title="Hue")
     hue.add_to_hass(hass)

@@ -606,8 +606,7 @@ def test_score_breakdown_caps_deductions_at_zero_score() -> None:
     deductions scale down to the 100 points actually removed, so the breakdown
     reconciles instead of "explaining" a 0 with >100 points of loss."""
     findings = [
-        {"check_id": "integration_errors", "severity": "critical", "entities": []}
-        for _ in range(7)
+        {"check_id": "integration_errors", "severity": "critical", "entities": []} for _ in range(7)
     ]
     bd = score_breakdown_from_findings(findings, total_devices=10)
     # 7 * 15 = 105 raw penalty → the score floors at 0.

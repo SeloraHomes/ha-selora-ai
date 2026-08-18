@@ -2497,10 +2497,12 @@ def _pending_deletes_from_log(
 # allowlist discipline as ``_DELETE_TOOLS``: a tool missing here returns
 # ``requires_approval``, the loop short-circuits and discards the model's prose,
 # and the synthesizer then drops the descriptor — empty reply, no card.
-_DESTRUCTIVE_TOOLS = frozenset({"update_entity", "update_device", "set_script"})
+_DESTRUCTIVE_TOOLS = frozenset(
+    {"update_entity", "update_device", "set_script", "remove_dashboard_view"}
+)
 
 # Verbs the confirm handler knows how to replay.
-_DESTRUCTIVE_VERBS = frozenset({"disable", "rename_id", "replace"})
+_DESTRUCTIVE_VERBS = frozenset({"disable", "rename_id", "replace", "remove_view"})
 
 
 def _pending_destructive_from_log(
@@ -2670,6 +2672,51 @@ def _build_delete_approval_response(
     return upgraded
 
 
+# Entity tile markers, and the ``### Area`` sub-headings the prompt asks the
+# model to put above them.
+_ENTITY_MARKER = re.compile(r"^\s*\[\[entit(?:y|ies):[^\]]*\]\]\s*$", re.M)
+_AREA_SUBHEADING = re.compile(r"^\s*###\s+.*$", re.M)
+
+
+def strip_entity_tiles_after_dashboard_turn(
+    result: ArchitectResponse, tool_log: list[dict[str, Any]] | None
+) -> ArchitectResponse:
+    """Drop entity tiles from a reply that read or edited a dashboard.
+
+    The tiles are real HA cards hydrated into the chat bubble and grouped under
+    ``### Area`` headings — which is a good answer to "which lights are on?" and
+    an actively misleading one right after a dashboard edit, where it reads as
+    "here is your dashboard" and invites the user to believe the layout on
+    screen is the layout that was saved. It is not: it is a list of entities the
+    reply happened to mention.
+
+    Only the markers go. The prose stays, so the model still says what it did.
+    """
+    if not tool_log or not any("dashboard" in str(entry.get("tool") or "") for entry in tool_log):
+        return result
+    text = str(result.get("response") or "")
+    if "[[entit" not in text:
+        return result
+
+    stripped = _ENTITY_MARKER.sub("", text)
+    # A sub-heading left with no tiles under it is a bare "### Garage" — remove
+    # any heading whose block is now empty.
+    lines = stripped.split("\n")
+    kept: list[str] = []
+    for i, line in enumerate(lines):
+        if _AREA_SUBHEADING.fullmatch(line) and not any(
+            following.strip() and not _AREA_SUBHEADING.fullmatch(following)
+            for following in lines[i + 1 : i + 3]
+        ):
+            continue
+        kept.append(line)
+    cleaned = re.sub(r"\n{3,}", "\n\n", "\n".join(kept)).strip()
+
+    upgraded: ArchitectResponse = dict(result)
+    upgraded["response"] = cleaned
+    return upgraded
+
+
 def synthesize_approval_from_tool_log(
     result: ArchitectResponse,
     tool_log: list[dict[str, Any]] | None,
@@ -2692,6 +2739,11 @@ def synthesize_approval_from_tool_log(
         return _normalize_explicit_approval(result, hass)
     if not tool_log:
         return result
+    # A dashboard turn must not answer with entity tiles that look like the
+    # dashboard it just changed. Above the intent-specific returns below, which
+    # would otherwise carry the markers straight out. Done here because this is
+    # the one funnel both the streaming and non-streaming paths pass through.
+    result = strip_entity_tiles_after_dashboard_turn(result, tool_log)
     if result.get("intent") in ("command", "delayed_command"):
         return result
     # A single turn can emit both a delete tool and a review-level

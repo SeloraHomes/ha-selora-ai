@@ -2094,9 +2094,7 @@ class TestAsyncUpdateAutomation:
         assert "initial_state" in match[0]
 
     @staticmethod
-    def _set_disk_initial_state(
-        path: Path, automation_id: str, value: bool | None
-    ) -> None:
+    def _set_disk_initial_state(path: Path, automation_id: str, value: bool | None) -> None:
         """Rewrite automations.yaml so ``automation_id`` has (or omits) initial_state."""
         content = yaml.safe_load(path.read_text(encoding="utf-8"))
         for a in content:
@@ -2173,9 +2171,7 @@ class TestAsyncUpdateAutomation:
 
         self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
         entity_reg = er.async_get(hass)
-        entry = entity_reg.async_get_or_create(
-            "automation", "automation", "selora_ai_existing1"
-        )
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
         hass.states.async_set(entry.entity_id, "on")
 
         updated = {
@@ -2422,9 +2418,7 @@ class TestAsyncUpdateAutomation:
 
         self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
         entity_reg = er.async_get(hass)
-        entry = entity_reg.async_get_or_create(
-            "automation", "automation", "selora_ai_existing1"
-        )
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
         hass.states.async_set(entry.entity_id, "on")
 
         registry_cls = type(hass.services)
@@ -2449,9 +2443,7 @@ class TestAsyncUpdateAutomation:
         assert all(restore), "runtime-state restore must use blocking=True"
 
     @pytest.mark.asyncio
-    async def test_toggle_watcher_records_only_live_transitions(
-        self, hass: MagicMock
-    ) -> None:
+    async def test_toggle_watcher_records_only_live_transitions(self, hass: MagicMock) -> None:
         """The watcher records genuine live transitions (successful toggles) but
         ignores the reload's own remove/re-add — so a failed call (no change) is not
         recorded, the reload's rebuild is not mistaken for a toggle, and a real
@@ -2508,9 +2500,7 @@ class TestAsyncUpdateAutomation:
 
         self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
         entity_reg = er.async_get(hass)
-        entry = entity_reg.async_get_or_create(
-            "automation", "automation", "selora_ai_existing1"
-        )
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
         hass.states.async_set(entry.entity_id, "on")  # captured live = ON
 
         class _FakeWatcher:
@@ -2648,9 +2638,7 @@ class TestAsyncUpdateAutomation:
 
         self._set_disk_initial_state(tmp_automations_yaml, "selora_ai_existing1", False)
         entity_reg = er.async_get(hass)
-        entry = entity_reg.async_get_or_create(
-            "automation", "automation", "selora_ai_existing1"
-        )
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
         hass.states.async_set(entry.entity_id, "on")  # captured live = ON → first restore turn_on
 
         registry_cls = type(hass.services)
@@ -2686,9 +2674,7 @@ class TestAsyncUpdateAutomation:
         from homeassistant.helpers import entity_registry as er
 
         entity_reg = er.async_get(hass)
-        entity_reg.async_get_or_create(
-            "automation", "automation", "selora_ai_existing1"
-        )
+        entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
         hass.states.async_set("automation.selora_ai_existing1", "on")
 
         before = hass.bus.async_listeners().get(EVENT_STATE_CHANGED, 0)
@@ -2723,9 +2709,7 @@ class TestAsyncUpdateAutomation:
 
         # selora_ai_existing1 seeds initial_state: True on disk.
         entity_reg = er.async_get(hass)
-        entry = entity_reg.async_get_or_create(
-            "automation", "automation", "selora_ai_existing1"
-        )
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
         hass.states.async_set(entry.entity_id, "off")
 
         updated = {
@@ -2760,9 +2744,7 @@ class TestAsyncUpdateAutomation:
 
         # disk boot override is True (seeded); transient live state must not flip it.
         entity_reg = er.async_get(hass)
-        entry = entity_reg.async_get_or_create(
-            "automation", "automation", "selora_ai_existing1"
-        )
+        entry = entity_reg.async_get_or_create("automation", "automation", "selora_ai_existing1")
         hass.states.async_set(entry.entity_id, transient)
 
         updated = {
@@ -2775,9 +2757,7 @@ class TestAsyncUpdateAutomation:
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
         match = [a for a in content if a.get("id") == "selora_ai_existing1"]
         assert match[0]["initial_state"] is True
-        assert not [
-            c for c in automation_service_calls if c[1] in ("turn_on", "turn_off")
-        ]
+        assert not [c for c in automation_service_calls if c[1] in ("turn_on", "turn_off")]
 
     @pytest.mark.asyncio
     async def test_refine_preserves_omission_when_disk_omits(
@@ -2809,9 +2789,7 @@ class TestAsyncUpdateAutomation:
         from homeassistant.helpers import entity_registry as er
 
         entity_reg = er.async_get(hass)
-        entry = entity_reg.async_get_or_create(
-            "automation", "automation", "manual_automation_1"
-        )
+        entry = entity_reg.async_get_or_create("automation", "automation", "manual_automation_1")
         hass.states.async_set(entry.entity_id, "on")
 
         updated = {

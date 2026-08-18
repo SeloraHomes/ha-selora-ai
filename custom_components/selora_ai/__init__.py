@@ -3857,6 +3857,20 @@ async def _apply_destructive_actions(
             elif kind == "device":
                 payload["device"] = target_id
                 res = await _tool_update_device(hass, payload)
+            elif kind == "dashboard_view":
+                # target_id is "<dashboard>#<index>". A view has no id, so a
+                # content fingerprint captured on the card is re-verified inside
+                # the manager against the freshly-loaded document — the index
+                # alone would happily point at a different page.
+                dashboard, _, view_index = target_id.rpartition("#")
+                from .dashboard_manager import async_remove_view  # noqa: PLC0415
+
+                res = await async_remove_view(
+                    hass,
+                    target=dashboard or None,
+                    view=view_index,
+                    expected_fingerprint=str(action.get("fingerprint") or ""),
+                )
             elif kind == "script":
                 # Same reusable-slug hazard as the script DELETE path, plus the
                 # in-place edit case: the card described one version of the

@@ -171,7 +171,7 @@ def test_device_commands_are_not_config(message: str) -> None:
 
 
 def test_known_area_name_rescues_a_bare_placement() -> None:
-    """"Move the lamp to the Study" has no area noun — the registry supplies it."""
+    """ "Move the lamp to the Study" has no area noun — the registry supplies it."""
     assert _is_config_request("move the desk lamp to the Study") is False
     assert _is_config_request("move the desk lamp to the Study", ["Study", "Bedroom"]) is True
 
@@ -499,9 +499,7 @@ async def test_list_services_unknown_domain(registry_home: HomeAssistant) -> Non
         ("move the pot to the garden", ["Den"]),
     ],
 )
-def test_device_commands_never_lose_execute_command(
-    message: str, areas: list[str] | None
-) -> None:
+def test_device_commands_never_lose_execute_command(message: str, areas: list[str] | None) -> None:
     """The expensive failure mode: a real command trimmed to the config lane.
 
     The config lane has no ``execute_command``, so a false positive here leaves
@@ -845,9 +843,7 @@ async def test_rename_onto_a_yaml_entity_id_is_refused(
 ) -> None:
     """State without a registry entry still blocks the id — HA checks both."""
     registry_home.states.async_set("light.yaml_only", "on")
-    error = await rm.validate_entity_id_rename(
-        registry_home, "light.floor_lamp", "light.yaml_only"
-    )
+    error = await rm.validate_entity_id_rename(registry_home, "light.floor_lamp", "light.yaml_only")
     assert error is not None
     assert "already in use" in error
 
@@ -986,9 +982,7 @@ async def test_helper_domain_lookup_survives_a_bad_manifest(
 
     from custom_components.selora_ai.registry_manager import _config_entry_helper_domains
 
-    with patch(
-        "homeassistant.loader.async_get_integrations", side_effect=RuntimeError("boom")
-    ):
+    with patch("homeassistant.loader.async_get_integrations", side_effect=RuntimeError("boom")):
         assert await _config_entry_helper_domains(registry_home) == set()
 
 

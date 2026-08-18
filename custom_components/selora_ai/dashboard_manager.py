@@ -1,0 +1,1261 @@
+"""Read and edit Lovelace dashboard content — views and cards.
+
+Backs the chat tools that answer "what's on my dashboard", "put the thermostat
+next to the lights", and "give me a page for the garage". Before these existed
+the model could place a card but never *see* one: ``insert_dashboard_card`` took
+a ``view`` argument the model had no way to learn, so it guessed, and in
+practice always landed on view 0.
+
+What is reachable, and what is not:
+
+* **A dashboard's config is read/write.** ``LovelaceStorage.async_load`` /
+  ``async_save`` round-trip the whole document, so views and cards are fully
+  editable. Everything here works on that document.
+* **A dashboard ENTRY is not creatable.** ``DashboardsCollection`` — which owns
+  adding and deleting dashboards — is a local inside ``lovelace.async_setup``,
+  published only to a websocket handler and never to ``hass.data``. There is no
+  supported in-process way to reach it, so ``create_dashboard`` is deliberately
+  absent: the user adds an empty dashboard in the UI and Selora builds it out.
+
+Three properties of the document shape drive most of the code here:
+
+* **Nothing is validated server-side.** Lovelace storage is free-form JSON; the
+  frontend owns the schema. So view ``title`` and ``path`` are *not* unique, and
+  a resolver that takes the first match will edit an arbitrary page. Only the
+  index is a guaranteed handle.
+* **A sections view keeps its cards somewhere else.** A classic view holds them
+  at ``view["cards"]``; a ``type: sections`` view holds them at
+  ``view["sections"][n]["cards"]`` and ignores a top-level ``cards`` key
+  entirely. Card addressing is therefore a flat index across every card list in
+  the view, not an index into one of them.
+* **The UI writes this document too.** Saving is read-modify-write of the whole
+  config, so a card index captured in one call means nothing by the next one.
+  Every edit carries a content fingerprint that is re-checked against the
+  freshly-loaded document immediately before the save. ``DASHBOARD_LOCK`` (in
+  ``helpers``, shared with the recipe install stage) covers the writers we own.
+"""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import json
+import logging
+import re
+from typing import TYPE_CHECKING, Any, Final
+
+from .const import MAX_TOOL_RESULT_CHARS
+from .helpers import (
+    CALLER_CAN_WRITE,
+    CALLER_IS_ADMIN,
+    DASHBOARD_LOCK,
+    dashboard_info,
+    default_dashboard_key,
+    is_auto_generated_dashboard,
+    is_strategy_document,
+    sanitize_untrusted_text,
+)
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
+
+# Re-exported: the lock is shared with `recipes.dashboard`, whose install and
+# uninstall stages rewrite these same documents. See helpers for why it is one
+# lock for every dashboard and what it deliberately does not cover.
+__all__ = ["DASHBOARD_LOCK"]
+
+# Caps for what a read echoes back. Cards live inside a list of view dicts, which
+# ``ToolExecutor._find_longest_list`` cannot reach — it only trims top-level
+# lists and lists one dict deep — so an oversized dashboard would otherwise have
+# a whole VIEW record popped rather than being trimmed. Counts stay exact.
+_MAX_VIEWS: Final = 30
+_MAX_CARDS_PER_VIEW: Final = 40
+
+# Ceiling on the removed-card config echoed back for restoration. Below
+# ``MAX_TOOL_RESULT_CHARS`` so ``_truncate_result`` never gets to trim the card
+# on its way out — a silently shortened restore payload is the hazard.
+_MAX_RESTORE_CHARS: Final = MAX_TOOL_RESULT_CHARS - 2000
+
+# Ceiling on a single card fetched for editing, for the same reason and with the
+# same margin — the executor trims the assembled result, not the card alone.
+_MAX_CARD_CHARS: Final = MAX_TOOL_RESULT_CHARS - 2000
+
+
+def _lovelace_dashboard(hass: HomeAssistant, target: str | None) -> tuple[Any, str | None]:
+    """Return ``(config, error)`` for a dashboard, readable or not.
+
+    Unlike ``recipes.dashboard._get_storage_dashboard`` this does not require
+    storage mode — a YAML dashboard is perfectly readable, and telling the user
+    what is on it is useful even though we cannot edit it. Writers call
+    :func:`_writable_dashboard` instead.
+    """
+    try:
+        from homeassistant.components.lovelace import LovelaceData  # noqa: PLC0415
+        from homeassistant.components.lovelace.const import LOVELACE_DATA  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — lovelace ships with core
+        return None, "Lovelace is not available on this install."
+
+    data: LovelaceData | None = hass.data.get(LOVELACE_DATA)
+    if data is None:
+        return None, "Lovelace is not set up yet."
+
+    # An unqualified target — omitted, empty, or the name list_dashboards
+    # reports — resolves the way HA itself does, which is not always None.
+    key = target or None
+    if key in ("lovelace", "", None):
+        key = default_dashboard_key(data.dashboards)
+    config = data.dashboards.get(key)
+    if config is not None and _hidden_from_caller(config):
+        config = None
+    if config is None:
+        known = ", ".join(
+            sorted(
+                str(k or "lovelace")
+                for k, v in data.dashboards.items()
+                if not _hidden_from_caller(v)
+            )
+        )
+        return None, (
+            f"No dashboard '{sanitize_untrusted_text(target or 'lovelace', 60)}'. "
+            f"Available: {known or 'none'}."
+        )
+    return config, None
+
+
+def _hidden_from_caller(config: Any) -> bool:
+    """Whether HA hides this dashboard from the caller of the current tool call.
+
+    A dashboard carries ``require_admin`` in its metadata and Home Assistant
+    registers no panel for it for a non-admin, so it is invisible to them in the
+    UI. The read tools here are deliberately available to non-admin chat users
+    and read-only MCP credentials, so without this check they hand back the full
+    card configuration — camera entity ids, whatever the household admin chose to
+    keep to themselves — of a dashboard HA is hiding on purpose.
+
+    Reported as absent rather than refused. A distinct "you may not read that"
+    confirms the dashboard exists, which is the one bit HA is withholding.
+    """
+    if CALLER_IS_ADMIN.get():
+        return False
+    meta = getattr(config, "config", None)
+    return bool(isinstance(meta, dict) and meta.get("require_admin"))
+
+
+async def list_dashboards(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Every Lovelace dashboard, each marked with whether it can be edited.
+
+    Distinct from ``recipes.dashboard.list_writable_dashboards``, which is the
+    right answer for a card-placement picker and drops YAML boards because it
+    cannot write to them. This is the discovery half of the READ tools, and they
+    read YAML boards perfectly well — omitting those left a user able to see a
+    dashboard in their sidebar that Selora insisted was not there, with no way
+    to learn the ``url_path`` that would have fetched it.
+    """
+    try:
+        from homeassistant.components.lovelace import LovelaceData  # noqa: PLC0415
+        from homeassistant.components.lovelace.const import (  # noqa: PLC0415
+            LOVELACE_DATA,
+            MODE_STORAGE,
+        )
+    except ImportError:  # pragma: no cover — lovelace ships with core
+        return []
+
+    data: LovelaceData | None = hass.data.get(LOVELACE_DATA)
+    if data is None:
+        return []
+
+    # When "lovelace" exists the None entry is the emptied placeholder the
+    # migration left behind — HA registers no panel for it, so offering it would
+    # be a dashboard the user cannot see anywhere.
+    default_key = default_dashboard_key(data.dashboards)
+
+    out: list[dict[str, Any]] = []
+    for url_path, config in data.dashboards.items():
+        if url_path is None and default_key is not None:
+            continue
+        if _hidden_from_caller(config):
+            continue
+        # Whether a write would actually be allowed, not merely what mode it is
+        # in. A fresh install's Overview is storage-mode and still generated, so
+        # a mode-only answer told the caller to go ahead and every write then
+        # refused — inviting a workflow that cannot finish.
+        # Asked of the same classifier the writes use, so the listing cannot
+        # advertise a dashboard that every mutation then refuses — a Map-style
+        # strategy board is storage-mode and reports storage from
+        # `async_get_info`, so nothing cheaper distinguishes it.
+        editable = (
+            getattr(config, "mode", None) == MODE_STORAGE
+            and CALLER_CAN_WRITE.get()
+            and (await _load_or_reason(config))[1] is None
+        )
+        out.append(
+            {
+                "url_path": url_path,
+                "title": _dashboard_title(config, url_path),
+                "editable": editable,
+            }
+        )
+    # Default dashboard first — it is what an unqualified request means.
+    out.sort(key=lambda d: (d["url_path"] is not None, str(d["url_path"] or "")))
+    return out
+
+
+def _writable_dashboard(hass: HomeAssistant, target: str | None) -> tuple[Any, str | None]:
+    """Return ``(config, error)`` for a dashboard that can be saved.
+
+    A YAML dashboard is refused with an explanation rather than reported as
+    missing — the user can see it in their sidebar, and "no such dashboard"
+    would read as a bug in us rather than as a property of their setup.
+    """
+    from homeassistant.components.lovelace.const import MODE_STORAGE  # noqa: PLC0415
+
+    config, error = _lovelace_dashboard(hass, target)
+    if error or config is None:
+        return None, error
+    if getattr(config, "mode", None) != MODE_STORAGE:
+        return None, (
+            f"'{sanitize_untrusted_text(target or 'lovelace', 60)}' is a YAML-mode "
+            f"dashboard, so Home Assistant does not let anything edit it through the "
+            f"UI or the API. It has to be changed in its YAML file."
+        )
+    return config, None
+
+
+_STRATEGY_NOTE: Final = (
+    "That dashboard is generated by a strategy, so Home Assistant builds it from "
+    "the strategy every time and ignores any views stored alongside it — an edit "
+    "would save but never show. Open it, use the pencil and pick 'Take control' "
+    "to turn it into a normal dashboard first."
+)
+
+_AUTO_GEN_NOTE: Final = (
+    "Home Assistant is still generating that dashboard for you — it has no "
+    "stored configuration of its own, which is why it has no views I can list. "
+    "Open it, use the pencil in the top right and pick 'Take control', and Home "
+    "Assistant will save the page you can see now as a real config. After that I "
+    "can add views and cards to it."
+)
+
+
+async def _auto_generated(config: Any) -> bool:
+    """See :func:`helpers.is_auto_generated_dashboard`.
+
+    There is no way to materialise the generated config here: the strategy runs
+    in the frontend, and core ships no server-side generator (the map dashboard
+    is seeded by writing a strategy config, not by rendering one). So writes are
+    refused and the user is pointed at Take control, which is the supported
+    one-click way to turn the generated page into a stored one.
+    """
+    return await is_auto_generated_dashboard(config)
+
+
+def _dashboard_title(config: Any, target: str | None) -> str:
+    """A dashboard's display title.
+
+    It lives in the dashboard's METADATA (`config.config["title"]`), not in the
+    Lovelace document — `async_load` normally returns just `views`, so reading
+    the title from there reported an empty string for every named dashboard
+    while `list_dashboards` reported it correctly off the same object.
+    """
+    meta = getattr(config, "config", None)
+    title = meta.get("title") if isinstance(meta, dict) else None
+    if not title:
+        # The legacy default dashboard has no metadata entry at all.
+        title = "Overview" if target in (None, "", "lovelace") else str(target)
+    return sanitize_untrusted_text(str(title), 60)
+
+
+async def _load_or_reason(config: Any) -> tuple[dict[str, Any] | None, str | None]:
+    """``(document, refusal)`` for a dashboard, without copying it.
+
+    The one place that decides whether a dashboard can be read and written, so
+    `_load_config` and `list_dashboards` cannot disagree about it — `editable`
+    saying yes to something every write then refuses is the same bug as the
+    write refusing something the listing called editable.
+
+    ``({}, None)`` is a genuinely blank storage dashboard, which is writable.
+    """
+    from homeassistant.components.lovelace.const import ConfigNotFound  # noqa: PLC0415
+
+    try:
+        loaded = await config.async_load(False)
+    except ConfigNotFound:
+        info = await dashboard_info(config)
+        if error := info.get("error"):
+            # A YAML dashboard whose file is missing or unreadable. Its mode is
+            # still `yaml`, so the auto-gen probe says nothing — and reporting
+            # zero views hides a configuration problem behind an empty page.
+            return None, (
+                f"Home Assistant could not read that dashboard's YAML file: "
+                f"{sanitize_untrusted_text(str(error), 120)}"
+            )
+        if info.get("mode", "auto-gen") == "auto-gen":
+            # NOT an empty dashboard: HA is still generating it and the user is
+            # looking at a full Overview. Guarded here rather than at each caller
+            # so a reader cannot report zero views and a writer cannot save over
+            # the generated page. `{}` from a failed probe lands here too.
+            return None, _AUTO_GEN_NOTE
+        return {}, None
+    except Exception as exc:  # noqa: BLE001 — a broken board must not raise at the caller
+        return None, f"Could not read that dashboard: {exc}"
+
+    if is_strategy_document(loaded):
+        return None, _STRATEGY_NOTE
+    return dict(loaded or {}), None
+
+
+async def _load_config(config: Any) -> tuple[dict[str, Any], str | None]:
+    """Load a dashboard's stored document, or ``({}, None)`` when it has none."""
+    document, error = await _load_or_reason(config)
+    if error or document is None:
+        return {}, error
+
+    # DEEP copy. LovelaceStorage.async_load hands back its cached config object
+    # itself, and dict() copies only the root mapping — the views list and every
+    # view and card inside it stay the live objects HA is serving. Writers here
+    # mutate before they validate, so `dict()` alone lets a REJECTED edit stick
+    # in the cache: rename a view, hit the duplicate-path check, return an
+    # error, and the cached title has already changed. The next save by anyone
+    # persists it. Readers copy too — the returned card would otherwise be a
+    # live reference that whatever trims the tool result could shorten in place.
+    return copy.deepcopy(document), None
+
+
+def card_fingerprint(card: Any) -> str:
+    """Content hash of one card, used to re-identify it across a round trip.
+
+    A card has no id. Its index is the only handle a caller can hold, and the
+    index moves the moment anything is inserted or removed — including by the
+    Lovelace UI, which this module cannot lock out. Hashing the card is what
+    makes "replace card 3" mean the card the caller was actually shown.
+    """
+    canonical = json.dumps(card, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+def view_fingerprint(view: Any) -> str:
+    """Content hash of a whole view, used to re-identify it across a round trip.
+
+    A card COUNT is not identity. Two views commonly hold the same number of
+    cards, so if another view is removed or reordered while a confirmation card
+    is open, the stored index resolves to a different page whose count happens
+    to match — the check passes and deletes a page the user never approved.
+    """
+    canonical = json.dumps(view, sort_keys=True, ensure_ascii=False, default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+
+
+def _views(document: dict[str, Any]) -> list[dict[str, Any]]:
+    views = document.get("views")
+    return [v for v in views if isinstance(v, dict)] if isinstance(views, list) else []
+
+
+def _flat_cards(view: dict[str, Any]) -> list[tuple[list[Any], int, Any]]:
+    """Every card in a view as ``(owning_list, position, card)``, in render order.
+
+    Flattens the classic and sections layouts into one addressable sequence so a
+    caller can say "card 3" without knowing which of them it is looking at. The
+    owning list is a live reference, so a caller can mutate through it.
+    """
+    from .recipes.dashboard import _view_card_lists  # noqa: PLC0415
+
+    out: list[tuple[list[Any], int, Any]] = []
+    for card_list in _view_card_lists(view):
+        for position, card in enumerate(card_list):
+            out.append((card_list, position, card))
+    return out
+
+
+def resolve_view(document: dict[str, Any], ref: object) -> tuple[int | None, str | None]:
+    """Resolve a view to its index. Returns ``(index, error)``.
+
+    Accepts an integer index, a numeric string, a ``path``, or a ``title``.
+    Index wins because it is the only unambiguous handle: Lovelace validates
+    nothing server-side, so two views may share a title *or* a path, and taking
+    the first match would edit an arbitrary page. An ambiguous name is refused
+    with the indices to choose between.
+    """
+    views = _views(document)
+    if not views:
+        return None, "That dashboard has no views yet."
+
+    if isinstance(ref, bool):  # bool is an int subclass; never a view reference
+        return None, "A view index, path, or title is required."
+    if isinstance(ref, int):
+        index = ref
+    elif isinstance(ref, str) and ref.strip().lstrip("-").isdigit():
+        index = int(ref.strip())
+    else:
+        index = None
+
+    if index is not None:
+        if 0 <= index < len(views):
+            return index, None
+        return None, f"This dashboard has {len(views)} views, so index {index} is out of range."
+
+    wanted = " ".join(str(ref or "").split()).casefold()
+    if not wanted:
+        return None, "A view index, path, or title is required."
+
+    # Collect across both fields before deciding. A name can match one view's
+    # title and a *different* view's path; checking path first and returning on
+    # its single hit resolves that silently, and to the view the user was least
+    # likely to mean — they named it by the label the sidebar shows.
+    matched: dict[int, list[str]] = {}
+    for i, view in enumerate(views):
+        for key in ("path", "title"):
+            if " ".join(str(view.get(key) or "").split()).casefold() == wanted:
+                matched.setdefault(i, []).append(key)
+    if len(matched) == 1:
+        return next(iter(matched)), None
+    if len(matched) > 1:
+        detail = ", ".join(f"{i} (by {' and '.join(keys)})" for i, keys in sorted(matched.items()))
+        return None, (
+            f"'{sanitize_untrusted_text(str(ref), 40)}' matches {len(matched)} views "
+            f"— {detail}. Use the index instead."
+        )
+
+    labels = ", ".join(
+        f"{i}: {sanitize_untrusted_text(v.get('title') or v.get('path') or '(untitled)', 30)}"
+        for i, v in enumerate(views[:_MAX_VIEWS])
+    )
+    return None, f"No view '{sanitize_untrusted_text(str(ref), 40)}'. Views are — {labels}."
+
+
+def _describe_card(card: Any, index: int) -> dict[str, Any]:
+    """One card as the model needs to see it: what it is, and how to address it."""
+    if not isinstance(card, dict):
+        return {"index": index, "type": "(malformed)", "fingerprint": card_fingerprint(card)}
+
+    described: dict[str, Any] = {
+        "index": index,
+        "type": str(card.get("type") or "(unspecified)"),
+        "fingerprint": card_fingerprint(card),
+    }
+    if title := card.get("title") or card.get("name"):
+        described["title"] = sanitize_untrusted_text(title, 60)
+    # The entity a card points at is what a user names it by ("the thermostat
+    # card"), so it is worth the tokens even though the full config is not.
+    if entity := card.get("entity"):
+        described["entity"] = str(entity)
+    elif isinstance(card.get("entities"), list):
+        described["entity_count"] = len(card["entities"])
+    return described
+
+
+# ── Read ────────────────────────────────────────────────────────────────────
+
+
+async def async_get_dashboard(
+    hass: HomeAssistant, target: str | None = None, view: object = None
+) -> dict[str, Any]:
+    """Return a dashboard's views, and the cards in one of them.
+
+    Cards are returned for a single view at a time. Returning every card on
+    every view is what makes a dashboard unreadable — a modest home runs to
+    hundreds — and the caller almost always wants one page. Ask for the view
+    when you know it; without one you get the view list and card counts, which
+    is what you need to pick.
+    """
+    config, error = _lovelace_dashboard(hass, target)
+    if error or config is None:
+        return {"error": error or "Dashboard not found."}
+
+    document, error = await _load_config(config)
+    if error:
+        return {"error": error}
+
+    from homeassistant.components.lovelace.const import MODE_STORAGE  # noqa: PLC0415
+
+    views = _views(document)
+    writable_mode = getattr(config, "mode", None) == MODE_STORAGE
+    result: dict[str, Any] = {
+        "dashboard": target or "lovelace",
+        "title": _dashboard_title(config, target),
+        # Whether THIS caller could edit it. Every mutation tool is admin-gated,
+        # so telling a read-only credential the dashboard is editable offers a
+        # workflow it cannot finish. (An auto-generated board never reaches here
+        # — `_load_config` refuses it outright.)
+        "editable": writable_mode and CALLER_CAN_WRITE.get(),
+        "view_count": len(views),
+        "views": [
+            {
+                "index": i,
+                "title": sanitize_untrusted_text(v.get("title") or "", 60),
+                "path": str(v.get("path") or ""),
+                "type": str(v.get("type") or "cards"),
+                "card_count": len(_flat_cards(v)),
+                # Pass this back on an edit so it cannot land on a different
+                # page if the dashboard changed in between.
+                "fingerprint": view_fingerprint(v),
+            }
+            for i, v in enumerate(views[:_MAX_VIEWS])
+        ],
+    }
+    if len(views) > _MAX_VIEWS:
+        result["views_omitted"] = len(views) - _MAX_VIEWS
+    if not result["editable"]:
+        # Naming the wrong reason is worse than naming none: the model repeats it
+        # to the user, and "it's a YAML dashboard" is not something they can act on
+        # when the real answer is that their account cannot edit dashboards.
+        result["note"] = (
+            "This is a YAML-mode dashboard: readable here, but only editable in its YAML file."
+            if not writable_mode
+            else "Readable but not editable by you: your credential cannot write dashboards."
+        )
+
+    if view is None:
+        return result
+
+    index, error = resolve_view(document, view)
+    if error or index is None:
+        return {**result, "error": error}
+
+    cards = _flat_cards(views[index])
+    result["view"] = {
+        "index": index,
+        "title": sanitize_untrusted_text(views[index].get("title") or "", 60),
+        "card_count": len(cards),
+        # Independently of the `views` cap above: a caller that selected view 30
+        # or later finds it missing from that summary, and without a fingerprint
+        # here it cannot pass `expected_view_fingerprint` to any of the writes
+        # that demand one.
+        "fingerprint": view_fingerprint(views[index]),
+        "cards": [_describe_card(card, i) for i, (_, _, card) in enumerate(cards)][
+            :_MAX_CARDS_PER_VIEW
+        ],
+    }
+    if len(cards) > _MAX_CARDS_PER_VIEW:
+        result["view"]["cards_omitted"] = len(cards) - _MAX_CARDS_PER_VIEW
+    return result
+
+
+async def async_get_card(
+    hass: HomeAssistant, target: str | None, view: object, card_index: int
+) -> dict[str, Any]:
+    """Return one card's FULL configuration, plus its fingerprint.
+
+    ``get_dashboard`` deliberately summarises — this is how a caller gets the
+    whole card back before editing it. The fingerprint travels with it so the
+    edit can prove it is changing the card it was shown.
+    """
+    config, error = _lovelace_dashboard(hass, target)
+    if error or config is None:
+        return {"error": error or "Dashboard not found."}
+    document, error = await _load_config(config)
+    if error:
+        return {"error": error}
+
+    index, error = resolve_view(document, view)
+    if error or index is None:
+        return {"error": error}
+
+    cards = _flat_cards(_views(document)[index])
+    if not 0 <= card_index < len(cards):
+        return {
+            "error": (f"That view has {len(cards)} cards, so index {card_index} is out of range.")
+        }
+    card = cards[card_index][2]
+    result = {
+        "dashboard": target or "lovelace",
+        "view_index": index,
+        "card_index": card_index,
+        "fingerprint": card_fingerprint(card),
+        "card": card,
+    }
+
+    # A card big enough to be trimmed on the way out must not travel with an
+    # editable fingerprint. `_truncate_result` drops items from the longest
+    # list — an `entities` list, or a nested stack's `cards` — while the
+    # fingerprint still describes the WHOLE card, so sending the shortened
+    # version back through update_dashboard_card passes the identity check and
+    # silently deletes every entry that was trimmed. The caller is an LLM
+    # editing what it was shown; it has no way to know rows went missing.
+    if len(json.dumps(result, ensure_ascii=False, default=str)) > _MAX_CARD_CHARS:
+        # `.get` only after the isinstance check. Lovelace storage is free-form
+        # and the rest of this module handles a non-dict card deliberately, so
+        # the one path that assumed a mapping turned an oversized malformed card
+        # into an AttributeError surfacing as "Tool execution failed".
+        card_type = (
+            str(card.get("type") or "unknown") if isinstance(card, dict) else type(card).__name__
+        )
+        return {
+            "error": (
+                f"Card {card_index} in that view is too large to fetch intact "
+                f"({len(json.dumps(card, ensure_ascii=False, default=str))} characters), and a "
+                f"partial copy would delete whatever was cut when it was written back. "
+                f"It is a '{sanitize_untrusted_text(card_type, 40)}' "
+                f"card — edit it in the dashboard UI, or split it into smaller cards first."
+            )
+        }
+    return result
+
+
+# ── Write ───────────────────────────────────────────────────────────────────
+
+
+async def _save(config: Any, document: dict[str, Any]) -> str | None:
+    """Persist a dashboard document, returning an error string instead of raising."""
+    try:
+        await config.async_save(document)
+    except Exception as exc:  # noqa: BLE001 — surfaced to the user, never raised at them
+        _LOGGER.warning("Could not save dashboard: %s", exc)
+        return f"Home Assistant refused to save the dashboard: {exc}"
+    return None
+
+
+async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Append a card to a view. Shared by the chat and MCP surfaces.
+
+    Both surfaces need identical validation and the same ``view`` coercion, and
+    a hand-written second copy drifts on the next argument added — quietly, in
+    the shape where the MCP client rejects a card chat accepts. Same reason the
+    MCP schemas are derived from the chat ``ToolDef``s rather than restated.
+    """
+    from .recipes.dashboard import async_place_card  # noqa: PLC0415
+
+    card = arguments.get("card")
+    if not isinstance(card, dict) or not str(card.get("type", "")).strip():
+        return {"error": "card must be an object with a 'type' field"}
+    # Lovelace stores whatever it is given, so an invented entity id renders as
+    # "Entity not found" on the user's wall panel with nothing else to catch it.
+    if error := _entity_error(hass, card):
+        return {"error": error}
+
+    # No auto-generation preflight here. `async_place_card` probes in the one
+    # place the answer is needed — after `async_load` raises `ConfigNotFound`,
+    # where seeding a document would replace a generated Overview. Probing
+    # before the load meant a dashboard whose metadata read merely failed was
+    # refused fail-closed without the load ever being attempted, so a transient
+    # `async_get_info` error disabled card insertion alone while every other
+    # dashboard write carried on working.
+
+    # ``view`` arrives as a string; coerce a numeric one to an int so it indexes
+    # the views list rather than matching a title.
+    view_raw = arguments.get("view", 0)
+    view: int | str
+    if isinstance(view_raw, str) and view_raw.strip().lstrip("-").isdigit():
+        view = int(view_raw)
+    else:
+        view = view_raw if view_raw not in ("", None) else 0
+
+    result = await async_place_card(
+        hass,
+        card=card,
+        tag=str(arguments.get("tag") or "selora_chat"),
+        target=arguments.get("dashboard_target") or None,
+        view=view,
+    )
+    return {
+        "ok": result.ok,
+        "reason": result.reason,
+        "target": result.target,
+        "view": result.view,
+        "message": result.message,
+    }
+
+
+async def async_add_view(
+    hass: HomeAssistant,
+    *,
+    target: str | None = None,
+    title: str,
+    path: str | None = None,
+    icon: str | None = None,
+    sections: bool = False,
+) -> dict[str, Any]:
+    """Append a view (a page) to a dashboard.
+
+    Appends rather than inserts: a view's position is what the user's sidebar
+    order looks like, and silently pushing their existing pages along is a
+    change they did not ask for.
+    """
+    title = str(title or "").strip()
+    if not title:
+        return {"error": "A view title is required."}
+
+    async with DASHBOARD_LOCK:
+        config, error = _writable_dashboard(hass, target)
+        if error or config is None:
+            return {"error": error or "Dashboard not found."}
+        document, error = await _load_config(config)
+        if error:
+            return {"error": error}
+
+        views = document.setdefault("views", [])
+        if not isinstance(views, list):
+            return {"error": "That dashboard's stored config is malformed (views is not a list)."}
+
+        view: dict[str, Any] = {"title": title}
+        if path:
+            slug = str(path).strip()
+            if any(str(v.get("path") or "") == slug for v in _views(document)):
+                return {
+                    "error": f"A view with the path '{sanitize_untrusted_text(slug, 40)}' already exists."
+                }
+            view["path"] = slug
+        if icon:
+            view["icon"] = str(icon).strip()
+        # A sections view stores cards under sections[]; seed one so the view is
+        # immediately usable as an insert target rather than silently dropping
+        # the first card added to it.
+        if sections:
+            view["type"] = "sections"
+            view["sections"] = [{"type": "grid", "cards": []}]
+        else:
+            view["cards"] = []
+
+        views.append(view)
+        if error := await _save(config, document):
+            return {"error": error}
+        # Off the FILTERED list. `views` is the free-form stored list and may
+        # hold a stray non-dict; every reader here indexes the dict-only
+        # sequence, so a raw index would be reported back and then rejected as
+        # out of range by the next call that used it.
+        new_index = len(_views(document)) - 1
+
+    return {
+        "status": "created",
+        "dashboard": target or "lovelace",
+        "view_index": new_index,
+        "title": sanitize_untrusted_text(title, 60),
+    }
+
+
+async def async_update_view(
+    hass: HomeAssistant,
+    *,
+    target: str | None = None,
+    view: object,
+    title: str | None = None,
+    path: str | None = None,
+    icon: str | None = None,
+    clear: list[str] | None = None,
+    expected_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Change a view's title, path, or icon. Cards are untouched.
+
+    ``clear`` names fields to REMOVE. Setting and clearing need separate
+    arguments because an empty string cannot mean "clear" here: `_opt_str`
+    treats blank as absent throughout this codebase, precisely because models
+    fill unused optional params with `""` — reading that as a clear would strip
+    the icon off any view updated by a model that padded its arguments.
+
+    ``expected_fingerprint`` (from ``get_dashboard``) pins the target across the
+    read. A rename that lands on the wrong page is quieter than a deletion —
+    nothing disappears, so nobody goes looking.
+    """
+    async with DASHBOARD_LOCK:
+        config, error = _writable_dashboard(hass, target)
+        if error or config is None:
+            return {"error": error or "Dashboard not found."}
+        document, error = await _load_config(config)
+        if error:
+            return {"error": error}
+
+        index, error = resolve_view(document, view)
+        if error or index is None:
+            return {"error": error}
+
+        target_view = _views(document)[index]
+        if expected_fingerprint and view_fingerprint(target_view) != expected_fingerprint:
+            return {
+                "error": (
+                    "That view has changed since it was read — the index now points at "
+                    "a different page. Read the dashboard again and retry."
+                )
+            }
+
+        changes: list[str] = []
+        if title and str(title).strip():
+            target_view["title"] = str(title).strip()
+            changes.append("title")
+        if path and str(path).strip():
+            slug = str(path).strip()
+            clash = [
+                i
+                for i, v in enumerate(_views(document))
+                if i != index and str(v.get("path") or "") == slug
+            ]
+            if clash:
+                return {
+                    "error": f"View {clash[0]} already uses the path '{sanitize_untrusted_text(slug, 40)}'."
+                }
+            target_view["path"] = slug
+            changes.append("path")
+        if icon and str(icon).strip():
+            target_view["icon"] = str(icon).strip()
+            changes.append("icon")
+        for field in clear or ():
+            if field not in ("icon", "path"):
+                return {"error": f"clear accepts 'icon' or 'path', not '{field}'."}
+            if target_view.pop(field, None) is not None:
+                changes.append(f"cleared {field}")
+
+        if not changes:
+            return {
+                "status": "unchanged",
+                "view_index": index,
+                "message": "No changes were requested.",
+            }
+        if error := await _save(config, document):
+            return {"error": error}
+
+    return {
+        "status": "updated",
+        "dashboard": target or "lovelace",
+        "view_index": index,
+        "changed": changes,
+    }
+
+
+async def async_remove_view(
+    hass: HomeAssistant,
+    *,
+    target: str | None = None,
+    view: object,
+    expected_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Delete a view and every card on it.
+
+    ``expected_fingerprint`` is the identity check, re-computed here against the
+    freshly-loaded document immediately before the save. A view has no id and
+    its index shifts whenever an earlier one is removed, so the index alone can
+    resolve to a different page by the time the user taps Delete.
+    """
+    async with DASHBOARD_LOCK:
+        config, error = _writable_dashboard(hass, target)
+        if error or config is None:
+            return {"error": error or "Dashboard not found."}
+        document, error = await _load_config(config)
+        if error:
+            return {"error": error}
+
+        index, error = resolve_view(document, view)
+        if error or index is None:
+            return {"error": error}
+
+        views = _views(document)
+        removed = views[index]
+        card_count = len(_flat_cards(removed))
+        if expected_fingerprint and view_fingerprint(removed) != expected_fingerprint:
+            return {
+                "error": (
+                    "That view has changed since it was shown — the index now points at "
+                    "a different page, or its contents moved. Read the dashboard again "
+                    "and retry. Nothing was removed."
+                )
+            }
+
+        # Removed by OBJECT identity, not by index. ``resolve_view`` indexes the
+        # dict-only view list, while ``document["views"]`` is free-form and may
+        # hold non-dict entries — a stray ``None`` ahead of the target shifts
+        # every position, so applying the filtered index to the raw list deletes
+        # the wrong element and reports success for a page still on screen.
+        document["views"] = [v for v in document.get("views", []) if v is not removed]
+        if error := await _save(config, document):
+            return {"error": error}
+
+    return {
+        "status": "deleted",
+        "dashboard": target or "lovelace",
+        "view_index": index,
+        "title": sanitize_untrusted_text(removed.get("title") or "", 60),
+        "cards_removed": card_count,
+    }
+
+
+async def async_update_card(
+    hass: HomeAssistant,
+    *,
+    target: str | None = None,
+    view: object,
+    card_index: int,
+    card: dict[str, Any],
+    expected_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Replace one card outright.
+
+    The replacement is total, not a merge — there is no way to express "keep the
+    other keys" in a tool schema, and a half-merged card renders as neither what
+    was there nor what was asked for. Call ``get_card`` first.
+    """
+    if not isinstance(card, dict) or not str(card.get("type", "")).strip():
+        return {"error": "card must be an object with a 'type' field."}
+    if error := _entity_error(hass, card):
+        return {"error": error}
+
+    async with DASHBOARD_LOCK:
+        config, error = _writable_dashboard(hass, target)
+        if error or config is None:
+            return {"error": error or "Dashboard not found."}
+        document, error = await _load_config(config)
+        if error:
+            return {"error": error}
+
+        index, error = resolve_view(document, view)
+        if error or index is None:
+            return {"error": error}
+
+        cards = _flat_cards(_views(document)[index])
+        if not 0 <= card_index < len(cards):
+            return {
+                "error": f"That view has {len(cards)} cards, so index {card_index} is out of range."
+            }
+
+        owner, position, existing = cards[card_index]
+        if error := _fingerprint_error(existing, expected_fingerprint):
+            return {"error": error}
+
+        owner[position] = card
+        if error := await _save(config, document):
+            return {"error": error}
+
+    return {
+        "status": "updated",
+        "dashboard": target or "lovelace",
+        "view_index": index,
+        "card_index": card_index,
+        "fingerprint": card_fingerprint(card),
+    }
+
+
+async def async_remove_card(
+    hass: HomeAssistant,
+    *,
+    target: str | None = None,
+    view: object,
+    card_index: int,
+    expected_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Remove one card from a view."""
+    async with DASHBOARD_LOCK:
+        config, error = _writable_dashboard(hass, target)
+        if error or config is None:
+            return {"error": error or "Dashboard not found."}
+        document, error = await _load_config(config)
+        if error:
+            return {"error": error}
+
+        index, error = resolve_view(document, view)
+        if error or index is None:
+            return {"error": error}
+
+        cards = _flat_cards(_views(document)[index])
+        if not 0 <= card_index < len(cards):
+            return {
+                "error": f"That view has {len(cards)} cards, so index {card_index} is out of range."
+            }
+
+        owner, position, existing = cards[card_index]
+        if error := _fingerprint_error(existing, expected_fingerprint):
+            return {"error": error}
+
+        owner.pop(position)
+        if error := await _save(config, document):
+            return {"error": error}
+
+    result: dict[str, Any] = {
+        "status": "deleted",
+        "dashboard": target or "lovelace",
+        "view_index": index,
+        "card_index": card_index,
+        "card_type": str(existing.get("type") or "") if isinstance(existing, dict) else "",
+    }
+    # The whole card comes back, which is what makes removal reversible: the
+    # tool promises the caller can put it straight back, and a type alone
+    # restores none of a card's entities, actions, or styling.
+    #
+    # Withheld rather than truncated if it will not fit — ``_truncate_result``
+    # would trim the card's own lists silently, and a partial card handed back
+    # as a restore payload is worse than none, because only one of them looks
+    # usable.
+    if len(json.dumps(existing, ensure_ascii=False, default=str)) <= _MAX_RESTORE_CHARS:
+        result["card"] = existing
+    else:
+        result["card_omitted"] = True
+        result["message"] = (
+            "The removed card was too large to return, so it cannot be restored from "
+            "this result — undo it in the dashboard editor if that was a mistake."
+        )
+    return result
+
+
+def _fingerprint_error(card: Any, expected: str | None) -> str | None:
+    """Why the card at this index is not the one the caller was shown.
+
+    Checked against the document about to be written, with nothing awaited in
+    between. An absent fingerprint is allowed through so a caller that knows
+    exactly what it is doing — or a card placed and removed in one turn — is not
+    forced through a read first.
+    """
+    if not expected:
+        return None
+    if card_fingerprint(card) != expected:
+        return (
+            "That card has changed since it was read — the index now points at "
+            "something else. Read the view again and retry."
+        )
+    return None
+
+
+# An entity id as Home Assistant spells it. Used to tell an entity row from a
+# label in a bare ``entities`` list, where both are plain strings.
+_ENTITY_ID_RE: Final = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
+
+
+def _unknown_entities(hass: HomeAssistant, card: Any) -> list[str]:
+    """Entity ids a card references that do not exist.
+
+    Lovelace validates nothing on save, so a card naming a typo'd entity is
+    stored happily and renders as "Entity not found" on the user's dashboard.
+    Nothing else catches it: the model composes the card, we write it, and the
+    first sign of trouble is a red tile on the wall panel.
+
+    Walks the whole card rather than a fixed key list — an entity id can sit in
+    ``entity``, ``entities`` (as a string or as ``{entity: …}``), a nested
+    stack's ``cards``, a ``tap_action`` target, or a custom card's own schema.
+
+    A list carries its parent key down to its elements, so the bare form the
+    entities card is normally written in — ``entities: ["light.one"]``, by far
+    the most common shape — arrives here keyed ``entities``. Checking only
+    ``entity``/``entity_id`` let exactly that spelling through unvalidated.
+    Strings under ``entities`` are shape-checked first: a row there may be a
+    label or a divider on some cards, and refusing those would block a card the
+    home can render perfectly well. A typo we care about is a typo in an
+    entity id, and an entity id always has a domain and a dot.
+    """
+    found: list[str] = []
+
+    def walk(node: Any, key: str | None = None) -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, k)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item, key)
+        elif (
+            isinstance(node, str)
+            and key in ("entity", "entity_id", "entities")
+            # Shape-checked on EVERY key, not just `entities`. A custom card may
+            # hold a template where an id goes — button-card's
+            # `[[[ return ... ]]]`, or Jinja — and that is a valid card the home
+            # renders, not a typo. The state lookup would find no such entity
+            # and refuse the whole write. A typo worth catching is a typo in an
+            # entity id, which always has a domain and a dot.
+            and _ENTITY_ID_RE.fullmatch(node)
+        ):
+            found.append(node)
+
+    walk(card)
+    return sorted({e for e in found if hass.states.get(e) is None})
+
+
+def _entity_error(hass: HomeAssistant, card: Any) -> str | None:
+    """Refuse a card that names entities the home does not have."""
+    if missing := _unknown_entities(hass, card):
+        return (
+            f"This card references {len(missing)} entity id"
+            f"{'s' if len(missing) != 1 else ''} that do not exist: "
+            f"{', '.join(missing[:5])}. Home Assistant would store it and render "
+            f"'Entity not found'. Look the entities up with search_entities and retry."
+        )
+    return None
+
+
+async def async_move_card(
+    hass: HomeAssistant,
+    *,
+    target: str | None = None,
+    view: object,
+    from_index: int,
+    to_index: int,
+    expected_fingerprint: str | None = None,
+    expected_view_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Move a card to a different position in the same view.
+
+    The only way to reorder. Without it a caller can append, replace in place,
+    or remove — so "keep the garage door at the top" is unachievable, and the
+    attempt turns into rewriting cards by hand, which is how a mistyped entity
+    reaches the dashboard.
+
+    Moves the card OBJECT. Its config is never re-serialised by the caller, so a
+    move cannot alter what the card shows.
+    """
+    async with DASHBOARD_LOCK:
+        config, error = _writable_dashboard(hass, target)
+        if error or config is None:
+            return {"error": error or "Dashboard not found."}
+        document, error = await _load_config(config)
+        if error:
+            return {"error": error}
+
+        index, error = resolve_view(document, view)
+        if error or index is None:
+            return {"error": error}
+
+        view_obj = _views(document)[index]
+        cards = _flat_cards(view_obj)
+        if not 0 <= from_index < len(cards):
+            return {
+                "error": f"That view has {len(cards)} cards, so index {from_index} is out of range."
+            }
+        if not 0 <= to_index < len(cards):
+            return {
+                "error": f"That view has {len(cards)} cards, so index {to_index} is out of range."
+            }
+
+        owner, position, moving = cards[from_index]
+        if error := _fingerprint_error(moving, expected_fingerprint):
+            return {"error": error}
+        # The card fingerprint pins the SOURCE only. Another edit between the
+        # read and this call can leave it at from_index while to_index now
+        # names somewhere else — the move then succeeds and produces a layout
+        # nobody asked for.
+        if expected_view_fingerprint and view_fingerprint(view_obj) != expected_view_fingerprint:
+            return {
+                "error": (
+                    "That view has changed since it was read, so the destination index "
+                    "no longer means what it did. Read the dashboard again and retry."
+                )
+            }
+
+        # Re-flattened after the removal, because pulling the card out shifts
+        # every later index — including the destination the caller named.
+        owner.pop(position)
+        remaining = _flat_cards(view_obj)
+        if to_index < len(remaining):
+            # Land BEFORE whatever now sits at the destination — plain
+            # ``pop(from); insert(to)`` semantics. Adding one for a forward move
+            # lands after it instead, so moving 0 → 1 in [A, B, C] gives
+            # [B, C, A] rather than the [B, A, C] that was asked for.
+            dest_owner, dest_position, _ = remaining[to_index]
+            dest_owner.insert(dest_position, moving)
+        elif remaining:
+            # Past the last remaining card: the end of the view.
+            dest_owner, dest_position, _ = remaining[-1]
+            dest_owner.insert(dest_position + 1, moving)
+        else:
+            # It was the view's only card, so there is no destination to land
+            # relative to. Back into the list it came from — `_insert_target_cards`
+            # would send it to the FIRST section, silently moving a lone card in
+            # a later section somewhere the caller did not ask for.
+            owner.append(moving)
+
+        if error := await _save(config, document):
+            return {"error": error}
+
+    return {
+        "status": "moved",
+        "dashboard": target or "lovelace",
+        "view_index": index,
+        "from_index": from_index,
+        "to_index": to_index,
+    }
+
+
+async def async_group_cards(
+    hass: HomeAssistant,
+    *,
+    target: str | None = None,
+    view: object,
+    card_indices: list[int],
+    container: dict[str, Any],
+    expected_view_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Move existing cards into a container card, in place.
+
+    This is how "put these three on the same row" is done. A masonry view has no
+    rows — cards flow into columns — so side-by-side placement is a *container*,
+    not an ordering, and no amount of reordering achieves it.
+
+    The existing card objects are moved into the container untouched. That is
+    the point: the alternative is the caller re-describing each card from a
+    summary, which loses whatever it did not think to copy and invents entity
+    ids that were never there.
+
+    The container lands at the position of the first grouped card, so the group
+    stays where the user was already looking.
+
+    ``container`` is the caller's own card config — ``{"type": "grid",
+    "columns": 3}``, a stack, whatever fits — and only its ``cards`` is filled
+    in. The caller already knows Lovelace's card schemas, so restating which
+    container types exist and what each one's options mean would be a second,
+    staler copy of that knowledge here, and every option it did not think to
+    include would be unreachable.
+
+    Every card index is relative to the view as it was read, so a stale view
+    invalidates all of them at once — hence ``expected_view_fingerprint``.
+    """
+    if not isinstance(container, dict) or not str(container.get("type", "")).strip():
+        return {"error": "container must be a card object with a 'type' field."}
+    # The container is a caller-supplied card like any other, so it carries the
+    # same obligation: a custom one can name entities of its own, and Lovelace
+    # stores a typo happily and renders "Entity not found" on the wall panel.
+    # The cards being grouped were validated when they were written.
+    if error := _entity_error(hass, container):
+        return {"error": error}
+
+    wanted = sorted({i for i in card_indices if isinstance(i, int)})
+    if len(wanted) < 2:
+        return {"error": "Give at least two card indices to group."}
+
+    async with DASHBOARD_LOCK:
+        config, error = _writable_dashboard(hass, target)
+        if error or config is None:
+            return {"error": error or "Dashboard not found."}
+        document, error = await _load_config(config)
+        if error:
+            return {"error": error}
+
+        index, error = resolve_view(document, view)
+        if error or index is None:
+            return {"error": error}
+
+        view_obj = _views(document)[index]
+        if expected_view_fingerprint and view_fingerprint(view_obj) != expected_view_fingerprint:
+            return {
+                "error": (
+                    "That view has changed since it was read, so the card indices no "
+                    "longer mean what they did. Read the dashboard again and retry."
+                )
+            }
+
+        cards = _flat_cards(view_obj)
+        if out_of_range := [i for i in wanted if not 0 <= i < len(cards)]:
+            return {
+                "error": (
+                    f"That view has {len(cards)} cards, so "
+                    f"{', '.join(str(i) for i in out_of_range)} is out of range."
+                )
+            }
+
+        grouped = [cards[i][2] for i in wanted]
+        anchor_owner, anchor_position, _ = cards[wanted[0]]
+
+        container_card: dict[str, Any] = {**container, "cards": grouped}
+
+        # Removed by identity, high index first, so earlier positions stay valid.
+        for i in reversed(wanted):
+            owner, position, _ = cards[i]
+            owner.pop(position)
+
+        # Where the first grouped card was, which is the whole point of the
+        # anchor. Correct when nothing else remains too: an empty `anchor_owner`
+        # takes the insert at 0, whereas `_insert_target_cards` would put the
+        # group in the FIRST section regardless of which one it came from.
+        anchor_owner.insert(min(anchor_position, len(anchor_owner)), container_card)
+
+        if error := await _save(config, document):
+            return {"error": error}
+
+    return {
+        "status": "grouped",
+        "dashboard": target or "lovelace",
+        "view_index": index,
+        "container": container_card.get("type"),
+        "grouped_card_count": len(grouped),
+    }

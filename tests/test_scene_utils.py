@@ -795,9 +795,7 @@ class TestAsyncRemoveYamlSceneByEntity:
         # Nothing removed — both entries survive.
         assert len(await self._read(hass)) == 2
 
-    async def test_idless_sharing_a_name_with_an_idbearing_entry_is_refused(
-        self, hass
-    ) -> None:
+    async def test_idless_sharing_a_name_with_an_idbearing_entry_is_refused(self, hass) -> None:
         """Cross-ID name ambiguity must refuse rather than guess.
 
         HA derives a scene's entity slug from its name, so two same-named entries

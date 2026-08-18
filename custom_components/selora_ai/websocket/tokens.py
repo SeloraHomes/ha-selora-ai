@@ -24,6 +24,7 @@ from ..const import (
     DOMAIN,
 )
 from ..conversation_store import ConversationStore
+from ..helpers import caller_scope
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -209,18 +210,29 @@ async def _handle_websocket_resolve_approval(
         return
     _in_flight_approvals.add(proposal_id)
     try:
-        await _resolve_approval(
-            hass,
-            connection,
-            msg,
-            store,
-            approval_store,
-            session_id,
-            proposal_id,
-            scope,
-            entity_scope,
-            language=msg.get("language"),
-        )
+        # The second leg runs long after the ToolExecutor scope that built the
+        # card has ended, so CALLER_IS_ADMIN has reverted to its deny-by-default
+        # False. Anything the confirmation executes that carries a per-object
+        # admin check would then be refused on behalf of the very admin who just
+        # tapped confirm — a require_admin dashboard's view removal failing as
+        # "No dashboard". Re-established from the connection rather than
+        # hardcoded True: _require_admin above means it can only be True today,
+        # and reading it keeps that a fact about the gate rather than an
+        # assumption baked in here.
+        user = getattr(connection, "user", None)
+        with caller_scope(bool(getattr(user, "is_admin", False))):
+            await _resolve_approval(
+                hass,
+                connection,
+                msg,
+                store,
+                approval_store,
+                session_id,
+                proposal_id,
+                scope,
+                entity_scope,
+                language=msg.get("language"),
+            )
     finally:
         _in_flight_approvals.discard(proposal_id)
 

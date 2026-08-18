@@ -38,6 +38,7 @@ custom_components/selora_ai/
 ├── automation_utils.py  # Validation, risk assessment, YAML I/O, async automation CRUD
 ├── automation_store.py  # Lifecycle + versioning for [Selora AI] automations
 ├── group_manager.py     # HA group-helper CRUD (drives HA's own `group` config flow)
+├── dashboard_manager.py # Lovelace view/card read + edit (chat tool surface)
 ├── registry_manager.py  # Area/floor/entity/device registry reads + writes, helper inventory
 ├── script_manager.py    # scripts.yaml CRUD (mapping, not a list — unlike automations)
 ├── label_manager.py     # Label registry + delta assignment across entities/devices/areas
@@ -509,6 +510,301 @@ The MCP definitions for all of these are **derived** from the chat `ToolDef`s
 restated. A hand-written second copy drifts on the next parameter added, and the
 failure is quiet: the MCP client rejects an argument chat accepts, on a tool that
 looks identical in both listings.
+
+## Dashboards
+
+`dashboard_manager.py` backs the chat tools that read and edit Lovelace content —
+`get_dashboard`, `get_dashboard_card`, `add_dashboard_view`,
+`update_dashboard_view`, `remove_dashboard_view`, `update_dashboard_card`,
+`remove_dashboard_card` — alongside the older `list_dashboards` /
+`insert_dashboard_card`. It is separate from `recipes/dashboard.py`, which is the
+recipe install stage; this module reuses its `_view_card_lists` but nothing else.
+
+- **A dashboard ENTRY cannot be created.** `DashboardsCollection` owns adding and
+  deleting dashboards and is a local inside `lovelace.async_setup`, published only
+  to a websocket handler — never to `hass.data`. Current core exposes exactly one
+  lovelace service (`reload_resources`), so there is no supported in-process path.
+  `create_dashboard` is therefore absent by design: a *page* is what a user
+  usually means, and that is `add_dashboard_view`. A genuinely separate dashboard
+  means the user adding an empty one in Settings → Dashboards first.
+- **Lovelace validates nothing server-side.** The stored document is free-form
+  JSON owned by the frontend, so a view's `title` and `path` are **not** unique.
+  `resolve_view` accepts an index, a path, or a title, and **refuses an ambiguous
+  name** with the candidate indices — the index is the only guaranteed handle.
+  Ambiguity is collected **across both fields at once**, not field by field: a
+  name can match one view's title and a *different* view's path, and checking
+  `path` first and returning on its single hit resolves that silently — to the
+  view the user was least likely to mean, since they named it by the label the
+  sidebar shows. Two fields on the *same* view is one target, not a collision.
+- **A sections view keeps cards somewhere else.** A classic view holds them at
+  `view["cards"]`; a `type: sections` view holds them at
+  `view["sections"][n]["cards"]` and ignores a top-level `cards` key entirely.
+  Cards are therefore addressed by a **flat index across every card list in the
+  view** (`_flat_cards`), so a caller never has to know which section it is
+  looking at. `add_dashboard_view(sections=True)` seeds one grid section, because
+  a sections view with none silently drops the first card added to it.
+- **A dashboard's own `require_admin` is enforced per read.** HA registers no
+  panel for such a dashboard for a non-admin, so it is invisible to them in the
+  UI — while these read tools are deliberately available to non-admin chat users
+  and read-only MCP credentials, and were handing back its full card
+  configuration. `_hidden_from_caller` reports it as ABSENT rather than refused:
+  a distinct "you may not read that" confirms the dashboard exists, which is the
+  one bit HA is withholding. It is dropped from `list_dashboards` and from the
+  "Available:" list in the not-found error for the same reason.
+  Identity reaches it through `helpers.CALLER_IS_ADMIN`, a ContextVar opened by
+  `caller_scope` at both dispatch sites (`ToolExecutor.execute`, the MCP
+  `call_tool` handler) — both handler signatures carry no identity, and
+  threading a flag through every handler to serve the few that need it is worse.
+  It defaults to False, so a call that never opens the scope gets LESS access.
+  `requires_admin` on a `ToolDef` gates the tool; this gates the object, which a
+  tool allowlist cannot express.
+  **A confirmation card's second leg has to re-open the scope.** It runs from
+  `_handle_websocket_resolve_approval` long after the `ToolExecutor` scope that
+  built the card has ended, so the ContextVar has reverted to its deny-by-default
+  `False` — and the removal is then refused on behalf of the very admin who just
+  tapped confirm, as "No dashboard". Any new post-confirmation execution path
+  needs the same wrapper. It reads `connection.user.is_admin` rather than passing
+  `True`: `_require_admin` above it means only an admin can get there today, and
+  reading it keeps that a fact about the gate instead of an assumption copied
+  into a second place.
+- **`ConfigNotFound` from a storage dashboard means AUTO-GENERATED, not empty.**
+  `LovelaceStorage.async_load` raises it while the stored config is None, and
+  the frontend is meanwhile rendering the original-states strategy — the user is
+  looking at a full Overview. Reading that as `{}` reported zero views for a page
+  covered in cards, and let `add_dashboard_view` save a document holding only the
+  new view, replacing everything the user could see. The generated config cannot
+  be materialised here: the strategy runs in the frontend and core ships no
+  server-side generator (the `map` dashboard is seeded by *writing* a strategy
+  config, not by rendering one). So `_load_config` returns `_AUTO_GEN_NOTE` as an
+  error and points the user at Take control, which is HA's supported one-click
+  way to turn the generated page into a stored one. Guarded inside `_load_config`
+  rather than at each caller so every existing tool and every one added later
+  inherits it — the cost is that building out a brand-new dashboard needs that
+  one click first, which is the honest trade against overwriting a live Overview.
+  Two writers do NOT go through `_load_config` and are guarded separately:
+  `async_insert_card`, and `recipes.dashboard.async_place_card`, which seeds its
+  own one-view `Home` document on `ConfigNotFound` and is called directly by the
+  recipe pipeline. `ConfigNotFound` is ambiguous — a genuinely blank dashboard
+  raises it too, and seeding is right there — so both probe rather than assume.
+  The probe fails **closed**: it is the only thing between a transient storage
+  error and a document written over a live Overview, and the callers are already
+  in a `ConfigNotFound` branch when they ask, so a second failed read is not
+  evidence there is nothing to lose.
+- **`None` is not "the default dashboard" — `"lovelace"` may be.** HA is migrating
+  the default Overview off the `None` key onto a real entry keyed `"lovelace"`
+  (`_async_migrate_default_config` moves the stored config and repoints the
+  default panel), and a YAML-mode install registers its `LovelaceYAML` under the
+  same key. `dashboards[None]` survives either way as an empty `LovelaceStorage`
+  that HA registers no panel for. `helpers.default_dashboard_key` resolves an
+  unqualified target the way HA does — prefer `"lovelace"`, else `None` — and
+  both `dashboard_manager` and `recipes/dashboard.py` route through it, or an
+  unqualified read shows an empty home and an insert lands on a dashboard the
+  user cannot see. `list_dashboards` hides the leftover placeholder for the same
+  reason.
+- **`async_load` hands back HA's own cached config, so `_load_config` DEEP-copies.**
+  `dict()` copies only the root mapping — the `views` list and every view and
+  card inside stay the live objects HA is serving. Writers here mutate before
+  they validate, so a shallow copy lets a *rejected* edit stick: rename a view,
+  hit the duplicate-path check, return an error, and the cached title has
+  already changed for the next save by anyone to persist. Readers copy too, or
+  the card returned is a live reference that anything trimming the tool result
+  shortens in place. `recipes/dashboard.py` copies the same way, for the same
+  reason.
+- **`list_dashboards` covers every dashboard and is not admin-gated.** It is the
+  discovery half of the READ tools, which are themselves non-admin and read YAML
+  boards fine — gating it on admin left a non-admin able to read the default
+  dashboard and no other, and dropping YAML boards left a user staring at a
+  dashboard in their sidebar that Selora insisted was not there, with no way to
+  learn the `url_path` that would have fetched it. `editable` on each row is
+  what keeps it usable as a placement picker, and it reports whether THIS CALLER
+  could write (`CALLER_CAN_WRITE`, **not** `CALLER_IS_ADMIN` — `_check_tool_access`
+  lets a custom MCP token with an explicit allowlist, or a JWT carrying the write
+  scope, mutate without being an HA admin, and one shared boolean called those
+  dashboards read-only while their writes succeeded). MCP answers it with
+  `_can_access_tool` across **every** dashboard mutation, derived from
+  `_DERIVED_MCP_TOOLS` rather than listed — an allowlist naming only `insert`
+  authorises a real editing workflow, and a new mutation must be covered without
+  anyone remembering to name it rather than what mode the
+  dashboard is in — every mutation tool is
+  admin-gated, so a read-only credential told `editable: true` is offered a
+  workflow it cannot finish — a fresh install's
+  Overview is storage-mode and still generated, so a mode-only answer invited a
+  workflow every write then refused.
+  `recipes.dashboard.list_writable_dashboards` stays as it is: it backs the
+  recipe wizard's card-placement picker, where a board that cannot be written to
+  is genuinely not a choice.
+- **`DASHBOARD_LOCK` lives in `helpers.py` and is shared with `recipes/dashboard.py`.**
+  Both write whole documents, so a module-local lock leaves the overlap that
+  matters open: a recipe install or uninstall landing between this module's load
+  and its save silently discards the edit, and vice versa. `async_place_card`
+  holds it across load→mutate→save; `async_remove_cards` holds it for its entire
+  multi-dashboard sweep, since releasing between boards would let an edit land
+  on one already read but not yet written. One lock for every dashboard rather
+  than one each: the writes are rare and sub-millisecond, while a per-target
+  registry has to key on something — and the default dashboard answers to
+  `None`, `""`, and `"lovelace"` at different call sites, so the key is the part
+  that would get it wrong.
+- **A tagged card can be nested, and a re-install refreshes it IN PLACE.**
+  `group_dashboard_cards` wraps existing cards in a container, and organising a
+  recipe's card is an ordinary thing to do — so `_replace_tagged` recurses
+  instead of scanning only the lists `_view_card_lists` returns. Flat scans made
+  re-install add a second copy rather than replace, and left uninstalled cards on
+  the dashboard with nothing remaining that knew they belonged to a recipe.
+  Recursing is only half of it: purging and then appending dedupes correctly and
+  *still* undoes the grouping, moving the card back to the end of the view with
+  nothing to say why. So the replacement lands on the first tagged card found,
+  wherever it sits (`replace_tagged_card`), any further ones are dropped, and
+  only a genuinely new card is appended. `purge_tagged_cards` is the same walk
+  with no replacement, which is uninstall. A container emptied *by* the removal
+  goes with its contents; one whose card was substituted is not empty and
+  survives untouched; one still holding a user's own card stays.
+  Note what a dedup-only test cannot see: it passes for both behaviours, so the
+  layout assertion is the one that discriminates.
+- **The Lovelace UI writes this same document.** Saving is read-modify-write of
+  the whole config and the lock covers only writers we own, so a card
+  index captured in one call means nothing by the next. Every card edit carries a
+  content fingerprint (`card_fingerprint`) re-checked against the freshly-loaded
+  document immediately before the save, and **every view-index mutation carries a
+  `view_fingerprint`** for the same reason — a view has no id and its index
+  shifts when an earlier one goes. That covers removal, `update_view` (a rename
+  landing on the wrong page is quieter than a deletion: nothing disappears, so
+  nobody looks), `group_cards` (whose card indices are *all* relative to the
+  view as it was read, so a stale view invalidates every one of them at once)
+  and `move_card` — whose card fingerprint pins only the SOURCE, leaving the
+  destination index free to mean somewhere else by the time it lands.
+  `get_dashboard` hands the fingerprint out per view, which is what makes the
+  guard usable at all — a write cannot demand a token the read never returns. It
+  is a *content* hash, not a card count: counts collide, so a reorder
+  between the card and the tap would pass a count check and delete a different
+  page. Removal then drops the resolved **object**, not the index, because
+  `resolve_view` indexes the dict-only view list while the stored `views` list is
+  free-form and may hold a stray non-dict ahead of the target.
+- **A dashboard's title is metadata, not document.** `async_load` normally
+  returns just `views`; the title is on `config.config`. Both `get_dashboard`
+  and `list_dashboards` read it through `_dashboard_title`.
+- **`_load_or_reason` is the single classifier.** `_load_config` and
+  `list_dashboards` both ask it, so `editable` cannot advertise a dashboard every
+  write then refuses — the same bug in either direction. `async_place_card` loads
+  its own document and checks `is_strategy_document` directly, since the recipe
+  pipeline never goes through `_load_config`.
+- **A missing YAML file is a read error, not an empty dashboard.**
+  `LovelaceYAML.async_load` raises `ConfigNotFound` while its mode stays `yaml`,
+  so the auto-gen probe says nothing about it — but `async_get_info` returns an
+  `error` key naming the path. Reporting zero views instead hides a
+  configuration problem behind a page that looks merely empty.
+- **A stored `strategy` is not an empty dashboard either.** The built-in Map and
+  friends store `{"strategy": {...}}` and no views, and `async_load` SUCCEEDS —
+  so unlike the auto-generated case nothing else notices. A saved `views` list
+  then sits in the document while the frontend keeps building from the strategy
+  and ignoring it: the edit reports success and never appears. `_load_config`
+  refuses, which covers reads too — "0 views" would be a lie about a page the
+  user can see.
+- **Setting and clearing a view field need separate arguments.** `_opt_str`
+  treats a blank string as absent everywhere here, precisely because models fill
+  unused optional params with `""`; reading that as "clear" would strip the icon
+  off any view updated by a model that padded its arguments. So
+  `update_dashboard_view` takes a `clear` list naming fields to remove — the
+  same delta shape the group tools use, and for the same reason.
+- **YAML dashboards are readable, not writable.** They are reported with
+  `editable: false` and a note rather than as missing — the user can see them in
+  the sidebar, so "no such dashboard" would read as our bug rather than as a
+  property of their setup.
+- **Reordering and grouping are separate primitives, and both are needed.**
+  `insert_dashboard_card` only ever appends, so `move_dashboard_card` is the only
+  way to reorder. And a masonry view has **no rows** — cards flow into columns —
+  so "put these three side by side" is a *container*, not an ordering:
+  `group_dashboard_cards` moves them into one. Both move the card OBJECTS; a
+  caller that rebuilds a card from a summary loses whatever it did not think to
+  copy. The container is the CALLER'S card config, passed through with only
+  `cards` filled in — the model knows Lovelace's card schemas, so enumerating
+  container types and their options here would be a second, staler copy of that
+  knowledge, and every option not thought of would be unreachable.
+- **Card writes validate entity ids.** Lovelace stores whatever it is given, so a
+  typo'd entity is saved happily and renders "Entity not found" on the user's
+  wall panel with nothing else to catch it. `_unknown_entities` walks the whole
+  card — an id can sit in `entity`, `entities`, a nested stack's `cards`, or a
+  tap action — and the write is refused with the missing ids named. The walk
+  carries a list's parent key down to its elements, so the commonest spelling of
+  all, `entities: ["light.one"]`, arrives keyed `entities` rather than `entity`
+  and needs its own branch. Strings there are shape-checked against
+  `_ENTITY_ID_RE` first — and so are `entity`/`entity_id`, because a custom card
+  may hold a TEMPLATE where an id goes (button-card's `[[[ return … ]]]`, or
+  Jinja) and that is a valid card the home renders, not a typo; the state lookup
+  finds no such entity and refuses the whole write. Likewise a row in an
+  `entities` list may be a plain label or a divider. A typo worth catching is a
+  typo in an entity id, which always has a domain and a dot.
+- **A move is `pop(from); insert(to)`.** The destination is re-flattened after
+  the removal, because pulling the card out shifts every later index — including
+  the one the caller named. What it must NOT do is then add one for a forward
+  move: that lands the card *after* the destination, so moving 0 → 1 in
+  `[A, B, C]` gives `[B, C, A]` instead of the `[B, A, C]` that was asked for.
+  Only an index past the last remaining card means the end of the view.
+- **A dashboard turn drops its entity tiles.** `[[entities:…]]` markers render as
+  real HA cards grouped under `### Area` headings, which is a good answer to
+  "which lights are on?" and a misleading one straight after a dashboard edit,
+  where it reads as a preview of the saved layout.
+  `strip_entity_tiles_after_dashboard_turn` removes them in
+  `synthesize_approval_from_tool_log` — the one funnel both chat paths pass
+  through. The prose stays.
+- **Reads are bounded and one view at a time.** Cards sit inside a list of view
+  dicts, which `ToolExecutor._find_longest_list` cannot reach, so an oversized
+  dashboard would have a whole *view record* popped rather than being trimmed.
+  `get_dashboard` returns cards only for the view you name.
+- **A card too big to return whole is refused, not truncated.** `get_dashboard_card`
+  measures the ASSEMBLED result against `_MAX_CARD_CHARS` and errors out rather
+  than handing back a fingerprint. `_truncate_result` trims the longest list —
+  an `entities` list, a nested stack's `cards` — while `card_fingerprint`
+  describes the whole card, so the shortened copy passes the identity check on
+  write-back and silently deletes every trimmed row. The caller is an LLM
+  editing what it was shown and cannot tell that rows went missing. Omitting
+  just the fingerprint is not enough: `expected_fingerprint` is optional on
+  `update_dashboard_card`, so the unpinned write would still land.
+- **`add_dashboard_view` reports an index off the FILTERED list.** The stored
+  `views` list is free-form and may hold a stray non-dict, while every reader
+  here indexes the dict-only sequence — a raw `len(views) - 1` is reported back
+  and then rejected as out of range by the next call that uses it.
+- **A confirmation-gated tool says so on MCP.** The shared description is written
+  for chat, where the preview returns and the user taps a card. MCP has none —
+  the handler runs the write on the spot — so a description promising a card is
+  a guarantee an agent will act on, and the view is gone before anyone is asked.
+  `_mcp_tool_from_chat_tool` appends the correction for any tool in
+  `_DELETE_TOOLS` / `_DESTRUCTIVE_TOOLS`, derived from the same allowlists the
+  previews use so a tool added there cannot forget it.
+- **`remove_dashboard_view` takes `expected_fingerprint` on both surfaces.** Chat
+  routes it through the confirmation card, which carries the fingerprint in its
+  descriptor and re-checks it at confirm time, so the parameter looks redundant
+  there. MCP has no such card — its handler deletes on the spot — so leaving the
+  parameter off the shared `ToolDef` made the guard unreachable for exactly the
+  caller that had nothing else protecting it. Every MCP schema here is *derived*
+  from the chat `ToolDef`, so a write path MCP reaches directly has to have its
+  guard expressed in that shared definition. The chat preview honours it too,
+  which catches the mismatch before the user taps confirm on a card naming the
+  wrong page rather than after.
+- **`list_dashboards` and `insert_dashboard_card` are on MCP too.** Every other
+  MCP dashboard tool's description sends the client to those two — the first to
+  learn a non-default `url_path` for `dashboard_target`, the second because all
+  the rest EDIT a card that is already there, so a view made with
+  `selora_add_dashboard_view` could never be filled. Their bodies are shared
+  rather than restated: `async_insert_card` in `dashboard_manager.py` holds the
+  validation and the `view` coercion, and both surfaces call it, for the same
+  reason the MCP schemas are derived from the chat `ToolDef`s. A second copy
+  drifts on the next argument added, quietly, in the shape where the MCP client
+  rejects a card chat accepts. When adding a dashboard tool, check `_ADMIN_TOOLS`
+  / `_READ_ONLY_TOOLS` agree with the chat `ToolDef`'s `requires_admin` — a read
+  tool in the admin set is unreachable for a read-only credential, and a write
+  tool missing from it is reachable by one. `tests/test_dashboard_tools.py`
+  asserts that correspondence.
+- **A stored card need not be a dict.** `_flat_cards` yields whatever is in the
+  list, because Lovelace storage is free-form, so any path that calls a mapping
+  method on a card needs an `isinstance` check first — otherwise the failure is
+  an `AttributeError` surfacing to the user as "Tool execution failed" instead
+  of the error the code meant to return.
+- **Every dashboard tool is in BOTH tool lanes.** "Add a card to my dashboard"
+  classifies as `command`, "reorganise my dashboard" as `config`, and the same
+  tools serve both. Before this they were in *neither* lane, so a
+  command-classified turn could not see `insert_dashboard_card` at all. Putting
+  the family in both is deliberate: the alternative is another vocabulary
+  heuristic choosing a lane, and that decision has been wrong repeatedly.
 
 ## LLM Providers
 
