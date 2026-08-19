@@ -22,6 +22,7 @@ from ..const import (
     OPENROUTER_APP_REFERER,
     OPENROUTER_APP_TITLE,
 )
+from .base import model_is_known_large
 from .openai_compat import OpenAICompatibleProvider
 
 if TYPE_CHECKING:
@@ -118,6 +119,19 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         headers["X-OpenRouter-Categories"] = OPENROUTER_APP_CATEGORIES
         return headers
 
+    @property
+    def holds_full_tool_schema(self) -> bool:
+        """Only when the configured model is one we KNOW is large.
+
+        OpenRouter takes arbitrary model ids and reports no window. A VENDOR
+        prefix is not enough: `google/gemma-2-9b-it` and `openai/gpt-4` sit under
+        vendors whose flagships are huge, and both are smaller than the ~9.7K
+        schema alone. An 8K model handed it does not answer worse — the request
+        is rejected — so the check is per model family, shared with the direct
+        providers, and anything unrecognised keeps its lane.
+        """
+        return model_is_known_large(self._model)
+
     def build_payload(
         self,
         system: str,
@@ -142,6 +156,24 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             system, messages, tools=tools, stream=stream, max_tokens=max_tokens
         )
         payload["reasoning"] = {"enabled": False}
+        # Cache the system prompt on Anthropic-routed models. `cache_control` is
+        # an Anthropic extension OpenRouter forwards; other upstreams either
+        # cache automatically (OpenAI) or would be handed a key they do not
+        # understand, so it is applied by model prefix rather than to everyone.
+        #
+        # Only the system block. The home's entity states are in the current
+        # turn's user message, so a cache hit replays instructions and never a
+        # stale reading of the house.
+        if self._model.startswith("anthropic/") and payload.get("messages"):
+            first = payload["messages"][0]
+            if first.get("role") == "system" and isinstance(first.get("content"), str):
+                first["content"] = [
+                    {
+                        "type": "text",
+                        "text": first["content"],
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ]
         # Route to the lowest-latency upstream for this model. Command turns
         # are latency-sensitive and the default routing occasionally lands on
         # a cold/slow provider, doubling time-to-first-token (3.5s → 8s on the

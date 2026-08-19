@@ -107,6 +107,14 @@ class AnthropicProvider(LLMProvider):
             adapted.append({**msg, "content": blocks})
         return adapted
 
+    @property
+    def holds_full_tool_schema(self) -> bool:
+        """True: every model in Anthropic's catalogue serves far more than the
+        ~9.7K schema plus prompt. Stated here rather than inferred from
+        locality, so a provider whose models are NOT all large — OpenRouter —
+        can answer differently."""
+        return True
+
     def build_payload(
         self,
         system: str,
@@ -119,7 +127,18 @@ class AnthropicProvider(LLMProvider):
         payload: dict[str, Any] = {
             "model": self._model,
             "max_tokens": max_tokens,
-            "system": system,
+            # Cached as a block rather than a bare string. Anthropic caches the
+            # PREFIX up to the marked point — tools, then system — so this
+            # covers the two large static parts and stops short of the
+            # messages.
+            #
+            # That boundary is the whole safety argument: the home's entity
+            # states live in the current turn's USER message, never in the
+            # system prompt or the tool schemas. A cache hit therefore replays
+            # instructions, never a light's state — a stale snapshot would have
+            # the model answering about a house as it was minutes ago, which is
+            # far worse than paying for the prefill.
+            "system": [{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             "messages": self._adapt_image_blocks(messages),
         }
         if tools:

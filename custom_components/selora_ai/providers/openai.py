@@ -7,6 +7,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from ..const import DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_MODEL
+from .base import model_is_known_large
 from .openai_compat import OpenAICompatibleProvider
 
 # OpenAI's models API exposes no modality metadata, so vision gating is a
@@ -30,6 +31,14 @@ _TEXT_ONLY_MODEL_HINTS = (
 
 class OpenAIProvider(OpenAICompatibleProvider):
     """OpenAI API provider (GPT models)."""
+
+    @property
+    def holds_full_tool_schema(self) -> bool:
+        """Per MODEL, not per provider. The model field is free-form, and
+        `gpt-4` (8K), `gpt-4-32k` and `gpt-3.5-turbo` (16K) are  still selectable and smaller than the ~9.7K schema alone —
+        a blanket yes made those requests fail outright rather than fall back to
+        a tool lane."""
+        return model_is_known_large(self._model)
 
     # OpenAI's reasoning families (o-series, GPT-5 and later) reject
     # ``max_tokens`` with HTTP 400 and demand this spelling, while the

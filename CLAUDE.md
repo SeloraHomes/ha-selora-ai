@@ -464,6 +464,56 @@ no way to change one, so it fell back to reciting the Settings click-path.
 
 ### Tool lanes
 
+**Lanes apply to LOW-CONTEXT providers only.** A cloud turn gets the whole
+schema. The lanes traded correctness for about 4k tokens — the full chat toolset
+is ~9.7k, a lane ~5.7k — and the price was three regexes deciding what the model
+was allowed to see. When they were wrong the model did not answer worse, it
+reported the capability did not exist: "Create a new office area" was answered
+"I can't create areas directly", and dashboard tools sat in neither lane at one
+point. A schema that never varies also CACHES, which a per-turn lane prevents,
+so the lanes were costing more than the tokens they saved.
+
+`_cloud_intent_hint` asks the PROVIDER: `holds_full_tool_schema`. Neither
+locality nor `is_low_context` is the question. `is_low_context` means "≲2K" and
+describes Selora AI Local alone; **locality misses OpenRouter**, a cloud gateway
+that accepts arbitrary model ids and reports no window — an 8K model there would
+be handed a ~9.7K schema and the request REJECTED, not merely answered worse.
+Ollama is the same story from the other side: it serves whatever window the
+runtime was started with, commonly 4K-8K.
+
+The property defaults to **False**, and the answer is **per MODEL, not per
+provider or vendor**. The model field is free-form everywhere: `gpt-4` (8K),
+`gpt-4-32k`, `gpt-3.5-turbo` (16K), `gemini-1.0-pro` (exactly 32K, no margin) and
+`google/gemma-2-9b-it` are all still selectable and all smaller than the schema
+alone, so a blanket per-provider yes — or a vendor prefix on a gateway — makes
+those requests FAIL rather than fall back to a lane.
+`model_is_known_large` in `providers/base.py` holds one allowlist of families
+known ≥128K, matched on the family prefix after any `vendor/` is stripped so a
+gateway id and a direct id answer alike. OpenAI, Gemini and OpenRouter all ask
+it; Anthropic is the one provider that may answer by catalogue, because every
+Claude ever shipped is ≥100K. Anything unrecognised falls back to the base rule,
+a REPORTED `context_window` of at least `FULL_SCHEMA_SAFE_WINDOW`.
+**It is an allowlist on purpose** — a deny-list has the wrong default, since a
+model nobody has classified yet would be assumed roomy. `context_window` of
+`None` means UNKNOWN, and `LLMProvider` is explicit that unknown keeps whatever
+conservative behaviour was already there — reading it as "fits" gets the
+decision backwards.
+
+**Prompt caching covers the system prompt only, and that boundary is a safety
+property rather than a tuning choice.** The home's entity states ride in the
+CURRENT TURN'S USER MESSAGE — `_build_chat_messages` puts the snapshot there,
+never in the system prompt or the tool schemas. So a cache hit replays
+instructions and can never replay a reading of the house: a stale snapshot would
+have the model answering about a home as it was minutes ago, which is worse than
+paying the prefill every time. Any future change that moves state into the
+system prompt breaks this and must move the cache breakpoint with it.
+Anthropic marks the system block; OpenRouter does the same for `anthropic/*`
+models only, since `cache_control` is an Anthropic extension and another
+upstream would be handed a key it does not understand. OpenAI caches long
+prefixes automatically with no flag.
+
+### Tool lanes (low-context providers)
+
 `TOOL_LANES` in `tool_registry.py` maps an intent hint to the tool subset a turn
 is trimmed to; an absent or unknown hint gets the full schema. `LLMClient._cloud_intent_hint`
 tests **`config` first**, then `command`.

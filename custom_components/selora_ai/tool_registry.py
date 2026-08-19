@@ -1688,6 +1688,13 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "delete_script",
         "delete_label",
         "delete_area",
+        # And create_area, for the same reason in the other direction:
+        # "make me an Office area" is command-shaped, and a user who is told
+        # Selora cannot create areas will not try again. The intent detector
+        # is what usually routes this to the config lane, but it is one regex
+        # and it has been wrong here before — being in both lanes means a
+        # phrasing it misses costs a slightly larger schema, not the feature.
+        "create_area",
         # Dashboard tools sit in BOTH lanes, deliberately.
         #
         # "Add a thermostat card to my dashboard" classifies as a command;

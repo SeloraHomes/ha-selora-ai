@@ -16,7 +16,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 
 from ..const import DEFAULT_GEMINI_HOST, DEFAULT_GEMINI_MODEL, DEFAULT_LLM_TIMEOUT
-from .base import LLMProvider
+from .base import LLMProvider, model_is_known_large
 
 if TYPE_CHECKING:
     from ..tool_registry import ToolDef
@@ -146,6 +146,13 @@ class GeminiProvider(LLMProvider):
                 contents.append({"role": gemini_role, "parts": parts})
 
         return system_instruction, contents
+
+    @property
+    def holds_full_tool_schema(self) -> bool:
+        """Per MODEL. Gemini 1.0 Pro served exactly 32K — the threshold with no
+        margin for prompt, snapshot and reply — while 1.5 onward is ≥1M, so this
+        cannot be a blanket yes either."""
+        return model_is_known_large(self._model)
 
     def build_payload(
         self,
