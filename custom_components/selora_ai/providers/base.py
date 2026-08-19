@@ -144,6 +144,61 @@ def _parse_retry_after(value: str | None) -> int | None:
     return min(seconds, 3600)
 
 
+# Model families whose every current member serves ≥128K — enough for the ~9.7K
+# tool schema plus prompt, snapshot, history and reply.
+#
+# An ALLOWLIST, not a deny-list, and that direction is the whole point: the model
+# field is free-form on every cloud provider, so an unrecognised id must fall
+# back to keeping the tool lane. Being wrong the other way rejects the request
+# outright rather than making it slower. Note what is deliberately absent —
+# `gpt-4` (8K), `gpt-4-32k`, `gpt-3.5-turbo` (16K) and `gemma` are all still
+# selectable, and all smaller than the schema alone.
+#
+# Matched on the family PREFIX after any `vendor/` is stripped, so one list
+# serves a direct provider and a gateway that namespaces the same models.
+_LARGE_CONTEXT_FAMILIES = (
+    # Every Claude ever shipped is ≥100K.
+    "claude-",
+    # Bare `gpt-4` (8K), `gpt-4-32k` and the `gpt-4-06xx` snapshots are excluded
+    # by requiring what follows: the "o", the ".", or "-turbo". Turbo and its
+    # dated variants are 128K. The `gpt-4-1106`/`gpt-4-0125` preview ids are
+    # also 128K but left out — they are reached through the `gpt-4-turbo-preview`
+    # alias, and omitting an id costs a smaller schema while a wrong inclusion
+    # costs a rejected request.
+    "gpt-4o",
+    "gpt-4.1",
+    "gpt-4-turbo",
+    "gpt-5",
+    # Reasoning models: 128K–200K.
+    "o1",
+    "o3",
+    "o4",
+    # Gemini 1.0 Pro served exactly 32K, which is the threshold with no margin;
+    # 1.5 onward is ≥1M.
+    "gemini-1.5",
+    "gemini-2",
+    "gemini-3",
+)
+
+
+def model_is_known_large(model: str) -> bool:
+    """Whether *model* is in a family known to hold the full tool schema.
+
+    Strips a leading ``vendor/`` so a gateway id (``openai/gpt-4o``) and a
+    direct one (``gpt-4o``) answer the same. Unknown is False — see
+    ``_LARGE_CONTEXT_FAMILIES`` for why that direction matters.
+    """
+    bare = str(model or "").split("/", 1)[-1].strip().lower()
+    return bool(bare) and bare.startswith(_LARGE_CONTEXT_FAMILIES)
+
+
+# A served window that holds the full chat tool schema with room for the system
+# prompt, the home snapshot, history and the reply. The toolset alone is ~9.7K,
+# so the margin matters more than the headline: at 16K a long conversation
+# crowds the tools out, and the failure is a rejected request, not a slower one.
+FULL_SCHEMA_SAFE_WINDOW = 32_000
+
+
 class LLMProvider(ABC):
     """Abstract interface for an LLM HTTP backend."""
 
@@ -338,6 +393,23 @@ class LLMProvider(ABC):
         alongside ``is_low_context``.
         """
         return True
+
+    @property
+    def holds_full_tool_schema(self) -> bool:
+        """Whether this backend can take the whole chat tool schema (~9.7K).
+
+        Defaults to **False** — the conservative answer, matching
+        ``context_window``'s rule that unknown is never "it fits". A provider
+        that knows its catalogue says so; one serving a user-chosen model of
+        unknown size must not, because the failure is a request the backend
+        REJECTS rather than one that merely costs more.
+
+        Locality is not the question. OpenRouter is a cloud gateway that
+        accepts arbitrary model ids and reports no window, so "not local" would
+        hand an 8K model the schema alone and nothing would fit around it.
+        """
+        window = self.context_window
+        return window is not None and window >= FULL_SCHEMA_SAFE_WINDOW
 
     @property
     def context_window(self) -> int | None:

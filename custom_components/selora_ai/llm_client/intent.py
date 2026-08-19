@@ -940,6 +940,16 @@ _CONFIG_NOUN_PHRASE = re.compile(
     r"(?:a\s+|an\s+|the\s+|my\s+)?.{0,40}?\bscripts?\b"
     r"|\b(?:move|put|place)\s+.{0,60}?\b(?:to|in|into|onto)\s+(?:the\s+)?"
     r".{0,40}?\b(?:areas?|rooms?|floors?)\b"
+    # The noun does not have to sit against the article: "create a new OFFICE
+    # area" is the phrasing a user reaches for first, and requiring
+    # "create a new area" meant it fell through to the command lane, which
+    # holds no create_area — so Selora answered that it could not make areas
+    # at all. Capped at two intervening words, and only for area/room/floor,
+    # because a wider gap swallows a different object: "create a new scene for
+    # the living room" is a scene request that happens to end in "room".
+    r"|\b(?:create|make|add|delete|remove|rename)\s+"
+    r"(?:a\s+|an\s+|the\s+|my\s+)?(?:new\s+)?"
+    r"(?:[\w-]+\s+){1,2}(?:areas?|rooms?|floors?)\b"
     r"|\b(?:what|which)\s+(?:areas?|rooms?|floors?|labels?|helpers?|scripts?)\b",
     re.I,
 )

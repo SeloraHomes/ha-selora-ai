@@ -1504,13 +1504,32 @@ class LLMClient:
     ) -> str | None:
         """Pick the tool lane for a cloud turn, or None for the full schema.
 
-        ``config`` is tested first. A registry request ("assign the living room
-        lights to the Living Room") matches none of the question or automation
-        patterns, so ``_classify_chat_intent`` falls through to ``command`` and
-        would trim the schema to the device-control lane — hiding precisely the
-        tools the request needs. Refinement turns opt out of both lanes; they
-        need the full automation and scene rules.
+        Lanes are for models that cannot hold the full schema. A frontier model
+        can: the whole chat toolset is ~9.7k tokens, a lane saves ~4k, and the
+        price of that saving is three regexes deciding what the model is allowed
+        to see. When they are wrong the failure is not a worse answer — the
+        model reports the capability does not exist, which is what
+        "Create a new office area" did, and what a dashboard turn did before
+        that. A schema that never changes also caches; one that flips per turn
+        cannot, so the lanes were costing more than the tokens they saved.
+
+        ``config`` is still tested first FOR LOW-CONTEXT PROVIDERS. A registry
+        request ("assign the living room lights to the Living Room") matches
+        none of the question or automation patterns, so ``_classify_chat_intent``
+        falls through to ``command`` and would trim the schema to the
+        device-control lane — hiding precisely the tools the request needs.
+        Refinement turns opt out of both lanes; they need the full automation
+        and scene rules.
         """
+        # The PROVIDER answers, because neither locality nor `is_low_context`
+        # is the question. `is_low_context` means "≲2K" and describes Selora AI
+        # Local alone; locality misses OpenRouter, a cloud gateway that takes
+        # arbitrary model ids and reports no window, so an 8K model there would
+        # be handed a ~9.7K schema and the request REJECTED. Ollama is the same
+        # story from the other side. `holds_full_tool_schema` defaults to False
+        # and each provider claims otherwise only for a catalogue it knows.
+        if self._provider.holds_full_tool_schema:
+            return None
         if refining:
             return None
         areas = self._area_names()

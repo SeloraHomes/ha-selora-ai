@@ -339,6 +339,14 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
 
     # -- Payload -----------------------------------------------------------
 
+    @property
+    def holds_full_tool_schema(self) -> bool:
+        """True: every model in Selora Cloud's catalogue serves far more than the
+        ~9.7K schema plus prompt. Stated here rather than inferred from
+        locality, so a provider whose models are NOT all large — OpenRouter —
+        can answer differently."""
+        return True
+
     def build_payload(
         self,
         system: str,
