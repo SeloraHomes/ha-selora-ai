@@ -66,6 +66,86 @@ _LOGGER = logging.getLogger(__name__)
 # card. Strip the markers from the prose before we hand it off.
 _ENTITY_MARKER_RE = re.compile(r"\s*\[\[(?:entity|entities|areas):[^\]]+\]\]")
 
+# Template spans first, then anything shaped like an entity_id. The entity_id
+# half is deliberately loose — "at 7 a.m." matches too — because the state
+# lookup below is what decides whether it really is one. An id inside a
+# template is NOT prose: `{{ states('sensor.temperature') }}` resolves, so
+# rewriting it to the friendly name would corrupt working template text, and
+# the state lookup cannot tell the two apart. Each opener also matches to
+# end-of-string, so an unterminated template shields what follows it rather
+# than exposing it.
+_PROSE_ENTITY_ID_RE = re.compile(
+    r"(?P<template>\{\{.*?(?:\}\}|$)|\{%.*?(?:%\}|$)|\{#.*?(?:#\}|$))"
+    r"|(?P<entity_id>\b[a-z_][a-z0-9_]*\.[a-z0-9_]+\b)",
+    re.DOTALL,
+)
+
+
+# An automation_id as minted by async_create_automation, bounded so a model
+# that echoes something else entirely cannot ride along in the wire envelope.
+_REFINE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,64}$")
+
+
+def _pop_refine_automation_id(payload: Any) -> str | None:
+    """Take the automation the model says it is editing out of ``payload``.
+
+    Removed rather than read: it is a statement about the conversation, not a
+    field of the automation, and the payload it arrives in is re-validated,
+    echoed back to the model on a correction round, and walked by the risk
+    assessor. Hoisting it to the envelope keeps a key HA's automation schema
+    has never heard of out of all three.
+
+    The value is only a claim — nothing here says the id belongs to this
+    conversation. The caller checks it against the automations the session
+    actually saved before letting it decide a write target.
+    """
+    if not isinstance(payload, dict):
+        return None
+    raw = payload.pop("refine_automation_id", None)
+    if not isinstance(raw, str):
+        return None
+    candidate = raw.strip()
+    return candidate if _REFINE_ID_RE.match(candidate) else None
+
+
+def _humanize_description_entity_ids(
+    automation: dict[str, Any],
+    hass: HomeAssistant | None,
+) -> None:
+    """Rewrite entity_ids in a proposal's description as friendly names.
+
+    The description is the one line of the proposal the user reads twice: it
+    heads the card in chat and it is the subtitle of the row in Settings →
+    Automations. A model that reached the entity through a tool call routinely
+    writes the id it was handed there —
+    "Turns switch.basement_pool_room_grillplats_plug_aqua_rite on at 07:00" —
+    which names the same device the card's own action chips name in words.
+
+    Replaced only outside template spans, and only when the state machine
+    resolves the id — so a sentence boundary, an id belonging to no entity, and
+    anything inside ``{{ … }}`` / ``{% … %}`` are left as written.
+    """
+    if hass is None:
+        return
+    description = automation.get("description")
+    if not isinstance(description, str) or "." not in description:
+        return
+
+    def _friendly(match: re.Match[str]) -> str:
+        entity_id = match.group("entity_id")
+        if entity_id is None:
+            return match.group(0)  # a template span — pass it through verbatim
+        state = hass.states.get(entity_id)
+        if state is None:
+            return match.group(0)
+        name = str(state.attributes.get("friendly_name") or "").strip()
+        return name or match.group(0)
+
+    humanized = _PROSE_ENTITY_ID_RE.sub(_friendly, description)
+    if humanized != description:
+        automation["description"] = humanized
+        record_repair("entity_id_in_description")
+
 
 def _find_bare_block(text: str, type_word: str) -> tuple[str, int, int] | None:
     """Locate a fence-less ``<type_word>\\n{...}`` block and decode the
@@ -2663,6 +2743,14 @@ def parse_architect_response(
                 )
 
         if data.get("automation"):
+            # The refine target may be named inside the automation object or
+            # beside it — models put it in either place, and inside is where
+            # it would otherwise be dropped.
+            refine_target = _pop_refine_automation_id(data["automation"]) or (
+                _pop_refine_automation_id(data)
+            )
+            if refine_target:
+                data["refine_automation_id"] = refine_target
             is_valid, reason, normalized = validate_automation_payload(data["automation"], hass)
 
             # The presence + duration phrase ("when nobody is in X for N
@@ -2767,6 +2855,14 @@ def parse_architect_response(
                 if data.get("intent") == "automation":
                     data["intent"] = "clarification" if "unknown entity_id" in reason else "answer"
             else:
+                _humanize_description_entity_ids(normalized, hass)
+                # The envelope carries its OWN description — the model writes a
+                # user-facing summary there, separate from the automation's —
+                # and that is the one the handler persists and the proposal card
+                # prefers. Humanized as its own string rather than overwritten
+                # from the automation, which would replace the summary with a
+                # different sentence.
+                _humanize_description_entity_ids(data, hass)
                 data["automation"] = normalized
                 data["automation_yaml"] = yaml.dump(
                     normalized, default_flow_style=False, allow_unicode=True
@@ -3199,6 +3295,7 @@ def parse_streamed_response(
         json_text = auto_json
         try:
             automation_data = json.loads(json_text)
+            refine_automation_id = _pop_refine_automation_id(automation_data)
             is_valid, reason, normalized = validate_automation_payload(automation_data, hass)
             # See ``parse_architect_response`` for the rationale on
             # ``has_presence_duration`` — it unlocks aggressive entity
@@ -3309,26 +3406,36 @@ def parse_streamed_response(
                     if (response_text and is_clarification)
                     else humanised
                 )
-                return _attach_qa(
-                    {
-                        "intent": ("clarification" if is_clarification else "answer"),
-                        "response": bubble,
-                        "validation_error": reason,
-                        "validation_target": "automation",
-                        "rejected_automation": automation_data,
-                    }
-                )
-            automation_yaml = yaml.dump(normalized, default_flow_style=False, allow_unicode=True)
-            return _attach_qa(
-                {
-                    "intent": "automation",
-                    "response": response_text or "Here's the automation I've created.",
-                    "automation": normalized,
-                    "automation_yaml": automation_yaml,
-                    "description": normalized.get("description", ""),
-                    "risk_assessment": assess_automation_risk(normalized),
+                rejection: dict[str, Any] = {
+                    "intent": ("clarification" if is_clarification else "answer"),
+                    "response": bubble,
+                    "validation_error": reason,
+                    "validation_target": "automation",
+                    "rejected_automation": automation_data,
                 }
-            )
+                # The refine claim rides the rejection too. The correction
+                # round re-prompts with `rejected_automation` alone and cannot
+                # restate which automation was being edited, so
+                # `_retry_invalid_automation` carries this forward — dropping
+                # it here left it with nothing to carry, and a corrected
+                # proposal that also renamed the automation resolved to no
+                # target and was accepted as a second automation.
+                if refine_automation_id:
+                    rejection["refine_automation_id"] = refine_automation_id
+                return _attach_qa(rejection)
+            _humanize_description_entity_ids(normalized, hass)
+            automation_yaml = yaml.dump(normalized, default_flow_style=False, allow_unicode=True)
+            streamed_result: dict[str, Any] = {
+                "intent": "automation",
+                "response": response_text or "Here's the automation I've created.",
+                "automation": normalized,
+                "automation_yaml": automation_yaml,
+                "description": normalized.get("description", ""),
+                "risk_assessment": assess_automation_risk(normalized),
+            }
+            if refine_automation_id:
+                streamed_result["refine_automation_id"] = refine_automation_id
+            return _attach_qa(streamed_result)
         except (
             json.JSONDecodeError,
             ValueError,

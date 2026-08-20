@@ -1474,22 +1474,34 @@ async def _tool_validate_automation(
 
 
 async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Create an automation from externally-provided YAML.
+    """Create an automation from externally-provided YAML, or replace one by id.
 
     Server-side validation and risk assessment run unconditionally.
     Automations are created disabled by default.
+
+    ``automation_id`` makes this the write path for a refinement: an agent that
+    took a revised automation out of ``selora_chat`` has nowhere else to put it,
+    and creating it again leaves two automations with one alias both running.
+    Restricted to Selora-managed entries for the reason ``_tool_accept_automation``
+    splits on the same question — ``async_update_automation`` re-validates against
+    the proposal validator, which a hand-written automation's YAML need not
+    satisfy, so rewriting one could reject legitimate config or quietly reshape it.
     """
     import yaml as _yaml
 
     from .automation_utils import (
         assess_automation_risk,
         async_create_automation,
+        async_update_automation,
         validate_automation_payload,
     )
 
     yaml_text: str = str(arguments.get("yaml", ""))
     enabled: bool = bool(arguments.get("enabled", False))
-    version_message: str = _sanitize(arguments.get("version_message", "Created via MCP"))
+    target_id: str = str(arguments.get("automation_id", "")).strip()
+    version_message: str = _sanitize(
+        arguments.get("version_message", "Updated via MCP" if target_id else "Created via MCP")
+    )
 
     if not yaml_text.strip():
         return {"error": "yaml field is required"}
@@ -1510,6 +1522,58 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
         return {"error": f"Invalid automation: {reason}"}
 
     risk: RiskAssessment = assess_automation_risk(normalized)
+
+    if target_id:
+        existing = next(
+            (
+                a
+                for a in await _read_yaml_automations(hass)
+                if isinstance(a, dict) and str(a.get("id", "")) == target_id
+            ),
+            None,
+        )
+        if existing is None:
+            return {"error": f"Automation {_sanitize(target_id)} not found in automations.yaml"}
+        if not _is_selora(existing):
+            return {
+                "error": (
+                    f"Automation {_sanitize(target_id)} was not created by Selora AI — "
+                    "replacing it could reshape hand-written YAML. Edit it in Home "
+                    "Assistant, or omit automation_id to create a separate automation."
+                )
+            }
+        # preserve_enabled_state: this is a content revision, not an
+        # enable/disable, so the automation's current state is left alone and
+        # `enabled` is ignored (documented on the tool). The risk gate inside
+        # still forces a newly-elevated automation off for review.
+        # The risk gate inside can leave the automation off, and only it knows:
+        # an automation whose boot override was already False can still be live
+        # after a manual toggle, and the gate leaves that off by skipping the
+        # restore rather than by writing anything, so the file cannot be read to
+        # infer it. Reporting `updated` alone tells the caller the revision is
+        # running while the tool promises a replacement keeps its enabled state.
+        update_report: dict[str, Any] = {}
+        if not await async_update_automation(
+            hass,
+            target_id,
+            dict(normalized),
+            version_message=version_message,
+            report=update_report,
+        ):
+            return {"error": f"Failed to update automation {_sanitize(target_id)}"}
+        response: dict[str, Any] = {
+            "automation_id": target_id,
+            "status": "updated",
+            "risk_assessment": _sanitize_risk(risk),
+        }
+        if update_report.get("forced_disabled"):
+            response["forced_disabled"] = True
+            response["note"] = (
+                "Automation left DISABLED because the replacement uses elevated-risk "
+                "primitives (shell_command, python_script, webhook, etc.). Review "
+                "it and enable manually if intended."
+            )
+        return response
 
     create_result = await async_create_automation(
         hass, normalized, version_message=version_message, enabled=enabled
@@ -2989,6 +3053,45 @@ async def _tool_eval_template(hass: HomeAssistant, arguments: dict[str, Any]) ->
 # ── Tool: selora_chat ─────────────────────────────────────────────────────────
 
 
+async def _refining_context_for(
+    hass: HomeAssistant,
+    automation_id: str,
+) -> tuple[tuple[str, str] | None, str | None]:
+    """Return ((alias, yaml), None), or (None, error) when it cannot be refined.
+
+    Shapes ``refine_automation_id`` into the ACTIVE REFINEMENT block the
+    architect prompt understands. The YAML comes off automations.yaml, so the
+    model edits what the home is actually running rather than whatever this
+    session last said about it. ``id`` is dropped — the write path owns it, and
+    a model that echoes it back would have it stripped anyway.
+
+    A non-Selora automation is refused HERE rather than let through, because
+    ``selora_create_automation`` will not replace one — refining it would spend
+    a turn producing a revision the instructed write path then rejects, and the
+    caller learns that only after the work. ``selora_list_automations`` returns
+    every yaml automation, so naming one is an easy mistake to make.
+    """
+    import yaml as _yaml  # noqa: PLC0415
+
+    for entry in await _read_yaml_automations(hass):
+        if not isinstance(entry, dict) or str(entry.get("id", "")) != automation_id:
+            continue
+        if not _is_selora(entry):
+            return None, (
+                f"Automation {_sanitize(automation_id)} was not created by Selora AI, "
+                "and selora_create_automation will not replace one — a revision here "
+                "could not be saved. Edit it in Home Assistant, or omit "
+                "refine_automation_id to build a separate automation."
+            )
+        alias = _sanitize(str(entry.get("alias", "")) or automation_id, limit=100)
+        body = {k: v for k, v in entry.items() if k != "id"}
+        return (
+            alias,
+            _yaml.dump(body, allow_unicode=True, default_flow_style=False),
+        ), None
+    return None, f"Automation {_sanitize(automation_id)} not found"
+
+
 async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Send a message to Selora's LLM and return the response.
 
@@ -3007,6 +3110,39 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
     llm: LLMClient | None = _get_llm(hass)
     if llm is None:
         return {"error": "Selora AI LLM is not configured"}
+
+    # The refine target is an automation that EXISTS in the home, named by the
+    # id ``selora_list_automations`` / ``selora_create_automation`` hand back —
+    # a proposal this tool returns has none yet. Refusing an unresolvable id is
+    # the point: ignoring it silently turns "change the time to 7am" into a
+    # brand-new automation alongside the one the caller meant to edit.
+    #
+    # Checked before a session can exist, because this is the refusal an agent
+    # hits repeatedly — a stale or invented id — and a session created first is
+    # left empty in the user's sidebar, eventually evicting real conversations
+    # under the store's session cap.
+    refining_context: tuple[str, str] | None = None
+    if refine_automation_id:
+        # A provider whose prompt cannot carry the YAML cannot refine at all:
+        # the model composes a fresh rule, and this tool has no confirmation
+        # card between that and the write — the caller is told to pass the id
+        # straight to `selora_create_automation`, which would replace the
+        # automation and drop whatever the user did not mention. The panel's own
+        # Refine keeps its diff, which is why only this surface refuses.
+        if not llm.shows_automation_reference:
+            return {
+                "error": (
+                    f"Automation {_sanitize(refine_automation_id)} cannot be refined with "
+                    f"the configured {llm.provider_name} model — it never receives the "
+                    "automation's current configuration, so a revision would be composed "
+                    "from scratch and replace it. Read it with selora_get_automation, "
+                    "edit the YAML, and pass that to selora_create_automation with "
+                    "automation_id."
+                )
+            }
+        refining_context, refine_error = await _refining_context_for(hass, refine_automation_id)
+        if refine_error is not None:
+            return {"error": refine_error}
 
     conv_store: ConversationStore = _get_conv_store(hass)
 
@@ -3055,10 +3191,27 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
             content = f"{header}{quoted_yaml}\n{content}"
         history.append({"role": role, "content": content})
 
-    # Collect existing automation aliases for dedup
-    existing_aliases: list[str] = [
-        str(s.attributes.get("friendly_name", "")) for s in hass.states.async_all("automation")
-    ]
+    # Home context for the turn. ``architect_chat`` needs the entity snapshot
+    # (it is a positional argument, not an optional one) and reads
+    # ``existing_automations`` as records — alias + state — so a list of bare
+    # alias strings raises inside the prompt builder.
+    from . import (  # noqa: PLC0415
+        _automation_reference_context,
+        _collect_entity_states,
+        _collect_existing_automations,
+        _find_session_saved_automations,
+        _resolve_proposal_write_target,
+    )
+
+    entities = _collect_entity_states(hass)
+    existing_automations = _collect_existing_automations(hass)
+    # Sessions are shared with the panel, so an automation this session saved
+    # may well have been saved from a chat card. Same reference context the
+    # panel's handlers pass.
+    session_saved = await _find_session_saved_automations(hass, session, messages)
+    # The pair: what the model is shown, and which of those an inferred edit may
+    # target (one it was not shown must not be).
+    automation_context, editable_automations = _automation_reference_context(session_saved)
 
     # Build scene context from the session-level index (survives message
     # pruning) so the LLM always has scene_id + YAML on the current turn.
@@ -3073,11 +3226,14 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
 
     # Call Selora's LLM
     llm_result: ArchitectResponse = await llm.architect_chat(
-        message=message,
+        message,
+        entities,
+        existing_automations=existing_automations,
         history=history,
-        existing_automations=existing_aliases,
-        refining_automation_id=refine_automation_id,
+        refining_context=refining_context,
         scene_context=mcp_scene_context,
+        automation_context=automation_context,
+        session_id=session_id,
     )
 
     intent: str = llm_result.get("intent", "answer")
@@ -3128,6 +3284,38 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
             except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
                 _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
 
+    # Which automation the returned YAML is meant to REPLACE, if any. The
+    # proposal itself never carries an id — ``validate_automation_payload``
+    # strips it and ``async_create_automation`` mints its own — so a caller
+    # that took the payload's id as a write target would always create. The
+    # target is the id the caller asked to refine, or the one the model named
+    # off the session reference context, and it routes the caller to
+    # ``selora_create_automation``'s ``automation_id`` instead of a second
+    # automation under the same alias.
+    #
+    # Resolved BEFORE the append and persisted with the proposal, because
+    # sessions are shared with the panel: a card this tool leaves pending is
+    # one the user can open and accept there, and the panel reads the target
+    # off the stored message. Same rule as the websocket handlers.
+    refine_target: str | None = None
+    if automation and automation_yaml:
+        # The caller's own id is an explicit instruction and outranks anything
+        # inferred. Failing that, the SHARED resolver — claim validated against
+        # the session, then the alias — so an MCP follow-up that keeps the
+        # automation's name resolves like a panel one instead of falling
+        # through to a create. Restating either arm here is how the two
+        # surfaces drift.
+        # The caller's own id is an explicit instruction and outranks anything
+        # inferred. Inference additionally requires that the model was shown
+        # the automation, or it would be handed a rule composed without it.
+        refine_target = refine_automation_id or (
+            _resolve_proposal_write_target(
+                automation, editable_automations, llm_result.get("refine_automation_id")
+            )
+            if llm.shows_automation_reference
+            else None
+        )
+
     # Persist messages
     await conv_store.append_message(session_id, "user", message)
     await conv_store.append_message(
@@ -3137,6 +3325,7 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         automation=automation,
         automation_yaml=automation_yaml,
         automation_status="pending" if automation else None,
+        refining_automation_id=refine_target,
         risk_assessment=risk_assessment,
         scene=scene_result["scene"] if scene_result else llm_result.get("scene"),
         scene_yaml=scene_result["scene_yaml"] if scene_result else llm_result.get("scene_yaml"),
@@ -3152,15 +3341,6 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         except Exception as exc:
             _LOGGER.debug("Session title generation failed for %s: %s", session_id, exc)
 
-    # If automation was generated, retrieve its id from the pending message
-    automation_id: str | None = None
-    if automation and automation_yaml:
-        # The automation is stored as pending in the conversation store.
-        # The caller uses selora_accept_automation to commit it, passing the
-        # automation data payload directly. Return the normalized payload so
-        # the caller can act on it.
-        automation_id = automation.get("id") if isinstance(automation, dict) else None
-
     response: dict[str, Any] = {
         "response": response_text,
         "intent": intent,
@@ -3168,8 +3348,8 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
     }
     if automation_yaml:
         response["automation_yaml"] = automation_yaml
-    if automation_id:
-        response["automation_id"] = automation_id
+    if refine_target:
+        response["refine_automation_id"] = refine_target
     if risk_assessment:
         response["risk_assessment"] = _sanitize_risk(risk_assessment)
     if scene_result:
@@ -5356,9 +5536,17 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
     MCPTool(
         name=TOOL_CREATE_AUTOMATION,
         description=(
-            "Create a new Home Assistant automation from a YAML string. "
+            "Create a new Home Assistant automation from a YAML string, or REPLACE an "
+            "existing Selora-managed one by passing automation_id. "
             "Server-side validation and risk assessment run unconditionally. "
-            "Automations are created DISABLED by default — set enabled=true to override. "
+            "New automations are created DISABLED by default — set enabled=true to "
+            "override; a replacement keeps the automation's current enabled state, "
+            "unless the revision raises its risk to elevated, in which case it is "
+            "disabled for review and the result says so (forced_disabled). "
+            "Pass the automation_id returned by selora_chat's refine_automation_id (or "
+            "by an earlier create) when the YAML is a revision of an automation that "
+            "already exists — creating it again writes a second automation under the "
+            "same name, which Home Assistant will load and run alongside the first. "
             "Requires admin access."
         ),
         inputSchema={
@@ -5366,6 +5554,13 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
             "required": ["yaml"],
             "properties": {
                 "yaml": {"type": "string", "description": "Raw YAML for the automation."},
+                "automation_id": {
+                    "type": "string",
+                    "description": (
+                        "Replace this Selora-managed automation instead of creating a new "
+                        "one. Omit to create."
+                    ),
+                },
                 "enabled": {
                     "type": "boolean",
                     "default": False,
@@ -5450,7 +5645,13 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
             "the current home state. Returns a response and, where applicable, a proposed "
             "automation with YAML and risk assessment. "
             "Pass session_id to continue an existing conversation. "
-            "Pass refine_automation_id to refine a specific pending automation. "
+            "Pass refine_automation_id — an id from selora_list_automations or an earlier "
+            "selora_create_automation — to revise an automation that already exists: the "
+            "model is given its current YAML and edits that instead of composing a new "
+            "rule. When the returned YAML revises an existing automation, the response "
+            "carries refine_automation_id; pass it to selora_create_automation's "
+            "automation_id to replace that automation rather than adding a second one "
+            "under the same name. "
             "This is the primary Coroutine Synthesis suspension point: the external agent "
             "yields here and Selora advances the automation artifact using home-grounded "
             "generation. Requires admin access."
@@ -5466,7 +5667,10 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                 },
                 "refine_automation_id": {
                     "type": "string",
-                    "description": "Refine a specific pending automation.",
+                    "description": (
+                        "Revise this existing automation instead of composing a new one. "
+                        "Refused when no automation carries that id."
+                    ),
                 },
             },
         },

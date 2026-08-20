@@ -178,6 +178,32 @@ Tests live in `tests/` and cover:
 - `test_mcp_token_store.py` — token CRUD, hash validation, expiry, revocation
 - `test_telemetry.py` — opt-in gating, payload allowlist (no PII), dedup, install-id, error-swallowing
 - `test_group_tools.py` — group-helper CRUD tools; drives HA's real `group` config flow
+- `test_chat_handlers.py` — whole chat turns through `chat_harness.py`
+
+#### The chat handler harness
+
+`tests/chat_harness.py` drives `selora_ai/chat` and `selora_ai/chat_stream` end
+to end. It stubs exactly one thing — the provider round trip
+(`architect_chat` / `architect_chat_stream`) — and keeps the handler, a real
+`LLMClient` (so the streaming path runs the real `parse_streamed_response` over
+the scripted text), a real `ConversationStore`, and a real `automations.yaml`.
+
+Reach for it whenever a turn's behaviour depends on more than one step. A helper
+returning the right value proves nothing about a handler that then fails to pass
+it to the LLM, persist it on the message, or send it to the panel — and each of
+those three has shipped as a bug that helper-level tests could not see. A
+`ChatTurn` exposes the three questions worth asking: `asked` (the kwargs the LLM
+received), `done` (the terminal payload, whichever handler produced it), and
+`await harness.messages()` (what a reopened session would load).
+
+```python
+harness = await ChatHarness.create(hass)
+first = await harness.chat("turn the plug on at midnight", reply=_proposal())
+await harness.save_proposal(first.done["automation_message_index"], "selora_ai_aaa")
+harness.write_automations([AQUA_ENTRY])
+second = await harness.chat("change the time to 7am", reply=_proposal())
+assert second.done["refining_automation_id"] == "selora_ai_aaa"
+```
 
 ### JavaScript (Vitest)
 
@@ -267,6 +293,150 @@ Shared rules:
   - **A leak is a failed tool call, not a final answer.** No provider parses a text-form call, so `extract_tool_calls` / `stream_with_tools` return nothing and both loops would otherwise read the round as a committed answer and return — ending the turn mid-investigation with rounds unspent, which is what makes a user type "continue". Both loops instead detect the shape (`leak_guard.suppressed`, or `strip_leaked_tool_markup` having changed the text), append the stripped prose plus `_LEAK_RETRY_DIRECTIVE`, and `continue`. Bounded by `_MAX_LEAK_RETRIES` (2) *independently* of the round budget, so a model that cannot do structured calls at all does not spend all eight rounds on retries. This is the model-feedback shape rather than parsing one vendor's text syntax back into calls.
 - To add a snapshot count: add the key to `_SNAPSHOT_PROPERTY_KEYS` and populate it in `TelemetryClient._gather_snapshot`.
 - To add an activity counter: add the name to `_ACTIVITY_COUNTER_KEYS`, call `record_activity(hass, "<name>"[, n])` at the action's chokepoint (instrumented sites today: `automation_store.add_version`/`purge_record`, `automation_utils.async_toggle_automation`, `scene_store.async_add_scene`, `pattern_store.save_pattern`/`save_suggestion`/`update_suggestion_status`, the chat/command handlers + `_execute_command_calls` in `__init__.py`, `conversation._async_handle_message`, `device_manager.discover_network_devices`/`_count_if_paired`, `llm_client/usage.flush`, `providers/base._emit_quota_exceeded`), and cover it in `tests/test_telemetry.py`. The helper never raises and counts even when opted out (the flush is what's gated).
+
+## Chat automation proposals
+
+A proposal is written when the user taps **Accept & Save** on the card, and the
+panel decides between create and update from one value: `refining_automation_id`
+(`_getRefiningAutomationId` in `automation-crud.js`, which also drives the
+card's diff preview). Both chat handlers resolve it **before** appending the
+assistant message and pass it to `append_message`, so it rides the turn's
+`done` payload *and* persists on the proposal. Persisting is not belt and
+braces: the target is inferred from session state at generation time and
+nothing recomputes it at accept time, so a session reopened before the card is
+tapped — a reload, or just revisiting it from the sidebar — resolved to nothing
+and took the create path, writing the duplicate. It is stored under the key the
+panel already reads, so nothing in the bundle changes.
+
+- **A follow-up change must not become a second automation.** "Change the time
+  to 7am" after an accepted card comes back as an ordinary proposal, so
+  accepting it would write a second `automations.yaml` entry under the same
+  alias. HA loads both, both run, the health check reports the pair, and the
+  user is left deleting one by hand. `_resolve_proposal_write_target` takes two
+  signals, in that order, both scoped to what **this session already saved**
+  (`_find_session_saved_automations`): the `refine_automation_id` the model
+  returned, then the proposal's alias, compared case- and
+  whitespace-insensitively the way the user reads it. Explicit refinement — the
+  user loaded an automation to edit — still wins outright.
+- **The alias and YAML come off disk, never off the chat message.** The message
+  records what was PROPOSED. `_acceptAutomationWithEdits` applies the card's
+  YAML editor on the way to the write, and `set_automation_status` then
+  persists only the status and the id — so the message keeps the pre-edit text,
+  and the Automations tab, a version restore, and HA's own editor do not touch
+  it either. `_find_session_saved_automation_ids` takes the ids from the
+  session — from the `saved_automations` index **and** the retained messages,
+  unioned, because `append_message` prunes a long session to its first message
+  plus the latest 99 and an id whose message is gone is a follow-up that
+  creates a duplicate, while the index only covers saves made since it shipped
+  (same index-plus-scan pair as `_find_active_scenes`, for the same reason).
+  `async_yaml_automation_snapshots` then reads each one's current alias and
+  YAML from `automations.yaml` in a single pass, dropping ids the file no longer
+  carries. Sourcing the message instead had a follow-up silently revert the
+  user's own accept-time edit, and an accept-time RENAME left the alias
+  mismatched — sending the follow-up back to creating the duplicate this whole
+  section exists to prevent. It also means `_resolve_proposal_write_target`
+  needs no separate existence check.
+- **The model can only claim an id because it was given one.** Every automation
+  the session saved rides in the user message as reference data — id, alias,
+  current YAML — under `AUTOMATIONS SAVED IN THIS SESSION`
+  (`automation_context`). `_automation_reference_context` bounds it — 8K chars,
+  newest first, since that is the automation a follow-up most likely means —
+  and returns **two** lists from that one walk: what the model is shown, and
+  which automations an inferred edit may therefore target. They are one
+  decision. An automation whose YAML does not fit is still NAMED, with an empty
+  YAML string that the prompt builder renders as `_AUTOMATION_TOO_LARGE_NOTE`,
+  so the model can say it is too large to edit rather than guess at it — but it
+  is NOT editable, because a proposal for an automation nobody showed the model
+  is a rule composed from nothing, and writing that over the original discards
+  everything the user did not mention. On MCP the same reasoning refuses an
+  EXPLICIT refinement too: that surface has no confirmation card between the
+  revision and the write — the caller is told to pass the id straight to
+  `selora_create_automation` — so the refusal points it at reading the YAML and
+  editing it itself. The panel's Refine keeps its diff, which is what lets it
+  stay. The YAML is withheld rather than
+  truncated for the same reason. The budget lives there rather than in
+  `_build_chat_messages`, which only renders, so the inclusion decision and its
+  consequence cannot drift apart. **`LLMClient.shows_automation_reference` is
+  the same question at provider scope**: the low-context path builds a minimal
+  prompt with no room for YAML, so nothing there is editable either. An
+  explicit refinement is unaffected — the user or the MCP caller named the
+  target, and the panel diffs it before the write.
+  Without the context at all the model rebuilds
+  the automation from whatever tool results it can still see: same rule, but
+  re-derived fields, entity_ids where the description had names, and an alias
+  it may not reproduce — which is what made the duplicate unavoidable rather
+  than merely likely. `_AUTOMATION_REFINE_RULES` (both prompt builders) asks it
+  to start from that YAML, change only what was asked, keep the alias, and name
+  the id it is editing.
+- **This is reference context, NOT `refining_context`.** The refinement
+  sections tell the model it is modifying one specific automation and must not
+  build anything else, and a present `refining` also suppresses command intents
+  for the whole turn (`_REFINEMENT_SUPPRESSED_BY_LANG`). Reusing it for every
+  saved automation would hijack "now make one for the porch" and swallow "turn
+  the kitchen light on" in the same session. Same split as scenes:
+  `scene_context` is reference, `refining_scene_context` is the directive.
+- **The claim is checked, never trusted.** `_pop_refine_automation_id` takes it
+  out of the payload — it is conversation metadata, not an automation field, and
+  the payload is re-validated, echoed back on a correction round, and walked by
+  the risk assessor — bounds its shape, and the resolver accepts it only if it
+  names an automation this session saved. The model is quoting untrusted text
+  back at us, so an id from anywhere else must not select a write target. A
+  correction round never sees the reference context, so
+  `_retry_invalid_automation` carries the original claim across its rounds —
+  which means **every rejection path has to put the claim on the envelope**,
+  not just the success path. It is popped from the payload before validation
+  runs, so a rejection dict assembled without it leaves the retry loop with
+  nothing to carry, and a corrected proposal that also renamed the automation
+  then resolves to no target and is accepted as a second one. The JSON-mode
+  path mutates `data` in place and keeps it; the streamed path builds a fresh
+  dict and has to copy it over.
+- **Session-scoped on purpose.** An alias collision with an automation from
+  another conversation stays a create: silently overwriting one is worse than
+  the duplicate, and within the session the user was just shown that card,
+  which is what makes either signal evidence rather than coincidence. A
+  differently-named proposal with no claim is always a create — "now also make
+  one for the porch" is a new automation.
+- **A target absent from `automations.yaml` is not a target.** It never enters
+  the snapshot list, so neither signal can select it. `async_update_automation`
+  matches on the id and fails outright when it is gone, so without that a
+  re-proposal of an automation deleted between turns becomes a failed save
+  instead of a fresh one. Read off the file, not the registry — an entry whose
+  entity was never materialised is still there to update.
+- **A `history: []` override clears it**, alongside `refining` / `refining_scene`
+  / `scenes`. A caller asking for a clean slate must not have its proposal land
+  on an automation the supplied history never mentions.
+- **MCP asks the same question with different handles.** `selora_chat` takes
+  `refine_automation_id` — an id from `selora_list_automations` or an earlier
+  create, since a proposal this tool returns has none yet — resolves it to the
+  automation's on-disk YAML (`_refining_context_for`), and passes that as
+  `refining_context`: an external agent naming one target IS the directive
+  case, unlike a panel follow-up. An unresolvable id is **refused**, because
+  ignoring it turns "change the time to 7am" into a second automation beside
+  the one the caller meant. The response reports `refine_automation_id`, and
+  `selora_create_automation` takes it as `automation_id` to replace rather than
+  append — restricted to Selora-managed entries, the split
+  `_tool_accept_automation` already makes: `async_update_automation` re-validates
+  through the proposal validator, which hand-written YAML need not satisfy.
+  Note `architect_chat`'s first two arguments are positional (`user_message`,
+  `entities`) and `existing_automations` holds records, not alias strings —
+  `tests/test_mcp_chat_tool.py` pins the call with `autospec` so a renamed
+  parameter fails a test instead of every MCP chat turn.
+- **A description is prose, so entity_ids are rewritten as friendly names.**
+  It heads the card in chat and is the subtitle of the row in Settings →
+  Automations, and a model that reached the device through a tool call
+  routinely writes back the id it was handed —
+  "Turns switch.basement_pool_room_grillplats_plug_aqua_rite on at 07:00".
+  `_humanize_description_entity_ids` runs at the two points in `parsers.py`
+  where a validated proposal is finalized, and replaces only ids the state
+  machine resolves, so a sentence boundary, "at 7 a.m.", and an id belonging to
+  no entity are left alone (`entity_id_in_description` repair counter).
+  **Template spans are skipped wholesale**, not left to the state lookup: the
+  id in `{{ states('sensor.temperature') }}` resolves like any other, so the
+  lookup cannot tell it from prose, and rewriting it produces template text
+  that no longer renders. `_PROSE_ENTITY_ID_RE` matches `{{ … }}` / `{% … %}` /
+  `{# … #}` as its own alternative and passes it through verbatim; each opener
+  also matches to end-of-string, so an unterminated template shields what
+  follows rather than exposing it.
 
 ## Groups
 

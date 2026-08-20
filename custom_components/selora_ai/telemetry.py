@@ -98,6 +98,7 @@ REPAIR_TYPES: frozenset[str] = frozenset(
         "qwen_normalize",
         "cloud_json_salvage",
         "tool_markup_leak",
+        "entity_id_in_description",
     }
 )
 

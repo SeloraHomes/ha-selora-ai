@@ -38,6 +38,11 @@ _SESSION_MAX_MESSAGES = 100
 # sessions (by updated_at) are evicted to stay within budget.
 _SESSION_MAX_COUNT = 200
 
+# Maximum automation ids remembered per session (see set_automation_status).
+# One conversation saving more than this is already past the point where the
+# oldest of them is what a follow-up means.
+_SESSION_MAX_SAVED_AUTOMATIONS = 50
+
 # Maximum length of the per-session searchable text blob returned in
 # summaries.  Message contents are concatenated so the sidebar can fuzzy
 # search and extract snippets client-side; the cap keeps the summary
@@ -152,6 +157,7 @@ class ConversationStore:
         intent: str | None = None,
         calls: list[ServiceCallDict] | None = None,
         automation_id: str | None = None,
+        refining_automation_id: str | None = None,
         risk_assessment: RiskAssessment | None = None,
         tool_calls: list[ToolCallLog] | None = None,
         scene: dict[str, Any] | None = None,
@@ -214,6 +220,14 @@ class ConversationStore:
             message["scene_status"] = scene_status
         if refine_scene_id is not None:
             message["refine_scene_id"] = refine_scene_id
+        if refining_automation_id is not None:
+            # The automation this proposal would REPLACE on accept. Stored
+            # under the key the panel already reads
+            # (``_getRefiningAutomationId``): the target is inferred from
+            # session state at generation time and nothing recomputes it, so
+            # a session reopened before the card is accepted would otherwise
+            # take the create path and write the duplicate.
+            message["refining_automation_id"] = refining_automation_id
         if quick_actions:
             message["quick_actions"] = quick_actions
         if command_approval is not None:
@@ -277,6 +291,23 @@ class ConversationStore:
         msgs[message_index]["automation_status"] = status
         if automation_id is not None:
             msgs[message_index]["automation_id"] = automation_id
+        if status == "saved" and automation_id:
+            # Session-level index of the automations this conversation wrote,
+            # for the same reason the scene index above exists: pruning keeps
+            # only the first message and the latest 99, so in a long session
+            # the message that recorded the save disappears — and with it the
+            # id that keeps a later follow-up editing that automation instead
+            # of creating a duplicate of it. Oldest first; re-saving moves the
+            # id to the end rather than repeating it.
+            saved: list[str] = session.setdefault("saved_automations", [])
+            if automation_id in saved:
+                saved.remove(automation_id)
+            saved.append(automation_id)
+            # Bounded like every other stored list. The consumer scans newest
+            # first and the prompt context is char-capped anyway, so the tail
+            # is what can be spared.
+            if len(saved) > _SESSION_MAX_SAVED_AUTOMATIONS:
+                del saved[: len(saved) - _SESSION_MAX_SAVED_AUTOMATIONS]
         session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True

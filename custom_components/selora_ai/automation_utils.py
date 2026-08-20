@@ -496,6 +496,50 @@ def _read_automations_yaml(path: Path) -> list[AutomationDict]:
     return []
 
 
+async def async_yaml_automation_snapshots(
+    hass: HomeAssistant,
+    automation_ids: list[str],
+) -> list[tuple[str, str, str]]:
+    """Return (automation_id, alias, yaml) for each id still in automations.yaml.
+
+    In the order asked for, skipping ids the file no longer carries — so a
+    caller holding ids from earlier in a conversation learns which ones an
+    update would still find (``async_update_automation`` matches on this same
+    id) and gets their CURRENT text in one read.
+
+    Current is the point. A chat message records the YAML a proposal was
+    generated with, and that is not what was saved: the user can edit the
+    proposal before accepting it, edit the automation later from the
+    Automations tab, or restore an older version — none of which rewrite the
+    message. Sourcing the alias and YAML here is what keeps a follow-up edit
+    from reverting any of it.
+
+    Read off the file rather than the entity registry: an entry whose entity
+    was never materialised (a reload the user has not performed yet) is still
+    there to be updated. ``id`` is dropped from the YAML — the write path owns
+    it, and it is returned alongside anyway.
+    """
+    if not automation_ids:
+        return []
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    entries = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    by_id = {str(a["id"]): a for a in entries if isinstance(a, dict) and a.get("id")}
+    snapshots: list[tuple[str, str, str]] = []
+    for automation_id in automation_ids:
+        entry = by_id.get(automation_id)
+        if entry is None:
+            continue
+        body = {k: v for k, v in entry.items() if k != "id"}
+        snapshots.append(
+            (
+                automation_id,
+                str(entry.get("alias", "")).strip(),
+                yaml.dump(body, allow_unicode=True, default_flow_style=False),
+            )
+        )
+    return snapshots
+
+
 def _quote_yaml_booleans(automations: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Quote string values that YAML 1.1 would silently reinterpret.
 
@@ -2427,6 +2471,7 @@ async def async_update_automation(
     session_id: str | None = None,
     version_message: str = "Updated via YAML editor",
     preserve_enabled_state: bool = True,
+    report: dict[str, Any] | None = None,
 ) -> bool:
     """Replace an existing automation (by id) in automations.yaml and reload.
 
@@ -2448,6 +2493,13 @@ async def async_update_automation(
     live state, matching what ``async_create_automation`` does for the same YAML —
     so the risk gate can't be sidestepped by refining a benign automation into a
     dangerous one.
+
+    ``report``, when given, is filled with ``forced_disabled``: True when that
+    gate acted, so a caller can tell the user the automation is off awaiting
+    review. Only this function knows — the on-disk ``initial_state`` is not
+    enough to infer it, since an automation whose boot override was ALREADY
+    False can still be live after a manual toggle, and the gate leaves it off by
+    skipping the restore rather than by writing anything.
     """
     is_valid, reason, normalized = await prepare_write_payload(hass, updated)
     if not is_valid or normalized is None:
@@ -2513,6 +2565,12 @@ async def async_update_automation(
                         risk_flags=risk_flags,
                     )
                     existing[i] = updated
+                    if report is not None:
+                        # `escalating_risk`, not `risk_forced_disabled`: the
+                        # latter is only the boot-override write, and the gate
+                        # ALSO skips the post-reload restore — which is what
+                        # leaves a manually-toggled-on automation off.
+                        report["forced_disabled"] = escalating_risk
                     found = True
                     break
 

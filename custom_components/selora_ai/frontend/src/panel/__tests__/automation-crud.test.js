@@ -4,6 +4,7 @@ import {
   _acceptAutomation,
   _acceptAutomationWithEdits,
   _extractInitialState,
+  _getRefiningAutomationId,
   _initialStateEdited,
 } from "../automation-crud.js";
 
@@ -374,3 +375,55 @@ function makeAcceptHost({ refiningId }) {
   };
   return { host, callWS };
 }
+
+// Which automation Accept & Save writes to. The backend persists the target on
+// the proposal, and this resolver reads it; the message scan below it is the
+// fallback for cards whose turn predates that.
+
+describe("_getRefiningAutomationId", () => {
+  const call = (messages, index) =>
+    _getRefiningAutomationId.call({ _messages: messages }, index);
+
+  it("prefers the target persisted on the card", () => {
+    const messages = [
+      { automation_status: "refining", automation_id: "auto_old" },
+      { automation_status: "pending", refining_automation_id: "auto_new" },
+    ];
+    expect(call(messages, 1)).toBe("auto_new");
+  });
+
+  it("finds an active refinement for a card that carries no target", () => {
+    const messages = [
+      { automation_status: "refining", automation_id: "auto_1" },
+      { automation_status: "pending" },
+    ];
+    // The card being accepted is itself pending and must not terminate its own
+    // search.
+    expect(call(messages, 1)).toBe("auto_1");
+  });
+
+  it("stops at a finished refinement", () => {
+    // The `refining` marker stays in the session; the save landed on its own
+    // message. A later unrelated proposal must create, not replace.
+    const messages = [
+      { automation_status: "refining", automation_id: "auto_1" },
+      { automation_status: "saved", automation_id: "auto_1" },
+      { automation_status: "pending" },
+    ];
+    expect(call(messages, 2)).toBeNull();
+  });
+
+  it("stops at a declined proposal too", () => {
+    const messages = [
+      { automation_status: "refining", automation_id: "auto_1" },
+      { automation_status: "declined" },
+      { automation_status: "pending" },
+    ];
+    expect(call(messages, 2)).toBeNull();
+  });
+
+  it("returns null when nothing was ever refined", () => {
+    expect(call([{ automation_status: "pending" }], 0)).toBeNull();
+    expect(call([], 0)).toBeNull();
+  });
+});

@@ -768,6 +768,201 @@ def _find_active_refining_yaml(
     return None
 
 
+def _find_refining_automation_id(stored_messages: list[dict[str, Any]]) -> str | None:
+    """Return the automation under ACTIVE explicit refinement, if any.
+
+    Same terminating statuses as :func:`_find_active_refining_yaml`, and for the
+    same reason: a newer ``pending`` / ``saved`` / ``declined`` means that
+    refinement conversation ended. The ``refining`` message itself stays in the
+    session forever, so a scan without the terminator keeps returning its id —
+    and since the id is now persisted on every later proposal, accepting an
+    unrelated new automation would replace the old one instead of creating it.
+    """
+    for m in reversed(stored_messages):
+        status = m.get("automation_status")
+        if status in ("pending", "saved", "declined"):
+            return None
+        if status == "refining" and m.get("automation_id"):
+            return str(m["automation_id"])
+    return None
+
+
+def _find_session_saved_automation_ids(
+    session: dict[str, Any] | None,
+    stored_messages: list[dict[str, Any]],
+) -> list[str]:
+    """Return the id of every automation this session saved, oldest first.
+
+    So a caller scanning in reverse meets the most recently saved automation
+    first. One entry per automation: re-saving moves it to the end of the scan
+    order rather than listing it twice.
+
+    Reads the session-level ``saved_automations`` index — which exists because
+    ``append_message`` prunes a long session to its first message plus the
+    latest 99, taking the message that recorded the save with it, and an id
+    that disappears is a follow-up that creates a duplicate. The retained
+    messages are scanned as well, and the two unioned: the index is only
+    written from the moment it shipped, so a session that saved automations
+    before that still has them in its messages, and reading either alone drops
+    half of such a session. Same reasoning as ``_find_active_scenes``, which
+    keeps the same pair for the same reason.
+
+    Ids only. The message also holds the automation payload and the YAML it was
+    generated with, and neither is what got saved — the user can edit a
+    proposal in the card's YAML editor before accepting it, and nothing writes
+    that back to the message. :func:`async_yaml_automation_snapshots` reads the
+    alias and YAML off disk instead.
+    """
+    saved: list[str] = []
+
+    def _record(automation_id: str) -> None:
+        if not automation_id:
+            return
+        if automation_id in saved:
+            saved.remove(automation_id)
+        saved.append(automation_id)
+
+    for m in stored_messages:
+        if m.get("automation_status") == "saved" and m.get("automation_id"):
+            _record(str(m["automation_id"]))
+    indexed = (session or {}).get("saved_automations")
+    if isinstance(indexed, list):
+        for automation_id in indexed:
+            _record(str(automation_id))
+    return saved
+
+
+async def _find_session_saved_automations(
+    hass: HomeAssistant,
+    session: dict[str, Any] | None,
+    stored_messages: list[dict[str, Any]],
+) -> list[tuple[str, str, str]]:
+    """Return (automation_id, alias, yaml) for this session's saved automations.
+
+    Session order, current content, and only the ones automations.yaml still
+    carries. Feeds both the model's reference context and the write-target
+    resolution from one source, so the model is asked to edit exactly what the
+    resolver will match — and both see the automation as it is now, not as the
+    turn that proposed it left it.
+    """
+    from .automation_utils import async_yaml_automation_snapshots
+
+    return await async_yaml_automation_snapshots(
+        hass, _find_session_saved_automation_ids(session, stored_messages)
+    )
+
+
+# How much of the prompt the saved-automation reference may spend. The block is
+# fixed-cost context on every automation turn, and the entity list is what pays
+# for it (see ``_build_chat_messages``' budget).
+_AUTOMATION_REFERENCE_BUDGET = 8_000
+
+
+def _automation_reference_context(
+    saved: list[tuple[str, str, str]],
+) -> tuple[list[tuple[str, str, str]] | None, list[tuple[str, str, str]]]:
+    """Return (prompt context, the automations an edit may target).
+
+    Both come out of one walk because they are two halves of one decision: an
+    inferred update may only name an automation the model was SHOWN. A proposal
+    for one it merely heard the name of is a rule composed from nothing, and
+    writing that over the original discards whatever the user did not mention
+    — worse than the duplicate the resolver exists to prevent.
+
+    Newest first through the budget, since that is the automation a follow-up
+    most likely means. One that does not fit is still NAMED in the context,
+    with an empty YAML string standing for "not shown" (the prompt builder
+    substitutes a note): its id and alias keep it visible to the model, which
+    can then say it is too large to edit in chat rather than guessing at it.
+    The returned lists are oldest-first, the order the prompt renders and the
+    resolver scans in reverse.
+
+    The alias is sanitized for the prompt only — it reaches the model as
+    untrusted text, while the write-target match needs the alias the proposal
+    will actually carry.
+    """
+    context: list[tuple[str, str, str]] = []
+    editable: list[tuple[str, str, str]] = []
+    spent = 0
+    for automation_id, alias, yaml_text in reversed(saved):
+        safe_alias = _sanitize_history_text(alias, max_length=100)
+        if yaml_text and spent + len(yaml_text) <= _AUTOMATION_REFERENCE_BUDGET:
+            context.append((automation_id, safe_alias, yaml_text))
+            editable.append((automation_id, alias, yaml_text))
+            spent += len(yaml_text)
+        else:
+            context.append((automation_id, safe_alias, ""))
+    context.reverse()
+    editable.reverse()
+    return (context or None), editable
+
+
+def _same_automation_name(left: str, right: str) -> bool:
+    """Compare two automation aliases the way the user reads them."""
+    return re.sub(r"\s+", " ", left).strip().casefold() == (
+        re.sub(r"\s+", " ", right).strip().casefold()
+    )
+
+
+def _resolve_proposal_write_target(
+    proposal: dict[str, Any] | None,
+    saved: list[tuple[str, str, str]],
+    claimed_id: str | None = None,
+) -> str | None:
+    """Return the automation_id a fresh proposal should overwrite, if any.
+
+    A follow-up like "change the time to 7am" comes back as an ordinary
+    proposal — nothing in the automation payload says "this replaces the one
+    you just wrote" — so accepting it appends a SECOND automations.yaml entry
+    under the same alias. Home Assistant loads both, the health check reports
+    the pair, and both keep running until the user deletes one by hand.
+
+    Two signals, in order:
+
+    * ``claimed_id`` — the ``refine_automation_id`` the model returned, which
+      it can only have read from the reference context. It is what carries the
+      intent through a rename, and the reason the reference context exists.
+      Checked against the session's own saved ids: the model is quoting
+      untrusted text back at us, and an id from anywhere else must not select
+      a write target.
+    * the alias — a proposal carrying the name of an automation the session
+      saved is an edit of it, whether or not the model bothered to say so.
+
+    Scoped to the session's automations because that is what makes either
+    signal evidence rather than coincidence: the user was just shown that
+    card. An alias collision with an automation from another conversation
+    stays a create — silently overwriting one is worse than the duplicate.
+
+    ``saved`` is already restricted to ids automations.yaml still carries (see
+    :func:`_find_session_saved_automations`), which is where
+    ``async_update_automation`` matches and fails outright when the automation
+    is gone — so a re-proposal of one deleted meanwhile stays a create instead
+    of becoming a failed save. The alias it matches is the CURRENT one, so an
+    accept-time rename in the YAML editor does not send the follow-up off to
+    create a duplicate.
+    """
+    if not saved or not isinstance(proposal, dict):
+        return None
+    alias = str(proposal.get("alias", "")).strip()
+    claimed = (claimed_id or "").strip()
+    if not alias and not claimed:
+        return None
+
+    # Newest first: the automation a follow-up most likely means is the one the
+    # user was last shown. The claim is resolved across the whole list before
+    # the alias is consulted at all — an explicit "I am editing X" must not
+    # lose to a newer automation that happens to share the proposal's name.
+    if claimed:
+        for automation_id, _alias, _yaml_text in reversed(saved):
+            if claimed == automation_id:
+                return automation_id
+    if alias:
+        for automation_id, saved_alias, _yaml_text in reversed(saved):
+            if _same_automation_name(alias, saved_alias):
+                return automation_id
+    return None
+
+
 def _find_active_refining_scene(
     stored_messages: list[dict[str, Any]],
 ) -> tuple[str, str] | None:
@@ -1933,6 +2128,10 @@ async def _handle_websocket_chat(
     refining = _find_active_refining_yaml(stored_messages, user_message)
     refining_scene = _find_active_refining_scene(stored_messages)
     scenes = _find_active_scenes(session, stored_messages)
+    session_saved_automations = await _find_session_saved_automations(
+        hass, session, stored_messages
+    )
+    active_refining_id = _find_refining_automation_id(stored_messages)
     # Honour caller-supplied history when present (parity with
     # selora_ai/chat_stream — see schema comment there).
     history: list[dict[str, str]]
@@ -1942,14 +2141,17 @@ async def _handle_websocket_chat(
     # messages, not fall through to them.
     if isinstance(req_history, list):
         # An explicit history override replaces ALL session-derived
-        # context. ``refining`` / ``refining_scene`` / ``scenes`` were
-        # computed from stored_messages above; left as-is, a clean-slate
-        # request (``history: []``) would still be trapped in a prior
-        # automation or scene refinement that the caller didn't ask for.
-        # Clear them so only the supplied history drives this turn.
+        # context. ``refining`` / ``refining_scene`` / ``scenes`` /
+        # ``session_saved_automations`` were computed from stored_messages
+        # above; left as-is, a clean-slate request (``history: []``) would
+        # still be trapped in a prior automation or scene refinement that the
+        # caller didn't ask for — and a proposal would land on top of an
+        # automation the supplied history never mentions.
         refining = None
         refining_scene = None
         scenes = []
+        session_saved_automations = []
+        active_refining_id = None
         history = _sanitize_history_override(req_history)
     else:
         history = _build_history_from_session(
@@ -1957,6 +2159,13 @@ async def _handle_websocket_chat(
             skip_refining_yaml=refining is not None,
             skip_refining_scene_yaml=refining_scene is not None,
         )
+
+    # Computed after the history override may have cleared the saved list. The
+    # pair is one decision: what the model is shown, and which automations an
+    # inferred edit may therefore target.
+    automation_context, editable_automations = _automation_reference_context(
+        session_saved_automations
+    )
 
     await store.append_message(session_id, "user", persisted_user_message)
 
@@ -1974,6 +2183,7 @@ async def _handle_websocket_chat(
         refining_context=refining,
         refining_scene_context=refining_scene,
         scene_context=scenes or None,
+        automation_context=automation_context,
         areas=area_names,
         session_id=session_id,
         language=msg.get("language"),
@@ -2067,6 +2277,22 @@ async def _handle_websocket_chat(
     command_approval_payload = (
         result.get("command_approval") if intent_type == "command_approval" else None
     )
+    # Resolved BEFORE the append, because it is persisted with the proposal:
+    # the panel decides create-vs-update from this value, and a session
+    # reopened before the card is accepted has only the stored message to read
+    # it from.
+    refining_automation_id = active_refining_id
+    # Inferred only when the model was actually shown the automation
+    # (`shows_automation_reference`): one that composed a fresh rule without it
+    # would have that rule written over the original, discarding whatever the
+    # user did not mention. A duplicate is recoverable; dropped triggers are
+    # not.
+    if refining_automation_id is None and llm.shows_automation_reference:
+        refining_automation_id = _resolve_proposal_write_target(
+            result.get("automation"),
+            editable_automations,
+            result.get("refine_automation_id"),
+        )
     await store.append_message(
         session_id,
         "assistant",
@@ -2076,6 +2302,7 @@ async def _handle_websocket_chat(
         automation_yaml=result.get("automation_yaml"),
         description=result.get("description"),
         automation_status="pending" if result.get("automation") else None,
+        refining_automation_id=(refining_automation_id if result.get("automation") else None),
         calls=result.get("calls") if intent_type == "command" else None,
         risk_assessment=result.get("risk_assessment"),
         tool_calls=result.get("tool_calls"),
@@ -2090,11 +2317,6 @@ async def _handle_websocket_chat(
 
     updated_session = await store.get_session(session_id)
     assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
-
-    refining_automation_id = None
-    for m in stored_messages:
-        if m.get("automation_status") == "refining" and m.get("automation_id"):
-            refining_automation_id = m["automation_id"]
 
     connection.send_result(
         msg["id"],
@@ -2221,6 +2443,12 @@ async def _retry_invalid_automation(
 
     budget = _automation_retry_budget(llm.provider)
     attempt = 0
+    # Which automation this turn is editing is settled by the first parse — the
+    # only one that saw the reference context. A correction round is prompted
+    # with the rejected automation and the service ground truth alone, so it
+    # cannot restate the target: carrying the original across the rounds is
+    # what stops a corrected edit landing as a second automation.
+    claimed_refine_id = parsed.get("refine_automation_id")
     while (
         attempt < budget
         and parsed.get("validation_target") == "automation"
@@ -2294,6 +2522,15 @@ async def _retry_invalid_automation(
             if not client_alive:
                 break
             parsed = correction_task.result()
+            # Settled, so it REPLACES whatever this round emitted rather than
+            # only filling a gap. An id a correction round volunteers is
+            # ungrounded — it saw no reference context — and if it happens to
+            # name another automation the session saved, honouring it would
+            # point the write at an automation the user never asked to change.
+            if claimed_refine_id:
+                parsed["refine_automation_id"] = claimed_refine_id
+            else:
+                parsed.pop("refine_automation_id", None)
         except Exception as exc:  # noqa: BLE001 — best-effort retry
             # The correction round is optional: a failure here (provider/
             # transport error, parse failure) must NOT escalate an
@@ -2422,6 +2659,10 @@ async def _handle_websocket_chat_stream(
     refining = _find_active_refining_yaml(stored_messages, user_message)
     refining_scene = _find_active_refining_scene(stored_messages)
     scenes = _find_active_scenes(session, stored_messages)
+    session_saved_automations = await _find_session_saved_automations(
+        hass, session, stored_messages
+    )
+    active_refining_id = _find_refining_automation_id(stored_messages)
     # Honour caller-supplied history when present (e.g. behavioural
     # benchmark simulating a follow-up turn over a fresh WS connection).
     # Sanitised via _sanitize_history_override — coerce content to str, drop
@@ -2434,14 +2675,17 @@ async def _handle_websocket_chat_stream(
     # messages, not fall through to them.
     if isinstance(req_history, list):
         # An explicit history override replaces ALL session-derived
-        # context. ``refining`` / ``refining_scene`` / ``scenes`` were
-        # computed from stored_messages above; left as-is, a clean-slate
-        # request (``history: []``) would still be trapped in a prior
-        # automation or scene refinement that the caller didn't ask for.
-        # Clear them so only the supplied history drives this turn.
+        # context. ``refining`` / ``refining_scene`` / ``scenes`` /
+        # ``session_saved_automations`` were computed from stored_messages
+        # above; left as-is, a clean-slate request (``history: []``) would
+        # still be trapped in a prior automation or scene refinement that the
+        # caller didn't ask for — and a proposal would land on top of an
+        # automation the supplied history never mentions.
         refining = None
         refining_scene = None
         scenes = []
+        session_saved_automations = []
+        active_refining_id = None
         history = _sanitize_history_override(req_history)
     else:
         history = _build_history_from_session(
@@ -2538,6 +2782,12 @@ async def _handle_websocket_chat_stream(
     # human-readable error message) never see an UnboundLocalError when
     # an exception fires before the per-intent calculation below.
     effective_idle_timeout = STREAM_IDLE_TIMEOUT_S
+    # Computed after the history override may have cleared the saved list. The
+    # pair is one decision: what the model is shown, and which automations an
+    # inferred edit may therefore target.
+    automation_context, editable_automations = _automation_reference_context(
+        session_saved_automations
+    )
     try:
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
@@ -2643,6 +2893,7 @@ async def _handle_websocket_chat_stream(
                 refining_context=refining,
                 refining_scene_context=refining_scene,
                 scene_context=scenes or None,
+                automation_context=automation_context,
                 areas=area_names,
                 session_id=session_id,
                 language=msg.get("language"),
@@ -2976,6 +3227,19 @@ async def _handle_websocket_chat_stream(
         command_approval_payload = (
             parsed.get("command_approval") if intent_type == "command_approval" else None
         )
+        # Resolved BEFORE the append, because it is persisted with the
+        # proposal: the panel decides create-vs-update from this value, and a
+        # session reopened before the card is accepted has only the stored
+        # message to read it from.
+        refining_automation_id = active_refining_id
+        # Inferred only when the model was actually shown the automation — see
+        # the note on the non-streaming handler.
+        if refining_automation_id is None and llm.shows_automation_reference:
+            refining_automation_id = _resolve_proposal_write_target(
+                parsed.get("automation"),
+                editable_automations,
+                parsed.get("refine_automation_id"),
+            )
         await store.append_message(session_id, "user", persisted_user_message)
         await store.append_message(
             session_id,
@@ -2986,6 +3250,7 @@ async def _handle_websocket_chat_stream(
             automation_yaml=parsed.get("automation_yaml"),
             description=parsed.get("description"),
             automation_status="pending" if parsed.get("automation") else None,
+            refining_automation_id=(refining_automation_id if parsed.get("automation") else None),
             calls=parsed.get("calls") if intent_type == "command" else None,
             risk_assessment=parsed.get("risk_assessment"),
             tool_calls=tool_executor.call_log if tool_executor and tool_executor.call_log else None,
@@ -3038,11 +3303,6 @@ async def _handle_websocket_chat_stream(
                     _LOGGER.debug("Background title generation failed for %s", session_id)
 
             hass.async_create_task(_generate_title())
-
-        refining_automation_id = None
-        for m in stored_messages:
-            if m.get("automation_status") == "refining" and m.get("automation_id"):
-                refining_automation_id = m["automation_id"]
 
         _safe_send_message(
             connection,
