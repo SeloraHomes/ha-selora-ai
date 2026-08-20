@@ -293,6 +293,27 @@ _SHARED_AUTOMATION_RULES = (
     "conditions, triggers, or actions that were not mentioned.\n"
 )
 
+# Editing an automation the session already saved. The reference YAML rides in
+# the user message under "AUTOMATIONS SAVED IN THIS SESSION" — the backend
+# still decides what gets written, but only ``refine_automation_id`` can carry
+# the intent through a rename, and an alias the model silently changes turns an
+# edit into a second automation with the same purpose.
+_AUTOMATION_REFINE_RULES = (
+    "EDITING AN AUTOMATION ALREADY SAVED IN THIS SESSION:\n"
+    "The user message may carry an AUTOMATIONS SAVED IN THIS SESSION section with each "
+    "automation's current YAML and its automation_id. When the user's request changes one of "
+    "those automations — 'change the time to 7am', 'add the hallway light', 'make it weekdays "
+    "only' — do NOT compose a fresh automation:\n"
+    '- Include "refine_automation_id": "<automation_id from that section>" alongside the other '
+    "automation fields. Omit it when building a genuinely new automation. Never invent an id: "
+    "use one printed in that section verbatim, or none.\n"
+    "- Start from that YAML and change ONLY what the user asked for. Every other trigger, "
+    "condition, action, and the description stay as they are.\n"
+    "- Keep the alias identical unless the user asked to rename it.\n"
+    "- A request for an ADDITIONAL, different automation ('now make one for the porch') is a new "
+    "automation — omit refine_automation_id there.\n\n"
+)
+
 _SHARED_STATE_QUERY_RULES = (
     "- For state queries ('are the lights on?', 'what temperature is it?', 'is the door locked?'), "
     "use the AVAILABLE ENTITIES list to give a specific, accurate answer with real values from "
@@ -767,7 +788,8 @@ def build_architect_system_prompt(
         '    "actions": [...]\n'
         "  }\n"
         "}\n\n"
-        "3. CLARIFICATION — the request is genuinely ambiguous AND you cannot resolve it from entity states:\n"
+        + _AUTOMATION_REFINE_RULES
+        + "3. CLARIFICATION — the request is genuinely ambiguous AND you cannot resolve it from entity states:\n"
         "{\n"
         '  "intent": "clarification",\n'
         '  "response": "One specific question — no filler."\n'
@@ -1002,8 +1024,7 @@ def build_architect_stream_system_prompt(
         '  "conditions": [...],\n'
         '  "actions": [...]\n'
         "}\n"
-        "```\n\n"
-        "AUTOMATION PROSE — HARD RULE:\n"
+        "```\n\n" + _AUTOMATION_REFINE_RULES + "AUTOMATION PROSE — HARD RULE:\n"
         "The conversational text BEFORE the fenced ```automation``` block introduces what the rule\n"
         "accomplishes for the user in human terms. NEVER recap the rule mechanics there. Specifically:\n"
         "  - NEVER write lines like 'Trigger: …', 'Condition: …', 'Action: …'.\n"

@@ -488,6 +488,10 @@ class ArchitectResponse(TypedDict, total=False):
     response: Required[str]
     automation: AutomationDict
     automation_yaml: str
+    # The automation the model says this proposal edits, quoted from the
+    # session's reference context. A claim, not a resolved target — the chat
+    # handler checks it against what the session actually saved.
+    refine_automation_id: str
     description: str
     risk_assessment: RiskAssessment
     calls: list[ServiceCallDict]
@@ -780,6 +784,9 @@ class ChatMessage(TypedDict, total=False):
     intent: str
     calls: list[ServiceCallDict]
     automation_id: str
+    # On a pending proposal: the automation accepting it REPLACES, resolved
+    # when the turn was generated. Absent means the accept creates one.
+    refining_automation_id: str
     risk_assessment: RiskAssessment
     tool_calls: list[ToolCallLog]
     # Agent-activity timeline entries (the "what's happening" steps). See

@@ -152,8 +152,22 @@ export function _getRefiningAutomationId(msgIndex = null) {
   if (msg?.automation_id) return msg.automation_id;
   if (msg?.automation?.id) return msg.automation.id;
 
-  for (const m of this._messages) {
-    if (m.automation_status === "refining") {
+  // Fallback for a card whose turn predates the backend persisting the target
+  // on the message. Same terminators as `_find_refining_automation_id` there: a
+  // newer pending / saved / declined ended that refinement conversation. The
+  // `refining` marker stays in the session forever — a later save lands on its
+  // own message — so a scan without them hands a later unrelated proposal the
+  // old automation, and accepting it REPLACES that automation instead of
+  // creating one. Walks back from the card being accepted, which is itself
+  // pending and would otherwise terminate its own search immediately.
+  const start = msgIndex == null ? this._messages.length - 1 : msgIndex - 1;
+  for (let i = start; i >= 0; i--) {
+    const m = this._messages[i] || {};
+    const status = m.automation_status;
+    if (status === "pending" || status === "saved" || status === "declined") {
+      return null;
+    }
+    if (status === "refining") {
       if (m.automation_id) return m.automation_id;
       if (m.automation?.id) return m.automation.id;
     }

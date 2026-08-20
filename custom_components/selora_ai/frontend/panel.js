@@ -31701,8 +31701,14 @@ function _getRefiningAutomationId(msgIndex = null) {
   if (msg?.refining_automation_id) return msg.refining_automation_id;
   if (msg?.automation_id) return msg.automation_id;
   if (msg?.automation?.id) return msg.automation.id;
-  for (const m3 of this._messages) {
-    if (m3.automation_status === "refining") {
+  const start = msgIndex == null ? this._messages.length - 1 : msgIndex - 1;
+  for (let i7 = start; i7 >= 0; i7--) {
+    const m3 = this._messages[i7] || {};
+    const status = m3.automation_status;
+    if (status === "pending" || status === "saved" || status === "declined") {
+      return null;
+    }
+    if (status === "refining") {
       if (m3.automation_id) return m3.automation_id;
       if (m3.automation?.id) return m3.automation.id;
     }
@@ -48064,7 +48070,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "068c7f8f5ddb" : "";
+var PANEL_BUILD = true ? "cb4e43fa109a" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
