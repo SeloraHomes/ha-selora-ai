@@ -13,9 +13,8 @@
 export const AUTOCOMPLETE_MIN_CHARS = 3;
 export const AUTOCOMPLETE_MAX_RESULTS = 6;
 
-// User-facing entity domains worth offering as device autocompletes. Sensors
-// and binary_sensors are intentionally excluded — they bloat the dropdown
-// and are rarely what users address by name in chat.
+// User-facing entity domains worth offering as CONTROLLABLE autocompletes —
+// the things an actuating verb ("turn on the …") can address.
 const DEVICE_DOMAINS = new Set([
   "light",
   "switch",
@@ -36,6 +35,43 @@ const DEVICE_DOMAINS = new Set([
   "lawn_mower",
 ]);
 
+// Read-only domains offered as a SEPARATE `sensor` kind. Most of a home's
+// automations are triggered by one of these — an occupancy sensor, a door
+// contact, a temperature reading — so a trigger clause naming one ("when the
+// MYGGSPRAY …") has to be completable. They are their own kind rather than
+// more DEVICE_DOMAINS entries because an actuating verb cannot address one:
+// "unlock the …" still lists locks alone.
+const SENSOR_DOMAINS = new Set(["sensor", "binary_sensor"]);
+
+// Icons for the sensor kind, keyed by `device_class`. An entity's own
+// `attributes.icon` wins when it has one; this map covers the classes a
+// homeowner actually names in a trigger, and anything unrecognised falls
+// back to the domain default.
+const SENSOR_DEVICE_CLASS_ICONS = {
+  motion: "mdi:motion-sensor",
+  occupancy: "mdi:motion-sensor",
+  presence: "mdi:home-account",
+  door: "mdi:door",
+  garage_door: "mdi:garage",
+  window: "mdi:window-closed-variant",
+  opening: "mdi:square-outline",
+  moisture: "mdi:water-alert",
+  smoke: "mdi:smoke-detector",
+  gas: "mdi:gas-cylinder",
+  carbon_monoxide: "mdi:molecule-co",
+  carbon_dioxide: "mdi:molecule-co2",
+  vibration: "mdi:vibrate",
+  sound: "mdi:volume-high",
+  tamper: "mdi:shield-alert",
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  illuminance: "mdi:brightness-5",
+  pressure: "mdi:gauge",
+  power: "mdi:flash",
+  energy: "mdi:lightning-bolt",
+  pm25: "mdi:air-filter",
+};
+
 const DOMAIN_ICONS = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
@@ -54,6 +90,8 @@ const DOMAIN_ICONS = {
   input_select: "mdi:form-dropdown",
   input_number: "mdi:numeric",
   input_button: "mdi:gesture-tap-button",
+  sensor: "mdi:gauge",
+  binary_sensor: "mdi:checkbox-marked-circle-outline",
   scene: "mdi:palette",
   automation: "mdi:robot",
   script: "mdi:script-text",
@@ -70,15 +108,33 @@ const DOMAIN_ICONS = {
 // typed an actuating verb that signals they're addressing a controllable
 // thing. Power users who want to bypass natural-language heuristics can
 // use the explicit `@` trigger to query any kind.
+//
+// Which triggers offer the SENSOR kind is marked, not derived. `@`, the
+// condition clauses and the bare articles carry no actuating verb, so what
+// the user is part-way through naming could be anything in the home — those
+// are written with `sensorCapable()` below. Every other device trigger is
+// verb-led, which is a statement that the target is an actuator whether or
+// not it also names a domain list: "set the temp…" must not offer a
+// temperature READING, since picking it yields a row the user cannot act on.
+// Marking rather than deriving also fails in the harmless direction — a
+// trigger added without thought omits sensors instead of leaking them.
+const sensorCapable = (pattern) => ({
+  kind: "device",
+  pattern,
+  includeAreas: true,
+  includeSensors: true,
+});
+
 // Universal triggers — fire regardless of UI language.
-// `@` opens devices+areas dropdown as an explicit power-user shortcut.
-const BASE_TRIGGERS = [
-  { kind: "device", pattern: /(?:^|\s)@$/, includeAreas: true },
-];
+// `@` opens devices+sensors+areas dropdown as an explicit power-user shortcut.
+const BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
 
 // Locale-specific intent-driven triggers. Each list mirrors the English
 // semantics: areas via "in/of the", scenes via "activate/scene", automations
-// via "run/trigger/execute", devices via verb-led patterns and bare articles.
+// via "run/trigger/execute", devices via verb-led patterns and bare articles,
+// and a condition clause ("when/if/while the …") — the phrasing an automation
+// trigger takes, which names whatever CHANGES state and is therefore the
+// trigger family the sensor kind exists for.
 // Adding a locale: copy the EN block, translate verbs/articles, keep regex
 // shape (word-boundary leading, trailing `$` at caret).
 const LOCALE_TRIGGERS = {
@@ -121,8 +177,9 @@ const LOCALE_TRIGGERS = {
       pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bthe $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmy $/i, includeAreas: true },
+    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
+    sensorCapable(/\bthe $/i),
+    sensorCapable(/\bmy $/i),
   ],
   fr: [
     { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
@@ -170,13 +227,16 @@ const LOCALE_TRIGGERS = {
         /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\ble $/i, includeAreas: true },
-    { kind: "device", pattern: /\bla $/i, includeAreas: true },
-    { kind: "device", pattern: /\bles $/i, includeAreas: true },
-    { kind: "device", pattern: /\bl['’]$/i, includeAreas: true },
-    { kind: "device", pattern: /\bmon $/i, includeAreas: true },
-    { kind: "device", pattern: /\bma $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmes $/i, includeAreas: true },
+    sensorCapable(
+      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
+    ),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bles $/i),
+    sensorCapable(/\bl['’]$/i),
+    sensorCapable(/\bmon $/i),
+    sensorCapable(/\bma $/i),
+    sensorCapable(/\bmes $/i),
   ],
   de: [
     { kind: "area", pattern: /\bim $/i },
@@ -219,11 +279,14 @@ const LOCALE_TRIGGERS = {
         /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bdie $/i, includeAreas: true },
-    { kind: "device", pattern: /\bder $/i, includeAreas: true },
-    { kind: "device", pattern: /\bdas $/i, includeAreas: true },
-    { kind: "device", pattern: /\bden $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmein(?:e|en|er|em)? $/i, includeAreas: true },
+    sensorCapable(
+      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
+    ),
+    sensorCapable(/\bdie $/i),
+    sensorCapable(/\bder $/i),
+    sensorCapable(/\bdas $/i),
+    sensorCapable(/\bden $/i),
+    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
   ],
   es: [
     { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
@@ -262,12 +325,15 @@ const LOCALE_TRIGGERS = {
       pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bel $/i, includeAreas: true },
-    { kind: "device", pattern: /\bla $/i, includeAreas: true },
-    { kind: "device", pattern: /\blos $/i, includeAreas: true },
-    { kind: "device", pattern: /\blas $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmi $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmis $/i, includeAreas: true },
+    sensorCapable(
+      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
+    ),
+    sensorCapable(/\bel $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\blos $/i),
+    sensorCapable(/\blas $/i),
+    sensorCapable(/\bmi $/i),
+    sensorCapable(/\bmis $/i),
   ],
   it: [
     { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
@@ -311,15 +377,16 @@ const LOCALE_TRIGGERS = {
         /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bil $/i, includeAreas: true },
-    { kind: "device", pattern: /\bla $/i, includeAreas: true },
-    { kind: "device", pattern: /\bi $/i, includeAreas: true },
-    { kind: "device", pattern: /\ble $/i, includeAreas: true },
-    { kind: "device", pattern: /\bgli $/i, includeAreas: true },
-    { kind: "device", pattern: /\blo $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmio $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmia $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmiei $/i, includeAreas: true },
+    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
+    sensorCapable(/\bil $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bi $/i),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bgli $/i),
+    sensorCapable(/\blo $/i),
+    sensorCapable(/\bmio $/i),
+    sensorCapable(/\bmia $/i),
+    sensorCapable(/\bmiei $/i),
   ],
   nl: [
     { kind: "area", pattern: /\bin (?:de |het )?$/i },
@@ -357,9 +424,10 @@ const LOCALE_TRIGGERS = {
       pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bde $/i, includeAreas: true },
-    { kind: "device", pattern: /\bhet $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmijn $/i, includeAreas: true },
+    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
+    sensorCapable(/\bde $/i),
+    sensorCapable(/\bhet $/i),
+    sensorCapable(/\bmijn $/i),
   ],
   hu: [
     { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
@@ -396,8 +464,9 @@ const LOCALE_TRIGGERS = {
       pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\ba $/i, includeAreas: true },
-    { kind: "device", pattern: /\baz $/i, includeAreas: true },
+    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
+    sensorCapable(/\ba $/i),
+    sensorCapable(/\baz $/i),
   ],
 };
 
@@ -1016,6 +1085,7 @@ export function detectTrigger(text, caret, lang) {
           end: caret,
           domains: trig.domains || null,
           includeAreas: !!trig.includeAreas,
+          includeSensors: !!trig.includeSensors,
         };
         break;
       }
@@ -1092,7 +1162,33 @@ export function buildSuggestionIndex(
     }
     const areaName = areaId ? areaById[areaId] || null : null;
 
-    if (DEVICE_DOMAINS.has(domain)) {
+    if (SENSOR_DOMAINS.has(domain)) {
+      // Only PRIMARY sensors. A device's battery level, signal strength,
+      // firmware version and supply voltage all live in these two domains
+      // under `entity_category` diagnostic or config, and HA files them away
+      // from the Sensors card on the device page for the same reason nobody
+      // writes an automation clause naming them — while one Matter device
+      // contributes a dozen. Hidden entities are out too: the user already
+      // said they did not want to see them. Both fields come off the entity
+      // registry, so a state with no registry row (an integration that set
+      // no unique_id) is unclassified and kept.
+      if (entry?.entity_category) continue;
+      if (entry?.hidden_by || entry?.hidden) continue;
+      items.push({
+        kind: "sensor",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon:
+          state?.attributes?.icon ||
+          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
+          DOMAIN_ICONS[domain],
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (DEVICE_DOMAINS.has(domain)) {
       items.push({
         kind: "device",
         domain,
@@ -1295,34 +1391,47 @@ export function dedupeDeviceItems(items) {
 // Score how well `item` matches `lowerQuery`. Higher = better.
 // 0 means "no match, drop it".
 //
-// Heuristics (highest first):
-//   * any word in the label EXACTLY equals the query  → 1500
-//     (so "bed" → "Bed Light" beats "Bedroom" because
-//      "bed" is a whole word in the former but only a
-//      prefix-of-a-word in the latter)
-//   * prefix match on the whole label                 → 1000
-//   * any word in the label starts with the query     →  500
-//   * substring match anywhere in the label           →  100
-//   * fuzzy: every char of query appears in order     →   10
-// Ties broken by shorter labels (more specific) and alphabetical.
+// Match tiers, highest first. Ties are broken by shorter labels (more
+// specific) and then alphabetically.
+//
+// The top tier is why "bed" offers "Bed Light" ahead of "Bedroom": a whole
+// word in the one, only the start of a word in the other.
+const SCORE_WORD_EXACT = 1500; // a whole word equals the query
+const SCORE_LABEL_PREFIX = 1000; // the label starts with the query
+const SCORE_WORD_PREFIX = 500; // some word starts with the query
+const SCORE_SUBSTRING = 100; // the query appears contiguously somewhere
+const SCORE_SUBSEQUENCE = 10; // its characters appear in order, scattered
+
+// The lowest score a kind will be offered on, when the plain "anything
+// that matched" floor is too generous for it.
+//
+// A sensor has to clear SUBSTRING — its characters merely appearing in
+// order is not enough. Devices keep the subsequence tier because a home
+// has a handful per room and a loose match there is a typo forgiven; a
+// home has a sensor per reading per device, so the same tier turns any
+// four-letter query into a hit on some unrelated readout ("Game" lands
+// inside "…mtn sensor Basement…"). Contiguity is the line: it is what
+// separates a name the user is part-way through typing from a coincidence.
+const KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
+
 function _scoreItem(item, lowerQuery) {
   const label = item._lowerLabel;
   if (!label) return 0;
   const words = label.split(/\s+/);
   for (const w of words) {
-    if (w === lowerQuery) return 1500;
+    if (w === lowerQuery) return SCORE_WORD_EXACT;
   }
-  if (label.startsWith(lowerQuery)) return 1000;
+  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
   for (const w of words) {
-    if (w.startsWith(lowerQuery)) return 500;
+    if (w.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
   }
-  if (label.includes(lowerQuery)) return 100;
+  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
   // Subsequence match (each character of the query appears in order)
   let qi = 0;
   for (let i = 0; i < label.length && qi < lowerQuery.length; i++) {
     if (label[i] === lowerQuery[qi]) qi += 1;
   }
-  if (qi === lowerQuery.length) return 10;
+  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
   return 0;
 }
 
@@ -1380,12 +1489,15 @@ export function rankSuggestions(
   const lowerQuery = query.trim().toLowerCase();
   if (!lowerQuery) return [];
   const domainSet = domains ? new Set(domains) : null;
+  // The floor is a property of the KIND, not of this call site: the same
+  // rule has to hold for any dropdown that ranks sensors later.
+  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
   const scored = [];
   for (const it of items) {
     if (it.kind !== kind) continue;
     if (domainSet && !domainSet.has(it.domain)) continue;
     const score = _scoreItem(it, lowerQuery);
-    if (score > 0) scored.push({ item: it, score });
+    if (score >= minScore) scored.push({ item: it, score });
   }
   scored.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;

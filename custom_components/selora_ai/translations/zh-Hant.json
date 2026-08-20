@@ -199,6 +199,7 @@
     "chat_automation_label_actions": "正在編排動作...",
     "chat_automation_label_almost": "即將完成...",
     "chat_autocomplete_kind_devices": "裝置",
+    "chat_autocomplete_kind_sensors": "感測器",
     "chat_autocomplete_kind_areas": "區域",
     "chat_autocomplete_kind_scenes": "情境",
     "chat_autocomplete_kind_automations": "自動化",

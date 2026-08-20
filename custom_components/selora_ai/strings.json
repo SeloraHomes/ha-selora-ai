@@ -199,6 +199,7 @@
     "chat_automation_label_actions": "Composing actions...",
     "chat_automation_label_almost": "Almost ready...",
     "chat_autocomplete_kind_devices": "Devices",
+    "chat_autocomplete_kind_sensors": "Sensors",
     "chat_autocomplete_kind_areas": "Areas",
     "chat_autocomplete_kind_scenes": "Scenes",
     "chat_autocomplete_kind_automations": "Automations",

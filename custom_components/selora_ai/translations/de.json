@@ -199,6 +199,7 @@
     "chat_automation_label_actions": "Aktionen werden zusammengestellt...",
     "chat_automation_label_almost": "Fast fertig...",
     "chat_autocomplete_kind_devices": "Geräte",
+    "chat_autocomplete_kind_sensors": "Sensoren",
     "chat_autocomplete_kind_areas": "Bereiche",
     "chat_autocomplete_kind_scenes": "Szenen",
     "chat_autocomplete_kind_automations": "Automatisierungen",

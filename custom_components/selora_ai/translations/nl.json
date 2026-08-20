@@ -219,6 +219,7 @@
     "chat_automation_label_actions": "Acties samenstellen...",
     "chat_automation_label_almost": "Bijna klaar...",
     "chat_autocomplete_kind_devices": "Apparaten",
+    "chat_autocomplete_kind_sensors": "Sensoren",
     "chat_autocomplete_kind_areas": "Gebieden",
     "chat_autocomplete_kind_scenes": "Scènes",
     "chat_autocomplete_kind_automations": "Automatiseringen",

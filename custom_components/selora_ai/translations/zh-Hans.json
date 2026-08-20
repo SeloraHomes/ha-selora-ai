@@ -199,6 +199,7 @@
     "chat_automation_label_actions": "正在编写动作…",
     "chat_automation_label_almost": "即将就绪…",
     "chat_autocomplete_kind_devices": "设备",
+    "chat_autocomplete_kind_sensors": "传感器",
     "chat_autocomplete_kind_areas": "区域",
     "chat_autocomplete_kind_scenes": "场景",
     "chat_autocomplete_kind_automations": "自动化",

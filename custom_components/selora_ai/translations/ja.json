@@ -199,6 +199,7 @@
     "chat_automation_label_actions": "アクションを組み立て中...",
     "chat_automation_label_almost": "もうすぐ完了...",
     "chat_autocomplete_kind_devices": "デバイス",
+    "chat_autocomplete_kind_sensors": "センサー",
     "chat_autocomplete_kind_areas": "エリア",
     "chat_autocomplete_kind_scenes": "シーン",
     "chat_autocomplete_kind_automations": "オートメーション",
