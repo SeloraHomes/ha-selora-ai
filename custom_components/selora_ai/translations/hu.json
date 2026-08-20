@@ -219,6 +219,7 @@
     "chat_automation_label_actions": "Műveletek összeállítása...",
     "chat_automation_label_almost": "Majdnem kész...",
     "chat_autocomplete_kind_devices": "Eszközök",
+    "chat_autocomplete_kind_sensors": "Érzékelők",
     "chat_autocomplete_kind_areas": "Területek",
     "chat_autocomplete_kind_scenes": "Jelenetek",
     "chat_autocomplete_kind_automations": "Automatizmusok",

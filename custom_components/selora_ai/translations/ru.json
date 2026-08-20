@@ -199,6 +199,7 @@
     "chat_automation_label_actions": "Составление действий...",
     "chat_automation_label_almost": "Почти готово...",
     "chat_autocomplete_kind_devices": "Устройства",
+    "chat_autocomplete_kind_sensors": "Датчики",
     "chat_autocomplete_kind_areas": "Зоны",
     "chat_autocomplete_kind_scenes": "Сцены",
     "chat_autocomplete_kind_automations": "Автоматизации",

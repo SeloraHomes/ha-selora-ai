@@ -9082,6 +9082,7 @@ var en_default = {
     chat_automation_label_actions: "Composing actions...",
     chat_automation_label_almost: "Almost ready...",
     chat_autocomplete_kind_devices: "Devices",
+    chat_autocomplete_kind_sensors: "Sensors",
     chat_autocomplete_kind_areas: "Areas",
     chat_autocomplete_kind_scenes: "Scenes",
     chat_autocomplete_kind_automations: "Automations",
@@ -10218,6 +10219,7 @@ var fr_default = {
     chat_automation_label_actions: "Composition des actions...",
     chat_automation_label_almost: "Presque pr\xEAt...",
     chat_autocomplete_kind_devices: "Appareils",
+    chat_autocomplete_kind_sensors: "Capteurs",
     chat_autocomplete_kind_areas: "Pi\xE8ces",
     chat_autocomplete_kind_scenes: "Sc\xE8nes",
     chat_autocomplete_kind_automations: "Automatisations",
@@ -11406,6 +11408,7 @@ var de_default = {
     chat_automation_label_actions: "Aktionen werden zusammengestellt...",
     chat_automation_label_almost: "Fast fertig...",
     chat_autocomplete_kind_devices: "Ger\xE4te",
+    chat_autocomplete_kind_sensors: "Sensoren",
     chat_autocomplete_kind_areas: "Bereiche",
     chat_autocomplete_kind_scenes: "Szenen",
     chat_autocomplete_kind_automations: "Automatisierungen",
@@ -12584,6 +12587,7 @@ var es_default = {
     chat_automation_label_actions: "Componiendo acciones...",
     chat_automation_label_almost: "Casi listo...",
     chat_autocomplete_kind_devices: "Dispositivos",
+    chat_autocomplete_kind_sensors: "Sensores",
     chat_autocomplete_kind_areas: "\xC1reas",
     chat_autocomplete_kind_scenes: "Escenas",
     chat_autocomplete_kind_automations: "Automatizaciones",
@@ -13745,6 +13749,7 @@ var it_default = {
     chat_automation_label_actions: "Composizione delle azioni...",
     chat_automation_label_almost: "Quasi pronta...",
     chat_autocomplete_kind_devices: "Dispositivi",
+    chat_autocomplete_kind_sensors: "Sensori",
     chat_autocomplete_kind_areas: "Aree",
     chat_autocomplete_kind_scenes: "Scene",
     chat_autocomplete_kind_automations: "Automazioni",
@@ -14926,6 +14931,7 @@ var nl_default = {
     chat_automation_label_actions: "Acties samenstellen...",
     chat_automation_label_almost: "Bijna klaar...",
     chat_autocomplete_kind_devices: "Apparaten",
+    chat_autocomplete_kind_sensors: "Sensoren",
     chat_autocomplete_kind_areas: "Gebieden",
     chat_autocomplete_kind_scenes: "Sc\xE8nes",
     chat_autocomplete_kind_automations: "Automatiseringen",
@@ -16095,6 +16101,7 @@ var hu_default = {
       "M\u0171veletek \xF6ssze\xE1ll\xEDt\xE1sa...",
     chat_automation_label_almost: "Majdnem k\xE9sz...",
     chat_autocomplete_kind_devices: "Eszk\xF6z\xF6k",
+    chat_autocomplete_kind_sensors: "\xC9rz\xE9kel\u0151k",
     chat_autocomplete_kind_areas: "Ter\xFCletek",
     chat_autocomplete_kind_scenes: "Jelenetek",
     chat_autocomplete_kind_automations: "Automatizmusok",
@@ -17284,6 +17291,7 @@ var pt_default = {
     chat_automation_label_actions: "A compor a\xE7\xF5es...",
     chat_automation_label_almost: "Quase pronto...",
     chat_autocomplete_kind_devices: "Dispositivos",
+    chat_autocomplete_kind_sensors: "Sensores",
     chat_autocomplete_kind_areas: "\xC1reas",
     chat_autocomplete_kind_scenes: "Cenas",
     chat_autocomplete_kind_automations: "Automa\xE7\xF5es",
@@ -18542,6 +18550,8 @@ var ru_default = {
       "\u041F\u043E\u0447\u0442\u0438 \u0433\u043E\u0442\u043E\u0432\u043E...",
     chat_autocomplete_kind_devices:
       "\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430",
+    chat_autocomplete_kind_sensors:
+      "\u0414\u0430\u0442\u0447\u0438\u043A\u0438",
     chat_autocomplete_kind_areas: "\u0417\u043E\u043D\u044B",
     chat_autocomplete_kind_scenes: "\u0421\u0446\u0435\u043D\u044B",
     chat_autocomplete_kind_automations:
@@ -20232,6 +20242,7 @@ var ja_default = {
       "\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u7D44\u307F\u7ACB\u3066\u4E2D...",
     chat_automation_label_almost: "\u3082\u3046\u3059\u3050\u5B8C\u4E86...",
     chat_autocomplete_kind_devices: "\u30C7\u30D0\u30A4\u30B9",
+    chat_autocomplete_kind_sensors: "\u30BB\u30F3\u30B5\u30FC",
     chat_autocomplete_kind_areas: "\u30A8\u30EA\u30A2",
     chat_autocomplete_kind_scenes: "\u30B7\u30FC\u30F3",
     chat_autocomplete_kind_automations:
@@ -21653,6 +21664,7 @@ var ko_default = {
     chat_automation_label_almost:
       "\uAC70\uC758 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4...",
     chat_autocomplete_kind_devices: "\uAE30\uAE30",
+    chat_autocomplete_kind_sensors: "\uC13C\uC11C",
     chat_autocomplete_kind_areas: "\uAD6C\uC5ED",
     chat_autocomplete_kind_scenes: "\uC7A5\uBA74",
     chat_autocomplete_kind_automations: "\uC790\uB3D9\uD654",
@@ -22961,6 +22973,7 @@ var zh_Hans_default = {
     chat_automation_label_actions: "\u6B63\u5728\u7F16\u5199\u52A8\u4F5C\u2026",
     chat_automation_label_almost: "\u5373\u5C06\u5C31\u7EEA\u2026",
     chat_autocomplete_kind_devices: "\u8BBE\u5907",
+    chat_autocomplete_kind_sensors: "\u4F20\u611F\u5668",
     chat_autocomplete_kind_areas: "\u533A\u57DF",
     chat_autocomplete_kind_scenes: "\u573A\u666F",
     chat_autocomplete_kind_automations: "\u81EA\u52A8\u5316",
@@ -24219,6 +24232,7 @@ var zh_Hant_default = {
     chat_automation_label_actions: "\u6B63\u5728\u7DE8\u6392\u52D5\u4F5C...",
     chat_automation_label_almost: "\u5373\u5C07\u5B8C\u6210...",
     chat_autocomplete_kind_devices: "\u88DD\u7F6E",
+    chat_autocomplete_kind_sensors: "\u611F\u6E2C\u5668",
     chat_autocomplete_kind_areas: "\u5340\u57DF",
     chat_autocomplete_kind_scenes: "\u60C5\u5883",
     chat_autocomplete_kind_automations: "\u81EA\u52D5\u5316",
@@ -26704,6 +26718,31 @@ var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
   "remote",
   "lawn_mower",
 ]);
+var SENSOR_DOMAINS = /* @__PURE__ */ new Set(["sensor", "binary_sensor"]);
+var SENSOR_DEVICE_CLASS_ICONS = {
+  motion: "mdi:motion-sensor",
+  occupancy: "mdi:motion-sensor",
+  presence: "mdi:home-account",
+  door: "mdi:door",
+  garage_door: "mdi:garage",
+  window: "mdi:window-closed-variant",
+  opening: "mdi:square-outline",
+  moisture: "mdi:water-alert",
+  smoke: "mdi:smoke-detector",
+  gas: "mdi:gas-cylinder",
+  carbon_monoxide: "mdi:molecule-co",
+  carbon_dioxide: "mdi:molecule-co2",
+  vibration: "mdi:vibrate",
+  sound: "mdi:volume-high",
+  tamper: "mdi:shield-alert",
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  illuminance: "mdi:brightness-5",
+  pressure: "mdi:gauge",
+  power: "mdi:flash",
+  energy: "mdi:lightning-bolt",
+  pm25: "mdi:air-filter",
+};
 var DOMAIN_ICONS2 = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
@@ -26722,14 +26761,20 @@ var DOMAIN_ICONS2 = {
   input_select: "mdi:form-dropdown",
   input_number: "mdi:numeric",
   input_button: "mdi:gesture-tap-button",
+  sensor: "mdi:gauge",
+  binary_sensor: "mdi:checkbox-marked-circle-outline",
   scene: "mdi:palette",
   automation: "mdi:robot",
   script: "mdi:script-text",
   area: "mdi:floor-plan",
 };
-var BASE_TRIGGERS = [
-  { kind: "device", pattern: /(?:^|\s)@$/, includeAreas: true },
-];
+var sensorCapable = (pattern) => ({
+  kind: "device",
+  pattern,
+  includeAreas: true,
+  includeSensors: true,
+});
+var BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
 var LOCALE_TRIGGERS = {
   en: [
     { kind: "area", pattern: /\bin (?:the |a )?$/i },
@@ -26770,8 +26815,9 @@ var LOCALE_TRIGGERS = {
       pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bthe $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmy $/i, includeAreas: true },
+    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
+    sensorCapable(/\bthe $/i),
+    sensorCapable(/\bmy $/i),
   ],
   fr: [
     { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
@@ -26819,13 +26865,16 @@ var LOCALE_TRIGGERS = {
         /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\ble $/i, includeAreas: true },
-    { kind: "device", pattern: /\bla $/i, includeAreas: true },
-    { kind: "device", pattern: /\bles $/i, includeAreas: true },
-    { kind: "device", pattern: /\bl['’]$/i, includeAreas: true },
-    { kind: "device", pattern: /\bmon $/i, includeAreas: true },
-    { kind: "device", pattern: /\bma $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmes $/i, includeAreas: true },
+    sensorCapable(
+      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
+    ),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bles $/i),
+    sensorCapable(/\bl['’]$/i),
+    sensorCapable(/\bmon $/i),
+    sensorCapable(/\bma $/i),
+    sensorCapable(/\bmes $/i),
   ],
   de: [
     { kind: "area", pattern: /\bim $/i },
@@ -26868,11 +26917,14 @@ var LOCALE_TRIGGERS = {
         /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bdie $/i, includeAreas: true },
-    { kind: "device", pattern: /\bder $/i, includeAreas: true },
-    { kind: "device", pattern: /\bdas $/i, includeAreas: true },
-    { kind: "device", pattern: /\bden $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmein(?:e|en|er|em)? $/i, includeAreas: true },
+    sensorCapable(
+      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
+    ),
+    sensorCapable(/\bdie $/i),
+    sensorCapable(/\bder $/i),
+    sensorCapable(/\bdas $/i),
+    sensorCapable(/\bden $/i),
+    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
   ],
   es: [
     { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
@@ -26911,12 +26963,15 @@ var LOCALE_TRIGGERS = {
       pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bel $/i, includeAreas: true },
-    { kind: "device", pattern: /\bla $/i, includeAreas: true },
-    { kind: "device", pattern: /\blos $/i, includeAreas: true },
-    { kind: "device", pattern: /\blas $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmi $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmis $/i, includeAreas: true },
+    sensorCapable(
+      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
+    ),
+    sensorCapable(/\bel $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\blos $/i),
+    sensorCapable(/\blas $/i),
+    sensorCapable(/\bmi $/i),
+    sensorCapable(/\bmis $/i),
   ],
   it: [
     { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
@@ -26960,15 +27015,16 @@ var LOCALE_TRIGGERS = {
         /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bil $/i, includeAreas: true },
-    { kind: "device", pattern: /\bla $/i, includeAreas: true },
-    { kind: "device", pattern: /\bi $/i, includeAreas: true },
-    { kind: "device", pattern: /\ble $/i, includeAreas: true },
-    { kind: "device", pattern: /\bgli $/i, includeAreas: true },
-    { kind: "device", pattern: /\blo $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmio $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmia $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmiei $/i, includeAreas: true },
+    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
+    sensorCapable(/\bil $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bi $/i),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bgli $/i),
+    sensorCapable(/\blo $/i),
+    sensorCapable(/\bmio $/i),
+    sensorCapable(/\bmia $/i),
+    sensorCapable(/\bmiei $/i),
   ],
   nl: [
     { kind: "area", pattern: /\bin (?:de |het )?$/i },
@@ -27006,9 +27062,10 @@ var LOCALE_TRIGGERS = {
       pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\bde $/i, includeAreas: true },
-    { kind: "device", pattern: /\bhet $/i, includeAreas: true },
-    { kind: "device", pattern: /\bmijn $/i, includeAreas: true },
+    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
+    sensorCapable(/\bde $/i),
+    sensorCapable(/\bhet $/i),
+    sensorCapable(/\bmijn $/i),
   ],
   hu: [
     { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
@@ -27045,8 +27102,9 @@ var LOCALE_TRIGGERS = {
       pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
       includeAreas: true,
     },
-    { kind: "device", pattern: /\ba $/i, includeAreas: true },
-    { kind: "device", pattern: /\baz $/i, includeAreas: true },
+    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
+    sensorCapable(/\ba $/i),
+    sensorCapable(/\baz $/i),
   ],
 };
 function _toUnicodeBoundary(re) {
@@ -27572,6 +27630,7 @@ function detectTrigger(text, caret, lang) {
           end: caret,
           domains: trig.domains || null,
           includeAreas: !!trig.includeAreas,
+          includeSensors: !!trig.includeSensors,
         };
         break;
       }
@@ -27603,7 +27662,24 @@ function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
       areaId = devices[entry.device_id]?.area_id || null;
     }
     const areaName = areaId ? areaById[areaId] || null : null;
-    if (DEVICE_DOMAINS.has(domain)) {
+    if (SENSOR_DOMAINS.has(domain)) {
+      if (entry?.entity_category) continue;
+      if (entry?.hidden_by || entry?.hidden) continue;
+      items.push({
+        kind: "sensor",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon:
+          state?.attributes?.icon ||
+          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
+          DOMAIN_ICONS2[domain],
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (DEVICE_DOMAINS.has(domain)) {
       items.push({
         kind: "device",
         domain,
@@ -27739,23 +27815,29 @@ function dedupeDeviceItems(items) {
   }
   return items.filter((i7) => i7.kind !== "device" || kept.has(i7));
 }
+var SCORE_WORD_EXACT = 1500;
+var SCORE_LABEL_PREFIX = 1e3;
+var SCORE_WORD_PREFIX = 500;
+var SCORE_SUBSTRING = 100;
+var SCORE_SUBSEQUENCE = 10;
+var KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
 function _scoreItem(item, lowerQuery) {
   const label = item._lowerLabel;
   if (!label) return 0;
   const words = label.split(/\s+/);
   for (const w2 of words) {
-    if (w2 === lowerQuery) return 1500;
+    if (w2 === lowerQuery) return SCORE_WORD_EXACT;
   }
-  if (label.startsWith(lowerQuery)) return 1e3;
+  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
   for (const w2 of words) {
-    if (w2.startsWith(lowerQuery)) return 500;
+    if (w2.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
   }
-  if (label.includes(lowerQuery)) return 100;
+  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
   let qi = 0;
   for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
     if (label[i7] === lowerQuery[qi]) qi += 1;
   }
-  if (qi === lowerQuery.length) return 10;
+  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
   return 0;
 }
 function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
@@ -27794,12 +27876,13 @@ function rankSuggestions(
   const lowerQuery = query.trim().toLowerCase();
   if (!lowerQuery) return [];
   const domainSet = domains ? new Set(domains) : null;
+  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
   const scored = [];
   for (const it of items) {
     if (it.kind !== kind) continue;
     if (domainSet && !domainSet.has(it.domain)) continue;
     const score = _scoreItem(it, lowerQuery);
-    if (score > 0) scored.push({ item: it, score });
+    if (score >= minScore) scored.push({ item: it, score });
   }
   scored.sort((a3, b3) => {
     if (b3.score !== a3.score) return b3.score - a3.score;
@@ -28119,6 +28202,7 @@ var AUTOMATION_LABEL_KEYS = [
 var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
 var AUTOCOMPLETE_KIND_LABEL_KEYS = {
   device: ["chat_autocomplete_kind_devices", "Devices"],
+  sensor: ["chat_autocomplete_kind_sensors", "Sensors"],
   area: ["chat_autocomplete_kind_areas", "Areas"],
   scene: ["chat_autocomplete_kind_scenes", "Scenes"],
   automation: ["chat_autocomplete_kind_automations", "Automations"],
@@ -28598,14 +28682,30 @@ function _updateAutocomplete(host, textarea) {
   } else {
     items = findExactMatches(index, trigger.kind, trigger.query);
   }
-  if (trigger.includeAreas && qLen >= AUTOCOMPLETE_MIN_CHARS) {
-    const areaMatches = rankSuggestions(
-      index,
-      "area",
-      trigger.query,
-      3,
-      // cap area rows so devices still dominate the list
-    );
+  if (trigger.includeSensors) {
+    const sensorMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "sensor",
+            trigger.query,
+            3,
+            // same cap as areas: the primary kind stays on top
+          )
+        : findExactMatches(index, "sensor", trigger.query);
+    if (sensorMatches.length) items = [...items, ...sensorMatches];
+  }
+  if (trigger.includeAreas) {
+    const areaMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "area",
+            trigger.query,
+            3,
+            // cap area rows so devices still dominate the list
+          )
+        : findExactMatches(index, "area", trigger.query);
     if (areaMatches.length) items = [...items, ...areaMatches];
   }
   if (!items.length) {
@@ -47964,7 +48064,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "3aef4e2b22c3" : "";
+var PANEL_BUILD = true ? "068c7f8f5ddb" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

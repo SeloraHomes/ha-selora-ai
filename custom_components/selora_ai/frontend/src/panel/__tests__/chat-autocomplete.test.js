@@ -141,6 +141,65 @@ describe("detectTrigger", () => {
     expect(got.kind).toBe("device");
     expect(got.query).toBe("kit");
   });
+
+  it("asks for sensors on a condition clause", () => {
+    const text = "When the Mygg";
+    const got = detectTrigger(text, text.length);
+    expect(got.kind).toBe("device");
+    expect(got.query).toBe("Mygg");
+    expect(got.includeSensors).toBe(true);
+  });
+
+  it("detects a condition clause with no article", () => {
+    const text = "Notify me whenever MYGGS";
+    const got = detectTrigger(text, text.length);
+    expect(got.query).toBe("MYGGS");
+    expect(got.includeSensors).toBe(true);
+  });
+
+  it("detects condition clauses in the shipped locales", () => {
+    const cases = [
+      ["fr", "Quand le Mygg"],
+      ["de", "Wenn der Mygg"],
+      ["es", "Cuando el Mygg"],
+      ["it", "Quando il Mygg"],
+      ["nl", "Wanneer de Mygg"],
+      ["hu", "Amikor a Mygg"],
+    ];
+    for (const [lang, text] of cases) {
+      const got = detectTrigger(text, text.length, lang);
+      expect(got, lang).not.toBeNull();
+      expect(got.query, lang).toBe("Mygg");
+      expect(got.includeSensors, lang).toBe(true);
+    }
+  });
+
+  it("does not ask for sensors when a verb narrows the domain", () => {
+    const text = "unlock the fro";
+    const got = detectTrigger(text, text.length);
+    expect(got.domains).toEqual(["lock"]);
+    expect(got.includeSensors).toBe(false);
+  });
+
+  it("does not ask for sensors after an actuating verb", () => {
+    // These name no domain list, but the verb is still a statement that the
+    // target can be acted on — a temperature READING is not switchable.
+    // The verb-led entry sits ahead of the bare article in the table, so it
+    // wins at the same query start.
+    const cases = [
+      ["en", "turn on the moti"],
+      ["en", "set the tempera"],
+      ["fr", "allume la lumi"],
+      ["de", "stelle die tempe"],
+    ];
+    for (const [lang, text] of cases) {
+      const got = detectTrigger(text, text.length, lang);
+      expect(got, text).not.toBeNull();
+      expect(got.kind, text).toBe("device");
+      expect(got.includeAreas, text).toBe(true);
+      expect(got.includeSensors, text).toBe(false);
+    }
+  });
 });
 
 describe("buildSuggestionIndex", () => {
@@ -189,11 +248,92 @@ describe("buildSuggestionIndex", () => {
     expect(kinds.has("area")).toBe(true);
   });
 
-  it("excludes sensors", () => {
+  it("indexes sensors under their own kind", () => {
     const items = buildSuggestionIndex(hass, areas);
-    expect(
-      items.find((i) => i.entity_id === "sensor.temperature"),
-    ).toBeUndefined();
+    const temp = items.find((i) => i.entity_id === "sensor.temperature");
+    expect(temp).toBeDefined();
+    expect(temp.kind).toBe("sensor");
+  });
+
+  it("indexes a binary_sensor under the sensor kind", () => {
+    const hassOcc = {
+      states: {
+        "binary_sensor.mygg_occupancy": {
+          attributes: {
+            friendly_name: "MYGGSPRAY wrlss mtn sensor Basement Occupancy",
+            device_class: "occupancy",
+          },
+          state: "off",
+        },
+      },
+      entities: {
+        "binary_sensor.mygg_occupancy": { device_id: "dev_mygg" },
+      },
+    };
+    const items = buildSuggestionIndex(
+      hassOcc,
+      { game: { name: "Game Area" } },
+      { dev_mygg: { area_id: "game" } },
+    );
+    const occ = items.find((i) => i.kind === "sensor");
+    expect(occ.entity_id).toBe("binary_sensor.mygg_occupancy");
+    expect(occ.area).toBe("Game Area");
+    expect(occ.icon).toBe("mdi:motion-sensor");
+  });
+
+  it("drops diagnostic and config sensors", () => {
+    // A Matter device contributes a battery level, a supply voltage and a
+    // firmware version alongside its two real readings; HA files them under
+    // Diagnostic and so do we.
+    const hassDiag = {
+      states: {
+        "sensor.mygg_illuminance": {
+          attributes: { friendly_name: "Mygg Illuminance" },
+          state: "1.0",
+        },
+        "sensor.mygg_battery": {
+          attributes: { friendly_name: "Mygg Battery" },
+          state: "85",
+        },
+        "sensor.mygg_voltage": {
+          attributes: { friendly_name: "Mygg Battery Voltage" },
+          state: "2.65",
+        },
+      },
+      entities: {},
+    };
+    const fullReg = {
+      "sensor.mygg_illuminance": { device_id: "dev_mygg" },
+      "sensor.mygg_battery": {
+        device_id: "dev_mygg",
+        entity_category: "diagnostic",
+      },
+      "sensor.mygg_voltage": {
+        device_id: "dev_mygg",
+        entity_category: "diagnostic",
+      },
+    };
+    const items = buildSuggestionIndex(hassDiag, {}, null, fullReg);
+    const sensors = items.filter((i) => i.kind === "sensor");
+    expect(sensors.map((i) => i.entity_id)).toEqual([
+      "sensor.mygg_illuminance",
+    ]);
+  });
+
+  it("drops a hidden sensor", () => {
+    const hassHidden = {
+      states: {
+        "binary_sensor.side_door": {
+          attributes: { friendly_name: "Side Door" },
+          state: "off",
+        },
+      },
+      entities: {},
+    };
+    const items = buildSuggestionIndex(hassHidden, {}, null, {
+      "binary_sensor.side_door": { hidden_by: "user" },
+    });
+    expect(items.filter((i) => i.kind === "sensor")).toEqual([]);
   });
 
   it("attaches area name to device when known", () => {
@@ -543,6 +683,84 @@ describe("buildSuggestionIndex", () => {
       guest: { name: "Guest" },
     });
     expect(items.filter((i) => i.kind === "device")).toHaveLength(2);
+  });
+});
+
+describe("findExactMatches", () => {
+  const items = [
+    {
+      kind: "sensor",
+      domain: "sensor",
+      entity_id: "sensor.uv_index",
+      label: "UV",
+      _lowerLabel: "uv",
+    },
+    {
+      kind: "area",
+      entity_id: null,
+      area_id: "wc",
+      label: "WC",
+      _lowerLabel: "wc",
+    },
+  ];
+
+  // The composer falls back to this below AUTOCOMPLETE_MIN_CHARS for every
+  // kind it offers, or a two-letter name is unreachable even fully typed.
+  it("finds a sensor whose whole name is shorter than the fuzzy threshold", () => {
+    const got = findExactMatches(items, "sensor", "UV");
+    expect(got.map((i) => i.entity_id)).toEqual(["sensor.uv_index"]);
+  });
+
+  it("finds an area whose whole name is shorter than the fuzzy threshold", () => {
+    const got = findExactMatches(items, "area", "wc");
+    expect(got.map((i) => i.area_id)).toEqual(["wc"]);
+  });
+});
+
+describe("rankSuggestions score floor", () => {
+  const items = [
+    {
+      kind: "device",
+      domain: "light",
+      entity_id: "light.game_area_lamp",
+      label: "Game Area Lamp",
+      _lowerLabel: "game area lamp",
+    },
+    {
+      kind: "sensor",
+      domain: "binary_sensor",
+      entity_id: "binary_sensor.mygg_occupancy",
+      label: "MYGGSPRAY wrlss mtn sensor Basement Occupancy",
+      _lowerLabel: "myggspray wrlss mtn sensor basement occupancy",
+    },
+  ];
+
+  it("keeps the subsequence tier for devices", () => {
+    // "gml" is scattered through "game area lamp" — a loose match, but a
+    // home has few devices and the row is recognisable.
+    const got = rankSuggestions(items, "device", "gml");
+    expect(got.map((i) => i.entity_id)).toEqual(["light.game_area_lamp"]);
+  });
+
+  it("denies the subsequence tier to sensors", () => {
+    // g-a-m-e appears in order inside "…mtn sensor Basement…" and nowhere
+    // contiguously: a coincidence, not a name being typed.
+    expect(rankSuggestions(items, "sensor", "Game")).toEqual([]);
+  });
+
+  it("still matches a sensor on a contiguous run", () => {
+    for (const query of [
+      "Mygg", // label prefix
+      "occupancy", // whole word
+      "occup", // word prefix
+      "basement occupancy", // spans two words — substring only
+    ]) {
+      const got = rankSuggestions(items, "sensor", query);
+      expect(
+        got.map((i) => i.entity_id),
+        query,
+      ).toEqual(["binary_sensor.mygg_occupancy"]);
+    }
   });
 });
 

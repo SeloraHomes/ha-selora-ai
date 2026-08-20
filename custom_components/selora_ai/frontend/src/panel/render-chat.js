@@ -41,6 +41,7 @@ import {
 
 const AUTOCOMPLETE_KIND_LABEL_KEYS = {
   device: ["chat_autocomplete_kind_devices", "Devices"],
+  sensor: ["chat_autocomplete_kind_sensors", "Sensors"],
   area: ["chat_autocomplete_kind_areas", "Areas"],
   scene: ["chat_autocomplete_kind_scenes", "Scenes"],
   automation: ["chat_autocomplete_kind_automations", "Automations"],
@@ -623,17 +624,42 @@ function _updateAutocomplete(host, textarea) {
   } else {
     items = findExactMatches(index, trigger.kind, trigger.query);
   }
+  // Sensors ride along on the triggers that named no actuating verb, which
+  // is where the user may be naming the thing an automation watches rather
+  // than the thing it acts on. They are appended after the devices — a
+  // trigger that could mean either usually means the actuator — and capped
+  // so a home with a hundred temperature readings can't push the devices
+  // off the list. Below the fuzzy threshold they take the same exact-name
+  // path devices do, or a sensor called "UV" would be unreachable even
+  // fully typed.
+  if (trigger.includeSensors) {
+    const sensorMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "sensor",
+            trigger.query,
+            3, // same cap as areas: the primary kind stays on top
+          )
+        : findExactMatches(index, "sensor", trigger.query);
+    if (sensorMatches.length) items = [...items, ...sensorMatches];
+  }
   // For generic device verbs / @ we also expose areas — "turn on the
   // bedroom" should be able to resolve to the Bedroom AREA, not just
   // devices that happen to contain "bedroom" in their name. Area picks
   // emit a [[areas:…]] marker so the LLM knows it's a bulk reference.
-  if (trigger.includeAreas && qLen >= AUTOCOMPLETE_MIN_CHARS) {
-    const areaMatches = rankSuggestions(
-      index,
-      "area",
-      trigger.query,
-      3, // cap area rows so devices still dominate the list
-    );
+  // Short names take the exact path, same as devices and sensors: an area
+  // called "WC" is a whole room, not an abbreviation worth hiding.
+  if (trigger.includeAreas) {
+    const areaMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "area",
+            trigger.query,
+            3, // cap area rows so devices still dominate the list
+          )
+        : findExactMatches(index, "area", trigger.query);
     if (areaMatches.length) items = [...items, ...areaMatches];
   }
   if (!items.length) {

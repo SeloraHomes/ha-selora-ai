@@ -199,6 +199,7 @@
     "chat_automation_label_actions": "동작 구성 중...",
     "chat_automation_label_almost": "거의 완료되었습니다...",
     "chat_autocomplete_kind_devices": "기기",
+    "chat_autocomplete_kind_sensors": "센서",
     "chat_autocomplete_kind_areas": "구역",
     "chat_autocomplete_kind_scenes": "장면",
     "chat_autocomplete_kind_automations": "자동화",
