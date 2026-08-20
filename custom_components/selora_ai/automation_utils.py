@@ -1752,6 +1752,76 @@ def build_service_feedback(
     return "\n".join(lines)
 
 
+_VALID_MODES = frozenset({"single", "restart", "queued", "parallel"})
+
+
+async def _blueprint_path_error(hass: HomeAssistant, path: str) -> str | None:
+    """Refuse a path the AUTOMATION blueprint store does not hold.
+
+    ``automations.yaml``'s loader searches only that store, so a script or
+    template blueprint's path — which `list_blueprints` returns by default —
+    produces an entry HA rejects at reload while the write itself succeeds. The
+    tool descriptions say automation-domain only; this is what makes it true,
+    because the failure is invisible to the caller either way.
+
+    Skipped entirely when blueprints are not set up: a missing store is not
+    evidence the path is wrong, and blocking every blueprint automation on it
+    would be worse than the case it guards.
+    """
+    stores = hass.data.get("blueprint")
+    store = stores.get("automation") if isinstance(stores, dict) else None
+    if store is None:
+        return None
+    try:
+        known = await store.async_get_blueprints()
+    except Exception:  # noqa: BLE001 — a probe must not block the write
+        return None
+    if path not in known:
+        return (
+            f"'{path}' is not an automation blueprint. Only a blueprint whose domain "
+            f"is 'automation' can be used in an automation; script and template "
+            f"blueprints are listed but cannot."
+        )
+    # Membership is not loadability. The store reports a malformed or
+    # wrong-domain file as the EXCEPTION in place of the blueprint (or None), so
+    # a key check alone accepts a path that cannot produce an automation —
+    # writing unusable YAML and reporting success, again.
+    if not hasattr(known[path], "inputs"):
+        return (
+            f"'{path}' is listed but could not be loaded, so nothing can be built "
+            f"from it. Its file is malformed or is not an automation blueprint."
+        )
+    return None
+
+
+def _finalize_payload(
+    normalized: dict[str, Any], automation: dict[str, Any]
+) -> tuple[bool, str, AutomationDict | None]:
+    """Apply the outer fields every automation shares, and prove it serialises.
+
+    Shared by the ordinary and blueprint branches. A blueprint payload has no
+    triggers to check, but its `mode` is as free-form as any other's — copying
+    it verbatim let `mode: "garbage"` reach the file, where HA rejects the
+    automation at reload while the caller was told creation succeeded.
+    """
+    mode = str(automation.get("mode", "single")).strip().lower()
+    normalized["mode"] = mode if mode in _VALID_MODES else "single"
+
+    raw_initial_state = automation.get("initial_state")
+    if isinstance(raw_initial_state, bool):
+        normalized["initial_state"] = raw_initial_state
+
+    try:
+        yaml_text = yaml.safe_dump(normalized, allow_unicode=True, default_flow_style=False)
+        reparsed = yaml.safe_load(yaml_text)
+        if not isinstance(reparsed, dict):
+            return False, "automation YAML did not round-trip to an object", None
+    except (yaml.YAMLError, TypeError, ValueError) as exc:
+        return False, f"automation YAML serialization failed: {exc}", None
+
+    return True, "", normalized  # type: ignore[return-value]
+
+
 def validate_automation_payload(
     automation: dict[str, Any] | None,
     hass: HomeAssistant | None = None,
@@ -1769,6 +1839,40 @@ def validate_automation_payload(
     alias = str(automation.get("alias", "")).strip()
     if not alias:
         return False, "automation alias is required", None
+
+    # A blueprint automation carries neither triggers nor actions: the
+    # blueprint supplies both, and the config is `use_blueprint: {path, input}`.
+    # Requiring a trigger below would reject every one of them, which is what
+    # made the installed blueprints unusable from chat — you could see them and
+    # not build anything with them.
+    if (use_blueprint := automation.get("use_blueprint")) is not None:
+        if not isinstance(use_blueprint, dict):
+            return False, "use_blueprint must be an object", None
+        if not str(use_blueprint.get("path", "")).strip():
+            return False, "use_blueprint requires a 'path'", None
+        supplied = use_blueprint.get("input")
+        if supplied is None:
+            # `input:` with nothing under it — the natural YAML for a blueprint
+            # that takes none — parses as None, and HA's blueprint-instance
+            # schema wants a mapping. Left alone it writes, reports success, and
+            # is rejected at reload: the silent shape this path keeps producing.
+            use_blueprint = {**use_blueprint, "input": {}}
+        elif not isinstance(supplied, dict):
+            return False, "use_blueprint input must be an object", None
+        # The INPUTS are not validated here: whether they satisfy the blueprint
+        # is the blueprint's own schema question, and HA answers it at reload
+        # with the author's selectors — restating that would be a second, worse
+        # copy that goes stale when the blueprint changes. The outer fields are
+        # ours, though, and go through the same normalization as any other
+        # automation's.
+        return _finalize_payload(
+            {
+                "alias": alias,
+                "description": str(automation.get("description", "")).strip(),
+                "use_blueprint": use_blueprint,
+            },
+            automation,
+        )
 
     triggers = automation.get("trigger") or automation.get("triggers") or []
     actions = automation.get("action") or automation.get("actions") or []
@@ -1902,34 +2006,16 @@ def validate_automation_payload(
                 None,
             )
 
-    _VALID_MODES = {"single", "restart", "queued", "parallel"}
-    mode = str(automation.get("mode", "single")).strip().lower()
-    if mode not in _VALID_MODES:
-        mode = "single"
-
-    raw_initial_state = automation.get("initial_state")
-    initial_state = raw_initial_state if isinstance(raw_initial_state, bool) else None
-
-    normalized: dict[str, Any] = {
-        "alias": alias,
-        "description": str(automation.get("description", "")).strip(),
-        "triggers": normalized_triggers,
-        "conditions": normalized_conditions,
-        "actions": normalized_actions,
-        "mode": mode,
-    }
-    if initial_state is not None:
-        normalized["initial_state"] = initial_state
-
-    try:
-        yaml_text = yaml.safe_dump(normalized, allow_unicode=True, default_flow_style=False)
-        reparsed = yaml.safe_load(yaml_text)
-        if not isinstance(reparsed, dict):
-            return False, "automation YAML did not round-trip to an object", None
-    except (yaml.YAMLError, TypeError, ValueError) as exc:
-        return False, f"automation YAML serialization failed: {exc}", None
-
-    return True, "", normalized
+    return _finalize_payload(
+        {
+            "alias": alias,
+            "description": str(automation.get("description", "")).strip(),
+            "triggers": normalized_triggers,
+            "conditions": normalized_conditions,
+            "actions": normalized_actions,
+        },
+        automation,
+    )
 
 
 def _iter_service_actions(actions: Any) -> Iterator[dict[str, Any]]:
@@ -1984,6 +2070,14 @@ def assess_automation_risk(automation: AutomationDict | dict[str, Any]) -> RiskA
 
     triggers = automation.get("trigger") or automation.get("triggers") or []
     actions = automation.get("action") or automation.get("actions") or []
+
+    if automation.get("use_blueprint"):
+        # The actions live in the blueprint file, not in this payload, so there
+        # is nothing here to assess. Recorded as a scrutiny tag rather than a
+        # flag: a flag forces "elevated", which would land every blueprint
+        # automation disabled, and a blueprint is a file the user installed
+        # themselves. Reporting a bare "normal" would instead claim we looked.
+        scrutiny_tags.append("blueprint_unassessed")
 
     if not isinstance(triggers, list):
         triggers = [triggers]
@@ -2186,7 +2280,7 @@ async def _restore_runtime_enabled_state(
         )
 
 
-def prepare_write_payload(
+async def prepare_write_payload(
     hass: HomeAssistant, updated: dict[str, Any]
 ) -> tuple[bool, str, dict[str, Any] | None]:
     """Validate a payload and fold it into the shape the writer stores.
@@ -2202,6 +2296,41 @@ def prepare_write_payload(
     is_valid, reason, normalized = validate_automation_payload(updated, hass)
     if not is_valid or normalized is None:
         return False, reason, None
+
+    # The fields validation NORMALIZES have to reach the payload that gets
+    # written, or normalizing them was theatre: `mode: " Restart "` validated as
+    # "restart" and was then written verbatim, and HA rejects the automation at
+    # reload. Applies to both branches — nothing else copies them, so the
+    # ordinary path had it too. `id` and `initial_state` are deliberately left
+    # alone: `apply_managed_fields` owns those, and writing them here would
+    # fight it.
+    for key in ("alias", "description", "mode", "use_blueprint"):
+        if key in normalized:
+            updated[key] = normalized[key]
+
+    if "use_blueprint" in normalized:
+        # Async, and checked HERE rather than at each caller, so a write path
+        # added later cannot skip it: converting an existing automation to a
+        # blueprint through the YAML editor reaches this and not the create
+        # path, and a bad path is written, rejected at reload, and reported as
+        # a success.
+        if hass is not None and (
+            error := await _blueprint_path_error(
+                hass, str(normalized["use_blueprint"].get("path", ""))
+            )
+        ):
+            return False, error, None
+
+        # A blueprint automation has no triggers or actions of its own. Both
+        # spellings have to go, not just the legacy singular ones: HA merges a
+        # surviving `actions` OVER the blueprint's substituted config, so an
+        # empty list invalidates the automation and a populated one silently
+        # replaces what the blueprint does. A payload carrying both shapes is
+        # ordinary — converting an existing automation in the YAML editor
+        # leaves them behind.
+        for key in ("trigger", "action", "condition", "triggers", "actions", "conditions"):
+            updated.pop(key, None)
+        return True, reason, normalized
 
     updated["triggers"] = normalized["triggers"]
     updated["actions"] = normalized["actions"]
@@ -2320,7 +2449,7 @@ async def async_update_automation(
     so the risk gate can't be sidestepped by refining a benign automation into a
     dangerous one.
     """
-    is_valid, reason, normalized = prepare_write_payload(hass, updated)
+    is_valid, reason, normalized = await prepare_write_payload(hass, updated)
     if not is_valid or normalized is None:
         _LOGGER.error("Invalid automation update for %s: %s", automation_id, reason)
         return False
@@ -2507,8 +2636,10 @@ async def async_create_automation(
         return {"success": False, "automation_id": None}
 
     alias = normalized["alias"]
-    triggers = normalized["triggers"]
-    actions = normalized["actions"]
+    # Absent for a blueprint automation, which carries `use_blueprint` instead;
+    # indexing them would KeyError before anything reached the file.
+    triggers = normalized.get("triggers", [])
+    actions = normalized.get("actions", [])
     conditions = normalized.get("conditions", [])
 
     risk = assess_automation_risk(normalized)
@@ -2547,16 +2678,27 @@ async def async_create_automation(
     clean_alias = _strip_legacy_selora_prefix(alias) or alias
     raw_description = suggestion.get("description") or clean_alias
     clean_description = _strip_legacy_selora_prefix(raw_description) or clean_alias
-    automation = {
+    automation: dict[str, Any] = {
         "id": automation_id,
         "alias": clean_alias,
         "description": clean_description,
         "initial_state": enabled,
-        "triggers": triggers,
-        "conditions": conditions or [],
-        "actions": actions,
         "mode": normalized.get("mode", "single"),
     }
+    if use_blueprint := normalized.get("use_blueprint"):
+        if error := await _blueprint_path_error(hass, str(use_blueprint.get("path", ""))):
+            _LOGGER.error("Invalid automation suggestion: %s", error)
+            return {"success": False, "automation_id": None}
+        # The blueprint IS the config. Writing triggers/actions here — even the
+        # empty lists the defaults above would supply — produces an ordinary
+        # automation with nothing in it: HA logs the invalid item at reload and
+        # this function still returns success, so the caller is told a working
+        # automation exists when the user has a broken one.
+        automation["use_blueprint"] = use_blueprint
+    else:
+        automation["triggers"] = triggers
+        automation["conditions"] = conditions or []
+        automation["actions"] = actions
 
     async with AUTOMATIONS_YAML_LOCK:
         existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)

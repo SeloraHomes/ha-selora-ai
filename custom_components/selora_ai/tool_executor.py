@@ -114,6 +114,16 @@ class ToolExecutor:
             "create_area": self._create_area,
             "update_area": self._update_area,
             "delete_area": self._delete_area,
+            "list_floors": self._list_floors,
+            "create_floor": self._create_floor,
+            "update_floor": self._update_floor,
+            "delete_floor": self._delete_floor,
+            "list_blueprints": self._list_blueprints,
+            "get_blueprint": self._get_blueprint,
+            "list_categories": self._list_categories,
+            "create_category": self._create_category,
+            "assign_category": self._assign_category,
+            "delete_category": self._delete_category,
             "update_entity": self._update_entity,
             "update_device": self._update_device,
             "list_services": self._list_services,
@@ -379,6 +389,89 @@ class ToolExecutor:
         return await _preview_delete_group(self._hass, arguments)
 
     # ── Registry tools ──────────────────────────────────────────────
+
+    async def _list_floors(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import floor_overview
+
+        return floor_overview(self._hass)
+
+    async def _create_floor(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import async_create_floor
+
+        return async_create_floor(
+            self._hass,
+            name=str(arguments.get("name", "")),
+            level=_opt_level(arguments.get("level")),
+            icon=_opt_str(arguments.get("icon")),
+            aliases=_opt_list(arguments.get("aliases")),
+        )
+
+    async def _update_floor(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .registry_manager import async_update_floor
+
+        return async_update_floor(
+            self._hass,
+            floor=str(arguments.get("floor", "")),
+            new_name=_opt_str(arguments.get("new_name")),
+            level=_opt_level(arguments.get("level")),
+            icon=_opt_str(arguments.get("icon")),
+            aliases=_opt_list(arguments.get("aliases")),
+            clear=_opt_list(arguments.get("clear")),
+        )
+
+    async def _delete_floor(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card.
+
+        See :meth:`_delete_area` — deletion waits for the user's tap.
+        """
+        from .mcp_server import _preview_delete_floor
+
+        return await _preview_delete_floor(self._hass, arguments)
+
+    async def _list_blueprints(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .blueprint_manager import async_list_blueprints
+
+        return await async_list_blueprints(self._hass, _opt_str(arguments.get("domain")))
+
+    async def _get_blueprint(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .blueprint_manager import async_get_blueprint
+
+        return await async_get_blueprint(
+            self._hass,
+            str(arguments.get("domain", "")),
+            str(arguments.get("path", "")),
+        )
+
+    async def _list_categories(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .category_manager import category_overview
+
+        return category_overview(self._hass, _opt_str(arguments.get("scope")))
+
+    async def _create_category(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .category_manager import async_create_category
+
+        return async_create_category(
+            self._hass,
+            scope=str(arguments.get("scope", "")),
+            name=str(arguments.get("name", "")),
+            icon=_opt_str(arguments.get("icon")),
+        )
+
+    async def _assign_category(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .category_manager import async_assign_category
+
+        return await async_assign_category(
+            self._hass,
+            entity_ids=_as_list(arguments.get("entity_ids")),
+            scope=str(arguments.get("scope", "")),
+            category=_opt_str(arguments.get("category")),
+        )
+
+    async def _delete_category(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a delete target and surface a confirmation card."""
+        from .mcp_server import _preview_delete_category
+
+        return await _preview_delete_category(self._hass, arguments)
 
     async def _list_areas(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .registry_manager import area_overview
@@ -714,6 +807,22 @@ def _opt_list(value: Any) -> list[str] | None:
     if isinstance(value, (list, tuple, set)):
         return [str(v).strip() for v in value if str(v).strip()]
     return None
+
+
+def _opt_level(value: Any) -> int | None:
+    """A storey number, or None when absent.
+
+    Zero is the ground floor and must survive: the blank-is-absent rule the
+    other adapters use would read it as "not set" and leave the floor unordered.
+    """
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):  # bool is an int subclass; never a storey
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _opt_str(value: Any) -> str | None:

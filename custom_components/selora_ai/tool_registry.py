@@ -958,6 +958,238 @@ TOOL_DELETE_AREA = ToolDef(
     large_context_only=True,
 )
 
+TOOL_LIST_FLOORS = ToolDef(
+    name="list_floors",
+    description=(
+        "Every floor of the home with the areas standing on it, ordered by level. "
+        "Also names any areas that have no floor. Call this before create_floor so "
+        "you do not add a second floor for a storey that already exists."
+    ),
+    params=(),
+    large_context_only=True,
+)
+
+TOOL_CREATE_FLOOR = ToolDef(
+    name="create_floor",
+    description=(
+        "Create a floor. A floor groups areas; it holds no entities itself. If one "
+        "with the name already exists this reports it rather than making a second."
+    ),
+    params=(
+        ToolParam(name="name", type="string", description="Floor name.", required=True),
+        ToolParam(
+            name="level",
+            type="integer",
+            description="Storey number — 0 ground, 1 first, -1 basement. Orders the list.",
+        ),
+        ToolParam(name="icon", type="string", description="mdi icon."),
+        ToolParam(name="aliases", type="array", description="Alternative names for voice."),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_UPDATE_FLOOR = ToolDef(
+    name="update_floor",
+    description=(
+        "Rename a floor or change its level, icon, or aliases. Areas on it keep "
+        "their place — a rename does not move anything."
+    ),
+    params=(
+        ToolParam(
+            name="floor",
+            type="string",
+            description="The floor to change, by name or floor_id.",
+            required=True,
+        ),
+        ToolParam(name="new_name", type="string", description="New name."),
+        ToolParam(name="level", type="integer", description="New storey number."),
+        ToolParam(name="icon", type="string", description="New mdi icon."),
+        ToolParam(name="aliases", type="array", description="Replaces the alias list."),
+        ToolParam(
+            name="clear",
+            type="array",
+            description=(
+                "Fields to REMOVE from the floor: 'icon' and/or 'level'. Use this "
+                "rather than passing an empty string, which is read as 'not set'."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_DELETE_FLOOR = ToolDef(
+    name="delete_floor",
+    description=(
+        "Delete a floor. The areas on it are NOT deleted — they simply stop having "
+        "a floor. The user gets a confirmation card naming them."
+    ),
+    params=(
+        ToolParam(
+            name="floor",
+            type="string",
+            description="The floor to delete, by name or floor_id.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_LIST_BLUEPRINTS = ToolDef(
+    name="list_blueprints",
+    description=(
+        "Blueprints installed on this home — parameterised automation, script and "
+        "template blueprints. Returns each one's domain, path and the names of the "
+        "inputs it asks for. Only a blueprint whose domain is 'automation' can be "
+        "turned into an automation: call get_blueprint for its input details, then "
+        "create_automation with use_blueprint. A script or template blueprint is "
+        "readable here but cannot be used that way."
+    ),
+    params=(
+        ToolParam(
+            name="domain",
+            type="string",
+            description="Limit to one kind. Omit for all.",
+            enum=("automation", "script", "template"),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_GET_BLUEPRINT = ToolDef(
+    name="get_blueprint",
+    description=(
+        "One blueprint's inputs in full — name, description, selector and default "
+        "for each, and whether it is required. Read this before create_automation "
+        "(automation-domain blueprints only): use_blueprint.input must name inputs "
+        "the blueprint declares, and the selector says what shape each value takes."
+    ),
+    params=(
+        ToolParam(
+            name="domain",
+            type="string",
+            description="automation, script, or template.",
+            required=True,
+            enum=("automation", "script", "template"),
+        ),
+        ToolParam(
+            name="path",
+            type="string",
+            description="The blueprint path from list_blueprints.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_LIST_CATEGORIES = ToolDef(
+    name="list_categories",
+    description=(
+        "Categories file automations, scripts, scenes and helpers into named lists "
+        "on their Home Assistant pages. Returns them with how many entities each "
+        "holds, plus the scopes already in use. Omit scope to see every scope."
+    ),
+    params=(
+        ToolParam(
+            name="scope",
+            type="string",
+            description="Limit to one list. Omit to see all of them.",
+            enum=("automation", "script", "scene", "helper"),
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_CREATE_CATEGORY = ToolDef(
+    name="create_category",
+    description=(
+        "Create a category within one list. If one with the name already exists "
+        "there this reports it rather than making a second."
+    ),
+    params=(
+        ToolParam(
+            name="scope",
+            type="string",
+            description=(
+                "Which list the category belongs to. A scope no Home Assistant page "
+                "reads gives a category that exists but appears nowhere."
+            ),
+            required=True,
+            enum=("automation", "script", "scene", "helper"),
+        ),
+        ToolParam(name="name", type="string", description="Category name.", required=True),
+        ToolParam(name="icon", type="string", description="mdi icon."),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_ASSIGN_CATEGORY = ToolDef(
+    name="assign_category",
+    description=(
+        "File entities under a category within one list, or omit category to take "
+        "them out of it. An entity holds one category per list; other lists are "
+        "left alone. Create the category first if it does not exist."
+    ),
+    params=(
+        ToolParam(
+            name="entity_ids",
+            type="array",
+            description="Entities to file.",
+            required=True,
+        ),
+        ToolParam(
+            name="scope",
+            type="string",
+            description=(
+                "Which list the category belongs to. A scope no Home Assistant page "
+                "reads gives a category that exists but appears nowhere."
+            ),
+            required=True,
+            enum=("automation", "script", "scene", "helper"),
+        ),
+        ToolParam(
+            name="category",
+            type="string",
+            description="Category name or id. Omit to remove them from their category.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_DELETE_CATEGORY = ToolDef(
+    name="delete_category",
+    description=(
+        "Delete a category. Entities filed under it are NOT deleted — they simply "
+        "stop being categorised. The user gets a confirmation card."
+    ),
+    params=(
+        ToolParam(
+            name="scope",
+            type="string",
+            description=(
+                "Which list the category belongs to. A scope no Home Assistant page "
+                "reads gives a category that exists but appears nowhere."
+            ),
+            required=True,
+            enum=("automation", "script", "scene", "helper"),
+        ),
+        ToolParam(
+            name="category",
+            type="string",
+            description="The category to delete, by name or id.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_UPDATE_ENTITY = ToolDef(
     name="update_entity",
     description=(
@@ -1625,6 +1857,16 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_CREATE_AREA,
     TOOL_UPDATE_AREA,
     TOOL_DELETE_AREA,
+    TOOL_LIST_FLOORS,
+    TOOL_CREATE_FLOOR,
+    TOOL_UPDATE_FLOOR,
+    TOOL_DELETE_FLOOR,
+    TOOL_LIST_BLUEPRINTS,
+    TOOL_GET_BLUEPRINT,
+    TOOL_LIST_CATEGORIES,
+    TOOL_CREATE_CATEGORY,
+    TOOL_ASSIGN_CATEGORY,
+    TOOL_DELETE_CATEGORY,
     TOOL_UPDATE_ENTITY,
     TOOL_UPDATE_DEVICE,
     TOOL_LIST_SERVICES,
@@ -1695,6 +1937,8 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         # and it has been wrong here before — being in both lanes means a
         # phrasing it misses costs a slightly larger schema, not the feature.
         "create_area",
+        "delete_floor",
+        "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
         #
         # "Add a thermostat card to my dashboard" classifies as a command;
@@ -1743,6 +1987,16 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "list_devices",
         "get_device",
         "list_areas",
+        "list_floors",
+        "list_blueprints",
+        "get_blueprint",
+        "list_categories",
+        "create_category",
+        "assign_category",
+        "delete_category",
+        "create_floor",
+        "update_floor",
+        "delete_floor",
         "assign_area",
         "create_area",
         "update_area",

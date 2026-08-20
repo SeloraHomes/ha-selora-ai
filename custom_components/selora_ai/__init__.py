@@ -4061,6 +4061,40 @@ async def _resolve_delete_approval(
                     errors.append(f"{label}: now a different area; not deleted")
                     continue
                 res = await async_delete_area(hass, target_id)
+            elif kind == "floor":
+                # floor_id is derived from the NAME too, so it carries the same
+                # reuse hazard as an area's and needs the same timestamp check.
+                if not target_id:
+                    errors.append(f"{label}: missing floor id; not deleted")
+                    continue
+                from homeassistant.helpers import floor_registry as fr  # noqa: PLC0415
+
+                from .registry_manager import async_delete_floor  # noqa: PLC0415
+
+                current_floor = fr.async_get(hass).async_get_floor(target_id)
+                if current_floor is None:
+                    errors.append(f"{label}: no longer exists; not deleted")
+                    continue
+                if _fingerprint_changed(descriptor, current_floor.created_at):
+                    errors.append(f"{label}: now a different floor; not deleted")
+                    continue
+                res = await async_delete_floor(hass, target_id)
+            elif kind == "category":
+                # target_id is "<scope>#<category_id>": the same name under two
+                # scopes is two categories, so the scope is part of the identity.
+                # No fingerprint — a category_id is a ULID, not derived from the
+                # name, so a recreated category cannot inherit it.
+                # NOT `scope`: that is this resolver's approval scope
+                # ("delete"), which the success response reports back. Shadowing
+                # it made a confirmed category deletion answer with the
+                # category's scope instead, unlike every other delete kind.
+                category_scope, _, category_id = target_id.partition("#")
+                if not category_scope or not category_id:
+                    errors.append(f"{label}: missing category id; not deleted")
+                    continue
+                from .category_manager import async_delete_category  # noqa: PLC0415
+
+                res = async_delete_category(hass, category_scope, category_id)
             elif kind == "script":
                 # An object_id is a slug and equally reusable, so the alias the
                 # user saw on the card is re-checked before the file is written.
