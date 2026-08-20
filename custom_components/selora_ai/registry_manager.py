@@ -994,3 +994,200 @@ async def helper_overview(hass: HomeAssistant, domain: str | None = None) -> dic
     if len(records) > _MAX_LISTED:
         result["helpers_omitted"] = len(records) - _MAX_LISTED
     return result
+
+
+# ── Floors ───────────────────────────────────────────────────────────────────
+#
+# A floor groups areas, and `_ensure_floor` has always created one as a side
+# effect of placing an area — so a home could accumulate floors with no way to
+# list, rename or remove them. These close that asymmetry.
+
+
+def floor_overview(hass: HomeAssistant) -> dict[str, Any]:
+    """Every floor with the areas on it.
+
+    Ordered by ``level`` because that is the only field carrying the storeys'
+    real relationship: a caller asked "what's upstairs" needs to know which
+    floor is above which, and name order says nothing about it. A floor with no
+    level sorts last rather than as zero — unset is not the ground floor.
+    """
+    area_registry = ar.async_get(hass)
+    by_floor: dict[str, list[str]] = {}
+    for area in area_registry.async_list_areas():
+        if area.floor_id:
+            by_floor.setdefault(area.floor_id, []).append(sanitize_untrusted_text(area.name, 60))
+
+    floors = [
+        {
+            "floor_id": floor.floor_id,
+            "name": sanitize_untrusted_text(floor.name, 60),
+            "level": floor.level,
+            "icon": floor.icon,
+            "aliases": sorted(sanitize_untrusted_text(a, 40) for a in floor.aliases),
+            "areas": sorted(by_floor.get(floor.floor_id, [])),
+        }
+        for floor in fr.async_get(hass).async_list_floors()
+    ]
+    floors.sort(key=lambda f: (f["level"] is None, f["level"] or 0, f["name"]))
+
+    unassigned = sorted(
+        sanitize_untrusted_text(a.name, 60)
+        for a in area_registry.async_list_areas()
+        if not a.floor_id
+    )
+    result: dict[str, Any] = {"count": len(floors), "floors": floors}
+    if unassigned:
+        # Named, not just counted: "which areas have no floor" is the question
+        # that follows "list the floors", and a count sends the caller back for
+        # a second round trip against the area list.
+        result["areas_without_a_floor"] = unassigned
+    return result
+
+
+def async_create_floor(
+    hass: HomeAssistant,
+    *,
+    name: str,
+    level: int | None = None,
+    icon: str | None = None,
+    aliases: Iterable[str] | None = None,
+) -> dict[str, Any]:
+    """Create a floor, or report the existing one with the same name.
+
+    Reports a duplicate as ``status: "exists"`` rather than refusing, matching
+    :func:`async_create_area`: HA's own ``async_create`` raises on a duplicate
+    name, and a raised error here reads to the model as a failure worth
+    retrying differently rather than as "it is already there".
+    """
+    name = str(name or "").strip()
+    if not name:
+        return {"error": "A floor name is required."}
+
+    # The registry's own name lookup, not `resolve_floor`. That resolver also
+    # matches aliases — deliberately, since a caller naming a floor from memory
+    # should find it — but HA enforces uniqueness on the NAME alone, so a floor
+    # whose name equals another's alias is one a user can legitimately create.
+    # Same trap as the category duplicate check.
+    existing = fr.async_get(hass).async_get_floor_by_name(name)
+    if existing is not None:
+        return {
+            "status": "exists",
+            "floor_id": existing.floor_id,
+            "name": sanitize_untrusted_text(existing.name, 60),
+            "message": (
+                f"A floor named '{sanitize_untrusted_text(existing.name, 60)}' already exists."
+            ),
+        }
+
+    floor = fr.async_get(hass).async_create(
+        name,
+        level=level,
+        icon=str(icon).strip() or None if icon else None,
+        aliases={str(a).strip() for a in aliases if str(a).strip()} if aliases else None,
+    )
+    return {
+        "status": "created",
+        "floor_id": floor.floor_id,
+        "name": sanitize_untrusted_text(floor.name, 60),
+        "level": floor.level,
+    }
+
+
+def async_update_floor(
+    hass: HomeAssistant,
+    *,
+    floor: str,
+    new_name: str | None = None,
+    level: int | None = None,
+    icon: str | None = None,
+    aliases: Iterable[str] | None = None,
+    clear: Iterable[str] | None = None,
+) -> dict[str, Any]:
+    """Rename a floor or change its level, icon, or aliases.
+
+    ``clear`` names fields to REMOVE. Setting and clearing need separate
+    arguments because an empty string cannot mean "clear" here: `_opt_str`
+    treats blank as absent throughout this codebase, precisely because models
+    fill unused optional params with `""`, so reading that as a clear would
+    strip the icon off any floor a padded call touched. Same shape as
+    ``update_dashboard_view``.
+
+    ``floor_id`` is derived from the name at creation and never rewritten, so a
+    rename leaves every area's ``floor_id`` pointing at the right storey — no
+    reference-chasing needed, unlike an entity_id rename.
+    """
+    entry, error = resolve_floor(hass, floor)
+    if error or entry is None:
+        return {"error": error or "Floor not found."}
+
+    updates: dict[str, Any] = {}
+    if new_name and str(new_name).strip():
+        wanted = str(new_name).strip()
+        # By NAME, as `async_create_floor` does. `resolve_floor` matches aliases
+        # too, so a rename onto a name that is another floor's alias was refused
+        # — a rename creation would have allowed, which is the inconsistency
+        # rather than merely the stricter half.
+        clash = fr.async_get(hass).async_get_floor_by_name(wanted)
+        if clash is not None and clash.floor_id != entry.floor_id:
+            return {
+                "error": (
+                    f"A floor named '{sanitize_untrusted_text(clash.name, 60)}' already exists."
+                )
+            }
+        updates["name"] = wanted
+    if level is not None:
+        updates["level"] = level
+    if icon and str(icon).strip():
+        updates["icon"] = str(icon).strip()
+    if aliases is not None:
+        updates["aliases"] = {str(a).strip() for a in aliases if str(a).strip()}
+
+    for field in clear or ():
+        if field not in ("icon", "level"):
+            return {"error": f"clear accepts 'icon' or 'level', not '{field}'."}
+        updates[field] = None
+
+    if not updates:
+        return {"status": "unchanged", "floor_id": entry.floor_id}
+
+    updated = fr.async_get(hass).async_update(entry.floor_id, **updates)
+    return {
+        "status": "updated",
+        "floor_id": updated.floor_id,
+        "name": sanitize_untrusted_text(updated.name, 60),
+        "level": updated.level,
+        "changed": sorted(updates),
+    }
+
+
+def floor_dependents(hass: HomeAssistant, floor_id: str) -> dict[str, Any]:
+    """What a floor's removal would affect: the areas standing on it."""
+    return {
+        "areas": sorted(
+            sanitize_untrusted_text(a.name, 60)
+            for a in ar.async_get(hass).async_list_areas()
+            if a.floor_id == floor_id
+        )
+    }
+
+
+async def async_delete_floor(hass: HomeAssistant, floor_id: str) -> dict[str, Any]:
+    """Delete a floor. Its areas survive, unassigned.
+
+    HA's area registry listens for the floor-removed event and clears each
+    area's ``floor_id``, so nothing is left dangling — but nothing announces it
+    either, which is why the confirmation card carries the count.
+    """
+    registry = fr.async_get(hass)
+    entry = registry.async_get_floor(floor_id)
+    if entry is None:
+        return {"error": f"No floor '{sanitize_untrusted_text(floor_id, 60)}'."}
+
+    freed = floor_dependents(hass, floor_id)["areas"]
+    registry.async_delete(floor_id)
+    return {
+        "status": "deleted",
+        "floor_id": floor_id,
+        "name": sanitize_untrusted_text(entry.name, 60),
+        "areas_unassigned": freed,
+    }

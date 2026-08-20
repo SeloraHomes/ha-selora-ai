@@ -362,6 +362,16 @@ TOOL_DELETE_LABEL = "selora_delete_label"
 TOOL_LIST_HELPERS = "selora_list_helpers"
 TOOL_GET_LOGS = "selora_get_logs"
 TOOL_GET_AUTOMATION_TRACES = "selora_get_automation_traces"
+TOOL_LIST_BLUEPRINTS = "selora_list_blueprints"
+TOOL_GET_BLUEPRINT = "selora_get_blueprint"
+TOOL_LIST_CATEGORIES = "selora_list_categories"
+TOOL_CREATE_CATEGORY = "selora_create_category"
+TOOL_ASSIGN_CATEGORY = "selora_assign_category"
+TOOL_DELETE_CATEGORY = "selora_delete_category"
+TOOL_LIST_FLOORS = "selora_list_floors"
+TOOL_CREATE_FLOOR = "selora_create_floor"
+TOOL_UPDATE_FLOOR = "selora_update_floor"
+TOOL_DELETE_FLOOR = "selora_delete_floor"
 TOOL_LIST_DASHBOARDS = "selora_list_dashboards"
 TOOL_INSERT_DASHBOARD_CARD = "selora_insert_dashboard_card"
 TOOL_GET_DASHBOARD = "selora_get_dashboard"
@@ -400,6 +410,19 @@ _ADMIN_TOOLS = frozenset(
         TOOL_CREATE_AREA,
         TOOL_UPDATE_AREA,
         TOOL_DELETE_AREA,
+        # Read-only, but admin-gated to match Home Assistant: it decorates
+        # `blueprint/list` with `require_admin`. A blueprint is an automation
+        # template with its author's source URL and input defaults — config
+        # detail HA does not show a non-admin, so exposing it here would put
+        # this tool surface below HA's own authorization boundary.
+        TOOL_LIST_BLUEPRINTS,
+        TOOL_GET_BLUEPRINT,
+        TOOL_CREATE_CATEGORY,
+        TOOL_ASSIGN_CATEGORY,
+        TOOL_DELETE_CATEGORY,
+        TOOL_CREATE_FLOOR,
+        TOOL_UPDATE_FLOOR,
+        TOOL_DELETE_FLOOR,
         TOOL_UPDATE_ENTITY,
         TOOL_UPDATE_DEVICE,
         TOOL_SET_SCRIPT,
@@ -456,6 +479,8 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_LABELS,
         TOOL_LIST_HELPERS,
         TOOL_GET_DASHBOARD,
+        TOOL_LIST_CATEGORIES,
+        TOOL_LIST_FLOORS,
         TOOL_LIST_DASHBOARDS,
         TOOL_GET_DASHBOARD_CARD,
     }
@@ -998,6 +1023,16 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_LIST_HELPERS: _tool_list_helpers,
         TOOL_GET_LOGS: _tool_get_logs,
         TOOL_GET_AUTOMATION_TRACES: _tool_get_automation_traces,
+        TOOL_LIST_BLUEPRINTS: _tool_list_blueprints,
+        TOOL_GET_BLUEPRINT: _tool_get_blueprint,
+        TOOL_LIST_CATEGORIES: _tool_list_categories,
+        TOOL_CREATE_CATEGORY: _tool_create_category,
+        TOOL_ASSIGN_CATEGORY: _tool_assign_category,
+        TOOL_DELETE_CATEGORY: _tool_delete_category,
+        TOOL_LIST_FLOORS: _tool_list_floors,
+        TOOL_CREATE_FLOOR: _tool_create_floor,
+        TOOL_UPDATE_FLOOR: _tool_update_floor,
+        TOOL_DELETE_FLOOR: _tool_delete_floor,
         TOOL_LIST_DASHBOARDS: _tool_list_dashboards,
         TOOL_INSERT_DASHBOARD_CARD: _tool_insert_dashboard_card,
         TOOL_GET_DASHBOARD: _tool_get_dashboard,
@@ -4544,6 +4579,200 @@ async def _tool_update_device(hass: HomeAssistant, arguments: dict[str, Any]) ->
     )
 
 
+async def _tool_list_blueprints(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Installed blueprints with the inputs each asks for."""
+    from .blueprint_manager import async_list_blueprints  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return await async_list_blueprints(hass, _opt_str(arguments.get("domain")))
+
+
+async def _tool_get_blueprint(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """One blueprint's inputs in full."""
+    from .blueprint_manager import async_get_blueprint  # noqa: PLC0415
+
+    return await async_get_blueprint(
+        hass, str(arguments.get("domain", "")), str(arguments.get("path", ""))
+    )
+
+
+async def _tool_list_categories(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Categories with how many entities each holds."""
+    from .category_manager import category_overview  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return category_overview(hass, _opt_str(arguments.get("scope")))
+
+
+async def _tool_create_category(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create a category within one list."""
+    from .category_manager import async_create_category  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    return async_create_category(
+        hass,
+        scope=str(arguments.get("scope", "")),
+        name=str(arguments.get("name", "")),
+        icon=_opt_str(arguments.get("icon")),
+    )
+
+
+async def _tool_assign_category(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """File entities under a category, or take them out of one."""
+    from .category_manager import async_assign_category  # noqa: PLC0415
+    from .tool_executor import _as_list, _opt_str  # noqa: PLC0415
+
+    return await async_assign_category(
+        hass,
+        entity_ids=_as_list(arguments.get("entity_ids")),
+        scope=str(arguments.get("scope", "")),
+        category=_opt_str(arguments.get("category")),
+    )
+
+
+async def _tool_delete_category(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete a category outright (MCP clients run their own confirmation)."""
+    from .category_manager import async_delete_category, resolve_category  # noqa: PLC0415
+
+    # Stripped once, here. `resolve_category` normalizes internally, so a scope
+    # with stray whitespace RESOLVES and then fails at the delete — and on the
+    # preview path it is baked into `target_id`, producing a card whose confirm
+    # cannot find the category it just described.
+    scope = str(arguments.get("scope", "")).strip()
+    entry, error = resolve_category(hass, scope, str(arguments.get("category", "")))
+    if error or entry is None:
+        return {"error": error or "Category not found."}
+    return async_delete_category(hass, scope, entry.category_id)
+
+
+async def _preview_delete_category(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Resolve a delete_category target WITHOUT deleting it.
+
+    Entities filed under it survive — HA's entity registry calls
+    ``async_clear_category_id`` on the removal event — but nothing announces it,
+    so the label carries the count.
+    """
+    from .category_manager import category_dependents, resolve_category  # noqa: PLC0415
+
+    # Stripped once, here. `resolve_category` normalizes internally, so a scope
+    # with stray whitespace RESOLVES and then fails at the delete — and on the
+    # preview path it is baked into `target_id`, producing a card whose confirm
+    # cannot find the category it just described.
+    scope = str(arguments.get("scope", "")).strip()
+    entry, error = resolve_category(hass, scope, str(arguments.get("category", "")))
+    if error or entry is None:
+        return {"error": error or "Category not found."}
+
+    held = len(category_dependents(hass, scope, entry.category_id)["entities"])
+    label = f"{_sanitize(entry.name)} ({_sanitize(scope)})"
+    if held:
+        label = f"{label} — {held} item{'s' if held != 1 else ''} would stop being categorised"
+
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "category",
+            # The scope is part of the identity: the same name under two scopes
+            # is two categories, and a target_id alone would not say which.
+            "target_id": f"{scope}#{entry.category_id}",
+            "entity_id": "",
+            "name": _sanitize(entry.name),
+            "label": label,
+            # Unlike area_id and floor_id, a category_id is a random uuid rather
+            # than name-derived, so it cannot be reused by a recreated category
+            # and needs no timestamp to tell instances apart.
+            "fingerprint": "",
+        },
+    }
+
+
+async def _tool_list_floors(hass: HomeAssistant, _arguments: dict[str, Any]) -> dict[str, Any]:
+    """Every floor with the areas standing on it."""
+    from .registry_manager import floor_overview  # noqa: PLC0415
+
+    return floor_overview(hass)
+
+
+async def _tool_create_floor(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create a floor to group areas under."""
+    from .registry_manager import async_create_floor  # noqa: PLC0415
+    from .tool_executor import _opt_level, _opt_list, _opt_str  # noqa: PLC0415
+
+    return async_create_floor(
+        hass,
+        name=str(arguments.get("name", "")),
+        level=_opt_level(arguments.get("level")),
+        icon=_opt_str(arguments.get("icon")),
+        aliases=_opt_list(arguments.get("aliases")),
+    )
+
+
+async def _tool_update_floor(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Rename a floor or change its level, icon, or aliases."""
+    from .registry_manager import async_update_floor  # noqa: PLC0415
+    from .tool_executor import _opt_level, _opt_list, _opt_str  # noqa: PLC0415
+
+    return async_update_floor(
+        hass,
+        floor=str(arguments.get("floor", "")),
+        new_name=_opt_str(arguments.get("new_name")),
+        level=_opt_level(arguments.get("level")),
+        icon=_opt_str(arguments.get("icon")),
+        aliases=_opt_list(arguments.get("aliases")),
+        clear=_opt_list(arguments.get("clear")),
+    )
+
+
+async def _tool_delete_floor(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete a floor outright (MCP clients run their own confirmation)."""
+    from .registry_manager import async_delete_floor, resolve_floor  # noqa: PLC0415
+
+    entry, error = resolve_floor(hass, str(arguments.get("floor", "")))
+    if error or entry is None:
+        return {"error": error or "Floor not found."}
+    return await async_delete_floor(hass, entry.floor_id)
+
+
+async def _preview_delete_floor(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Resolve a delete_floor target WITHOUT deleting it.
+
+    The areas survive — HA's area registry clears their ``floor_id`` when the
+    floor-removed event fires — but nothing announces it, so the label names
+    them. Naming rather than counting: "and 4 areas" does not tell the user
+    whether the one they care about is among them.
+    """
+    from .registry_manager import floor_dependents, resolve_floor  # noqa: PLC0415
+
+    entry, error = resolve_floor(hass, str(arguments.get("floor", "")))
+    if error or entry is None:
+        return {"error": error or "Floor not found."}
+
+    areas = floor_dependents(hass, entry.floor_id)["areas"]
+    label = _sanitize(entry.name) or entry.floor_id
+    if areas:
+        shown = ", ".join(areas[:4])
+        if len(areas) > 4:
+            shown = f"{shown} and {len(areas) - 4} more"
+        label = f"{label} — {shown} would lose their floor"
+
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "floor",
+            "target_id": entry.floor_id,
+            "entity_id": "",
+            "name": _sanitize(entry.name),
+            "label": label,
+            # floor_id is derived from the NAME, exactly like area_id, so it is
+            # reusable once the floor is gone. The creation timestamp tells the
+            # instances apart if one is recreated while the card sits open.
+            "fingerprint": entry.created_at.isoformat() if entry.created_at else "",
+        },
+    }
+
+
 async def _preview_delete_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Resolve a delete_area target WITHOUT deleting it.
 
@@ -5894,6 +6123,16 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_CREATE_AREA: "create_area",
     TOOL_UPDATE_AREA: "update_area",
     TOOL_DELETE_AREA: "delete_area",
+    TOOL_LIST_BLUEPRINTS: "list_blueprints",
+    TOOL_GET_BLUEPRINT: "get_blueprint",
+    TOOL_LIST_CATEGORIES: "list_categories",
+    TOOL_CREATE_CATEGORY: "create_category",
+    TOOL_ASSIGN_CATEGORY: "assign_category",
+    TOOL_DELETE_CATEGORY: "delete_category",
+    TOOL_LIST_FLOORS: "list_floors",
+    TOOL_CREATE_FLOOR: "create_floor",
+    TOOL_UPDATE_FLOOR: "update_floor",
+    TOOL_DELETE_FLOOR: "delete_floor",
     TOOL_UPDATE_ENTITY: "update_entity",
     TOOL_UPDATE_DEVICE: "update_device",
     TOOL_LIST_SERVICES: "list_services",

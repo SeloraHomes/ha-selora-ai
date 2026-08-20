@@ -401,6 +401,86 @@ edits membership in Settings → Devices & Services → Helpers without the auto
   is not optional: `_classify_chat_intent` falls through to `"command"` for group phrasings, which
   trims the schema to that set.
 
+## Blueprints
+
+`blueprint_manager.py` backs `list_blueprints` and `get_blueprint`. A blueprint
+is a parameterised automation or script template and one of the commonest ways a
+home gets its automations, and none of it was visible here.
+
+- **Reachable in-process**, unlike helpers and dashboard entries:
+  `hass.data["blueprint"]` is a `dict[domain, DomainBlueprints]` published by the
+  automation and script components — the same object the websocket API serves.
+- **The reads are useless without the write.** A blueprint automation's config is
+  `use_blueprint: {path, input}` and carries NEITHER triggers nor actions, so
+  `validate_automation_payload` rejected every one of them with "must include at
+  least one trigger". Listing blueprints you cannot build anything from is not a
+  feature; the validator now takes a `use_blueprint` branch that returns early.
+  **Every write path needs its own branch**, and there are three.
+  `validate_automation_payload` accepts the shape; `prepare_write_payload` must
+  strip **both** key spellings (HA merges a surviving `actions` OVER the
+  blueprint's substituted config — an empty list invalidates the automation, a
+  populated one silently replaces what the blueprint does, and a payload
+  carrying both shapes is ordinary after converting one in the YAML editor); and
+  `async_create_automation` must copy `use_blueprint` into the entry it writes
+  instead of the default empty `triggers`/`actions`. Fixing only the first two
+  moves the failure rather than removing it — and the last one fails SILENTLY:
+  HA logs the invalid item at reload while the function returns success, so a
+  test asserting `result["success"]` proves nothing. **Assert the written YAML.**
+  What the blueprint branch does NOT get to skip is the outer fields. `mode`,
+  `initial_state` and the YAML round-trip check are as applicable to a blueprint
+  instance as to any other automation, and returning early past them let
+  `mode: "garbage"` reach the file with the same silent failure. `_finalize_payload`
+  is the one implementation both branches end in; only the triggers-and-actions
+  work is genuinely branch-specific. And `prepare_write_payload` must COPY the
+  normalized outer fields onto the payload it mutates — normalizing a field the
+  writer then takes verbatim from the original is theatre. That applies to the
+  ordinary path too, which had the same hole: `mode: " Restart "` validated as
+  `restart` and was written unchanged. `id` and `initial_state` stay out of it —
+  `apply_managed_fields` owns those.
+  Risk assessment records `blueprint_unassessed` as a **scrutiny tag, not a
+  flag**. The actions live in the blueprint file so there is nothing in the
+  payload to inspect, but any flag forces `elevated`, which would land every
+  blueprint automation disabled — and a blueprint is a file the user installed
+  themselves. Reporting a bare `normal` would instead claim we looked.
+  It checks the SHAPE only (`path` present, `input` a mapping) — whether the
+  inputs satisfy the blueprint is the blueprint's own schema question, which HA
+  answers at reload using the author's selectors, and restating that here would
+  be a second copy that goes stale when the blueprint changes.
+- **`get_blueprint` returns selectors and required-ness.** The selector is what
+  makes the difference between a working automation and one HA rejects at
+  reload, and "required" is the absence of a `default` — neither is derivable
+  from the listing, so composing an automation without this call is guessing.
+- **A blueprint that fails to parse is reported, not dropped.**
+  `async_get_blueprints` returns the exception in place of the blueprint rather
+  than raising; skipping it silently leaves the user wondering where their file
+  went.
+- **Only an AUTOMATION blueprint can back an automation.** `list_blueprints`
+  returns every domain by default, and `automations.yaml`'s loader searches only
+  the automation store — so a script or template blueprint's path writes an
+  entry HA rejects at reload while the write succeeds. The tool descriptions say
+  automation-domain only; `_blueprint_path_error` is what makes it true, because
+  the failure is invisible to the caller either way. It lives inside
+  `prepare_write_payload` — which is **async for that reason** — so a write path
+  added later cannot skip it: converting an existing automation to a blueprint
+  through the YAML editor reaches the update path, not the create path. And
+  membership in the store is not loadability: a malformed or wrong-domain file
+  is reported as the EXCEPTION in place of the blueprint, so the value is
+  checked, not just the key. It is skipped when
+  blueprints are not set up: a missing store is not evidence the path is wrong,
+  and blocking every blueprint automation on it would be worse than the case it
+  guards.
+- **The reads are admin-gated, like HA's own.** `blueprint/list` carries
+  `@websocket_api.require_admin`, so a non-admin chat user or read-only MCP
+  credential must not reach these either — a blueprint carries its author's
+  source URL and input defaults, config detail HA does not show a non-admin.
+  Same reasoning as `get_logs` / `get_automation_traces`: read-only is not the
+  same question as unprivileged, and matching HA's boundary is what keeps this
+  tool surface from being a way around it.
+- **Import is deliberately absent.** It means fetching YAML from a URL and
+  writing it to the config directory, and a URL an LLM chose — possibly off a
+  page it was asked to summarise — is a different risk class from the registry
+  edits alongside it. It belongs behind a confirmation card naming the source.
+
 ## Registry, script, label, and diagnostic tools
 
 `registry_manager.py`, `script_manager.py`, `label_manager.py`, and
@@ -409,6 +489,22 @@ the tools that reshape the home rather than operate it. They exist because the
 model could see every entity's area, name, and alias in the home snapshot but had
 no way to change one, so it fell back to reciting the Settings click-path.
 
+- **Floors are full CRUD now, and deleting one is a confirmation card.** They
+  used to exist only as a side effect: `_ensure_floor` creates one when an area
+  names a storey that does not exist, so a home could accumulate floors with no
+  way to see or remove them. Deleting a floor does NOT delete its areas — HA's
+  area registry listens for the floor-removed event and clears each
+  `floor_id` — but nothing announces it, so the card NAMES the areas rather than
+  counting them: "and 4 areas" does not tell the user whether the one they care
+  about is among them. `floor_id` is derived from the name exactly like
+  `area_id`, so it is reusable once the floor is gone and the descriptor carries
+  `created_at` for the confirm handler to re-check.
+- **`list_floors` orders by `level`, and an unset level sorts LAST.** Level is
+  the only field carrying the storeys' real relationship — "what is upstairs"
+  cannot be answered from name order — and unset is not the ground floor.
+  `_opt_level` exists for the same reason: the blank-is-absent rule the other
+  adapters use would read `level: 0` as "not set" and leave the ground floor
+  unordered.
 - **An entity's area is an override of its device's area.** `async_assign_area`
   therefore has two correct outcomes: when the entity's device is *already* in the
   target area it **clears** `area_id` so the entity inherits, and only otherwise
@@ -443,6 +539,57 @@ no way to change one, so it fell back to reciting the Settings click-path.
   `reload_error` alongside the write rather than raised: raising would tell the
   user nothing happened on a change that in fact landed and will appear at the
   next restart.
+- **Categories are labels with a scope, and that changes three things.** A
+  category lives under a scope string (HA keeps a separate list per Automations
+  / Scripts / Scenes / Helpers page) and an entity holds **at most one per
+  scope** — `RegistryEntry.categories` is `{scope: category_id}`, not a set.
+  So: a name is unique only WITHIN a scope, which is why `resolve_category`
+  needs no ambiguity handling for the EXACT name — but the registry's uniqueness
+  check is `name.casefold()` and nothing more, so `"Outdoor Lights"` and
+  `"Outdoor  Lights"` are two categories a user can genuinely have.
+  `resolve_category` matches HA's comparison first, then falls back to
+  collapsed-whitespace matching only when that is unambiguous: being forgiving
+  about spacing is what a caller typing from memory needs, but picking the first
+  of several is the silent mis-targeting the exact match exists to prevent.
+  **A duplicate CHECK must not use a forgiving resolver** — the same trap
+  caught `create_floor`, whose resolver matches aliases, so a floor named after
+  another's alias was refused although HA enforces uniqueness on the name alone.
+  Ask the registry's own name lookup.
+  **`create_category` must NOT use that resolver** — its loose match would call
+  a name HA allows a duplicate and skip a creation HA would accept, so it
+  compares casefolded names directly.
+  **The scope check applies only when ASSIGNING.** Clearing removes a mapping
+  that already exists, and an entity is often out of scope precisely because
+  something wrote a stale one — or because its helper integration's metadata is
+  momentarily unreadable. Refusing then makes the bad state unfixable through
+  the tool that caused it. The
+  scope is still required rather than searched across; `assign_category` writes one scope's key and leaves the rest alone,
+  for the same reason label assignment is a delta; and the delete card's
+  `target_id` is `"<scope>#<category_id>"`, because the same name under two
+  scopes is two categories and a bare id would not say which the card meant.
+  **An entity the scope's page never lists cannot be filed there**
+  (`_SCOPE_DOMAINS`): the mapping would be written, the count would go up, and
+  the user would see it nowhere. Only the scopes whose page contents we know are
+  policed — a scope outside that map is one HA may have added or the user
+  invented, and refusing every entity under it is worse than the case it guards.
+  **`helper` cannot be answered from the entity domain.** The storage-collection
+  helpers own theirs (`input_boolean.*`), but a template, utility-meter,
+  derivative or threshold helper is an ordinary `sensor.*` / `binary_sensor.*`
+  that the Helpers page still lists, so a domain allowlist rejects every one of
+  them. Membership comes from the config entry's integration declaring
+  `integration_type: helper` — the same question `helper_overview` asks.
+  The scope is free-form server-side — HA's own tests create categories under
+  `"bullshizzle"` — and the real strings are frontend-owned, so core cannot be
+  read to confirm them: the Helpers page uses **`helper`, singular**, unlike the
+  other three. `UI_SCOPES` rides on the tool schema as an enum rather than a
+  server-side refusal: a scope no page reads gives a category that exists
+  and appears nowhere, but refusing a scope a future HA release adds would be
+  worse. Unlike `area_id` and `floor_id`, a `category_id` is a ULID, so it
+  cannot be reused by a recreated category and the descriptor needs no
+  timestamp fingerprint.
+  `category_manager` mirrors `label_manager` down to having **no rename** — a
+  category rename is rare and reachable in the UI, and adding one the labels do
+  not have would make the two registries diverge for no reason.
 - **Label assignment is deltas, never replacement.** Labels are the one registry
   field several unrelated concerns write to at once, so a replacement call from a
   model that only knows about `holiday` would drop the `battery-powered` label

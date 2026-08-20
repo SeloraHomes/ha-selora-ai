@@ -2414,6 +2414,8 @@ _DELETE_TOOLS = frozenset(
         "delete_scene",
         "delete_group",
         "delete_area",
+        "delete_floor",
+        "delete_category",
         "delete_script",
         "delete_label",
     }
@@ -2428,7 +2430,9 @@ _DELETE_TOOLS = frozenset(
 # ``requires_approval``, the tool loop short-circuits on it and discards the
 # model's prose, and the synthesizer then drops the descriptor — leaving the
 # user an empty reply and no card.
-_DELETE_KINDS = frozenset({"automation", "scene", "group", "area", "script", "label"})
+_DELETE_KINDS = frozenset(
+    {"automation", "scene", "group", "area", "floor", "category", "script", "label"}
+)
 
 
 def _pending_deletes_from_log(

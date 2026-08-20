@@ -272,7 +272,7 @@ async def _handle_websocket_preview_automation_write(
     # service registries (hass.states.async_entity_ids, er.async_get,
     # hass.services.async_services_for_domain), none of which are thread-safe.
     # Only the YAML parse and the file read above go to the executor.
-    is_valid, reason, normalized = prepare_write_payload(hass, parsed)
+    is_valid, reason, normalized = await prepare_write_payload(hass, parsed)
     if not is_valid or normalized is None:
         connection.send_error(msg["id"], "invalid_format", reason)
         return

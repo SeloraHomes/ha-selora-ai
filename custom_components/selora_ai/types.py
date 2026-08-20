@@ -58,6 +58,9 @@ class AutomationDict(TypedDict, total=False):
     actions: list[AutomationAction]
     mode: str
     initial_state: bool
+    # Blueprint-based automation: the blueprint supplies triggers and actions,
+    # so those keys are absent entirely rather than empty.
+    use_blueprint: dict[str, Any]
     # Legacy singular keys (pre-2024 HA format)
     trigger: list[AutomationTrigger] | AutomationTrigger
     condition: list[AutomationCondition] | AutomationCondition
