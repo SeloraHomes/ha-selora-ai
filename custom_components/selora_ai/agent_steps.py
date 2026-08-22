@@ -36,45 +36,54 @@ class AgentStep(TypedDict, total=False):
     icon: str  # optional mdi icon override (frontend falls back by kind/status)
 
 
-# Per-tool (label, mdi-icon) for the read/inspect tools the architect loop
-# calls. The icon hints at the *kind of work* (a magnifier for a search, an
-# eye for a state read) rather than a generic wrench, so the timeline reads at
-# a glance. Co-located with the label so the two never drift. Write tools
-# (execute_command / activate_scene) have their own confirmation UI and are
-# intentionally absent — the loop does not narrate them as steps.
-_TOOL_STEP_INFO: dict[str, tuple[str, str]] = {
-    "get_home_snapshot": ("Reviewed your home", "mdi:home-search-outline"),
-    "list_devices": ("Listed your devices", "mdi:format-list-bulleted"),
-    "get_device": ("Checked device details", "mdi:information-outline"),
-    "get_device_triggers": ("Checked available triggers", "mdi:flash-outline"),
-    "get_entity_state": ("Read entity state", "mdi:eye-outline"),
-    "find_entities_by_area": ("Looked up devices by area", "mdi:floor-plan"),
-    "search_entities": ("Searched your entities", "mdi:magnify"),
-    "get_entity_history": ("Checked entity history", "mdi:history"),
-    "eval_template": ("Evaluated a template", "mdi:code-braces"),
-    "validate_action": ("Validated a service call", "mdi:shield-check-outline"),
-    "list_dashboards": ("Checked your dashboards", "mdi:view-dashboard-outline"),
-    "insert_dashboard_card": ("Updated a dashboard", "mdi:view-dashboard-outline"),
-    "discover_network_devices": ("Scanned the network", "mdi:radar"),
-    "list_discovered_flows": ("Checked discovered devices", "mdi:devices"),
-    "start_device_flow": ("Started device setup", "mdi:plus-network-outline"),
-    "accept_device_flow": ("Paired a device", "mdi:check-network-outline"),
-    "list_suggestions": ("Reviewed suggestions", "mdi:lightbulb-outline"),
-    "accept_suggestion": ("Accepted a suggestion", "mdi:lightbulb-on-outline"),
+# Per-tool mdi icon for the read/inspect tools the architect loop calls. The
+# icon hints at the *kind of work* (a magnifier for a search, an eye for a
+# state read) rather than a generic wrench, so the timeline reads at a glance.
+# Write tools (execute_command / activate_scene) have their own confirmation UI
+# and are intentionally absent — the loop does not narrate them as steps.
+#
+# Only icons. The labels used to live here too, hand-written in the past tense
+# ("Checked your dashboards"), with `f"Used {tool}"` for anything not listed —
+# so a timeline mixed both voices and every new tool needed an entry to avoid
+# the ugly one. The name of the tool is what the row is for, and it needs no
+# curation.
+_TOOL_STEP_ICONS: dict[str, str] = {
+    "get_home_snapshot": "mdi:home-search-outline",
+    "list_devices": "mdi:format-list-bulleted",
+    "get_device": "mdi:information-outline",
+    "get_device_triggers": "mdi:flash-outline",
+    "get_entity_state": "mdi:eye-outline",
+    "find_entities_by_area": "mdi:floor-plan",
+    "search_entities": "mdi:magnify",
+    "get_entity_history": "mdi:history",
+    "eval_template": "mdi:code-braces",
+    "validate_action": "mdi:shield-check-outline",
+    "list_dashboards": "mdi:view-dashboard-outline",
+    "insert_dashboard_card": "mdi:view-dashboard-outline",
+    "discover_network_devices": "mdi:radar",
+    "list_discovered_flows": "mdi:devices",
+    "start_device_flow": "mdi:plus-network-outline",
+    "accept_device_flow": "mdi:check-network-outline",
+    "list_suggestions": "mdi:lightbulb-outline",
+    "accept_suggestion": "mdi:lightbulb-on-outline",
 }
 _DEFAULT_TOOL_ICON = "mdi:cog-outline"
 
 
 def tool_step_label(tool_name: str) -> str:
-    """A short, friendly label for a tool call, for the activity timeline."""
-    info = _TOOL_STEP_INFO.get(tool_name)
-    return info[0] if info else f"Used {tool_name.replace('_', ' ')}"
+    """The row's label: the tool's own name, read as English.
+
+    Tense-free and uniform. Past tense made each row a small claim about what
+    had happened, which is not what a progress list is for, and the "Used …"
+    fallback made every uncurated tool read differently from its neighbours in
+    the same list.
+    """
+    return tool_name.replace("_", " ").strip().capitalize()
 
 
 def tool_step_icon(tool_name: str) -> str:
     """An mdi icon hinting at the kind of work a tool call did."""
-    info = _TOOL_STEP_INFO.get(tool_name)
-    return info[1] if info else _DEFAULT_TOOL_ICON
+    return _TOOL_STEP_ICONS.get(tool_name, _DEFAULT_TOOL_ICON)
 
 
 def make_step(

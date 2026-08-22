@@ -957,7 +957,14 @@
     "approval_status_applied": "Applicato",
     "destructive_approval_title": "Applicare questa modifica?",
     "destructive_approval_title_plural": "Applicare queste modifiche?",
-    "destructive_approval_warning": "Questa operazione non può essere annullata dalla chat."
+    "destructive_approval_warning": "Questa operazione non può essere annullata dalla chat.",
+    "client_action_title": "Richiede la tua conferma",
+    "client_action_create_dashboard": "Creare la dashboard {title} su /{url}",
+    "client_action_confirm": "Crea",
+    "client_action_working": "In corso…",
+    "client_action_done": "Fatto.",
+    "client_action_failed": "Non ha funzionato.",
+    "approval_then": "poi"
   },
   "options": {
     "step": {

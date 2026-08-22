@@ -38,6 +38,15 @@ export async function _acceptScene(msgIndex) {
     this._markSceneCreated(result.scene_id);
 
     this._showToast(`Scene "${scene.name}" created and saved.`, "success");
+
+    // The scene was half the request — "create a scene AND add it to the
+    // dashboard". The turn that proposed it ended at the card, and the scene
+    // entity did not exist until just now, so this is the first moment the
+    // rest can be done. The server refuses if the scene was not saved or
+    // nothing was declared, so the panel does not decide any of that.
+    if (msg.remaining_intent && result.scene_id) {
+      await this._sendMessage?.({ resumeProposalId: result.scene_id });
+    }
   } catch (err) {
     this._showToast("Failed to create scene: " + err.message, "error");
   }

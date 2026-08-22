@@ -260,6 +260,24 @@ function _renderChoice(host, action) {
 }
 
 function _renderConfirmation(host, action) {
+  return renderConfirmChip(host, action, () => _onSelect(host, action));
+}
+
+/**
+ * One confirmation chip — the shape every "tap to authorize this" button in
+ * chat uses, whether it resolves server-side (Allow / Deny on a risk card) or
+ * in the panel (Create on a client-action card).
+ *
+ * Exported so a card can render one with its OWN handler: a client action has
+ * no quick-action value to send back, it calls the panel directly. Without
+ * this the card grew its own button from the generic `.btn` family, which
+ * looked nothing like the Allow chip sitting on the card beside it.
+ *
+ * @param {object} host      panel element
+ * @param {object} action    {label, icon?, description?, tone?, primary?}
+ * @param {Function} onClick what the press does
+ */
+export function renderConfirmChip(host, action, onClick) {
   // "tone" lets the card-emitter (e.g. command approval row) pre-classify
   // the chip as approve/deny so we can colour the icon and border without
   // shipping per-call inline styles. Falls back to the generic primary
@@ -274,7 +292,7 @@ function _renderConfirmation(host, action) {
         ? "color:#ef4444;"
         : "";
   return html`
-    <button class=${cls} @click=${() => _onSelect(host, action)}>
+    <button class=${cls} @click=${onClick}>
       ${
         action.icon
           ? html`<ha-icon

@@ -333,6 +333,19 @@ _SHARED_STATE_QUERY_RULES = (
     "with the service call. Do NOT refuse, do NOT ask 'would you like me to go ahead?' in "
     "prose, and do NOT tell the user to use the Home Assistant dashboard. The approval card "
     "IS the confirmation step.\n"
+    "- The same rule covers every TOOL that returns a confirmation card — creating a "
+    "dashboard, deleting an automation, scene, script, area, floor, label, group or view. "
+    "CALL THE TOOL. The card the tool returns is how the user is asked, so do NOT ask in "
+    "prose first, and do NOT describe what you would do INSTEAD of doing it. A reply that "
+    "promises the user a card they were never shown has done nothing at all — it reads as "
+    "the request having been carried out when nothing happened.\n"
+    "- And it covers the PROPOSAL BLOCKS the same way. An automation and a scene are not "
+    "tools: you create one by emitting its JSON block in this reply, and the user accepts "
+    "it from the card that block renders. So when the user asks for a scene or an "
+    "automation, EMIT THE BLOCK — never answer with a description of the one you could "
+    "make, or a plan to make it once they confirm. 'I can create the scene, then add a "
+    "card for it' with no block attached is the whole failure: nothing was created, "
+    "nothing was offered, and the user is left waiting for a card that is not coming.\n"
 )
 
 _SHARED_TONE_RULES = (
@@ -814,6 +827,16 @@ def build_architect_system_prompt(
         "}\n\n"
         "SCENE RULES:\n"
         "- Only create a scene when the user explicitly asks for one (e.g. 'create a scene', 'save this as a scene').\n"
+        "- When they DO ask, emit the scene block in THIS reply. Do not describe the "
+        "scene you would build and wait to be told to go ahead — the card the block "
+        "renders is how they are asked, and prose alone creates nothing.\n"
+        "- When the request asks for something MORE than the scene — 'create a scene "
+        'and add it to the dashboard\' — add a "remaining_intent" string beside '
+        '"scene" saying what is still to do (\'add a tile for it to the Office '
+        "dashboard'). The scene does not exist until the user accepts the card, so "
+        "you cannot do that part now; declaring it is what brings you back to "
+        "finish once they have. Do NOT promise it in prose alone — a promise "
+        "nothing acts on is how the second half of a request gets dropped.\n"
         "- Each entity in the scene must have a 'state' key (string: 'on', 'off', etc.).\n"
         "- Scene 'name' should be short and descriptive (2-4 words).\n"
         "- Scenes may ONLY include entities from these scene-capable domains: "

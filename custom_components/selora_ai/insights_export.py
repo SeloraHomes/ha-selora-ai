@@ -45,6 +45,7 @@ from homeassistant.helpers.event import async_call_later, async_track_time_inter
 from .const import (
     DEFAULT_INSIGHTS_EXPORT_CADENCE,
     DEFAULT_INSIGHTS_EXPORT_RETENTION,
+    DOMAIN,
     INSIGHTS_EXPORT_ARTIFACT_DIR,
     INSIGHTS_EXPORT_MANIFEST_NAME,
     INSIGHTS_EXPORT_MARKER_NAME,
@@ -315,7 +316,10 @@ class InsightsExporter:
         # is all-integer counts, and an absent key already reads as "unknown".
         if health["score"] is not None:
             summary["health_score"] = health["score"]
-        producer = {"integration_version": _integration_version(), "ha_version": HA_VERSION}
+        producer = {
+            "integration_version": await _async_integration_version(self._hass),
+            "ha_version": HA_VERSION,
+        }
         if self._installation_id:
             producer["installation_id"] = self._installation_id
 
@@ -612,9 +616,24 @@ def _prune_artifacts(artifact_dir: Path, retention: int) -> int:
     return removed
 
 
-def _integration_version() -> str:
-    with suppress(OSError, ValueError, KeyError):
-        manifest = Path(__file__).parent / "manifest.json"
-        with manifest.open(encoding="utf-8") as fh:
-            return str(json.load(fh).get("version", "unknown"))
+async def _async_integration_version(hass: HomeAssistant) -> str:
+    """Our own version, off the manifest Home Assistant has already parsed.
+
+    Opening `manifest.json` here instead tripped HA's blocking-call detector on
+    every scheduled export — `_do_publish` runs on the event loop, and a file
+    read there stalls it and logs a traceback pointing at us. An executor hop
+    would fix that (`telemetry._read_manifest_version` does exactly that), but
+    the loader is better: it has this manifest cached, since the integration
+    asking is the one that is loaded, so there is no read and no cache of our
+    own to keep. Same loader this module already uses for the roster.
+    """
+    from homeassistant.loader import (  # noqa: PLC0415 — local, one call site
+        IntegrationNotFound,
+        async_get_integration,
+    )
+
+    with suppress(IntegrationNotFound):
+        version = (await async_get_integration(hass, DOMAIN)).version
+        if version is not None:
+            return str(version)
     return "unknown"

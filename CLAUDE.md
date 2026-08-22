@@ -776,7 +776,9 @@ no way to change one, so it fell back to reciting the Settings click-path.
 - **Helpers are read-only from chat.** The `input_*`/`counter`/`timer`/`schedule`
   storage collections are locals inside each component's `async_setup` and are
   never published to `hass.data`, so there is no supported in-process way to
-  create one — `list_helpers` finds existing helpers to wire automations to, and
+  create one (reachable by an authenticated websocket client, same as dashboard
+  entries — see that note; the pattern would carry over but each helper domain
+  needs its own allowlisted command, schema and validation) — `list_helpers` finds existing helpers to wire automations to, and
   `create_helper` is deliberately absent rather than faked.
 
 ### Tool lanes
@@ -887,13 +889,214 @@ looks identical in both listings.
 `insert_dashboard_card`. It is separate from `recipes/dashboard.py`, which is the
 recipe install stage; this module reuses its `_view_card_lists` but nothing else.
 
-- **A dashboard ENTRY cannot be created.** `DashboardsCollection` owns adding and
+- **A dashboard ENTRY cannot be created IN-PROCESS** — which is not the same as
+  impossible, and the distinction matters because the categorical version sent
+  us round in circles. `DashboardsCollection` owns adding and
   deleting dashboards and is a local inside `lovelace.async_setup`, published only
-  to a websocket handler — never to `hass.data`. Current core exposes exactly one
-  lovelace service (`reload_resources`), so there is no supported in-process path.
-  `create_dashboard` is therefore absent by design: a *page* is what a user
-  usually means, and that is `add_dashboard_view`. A genuinely separate dashboard
-  means the user adding an empty one in Settings → Dashboards first.
+  to the admin-only `lovelace/dashboards/*` websocket commands — never to
+  `hass.data`. Current core exposes exactly one lovelace service
+  (`reload_resources`). The supported API exists; it is reachable only by an
+  authenticated websocket CLIENT, which an in-process integration is not — which
+  is exactly how ha-mcp does it. `create_dashboard` is therefore absent here.
+  **The panel does it** (`create_dashboard`), being already an authenticated
+  websocket client (`hass.callWS`). Four things constrain the design:
+  - It serves **interactive panel sessions only**, and the CALLER declares that,
+    not the model. `panel_only` on the `ToolDef` withholds the schema unless
+    `_get_tools_for_provider` is passed `panel_available=True`, which the three
+    panel entry points do: the chat handler, its correction round, and the
+    streaming path. It defaults to False so a caller that says nothing gets
+    less. **`for_assist` is not the same question** — Assist has no panel, but
+    neither does an MCP `selora_chat` turn, and that one passes
+    `for_assist=False`, so gating on it offered the tool on a surface that
+    cannot execute the proposal.
+    Describing the restriction in the tool's own text instead — "if this is not
+    a panel chat, tell the user to add one in Settings" — asked the model to
+    judge which surface it was talking through, which nothing in its context
+    reveals. It hedged and refused: *"this chat can only create dashboards from
+    the Selora panel. Please open this conversation in the Selora panel"*, to a
+    user sitting in the panel. **A fact the model cannot observe must not be a
+    condition it applies**; the tool's PRESENCE has to carry it, and the
+    description now states availability flatly. The same doubt is what had it
+    describing the dashboard it *would* make instead of calling anything.
+  - The panel must never be handed a websocket payload the MODEL authored. The
+    server sends a closed, validated intent (`{kind: "create_dashboard", title,
+    url_path, …}`) and the panel constructs the fixed
+    `lovelace/dashboards/create` call itself. That boundary is the whole
+    security model: anything looser makes the model able to issue arbitrary
+    admin commands through the user's session.
+  - It goes behind a confirmation button, but **not because creation is
+    destructive** — the rule elsewhere here is that create/update execute
+    directly and only deletion confirms. It is because this is a *deferred
+    client-side privileged operation*: the panel must report the real websocket
+    result back, or Selora claims success for something that has not happened
+    yet, which is the failure this section already documents twice.
+  - The result handler must resolve the proposal to its MESSAGE INDEX
+    (`_find_pending_approval`) before calling `set_approval_status`, which
+    addresses by position — a proposal_id compared against an int silently
+    matches nothing. And `append_message` takes `role`/`content` as separate
+    arguments, not a dict. Both are the shape that looks right and raises at
+    runtime, and only a test that drives the handler catches them.
+  - **One `command_approval` fits per message**, so a client action proposed
+    beside a service call, delete or destructive action LOSES — it is a
+    proposal, nothing has happened, and it can be re-requested — and is then
+    NAMED in the reply, folded into the existing "I have not touched …" notice.
+    The naming has to happen after the winning card is built: both builders
+    replace `response` with their own wording.
+    **The MODEL'S OWN payload counts as competing, not just the tool log.** A
+    turn can carry an explicit `command_approval` with calls, or a plain
+    `command`/`delayed_command` with calls, and each reaches its slot by a
+    different route further down `synthesize_approval_from_tool_log` — so
+    weighing only the log returned the client card and discarded the service
+    calls outright, which is the one outcome the rule exists to prevent. An
+    empty `calls` list does NOT count: deferring to a card that resolves to
+    nothing would leave the user unable to act on either.
+  - **The card's prose is deterministic, never the model's.** By the time the
+    proposal comes back the model has typically already narrated the dashboard
+    as created, and carrying that through left a success claim above a button
+    that had not been pressed — told to a user who may never press it.
+    `_build_client_action_response` overrides `response` with
+    `client_action_pending_hint`, exactly as the delete card does, and the
+    outcome line (`dashboard_created_line`) is written only once the panel
+    reports back. A safe write that ALREADY executed in the same round is
+    acknowledged beside the hint, or overriding the prose drops the only
+    mention of something that really happened — with its entity tiles stripped,
+    since on a dashboard turn a tile reads as a preview of the layout that was
+    saved and nothing has been saved at all.
+  - The proposal carries the RESOLVED turn language, not `hass.language`.
+    `parse_streamed_response` re-runs `resolve_reply_language` for that reason:
+    `architect_chat_stream` resolves into a local the streaming caller cannot
+    reach, so it passes the panel's UI locale and every deterministic outcome
+    built downstream came out English. The resolution is a marker-set lookup —
+    pure and cheap enough to redo. The
+    panel only knows the UI locale, and a French message on an English-UI
+    install must still get a French outcome — only the turn that ran
+    `resolve_reply_language()` knows which.
+  - The result endpoint resolves ONE kind of card. `_find_pending_approval`
+    returns any pending proposal, so it also checks `approval_kind` and that the
+    reported kinds answer the stored descriptors — otherwise an authenticated
+    admin could mark a deletion approved and append a fabricated outcome for
+    work nothing performed. The panel is trusted to report faithfully; it is not
+    trusted to say which approval it is reporting on.
+  - **The re-entry guard is synchronous, before any await.** A double click
+    lands both handlers before Lit rerenders the disabled button, and
+    idempotence does NOT cover it: both would finish the dashboard-list request
+    before either creates, both would see nothing, and both would create. The
+    two guards answer different questions — this one stops a concurrent second
+    run, idempotence stops a later one.
+  - **The action itself must be idempotent**, because the card can outlive its
+    own execution: create succeeds, the report fails, and after a refresh the
+    backend still serves the proposal as pending with the button back. A blind
+    retry then fails on a url_path that is already taken and records the card as
+    denied for a dashboard sitting right there. `create_dashboard` checks the
+    dashboard list first and reconciles instead — keeping the resolved state in
+    memory only survives until the tab closes.
+  - A failed REPORT must not undo a succeeded ACTION. The dashboard exists;
+    reloading would swap in the server's still-pending copy, put the button
+    back, and invite a second creation. The session id is captured before the
+    first await for the same family of reason — switching conversations
+    mid-flight otherwise reports the old proposal against the new session.
+  - Everything HA's create schema can reject is validated BEFORE the card,
+    with HA's own validators (`cv.icon`), not lookalike regexes — the whole
+    point of the card is that pressing it works.
+  - **The card IS the ask, so the tool must be CALLED, not described.** Told
+    only that it proposes and the user then taps Create, the model answered
+    with a paragraph about the dashboard it could make and called nothing —
+    promising a confirmation card the user was never shown, which reads as the
+    request having been carried out. A description telling it to "say what will
+    be on it" is an instruction to narrate; that phrasing is gone. The prompt
+    already had this rule for REVIEW service calls ("The approval card IS the
+    confirmation step") and it now covers every confirmation-carded TOOL —
+    dashboards and each of the deletes — in that one block rather than restated
+    per description, where the next tool added would miss it.
+  - **The slug comes from HA's `slugify`**, not an ASCII character class. This
+    ships in 13 locales: a title written in the user's own script ("Кухня",
+    "厨房") had no ASCII to keep, reduced to nothing, and came back refused as
+    having no usable URL path, while an accented one lost the accented letters
+    ("Küche Öl" → `k-che-l`). `slugify` transliterates (`kukhnia`, `chu-fang`,
+    `kuche-ol`), as `script_manager` and `scene_utils` already use it to. Its
+    **`"unknown"` fallback is caught** rather than passed on: it substitutes
+    that literal when nothing survives, so a title of `"!!!"` would quietly
+    land at `/unknown` and the next one would collide with it.
+  - **A created dashboard has no stored DOCUMENT, and storage cannot tell that
+    from a generated Overview.** `lovelace/dashboards/create` makes the entry
+    only, and `LovelaceStorage.async_get_info` reports a dashboard whose config
+    is None as `mode: auto-gen` — so `_load_or_reason` refused every write with
+    the Take control note, `list_dashboards` called it `editable: false`, and
+    the user was told to go and do by hand the thing they had just asked for. A
+    dashboard nobody can fill is not a dashboard. So a successful report calls
+    `async_initialize_created_dashboard`, which saves `{"views": []}` — what
+    Take control does, minus the strategy render there is no server-side way to
+    perform. The dashboard is empty either way; the difference is that this one
+    is editable and the next request can put cards on it. It **never
+    overwrites** a document that exists, so a re-report cannot blank a dashboard
+    since filled, and a missing entry is a debug line rather than a failed
+    report — the create did succeed. Nothing short of an end-to-end test sees
+    this: propose and create both reported success throughout.
+  - **Reconciling a retry compares every field the create would have set**, not
+    just `url_path`. The path was free when the proposal was built, so a match
+    at tap time is only sometimes a retry of this action — the user may have
+    made an unrelated dashboard there in between, and reconciling to it recorded
+    the card approved while the transcript named a title that exists nowhere. A
+    retry of our own create agrees on title, icon, `require_admin` and
+    `show_in_sidebar` by construction, since they are the values it sent;
+    anything else is a real collision and is reported as one, naming what is in
+    the way.
+  - It would establish a reusable client-executed-command pattern that helper
+    creation could also use — but not for free. Each helper domain still needs
+    its own allowlisted command, schema, permission handling, result
+    reconciliation and tests.
+- **The card is a VARIANT of the one confirmation card, not a card of its own**
+  (`render-approval-card.js`). `_CONFIRM_VARIANTS` already held `delete` and
+  `destructive` under a comment saying they "use the same layout, rows, and
+  destructive accent — only the copy differs"; `client_action` is the third
+  entry, carrying the accent, head icon, copy, where its rows come from, how one
+  renders, and — uniquely — its button, since the panel's own work has no
+  server-side resolver while the others get Allow / Deny from `msg.quick_actions`.
+  `renderApprovalCard` asks whether the kind HAS a variant rather than naming
+  each, so a fourth shape needs no change there. Written as a second renderer it
+  had already drifted before shipping: its markup named five classes
+  (`approval-card`, `approval-head`, `approval-row`, `approval-buttons`,
+  `approve`) that no stylesheet defined, so it rendered as a bare div and a
+  browser-default button inside a styled chat. Nothing caught it — the markup
+  was valid, the behaviour correct, every test green — so a test now fails on a
+  class no stylesheet defines, and that test **globs** the stylesheets rather
+  than listing them, having first shipped missing `quick-actions.css.js` and
+  reporting a real class as invented.
+  - **The button is the quick-action confirm chip**, via `renderConfirmChip`
+    exported from `quick-actions.js` — the same component as a risk card's
+    Allow / Deny, at `tone: "approve"`. It takes a handler because a client
+    action has no quick-action value to send back. A `.btn .btn-primary` from
+    the generic family was a second button vocabulary for the identical act, and
+    the wrong weight: those tones exist so confirmation buttons "stay visually
+    quiet next to the risk card", and a filled button shouted where Allow
+    murmurs.
+  - **The head icon says what the CARD is; the row icon says what the THING is.**
+    Setting both to the dashboard glyph drew it twice, one above the other. The
+    delete card gets this right — a warning triangle above per-kind rows — so
+    the head is `mdi:gesture-tap` and the row icon comes from a per-kind map, so
+    a second client-action kind gets its own rather than inheriting a
+    dashboard's.
+  - The row label is composed in the FRONTEND from the descriptor's parts, not
+    taken from its server-built `label`: that string is English, and rendering
+    it would leave one English line in an otherwise translated card.
+- **`add_dashboard_view` must neither claim to create a dashboard nor deny that
+  anything can.** Both readings produce the same wrong answer. It used to say
+  "this is how you 'create a dashboard'", so a request for one was answered by
+  appending a page to an unrelated dashboard and reporting success. Replacing
+  that with "Home Assistant does not allow one to be created from here — send
+  the user to Settings → Dashboards" was no better once `create_dashboard`
+  existed three lines away in the same schema: a contradiction inside one schema
+  does not resolve as the newer half winning, and asked for an Office dashboard
+  the model took neither branch — it appended an Office page to an unrelated
+  dashboard and reported it created. The description now says what it does and
+  points at `create_dashboard` for the rest; a test holds the whole dashboard
+  family to denying nothing. The result carries a `url` for the same
+  reason: a page appended to an existing dashboard is unfindable from a bare
+  "created" — percent-encoded, because Lovelace validates nothing and a path
+  stored as `kitchen#lights` would otherwise produce a link the browser reads as
+  a fragment. The view stores fine either way; only the link would be wrong,
+  which is the worst shape for a result whose whole job is to be followed, and it is empty until cards are added, which is the other half of
+  "I can't see anything". A genuinely separate dashboard is `create_dashboard`.
 - **Lovelace validates nothing server-side.** The stored document is free-form
   JSON owned by the frontend, so a view's `title` and `path` are **not** unique.
   `resolve_view` accepts an index, a path, or a title, and **refuses an ambiguous

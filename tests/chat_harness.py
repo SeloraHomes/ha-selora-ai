@@ -232,6 +232,7 @@ class ChatHarness:
         message: str,
         *,
         chunks: Iterable[str] | str,
+        tool_calls: list[dict[str, Any]] | None = None,
         retry_reply: dict[str, Any] | None = None,
         session_id: str | None = None,
         is_admin: bool = True,
@@ -252,6 +253,13 @@ class ChatHarness:
 
         async def _stream(_self: Any, *args: Any, **kwargs: Any) -> AsyncIterator[str]:
             turn.architect_calls.append(self._recorded(args, kwargs))
+            # Scripted tool calls. The provider round trip is what is stubbed,
+            # so no tool actually runs — but the handler branches on what the
+            # executor RECORDED (a dashboard turn drops its entity tiles and
+            # gains a link, for one), and none of that is reachable otherwise.
+            executor = kwargs.get("tool_executor")
+            if executor is not None and tool_calls:
+                executor.call_log.extend(tool_calls)
             for chunk in text_chunks:
                 yield chunk
 
@@ -259,7 +267,18 @@ class ChatHarness:
             turn.architect_calls.append(self._recorded(args, kwargs))
             return retry_reply or {"intent": "answer", "response": "corrected"}
 
+        from custom_components.selora_ai.tool_executor import ToolExecutor
+
+        # `_create_tool_executor` returns None without a DeviceManager, so the
+        # handler saw no tool log at all and every rule keyed on one was dead
+        # in here. Scripting calls is the point of `tool_calls`.
+        executor = ToolExecutor(self.hass, None, is_admin=is_admin) if tool_calls else None
+
         with (
+            patch(
+                "custom_components.selora_ai._create_tool_executor",
+                return_value=executor,
+            ),
             patch.object(LLMClient, "architect_chat_stream", autospec=True, side_effect=_stream),
             patch.object(LLMClient, "architect_chat", autospec=True, side_effect=_architect),
             # The title round trip is a background task on a real provider.
@@ -278,13 +297,16 @@ class ChatHarness:
     def _recorded(args: tuple[Any, ...], kwargs: dict[str, Any]) -> dict[str, Any]:
         """Normalise a call to kwargs, so a test never asserts on arg position.
 
-        ``args`` is ``(self, user_message, entities)`` for both entry points.
+        ``args`` is ``(user_message, entities)``: the scripted side_effect takes
+        ``self`` as its own first parameter, so it is not in here. Off by one,
+        this recorded the ENTITIES list as ``user_message`` — which no test had
+        noticed, because none had asserted on the message the handler sent.
         """
         recorded = dict(kwargs)
+        if args:
+            recorded["user_message"] = args[0]
         if len(args) > 1:
-            recorded["user_message"] = args[1]
-        if len(args) > 2:
-            recorded["entities"] = args[2]
+            recorded["entities"] = args[1]
         return recorded
 
     async def _invoke(

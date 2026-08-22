@@ -429,3 +429,42 @@ async def test_publish_still_exports_when_the_audit_read_fails(hass: HomeAssista
     assert "roster" in captured["envelope"]
     # A best-effort miss is not a partial collection.
     assert captured["envelope"]["collection"]["status"] == "ok"
+
+
+# ── The producer block must not read the manifest on the event loop ─────────
+
+
+async def test_the_integration_version_comes_from_the_loader(hass) -> None:
+    """`_do_publish` runs on the event loop, so opening manifest.json there
+    stalls it and trips HA's blocking-call detector — which logged a traceback
+    pointing at us on every scheduled export. The loader already has this
+    manifest parsed, since the integration asking is the one that is loaded."""
+    from custom_components.selora_ai.insights_export import _async_integration_version
+
+    version = await _async_integration_version(hass)
+
+    assert version != "unknown"
+    # The real manifest value, not a placeholder.
+    import json
+    import pathlib
+
+    manifest = json.loads(
+        (pathlib.Path("custom_components/selora_ai") / "manifest.json").read_text()
+    )
+    assert version == manifest["version"]
+
+
+def test_the_export_module_never_opens_the_manifest_itself() -> None:
+    """A file read here is invisible to every test — the export succeeds, the
+    version is right, and only a running Home Assistant complains. So the
+    absence of the read is what gets asserted.
+
+    `telemetry` reads it directly and is fine: it goes through an executor.
+    """
+    import pathlib
+
+    source = pathlib.Path("custom_components/selora_ai/insights_export.py").read_text()
+    # The QUOTED filename: a read has to name the file as a string, while the
+    # comments that explain why it does not are prose.
+    assert '"manifest.json"' not in source
+    assert "'manifest.json'" not in source

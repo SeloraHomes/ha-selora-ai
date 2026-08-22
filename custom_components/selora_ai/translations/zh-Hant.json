@@ -957,7 +957,14 @@
     "approval_status_applied": "已套用",
     "destructive_approval_title": "套用此變更？",
     "destructive_approval_title_plural": "套用這些變更？",
-    "destructive_approval_warning": "此操作無法從聊天中復原。"
+    "destructive_approval_warning": "此操作無法從聊天中復原。",
+    "client_action_title": "需要您確認",
+    "client_action_create_dashboard": "在 /{url} 建立 {title} 儀表板",
+    "client_action_confirm": "建立",
+    "client_action_working": "處理中…",
+    "client_action_done": "完成。",
+    "client_action_failed": "操作未成功。",
+    "approval_then": "然後"
   },
   "options": {
     "step": {

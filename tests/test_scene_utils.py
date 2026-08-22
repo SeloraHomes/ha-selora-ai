@@ -868,3 +868,38 @@ class TestAsyncRemoveYamlSceneByEntity:
 
         assert removed is False
         assert code == "not_found"
+
+
+# ── Where scene creation lives, and why it is not a chat tool ───────────────
+
+
+def test_chat_has_no_create_scene_tool_on_purpose() -> None:
+    """MCP has `selora_create_scene`, which writes to SceneStore and
+    scenes.yaml on the spot. That is right there — MCP has no panel, so no card
+    — and wrong in chat, where a scene is PROPOSED and the user accepts it from
+    a card with the YAML in front of them, exactly as an automation is.
+
+    Adding the MCP tool to the chat surface would give scene creation two paths
+    that drift, and would write without the review the composer exists to
+    provide. So the absence is deliberate, and this test says so.
+    """
+    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.tool_registry import CHAT_TOOLS
+
+    chat = {t.name for t in CHAT_TOOLS}
+    assert "create_scene" not in chat
+    assert {"activate_scene", "delete_scene"} <= chat
+    assert "selora_create_scene" in {t.name for t in mcp_server._TOOL_DEFINITIONS}
+
+
+def test_the_scene_tools_name_the_route_that_does_create_one() -> None:
+    """Not finding a create-scene tool is what made the model answer "scene
+    creation isn't available in the connected Home Assistant tools" — to a user
+    who had already made scenes from the composer. A model searching the tool
+    list for "scene" finds these two, so the answer belongs in them."""
+    from custom_components.selora_ai.tool_registry import TOOL_MAP
+
+    for tool in ("activate_scene", "delete_scene"):
+        description = TOOL_MAP[tool].description
+        assert "no tool" in description
+        assert "intent 'scene'" in description

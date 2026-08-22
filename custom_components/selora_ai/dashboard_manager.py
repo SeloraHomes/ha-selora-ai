@@ -11,11 +11,15 @@ What is reachable, and what is not:
 * **A dashboard's config is read/write.** ``LovelaceStorage.async_load`` /
   ``async_save`` round-trip the whole document, so views and cards are fully
   editable. Everything here works on that document.
-* **A dashboard ENTRY is not creatable.** ``DashboardsCollection`` — which owns
-  adding and deleting dashboards — is a local inside ``lovelace.async_setup``,
-  published only to a websocket handler and never to ``hass.data``. There is no
-  supported in-process way to reach it, so ``create_dashboard`` is deliberately
-  absent: the user adds an empty dashboard in the UI and Selora builds it out.
+* **A dashboard ENTRY is not creatable FROM HERE.** Not the same as impossible:
+  ``DashboardsCollection`` — which owns adding and deleting dashboards — is a
+  local inside ``lovelace.async_setup``, published only to the admin-only
+  ``lovelace/dashboards/*`` websocket commands and never to ``hass.data``. The
+  supported API exists; it is only reachable by an authenticated websocket
+  client, which an in-process integration is not. So ``create_dashboard`` is
+  absent here, and the user adds an empty dashboard in the UI for Selora to
+  build out. See the note in CLAUDE.md on the panel-executed route, which would
+  serve interactive panel sessions only — not MCP, and not unattended runs.
 
 Three properties of the document shape drive most of the code here:
 
@@ -43,6 +47,7 @@ import json
 import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
+from urllib.parse import quote
 
 from .const import MAX_TOOL_RESULT_CHARS
 from .helpers import (
@@ -621,6 +626,8 @@ async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         return {"error": "card must be an object with a 'type' field"}
     # Lovelace stores whatever it is given, so an invented entity id renders as
     # "Entity not found" on the user's wall panel with nothing else to catch it.
+    if error := _card_type_error(hass, card):
+        return {"error": error}
     if error := _entity_error(hass, card):
         return {"error": error}
 
@@ -654,7 +661,40 @@ async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         "target": result.target,
         "view": result.view,
         "message": result.message,
+        # Where to go and look. Composed here, where the target and the view
+        # are known and encoded, rather than left to prose that names a page
+        # and gives no way to reach it.
+        **(
+            {
+                "url": _view_url(
+                    result.target,
+                    result.view if isinstance(result.view, str) else None,
+                    result.view if isinstance(result.view, int) else 0,
+                )
+            }
+            if result.ok
+            else {}
+        ),
     }
+
+
+def _view_url(target: str | None, path: str | None, index: int) -> str:
+    """The in-app URL of a view — what a user needs to go and look at it.
+
+    Falls back to the index when the view has no path, which is how Home
+    Assistant addresses an unnamed view in the URL bar.
+
+    Both segments are percent-encoded. Lovelace validates nothing server-side,
+    so a stored path may hold characters that mean something else in a URL — a
+    view saved as ``kitchen#lights`` would otherwise produce
+    ``/lovelace/kitchen#lights``, which the browser reads as the fragment
+    ``#lights`` on a view that does not exist. The view was stored fine; only
+    the link would have been wrong, which is the worst shape for this
+    particular result since its whole job is to be followed.
+    """
+    dashboard = quote(str(target or "lovelace"), safe="")
+    slug = quote(str(path or "").strip() or str(index), safe="")
+    return f"/{dashboard}/{slug}"
 
 
 async def async_add_view(
@@ -721,6 +761,16 @@ async def async_add_view(
         "dashboard": target or "lovelace",
         "view_index": new_index,
         "title": sanitize_untrusted_text(title, 60),
+        # Where to actually find it. A view appended to an existing dashboard is
+        # invisible to a user who was told "created" and then went looking under
+        # Settings > Dashboards, because no dashboard was created — this is the
+        # only thing in the result that points at the page itself.
+        "url": _view_url(target, path, new_index),
+        "note": (
+            "This is a new page ON that dashboard, not a new dashboard. It is empty "
+            "until you add cards to it. If the user asked for a new DASHBOARD, this "
+            "is not it — create_dashboard is."
+        ),
     }
 
 
@@ -884,6 +934,8 @@ async def async_update_card(
     """
     if not isinstance(card, dict) or not str(card.get("type", "")).strip():
         return {"error": "card must be an object with a 'type' field."}
+    if error := _card_type_error(hass, card):
+        return {"error": error}
     if error := _entity_error(hass, card):
         return {"error": error}
 
@@ -915,6 +967,9 @@ async def async_update_card(
 
     return {
         "status": "updated",
+        # Where the change landed, encoded, so the reply can link it instead of
+        # naming a page the user then has to go and find.
+        "url": _view_url(target, str(_views(document)[index].get("path") or "") or None, index),
         "dashboard": target or "lovelace",
         "view_index": index,
         "card_index": card_index,
@@ -1051,6 +1106,124 @@ def _unknown_entities(hass: HomeAssistant, card: Any) -> list[str]:
 
     walk(card)
     return sorted({e for e in found if hass.states.get(e) is None})
+
+
+# Card types named after an entity DOMAIN. This is the whole list, and it is
+# the only thing here that needs maintaining — a handful of names that change
+# about once a year, rather than HA's card catalogue, which grows every release
+# and can never include the custom cards a home has installed.
+#
+# The check is inverted for that reason: instead of asking "is this a known
+# card?" (unanswerable — Lovelace has no server-side validator and custom cards
+# come from resources this integration cannot enumerate), it asks "is this the
+# name of a domain in THIS home that has no card of its own?". A model writing
+# `type: fan` for a fan is drawing on the home's own vocabulary, which is
+# exactly where the wrong guesses come from, and an unknown type we have never
+# heard of is left alone rather than refused on a guess.
+_DOMAIN_NAMED_CARDS: Final = frozenset(
+    {
+        "light",
+        "lock",
+        "thermostat",
+        "humidifier",
+        "water_heater",
+        "sensor",
+        "calendar",
+        "map",
+        "todo_list",
+        "media_control",
+        "alarm_panel",
+        "weather_forecast",
+    }
+)
+
+# Structural elements of a SECTIONS VIEW, not cards. A different explanation:
+# the model reached for real Lovelace vocabulary, just in the wrong position.
+_VIEW_STRUCTURE_TYPES: Final = frozenset({"section", "view"})
+
+
+def _card_type_error(hass: HomeAssistant, card: Any) -> str | None:
+    """Refuse a card type Home Assistant cannot render.
+
+    Lovelace resolves a type to a custom element and calls setConfig on it; a
+    type with no element renders "Unknown type encountered" on the user's wall.
+    The document validates, saves, and breaks — a card is just a dict with a
+    `type`, so nothing else catches it, and unlike an automation there is no
+    `async_validate_config_item` to ask.
+
+    What can be answered without a catalogue is the shape the mistakes take: a
+    domain the home has, used as a card. Anything else — including every
+    `custom:` card and any card type newer than this code — passes.
+    """
+    if not isinstance(card, dict):
+        return None
+    # Every card in the tree, not just the outer one. A container holds its
+    # children under `cards`, and the wrong type is usually one of THOSE — a
+    # grid of tiles with a single `type: fan` among them. Checking the root
+    # alone passed the container and stored the broken child, which is exactly
+    # what `_unknown_entities` walks the whole card to avoid.
+    domains: set[str] | None = None
+    for nested in _cards_in_tree(card):
+        raw = str(nested.get("type", "")).strip()
+        kind = raw.lower().replace("-", "_")
+        if not kind or kind.startswith("custom:"):
+            continue
+        if domains is None:
+            domains = {eid.split(".", 1)[0] for eid in hass.states.async_entity_ids()}
+        if error := _one_card_type_error(raw, kind, domains):
+            return error
+    return None
+
+
+def _cards_in_tree(card: dict[str, Any]) -> list[dict[str, Any]]:
+    """The card and every card nested inside it.
+
+    Only dicts under a `cards` key count as cards. A `features` list holds
+    feature configs which carry their own `type` vocabulary (`light-brightness`,
+    `fan-speed`) and are not cards — walking those would refuse every tile that
+    has one.
+    """
+    found: list[dict[str, Any]] = [card]
+    stack: list[Any] = [card]
+    while stack:
+        node = stack.pop()
+        if not isinstance(node, dict):
+            continue
+        nested = node.get("cards")
+        if isinstance(nested, list):
+            for item in nested:
+                if isinstance(item, dict):
+                    found.append(item)
+                    stack.append(item)
+        # A sections view's grid, and the conditional card's single child.
+        for key in ("sections", "card"):
+            value = node.get(key)
+            for item in value if isinstance(value, list) else [value]:
+                if isinstance(item, dict):
+                    found.append(item)
+                    stack.append(item)
+    return found
+
+
+def _one_card_type_error(raw: str, kind: str, domains: set[str]) -> str | None:
+    """The refusal for a single card type, or None."""
+    safe = sanitize_untrusted_text(raw, 40)
+    if kind in _VIEW_STRUCTURE_TYPES:
+        return (
+            f"'{safe}' is not a card type — it is how a sections VIEW holds its "
+            f"cards, and Home Assistant renders it as 'Configuration error'. To "
+            f"group cards inside a view, use a container card ('grid', "
+            f"'vertical-stack', 'horizontal-stack') and put them in its 'cards'. "
+            f"To get a sections layout, create the view with sections=true."
+        )
+    if kind in _DOMAIN_NAMED_CARDS or kind not in domains:
+        return None
+    return (
+        f"'{safe}' is a domain, not a card type, so the dashboard would show "
+        f"'Unknown type encountered: {safe}'. Use 'tile' for a single entity or "
+        f"'entities' for a list. Only these domains have a card of their own: "
+        f"{', '.join(sorted(_DOMAIN_NAMED_CARDS))}."
+    )
 
 
 def _entity_error(hass: HomeAssistant, card: Any) -> str | None:
@@ -1196,6 +1369,8 @@ async def async_group_cards(
     # same obligation: a custom one can name entities of its own, and Lovelace
     # stores a typo happily and renders "Entity not found" on the wall panel.
     # The cards being grouped were validated when they were written.
+    if error := _card_type_error(hass, container):
+        return {"error": error}
     if error := _entity_error(hass, container):
         return {"error": error}
 
@@ -1258,4 +1433,188 @@ async def async_group_cards(
         "view_index": index,
         "container": container_card.get("type"),
         "grouped_card_count": len(grouped),
+    }
+
+
+# ── Client-executed dashboard creation ───────────────────────────────────────
+#
+# Creating a dashboard ENTRY needs `DashboardsCollection`, which lovelace keeps
+# as a local and exposes only through its admin-only `lovelace/dashboards/*`
+# websocket commands. We cannot reach it; the PANEL can, because it is already
+# an authenticated websocket client.
+#
+# So this half only ever PROPOSES. It validates against HA's own create schema,
+# returns a closed intent, and the panel builds the fixed websocket call from
+# it. The model never authors a websocket payload — if it could, it could issue
+# any admin command through the user's session.
+
+_DASHBOARD_SLUG_RE: Final = re.compile(r"[a-z0-9-]+")
+
+
+def _dashboard_slug(title: str, url_path: str | None) -> str:
+    """A url_path HA will accept, derived from the title when not given.
+
+    Uses HA's own ``slugify``, as `script_manager` and `scene_utils` do, rather
+    than folding the string through an ASCII character class. This ships in 13
+    locales: a title written in the user's own script — "Кухня", "厨房" — has no
+    ASCII to keep, so it reduced to nothing and the request was refused as
+    having "no usable URL path", and a merely accented one lost the accented
+    letters outright ("Küche Öl" → "k-che-l"). ``slugify`` transliterates
+    instead ("kukhnia", "chu-fang", "kuche-ol"), which is both a path HA
+    accepts and one the user can recognise.
+    """
+    from homeassistant.util import slugify  # noqa: PLC0415
+
+    raw = str(url_path or title or "").strip()
+    slug = slugify(raw, separator="-")
+    # ``slugify`` substitutes the literal "unknown" when nothing of the input
+    # survives, so a title of "!!!" would quietly become /unknown — and the
+    # next one would collide with it. Report it as unusable instead, which is
+    # what the caller's empty-slug branch already says, unless "unknown" is
+    # what was actually asked for.
+    if slug == "unknown" and "unknown" not in raw.casefold():
+        return ""
+    return slug
+
+
+def _panel_exists(hass: HomeAssistant, url_path: str) -> bool:
+    """Whether a panel already answers to this URL.
+
+    `frontend.async_panel_exists` is absent from some supported HA versions,
+    while the registry it reads — `hass.data[DATA_PANELS]` — is present in all
+    of them, so fall back to reading it directly.
+    """
+    from homeassistant.components import frontend  # noqa: PLC0415
+
+    panel_exists = getattr(frontend, "async_panel_exists", None)
+    if panel_exists is not None:
+        return bool(panel_exists(hass, url_path))
+    return url_path in hass.data.get(frontend.DATA_PANELS, {})
+
+
+async def async_initialize_created_dashboard(hass: HomeAssistant, url_path: str) -> bool:
+    """Give a just-created dashboard a stored document, so it can be written to.
+
+    ``lovelace/dashboards/create`` creates the ENTRY and nothing else: the
+    dashboard has no stored config, and ``LovelaceStorage.async_get_info``
+    reports that as ``mode: auto-gen`` — the same answer a generated Overview
+    gives, because from storage's side they are the same state. So without this
+    every write to the dashboard Selora just made is refused with the Take
+    control note, `list_dashboards` calls it ``editable: false``, and the user
+    is told to go and do by hand the thing they had just asked for. Creating a
+    dashboard nobody can then fill is not creating a dashboard.
+
+    Saving an empty document is what Take control does, minus the strategy
+    render there is no server-side way to perform. The dashboard is empty
+    either way — the difference is that this one is EDITABLE, and the next
+    request can put the cards on it.
+
+    Only ever when nothing is stored: a document that exists is never touched,
+    so a re-report cannot blank a dashboard that has since been filled.
+    Returns whether it seeded.
+    """
+    from homeassistant.components.lovelace.const import ConfigNotFound  # noqa: PLC0415
+
+    config, error = _writable_dashboard(hass, url_path)
+    if error or config is None:
+        # The entry not being registered yet is not worth failing the report
+        # over — the create itself succeeded, and the next write reports its own
+        # problem. Same for a caller-hidden dashboard.
+        _LOGGER.debug("Cannot initialize dashboard %s: %s", url_path, error)
+        return False
+
+    save = getattr(config, "async_save", None)
+    if save is None:
+        return False
+
+    async with DASHBOARD_LOCK:
+        try:
+            await config.async_load(False)
+        except ConfigNotFound:
+            pass
+        except Exception:  # noqa: BLE001 — a failed read must not blank a document
+            _LOGGER.debug("Not initializing %s: its config could not be read", url_path)
+            return False
+        else:
+            # Something is stored. Never overwrite it.
+            return False
+
+        try:
+            await save({"views": []})
+        except Exception as exc:  # noqa: BLE001 — the dashboard exists either way
+            _LOGGER.warning("Could not initialize dashboard %s: %s", url_path, exc)
+            return False
+    return True
+
+
+async def async_propose_dashboard(
+    hass: HomeAssistant,
+    *,
+    title: str,
+    url_path: str | None = None,
+    icon: str | None = None,
+    require_admin: bool = False,
+    show_in_sidebar: bool = True,
+) -> dict[str, Any]:
+    """Validate a new-dashboard request and hand back a closed intent.
+
+    Creates nothing. Everything HA's schema can reject is checked here so the
+    user is not shown a button that fails when they press it, but the create
+    itself happens in the panel under the user's own credentials.
+    """
+    from homeassistant.helpers import config_validation as cv  # noqa: PLC0415
+    import voluptuous as vol  # noqa: PLC0415
+
+    title = str(title or "").strip()
+    if not title:
+        return {"error": "A dashboard title is required."}
+
+    slug = _dashboard_slug(title, url_path)
+    if not slug or not _DASHBOARD_SLUG_RE.fullmatch(slug):
+        return {
+            "error": (
+                f"'{sanitize_untrusted_text(str(url_path or title), 60)}' does not give a "
+                f"usable URL path. Use lowercase letters, numbers and hyphens."
+            )
+        }
+    # Validated with HA's own validator, not a regex of our own: the schema this
+    # proposal is destined for uses `cv.icon`, so anything it rejects makes a
+    # Create button that always fails after the user presses it.
+    clean_icon = str(icon).strip() if icon and str(icon).strip() else None
+    if clean_icon is not None:
+        try:
+            cv.icon(clean_icon)
+        except vol.Invalid:
+            return {
+                "error": (
+                    f"'{sanitize_untrusted_text(clean_icon, 40)}' is not a usable icon. "
+                    f"Home Assistant wants the 'prefix:name' form, like 'mdi:chef-hat'."
+                )
+            }
+
+    if _panel_exists(hass, slug):
+        return {
+            "error": (
+                f"A dashboard or panel already uses the URL '/{slug}'. Pick another "
+                f"url_path, or edit the existing one instead."
+            )
+        }
+
+    return {
+        "requires_approval": True,
+        "client_action": {
+            # Every field here is validated above and allowlisted by the panel.
+            # The panel constructs `lovelace/dashboards/create` itself; it never
+            # forwards anything shaped by the model.
+            "kind": "create_dashboard",
+            "title": title,
+            "url_path": slug,
+            "icon": clean_icon,
+            "require_admin": bool(require_admin),
+            "show_in_sidebar": bool(show_in_sidebar),
+            # HA rejects a single-word path unless told otherwise, and a
+            # one-word title is the common case ("Kitchen").
+            "allow_single_word": "-" not in slug,
+            "label": f"Create the {sanitize_untrusted_text(title, 60)} dashboard at /{slug}",
+        },
     }

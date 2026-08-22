@@ -1961,6 +1961,53 @@ _GENERIC_RAN_BY_LANG: dict[str, str] = {
     "ru": "Выполнено",
 }
 
+# Outcomes for work the PANEL performed. Deterministic strings built here rather
+# than by the model, so they need the same per-language treatment as every other
+# runtime confirmation — a French conversation that answers in English breaks the
+# per-turn language invariant.
+_DASHBOARD_CREATED_BY_LANG: dict[str, str] = {
+    "fr": "J'ai créé le tableau de bord {title} — il est sur /{url}.",
+    "de": "Das Dashboard {title} wurde erstellt — es liegt unter /{url}.",
+    "es": "He creado el panel {title}: está en /{url}.",
+    "it": "Ho creato la dashboard {title} — si trova su /{url}.",
+    "nl": "Het dashboard {title} is aangemaakt — te vinden op /{url}.",
+    "pt": "Criei o painel {title} — está em /{url}.",
+    "hu": "Létrehoztam a(z) {title} vezérlőpultot — itt található: /{url}.",
+    "ru": "Панель {title} создана — она находится по адресу /{url}.",
+    "ja": "{title} ダッシュボードを作成しました。/{url} にあります。",
+    "ko": "{title} 대시보드를 만들었습니다. /{url} 에 있습니다.",
+    "zh": "已创建 {title} 仪表板，位于 /{url}。",
+}
+
+_ACTION_FAILED_BY_LANG: dict[str, str] = {
+    "fr": "Cela n'a pas fonctionné : {detail}",
+    "de": "Das hat nicht geklappt: {detail}",
+    "es": "No ha funcionado: {detail}",
+    "it": "Non ha funzionato: {detail}",
+    "nl": "Dat is niet gelukt: {detail}",
+    "pt": "Isso não funcionou: {detail}",
+    "hu": "Ez nem sikerült: {detail}",
+    "ru": "Не получилось: {detail}",
+    "ja": "うまくいきませんでした: {detail}",
+    "ko": "실패했습니다: {detail}",
+    "zh": "操作未成功：{detail}",
+}
+
+
+def dashboard_created_line(title: str, url: str, language: str | None) -> str:
+    """The confirmation for a dashboard the panel created, in the user's language."""
+    template = _DASHBOARD_CREATED_BY_LANG.get(
+        _normalize_lang(language), "Created the {title} dashboard — it is at /{url}."
+    )
+    return template.format(title=title, url=url)
+
+
+def action_failed_line(detail: str, language: str | None) -> str:
+    """The failure line for panel-performed work, in the user's language."""
+    template = _ACTION_FAILED_BY_LANG.get(_normalize_lang(language), "That did not work: {detail}")
+    return template.format(detail=detail)
+
+
 _DONE_BY_LANG: dict[str, str] = {
     "fr": "Terminé.",
     "de": "Fertig.",
@@ -2617,6 +2664,213 @@ def _delete_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
     ]
 
 
+# Tools whose work the PANEL performs, because the supported API is a websocket
+# command and we are not a websocket client. Only these may emit a
+# `client_action` descriptor, and the panel allowlists the kinds again.
+_CLIENT_ACTION_TOOLS = frozenset({"create_dashboard"})
+_CLIENT_ACTION_KINDS = frozenset({"create_dashboard"})
+
+
+def _pending_client_actions_from_log(
+    tool_log: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Collect client-executed action descriptors from the tool log.
+
+    Same allowlist-both-ends shape as the delete descriptors: the tool name and
+    the kind are checked separately, so a tool cannot smuggle a kind the panel
+    would act on.
+    """
+    collected: list[dict[str, Any]] = []
+    for entry in tool_log or []:
+        if str(entry.get("tool", "")) not in _CLIENT_ACTION_TOOLS:
+            continue
+        result = entry.get("result")
+        if not isinstance(result, dict) or not result.get("requires_approval"):
+            continue
+        descriptor = result.get("client_action")
+        if not isinstance(descriptor, dict):
+            continue
+        if str(descriptor.get("kind", "")) not in _CLIENT_ACTION_KINDS:
+            continue
+        collected.append(descriptor)
+    return collected
+
+
+def _remaining_intent_from_log(tool_log: list[dict[str, Any]] | None) -> str | None:
+    """What the model says it still has to do after the card is confirmed.
+
+    Read off the tool RESULT rather than the model's prose, because the tool
+    loop short-circuits on `requires_approval` and discards the prose — the
+    same reason a delete card's blast radius has to come from the tool. Any
+    carded tool can carry it by returning the key; only `create_dashboard`
+    does today.
+
+    This is the whole resumption trigger. Without it a turn ends at the card
+    and the rest of the request is dropped silently, which is what made
+    "a dashboard for the Office with my Office devices" produce an empty one.
+    """
+    for entry in tool_log or []:
+        result = entry.get("result")
+        if not isinstance(result, dict) or not result.get("requires_approval"):
+            continue
+        intent = result.get("remaining_intent")
+        if isinstance(intent, str) and intent.strip():
+            return intent.strip()
+    return None
+
+
+# The wording shown while a client action is PENDING. The privileged websocket
+# call has not run yet — it runs in the panel, if and when the user taps the
+# button — so this deliberately negates completion rather than merely omitting
+# it: the model routinely narrates the dashboard as already created the moment
+# the proposal comes back from the tool, and that narration is what the card
+# would otherwise sit beneath.
+_CLIENT_ACTION_PENDING_BY_LANG: dict[str, str] = {
+    "fr": "Rien n'a encore été créé — confirmez ci-dessous et je m'en occupe.",
+    "de": "Es wurde noch nichts erstellt — bestätigen Sie unten, dann erledige ich das.",
+    "es": "Todavía no se ha creado nada: confirma abajo y lo hago.",
+    "it": "Non è stato ancora creato nulla — conferma qui sotto e lo faccio.",
+    "nl": "Er is nog niets aangemaakt — bevestig hieronder en ik doe het.",
+    "pt": "Ainda não foi criado nada — confirme abaixo e eu trato disso.",
+    "hu": "Még semmi nem jött létre – erősítse meg lent, és elkészítem.",
+    "ru": "Пока ничего не создано — подтвердите ниже, и я это сделаю.",
+    "ja": "まだ作成していません。下で確認していただければ対応します。",
+    "ko": "아직 아무것도 만들지 않았습니다. 아래에서 확인하시면 진행합니다.",
+    "zh": "目前尚未创建——请在下方确认，我就去办。",
+}
+
+
+def client_action_pending_hint(language: str | None) -> str:
+    """Localized hint shown while a client-executed action awaits its tap."""
+    return _CLIENT_ACTION_PENDING_BY_LANG.get(
+        _normalize_lang(language),
+        "Nothing has been created yet — confirm below and I will do it.",
+    )
+
+
+_DEFERRED_ACTION_BY_LANG: dict[str, str] = {
+    "fr": "Je n'ai pas encore fait ceci : {what}. Redemandez-le et je m'en occupe.",
+    "de": "Das habe ich noch nicht erledigt: {what}. Fragen Sie noch einmal danach.",
+    "es": "Esto aún no lo he hecho: {what}. Vuelve a pedírmelo y lo haré.",
+    "it": "Questo non l'ho ancora fatto: {what}. Richiedimelo e lo faccio.",
+    "nl": "Dit heb ik nog niet gedaan: {what}. Vraag het opnieuw.",
+    "pt": "Isto ainda não fiz: {what}. Peça-me de novo e trato disso.",
+    "hu": "Ezt még nem intéztem el: {what}. Kérje meg újra.",
+    "ru": "Это я ещё не сделал: {what}. Попросите ещё раз.",
+    "ja": "これはまだ行っていません: {what}。もう一度お申し付けください。",
+    "ko": "아직 하지 않았습니다: {what}. 다시 요청해 주세요.",
+    "zh": "这项我还没有处理：{what}。请再说一次。",
+}
+
+
+def _deferred_client_action_line(actions: list[dict[str, Any]], language: str | None) -> str:
+    """Name what was set aside so the user knows to ask again."""
+    what = ", ".join(str(a.get("label") or a.get("kind", "")) for a in actions)
+    template = _DEFERRED_ACTION_BY_LANG.get(
+        _normalize_lang(language), "I have not done this yet: {what}. Ask me again and I will."
+    )
+    return template.format(what=what)
+
+
+def _has_explicit_approval_calls(result: ArchitectResponse) -> bool:
+    """True when a MODEL-emitted ``command_approval`` proposes service calls.
+
+    False for anything else, including a payload malformed enough that
+    ``_normalize_explicit_approval`` will downgrade it to an answer — an
+    approval card with nothing to run is not a competing proposal, and treating
+    it as one would defer a client action in favour of a card that resolves to
+    nothing.
+    """
+    if result.get("intent") != "command_approval":
+        return False
+    proposal = result.get("command_approval")
+    if not isinstance(proposal, dict):
+        return False
+    calls = proposal.get("calls")
+    return isinstance(calls, list) and bool(calls)
+
+
+def _has_direct_command_calls(result: ArchitectResponse) -> bool:
+    """True when the model answered with a ``command`` carrying service calls.
+
+    A command intent reaches its own early return further down, so a client
+    action selected ahead of it takes the card slot AND empties ``calls`` —
+    dropping a device command the user asked for. Same question as
+    ``_has_explicit_approval_calls``, asked of the other shape that carries
+    calls; an empty list is not a competing outcome.
+    """
+    if result.get("intent") not in ("command", "delayed_command"):
+        return False
+    calls = result.get("calls")
+    return isinstance(calls, list) and bool(calls)
+
+
+def _build_client_action_response(
+    result: ArchitectResponse,
+    actions: list[dict[str, Any]],
+    tool_log: list[dict[str, Any]] | None = None,
+    hass: HomeAssistant | None = None,
+    *,
+    language: str | None = None,
+    remaining_intent: str | None = None,
+) -> ArchitectResponse:
+    """Upgrade *result* to a ``client_action`` card the panel executes.
+
+    Reuses the ``command_approval`` intent and payload key so session
+    persistence and card rendering apply unchanged, exactly as the delete card
+    does. The discriminator routes the frontend to the client-executed branch —
+    and there is deliberately NO server-side resolver: `selora_ai/resolve_approval`
+    would have nothing to run, because the whole point is that the privileged
+    call can only be made by an authenticated websocket client.
+    """
+    upgraded: ArchitectResponse = dict(result)
+    upgraded["intent"] = "command_approval"
+    upgraded["calls"] = []
+    upgraded["command_approval"] = {
+        "proposal_id": str(uuid.uuid4()),
+        "approval_kind": "client_action",
+        "calls": [],
+        "deletes": [],
+        "actions": [],
+        "client_actions": actions,
+        # What is still to do once the panel reports back — the resumption
+        # trigger. Persisted on the proposal because the turn that declared it
+        # is over by then, and nothing else remembers.
+        "remaining_intent": remaining_intent,
+        # Depth 0: this proposal may be resumed once. A proposal built DURING a
+        # resumed turn is stamped 1 by the chat handler, which is the cap.
+        "resume_depth": 0,
+        # The language RESOLVED for this turn, not the panel's UI locale: a
+        # French message on an English-UI install must get a French outcome,
+        # and only this turn knows which it was.
+        "language": language,
+    }
+    # The model's own prose is DISCARDED, not carried through. By the time the
+    # proposal comes back from the tool it has typically already narrated the
+    # dashboard as created, and copying that leaves a success claim sitting
+    # above a button that has not been pressed — told to a user who may never
+    # press it. The outcome line is written once the panel reports back
+    # (``dashboard_created_line``); until then the wording has to be the
+    # deterministic pending one, exactly as the delete card does it.
+    effective_language = language or (hass.config.language if hass is not None else None)
+    hint = client_action_pending_hint(effective_language)
+    # A safe write in the same round ALREADY executed — "turn the porch light
+    # off and make me a dashboard" fires the light and holds the dashboard.
+    # Acknowledge it alongside the hint or overriding the response drops the
+    # only mention of something that really happened.
+    executed = _iter_executed_write_actions(tool_log)
+    if executed:
+        resolver = _friendly_name_resolver(hass)
+        confirmation = build_executed_confirmation(executed, resolver, language=effective_language)
+        upgraded["response"] = f"{confirmation}\n\n{hint}"
+    else:
+        upgraded["response"] = hint
+    # That confirmation carries entity tiles, and this is by definition a
+    # dashboard turn — where a tile reads as a preview of the layout that was
+    # saved. Nothing has been saved at all yet, so they go.
+    return strip_entity_tiles_after_dashboard_turn(upgraded, tool_log)
+
+
 def _build_delete_approval_response(
     result: ArchitectResponse,
     deletes: list[dict[str, Any]],
@@ -2646,6 +2900,14 @@ def _build_delete_approval_response(
         "calls": [],
         "deletes": deletes,
         "actions": actions,
+        # What is still to do once this is confirmed. Same field the client
+        # action carries, read off the tool log the same way: a deletion is
+        # often a step ("delete the old scene and rebuild it"), and the turn
+        # ends at the card, so without this the rest is dropped silently.
+        "remaining_intent": _remaining_intent_from_log(tool_log),
+        # Depth 0 — resumable once. Stamped 1 by the chat handler when the
+        # proposal was itself made during a resumed turn.
+        "resume_depth": 0,
     }
     upgraded: ArchitectResponse = dict(result)
     upgraded["intent"] = "command_approval"
@@ -2682,6 +2944,162 @@ _ENTITY_MARKER = re.compile(r"^\s*\[\[entit(?:y|ies):[^\]]*\]\]\s*$", re.M)
 _AREA_SUBHEADING = re.compile(r"^\s*###\s+.*$", re.M)
 
 
+def is_dashboard_turn(tool_log: list[dict[str, Any]] | None) -> bool:
+    """Whether this turn read or edited a dashboard.
+
+    One definition, because two places act on the answer and they were
+    disagreeing: the synthesizer strips entity tiles here, and the chat handler
+    appends them further downstream. The strip ran, the append put them back,
+    and the rule documented in this module was silently not in force.
+    """
+    return bool(tool_log) and any(
+        "dashboard" in str(entry.get("tool") or "") for entry in tool_log or []
+    )
+
+
+# Where the change can be seen. A dashboard turn's answer is about a PAGE, and
+# naming it without linking it leaves the user to find it — which is the same
+# complaint that put a `url` on add_dashboard_view's result.
+_OPEN_DASHBOARD_BY_LANG: dict[str, str] = {
+    "fr": "Ouvrir le tableau de bord",
+    "de": "Dashboard öffnen",
+    "es": "Abrir el panel",
+    "it": "Apri la dashboard",
+    "nl": "Dashboard openen",
+    "pt": "Abrir o painel",
+    "hu": "Vezérlőpult megnyitása",
+    "ru": "Открыть панель",
+    "ja": "ダッシュボードを開く",
+    "ko": "대시보드 열기",
+    "zh": "打开仪表板",
+}
+
+
+def _dashboard_target_from_log(
+    tool_log: list[dict[str, Any]] | None,
+) -> tuple[str, str] | None:
+    """``(url, label)`` for the page a dashboard turn last wrote to.
+
+    Taken from the tool RESULT, never composed here: the writers know which
+    dashboard and which view they landed on, and they percent-encode the path.
+    A URL assembled from the model's prose would be a guess, and this one is
+    rendered as something the user clicks.
+    """
+    found: tuple[str, str] | None = None
+    for entry in tool_log or []:
+        result = entry.get("result")
+        if not isinstance(result, dict):
+            continue
+        url = result.get("url")
+        if not isinstance(url, str) or not url.startswith("/") or url.startswith("//"):
+            continue
+        # `]` and `|` would break out of the marker the panel parses, and the
+        # title is whatever the user named their dashboard.
+        raw = str(result.get("title") or result.get("dashboard") or "").strip()
+        label = re.sub(r"[\[\]|]", "", raw)[:60].strip()
+        found = (url, label)
+    return found
+
+
+# Dashboard tools that CHANGE something. A read that fails is answered by the
+# prose; a write that fails and is reported as done is the failure this whole
+# file keeps circling.
+_DASHBOARD_WRITE_TOOLS = frozenset(
+    {
+        "insert_dashboard_card",
+        "update_dashboard_card",
+        "remove_dashboard_card",
+        "move_dashboard_card",
+        "group_dashboard_cards",
+        "add_dashboard_view",
+        "update_dashboard_view",
+        "remove_dashboard_view",
+    }
+)
+
+
+def _dashboard_write_outcomes(
+    tool_log: list[dict[str, Any]] | None,
+) -> tuple[bool, str | None]:
+    """``(any_succeeded, first_error)`` across this turn's dashboard writes."""
+    succeeded = False
+    error: str | None = None
+    for entry in tool_log or []:
+        if str(entry.get("tool", "")) not in _DASHBOARD_WRITE_TOOLS:
+            continue
+        result = entry.get("result")
+        if not isinstance(result, dict):
+            continue
+        failure = result.get("error") or (
+            result.get("message") if result.get("ok") is False else None
+        )
+        if failure:
+            error = error or str(failure)
+        else:
+            succeeded = True
+    return succeeded, error
+
+
+def note_failed_dashboard_write(
+    result: ArchitectResponse,
+    tool_log: list[dict[str, Any]] | None,
+    language: str | None = None,
+) -> ArchitectResponse:
+    """Say so when every dashboard write this turn was refused.
+
+    The refusal is fed back to the model as an ordinary tool result, so it can
+    correct itself and call again inside the same turn — that is the loop, and
+    it is the same one an invalid automation gets. What was missing is the
+    other end: nothing stopped a turn whose writes were ALL refused from
+    answering "Added the card". The prose is the model's; whether anything
+    changed is not, so the outcome is stated here.
+
+    Only when nothing succeeded. A turn that fixed its own mistake on the
+    second call did what was asked, and reporting the discarded first attempt
+    would be noise.
+    """
+    succeeded, error = _dashboard_write_outcomes(tool_log)
+    if succeeded or not error:
+        return result
+    noted: ArchitectResponse = dict(result)
+    noted["response"] = (
+        f"{str(result.get('response') or '').rstrip()}\n\n"
+        f"{action_failed_line(error[:200].strip(), language)}"
+    ).strip()
+    # So the panel and the benchmark can tell a claimed change from a real one
+    # without reading prose, the way a command failure already does.
+    noted["validation_error"] = error
+    noted["validation_target"] = "dashboard"
+    return noted
+
+
+def append_dashboard_link(
+    result: ArchitectResponse,
+    tool_log: list[dict[str, Any]] | None,
+    language: str | None = None,
+) -> ArchitectResponse:
+    """Put a card for the page a dashboard turn changed under the reply.
+
+    A marker, not a markdown link, for the same reason entities are markers:
+    the panel renders it as a real element. The model reliably writes the path
+    into its prose as a code span — "available at `/office/0`" — which looks
+    like a link and is not one, so this is emitted regardless of what the prose
+    already says; only an existing marker suppresses it.
+    """
+    target = _dashboard_target_from_log(tool_log)
+    if target is None:
+        return result
+    url, label = target
+    text = str(result.get("response") or "")
+    if "[[dashboard:" in text:
+        return result
+    if not label:
+        label = _OPEN_DASHBOARD_BY_LANG.get(_normalize_lang(language), "Open the dashboard")
+    linked: ArchitectResponse = dict(result)
+    linked["response"] = f"{text.rstrip()}\n\n[[dashboard:{url}|{label}]]".strip()
+    return linked
+
+
 def strip_entity_tiles_after_dashboard_turn(
     result: ArchitectResponse, tool_log: list[dict[str, Any]] | None
 ) -> ArchitectResponse:
@@ -2696,7 +3114,7 @@ def strip_entity_tiles_after_dashboard_turn(
 
     Only the markers go. The prose stays, so the model still says what it did.
     """
-    if not tool_log or not any("dashboard" in str(entry.get("tool") or "") for entry in tool_log):
+    if not is_dashboard_turn(tool_log):
         return result
     text = str(result.get("response") or "")
     if "[[entit" not in text:
@@ -2739,17 +3157,75 @@ def synthesize_approval_from_tool_log(
     LLM-shaped payload typically lacks the ``approve:<scope>:<id>``
     quick-actions the chat UI needs to surface Allow/Deny buttons.
     """
+    # Before the explicit-approval normalization: a model that answers with
+    # intent "command_approval" of its own after create_dashboard would
+    # otherwise have its client action discarded here, or turned into a
+    # server-resolved card whose confirm button has nothing to run.
+    #
+    # Only when nothing ELSE is pending, though. One command_approval fits per
+    # message, and the same rule the delete branch follows applies: a client
+    # action is a proposal — nothing has happened — so deferring it loses
+    # nothing the user cannot re-request, whereas a pending service call is a
+    # real action they asked for. When both are present the other card wins and
+    # the deferred one is NAMED, because a request silently dropped is the
+    # failure this whole section exists to avoid.
+    client_actions = _pending_client_actions_from_log(tool_log)
+
+    def _note_deferred(built: ArchitectResponse) -> ArchitectResponse:
+        """Name the client action that lost the card, so it is told not dropped.
+
+        Appended AFTER the winning card is built: the delete and client-action
+        builders both replace ``response`` with their own wording, so anything
+        added beforehand is overwritten. Nothing carries a held proposal into
+        the next turn — the user has to know to ask again.
+        """
+        if not client_actions:
+            return built
+        noted: ArchitectResponse = dict(built)
+        noted["response"] = (
+            f"{str(built.get('response') or '').rstrip()}\n\n"
+            f"{_deferred_client_action_line(client_actions, language)}"
+        ).strip()
+        return noted
+
+    if client_actions and not (
+        # The model's OWN payload counts here, not just the tool log — both
+        # the approval shape and a plain command, each of which reaches its
+        # card slot by a different route further down. Checking only the log
+        # let a turn that proposed a dashboard AND proposed service calls
+        # return the client card and discard the calls outright, which is the
+        # one outcome the whole "competing proposals" rule exists to prevent.
+        _has_explicit_approval_calls(result)
+        or _has_direct_command_calls(result)
+        or _pending_approval_calls_from_log(tool_log)
+        or _pending_deletes_from_log(tool_log)
+        or _pending_destructive_from_log(tool_log)
+    ):
+        return _build_client_action_response(
+            result,
+            client_actions,
+            tool_log,
+            hass,
+            language=language,
+            remaining_intent=_remaining_intent_from_log(tool_log),
+        )
     if result.get("intent") == "command_approval":
-        return _normalize_explicit_approval(result, hass)
+        return _note_deferred(_normalize_explicit_approval(result, hass))
     if not tool_log:
         return result
     # A dashboard turn must not answer with entity tiles that look like the
     # dashboard it just changed. Above the intent-specific returns below, which
     # would otherwise carry the markers straight out. Done here because this is
     # the one funnel both the streaming and non-streaming paths pass through.
-    result = strip_entity_tiles_after_dashboard_turn(result, tool_log)
+    result = note_failed_dashboard_write(
+        append_dashboard_link(
+            strip_entity_tiles_after_dashboard_turn(result, tool_log), tool_log, language
+        ),
+        tool_log,
+        language,
+    )
     if result.get("intent") in ("command", "delayed_command"):
-        return result
+        return _note_deferred(result)
     # A single turn can emit both a delete tool and a review-level
     # execute_command, each returning requires_approval. Only one
     # command_approval proposal fits per message, and the two proposal
@@ -2761,6 +3237,7 @@ def synthesize_approval_from_tool_log(
     pending = _pending_approval_calls_from_log(tool_log)
     pending_deletes = _pending_deletes_from_log(tool_log)
     pending_destructive = _pending_destructive_from_log(tool_log)
+
     # A round can hold BOTH — "delete the old scene and disable that sensor".
     # They go on ONE card carrying both lists, because nothing carries a held
     # action forward: synthesis only ever sees the current turn's tool_log, and
@@ -2768,16 +3245,18 @@ def synthesize_approval_from_tool_log(
     # action here would discard a request the user asked for and was never told
     # about.
     if (pending_deletes or pending_destructive) and not pending:
-        return _build_delete_approval_response(
-            result,
-            pending_deletes,
-            tool_log,
-            hass,
-            language=language,
-            actions=pending_destructive,
+        return _note_deferred(
+            _build_delete_approval_response(
+                result,
+                pending_deletes,
+                tool_log,
+                hass,
+                language=language,
+                actions=pending_destructive,
+            )
         )
     if not pending:
-        return result
+        return _note_deferred(result)
 
     risks = [c.pop("_risk_level", APPROVAL_RISK_LOW) for c in pending]
     reasons = [c.pop("_reason", "") for c in pending]
@@ -2830,7 +3309,8 @@ def synthesize_approval_from_tool_log(
             f"{upgraded['response']}\n\n"
             f"I have not touched {labels} — ask again once this is resolved."
         )
-    return upgraded
+    # Same treatment for a client action that lost the card to these calls.
+    return _note_deferred(upgraded)
 
 
 def _executed_service_calls_from_log(

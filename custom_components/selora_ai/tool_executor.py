@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import MAX_TOOL_RESULT_CHARS
 from .device_manager import DeviceManager
-from .helpers import caller_scope
+from .helpers import caller_scope, sanitize_untrusted_text
 from .tool_registry import TOOL_MAP
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class ToolExecutor:
             self.call_log.append({"tool": tool_name, "arguments": arguments, "result": err_result})
             return err_result
 
-        truncated = _truncate_result(result)
+        truncated = _attach_remaining_intent(_truncate_result(result), arguments)
         self.call_log.append({"tool": tool_name, "arguments": arguments, "result": truncated})
         return truncated
 
@@ -140,6 +140,7 @@ class ToolExecutor:
             "get_automation_traces": self._get_automation_traces,
             "get_dashboard": self._get_dashboard,
             "get_dashboard_card": self._get_dashboard_card,
+            "create_dashboard": self._create_dashboard,
             "add_dashboard_view": self._add_dashboard_view,
             "update_dashboard_view": self._update_dashboard_view,
             "remove_dashboard_view": self._remove_dashboard_view,
@@ -650,6 +651,23 @@ class ToolExecutor:
             _as_index(arguments.get("card_index")),
         )
 
+    async def _create_dashboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Propose a dashboard for the PANEL to create. Creates nothing here."""
+        from .dashboard_manager import async_propose_dashboard
+
+        return await async_propose_dashboard(
+            self._hass,
+            title=str(arguments.get("title", "")),
+            url_path=_opt_str(arguments.get("url_path")),
+            icon=_opt_str(arguments.get("icon")),
+            # `bool("false")` is True, and some providers emit JSON-schema
+            # booleans as strings — which would invert the dashboard's
+            # visibility. `_opt_bool` returns None for absent, so the documented
+            # defaults are applied here rather than by Python truthiness.
+            require_admin=_opt_bool(arguments.get("require_admin")) or False,
+            show_in_sidebar=_bool_default_true(_opt_bool(arguments.get("show_in_sidebar"))),
+        )
+
     async def _add_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .dashboard_manager import async_add_view
 
@@ -825,6 +843,28 @@ def _opt_level(value: Any) -> int | None:
         return None
 
 
+def _attach_remaining_intent(result: dict[str, Any], arguments: dict[str, Any]) -> dict[str, Any]:
+    """Carry the model's declaration of what is left onto a card's result.
+
+    Done here, once, rather than in each carded tool's handler. Those handlers
+    are the `_preview_delete_*` functions, which MCP calls too — and MCP has no
+    panel, so no card, so nothing to resume from. A chat-only concept has no
+    business in eight shared preview functions, and eight copies is eight
+    chances for the next delete tool to be the one that forgets.
+
+    Only ever on a result that is actually asking for approval: anywhere else
+    there is no card to come back from, and a stray `remaining_intent` on an
+    immediate write would advertise a continuation that never arrives.
+    """
+    if not result.get("requires_approval"):
+        return result
+    declared = _opt_str(arguments.get("remaining_intent"))
+    if declared is None:
+        return result
+    # Sanitized because it is rendered on the card and fed back into a prompt.
+    return {**result, "remaining_intent": sanitize_untrusted_text(declared, 200)}
+
+
 def _opt_str(value: Any) -> str | None:
     """None for an absent or blank argument, the trimmed string otherwise.
 
@@ -836,6 +876,11 @@ def _opt_str(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def _bool_default_true(value: bool | None) -> bool:
+    """A tri-state optional boolean folded to its documented default of True."""
+    return True if value is None else value
 
 
 def _opt_bool(value: Any) -> bool | None:

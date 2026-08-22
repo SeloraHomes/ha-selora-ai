@@ -14,6 +14,9 @@
 // markers in chat prose.
 
 import { html } from "lit";
+
+import { resolveClientActions } from "./client-actions.js";
+import { renderConfirmChip } from "./quick-actions.js";
 import {
   actionIcon,
   callTargetEntityIds,
@@ -69,12 +72,26 @@ const _DELETE_KIND_ICONS = {
   device: "mdi:devices",
 };
 
-// Wording for the two confirmation shapes. Both use the same layout, rows, and
-// destructive accent — only the copy differs, because calling a disable or a
-// rename "Delete this?" would describe the wrong action on the one screen where
-// the user is deciding whether to let it happen.
+// The confirmation shapes. All of them use the same card — layout, head, rows,
+// terminal states — and a variant carries only what differs, because calling a
+// disable or a rename "Delete this?" would describe the wrong action on the one
+// screen where the user is deciding whether to let it happen.
+//
+// `accent`, `headIcon`, `rows` and `renderRow` are part of that: a client action
+// is not destructive, so it must not borrow the warning red, and it lists
+// proposed actions rather than targets. What it must NOT do is bring its own
+// card — a second hand-rolled one drifts from this one on the next change to
+// either, and the first version of it did exactly that, shipping classes no
+// stylesheet defined.
 const _CONFIRM_VARIANTS = {
   delete: {
+    accent: "#ef4444",
+    headIcon: "mdi:alert-outline",
+    rows: (approval) => [
+      ...(approval.deletes || []),
+      ...(approval.actions || []),
+    ],
+    renderRow: (host, row) => _renderDeleteRow(host, row),
     doneIcon: "mdi:trash-can-outline",
     doneKey: "approval_status_deleted",
     doneFallback: "Deleted",
@@ -86,6 +103,13 @@ const _CONFIRM_VARIANTS = {
     warningFallback: "This permanently removes it and can't be undone.",
   },
   destructive: {
+    accent: "#ef4444",
+    headIcon: "mdi:alert-outline",
+    rows: (approval) => [
+      ...(approval.deletes || []),
+      ...(approval.actions || []),
+    ],
+    renderRow: (host, row) => _renderDeleteRow(host, row),
     doneIcon: "mdi:check-circle-outline",
     doneKey: "approval_status_applied",
     doneFallback: "Applied",
@@ -96,33 +120,65 @@ const _CONFIRM_VARIANTS = {
     warningKey: "destructive_approval_warning",
     warningFallback: "This can't be undone from chat.",
   },
+  // Work the PANEL performs. The only shape with its own button: the others
+  // resolve server-side and get their Allow / Deny from `msg.quick_actions`,
+  // while this one has no server-side resolver to call — the press is what
+  // makes the privileged websocket command the signed-in user's own.
+  client_action: {
+    accent: "var(--selora-accent)",
+    // What the CARD is — a thing waiting on the user — the way the delete
+    // card's head says "destructive". The row below says what the thing is,
+    // so repeating its icon here rendered the same glyph twice.
+    headIcon: "mdi:gesture-tap",
+    rows: (approval) => approval.client_actions || [],
+    renderRow: (host, row) => _renderClientActionRow(host, row),
+    doneIcon: "mdi:check-circle-outline",
+    doneKey: "client_action_done",
+    doneFallback: "Done.",
+    cancelledKey: "client_action_failed",
+    cancelledFallback: "That did not work.",
+    titleKey: "client_action_title",
+    titleFallback: "Needs your confirmation",
+    titlePluralKey: "client_action_title",
+    titlePluralFallback: "Needs your confirmation",
+    confirm: {
+      // The same quiet approve chip the risk card's Allow uses. Its styles
+      // exist so confirmation buttons "stay visually quiet next to the risk
+      // card" — a filled button here would shout where Allow murmurs.
+      tone: "approve",
+      icon: "mdi:plus",
+      labelKey: "client_action_confirm",
+      labelFallback: "Create",
+      busyKey: "client_action_working",
+      busyFallback: "Working…",
+      run: (host, msg, approval) => resolveClientActions(host, msg, approval),
+    },
+  },
 };
 
 // Render the delete-confirmation card. Destructive accent (red), a row per
 // target showing its friendly label + entity_id, and the terminal
 // approved/denied/resolving states. The Delete / Cancel buttons themselves
 // come from ``msg.quick_actions`` (rendered in the composer row).
-function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
-  const accent = "#ef4444";
-  // One card can carry both deletions and other destructive changes. Every row
-  // is shown: a change the user was not shown is a change they cannot refuse.
-  const deletes = [...(approval.deletes || []), ...(approval.actions || [])];
+function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
   // Delete wording only when the card is purely deletions — otherwise the
-  // neutral copy, which describes a mixed card honestly.
-  const pureDelete = variant === "delete" && !(approval.actions || []).length;
-  const copy = pureDelete
-    ? _CONFIRM_VARIANTS.delete
-    : _CONFIRM_VARIANTS.destructive;
+  // neutral copy, which describes a mixed card honestly. Any other variant
+  // means what it says.
+  const mixedDelete =
+    variant === "delete" && (approval.actions || []).length > 0;
+  const copy = mixedDelete
+    ? _CONFIRM_VARIANTS.destructive
+    : _CONFIRM_VARIANTS[variant];
+  const accent = copy.accent;
+  // Every row is shown: a change the user was not shown is a change they
+  // cannot refuse.
+  const rows = copy.rows(approval);
 
   if (approvalStatus === "approved" || approvalStatus === "denied") {
     const resolved = approvalStatus === "approved";
     return html`
       <div
-        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${
-          resolved
-            ? "var(--secondary-text-color)"
-            : "var(--secondary-text-color)"
-        };"
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
         <ha-icon
           icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
@@ -132,7 +188,10 @@ function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
           >${
             resolved
               ? host._t(copy.doneKey, copy.doneFallback)
-              : host._t("approval_status_cancelled", "Cancelled")
+              : host._t(
+                  copy.cancelledKey || "approval_status_cancelled",
+                  copy.cancelledFallback || "Cancelled",
+                )
           }</span
         >
       </div>
@@ -145,7 +204,12 @@ function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
         <span class="spinner" style="width:14px;height:14px;"></span>
-        <span>${host._t("approval_working", "Working…")}</span>
+        <span
+          >${host._t(
+            copy.confirm?.busyKey || "approval_working",
+            copy.confirm?.busyFallback || "Working…",
+          )}</span
+        >
       </div>
     `;
   }
@@ -158,25 +222,63 @@ function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
         style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:4px;"
       >
         <ha-icon
-          icon="mdi:alert-outline"
+          icon=${copy.headIcon}
           style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
         ></ha-icon>
         <span
           >${
-            deletes.length > 1
+            rows.length > 1
               ? host._t(copy.titlePluralKey, copy.titlePluralFallback)
               : host._t(copy.titleKey, copy.titleFallback)
           }</span
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${deletes.map((d) => _renderDeleteRow(host, d))}
+        ${rows.map((row) => copy.renderRow(host, row))}
       </div>
-      <div
-        style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
-      >
-        ${host._t(copy.warningKey, copy.warningFallback)}
-      </div>
+      ${
+        approval.remaining_intent
+          ? html`<div
+              style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+            >
+              <ha-icon
+                icon="mdi:arrow-right-bottom"
+                style="--mdc-icon-size:14px;flex-shrink:0;"
+              ></ha-icon>
+              <span
+                >${host._t("approval_then", "then")}
+                ${approval.remaining_intent}</span
+              >
+            </div>`
+          : ""
+      }
+      ${
+        copy.warningKey
+          ? html`<div
+              style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+            >
+              ${host._t(copy.warningKey, copy.warningFallback)}
+            </div>`
+          : ""
+      }
+      ${
+        copy.confirm
+          ? html`<div class="qa-group qa-group--confirmations">
+              ${renderConfirmChip(
+                host,
+                {
+                  label: host._t(
+                    copy.confirm.labelKey,
+                    copy.confirm.labelFallback,
+                  ),
+                  icon: copy.confirm.icon,
+                  tone: copy.confirm.tone,
+                },
+                () => copy.confirm.run(host, msg, approval),
+              )}
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -335,16 +437,68 @@ function _scopeLabel(host, scope, entityIds) {
  * @param {object} approval         proposal payload from backend
  * @param {string} approvalStatus   "pending" | "resolving" | "approved" | "denied" | null
  */
+/**
+ * A card for work the panel performs itself.
+ *
+ * Deliberately a button rather than an automatic execution: this is a
+ * privileged websocket command running under the signed-in user's account, and
+ * the press is what makes it theirs. It is also what keeps Selora from
+ * announcing a dashboard that does not exist yet — the reply is written before
+ * the panel has done anything.
+ */
+/**
+ * What the card says the action will do.
+ *
+ * Composed here rather than using the descriptor's `label`: that string is
+ * built server-side in English, and rendering it directly would leave every
+ * non-English panel with one English line in an otherwise translated card.
+ * The descriptor carries the parts; the wording belongs to the frontend.
+ */
+function _actionLabel(host, action) {
+  if (action.kind === "create_dashboard") {
+    // `_t` does not interpolate, so the placeholders are filled here — the
+    // same shape localizePlural uses for {count}.
+    return host
+      ._t(
+        "client_action_create_dashboard",
+        "Create the {title} dashboard at /{url}",
+      )
+      .replace("{title}", action.title || "")
+      .replace("{url}", action.url_path || "");
+  }
+  return action.label || action.kind;
+}
+
+const _CLIENT_ACTION_ICONS = {
+  create_dashboard: "mdi:view-dashboard-outline",
+};
+
+/** One proposed client action, in the shared card's row shape. */
+function _renderClientActionRow(host, action) {
+  return html`
+    <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">
+      <ha-icon
+        icon=${_CLIENT_ACTION_ICONS[action.kind] || "mdi:cog-outline"}
+        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
+      ></ha-icon>
+      <span
+        style="font-size:13px;font-weight:600;color:var(--primary-text-color);min-width:0;overflow:hidden;text-overflow:ellipsis;"
+        >${_actionLabel(host, action)}</span
+      >
+    </div>
+  `;
+}
+
 export function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
-  // Delete-confirmation cards are a distinct shape (no service calls, no
-  // risk level, no scope chip) — render them separately.
-  if (
-    approval.approval_kind === "delete" ||
-    approval.approval_kind === "destructive"
-  ) {
-    return renderDeleteApprovalCard(
+  // Confirmation shapes — no service calls, no risk level, no scope chip —
+  // share one card and differ by variant. A client action is one of them: the
+  // only difference that matters is that its button lives on the card, because
+  // there is no server-side resolver for the panel's own work to call.
+  if (_CONFIRM_VARIANTS[approval.approval_kind]) {
+    return renderConfirmationCard(
       host,
+      msg,
       approval,
       approvalStatus,
       approval.approval_kind,

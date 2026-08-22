@@ -793,6 +793,11 @@ class ChatMessage(TypedDict, total=False):
     # agent_steps.AgentStep — kept as plain dicts here to avoid a cross-module
     # import cycle; the websocket layer owns the canonical shape.
     steps: list[dict[str, Any]]
+
+    # Work the turn still owes once this proposal is accepted — the resumption
+    # trigger for a scene or automation card, where a command_approval carries
+    # its own on the proposal payload instead.
+    remaining_intent: str
     devices: list[dict[str, Any]]
     scene: ScenePayload
     scene_yaml: str

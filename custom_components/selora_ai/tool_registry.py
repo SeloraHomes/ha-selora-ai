@@ -46,6 +46,12 @@ class ToolDef:
     # Skip this tool for providers with tight context windows
     # (provider.is_low_context). Used to keep the selora_local prompt small.
     large_context_only: bool = False
+    # Only offered where the Selora panel is the surface. The work is performed
+    # BY the panel, so Assist — which renders no `command_approval` card and has
+    # no way to resolve one — would let the model call it and produce a proposal
+    # nothing can act on. A description saying "panel only" does not stop that;
+    # withholding the schema does.
+    panel_only: bool = False
 
     def to_anthropic(self) -> dict[str, Any]:
         """Anthropic tool_use format: {name, description, input_schema}."""
@@ -344,7 +350,10 @@ TOOL_ACTIVATE_SCENE = ToolDef(
     description=(
         "Activate a Home Assistant scene by entity_id (e.g. 'scene.movie_night'). "
         "Calls scene.turn_on. Use this when the user names a scene rather than "
-        "individual devices."
+        "individual devices. To CREATE a scene there is deliberately no tool: "
+        "emit the scene JSON block (intent 'scene') and the user gets a card to "
+        "accept it. Not finding a create-scene tool does not mean you cannot "
+        "make one — never tell the user scene creation is unavailable."
     ),
     params=(
         ToolParam(
@@ -362,7 +371,10 @@ TOOL_LIST_DASHBOARDS = ToolDef(
     description=(
         "List every Lovelace dashboard. Returns {url_path, title, editable}; "
         "url_path is null for the default dashboard. Call this first to learn "
-        "the url_path to pass as dashboard_target. editable false means it can be "
+        "the url_path to pass as dashboard_target when EDITING one that exists. "
+        "It is not a picker for a request to CREATE a dashboard: finding a "
+        "plausible existing board here and adding a page to it is not what was "
+        "asked for — use create_dashboard. editable false means it can be "
         "read but not changed — a YAML dashboard, or one Home Assistant is still "
         "generating because nobody has taken control of it yet — so do not offer "
         "to edit it."
@@ -578,6 +590,18 @@ TOOL_DELETE_AUTOMATION = ToolDef(
             type="string",
             description="The automation id from automations.yaml, if known.",
         ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
+        ),
     ),
     requires_admin=True,
 )
@@ -593,6 +617,8 @@ TOOL_DELETE_SCENE = ToolDef(
         "This does NOT delete immediately: it surfaces a confirmation card the "
         "user must tap to approve, so do not ask 'are you sure?' in prose — "
         "just call the tool and the card handles confirmation. Only "
+        "To CREATE a scene there is no tool — emit the scene JSON block "
+        "(intent 'scene') and the user gets a card to accept it. Only "
         "yaml-managed scenes can be deleted; storage/UI-managed ones must be "
         "removed from the Home Assistant UI."
     ),
@@ -606,6 +632,18 @@ TOOL_DELETE_SCENE = ToolDef(
             name="scene_id",
             type="string",
             description="The Selora SceneStore scene_id, if known.",
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
         ),
     ),
     requires_admin=True,
@@ -812,6 +850,18 @@ TOOL_DELETE_GROUP = ToolDef(
             type="string",
             description="The group's name, if you have no id for it.",
         ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
+        ),
     ),
     requires_admin=True,
 )
@@ -953,6 +1003,18 @@ TOOL_DELETE_AREA = ToolDef(
             description="The area to delete, by name or area_id.",
             required=True,
         ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
@@ -1031,6 +1093,18 @@ TOOL_DELETE_FLOOR = ToolDef(
             type="string",
             description="The floor to delete, by name or floor_id.",
             required=True,
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
         ),
     ),
     requires_admin=True,
@@ -1184,6 +1258,18 @@ TOOL_DELETE_CATEGORY = ToolDef(
             type="string",
             description="The category to delete, by name or id.",
             required=True,
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
         ),
     ),
     requires_admin=True,
@@ -1375,6 +1461,18 @@ TOOL_DELETE_SCRIPT = ToolDef(
             description="Script entity_id, object_id, or exact name.",
             required=True,
         ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
@@ -1457,6 +1555,18 @@ TOOL_DELETE_LABEL = ToolDef(
             description="Label name or label_id.",
             required=True,
         ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase — 'recreate it with the new schedule'. The turn ENDS at "
+                "the card, so this is the only thing that brings you back; set it "
+                "whenever the deletion is a step rather than the whole request. "
+                "It is shown on the card, so the user approves the plan and not "
+                "just the deletion. Leave it out when deleting IS the request."
+            ),
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
@@ -1526,11 +1636,20 @@ TOOL_GET_AUTOMATION_TRACES = ToolDef(
 
 # ── Dashboards ──────────────────────────────────────────────────────────────
 #
-# ``create_dashboard`` is deliberately absent. Adding a dashboard ENTRY needs
+# ``create_dashboard`` is ``panel_only`` because a dashboard ENTRY needs
 # ``DashboardsCollection``, which lovelace keeps as a local in ``async_setup``
-# and publishes only to a websocket handler — the same wall the ``input_*``
-# helpers hit. A new *page* is what a user usually means, and that is
-# ``add_dashboard_view``, which is fully supported.
+# and publishes only to its admin-only websocket commands — the same wall the
+# ``input_*`` helpers hit. Not reachable in-process; reachable by an
+# authenticated websocket CLIENT, which the panel is, so it proposes and the
+# panel executes.
+#
+# Which means ``add_dashboard_view`` must NOT describe itself as the way to get
+# a new dashboard, in either direction. Claiming to be the substitute had a
+# request for a dashboard answered by appending a page to an unrelated one;
+# denying that a dashboard can be created at all does the same thing, because
+# the denial contradicts the tool sitting next to it and the model routes
+# around both by adding the page anyway. It says what it does, and points at
+# ``create_dashboard`` for the rest.
 
 TOOL_GET_DASHBOARD = ToolDef(
     name="get_dashboard",
@@ -1583,12 +1702,74 @@ TOOL_GET_DASHBOARD_CARD = ToolDef(
     large_context_only=True,
 )
 
+TOOL_CREATE_DASHBOARD = ToolDef(
+    name="create_dashboard",
+    description=(
+        "Create a whole new dashboard, with its own sidebar entry. THIS is the "
+        "tool for 'create a dashboard' / 'make me a new dashboard' — do not add a "
+        "page to an existing dashboard instead, which is not what was asked for "
+        "and leaves the user hunting for it. CALL IT when asked for a dashboard: "
+        "calling it IS how the user is asked, because the Create button rides on "
+        "the card it returns. Do NOT describe the dashboard you would make and "
+        "wait to be told to go ahead — that promises a card the user never gets "
+        "and creates nothing. The create happens in their browser under their own "
+        "account, so do NOT say the dashboard exists until the result comes back, "
+        "and do not call add_dashboard_view or insert_dashboard_card for it in this "
+        "reply — it does not exist yet. Say what still has to go on it in "
+        "`remaining_intent` and you will be brought back to do it the moment it "
+        "does. This tool "
+        "is only ever offered where the panel is connected, so if you can see it "
+        "the user is in the panel and the card will reach them — never tell them "
+        "to open the panel, or to go to Settings, and never doubt that this works. "
+        "Use add_dashboard_view for a page on a dashboard that already exists."
+    ),
+    params=(
+        ToolParam(name="title", type="string", description="Dashboard title.", required=True),
+        ToolParam(
+            name="url_path",
+            type="string",
+            description="URL slug. Derived from the title when omitted.",
+        ),
+        ToolParam(name="icon", type="string", description="mdi icon for the sidebar."),
+        ToolParam(
+            name="require_admin",
+            type="boolean",
+            description="Hide it from non-admin users. Default false.",
+        ),
+        ToolParam(
+            name="show_in_sidebar",
+            type="boolean",
+            description="Show it in the sidebar. Default true.",
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user taps Create, in one short "
+                "phrase — 'add the Office lights, climate and sensors'. Setting it "
+                "is what makes the rest of the request happen: the turn ends at the "
+                "card, and this is the only thing that brings you back once the "
+                "dashboard exists. Leave it out when creating the dashboard IS the "
+                "whole request. It is shown on the card, so the user approves the "
+                "plan and not just the first step."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+    panel_only=True,
+)
+
 TOOL_ADD_DASHBOARD_VIEW = ToolDef(
     name="add_dashboard_view",
     description=(
-        "Add a new view (page) to a dashboard — this is how you 'create a dashboard' "
-        "for a room or a purpose. Appended after the existing views. Use "
-        "insert_dashboard_card afterwards to fill it."
+        "Add a view (a PAGE) to a dashboard that already exists. This does NOT "
+        "create a dashboard: if the user asked for a NEW dashboard, use "
+        "create_dashboard instead — appending a page here is not what they asked "
+        "for and they will not find it where they expect. Always name which "
+        "dashboard you added the page to and give the url from the result, or they "
+        "will go looking for it in the wrong place. A new view is EMPTY and shows "
+        "nothing until insert_dashboard_card puts something on it."
     ),
     params=(
         ToolParam(
@@ -1883,6 +2064,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_DASHBOARD,
     TOOL_GET_DASHBOARD_CARD,
+    TOOL_CREATE_DASHBOARD,
     TOOL_ADD_DASHBOARD_VIEW,
     TOOL_UPDATE_DASHBOARD_VIEW,
     TOOL_REMOVE_DASHBOARD_VIEW,
@@ -1955,6 +2137,7 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "get_dashboard",
         "get_dashboard_card",
         "insert_dashboard_card",
+        "create_dashboard",
         "add_dashboard_view",
         "update_dashboard_view",
         "remove_dashboard_view",
@@ -2029,6 +2212,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "get_dashboard",
         "get_dashboard_card",
         "insert_dashboard_card",
+        "create_dashboard",
         "add_dashboard_view",
         "update_dashboard_view",
         "remove_dashboard_view",

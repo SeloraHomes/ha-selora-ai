@@ -408,6 +408,22 @@ export function renderMarkdown(text) {
     (_m, id) =>
       `<div class="selora-entity-grid" data-entity-ids="${id}"></div>`,
   );
+  // A dashboard the turn changed. Its own element rather than an entity tile:
+  // a page is not a device, and the card that takes you to one should not look
+  // like the card that toggles a light. The path is composed by the backend
+  // from the tool result, but the marker travels through the model's text, so
+  // the pattern accepts only a single-slash absolute path — a
+  // protocol-relative host or a `javascript:` scheme cannot become an anchor.
+  escaped = escaped.replace(
+    /\[\[dashboard:(\/(?!\/)[^\]|\s]*)(?:\|([^\]]*))?\]\]/g,
+    (_m, url, label) =>
+      `<a class="selora-dashboard-link" href="${url}">` +
+      `<ha-icon icon="mdi:view-dashboard-outline"></ha-icon>` +
+      `<span class="selora-dashboard-link-text">` +
+      `<span class="selora-dashboard-link-label">${label || "Open the dashboard"}</span>` +
+      `<span class="selora-dashboard-link-path">${url}</span>` +
+      `</span></a>`,
+  );
   escaped = escaped.replace(
     /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
     (_m, ids) =>

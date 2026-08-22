@@ -957,7 +957,14 @@
     "approval_status_applied": "已应用",
     "destructive_approval_title": "应用此更改？",
     "destructive_approval_title_plural": "应用这些更改？",
-    "destructive_approval_warning": "此操作无法从聊天中撤销。"
+    "destructive_approval_warning": "此操作无法从聊天中撤销。",
+    "client_action_title": "需要您确认",
+    "client_action_create_dashboard": "在 /{url} 创建 {title} 仪表板",
+    "client_action_confirm": "创建",
+    "client_action_working": "处理中…",
+    "client_action_done": "完成。",
+    "client_action_failed": "操作未成功。",
+    "approval_then": "然后"
   },
   "options": {
     "step": {

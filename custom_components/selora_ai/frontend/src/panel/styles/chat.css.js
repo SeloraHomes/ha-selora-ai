@@ -701,6 +701,64 @@ export const chatStyles = css`
      minmax(240px, 1fr) sizing matches the default cell width HA uses
      on tile-style dashboard sections, so chat tiles don't truncate
      the friendly name (180px was too tight for long room names). */
+  /* A page, not a device. Deliberately smaller and quieter than an entity
+     tile: one row, link-coloured on hover, so a glance tells the two apart. */
+  .selora-dashboard-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0 2px;
+    padding: 8px 12px;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 8px;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.02));
+    color: var(--primary-text-color);
+    text-decoration: none;
+    max-width: 100%;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+  }
+  .selora-dashboard-link:hover {
+    border-color: var(--selora-accent);
+    background: rgba(251, 191, 36, 0.06);
+  }
+  .selora-dashboard-link ha-icon {
+    --mdc-icon-size: 20px;
+    /* ha-icon is inline by default, so its svg sits on the text baseline and
+       rides high against a two-line label. A fixed box, centred, aligns it to
+       the middle of the label instead of to the first line. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: var(--selora-accent);
+    flex-shrink: 0;
+  }
+  .selora-dashboard-link-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .selora-dashboard-link-label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .selora-dashboard-link-path {
+    font-size: 11px;
+    opacity: 0.6;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .selora-entity-grid {
     display: grid;
     /* minmax(240px, 280px) caps tile width at 280px even in a row

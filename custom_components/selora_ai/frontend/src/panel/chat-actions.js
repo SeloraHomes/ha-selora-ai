@@ -131,6 +131,18 @@ export async function _resolveApproval(originatingMsg, scope, proposalId) {
     if (result.result_message) {
       this._messages = [...this._messages, result.result_message];
     }
+    // And then the rest of it. A confirmation is a step, not an answer: the
+    // turn that proposed it ended at the card, so this is the only thing that
+    // picks the work back up. The server validates the approval, the declared
+    // remainder and the once-only cap.
+    const approval = originatingMsg?.command_approval;
+    if (
+      result.status &&
+      result.status !== "denied" &&
+      approval?.remaining_intent
+    ) {
+      await this._sendMessage?.({ resumeProposalId: proposalId });
+    }
   } catch (err) {
     // Restore the action row so the user can retry — the request never
     // resolved so the approval is still pending server-side (unless
@@ -217,13 +229,19 @@ function _finaliseInterruption(
   }
 }
 
-export async function _sendMessage() {
+export async function _sendMessage(options = {}) {
+  // A RESUMPTION is the same turn machinery with no user in it: the work a
+  // confirmed card left unfinished, continued. It goes through this function
+  // rather than a second streaming path so the tool steps, the cancel
+  // subscription, the idle watchdog and the done handling are the ones that
+  // are already right — and there is only ever one of them to fix.
+  const resumeProposalId = options.resumeProposalId || null;
   // A screenshot with no typed text is a valid turn (the backend builds
   // an image-plus-context message from an empty request). Block while an
   // image is still decoding/resizing so the send can't miss it.
   const hasPendingAttachments = (this._chatAttachments || []).length > 0;
   if (
-    (!this._input.trim() && !hasPendingAttachments) ||
+    (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) ||
     this._loading ||
     this._attachmentsBusy
   ) {
@@ -258,15 +276,20 @@ export async function _sendMessage() {
     : userMsgForSend;
   this._chatAttachments = [];
   this._attachmentNotice = "";
-  this._messages = [
-    ...this._messages,
-    {
-      role: "user",
-      content: userMsg,
-      ...(bubbleAttachments.length ? { attachments: bubbleAttachments } : {}),
-    },
-  ];
-  this._input = "";
+  if (!resumeProposalId) {
+    // Nothing to show for a resumption: the user said one thing and it is
+    // already up there. The backend does not persist the directive either, so
+    // a reload matches what is on screen.
+    this._messages = [
+      ...this._messages,
+      {
+        role: "user",
+        content: userMsg,
+        ...(bubbleAttachments.length ? { attachments: bubbleAttachments } : {}),
+      },
+    ];
+    this._input = "";
+  }
   // Reset shell-style history cursor — a fresh send starts a new
   // draft. ArrowUp on the next turn begins from the newest message,
   // not from wherever the previous walk left off.
@@ -361,6 +384,12 @@ export async function _sendMessage() {
       type: "selora_ai/chat_stream",
       message: userMsgForSend,
     };
+    if (resumeProposalId) {
+      // The id is all the client sends. The server reads the directive and the
+      // depth off the stored proposal, so the panel cannot invent either — and
+      // `message` is ignored.
+      subscribePayload.resume_proposal_id = resumeProposalId;
+    }
     if (wireAttachments.length) {
       subscribePayload.attachments = wireAttachments;
     }
