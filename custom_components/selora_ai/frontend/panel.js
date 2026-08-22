@@ -3348,6 +3348,64 @@ var chatStyles = i`
      minmax(240px, 1fr) sizing matches the default cell width HA uses
      on tile-style dashboard sections, so chat tiles don't truncate
      the friendly name (180px was too tight for long room names). */
+  /* A page, not a device. Deliberately smaller and quieter than an entity
+     tile: one row, link-coloured on hover, so a glance tells the two apart. */
+  .selora-dashboard-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0 2px;
+    padding: 8px 12px;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 8px;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.02));
+    color: var(--primary-text-color);
+    text-decoration: none;
+    max-width: 100%;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+  }
+  .selora-dashboard-link:hover {
+    border-color: var(--selora-accent);
+    background: rgba(251, 191, 36, 0.06);
+  }
+  .selora-dashboard-link ha-icon {
+    --mdc-icon-size: 20px;
+    /* ha-icon is inline by default, so its svg sits on the text baseline and
+       rides high against a two-line label. A fixed box, centred, aligns it to
+       the middle of the label instead of to the first line. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    color: var(--selora-accent);
+    flex-shrink: 0;
+  }
+  .selora-dashboard-link-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .selora-dashboard-link-label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .selora-dashboard-link-path {
+    font-size: 11px;
+    opacity: 0.6;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .selora-entity-grid {
     display: grid;
     /* minmax(240px, 280px) caps tile width at 280px even in a row
@@ -9962,6 +10020,13 @@ var en_default = {
     destructive_approval_title: "Apply this change?",
     destructive_approval_title_plural: "Apply these changes?",
     destructive_approval_warning: "This can't be undone from chat.",
+    client_action_title: "Needs your confirmation",
+    client_action_create_dashboard: "Create the {title} dashboard at /{url}",
+    client_action_confirm: "Create",
+    client_action_working: "Working\u2026",
+    client_action_done: "Done.",
+    client_action_failed: "That did not work.",
+    approval_then: "then",
   },
   options: {
     step: {
@@ -11150,6 +11215,14 @@ var fr_default = {
     destructive_approval_title_plural: "Appliquer ces changements ?",
     destructive_approval_warning:
       "Cette action est irr\xE9versible depuis le chat.",
+    client_action_title: "N\xE9cessite votre confirmation",
+    client_action_create_dashboard:
+      "Cr\xE9er le tableau de bord {title} sur /{url}",
+    client_action_confirm: "Cr\xE9er",
+    client_action_working: "En cours\u2026",
+    client_action_done: "Termin\xE9.",
+    client_action_failed: "Cela n'a pas fonctionn\xE9.",
+    approval_then: "puis",
   },
   options: {
     step: {
@@ -12331,6 +12404,13 @@ var de_default = {
     destructive_approval_title_plural: "Diese \xC4nderungen anwenden?",
     destructive_approval_warning:
       "Dies kann \xFCber den Chat nicht r\xFCckg\xE4ngig gemacht werden.",
+    client_action_title: "Ben\xF6tigt Ihre Best\xE4tigung",
+    client_action_create_dashboard: "Dashboard {title} unter /{url} erstellen",
+    client_action_confirm: "Erstellen",
+    client_action_working: "Wird ausgef\xFChrt\u2026",
+    client_action_done: "Fertig.",
+    client_action_failed: "Das hat nicht geklappt.",
+    approval_then: "dann",
   },
   options: {
     step: {
@@ -13494,6 +13574,13 @@ var es_default = {
     destructive_approval_title: "\xBFAplicar este cambio?",
     destructive_approval_title_plural: "\xBFAplicar estos cambios?",
     destructive_approval_warning: "Esto no se puede deshacer desde el chat.",
+    client_action_title: "Necesita tu confirmaci\xF3n",
+    client_action_create_dashboard: "Crear el panel {title} en /{url}",
+    client_action_confirm: "Crear",
+    client_action_working: "Trabajando\u2026",
+    client_action_done: "Hecho.",
+    client_action_failed: "No ha funcionado.",
+    approval_then: "luego",
   },
   options: {
     step: {
@@ -14657,6 +14744,13 @@ var it_default = {
     destructive_approval_title_plural: "Applicare queste modifiche?",
     destructive_approval_warning:
       "Questa operazione non pu\xF2 essere annullata dalla chat.",
+    client_action_title: "Richiede la tua conferma",
+    client_action_create_dashboard: "Creare la dashboard {title} su /{url}",
+    client_action_confirm: "Crea",
+    client_action_working: "In corso\u2026",
+    client_action_done: "Fatto.",
+    client_action_failed: "Non ha funzionato.",
+    approval_then: "poi",
   },
   options: {
     step: {
@@ -15836,6 +15930,13 @@ var nl_default = {
     destructive_approval_title_plural: "Deze wijzigingen toepassen?",
     destructive_approval_warning:
       "Dit kan niet ongedaan worden gemaakt vanuit de chat.",
+    client_action_title: "Vraagt om uw bevestiging",
+    client_action_create_dashboard: "Dashboard {title} aanmaken op /{url}",
+    client_action_confirm: "Aanmaken",
+    client_action_working: "Bezig\u2026",
+    client_action_done: "Klaar.",
+    client_action_failed: "Dat is niet gelukt.",
+    approval_then: "daarna",
   },
 };
 
@@ -17054,6 +17155,14 @@ var hu_default = {
       "Alkalmazza ezeket a m\xF3dos\xEDt\xE1sokat?",
     destructive_approval_warning:
       "Ezt a cseveg\xE9sb\u0151l nem lehet visszavonni.",
+    client_action_title: "Meger\u0151s\xEDt\xE9st ig\xE9nyel",
+    client_action_create_dashboard:
+      "A(z) {title} vez\xE9rl\u0151pult l\xE9trehoz\xE1sa itt: /{url}",
+    client_action_confirm: "L\xE9trehoz\xE1s",
+    client_action_working: "Folyamatban\u2026",
+    client_action_done: "K\xE9sz.",
+    client_action_failed: "Ez nem siker\xFClt.",
+    approval_then: "majd",
   },
 };
 
@@ -18210,6 +18319,13 @@ var pt_default = {
     destructive_approval_title_plural: "Aplicar estas altera\xE7\xF5es?",
     destructive_approval_warning:
       "Isto n\xE3o pode ser desfeito a partir do chat.",
+    client_action_title: "Precisa da sua confirma\xE7\xE3o",
+    client_action_create_dashboard: "Criar o painel {title} em /{url}",
+    client_action_confirm: "Criar",
+    client_action_working: "A processar\u2026",
+    client_action_done: "Conclu\xEDdo.",
+    client_action_failed: "Isso n\xE3o funcionou.",
+    approval_then: "depois",
   },
   options: {
     step: {
@@ -19932,6 +20048,17 @@ var ru_default = {
       "\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C \u044D\u0442\u0438 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F?",
     destructive_approval_warning:
       "\u042D\u0442\u043E \u043D\u0435\u043B\u044C\u0437\u044F \u043E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0438\u0437 \u0447\u0430\u0442\u0430.",
+    client_action_title:
+      "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435",
+    client_action_create_dashboard:
+      "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C {title} \u043F\u043E \u0430\u0434\u0440\u0435\u0441\u0443 /{url}",
+    client_action_confirm: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C",
+    client_action_working:
+      "\u0412\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F\u2026",
+    client_action_done: "\u0413\u043E\u0442\u043E\u0432\u043E.",
+    client_action_failed:
+      "\u041D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u043E\u0441\u044C.",
+    approval_then: "\u0437\u0430\u0442\u0435\u043C",
   },
   options: {
     step: {
@@ -21366,6 +21493,15 @@ var ja_default = {
       "\u3053\u308C\u3089\u306E\u5909\u66F4\u3092\u9069\u7528\u3057\u307E\u3059\u304B\uFF1F",
     destructive_approval_warning:
       "\u3053\u306E\u64CD\u4F5C\u306F\u30C1\u30E3\u30C3\u30C8\u304B\u3089\u306F\u5143\u306B\u623B\u305B\u307E\u305B\u3093\u3002",
+    client_action_title: "\u78BA\u8A8D\u304C\u5FC5\u8981\u3067\u3059",
+    client_action_create_dashboard:
+      "{title} \u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092 /{url} \u306B\u4F5C\u6210",
+    client_action_confirm: "\u4F5C\u6210",
+    client_action_working: "\u5B9F\u884C\u4E2D\u2026",
+    client_action_done: "\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002",
+    client_action_failed:
+      "\u3046\u307E\u304F\u3044\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    approval_then: "\u305D\u306E\u5F8C",
   },
   options: {
     step: {
@@ -22698,6 +22834,14 @@ var ko_default = {
       "\uC774 \uBCC0\uACBD\uB4E4\uC744 \uC801\uC6A9\uD560\uAE4C\uC694?",
     destructive_approval_warning:
       "\uC774 \uC791\uC5C5\uC740 \uCC44\uD305\uC5D0\uC11C \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    client_action_title: "\uD655\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4",
+    client_action_create_dashboard:
+      "{title} \uB300\uC2DC\uBCF4\uB4DC\uB97C /{url}\uC5D0 \uC0DD\uC131",
+    client_action_confirm: "\uC0DD\uC131",
+    client_action_working: "\uCC98\uB9AC \uC911\u2026",
+    client_action_done: "\uC644\uB8CC\uD588\uC2B5\uB2C8\uB2E4.",
+    client_action_failed: "\uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+    approval_then: "\uADF8\uB2E4\uC74C",
   },
   options: {
     step: {
@@ -23957,6 +24101,14 @@ var zh_Hans_default = {
       "\u5E94\u7528\u8FD9\u4E9B\u66F4\u6539\uFF1F",
     destructive_approval_warning:
       "\u6B64\u64CD\u4F5C\u65E0\u6CD5\u4ECE\u804A\u5929\u4E2D\u64A4\u9500\u3002",
+    client_action_title: "\u9700\u8981\u60A8\u786E\u8BA4",
+    client_action_create_dashboard:
+      "\u5728 /{url} \u521B\u5EFA {title} \u4EEA\u8868\u677F",
+    client_action_confirm: "\u521B\u5EFA",
+    client_action_working: "\u5904\u7406\u4E2D\u2026",
+    client_action_done: "\u5B8C\u6210\u3002",
+    client_action_failed: "\u64CD\u4F5C\u672A\u6210\u529F\u3002",
+    approval_then: "\u7136\u540E",
   },
   options: {
     step: {
@@ -25222,6 +25374,14 @@ var zh_Hant_default = {
       "\u5957\u7528\u9019\u4E9B\u8B8A\u66F4\uFF1F",
     destructive_approval_warning:
       "\u6B64\u64CD\u4F5C\u7121\u6CD5\u5F9E\u804A\u5929\u4E2D\u5FA9\u539F\u3002",
+    client_action_title: "\u9700\u8981\u60A8\u78BA\u8A8D",
+    client_action_create_dashboard:
+      "\u5728 /{url} \u5EFA\u7ACB {title} \u5100\u8868\u677F",
+    client_action_confirm: "\u5EFA\u7ACB",
+    client_action_working: "\u8655\u7406\u4E2D\u2026",
+    client_action_done: "\u5B8C\u6210\u3002",
+    client_action_failed: "\u64CD\u4F5C\u672A\u6210\u529F\u3002",
+    approval_then: "\u7136\u5F8C",
   },
   options: {
     step: {
@@ -25580,6 +25740,11 @@ function renderMarkdown(text) {
     /\[\[entity:([a-z_]+\.[a-z0-9_\-]+)\|[^\]]+?\]\]/g,
     (_m, id) =>
       `<div class="selora-entity-grid" data-entity-ids="${id}"></div>`,
+  );
+  escaped = escaped.replace(
+    /\[\[dashboard:(\/(?!\/)[^\]|\s]*)(?:\|([^\]]*))?\]\]/g,
+    (_m, url, label) =>
+      `<a class="selora-dashboard-link" href="${url}"><ha-icon icon="mdi:view-dashboard-outline"></ha-icon><span class="selora-dashboard-link-text"><span class="selora-dashboard-link-label">${label || "Open the dashboard"}</span><span class="selora-dashboard-link-path">${url}</span></span></a>`,
   );
   escaped = escaped.replace(
     /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
@@ -26078,6 +26243,9 @@ function _renderChoice(host, action) {
   `;
 }
 function _renderConfirmation(host, action) {
+  return renderConfirmChip(host, action, () => _onSelect(host, action));
+}
+function renderConfirmChip(host, action, onClick) {
   const tone = action.tone || (action.primary ? "primary" : null);
   const toneClass = tone ? ` qa-confirm--${tone}` : "";
   const cls = `qa-confirm${toneClass}`;
@@ -26088,7 +26256,7 @@ function _renderConfirmation(host, action) {
         ? "color:#ef4444;"
         : "";
   return b2`
-    <button class=${cls} @click=${() => _onSelect(host, action)}>
+    <button class=${cls} @click=${onClick}>
       ${
         action.icon
           ? b2`<ha-icon
@@ -26103,6 +26271,112 @@ function _renderConfirmation(host, action) {
       </span>
     </button>
   `;
+}
+
+// src/panel/client-actions.js
+function matchesProposal(existing, action) {
+  return (
+    String(existing.title || "") === String(action.title || "") &&
+    String(existing.icon || "") === String(action.icon || "") &&
+    Boolean(existing.require_admin) === Boolean(action.require_admin) &&
+    Boolean(existing.show_in_sidebar) === Boolean(action.show_in_sidebar)
+  );
+}
+var HANDLERS = {
+  create_dashboard: async (hass, action) => {
+    const urlPath = String(action.url_path || "");
+    const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
+    const already = (existing || []).find((d3) => d3?.url_path === urlPath);
+    if (already) {
+      if (!matchesProposal(already, action)) {
+        throw new Error(
+          `The dashboard at /${urlPath} is not the one proposed \u2014 "${String(already.title || "")}" is already there. Pick another url_path, or edit that dashboard instead.`,
+        );
+      }
+      return {
+        url_path: already.url_path,
+        title: already.title || action.title,
+      };
+    }
+    const payload = {
+      type: "lovelace/dashboards/create",
+      title: String(action.title || ""),
+      url_path: String(action.url_path || ""),
+      require_admin: Boolean(action.require_admin),
+      show_in_sidebar: Boolean(action.show_in_sidebar),
+    };
+    if (action.icon) payload.icon = String(action.icon);
+    if (action.allow_single_word) payload.allow_single_word = true;
+    const created = await hass.callWS(payload);
+    return {
+      url_path: created?.url_path || payload.url_path,
+      title: created?.title || payload.title,
+    };
+  },
+};
+async function runClientAction(hass, action) {
+  const kind = String(action?.kind || "");
+  const handler = HANDLERS[kind];
+  if (!handler) {
+    return { ok: false, kind, detail: `Unsupported action: ${kind}` };
+  }
+  try {
+    const detail = await handler(hass, action);
+    return { ok: true, kind, detail };
+  } catch (err) {
+    return { ok: false, kind, detail: err?.message || String(err) };
+  }
+}
+var IN_FLIGHT = /* @__PURE__ */ new Set();
+async function resolveClientActions(host, msg, approval) {
+  const proposalId = approval?.proposal_id;
+  if ((msg && msg._resolving) || IN_FLIGHT.has(proposalId)) return;
+  IN_FLIGHT.add(proposalId);
+  const actions = approval?.client_actions || [];
+  const sessionId = host._activeSessionId;
+  if (msg) {
+    msg._resolving = true;
+    msg.quick_actions = null;
+    msg.approval_status = "resolving";
+    host._messages = [...host._messages];
+  }
+  const results = [];
+  for (const action of actions) {
+    results.push(await runClientAction(host.hass, action));
+  }
+  const ok = results.length > 0 && results.every((r4) => r4.ok);
+  let reported = true;
+  try {
+    await host.hass.callWS({
+      type: "selora_ai/client_action_result",
+      session_id: sessionId,
+      proposal_id: approval.proposal_id,
+      results,
+      // The language RESOLVED for the turn, carried on the proposal. NOT
+      // hass.language, which is only the UI locale: a French message on an
+      // English-UI install must get a French outcome, and the panel cannot
+      // work out which — only the turn that detected it knows.
+      ...(approval.language || host.hass?.language
+        ? { language: approval.language || host.hass.language }
+        : {}),
+    });
+  } catch (err) {
+    reported = false;
+    console.error("Selora AI: could not report client action result", err);
+  }
+  if (msg) {
+    msg._resolving = false;
+    msg.approval_status = ok ? "approved" : "denied";
+    host._messages = [...host._messages];
+  }
+  IN_FLIGHT.delete(proposalId);
+  if (reported && sessionId && host._activeSessionId === sessionId) {
+    await host._openSession?.(sessionId);
+    if (ok && approval?.remaining_intent) {
+      await host._sendMessage?.({ resumeProposalId: proposalId });
+    }
+  }
+  host.requestUpdate();
 }
 
 // src/panel/action-format.js
@@ -26287,6 +26561,13 @@ var _DELETE_KIND_ICONS = {
 };
 var _CONFIRM_VARIANTS = {
   delete: {
+    accent: "#ef4444",
+    headIcon: "mdi:alert-outline",
+    rows: (approval) => [
+      ...(approval.deletes || []),
+      ...(approval.actions || []),
+    ],
+    renderRow: (host, row) => _renderDeleteRow(host, row),
     doneIcon: "mdi:trash-can-outline",
     doneKey: "approval_status_deleted",
     doneFallback: "Deleted",
@@ -26298,6 +26579,13 @@ var _CONFIRM_VARIANTS = {
     warningFallback: "This permanently removes it and can't be undone.",
   },
   destructive: {
+    accent: "#ef4444",
+    headIcon: "mdi:alert-outline",
+    rows: (approval) => [
+      ...(approval.deletes || []),
+      ...(approval.actions || []),
+    ],
+    renderRow: (host, row) => _renderDeleteRow(host, row),
     doneIcon: "mdi:check-circle-outline",
     doneKey: "approval_status_applied",
     doneFallback: "Applied",
@@ -26308,26 +26596,68 @@ var _CONFIRM_VARIANTS = {
     warningKey: "destructive_approval_warning",
     warningFallback: "This can't be undone from chat.",
   },
+  // Work the PANEL performs. The only shape with its own button: the others
+  // resolve server-side and get their Allow / Deny from `msg.quick_actions`,
+  // while this one has no server-side resolver to call — the press is what
+  // makes the privileged websocket command the signed-in user's own.
+  client_action: {
+    accent: "var(--selora-accent)",
+    // What the CARD is — a thing waiting on the user — the way the delete
+    // card's head says "destructive". The row below says what the thing is,
+    // so repeating its icon here rendered the same glyph twice.
+    headIcon: "mdi:gesture-tap",
+    rows: (approval) => approval.client_actions || [],
+    renderRow: (host, row) => _renderClientActionRow(host, row),
+    doneIcon: "mdi:check-circle-outline",
+    doneKey: "client_action_done",
+    doneFallback: "Done.",
+    cancelledKey: "client_action_failed",
+    cancelledFallback: "That did not work.",
+    titleKey: "client_action_title",
+    titleFallback: "Needs your confirmation",
+    titlePluralKey: "client_action_title",
+    titlePluralFallback: "Needs your confirmation",
+    confirm: {
+      // The same quiet approve chip the risk card's Allow uses. Its styles
+      // exist so confirmation buttons "stay visually quiet next to the risk
+      // card" — a filled button here would shout where Allow murmurs.
+      tone: "approve",
+      icon: "mdi:plus",
+      labelKey: "client_action_confirm",
+      labelFallback: "Create",
+      busyKey: "client_action_working",
+      busyFallback: "Working\u2026",
+      run: (host, msg, approval) => resolveClientActions(host, msg, approval),
+    },
+  },
 };
-function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
-  const accent = "#ef4444";
-  const deletes = [...(approval.deletes || []), ...(approval.actions || [])];
-  const pureDelete = variant === "delete" && !(approval.actions || []).length;
-  const copy = pureDelete
-    ? _CONFIRM_VARIANTS.delete
-    : _CONFIRM_VARIANTS.destructive;
+function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
+  const mixedDelete =
+    variant === "delete" && (approval.actions || []).length > 0;
+  const copy = mixedDelete
+    ? _CONFIRM_VARIANTS.destructive
+    : _CONFIRM_VARIANTS[variant];
+  const accent = copy.accent;
+  const rows = copy.rows(approval);
   if (approvalStatus === "approved" || approvalStatus === "denied") {
     const resolved = approvalStatus === "approved";
     return b2`
       <div
-        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolved ? "var(--secondary-text-color)" : "var(--secondary-text-color)"};"
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
         <ha-icon
           icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
           style="--mdc-icon-size:16px;flex-shrink:0;"
         ></ha-icon>
         <span
-          >${resolved ? host._t(copy.doneKey, copy.doneFallback) : host._t("approval_status_cancelled", "Cancelled")}</span
+          >${
+            resolved
+              ? host._t(copy.doneKey, copy.doneFallback)
+              : host._t(
+                  copy.cancelledKey || "approval_status_cancelled",
+                  copy.cancelledFallback || "Cancelled",
+                )
+          }</span
         >
       </div>
     `;
@@ -26338,7 +26668,12 @@ function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
         <span class="spinner" style="width:14px;height:14px;"></span>
-        <span>${host._t("approval_working", "Working\u2026")}</span>
+        <span
+          >${host._t(
+            copy.confirm?.busyKey || "approval_working",
+            copy.confirm?.busyFallback || "Working\u2026",
+          )}</span
+        >
       </div>
     `;
   }
@@ -26350,21 +26685,59 @@ function renderDeleteApprovalCard(host, approval, approvalStatus, variant) {
         style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:4px;"
       >
         <ha-icon
-          icon="mdi:alert-outline"
+          icon=${copy.headIcon}
           style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
         ></ha-icon>
         <span
-          >${deletes.length > 1 ? host._t(copy.titlePluralKey, copy.titlePluralFallback) : host._t(copy.titleKey, copy.titleFallback)}</span
+          >${rows.length > 1 ? host._t(copy.titlePluralKey, copy.titlePluralFallback) : host._t(copy.titleKey, copy.titleFallback)}</span
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${deletes.map((d3) => _renderDeleteRow(host, d3))}
+        ${rows.map((row) => copy.renderRow(host, row))}
       </div>
-      <div
-        style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
-      >
-        ${host._t(copy.warningKey, copy.warningFallback)}
-      </div>
+      ${
+        approval.remaining_intent
+          ? b2`<div
+              style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+            >
+              <ha-icon
+                icon="mdi:arrow-right-bottom"
+                style="--mdc-icon-size:14px;flex-shrink:0;"
+              ></ha-icon>
+              <span
+                >${host._t("approval_then", "then")}
+                ${approval.remaining_intent}</span
+              >
+            </div>`
+          : ""
+      }
+      ${
+        copy.warningKey
+          ? b2`<div
+              style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+            >
+              ${host._t(copy.warningKey, copy.warningFallback)}
+            </div>`
+          : ""
+      }
+      ${
+        copy.confirm
+          ? b2`<div class="qa-group qa-group--confirmations">
+              ${renderConfirmChip(
+                host,
+                {
+                  label: host._t(
+                    copy.confirm.labelKey,
+                    copy.confirm.labelFallback,
+                  ),
+                  icon: copy.confirm.icon,
+                  tone: copy.confirm.tone,
+                },
+                () => copy.confirm.run(host, msg, approval),
+              )}
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -26491,14 +26864,41 @@ function _scopeLabel(host, scope, entityIds) {
   }
   return host._t("approval_scope_just_these", "Just these entities");
 }
+function _actionLabel(host, action) {
+  if (action.kind === "create_dashboard") {
+    return host
+      ._t(
+        "client_action_create_dashboard",
+        "Create the {title} dashboard at /{url}",
+      )
+      .replace("{title}", action.title || "")
+      .replace("{url}", action.url_path || "");
+  }
+  return action.label || action.kind;
+}
+var _CLIENT_ACTION_ICONS = {
+  create_dashboard: "mdi:view-dashboard-outline",
+};
+function _renderClientActionRow(host, action) {
+  return b2`
+    <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">
+      <ha-icon
+        icon=${_CLIENT_ACTION_ICONS[action.kind] || "mdi:cog-outline"}
+        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
+      ></ha-icon>
+      <span
+        style="font-size:13px;font-weight:600;color:var(--primary-text-color);min-width:0;overflow:hidden;text-overflow:ellipsis;"
+        >${_actionLabel(host, action)}</span
+      >
+    </div>
+  `;
+}
 function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
-  if (
-    approval.approval_kind === "delete" ||
-    approval.approval_kind === "destructive"
-  ) {
-    return renderDeleteApprovalCard(
+  if (_CONFIRM_VARIANTS[approval.approval_kind]) {
+    return renderConfirmationCard(
       host,
+      msg,
       approval,
       approvalStatus,
       approval.approval_kind,
@@ -48070,7 +48470,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "cb4e43fa109a" : "";
+var PANEL_BUILD = true ? "0b0201285165" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -48599,6 +48999,14 @@ async function _resolveApproval(originatingMsg, scope, proposalId) {
     if (result.result_message) {
       this._messages = [...this._messages, result.result_message];
     }
+    const approval = originatingMsg?.command_approval;
+    if (
+      result.status &&
+      result.status !== "denied" &&
+      approval?.remaining_intent
+    ) {
+      await this._sendMessage?.({ resumeProposalId: proposalId });
+    }
   } catch (err) {
     if (originatingMsg && err?.code !== "in_flight") {
       originatingMsg.approval_status = "pending";
@@ -48647,10 +49055,11 @@ function _finaliseInterruption(
     });
   }
 }
-async function _sendMessage() {
+async function _sendMessage(options = {}) {
+  const resumeProposalId = options.resumeProposalId || null;
   const hasPendingAttachments = (this._chatAttachments || []).length > 0;
   if (
-    (!this._input.trim() && !hasPendingAttachments) ||
+    (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) ||
     this._loading ||
     this._attachmentsBusy
   ) {
@@ -48674,15 +49083,17 @@ async function _sendMessage() {
     : userMsgForSend;
   this._chatAttachments = [];
   this._attachmentNotice = "";
-  this._messages = [
-    ...this._messages,
-    {
-      role: "user",
-      content: userMsg,
-      ...(bubbleAttachments.length ? { attachments: bubbleAttachments } : {}),
-    },
-  ];
-  this._input = "";
+  if (!resumeProposalId) {
+    this._messages = [
+      ...this._messages,
+      {
+        role: "user",
+        content: userMsg,
+        ...(bubbleAttachments.length ? { attachments: bubbleAttachments } : {}),
+      },
+    ];
+    this._input = "";
+  }
   this._historyIndex = null;
   this._historyDraft = "";
   this._autocompleteSelections = [];
@@ -48741,6 +49152,9 @@ async function _sendMessage() {
       type: "selora_ai/chat_stream",
       message: userMsgForSend,
     };
+    if (resumeProposalId) {
+      subscribePayload.resume_proposal_id = resumeProposalId;
+    }
     if (wireAttachments.length) {
       subscribePayload.attachments = wireAttachments;
     }
@@ -49108,6 +49522,9 @@ async function _acceptScene(msgIndex) {
     await this._loadScenes();
     this._markSceneCreated(result.scene_id);
     this._showToast(`Scene "${scene.name}" created and saved.`, "success");
+    if (msg.remaining_intent && result.scene_id) {
+      await this._sendMessage?.({ resumeProposalId: result.scene_id });
+    }
   } catch (err) {
     this._showToast("Failed to create scene: " + err.message, "error");
   }

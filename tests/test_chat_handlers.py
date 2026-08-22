@@ -400,3 +400,103 @@ async def test_a_command_during_refinement_runs_nothing(harness: ChatHarness) ->
     assert turn.done["intent"] == "answer"
     assert turn.done["executed"] == []
     assert harness.hass.states.get("switch.plug").state == "off"
+
+
+@pytest.mark.asyncio
+async def test_a_dashboard_turn_is_linked_not_tiled(harness: ChatHarness) -> None:
+    """Through the HANDLER, because that is where the two rules met and lost.
+
+    The synthesizer strips entity tiles from a dashboard turn — they read as a
+    preview of the layout that was saved, which they are not — and then the
+    handler appended tiles of its own further downstream, putting them straight
+    back. Each half was right on its own, so no test of either half could see
+    it, and what shipped was the rule documented and not in force.
+    """
+    # The injector only adds a tile for an entity the home actually has, so
+    # without this the guard has nothing to guard and the test passes either
+    # way — which is how the bug survived a green suite in the first place.
+    harness.hass.states.async_set("fan.ceiling_fan", "off", {"friendly_name": "Ceiling Fan"})
+
+    turn = await harness.stream(
+        "add the fan to the office dashboard",
+        chunks="Added the Ceiling Fan to the Office dashboard.",
+        tool_calls=[
+            {
+                "tool": "insert_dashboard_card",
+                "arguments": {},
+                "result": {"ok": True, "target": "office", "view": 0, "url": "/office/0"},
+            }
+        ],
+    )
+
+    persisted = (await harness.messages())[-1]["content"]
+    for text in (turn.done["response"], persisted):
+        assert "[[entit" not in text, text
+        # And the page the user actually wants is a card.
+        assert "[[dashboard:/office/0" in text
+
+
+@pytest.mark.asyncio
+async def test_a_non_dashboard_turn_keeps_its_tiles(harness: ChatHarness) -> None:
+    """The tiles are the right answer to "which lights are on?" — the rule is
+    about dashboard turns only, and a guard that swallowed them everywhere
+    would be a bigger regression than the one it fixed."""
+    turn = await harness.stream(
+        "which lights are on?",
+        chunks="The kitchen light is on.\n\n[[entities:light.kitchen]]",
+        tool_calls=[{"tool": "get_home_snapshot", "arguments": {}, "result": {"entities": []}}],
+    )
+    assert "[[entities:light.kitchen]]" in turn.done["response"]
+
+
+@pytest.mark.asyncio
+async def test_a_scene_proposal_persists_what_it_still_owes(harness: ChatHarness) -> None:
+    """Through the handler: the model declares the remainder beside the scene,
+    and it has to land on the stored message — the turn is over by the time the
+    user taps Accept, and nothing else remembers."""
+    harness.hass.states.async_set("light.office", "on", {"friendly_name": "Office"})
+
+    turn = await harness.stream(
+        "make an office scene and add it to the dashboard",
+        chunks=(
+            '```json\n{"intent": "scene", "response": "Here it is.", '
+            '"remaining_intent": "add a tile for it to the Office dashboard", '
+            '"scene": {"name": "Office", "entities": {"light.office": {"state": "on"}}}}\n```'
+        ),
+    )
+
+    assert turn.done["intent"] == "scene"
+    persisted = (await harness.messages())[-1]
+    assert persisted["remaining_intent"] == "add a tile for it to the Office dashboard"
+
+
+@pytest.mark.asyncio
+async def test_a_resumed_turn_proposes_nothing_further(harness: ChatHarness) -> None:
+    """The cap. With nothing to resume FROM, the chain cannot continue — the
+    same once-only rule the command_approval path spells as resume_depth."""
+    harness.hass.states.async_set("light.office", "on", {"friendly_name": "Office"})
+    harness.session_id = "sess-scene-cap"
+    await harness.store.append_message(harness.session_id, "user", "make a scene")
+    await harness.store.append_message(
+        harness.session_id,
+        "assistant",
+        "Here it is.",
+        intent="scene",
+        scene={"name": "Office"},
+        scene_status="saved",
+        scene_id="selora_scene_office",
+        remaining_intent="add a tile for it",
+    )
+
+    await harness.stream(
+        "",
+        chunks=(
+            '```json\n{"intent": "scene", "response": "And another.", '
+            '"remaining_intent": "and then one more thing", '
+            '"scene": {"name": "Second", "entities": {"light.office": {"state": "on"}}}}\n```'
+        ),
+        session_id=harness.session_id,
+        resume_proposal_id="selora_scene_office",
+    )
+
+    assert "remaining_intent" not in (await harness.messages())[-1]

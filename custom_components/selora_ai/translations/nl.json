@@ -977,6 +977,13 @@
     "approval_status_applied": "Toegepast",
     "destructive_approval_title": "Deze wijziging toepassen?",
     "destructive_approval_title_plural": "Deze wijzigingen toepassen?",
-    "destructive_approval_warning": "Dit kan niet ongedaan worden gemaakt vanuit de chat."
+    "destructive_approval_warning": "Dit kan niet ongedaan worden gemaakt vanuit de chat.",
+    "client_action_title": "Vraagt om uw bevestiging",
+    "client_action_create_dashboard": "Dashboard {title} aanmaken op /{url}",
+    "client_action_confirm": "Aanmaken",
+    "client_action_working": "Bezig…",
+    "client_action_done": "Klaar.",
+    "client_action_failed": "Dat is niet gelukt.",
+    "approval_then": "daarna"
   }
 }

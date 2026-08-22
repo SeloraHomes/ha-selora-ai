@@ -957,7 +957,14 @@
     "approval_status_applied": "Aplicado",
     "destructive_approval_title": "Aplicar esta alteração?",
     "destructive_approval_title_plural": "Aplicar estas alterações?",
-    "destructive_approval_warning": "Isto não pode ser desfeito a partir do chat."
+    "destructive_approval_warning": "Isto não pode ser desfeito a partir do chat.",
+    "client_action_title": "Precisa da sua confirmação",
+    "client_action_create_dashboard": "Criar o painel {title} em /{url}",
+    "client_action_confirm": "Criar",
+    "client_action_working": "A processar…",
+    "client_action_done": "Concluído.",
+    "client_action_failed": "Isso não funcionou.",
+    "approval_then": "depois"
   },
   "options": {
     "step": {

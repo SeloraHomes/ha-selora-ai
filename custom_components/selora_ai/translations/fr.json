@@ -957,7 +957,14 @@
     "approval_status_applied": "Appliqué",
     "destructive_approval_title": "Appliquer ce changement ?",
     "destructive_approval_title_plural": "Appliquer ces changements ?",
-    "destructive_approval_warning": "Cette action est irréversible depuis le chat."
+    "destructive_approval_warning": "Cette action est irréversible depuis le chat.",
+    "client_action_title": "Nécessite votre confirmation",
+    "client_action_create_dashboard": "Créer le tableau de bord {title} sur /{url}",
+    "client_action_confirm": "Créer",
+    "client_action_working": "En cours…",
+    "client_action_done": "Terminé.",
+    "client_action_failed": "Cela n'a pas fonctionné.",
+    "approval_then": "puis"
   },
   "options": {
     "step": {

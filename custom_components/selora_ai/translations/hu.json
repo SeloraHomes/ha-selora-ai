@@ -977,6 +977,13 @@
     "approval_status_applied": "Alkalmazva",
     "destructive_approval_title": "Alkalmazza ezt a módosítást?",
     "destructive_approval_title_plural": "Alkalmazza ezeket a módosításokat?",
-    "destructive_approval_warning": "Ezt a csevegésből nem lehet visszavonni."
+    "destructive_approval_warning": "Ezt a csevegésből nem lehet visszavonni.",
+    "client_action_title": "Megerősítést igényel",
+    "client_action_create_dashboard": "A(z) {title} vezérlőpult létrehozása itt: /{url}",
+    "client_action_confirm": "Létrehozás",
+    "client_action_working": "Folyamatban…",
+    "client_action_done": "Kész.",
+    "client_action_failed": "Ez nem sikerült.",
+    "approval_then": "majd"
   }
 }

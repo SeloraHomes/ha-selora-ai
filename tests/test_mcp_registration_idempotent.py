@@ -129,3 +129,51 @@ def test_a_failed_raw_route_is_retried(fake_hass: Any) -> None:
     added.clear()
     mcp_server.register_mcp_server(fake_hass)
     assert added == ["OPTIONS"], "only the failed method should be re-attempted"
+
+
+# ── Against HA's real HTTP stack ────────────────────────────────────────────
+#
+# The fixture above mocks `register_view` with a list append, so it never runs
+# HomeAssistantView.register — and that is where the real failure was. HA adds
+# the routes and then hands them to aiohttp_cors, which insists on owning
+# OPTIONS; these views answer preflight themselves, so the decoration raises
+# AFTER the routes are in the router. Registration was reported as failed on
+# every single start, of endpoints that were live and serving.
+
+
+async def test_registration_succeeds_against_the_real_http_stack(hass: Any) -> None:
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "http", {})
+    await hass.async_block_till_done()
+
+    mcp_server.register_mcp_server(hass)
+
+    routed = {getattr(resource, "canonical", None) for resource in hass.http.app.router.resources()}
+    assert "/api/selora_ai/mcp" in routed
+    assert "/api/selora_ai/oauth/token" in routed
+
+
+async def test_every_step_is_marked_done_so_reloads_do_not_retry(hass: Any) -> None:
+    """The step stayed unmarked while the endpoint was live, so every reload
+    re-ran it for the life of the process — the exact growth this module's
+    guard exists to prevent."""
+    from homeassistant.setup import async_setup_component
+
+    assert await async_setup_component(hass, "http", {})
+    await hass.async_block_till_done()
+
+    mcp_server.register_mcp_server(hass)
+    done = mcp_server._REGISTERED_STEPS[hass]
+    assert "selora_ai:mcp" in done
+    assert "selora_ai:oauth_token_proxy" in done
+
+    before = len(list(hass.http.app.router.routes()))
+    mcp_server.register_mcp_server(hass)
+    assert len(list(hass.http.app.router.routes())) == before
+
+
+async def test_a_view_that_never_routed_is_still_reported(hass: Any) -> None:
+    """The quieting is conditional on the router actually holding the route —
+    a genuine failure must still warn, and now says why."""
+    assert mcp_server._route_exists(web.Application(), "/api/selora_ai/mcp") is False

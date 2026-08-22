@@ -2103,3 +2103,518 @@ def test_the_write_tool_set_is_derived_not_listed() -> None:
         if "dashboard" not in chat_name:
             continue
         assert (mcp_name in derived) is TOOL_MAP[chat_name].requires_admin, mcp_name
+
+
+async def test_a_new_view_says_where_to_find_it(board: HomeAssistant) -> None:
+    """A user told "created" who then looks under Settings > Dashboards finds
+    nothing, because no dashboard was created. The url is the only thing in the
+    result that points at the page itself."""
+    result = await _make_executor(board).execute(
+        "add_dashboard_view", {"title": "Kitchen", "path": "kitchen"}
+    )
+
+    assert result["url"] == "/lovelace/kitchen"
+    assert "not a new dashboard" in result["note"]
+    assert "empty" in result["note"]
+
+
+async def test_a_new_view_on_a_named_dashboard_gets_its_url(board: HomeAssistant) -> None:
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    board.data[LOVELACE_DATA].dashboards["selora-ai-dashboard"] = board.data[
+        LOVELACE_DATA
+    ].dashboards[None]
+
+    result = await _make_executor(board).execute(
+        "add_dashboard_view",
+        {"dashboard_target": "selora-ai-dashboard", "title": "Kitchen", "path": "kitchen"},
+    )
+    assert result["url"] == "/selora-ai-dashboard/kitchen"
+
+
+async def test_a_pathless_view_is_addressed_by_index(board: HomeAssistant) -> None:
+    """How Home Assistant addresses an unnamed view in the URL bar."""
+    result = await _make_executor(board).execute("add_dashboard_view", {"title": "Kitchen"})
+    assert result["url"] == f"/lovelace/{result['view_index']}"
+
+
+def test_the_tool_does_not_claim_to_create_a_dashboard() -> None:
+    """The description said "this is how you 'create a dashboard'", so the model
+    answered a request for a dashboard by adding a page and reporting success.
+
+    It must still not claim that, but the redirect now goes to
+    `create_dashboard` rather than to Settings — sending the user off to do it
+    by hand, next to a tool that can do it, reads as the capability not
+    existing and the model appends the page anyway."""
+    description = TOOL_MAP["add_dashboard_view"].description
+    assert "does NOT create a dashboard" in description
+    assert "create_dashboard" in description
+    assert "Settings > Dashboards" not in description
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        ("kitchen", "/lovelace/kitchen"),
+        # Stored fine by Lovelace, which validates nothing — but the browser
+        # would read "#lights" as a fragment on a view that does not exist.
+        ("kitchen#lights", "/lovelace/kitchen%23lights"),
+        ("a b", "/lovelace/a%20b"),
+        ("up/down", "/lovelace/up%2Fdown"),
+        ("q?x=1", "/lovelace/q%3Fx%3D1"),
+    ],
+)
+async def test_a_view_url_survives_a_reserved_character(
+    board: HomeAssistant, path: str, expected: str
+) -> None:
+    """The view is stored correctly either way; only the link would be wrong,
+    which is the worst shape for a result whose whole job is to be followed."""
+    result = await _make_executor(board).execute(
+        "add_dashboard_view", {"title": "Kitchen", "path": path}
+    )
+    assert result["url"] == expected
+
+
+async def test_a_dashboard_target_is_encoded_too(board: HomeAssistant) -> None:
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    board.data[LOVELACE_DATA].dashboards["odd name"] = board.data[LOVELACE_DATA].dashboards[None]
+
+    result = await _make_executor(board).execute(
+        "add_dashboard_view",
+        {"dashboard_target": "odd name", "title": "Kitchen", "path": "kitchen"},
+    )
+    assert result["url"] == "/odd%20name/kitchen"
+
+
+# ── A card type that is not a card ──────────────────────────────────────────
+
+
+async def test_a_section_is_refused_as_a_card(board: HomeAssistant) -> None:
+    """`section` is how a sections VIEW holds its cards, not a card. Lovelace
+    resolves a card type to a custom element and calls setConfig on it; there is
+    no element for this, so it renders "Configuration error: setConfig is not a
+    function" on the user's wall. Nothing else catches it — it is a dict with a
+    type and real entity ids, and Lovelace stores whatever it is given."""
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card",
+        {
+            "card": {
+                "type": "section",
+                "cards": [{"type": "light", "entity": "light.lamp"}],
+            }
+        },
+    )
+
+    assert result.get("ok") is not True, result
+    message = str(result.get("error") or result.get("message") or "")
+    assert "not a card type" in message
+    # And it says what to do instead.
+    assert "vertical-stack" in message or "grid" in message
+
+
+async def test_the_section_guard_covers_every_card_write(board: HomeAssistant) -> None:
+    """Insert, update, and the group container — a card that cannot render is
+    just as broken whichever call put it there."""
+    executor = _make_executor(board)
+
+    updated = await executor.execute(
+        "update_dashboard_card",
+        {"view": 0, "card_index": 0, "card": {"type": "section", "cards": []}},
+    )
+    assert "not a card type" in str(updated.get("error") or "")
+
+    grouped = await executor.execute(
+        "group_dashboard_cards",
+        {"view": 0, "card_indices": [0, 1], "container": {"type": "section"}},
+    )
+    assert "not a card type" in str(grouped.get("error") or "")
+
+
+async def test_a_real_container_card_still_works(board: HomeAssistant) -> None:
+    """The guard names three replacements; they have to actually be accepted."""
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card",
+        {
+            "card": {
+                "type": "vertical-stack",
+                "cards": [{"type": "light", "entity": "light.lamp"}],
+            }
+        },
+    )
+    assert result.get("ok") is True, result
+
+
+# ── The reply points at the page, not at the devices ────────────────────────
+
+
+async def test_a_card_write_reports_where_it_landed(board: HomeAssistant) -> None:
+    """A reply that names a page and gives no way to reach it leaves the user
+    to go and find it — the same reason add_dashboard_view carries a url."""
+    executor = _make_executor(board)
+
+    inserted = await executor.execute(
+        "insert_dashboard_card",
+        {"view": 0, "card": {"type": "light", "entity": "light.lamp"}},
+    )
+    assert inserted["ok"] is True
+    assert inserted["url"].startswith("/lovelace/")
+
+    updated = await executor.execute(
+        "update_dashboard_card",
+        {"view": 0, "card_index": 0, "card": {"type": "light", "entity": "light.lamp"}},
+    )
+    assert updated["status"] == "updated"
+    assert updated["url"].startswith("/lovelace/")
+
+
+def test_a_dashboard_turn_is_linked_not_tiled() -> None:
+    """Two rules that were disagreeing: the synthesizer strips entity tiles from
+    a dashboard turn, and the chat handler appended them again downstream. And
+    what the user actually wants is the page."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        synthesize_approval_from_tool_log,
+    )
+
+    result = synthesize_approval_from_tool_log(
+        {
+            "intent": "answer",
+            "response": "Added an Office Activity section.\n\n[[entities:fan.ceiling_fan]]",
+        },
+        [
+            {
+                "tool": "insert_dashboard_card",
+                "arguments": {},
+                "result": {"ok": True, "target": "office", "view": 0, "url": "/office/0"},
+            }
+        ],
+        None,
+    )
+
+    text = result["response"]
+    # The tiles are gone...
+    assert "[[entit" not in text
+    # ...and the page is a card the panel renders.
+    assert "[[dashboard:/office/0" in text
+
+
+def test_the_link_is_not_added_twice_or_to_a_read() -> None:
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    # A read has no url on its result, so nothing to link.
+    read_only = append_dashboard_link(
+        {"response": "You have three views."},
+        [{"tool": "get_dashboard", "arguments": {}, "result": {"views": []}}],
+    )
+    assert "[[dashboard:" not in read_only["response"]
+
+    # The model routinely writes the path into its prose as a code span —
+    # "available at `/office/0`" — which looks like a link and is not one. The
+    # card is emitted anyway; only an existing MARKER suppresses it.
+    prose = append_dashboard_link(
+        {"response": "Done — available at `/office/0`."},
+        [{"tool": "insert_dashboard_card", "arguments": {}, "result": {"url": "/office/0"}}],
+    )
+    assert "[[dashboard:/office/0" in prose["response"]
+
+    already = append_dashboard_link(
+        {"response": "Done.\n\n[[dashboard:/office/0|Office]]"},
+        [{"tool": "insert_dashboard_card", "arguments": {}, "result": {"url": "/office/0"}}],
+    )
+    assert already["response"].count("[[dashboard:") == 1
+
+
+def test_the_link_speaks_the_turns_language() -> None:
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "C'est fait."},
+        [{"tool": "insert_dashboard_card", "arguments": {}, "result": {"url": "/office/0"}}],
+        "fr",
+    )
+    assert "Ouvrir le tableau de bord" in linked["response"]
+
+
+def test_the_card_label_cannot_break_out_of_the_marker() -> None:
+    """The label is the dashboard's title — whatever the user named it — and it
+    is rendered by the panel from a marker delimited by `|` and `]`."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "Done."},
+        [
+            {
+                "tool": "add_dashboard_view",
+                "arguments": {},
+                "result": {"url": "/office/0", "title": "Off]ice|Home"},
+            }
+        ],
+    )
+    assert "[[dashboard:/office/0|OfficeHome]]" in linked["response"]
+
+
+@pytest.mark.parametrize(
+    ("bad_type", "fragment"),
+    [
+        # A domain THIS home has, used as a card type. That is the shape the
+        # wrong guesses take: the model draws on the home's own vocabulary.
+        ("switch", "is a domain, not a card type"),
+        ("climate", "is a domain, not a card type"),
+        # Real Lovelace vocabulary, wrong position.
+        ("section", "sections VIEW holds its cards"),
+        ("view", "sections VIEW holds its cards"),
+    ],
+)
+async def test_an_unrenderable_card_type_is_refused(
+    board: HomeAssistant, bad_type: str, fragment: str
+) -> None:
+    """Lovelace has no server-side validator — it stores whatever it is given
+    and the frontend finds out — so this is the only place a card type can be
+    checked before it reaches the user's wall."""
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card", {"card": {"type": bad_type, "entity": "light.lamp"}}
+    )
+    assert result.get("ok") is not True, result
+    assert fragment in str(result.get("error") or result.get("message") or "")
+
+
+@pytest.mark.parametrize(
+    "good_type",
+    [
+        # Domains that DO have a card of their own.
+        "light",
+        "thermostat",
+        "lock",
+        # Ordinary cards.
+        "tile",
+        "entities",
+        "grid",
+        "vertical-stack",
+        "gauge",
+        "history-graph",
+        "markdown",
+        "heading",
+        "area",
+        "button",
+        # A custom card — from resources this integration cannot enumerate.
+        "custom:mushroom-light-card",
+        # A card type newer than this code. Refusing these is the failure mode
+        # an allowlist would have: it goes stale every HA release.
+        "some-card-shipped-next-year",
+        # A domain this home does not have. Deliberate: the check is scoped to
+        # the vocabulary the model is actually drawing on, so the price of not
+        # maintaining a catalogue is that a fanless home cannot catch 'fan'.
+        "cover",
+    ],
+)
+async def test_a_plausible_card_type_is_accepted(board: HomeAssistant, good_type: str) -> None:
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card",
+        {"card": {"type": good_type, "entity": "light.lamp", "entities": ["light.lamp"]}},
+    )
+    assert result.get("ok") is True, result
+
+
+async def test_a_domain_the_home_has_is_caught(board: HomeAssistant) -> None:
+    """The check reads the live state machine, so it covers whatever the home
+    actually contains rather than a list written here."""
+    board.states.async_set("fan.ceiling", "off")
+
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card", {"card": {"type": "fan", "entity": "fan.ceiling"}}
+    )
+    assert "is a domain, not a card type" in str(result.get("message") or result.get("error") or "")
+
+
+async def test_the_refusal_tells_the_model_what_to_use(board: HomeAssistant) -> None:
+    """A refusal the model cannot act on just gets retried. This is the same
+    ground-truth-in-the-error shape the automation validation loop uses."""
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card", {"card": {"type": "switch", "entity": "light.lamp"}}
+    )
+    message = str(result.get("error") or result.get("message") or "")
+    assert "tile" in message and "entities" in message
+    # And it names the domains that genuinely do have a card, so the model can
+    # tell why 'light' works and 'switch' does not.
+    assert "light" in message and "thermostat" in message
+
+
+async def test_a_bad_card_type_nested_in_a_container_is_caught(board: HomeAssistant) -> None:
+    """The container is valid and the child is not — which is the shape that
+    actually reaches the wall, because the model builds a grid of tiles and
+    gets one of them wrong. Checking only the outer type stored it."""
+    board.states.async_set("fan.ceiling", "off")
+
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card",
+        {
+            "card": {
+                "type": "grid",
+                "columns": 2,
+                "cards": [
+                    {"type": "light", "entity": "light.lamp"},
+                    {"type": "fan", "entity": "fan.ceiling"},
+                ],
+            }
+        },
+    )
+
+    assert result.get("ok") is not True, result
+    assert "is a domain, not a card type" in str(result.get("message") or result.get("error") or "")
+
+
+async def test_the_walk_reaches_every_nesting_shape(board: HomeAssistant) -> None:
+    board.states.async_set("fan.ceiling", "off")
+    executor = _make_executor(board)
+
+    # Two containers deep.
+    deep = await executor.execute(
+        "insert_dashboard_card",
+        {
+            "card": {
+                "type": "vertical-stack",
+                "cards": [{"type": "grid", "cards": [{"type": "fan", "entity": "fan.ceiling"}]}],
+            }
+        },
+    )
+    assert deep.get("ok") is not True, deep
+
+    # The conditional card's single child, which is `card`, not `cards`.
+    conditional = await executor.execute(
+        "insert_dashboard_card",
+        {
+            "card": {
+                "type": "conditional",
+                "conditions": [],
+                "card": {"type": "fan", "entity": "fan.ceiling"},
+            }
+        },
+    )
+    assert conditional.get("ok") is not True, conditional
+
+
+async def test_tile_features_are_not_mistaken_for_cards(board: HomeAssistant) -> None:
+    """A tile's `features` carry their own type vocabulary — light-brightness,
+    fan-speed — which are not card types. Walking them would refuse every tile
+    that has one, and those are exactly the cards worth building."""
+    result = await _make_executor(board).execute(
+        "insert_dashboard_card",
+        {
+            "card": {
+                "type": "tile",
+                "entity": "light.lamp",
+                "features": [
+                    {"type": "light-brightness"},
+                    {"type": "light-color-temp"},
+                ],
+            }
+        },
+    )
+    assert result.get("ok") is True, result
+
+
+# ── The turn cannot report a refused write as done ──────────────────────────
+
+
+def _write_turn(results: list[dict[str, Any]], response: str = "Added the card.") -> Any:
+    from custom_components.selora_ai.llm_client.command_policy import (
+        synthesize_approval_from_tool_log,
+    )
+
+    return synthesize_approval_from_tool_log(
+        {"intent": "answer", "response": response},
+        [{"tool": "insert_dashboard_card", "arguments": {}, "result": r} for r in results],
+        None,
+    )
+
+
+def test_a_refused_write_is_not_reported_as_done() -> None:
+    """The refusal goes back to the model as an ordinary tool result, so it can
+    correct itself and call again inside the same turn — that is the loop, and
+    it is the one an invalid automation gets. This is the other end of it:
+    nothing stopped a turn whose writes were ALL refused from saying "Added
+    the card"."""
+    result = _write_turn([{"ok": False, "message": "'fan' is a domain, not a card type"}])
+
+    assert "is a domain, not a card type" in result["response"]
+    # Machine-readable too, so the panel does not have to read prose.
+    assert result["validation_error"]
+    assert result["validation_target"] == "dashboard"
+
+
+def test_an_error_shaped_refusal_counts_too() -> None:
+    """Half these tools report `{"error": …}` and half `{"ok": False, …}`."""
+    result = _write_turn([{"error": "That view has 2 cards, so index 7 is out of range."}])
+    assert "index 7 is out of range" in result["response"]
+
+
+def test_a_turn_that_fixed_itself_is_not_scolded() -> None:
+    """Retrying and succeeding is the loop working. Reporting the discarded
+    first attempt would be noise about something the user never saw."""
+    result = _write_turn(
+        [
+            {"ok": False, "message": "'fan' is a domain, not a card type"},
+            {"ok": True, "target": "office", "view": 0, "url": "/office/0"},
+        ]
+    )
+
+    assert "not a card type" not in result["response"]
+    assert "validation_error" not in result
+    # And it still gets its card.
+    assert "[[dashboard:/office/0" in result["response"]
+
+
+def test_a_failed_READ_says_nothing() -> None:
+    """A read that fails is answered by the prose. Only a write claimed as done
+    when nothing changed is the lie worth catching."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        synthesize_approval_from_tool_log,
+    )
+
+    result = synthesize_approval_from_tool_log(
+        {"intent": "answer", "response": "You have two dashboards."},
+        [{"tool": "get_dashboard", "arguments": {}, "result": {"error": "No dashboard 'x'."}}],
+        None,
+    )
+    assert "validation_error" not in result
+
+
+async def test_the_refusal_reaches_the_model_as_an_ordinary_result(
+    board: HomeAssistant,
+) -> None:
+    """The retry half. A refused write is recorded in the call log like any
+    other result, and that log is what the tool loop appends to the messages —
+    so the model sees the reason and can call again inside the same turn,
+    without a bespoke retry path of its own."""
+    board.states.async_set("fan.ceiling", "off")
+    executor = _make_executor(board)
+
+    refused = await executor.execute(
+        "insert_dashboard_card", {"card": {"type": "fan", "entity": "fan.ceiling"}}
+    )
+    assert refused.get("ok") is not True
+
+    # Recorded, with the reason, for the loop to hand back.
+    logged = executor.call_log[-1]
+    assert logged["tool"] == "insert_dashboard_card"
+    assert "is a domain, not a card type" in str(logged["result"])
+
+    # And the corrected call goes through, same turn, same executor.
+    fixed = await executor.execute(
+        "insert_dashboard_card", {"card": {"type": "tile", "entity": "fan.ceiling"}}
+    )
+    assert fixed.get("ok") is True, fixed
+
+    # Which is exactly the shape the "did anything change?" guard forgives.
+    from custom_components.selora_ai.llm_client.command_policy import (
+        note_failed_dashboard_write,
+    )
+
+    noted = note_failed_dashboard_write({"response": "Added the fan."}, executor.call_log, None)
+    assert "validation_error" not in noted

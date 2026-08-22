@@ -827,6 +827,7 @@ class LLMClient:
         areas: list[str] | None = None,
         *,
         for_assist: bool = False,
+        panel_available: bool = False,
         session_id: str | None = None,
         language: str | None = None,
         attachments: list[ImageAttachment] | None = None,
@@ -1010,7 +1011,11 @@ class LLMClient:
                 )
             # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
             if tool_executor is not None:
-                tools = self._get_tools_for_provider(intent_hint=cloud_intent_hint)
+                tools = self._get_tools_for_provider(
+                    intent_hint=cloud_intent_hint,
+                    for_assist=for_assist,
+                    panel_available=panel_available,
+                )
                 result_text, error, tool_log = await self._send_request_with_tools(
                     system=system_prompt,
                     messages=messages,
@@ -1158,6 +1163,7 @@ class LLMClient:
         automation_context: list[tuple[str, str, str]] | None = None,
         areas: list[str] | None = None,
         *,
+        panel_available: bool = False,
         session_id: str | None = None,
         language: str | None = None,
         attachments: list[ImageAttachment] | None = None,
@@ -1304,7 +1310,11 @@ class LLMClient:
 
             # Tool-aware streaming: streams text tokens, handles tool calls inline
             if tool_executor is not None:
-                tools = self._get_tools_for_provider(intent_hint=cloud_intent_hint)
+                # Streaming is the panel's path and has no `for_assist`; Assist
+                # never reaches here, so panel-only tools stay available.
+                tools = self._get_tools_for_provider(
+                    intent_hint=cloud_intent_hint, panel_available=panel_available
+                )
                 try:
                     async for chunk in self._stream_request_with_tools(
                         system=system_prompt,
@@ -1506,6 +1516,13 @@ class LLMClient:
         # trailing_marker_reposition, streamed Qwen normalize) fire here,
         # after architect_chat_stream's usage scope has already closed.
         # Open a standalone repair scope so these still emit telemetry.
+        # The SAME resolution architect_chat_stream ran, redone here because
+        # the streaming caller has no way to hand its local result back — it
+        # passes the panel's UI locale, so a French message on an English-UI
+        # install reached the synthesizer as "en" and every deterministic
+        # outcome built from it came out English. Cheap and pure: a marker-set
+        # lookup over the message, no network and no state.
+        language = resolve_reply_language(user_message or "", language, self._hass.config.language)
         with self._usage.repair_scope():
             # Provider hook: Selora AI Local converts v0.4.2 slim output
             # shapes ({r,q} / {c,r} / {q,o}) into the {intent, response,
@@ -1590,11 +1607,34 @@ class LLMClient:
         except (KeyError, AttributeError, RuntimeError):
             return []
 
-    def _get_tools_for_provider(self, *, intent_hint: str | None = None) -> list[dict[str, Any]]:
+    def _get_tools_for_provider(
+        self,
+        *,
+        intent_hint: str | None = None,
+        for_assist: bool = False,
+        panel_available: bool = False,
+    ) -> list[dict[str, Any]]:
         """Return tool definitions formatted for the current provider.
 
         Tools marked ``large_context_only`` are dropped for providers with
-        a tight context window (currently only selora_local).
+        a tight context window (currently only selora_local). Tools marked
+        ``panel_only`` are dropped unless the CALLER says a panel is on the
+        other end of this turn: the work they propose is performed by the
+        Selora panel, so anywhere else the model would call one and produce a
+        proposal nothing can act on.
+
+        ``panel_available`` defaults to False so a caller that says nothing
+        gets less capability, and it is the caller's answer rather than the
+        model's for a reason. Describing the restriction in the tool's own
+        text instead asked the model to judge which surface it was talking
+        through, which nothing in its context tells it: it hedged, refused,
+        and told a user sitting in the panel to go and open the panel. A fact
+        the model cannot observe cannot be a condition it applies — the tool's
+        PRESENCE has to carry it.
+
+        This is not the same question as ``for_assist``, which stays because it
+        also swaps the prompt's marker rules. Assist has no panel, but neither
+        does an MCP chat turn, and that one passes ``for_assist=False``.
 
         ``intent_hint`` selects a lane from ``TOOL_LANES`` and trims the schema
         to it — a plain device-control turn never needs device-discovery,
@@ -1610,7 +1650,9 @@ class LLMClient:
         return [
             self._provider.format_tool(t)
             for t in CHAT_TOOLS
-            if not (low_ctx and t.large_context_only) and (lane is None or t.name in lane)
+            if not (low_ctx and t.large_context_only)
+            and not (t.panel_only and not panel_available)
+            and (lane is None or t.name in lane)
         ]
 
     async def _send_request_with_tools(

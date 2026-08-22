@@ -957,7 +957,14 @@
     "approval_status_applied": "적용됨",
     "destructive_approval_title": "이 변경을 적용할까요?",
     "destructive_approval_title_plural": "이 변경들을 적용할까요?",
-    "destructive_approval_warning": "이 작업은 채팅에서 되돌릴 수 없습니다."
+    "destructive_approval_warning": "이 작업은 채팅에서 되돌릴 수 없습니다.",
+    "client_action_title": "확인이 필요합니다",
+    "client_action_create_dashboard": "{title} 대시보드를 /{url}에 생성",
+    "client_action_confirm": "생성",
+    "client_action_working": "처리 중…",
+    "client_action_done": "완료했습니다.",
+    "client_action_failed": "실패했습니다.",
+    "approval_then": "그다음"
   },
   "options": {
     "step": {

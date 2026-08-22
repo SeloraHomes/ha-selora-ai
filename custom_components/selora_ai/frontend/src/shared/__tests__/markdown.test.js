@@ -714,3 +714,38 @@ describe("renderMarkdown", () => {
     });
   });
 });
+
+describe("the dashboard card", () => {
+  // A page is not a device, so it gets its own element rather than an entity
+  // tile — the card that takes you to a dashboard should not look like the
+  // card that toggles a light.
+  it("renders a marker as a link card carrying its label and path", () => {
+    const html = renderMarkdown("Done.\n\n[[dashboard:/office/0|Office]]");
+    expect(html).toContain('class="selora-dashboard-link"');
+    expect(html).toContain('href="/office/0"');
+    expect(html).toContain("Office");
+    expect(html).toContain("mdi:view-dashboard-outline");
+  });
+
+  it("falls back to a label when the marker carries none", () => {
+    const html = renderMarkdown("[[dashboard:/lovelace/2]]");
+    expect(html).toContain('href="/lovelace/2"');
+    expect(html).toContain("Open the dashboard");
+  });
+
+  it("renders nothing for a path that is not same-origin", () => {
+    // The backend composes the url from a tool result, but the marker travels
+    // through the model's text — so a protocol-relative host or a scheme must
+    // not become an anchor.
+    for (const bad of [
+      "[[dashboard://evil.example/x|Hi]]",
+      "[[dashboard:javascript:alert(1)|Hi]]",
+      "[[dashboard:https://evil.example|Hi]]",
+      "[[dashboard:office/0|Hi]]",
+    ]) {
+      const html = renderMarkdown(bad);
+      expect(html).not.toContain("selora-dashboard-link");
+      expect(html).not.toContain("<a ");
+    }
+  });
+});

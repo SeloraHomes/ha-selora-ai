@@ -169,6 +169,7 @@ class ConversationStore:
         command_approval: dict[str, Any] | None = None,
         approval_status: str | None = None,
         steps: list[dict[str, Any]] | None = None,
+        remaining_intent: str | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -236,6 +237,13 @@ class ConversationStore:
             message["approval_status"] = approval_status
         if steps:
             message["steps"] = steps
+        # What the turn still has to do once the user accepts this proposal.
+        # A scene or automation is PROPOSED and accepted later, so the turn
+        # that offered it is long over by then and nothing else remembers what
+        # it was going to do next — the same reason a command_approval carries
+        # it on the proposal.
+        if remaining_intent:
+            message["remaining_intent"] = remaining_intent
 
         session["messages"].append(message)
 

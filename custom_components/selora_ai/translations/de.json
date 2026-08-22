@@ -957,7 +957,14 @@
     "approval_status_applied": "Angewendet",
     "destructive_approval_title": "Diese Änderung anwenden?",
     "destructive_approval_title_plural": "Diese Änderungen anwenden?",
-    "destructive_approval_warning": "Dies kann über den Chat nicht rückgängig gemacht werden."
+    "destructive_approval_warning": "Dies kann über den Chat nicht rückgängig gemacht werden.",
+    "client_action_title": "Benötigt Ihre Bestätigung",
+    "client_action_create_dashboard": "Dashboard {title} unter /{url} erstellen",
+    "client_action_confirm": "Erstellen",
+    "client_action_working": "Wird ausgeführt…",
+    "client_action_done": "Fertig.",
+    "client_action_failed": "Das hat nicht geklappt.",
+    "approval_then": "dann"
   },
   "options": {
     "step": {

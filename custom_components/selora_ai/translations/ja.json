@@ -957,7 +957,14 @@
     "approval_status_applied": "適用しました",
     "destructive_approval_title": "この変更を適用しますか？",
     "destructive_approval_title_plural": "これらの変更を適用しますか？",
-    "destructive_approval_warning": "この操作はチャットからは元に戻せません。"
+    "destructive_approval_warning": "この操作はチャットからは元に戻せません。",
+    "client_action_title": "確認が必要です",
+    "client_action_create_dashboard": "{title} ダッシュボードを /{url} に作成",
+    "client_action_confirm": "作成",
+    "client_action_working": "実行中…",
+    "client_action_done": "完了しました。",
+    "client_action_failed": "うまくいきませんでした。",
+    "approval_then": "その後"
   },
   "options": {
     "step": {

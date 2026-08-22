@@ -569,6 +569,15 @@ def _can_access_tool(auth_ctx: SeloraAuthContext, tool_name: str) -> bool:
 _REGISTERED_STEPS: weakref.WeakKeyDictionary[HomeAssistant, set[str]] = weakref.WeakKeyDictionary()
 
 
+def _route_exists(app: web.Application, url: str) -> bool:
+    """Whether *url* is already served by this app.
+
+    Asked when registration raised: the router is where the truth is, and a
+    view whose routes landed is registered whatever else went wrong.
+    """
+    return any(getattr(resource, "canonical", None) == url for resource in app.router.resources())
+
+
 def register_mcp_server(hass: HomeAssistant) -> None:
     """Register the Selora AI MCP HTTP views with HA's HTTP server.
 
@@ -609,10 +618,28 @@ def register_mcp_server(hass: HomeAssistant) -> None:
         # and left unmarked so the next reload retries it.
         try:
             hass.http.register_view(view)
-        except (ValueError, RuntimeError):
-            _LOGGER.warning(
-                "Failed to register MCP view %s — retrying on the next reload", view.name
-            )
+        except (ValueError, RuntimeError) as err:
+            # `register` adds the routes and THEN hands them to aiohttp_cors,
+            # which insists on owning OPTIONS. These views serve MCP clients
+            # from origins HA's configured CORS list will never contain, so
+            # they answer preflight themselves — and that collision raises
+            # AFTER the routes are in the router. The endpoint is live; only
+            # the decoration failed. Reported as a failure it was a warning on
+            # every start about something that works, and the step stayed
+            # unmarked, so every reload retried it for the life of the process.
+            if _route_exists(app, view.url):
+                _LOGGER.debug(
+                    "MCP view %s is registered; CORS decoration was refused (%s)",
+                    view.name,
+                    err,
+                )
+                done.add(view.name)
+            else:
+                _LOGGER.warning(
+                    "Failed to register MCP view %s (%s) — retrying on the next reload",
+                    view.name,
+                    err,
+                )
         else:
             done.add(view.name)
 
@@ -642,11 +669,12 @@ def register_mcp_server(hass: HomeAssistant) -> None:
             continue
         try:
             app.router.add_route(method, _PROTECTED_RESOURCE_URL, handler)
-        except Exception:  # noqa: BLE001 — one method must not block the other, nor setup
+        except Exception as err:  # noqa: BLE001 — one method must not block the other
             _LOGGER.warning(
-                "Failed to register %s %s — retrying on the next reload",
+                "Failed to register %s %s (%s) — retrying on the next reload",
                 method,
                 _PROTECTED_RESOURCE_URL,
+                err,
             )
         else:
             done.add(step)

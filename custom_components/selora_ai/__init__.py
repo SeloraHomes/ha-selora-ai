@@ -2178,6 +2178,10 @@ async def _handle_websocket_chat(
         user_message,
         entities,
         existing_automations=automations,
+        # This handler IS the panel, so the tools whose work the panel performs
+        # can be offered. Nothing in the model's context reveals which surface
+        # it is answering through, so the caller has to say.
+        panel_available=True,
         history=history,
         tool_executor=tool_executor,
         refining_context=refining,
@@ -2498,6 +2502,8 @@ async def _retry_invalid_automation(
                 correction,
                 entities,
                 existing_automations=automations,
+                # Still the same panel turn.
+                panel_available=True,
                 history=history,
                 tool_executor=tool_executor,
                 session_id=session_id,
@@ -2550,12 +2556,95 @@ async def _retry_invalid_automation(
     return parsed
 
 
+async def _persist_user_turn(
+    store: ConversationStore, session_id: str, content: str, resuming: bool
+) -> None:
+    """Persist the user's turn — unless this turn had no user in it.
+
+    A resumption's `user_message` is a directive the SERVER wrote. Storing it
+    would put words in the user's mouth in their own transcript, and every
+    later turn would read it back as something they said.
+    """
+    if resuming:
+        return
+    await store.append_message(session_id, "user", content)
+
+
+_RESUME_DIRECTIVE = (
+    "The confirmation you were waiting for has been given and the action is "
+    "done — it is in the conversation above. Continue with what was left: "
+    "{intent}. Do it now with the tools; do not ask again, do not repeat the "
+    "step that just completed, and do not propose another confirmation card."
+)
+
+
+def _proposal_remaining_intent(parsed: dict[str, Any]) -> str | None:
+    """What the model says it still owes after a scene/automation is accepted.
+
+    Only for a turn that actually PROPOSED one. On any other turn the field is
+    noise, and on a command turn the work has already happened.
+    """
+    if not (parsed.get("scene") or parsed.get("automation")):
+        return None
+    declared = parsed.get("remaining_intent")
+    if not isinstance(declared, str) or not declared.strip():
+        return None
+    return declared.strip()[:200]
+
+
+def _resume_request(
+    stored_messages: list[dict[str, Any]], proposal_id: str
+) -> tuple[str | None, str | None]:
+    """``(directive, error)`` for continuing the work a confirmed card left.
+
+    Everything is read from the STORED proposal, never from the client, which
+    is what keeps the depth cap and the approval itself honest — the panel
+    sends an id and nothing else.
+
+    Refused unless the card was actually APPROVED (a denial means the user said
+    no, and continuing anyway would be the opposite of asking), it declared
+    remaining work, and it is not itself the product of a resumed turn — that
+    last one is the cap: a card may be resumed once.
+    """
+    for message in stored_messages:
+        # A scene is not a command_approval: it is proposed as a block and
+        # accepted from its own card, and the handle it comes back with is the
+        # scene_id. Same question, different door — and the door the model
+        # actually used when it said "once it's created, I'll add a tile".
+        if message.get("scene_id") == proposal_id and message.get("remaining_intent"):
+            if message.get("scene_status") != "saved":
+                return None, "That scene was not saved, so there is nothing to continue."
+            return _RESUME_DIRECTIVE.format(intent=str(message["remaining_intent"])), None
+        approval = message.get("command_approval")
+        if not isinstance(approval, dict) or approval.get("proposal_id") != proposal_id:
+            continue
+        if message.get("approval_status") != "approved":
+            return None, "That action was not approved, so there is nothing to continue."
+        if int(approval.get("resume_depth") or 0) >= 1:
+            # Cap. A resumed turn's own proposals are stamped 1 below, so a
+            # chain cannot form — a model that keeps proposing one more step
+            # would otherwise run unbounded on the user's account.
+            return None, "That step has already been continued once."
+        intent = approval.get("remaining_intent")
+        if not isinstance(intent, str) or not intent.strip():
+            return None, "That action had nothing left to do."
+        return _RESUME_DIRECTIVE.format(intent=intent.strip()), None
+    return None, "No such proposal in this conversation."
+
+
 @websocket_api.async_response
 @decorators.websocket_command(
     {
         vol.Required("type"): "selora_ai/chat_stream",
         vol.Required("message"): str,
         vol.Optional("session_id"): str,
+        # Continue the work a confirmed card left unfinished. The client sends
+        # only the proposal id: the directive and the depth are read from the
+        # STORED proposal, so a panel cannot invent either — it could send any
+        # `message` it likes anyway, but it must not be able to bypass the
+        # depth cap or resume a card nobody approved. `message` is ignored
+        # when this is set.
+        vol.Optional("resume_proposal_id"): str,
         # Optional caller-supplied history. Used by the behavioural
         # benchmark to simulate a follow-up turn ("the kitchen one")
         # over a fresh WS connection where no session is stored.
@@ -2620,6 +2709,25 @@ async def _handle_websocket_chat_stream(
     )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
+
+    # A resumption re-enters this same path — no second transport, so the
+    # continuation streams and shows its tool steps exactly like any turn.
+    # What it must NOT do is persist a user message: the user said one thing,
+    # and a synthetic instruction in the transcript would be read back to the
+    # model on every later turn as though they had typed it.
+    resuming = bool(msg.get("resume_proposal_id"))
+    if resuming:
+        directive, resume_error = _resume_request(stored_messages, msg["resume_proposal_id"])
+        if resume_error or directive is None:
+            _safe_send_message(
+                connection,
+                websocket_api.event_message(
+                    msg["id"],
+                    {"type": "error", "message": resume_error or "Nothing to continue."},
+                ),
+            )
+            return
+        user_message = directive
 
     if msg.get("attachments"):
         # TTL-cached; populates dynamic vision flags (OpenRouter, Selora
@@ -2742,7 +2850,7 @@ async def _handle_websocket_chat_stream(
         # violating the wire-envelope contract.
         executed_records = [_executed_record_from_call(c) for c in executed_calls]
         _redact_executed_entity_ids_for_generic_references(hass, executed_records, user_message)
-        await store.append_message(session_id, "user", persisted_user_message)
+        await _persist_user_turn(store, session_id, persisted_user_message, resuming)
         await store.append_message(
             session_id,
             "assistant",
@@ -2888,6 +2996,8 @@ async def _handle_websocket_chat_stream(
                 user_message,
                 entities,
                 existing_automations=automations,
+                # The streaming path is the panel's own.
+                panel_available=True,
                 history=history,
                 tool_executor=tool_executor,
                 refining_context=refining,
@@ -3114,6 +3224,14 @@ async def _handle_websocket_chat_stream(
 
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
+        # The synthesizer strips entity tiles from a dashboard turn — they read
+        # as a preview of the layout that was saved, which they are not. The
+        # injection below then put them straight back, so the rule was written
+        # down and not in force. Asked once, here, and honoured by both
+        # branches.
+        from .llm_client.command_policy import is_dashboard_turn  # noqa: PLC0415
+
+        dashboard_turn = is_dashboard_turn(tool_executor.call_log if tool_executor else None)
 
         # Execute immediate commands
         executed: list[dict[str, Any]] = []
@@ -3195,9 +3313,9 @@ async def _handle_websocket_chat_stream(
             # render two tile cards for the same device).
             already_shown = _entity_ids_already_in_text(response_text)
             entity_ids = [e for e in _entity_ids_from_calls(calls) if e not in already_shown]
-            if entity_ids:
+            if entity_ids and not dashboard_turn:
                 response_text += f"\n\n[[entities:{','.join(entity_ids)}]]"
-        elif intent_type == "answer":
+        elif intent_type == "answer" and not dashboard_turn:
             response_text = _inject_entity_markers(response_text, entities)
         elif intent_type in ("delayed_command", "cancel"):
             intent_type, response_text, schedule_id = await _handle_scheduled_intent(
@@ -3227,6 +3345,14 @@ async def _handle_websocket_chat_stream(
         command_approval_payload = (
             parsed.get("command_approval") if intent_type == "command_approval" else None
         )
+        # THE CAP. A card proposed during a resumed turn is stamped depth 1, and
+        # `_resume_request` refuses anything at 1 or above — so a card can be
+        # continued once and a chain cannot form. Stamped here rather than
+        # inside the LLM client because this is where the turn knows it is a
+        # resumption, and the value has to be on the payload that gets
+        # PERSISTED: the resume check reads the stored proposal, not this one.
+        if resuming and isinstance(command_approval_payload, dict):
+            command_approval_payload = {**command_approval_payload, "resume_depth": 1}
         # Resolved BEFORE the append, because it is persisted with the
         # proposal: the panel decides create-vs-update from this value, and a
         # session reopened before the card is accepted has only the stored
@@ -3240,7 +3366,7 @@ async def _handle_websocket_chat_stream(
                 editable_automations,
                 parsed.get("refine_automation_id"),
             )
-        await store.append_message(session_id, "user", persisted_user_message)
+        await _persist_user_turn(store, session_id, persisted_user_message, resuming)
         await store.append_message(
             session_id,
             "assistant",
@@ -3259,6 +3385,11 @@ async def _handle_websocket_chat_stream(
             scene_status="pending" if scene_payload else None,
             refine_scene_id=refine_scene_id if scene_payload else None,
             quick_actions=parsed.get("quick_actions"),
+            # What this turn still owes once the user accepts the card. Not
+            # persisted on a resumed turn: with nothing to resume FROM, the
+            # chain cannot continue, which is the same once-only cap the
+            # command_approval path spells as resume_depth.
+            remaining_intent=(None if resuming else _proposal_remaining_intent(parsed)),
             command_approval=command_approval_payload,
             approval_status="pending" if command_approval_payload else None,
             steps=steps or None,

@@ -59,12 +59,19 @@ def test_decode_rejects_step_without_required_keys() -> None:
     assert decode_step(STREAM_STEP_PREFIX + "[1,2,3]") is None  # not an object
 
 
-def test_tool_step_label_known_tool() -> None:
-    assert tool_step_label("get_device_triggers") == "Checked available triggers"
+def test_tool_step_label_is_the_tool_read_as_english() -> None:
+    """Tense-free and uniform. Past tense made each row a small claim about
+    what had happened, which is not what a progress list is for."""
+    assert tool_step_label("get_device_triggers") == "Get device triggers"
+    assert tool_step_label("list_dashboards") == "List dashboards"
 
 
-def test_tool_step_label_unknown_tool_is_humanised() -> None:
-    assert tool_step_label("some_new_tool") == "Used some new tool"
+def test_every_tool_reads_the_same_whether_or_not_it_is_listed() -> None:
+    """The old fallback was `f"Used {tool}"`, so an uncurated tool read
+    differently from its neighbours in the same list — and every new tool
+    needed a hand-written entry to avoid the ugly one."""
+    assert tool_step_label("some_new_tool") == "Some new tool"
+    assert not tool_step_label("some_new_tool").startswith("Used")
 
 
 def test_tool_step_icon_is_specific_not_a_generic_wrench() -> None:
@@ -89,7 +96,7 @@ def test_encode_tool_step_builds_decodable_tool_kind() -> None:
     assert step is not None
     assert step["id"] == "tool-2"
     assert step["kind"] == "tool"
-    assert step["label"] == "Read entity state"
+    assert step["label"] == "Get entity state"
     assert step["status"] == "done"
     assert step["icon"] == "mdi:eye-outline"
 

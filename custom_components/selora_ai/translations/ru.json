@@ -957,7 +957,14 @@
     "approval_status_applied": "Применено",
     "destructive_approval_title": "Применить это изменение?",
     "destructive_approval_title_plural": "Применить эти изменения?",
-    "destructive_approval_warning": "Это нельзя отменить из чата."
+    "destructive_approval_warning": "Это нельзя отменить из чата.",
+    "client_action_title": "Требуется подтверждение",
+    "client_action_create_dashboard": "Создать панель {title} по адресу /{url}",
+    "client_action_confirm": "Создать",
+    "client_action_working": "Выполняется…",
+    "client_action_done": "Готово.",
+    "client_action_failed": "Не получилось.",
+    "approval_then": "затем"
   },
   "options": {
     "step": {
