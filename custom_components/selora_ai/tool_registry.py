@@ -1650,6 +1650,15 @@ TOOL_GET_AUTOMATION_TRACES = ToolDef(
 # the denial contradicts the tool sitting next to it and the model routes
 # around both by adding the page anyway. It says what it does, and points at
 # ``create_dashboard`` for the rest.
+#
+# The guard has to be about WHICH dashboard, not about whether a dashboard was
+# asked for. A newly created dashboard has no pages, so giving it its first one
+# is this tool's job — and the resumed turn that does it is replaying a request
+# that opens "create a new X dashboard", which a guard phrased around the ASK
+# matches perfectly. It matched: told to move two cards onto a dashboard it had
+# just made, the model read the guard as forbidding the view, found
+# ``create_dashboard`` already done, and asked the user to make the page by hand.
+
 
 TOOL_GET_DASHBOARD = ToolDef(
     name="get_dashboard",
@@ -1717,7 +1726,9 @@ TOOL_CREATE_DASHBOARD = ToolDef(
         "and do not call add_dashboard_view or insert_dashboard_card for it in this "
         "reply — it does not exist yet. Say what still has to go on it in "
         "`remaining_intent` and you will be brought back to do it the moment it "
-        "does. This tool "
+        "does. When you are brought back it DOES exist and it has no pages, so "
+        "the first thing to do then is add_dashboard_view — build the dashboard "
+        "out yourself, never ask the user to add the page. This tool "
         "is only ever offered where the panel is connected, so if you can see it "
         "the user is in the panel and the card will reach them — never tell them "
         "to open the panel, or to go to Settings, and never doubt that this works. "
@@ -1797,13 +1808,16 @@ TOOL_DELETE_DASHBOARD = ToolDef(
 TOOL_ADD_DASHBOARD_VIEW = ToolDef(
     name="add_dashboard_view",
     description=(
-        "Add a view (a PAGE) to a dashboard that already exists. This does NOT "
-        "create a dashboard: if the user asked for a NEW dashboard, use "
-        "create_dashboard instead — appending a page here is not what they asked "
-        "for and they will not find it where they expect. Always name which "
-        "dashboard you added the page to and give the url from the result, or they "
-        "will go looking for it in the wrong place. A new view is EMPTY and shows "
-        "nothing until insert_dashboard_card puts something on it."
+        "Add a view (a PAGE) to a dashboard that already exists. A page is not a "
+        "dashboard: do not add one to some OTHER dashboard when the user asked "
+        "for a dashboard of their own — that is create_dashboard, and they will "
+        "not find the page where they expect. But a dashboard that was just "
+        "created has no pages at all, so giving it its first one is exactly this "
+        "tool's job — CALL IT rather than asking the user to add a page "
+        "themselves. Always name which dashboard you added the page to and give "
+        "the url from the result, or they will go looking in the wrong place. A "
+        "new view is EMPTY and shows nothing until insert_dashboard_card or "
+        "move_dashboard_card puts something on it."
     ),
     params=(
         ToolParam(
@@ -1957,17 +1971,27 @@ TOOL_REMOVE_DASHBOARD_CARD = ToolDef(
 TOOL_MOVE_DASHBOARD_CARD = ToolDef(
     name="move_dashboard_card",
     description=(
-        "Move a card to a different position in the same view — this is the ONLY "
-        "way to reorder. Use it for 'keep the garage door at the top'. Indices come "
-        "from get_dashboard. The card itself is moved untouched, so nothing about "
-        "what it shows can change."
+        "Move a card — to another position in the same view, to a different page, "
+        "or to a DIFFERENT DASHBOARD. This is the ONLY way to reorder ('keep the "
+        "garage door at the top') and the only way to move a card between "
+        "dashboards ('move my Oral-B cards to the Oral-B dashboard') — do NOT try "
+        "to do that by reading a card and re-adding it elsewhere, which retypes "
+        "the card and loses whatever you did not copy. Indices come from "
+        "get_dashboard. The card itself is moved untouched, so nothing about what "
+        "it shows can change. If the destination dashboard has no pages yet, call "
+        "add_dashboard_view first."
     ),
     params=(
         ToolParam(
-            name="dashboard_target", type="string", description="url_path, or omit for the default."
+            name="dashboard_target",
+            type="string",
+            description="url_path of the dashboard the card is on now, or omit for the default.",
         ),
         ToolParam(
-            name="view", type="string", description="View index, path, or title.", required=True
+            name="view",
+            type="string",
+            description="The view the card is on now — index, path, or title.",
+            required=True,
         ),
         ToolParam(
             name="from_index",
@@ -1978,8 +2002,29 @@ TOOL_MOVE_DASHBOARD_CARD = ToolDef(
         ToolParam(
             name="to_index",
             type="integer",
-            description="The index to move it to. 0 is the top.",
-            required=True,
+            description=(
+                "The index to move it to. 0 is the top. Required to reorder within "
+                "one view; for a move to another page or dashboard, omit it to put "
+                "the card at the end."
+            ),
+        ),
+        ToolParam(
+            name="to_dashboard",
+            type="string",
+            description=(
+                "url_path of the dashboard to move it TO, when that is a different "
+                "one. Pass 'lovelace' for the default dashboard. Omit to stay on "
+                "the same dashboard."
+            ),
+        ),
+        ToolParam(
+            name="to_view",
+            type="string",
+            description=(
+                "The view to move it to — index, path, or title. Omit to stay on "
+                "the same view, or, when moving to another dashboard, to use that "
+                "dashboard's first page."
+            ),
         ),
         ToolParam(
             name="expected_fingerprint",
@@ -1989,7 +2034,16 @@ TOOL_MOVE_DASHBOARD_CARD = ToolDef(
         ToolParam(
             name="expected_view_fingerprint",
             type="string",
-            description="The view's fingerprint from get_dashboard.",
+            description="The fingerprint of the view the card is on now, from get_dashboard.",
+        ),
+        ToolParam(
+            name="expected_to_view_fingerprint",
+            type="string",
+            description=(
+                "The DESTINATION view's fingerprint from get_dashboard, when moving to "
+                "another page or dashboard. to_index is relative to that page, so pass "
+                "this or the move can land at an index that has since shifted."
+            ),
         ),
     ),
     requires_admin=True,

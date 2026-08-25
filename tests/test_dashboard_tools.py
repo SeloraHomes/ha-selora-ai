@@ -2147,9 +2147,27 @@ def test_the_tool_does_not_claim_to_create_a_dashboard() -> None:
     by hand, next to a tool that can do it, reads as the capability not
     existing and the model appends the page anyway."""
     description = TOOL_MAP["add_dashboard_view"].description
-    assert "does NOT create a dashboard" in description
+    assert "A page is not a dashboard" in description
     assert "create_dashboard" in description
     assert "Settings > Dashboards" not in description
+
+
+def test_adding_the_first_page_of_a_new_dashboard_is_this_tool_s_job() -> None:
+    """The other half of the same guard, and the half that was missing.
+
+    Phrased around whether a dashboard was ASKED for, the guard matched a
+    resumed turn — which replays a request opening "create a new X dashboard"
+    — and talked the model out of the one call left to make. Asked to move two
+    cards onto a dashboard it had created moments earlier, it refused the view
+    and asked the user to add the page by hand. The guard is about WHICH
+    dashboard the page goes on, not about what was asked for."""
+    description = TOOL_MAP["add_dashboard_view"].description
+    assert "just created has no pages" in description
+    assert "CALL IT" in description
+    # And the result note must not re-litigate it after the fact — the only
+    # turn it reaches is one that already chose correctly.
+    source = inspect.getsource(dm.async_add_view)
+    assert "is not it — create_dashboard is" not in source
 
 
 @pytest.mark.parametrize(
@@ -2618,3 +2636,549 @@ async def test_the_refusal_reaches_the_model_as_an_ordinary_result(
 
     noted = note_failed_dashboard_write({"response": "Added the fan."}, executor.call_log, None)
     assert "validation_error" not in noted
+
+
+# ── Moving a card off its dashboard ─────────────────────────────────────────
+#
+# "Create a new Oral-B dashboard, and move the 2 oral-b cards from Overview to
+# it." Both halves failed. The model was talked out of adding the created
+# dashboard's first page, and even with a page there was no primitive that
+# moves a card between dashboards — `move_dashboard_card` was same-view only —
+# so it read the request as impossible and handed it back to the user.
+
+
+async def _second_dashboard(
+    hass: HomeAssistant, url_path: str = "oral-b", document: dict[str, Any] | None = None
+) -> Any:
+    """A second storage dashboard. With no ``document`` it is the state
+    ``lovelace/dashboards/create`` plus our seeding leaves one in: an entry with
+    a stored config holding no pages at all."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from homeassistant.components.lovelace.dashboard import LovelaceStorage
+
+    data = hass.data[LOVELACE_DATA]
+    data.dashboards[url_path] = LovelaceStorage(
+        hass,
+        {
+            "id": url_path,
+            "url_path": url_path,
+            "title": "Oral-B",
+            "mode": "storage",
+            "require_admin": False,
+            "show_in_sidebar": True,
+            "icon": None,
+        },
+    )
+    await data.dashboards[url_path].async_save(document or {"views": []})
+    return data.dashboards[url_path]
+
+
+async def test_a_card_moves_to_another_dashboard(board: HomeAssistant) -> None:
+    """The whole point. Composing this from get + insert + remove re-serialises
+    the card through an LLM, which drops whatever it did not think to copy."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    other = await _second_dashboard(
+        board, document={"views": [{"title": "Brushes", "path": "brushes", "cards": []}]}
+    )
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+    )
+    assert result["status"] == "moved", result
+    assert result["to_dashboard"] == "oral-b"
+    assert result["url"] == "/oral-b/brushes"
+
+    # Gone from the source...
+    source = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in source["views"][0]["cards"]] == ["thermostat"]
+    # ...and on the destination, byte for byte.
+    assert (await other.async_load(False))["views"][0]["cards"] == [
+        {"type": "light", "entity": "light.lamp"}
+    ]
+
+
+async def test_a_moved_card_lands_at_a_named_index(board: HomeAssistant) -> None:
+    other = await _second_dashboard(
+        board,
+        document={
+            "views": [
+                {
+                    "title": "Brushes",
+                    "cards": [
+                        {"type": "button", "entity": "light.other"},
+                        {"type": "gauge", "entity": "sensor.temp"},
+                    ],
+                }
+            ]
+        },
+    )
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 0, "to_dashboard": "oral-b", "to_index": 1},
+    )
+    assert result["to_index"] == 1
+
+    assert [c["type"] for c in (await other.async_load(False))["views"][0]["cards"]] == [
+        "button",
+        "light",
+        "gauge",
+    ]
+
+
+async def test_an_omitted_destination_index_appends(board: HomeAssistant) -> None:
+    """A transfer names the dashboard; where on the page it lands is rarely the
+    point, and demanding an index the caller has no reason to know refuses the
+    move it came to make."""
+    other = await _second_dashboard(
+        board,
+        document={
+            "views": [{"title": "Brushes", "cards": [{"type": "gauge", "entity": "sensor.temp"}]}]
+        },
+    )
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+    )
+    # Reported by identity: an appended card's index is the one thing the caller
+    # cannot work out from its own arguments, and it addresses the card next.
+    assert result["to_index"] == 1
+    assert [c["type"] for c in (await other.async_load(False))["views"][0]["cards"]] == [
+        "gauge",
+        "light",
+    ]
+
+
+async def test_a_destination_with_no_pages_names_the_tool_that_fixes_it(
+    board: HomeAssistant,
+) -> None:
+    """Exactly the state a dashboard Selora has just created is in. The bare
+    fact — "that dashboard has no views yet" — is something the model relays to
+    the user as a step for THEM to perform, on a dashboard it made itself."""
+    await _second_dashboard(board)
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+    )
+    assert "add_dashboard_view" in result["error"]
+
+    # And the generic resolver says it too, since every read and write on a
+    # brand-new dashboard meets that message first.
+    empty = await _make_executor(board).execute(
+        "get_dashboard", {"dashboard_target": "oral-b", "view": 0}
+    )
+    assert "add_dashboard_view" in empty["error"]
+
+
+async def test_the_whole_request_end_to_end(board: HomeAssistant) -> None:
+    """Add the page, then move both cards onto it — the turn that was refused."""
+    executor = _make_executor(board)
+    other = await _second_dashboard(board)
+
+    page = await executor.execute(
+        "add_dashboard_view", {"dashboard_target": "oral-b", "title": "Brushes"}
+    )
+    assert page["status"] == "created", page
+
+    for _ in range(2):
+        moved = await executor.execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+        assert moved["status"] == "moved", moved
+
+    assert [c["type"] for c in (await other.async_load(False))["views"][0]["cards"]] == [
+        "light",
+        "thermostat",
+    ]
+
+
+async def test_a_card_moves_to_another_view_of_the_same_dashboard(board: HomeAssistant) -> None:
+    """One document, one save — and the destination is re-flattened after the
+    removal, because both views live in it."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card", {"view": "living", "from_index": 0, "to_view": "garage"}
+    )
+    assert result["status"] == "moved"
+    assert result["to_view_index"] == 1
+    assert result["to_dashboard"] == "lovelace"
+
+    document = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in document["views"][0]["cards"]] == ["thermostat"]
+    # A sections view keeps its cards under sections[], and the card lands at
+    # the end of the view rather than in the first section.
+    assert document["views"][1]["sections"][1]["cards"][-1] == {
+        "type": "light",
+        "entity": "light.lamp",
+    }
+
+
+async def test_a_move_into_an_empty_sections_view_uses_the_first_section(
+    board: HomeAssistant,
+) -> None:
+    """A top-level `cards` key on a sections view stores fine and renders
+    nothing, which is the failure `add_dashboard_view(sections=True)` seeds a
+    grid to avoid."""
+    other = await _second_dashboard(
+        board,
+        document={
+            "views": [
+                {
+                    "title": "Brushes",
+                    "type": "sections",
+                    "sections": [{"type": "grid", "cards": []}],
+                }
+            ]
+        },
+    )
+
+    await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+    )
+
+    view = (await other.async_load(False))["views"][0]
+    assert view["sections"][0]["cards"] == [{"type": "light", "entity": "light.lamp"}]
+    assert "cards" not in view
+
+
+async def test_the_default_dashboard_is_not_read_as_a_transfer(board: HomeAssistant) -> None:
+    """The default answers to None, "" and "lovelace" at once. Compared by the
+    argument string, a reorder passing 'lovelace' loads that one document twice
+    and saves the second copy over the first — dropping the removal or the
+    insert, depending which lands last."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 1, "to_index": 0, "to_dashboard": "lovelace"},
+    )
+    assert result["status"] == "moved"
+    assert "to_dashboard" not in result
+
+    document = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in document["views"][0]["cards"]] == ["thermostat", "light"]
+
+
+async def test_a_reorder_still_requires_a_destination_index(board: HomeAssistant) -> None:
+    """`to_index` is optional only because a transfer appends. Within one view
+    there is nothing to default to, and silently doing nothing reports success
+    for a reorder that never happened."""
+    result = await _make_executor(board).execute(
+        "move_dashboard_card", {"view": "living", "from_index": 0}
+    )
+    assert "to_index is required" in result["error"]
+
+
+async def test_a_transfer_pins_the_destination_view_too(board: HomeAssistant) -> None:
+    """`expected_view_fingerprint` covers the SOURCE. On a same-view move the
+    two are one object, so it answers for both — the moment the destination is
+    somewhere else that guarantee is gone, and it is the destination that
+    carries `to_index`. A page reordered between the read and the call would
+    otherwise take the card at an index that no longer means what was read, on
+    a dashboard the caller read in a separate call."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    other = await _second_dashboard(
+        board,
+        document={
+            "views": [{"title": "Brushes", "cards": [{"type": "gauge", "entity": "sensor.temp"}]}]
+        },
+    )
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {
+            "view": "living",
+            "from_index": 0,
+            "to_dashboard": "oral-b",
+            "to_index": 0,
+            "expected_to_view_fingerprint": "deadbeef",
+        },
+    )
+    assert "destination view has changed" in result["error"]
+
+    # Refused BEFORE either document is mutated, so a stale destination cannot
+    # leave the card pulled out of the source.
+    source = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in source["views"][0]["cards"]] == ["light", "thermostat"]
+    assert len((await other.async_load(False))["views"][0]["cards"]) == 1
+
+
+async def test_a_transfer_accepts_the_destination_fingerprint_from_get_dashboard(
+    board: HomeAssistant,
+) -> None:
+    """A write cannot demand a token the read never returns — `get_dashboard`
+    hands the fingerprint out per view, on whichever dashboard was read."""
+    executor = _make_executor(board)
+    await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+
+    listing = await executor.execute("get_dashboard", {"dashboard_target": "oral-b"})
+    result = await executor.execute(
+        "move_dashboard_card",
+        {
+            "view": "living",
+            "from_index": 0,
+            "to_dashboard": "oral-b",
+            "expected_to_view_fingerprint": listing["views"][0]["fingerprint"],
+        },
+    )
+    assert result["status"] == "moved", result
+
+
+async def test_a_cross_view_move_pins_the_other_page_of_the_same_dashboard(
+    board: HomeAssistant,
+) -> None:
+    """One document, two views — the destination still needs its own pin, since
+    the source's fingerprint says nothing about the page being moved onto."""
+    executor = _make_executor(board)
+    listing = await executor.execute("get_dashboard", {})
+
+    stale = await executor.execute(
+        "move_dashboard_card",
+        {
+            "view": "living",
+            "from_index": 0,
+            "to_view": "garage",
+            "expected_to_view_fingerprint": listing["views"][0]["fingerprint"],
+        },
+    )
+    assert "destination view has changed" in stale["error"]
+
+    good = await executor.execute(
+        "move_dashboard_card",
+        {
+            "view": "living",
+            "from_index": 0,
+            "to_view": "garage",
+            "expected_to_view_fingerprint": listing["views"][1]["fingerprint"],
+        },
+    )
+    assert good["status"] == "moved", good
+
+
+async def test_a_transfer_leaves_the_source_alone_when_the_destination_refuses(
+    board: HomeAssistant,
+) -> None:
+    """Destination FIRST, so a half-completed move duplicates the card rather
+    than losing it — and a destination that never saved must not have had the
+    card taken out from under it."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+
+    with patch.object(other, "async_save", AsyncMock(side_effect=RuntimeError("disk full"))):
+        result = await _make_executor(board).execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+    assert "not moved" in result["error"]
+
+    source = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in source["views"][0]["cards"]] == ["light", "thermostat"]
+
+
+async def test_a_failed_destination_save_leaves_nothing_behind(board: HomeAssistant) -> None:
+    """A save that RAISES has already taken effect everywhere except the file.
+    `LovelaceStorage.async_save` replaces its cached config and fires the update
+    event BEFORE it awaits the store write, and `async_load` serves that cache
+    rather than re-reading — so the frontend is showing the change and every
+    later read agrees with it, while the caller is told the save failed.
+
+    The store is patched rather than `async_save`, because it is HA's own
+    method that has to run for the cache to go stale at all."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+
+    with patch.object(other._store, "async_save", AsyncMock(side_effect=RuntimeError("disk full"))):
+        result = await _make_executor(board).execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+    assert "not moved" in result["error"]
+
+    # Which is now true of the cache the next read and the frontend both use.
+    assert (await other.async_load(False))["views"][0]["cards"] == []
+    source = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in source["views"][0]["cards"]] == ["light", "thermostat"]
+
+
+async def test_a_failed_source_save_really_does_leave_it_on_both(board: HomeAssistant) -> None:
+    """The other half of the same claim. The destination save succeeded, so the
+    error says the card is on both — and without rolling the source back it had
+    already vanished from the cache the user is looking at."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+    source_config = board.data[LOVELACE_DATA].dashboards[None]
+
+    with patch.object(
+        source_config._store, "async_save", AsyncMock(side_effect=RuntimeError("disk full"))
+    ):
+        result = await _make_executor(board).execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+    assert "appears on both" in result["error"]
+
+    assert (await other.async_load(False))["views"][0]["cards"] == [
+        {"type": "light", "entity": "light.lamp"}
+    ]
+    source = await source_config.async_load(False)
+    assert [c["type"] for c in source["views"][0]["cards"]] == ["light", "thermostat"]
+
+
+async def test_a_silently_unwritten_destination_does_not_lose_the_card(
+    board: HomeAssistant,
+) -> None:
+    """The failure destination-first exists to prevent, arrived at through the
+    door that ordering does not cover.
+
+    `Store.async_save` does NOT raise on an ordinary write failure:
+    `_async_handle_write_data` catches `WriteError` / `SerializationError`,
+    logs, and returns. So `_save` reports success, the cache agrees because
+    `async_save` updated it before attempting the write, and removing the
+    source on that basis loses the card outright — both dashboards look right
+    until the next restart, when it is on neither."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from homeassistant.util.file import WriteError
+
+    other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+
+    with patch.object(
+        other._store, "_async_write_data", AsyncMock(side_effect=WriteError("read-only fs"))
+    ):
+        result = await _make_executor(board).execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+    assert "did not reach disk" in result["error"], result
+
+    # The source still has it — which is the whole point.
+    source = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in source["views"][0]["cards"]] == ["light", "thermostat"]
+    # And the destination cache is back to what the file says, so the next read
+    # does not show a card that only ever existed in memory.
+    assert (await other.async_load(False))["views"][0]["cards"] == []
+
+
+async def test_an_already_identical_card_does_not_pass_for_the_moved_one(
+    board: HomeAssistant,
+) -> None:
+    """Counted, not tested. A destination already holding an identical card
+    answers "is it there?" with yes off the copy that was already on disk, and
+    the source removal then goes ahead on a write that never landed."""
+    from homeassistant.util.file import WriteError
+
+    other = await _second_dashboard(
+        board,
+        document={
+            "views": [{"title": "Brushes", "cards": [{"type": "light", "entity": "light.lamp"}]}]
+        },
+    )
+
+    with patch.object(
+        other._store, "_async_write_data", AsyncMock(side_effect=WriteError("read-only fs"))
+    ):
+        result = await _make_executor(board).execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+    assert "did not reach disk" in result["error"], result
+
+
+async def test_a_silently_unwritten_source_removal_is_reported(board: HomeAssistant) -> None:
+    """The other direction costs a duplicate rather than the card, so the
+    destination that DID land is left alone and the outcome is stated."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from homeassistant.util.file import WriteError
+
+    other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+    source_config = board.data[LOVELACE_DATA].dashboards[None]
+
+    with patch.object(
+        source_config._store, "_async_write_data", AsyncMock(side_effect=WriteError("read-only fs"))
+    ):
+        result = await _make_executor(board).execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+    assert "appear on both after a restart" in result["error"], result
+
+    assert (await other.async_load(False))["views"][0]["cards"] == [
+        {"type": "light", "entity": "light.lamp"}
+    ]
+
+
+async def test_an_unreadable_store_does_not_block_the_move(board: HomeAssistant) -> None:
+    """Unknowable is treated as fine. The probe reaches into a private Store,
+    so refusing every move on a Home Assistant whose internals have moved would
+    be worse than the case it guards."""
+    other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+
+    with patch.object(
+        type(other._store), "async_load", AsyncMock(side_effect=RuntimeError("nope"))
+    ):
+        result = await _make_executor(board).execute(
+            "move_dashboard_card",
+            {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+        )
+    assert result["status"] == "moved", result
+
+
+async def test_a_transfer_to_a_yaml_dashboard_is_refused(board: HomeAssistant) -> None:
+    """And is marked as the DESTINATION's problem. Both dashboards are refused
+    for the same reasons in the same words, so unmarked the caller retries
+    against the source it was never told was fine.
+
+    `mode` is a property on the class, so the subclass — not `patch.object` on
+    the class, which would make the SOURCE dashboard YAML too and refuse this
+    one call before it ever looked at the destination."""
+    from homeassistant.components.lovelace.const import MODE_YAML
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
+
+    class _YamlMode(type(other)):  # type: ignore[misc]
+        mode = MODE_YAML
+
+    board.data[LOVELACE_DATA].dashboards["oral-b"] = _YamlMode(board, other.config)
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 0, "to_dashboard": "oral-b"},
+    )
+    assert "destination dashboard cannot be written to" in result["error"]
+    assert "YAML-mode" in result["error"]
+
+
+async def test_an_unknown_destination_dashboard_is_refused(board: HomeAssistant) -> None:
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "living", "from_index": 0, "to_dashboard": "nowhere"},
+    )
+    assert "destination dashboard cannot be written to" in result["error"]
+    assert "No dashboard 'nowhere'" in result["error"]
+
+
+def test_move_declares_its_destination_on_both_surfaces() -> None:
+    """MCP derives its schema from the chat ToolDef, so a destination chat
+    accepts and MCP does not is a tool that looks identical in both listings
+    and rejects half the calls made against one of them."""
+    from custom_components.selora_ai.mcp_server import _TOOL_DEFINITIONS
+
+    move = TOOL_MAP["move_dashboard_card"]
+    wanted = {"to_dashboard", "to_view", "expected_to_view_fingerprint"}
+    assert wanted <= {p.name for p in move.params}
+    # Optional, or every reorder has to name a destination dashboard.
+    assert not any(p.required for p in move.params if p.name.startswith("to_"))
+
+    mcp = next(t for t in _TOOL_DEFINITIONS if t.name == "selora_move_dashboard_card")
+    assert wanted <= set(mcp.inputSchema["properties"])
