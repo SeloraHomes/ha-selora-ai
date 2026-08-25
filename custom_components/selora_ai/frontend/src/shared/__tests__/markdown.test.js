@@ -727,6 +727,22 @@ describe("the dashboard card", () => {
     expect(html).toContain("mdi:view-dashboard-outline");
   });
 
+  // A turn that created four views emits four markers, one per line. The card
+  // is inline-flex, so the <br> between two of them is what stacks them —
+  // stripping every break laid them out side by side and wrapped them mid-row.
+  it("stacks one card per page and drops the break above the first", () => {
+    const html = renderMarkdown(
+      "Created two views.\n\n[[dashboard:/lovelace/rooms|Rooms]]\n[[dashboard:/lovelace/security|Security]]",
+    );
+    const cards = html.match(/class="selora-dashboard-link"/g);
+    expect(cards).toHaveLength(2);
+    // Exactly one break between them, and none between the prose and the
+    // first — the card carries its own top margin.
+    expect(html).toContain('views.<a class="selora-dashboard-link"');
+    expect(html).toMatch(/<\/a><br><a class="selora-dashboard-link"/);
+    expect(html).not.toMatch(/<\/a><br><br>/);
+  });
+
   it("falls back to a label when the marker carries none", () => {
     const html = renderMarkdown("[[dashboard:/lovelace/2]]");
     expect(html).toContain('href="/lovelace/2"');

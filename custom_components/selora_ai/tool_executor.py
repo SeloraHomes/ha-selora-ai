@@ -742,21 +742,7 @@ class ToolExecutor:
     async def _move_dashboard_card(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .dashboard_manager import async_move_card
 
-        return await async_move_card(
-            self._hass,
-            target=_opt_str(arguments.get("dashboard_target")),
-            view=arguments.get("view"),
-            from_index=_as_index(arguments.get("from_index")),
-            to_index=_opt_index(arguments.get("to_index")),
-            to_dashboard=_opt_str(arguments.get("to_dashboard")),
-            # Not `_opt_str`: a view reference may be the integer 0, and the
-            # destination is "omitted" only when nothing was sent — blanking it
-            # would send a move to view 0 onto the source view instead.
-            to_view=_opt_view(arguments.get("to_view")),
-            expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
-            expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
-            expected_to_view_fingerprint=_opt_str(arguments.get("expected_to_view_fingerprint")),
-        )
+        return await async_move_card(self._hass, **move_card_kwargs(arguments))
 
     async def _group_dashboard_cards(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .dashboard_manager import async_group_cards
@@ -802,6 +788,37 @@ def _as_list(value: Any) -> list[str]:
     if isinstance(value, (list, tuple, set)):
         return [str(v).strip() for v in value if str(v).strip()]
     return []
+
+
+def move_card_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``async_move_card`` keyword arguments from raw tool arguments.
+
+    Shared with the MCP surface, which reaches ``move_dashboard_card`` directly:
+    a hand-written second copy drifts on the next argument added, quietly, in
+    the shape where the MCP client rejects a move chat accepts. Same reason the
+    MCP schemas are derived from the chat ``ToolDef``s rather than restated.
+    """
+    raw_sources = arguments.get("from_indices")
+    return {
+        "target": _opt_str(arguments.get("dashboard_target")),
+        "view": arguments.get("view"),
+        # `_opt_index`, not `_as_index`: a move naming `from_indices` sends no
+        # `from_index`, and coercing that absence to 0 would move the view's
+        # first card alongside the ones that were asked for.
+        "from_index": _opt_index(arguments.get("from_index")),
+        "from_indices": (
+            [_as_index(i) for i in raw_sources] if isinstance(raw_sources, list) else None
+        ),
+        "to_index": _opt_index(arguments.get("to_index")),
+        "to_dashboard": _opt_str(arguments.get("to_dashboard")),
+        # Not `_opt_str`: a view reference may be the integer 0, and the
+        # destination is "omitted" only when nothing was sent — blanking it
+        # would send a move to view 0 onto the source view instead.
+        "to_view": _opt_view(arguments.get("to_view")),
+        "expected_fingerprint": _opt_str(arguments.get("expected_fingerprint")),
+        "expected_view_fingerprint": _opt_str(arguments.get("expected_view_fingerprint")),
+        "expected_to_view_fingerprint": _opt_str(arguments.get("expected_to_view_fingerprint")),
+    }
 
 
 def _as_index(value: Any) -> int:

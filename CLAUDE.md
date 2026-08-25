@@ -1258,6 +1258,19 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
   like a link and is not one; only an existing marker suppresses it. The pattern
   accepts a single-slash absolute path ONLY, since the marker travels through
   model-authored text.
+  - **Every page the turn wrote, or none.** A turn that adds four views writes
+    four urls, and `_dashboard_targets_from_log` used to keep the last one it
+    saw — so three pages the reply named by path had no card, and the one card
+    read as "here is the page I made" rather than as one of four. Deduplicated
+    by url, since moving three cards onto one page reports it three times, and
+    the label is per card so an untitled page cannot blank the others. Past
+    `_MAX_DASHBOARD_LINKS` (5) the cards stop being navigation and none are
+    emitted: the prose already names them, and picking a subset is the bug.
+    The card is **inline-flex**, so the `<br>` between two markers is what
+    stacks them — `markdown.js` keeps exactly one break between links and drops
+    the ones above the first, where the card's own top margin provides the gap.
+    Stripping every break, as the block-level entity grid does, lays the cards
+    out side by side and wraps them mid-row.
 - **Lovelace validates nothing server-side.** The stored document is free-form
   JSON owned by the frontend, so a view's `title` and `path` are **not** unique.
   `resolve_view` accepts an index, a path, or a title, and **refuses an ambiguous
@@ -1450,6 +1463,42 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
   `cards` filled in — the model knows Lovelace's card schemas, so enumerating
   container types and their options here would be a second, staler copy of that
   knowledge, and every option not thought of would be unreachable.
+- **"Move all the media" is one call, and the read has to make that possible.**
+  Two halves of the same failure: asked to move the media cards off Overview,
+  the model spent every tool round on `get_dashboard_card` and answered that it
+  could not do it safely.
+  - **A card summary names the entity domains the card shows**
+    (`_card_domains`, walking the whole card via the `_card_entity_ids` that
+    `_unknown_entities` also uses). The TYPE does not answer "which are the
+    media ones?" — `tile` and `entities` are the two commonest types and both
+    are domain-agnostic — and neither does a title. Without it the only way to
+    tell is one fetch per card, which on an ordinary 18-card view exhausts
+    `MAX_TOOL_CALL_ROUNDS` before anything moves and the forced final round has
+    to answer from reads alone. Absent rather than `[]` on a card that shows no
+    entity, and capped at `_MAX_CARD_DOMAINS`. `get_dashboard_card`'s
+    description now says it is NOT needed to move or remove a card.
+  - **`move_dashboard_card` takes `from_indices`.** Repeating the single-card
+    call is not equivalent: taking one card out shifts every later index in
+    that view, so the second call works from indices that stopped meaning what
+    the caller read, and a stale index silently moves whichever card now sits
+    there. One call also keeps the cards' relative order, lands them
+    contiguously, and costs one round rather than one per card. Removal walks
+    the wanted indices **highest first** so the positions still to be reached
+    stay valid — the same reason `group_dashboard_cards` does.
+    `expected_fingerprint` describes ONE card and is **refused** alongside
+    several (`expected_view_fingerprint` pins every index at once); an empty
+    `from_indices` is ABSENT, per the empty-optional rule, while both spellings
+    disagreeing is refused because each says which cards to move. `from_index`
+    is therefore optional, which makes `_opt_index` load-bearing in the
+    executor — `_as_index` would coerce its absence to 0 and move the view's
+    first card alongside the ones that were asked for.
+    `_disk_fingerprints` / `_view_fingerprints` count a whole view off ONE read
+    of the file, because the destination-first landing check now has as many
+    fingerprints to confirm as the caller named.
+  - **The argument coercion is shared with MCP** (`move_card_kwargs` in
+    `tool_executor`). That handler was a hand-written second copy, which is the
+    drift this file warns about twice — quietly, where the MCP client rejects a
+    move chat accepts.
 - **A move crosses views and dashboards, and it has to be one primitive.**
   `move_dashboard_card` takes `to_dashboard` / `to_view`; omitted, they mean the
   view the card is already on, and for another dashboard, its first page — a
@@ -1496,7 +1545,7 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
   attempting the write. Removing the source on that basis LOSES the card: both
   halves look fine until the next restart, when it is on neither. So a
   cross-dashboard move confirms the destination against the FILE
-  (`_copies_on_disk`, through the private `Store` — the only thing that
+  (`_disk_fingerprints`, through the private `Store` — the only thing that
   answers) before saving the removal, and rolls the destination back if it did
   not land. **Counted, not tested**: a destination already holding an identical
   card answers "is it there?" off the copy that was already on disk. The source

@@ -1667,8 +1667,11 @@ TOOL_GET_DASHBOARD = ToolDef(
         "a view — the cards on it. ALWAYS call this before adding, moving, or "
         "changing a card: it is the only way to learn which views exist and what is "
         "already there, and every edit tool addresses cards by the index this "
-        "returns. Also the tool for answering questions about a user's dashboard "
-        "or advising on how to organise it. Works on YAML dashboards too (read-only)."
+        "returns. Each card summary names the entity domains that card shows, so you "
+        "can pick out the media or lighting cards from this one call — do not fetch "
+        "cards one by one to find out what they are. Also the tool for answering "
+        "questions about a user's dashboard or advising on how to organise it. "
+        "Works on YAML dashboards too (read-only)."
     ),
     params=(
         ToolParam(
@@ -1692,7 +1695,9 @@ TOOL_GET_DASHBOARD_CARD = ToolDef(
     description=(
         "Return one card's complete configuration plus its fingerprint. Call this "
         "before update_dashboard_card — that tool REPLACES a card outright, so you "
-        "need the current config to keep the parts you are not changing."
+        "need the current config to keep the parts you are not changing. It is NOT "
+        "needed to move or remove a card: those address it by the index "
+        "get_dashboard already gave you."
     ),
     params=(
         ToolParam(
@@ -1971,15 +1976,21 @@ TOOL_REMOVE_DASHBOARD_CARD = ToolDef(
 TOOL_MOVE_DASHBOARD_CARD = ToolDef(
     name="move_dashboard_card",
     description=(
-        "Move a card — to another position in the same view, to a different page, "
-        "or to a DIFFERENT DASHBOARD. This is the ONLY way to reorder ('keep the "
-        "garage door at the top') and the only way to move a card between "
-        "dashboards ('move my Oral-B cards to the Oral-B dashboard') — do NOT try "
-        "to do that by reading a card and re-adding it elsewhere, which retypes "
-        "the card and loses whatever you did not copy. Indices come from "
-        "get_dashboard. The card itself is moved untouched, so nothing about what "
-        "it shows can change. If the destination dashboard has no pages yet, call "
-        "add_dashboard_view first."
+        "Move one card or several — to another position in the same view, to a "
+        "different page, or to a DIFFERENT DASHBOARD. This is the ONLY way to "
+        "reorder ('keep the garage door at the top') and the only way to move a "
+        "card between views or dashboards ('move all the media to the "
+        "Entertainment page', 'move my Oral-B cards to the Oral-B dashboard') — do "
+        "NOT try to do that by reading a card and re-adding it elsewhere, which "
+        "retypes the card and loses whatever you did not copy, and do NOT report "
+        "that a move is unsafe or impossible. For SEVERAL cards pass from_indices "
+        "in ONE call: taking a card out shifts every later index in that view, so "
+        "one call per card works from indices that no longer mean what you read. "
+        "Indices come from get_dashboard, whose card summaries name the entity "
+        "domains each card shows — that is how you tell which are the media ones "
+        "without fetching them. The cards are moved untouched, so nothing about "
+        "what they show can change. If the destination dashboard has no pages "
+        "yet, call add_dashboard_view first."
     ),
     params=(
         ToolParam(
@@ -1996,8 +2007,17 @@ TOOL_MOVE_DASHBOARD_CARD = ToolDef(
         ToolParam(
             name="from_index",
             type="integer",
-            description="The card's current index.",
-            required=True,
+            description="The card's current index. Use from_indices to move more than one.",
+        ),
+        ToolParam(
+            name="from_indices",
+            type="array",
+            items_type="integer",
+            description=(
+                "Indices of ALL the cards to move, when moving more than one. They keep "
+                "their order and land together. Pass this instead of from_index — not "
+                "both."
+            ),
         ),
         ToolParam(
             name="to_index",
@@ -2029,7 +2049,11 @@ TOOL_MOVE_DASHBOARD_CARD = ToolDef(
         ToolParam(
             name="expected_fingerprint",
             type="string",
-            description="The fingerprint from get_dashboard, so the move cannot hit a different card.",
+            description=(
+                "The fingerprint from get_dashboard, so the move cannot hit a different "
+                "card. Single-card moves only — with from_indices, pass "
+                "expected_view_fingerprint, which pins every index at once."
+            ),
         ),
         ToolParam(
             name="expected_view_fingerprint",
@@ -2069,6 +2093,7 @@ TOOL_GROUP_DASHBOARD_CARDS = ToolDef(
         ToolParam(
             name="card_indices",
             type="array",
+            items_type="integer",
             description="Indices of the cards to group, from get_dashboard.",
             required=True,
         ),
