@@ -25860,6 +25860,11 @@ function renderMarkdown(text) {
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
+  escaped = escaped.replace(
+    /(<br>)+(<a class="selora-dashboard-link")/g,
+    (_m, _br, tag, offset, whole) =>
+      whole.slice(0, offset).endsWith("</a>") ? `<br>${tag}` : tag,
+  );
   const escapeCode = (s4) =>
     s4.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const escapeAttr = (s4) =>
@@ -48634,7 +48639,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "d4162c8389aa" : "";
+var PANEL_BUILD = true ? "b56d56c7f4ac" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

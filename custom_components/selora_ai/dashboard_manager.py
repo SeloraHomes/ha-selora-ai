@@ -41,6 +41,7 @@ Three properties of the document shape drive most of the code here:
 
 from __future__ import annotations
 
+from collections import Counter
 import copy
 import hashlib
 import json
@@ -453,6 +454,67 @@ def resolve_view(document: dict[str, Any], ref: object) -> tuple[int | None, str
     return None, f"No view '{sanitize_untrusted_text(str(ref), 40)}'. Views are — {labels}."
 
 
+_ENTITY_ID_RE: Final = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
+
+# How many domains a card summary names before it stops being a summary. A card
+# referencing more than this is a mixed dashboard-wide card, and the point of
+# the field — telling a media card from a light one — is already made.
+_MAX_CARD_DOMAINS: Final = 6
+
+
+def _card_entity_ids(card: Any) -> list[str]:
+    """Every entity id a card references, however deeply it is nested.
+
+    Walks the whole card rather than a fixed key list — an id can sit in
+    ``entity``, ``entities`` (as a string or as ``{entity: ...}``), a nested
+    stack's ``cards``, a ``tap_action`` target, or a custom card's own schema.
+
+    A list carries its parent key down to its elements, so the bare form the
+    entities card is normally written in — ``entities: ["light.one"]``, by far
+    the most common shape — arrives keyed ``entities``.
+
+    Every value is shape-checked, not just the ones under ``entities``: a custom
+    card may hold a template where an id goes — button-card's
+    ``[[[ return ... ]]]``, or Jinja — and a row under ``entities`` may be a
+    label or a divider. An entity id always has a domain and a dot.
+    """
+    found: list[str] = []
+
+    def walk(node: Any, key: str | None = None) -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, k)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item, key)
+        elif (
+            isinstance(node, str)
+            and key in ("entity", "entity_id", "entities")
+            and _ENTITY_ID_RE.fullmatch(node)
+        ):
+            found.append(node)
+
+    walk(card)
+    return found
+
+
+def _card_domains(card: Any) -> list[str]:
+    """The entity domains a card shows, for a caller picking cards by kind.
+
+    "Move all the media to the new view" is answered by reading the view once
+    and keeping the cards whose domains include ``media_player``. Without this
+    the summary says ``type: entities, title: "Samsung Q6 Series remote and
+    media controls"`` and nothing about what is in it, so the only way to tell
+    is ``get_dashboard_card`` per card — which on an ordinary 18-card view
+    exhausts the turn's tool rounds before a single card has moved, and the user
+    is told the move could not be done safely.
+
+    The card TYPE does not answer it: ``tile`` and ``entities`` are the two
+    commonest types and both are domain-agnostic.
+    """
+    return sorted({e.split(".", 1)[0] for e in _card_entity_ids(card)})[:_MAX_CARD_DOMAINS]
+
+
 def _describe_card(card: Any, index: int) -> dict[str, Any]:
     """One card as the model needs to see it: what it is, and how to address it."""
     if not isinstance(card, dict):
@@ -471,6 +533,10 @@ def _describe_card(card: Any, index: int) -> dict[str, Any]:
         described["entity"] = str(entity)
     elif isinstance(card.get("entities"), list):
         described["entity_count"] = len(card["entities"])
+    # What KIND of thing the card shows, which neither the type nor the title
+    # reliably says. See `_card_domains`.
+    if domains := _card_domains(card):
+        described["domains"] = domains
     return described
 
 
@@ -658,8 +724,8 @@ async def _save(
     return None
 
 
-async def _copies_on_disk(config: Any, view_index: int, fingerprint: str) -> int | None:
-    """How many copies of a card the FILE holds. ``None`` when unknowable.
+async def _disk_fingerprints(config: Any, view_index: int) -> Counter[str] | None:
+    """The FILE's card fingerprints for one view, counted. ``None`` when unknowable.
 
     A ``_save`` that reports success means Home Assistant ACCEPTED the write,
     not that it landed. ``Store.async_save`` does not raise on an ordinary
@@ -678,8 +744,9 @@ async def _copies_on_disk(config: Any, view_index: int, fingerprint: str) -> int
     internals have moved would be worse than the case it guards.
 
     Counted rather than tested, because a view may already hold a card
-    identical to the one being moved — a bare "is it there" then answers yes
-    off the copy that was already on disk.
+    identical to one being moved — a bare "is it there" then answers yes off
+    the copy that was already on disk. Counted for the whole view in one read,
+    because a move carries as many cards as the caller named.
     """
     store = getattr(config, "_store", None)
     if store is None or not hasattr(store, "async_load"):
@@ -695,15 +762,13 @@ async def _copies_on_disk(config: Any, view_index: int, fingerprint: str) -> int
         return None
     views = _views(document)
     if not 0 <= view_index < len(views):
-        return 0
-    return sum(
-        1 for _, _, card in _flat_cards(views[view_index]) if card_fingerprint(card) == fingerprint
-    )
+        return Counter()
+    return _view_fingerprints(views[view_index])
 
 
-def _copies_in_view(view: dict[str, Any], fingerprint: str) -> int:
-    """How many copies of a card a loaded view holds — the count to expect on disk."""
-    return sum(1 for _, _, card in _flat_cards(view) if card_fingerprint(card) == fingerprint)
+def _view_fingerprints(view: dict[str, Any]) -> Counter[str]:
+    """A loaded view's card fingerprints, counted — the counts to expect on disk."""
+    return Counter(card_fingerprint(card) for _, _, card in _flat_cards(view))
 
 
 async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1158,9 +1223,6 @@ def _fingerprint_error(card: Any, expected: str | None) -> str | None:
 
 # An entity id as Home Assistant spells it. Used to tell an entity row from a
 # label in a bare ``entities`` list, where both are plain strings.
-_ENTITY_ID_RE: Final = re.compile(r"[a-z0-9_]+\.[a-z0-9_]+")
-
-
 def _unknown_entities(hass: HomeAssistant, card: Any) -> list[str]:
     """Entity ids a card references that do not exist.
 
@@ -1169,43 +1231,11 @@ def _unknown_entities(hass: HomeAssistant, card: Any) -> list[str]:
     Nothing else catches it: the model composes the card, we write it, and the
     first sign of trouble is a red tile on the wall panel.
 
-    Walks the whole card rather than a fixed key list — an entity id can sit in
-    ``entity``, ``entities`` (as a string or as ``{entity: …}``), a nested
-    stack's ``cards``, a ``tap_action`` target, or a custom card's own schema.
-
-    A list carries its parent key down to its elements, so the bare form the
-    entities card is normally written in — ``entities: ["light.one"]``, by far
-    the most common shape — arrives here keyed ``entities``. Checking only
-    ``entity``/``entity_id`` let exactly that spelling through unvalidated.
-    Strings under ``entities`` are shape-checked first: a row there may be a
-    label or a divider on some cards, and refusing those would block a card the
-    home can render perfectly well. A typo we care about is a typo in an
-    entity id, and an entity id always has a domain and a dot.
+    Which ids a card holds is `_card_entity_ids`' question, and the read path
+    asks it too — the shape-checking that keeps a template or an `entities`-list
+    label from being read as a typo lives there.
     """
-    found: list[str] = []
-
-    def walk(node: Any, key: str | None = None) -> None:
-        if isinstance(node, dict):
-            for k, v in node.items():
-                walk(v, k)
-        elif isinstance(node, list):
-            for item in node:
-                walk(item, key)
-        elif (
-            isinstance(node, str)
-            and key in ("entity", "entity_id", "entities")
-            # Shape-checked on EVERY key, not just `entities`. A custom card may
-            # hold a template where an id goes — button-card's
-            # `[[[ return ... ]]]`, or Jinja — and that is a valid card the home
-            # renders, not a typo. The state lookup would find no such entity
-            # and refuse the whole write. A typo worth catching is a typo in an
-            # entity id, which always has a domain and a dot.
-            and _ENTITY_ID_RE.fullmatch(node)
-        ):
-            found.append(node)
-
-    walk(card)
-    return sorted({e for e in found if hass.states.get(e) is None})
+    return sorted({e for e in _card_entity_ids(card) if hass.states.get(e) is None})
 
 
 # Card types named after an entity DOMAIN. This is the whole list, and it is
@@ -1343,7 +1373,8 @@ async def async_move_card(
     *,
     target: str | None = None,
     view: object,
-    from_index: int,
+    from_index: int | None = None,
+    from_indices: list[int] | None = None,
     to_index: int | None = None,
     to_dashboard: str | None = None,
     to_view: object = None,
@@ -1351,7 +1382,7 @@ async def async_move_card(
     expected_view_fingerprint: str | None = None,
     expected_to_view_fingerprint: str | None = None,
 ) -> dict[str, Any]:
-    """Move a card: within a view, onto another view, or onto another dashboard.
+    """Move one card or several: within a view, onto another view, or onto another dashboard.
 
     The same-view case is a REORDER, and the only way to achieve one. Without it
     a caller can append, replace in place, or remove — so "keep the garage door
@@ -1371,6 +1402,15 @@ async def async_move_card(
     Every path moves the card OBJECT, so a move can never alter what the card
     shows.
 
+    ``from_indices`` moves SEVERAL cards in one call, which is a different
+    operation from repeating this one. Every index is relative to the view as it
+    was read, and taking one card out shifts every later index in it — so a
+    caller moving "all the media" one call at a time is working from indices
+    that stopped meaning what it read after the first move, and a stale index
+    silently moves whichever card now sits there. It is also the only way the
+    cards keep their relative order and land together, and it costs one tool
+    round rather than one per card.
+
     ``to_dashboard`` omitted means the source dashboard. ``to_view`` omitted
     means the source view on the same dashboard, and the FIRST page of a
     different one — a transfer names the dashboard, and which page it lands on
@@ -1386,6 +1426,25 @@ async def async_move_card(
     looked at.
     """
     from .recipes.dashboard import _insert_target_cards  # noqa: PLC0415
+
+    wanted, error = _move_sources(from_index, from_indices)
+    if error or wanted is None:
+        return {"error": error or "Name the card to move."}
+    if expected_fingerprint and len(wanted) > 1:
+        # It pins ONE card, and there is no honest way to spread it over
+        # several. Pass `expected_view_fingerprint` instead, which covers every
+        # index at once — the same pin `group_dashboard_cards` takes for the
+        # same reason. Refused rather than dropped: a caller asking for the
+        # cards it read to be the cards that move wants something real, and
+        # reporting `status: moved` having ignored it claims a guarantee that
+        # was not applied.
+        return {
+            "error": (
+                "expected_fingerprint describes a single card, so it cannot pin a move of "
+                f"{len(wanted)}. Pass expected_view_fingerprint instead — it covers every "
+                "index at once."
+            )
+        }
 
     async with DASHBOARD_LOCK:
         src_config, error = _writable_dashboard(hass, target)
@@ -1456,13 +1515,17 @@ async def async_move_card(
 
         src_view_obj = _views(src_document)[src_index]
         cards = _flat_cards(src_view_obj)
-        if not 0 <= from_index < len(cards):
+        if out_of_range := [i for i in wanted if not 0 <= i < len(cards)]:
             return {
-                "error": f"That view has {len(cards)} cards, so index {from_index} is out of range."
+                "error": (
+                    f"That view has {len(cards)} cards, so "
+                    f"{', '.join(str(i) for i in out_of_range)} is out of range."
+                )
             }
 
-        owner, position, moving = cards[from_index]
-        if error := _fingerprint_error(moving, expected_fingerprint):
+        # In source order, so the cards land together the way they were read.
+        moving = [cards[i][2] for i in wanted]
+        if error := _fingerprint_error(moving[0], expected_fingerprint):
             return {"error": error}
         # The card fingerprint pins the SOURCE only. Another edit between the
         # read and this call can leave it at from_index while to_index now
@@ -1528,49 +1591,66 @@ async def async_move_card(
         src_before = copy.deepcopy(src_document)
         dst_before = copy.deepcopy(dst_document) if cross_dashboard else src_before
 
-        # Re-flattened after the removal, because pulling the card out shifts
+        # Highest index first, so the earlier positions this walk still has to
+        # reach stay valid. Within one card list that is descending position;
+        # across the lists of a sections view the positions are independent, so
+        # either order would do.
+        first_owner = cards[wanted[0]][0]
+        for i in reversed(wanted):
+            owner, position, _ = cards[i]
+            owner.pop(position)
+
+        # Re-flattened after the removal, because pulling the cards out shifts
         # every later index — including the destination the caller named. That
         # holds for a transfer between two views of ONE dashboard as well, where
         # both of them live in the same document.
-        owner.pop(position)
         remaining = _flat_cards(dst_view_obj)
         if to_index is not None and to_index < len(remaining):
             # Land BEFORE whatever now sits at the destination — plain
             # ``pop(from); insert(to)`` semantics. Adding one for a forward move
             # lands after it instead, so moving 0 → 1 in [A, B, C] gives
             # [B, C, A] rather than the [B, A, C] that was asked for.
-            dest_owner, dest_position, _ = remaining[to_index]
-            dest_owner.insert(dest_position, moving)
+            dest_owner, base = remaining[to_index][0], remaining[to_index][1]
         elif remaining:
             # Past the last remaining card, or no destination named at all: the
             # end of the view.
-            dest_owner, dest_position, _ = remaining[-1]
-            dest_owner.insert(dest_position + 1, moving)
+            dest_owner, last_position, _ = remaining[-1]
+            base = last_position + 1
         elif same_view:
-            # It was the view's only card, so there is no destination to land
-            # relative to. Back into the list it came from — `_insert_target_cards`
-            # would send it to the FIRST section, silently moving a lone card in
-            # a later section somewhere the caller did not ask for.
-            owner.append(moving)
+            # They were the view's only cards, so there is no destination to
+            # land relative to. Back into the list they came from —
+            # `_insert_target_cards` would send them to the FIRST section,
+            # silently moving a lone card in a later section somewhere the
+            # caller did not ask for.
+            dest_owner, base = first_owner, len(first_owner)
         else:
             # An empty destination view, where for a sections view the cards go
             # in the first section — a top-level `cards` key would store fine
             # and render nothing.
-            _insert_target_cards(dst_view_obj).append(moving)
+            dest_owner = _insert_target_cards(dst_view_obj)
+            base = len(dest_owner)
 
-        # Where it actually landed, by identity. An appended card's index is the
-        # one thing the caller cannot work out from its own arguments, and it is
-        # what addresses the card on every later call.
-        landed = next(
-            (i for i, (_, _, card) in enumerate(_flat_cards(dst_view_obj)) if card is moving),
-            to_index if to_index is not None else 0,
-        )
+        # Contiguous and in source order, so a group of cards moved together
+        # reads on the new page the way it read on the old one.
+        for offset, card in enumerate(moving):
+            dest_owner.insert(base + offset, card)
+
+        # Where they actually landed, by identity. An appended card's index is
+        # the one thing the caller cannot work out from its own arguments, and
+        # it is what addresses the card on every later call.
+        landed_by_identity = {
+            id(card): i for i, (_, _, card) in enumerate(_flat_cards(dst_view_obj))
+        }
+        landed_indices = [
+            landed_by_identity.get(id(card), to_index if to_index is not None else 0)
+            for card in moving
+        ]
         dst_path = str(dst_view_obj.get("path") or "") or None
 
         if cross_dashboard:
             # Two documents, so two saves and no transaction. DESTINATION
-            # FIRST: when the second one fails the card is on both dashboards,
-            # which the user can see and undo. The other order loses it, and a
+            # FIRST: when the second one fails the cards are on both dashboards,
+            # which the user can see and undo. The other order loses them, and a
             # card nobody kept a copy of cannot be put back.
             #
             # Both saves carry their snapshot, which is what makes these two
@@ -1583,16 +1663,15 @@ async def async_move_card(
 
             # Confirmed on DISK before the removal, because a `_save` that
             # reports success has only been ACCEPTED — HA swallows an ordinary
-            # write failure (see `_copies_on_disk`). Removing the source on the
-            # strength of that is how the card is lost outright: both halves
+            # write failure (see `_disk_fingerprints`). Removing the source on
+            # the strength of that is how a card is lost outright: both halves
             # look fine, the cache agrees, and the dashboard it was moved to is
             # empty after the next restart. Destination-first only protects
             # anything if the destination is known to have landed.
-            moved_fp = card_fingerprint(moving)
-            landed_copies = await _copies_on_disk(dst_config, dst_index, moved_fp)
-            if landed_copies is not None and landed_copies < _copies_in_view(
-                dst_view_obj, moved_fp
-            ):
+            moved_fps = Counter(card_fingerprint(card) for card in moving)
+            on_disk = await _disk_fingerprints(dst_config, dst_index)
+            expected_here = _view_fingerprints(dst_view_obj)
+            if on_disk is not None and any(on_disk[fp] < expected_here[fp] for fp in moved_fps):
                 await _save(dst_config, dst_before)
                 return {
                     "error": (
@@ -1613,8 +1692,11 @@ async def async_move_card(
             # Same question of the source, where a silent failure costs a
             # duplicate rather than the card — worth reporting, not worth
             # undoing a destination that did land.
-            left_copies = await _copies_on_disk(src_config, src_index, moved_fp)
-            if left_copies is not None and left_copies > _copies_in_view(src_view_obj, moved_fp):
+            left_on_disk = await _disk_fingerprints(src_config, src_index)
+            expected_left = _view_fingerprints(src_view_obj)
+            if left_on_disk is not None and any(
+                left_on_disk[fp] > expected_left[fp] for fp in moved_fps
+            ):
                 return {
                     "error": (
                         "The card was added to the destination dashboard, but Home "
@@ -1630,9 +1712,15 @@ async def async_move_card(
         "status": "moved",
         "dashboard": target or "lovelace",
         "view_index": src_index,
-        "from_index": from_index,
-        "to_index": landed,
+        "from_index": wanted[0],
+        "to_index": landed_indices[0],
+        "moved_card_count": len(moving),
     }
+    if len(wanted) > 1:
+        # Both spellings, because the caller addresses cards by index on every
+        # later call and a group move gives it several new ones at once.
+        result["from_indices"] = wanted
+        result["to_indices"] = landed_indices
     if not same_view:
         destination = to_dashboard if to_dashboard is not None else target
         result["to_dashboard"] = destination or "lovelace"
@@ -1641,6 +1729,35 @@ async def async_move_card(
         # "moved" and then looked where it used to be.
         result["url"] = _view_url(destination, dst_path, dst_index)
     return result
+
+
+def _move_sources(
+    from_index: int | None, from_indices: list[int] | None
+) -> tuple[list[int] | None, str | None]:
+    """The card indices a move is about, as ``(sorted_indices, error)``.
+
+    An empty ``from_indices`` is treated as ABSENT, not as "move nothing":
+    models routinely fill an optional list parameter they are not using with
+    ``[]``, and there is no request "move no cards" for that to be discarding.
+
+    Both spellings present and both non-empty is REFUSED. They are two ways of
+    saying which cards, so honouring one means silently dropping cards the
+    caller asked to move — and the two can disagree, which is exactly when
+    picking a winner is wrong.
+    """
+    plural = sorted(
+        {i for i in (from_indices or []) if isinstance(i, int) and not isinstance(i, bool)}
+    )
+    if plural and from_index is not None and [from_index] != plural:
+        return None, (
+            "Pass either from_index or from_indices, not both — they each say which cards "
+            "to move, and honouring one would silently drop what the other named."
+        )
+    if plural:
+        return plural, None
+    if from_index is not None:
+        return [from_index], None
+    return None, "Name the card to move: from_index for one, from_indices for several."
 
 
 async def async_group_cards(

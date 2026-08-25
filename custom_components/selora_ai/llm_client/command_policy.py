@@ -11,7 +11,7 @@ from collections.abc import Callable
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 import uuid
 
 from ..automation_utils import _rewrite_announcements
@@ -3034,17 +3034,28 @@ _OPEN_DASHBOARD_BY_LANG: dict[str, str] = {
 }
 
 
-def _dashboard_target_from_log(
+# How many pages a reply links before it stops being a reply. A turn that made
+# four views gets four cards; one that reshaped twenty gets prose, because
+# twenty cards under a paragraph is a wall the user has to scroll past.
+_MAX_DASHBOARD_LINKS: Final = 5
+
+
+def _dashboard_targets_from_log(
     tool_log: list[dict[str, Any]] | None,
-) -> tuple[str, str] | None:
-    """``(url, label)`` for the page a dashboard turn last wrote to.
+) -> list[tuple[str, str]]:
+    """``(url, label)`` for every page a dashboard turn wrote to, in order.
+
+    EVERY page, not the last one: a turn that adds four views writes four, and
+    linking only the one that happened to come back last leaves the other three
+    unreachable while implying the reply is about that one. Deduplicated by url,
+    since moving three cards onto the same page reports it three times.
 
     Taken from the tool RESULT, never composed here: the writers know which
     dashboard and which view they landed on, and they percent-encode the path.
-    A URL assembled from the model's prose would be a guess, and this one is
+    A URL assembled from the model's prose would be a guess, and these are
     rendered as something the user clicks.
     """
-    found: tuple[str, str] | None = None
+    found: dict[str, str] = {}
     for entry in tool_log or []:
         result = entry.get("result")
         if not isinstance(result, dict):
@@ -3056,8 +3067,10 @@ def _dashboard_target_from_log(
         # title is whatever the user named their dashboard.
         raw = str(result.get("title") or result.get("dashboard") or "").strip()
         label = re.sub(r"[\[\]|]", "", raw)[:60].strip()
-        found = (url, label)
-    return found
+        # First write wins the label: a later result for the same page is the
+        # same page, and the first one is the one the prose is ordered by.
+        found.setdefault(url, label)
+    return list(found.items())
 
 
 # Dashboard tools that CHANGE something. A read that fails is answered by the
@@ -3137,25 +3150,31 @@ def append_dashboard_link(
     tool_log: list[dict[str, Any]] | None,
     language: str | None = None,
 ) -> ArchitectResponse:
-    """Put a card for the page a dashboard turn changed under the reply.
+    """Put a card for each page a dashboard turn changed under the reply.
 
     A marker, not a markdown link, for the same reason entities are markers:
     the panel renders it as a real element. The model reliably writes the path
     into its prose as a code span — "available at `/office/0`" — which looks
     like a link and is not one, so this is emitted regardless of what the prose
     already says; only an existing marker suppresses it.
+
+    All of them or none. A turn that created four views and got one card left
+    the user with three pages the reply named and gave them no way to reach,
+    and no way to tell which of the four the card was for — worse than prose,
+    because a single card reads as "here is the page I made". Past
+    ``_MAX_DASHBOARD_LINKS`` the cards stop being navigation, so the prose
+    carries it alone.
     """
-    target = _dashboard_target_from_log(tool_log)
-    if target is None:
+    targets = _dashboard_targets_from_log(tool_log)
+    if not targets or len(targets) > _MAX_DASHBOARD_LINKS:
         return result
-    url, label = target
     text = str(result.get("response") or "")
     if "[[dashboard:" in text:
         return result
-    if not label:
-        label = _OPEN_DASHBOARD_BY_LANG.get(_normalize_lang(language), "Open the dashboard")
+    fallback = _OPEN_DASHBOARD_BY_LANG.get(_normalize_lang(language), "Open the dashboard")
+    markers = "\n".join(f"[[dashboard:{url}|{label or fallback}]]" for url, label in targets)
     linked: ArchitectResponse = dict(result)
-    linked["response"] = f"{text.rstrip()}\n\n[[dashboard:{url}|{label}]]".strip()
+    linked["response"] = f"{text.rstrip()}\n\n{markers}".strip()
     return linked
 
 

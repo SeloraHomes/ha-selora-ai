@@ -5385,22 +5385,11 @@ async def _tool_remove_dashboard_card(
 async def _tool_move_dashboard_card(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
-    """Reposition a card within its view, or move it to another view or dashboard."""
+    """Reposition one card or several, within a view or onto another view or dashboard."""
     from .dashboard_manager import async_move_card  # noqa: PLC0415
-    from .tool_executor import _as_index, _opt_index, _opt_str, _opt_view  # noqa: PLC0415
+    from .tool_executor import move_card_kwargs  # noqa: PLC0415
 
-    return await async_move_card(
-        hass,
-        target=_opt_str(arguments.get("dashboard_target")),
-        view=arguments.get("view"),
-        from_index=_as_index(arguments.get("from_index")),
-        to_index=_opt_index(arguments.get("to_index")),
-        to_dashboard=_opt_str(arguments.get("to_dashboard")),
-        to_view=_opt_view(arguments.get("to_view")),
-        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
-        expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
-        expected_to_view_fingerprint=_opt_str(arguments.get("expected_to_view_fingerprint")),
-    )
+    return await async_move_card(hass, **move_card_kwargs(arguments))
 
 
 async def _tool_group_dashboard_cards(

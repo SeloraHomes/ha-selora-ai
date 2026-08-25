@@ -3263,3 +3263,427 @@ def test_move_declares_its_destination_on_both_surfaces() -> None:
 
     mcp = next(t for t in _TOOL_DEFINITIONS if t.name == "selora_move_dashboard_card")
     assert wanted <= set(mcp.inputSchema["properties"])
+
+
+# ── Moving several cards at once ────────────────────────────────────────────
+#
+# "Move all the media from the Overview dashboard to the new media view." The
+# summary said `type: entities, title: "Samsung Q6 Series remote and media
+# controls"` and nothing about what was in each card, so the only way to tell a
+# media card from a light one was `get_dashboard_card` per card — which spent
+# the turn's whole tool-round budget on reads and answered that the move could
+# not be done safely. Two halves: the summary now names each card's domains,
+# and one call moves every card the caller named.
+
+
+def _media_document() -> dict[str, Any]:
+    """A view holding two media cards among the lights, as a home really has."""
+    return {
+        "title": "Home",
+        "views": [
+            {
+                "title": "Home",
+                "path": "home",
+                "cards": [
+                    {"type": "light", "entity": "light.lamp"},
+                    {
+                        "type": "entities",
+                        "title": "Samsung Q6 Series remote and media controls",
+                        "entities": ["media_player.tv", "remote.tv"],
+                    },
+                    {"type": "thermostat", "entity": "climate.main"},
+                    {
+                        "type": "vertical-stack",
+                        "cards": [{"type": "media-control", "entity": "media_player.ps5"}],
+                    },
+                ],
+            },
+            {"title": "Entertainment", "path": "entertainment", "cards": []},
+        ],
+    }
+
+
+@pytest.fixture
+async def media_board(board: HomeAssistant) -> HomeAssistant:
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    for entity_id in ("media_player.tv", "remote.tv", "media_player.ps5"):
+        board.states.async_set(entity_id, "off")
+    await board.data[LOVELACE_DATA].dashboards[None].async_save(_media_document())
+    return board
+
+
+async def test_a_card_summary_names_the_domains_it_shows(media_board: HomeAssistant) -> None:
+    """Which cards are the media ones, answered by the read the model already
+    does. Neither the type nor the title says it: `entities` and `tile` are the
+    two commonest types and both are domain-agnostic."""
+    result = await _make_executor(media_board).execute("get_dashboard", {"view": "home"})
+
+    by_index = {c["index"]: c for c in result["view"]["cards"]}
+    assert by_index[0]["domains"] == ["light"]
+    assert by_index[1]["domains"] == ["media_player", "remote"]
+    assert by_index[2]["domains"] == ["climate"]
+    # Nested, because a media card is routinely wrapped in a stack and the
+    # container itself references nothing.
+    assert by_index[3]["domains"] == ["media_player"]
+
+    media = [c["index"] for c in result["view"]["cards"] if "media_player" in c.get("domains", [])]
+    assert media == [1, 3]
+
+
+async def test_a_card_with_no_entities_reports_no_domains(media_board: HomeAssistant) -> None:
+    """Absent rather than empty: a markdown or iframe card shows no entity, and
+    `domains: []` is a field the model has to read past on every card."""
+    await _make_executor(media_board).execute(
+        "insert_dashboard_card",
+        {"view": "home", "card": {"type": "markdown", "content": "hello"}},
+    )
+    result = await _make_executor(media_board).execute("get_dashboard", {"view": "home"})
+    added = next(c for c in result["view"]["cards"] if c["type"] == "markdown")
+    assert "domains" not in added
+
+
+async def test_all_the_media_moves_in_one_call(media_board: HomeAssistant) -> None:
+    """The request that started this. One call, because taking card 1 out shifts
+    card 3 to 2 — a caller repeating the single-card move works from indices
+    that stopped meaning what it read."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {"view": "home", "from_indices": [1, 3], "to_view": "entertainment"},
+    )
+    assert result["status"] == "moved", result
+    assert result["moved_card_count"] == 2
+    assert result["from_indices"] == [1, 3]
+    assert result["to_indices"] == [0, 1]
+    assert result["url"] == "/lovelace/entertainment"
+
+    document = await media_board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in document["views"][0]["cards"]] == ["light", "thermostat"]
+    # Untouched and in the order they were read, so the group reads on the new
+    # page the way it read on the old one.
+    assert document["views"][1]["cards"] == [
+        {
+            "type": "entities",
+            "title": "Samsung Q6 Series remote and media controls",
+            "entities": ["media_player.tv", "remote.tv"],
+        },
+        {
+            "type": "vertical-stack",
+            "cards": [{"type": "media-control", "entity": "media_player.ps5"}],
+        },
+    ]
+
+
+async def test_several_cards_land_contiguously_at_the_named_index(
+    media_board: HomeAssistant,
+) -> None:
+    """`to_index` is one index for the group, not one per card."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    await _make_executor(media_board).execute(
+        "insert_dashboard_card",
+        {"view": "entertainment", "card": {"type": "light", "entity": "light.other"}},
+    )
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {"view": "home", "from_indices": [1, 3], "to_view": "entertainment", "to_index": 0},
+    )
+    assert result["to_indices"] == [0, 1], result
+
+    document = await media_board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in document["views"][1]["cards"]] == [
+        "entities",
+        "vertical-stack",
+        "light",
+    ]
+
+
+async def test_several_cards_reorder_within_one_view(media_board: HomeAssistant) -> None:
+    """Same view, so it is a reorder, and the cards keep their relative order."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {"view": "home", "from_indices": [1, 3], "to_index": 0},
+    )
+    assert result["status"] == "moved", result
+
+    document = await media_board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [c["type"] for c in document["views"][0]["cards"]] == [
+        "entities",
+        "vertical-stack",
+        "light",
+        "thermostat",
+    ]
+
+
+async def test_several_cards_move_out_of_a_sections_view(board: HomeAssistant) -> None:
+    """Card indices are flat across a sections view's card lists, so a group
+    move spans sections — and removing from two of them at once must not shift
+    a position the walk has still to reach."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    result = await _make_executor(board).execute(
+        "move_dashboard_card",
+        {"view": "garage", "from_indices": [0, 1], "to_view": "living"},
+    )
+    assert result["status"] == "moved", result
+
+    document = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert [s["cards"] for s in document["views"][1]["sections"]] == [[], []]
+    assert [c["type"] for c in document["views"][0]["cards"]] == [
+        "light",
+        "thermostat",
+        "button",
+        "gauge",
+    ]
+
+
+async def test_an_out_of_range_index_names_every_one_that_is(
+    media_board: HomeAssistant,
+) -> None:
+    """Nothing moves — the error is raised before the document is touched."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {"view": "home", "from_indices": [1, 9, 12], "to_view": "entertainment"},
+    )
+    assert "9, 12" in result["error"], result
+
+    document = await media_board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert len(document["views"][0]["cards"]) == 4
+    assert document["views"][1]["cards"] == []
+
+
+async def test_a_single_card_fingerprint_cannot_pin_a_group_move(
+    media_board: HomeAssistant,
+) -> None:
+    """Refused, not dropped: a caller asking for the cards it read to be the
+    cards that move wants something real, and reporting `moved` having ignored
+    it claims a guarantee that was never applied."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    read = await _make_executor(media_board).execute("get_dashboard", {"view": "home"})
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {
+            "view": "home",
+            "from_indices": [1, 3],
+            "to_view": "entertainment",
+            "expected_fingerprint": read["view"]["cards"][1]["fingerprint"],
+        },
+    )
+    assert "expected_view_fingerprint" in result["error"], result
+
+    document = await media_board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert len(document["views"][0]["cards"]) == 4
+
+
+async def test_a_group_move_is_pinned_by_the_view_fingerprint(
+    media_board: HomeAssistant,
+) -> None:
+    """Every index at once, which is the pin a group move needs — the same one
+    `group_dashboard_cards` takes."""
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {
+            "view": "home",
+            "from_indices": [1, 3],
+            "to_view": "entertainment",
+            "expected_view_fingerprint": "stale",
+        },
+    )
+    assert "changed since it was read" in result["error"], result
+
+
+async def test_an_empty_from_indices_is_absent_not_a_move_of_nothing(
+    media_board: HomeAssistant,
+) -> None:
+    """Models fill an optional list they are not using with `[]`, and there is
+    no request "move no cards" for that to be discarding."""
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {"view": "home", "from_index": 1, "from_indices": [], "to_view": "entertainment"},
+    )
+    assert result["status"] == "moved", result
+    assert result["moved_card_count"] == 1
+
+
+async def test_two_disagreeing_spellings_of_the_sources_are_refused(
+    media_board: HomeAssistant,
+) -> None:
+    """They each say which cards to move, so honouring one silently drops what
+    the other named."""
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card",
+        {"view": "home", "from_index": 0, "from_indices": [1, 3], "to_view": "entertainment"},
+    )
+    assert "not both" in result["error"], result
+
+
+async def test_a_move_naming_no_source_says_which_argument_to_send(
+    media_board: HomeAssistant,
+) -> None:
+    """`from_index` is optional now, so its absence must not coerce to card 0 —
+    that would move whichever card happens to be first."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    result = await _make_executor(media_board).execute(
+        "move_dashboard_card", {"view": "home", "to_view": "entertainment"}
+    )
+    assert "from_indices" in result["error"], result
+
+    document = await media_board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert len(document["views"][0]["cards"]) == 4
+
+
+async def test_a_group_move_across_dashboards_verifies_every_card_landed(
+    media_board: HomeAssistant,
+) -> None:
+    """Destination-first only protects the cards if the destination is known to
+    have reached disk, and a group move carries as many fingerprints as the
+    caller named."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    other = await _second_dashboard(
+        media_board, document={"views": [{"title": "Brushes", "path": "brushes", "cards": []}]}
+    )
+    # Accepted by HA, never written — the silent failure `_disk_fingerprints`
+    # exists to catch.
+    with patch.object(other._store, "async_save", AsyncMock(return_value=None)):
+        result = await _make_executor(media_board).execute(
+            "move_dashboard_card",
+            {"view": "home", "from_indices": [1, 3], "to_dashboard": "oral-b"},
+        )
+
+    assert "did not reach disk" in result["error"], result
+    # Still on the source, which is the whole point of checking before removing.
+    document = await media_board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert len(document["views"][0]["cards"]) == 4
+
+
+def test_move_offers_both_spellings_on_both_surfaces() -> None:
+    """MCP derives its schema from the chat ToolDef, so a group move chat
+    accepts and MCP does not is a tool that looks identical in both listings."""
+    from custom_components.selora_ai.mcp_server import _TOOL_DEFINITIONS
+
+    move = TOOL_MAP["move_dashboard_card"]
+    assert {"from_index", "from_indices"} <= {p.name for p in move.params}
+    # Neither is required on its own: the manager decides which was sent.
+    assert not any(p.required for p in move.params if p.name.startswith("from_"))
+    plural = next(p for p in move.params if p.name == "from_indices")
+    # Gemini rejects an ARRAY without `items`, and the elements are indices.
+    assert plural.items_type == "integer"
+
+    mcp = next(t for t in _TOOL_DEFINITIONS if t.name == "selora_move_dashboard_card")
+    assert "from_indices" in mcp.inputSchema["properties"]
+    assert mcp.inputSchema["properties"]["from_indices"]["items"] == {"type": "integer"}
+
+
+def test_the_move_coercion_is_shared_with_mcp() -> None:
+    """Both surfaces reach `async_move_card`, and a hand-written second copy of
+    the argument coercion drifts on the next argument added — quietly, where
+    the MCP client rejects a move chat accepts."""
+    from custom_components.selora_ai.tool_executor import move_card_kwargs
+
+    kwargs = move_card_kwargs({"view": "home", "from_indices": ["1", 3]})
+    assert kwargs["from_indices"] == [1, 3]
+    # Absent, not card 0.
+    assert kwargs["from_index"] is None
+
+    source = inspect.getsource(dm.async_move_card)
+    assert set(inspect.signature(dm.async_move_card).parameters) - {"hass"} == set(kwargs), source
+
+
+# ── One card per page, or none ──────────────────────────────────────────────
+#
+# "Create dedicated views" made four and the reply carried one card, for the
+# view whose result happened to come back last — so three pages the reply named
+# by path were unreachable, and the single card read as "here is the page I
+# made".
+
+
+def _view_writes(*paths: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "tool": "add_dashboard_view",
+            "arguments": {},
+            "result": {"url": f"/lovelace/{p}", "title": p.title()},
+        }
+        for p in paths
+    ]
+
+
+def test_every_page_a_turn_created_gets_a_card() -> None:
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "Created four dedicated views."},
+        _view_writes("rooms", "security", "entertainment", "system-energy"),
+    )
+    text = linked["response"]
+    assert text.count("[[dashboard:") == 4
+    # In the order they were written, which is the order the prose lists them.
+    assert text.index("/lovelace/rooms") < text.index("/lovelace/system-energy")
+    assert "[[dashboard:/lovelace/entertainment|Entertainment]]" in text
+
+
+def test_the_same_page_written_twice_gets_one_card() -> None:
+    """Moving three cards onto one page reports it three times."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "Moved them."},
+        [
+            {
+                "tool": "move_dashboard_card",
+                "arguments": {},
+                "result": {"url": "/lovelace/entertainment", "dashboard": "lovelace"},
+            }
+        ]
+        * 3,
+    )
+    assert linked["response"].count("[[dashboard:") == 1
+
+
+def test_past_the_cap_the_prose_carries_it_alone() -> None:
+    """All of them or none. Past the cap the cards stop being navigation and
+    become a wall to scroll past, and picking a subset is the original bug."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "Reshaped the dashboard."},
+        _view_writes("a", "b", "c", "d", "e", "f"),
+    )
+    assert "[[dashboard:" not in linked["response"]
+
+
+def test_a_page_with_no_title_falls_back_per_page() -> None:
+    """The fallback label is per card, not shared — one untitled page among
+    named ones must not blank the others."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "Done."},
+        [
+            {"tool": "add_dashboard_view", "arguments": {}, "result": {"url": "/a/0"}},
+            {
+                "tool": "add_dashboard_view",
+                "arguments": {},
+                "result": {"url": "/b/0", "title": "Garage"},
+            },
+        ],
+    )
+    assert "[[dashboard:/a/0|Open the dashboard]]" in linked["response"]
+    assert "[[dashboard:/b/0|Garage]]" in linked["response"]
