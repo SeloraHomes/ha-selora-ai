@@ -882,9 +882,20 @@ async def _ws_recipes_insert_dashboard_card(
         "reason": result.reason,
         "target": result.target,
         "view": result.view,
+        # Kept on the record, not just in this reply: a failure like a
+        # missing card resource names what to install, and the wizard
+        # re-renders from the record long after this response is gone.
+        "message": result.message,
     }
+    if result.resource_urls is not None:
+        # Uninstall reads this to take back out the card resources this
+        # install is responsible for. By then the bundle is gone, so the
+        # record is the only account of what we put there. Written only
+        # when this attempt actually settled the question — absent means
+        # "nothing decided", and the record keeps what it had.
+        card["resource_urls"] = list(result.resource_urls)
     await get_install_store(hass).async_update_dashboard_card(slug, card)
-    connection.send_result(msg["id"], {**card, "message": result.message})
+    connection.send_result(msg["id"], card)
 
 
 def async_register_recipe_websocket_commands(hass: HomeAssistant) -> None:

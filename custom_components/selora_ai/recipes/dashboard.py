@@ -20,14 +20,18 @@ Design choices:
   frontend ignores unknown keys for the built-in cards we target
   (button / entity / entities).
 - **Placeholders.** Card values may use ``${role:<id>}`` (→ the first
-  bound entity for that role) and ``${input:<id>}`` (→ the input value).
+  bound entity for that role), ``${device:<id>}`` (→ the device that
+  entity belongs to) and ``${input:<id>}`` (→ the input value).
   Substituted here, at apply time, against the resolved bindings.
+  ``${device:}`` exists for the custom cards that target a device rather
+  than an entity — the toothbrush card is the first — since a recipe only
+  ever binds entities and has no way to name a device id itself.
 """
 
 from __future__ import annotations
 
 import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 import logging
 import re
@@ -38,6 +42,17 @@ from ..helpers import (
     default_dashboard_key,
     is_auto_generated_dashboard,
     is_strategy_document,
+)
+from .resources import (
+    RESOURCE_URL_BASE,
+    async_drop_if_unshared,
+    async_ensure_resource,
+    async_is_registered,
+    async_prune_superseded,
+    async_registered_urls,
+    async_remove_resource,
+    record_claims,
+    resource_url,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +66,7 @@ _LOGGER = logging.getLogger(__name__)
 # remove our own cards without touching anything the user authored.
 CARD_TAG_KEY = "selora_recipe"
 
-_PLACEHOLDER = re.compile(r"\$\{(role|input):([a-zA-Z0-9_]+)\}")
+_PLACEHOLDER = re.compile(r"\$\{(role|device|input):([a-zA-Z0-9_]+)\}")
 
 # Sentinel install target meaning "the user chose not to add a card".
 SKIP_TARGET = "__skip__"
@@ -103,23 +118,44 @@ class DashboardInsertResult:
     ok: bool
     # Stable reason code for the UI / punch list. One of: "inserted",
     # "lovelace_unavailable", "dashboard_not_found", "yaml_mode",
-    # "view_not_found", "save_failed".
+    # "view_not_found", "save_failed", "resource_missing",
+    # "resource_install_failed".
     reason: str
     target: str | None = None
     view: int | str | None = None
     message: str = ""
+    # Every managed card resource this recipe is on the hook for after
+    # this attempt, for uninstall to take back out. Usually one, or none
+    # when the recipe declared no resource or the home had the card
+    # already. Two when an upgrade could not take the old version out:
+    # the record has to keep both or the leftover has no owner.
+    #
+    # Absent (the default) is different from empty: the pipeline writes
+    # this key only when a placement actually ran, and a record whose
+    # dashboard step was skipped keeps the claims it already had.
+    resource_urls: tuple[str, ...] | None = None
 
 
-def _substitute(value: Any, bindings: dict[str, list[str]], inputs: dict[str, Any]) -> Any:
-    """Recursively resolve ``${role:x}`` / ``${input:x}`` placeholders in
-    a card config. A whole-string placeholder (``"${input:bedtime}"``)
-    yields the raw value (preserving non-string types); an embedded one
-    (``"Tap ${role:button}"``) is string-interpolated.
+def _substitute(
+    value: Any,
+    bindings: dict[str, list[str]],
+    inputs: dict[str, Any],
+    devices: dict[str, str] | None = None,
+) -> Any:
+    """Recursively resolve ``${role:x}`` / ``${device:x}`` / ``${input:x}``
+    placeholders in a card config. A whole-string placeholder
+    (``"${input:bedtime}"``) yields the raw value (preserving non-string
+    types); an embedded one (``"Tap ${role:button}"``) is string-interpolated.
+
+    An unresolvable placeholder becomes an empty string rather than being
+    left as literal ``${...}`` text: a card carrying a visible placeholder
+    reads as a bug to the homeowner, while an empty field is what every
+    other missing binding already looks like.
     """
     if isinstance(value, dict):
-        return {k: _substitute(v, bindings, inputs) for k, v in value.items()}
+        return {k: _substitute(v, bindings, inputs, devices) for k, v in value.items()}
     if isinstance(value, list):
-        return [_substitute(v, bindings, inputs) for v in value]
+        return [_substitute(v, bindings, inputs, devices) for v in value]
     if not isinstance(value, str):
         return value
 
@@ -127,6 +163,8 @@ def _substitute(value: Any, bindings: dict[str, list[str]], inputs: dict[str, An
         if kind == "role":
             ids = bindings.get(name) or []
             return ids[0] if ids else ""
+        if kind == "device":
+            return (devices or {}).get(name, "")
         return inputs.get(name, "")
 
     full = _PLACEHOLDER.fullmatch(value)
@@ -141,11 +179,16 @@ def resolve_card(
     slug: str,
     bindings: dict[str, list[str]],
     inputs: dict[str, Any],
+    devices: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Build the concrete card dict to insert: placeholders resolved +
     the ownership marker stamped on. Pure; unit-testable without HA.
+
+    ``devices`` maps role id → device id, built by the caller (which has
+    ``hass``) via :func:`device_ids_for_bindings`. Kept as a parameter
+    rather than looked up here so this stays a pure data transform.
     """
-    card = _substitute(spec.card, bindings, inputs)
+    card = _substitute(spec.card, bindings, inputs, devices)
     if not isinstance(card, dict):  # defensive — manifest validation guards this
         card = {}
     return {**card, CARD_TAG_KEY: slug}
@@ -204,6 +247,198 @@ def _find_view(config_dict: dict[str, Any], view: int | str) -> dict[str, Any] |
     return None
 
 
+def device_ids_for_bindings(hass: HomeAssistant, bindings: dict[str, list[str]]) -> dict[str, str]:
+    """Map each role id to the device its first bound entity belongs to.
+
+    Feeds ``${device:<role>}``. Strictly the *first* binding, the same
+    entity ``${role:<id>}`` resolves to — never a later one, even when
+    the first carries no device and a later one would. A card naming
+    both placeholders has to describe one thing; falling through to the
+    next entity would quietly point the card at a second device while
+    the entity rows still showed the first.
+
+    A role whose first entity has no device (a helper, a template
+    entity) is absent from the map, and the placeholder resolves to an
+    empty string like any other unfillable binding.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    registry = er.async_get(hass)
+    out: dict[str, str] = {}
+    for role, entity_ids in bindings.items():
+        if not entity_ids:
+            continue
+        entry = registry.async_get(entity_ids[0])
+        if entry and entry.device_id:
+            out[role] = entry.device_id
+    return out
+
+
+def _custom_elements(value: Any) -> set[str]:
+    """Every ``custom:<element>`` card type in a card config, including the
+    ones nested inside stacks and grids."""
+    found: set[str] = set()
+    if isinstance(value, dict):
+        card_type = value.get("type")
+        if isinstance(card_type, str) and card_type.startswith("custom:"):
+            element = card_type.split(":", 1)[1].strip()
+            if element:
+                found.add(element)
+        for v in value.values():
+            found |= _custom_elements(v)
+    elif isinstance(value, list):
+        for v in value:
+            found |= _custom_elements(v)
+    return found
+
+
+def _url_segments(url: str) -> list[str]:
+    """Path segments of a resource URL, lower-cased, with a trailing
+    ``.js`` dropped: ``/hacsfiles/foo-card/foo-card.js`` becomes
+    ``["hacsfiles", "foo-card", "foo-card"]``."""
+    path = url.split("?")[0].split("#")[0].lower()
+    return [seg.removesuffix(".js") for seg in path.split("/") if seg]
+
+
+async def _missing_card_resources(
+    hass: HomeAssistant,
+    card: dict[str, Any],
+    requires_resource: str = "",
+    ignore_prefix: str = "",
+) -> list[str] | None:
+    """What the homeowner has to install before this card can render.
+
+    Names are what to go looking for in HACS: the author's declared
+    resource when there is one, otherwise the custom element itself.
+
+    Matching is by URL fragment, because that is all Home Assistant
+    knows: resources are registered as URLs and only the browser learns
+    which elements a bundle defines. ``requires_resource`` is the
+    recipe author's fragment for exactly this reason — declare it when
+    the bundle is named for its project rather than its card
+    (``lovelace-mushroom/mushroom.js`` ships ``mushroom-chips-card``).
+    Without it we look for the element name, which covers the usual
+    ``/hacsfiles/<card>/<card>.js`` layout.
+
+    The declaration stands in for the card's element wherever it sits,
+    nested inside a stack included, but only while the card carries
+    exactly one custom element: with several there is no way to tell
+    which one a single fragment speaks for, so each falls back to its
+    own name. A card mixing bundles is better split than declared.
+
+    A miss means "we could not find it", not "it cannot work", and the
+    caller treats it as such: the card is withheld with instructions
+    and the install itself is unaffected.
+
+    Empty when the card is built-in and when every element is covered.
+    ``None`` when the resource list can't be read at all: unknown is not
+    the same as nothing-missing, and the caller decides what to do with
+    it — install its declared bundle if it has one, or place the card
+    rather than withhold it over a lookup that failed.
+
+    ``ignore_prefix`` drops resources under a URL base from the answer.
+    Callers managing their own copy pass ours, so the question stays
+    "does the home have this from somewhere else?" — otherwise a recipe
+    upgrading its pinned version would find its own previous one and
+    conclude there was nothing to do.
+    """
+    elements = _custom_elements(card)
+    if not elements:
+        return []
+    try:
+        from homeassistant.components.lovelace.const import LOVELACE_DATA  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — lovelace ships with core
+        return None
+    resources = getattr(hass.data.get(LOVELACE_DATA), "resources", None)
+    if resources is None:
+        return None
+    try:
+        # async_get_info loads the storage collection on first use;
+        # async_items alone returns [] on a collection nobody touched yet,
+        # which would read as "no resources installed".
+        await resources.async_get_info()
+        items = resources.async_items() or []
+    except Exception:  # noqa: BLE001 — treat any read failure as "unknown"
+        _LOGGER.debug("Could not read Lovelace resources", exc_info=True)
+        return None
+    urls = [str(i.get("url", "")) for i in items if isinstance(i, dict)]
+    if ignore_prefix:
+        urls = [u for u in urls if not u.split("?")[0].startswith(f"{ignore_prefix}/")]
+    segments = [seg for u in urls for seg in _url_segments(u)]
+
+    def registered(fragment: str) -> bool:
+        """Whether a resource URL names ``fragment`` as one of its path
+        segments, rather than merely containing those characters
+        somewhere. ``slider-button-card`` must not answer for
+        ``button-card``, and a substring test says it does.
+
+        A segment may carry a suffix — our own files are stored as
+        ``<name>-<version>-<digest>.js`` — so a delimiter after the
+        fragment counts as a match, but nothing before it does.
+        """
+        needle = fragment.strip().lower()
+        if not needle:
+            return False
+        return any(
+            seg == needle or seg.startswith(f"{needle}-") or seg.startswith(f"{needle}.")
+            for seg in segments
+        )
+
+    # One element, one declaration: the fragment IS that element's
+    # identity, wherever the card sits, and it is the name to report when
+    # it turns out to be missing. Telling someone to install
+    # "mushroom-chips-card" when the HACS project is "lovelace-mushroom"
+    # is not guidance they can act on.
+    if requires_resource and len(elements) == 1:
+        return [] if registered(requires_resource) else [requires_resource]
+
+    # Several elements: a single fragment can't be attributed to one of
+    # them, so it is checked on its own and each element on its name.
+    missing = sorted(e for e in elements if not registered(e))
+    if requires_resource and not registered(requires_resource):
+        missing.append(requires_resource)
+    return missing
+
+
+async def _async_prior_claims(hass: HomeAssistant, slug: str) -> list[str]:
+    """Managed URLs this recipe's record already says it owns."""
+    try:
+        from .store import get_install_store  # noqa: PLC0415
+
+        record = await get_install_store(hass).async_get(slug)
+    except Exception:  # noqa: BLE001 — housekeeping, never fatal
+        _LOGGER.debug("Recipe %s: could not read its install record", slug, exc_info=True)
+        return []
+    return record_claims(record.dashboard_card) if record else []
+
+
+async def _async_claims(hass: HomeAssistant, slug: str, installed_url: str = "") -> tuple[str, ...]:
+    """What this recipe is on the hook for once the dust settles.
+
+    Asked of the resource collection rather than inferred from whether
+    each step reported success: a prune that quietly failed, a rollback
+    that could not deregister, a file another recipe also claims — they
+    all come down to the same question, which is whether the URL is still
+    registered. Anything still there that this recipe put there stays its
+    responsibility, so uninstall can come back for it.
+    """
+    candidates: list[str] = []
+    for url in [installed_url, *await _async_prior_claims(hass, slug)]:
+        if url and url not in candidates:
+            candidates.append(url)
+    if not candidates:
+        # Nothing was ever ours. A built-in card on a recipe that never
+        # declared a resource takes this path, and it has no business
+        # reading the resource collection at all.
+        return ()
+    registered = await async_registered_urls(hass)
+    if registered is None:
+        # Can't tell. Keep every candidate: an orphan uninstall comes back
+        # to beats a file with nobody responsible for it.
+        return tuple(candidates)
+    return tuple(url for url in candidates if url.split("?")[0] in registered)
+
+
 async def async_insert_card(
     hass: HomeAssistant,
     *,
@@ -219,8 +454,184 @@ async def async_insert_card(
     Never raises — failures come back as a non-ok result for the caller
     to surface as a soft advisory.
     """
-    card = resolve_card(spec, slug, bindings, inputs)
-    return await async_place_card(hass, card=card, tag=slug, target=spec.target, view=spec.view)
+    try:
+        devices = device_ids_for_bindings(hass, bindings)
+    except Exception:  # noqa: BLE001 — a registry hiccup must not fail the install
+        _LOGGER.debug("Could not resolve device ids for %s bindings", slug, exc_info=True)
+        devices = {}
+    card = resolve_card(spec, slug, bindings, inputs, devices)
+
+    # A custom card whose JS nobody installed renders as a red
+    # "Custom element doesn't exist" box on the homeowner's dashboard.
+    # That is worse than no card: the recipe works fine, but the dashboard
+    # says something is broken.
+    # When the recipe manages its own resource, our own copies are excluded
+    # from the "does the home already have this?" question. Otherwise a
+    # recipe pinning a newer version would see its own v1 registered, call
+    # the element available, and never install v2.
+    missing = await _missing_card_resources(
+        hass,
+        card,
+        spec.requires_resource,
+        ignore_prefix=RESOURCE_URL_BASE if spec.resource is not None else "",
+    )
+
+    # A recipe that declares where its card comes from installs it, the
+    # same way a recipe sets up the integration it needs. Three cases,
+    # and only the last one downloads anything:
+    #   - our own copy is registered from an earlier install: keep the
+    #     ownership claim on the new record, or uninstall would orphan it;
+    #   - the card is available from somewhere else (HACS, a hand-rolled
+    #     resource): leave that alone, it is not ours to manage;
+    #   - nothing provides the element: fetch it.
+    installed_url = ""
+    # Whether THIS call downloaded it, which decides only whether to say
+    # "refresh your browser". Ownership is a separate question: a copy an
+    # earlier install left behind is still ours to remove at uninstall.
+    fresh_install = False
+    if spec.resource is not None:
+        # Run the installer when our own copy is registered — it returns
+        # "present" without downloading, and prunes anything this recipe
+        # superseded — or when nothing provides the element. A card the
+        # home has from elsewhere is left well alone.
+        ours_registered = await async_is_registered(hass, resource_url(spec.resource))
+        # ``missing`` was asked with our own copies excluded, so an empty
+        # list means somebody else's provides the element: a HACS install,
+        # or a resource added by hand. Theirs wins — it is the one the
+        # homeowner manages — and any copy of ours is surplus, pruned once
+        # the card is safely placed.
+        external_provider = missing is not None and not missing
+        # ``missing is None`` means the resource list couldn't be read.
+        # With a declared bundle in hand the useful move is to install it:
+        # the alternative is placing a card whose module may not be there.
+        if not external_provider and (ours_registered or missing is None or missing):
+            outcome = await async_ensure_resource(hass, spec.resource, owner_slug=slug)
+            if not outcome.ok:
+                _LOGGER.warning(
+                    "Recipe %s: card resource %s not installed (%s)",
+                    slug,
+                    spec.resource.name,
+                    outcome.reason,
+                )
+                # Clear the card only if nothing can render it. A failed
+                # upgrade still has the previous version registered, and
+                # the card it already placed keeps working — tearing that
+                # down over a transient download failure would take a
+                # working dashboard backwards.
+                #
+                # "repair_failed" is the exception: the registration
+                # survives while the file behind it does not, so a URL
+                # check would call the element provided when the browser
+                # is about to get a 404 for it.
+                if outcome.reason == "repair_failed" or await _missing_card_resources(
+                    hass, card, spec.requires_resource
+                ):
+                    await async_remove_cards(hass, slug)
+                return DashboardInsertResult(
+                    ok=False,
+                    reason="resource_install_failed",
+                    target=spec.target,
+                    view=spec.view,
+                    # An upgrade whose download failed leaves the previous
+                    # version registered and in use. Say so, or the record
+                    # loses the only handle uninstall has on it.
+                    resource_urls=await _async_claims(hass, slug),
+                    message=outcome.message,
+                )
+            installed_url = outcome.url
+            # "installed" alone: a repaired file sits behind a registration
+            # that was already there, and rolling that back would take away
+            # something another recipe or an existing card is using.
+            fresh_install = outcome.reason == "installed"
+            if len(_custom_elements(card)) == 1:
+                # One element, one declaration: the bundle we just put
+                # there is what provides it, whatever it happens to be
+                # called. Matching URL text against the element name would
+                # withhold a card we know is now installable.
+                missing = []
+            else:
+                # Several elements: this bundle answers for its own, and a
+                # stack nesting one from another project is still missing
+                # that one. Our copy now counts, so nothing is excluded.
+                missing = await _missing_card_resources(hass, card, spec.requires_resource) or []
+
+    if missing:
+        names = ", ".join(missing)
+        _LOGGER.info("Skipping %s card: no Lovelace resource for %s", slug, names)
+        # Drop the card a previous install left behind. Its resource is
+        # gone now, so leaving it is leaving the exact broken box this
+        # check exists to prevent — and re-installing is how a homeowner
+        # would expect to clear one.
+        await async_remove_cards(hass, slug)
+        if fresh_install and installed_url:
+            # We downloaded a bundle and then found another element the
+            # card needs that nothing provides, so no card goes up and
+            # nothing uses what we fetched. Pruning hasn't run either, so
+            # the previous version is still registered: take the new one
+            # back out and leave the record's claim on the one that is
+            # still there.
+            # Not cleared by hand afterwards: what this recipe still owns
+            # is whatever is still registered, which the survey below asks
+            # the resource collection directly. A deregistration that
+            # failed leaves the URL there, and it stays ours.
+            await async_remove_resource(hass, installed_url)
+        return DashboardInsertResult(
+            ok=False,
+            reason="resource_missing",
+            target=spec.target,
+            view=spec.view,
+            # Whatever survived the rollback is still ours to clean up.
+            resource_urls=await _async_claims(hass, slug, installed_url),
+            message=(
+                f"Card not added: this dashboard card needs {names}, which is not "
+                f"installed. Add it from HACS, then use Add card to place it."
+            ),
+        )
+    placed = await async_place_card(hass, card=card, tag=slug, target=spec.target, view=spec.view)
+
+    if not placed.ok:
+        if fresh_install and installed_url:
+            # Nothing uses what we just downloaded, and pruning waits for a
+            # placed card — so whatever this was replacing is still
+            # registered, under the card still on the dashboard. Taking the
+            # new one back out returns the home to where it was.
+            await async_remove_resource(hass, installed_url)
+        return replace(placed, resource_urls=await _async_claims(hass, slug, installed_url))
+
+    if spec.resource is None:
+        # This revision names no bundle. If it also placed no custom card,
+        # whatever an earlier one downloaded is dead weight the frontend
+        # still loads, and it goes.
+        #
+        # A revision that dropped the ``resource`` block but kept the
+        # ``custom:`` card is a different story: the card just went up,
+        # and the module under it may well be the one we installed. The
+        # missing-resource check would have withheld the card otherwise,
+        # so something provides it — possibly ours. Keep claiming rather
+        # than pull the module out from under a card we just placed.
+        if not _custom_elements(card):
+            for url in await _async_prior_claims(hass, slug):
+                await async_drop_if_unshared(hass, url, owner_slug=slug)
+        return replace(placed, resource_urls=await _async_claims(hass, slug))
+
+    # The card is live, so what it replaced can go. ``installed_url`` empty
+    # means it is running on someone else's copy — a HACS install that
+    # turned up after ours — and every managed copy of this bundle is
+    # surplus.
+    await async_prune_superseded(hass, spec.resource, owner_slug=slug, keep_url=installed_url or "")
+    placed = replace(placed, resource_urls=await _async_claims(hass, slug, installed_url))
+    if installed_url and fresh_install:
+        # The browser only loads a Lovelace resource on page load, so a
+        # card installed this second renders as missing until a refresh.
+        # Say so rather than letting it look broken for a minute.
+        placed = replace(
+            placed,
+            message=(
+                f"Installed {spec.resource.name} and added the card. Refresh your "
+                f"browser if the card doesn't appear yet."
+            ),
+        )
+    return placed
 
 
 def _view_card_lists(view_obj: dict[str, Any]) -> list[list[Any]]:
@@ -258,7 +669,8 @@ def _replace_tagged(
 
     A tagged card can be nested: ``group_dashboard_cards`` wraps existing cards
     in a container, and organising a recipe's card is an ordinary thing for a
-    user to do. A container emptied by the removal is dropped with its contents
+    user to do. Both shapes of container are followed — a list of ``cards``,
+    and the single ``card`` a conditional-style wrapper holds. A container emptied by the removal is dropped with its contents
     — an empty grid renders as a labelled box holding nothing, which reads as
     breakage rather than as the tidy removal uninstall promised. A container
     whose card was *substituted* is not empty, so it survives untouched.
@@ -279,6 +691,20 @@ def _replace_tagged(
                 removed += _replace_tagged(nested, tag, replacement, done)
                 if not nested:
                     continue
+            # Singular wrappers hold their child under "card" rather than in
+            # a list — a conditional card is the common one, and dropping a
+            # recipe's card into one is an ordinary thing to do. Reuse the
+            # same recursion by lending it a one-item list, then read back
+            # what it left there.
+            inner = card.get("card")
+            if isinstance(inner, dict):
+                holder = [inner]
+                removed += _replace_tagged(holder, tag, replacement, done)
+                if not holder:
+                    # The wrapper's only child is gone; a conditional card
+                    # with nothing in it renders as an error, so it goes too.
+                    continue
+                card["card"] = holder[0]
         kept.append(card)
     card_list[:] = kept
     return removed
@@ -433,13 +859,21 @@ async def async_remove_cards(hass: HomeAssistant, slug: str) -> int:
             ConfigNotFound,
         )
     except ImportError:  # pragma: no cover
+        _mark_sweep_incomplete(hass, slug)
         return 0
 
     data: LovelaceData | None = hass.data.get(LOVELACE_DATA)
     if data is None:
+        # Lovelace not loaded yet: no dashboard was looked at, so nothing
+        # can be said about what the recipe left behind. Reporting a clean
+        # sweep here would let uninstall pull the module out from under a
+        # card still sitting in storage.
+        _mark_sweep_incomplete(hass, slug)
         return 0
 
     removed = 0
+    failed = False
+    hass.data.get("selora_ai", {}).get("_card_removal_failed", set()).discard(slug)
     # One acquisition for the whole sweep: each dashboard is a separate
     # load→save cycle, and releasing between them would let a chat edit land on
     # a board we have already read but not yet written.
@@ -453,6 +887,7 @@ async def async_remove_cards(hass: HomeAssistant, slug: str) -> int:
                 continue
             except Exception as exc:  # noqa: BLE001
                 _LOGGER.debug("Skipping dashboard during card removal: %s", exc)
+                failed = True
                 continue
             changed = False
             for view in cfg.get("views", []) or []:
@@ -469,7 +904,29 @@ async def async_remove_cards(hass: HomeAssistant, slug: str) -> int:
                     await config.async_save(cfg)
                 except Exception as exc:  # noqa: BLE001
                     _LOGGER.warning("Recipe %s: dashboard card removal save failed: %s", slug, exc)
+                    failed = True
+    if failed:
+        # Recorded rather than raised: removal is best-effort by design and
+        # must not abort an uninstall. Callers that go on to delete what the
+        # surviving cards depend on need to know, though.
+        _mark_sweep_incomplete(hass, slug)
     return removed
+
+
+def _mark_sweep_incomplete(hass: HomeAssistant, slug: str) -> None:
+    """Record that a card removal pass couldn't account for every card."""
+    hass.data.setdefault("selora_ai", {}).setdefault("_card_removal_failed", set()).add(slug)
+
+
+def cards_fully_removed(hass: HomeAssistant, slug: str) -> bool:
+    """Whether the last :func:`async_remove_cards` swept every dashboard.
+
+    A dashboard that couldn't be read or saved keeps its tagged card, and
+    that card still needs the module behind it. Consumed once: an
+    uninstall asks, and a later reinstall starts from a clean slate.
+    """
+    failures: set[str] = hass.data.get("selora_ai", {}).get("_card_removal_failed", set())
+    return slug not in failures
 
 
 async def async_dashboards_with_entity(

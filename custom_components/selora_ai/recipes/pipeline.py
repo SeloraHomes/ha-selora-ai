@@ -18,7 +18,12 @@ from dataclasses import dataclass, field, replace
 import logging
 from typing import TYPE_CHECKING, Any
 
-from .dashboard import SKIP_TARGET, async_insert_card, async_remove_cards
+from .dashboard import (
+    SKIP_TARGET,
+    async_insert_card,
+    async_remove_cards,
+    cards_fully_removed,
+)
 from .loader import async_load_bundle, async_remove_bundle
 from .manifest import ManifestError
 from .packager import (
@@ -31,6 +36,7 @@ from .packager import (
 from .renderer import RenderedPackage, RenderError, render_package
 from .resolver import resolve
 from .resolvers import ResolverError, async_apply_auto_inputs
+from .resources import async_remove_resource, record_claims
 from .store import get_install_store
 from .validator import (
     InputReport,
@@ -237,10 +243,51 @@ async def async_uninstall(
     # dashboards by the slug tag, so it's correct even if the install
     # record is missing (idempotent uninstall). Best-effort — never
     # blocks package removal.
+    cards_removed = True
     try:
         await async_remove_cards(hass, slug)
+        # It swallows per-dashboard failures to keep uninstall going, so
+        # ask whether the sweep was actually complete.
+        cards_removed = cards_fully_removed(hass, slug)
     except Exception as exc:  # noqa: BLE001 — card cleanup must not abort uninstall
+        cards_removed = False
         _LOGGER.warning("Recipe %s: dashboard card cleanup failed: %s", slug, exc)
+
+    # And the card's JavaScript, when this recipe is what downloaded it.
+    # The record carries the URL because the bundle (and its manifest) is
+    # already gone by now. A resource the homeowner installed themselves
+    # has a different URL base and is left alone.
+    # Skipped when the cards couldn't be removed: pulling the module out
+    # from under a card still on the dashboard turns it into the red
+    # "custom element doesn't exist" box. Leaving an orphaned file is the
+    # quieter failure, and the homeowner can remove the card by hand.
+    #
+    # The record is already gone by then, so nothing retries this later:
+    # the file and its registration stay until someone removes the
+    # resource in Settings. Tracking orphans across restarts would need a
+    # store of its own, which is a lot of machinery for the case where a
+    # dashboard is unreadable at exactly the moment a recipe is removed.
+    claims = record_claims(record.dashboard_card) if record else []
+    if claims and cards_removed:
+        try:
+            # Two recipes can pin the same card, in which case both records
+            # claim it and it stays until the last of them goes. This
+            # record is already deleted, so what remains is genuinely other
+            # recipes.
+            spoken_for: set[str] = set()
+            for other in await store.async_list():
+                spoken_for.update(record_claims(other.dashboard_card))
+            for url in claims:
+                if url in spoken_for:
+                    _LOGGER.debug(
+                        "Recipe %s: leaving card resource %s, another recipe owns it",
+                        slug,
+                        url,
+                    )
+                    continue
+                await async_remove_resource(hass, url)
+        except Exception as exc:  # noqa: BLE001 — never abort uninstall
+            _LOGGER.warning("Recipe %s: card resource cleanup failed: %s", slug, exc)
 
     # Remove the user-selected integration entries. We do this BEFORE
     # the core reload so HA processes the removals as part of the
@@ -604,7 +651,15 @@ async def _run(
             "reason": insert.reason,
             "target": insert.target,
             "view": insert.view,
+            "message": insert.message,
         }
+        if insert.resource_urls is not None:
+            # Read back by uninstall to deregister the card resources this
+            # install is responsible for; empty when the recipe declared
+            # none, or the home already had the card from elsewhere.
+            # Absent means the attempt settled nothing, and the record
+            # keeps the claims it already had.
+            dashboard_card["resource_urls"] = list(insert.resource_urls)
         _safe_emit(
             on_event,
             {
@@ -627,6 +682,14 @@ async def _run(
     )
     integrations_installed = dict(owned_map.pop(slug, {}))
     store = get_install_store(hass)
+    if not dashboard_card:
+        # No insertion this run — the homeowner skipped the dashboard step,
+        # or the recipe has no card. Whatever the previous install placed
+        # is still on the dashboard, and its resource is still registered,
+        # so carry the record forward. Dropping it would strand a resource
+        # nobody can attribute to a recipe any more.
+        prior = await store.async_get(slug)
+        dashboard_card = dict(prior.dashboard_card or {}) if prior else {}
     record = await store.async_record(
         slug=slug,
         version=bundle.manifest.version,
