@@ -1263,7 +1263,14 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
     saw — so three pages the reply named by path had no card, and the one card
     read as "here is the page I made" rather than as one of four. Deduplicated
     by url, since moving three cards onto one page reports it three times, and
-    the label is per card so an untitled page cannot blank the others. Past
+    the label is per card so an untitled page cannot blank the others. The
+    suppression is **per page** (`_already_linked`), not "the text already has
+    a marker": the marker family is in the prompt and a session replays its own
+    earlier assistant turns, so a model writing one for the page it is
+    narrating is ordinary — and one blanket check discarded the other three,
+    which is this same failure through a different door. Terminated on the `|`
+    or `]]` rather than matched as a prefix, since `/lovelace/0` is a prefix of
+    `/lovelace/01`. Past
     `_MAX_DASHBOARD_LINKS` (5) the cards stop being navigation and none are
     emitted: the prose already names them, and picking a subset is the bug.
     The card is **inline-flex**, so the `<br>` between two markers is what

@@ -3687,3 +3687,43 @@ def test_a_page_with_no_title_falls_back_per_page() -> None:
     )
     assert "[[dashboard:/a/0|Open the dashboard]]" in linked["response"]
     assert "[[dashboard:/b/0|Garage]]" in linked["response"]
+
+
+async def test_a_marker_the_model_wrote_suppresses_only_its_own_page() -> None:
+    """The marker family is in the prompt and a session replays its own earlier
+    assistant turns, so a model writing one for the page it is narrating is
+    ordinary. Suppressing every card on the strength of it is the same failure
+    reached through a different door."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "Made two pages.\n\n[[dashboard:/lovelace/rooms|Rooms]]"},
+        _view_writes("rooms", "security"),
+    )
+    text = linked["response"]
+    assert text.count("[[dashboard:/lovelace/rooms") == 1
+    assert "[[dashboard:/lovelace/security|Security]]" in text
+
+
+async def test_one_page_is_not_read_as_covering_a_longer_path() -> None:
+    """`/lovelace/0` is a prefix of `/lovelace/01`, so a prefix test reads a
+    marker for one page as covering a different one and drops its card."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        append_dashboard_link,
+    )
+
+    linked = append_dashboard_link(
+        {"response": "Done.\n\n[[dashboard:/lovelace/0|First]]"},
+        [
+            {"tool": "add_dashboard_view", "arguments": {}, "result": {"url": "/lovelace/0"}},
+            {
+                "tool": "add_dashboard_view",
+                "arguments": {},
+                "result": {"url": "/lovelace/01", "title": "Second"},
+            },
+        ],
+    )
+    assert linked["response"].count("[[dashboard:") == 2
+    assert "[[dashboard:/lovelace/01|Second]]" in linked["response"]

@@ -3169,13 +3169,30 @@ def append_dashboard_link(
     if not targets or len(targets) > _MAX_DASHBOARD_LINKS:
         return result
     text = str(result.get("response") or "")
-    if "[[dashboard:" in text:
+    # Suppressed PER PAGE, not by the presence of any marker at all. The
+    # marker family is in the prompt and a session replays its own earlier
+    # assistant turns, so a model writing one for the page it happens to be
+    # narrating is ordinary — and a single `if "[[dashboard:" in text` then
+    # discarded the other three, which is the failure this function exists to
+    # fix reached through a different door.
+    wanted = [(url, label) for url, label in targets if not _already_linked(text, url)]
+    if not wanted:
         return result
     fallback = _OPEN_DASHBOARD_BY_LANG.get(_normalize_lang(language), "Open the dashboard")
-    markers = "\n".join(f"[[dashboard:{url}|{label or fallback}]]" for url, label in targets)
+    markers = "\n".join(f"[[dashboard:{url}|{label or fallback}]]" for url, label in wanted)
     linked: ArchitectResponse = dict(result)
     linked["response"] = f"{text.rstrip()}\n\n{markers}".strip()
     return linked
+
+
+def _already_linked(text: str, url: str) -> bool:
+    """Whether ``text`` already carries a marker for exactly this page.
+
+    Terminated on the delimiter rather than matched as a prefix: `/office/0` is
+    a prefix of `/office/01`, so a bare `in` test reads a marker for one page
+    as covering a different one and drops its card.
+    """
+    return f"[[dashboard:{url}|" in text or f"[[dashboard:{url}]]" in text
 
 
 def strip_entity_tiles_after_dashboard_turn(
