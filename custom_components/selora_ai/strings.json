@@ -964,7 +964,11 @@
     "client_action_working": "Working…",
     "client_action_done": "Done.",
     "client_action_failed": "That did not work.",
-    "approval_then": "then"
+    "approval_then": "then",
+    "client_action_delete": "Delete",
+    "client_action_delete_dashboard": "Delete the {title} dashboard — {views} views, {cards} cards",
+    "client_action_confirm_mixed": "Confirm all",
+    "client_action_delete_dashboard_unknown": "Delete the {title} dashboard — contents unknown"
   },
   "options": {
     "step": {

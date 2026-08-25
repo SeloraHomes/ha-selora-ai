@@ -964,7 +964,11 @@
     "client_action_working": "Trabajando…",
     "client_action_done": "Hecho.",
     "client_action_failed": "No ha funcionado.",
-    "approval_then": "luego"
+    "approval_then": "luego",
+    "client_action_delete": "Eliminar",
+    "client_action_delete_dashboard": "Eliminar el panel {title}: {views} vistas, {cards} tarjetas",
+    "client_action_confirm_mixed": "Confirmar todo",
+    "client_action_delete_dashboard_unknown": "Eliminar el panel {title}: contenido desconocido"
   },
   "options": {
     "step": {

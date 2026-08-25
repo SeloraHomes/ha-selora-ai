@@ -71,12 +71,30 @@ def test_a_pending_card_does_not_resume() -> None:
     assert "not approved" in error
 
 
-def test_a_card_with_nothing_left_does_not_resume() -> None:
-    """Most cards. "Unlock the front door" is the whole request, and a model
-    round to discover that would be paid on every approval."""
-    directive, error = _resume_request(_messages(remaining_intent=None), "p1")
+def test_a_service_approval_with_nothing_left_does_not_resume() -> None:
+    """ "Unlock the front door" IS the whole request — it is done when it runs.
+    Replaying it would put a model round on the hottest path in the product for
+    nothing, which is why the fallback is not applied here."""
+    messages = _messages(remaining_intent=None)
+    messages[1]["command_approval"]["approval_kind"] = "delete"
+    directive, error = _resume_request(messages, "p1")
     assert directive is None
     assert "nothing left" in error
+
+
+def test_a_client_action_with_nothing_declared_replays_the_request() -> None:
+    """A client action exists BECAUSE the thing it makes does not exist yet, so
+    it is a first step by construction — and this is the case the fallback was
+    written for: "create a dashboard for the Office WITH my Office devices" is
+    where all of this started."""
+    messages = _messages(remaining_intent=None)
+    assert messages[1]["command_approval"]["approval_kind"] == "client_action"
+
+    directive, error = _resume_request(messages, "p1")
+
+    assert error is None
+    assert "office dashboard with my devices" in directive
+    assert "one short confirmation" in directive
 
 
 def test_an_unknown_proposal_is_refused() -> None:
@@ -419,13 +437,44 @@ def test_a_declined_scene_does_not_continue() -> None:
     assert "not saved" in error
 
 
-def test_a_scene_with_nothing_left_does_not_continue() -> None:
-    """Most scenes. "Create a movie night scene" is the whole request."""
+def test_an_undeclared_remainder_replays_the_request() -> None:
+    """Three times running the model announced the follow-up in PROSE — "once
+    you accept the scene below, I can add its dashboard tile" — and left
+    `remaining_intent` unset, so the work it had just promised was dropped and
+    the user retyped it by hand. Asking more firmly did not fix it, so the
+    declaration is no longer required."""
     messages = _scene_messages()
     del messages[1]["remaining_intent"]
+
     directive, error = _resume_request(messages, "selora_scene_office")
-    assert directive is None
-    assert "No such proposal" in error
+
+    assert error is None
+    # The user's own words go back, not a guess at what is left.
+    assert "make a scene and add it" in directive
+    # And the model is told what to do when nothing is left, or it will invent
+    # work to justify the round.
+    assert "one short confirmation" in directive
+
+
+def test_the_replay_uses_the_users_last_words() -> None:
+    """A session is a conversation: the request the proposal came from is the
+    latest one, not whatever opened the session an hour earlier."""
+    messages = _scene_messages()
+    del messages[1]["remaining_intent"]
+    messages.insert(0, {"role": "user", "content": "something from an hour ago"})
+
+    directive, _ = _resume_request(messages, "selora_scene_office")
+
+    assert "make a scene and add it" in directive
+    assert "an hour ago" not in directive
+
+
+def test_a_declared_remainder_still_wins() -> None:
+    """It is precise, so the continuation knows exactly what to do and the
+    no-op round is avoided."""
+    directive, _ = _resume_request(_scene_messages(), "selora_scene_office")
+    assert "add a tile for it to the Office dashboard" in directive
+    assert "one short confirmation" not in directive
 
 
 def test_the_scene_handle_is_the_id_not_a_position() -> None:
@@ -433,3 +482,119 @@ def test_the_scene_handle_is_the_id_not_a_position() -> None:
     is pruned — so the id is the only stable handle."""
     _, error = _resume_request(_scene_messages(), "some_other_scene")
     assert "No such proposal" in error
+
+
+# ── The replay must belong to the proposal, and the cap must be recorded ────
+
+
+def test_the_replay_uses_the_request_behind_the_proposal() -> None:
+    """A card can sit unaccepted while the conversation moves on: ask for a
+    scene, leave it, ask three other things, then tap Accept. Scanning from the
+    END of the session replays the newest message, resuming a request the user
+    never connected to that card."""
+    messages = _scene_messages()
+    del messages[1]["remaining_intent"]
+    messages += [
+        {"role": "user", "content": "actually, what is the temperature upstairs?"},
+        {"role": "assistant", "content": "21 degrees."},
+        {"role": "user", "content": "turn the porch light off"},
+        {"role": "assistant", "content": "Done."},
+    ]
+
+    directive, error = _resume_request(messages, "selora_scene_office")
+
+    assert error is None
+    assert "make a scene and add it" in directive
+    assert "temperature upstairs" not in directive
+    assert "porch light" not in directive
+
+
+def test_a_scene_from_a_resumed_turn_cannot_be_resumed() -> None:
+    """The cap used to rest on `remaining_intent` being absent. That stopped
+    working the moment absence became the ordinary case that replays the
+    request — an unstamped scene from a resumed turn would be resumable, and
+    the chain would never end."""
+    messages = _scene_messages()
+    del messages[1]["remaining_intent"]
+    messages[1]["resume_depth"] = 1
+
+    directive, error = _resume_request(messages, "selora_scene_office")
+
+    assert directive is None
+    assert "already been continued once" in error
+
+
+def test_the_replay_reads_the_request_off_the_proposal() -> None:
+    """Pruning keeps the session's FIRST message pinned ahead of the latest 99,
+    so a proposal that survives at the head of that tail has its own request
+    gone. Scanning backwards then lands on the pinned message — an unrelated
+    request from the start of the conversation, replayed as though the user had
+    just made it. The proposal carries what it answered."""
+    messages = _scene_messages()
+    del messages[1]["remaining_intent"]
+    messages[1]["origin_request"] = "make a scene and add it to the dashboard"
+    # What pruning leaves behind: the pinned first message, then the tail.
+    messages[0] = {"role": "user", "content": "what is the humidity in the loft?"}
+
+    directive, error = _resume_request(messages, "selora_scene_office")
+
+    assert error is None
+    assert "make a scene and add it" in directive
+    assert "humidity in the loft" not in directive
+
+
+def test_a_proposal_written_before_the_field_still_replays() -> None:
+    """A card can outlive a deploy. The scan is wrong only under pruning, and
+    refusing every older proposal would be worse than the case it guards."""
+    messages = _scene_messages()
+    del messages[1]["remaining_intent"]
+    assert "origin_request" not in messages[1]
+
+    directive, error = _resume_request(messages, "selora_scene_office")
+
+    assert error is None
+    assert "make a scene and add it" in directive
+
+
+def test_a_proposal_with_no_request_behind_it_does_not_resume() -> None:
+    """Nothing to replay is not a licence to invent one."""
+    messages = _scene_messages()
+    del messages[1]["remaining_intent"]
+    del messages[0]
+
+    directive, error = _resume_request(messages, "selora_scene_office")
+
+    assert directive is None
+    assert "no request to continue" in error
+
+
+def test_the_newest_proposal_with_a_reused_id_wins() -> None:
+    """A scene id is a uuid, but a REFINEMENT reuses the id of the scene it
+    revises — so a session can hold several saved messages carrying the same
+    one. The oldest would answer with its own stale request, or refuse on a
+    resume_depth belonging to a proposal the user is not looking at."""
+    messages = [
+        {"role": "user", "content": "make a movie scene"},
+        {
+            "role": "assistant",
+            "content": "v1",
+            "scene": {"name": "Movie"},
+            "scene_status": "saved",
+            "scene_id": "selora_scene_movie",
+            "resume_depth": 1,
+        },
+        {"role": "user", "content": "brighter, and put it on the dashboard"},
+        {
+            "role": "assistant",
+            "content": "v2",
+            "scene": {"name": "Movie"},
+            "scene_status": "saved",
+            "scene_id": "selora_scene_movie",
+        },
+    ]
+
+    directive, error = _resume_request(messages, "selora_scene_movie")
+
+    assert error is None, error
+    assert "brighter, and put it on the dashboard" in directive
+    assert "make a movie scene" not in directive

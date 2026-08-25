@@ -964,7 +964,11 @@
     "client_action_working": "Wird ausgeführt…",
     "client_action_done": "Fertig.",
     "client_action_failed": "Das hat nicht geklappt.",
-    "approval_then": "dann"
+    "approval_then": "dann",
+    "client_action_delete": "Löschen",
+    "client_action_delete_dashboard": "Dashboard {title} löschen — {views} Ansichten, {cards} Karten",
+    "client_action_confirm_mixed": "Alles bestätigen",
+    "client_action_delete_dashboard_unknown": "Dashboard {title} löschen — Inhalt unbekannt"
   },
   "options": {
     "step": {

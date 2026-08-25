@@ -798,6 +798,14 @@ class ChatMessage(TypedDict, total=False):
     # trigger for a scene or automation card, where a command_approval carries
     # its own on the proposal payload instead.
     remaining_intent: str
+
+    # 1 when this proposal was made during a resumed turn, so it cannot be
+    # resumed again. The command_approval payload carries the same field.
+    resume_depth: int
+
+    # The user turn this proposal answered. Recorded so resumption need not
+    # walk backwards for it, which a pruned session answers wrongly.
+    origin_request: str
     devices: list[dict[str, Any]]
     scene: ScenePayload
     scene_yaml: str

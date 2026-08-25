@@ -170,6 +170,8 @@ class ConversationStore:
         approval_status: str | None = None,
         steps: list[dict[str, Any]] | None = None,
         remaining_intent: str | None = None,
+        resume_depth: int = 0,
+        origin_request: str | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -244,6 +246,21 @@ class ConversationStore:
         # it on the proposal.
         if remaining_intent:
             message["remaining_intent"] = remaining_intent
+        # Stamped on a proposal made DURING a resumed turn. The cap used to
+        # rest on `remaining_intent` being absent, which stopped working the
+        # moment absence became the ordinary case that replays the request —
+        # so it is recorded rather than inferred.
+        if resume_depth:
+            message["resume_depth"] = resume_depth
+        # The user turn this proposal answered, recorded rather than located
+        # later. Resumption used to walk BACKWARDS from the proposal to find
+        # it, which is right until the session is pruned: the tail keeps the
+        # session's very first message pinned ahead of it, so a proposal that
+        # ends up at the head of that tail scans past its own request — gone —
+        # and lands on an unrelated message from the start of the conversation,
+        # which it then replays as though the user had just asked for it.
+        if origin_request:
+            message["origin_request"] = origin_request[:400]
 
         session["messages"].append(message)
 

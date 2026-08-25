@@ -964,7 +964,11 @@
     "client_action_working": "Выполняется…",
     "client_action_done": "Готово.",
     "client_action_failed": "Не получилось.",
-    "approval_then": "затем"
+    "approval_then": "затем",
+    "client_action_delete": "Удалить",
+    "client_action_delete_dashboard": "Удалить панель {title} — {views} видов, {cards} карточек",
+    "client_action_confirm_mixed": "Подтвердить всё",
+    "client_action_delete_dashboard_unknown": "Удалить панель {title} — содержимое неизвестно"
   },
   "options": {
     "step": {

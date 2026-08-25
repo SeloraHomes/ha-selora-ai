@@ -134,3 +134,113 @@ describe("no card shows the same icon twice", () => {
     expect(head).not.toBe(row);
   });
 });
+
+describe("the card follows the action, not the kind of card", () => {
+  const DELETE = {
+    approval_kind: "client_action",
+    client_actions: [
+      {
+        kind: "delete_dashboard",
+        url_path: "office",
+        title: "Office",
+        view_count: 2,
+        card_count: 5,
+      },
+    ],
+  };
+
+  it("says Delete, not Create, on a card that deletes", () => {
+    // "Create" on a button that removes a dashboard would be worse than
+    // unhelpful — the wording and tone follow the ACTION.
+    const out = render(DELETE);
+    expect(out).toContain("Delete");
+    expect(out).not.toContain(">Create<");
+    expect(out).toContain("qa-confirm--deny");
+    expect(out).not.toContain("qa-confirm--approve");
+  });
+
+  it("names what goes with it", () => {
+    const out = render(DELETE);
+    expect(out).toContain("Office");
+    expect(out).toContain("2");
+    expect(out).toContain("5");
+  });
+
+  it("still says Create on a creation", () => {
+    const out = render(CLIENT);
+    expect(out).toContain("Create");
+    expect(out).toContain("qa-confirm--approve");
+  });
+});
+
+describe("a card carrying more than one action", () => {
+  const mixed = (kinds) => ({
+    approval_kind: "client_action",
+    client_actions: kinds.map((kind) => ({
+      kind,
+      url_path: "office",
+      title: "Office",
+      view_count: 1,
+      card_count: 1,
+    })),
+  });
+
+  it("is neutral and destructive when it both creates and deletes", () => {
+    // One tool round can propose both, and they share a single button. Taking
+    // the wording from the first row would put an approve-toned "Create" on a
+    // press that also deletes a dashboard.
+    for (const order of [
+      ["create_dashboard", "delete_dashboard"],
+      ["delete_dashboard", "create_dashboard"],
+    ]) {
+      const out = render(mixed(order));
+      expect(out).toContain("Confirm all");
+      expect(out).toContain("qa-confirm--deny");
+      expect(out).not.toContain(">Create<");
+    }
+  });
+
+  it("keeps the specific wording when every action agrees", () => {
+    expect(render(mixed(["delete_dashboard", "delete_dashboard"]))).toContain(
+      "Delete",
+    );
+    expect(render(mixed(["create_dashboard", "create_dashboard"]))).toContain(
+      "Create",
+    );
+  });
+});
+
+describe("the delete card's blast radius", () => {
+  const withCounts = (extra) => ({
+    approval_kind: "client_action",
+    client_actions: [
+      {
+        kind: "delete_dashboard",
+        url_path: "office",
+        title: "Office",
+        ...extra,
+      },
+    ],
+  });
+
+  it("says unknown rather than zero when the document cannot be read", () => {
+    // A generated Overview renders content nothing can enumerate. "0 views, 0
+    // cards" on an irreversible delete is a false blast radius, and a false
+    // one invites the tap.
+    const out = render(withCounts({}));
+    expect(out).toContain("contents unknown");
+    expect(out).not.toContain("0 views");
+  });
+
+  it("names the counts when it can read them", () => {
+    const out = render(withCounts({ view_count: 2, card_count: 7 }));
+    expect(out).toContain("2");
+    expect(out).toContain("7");
+    expect(out).not.toContain("contents unknown");
+  });
+
+  it("does not mistake a genuinely empty dashboard for an unknown one", () => {
+    const out = render(withCounts({ view_count: 0, card_count: 0 }));
+    expect(out).not.toContain("contents unknown");
+  });
+});

@@ -984,6 +984,10 @@
     "client_action_working": "Bezig…",
     "client_action_done": "Klaar.",
     "client_action_failed": "Dat is niet gelukt.",
-    "approval_then": "daarna"
+    "approval_then": "daarna",
+    "client_action_delete": "Verwijderen",
+    "client_action_delete_dashboard": "Dashboard {title} verwijderen — {views} weergaven, {cards} kaarten",
+    "client_action_confirm_mixed": "Alles bevestigen",
+    "client_action_delete_dashboard_unknown": "Dashboard {title} verwijderen — inhoud onbekend"
   }
 }

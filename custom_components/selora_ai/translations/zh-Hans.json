@@ -964,7 +964,11 @@
     "client_action_working": "处理中…",
     "client_action_done": "完成。",
     "client_action_failed": "操作未成功。",
-    "approval_then": "然后"
+    "approval_then": "然后",
+    "client_action_delete": "删除",
+    "client_action_delete_dashboard": "删除 {title} 仪表板——{views} 个视图，{cards} 张卡片",
+    "client_action_confirm_mixed": "全部确认",
+    "client_action_delete_dashboard_unknown": "删除 {title} 仪表板——内容未知"
   },
   "options": {
     "step": {

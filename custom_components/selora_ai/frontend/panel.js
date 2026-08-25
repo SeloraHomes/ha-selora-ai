@@ -10027,6 +10027,12 @@ var en_default = {
     client_action_done: "Done.",
     client_action_failed: "That did not work.",
     approval_then: "then",
+    client_action_delete: "Delete",
+    client_action_delete_dashboard:
+      "Delete the {title} dashboard \u2014 {views} views, {cards} cards",
+    client_action_confirm_mixed: "Confirm all",
+    client_action_delete_dashboard_unknown:
+      "Delete the {title} dashboard \u2014 contents unknown",
   },
   options: {
     step: {
@@ -11223,6 +11229,12 @@ var fr_default = {
     client_action_done: "Termin\xE9.",
     client_action_failed: "Cela n'a pas fonctionn\xE9.",
     approval_then: "puis",
+    client_action_delete: "Supprimer",
+    client_action_delete_dashboard:
+      "Supprimer le tableau de bord {title} \u2014 {views} vues, {cards} cartes",
+    client_action_confirm_mixed: "Tout confirmer",
+    client_action_delete_dashboard_unknown:
+      "Supprimer le tableau de bord {title} \u2014 contenu inconnu",
   },
   options: {
     step: {
@@ -12411,6 +12423,12 @@ var de_default = {
     client_action_done: "Fertig.",
     client_action_failed: "Das hat nicht geklappt.",
     approval_then: "dann",
+    client_action_delete: "L\xF6schen",
+    client_action_delete_dashboard:
+      "Dashboard {title} l\xF6schen \u2014 {views} Ansichten, {cards} Karten",
+    client_action_confirm_mixed: "Alles best\xE4tigen",
+    client_action_delete_dashboard_unknown:
+      "Dashboard {title} l\xF6schen \u2014 Inhalt unbekannt",
   },
   options: {
     step: {
@@ -13581,6 +13599,12 @@ var es_default = {
     client_action_done: "Hecho.",
     client_action_failed: "No ha funcionado.",
     approval_then: "luego",
+    client_action_delete: "Eliminar",
+    client_action_delete_dashboard:
+      "Eliminar el panel {title}: {views} vistas, {cards} tarjetas",
+    client_action_confirm_mixed: "Confirmar todo",
+    client_action_delete_dashboard_unknown:
+      "Eliminar el panel {title}: contenido desconocido",
   },
   options: {
     step: {
@@ -14751,6 +14775,12 @@ var it_default = {
     client_action_done: "Fatto.",
     client_action_failed: "Non ha funzionato.",
     approval_then: "poi",
+    client_action_delete: "Elimina",
+    client_action_delete_dashboard:
+      "Elimina la dashboard {title} \u2014 {views} viste, {cards} schede",
+    client_action_confirm_mixed: "Conferma tutto",
+    client_action_delete_dashboard_unknown:
+      "Elimina la dashboard {title} \u2014 contenuto sconosciuto",
   },
   options: {
     step: {
@@ -15937,6 +15967,12 @@ var nl_default = {
     client_action_done: "Klaar.",
     client_action_failed: "Dat is niet gelukt.",
     approval_then: "daarna",
+    client_action_delete: "Verwijderen",
+    client_action_delete_dashboard:
+      "Dashboard {title} verwijderen \u2014 {views} weergaven, {cards} kaarten",
+    client_action_confirm_mixed: "Alles bevestigen",
+    client_action_delete_dashboard_unknown:
+      "Dashboard {title} verwijderen \u2014 inhoud onbekend",
   },
 };
 
@@ -17163,6 +17199,12 @@ var hu_default = {
     client_action_done: "K\xE9sz.",
     client_action_failed: "Ez nem siker\xFClt.",
     approval_then: "majd",
+    client_action_delete: "T\xF6rl\xE9s",
+    client_action_delete_dashboard:
+      "A(z) {title} vez\xE9rl\u0151pult t\xF6rl\xE9se \u2013 {views} n\xE9zet, {cards} k\xE1rtya",
+    client_action_confirm_mixed: "\xD6sszes meger\u0151s\xEDt\xE9se",
+    client_action_delete_dashboard_unknown:
+      "A(z) {title} vez\xE9rl\u0151pult t\xF6rl\xE9se \u2013 ismeretlen tartalom",
   },
 };
 
@@ -18326,6 +18368,12 @@ var pt_default = {
     client_action_done: "Conclu\xEDdo.",
     client_action_failed: "Isso n\xE3o funcionou.",
     approval_then: "depois",
+    client_action_delete: "Eliminar",
+    client_action_delete_dashboard:
+      "Eliminar o painel {title} \u2014 {views} vistas, {cards} cart\xF5es",
+    client_action_confirm_mixed: "Confirmar tudo",
+    client_action_delete_dashboard_unknown:
+      "Eliminar o painel {title} \u2014 conte\xFAdo desconhecido",
   },
   options: {
     step: {
@@ -20059,6 +20107,13 @@ var ru_default = {
     client_action_failed:
       "\u041D\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u043E\u0441\u044C.",
     approval_then: "\u0437\u0430\u0442\u0435\u043C",
+    client_action_delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    client_action_delete_dashboard:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C {title} \u2014 {views} \u0432\u0438\u0434\u043E\u0432, {cards} \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A",
+    client_action_confirm_mixed:
+      "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044C \u0432\u0441\u0451",
+    client_action_delete_dashboard_unknown:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C {title} \u2014 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E",
   },
   options: {
     step: {
@@ -21502,6 +21557,12 @@ var ja_default = {
     client_action_failed:
       "\u3046\u307E\u304F\u3044\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
     approval_then: "\u305D\u306E\u5F8C",
+    client_action_delete: "\u524A\u9664",
+    client_action_delete_dashboard:
+      "{title} \u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092\u524A\u9664 \u2014 {views} \u30D3\u30E5\u30FC\u3001{cards} \u30AB\u30FC\u30C9",
+    client_action_confirm_mixed: "\u3059\u3079\u3066\u78BA\u8A8D",
+    client_action_delete_dashboard_unknown:
+      "{title} \u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092\u524A\u9664 \u2014 \u5185\u5BB9\u306F\u4E0D\u660E",
   },
   options: {
     step: {
@@ -22842,6 +22903,12 @@ var ko_default = {
     client_action_done: "\uC644\uB8CC\uD588\uC2B5\uB2C8\uB2E4.",
     client_action_failed: "\uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
     approval_then: "\uADF8\uB2E4\uC74C",
+    client_action_delete: "\uC0AD\uC81C",
+    client_action_delete_dashboard:
+      "{title} \uB300\uC2DC\uBCF4\uB4DC \uC0AD\uC81C \u2014 \uBDF0 {views}\uAC1C, \uCE74\uB4DC {cards}\uAC1C",
+    client_action_confirm_mixed: "\uBAA8\uB450 \uD655\uC778",
+    client_action_delete_dashboard_unknown:
+      "{title} \uB300\uC2DC\uBCF4\uB4DC \uC0AD\uC81C \u2014 \uB0B4\uC6A9 \uC54C \uC218 \uC5C6\uC74C",
   },
   options: {
     step: {
@@ -24109,6 +24176,12 @@ var zh_Hans_default = {
     client_action_done: "\u5B8C\u6210\u3002",
     client_action_failed: "\u64CD\u4F5C\u672A\u6210\u529F\u3002",
     approval_then: "\u7136\u540E",
+    client_action_delete: "\u5220\u9664",
+    client_action_delete_dashboard:
+      "\u5220\u9664 {title} \u4EEA\u8868\u677F\u2014\u2014{views} \u4E2A\u89C6\u56FE\uFF0C{cards} \u5F20\u5361\u7247",
+    client_action_confirm_mixed: "\u5168\u90E8\u786E\u8BA4",
+    client_action_delete_dashboard_unknown:
+      "\u5220\u9664 {title} \u4EEA\u8868\u677F\u2014\u2014\u5185\u5BB9\u672A\u77E5",
   },
   options: {
     step: {
@@ -25382,6 +25455,12 @@ var zh_Hant_default = {
     client_action_done: "\u5B8C\u6210\u3002",
     client_action_failed: "\u64CD\u4F5C\u672A\u6210\u529F\u3002",
     approval_then: "\u7136\u5F8C",
+    client_action_delete: "\u522A\u9664",
+    client_action_delete_dashboard:
+      "\u522A\u9664 {title} \u5100\u8868\u677F\u2014\u2014{views} \u500B\u6AA2\u8996\uFF0C{cards} \u5F35\u5361\u7247",
+    client_action_confirm_mixed: "\u5168\u90E8\u78BA\u8A8D",
+    client_action_delete_dashboard_unknown:
+      "\u522A\u9664 {title} \u5100\u8868\u677F\u2014\u2014\u5167\u5BB9\u672A\u77E5",
   },
   options: {
     step: {
@@ -26274,15 +26353,41 @@ function renderConfirmChip(host, action, onClick) {
 }
 
 // src/panel/client-actions.js
-function matchesProposal(existing, action) {
+function matchesProposal(existing, expected) {
   return (
-    String(existing.title || "") === String(action.title || "") &&
-    String(existing.icon || "") === String(action.icon || "") &&
-    Boolean(existing.require_admin) === Boolean(action.require_admin) &&
-    Boolean(existing.show_in_sidebar) === Boolean(action.show_in_sidebar)
+    String(existing.title || "") === String(expected.title || "") &&
+    String(existing.icon || "") === String(expected.icon || "") &&
+    Boolean(existing.require_admin) === Boolean(expected.require_admin) &&
+    Boolean(existing.show_in_sidebar) === Boolean(expected.show_in_sidebar)
   );
 }
 var HANDLERS = {
+  delete_dashboard: async (hass, action) => {
+    const urlPath = String(action.url_path || "");
+    const dashboardId = String(action.dashboard_id || "");
+    const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
+    const match = (existing || []).find(
+      (d3) => d3?.id && d3.id === dashboardId,
+    );
+    if (!match) {
+      return { url_path: urlPath, title: action.title, already_gone: true };
+    }
+    if (urlPath && match.url_path !== urlPath) {
+      throw new Error(
+        `That dashboard is no longer at /${urlPath} \u2014 it is at /${match.url_path}. Ask again to confirm which one to delete.`,
+      );
+    }
+    if (action.expected && !matchesProposal(match, action.expected)) {
+      throw new Error(
+        `The dashboard at /${match.url_path} is not the one this card named \u2014 "${String(match.title || "")}" is there now. Ask again to confirm which one to delete.`,
+      );
+    }
+    await hass.callWS({
+      type: "lovelace/dashboards/delete",
+      dashboard_id: match.id,
+    });
+    return { url_path: urlPath, title: match.title || action.title };
+  },
   create_dashboard: async (hass, action) => {
     const urlPath = String(action.url_path || "");
     const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
@@ -26372,7 +26477,7 @@ async function resolveClientActions(host, msg, approval) {
   IN_FLIGHT.delete(proposalId);
   if (reported && sessionId && host._activeSessionId === sessionId) {
     await host._openSession?.(sessionId);
-    if (ok && approval?.remaining_intent) {
+    if (ok) {
       await host._sendMessage?.({ resumeProposalId: proposalId });
     }
   }
@@ -26618,9 +26723,20 @@ var _CONFIRM_VARIANTS = {
     titlePluralKey: "client_action_title",
     titlePluralFallback: "Needs your confirmation",
     confirm: {
-      // The same quiet approve chip the risk card's Allow uses. Its styles
-      // exist so confirmation buttons "stay visually quiet next to the risk
-      // card" — a filled button here would shout where Allow murmurs.
+      // The same quiet chip the risk card's Allow uses. Its styles exist so
+      // confirmation buttons "stay visually quiet next to the risk card" — a
+      // filled button here would shout where Allow murmurs.
+      //
+      // Wording and tone follow the ACTION, not the card: "Create" on a button
+      // that deletes a dashboard would be worse than unhelpful.
+      byKind: {
+        delete_dashboard: {
+          tone: "deny",
+          icon: "mdi:trash-can-outline",
+          labelKey: "client_action_delete",
+          labelFallback: "Delete",
+        },
+      },
       tone: "approve",
       icon: "mdi:plus",
       labelKey: "client_action_confirm",
@@ -26723,18 +26839,38 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
       ${
         copy.confirm
           ? b2`<div class="qa-group qa-group--confirmations">
-              ${renderConfirmChip(
-                host,
-                {
-                  label: host._t(
-                    copy.confirm.labelKey,
-                    copy.confirm.labelFallback,
-                  ),
-                  icon: copy.confirm.icon,
-                  tone: copy.confirm.tone,
-                },
-                () => copy.confirm.run(host, msg, approval),
-              )}
+              ${(() => {
+                const kinds = rows.map((row) => String(row?.kind || ""));
+                const destructive = kinds.filter(
+                  (kind) => copy.confirm.byKind?.[kind]?.tone === "deny",
+                );
+                const confirm2 = !destructive.length
+                  ? copy.confirm
+                  : destructive.length === kinds.length
+                    ? {
+                        ...copy.confirm,
+                        ...copy.confirm.byKind[destructive[0]],
+                      }
+                    : {
+                        // Mixed. Neutral wording, because neither verb
+                        // describes the whole press — and the destructive tone,
+                        // because something here deletes data.
+                        ...copy.confirm,
+                        ...copy.confirm.byKind[destructive[0]],
+                        icon: "mdi:check",
+                        labelKey: "client_action_confirm_mixed",
+                        labelFallback: "Confirm all",
+                      };
+                return renderConfirmChip(
+                  host,
+                  {
+                    label: host._t(confirm2.labelKey, confirm2.labelFallback),
+                    icon: confirm2.icon,
+                    tone: confirm2.tone,
+                  },
+                  () => copy.confirm.run(host, msg, approval),
+                );
+              })()}
             </div>`
           : ""
       }
@@ -26865,6 +27001,25 @@ function _scopeLabel(host, scope, entityIds) {
   return host._t("approval_scope_just_these", "Just these entities");
 }
 function _actionLabel(host, action) {
+  if (action.kind === "delete_dashboard") {
+    const title = action.title || action.url_path || "";
+    if (action.view_count == null || action.card_count == null) {
+      return host
+        ._t(
+          "client_action_delete_dashboard_unknown",
+          "Delete the {title} dashboard \u2014 contents unknown",
+        )
+        .replace("{title}", title);
+    }
+    return host
+      ._t(
+        "client_action_delete_dashboard",
+        "Delete the {title} dashboard \u2014 {views} views, {cards} cards",
+      )
+      .replace("{title}", title)
+      .replace("{views}", String(action.view_count))
+      .replace("{cards}", String(action.card_count));
+  }
   if (action.kind === "create_dashboard") {
     return host
       ._t(
@@ -26878,6 +27033,7 @@ function _actionLabel(host, action) {
 }
 var _CLIENT_ACTION_ICONS = {
   create_dashboard: "mdi:view-dashboard-outline",
+  delete_dashboard: "mdi:view-dashboard-outline",
 };
 function _renderClientActionRow(host, action) {
   return b2`
@@ -48470,7 +48626,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "0b0201285165" : "";
+var PANEL_BUILD = true ? "ae42e0404b95" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -49522,7 +49678,7 @@ async function _acceptScene(msgIndex) {
     await this._loadScenes();
     this._markSceneCreated(result.scene_id);
     this._showToast(`Scene "${scene.name}" created and saved.`, "success");
-    if (msg.remaining_intent && result.scene_id) {
+    if (result.scene_id) {
       await this._sendMessage?.({ resumeProposalId: result.scene_id });
     }
   } catch (err) {

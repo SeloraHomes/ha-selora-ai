@@ -50,6 +50,7 @@ from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import quote
 
 from .const import MAX_TOOL_RESULT_CHARS
+from .dashboard_cards import with_card_reference
 from .helpers import (
     CALLER_CAN_WRITE,
     CALLER_IS_ADMIN,
@@ -512,7 +513,7 @@ async def async_get_dashboard(
         )
 
     if view is None:
-        return result
+        return with_card_reference(result)
 
     index, error = resolve_view(document, view)
     if error or index is None:
@@ -534,7 +535,10 @@ async def async_get_dashboard(
     }
     if len(cards) > _MAX_CARDS_PER_VIEW:
         result["view"]["cards_omitted"] = len(cards) - _MAX_CARDS_PER_VIEW
-    return result
+    # The taxonomy rides on the read the model does BEFORE composing — this
+    # tool's own description tells it to always call this first — so it arrives
+    # once per turn rather than on every write.
+    return with_card_reference(result)
 
 
 async def async_get_card(
@@ -1545,6 +1549,124 @@ async def async_initialize_created_dashboard(hass: HomeAssistant, url_path: str)
             _LOGGER.warning("Could not initialize dashboard %s: %s", url_path, exc)
             return False
     return True
+
+
+async def async_propose_dashboard_delete(hass: HomeAssistant, target: str) -> dict[str, Any]:
+    """Validate a delete-dashboard request and hand back a closed intent.
+
+    Deletes nothing. Like creation, removing a dashboard ENTRY needs
+    `DashboardsCollection`, which lovelace publishes only to its admin-only
+    websocket commands — so the panel performs it, and everything that can be
+    known in advance is checked here rather than after the button.
+
+    The card names the blast radius. HA deletes the dashboard and its stored
+    document together, so every view and every card on it goes; a count is the
+    difference between an informed confirmation and a surprised one.
+    """
+    target = str(target or "").strip()
+
+    config, error = _lovelace_dashboard(hass, target)
+    if error or config is None:
+        return {"error": error or "Dashboard not found."}
+
+    # Whether this IS the default, not whether it is spelled like one.
+    # `/default` is a URL path a user can genuinely have — single-word paths
+    # are allowed and this module's own create tool makes them — so reserving
+    # the STRING left that dashboard undeletable while telling its owner it was
+    # the built-in Overview. Asking the resolver a second time is what keeps
+    # the two answers in agreement: it already collapses "", None and
+    # "lovelace" onto whichever key HA is actually serving.
+    default_config, _ = _lovelace_dashboard(hass, None)
+    if default_config is not None and config is default_config:
+        return {
+            "error": (
+                "The default dashboard cannot be deleted — Home Assistant always "
+                "keeps one. Name the dashboard's url_path from list_dashboards."
+            )
+        }
+
+    from homeassistant.components.lovelace.const import MODE_STORAGE  # noqa: PLC0415
+
+    if getattr(config, "mode", None) != MODE_STORAGE:
+        return {
+            "error": (
+                f"'{sanitize_untrusted_text(target, 60)}' is a YAML-mode dashboard. "
+                f"It is defined in configuration.yaml, so it has to be removed there."
+            )
+        }
+
+    title = _dashboard_title(config, target)
+    # Read for the label only, so a document that cannot be loaded — an
+    # auto-generated board, a strategy — does not block a deletion the user is
+    # entitled to make.
+    document, _ = await _load_or_reason(config)
+
+    # UNKNOWN, not zero. `_load_or_reason` returns None precisely when the
+    # dashboard renders content we cannot enumerate — a generated Overview is
+    # covered in cards — so counting `{}` would put "0 views, 0 cards" on the
+    # confirmation for an irreversible delete. A false blast radius is worse
+    # than no number: it invites the tap.
+    view_count: int | None = None
+    card_count: int | None = None
+    if document is not None:
+        views = _views(document)
+        view_count = len(views)
+        # Every card, not just the addressable ones. `_flat_cards` yields what
+        # a card index can name; a grid holding twenty tiles is one of those
+        # and all twenty go with it.
+        card_count = sum(
+            # A stored card need not be a dict — Lovelace storage is free-form.
+            # It has no tree to walk, but it is an entry the delete removes, so
+            # it counts as one rather than as nothing. `_flat_cards` yields
+            # (owning_list, position, card); the card is the third element.
+            len(_cards_in_tree(card)) if isinstance(card, dict) else 1
+            for view in views
+            for _, _, card in _flat_cards(view)
+        )
+
+    # The collection id, which is what HA deletes by and the only STABLE handle
+    # on this dashboard. A url_path is not: delete a dashboard and make another
+    # at the same path, and a card approved for the first would remove the
+    # second. `config.config` is the collection item the dashboard was built
+    # from — `_dashboard_title` reads the same mapping.
+    meta = getattr(config, "config", None)
+    meta = meta if isinstance(meta, dict) else {}
+    dashboard_id = str(meta.get("id") or "")
+
+    return {
+        "requires_approval": True,
+        "client_action": {
+            "kind": "delete_dashboard",
+            # Both: the id is what identifies it, the url_path is what the user
+            # named and what the panel checks the id still answers to.
+            "dashboard_id": dashboard_id,
+            "url_path": target,
+            "title": title,
+            # Omitted rather than zeroed when the document cannot be read —
+            # the panel says "contents unknown" instead of naming a count.
+            **({"view_count": view_count} if view_count is not None else {}),
+            **({"card_count": card_count} if card_count is not None else {}),
+            # The metadata as it stands now, so the panel can tell this
+            # dashboard from a DIFFERENT one wearing its id. A collection id is
+            # the url_path (`DashboardsCollection._get_suggested_id`), so
+            # deleting a dashboard frees BOTH handles at once: make another at
+            # the same path between the proposal and the tap and it inherits
+            # them. Nothing a dashboard carries is immutable enough to be a
+            # true identity, so this is the same four fields the create
+            # reconciles on — a recreation made identical is one nobody can
+            # tell apart, the user included.
+            #
+            # Raw, not `title`: that one is sanitized and truncated for the
+            # card label, and comparing it against what HA stores would report
+            # a mismatch for any dashboard named at length.
+            "expected": {
+                "title": str(meta.get("title") or ""),
+                "icon": str(meta.get("icon") or ""),
+                "require_admin": bool(meta.get("require_admin")),
+                "show_in_sidebar": bool(meta.get("show_in_sidebar", True)),
+            },
+        },
+    }
 
 
 async def async_propose_dashboard(

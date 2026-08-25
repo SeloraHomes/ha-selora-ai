@@ -984,6 +984,10 @@
     "client_action_working": "Folyamatban…",
     "client_action_done": "Kész.",
     "client_action_failed": "Ez nem sikerült.",
-    "approval_then": "majd"
+    "approval_then": "majd",
+    "client_action_delete": "Törlés",
+    "client_action_delete_dashboard": "A(z) {title} vezérlőpult törlése – {views} nézet, {cards} kártya",
+    "client_action_confirm_mixed": "Összes megerősítése",
+    "client_action_delete_dashboard_unknown": "A(z) {title} vezérlőpult törlése – ismeretlen tartalom"
   }
 }
