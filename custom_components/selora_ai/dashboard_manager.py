@@ -385,7 +385,11 @@ def resolve_view(document: dict[str, Any], ref: object) -> tuple[int | None, str
     """
     views = _views(document)
     if not views:
-        return None, "That dashboard has no views yet."
+        # Names the tool that fixes it. A dashboard just created has no pages,
+        # and a bare statement of that fact is something the model relays to the
+        # user as a step for THEM to perform — it asked for a view to be created
+        # by hand on a dashboard it had made itself moments earlier.
+        return None, "That dashboard has no pages yet. add_dashboard_view creates one."
 
     if isinstance(ref, bool):  # bool is an int subclass; never a view reference
         return None, "A view index, path, or title is required."
@@ -605,14 +609,82 @@ async def async_get_card(
 # ── Write ───────────────────────────────────────────────────────────────────
 
 
-async def _save(config: Any, document: dict[str, Any]) -> str | None:
-    """Persist a dashboard document, returning an error string instead of raising."""
+async def _save(
+    config: Any, document: dict[str, Any], previous: dict[str, Any] | None = None
+) -> str | None:
+    """Persist a dashboard document, returning an error string instead of raising.
+
+    ``previous`` is the document as it stood BEFORE the mutation, and passing it
+    makes a failed save leave nothing behind. A save that RAISES has already
+    taken effect everywhere except the file: `LovelaceStorage.async_save`
+    replaces its cached config and fires the update event before it awaits the
+    store write, and `async_load` serves that cache rather than re-reading —
+    so the frontend is showing the change and every later read agrees with it,
+    while the caller is told the save failed. Re-saving the original puts both
+    back, and whether its own write lands does not matter, because the cache
+    and the event are updated ahead of the await either way.
+    """
     try:
         await config.async_save(document)
     except Exception as exc:  # noqa: BLE001 — surfaced to the user, never raised at them
         _LOGGER.warning("Could not save dashboard: %s", exc)
+        if previous is not None:
+            try:
+                await config.async_save(previous)
+            except Exception as revert_exc:  # noqa: BLE001 — the first failure is the one to report
+                _LOGGER.warning(
+                    "Could not restore the dashboard after a failed save: %s", revert_exc
+                )
         return f"Home Assistant refused to save the dashboard: {exc}"
     return None
+
+
+async def _copies_on_disk(config: Any, view_index: int, fingerprint: str) -> int | None:
+    """How many copies of a card the FILE holds. ``None`` when unknowable.
+
+    A ``_save`` that reports success means Home Assistant ACCEPTED the write,
+    not that it landed. ``Store.async_save`` does not raise on an ordinary
+    write failure — ``_async_handle_write_data`` catches ``WriteError`` and
+    ``SerializationError``, logs them and returns — and it skips the write
+    outright when the store is read-only or Home Assistant is stopping. So the
+    commonest failures there are all silent.
+
+    Reading the dashboard back settles nothing either: ``async_save`` replaced
+    that cache before it attempted the write, so a read agrees with the caller
+    whether or not anything reached the file. Only the file itself answers, and
+    it is reachable only through the ``Store`` the dashboard keeps privately —
+    which is why an unexpected shape is UNKNOWABLE rather than a failure. The
+    caller treats unknowable as fine: this exists to catch a destination that
+    silently did not save, and refusing every move on a Home Assistant whose
+    internals have moved would be worse than the case it guards.
+
+    Counted rather than tested, because a view may already hold a card
+    identical to the one being moved — a bare "is it there" then answers yes
+    off the copy that was already on disk.
+    """
+    store = getattr(config, "_store", None)
+    if store is None or not hasattr(store, "async_load"):
+        return None
+    try:
+        # Genuinely re-reads: `_async_handle_write_data` cleared the pending
+        # data and invalidated the manager's cache before writing.
+        raw = await store.async_load()
+    except Exception:  # noqa: BLE001 — a probe that fails is unknowable, not a failure
+        _LOGGER.debug("Could not read a dashboard store back", exc_info=True)
+        return None
+    if not isinstance(raw, dict) or not isinstance(document := raw.get("config"), dict):
+        return None
+    views = _views(document)
+    if not 0 <= view_index < len(views):
+        return 0
+    return sum(
+        1 for _, _, card in _flat_cards(views[view_index]) if card_fingerprint(card) == fingerprint
+    )
+
+
+def _copies_in_view(view: dict[str, Any], fingerprint: str) -> int:
+    """How many copies of a card a loaded view holds — the count to expect on disk."""
+    return sum(1 for _, _, card in _flat_cards(view) if card_fingerprint(card) == fingerprint)
 
 
 async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -770,10 +842,15 @@ async def async_add_view(
         # Settings > Dashboards, because no dashboard was created — this is the
         # only thing in the result that points at the page itself.
         "url": _view_url(target, path, new_index),
+        # States what was made, and nothing about whether it was the right tool.
+        # That is a pre-call decision and belongs in the tool's description; the
+        # only turn a restatement here can reach is one that already chose
+        # correctly, and on a resumed turn — the dashboard created moments
+        # earlier, this its first page — it reads as the wrong tool having been
+        # used.
         "note": (
             "This is a new page ON that dashboard, not a new dashboard. It is empty "
-            "until you add cards to it. If the user asked for a new DASHBOARD, this "
-            "is not it — create_dashboard is."
+            "until you add cards to it."
         ),
     }
 
@@ -1248,41 +1325,121 @@ async def async_move_card(
     target: str | None = None,
     view: object,
     from_index: int,
-    to_index: int,
+    to_index: int | None = None,
+    to_dashboard: str | None = None,
+    to_view: object = None,
     expected_fingerprint: str | None = None,
     expected_view_fingerprint: str | None = None,
+    expected_to_view_fingerprint: str | None = None,
 ) -> dict[str, Any]:
-    """Move a card to a different position in the same view.
+    """Move a card: within a view, onto another view, or onto another dashboard.
 
-    The only way to reorder. Without it a caller can append, replace in place,
-    or remove — so "keep the garage door at the top" is unachievable, and the
-    attempt turns into rewriting cards by hand, which is how a mistyped entity
-    reaches the dashboard.
+    The same-view case is a REORDER, and the only way to achieve one. Without it
+    a caller can append, replace in place, or remove — so "keep the garage door
+    at the top" is unachievable, and the attempt turns into rewriting cards by
+    hand, which is how a mistyped entity reaches the dashboard.
 
-    Moves the card OBJECT. Its config is never re-serialised by the caller, so a
-    move cannot alter what the card shows.
+    The other two are a TRANSFER, which is the same operation seen from one
+    dashboard rather than one view. Nothing else here performs one:
+    ``get_dashboard_card`` then ``insert_dashboard_card`` then
+    ``remove_dashboard_card`` only LOOKS equivalent, because the caller
+    re-serialises the card in between — and the caller is an LLM working from
+    what it was shown, so it drops whatever it did not think to copy, and a card
+    too large to fetch intact cannot be moved at all. That composition also has
+    no safe ordering: remove-then-insert loses the card outright when the insert
+    is refused.
+
+    Every path moves the card OBJECT, so a move can never alter what the card
+    shows.
+
+    ``to_dashboard`` omitted means the source dashboard. ``to_view`` omitted
+    means the source view on the same dashboard, and the FIRST page of a
+    different one — a transfer names the dashboard, and which page it lands on
+    is rarely the point.
+
+    A transfer has TWO views to pin, and ``expected_view_fingerprint`` covers
+    only the source. On a same-view move they are the same object, so one
+    fingerprint answers for both; the moment the destination is somewhere else
+    that guarantee is silently gone, and it is the destination that carries the
+    index. ``expected_to_view_fingerprint`` is the other half — without it a
+    page reordered between the read and this call takes the card at an index
+    that no longer means what the caller read, on a page it may not even have
+    looked at.
     """
+    from .recipes.dashboard import _insert_target_cards  # noqa: PLC0415
+
     async with DASHBOARD_LOCK:
-        config, error = _writable_dashboard(hass, target)
-        if error or config is None:
+        src_config, error = _writable_dashboard(hass, target)
+        if error or src_config is None:
             return {"error": error or "Dashboard not found."}
-        document, error = await _load_config(config)
+        src_document, error = await _load_config(src_config)
         if error:
             return {"error": error}
 
-        index, error = resolve_view(document, view)
-        if error or index is None:
+        src_index, error = resolve_view(src_document, view)
+        if error or src_index is None:
             return {"error": error}
 
-        view_obj = _views(document)[index]
-        cards = _flat_cards(view_obj)
+        # Compared by resolved IDENTITY, never by the argument strings. The
+        # default dashboard answers to None, "" and "lovelace" at once, so
+        # comparing what was passed reads a move onto the same dashboard as a
+        # cross-dashboard transfer — which then loads that one document twice
+        # and saves the second copy over the first, discarding either the
+        # removal or the insert depending on the order they land in.
+        if to_dashboard is None:
+            dst_config, dst_document = src_config, src_document
+        else:
+            dst_config, error = _writable_dashboard(hass, to_dashboard)
+            if error or dst_config is None:
+                # Marked as the DESTINATION's problem. Both dashboards can be
+                # refused for the same reasons and the messages read alike, so
+                # unmarked the caller retries against the source it was never
+                # told was fine.
+                return {
+                    "error": (
+                        f"The destination dashboard cannot be written to: "
+                        f"{error or 'Destination dashboard not found.'}"
+                    )
+                }
+            if dst_config is src_config:
+                dst_document = src_document
+            else:
+                dst_document, error = await _load_config(dst_config)
+                if error:
+                    return {"error": f"The destination dashboard cannot be written to: {error}"}
+
+        cross_dashboard = dst_document is not src_document
+        if to_view is not None:
+            dst_ref: object = to_view
+        elif cross_dashboard:
+            # Its first page. Resolving the SOURCE view's path or title against
+            # another dashboard fails on every dashboard that does not happen to
+            # carry the same name, which is most of them.
+            dst_ref = 0
+        else:
+            dst_ref = src_index
+
+        if cross_dashboard and not _views(dst_document):
+            # Exactly the state a dashboard Selora has just created is in: the
+            # entry exists and it has no pages. Naming the tool that fixes it is
+            # the difference between the model making the page and handing the
+            # job back to the user.
+            return {
+                "error": (
+                    "The destination dashboard has no pages yet, so there is nowhere to "
+                    "put the card. Call add_dashboard_view to give it one, then move the "
+                    "card onto it."
+                )
+            }
+        dst_index, error = resolve_view(dst_document, dst_ref)
+        if error or dst_index is None:
+            return {"error": error}
+
+        src_view_obj = _views(src_document)[src_index]
+        cards = _flat_cards(src_view_obj)
         if not 0 <= from_index < len(cards):
             return {
                 "error": f"That view has {len(cards)} cards, so index {from_index} is out of range."
-            }
-        if not 0 <= to_index < len(cards):
-            return {
-                "error": f"That view has {len(cards)} cards, so index {to_index} is out of range."
             }
 
         owner, position, moving = cards[from_index]
@@ -1292,7 +1449,10 @@ async def async_move_card(
         # read and this call can leave it at from_index while to_index now
         # names somewhere else — the move then succeeds and produces a layout
         # nobody asked for.
-        if expected_view_fingerprint and view_fingerprint(view_obj) != expected_view_fingerprint:
+        if (
+            expected_view_fingerprint
+            and view_fingerprint(src_view_obj) != expected_view_fingerprint
+        ):
             return {
                 "error": (
                     "That view has changed since it was read, so the destination index "
@@ -1300,11 +1460,62 @@ async def async_move_card(
                 )
             }
 
+        dst_view_obj = _views(dst_document)[dst_index]
+        same_view = dst_view_obj is src_view_obj
+        # The DESTINATION's own pin, and the one that matters most on a
+        # transfer: the index the caller named is relative to that page, on a
+        # dashboard it may have read in a separate call. Checked before either
+        # document is mutated, so a stale destination cannot leave the card
+        # pulled out of the source. A caller that passes it for a same-view move
+        # is checking the source twice, which is harmless and stays correct.
+        if (
+            expected_to_view_fingerprint
+            and view_fingerprint(dst_view_obj) != expected_to_view_fingerprint
+        ):
+            return {
+                "error": (
+                    "The destination view has changed since it was read, so the "
+                    "destination index no longer means what it did. Read that dashboard "
+                    "again and retry."
+                )
+            }
+        dst_cards = cards if same_view else _flat_cards(dst_view_obj)
+
+        if same_view:
+            if to_index is None:
+                return {
+                    "error": (
+                        "to_index is required to reorder a card within a view. To move it "
+                        "to another page or dashboard, pass to_view or to_dashboard."
+                    )
+                }
+            if not 0 <= to_index < len(dst_cards):
+                return {
+                    "error": f"That view has {len(dst_cards)} cards, so index {to_index} is out of range."
+                }
+        elif to_index is not None and not 0 <= to_index <= len(dst_cards):
+            # Inclusive upper bound: the destination gains a card, so landing
+            # past its last one is the end of the view rather than an overrun.
+            return {
+                "error": (
+                    f"The destination view has {len(dst_cards)} cards, so index "
+                    f"{to_index} is out of range."
+                )
+            }
+
+        # Snapshotted before anything is touched, so a failed save can put the
+        # cache back — see `_save`. Two documents means two snapshots, and one
+        # document shared by both views means one.
+        src_before = copy.deepcopy(src_document)
+        dst_before = copy.deepcopy(dst_document) if cross_dashboard else src_before
+
         # Re-flattened after the removal, because pulling the card out shifts
-        # every later index — including the destination the caller named.
+        # every later index — including the destination the caller named. That
+        # holds for a transfer between two views of ONE dashboard as well, where
+        # both of them live in the same document.
         owner.pop(position)
-        remaining = _flat_cards(view_obj)
-        if to_index < len(remaining):
+        remaining = _flat_cards(dst_view_obj)
+        if to_index is not None and to_index < len(remaining):
             # Land BEFORE whatever now sits at the destination — plain
             # ``pop(from); insert(to)`` semantics. Adding one for a forward move
             # lands after it instead, so moving 0 → 1 in [A, B, C] gives
@@ -1312,26 +1523,105 @@ async def async_move_card(
             dest_owner, dest_position, _ = remaining[to_index]
             dest_owner.insert(dest_position, moving)
         elif remaining:
-            # Past the last remaining card: the end of the view.
+            # Past the last remaining card, or no destination named at all: the
+            # end of the view.
             dest_owner, dest_position, _ = remaining[-1]
             dest_owner.insert(dest_position + 1, moving)
-        else:
+        elif same_view:
             # It was the view's only card, so there is no destination to land
             # relative to. Back into the list it came from — `_insert_target_cards`
             # would send it to the FIRST section, silently moving a lone card in
             # a later section somewhere the caller did not ask for.
             owner.append(moving)
+        else:
+            # An empty destination view, where for a sections view the cards go
+            # in the first section — a top-level `cards` key would store fine
+            # and render nothing.
+            _insert_target_cards(dst_view_obj).append(moving)
 
-        if error := await _save(config, document):
+        # Where it actually landed, by identity. An appended card's index is the
+        # one thing the caller cannot work out from its own arguments, and it is
+        # what addresses the card on every later call.
+        landed = next(
+            (i for i, (_, _, card) in enumerate(_flat_cards(dst_view_obj)) if card is moving),
+            to_index if to_index is not None else 0,
+        )
+        dst_path = str(dst_view_obj.get("path") or "") or None
+
+        if cross_dashboard:
+            # Two documents, so two saves and no transaction. DESTINATION
+            # FIRST: when the second one fails the card is on both dashboards,
+            # which the user can see and undo. The other order loses it, and a
+            # card nobody kept a copy of cannot be put back.
+            #
+            # Both saves carry their snapshot, which is what makes these two
+            # sentences TRUE rather than merely intended: without the rollback a
+            # failed write still lands in HA's cache, so "the card was not
+            # moved" would be said over a destination already showing it, and
+            # "it now appears on both" over a source it had just vanished from.
+            if error := await _save(dst_config, dst_document, dst_before):
+                return {"error": f"The card was not moved: {error}"}
+
+            # Confirmed on DISK before the removal, because a `_save` that
+            # reports success has only been ACCEPTED — HA swallows an ordinary
+            # write failure (see `_copies_on_disk`). Removing the source on the
+            # strength of that is how the card is lost outright: both halves
+            # look fine, the cache agrees, and the dashboard it was moved to is
+            # empty after the next restart. Destination-first only protects
+            # anything if the destination is known to have landed.
+            moved_fp = card_fingerprint(moving)
+            landed_copies = await _copies_on_disk(dst_config, dst_index, moved_fp)
+            if landed_copies is not None and landed_copies < _copies_in_view(
+                dst_view_obj, moved_fp
+            ):
+                await _save(dst_config, dst_before)
+                return {
+                    "error": (
+                        "The card was not moved: Home Assistant accepted the write to the "
+                        "destination dashboard but it did not reach disk, so removing it "
+                        "from the original would have lost it. Its config directory may be "
+                        "read-only or out of space, or Home Assistant may be shutting down."
+                    )
+                }
+
+            if error := await _save(src_config, src_document, src_before):
+                return {
+                    "error": (
+                        "The card was added to the destination dashboard but could not be "
+                        f"removed from the original, so it now appears on both: {error}"
+                    )
+                }
+            # Same question of the source, where a silent failure costs a
+            # duplicate rather than the card — worth reporting, not worth
+            # undoing a destination that did land.
+            left_copies = await _copies_on_disk(src_config, src_index, moved_fp)
+            if left_copies is not None and left_copies > _copies_in_view(src_view_obj, moved_fp):
+                return {
+                    "error": (
+                        "The card was added to the destination dashboard, but Home "
+                        "Assistant did not write the removal from the original to disk, so "
+                        "it will appear on both after a restart. Remove it from "
+                        f"'{sanitize_untrusted_text(target or 'lovelace', 60)}' by hand."
+                    )
+                }
+        elif error := await _save(src_config, src_document, src_before):
             return {"error": error}
 
-    return {
+    result: dict[str, Any] = {
         "status": "moved",
         "dashboard": target or "lovelace",
-        "view_index": index,
+        "view_index": src_index,
         "from_index": from_index,
-        "to_index": to_index,
+        "to_index": landed,
     }
+    if not same_view:
+        destination = to_dashboard if to_dashboard is not None else target
+        result["to_dashboard"] = destination or "lovelace"
+        result["to_view_index"] = dst_index
+        # A card moved to another page is invisible to a user who was told
+        # "moved" and then looked where it used to be.
+        result["url"] = _view_url(destination, dst_path, dst_index)
+    return result
 
 
 async def async_group_cards(

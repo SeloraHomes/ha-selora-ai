@@ -1450,6 +1450,73 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
   `cards` filled in — the model knows Lovelace's card schemas, so enumerating
   container types and their options here would be a second, staler copy of that
   knowledge, and every option not thought of would be unreachable.
+- **A move crosses views and dashboards, and it has to be one primitive.**
+  `move_dashboard_card` takes `to_dashboard` / `to_view`; omitted, they mean the
+  view the card is already on, and for another dashboard, its first page — a
+  transfer names the dashboard, and which page it lands on is rarely the point.
+  `to_index` is therefore optional for a transfer (append) and still required
+  for a reorder, where there is nothing to default to. `get_dashboard_card` +
+  `insert_dashboard_card` + `remove_dashboard_card` only LOOKS equivalent: the
+  caller re-serialises the card in between, and the caller is an LLM working
+  from what it was shown — it drops whatever it did not think to copy, and a
+  card too large to fetch intact cannot be moved at all. That composition also
+  has no safe ordering, where the primitive does: **destination saved first**,
+  so a half-completed transfer duplicates the card (visible, undoable) instead
+  of losing it. The source/destination comparison is by resolved config
+  IDENTITY, never the argument strings — the default dashboard answers to
+  `None`, `""` and `"lovelace"` at once, so a reorder naming `lovelace` would
+  otherwise load that one document twice and save the second copy over the
+  first. A destination refusal is prefixed as the DESTINATION's: both
+  dashboards are refused in the same words, and unmarked the caller retries
+  against the source it was never told was fine. **A transfer has TWO views to
+  pin.** `expected_view_fingerprint` covers the source; on a same-view move the
+  two are one object so it answers for both, and the moment the destination is
+  elsewhere that guarantee is silently gone — while it is the DESTINATION that
+  carries `to_index`, on a dashboard the caller read in a separate call.
+  `expected_to_view_fingerprint` is the other half, checked before either
+  document is mutated so a stale destination cannot leave the card pulled out
+  of the source. **Both saves pass their pre-mutation snapshot to `_save`,
+  which is what makes those two error sentences true rather than merely
+  intended.** A save that RAISES has already taken effect everywhere except
+  the file — `LovelaceStorage.async_save` replaces its cached config and fires
+  the update event *before* it awaits the store write, and `async_load` serves
+  that cache rather than re-reading — so without the rollback "the card was not
+  moved" is said over a destination already showing it, and "it now appears on
+  both" over a source it had just vanished from. Re-saving the original puts
+  the cache and the event back whether or not its own write lands, since both
+  happen ahead of the await. `_save`'s `previous` is opt-in, so every other
+  writer here keeps its existing behaviour.
+- **Destination-first protects nothing unless the destination is known to have
+  LANDED.** A `_save` that reports success has only been ACCEPTED:
+  `Store.async_save` does not raise on an ordinary write failure —
+  `_async_handle_write_data` catches `WriteError` / `SerializationError`, logs
+  and returns — and it skips the write outright when the store is read-only or
+  HA is stopping. So the commonest failures are silent, and reading the
+  dashboard back settles nothing, since `async_save` updated that cache before
+  attempting the write. Removing the source on that basis LOSES the card: both
+  halves look fine until the next restart, when it is on neither. So a
+  cross-dashboard move confirms the destination against the FILE
+  (`_copies_on_disk`, through the private `Store` — the only thing that
+  answers) before saving the removal, and rolls the destination back if it did
+  not land. **Counted, not tested**: a destination already holding an identical
+  card answers "is it there?" off the copy that was already on disk. The source
+  is checked the same way afterwards, but only to report — a silent failure
+  there costs a duplicate, not the card, and undoing a destination that did
+  land would be worse. An unreadable or unexpected `Store` is UNKNOWABLE and
+  treated as fine: refusing every move on an HA whose internals have moved is
+  worse than the case it guards.
+- **A guard about which dashboard must not be phrased around what was asked
+  for.** `add_dashboard_view`'s "not a dashboard" warning is scoped to
+  appending to some OTHER dashboard; giving a just-created one its first page is
+  the tool's job and it says so. Phrased around the ASK, it fires on exactly the
+  turn that must not obey it: a resumed turn replays a request opening "create a
+  new X dashboard", so asked to move cards onto the dashboard it had just made,
+  the model read the guard as forbidding the view, found `create_dashboard`
+  already done, and asked the user to add the page by hand. `resolve_view`'s
+  empty-dashboard error names `add_dashboard_view` for the same reason — a bare
+  statement of the fact is something the model relays as a step for the USER to
+  perform. The result note carries no such guard at all: a pre-call decision
+  restated after the call only ever reaches a turn that already chose right.
 - **Card writes validate entity ids.** Lovelace stores whatever it is given, so a
   typo'd entity is saved happily and renders "Entity not found" on the user's
   wall panel with nothing else to catch it. `_unknown_entities` walks the whole

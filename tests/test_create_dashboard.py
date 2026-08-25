@@ -75,8 +75,13 @@ def test_add_dashboard_view_points_at_the_tool_that_does_create_one() -> None:
     """Saying what it is not is not enough — the model needs the alternative
     named, or it treats the page as the closest available thing."""
     description = TOOL_MAP["add_dashboard_view"].description
-    assert "does NOT create a dashboard" in description
+    assert "A page is not a dashboard" in description
     assert "create_dashboard" in description
+    # Scoped to WHICH dashboard the page lands on, never to whether a dashboard
+    # was asked for. A resumed turn replays a request opening "create a new X
+    # dashboard", so a guard phrased around the ask fires on the one turn whose
+    # whole job is to give that dashboard its first page.
+    assert "just created has no pages" in description
 
 
 def test_create_dashboard_claims_the_request_by_name() -> None:

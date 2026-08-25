@@ -747,9 +747,15 @@ class ToolExecutor:
             target=_opt_str(arguments.get("dashboard_target")),
             view=arguments.get("view"),
             from_index=_as_index(arguments.get("from_index")),
-            to_index=_as_index(arguments.get("to_index")),
+            to_index=_opt_index(arguments.get("to_index")),
+            to_dashboard=_opt_str(arguments.get("to_dashboard")),
+            # Not `_opt_str`: a view reference may be the integer 0, and the
+            # destination is "omitted" only when nothing was sent — blanking it
+            # would send a move to view 0 onto the source view instead.
+            to_view=_opt_view(arguments.get("to_view")),
             expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
             expected_view_fingerprint=_opt_str(arguments.get("expected_view_fingerprint")),
+            expected_to_view_fingerprint=_opt_str(arguments.get("expected_to_view_fingerprint")),
         )
 
     async def _group_dashboard_cards(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -811,6 +817,34 @@ def _as_index(value: Any) -> int:
         return value
     text = str(value or "").strip()
     return int(text) if text.lstrip("-").isdigit() else -1
+
+
+def _opt_index(value: Any) -> int | None:
+    """An index that may legitimately be absent, for an optional destination.
+
+    ``None`` only for an argument that was OMITTED — and that includes the
+    ``""`` models routinely emit for an optional param they are not using,
+    since a blank string is not an index anyone meant. A value that was sent
+    and is unparseable still becomes -1, so it is rejected as out of range
+    rather than quietly turning into "wherever the default is".
+    """
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    return _as_index(value)
+
+
+def _opt_view(value: Any) -> object:
+    """A view reference that may be absent, for an optional destination view.
+
+    Not ``_opt_str``: ``resolve_view`` takes an index as well as a name, and 0
+    is a perfectly ordinary one — coercing it to a string is harmless, but
+    coercing a blank to ``None`` is the point, since an omitted destination
+    means "the view it is already on" and an empty string would otherwise
+    resolve to nothing and refuse the move.
+    """
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    return value
 
 
 def _opt_list(value: Any) -> list[str] | None:
