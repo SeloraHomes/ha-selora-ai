@@ -5069,6 +5069,16 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     async_register_recipe_websocket_commands(hass)
     async_register_recipe_upload_view(hass)
 
+    # Serve card resources recipes downloaded on an earlier run. Static
+    # paths don't survive a restart, so this has to happen at every setup,
+    # not only at the install that fetched the file.
+    from .recipes.resources import async_register_static_path
+
+    try:
+        await async_register_static_path(hass)
+    except Exception as exc:  # noqa: BLE001 — a served-file path is not worth failing setup
+        _LOGGER.warning("Could not serve recipe card resources: %s", exc)
+
     # Register WebSocket API (centralized in the websocket package; imported
     # lazily here so that package loads only after this one has finished).
     from .websocket import async_register_websocket_commands

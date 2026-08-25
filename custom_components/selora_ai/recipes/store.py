@@ -70,6 +70,42 @@ def _from_dict(data: dict[str, Any]) -> InstallRecord:
     )
 
 
+def _keep_resource_claim(
+    previous: dict[str, Any] | None, incoming: dict[str, Any]
+) -> dict[str, Any]:
+    """Carry card-resource ownership across record rewrites.
+
+    ``resource_urls`` lists the managed bundles this recipe is
+    responsible for removing at uninstall. Everything else in the dict
+    describes the latest placement attempt and is meant to be replaced,
+    but an install that placed no card — a skipped dashboard step —
+    writes no key at all, and blanking the list there would strand files
+    with nothing left to attribute them to.
+
+    So: the key present is the newer truth, empty list included. The key
+    absent means "nothing was decided this time", and what the record
+    already held stands.
+    """
+    merged = dict(incoming)
+    if "resource_urls" in merged:
+        return merged
+    carried = _claims_of(previous)
+    if carried:
+        merged["resource_urls"] = carried
+    return merged
+
+
+def _claims_of(dashboard_card: dict[str, Any] | None) -> list[str]:
+    """Claims on a stored record, reading the singular key records
+    written before the list existed still carry."""
+    card = dashboard_card or {}
+    urls = card.get("resource_urls")
+    if isinstance(urls, (list, tuple)):
+        return [str(u) for u in urls if u]
+    legacy = str(card.get("resource_url", ""))
+    return [legacy] if legacy else []
+
+
 class InstallStore:
     """Async wrapper around HA's :class:`Store` for the recipe install
     records. Mutations are serialised on a per-instance lock so two
@@ -125,7 +161,9 @@ class InstallStore:
                 bindings=dict(bindings),
                 inputs=dict(inputs),
                 integrations_installed=dict(integrations_installed or {}),
-                dashboard_card=dict(dashboard_card or {}),
+                dashboard_card=_keep_resource_claim(
+                    (data.get(slug) or {}).get("dashboard_card"), dashboard_card or {}
+                ),
             )
             data[slug] = asdict(record)
             await self._save()
@@ -147,7 +185,7 @@ class InstallStore:
             raw = data.get(slug)
             if raw is None:
                 return None
-            raw["dashboard_card"] = dict(dashboard_card)
+            raw["dashboard_card"] = _keep_resource_claim(raw.get("dashboard_card"), dashboard_card)
             await self._save()
             return _from_dict(raw)
 

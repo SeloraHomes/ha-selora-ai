@@ -4010,11 +4010,14 @@ class SeloraAIPanel extends LitElement {
         };
       }
       if (!res?.ok) {
+        // Prefer the backend's message: a withheld custom card names the
+        // resource to install, which the generic string cannot.
         this._showToast(
-          this._t(
-            "recipes_dashboard_add_failed",
-            "Couldn't add the card to that dashboard.",
-          ),
+          res?.message ||
+            this._t(
+              "recipes_dashboard_add_failed",
+              "Couldn't add the card to that dashboard.",
+            ),
           "error",
         );
       }

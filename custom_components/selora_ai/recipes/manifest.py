@@ -363,6 +363,54 @@ class BindingSpec:
 
 
 @dataclass(frozen=True, slots=True)
+class CardResourceSpec:
+    """Where a ``custom:`` card's JavaScript comes from.
+
+    Declaring this is what lets a recipe install its own card instead of
+    telling the homeowner to go and fetch it: the pipeline downloads the
+    pinned file, serves it, and registers it as a Lovelace resource.
+
+    Attributes:
+        name: Identifier for the bundle, used in the stored filename and
+            in anything the homeowner is shown.
+        url: Direct HTTPS link to the bundle, on GitHub. Pin a release
+            asset, never a branch or ``latest`` — the point is that a
+            given recipe version always installs the same bytes.
+        version: Version tag, carried into the filename so upgrading a
+            recipe's pinned card doesn't collide with a browser's cache
+            of the old module URL.
+        sha256: Digest of the file. Optional in the schema so a recipe
+            can be authored before the digest is known, but omitting it
+            means unverified JavaScript reaches the frontend, so treat
+            it as required in review.
+    """
+
+    name: str
+    url: str
+    version: str = ""
+    sha256: str = ""
+
+    def validate(self) -> None:
+        if not self.name.strip():
+            raise ManifestError("dashboard.resource.name is required")
+        if not self.url.strip():
+            raise ManifestError("dashboard.resource.url is required")
+        if not self.url.startswith("https://"):
+            raise ManifestError(f"dashboard.resource.url must be https, got {self.url!r}")
+        if self.sha256 and not re.fullmatch(r"[0-9a-fA-F]{64}", self.sha256.strip()):
+            raise ManifestError("dashboard.resource.sha256 must be a 64-character hex digest")
+        if not self.version.strip() and not self.sha256.strip():
+            # Without one of these the stored filename never changes, and
+            # an already-registered URL reads as "the home has this" — so
+            # a later revision of the recipe could never reach a home that
+            # installed the first one.
+            raise ManifestError(
+                "dashboard.resource needs a version or a sha256 so a revised "
+                "recipe can replace what an earlier one installed"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class DashboardCardSpec:
     """Optional ``dashboard:`` block — a single Lovelace card the recipe
     drops onto a dashboard as its final install step.
@@ -374,13 +422,32 @@ class DashboardCardSpec:
 
     Attributes:
         card: The raw Lovelace card config (``type`` required). Values
-            may carry ``${role:<id>}`` / ``${input:<id>}`` placeholders
-            that the apply stage substitutes against the resolved
-            bindings + input values before insertion.
+            may carry ``${role:<id>}`` / ``${device:<id>}`` /
+            ``${input:<id>}`` placeholders that the apply stage
+            substitutes against the resolved bindings + input values
+            before insertion. ``${device:<id>}`` yields the device the
+            role's first bound entity belongs to, for the custom cards
+            that target a device rather than an entity.
         target: Dashboard ``url_path`` to insert into. ``None`` (the
             default) targets the user's default dashboard.
         view: Which view to append the card to — an integer index or a
             view title string. Defaults to the first view.
+        resource: Where to get the card's JavaScript when it isn't
+            installed. With it, the install fetches and registers the
+            bundle; without it, a card whose element is missing is
+            withheld and the homeowner told what to install.
+        requires_resource: For ``custom:`` cards, a fragment matched
+            against the URLs of Home Assistant's registered Lovelace
+            resources to decide whether the card's JS is installed
+            (``toothbrush-card`` matches
+            ``/hacsfiles/toothbrush-card/toothbrush-card.js``). Declare
+            it whenever the bundle is named for its project rather than
+            its card, since the default is to look for the element name
+            itself. Home Assistant registers resources by URL and only
+            the browser knows which elements a bundle defines, so this
+            can only ever be the author's best identifier — an
+            unrecognised resource means the card is withheld with
+            instructions, never that the install fails.
 
     Only storage-mode dashboards are writable; YAML-mode dashboards are
     read-only, so the apply stage skips them and falls back to the
@@ -390,6 +457,8 @@ class DashboardCardSpec:
     card: dict[str, Any]
     target: str | None = None
     view: int | str = 0
+    requires_resource: str = ""
+    resource: CardResourceSpec | None = None
 
     def validate(self) -> None:
         if not isinstance(self.card, dict) or not self.card:
@@ -398,6 +467,10 @@ class DashboardCardSpec:
             raise ManifestError("dashboard.card.type is required")
         if not isinstance(self.view, (int, str)):
             raise ManifestError("dashboard.view must be an integer index or a view title")
+        if not isinstance(self.requires_resource, str):
+            raise ManifestError("dashboard.requires_resource must be a string")
+        if self.resource is not None:
+            self.resource.validate()
 
 
 # ── Manifest ────────────────────────────────────────────────────────
@@ -556,10 +629,35 @@ def _coerce_dashboard(data: Any) -> DashboardCardSpec | None:
         if target_raw is None or str(target_raw).strip().lower() in ("", "default")
         else str(target_raw).strip()
     )
+    # Type-checked here rather than in validate(): str() would turn a list
+    # or a mapping into a plausible-looking fragment that silently matches
+    # nothing, and the manifest is the place to catch an authoring slip.
+    requires_resource = data.get("requires_resource")
+    if requires_resource is not None and not isinstance(requires_resource, str):
+        raise ManifestError(
+            f"dashboard.requires_resource must be a string, got {type(requires_resource).__name__}"
+        )
+    raw_resource = data.get("resource")
+    if raw_resource is not None and not isinstance(raw_resource, dict):
+        raise ManifestError(
+            f"dashboard.resource must be a mapping, got {type(raw_resource).__name__}"
+        )
+    resource = (
+        CardResourceSpec(
+            name=str(raw_resource.get("name", "")).strip(),
+            url=str(raw_resource.get("url", "")).strip(),
+            version=str(raw_resource.get("version", "") or "").strip(),
+            sha256=str(raw_resource.get("sha256", "") or "").strip(),
+        )
+        if raw_resource is not None
+        else None
+    )
     spec = DashboardCardSpec(
         card=dict(card),
         target=target,
         view=data.get("view", 0),
+        requires_resource=(requires_resource or "").strip(),
+        resource=resource,
     )
     spec.validate()
     return spec

@@ -48626,7 +48626,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "ae42e0404b95" : "";
+var PANEL_BUILD = true ? "7b651553d11a" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -53321,10 +53321,11 @@ var SeloraAIPanel = class extends i4 {
       }
       if (!res?.ok) {
         this._showToast(
-          this._t(
-            "recipes_dashboard_add_failed",
-            "Couldn't add the card to that dashboard.",
-          ),
+          res?.message ||
+            this._t(
+              "recipes_dashboard_add_failed",
+              "Couldn't add the card to that dashboard.",
+            ),
           "error",
         );
       }
