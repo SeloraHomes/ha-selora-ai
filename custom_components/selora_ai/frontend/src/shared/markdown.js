@@ -414,15 +414,33 @@ export function renderMarkdown(text) {
   // from the tool result, but the marker travels through the model's text, so
   // the pattern accepts only a single-slash absolute path — a
   // protocol-relative host or a `javascript:` scheme cannot become an anchor.
+  //
+  // Quotes are excluded from the path too, and the value is escaped on the way
+  // into the attribute. The pass above escapes `&`, `<` and `>` and nothing
+  // else, so a `"` in the marker closed `href="` and everything after it
+  // became attributes of the anchor — `[[dashboard:/a"/onmouseover="alert(1)"]]`
+  // needs no whitespace at all, and `/` separates attributes in the HTML
+  // tokenizer just as a space does. Two independent defences because this
+  // string is model-authored: the charset keeps a quote out, and the escape
+  // means one arriving by some other route still cannot leave the attribute.
+  //
+  // Only the two quote characters: `&` is already escaped by that pass, and
+  // running a general attribute escaper over it would render `&amp;` in a path
+  // as `&amp;amp;`.
+  const escapeUrlAttr = (s) => s.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   escaped = escaped.replace(
-    /\[\[dashboard:(\/(?!\/)[^\]|\s]*)(?:\|([^\]]*))?\]\]/g,
-    (_m, url, label) =>
-      `<a class="selora-dashboard-link" href="${url}">` +
-      `<ha-icon icon="mdi:view-dashboard-outline"></ha-icon>` +
-      `<span class="selora-dashboard-link-text">` +
-      `<span class="selora-dashboard-link-label">${label || "Open the dashboard"}</span>` +
-      `<span class="selora-dashboard-link-path">${url}</span>` +
-      `</span></a>`,
+    /\[\[dashboard:(\/(?!\/)[^\]|\s"'<>]*)(?:\|([^\]]*))?\]\]/g,
+    (_m, rawUrl, label) => {
+      const url = escapeUrlAttr(rawUrl);
+      return (
+        `<a class="selora-dashboard-link" href="${url}">` +
+        `<ha-icon icon="mdi:view-dashboard-outline"></ha-icon>` +
+        `<span class="selora-dashboard-link-text">` +
+        `<span class="selora-dashboard-link-label">${label || "Open the dashboard"}</span>` +
+        `<span class="selora-dashboard-link-path">${url}</span>` +
+        `</span></a>`
+      );
+    },
   );
   escaped = escaped.replace(
     /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,

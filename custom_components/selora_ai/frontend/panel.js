@@ -25820,10 +25820,14 @@ function renderMarkdown(text) {
     (_m, id) =>
       `<div class="selora-entity-grid" data-entity-ids="${id}"></div>`,
   );
+  const escapeUrlAttr = (s4) =>
+    s4.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   escaped = escaped.replace(
-    /\[\[dashboard:(\/(?!\/)[^\]|\s]*)(?:\|([^\]]*))?\]\]/g,
-    (_m, url, label) =>
-      `<a class="selora-dashboard-link" href="${url}"><ha-icon icon="mdi:view-dashboard-outline"></ha-icon><span class="selora-dashboard-link-text"><span class="selora-dashboard-link-label">${label || "Open the dashboard"}</span><span class="selora-dashboard-link-path">${url}</span></span></a>`,
+    /\[\[dashboard:(\/(?!\/)[^\]|\s"'<>]*)(?:\|([^\]]*))?\]\]/g,
+    (_m, rawUrl, label) => {
+      const url = escapeUrlAttr(rawUrl);
+      return `<a class="selora-dashboard-link" href="${url}"><ha-icon icon="mdi:view-dashboard-outline"></ha-icon><span class="selora-dashboard-link-text"><span class="selora-dashboard-link-label">${label || "Open the dashboard"}</span><span class="selora-dashboard-link-path">${url}</span></span></a>`;
+    },
   );
   escaped = escaped.replace(
     /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
@@ -26439,42 +26443,46 @@ async function resolveClientActions(host, msg, approval) {
   IN_FLIGHT.add(proposalId);
   const actions = approval?.client_actions || [];
   const sessionId = host._activeSessionId;
-  if (msg) {
-    msg._resolving = true;
-    msg.quick_actions = null;
-    msg.approval_status = "resolving";
-    host._messages = [...host._messages];
-  }
-  const results = [];
-  for (const action of actions) {
-    results.push(await runClientAction(host.hass, action));
-  }
-  const ok = results.length > 0 && results.every((r4) => r4.ok);
+  let ok = false;
   let reported = true;
   try {
-    await host.hass.callWS({
-      type: "selora_ai/client_action_result",
-      session_id: sessionId,
-      proposal_id: approval.proposal_id,
-      results,
-      // The language RESOLVED for the turn, carried on the proposal. NOT
-      // hass.language, which is only the UI locale: a French message on an
-      // English-UI install must get a French outcome, and the panel cannot
-      // work out which — only the turn that detected it knows.
-      ...(approval.language || host.hass?.language
-        ? { language: approval.language || host.hass.language }
-        : {}),
-    });
-  } catch (err) {
-    reported = false;
-    console.error("Selora AI: could not report client action result", err);
+    if (msg) {
+      msg._resolving = true;
+      msg.quick_actions = null;
+      msg.approval_status = "resolving";
+      host._messages = [...host._messages];
+    }
+    const results = [];
+    for (const action of actions) {
+      results.push(await runClientAction(host.hass, action));
+    }
+    ok = results.length > 0 && results.every((r4) => r4.ok);
+    try {
+      await host.hass.callWS({
+        type: "selora_ai/client_action_result",
+        session_id: sessionId,
+        proposal_id: approval.proposal_id,
+        results,
+        // The language RESOLVED for the turn, carried on the proposal. NOT
+        // hass.language, which is only the UI locale: a French message on an
+        // English-UI install must get a French outcome, and the panel cannot
+        // work out which — only the turn that detected it knows.
+        ...(approval.language || host.hass?.language
+          ? { language: approval.language || host.hass.language }
+          : {}),
+      });
+    } catch (err) {
+      reported = false;
+      console.error("Selora AI: could not report client action result", err);
+    }
+    if (msg) {
+      msg._resolving = false;
+      msg.approval_status = ok ? "approved" : "denied";
+      host._messages = [...host._messages];
+    }
+  } finally {
+    IN_FLIGHT.delete(proposalId);
   }
-  if (msg) {
-    msg._resolving = false;
-    msg.approval_status = ok ? "approved" : "denied";
-    host._messages = [...host._messages];
-  }
-  IN_FLIGHT.delete(proposalId);
   if (reported && sessionId && host._activeSessionId === sessionId) {
     await host._openSession?.(sessionId);
     if (ok) {
@@ -48626,7 +48634,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "7b651553d11a" : "";
+var PANEL_BUILD = true ? "d4162c8389aa" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

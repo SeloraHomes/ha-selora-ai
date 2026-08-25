@@ -748,4 +748,35 @@ describe("the dashboard card", () => {
       expect(html).not.toContain("<a ");
     }
   });
+
+  // The escape pass this runs after covers `&`, `<` and `>` and nothing else,
+  // so a quote in the marker used to close `href="` and hand the rest of the
+  // path to the parser as attributes — and no whitespace is needed to do it,
+  // because `/` separates attributes in the HTML tokenizer just as a space
+  // does. The output goes through `.innerHTML`, so that was script execution
+  // in the panel from a string the model wrote.
+  it("cannot break out of the href attribute", () => {
+    for (const marker of [
+      '[[dashboard:/a"/onmouseover="alert(1)"|Hi]]',
+      "[[dashboard:/a'/onmouseover='alert(1)'|Hi]]",
+      '[[dashboard:/a"><img/src=x/onerror=alert(1)>|Hi]]',
+    ]) {
+      const html = renderMarkdown(marker);
+      // Asserted on TAGS, not on the words: a marker the pattern now refuses
+      // stays in the bubble as literal text, where "onmouseover=" is a string
+      // the user can read and not an attribute the browser acts on. What must
+      // never appear is an event handler inside a tag, or a second quote
+      // inside the href — the break-out itself.
+      expect(html).not.toMatch(/<[^>]*\son\w+\s*=/i);
+      expect(html).not.toMatch(/href="[^"]*["']/);
+    }
+  });
+
+  it("keeps an escaped ampersand in a path escaped exactly once", () => {
+    // A general attribute escaper would run over text `&` had already become
+    // `&amp;` in, rendering the path as `&amp;amp;`.
+    const html = renderMarkdown("[[dashboard:/office?a=1&b=2|Office]]");
+    expect(html).toContain('href="/office?a=1&amp;b=2"');
+    expect(html).not.toContain("&amp;amp;");
+  });
 });

@@ -283,7 +283,18 @@ async def _handle_websocket_client_action_result(
         return
     _in_flight_approvals.add(proposal_id)
     try:
-        await _record_client_action_result(hass, connection, msg)
+        # The panel's leg of the work is over by the time this arrives, so the
+        # ToolExecutor scope that built the card is long gone and
+        # CALLER_IS_ADMIN has reverted to its deny-by-default False. Seeding a
+        # freshly created dashboard goes through `_writable_dashboard`, which
+        # reports a `require_admin` dashboard as ABSENT to a non-admin caller —
+        # so without this the seed is skipped for exactly the dashboards the
+        # user asked to be admin-only, and every later write to one is refused
+        # with the Take control note. Same wrapper, and the same reasoning, as
+        # the approval resolver above.
+        user = getattr(connection, "user", None)
+        with caller_scope(bool(getattr(user, "is_admin", False))):
+            await _record_client_action_result(hass, connection, msg)
     finally:
         _in_flight_approvals.discard(proposal_id)
 
@@ -323,64 +334,82 @@ async def _record_client_action_result(
 
     # And the results must answer the actions this card actually proposed —
     # otherwise the transcript records an outcome for something never offered.
-    expected = [
-        str(a.get("kind", "")) for a in approval.get("client_actions", []) if isinstance(a, dict)
-    ]
-    if [str(r.get("kind", "")) for r in results] != expected:
+    # The filtered list is kept, not just its kinds, because each outcome below
+    # is written from the descriptor beside it: pairing them positionally is
+    # only sound if both sides dropped the same entries.
+    actions = [a for a in approval.get("client_actions", []) if isinstance(a, dict)]
+    if [str(r.get("kind", "")) for r in results] != [str(a.get("kind", "")) for a in actions]:
         connection.send_error(
             msg["id"], "mismatch", "Those results do not match what this card proposed"
         )
         return
-
-    ok = bool(results) and all(bool(r.get("ok")) for r in results)
 
     # The panel sends the language it has been answering in, exactly as
     # resolve_approval does — these lines are deterministic and built here, so
     # nothing else would make them match the rest of the conversation.
     language = msg.get("language")
     lines: list[str] = []
-    for result in results:
+    # Per-action, because a report that does not describe this card's work is a
+    # failure to record even when the panel called it a success — so the card's
+    # status cannot be settled before the loop.
+    succeeded: list[bool] = []
+    for result, action in zip(results, actions, strict=True):
         detail = result.get("detail")
-        if (
-            result.get("ok")
-            and isinstance(detail, dict)
-            and str(result.get("kind")) == "delete_dashboard"
-        ):
-            # No seeding, no card marker: the page is gone, and a link to it
-            # would be a link to nothing.
+        # WHICH dashboard this outcome is about comes from the stored
+        # descriptor, never from the report. The panel is trusted to say
+        # whether its own work succeeded; it is not trusted to say what the
+        # work was done to — the same split that has it reporting on a card it
+        # does not get to choose. It matters because the seeding below writes
+        # an empty document, and `async_initialize_created_dashboard` treats
+        # any dashboard with no stored config as one it may fill: pointed at a
+        # generated Overview — which is exactly that state — it replaces the
+        # page the user can see with a blank one. The card already carries the
+        # validated slug and the title it named, so nothing is lost by reading
+        # them here.
+        url_path = str(action.get("url_path") or "").strip()
+        title = sanitize_untrusted_text(str(action.get("title") or ""), 60)
+        reported = str(detail.get("url_path") or "").strip() if isinstance(detail, dict) else ""
+        if result.get("ok") and reported and reported != url_path:
+            # An outcome for a dashboard this card never named. Nothing here is
+            # safe to record as done: the report describes work that was not
+            # proposed, and the two handles disagree about which dashboard even
+            # exists now. The panel's own handlers report the path they were
+            # given, so this is not a shape a working panel produces.
+            succeeded.append(False)
             lines.append(
-                dashboard_deleted_line(
-                    sanitize_untrusted_text(str(detail.get("title") or ""), 60),
+                action_failed_line(
+                    f"the panel reported on '{sanitize_untrusted_text(reported, 60)}', "
+                    f"which is not the dashboard this card proposed",
                     language,
                 )
             )
-        elif result.get("ok") and isinstance(detail, dict):
+            continue
+        succeeded.append(bool(result.get("ok")))
+        if result.get("ok") and str(result.get("kind")) == "delete_dashboard":
+            # No seeding, no card marker: the page is gone, and a link to it
+            # would be a link to nothing.
+            lines.append(dashboard_deleted_line(title, language))
+        elif result.get("ok") and url_path:
             # The entry exists now; the DOCUMENT does not, and storage reports a
             # dashboard with no document as `auto-gen` — indistinguishable from a
             # generated Overview. Every write would be refused with the Take
             # control note, on the dashboard we were just asked to make. Seeding
             # an empty document here is what makes the next request able to fill
             # it. Never overwrites, so a re-report cannot blank it.
-            if url_path := str(detail.get("url_path") or "").strip():
-                await async_initialize_created_dashboard(hass, url_path)
-            lines.append(
-                dashboard_created_line(
-                    sanitize_untrusted_text(str(detail.get("title") or ""), 60),
-                    url_path,
-                    language,
-                )
-            )
+            await async_initialize_created_dashboard(hass, url_path)
+            lines.append(dashboard_created_line(title, url_path, language))
             # The card that takes the user to it. This outcome is written HERE,
             # not by the synthesizer — the panel performed the work and no LLM
             # turn produced this line — so the marker every other dashboard
             # answer gets has to be added here too, or the one reply that
             # announces a brand-new dashboard is the one with no way in.
-            if url_path:
-                lines.append(_dashboard_card_marker(url_path, str(detail.get("title") or "")))
+            lines.append(_dashboard_card_marker(url_path, str(action.get("title") or "")))
         elif result.get("ok"):
             lines.append(_done_text(language))
         else:
             lines.append(action_failed_line(sanitize_untrusted_text(str(detail), 200), language))
+
+    ok = bool(succeeded) and all(succeeded)
 
     # Status FIRST. `append_message` prunes a middle message once the session
     # hits its cap, which shifts the index located above — the write would then
