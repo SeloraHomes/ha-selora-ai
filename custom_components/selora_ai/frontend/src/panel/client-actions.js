@@ -190,55 +190,71 @@ export async function resolveClientActions(host, msg, approval) {
   // the websocket call is in flight, and reporting the old proposal against the
   // new session fails — leaving the card pending on a dashboard that exists.
   const sessionId = host._activeSessionId;
-
-  // The card renders msg.approval_status, and hiding the buttons is what stops
-  // a second click running the command twice — same handling as the
-  // server-resolved cards in chat-actions.js.
-  if (msg) {
-    msg._resolving = true;
-    msg.quick_actions = null;
-    msg.approval_status = "resolving";
-    host._messages = [...host._messages];
-  }
-
-  const results = [];
-  for (const action of actions) {
-    results.push(await runClientAction(host.hass, action));
-  }
-  const ok = results.length > 0 && results.every((r) => r.ok);
-
+  let ok = false;
   let reported = true;
+
+  // `finally`, because the entry is what makes the button inert: anything that
+  // throws between the add and the delete — a Lit update, a host method this
+  // file does not own — latches the id for the lifetime of the page, and the
+  // user is left with a card that silently does nothing however often they
+  // press it. It also clears the key when a card arrives with no proposal_id,
+  // which would otherwise block every other card that has none.
+  //
+  // Released here rather than after the resumption below, so the guard covers
+  // exactly the privileged work and its report. By then the card carries a
+  // terminal approval_status and renders no button, so there is nothing left
+  // for it to protect.
   try {
-    await host.hass.callWS({
-      type: "selora_ai/client_action_result",
-      session_id: sessionId,
-      proposal_id: approval.proposal_id,
-      results,
-      // The language RESOLVED for the turn, carried on the proposal. NOT
-      // hass.language, which is only the UI locale: a French message on an
-      // English-UI install must get a French outcome, and the panel cannot
-      // work out which — only the turn that detected it knows.
-      ...(approval.language || host.hass?.language
-        ? { language: approval.language || host.hass.language }
-        : {}),
-    });
-  } catch (err) {
-    // The command itself may well have run; only the report failed. Do NOT
-    // reload: the server's copy is still pending, and swapping it in would put
-    // the button back and invite a second creation of a dashboard that already
-    // exists. The locally resolved state stays instead.
-    reported = false;
-    console.error("Selora AI: could not report client action result", err);
+    // The card renders msg.approval_status, and hiding the buttons is what stops
+    // a second click running the command twice — same handling as the
+    // server-resolved cards in chat-actions.js.
+    if (msg) {
+      msg._resolving = true;
+      msg.quick_actions = null;
+      msg.approval_status = "resolving";
+      host._messages = [...host._messages];
+    }
+
+    const results = [];
+    for (const action of actions) {
+      results.push(await runClientAction(host.hass, action));
+    }
+    ok = results.length > 0 && results.every((r) => r.ok);
+
+    try {
+      await host.hass.callWS({
+        type: "selora_ai/client_action_result",
+        session_id: sessionId,
+        proposal_id: approval.proposal_id,
+        results,
+        // The language RESOLVED for the turn, carried on the proposal. NOT
+        // hass.language, which is only the UI locale: a French message on an
+        // English-UI install must get a French outcome, and the panel cannot
+        // work out which — only the turn that detected it knows.
+        ...(approval.language || host.hass?.language
+          ? { language: approval.language || host.hass.language }
+          : {}),
+      });
+    } catch (err) {
+      // The command itself may well have run; only the report failed. Do NOT
+      // reload: the server's copy is still pending, and swapping it in would put
+      // the button back and invite a second creation of a dashboard that already
+      // exists. The locally resolved state stays instead.
+      reported = false;
+      console.error("Selora AI: could not report client action result", err);
+    }
+
+    if (msg) {
+      msg._resolving = false;
+      msg.approval_status = ok ? "approved" : "denied";
+      host._messages = [...host._messages];
+    }
+  } finally {
+    IN_FLIGHT.delete(proposalId);
   }
 
-  if (msg) {
-    msg._resolving = false;
-    msg.approval_status = ok ? "approved" : "denied";
-    host._messages = [...host._messages];
-  }
   // Only once the backend agrees, and only for the session this card belongs
   // to — reloading a conversation the user has since left would yank them back.
-  IN_FLIGHT.delete(proposalId);
   if (reported && sessionId && host._activeSessionId === sessionId) {
     await host._openSession?.(sessionId);
     // The card was only ever the first step — a client action exists because

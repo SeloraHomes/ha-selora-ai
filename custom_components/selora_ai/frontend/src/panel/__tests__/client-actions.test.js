@@ -476,6 +476,61 @@ describe("resolveClientActions re-entry", () => {
       ),
     ).toHaveLength(2);
   });
+
+  it("releases the guard when something between add and delete throws", async () => {
+    // The guard entry is what makes the button inert, so anything that throws
+    // while it is held — a Lit update, a host method this file does not own —
+    // latches the id for the lifetime of the page and leaves the user pressing
+    // a card that silently does nothing.
+    const host = gatedHost(Promise.resolve());
+    let fail = true;
+    Object.defineProperty(host, "_messages", {
+      get: () => [],
+      set: () => {
+        if (fail) throw new Error("render blew up");
+      },
+      configurable: true,
+    });
+    const approval = {
+      proposal_id: "p1",
+      client_actions: [
+        { kind: "create_dashboard", title: "K", url_path: "kitchen" },
+      ],
+    };
+
+    await expect(resolveClientActions(host, {}, approval)).rejects.toThrow(
+      "render blew up",
+    );
+
+    // The same card is pressable again, rather than dead for the session.
+    fail = false;
+    await resolveClientActions(host, {}, approval);
+    expect(
+      host.hass.callWS.mock.calls.filter(
+        (c) => c[0].type === "lovelace/dashboards/create",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("does not wedge other cards when a proposal carries no id", async () => {
+    // `IN_FLIGHT.add(undefined)` would otherwise block every other card that
+    // also arrived without one.
+    const host = gatedHost(Promise.resolve());
+    const approval = {
+      client_actions: [
+        { kind: "create_dashboard", title: "K", url_path: "kitchen" },
+      ],
+    };
+
+    await resolveClientActions(host, null, approval);
+    await resolveClientActions(host, null, approval);
+
+    expect(
+      host.hass.callWS.mock.calls.filter(
+        (c) => c[0].type === "lovelace/dashboards/create",
+      ),
+    ).toHaveLength(2);
+  });
 });
 
 describe("the confirmation card uses the panel's own styles", () => {

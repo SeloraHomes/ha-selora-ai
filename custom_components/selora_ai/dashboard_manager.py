@@ -329,6 +329,25 @@ async def _load_config(config: Any) -> tuple[dict[str, Any], str | None]:
     return copy.deepcopy(document), None
 
 
+async def _load_for_write(config: Any) -> tuple[dict[str, Any], dict[str, Any], str | None]:
+    """``(document, pre-mutation snapshot, error)`` for a writer.
+
+    The snapshot is what `_save` needs to undo a failed write, and taking it
+    here rather than at each mutation site is what stops a writer added later
+    from being the one that forgets. Every function here mutates the loaded
+    document in place and then saves it, so "as loaded" and "before the
+    mutation" are the same thing.
+
+    A second deep copy on top of `_load_config`'s, paid only on the write path:
+    these are user-initiated and rare, and the alternative is a rejected edit
+    that Home Assistant is nonetheless showing.
+    """
+    document, error = await _load_config(config)
+    if error:
+        return {}, {}, error
+    return document, copy.deepcopy(document), None
+
+
 def card_fingerprint(card: Any) -> str:
     """Content hash of one card, used to re-identify it across a round trip.
 
@@ -796,7 +815,7 @@ async def async_add_view(
         config, error = _writable_dashboard(hass, target)
         if error or config is None:
             return {"error": error or "Dashboard not found."}
-        document, error = await _load_config(config)
+        document, before, error = await _load_for_write(config)
         if error:
             return {"error": error}
 
@@ -824,7 +843,7 @@ async def async_add_view(
             view["cards"] = []
 
         views.append(view)
-        if error := await _save(config, document):
+        if error := await _save(config, document, before):
             return {"error": error}
         # Off the FILTERED list. `views` is the free-form stored list and may
         # hold a stray non-dict; every reader here indexes the dict-only
@@ -882,7 +901,7 @@ async def async_update_view(
         config, error = _writable_dashboard(hass, target)
         if error or config is None:
             return {"error": error or "Dashboard not found."}
-        document, error = await _load_config(config)
+        document, before, error = await _load_for_write(config)
         if error:
             return {"error": error}
 
@@ -931,7 +950,7 @@ async def async_update_view(
                 "view_index": index,
                 "message": "No changes were requested.",
             }
-        if error := await _save(config, document):
+        if error := await _save(config, document, before):
             return {"error": error}
 
     return {
@@ -960,7 +979,7 @@ async def async_remove_view(
         config, error = _writable_dashboard(hass, target)
         if error or config is None:
             return {"error": error or "Dashboard not found."}
-        document, error = await _load_config(config)
+        document, before, error = await _load_for_write(config)
         if error:
             return {"error": error}
 
@@ -986,7 +1005,7 @@ async def async_remove_view(
         # every position, so applying the filtered index to the raw list deletes
         # the wrong element and reports success for a page still on screen.
         document["views"] = [v for v in document.get("views", []) if v is not removed]
-        if error := await _save(config, document):
+        if error := await _save(config, document, before):
             return {"error": error}
 
     return {
@@ -1024,7 +1043,7 @@ async def async_update_card(
         config, error = _writable_dashboard(hass, target)
         if error or config is None:
             return {"error": error or "Dashboard not found."}
-        document, error = await _load_config(config)
+        document, before, error = await _load_for_write(config)
         if error:
             return {"error": error}
 
@@ -1043,7 +1062,7 @@ async def async_update_card(
             return {"error": error}
 
         owner[position] = card
-        if error := await _save(config, document):
+        if error := await _save(config, document, before):
             return {"error": error}
 
     return {
@@ -1071,7 +1090,7 @@ async def async_remove_card(
         config, error = _writable_dashboard(hass, target)
         if error or config is None:
             return {"error": error or "Dashboard not found."}
-        document, error = await _load_config(config)
+        document, before, error = await _load_for_write(config)
         if error:
             return {"error": error}
 
@@ -1090,7 +1109,7 @@ async def async_remove_card(
             return {"error": error}
 
         owner.pop(position)
-        if error := await _save(config, document):
+        if error := await _save(config, document, before):
             return {"error": error}
 
     result: dict[str, Any] = {
@@ -1676,7 +1695,7 @@ async def async_group_cards(
         config, error = _writable_dashboard(hass, target)
         if error or config is None:
             return {"error": error or "Dashboard not found."}
-        document, error = await _load_config(config)
+        document, before, error = await _load_for_write(config)
         if error:
             return {"error": error}
 
@@ -1718,7 +1737,7 @@ async def async_group_cards(
         # group in the FIRST section regardless of which one it came from.
         anchor_owner.insert(min(anchor_position, len(anchor_owner)), container_card)
 
-        if error := await _save(config, document):
+        if error := await _save(config, document, before):
             return {"error": error}
 
     return {

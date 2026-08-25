@@ -287,7 +287,9 @@ async def test_the_icon_is_validated_before_the_button(
 # it — the tool tests all stop at the proposal.
 
 
-async def _session_with_proposal(hass: HomeAssistant) -> tuple[Any, str, str]:
+async def _session_with_proposal(
+    hass: HomeAssistant, url_path: str = "kitchen", title: str = "Kitchen"
+) -> tuple[Any, str, str]:
     from custom_components.selora_ai.const import DOMAIN
     from custom_components.selora_ai.conversation_store import ConversationStore
 
@@ -307,7 +309,13 @@ async def _session_with_proposal(hass: HomeAssistant) -> tuple[Any, str, str]:
             "calls": [],
             "deletes": [],
             "actions": [],
-            "client_actions": [{"kind": "create_dashboard", "title": "Kitchen"}],
+            # `url_path` as every real proposal carries it — the validated slug
+            # `async_propose_dashboard` put there. The recorder reads the target
+            # off this descriptor rather than off the panel's report, so a
+            # fixture without it exercises only the fallback.
+            "client_actions": [
+                {"kind": "create_dashboard", "title": title, "url_path": url_path}
+            ],
         },
     )
     return store, session_id, proposal_id
@@ -683,7 +691,7 @@ async def test_the_outcome_is_written_in_the_conversation_language(
 
     from custom_components.selora_ai.websocket import tokens
 
-    store, session_id, proposal_id = await _session_with_proposal(hass)
+    store, session_id, proposal_id = await _session_with_proposal(hass, "cuisine", "Cuisine")
     payload: dict[str, Any] = {
         "id": 1,
         "session_id": session_id,
@@ -1172,7 +1180,9 @@ async def test_a_title_with_nothing_sluggable_is_still_refused(hass: HomeAssista
 # ── A created dashboard has to be usable ────────────────────────────────────
 
 
-async def _new_entry(hass: HomeAssistant, url_path: str = "office") -> Any:
+async def _new_entry(
+    hass: HomeAssistant, url_path: str = "office", *, require_admin: bool = False
+) -> Any:
     """Register a dashboard entry the way `lovelace/dashboards/create` does:
     the ENTRY exists and no document is stored against it."""
     from homeassistant.components.lovelace.const import LOVELACE_DATA
@@ -1190,7 +1200,7 @@ async def _new_entry(hass: HomeAssistant, url_path: str = "office") -> Any:
             "url_path": url_path,
             "title": "Office",
             "mode": "storage",
-            "require_admin": False,
+            "require_admin": require_admin,
             "show_in_sidebar": True,
             "icon": None,
         },
@@ -1256,6 +1266,134 @@ async def test_seeding_never_overwrites_a_document(hass: HomeAssistant) -> None:
     assert kept["views"][0]["title"] == "Lights"
 
 
+async def test_an_admin_only_dashboard_is_seeded_through_the_handler(
+    hass: HomeAssistant,
+) -> None:
+    """The panel's leg is over by the time the report arrives, so the scope the
+    ToolExecutor opened is gone and CALLER_IS_ADMIN is back to its
+    deny-by-default False — under which `_writable_dashboard` reports a
+    require_admin dashboard as ABSENT. Without the handler re-establishing the
+    caller, the seed is skipped for exactly the dashboards the user asked to be
+    admin-only, and every later write to one is refused with the Take control
+    note. Driven through the handler, because the wrapper is what is under
+    test."""
+    import inspect
+
+    from custom_components.selora_ai.websocket import tokens
+
+    data = await _new_entry(hass, require_admin=True)
+    _store, session_id, proposal_id = await _session_with_proposal(hass, "office", "Office")
+
+    handler = inspect.unwrap(tokens._handle_websocket_client_action_result)
+    await handler(
+        hass,
+        _admin_connection(),
+        {
+            "id": 1,
+            "session_id": session_id,
+            "proposal_id": proposal_id,
+            "results": [
+                {
+                    "ok": True,
+                    "kind": "create_dashboard",
+                    "detail": {"url_path": "office", "title": "Office"},
+                }
+            ],
+        },
+    )
+
+    # A document exists, so the next request can fill it.
+    assert await data.dashboards["office"].async_load(False) == {"views": []}
+    assert (await data.dashboards["office"].async_get_info())["mode"] == "storage"
+
+
+async def test_the_report_cannot_seed_a_dashboard_it_did_not_propose(
+    hass: HomeAssistant,
+) -> None:
+    """Which dashboard an outcome is about comes from the stored descriptor, not
+    from the report. The seed writes an empty document into any dashboard whose
+    config is unset — and a GENERATED Overview is exactly that state, so a
+    report naming it would replace the page the user can see with a blank one.
+    The panel is trusted to say whether its work succeeded, never what it was
+    done to."""
+    import inspect
+
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    from custom_components.selora_ai.websocket import tokens
+
+    await _new_entry(hass)
+    default = hass.data[LOVELACE_DATA].dashboards[None]
+    assert (await default.async_get_info())["mode"] == "auto-gen"
+
+    store, session_id, proposal_id = await _session_with_proposal(hass, "office", "Office")
+    connection = _admin_connection()
+
+    handler = inspect.unwrap(tokens._handle_websocket_client_action_result)
+    await handler(
+        hass,
+        connection,
+        {
+            "id": 1,
+            "session_id": session_id,
+            "proposal_id": proposal_id,
+            # The card proposed /office; this claims the default Overview.
+            "results": [
+                {
+                    "ok": True,
+                    "kind": "create_dashboard",
+                    "detail": {"url_path": "lovelace", "title": "Overview"},
+                }
+            ],
+        },
+    )
+
+    # Untouched: still generated, still whatever HA renders for it.
+    assert (await default.async_get_info())["mode"] == "auto-gen"
+    # And recorded as the failure it is, rather than as a dashboard created.
+    assert connection.send_result.call_args[0][1] == {"ok": False}
+    session = await store.get_session(session_id)
+    assert session["messages"][1]["approval_status"] == "denied"
+    assert "lovelace" in session["messages"][-1]["content"]
+
+
+async def test_the_outcome_line_names_the_dashboard_the_card_proposed(
+    hass: HomeAssistant,
+) -> None:
+    """The transcript is written from the descriptor too. A report is free to
+    carry a title, and a wrong one would have the reply announce a dashboard
+    under a name that exists nowhere."""
+    import inspect
+
+    from custom_components.selora_ai.websocket import tokens
+
+    await _new_entry(hass)
+    store, session_id, proposal_id = await _session_with_proposal(hass, "office", "Office")
+
+    handler = inspect.unwrap(tokens._handle_websocket_client_action_result)
+    await handler(
+        hass,
+        _admin_connection(),
+        {
+            "id": 1,
+            "session_id": session_id,
+            "proposal_id": proposal_id,
+            "results": [
+                {
+                    "ok": True,
+                    "kind": "create_dashboard",
+                    # Same dashboard, a title nobody proposed.
+                    "detail": {"url_path": "office", "title": "Something Else"},
+                }
+            ],
+        },
+    )
+
+    text = (await store.get_session(session_id))["messages"][-1]["content"]
+    assert "Office" in text
+    assert "Something Else" not in text
+
+
 async def test_seeding_an_unknown_dashboard_is_not_fatal(hass: HomeAssistant) -> None:
     """The create itself succeeded. A missing entry is worth a debug line, not a
     failed report."""
@@ -1277,7 +1415,7 @@ async def test_the_created_dashboard_reply_carries_its_card(hass: HomeAssistant)
     from custom_components.selora_ai.websocket import tokens
 
     await _new_entry(hass)
-    store, session_id, proposal_id = await _session_with_proposal(hass)
+    store, session_id, proposal_id = await _session_with_proposal(hass, "office", "Office")
     connection = _admin_connection()
 
     handler = inspect.unwrap(tokens._handle_websocket_client_action_result)

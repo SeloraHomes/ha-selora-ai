@@ -3141,8 +3141,7 @@ async def test_a_transfer_to_a_yaml_dashboard_is_refused(board: HomeAssistant) -
     `mode` is a property on the class, so the subclass — not `patch.object` on
     the class, which would make the SOURCE dashboard YAML too and refuse this
     one call before it ever looked at the destination."""
-    from homeassistant.components.lovelace.const import MODE_YAML
-    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_YAML
 
     other = await _second_dashboard(board, document={"views": [{"title": "Brushes", "cards": []}]})
 
@@ -3166,6 +3165,88 @@ async def test_an_unknown_destination_dashboard_is_refused(board: HomeAssistant)
     )
     assert "destination dashboard cannot be written to" in result["error"]
     assert "No dashboard 'nowhere'" in result["error"]
+
+
+# ── A rejected write leaves nothing behind ──────────────────────────────────
+#
+# `move_dashboard_card` learned this first, because losing a card outright made
+# it impossible to ignore. Every other writer here had the same exposure and a
+# quieter symptom: the edit is rejected, the caller is told so, and Home
+# Assistant carries on serving the change to the frontend anyway.
+
+
+@pytest.mark.parametrize(
+    ("tool", "arguments", "unchanged"),
+    [
+        ("add_dashboard_view", {"title": "New"}, lambda d: len(d["views"]) == 2),
+        (
+            "update_dashboard_view",
+            {"view": "living", "title": "Renamed"},
+            lambda d: d["views"][0]["title"] == "Living",
+        ),
+        (
+            "update_dashboard_card",
+            {"view": "living", "card_index": 0, "card": {"type": "gauge", "entity": "sensor.temp"}},
+            lambda d: d["views"][0]["cards"][0]["type"] == "light",
+        ),
+        (
+            "remove_dashboard_card",
+            {"view": "living", "card_index": 0},
+            lambda d: len(d["views"][0]["cards"]) == 2,
+        ),
+        (
+            "group_dashboard_cards",
+            {"view": "living", "card_indices": [0, 1], "container": {"type": "vertical-stack"}},
+            lambda d: [c["type"] for c in d["views"][0]["cards"]] == ["light", "thermostat"],
+        ),
+    ],
+)
+async def test_a_failed_save_leaves_the_dashboard_as_it_was(
+    board: HomeAssistant,
+    tool: str,
+    arguments: dict[str, Any],
+    unchanged: Any,
+) -> None:
+    """`LovelaceStorage.async_save` replaces its cached config and fires the
+    update event BEFORE it awaits the store write, and `async_load` serves that
+    cache rather than re-reading. So a write that fails has already taken effect
+    everywhere except the file: the frontend shows the rename, every later read
+    agrees with it, and the caller was told the save failed.
+
+    The STORE is patched rather than `async_save`, because HA's own method has to
+    run for the cache to go stale at all."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    config = board.data[LOVELACE_DATA].dashboards[None]
+
+    with patch.object(config._store, "async_save", AsyncMock(side_effect=RuntimeError("disk full"))):
+        result = await _make_executor(board).execute(tool, arguments)
+
+    assert "refused to save" in result["error"], result
+    # The cache the next read and the frontend both use.
+    assert unchanged(await config.async_load(False))
+
+
+async def test_a_failed_view_removal_leaves_the_page_where_it_was(
+    board: HomeAssistant,
+) -> None:
+    """`remove_dashboard_view` reaches the manager from the confirmation
+    handler, not from the tool call — the tool returns a card — so the rollback
+    is driven the way the confirm path drives it."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    from custom_components.selora_ai.dashboard_manager import async_remove_view
+
+    config = board.data[LOVELACE_DATA].dashboards[None]
+
+    with patch.object(
+        config._store, "async_save", AsyncMock(side_effect=RuntimeError("disk full"))
+    ):
+        result = await async_remove_view(board, view="living")
+
+    assert "refused to save" in result["error"], result
+    document = await config.async_load(False)
+    assert [v["title"] for v in document["views"]] == ["Living", "Garage"]
 
 
 def test_move_declares_its_destination_on_both_surfaces() -> None:
