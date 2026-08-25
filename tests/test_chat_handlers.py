@@ -471,6 +471,59 @@ async def test_a_scene_proposal_persists_what_it_still_owes(harness: ChatHarness
 
 
 @pytest.mark.asyncio
+async def test_a_proposal_records_the_request_it_answered(harness: ChatHarness) -> None:
+    """Resumption replays this when nothing else was declared. It used to be
+    located by walking backwards from the proposal, which a pruned session
+    answers with the wrong message — the tail keeps the session's first message
+    pinned, so a proposal at the head of it scans past its own request and
+    lands on an unrelated one."""
+    harness.hass.states.async_set("light.office", "on", {"friendly_name": "Office"})
+
+    await harness.stream(
+        "make an office scene and add it to the dashboard",
+        chunks=(
+            '```json\n{"intent": "scene", "response": "Here it is.", '
+            '"scene": {"name": "Office", "entities": {"light.office": {"state": "on"}}}}\n```'
+        ),
+    )
+
+    persisted = (await harness.messages())[-1]
+    assert persisted["origin_request"] == "make an office scene and add it to the dashboard"
+
+
+@pytest.mark.asyncio
+async def test_a_resumed_turns_proposal_records_no_request(harness: ChatHarness) -> None:
+    """The resumption directive is text the SERVER wrote. Recording it as the
+    user's request would put words in their mouth on the one field a later turn
+    replays verbatim."""
+    harness.hass.states.async_set("light.office", "on", {"friendly_name": "Office"})
+    harness.session_id = "sess-origin-resume"
+    await harness.store.append_message(harness.session_id, "user", "make a scene")
+    await harness.store.append_message(
+        harness.session_id,
+        "assistant",
+        "Here it is.",
+        intent="scene",
+        scene={"name": "Office"},
+        scene_status="saved",
+        scene_id="selora_scene_office",
+        remaining_intent="add a tile for it",
+    )
+
+    await harness.stream(
+        "",
+        chunks=(
+            '```json\n{"intent": "scene", "response": "And another.", '
+            '"scene": {"name": "Second", "entities": {"light.office": {"state": "on"}}}}\n```'
+        ),
+        session_id=harness.session_id,
+        resume_proposal_id="selora_scene_office",
+    )
+
+    assert "origin_request" not in (await harness.messages())[-1]
+
+
+@pytest.mark.asyncio
 async def test_a_resumed_turn_proposes_nothing_further(harness: ChatHarness) -> None:
     """The cap. With nothing to resume FROM, the chain cannot continue — the
     same once-only rule the command_approval path spells as resume_depth."""
@@ -500,3 +553,52 @@ async def test_a_resumed_turn_proposes_nothing_further(harness: ChatHarness) -> 
     )
 
     assert "remaining_intent" not in (await harness.messages())[-1]
+
+
+@pytest.mark.asyncio
+async def test_a_resumed_turns_scene_is_stamped_capped(harness: ChatHarness) -> None:
+    """Recorded on the message, not inferred from an absent remainder — the
+    handler is where the turn knows it is a resumption, and the resolver reads
+    the stored proposal."""
+    harness.hass.states.async_set("light.office", "on", {"friendly_name": "Office"})
+    harness.session_id = "sess-scene-depth"
+    await harness.store.append_message(harness.session_id, "user", "make a scene")
+    await harness.store.append_message(
+        harness.session_id,
+        "assistant",
+        "Here it is.",
+        intent="scene",
+        scene={"name": "Office"},
+        scene_status="saved",
+        scene_id="selora_scene_office",
+        remaining_intent="add a tile for it",
+    )
+
+    await harness.stream(
+        "",
+        chunks=(
+            '```json\n{"intent": "scene", "response": "And another.", '
+            '"scene": {"name": "Second", "entities": {"light.office": {"state": "on"}}}}\n```'
+        ),
+        session_id=harness.session_id,
+        resume_proposal_id="selora_scene_office",
+    )
+
+    persisted = (await harness.messages())[-1]
+    assert persisted.get("scene") is not None, persisted
+    assert persisted["resume_depth"] == 1
+
+
+@pytest.mark.asyncio
+async def test_an_ordinary_turns_scene_is_not_capped(harness: ChatHarness) -> None:
+    harness.hass.states.async_set("light.office", "on", {"friendly_name": "Office"})
+
+    await harness.stream(
+        "make a scene",
+        chunks=(
+            '```json\n{"intent": "scene", "response": "Here.", '
+            '"scene": {"name": "Office", "entities": {"light.office": {"state": "on"}}}}\n```'
+        ),
+    )
+
+    assert "resume_depth" not in (await harness.messages())[-1]

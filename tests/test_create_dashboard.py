@@ -647,8 +647,12 @@ def test_a_panel_only_tool_needs_the_caller_to_declare_the_panel() -> None:
     # The old gate, on its own, is not enough — this is the MCP chat case.
     assert "create_dashboard" not in _tool_names(for_assist=False)
     assert "create_dashboard" not in _tool_names(for_assist=True)
-    # A declared panel does not smuggle anything else in.
-    assert _tool_names(panel_available=True) - _tool_names() == {"create_dashboard"}
+    # A declared panel does not smuggle anything else in: every panel_only
+    # tool, and nothing else.
+    assert _tool_names(panel_available=True) - _tool_names() == {
+        "create_dashboard",
+        "delete_dashboard",
+    }
 
 
 def test_the_panel_chat_handlers_declare_the_panel() -> None:
@@ -1315,3 +1319,258 @@ def test_the_card_is_the_ask_rule_covers_proposal_blocks_too() -> None:
     # Named so the rule cannot be read as covering only the tool case.
     assert "PROPOSAL BLOCKS" in _SHARED_STATE_QUERY_RULES
     assert "scene" in _SHARED_STATE_QUERY_RULES
+
+
+# ── Deleting a dashboard ────────────────────────────────────────────────────
+
+
+async def test_delete_dashboard_proposes_and_names_the_blast_radius(
+    hass: HomeAssistant,
+) -> None:
+    """HA deletes the dashboard and its stored document together, so every view
+    and card goes with it. A count is the difference between an informed
+    confirmation and a surprised one."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    data = await _new_entry(hass)
+    hass.states.async_set("light.office", "on")
+    await data.dashboards["office"].async_save(
+        {
+            "views": [
+                {"title": "One", "cards": [{"type": "tile", "entity": "light.office"}]},
+                {"title": "Two", "cards": []},
+            ]
+        }
+    )
+    assert LOVELACE_DATA in hass.data
+
+    result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"})
+
+    assert result["requires_approval"] is True
+    action = result["client_action"]
+    assert action["kind"] == "delete_dashboard"
+    assert action["url_path"] == "office"
+    assert action["view_count"] == 2
+    assert action["card_count"] == 1
+
+
+async def test_the_default_dashboard_cannot_be_deleted(hass: HomeAssistant) -> None:
+    """Home Assistant always keeps one, so the card would fail when pressed."""
+    await _new_entry(hass)
+    for target in ("lovelace", ""):
+        result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": target})
+        assert "error" in result, target
+        assert "default dashboard" in result["error"]
+
+
+async def test_a_dashboard_merely_named_default_is_deletable(hass: HomeAssistant) -> None:
+    """`/default` is a URL path a user can genuinely have — HA allows
+    single-word paths and this module's own create tool makes them. Reserving
+    the STRING made that dashboard undeletable while telling its owner it was
+    the built-in Overview."""
+    await _new_entry(hass, "default")
+
+    result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": "default"})
+
+    assert "error" not in result, result
+    assert result["client_action"]["url_path"] == "default"
+
+
+async def test_a_card_that_is_not_a_mapping_still_counts(hass: HomeAssistant) -> None:
+    """Lovelace storage is free-form, so a stored card need not be a dict. It
+    has no tree to walk, but the delete removes it all the same — filtering it
+    out reported a dashboard holding one as having no cards at all."""
+    data = await _new_entry(hass)
+    await data.dashboards["office"].async_save(
+        {"views": [{"title": "One", "cards": ["not a mapping", {"type": "markdown"}]}]}
+    )
+
+    result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"})
+
+    assert result["client_action"]["card_count"] == 2
+
+
+async def test_the_delete_card_fingerprints_the_dashboard(hass: HomeAssistant) -> None:
+    """The id is not immutable either: HA derives it from the url_path, so
+    deleting a dashboard frees BOTH handles the panel matches on. A new one at
+    the same path inherits them, and only the metadata tells the two apart."""
+    await _new_entry(hass)
+
+    result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"})
+
+    assert result["client_action"]["expected"] == {
+        "title": "Office",
+        "icon": "",
+        "require_admin": False,
+        "show_in_sidebar": True,
+    }
+
+
+async def test_a_yaml_dashboard_is_refused_with_the_reason(hass: HomeAssistant) -> None:
+    """It lives in configuration.yaml; the websocket delete cannot touch it."""
+    from unittest.mock import patch
+
+    from homeassistant.components.lovelace.const import MODE_YAML
+
+    data = await _new_entry(hass)
+    with patch.object(type(data.dashboards["office"]), "mode", MODE_YAML):
+        result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"})
+    assert "YAML-mode" in result["error"]
+
+
+async def test_an_unreadable_dashboard_can_still_be_deleted(hass: HomeAssistant) -> None:
+    """The document is read for the label only. An auto-generated board cannot
+    be loaded, and refusing to delete it would leave the user stuck with a
+    dashboard nothing here can remove."""
+    await _new_entry(hass)  # no document saved → reads as auto-gen
+
+    result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"})
+
+    assert result["requires_approval"] is True
+
+
+def test_delete_dashboard_is_a_client_action_and_panel_only() -> None:
+    """Removing the ENTRY needs DashboardsCollection, which lovelace publishes
+    only to its admin-only websocket commands — the same wall creation hits."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        _CLIENT_ACTION_KINDS,
+        _CLIENT_ACTION_TOOLS,
+    )
+
+    assert TOOL_MAP["delete_dashboard"].panel_only is True
+    assert TOOL_MAP["delete_dashboard"].requires_admin is True
+    # Both allowlists, or the card is built and then dropped.
+    assert "delete_dashboard" in _CLIENT_ACTION_TOOLS
+    assert "delete_dashboard" in _CLIENT_ACTION_KINDS
+
+
+def test_delete_dashboard_is_not_on_mcp() -> None:
+    """Like create, it only works where a panel is connected."""
+    from custom_components.selora_ai import mcp_server
+
+    assert "selora_delete_dashboard" not in {t.name for t in mcp_server._TOOL_DEFINITIONS}
+
+
+async def test_the_delete_card_carries_the_collection_id(hass: HomeAssistant) -> None:
+    """A url_path is reusable. Delete a dashboard, make another at the same
+    path before the card is tapped, and a card approved for the first would
+    remove the second. The id is what HA deletes by and the only stable handle."""
+    await _new_entry(hass)
+
+    result = await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"})
+
+    assert result["client_action"]["dashboard_id"] == "office"
+    assert result["client_action"]["url_path"] == "office"
+
+
+def test_a_delete_card_does_not_say_nothing_was_created() -> None:
+    """The pending line negates COMPLETION, which is its whole job — so it has
+    to name the right verb. "Nothing has been created yet" above a Delete
+    button describes the opposite of what is about to happen."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        synthesize_approval_from_tool_log,
+    )
+
+    result = synthesize_approval_from_tool_log(
+        {"intent": "answer", "response": "I have deleted the Office dashboard."},
+        [
+            {
+                "tool": "delete_dashboard",
+                "arguments": {},
+                "result": {
+                    "requires_approval": True,
+                    "client_action": {
+                        "kind": "delete_dashboard",
+                        "url_path": "office",
+                        "title": "Office",
+                    },
+                },
+            }
+        ],
+        None,
+    )
+
+    text = result["response"]
+    assert "deleted yet" in text
+    assert "created" not in text
+    # And the premature claim is still gone.
+    assert "I have deleted" not in text
+
+
+def test_a_create_card_still_says_created() -> None:
+    from custom_components.selora_ai.llm_client.command_policy import (
+        _pending_hint_for,
+    )
+
+    assert "created" in _pending_hint_for([{"kind": "create_dashboard"}], None)
+    assert "deleted" in _pending_hint_for([{"kind": "delete_dashboard"}], None)
+    # A mixed card falls back to the general wording rather than picking one.
+    mixed = _pending_hint_for([{"kind": "create_dashboard"}, {"kind": "delete_dashboard"}], None)
+    assert "created" in mixed
+
+
+@pytest.mark.parametrize(
+    "language", ["fr", "de", "es", "it", "nl", "pt", "hu", "ru", "ja", "ko", "zh"]
+)
+def test_every_locale_has_a_delete_pending_line(language: str) -> None:
+    from custom_components.selora_ai.llm_client.command_policy import (
+        _pending_hint_for,
+    )
+
+    localized = _pending_hint_for([{"kind": "delete_dashboard"}], language)
+    assert localized
+    assert localized != _pending_hint_for([{"kind": "delete_dashboard"}], "en")
+
+
+async def test_an_unreadable_dashboard_reports_unknown_not_empty(
+    hass: HomeAssistant,
+) -> None:
+    """`_load_or_reason` returns nothing precisely when the dashboard renders
+    content we cannot enumerate — a generated Overview is covered in cards. So
+    "0 views, 0 cards" on an IRREVERSIBLE delete would be a false blast radius,
+    and a false one invites the tap. The counts are omitted instead."""
+    await _new_entry(hass)
+
+    action = (await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"}))[
+        "client_action"
+    ]
+
+    assert "view_count" not in action
+    assert "card_count" not in action
+
+
+async def test_the_delete_count_includes_cards_inside_containers(
+    hass: HomeAssistant,
+) -> None:
+    """A grid holding two tiles is ONE addressable card and all of it goes with
+    the dashboard. `_flat_cards` yields what a card index can name, which is
+    the wrong question for a blast radius."""
+    data = await _new_entry(hass)
+    hass.states.async_set("light.office", "on")
+    await data.dashboards["office"].async_save(
+        {
+            "views": [
+                {
+                    "title": "One",
+                    "cards": [
+                        {
+                            "type": "grid",
+                            "cards": [
+                                {"type": "tile", "entity": "light.office"},
+                                {"type": "tile", "entity": "light.office"},
+                            ],
+                        },
+                        {"type": "markdown", "content": "hi"},
+                    ],
+                }
+            ]
+        }
+    )
+
+    action = (await _executor(hass).execute("delete_dashboard", {"dashboard_target": "office"}))[
+        "client_action"
+    ]
+
+    assert action["view_count"] == 1
+    # The grid, its two tiles, and the markdown card.
+    assert action["card_count"] == 4

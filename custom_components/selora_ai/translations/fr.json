@@ -964,7 +964,11 @@
     "client_action_working": "En cours…",
     "client_action_done": "Terminé.",
     "client_action_failed": "Cela n'a pas fonctionné.",
-    "approval_then": "puis"
+    "approval_then": "puis",
+    "client_action_delete": "Supprimer",
+    "client_action_delete_dashboard": "Supprimer le tableau de bord {title} — {views} vues, {cards} cartes",
+    "client_action_confirm_mixed": "Tout confirmer",
+    "client_action_delete_dashboard_unknown": "Supprimer le tableau de bord {title} — contenu inconnu"
   },
   "options": {
     "step": {

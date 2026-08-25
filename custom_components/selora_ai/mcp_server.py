@@ -6393,6 +6393,15 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
 }
 
 
+# Chat parameters with no meaning on MCP. `remaining_intent` is the resumption
+# trigger: the panel carries it on the proposal and re-enters the turn once the
+# user taps the card. MCP has no card and no panel, so a client that passes it
+# is answered by nothing at all — an advertised parameter that silently does
+# nothing is worse than an absent one, because an agent will use it and then
+# wait for the continuation it was promised.
+_PANEL_ONLY_PARAMS = frozenset({"remaining_intent"})
+
+
 def _mcp_tool_from_chat_tool(mcp_name: str, chat_name: str) -> MCPTool:
     """Render a chat ToolDef as an MCP tool definition.
 
@@ -6402,6 +6411,10 @@ def _mcp_tool_from_chat_tool(mcp_name: str, chat_name: str) -> MCPTool:
     promising one reads as a guarantee an agent can act on, and the view is gone
     before anyone is asked. The correction is derived from the same allowlists
     the chat previews use, so a tool added there cannot forget it.
+
+    Panel-only parameters are dropped for the same reason: the shared definition
+    is written for the surface that has a panel, and deriving it verbatim
+    advertises controls the MCP handler cannot honour.
     """
     from .llm_client.command_policy import (  # noqa: PLC0415
         _DELETE_TOOLS,
@@ -6419,10 +6432,21 @@ def _mcp_tool_from_chat_tool(mcp_name: str, chat_name: str) -> MCPTool:
         )
     if mcp_name in _ADMIN_TOOLS:
         description = f"{description} Requires admin access."
+    schema = definition["input_schema"]
+    properties = schema.get("properties") or {}
+    if _PANEL_ONLY_PARAMS & set(properties):
+        schema = {
+            **schema,
+            "properties": {
+                name: spec for name, spec in properties.items() if name not in _PANEL_ONLY_PARAMS
+            },
+        }
+        if required := schema.get("required"):
+            schema["required"] = [n for n in required if n not in _PANEL_ONLY_PARAMS]
     return MCPTool(
         name=mcp_name,
         description=description,
-        inputSchema=definition["input_schema"],
+        inputSchema=schema,
     )
 
 

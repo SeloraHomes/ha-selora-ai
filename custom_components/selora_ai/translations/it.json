@@ -964,7 +964,11 @@
     "client_action_working": "In corso…",
     "client_action_done": "Fatto.",
     "client_action_failed": "Non ha funzionato.",
-    "approval_then": "poi"
+    "approval_then": "poi",
+    "client_action_delete": "Elimina",
+    "client_action_delete_dashboard": "Elimina la dashboard {title} — {views} viste, {cards} schede",
+    "client_action_confirm_mixed": "Conferma tutto",
+    "client_action_delete_dashboard_unknown": "Elimina la dashboard {title} — contenuto sconosciuto"
   },
   "options": {
     "step": {

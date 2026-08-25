@@ -964,7 +964,11 @@
     "client_action_working": "実行中…",
     "client_action_done": "完了しました。",
     "client_action_failed": "うまくいきませんでした。",
-    "approval_then": "その後"
+    "approval_then": "その後",
+    "client_action_delete": "削除",
+    "client_action_delete_dashboard": "{title} ダッシュボードを削除 — {views} ビュー、{cards} カード",
+    "client_action_confirm_mixed": "すべて確認",
+    "client_action_delete_dashboard_unknown": "{title} ダッシュボードを削除 — 内容は不明"
   },
   "options": {
     "step": {

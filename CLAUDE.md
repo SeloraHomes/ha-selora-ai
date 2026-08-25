@@ -880,13 +880,78 @@ restated. A hand-written second copy drifts on the next parameter added, and the
 failure is quiet: the MCP client rejects an argument chat accepts, on a tool that
 looks identical in both listings.
 
+## Resumption — continuing after a confirmation
+
+A turn that proposes something ENDS there. The tool loop short-circuits on
+`requires_approval`, and the handler that runs after the button appends one line
+and stops. So "create a dashboard for the Office **with my Office devices**" and
+"create a scene **and add it to the dashboard**" each produced the first half and
+dropped the second, silently, while the reply read as complete. Resumption is the
+general fix; before it, each tool would have needed its own way to carry work
+across the gap (`create_dashboard` briefly grew a `views` parameter for exactly
+that, since removed).
+
+- **The confirmation is the re-entry point, and it has to be.** The thing the
+  second half needs — the dashboard, the scene entity — does not exist until the
+  user taps. The model is RIGHT to split the work; what it lacked was anywhere to
+  put the second half.
+- **It re-enters `selora_ai/chat_stream` with `resume_proposal_id`.** The same
+  streaming path, so the continuation streams and shows its tool steps like any
+  turn, and there is one implementation to keep right rather than two.
+- **The client sends an id and nothing else.** The directive, the approval status
+  and the depth are read from the STORED proposal. A panel can type any `message`
+  it likes anyway, but it must not be able to resume a card nobody approved or
+  slip past the cap.
+- **Two doors, one resolver.** `_resume_request` answers for a `command_approval`
+  proposal_id (client actions, service approvals, deletes) AND for a `scene_id`,
+  because a scene is proposed as a block and accepted from its own card — the
+  handle it comes back with is the scene id. Refused on a denial, on an unsaved
+  scene, and on an unknown id.
+- **A declaration is preferred, not required.** `remaining_intent` on a carded
+  tool result (lifted once in `ToolExecutor.execute`, never per handler) or beside
+  a scene block is precise, so the continuation knows exactly what to do. But the
+  model announced the follow-up in PROSE three times running — "once you accept
+  the scene below, I can add its dashboard tile" — and left the field unset, and
+  two rounds of firmer wording did not change it. So when it is absent the user's
+  own last message is REPLAYED with the note that the proposal now exists, and
+  the model decides what is left of it. Their words, not a guess at the remainder.
+  The price is a wasted round when the proposal was the whole request, which is
+  why that directive says plainly that a short confirmation is the right answer
+  then — a model told only to "continue" invents work to justify the round.
+- **The replayed request is RECORDED on the proposal, not located later.**
+  `origin_request` is written beside it at append time, because the walk back
+  through the session that used to find it is right only while the session is
+  intact: pruning keeps the very first message pinned ahead of the latest 99, so
+  a proposal that survives at the head of that tail has its own request gone and
+  the scan lands on the pinned one — an unrelated request from the start of the
+  conversation, replayed as though the user had just made it. Same shape as
+  `refining_automation_id`, and for the same reason: the value is knowable only
+  in the turn that proposed, and the tap comes much later. The scan stays as the
+  fallback for proposals written before the field, since a card can outlive a
+  deploy and the failure it guards needs a 100-message session to reach.
+- **The cap is once**, by two mechanisms that come to the same thing: a card
+  proposed DURING a resumed turn is stamped `resume_depth: 1` and refused
+  thereafter, and a resumed turn persists no `remaining_intent`, so there is
+  nothing to resume from. Without a cap a model that keeps proposing one more
+  step runs unbounded on the user's account.
+- **The directive is never persisted.** It is server-written, and storing it
+  would put words in the user's mouth in their own transcript and be read back on
+  every later turn as something they said. `_persist_user_turn` skips it.
+- **`remaining_intent` must not reach MCP.** It is the resumption trigger and MCP
+  has neither card nor panel, so a client passing it is answered by nothing —
+  worse than an absent parameter, because an agent uses it and then waits.
+  `_mcp_tool_from_chat_tool` drops `_PANEL_ONLY_PARAMS` from `properties` AND
+  `required`; a schema naming a required property it does not define is invalid
+  and a strict client rejects the whole tool. This shipped once, on five derived
+  tools, because the deriver copies the chat schema verbatim.
+
 ## Dashboards
 
 `dashboard_manager.py` backs the chat tools that read and edit Lovelace content —
 `get_dashboard`, `get_dashboard_card`, `add_dashboard_view`,
 `update_dashboard_view`, `remove_dashboard_view`, `update_dashboard_card`,
-`remove_dashboard_card` — alongside the older `list_dashboards` /
-`insert_dashboard_card`. It is separate from `recipes/dashboard.py`, which is the
+`remove_dashboard_card`, `delete_dashboard` — alongside the older
+`list_dashboards` / `insert_dashboard_card`. It is separate from `recipes/dashboard.py`, which is the
 recipe install stage; this module reuses its `_view_card_lists` but nothing else.
 
 - **A dashboard ENTRY cannot be created IN-PROCESS** — which is not the same as
@@ -1097,6 +1162,102 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
   a fragment. The view stores fine either way; only the link would be wrong,
   which is the worst shape for a result whose whole job is to be followed, and it is empty until cards are added, which is the other half of
   "I can't see anything". A genuinely separate dashboard is `create_dashboard`.
+- **Nothing here can ask Home Assistant whether a card is valid.** Lovelace has
+  no server-side validator: it stores what it is given and the frontend finds
+  out, rendering "Unknown type encountered: fan" on the user's wall. An
+  automation gets `async_validate_config_item`; a card gets three things instead,
+  and each was added after a broken card reached a real dashboard.
+  - **A domain used as a card type is refused.** There is no `fan`, `switch` or
+    `cover` card. The check is INVERTED rather than an allowlist of HA's card
+    catalogue: that goes stale every release, can never contain a home's custom
+    cards, and every gap in it is a valid card refused. So it asks "is this the
+    name of a domain in THIS home that has no card of its own?", reading the live
+    state machine, because that is the shape the mistakes take — the model draws
+    on the home's own vocabulary. What is left to maintain is
+    `_DOMAIN_NAMED_CARDS`, twelve names that change about once a year. A card
+    type newer than this code passes, every `custom:` card passes, and a domain
+    the home does not have passes — a fanless home cannot catch `fan`, which is
+    the honest price of not maintaining a catalogue.
+  - **The check walks the whole card**, the way `_unknown_entities` does. The
+    wrong type is usually a CHILD: a valid `grid` holding one bad tile. It
+    follows `cards`, `sections` and the conditional card's singular `card`, and
+    deliberately NOT `features` — a tile's features carry their own vocabulary
+    (`light-brightness`, `fan-speed`) which are not cards, and walking them would
+    refuse every tile that has one.
+  - **The vocabulary is handed over before composing** (`dashboard_cards.py`), on
+    `get_dashboard`'s result — the read the model is told to always do first — so
+    it arrives once per turn rather than on every write. A refusal only says what
+    NOT to write; this is the cheaper half. Kept short: it shares the 16K result
+    budget with the dashboard the model actually asked for, and card OPTIONS are
+    omitted because the model knows Lovelace's schemas — what it cannot know is
+    which types exist here.
+- **A refused write is never reported as done.** The refusal goes back as an
+  ordinary tool result, so the model can correct itself and call again inside the
+  turn — that is the same loop an invalid automation gets, without a bespoke
+  retry path, because the write is a tool call rather than a block in the final
+  answer. What was missing is the other end: nothing stopped a turn whose writes
+  were ALL refused from answering "Added the card". `note_failed_dashboard_write`
+  states the outcome and sets `validation_error` / `validation_target` so the
+  panel can tell a claimed change from a real one without reading prose. Only
+  when nothing succeeded — a turn that fixed itself on the second call did what
+  was asked — and writes only, since a failed read is answered by the prose.
+- **Deleting a dashboard is the panel's job too**, for the reason creating one
+  is: `DashboardsCollection` is published only to lovelace's admin-only websocket
+  commands. Same shape — the server validates and proposes a closed intent, the
+  panel performs it. HA keys the delete by the collection **id**, not the
+  `url_path` the user named, so the panel resolves that from the list it already
+  fetches; an already-deleted dashboard reports DONE, because a retry after a
+  lost report finds exactly that and it is the outcome that was asked for. The
+  card says **Delete**, in the deny tone: wording and tone follow the ACTION,
+  not the kind of card. A YAML dashboard is refused with where to change it
+  instead.
+  - **Neither handle is immutable, so the descriptor carries a third.**
+    `DashboardsCollection._get_suggested_id` returns the `url_path`, so a
+    dashboard's id IS its path and deleting one frees BOTH at once: make
+    another at that path between the proposal and the tap and the replacement
+    answers to every handle the panel matches on. The intent therefore carries
+    an `expected` block — title, icon, `require_admin`, `show_in_sidebar` — and
+    the panel compares it through the same `matchesProposal` the create uses to
+    recognise its own retry. Nothing a dashboard carries is immutable enough to
+    be a true identity; a recreation made identical in all four is one the user
+    could not distinguish either. The raw stored title goes in that block, not
+    the card's `title`, which is sanitized and truncated for display and would
+    mismatch any dashboard named at length. A card with no `expected` predates
+    the field and still deletes — a proposal can outlive a deploy, and failing
+    on a field nobody sent is not a guard.
+  - **The default is refused by IDENTITY, not by name.** `/default` is a path a
+    user can genuinely have — single-word paths are allowed and the create tool
+    here makes them — so reserving the string left that dashboard undeletable
+    while telling its owner it was the built-in Overview. The target is
+    resolved, then compared against what `_lovelace_dashboard(hass, None)`
+    resolves to, which already collapses `""`, `None` and `"lovelace"` onto
+    whichever key HA is serving. Asking the one resolver twice is what keeps
+    the two answers in agreement.
+  - **The blast radius is counted, and UNKNOWN is not zero.** HA drops the
+    stored document with the entry, so every view and card goes. An unreadable
+    document does NOT block the delete — it is read for the label only, and
+    refusing would strand the user with a dashboard nothing here can remove —
+    but `_load_or_reason` returns nothing precisely when the dashboard renders
+    content we cannot enumerate, and a generated Overview is covered in cards.
+    So the counts are OMITTED rather than zeroed and the card says contents
+    unknown: a false blast radius is worse than no number, because it invites
+    the tap. The count that is reported includes cards inside containers
+    (`_cards_in_tree`) — `_flat_cards` yields what a card index can NAME, which
+    is the right question for editing and the wrong one here, since a grid
+    holding twenty tiles is one addressable card and all twenty go with it.
+- **A dashboard turn is LINKED, not tiled.** Entity tiles render as live HA cards
+  and read as a preview of the layout that was saved, which they are not, so
+  `is_dashboard_turn` strips them — and the chat handler used to append tiles of
+  its own further downstream, putting them straight back. Each half was right
+  alone, so no test of either half could see it and the rule was documented and
+  not in force; it is one question now, asked once and honoured by both. What
+  goes there instead is `[[dashboard:<url>|<label>]]`, a marker the panel renders
+  as its own card — a page is not a device, so it must not look like the card
+  that toggles a light. Emitted regardless of what the prose says, because the
+  model writes the path as a code span ("available at `/office/0`") which looks
+  like a link and is not one; only an existing marker suppresses it. The pattern
+  accepts a single-slash absolute path ONLY, since the marker travels through
+  model-authored text.
 - **Lovelace validates nothing server-side.** The stored document is free-form
   JSON owned by the frontend, so a view's `title` and `path` are **not** unique.
   `resolve_view` accepts an index, a path, or a title, and **refuses an ambiguous

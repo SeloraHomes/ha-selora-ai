@@ -1994,6 +1994,33 @@ _ACTION_FAILED_BY_LANG: dict[str, str] = {
 }
 
 
+_DASHBOARD_DELETED_BY_LANG: dict[str, str] = {
+    "fr": "J'ai supprimé le tableau de bord {title}.",
+    "de": "Das Dashboard {title} wurde gelöscht.",
+    "es": "He eliminado el panel {title}.",
+    "it": "Ho eliminato la dashboard {title}.",
+    "nl": "Het dashboard {title} is verwijderd.",
+    "pt": "Eliminei o painel {title}.",
+    "hu": "Töröltem a(z) {title} vezérlőpultot.",
+    "ru": "Панель {title} удалена.",
+    "ja": "{title} ダッシュボードを削除しました。",
+    "ko": "{title} 대시보드를 삭제했습니다.",
+    "zh": "已删除 {title} 仪表板。",
+}
+
+
+def dashboard_deleted_line(title: str, language: str | None) -> str:
+    """The confirmation for a dashboard the panel deleted.
+
+    No URL, unlike the created line: there is nowhere to go and look, and a
+    link to a page that no longer exists is worse than none.
+    """
+    template = _DASHBOARD_DELETED_BY_LANG.get(
+        _normalize_lang(language), "Deleted the {title} dashboard."
+    )
+    return template.format(title=title)
+
+
 def dashboard_created_line(title: str, url: str, language: str | None) -> str:
     """The confirmation for a dashboard the panel created, in the user's language."""
     template = _DASHBOARD_CREATED_BY_LANG.get(
@@ -2667,8 +2694,8 @@ def _delete_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
 # Tools whose work the PANEL performs, because the supported API is a websocket
 # command and we are not a websocket client. Only these may emit a
 # `client_action` descriptor, and the panel allowlists the kinds again.
-_CLIENT_ACTION_TOOLS = frozenset({"create_dashboard"})
-_CLIENT_ACTION_KINDS = frozenset({"create_dashboard"})
+_CLIENT_ACTION_TOOLS = frozenset({"create_dashboard", "delete_dashboard"})
+_CLIENT_ACTION_KINDS = frozenset({"create_dashboard", "delete_dashboard"})
 
 
 def _pending_client_actions_from_log(
@@ -2740,12 +2767,44 @@ _CLIENT_ACTION_PENDING_BY_LANG: dict[str, str] = {
 }
 
 
+_DELETE_PENDING_BY_LANG: dict[str, str] = {
+    "fr": "Rien n'a encore été supprimé — confirmez ci-dessous et je m'en occupe.",
+    "de": "Es wurde noch nichts gelöscht — bestätigen Sie unten, dann erledige ich das.",
+    "es": "Todavía no se ha eliminado nada: confirma abajo y lo hago.",
+    "it": "Non è stato ancora eliminato nulla — conferma qui sotto e lo faccio.",
+    "nl": "Er is nog niets verwijderd — bevestig hieronder en ik doe het.",
+    "pt": "Ainda não foi eliminado nada — confirme abaixo e eu trato disso.",
+    "hu": "Még semmi nem lett törölve – erősítse meg lent, és elvégzem.",
+    "ru": "Пока ничего не удалено — подтвердите ниже, и я это сделаю.",
+    "ja": "まだ削除していません。下で確認していただければ対応します。",
+    "ko": "아직 아무것도 삭제하지 않았습니다. 아래에서 확인하시면 진행합니다.",
+    "zh": "目前尚未删除——请在下方确认，我就去办。",
+}
+
+
 def client_action_pending_hint(language: str | None) -> str:
     """Localized hint shown while a client-executed action awaits its tap."""
     return _CLIENT_ACTION_PENDING_BY_LANG.get(
         _normalize_lang(language),
         "Nothing has been created yet — confirm below and I will do it.",
     )
+
+
+def _pending_hint_for(actions: list[dict[str, Any]], language: str | None) -> str:
+    """The pending line, phrased for what the card actually proposes.
+
+    The wording negates COMPLETION, which is the whole point of it — so it has
+    to name the right verb. "Nothing has been created yet" above a Delete
+    button describes the opposite of what is about to happen, and the one line
+    whose job is to stop a premature claim would be making a false one.
+    """
+    kinds = {str(action.get("kind", "")) for action in actions}
+    if kinds and kinds <= {"delete_dashboard"}:
+        return _DELETE_PENDING_BY_LANG.get(
+            _normalize_lang(language),
+            "Nothing has been deleted yet — confirm below and I will do it.",
+        )
+    return client_action_pending_hint(language)
 
 
 _DEFERRED_ACTION_BY_LANG: dict[str, str] = {
@@ -2853,7 +2912,7 @@ def _build_client_action_response(
     # (``dashboard_created_line``); until then the wording has to be the
     # deterministic pending one, exactly as the delete card does it.
     effective_language = language or (hass.config.language if hass is not None else None)
-    hint = client_action_pending_hint(effective_language)
+    hint = _pending_hint_for(actions, effective_language)
     # A safe write in the same round ALREADY executed — "turn the porch light
     # off and make me a dashboard" fires the light and holds the dashboard.
     # Acknowledge it alongside the hint or overriding the response drops the

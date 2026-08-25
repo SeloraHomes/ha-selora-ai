@@ -15,25 +15,78 @@
  */
 
 /**
- * Whether an existing dashboard is the one this action proposed.
+ * Whether the dashboard sitting there is the one this action was built for.
  *
- * Compared on the fields the create would have SET, normalized the same way
- * the payload normalizes them — an absent `show_in_sidebar` and an explicit
- * `false` are the same stored dashboard, and an absent icon is not a mismatch
- * against an action that carries none. HA stores these verbatim, so a retry of
- * our own create agrees on all four.
+ * Compared on the four fields a dashboard's metadata carries, normalized the
+ * same way the create payload normalizes them — an absent `show_in_sidebar`
+ * and an explicit `false` are the same stored dashboard, and an absent icon is
+ * not a mismatch against an action that carries none. HA stores these
+ * verbatim, so a retry of our own create agrees on all four.
+ *
+ * Both handlers ask it, for the same reason from opposite ends: create wants
+ * to know whether the dashboard now at that url_path is its own earlier
+ * attempt, delete wants to know whether the dashboard now holding that id is
+ * still the one the card named.
  */
-function matchesProposal(existing, action) {
+function matchesProposal(existing, expected) {
   return (
-    String(existing.title || "") === String(action.title || "") &&
-    String(existing.icon || "") === String(action.icon || "") &&
-    Boolean(existing.require_admin) === Boolean(action.require_admin) &&
-    Boolean(existing.show_in_sidebar) === Boolean(action.show_in_sidebar)
+    String(existing.title || "") === String(expected.title || "") &&
+    String(existing.icon || "") === String(expected.icon || "") &&
+    Boolean(existing.require_admin) === Boolean(expected.require_admin) &&
+    Boolean(existing.show_in_sidebar) === Boolean(expected.show_in_sidebar)
   );
 }
 
 /** Kinds this panel will execute. Checked again here, not just server-side. */
 const HANDLERS = {
+  delete_dashboard: async (hass, action) => {
+    const urlPath = String(action.url_path || "");
+
+    // Matched by the COLLECTION id the proposal resolved, not by url_path. A
+    // path is reusable: delete a dashboard and make another at the same path
+    // between the proposal and the tap, and a card approved for the first
+    // would remove the second. The id is what HA deletes by anyway.
+    const dashboardId = String(action.dashboard_id || "");
+    const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
+    const match = (existing || []).find((d) => d?.id && d.id === dashboardId);
+    if (!match) {
+      // Idempotent, because the card can outlive its own execution: if the
+      // delete succeeded and the REPORT failed, a retry finds it already gone.
+      // That is the outcome the user asked for, not a failure.
+      return { url_path: urlPath, title: action.title, already_gone: true };
+    }
+    if (urlPath && match.url_path !== urlPath) {
+      // Same dashboard, moved. The card named a page the user recognised, and
+      // deleting something that now answers to a different address is not what
+      // they approved.
+      throw new Error(
+        `That dashboard is no longer at /${urlPath} — it is at /${match.url_path}. ` +
+          `Ask again to confirm which one to delete.`,
+      );
+    }
+
+    // An id is not immutable either. HA derives a dashboard's collection id
+    // from its url_path, so deleting one frees the id — delete /office and
+    // make a new /office before the tap, and the replacement answers to both
+    // handles the check above uses. Comparing the metadata is what separates
+    // them. `expected` is absent on a card built before it was sent, which is
+    // a proposal that outlived a deploy: verify what is there to verify rather
+    // than failing a delete the user asked for on a field nobody sent.
+    if (action.expected && !matchesProposal(match, action.expected)) {
+      throw new Error(
+        `The dashboard at /${match.url_path} is not the one this card named — ` +
+          `"${String(match.title || "")}" is there now. ` +
+          `Ask again to confirm which one to delete.`,
+      );
+    }
+
+    await hass.callWS({
+      type: "lovelace/dashboards/delete",
+      dashboard_id: match.id,
+    });
+    return { url_path: urlPath, title: match.title || action.title };
+  },
+
   create_dashboard: async (hass, action) => {
     const urlPath = String(action.url_path || "");
 
@@ -188,10 +241,13 @@ export async function resolveClientActions(host, msg, approval) {
   IN_FLIGHT.delete(proposalId);
   if (reported && sessionId && host._activeSessionId === sessionId) {
     await host._openSession?.(sessionId);
-    // The card was only ever the first step. Continue what it left — the
-    // server refuses if this was denied, had nothing left, or has already been
-    // continued once, so the panel does not have to work any of that out.
-    if (ok && approval?.remaining_intent) {
+    // The card was only ever the first step — a client action exists because
+    // the thing it makes does not exist yet. Not gated on a declared
+    // remainder: the model announces the follow-up in prose and leaves the
+    // field unset, so the server replays the original request instead and
+    // decides what is outstanding. It also refuses a denial, a repeat, and
+    // anything already continued once.
+    if (ok) {
       await host._sendMessage?.({ resumeProposalId: proposalId });
     }
   }

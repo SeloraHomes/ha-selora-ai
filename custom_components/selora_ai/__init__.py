@@ -2317,6 +2317,10 @@ async def _handle_websocket_chat(
         quick_actions=result.get("quick_actions"),
         command_approval=command_approval_payload,
         approval_status="pending" if command_approval_payload else None,
+        # What resumption replays if the card is confirmed with nothing else
+        # declared. Recorded here because by then this turn is long over and
+        # pruning may have taken the message it would have been read from.
+        origin_request=persisted_user_message,
     )
 
     updated_session = await store.get_session(session_id)
@@ -2570,11 +2574,34 @@ async def _persist_user_turn(
     await store.append_message(session_id, "user", content)
 
 
+# When the model declared what it still owed. Precise, so the continuation
+# knows exactly what to do.
 _RESUME_DIRECTIVE = (
     "The confirmation you were waiting for has been given and the action is "
     "done — it is in the conversation above. Continue with what was left: "
     "{intent}. Do it now with the tools; do not ask again, do not repeat the "
     "step that just completed, and do not propose another confirmation card."
+)
+
+# When it did not. Three times running the model announced the follow-up in
+# PROSE — "once you accept the scene below, I can add its dashboard tile" — and
+# left `remaining_intent` unset, so the work it had just promised was dropped
+# and the user retyped it by hand. Asking more firmly did not fix that, so the
+# declaration is no longer required: the ORIGINAL request is replayed instead,
+# and the model decides what is left of it now the proposal exists.
+#
+# The no-op case is the price. When the proposal WAS the whole request this
+# spends one round on a sentence, which is why the directive says plainly that
+# a short confirmation is the right answer then — a model told only to
+# "continue" will invent something to do.
+_RESUME_FROM_REQUEST_DIRECTIVE = (
+    "The confirmation you were waiting for has been given and the action is "
+    "done — it is in the conversation above, and anything it created now "
+    "exists. The user's original request was: {request}\n"
+    "If any part of it is still outstanding, do that part NOW with the tools. "
+    "If the request is fully satisfied, reply with one short confirmation and "
+    "nothing else. Either way: do not repeat the step that just completed, do "
+    "not ask the user to confirm again, and do not propose another card."
 )
 
 
@@ -2592,6 +2619,34 @@ def _proposal_remaining_intent(parsed: dict[str, Any]) -> str | None:
     return declared.strip()[:200]
 
 
+def _request_behind(stored_messages: list[dict[str, Any]], proposal_index: int) -> str | None:
+    """The user message this proposal answered, for replaying what it half-served.
+
+    Searched BACKWARDS FROM THE PROPOSAL, not from the end of the session. A
+    card can sit unaccepted while the conversation moves on — ask for a scene,
+    leave it, ask three other things, then tap Accept — and replaying the
+    newest message would resume an unrelated request, acting on something the
+    user never connected to that card.
+
+    Read off the PROPOSAL first, because the scan is only right while the
+    session is intact. Pruning keeps the session's first message pinned ahead
+    of the latest 99, so a proposal that survives at the head of that tail has
+    its own request gone and the scan finds the pinned one instead — an
+    unrelated request from the start of the conversation, replayed as though
+    the user had just made it. The scan stays for proposals written before the
+    field existed; a card can outlive a deploy.
+
+    Bounded, because it goes back into a prompt.
+    """
+    stored = stored_messages[proposal_index].get("origin_request")
+    if isinstance(stored, str) and stored.strip():
+        return stored.strip()[:400]
+    for message in reversed(stored_messages[:proposal_index]):
+        if message.get("role") == "user" and str(message.get("content") or "").strip():
+            return str(message["content"]).strip()[:400]
+    return None
+
+
 def _resume_request(
     stored_messages: list[dict[str, Any]], proposal_id: str
 ) -> tuple[str | None, str | None]:
@@ -2606,15 +2661,34 @@ def _resume_request(
     remaining work, and it is not itself the product of a resumed turn — that
     last one is the cap: a card may be resumed once.
     """
-    for message in stored_messages:
+    # NEWEST first. A scene id is a uuid, but a REFINEMENT reuses the id of the
+    # scene it revises, so a session can hold several saved messages carrying
+    # the same one — and the oldest would answer with its own stale request, or
+    # refuse on a resume_depth belonging to a proposal the user is not looking
+    # at. The card just accepted is the last one written.
+    for index, message in reversed(list(enumerate(stored_messages))):
         # A scene is not a command_approval: it is proposed as a block and
         # accepted from its own card, and the handle it comes back with is the
         # scene_id. Same question, different door — and the door the model
         # actually used when it said "once it's created, I'll add a tile".
-        if message.get("scene_id") == proposal_id and message.get("remaining_intent"):
+        if message.get("scene_id") == proposal_id:
             if message.get("scene_status") != "saved":
                 return None, "That scene was not saved, so there is nothing to continue."
-            return _RESUME_DIRECTIVE.format(intent=str(message["remaining_intent"])), None
+            if int(message.get("resume_depth") or 0) >= 1:
+                # THE CAP, and it cannot ride on `remaining_intent` being
+                # absent any more: absence is now the ordinary case that
+                # replays the request, so a resumed turn's own scene would
+                # otherwise be resumable and the chain would never end.
+                return None, "That step has already been continued once."
+            if declared := message.get("remaining_intent"):
+                return _RESUME_DIRECTIVE.format(intent=str(declared)), None
+            # Nothing declared — replay the request instead of dropping the
+            # rest of it. The model reliably says what it will do next in
+            # prose and just as reliably leaves this field unset.
+            request = _request_behind(stored_messages, index)
+            if not request:
+                return None, "There is no request to continue."
+            return _RESUME_FROM_REQUEST_DIRECTIVE.format(request=request), None
         approval = message.get("command_approval")
         if not isinstance(approval, dict) or approval.get("proposal_id") != proposal_id:
             continue
@@ -2626,9 +2700,21 @@ def _resume_request(
             # would otherwise run unbounded on the user's account.
             return None, "That step has already been continued once."
         intent = approval.get("remaining_intent")
-        if not isinstance(intent, str) or not intent.strip():
+        if isinstance(intent, str) and intent.strip():
+            return _RESUME_DIRECTIVE.format(intent=intent.strip()), None
+        if approval.get("approval_kind") != "client_action":
+            # A service approval usually IS the whole request — "unlock the
+            # front door" is done when it runs — and replaying it would put a
+            # model round on the hottest path in the product for nothing.
             return None, "That action had nothing left to do."
-        return _RESUME_DIRECTIVE.format(intent=intent.strip()), None
+        # A CLIENT ACTION is different: it exists because the thing it makes
+        # does not exist yet, so it is a first step by construction, and this
+        # is the case the fallback was written for — "create a dashboard for
+        # the Office WITH my Office devices" is where all of this started.
+        request = _request_behind(stored_messages, index)
+        if not request:
+            return None, "There is no request to continue."
+        return _RESUME_FROM_REQUEST_DIRECTIVE.format(request=request), None
     return None, "No such proposal in this conversation."
 
 
@@ -3390,9 +3476,19 @@ async def _handle_websocket_chat_stream(
             # chain cannot continue, which is the same once-only cap the
             # command_approval path spells as resume_depth.
             remaining_intent=(None if resuming else _proposal_remaining_intent(parsed)),
+            # A proposal made during a resumed turn is capped, and says so on
+            # the record. Leaving it undeclared is no longer enough: an absent
+            # remainder now means "replay the request", so an unstamped scene
+            # from a resumed turn would be resumable and the chain endless.
+            resume_depth=1 if resuming else 0,
             command_approval=command_approval_payload,
             approval_status="pending" if command_approval_payload else None,
             steps=steps or None,
+            # What resumption replays when nothing else was declared. Recorded
+            # rather than located later — see `_request_behind`. Absent on a
+            # resumed turn for the reason `remaining_intent` is: the user did
+            # not write that message, and the card is capped anyway.
+            origin_request=(None if resuming else persisted_user_message),
         )
         persisted_any = True
 

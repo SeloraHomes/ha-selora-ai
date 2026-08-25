@@ -44,7 +44,11 @@ export async function _acceptScene(msgIndex) {
     // entity did not exist until just now, so this is the first moment the
     // rest can be done. The server refuses if the scene was not saved or
     // nothing was declared, so the panel does not decide any of that.
-    if (msg.remaining_intent && result.scene_id) {
+    // Not gated on a declared remainder any more: the model announces the
+    // follow-up in prose and leaves the field unset, so the server replays the
+    // original request instead. It decides whether anything is outstanding —
+    // the panel only says the scene now exists.
+    if (result.scene_id) {
       await this._sendMessage?.({ resumeProposalId: result.scene_id });
     }
   } catch (err) {

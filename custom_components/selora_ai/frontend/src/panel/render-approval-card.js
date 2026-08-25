@@ -142,9 +142,20 @@ const _CONFIRM_VARIANTS = {
     titlePluralKey: "client_action_title",
     titlePluralFallback: "Needs your confirmation",
     confirm: {
-      // The same quiet approve chip the risk card's Allow uses. Its styles
-      // exist so confirmation buttons "stay visually quiet next to the risk
-      // card" — a filled button here would shout where Allow murmurs.
+      // The same quiet chip the risk card's Allow uses. Its styles exist so
+      // confirmation buttons "stay visually quiet next to the risk card" — a
+      // filled button here would shout where Allow murmurs.
+      //
+      // Wording and tone follow the ACTION, not the card: "Create" on a button
+      // that deletes a dashboard would be worse than unhelpful.
+      byKind: {
+        delete_dashboard: {
+          tone: "deny",
+          icon: "mdi:trash-can-outline",
+          labelKey: "client_action_delete",
+          labelFallback: "Delete",
+        },
+      },
       tone: "approve",
       icon: "mdi:plus",
       labelKey: "client_action_confirm",
@@ -264,18 +275,42 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
       ${
         copy.confirm
           ? html`<div class="qa-group qa-group--confirmations">
-              ${renderConfirmChip(
-                host,
-                {
-                  label: host._t(
-                    copy.confirm.labelKey,
-                    copy.confirm.labelFallback,
-                  ),
-                  icon: copy.confirm.icon,
-                  tone: copy.confirm.tone,
-                },
-                () => copy.confirm.run(host, msg, approval),
-              )}
+              ${(() => {
+                // Every row, not just the first. One tool round can propose a
+                // creation AND a deletion, and they share this single button:
+                // taking the wording from rows[0] would put an approve-toned
+                // "Create" on a press that also deletes a dashboard.
+                const kinds = rows.map((row) => String(row?.kind || ""));
+                const destructive = kinds.filter(
+                  (kind) => copy.confirm.byKind?.[kind]?.tone === "deny",
+                );
+                const confirm = !destructive.length
+                  ? copy.confirm
+                  : destructive.length === kinds.length
+                    ? {
+                        ...copy.confirm,
+                        ...copy.confirm.byKind[destructive[0]],
+                      }
+                    : {
+                        // Mixed. Neutral wording, because neither verb
+                        // describes the whole press — and the destructive tone,
+                        // because something here deletes data.
+                        ...copy.confirm,
+                        ...copy.confirm.byKind[destructive[0]],
+                        icon: "mdi:check",
+                        labelKey: "client_action_confirm_mixed",
+                        labelFallback: "Confirm all",
+                      };
+                return renderConfirmChip(
+                  host,
+                  {
+                    label: host._t(confirm.labelKey, confirm.labelFallback),
+                    icon: confirm.icon,
+                    tone: confirm.tone,
+                  },
+                  () => copy.confirm.run(host, msg, approval),
+                );
+              })()}
             </div>`
           : ""
       }
@@ -455,6 +490,29 @@ function _scopeLabel(host, scope, entityIds) {
  * The descriptor carries the parts; the wording belongs to the frontend.
  */
 function _actionLabel(host, action) {
+  if (action.kind === "delete_dashboard") {
+    const title = action.title || action.url_path || "";
+    // Absent counts mean the document could not be read — a generated
+    // Overview renders content nothing here can enumerate. Saying "0 views, 0
+    // cards" on an irreversible delete would be a false blast radius, which
+    // invites the tap; unknown is the honest answer.
+    if (action.view_count == null || action.card_count == null) {
+      return host
+        ._t(
+          "client_action_delete_dashboard_unknown",
+          "Delete the {title} dashboard — contents unknown",
+        )
+        .replace("{title}", title);
+    }
+    return host
+      ._t(
+        "client_action_delete_dashboard",
+        "Delete the {title} dashboard — {views} views, {cards} cards",
+      )
+      .replace("{title}", title)
+      .replace("{views}", String(action.view_count))
+      .replace("{cards}", String(action.card_count));
+  }
   if (action.kind === "create_dashboard") {
     // `_t` does not interpolate, so the placeholders are filled here — the
     // same shape localizePlural uses for {count}.
@@ -471,6 +529,7 @@ function _actionLabel(host, action) {
 
 const _CLIENT_ACTION_ICONS = {
   create_dashboard: "mdi:view-dashboard-outline",
+  delete_dashboard: "mdi:view-dashboard-outline",
 };
 
 /** One proposed client action, in the shared card's row shape. */

@@ -32,6 +32,7 @@ from ..llm_client.command_policy import (
     _done_text,
     action_failed_line,
     dashboard_created_line,
+    dashboard_deleted_line,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -340,7 +341,20 @@ async def _record_client_action_result(
     lines: list[str] = []
     for result in results:
         detail = result.get("detail")
-        if result.get("ok") and isinstance(detail, dict):
+        if (
+            result.get("ok")
+            and isinstance(detail, dict)
+            and str(result.get("kind")) == "delete_dashboard"
+        ):
+            # No seeding, no card marker: the page is gone, and a link to it
+            # would be a link to nothing.
+            lines.append(
+                dashboard_deleted_line(
+                    sanitize_untrusted_text(str(detail.get("title") or ""), 60),
+                    language,
+                )
+            )
+        elif result.get("ok") and isinstance(detail, dict):
             # The entry exists now; the DOCUMENT does not, and storage reports a
             # dashboard with no document as `auto-gen` — indistinguishable from a
             # generated Overview. Every write would be refused with the Take

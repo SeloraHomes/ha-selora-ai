@@ -141,6 +141,7 @@ class ToolExecutor:
             "get_dashboard": self._get_dashboard,
             "get_dashboard_card": self._get_dashboard_card,
             "create_dashboard": self._create_dashboard,
+            "delete_dashboard": self._delete_dashboard,
             "add_dashboard_view": self._add_dashboard_view,
             "update_dashboard_view": self._update_dashboard_view,
             "remove_dashboard_view": self._remove_dashboard_view,
@@ -666,6 +667,14 @@ class ToolExecutor:
             # defaults are applied here rather than by Python truthiness.
             require_admin=_opt_bool(arguments.get("require_admin")) or False,
             show_in_sidebar=_bool_default_true(_opt_bool(arguments.get("show_in_sidebar"))),
+        )
+
+    async def _delete_dashboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Propose deleting a dashboard — the panel performs it, as with create."""
+        from .dashboard_manager import async_propose_dashboard_delete
+
+        return await async_propose_dashboard_delete(
+            self._hass, str(arguments.get("dashboard_target", ""))
         )
 
     async def _add_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:

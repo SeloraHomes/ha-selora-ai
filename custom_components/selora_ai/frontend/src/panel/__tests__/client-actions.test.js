@@ -572,15 +572,17 @@ describe("resuming what the card left unfinished", () => {
     expect(host._sendMessage).toHaveBeenCalledWith({ resumeProposalId: "p1" });
   });
 
-  it("does not continue when nothing was left", async () => {
-    // Which is most cards. A model round to discover there is nothing to do
-    // would be paid on every single approval.
+  it("continues even when nothing was declared", async () => {
+    // The model announces the follow-up in prose and leaves the field unset,
+    // so the panel no longer decides: the server replays the original request
+    // and works out what is outstanding. A client action is a first step by
+    // construction — the thing it makes does not exist yet.
     const approval = { ...APPROVAL, remaining_intent: undefined };
     const host = cardHost(approval);
 
     await resolveClientActions(host, { session_id: "s1" }, approval);
 
-    expect(host._sendMessage).not.toHaveBeenCalled();
+    expect(host._sendMessage).toHaveBeenCalledWith({ resumeProposalId: "p1" });
   });
 
   it("does not continue when the action itself failed", async () => {
@@ -613,5 +615,226 @@ describe("resuming what the card left unfinished", () => {
     await resolveClientActions(host, { session_id: "s1" }, APPROVAL);
 
     expect(host._sendMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleting a dashboard", () => {
+  const DELETE_ACTION = {
+    kind: "delete_dashboard",
+    dashboard_id: "office-id",
+    url_path: "office",
+    title: "Office",
+    view_count: 2,
+    card_count: 5,
+  };
+
+  it("deletes by the collection id the proposal resolved", async () => {
+    // HA keys the delete by the collection id. The proposal resolves it
+    // server-side and the panel matches on it, so a path reused by a different
+    // dashboard between proposal and tap cannot be hit.
+    const hass = {
+      callWS: vi.fn(async (p) =>
+        p.type === "lovelace/dashboards/list"
+          ? [
+              { id: "other-id", url_path: "kitchen" },
+              { id: "office-id", url_path: "office", title: "Office" },
+            ]
+          : {},
+      ),
+    };
+
+    const result = await runClientAction(hass, DELETE_ACTION);
+
+    expect(result.ok).toBe(true);
+    expect(hass.callWS).toHaveBeenCalledWith({
+      type: "lovelace/dashboards/delete",
+      dashboard_id: "office-id",
+    });
+  });
+
+  it("treats an already-deleted dashboard as done, not failed", async () => {
+    // The card can outlive its own execution: the delete succeeds, the report
+    // fails, and a retry finds it gone. That is the outcome the user asked for.
+    const hass = {
+      callWS: vi.fn(async (p) =>
+        p.type === "lovelace/dashboards/list" ? [] : {},
+      ),
+    };
+
+    const result = await runClientAction(hass, DELETE_ACTION);
+
+    expect(result.ok).toBe(true);
+    expect(result.detail.already_gone).toBe(true);
+    expect(
+      hass.callWS.mock.calls.some(
+        (c) => c[0].type === "lovelace/dashboards/delete",
+      ),
+    ).toBe(false);
+  });
+
+  it("never forwards a field it was not expecting", async () => {
+    const hass = {
+      callWS: vi.fn(async (p) =>
+        p.type === "lovelace/dashboards/list"
+          ? [{ id: "office-id", url_path: "office" }]
+          : {},
+      ),
+    };
+
+    await runClientAction(hass, {
+      ...DELETE_ACTION,
+      type: "config/auth/create",
+    });
+
+    const sent = hass.callWS.mock.calls.find(
+      (c) => c[0].type === "lovelace/dashboards/delete",
+    )[0];
+    expect(Object.keys(sent).sort()).toEqual(["dashboard_id", "type"]);
+  });
+});
+
+describe("the delete is bound to the dashboard that was approved", () => {
+  const ACTION = {
+    kind: "delete_dashboard",
+    dashboard_id: "office-id",
+    url_path: "office",
+    title: "Office",
+  };
+
+  it("matches on the collection id, not the path", async () => {
+    // A url_path is reusable: delete a dashboard and make another at the same
+    // path between the proposal and the tap, and matching by path would remove
+    // the replacement.
+    const hass = {
+      callWS: vi.fn(async (p) =>
+        p.type === "lovelace/dashboards/list"
+          ? [{ id: "someone-elses-id", url_path: "office", title: "Impostor" }]
+          : {},
+      ),
+    };
+
+    const result = await runClientAction(hass, ACTION);
+
+    expect(result.detail.already_gone).toBe(true);
+    expect(
+      hass.callWS.mock.calls.some(
+        (c) => c[0].type === "lovelace/dashboards/delete",
+      ),
+    ).toBe(false);
+  });
+
+  it("refuses when the approved dashboard has moved", async () => {
+    // Same dashboard, different address. The card named a page the user
+    // recognised; deleting one that now answers elsewhere is not what they
+    // approved.
+    const hass = {
+      callWS: vi.fn(async (p) =>
+        p.type === "lovelace/dashboards/list"
+          ? [{ id: "office-id", url_path: "renamed", title: "Office" }]
+          : {},
+      ),
+    };
+
+    const result = await runClientAction(hass, ACTION);
+
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("/renamed");
+    expect(
+      hass.callWS.mock.calls.some(
+        (c) => c[0].type === "lovelace/dashboards/delete",
+      ),
+    ).toBe(false);
+  });
+
+  it("deletes when the id and the path both still match", async () => {
+    const hass = {
+      callWS: vi.fn(async (p) =>
+        p.type === "lovelace/dashboards/list"
+          ? [{ id: "office-id", url_path: "office", title: "Office" }]
+          : {},
+      ),
+    };
+
+    const result = await runClientAction(hass, ACTION);
+
+    expect(result.ok).toBe(true);
+    expect(hass.callWS).toHaveBeenCalledWith({
+      type: "lovelace/dashboards/delete",
+      dashboard_id: "office-id",
+    });
+  });
+});
+
+describe("an id can be reused, so the metadata is checked too", () => {
+  const ACTION = {
+    kind: "delete_dashboard",
+    dashboard_id: "office",
+    url_path: "office",
+    title: "Office",
+    expected: {
+      title: "Office",
+      icon: "mdi:desk",
+      require_admin: false,
+      show_in_sidebar: true,
+    },
+  };
+
+  const listing = (dashboards) => ({
+    callWS: vi.fn(async (p) =>
+      p.type === "lovelace/dashboards/list" ? dashboards : {},
+    ),
+  });
+
+  const deleted = (hass) =>
+    hass.callWS.mock.calls.some(
+      (c) => c[0].type === "lovelace/dashboards/delete",
+    );
+
+  it("refuses a replacement that inherited the id and the path", async () => {
+    // HA derives the collection id from the url_path, so deleting /office
+    // frees the id: a new /office made before the tap answers to both handles
+    // the id-and-path checks use, and only the metadata separates them.
+    const hass = listing([
+      {
+        id: "office",
+        url_path: "office",
+        title: "Office Redux",
+        show_in_sidebar: true,
+      },
+    ]);
+
+    const result = await runClientAction(hass, ACTION);
+
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("Office Redux");
+    expect(deleted(hass)).toBe(false);
+  });
+
+  it("deletes when every field still agrees", async () => {
+    const hass = listing([
+      {
+        id: "office",
+        url_path: "office",
+        title: "Office",
+        icon: "mdi:desk",
+        require_admin: false,
+        show_in_sidebar: true,
+      },
+    ]);
+
+    expect((await runClientAction(hass, ACTION)).ok).toBe(true);
+    expect(deleted(hass)).toBe(true);
+  });
+
+  it("still deletes a card that predates the fingerprint", async () => {
+    // A proposal can outlive a deploy. Verifying what was sent is the guard;
+    // failing a delete the user asked for on a field nobody sent is not.
+    const { expected, ...older } = ACTION;
+    const hass = listing([
+      { id: "office", url_path: "office", title: "Anything At All" },
+    ]);
+
+    expect((await runClientAction(hass, older)).ok).toBe(true);
+    expect(deleted(hass)).toBe(true);
   });
 });

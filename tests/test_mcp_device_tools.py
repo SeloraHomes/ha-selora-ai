@@ -453,3 +453,74 @@ def test_every_mcp_tool_has_an_access_class() -> None:
     unclassified = set(_get_tool_handlers()) - (_ADMIN_TOOLS | _READ_ONLY_TOOLS)
     assert unclassified == set(), f"unclassified MCP tools: {sorted(unclassified)}"
     assert not (_ADMIN_TOOLS & _READ_ONLY_TOOLS), "a tool cannot be both"
+
+
+# ── What the derivation must NOT carry across ───────────────────────────────
+
+
+def test_no_mcp_tool_advertises_a_panel_only_parameter() -> None:
+    """`remaining_intent` is the resumption trigger: the panel carries it on the
+    proposal and re-enters the turn once the user taps the card. MCP has no card
+    and no panel, so a client passing it is answered by nothing at all.
+
+    This shipped: adding the parameter to the chat delete tools put it straight
+    onto five derived MCP tools, because the deriver copies the chat schema
+    verbatim. An advertised parameter that silently does nothing is worse than
+    an absent one — an agent will use it and then wait for a continuation that
+    is never coming.
+    """
+    from custom_components.selora_ai import mcp_server
+
+    # Named literally, NOT via `_PANEL_ONLY_PARAMS`: asking the module which
+    # parameters it drops and then checking it dropped them is a test that
+    # passes when the set is emptied, which is exactly the regression.
+    offenders = [
+        tool.name
+        for tool in mcp_server._TOOL_DEFINITIONS
+        if "remaining_intent" in ((tool.inputSchema or {}).get("properties") or {})
+    ]
+    assert offenders == []
+    assert "remaining_intent" in mcp_server._PANEL_ONLY_PARAMS
+
+
+def test_a_dropped_parameter_is_dropped_from_required_too() -> None:
+    """A schema listing a required property it does not define is invalid, and
+    a strict client rejects the whole tool rather than the argument."""
+    from custom_components.selora_ai import mcp_server
+
+    for tool in mcp_server._TOOL_DEFINITIONS:
+        schema = tool.inputSchema or {}
+        properties = set(schema.get("properties") or {})
+        required = set(schema.get("required") or [])
+        assert required <= properties, f"{tool.name}: {sorted(required - properties)}"
+
+
+def test_hand_written_definitions_are_not_accidental_duplicates() -> None:
+    """Several MCP tools share a name with a chat tool and are still written by
+    hand. That looks like the drift `_mcp_tool_from_chat_tool` exists to
+    prevent, and it is not: they diverge on purpose.
+
+    Deriving them would either drop an MCP-only parameter — `search_entities`
+    has `limit`, `activate_scene` takes a `scene_id`, `create_group` a
+    `group_type`, `accept_suggestion` an `enabled` flag — or replace
+    MCP-specific documentation with chat-specific advice (`execute_command`'s
+    chat text tells the model to prefer it over emitting JSON command intents,
+    which do not exist over MCP). This test is here so the next person to
+    measure the overlap does not tidy it away.
+    """
+    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.tool_registry import TOOL_MAP
+
+    derived = set(mcp_server._DERIVED_MCP_TOOLS)
+    for name in (
+        "selora_search_entities",
+        "selora_activate_scene",
+        "selora_create_group",
+        "selora_accept_suggestion",
+        "selora_execute_command",
+        "selora_eval_template",
+    ):
+        assert name not in derived, name
+        # And each really does have a chat namesake, which is what makes them
+        # look duplicated.
+        assert name.removeprefix("selora_") in TOOL_MAP, name
