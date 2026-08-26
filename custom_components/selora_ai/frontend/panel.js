@@ -9338,6 +9338,9 @@ var en_default = {
     automations_action_enable_automation: "Enable automation",
     automations_elevated_risk_note:
       "Uses elevated-risk actions \u2014 review the flow and YAML before enabling.",
+    automations_action_fix_in_ha: "Fix in HA",
+    automations_unavailable_note:
+      "Home Assistant could not set this automation up, so it is not running. Check its error in Settings \u2192 Automations.",
     automations_action_accept_and_save: "Accept & Save",
     automations_section_title: "Your Automations",
     automations_filter_placeholder: "Filter automations\u2026",
@@ -9561,6 +9564,8 @@ var en_default = {
     version_history_restore_button: "Restore this version",
     version_history_no_yaml_stored: "(no YAML stored)",
     version_history_compare_title: "Compare Versions",
+    version_history_nothing_to_compare:
+      "No earlier version to compare \u2014 this is the first one saved.",
     version_history_version_a_label: "Version A (newer):",
     version_history_version_b_label: "Version B (older):",
     version_history_loading_diff: "Loading diff\u2026",
@@ -10500,6 +10505,9 @@ var fr_default = {
     automations_action_enable_automation: "Activer l'automatisation",
     automations_elevated_risk_note:
       "Utilise des actions \xE0 risque \xE9lev\xE9 \u2014 v\xE9rifiez le flux et le YAML avant d'activer.",
+    automations_action_fix_in_ha: "Corriger dans HA",
+    automations_unavailable_note:
+      "Home Assistant n'a pas pu configurer cette automatisation, elle ne fonctionne donc pas. Consultez son erreur dans Param\xE8tres \u2192 Automatisations.",
     automations_action_accept_and_save: "Accepter et enregistrer",
     automations_section_title: "Vos automatisations",
     automations_filter_placeholder: "Filtrer les automatisations\u2026",
@@ -10732,6 +10740,8 @@ var fr_default = {
     version_history_restore_button: "Restaurer cette version",
     version_history_no_yaml_stored: "(aucun YAML stock\xE9)",
     version_history_compare_title: "Comparer les versions",
+    version_history_nothing_to_compare:
+      "Aucune version ant\xE9rieure \xE0 comparer \u2014 c'est la premi\xE8re enregistr\xE9e.",
     version_history_version_a_label: "Version A (plus r\xE9cente) :",
     version_history_version_b_label: "Version B (plus ancienne) :",
     version_history_loading_diff: "Chargement du diff\u2026",
@@ -11701,6 +11711,9 @@ var de_default = {
     automations_action_enable_automation: "Automatisierung aktivieren",
     automations_elevated_risk_note:
       "Verwendet Aktionen mit erh\xF6htem Risiko \u2014 pr\xFCfen Sie den Ablauf und YAML vor der Aktivierung.",
+    automations_action_fix_in_ha: "In HA korrigieren",
+    automations_unavailable_note:
+      "Home Assistant konnte diese Automatisierung nicht einrichten, sie l\xE4uft daher nicht. Pr\xFCfe den Fehler unter Einstellungen \u2192 Automatisierungen.",
     automations_action_accept_and_save: "Annehmen & Speichern",
     automations_section_title: "Ihre Automatisierungen",
     automations_filter_placeholder: "Automatisierungen filtern\u2026",
@@ -11930,6 +11943,8 @@ var de_default = {
     version_history_restore_button: "Diese Version wiederherstellen",
     version_history_no_yaml_stored: "(kein YAML gespeichert)",
     version_history_compare_title: "Versionen vergleichen",
+    version_history_nothing_to_compare:
+      "Keine fr\xFChere Version zum Vergleichen \u2014 dies ist die erste gespeicherte.",
     version_history_version_a_label: "Version A (neuer):",
     version_history_version_b_label: "Version B (\xE4lter):",
     version_history_loading_diff: "Lade Diff\u2026",
@@ -12891,6 +12906,9 @@ var es_default = {
     automations_action_enable_automation: "Activar automatizaci\xF3n",
     automations_elevated_risk_note:
       "Usa acciones de riesgo elevado \u2014 revise el flujo y el YAML antes de activarla.",
+    automations_action_fix_in_ha: "Corregir en HA",
+    automations_unavailable_note:
+      "Home Assistant no pudo configurar esta automatizaci\xF3n, por lo que no se est\xE1 ejecutando. Consulta su error en Ajustes \u2192 Automatizaciones.",
     automations_action_accept_and_save: "Aceptar y guardar",
     automations_section_title: "Sus automatizaciones",
     automations_filter_placeholder: "Filtrar automatizaciones\u2026",
@@ -13117,6 +13135,8 @@ var es_default = {
     version_history_restore_button: "Restaurar esta versi\xF3n",
     version_history_no_yaml_stored: "(no se almacen\xF3 YAML)",
     version_history_compare_title: "Comparar versiones",
+    version_history_nothing_to_compare:
+      "No hay una versi\xF3n anterior con la que comparar: esta es la primera guardada.",
     version_history_version_a_label: "Versi\xF3n A (m\xE1s reciente):",
     version_history_version_b_label: "Versi\xF3n B (m\xE1s antigua):",
     version_history_loading_diff: "Cargando diferencias\u2026",
@@ -14066,6 +14086,9 @@ var it_default = {
     automations_action_enable_automation: "Attiva automazione",
     automations_elevated_risk_note:
       "Utilizza azioni a rischio elevato \u2014 riveda il flusso e lo YAML prima di attivare.",
+    automations_action_fix_in_ha: "Correggi in HA",
+    automations_unavailable_note:
+      "Home Assistant non \xE8 riuscito a configurare questa automazione, quindi non \xE8 in esecuzione. Controlla l'errore in Impostazioni \u2192 Automazioni.",
     automations_action_accept_and_save: "Accetta e salva",
     automations_section_title: "Le Sue automazioni",
     automations_filter_placeholder: "Filtra automazioni\u2026",
@@ -14291,6 +14314,8 @@ var it_default = {
     version_history_restore_button: "Ripristina questa versione",
     version_history_no_yaml_stored: "(nessuno YAML memorizzato)",
     version_history_compare_title: "Confronta versioni",
+    version_history_nothing_to_compare:
+      "Nessuna versione precedente da confrontare: questa \xE8 la prima salvata.",
     version_history_version_a_label: "Versione A (pi\xF9 recente):",
     version_history_version_b_label: "Versione B (precedente):",
     version_history_loading_diff: "Caricamento differenze\u2026",
@@ -15258,6 +15283,9 @@ var nl_default = {
     automations_action_enable_automation: "Automatisering aanzetten",
     automations_elevated_risk_note:
       "Gebruikt acties met verhoogd risico \u2014 bekijk de flow en YAML voordat u inschakelt.",
+    automations_action_fix_in_ha: "Herstellen in HA",
+    automations_unavailable_note:
+      "Home Assistant kon deze automatisering niet instellen, dus deze werkt niet. Bekijk de fout in Instellingen \u2192 Automatiseringen.",
     automations_action_accept_and_save: "Accepteren & opslaan",
     automations_section_title: "Uw automatiseringen",
     automations_filter_placeholder: "Automatiseringen filteren\u2026",
@@ -15485,6 +15513,8 @@ var nl_default = {
     version_history_restore_button: "Deze versie herstellen",
     version_history_no_yaml_stored: "(geen YAML opgeslagen)",
     version_history_compare_title: "Versies vergelijken",
+    version_history_nothing_to_compare:
+      "Geen eerdere versie om te vergelijken \u2014 dit is de eerste die is opgeslagen.",
     version_history_version_a_label: "Versie A (nieuwer):",
     version_history_version_b_label: "Versie B (ouder):",
     version_history_loading_diff: "Diff laden\u2026",
@@ -16453,6 +16483,9 @@ var hu_default = {
     automations_action_enable_automation: "Automatizmus bekapcsol\xE1sa",
     automations_elevated_risk_note:
       "Magasabb kock\xE1zat\xFA m\u0171veleteket haszn\xE1l \u2014 bekapcsol\xE1s el\u0151tt ellen\u0151rizze a folyamatot \xE9s a YAML-t.",
+    automations_action_fix_in_ha: "Jav\xEDt\xE1s a HA-ban",
+    automations_unavailable_note:
+      "A Home Assistant nem tudta be\xE1ll\xEDtani ezt az automatiz\xE1l\xE1st, ez\xE9rt nem fut. Ellen\u0151rizd a hib\xE1t a Be\xE1ll\xEDt\xE1sok \u2192 Automatiz\xE1l\xE1sok men\xFCben.",
     automations_action_accept_and_save: "Elfogad\xE1s \xE9s ment\xE9s",
     automations_section_title: "Az \xD6n automatizmusai",
     automations_filter_placeholder: "Automatizmusok sz\u0171r\xE9se\u2026",
@@ -16690,6 +16723,8 @@ var hu_default = {
       "Ennek a verzi\xF3nak a vissza\xE1ll\xEDt\xE1sa",
     version_history_no_yaml_stored: "(nincs t\xE1rolt YAML)",
     version_history_compare_title: "Verzi\xF3k \xF6sszehasonl\xEDt\xE1sa",
+    version_history_nothing_to_compare:
+      "Nincs kor\xE1bbi verzi\xF3 az \xF6sszehasonl\xEDt\xE1shoz \u2014 ez az els\u0151 mentett.",
     version_history_version_a_label: "A verzi\xF3 (\xFAjabb):",
     version_history_version_b_label: "B verzi\xF3 (r\xE9gebbi):",
     version_history_loading_diff: "K\xFCl\xF6nbs\xE9g bet\xF6lt\xE9se\u2026",
@@ -17653,6 +17688,9 @@ var pt_default = {
     automations_action_enable_automation: "Ativar automa\xE7\xE3o",
     automations_elevated_risk_note:
       "Utiliza a\xE7\xF5es de risco elevado \u2014 reveja o fluxo e o YAML antes de ativar.",
+    automations_action_fix_in_ha: "Corrigir no HA",
+    automations_unavailable_note:
+      "O Home Assistant n\xE3o conseguiu configurar esta automa\xE7\xE3o, por isso n\xE3o est\xE1 em execu\xE7\xE3o. Verifique o erro em Configura\xE7\xF5es \u2192 Automa\xE7\xF5es.",
     automations_action_accept_and_save: "Aceitar e guardar",
     automations_section_title: "As suas automa\xE7\xF5es",
     automations_filter_placeholder: "Filtrar automa\xE7\xF5es\u2026",
@@ -17880,6 +17918,8 @@ var pt_default = {
     version_history_restore_button: "Restaurar esta vers\xE3o",
     version_history_no_yaml_stored: "(nenhum YAML armazenado)",
     version_history_compare_title: "Comparar vers\xF5es",
+    version_history_nothing_to_compare:
+      "N\xE3o h\xE1 vers\xE3o anterior para comparar \u2014 esta \xE9 a primeira guardada.",
     version_history_version_a_label: "Vers\xE3o A (mais recente):",
     version_history_version_b_label: "Vers\xE3o B (mais antiga):",
     version_history_loading_diff: "A carregar diferen\xE7as\u2026",
@@ -19024,6 +19064,10 @@ var ru_default = {
       "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E",
     automations_elevated_risk_note:
       "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u0441 \u043F\u043E\u0432\u044B\u0448\u0435\u043D\u043D\u044B\u043C \u0440\u0438\u0441\u043A\u043E\u043C \u2014 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043F\u043E\u0442\u043E\u043A \u0438 YAML \u043F\u0435\u0440\u0435\u0434 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435\u043C.",
+    automations_action_fix_in_ha:
+      "\u0418\u0441\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u0432 HA",
+    automations_unavailable_note:
+      "Home Assistant \u043D\u0435 \u0441\u043C\u043E\u0433 \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u043E\u043D\u0430 \u043D\u0435 \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043E\u0448\u0438\u0431\u043A\u0443 \u0432 \xAB\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u2192 \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438\xBB.",
     automations_action_accept_and_save:
       "\u041F\u0440\u0438\u043D\u044F\u0442\u044C \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
     automations_section_title:
@@ -19371,6 +19415,8 @@ var ru_default = {
       "(YAML \u043D\u0435 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D)",
     version_history_compare_title:
       "\u0421\u0440\u0430\u0432\u043D\u0438\u0442\u044C \u0432\u0435\u0440\u0441\u0438\u0438",
+    version_history_nothing_to_compare:
+      "\u041D\u0435\u0442 \u0431\u043E\u043B\u0435\u0435 \u0440\u0430\u043D\u043D\u0435\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u0434\u043B\u044F \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F \u2014 \u044D\u0442\u043E \u043F\u0435\u0440\u0432\u0430\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u0430\u044F.",
     version_history_version_a_label:
       "\u0412\u0435\u0440\u0441\u0438\u044F A (\u043D\u043E\u0432\u0435\u0435):",
     version_history_version_b_label:
@@ -20674,6 +20720,9 @@ var ja_default = {
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u6709\u52B9\u5316",
     automations_elevated_risk_note:
       "\u30EA\u30B9\u30AF\u306E\u9AD8\u3044\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u4F7F\u7528\u3057\u307E\u3059\u3002\u6709\u52B9\u5316\u3059\u308B\u524D\u306B\u30D5\u30ED\u30FC\u3068 YAML \u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    automations_action_fix_in_ha: "HA \u3067\u4FEE\u6B63",
+    automations_unavailable_note:
+      "Home Assistant \u304C\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u8A2D\u5B9A\u3067\u304D\u306A\u304B\u3063\u305F\u305F\u3081\u3001\u5B9F\u884C\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002\u8A2D\u5B9A \u2192 \u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3 \u3067\u30A8\u30E9\u30FC\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
     automations_action_accept_and_save: "\u627F\u8A8D\u3057\u3066\u4FDD\u5B58",
     automations_section_title:
       "\u3042\u306A\u305F\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
@@ -20945,6 +20994,8 @@ var ja_default = {
       "\uFF08YAML \u306F\u4FDD\u5B58\u3055\u308C\u3066\u3044\u307E\u305B\u3093\uFF09",
     version_history_compare_title:
       "\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u6BD4\u8F03",
+    version_history_nothing_to_compare:
+      "\u6BD4\u8F03\u3067\u304D\u308B\u4EE5\u524D\u306E\u30D0\u30FC\u30B8\u30E7\u30F3\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u3053\u308C\u304C\u6700\u521D\u306B\u4FDD\u5B58\u3055\u308C\u305F\u3082\u306E\u3067\u3059\u3002",
     version_history_version_a_label:
       "\u30D0\u30FC\u30B8\u30E7\u30F3 A\uFF08\u65B0\u3057\u3044\uFF09\uFF1A",
     version_history_version_b_label:
@@ -22098,6 +22149,9 @@ var ko_default = {
       "\uC790\uB3D9\uD654 \uD65C\uC131\uD654",
     automations_elevated_risk_note:
       "\uB192\uC740 \uC704\uD5D8\uC758 \uB3D9\uC791\uC744 \uC0AC\uC6A9\uD569\uB2C8\uB2E4 \u2014 \uD65C\uC131\uD654\uD558\uAE30 \uC804\uC5D0 \uD750\uB984\uACFC YAML\uC744 \uAC80\uD1A0\uD558\uC138\uC694.",
+    automations_action_fix_in_ha: "HA\uC5D0\uC11C \uC218\uC815",
+    automations_unavailable_note:
+      "Home Assistant\uAC00 \uC774 \uC790\uB3D9\uD654\uB97C \uC124\uC815\uD560 \uC218 \uC5C6\uC5B4 \uC2E4\uD589\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC124\uC815 \u2192 \uC790\uB3D9\uD654\uC5D0\uC11C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.",
     automations_action_accept_and_save: "\uC218\uB77D \uBC0F \uC800\uC7A5",
     automations_section_title: "\uB0B4 \uC790\uB3D9\uD654",
     automations_filter_placeholder: "\uC790\uB3D9\uD654 \uD544\uD130\u2026",
@@ -22342,6 +22396,8 @@ var ko_default = {
     version_history_restore_button: "\uC774 \uBC84\uC804 \uBCF5\uC6D0",
     version_history_no_yaml_stored: "(\uC800\uC7A5\uB41C YAML \uC5C6\uC74C)",
     version_history_compare_title: "\uBC84\uC804 \uBE44\uAD50",
+    version_history_nothing_to_compare:
+      "\uBE44\uAD50\uD560 \uC774\uC804 \uBC84\uC804\uC774 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 \uC774\uAC83\uC774 \uCC98\uC74C \uC800\uC7A5\uB41C \uBC84\uC804\uC785\uB2C8\uB2E4.",
     version_history_version_a_label: "\uBC84\uC804 A (\uCD5C\uC2E0):",
     version_history_version_b_label: "\uBC84\uC804 B (\uC774\uC804):",
     version_history_loading_diff:
@@ -23409,6 +23465,9 @@ var zh_Hans_default = {
     automations_action_enable_automation: "\u542F\u7528\u81EA\u52A8\u5316",
     automations_elevated_risk_note:
       "\u4F7F\u7528\u4E86\u9AD8\u98CE\u9669\u52A8\u4F5C\u2014\u2014\u542F\u7528\u524D\u8BF7\u5BA1\u67E5\u6D41\u7A0B\u548C YAML\u3002",
+    automations_action_fix_in_ha: "\u5728 HA \u4E2D\u4FEE\u590D",
+    automations_unavailable_note:
+      "Home Assistant \u65E0\u6CD5\u8BBE\u7F6E\u6B64\u81EA\u52A8\u5316\uFF0C\u56E0\u6B64\u5B83\u672A\u5728\u8FD0\u884C\u3002\u8BF7\u5728\u201C\u8BBE\u7F6E \u2192 \u81EA\u52A8\u5316\u201D\u4E2D\u67E5\u770B\u5176\u9519\u8BEF\u3002",
     automations_action_accept_and_save: "\u63A5\u53D7\u5E76\u4FDD\u5B58",
     automations_section_title: "\u60A8\u7684\u81EA\u52A8\u5316",
     automations_filter_placeholder: "\u7B5B\u9009\u81EA\u52A8\u5316\u2026",
@@ -23646,6 +23705,8 @@ var zh_Hans_default = {
     version_history_restore_button: "\u6062\u590D\u6B64\u7248\u672C",
     version_history_no_yaml_stored: "\uFF08\u672A\u5B58\u50A8 YAML\uFF09",
     version_history_compare_title: "\u6BD4\u8F83\u7248\u672C",
+    version_history_nothing_to_compare:
+      "\u6CA1\u6709\u53EF\u6BD4\u8F83\u7684\u65E9\u671F\u7248\u672C \u2014 \u8FD9\u662F\u7B2C\u4E00\u4E2A\u4FDD\u5B58\u7684\u7248\u672C\u3002",
     version_history_version_a_label:
       "\u7248\u672C A\uFF08\u8F83\u65B0\uFF09\uFF1A",
     version_history_version_b_label:
@@ -24683,6 +24744,9 @@ var zh_Hant_default = {
     automations_action_enable_automation: "\u555F\u7528\u81EA\u52D5\u5316",
     automations_elevated_risk_note:
       "\u4F7F\u7528\u9AD8\u98A8\u96AA\u52D5\u4F5C \u2014 \u555F\u7528\u524D\u8ACB\u5148\u6AA2\u8996\u6D41\u7A0B\u8207 YAML\u3002",
+    automations_action_fix_in_ha: "\u5728 HA \u4E2D\u4FEE\u5FA9",
+    automations_unavailable_note:
+      "Home Assistant \u7121\u6CD5\u8A2D\u5B9A\u6B64\u81EA\u52D5\u5316\uFF0C\u56E0\u6B64\u5B83\u672A\u5728\u57F7\u884C\u3002\u8ACB\u5728\u300C\u8A2D\u5B9A \u2192 \u81EA\u52D5\u5316\u300D\u4E2D\u67E5\u770B\u5176\u932F\u8AA4\u3002",
     automations_action_accept_and_save: "\u63A5\u53D7\u4E26\u5132\u5B58",
     automations_section_title: "\u60A8\u7684\u81EA\u52D5\u5316",
     automations_filter_placeholder: "\u7BE9\u9078\u81EA\u52D5\u5316\u2026",
@@ -24919,6 +24983,8 @@ var zh_Hant_default = {
     version_history_restore_button: "\u9084\u539F\u6B64\u7248\u672C",
     version_history_no_yaml_stored: "\uFF08\u672A\u5132\u5B58 YAML\uFF09",
     version_history_compare_title: "\u6BD4\u8F03\u7248\u672C",
+    version_history_nothing_to_compare:
+      "\u6C92\u6709\u53EF\u6BD4\u8F03\u7684\u65E9\u671F\u7248\u672C \u2014 \u9019\u662F\u7B2C\u4E00\u500B\u5132\u5B58\u7684\u7248\u672C\u3002",
     version_history_version_a_label:
       "\u7248\u672C A\uFF08\u8F03\u65B0\uFF09\uFF1A",
     version_history_version_b_label:
@@ -31449,6 +31515,46 @@ function normalizeCondition(cond) {
     ? { condition: "template", value_template: cond }
     : cond;
 }
+function _secondsOffset(total) {
+  const abs = Math.abs(total);
+  const h3 = Math.floor(abs / 3600);
+  const m3 = Math.floor((abs % 3600) / 60);
+  const sec = Math.round(abs % 60);
+  const parts = [];
+  if (h3) parts.push(`${h3}h`);
+  if (m3) parts.push(`${m3}min`);
+  if (sec) parts.push(`${sec}s`);
+  return { label: parts.join(" ") || `${abs}s`, neg: total < 0 };
+}
+function _sunOffset(offset) {
+  if (offset === null || offset === void 0 || offset === "") return null;
+  if (typeof offset === "object") {
+    const total =
+      (Number(offset.days) || 0) * 86400 +
+      (Number(offset.hours) || 0) * 3600 +
+      (Number(offset.minutes) || 0) * 60 +
+      (Number(offset.seconds) || 0) +
+      (Number(offset.milliseconds) || 0) / 1e3;
+    if (total) return _secondsOffset(total);
+    const label2 = fmtDuration(offset);
+    return label2 ? { label: label2, neg: false } : null;
+  }
+  if (typeof offset === "number") {
+    if (!offset) return null;
+    return _secondsOffset(offset);
+  }
+  if (typeof offset !== "string") return null;
+  const neg = offset.startsWith("-");
+  const raw = neg ? offset.slice(1) : offset;
+  const [h3, m3, sec] = raw.split(":").map(Number);
+  const parts = [];
+  if (h3) parts.push(`${h3}h`);
+  if (m3) parts.push(`${m3}min`);
+  if (sec) parts.push(`${sec}s`);
+  const label = parts.join(" ");
+  if (!label) return /^[0:]+$/.test(raw) ? null : { label: offset, neg: false };
+  return { label, neg };
+}
 function describeFlowItem(hass, item, ctx) {
   if (!item || typeof item !== "object") return String(item ?? "");
   const T2 = _phrases(hass);
@@ -31472,17 +31578,8 @@ function describeFlowItem(hass, item, ctx) {
         : item.event === "sunrise"
           ? t5("sunrise")
           : humanizeToken(item.event || "sun event").toLowerCase();
-    if (item.offset) {
-      const neg = item.offset.startsWith("-");
-      const raw = neg ? item.offset.slice(1) : item.offset;
-      const [h3, m3, s4] = raw.split(":").map(Number);
-      const parts = [];
-      if (h3) parts.push(`${h3}h`);
-      if (m3) parts.push(`${m3}min`);
-      if (s4) parts.push(`${s4}s`);
-      const label = parts.join(" ") || item.offset;
-      return t5("sun_offset", label, neg, ev);
-    }
+    const off = _sunOffset(item.offset);
+    if (off) return t5("sun_offset", off.label, off.neg, ev);
     return t5("when_it_is", ev);
   }
   if (p4 === "state") {
@@ -31656,11 +31753,23 @@ function describeFlowItem(hass, item, ctx) {
     return t5("cond_triggered_by", label);
   }
   if (cond === "sun") {
+    const sunEvent = (value) =>
+      value === "sunset"
+        ? t5("sunset")
+        : value === "sunrise"
+          ? t5("sunrise")
+          : humanizeToken(String(value)).toLowerCase();
+    const bound = (value, offset) => {
+      const off = _sunOffset(offset);
+      return off
+        ? t5("sun_offset", off.label, off.neg, sunEvent(value))
+        : sunEvent(value);
+    };
     const parts = [];
     if (item.after)
-      parts.push(t5("cond_after_sun", String(item.after).replace(/_/g, " ")));
+      parts.push(t5("cond_after_sun", bound(item.after, item.after_offset)));
     if (item.before)
-      parts.push(t5("cond_before_sun", String(item.before).replace(/_/g, " ")));
+      parts.push(t5("cond_before_sun", bound(item.before, item.before_offset)));
     return parts.join(", ") || t5("cond_sun_position");
   }
   if (cond === "and") return t5("cond_all", asArray(item.conditions).length);
@@ -32735,6 +32844,33 @@ function invalidateProposalPreviews(host, msgIndex = null) {
       : [host._previewCache.get(msgIndex)].filter(Boolean);
   for (const entry of entries) entry.stale = true;
 }
+function savedDiff(host, msgIndex) {
+  const msg = (host._messages || [])[msgIndex];
+  const automationId = msg?.automation_id;
+  if (!automationId) return null;
+  const versions = host._versions?.[automationId];
+  if (versions === void 0) {
+    if (!host._savedDiffRequested)
+      host._savedDiffRequested = /* @__PURE__ */ new Set();
+    if (!host._savedDiffRequested.has(automationId)) {
+      host._savedDiffRequested.add(automationId);
+      host._loadVersionHistory(automationId);
+    }
+    return null;
+  }
+  if (!Array.isArray(versions) || versions.length < 2) return null;
+  const after = versions[0]?.yaml || "";
+  const before = versions[1]?.yaml || "";
+  if (!after || !before) return null;
+  if (!host._savedDiffCache) host._savedDiffCache = /* @__PURE__ */ new Map();
+  const cached = host._savedDiffCache.get(msgIndex);
+  if (cached && cached.before === before && cached.after === after) {
+    return cached.diff;
+  }
+  const diff = diffLines(before, after);
+  host._savedDiffCache.set(msgIndex, { before, after, diff });
+  return diff;
+}
 function proposalDiff(host, msgIndex) {
   const msg = (host._messages || [])[msgIndex];
   if (!msg?.automation) return null;
@@ -32779,6 +32915,8 @@ function resetProposalDiffState(host) {
   host._proposalDiffExpanded = {};
   host._proposalDiffFull = {};
   host._proposalDiffCache = null;
+  host._savedDiffCache = null;
+  host._savedDiffRequested = null;
   for (const entry of host._previewCache?.values() || []) {
     if (entry.timer) clearTimeout(entry.timer);
   }
@@ -34069,6 +34207,7 @@ function renderProposalCard(host, msg, msgIndex) {
     const isEnabled = _savedIsEnabled(host, msg);
     const yamlKey2 = `saved_${msgIndex}`;
     const yamlOpen2 = host._yamlOpen && host._yamlOpen[msgIndex];
+    const changes = savedDiff(host, msgIndex);
     return b2`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
@@ -34106,6 +34245,8 @@ function renderProposalCard(host, msg, msgIndex) {
                         </div>`
                       : ""
                   }
+                  ${renderProposalDiffToggle(host, msgIndex, changes)}
+                  ${renderProposalDiffPanel(host, msgIndex, changes)}
                 `
               : ""
           }
@@ -34297,6 +34438,38 @@ function renderProposalActions(host, msg, msgIndex) {
           >
         </button>
       </div>`;
+    }
+    if (created.state === "unavailable") {
+      return b2`
+        <div class="qa-group automation-card-actions">
+          <button
+            class="qa-suggestion"
+            title=${host._t(
+              "automations_action_open_in_ha_tooltip",
+              "Open this automation in Home Assistant",
+            )}
+            @click=${() => host._openAutomationInHA(savedAutomationId)}
+          >
+            <span class="qa-glow-track" aria-hidden="true">
+              <span class="qa-glow-spot"></span>
+            </span>
+            <ha-icon class="qa-suggestion-lead" icon="mdi:wrench"></ha-icon>
+            <span class="qa-suggestion-label"
+              >${host._t("automations_action_fix_in_ha", "Fix in HA")}</span
+            >
+          </button>
+        </div>
+        <p class="automation-workflow-note elevated">
+          <ha-icon
+            icon="mdi:alert-circle-outline"
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>
+          ${host._t(
+            "automations_unavailable_note",
+            "Home Assistant could not set this automation up, so it is not running. Check its error in Settings \u2192 Automations.",
+          )}
+        </p>
+      `;
     }
     return b2`
       <div class="automation-card-actions">
@@ -35962,13 +36135,24 @@ async function _openDiffViewer(automationId) {
   if (!versions || versions.length < 2)
     await this._loadVersionHistory(automationId);
   const v2 = this._versions[automationId] || [];
+  if (v2.length < 2) {
+    this._showToast(
+      this._t(
+        "version_history_nothing_to_compare",
+        "No earlier version to compare \u2014 this is the first one saved.",
+      ),
+      "info",
+    );
+    this.requestUpdate();
+    return;
+  }
   this._diffAutomationId = automationId;
   this._diffVersionA = v2[0]?.version_id || null;
   this._diffVersionB = v2[1]?.version_id || null;
   this._diffResult = [];
   this._diffOpen = true;
   if (this._diffVersionA && this._diffVersionB) {
-    await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
+    await this._loadDiff(automationId, this._diffVersionB, this._diffVersionA);
   }
   this.requestUpdate();
 }
@@ -48639,7 +48823,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "b56d56c7f4ac" : "";
+var PANEL_BUILD = true ? "05662b26f74a" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

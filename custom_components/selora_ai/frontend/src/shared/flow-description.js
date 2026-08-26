@@ -1100,6 +1100,67 @@ export function normalizeCondition(cond) {
  *   lets `condition: trigger` resolve its trigger id to the trigger it references
  * @returns {string} human-readable description
  */
+// Signed seconds as `{label, neg}` — the sign is the DIRECTION and the label is
+// always the magnitude, because the phrasing key states the direction in words.
+function _secondsOffset(total) {
+  const abs = Math.abs(total);
+  const h = Math.floor(abs / 3600);
+  const m = Math.floor((abs % 3600) / 60);
+  const sec = Math.round(abs % 60);
+  const parts = [];
+  if (h) parts.push(`${h}h`);
+  if (m) parts.push(`${m}min`);
+  if (sec) parts.push(`${sec}s`);
+  return { label: parts.join(" ") || `${abs}s`, neg: total < 0 };
+}
+
+// A sun offset as `{label, neg}`, from any of the shapes HA's
+// `positive_time_period` accepts: a signed "HH:MM:SS" string, signed seconds,
+// or a `{hours, minutes}` mapping. Extracted from the sun TRIGGER, which had
+// this inline, so the sun CONDITION renders its window the same way — a
+// condition keeps its offset in `after_offset` / `before_offset`, and with
+// those ignored the chip read "after sunset" for a window the user asked to
+// start fifteen minutes earlier. Returns null when there is no offset, which
+// is the case the caller renders as the bare event.
+function _sunOffset(offset) {
+  if (offset === null || offset === undefined || offset === "") return null;
+  // A mapping is reduced to signed seconds first. `cv.time_period` accepts a
+  // signed one — `{minutes: -30}` is half an hour BEFORE — and handing that to
+  // `fmtDuration` keeps the minus inside the label, so the chip read "after
+  // -30m after sunset" instead of "after 30m before sunset": the direction
+  // stated twice, once wrongly.
+  if (typeof offset === "object") {
+    const total =
+      (Number(offset.days) || 0) * 86400 +
+      (Number(offset.hours) || 0) * 3600 +
+      (Number(offset.minutes) || 0) * 60 +
+      (Number(offset.seconds) || 0) +
+      (Number(offset.milliseconds) || 0) / 1000;
+    if (total) return _secondsOffset(total);
+    // Not a shape we recognise as a duration — better the raw value than
+    // silently no offset at all.
+    const label = fmtDuration(offset);
+    return label ? { label, neg: false } : null;
+  }
+  if (typeof offset === "number") {
+    if (!offset) return null;
+    return _secondsOffset(offset);
+  }
+  if (typeof offset !== "string") return null;
+  const neg = offset.startsWith("-");
+  const raw = neg ? offset.slice(1) : offset;
+  const [h, m, sec] = raw.split(":").map(Number);
+  const parts = [];
+  if (h) parts.push(`${h}h`);
+  if (m) parts.push(`${m}min`);
+  if (sec) parts.push(`${sec}s`);
+  const label = parts.join(" ");
+  // An all-zero offset is not an offset; anything unparseable falls back to the
+  // raw value rather than being dropped, which is the failure this fixes.
+  if (!label) return /^[0:]+$/.test(raw) ? null : { label: offset, neg: false };
+  return { label, neg };
+}
+
 export function describeFlowItem(hass, item, ctx) {
   if (!item || typeof item !== "object") return String(item ?? "");
   const T = _phrases(hass);
@@ -1126,17 +1187,8 @@ export function describeFlowItem(hass, item, ctx) {
         : item.event === "sunrise"
           ? t("sunrise")
           : humanizeToken(item.event || "sun event").toLowerCase();
-    if (item.offset) {
-      const neg = item.offset.startsWith("-");
-      const raw = neg ? item.offset.slice(1) : item.offset;
-      const [h, m, s] = raw.split(":").map(Number);
-      const parts = [];
-      if (h) parts.push(`${h}h`);
-      if (m) parts.push(`${m}min`);
-      if (s) parts.push(`${s}s`);
-      const label = parts.join(" ") || item.offset;
-      return t("sun_offset", label, neg, ev);
-    }
+    const off = _sunOffset(item.offset);
+    if (off) return t("sun_offset", off.label, off.neg, ev);
     return t("when_it_is", ev);
   }
   if (p === "state") {
@@ -1342,11 +1394,29 @@ export function describeFlowItem(hass, item, ctx) {
     return t("cond_triggered_by", label);
   }
   if (cond === "sun") {
+    // `t("sunset")` rather than the raw value: the condition branch used to
+    // print the key verbatim, so the one chip in this whole describer that is
+    // always a fixed HA token was the one left untranslated.
+    const sunEvent = (value) =>
+      value === "sunset"
+        ? t("sunset")
+        : value === "sunrise"
+          ? t("sunrise")
+          : humanizeToken(String(value)).toLowerCase();
+    // `after: sunset` + `after_offset: -00:15:00` is "after 15min before
+    // sunset" — the bound and the shift are separate facts and the chip needs
+    // both, or a window asked to open early reads as opening at sunset.
+    const bound = (value, offset) => {
+      const off = _sunOffset(offset);
+      return off
+        ? t("sun_offset", off.label, off.neg, sunEvent(value))
+        : sunEvent(value);
+    };
     const parts = [];
     if (item.after)
-      parts.push(t("cond_after_sun", String(item.after).replace(/_/g, " ")));
+      parts.push(t("cond_after_sun", bound(item.after, item.after_offset)));
     if (item.before)
-      parts.push(t("cond_before_sun", String(item.before).replace(/_/g, " ")));
+      parts.push(t("cond_before_sun", bound(item.before, item.before_offset)));
     return parts.join(", ") || t("cond_sun_position");
   }
   if (cond === "and") return t("cond_all", asArray(item.conditions).length);
