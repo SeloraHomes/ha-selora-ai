@@ -14,6 +14,7 @@ import { renderRevealParticles } from "./proposal-reveal.js";
 import {
   proposalDiff,
   renderProposalDiffToggle,
+  savedDiff,
   renderProposalDiffPanel,
   revealPanel,
 } from "./render-proposal-diff.js";
@@ -640,6 +641,9 @@ export function renderProposalCard(host, msg, msgIndex) {
     const isEnabled = _savedIsEnabled(host, msg);
     const yamlKey = `saved_${msgIndex}`;
     const yamlOpen = host._yamlOpen && host._yamlOpen[msgIndex];
+    // Null on a create (nothing before it) and while the version history is
+    // still being fetched — the toggle renders nothing either way.
+    const changes = savedDiff(host, msgIndex);
     return html`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
@@ -681,6 +685,8 @@ export function renderProposalCard(host, msg, msgIndex) {
                         </div>`
                       : ""
                   }
+                  ${renderProposalDiffToggle(host, msgIndex, changes)}
+                  ${renderProposalDiffPanel(host, msgIndex, changes)}
                 `
               : ""
           }
@@ -844,6 +850,13 @@ function _savedIsEnabled(host, msg) {
 //   - pending: a single "Accept & Save" button with the exit
 //     animation hook
 //   - saved + enabled: the Run / Trace / Edit qa-suggestion chips
+//   - saved + unavailable: Home Assistant could not set the automation
+//     up, so it says so and offers the editor. NOT an Enable button —
+//     `_automationIsEnabled` reports unavailable as disabled, which is
+//     right for the toggle state and wrong for the call to action: the
+//     automation cannot be turned on, so offering to turn it on sends
+//     the user at a button that cannot work and reads as though the
+//     save were fine.
 //   - saved + disabled (only happens for elevated-risk automations
 //     that the backend forced off): an explicit Enable button + a
 //     short risk caveat
@@ -908,6 +921,39 @@ export function renderProposalActions(host, msg, msgIndex) {
         </button>
       </div>`;
     }
+    if (created.state === "unavailable") {
+      return html`
+        <div class="qa-group automation-card-actions">
+          <button
+            class="qa-suggestion"
+            title=${host._t(
+              "automations_action_open_in_ha_tooltip",
+              "Open this automation in Home Assistant",
+            )}
+            @click=${() => host._openAutomationInHA(savedAutomationId)}
+          >
+            <span class="qa-glow-track" aria-hidden="true">
+              <span class="qa-glow-spot"></span>
+            </span>
+            <ha-icon class="qa-suggestion-lead" icon="mdi:wrench"></ha-icon>
+            <span class="qa-suggestion-label"
+              >${host._t("automations_action_fix_in_ha", "Fix in HA")}</span
+            >
+          </button>
+        </div>
+        <p class="automation-workflow-note elevated">
+          <ha-icon
+            icon="mdi:alert-circle-outline"
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>
+          ${host._t(
+            "automations_unavailable_note",
+            "Home Assistant could not set this automation up, so it is not running. Check its error in Settings → Automations.",
+          )}
+        </p>
+      `;
+    }
+
     return html`
       <div class="automation-card-actions">
         <button

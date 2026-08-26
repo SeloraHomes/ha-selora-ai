@@ -150,6 +150,56 @@ export function invalidateProposalPreviews(host, msgIndex = null) {
  * comparable — accepting will create a new automation, the preview has not
  * arrived, or it could not be produced.
  */
+// The diff for an automation ALREADY SAVED: the stored version before this one
+// against the one now on disk.
+//
+// A different question from `proposalDiff`, which compares the file against
+// what accepting WOULD write — after the write both its sides are the same
+// document, so it correctly has nothing to show and the card lost its diff at
+// exactly the moment "what did that change" became worth asking.
+//
+// Rendered through the same toggle and panel as the pending card, so there is
+// one diff vocabulary in the UI rather than two, and no dialog: the compare
+// dialog's two selects are a version PICKER, and the answer wanted here is
+// always the same pair.
+export function savedDiff(host, msgIndex) {
+  const msg = (host._messages || [])[msgIndex];
+  const automationId = msg?.automation_id;
+  if (!automationId) return null;
+
+  const versions = host._versions?.[automationId];
+  if (versions === undefined) {
+    // Not fetched yet. Kick it off once and render nothing this pass —
+    // `_loadVersionHistory` calls `requestUpdate` when it lands, exactly as
+    // `previewWrite` does for the pending card. The guard is what keeps a
+    // render that returns null from scheduling another fetch forever.
+    if (!host._savedDiffRequested) host._savedDiffRequested = new Set();
+    if (!host._savedDiffRequested.has(automationId)) {
+      host._savedDiffRequested.add(automationId);
+      host._loadVersionHistory(automationId);
+    }
+    return null;
+  }
+  // Newest first, as `_loadVersionHistory` reverses them. One version means a
+  // create with nothing before it — no diff rather than a diff against
+  // nothing.
+  if (!Array.isArray(versions) || versions.length < 2) return null;
+  const after = versions[0]?.yaml || "";
+  const before = versions[1]?.yaml || "";
+  if (!after || !before) return null;
+
+  if (!host._savedDiffCache) host._savedDiffCache = new Map();
+  const cached = host._savedDiffCache.get(msgIndex);
+  if (cached && cached.before === before && cached.after === after) {
+    return cached.diff;
+  }
+  // OLDER first: `diffLines(before, after)`, so what the new version added
+  // reads as an addition.
+  const diff = diffLines(before, after);
+  host._savedDiffCache.set(msgIndex, { before, after, diff });
+  return diff;
+}
+
 export function proposalDiff(host, msgIndex) {
   const msg = (host._messages || [])[msgIndex];
   if (!msg?.automation) return null;
@@ -212,6 +262,10 @@ export function resetProposalDiffState(host) {
   host._proposalDiffExpanded = {};
   host._proposalDiffFull = {};
   host._proposalDiffCache = null;
+  // Same reasoning as the caches above: keyed by message index, and a saved
+  // card at the same index in another conversation is a different automation.
+  host._savedDiffCache = null;
+  host._savedDiffRequested = null;
   // Drop scheduled previews with the cache that owns them, or a keystroke from
   // the previous conversation lands a request after the switch.
   for (const entry of host._previewCache?.values() || []) {

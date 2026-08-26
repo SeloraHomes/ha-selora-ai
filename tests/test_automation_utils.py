@@ -639,7 +639,17 @@ class TestValidateAutomationPayload:
         assert ok is True
         assert result["triggers"][0]["from"] == "off"
 
-    def test_removes_none_to_from(self) -> None:
+    def test_keeps_none_to_from_on_a_state_trigger(self) -> None:
+        """These are kept, not stripped. HA's state trigger derives
+
+            match_all = all(k not in config for k in (from, not_from, to, not_to))
+
+        from key PRESENCE, and `match_all` is what lets an attribute-only
+        update fire the trigger — so `to: null` means "any state change, but
+        not attribute churn" and removing the key means "fire on attribute
+        changes too". Stripping them made a trigger written to be quiet fire
+        every time a light reported its brightness.
+        """
         payload = {
             "alias": "NoneVal",
             "trigger": [{"platform": "state", "entity_id": "light.x", "to": None, "from": None}],
@@ -647,8 +657,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert "to" not in result["triggers"][0]
-        assert "from" not in result["triggers"][0]
+        assert result["triggers"][0]["to"] is None
+        assert result["triggers"][0]["from"] is None
 
     def test_stringifies_numeric_to_from(self) -> None:
         payload = {
@@ -3082,7 +3092,16 @@ class TestCreateAutomationValidation:
         assert '"off"' in raw
 
     @pytest.mark.asyncio
-    async def test_null_from_stripped(self, hass, tmp_automations_yaml: Path, _patch_store) -> None:
+    async def test_null_from_reaches_the_file(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        """Written as sent. `from: null` is valid in HA's state-trigger schema
+        (`vol.Any(str, [str], None)`), and its presence is part of how the
+        trigger is configured — see `_STATE_MATCH_KEYS`. Here `to` is set, so
+        `match_all` is already False and keeping `from` changes no behaviour;
+        it is kept because the rule is about the key, not about whether this
+        particular combination happens to be affected.
+        """
         hass.states.async_set("sensor.x", "off")
         suggestion = {
             "alias": "Null From Test",
@@ -3094,7 +3113,7 @@ class TestCreateAutomationValidation:
 
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
         new = [a for a in content if "Null From" in a.get("alias", "")]
-        assert "from" not in new[0]["triggers"][0]
+        assert new[0]["triggers"][0]["from"] is None
 
     @pytest.mark.asyncio
     async def test_initial_state_defaults_to_false(
@@ -5131,3 +5150,526 @@ class TestBuildServiceFeedback:
             hass, "action uses non-existent service 'media_player.snapshot'", rejected
         )
         assert "media_player.play_media" in out
+
+
+# ── An explicit null is not a value ─────────────────────────────────────────
+#
+# "Replace the illuminance with 15 minutes before sunset to 15 minutes after
+# sunrise" came back as sun conditions carrying the sun TRIGGER's keys, valued
+# null. Our validator accepted it, the panel said SAVED, and HA refused to set
+# the automation up: `extra keys not allowed @ data['event']. Got None`. The
+# user is told it worked and Home Assistant tells them it is broken.
+
+
+def _sun_payload(conditions: list[dict[str, object]]) -> dict[str, object]:
+    return {
+        "alias": "Stairs Low Light",
+        "triggers": [
+            {"trigger": "state", "entity_id": "binary_sensor.stairs_occupancy", "to": "on"}
+        ],
+        "conditions": conditions,
+        "actions": [{"action": "light.turn_on", "target": {"entity_id": "light.sconces"}}],
+    }
+
+
+def test_a_null_key_is_dropped_rather_than_written() -> None:
+    """HA rejects the KEY, not the value, so a padded null fails the reload.
+    Dropped by value, not by name: the pair this replaced covered `to`/`from`
+    on a trigger, and the next one to arrive was `event`/`offset`."""
+    ok, err, norm = validate_automation_payload(
+        _sun_payload(
+            [
+                {
+                    "condition": "sun",
+                    "after": "sunset",
+                    "after_offset": "-00:15:00",
+                    "event": None,
+                    "offset": None,
+                }
+            ]
+        ),
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == [
+        {"condition": "sun", "after": "sunset", "after_offset": "-00:15:00"}
+    ]
+
+
+def test_nulls_are_dropped_inside_a_logical_wrapper() -> None:
+    """`_validate_condition` always recursed into and/or/not; normalization did
+    not, so every coercion here applied only to conditions the model happened
+    to write flat. The reported automation wrapped both sun conditions in an
+    `or`, which is the ordinary way to express a window."""
+    ok, err, norm = validate_automation_payload(
+        _sun_payload(
+            [
+                {
+                    "condition": "or",
+                    "conditions": [
+                        {"condition": "sun", "after": "sunset", "event": None},
+                        {"condition": "sun", "before": "sunrise", "offset": None},
+                    ],
+                }
+            ]
+        ),
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"][0]["conditions"] == [
+        {"condition": "sun", "after": "sunset"},
+        {"condition": "sun", "before": "sunrise"},
+    ]
+
+
+def test_a_sun_condition_that_constrains_nothing_is_refused() -> None:
+    """The other half, and the reason dropping the nulls is not enough on its
+    own: what is left is trivially true, so the automation would run at any
+    hour and the window the user asked for would be gone with nothing to show
+    it was lost. Refused so the model corrects itself."""
+    ok, err, _ = validate_automation_payload(
+        _sun_payload([{"condition": "sun", "event": None, "offset": None}]), None
+    )
+    assert not ok
+    assert "constrains nothing" in err
+
+
+def test_the_sun_triggers_keys_are_named_when_used_on_a_condition() -> None:
+    """Refused rather than translated: `event: sunset` does not say whether the
+    window opens or closes there, so guessing would write a rule nobody asked
+    for. The message names the keys a condition actually takes."""
+    ok, err, _ = validate_automation_payload(
+        _sun_payload([{"condition": "sun", "event": "sunset", "offset": "-00:15:00"}]), None
+    )
+    assert not ok
+    assert "TRIGGER's keys" in err
+    assert "before" in err and "after" in err
+
+
+def test_a_valid_sun_window_still_passes() -> None:
+    """The shape the refinement should have produced."""
+    ok, err, norm = validate_automation_payload(
+        _sun_payload(
+            [
+                {
+                    "condition": "or",
+                    "conditions": [
+                        {"condition": "sun", "after": "sunset", "after_offset": "-00:15:00"},
+                        {"condition": "sun", "before": "sunrise", "before_offset": "00:15:00"},
+                    ],
+                }
+            ]
+        ),
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+
+
+def test_nulls_are_dropped_inside_action_control_flow() -> None:
+    """Validation always walked `choose` / `if` / `repeat`, because a bad field
+    two levels down fails the reload exactly like a top-level one.
+    Normalization walked none of them, so a padded null inside an `if` was
+    written verbatim — and the reported automation had exactly that shape, an
+    `if/then` guarding the light."""
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Stairs Low Light",
+            "triggers": [
+                {"trigger": "state", "entity_id": "binary_sensor.stairs_occupancy", "to": "on"}
+            ],
+            "actions": [
+                {
+                    "if": [
+                        {
+                            "condition": "state",
+                            "entity_id": "light.sconces",
+                            "state": "off",
+                            "for": None,
+                        }
+                    ],
+                    "then": [
+                        {
+                            "choose": [
+                                {
+                                    "conditions": [
+                                        {
+                                            "condition": "sun",
+                                            "after": "sunset",
+                                            "event": None,
+                                        }
+                                    ],
+                                    "sequence": [
+                                        {
+                                            "action": "light.turn_on",
+                                            "target": {"entity_id": "light.sconces"},
+                                        }
+                                    ],
+                                }
+                            ]
+                        }
+                    ],
+                }
+            ],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    action = norm["actions"][0]
+    assert action["if"] == [
+        {"condition": "state", "entity_id": "light.sconces", "state": "off"}
+    ]
+    nested = action["then"][0]["choose"][0]["conditions"]
+    assert nested == [{"condition": "sun", "after": "sunset"}]
+
+
+def test_normalizing_an_action_does_not_rewrite_the_callers_payload() -> None:
+    """`_normalize_item` copies one level deep, so the nested lists it hands
+    back are the caller's own objects. The walk rebuilds every container it
+    descends into; mutating in place would edit the dict the caller still holds
+    — which is the payload the chat handler goes on to echo back to the model
+    and persist on the message."""
+    original = {
+        "if": [{"condition": "state", "entity_id": "light.sconces", "state": "off", "for": None}],
+        "then": [{"action": "light.turn_on", "target": {"entity_id": "light.sconces"}}],
+    }
+    payload = {
+        "alias": "Stairs Low Light",
+        "triggers": [
+            {"trigger": "state", "entity_id": "binary_sensor.stairs_occupancy", "to": "on"}
+        ],
+        "actions": [original],
+    }
+    ok, err, _ = validate_automation_payload(payload, None)
+    assert ok, err
+    # Untouched, nulls and all.
+    assert original["if"][0]["for"] is None
+
+
+def test_a_service_calls_payload_is_not_walked_as_a_condition() -> None:
+    """A service call carries `action:` / `service:`, and its data is not a
+    condition — the validator skips those for the same reason. A null inside
+    service data is the service's business, so it is left exactly as sent."""
+    payload = {
+        "alias": "Stairs Low Light",
+        "triggers": [
+            {"trigger": "state", "entity_id": "binary_sensor.stairs_occupancy", "to": "on"}
+        ],
+        "actions": [
+            {
+                "action": "light.turn_on",
+                "target": {"entity_id": "light.sconces"},
+                "data": {"brightness_pct": 6, "transition": None},
+            }
+        ],
+    }
+    ok, err, norm = validate_automation_payload(payload, None)
+    assert ok, err
+    assert norm is not None
+    assert norm["actions"][0]["data"] == {"brightness_pct": 6, "transition": None}
+
+
+def test_a_state_triggers_null_match_key_survives() -> None:
+    """`to: null` is not padding. HA's state trigger derives
+
+        match_all = all(k not in config for k in (from, not_from, to, not_to))
+
+    from key PRESENCE, and `match_all` is what lets an attribute-only update
+    fire the trigger. Dropping the key turns "any state change, but not
+    attribute churn" into "fire on every attribute update too", so a light
+    reporting brightness would run the automation. Predates the value-based
+    drop: the by-name version removed these too."""
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Stairs Low Light",
+            "triggers": [
+                {"trigger": "state", "entity_id": "binary_sensor.stairs_occupancy", "to": None}
+            ],
+            "actions": [{"action": "light.turn_on", "target": {"entity_id": "light.sconces"}}],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert "to" in norm["triggers"][0]
+    assert norm["triggers"][0]["to"] is None
+
+
+def test_a_null_match_key_is_still_dropped_off_a_state_trigger() -> None:
+    """Scoped deliberately. On any other trigger these are unknown keys HA
+    rejects outright, which is the failure the drop exists to prevent."""
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Stairs Low Light",
+            "triggers": [
+                {
+                    "trigger": "numeric_state",
+                    "entity_id": "sensor.stairs_illuminance",
+                    "below": 1.1,
+                    "to": None,
+                    "from": None,
+                }
+            ],
+            "actions": [{"action": "light.turn_on", "target": {"entity_id": "light.sconces"}}],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert "to" not in norm["triggers"][0]
+    assert "from" not in norm["triggers"][0]
+
+
+def test_a_waited_state_triggers_null_match_key_survives_too() -> None:
+    """`wait_for_trigger` embeds full trigger dicts and now gets the same
+    item-level normalization, so it needs the same exemption."""
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Stairs Low Light",
+            "triggers": [
+                {"trigger": "state", "entity_id": "binary_sensor.stairs_occupancy", "to": "on"}
+            ],
+            "actions": [
+                {
+                    "wait_for_trigger": [
+                        {"trigger": "state", "entity_id": "light.sconces", "from": None}
+                    ]
+                }
+            ],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    waited = norm["actions"][0]["wait_for_trigger"][0]
+    assert "from" in waited and waited["from"] is None
+
+
+def test_a_sole_null_discriminator_keeps_the_action_identifiable() -> None:
+    """HA identifies an action by WHICH KEY it carries, and two of those take a
+    null as a real value. `{stop: null}` and `{set_conversation_response: null}`
+    both validate against HA's own `script_action`; dropping the null does not
+    lose a value, it leaves `{}`, which HA cannot classify at all ("Unable to
+    determine action") — so the automation saves and fails at reload."""
+    for key in ("stop", "set_conversation_response"):
+        ok, err, norm = validate_automation_payload(
+            {
+                "alias": "Null Action",
+                "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+                "actions": [{key: None}],
+            },
+            None,
+        )
+        assert ok, f"{key}: {err}"
+        assert norm is not None
+        assert norm["actions"][0] == {key: None}, key
+
+
+def test_a_null_discriminator_beside_a_real_one_is_still_padding() -> None:
+    """Keeping it would make the action AMBIGUOUS — HA intersects the dict with
+    `ACTIONS_SET` and picks by map order, so a padded `event: null` could win
+    over the service call the user asked for. This is also why the exemption
+    cannot simply be `ACTIONS_SET`: `event` is in it, and `event: null` on a
+    sun CONDITION is the very padding the drop exists to remove."""
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Padded Action",
+            "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+            "actions": [
+                {
+                    "action": "light.turn_on",
+                    "target": {"entity_id": "light.sconces"},
+                    "event": None,
+                }
+            ],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert "event" not in norm["actions"][0]
+    assert norm["actions"][0]["action"] == "light.turn_on"
+
+
+def test_the_kept_action_is_one_home_assistant_accepts() -> None:
+    """Asserted against HA's own validator rather than our expectation of it —
+    the whole class of bug here is a payload we accept and HA does not."""
+    import voluptuous as vol
+    from homeassistant.helpers import config_validation as ha_cv
+
+    _, _, norm = validate_automation_payload(
+        {
+            "alias": "Null Action",
+            "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+            "actions": [{"stop": None}],
+        },
+        None,
+    )
+    assert norm is not None
+    try:
+        ha_cv.script_action(dict(norm["actions"][0]))
+    except vol.Invalid as exc:  # pragma: no cover - the assertion is the point
+        raise AssertionError(f"HA rejects what we wrote: {exc}") from exc
+
+
+def test_padding_inside_control_flow_is_dropped_too() -> None:
+    """A nested step is as much an action as a top-level one. HA reads
+    `{action: light.turn_on, event: null}` as an EVENT action — the intersection
+    with `ACTIONS_SET` has two members and `event` wins on `ACTIONS_MAP`
+    order — then rejects `action` as an extra key, which is the original failure
+    all over again, one level down."""
+    import voluptuous as vol
+    from homeassistant.helpers import config_validation as ha_cv
+
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Nested Padding",
+            "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+            "actions": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [{"condition": "sun", "after": "sunset"}],
+                            "sequence": [
+                                {
+                                    "action": "light.turn_on",
+                                    "target": {"entity_id": "light.sconces"},
+                                    "event": None,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    step = norm["actions"][0]["choose"][0]["sequence"][0]
+    assert "event" not in step
+    # Asserted against HA's own validator, since our agreeing with ourselves is
+    # what let this through.
+    try:
+        ha_cv.script_action(dict(step))
+    except vol.Invalid as exc:  # pragma: no cover - the assertion is the point
+        raise AssertionError(f"HA rejects the nested step we wrote: {exc}") from exc
+
+
+def test_a_sole_null_discriminator_survives_inside_control_flow() -> None:
+    """The exemption has to reach here too, or `{stop: null}` in a `then` branch
+    is emptied into `{}` and HA cannot classify it at all."""
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Nested Stop",
+            "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+            "actions": [
+                {
+                    "if": [{"condition": "state", "entity_id": "light.x", "state": "on"}],
+                    "then": [{"stop": None}],
+                }
+            ],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert norm["actions"][0]["then"][0] == {"stop": None}
+
+
+def test_a_null_inline_condition_action_is_refused() -> None:
+    """`condition` is one of the keys HA identifies an action by, so stripping
+    the null left `{}` — which `_validate_action_conditions` skips (there is no
+    `condition` key left to notice) and HA rejects outright as an action it
+    cannot determine. Keeping the key hands it to `_validate_condition`, which
+    already refuses a condition with no type, so the model is told what is
+    wrong instead of the automation failing at reload."""
+    for actions in (
+        [{"condition": None}],
+        [{"if": [{"condition": "state", "entity_id": "light.x", "state": "on"}],
+          "then": [{"condition": None}]}],
+    ):
+        ok, err, _ = validate_automation_payload(
+            {
+                "alias": "Null Condition Action",
+                "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+                "actions": actions,
+            },
+            None,
+        )
+        assert not ok, f"accepted {actions}"
+        assert "condition" in err
+
+
+# ── HA is the authority on its own schema ───────────────────────────────────
+#
+# Five review passes each found the same mistake in a new place: a null treated
+# as padding where HA treats it as a value. "Which nulls carry meaning" is a
+# fact about HA's schemas, and a hand-kept list of them is a copy that is wrong
+# until the next bug report. Sweeping HA's own action discriminators found
+# eleven more at once.
+
+
+def _ha_accepts(action: dict[str, object]) -> bool:
+    import voluptuous as vol
+    from homeassistant.helpers import config_validation as ha_cv
+
+    try:
+        ha_cv.script_action(dict(action))
+    except vol.Invalid:
+        return False
+    return True
+
+
+def test_we_never_accept_an_action_home_assistant_rejects() -> None:
+    """The invariant, swept over HA's whole action vocabulary rather than the
+    handful of keys that happened to be reported. Anything we write must be
+    something HA will load; anything else has to be refused so the retry loop
+    can hand the reason back."""
+    from homeassistant.helpers.config_validation import ACTIONS_SET
+
+    base = {
+        "alias": "Sweep",
+        "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+    }
+    service_call = {"action": "light.turn_on", "target": {"entity_id": "light.x"}}
+    candidates: list[dict[str, object]] = [{key: None} for key in sorted(ACTIONS_SET)]
+    for key in sorted(ACTIONS_SET):
+        if key in ("action", "service", "service_template"):
+            continue
+        candidates.append({**service_call, key: None})
+        candidates.append(
+            {
+                "if": [{"condition": "state", "entity_id": "light.x", "state": "on"}],
+                "then": [{**service_call, key: None}],
+            }
+        )
+
+    disagreements = []
+    for action in candidates:
+        ok, _, norm = validate_automation_payload({**base, "actions": [action]}, None)
+        if not ok:
+            continue  # refused — the model is told, which is the correct outcome
+        assert norm is not None
+        written = norm["actions"][0]
+        if not _ha_accepts(written):
+            disagreements.append(written)
+    assert not disagreements, f"accepted {len(disagreements)} action(s) HA rejects: {disagreements}"
+
+
+def test_the_two_nulls_home_assistant_accepts_are_still_written() -> None:
+    """The invariant cuts both ways: refusing everything would satisfy the test
+    above and break two valid actions."""
+    base = {
+        "alias": "Sweep",
+        "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+    }
+    for action in ({"stop": None}, {"set_conversation_response": None}):
+        assert _ha_accepts(action), f"HA no longer accepts {action}"
+        ok, err, norm = validate_automation_payload({**base, "actions": [action]}, None)
+        assert ok, f"{action}: {err}"
+        assert norm is not None
+        assert norm["actions"][0] == action

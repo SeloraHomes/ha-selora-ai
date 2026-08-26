@@ -17,6 +17,7 @@ from homeassistant.const import EVENT_STATE_CHANGED, STATE_OFF, STATE_ON
 from homeassistant.core import Context, Event, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.config_validation import ACTIONS_SET
 import yaml
 
 from .const import (
@@ -62,6 +63,51 @@ _DEVICE_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 # register their own condition platforms (e.g. ``condition: mqtt``) which
 # must not be blocked here.
 _LOGICAL_CONDITION_TYPES: frozenset[str] = frozenset({"and", "or", "not"})
+
+
+def _normalize_condition(cond: Any, *, is_action: bool = False) -> Any:
+    """``_normalize_item`` over a condition and everything nested inside it.
+
+    ``_validate_condition`` already walks ``and`` / ``or`` / ``not`` — both the
+    explicit ``condition:`` form and HA's shorthand — because a bad field two
+    levels down fails the reload exactly like a top-level one. Normalization
+    has to walk the same tree for the same reason: a sun condition wrapped in
+    an ``or`` was left completely untouched, so every coercion and repair here
+    applied only to conditions the model happened to write flat.
+
+    Non-dicts pass through: HA accepts a bare template string as a condition.
+
+    ``is_action`` applies to THIS condition only, never to the nested ones — a
+    condition inside an ``or`` is a condition, but an inline
+    condition-as-action step is an action, and `condition` is one of the keys
+    HA identifies an action by. Without the flag `{condition: null}` was
+    stripped to `{}`, which `_validate_action_conditions` skips (no `condition`
+    key left to notice) and HA then rejects outright as an action it cannot
+    determine. Keeping the key hands it to `_validate_condition`, which already
+    refuses a condition with no type — so the model is told what is wrong
+    instead of the automation failing at reload.
+    """
+    if not isinstance(cond, dict):
+        return cond
+
+    fixed = _normalize_item(cond, is_action=is_action)
+    # Both spellings of the nested list, matching `_validate_condition`: the
+    # explicit `conditions:` of an and/or/not, and the shorthand `{or: [...]}`
+    # with no `condition:` key at all.
+    for key in ("conditions", "and", "or", "not"):
+        if key not in fixed:
+            continue
+        if key != "conditions" and "condition" in fixed:
+            continue
+        nested = fixed[key]
+        if isinstance(nested, dict):
+            # HA's singular-dict sugar. Normalized in place, left singular —
+            # `_validate_condition` handles either shape and rewriting it here
+            # would change what gets written for no reason.
+            fixed[key] = _normalize_condition(nested)
+        elif isinstance(nested, list):
+            fixed[key] = [_normalize_condition(sub) for sub in nested]
+    return fixed
 
 
 def _validate_condition(
@@ -116,6 +162,37 @@ def _validate_condition(
             if not ok:
                 return False, err
         return True, ""
+    # A sun condition constrains with `before` / `after` (plus
+    # `before_offset` / `after_offset`). The sun TRIGGER spells the same
+    # idea `event:` + `offset:`, and a model reaching for "15 minutes
+    # before sunset" reliably brings the trigger's keys to the condition.
+    #
+    # Both halves of that failure are silent. HA rejects the unknown keys,
+    # so the automation is written and then refuses to set up. And once
+    # they are dropped as the nulls they usually arrive as, what is left
+    # constrains NOTHING — a sun condition with neither bound is trivially
+    # true, so the automation would run at any hour and the window the user
+    # asked for would be gone with nothing to show it was ever lost.
+    #
+    # Rejected rather than translated: `event: sunset` does not say whether
+    # the window opens or closes there, and guessing would write a rule
+    # nobody asked for. The message names the right keys, and the caller
+    # feeds it back so the model corrects itself.
+    if ctype == "sun" and not any(k in cond for k in ("before", "after")):
+        wrong = [k for k in ("event", "offset") if k in cond]
+        if wrong:
+            return (
+                False,
+                f"sun condition uses the sun TRIGGER's keys "
+                f"({', '.join(wrong)}); a condition takes 'before' and/or "
+                f"'after' (sunrise/sunset) with optional 'before_offset' / "
+                f"'after_offset'",
+            )
+        return (
+            False,
+            "sun condition must set 'before' and/or 'after' "
+            "(sunrise/sunset), otherwise it constrains nothing",
+        )
     if ctype == "device":
         device_id = cond.get("device_id")
         if not device_id or not isinstance(device_id, str):
@@ -293,6 +370,136 @@ def _validate_action_conditions(
             return False, err
 
     return True, ""
+
+
+def _ha_action_error(action: Any) -> str | None:
+    """HA's own verdict on one action step, as an error string or None.
+
+    ``cv.script_action`` is the schema HA validates an automation's actions
+    with at reload, so anything it refuses is an automation that saves and then
+    fails to set up — the failure this module keeps circling. Asking it here
+    turns that into an ordinary validation error the retry loop can hand back.
+
+    Only the OUTER step is checked. Control-flow branches carry their own
+    nested steps and each one reaches this function on its own pass through the
+    caller, so recursing would report the same problem several times over.
+
+    An unexpected exception is NOT a rejection. This runs HA's validators over
+    a payload a model wrote, and a schema that raises something other than
+    ``vol.Invalid`` is a bug in the validator or a shape it never anticipated —
+    refusing then would block a write on our own crash. It is logged and the
+    payload continues to the gates that do not depend on HA.
+    """
+    if not isinstance(action, dict):
+        return None
+    from homeassistant.helpers import config_validation as ha_cv  # noqa: PLC0415
+    import voluptuous as vol  # noqa: PLC0415
+
+    try:
+        ha_cv.script_action(dict(action))
+    except vol.Invalid as exc:
+        return f"Home Assistant rejects this action: {exc}"
+    except Exception:  # noqa: BLE001 — see the docstring
+        _LOGGER.debug("HA action validation raised unexpectedly", exc_info=True)
+    return None
+
+
+def _normalize_action_conditions(action: Any) -> Any:
+    """``_normalize_condition`` over every condition block inside an action step.
+
+    Mirrors ``_validate_action_conditions``' traversal, for the reason that one
+    exists: HA takes condition blocks in several places inside an action
+    sequence, and a bad field two levels down in ``choose[0].conditions`` fails
+    the reload exactly like a top-level one. Validation walked all of them;
+    normalization walked none, so a null padded onto a condition inside an
+    ``if`` was written verbatim and HA refused to set the automation up.
+
+    PURE. It rebuilds every container it descends into rather than editing in
+    place, because ``_normalize_item`` copies one level deep — the nested lists
+    and dicts it hands back are the caller's own objects, so mutating them
+    would rewrite the payload the caller still holds.
+
+    Shapes are preserved. HA accepts a singular dict where a list is expected
+    and both spellings validate, so normalizing one into the other would change
+    what gets written for no reason.
+    """
+    if isinstance(action, list):
+        return [_normalize_action_conditions(step) for step in action]
+    if not isinstance(action, dict):
+        return action
+
+    # A service call carries `action:` / `service:`, and its payload is not a
+    # condition — walking it as one is what the validator skips these for.
+    is_service_call = "action" in action or "service" in action
+    if not is_service_call and (
+        "condition" in action or any(op in action for op in _LOGICAL_CONDITION_TYPES)
+    ):
+        # An inline condition-as-action step. `_normalize_condition` already
+        # covers it and everything nested under it.
+        fixed = _normalize_condition(action, is_action=True)
+        if not isinstance(fixed, dict):
+            return fixed
+    else:
+        # `_normalize_item`, not a bare copy. A nested step is as much an action
+        # as a top-level one, and a padded null discriminator inside a `choose`
+        # or `if` is the whole original failure again: HA reads
+        # `{action: light.turn_on, event: null}` as an EVENT action — the
+        # intersection with `ACTIONS_SET` has two members and `event` wins on
+        # `ACTIONS_MAP` order — and then rejects `action` as an extra key.
+        # `is_action=True` so a SOLE null discriminator still survives here.
+        fixed = _normalize_item(action, is_action=True)
+
+    def _conds(value: Any) -> Any:
+        if isinstance(value, list):
+            return [_normalize_condition(c) for c in value]
+        if isinstance(value, dict):
+            return _normalize_condition(value)
+        return value
+
+    if "if" in fixed:
+        fixed["if"] = _conds(fixed["if"])
+
+    choose = fixed.get("choose")
+    if isinstance(choose, list):
+        branches = []
+        for branch in choose:
+            if not isinstance(branch, dict):
+                branches.append(branch)
+                continue
+            new_branch = dict(branch)
+            if "conditions" in new_branch:
+                new_branch["conditions"] = _conds(new_branch["conditions"])
+            if "sequence" in new_branch:
+                new_branch["sequence"] = _normalize_action_conditions(new_branch["sequence"])
+            branches.append(new_branch)
+        fixed["choose"] = branches
+
+    repeat = fixed.get("repeat")
+    if isinstance(repeat, dict):
+        new_repeat = dict(repeat)
+        for guard_key in ("while", "until"):
+            if guard_key in new_repeat:
+                new_repeat[guard_key] = _conds(new_repeat[guard_key])
+        if "sequence" in new_repeat:
+            new_repeat["sequence"] = _normalize_action_conditions(new_repeat["sequence"])
+        fixed["repeat"] = new_repeat
+
+    # `wait_for_trigger` embeds full TRIGGER dicts — `_validate_action_conditions`
+    # gates them with `_validate_trigger`, so they get the item-level
+    # normalization a top-level trigger gets.
+    wait_for = fixed.get("wait_for_trigger")
+    if isinstance(wait_for, list):
+        fixed["wait_for_trigger"] = [
+            _normalize_item(t) if isinstance(t, dict) else t for t in wait_for
+        ]
+    elif isinstance(wait_for, dict):
+        fixed["wait_for_trigger"] = _normalize_item(wait_for)
+
+    for nested_key in ("default", "then", "else", "parallel", "sequence"):
+        if nested_key in fixed:
+            fixed[nested_key] = _normalize_action_conditions(fixed[nested_key])
+
+    return fixed
 
 
 def _as_condition_list(value: Any) -> list[Any]:
@@ -628,6 +835,22 @@ _STATE_KEYS = frozenset({"to", "from", "state"})
 # Keys where boolean values are intentional (not state strings).
 _BOOL_KEYS = frozenset({"initial_state", "enabled", "hide_entity", "continue_on_error"})
 
+# A state trigger's match keys, where the KEY'S PRESENCE carries meaning of its
+# own and an explicit null must therefore survive. HA's state trigger computes
+#
+#     match_all = all(k not in config for k in (from, not_from, to, not_to))
+#
+# from presence, not from value, and `match_all` is what decides whether an
+# attribute-only update fires the trigger: with it set, the trigger "will fire
+# even if just an attribute changes". So `to: null` is HA's documented idiom for
+# "any state change, but not attribute churn", and dropping the key turns a
+# trigger the user wrote to be quiet into one that fires on every attribute
+# update — a light reporting brightness, a sensor reporting a new reading.
+#
+# Scoped to a state trigger. On anything else these are unknown keys HA rejects
+# outright, which is the failure the null-drop exists to prevent.
+_STATE_MATCH_KEYS = frozenset({"to", "from", "not_to", "not_from"})
+
 
 def _coerce_time_value(value: Any) -> str | None:
     """Coerce a value to ``HH:MM:SS`` time string.
@@ -679,20 +902,65 @@ def _coerce_state_string(value: Any) -> str | None:
     return value
 
 
-def _normalize_item(item: dict[str, Any]) -> dict[str, Any]:
-    """Apply pattern-based coercion to a single trigger or condition dict.
+def _normalize_item(item: dict[str, Any], *, is_action: bool = False) -> dict[str, Any]:
+    """Apply pattern-based coercion to a single trigger, condition or action dict.
 
     Detection is by *key name* and *value type*, not by which section
     the item lives in.  This lets us catch the same class of mistake
     in triggers, conditions, or any future HA automation section.
+
+    ``is_action`` is needed by the null-drop alone, and only because HA
+    identifies an action BY WHICH KEY IT CARRIES — see the comment there.
     """
     fixed = dict(item)
+    is_state_trigger = fixed.get("trigger") == "state" or fixed.get("platform") == "state"
+    # HA's own set of the keys that NAME an action. Asked rather than listed, so
+    # a discriminator added in a later release is covered without anyone here
+    # noticing it appeared.
+    discriminators = ACTIONS_SET.intersection(fixed) if is_action else frozenset()
 
     for key in list(fixed.keys()):
         if key in _BOOL_KEYS:
             continue  # intentional boolean -- leave it alone
 
         val = fixed[key]
+
+        # --- Explicit nulls: the key was never meant to be here ------------
+        # A model filling in every field of a schema it half-remembers emits
+        # the unused ones as null, and HA's voluptuous schemas reject the KEY,
+        # not the value: `extra keys not allowed @ data['event']. Got None`.
+        # The automation validates here, is written, and then fails to set up,
+        # so the user is told it was saved and HA tells them it is broken.
+        #
+        # Dropped by value rather than by name. The named pairs this replaces
+        # (`to`/`from` on a trigger) were the two spellings that had been seen
+        # in the wild, and the next one — `event` and `offset` volunteered onto
+        # a sun CONDITION from the sun TRIGGER's schema — was not among them.
+        # There is no request an explicit null expresses that omitting the key
+        # does not, so nothing is discarded by removing it.
+        if val is None:
+            if is_state_trigger and key in _STATE_MATCH_KEYS:
+                continue  # see _STATE_MATCH_KEYS — presence is the setting
+            # An action is identified by WHICH KEY it carries
+            # (`cv.determine_script_action` intersects the dict with
+            # `ACTIONS_SET`), and two of those keys take a null as a real
+            # value: `stop: null` and `set_conversation_response: null` both
+            # validate, and both are the whole action. Dropping the null there
+            # does not lose a value, it erases the action's identity — what is
+            # left is `{}`, which HA cannot classify at all ("Unable to
+            # determine action"), so the automation saves and fails at reload.
+            #
+            # Only when it is the ONLY discriminator present. A null one beside
+            # a real one is padding — `{action: light.turn_on, event: null}` —
+            # and keeping it would make the action AMBIGUOUS, letting HA pick
+            # `event` over the service call the user asked for. That is also
+            # why this cannot simply exempt `ACTIONS_SET`: `event` is in it,
+            # and `event: null` volunteered onto a sun CONDITION is exactly the
+            # padding this whole branch exists to remove.
+            if key in discriminators and len(discriminators) == 1:
+                continue
+            fixed.pop(key)
+            continue
 
         # --- Time keys: integers are seconds-since-midnight ----------------
         if key in _TIME_KEYS:
@@ -1953,10 +2221,6 @@ def validate_automation_payload(
         ok, err = _validate_trigger(fixed, hass)
         if not ok:
             return False, err, None
-        # Remove None-valued to/from (LLM sometimes emits explicit nulls)
-        for key in ("to", "from"):
-            if key in fixed and fixed[key] is None:
-                fixed.pop(key)
         normalized_triggers.append(fixed)
 
     # --- Condition normalization -------------------------------------------
@@ -1965,7 +2229,7 @@ def validate_automation_payload(
     # the whole automation at reload, after the YAML is already on disk.
     normalized_conditions: list[dict[str, Any]] = []
     for cond in conditions:
-        norm_cond = _normalize_item(cond)
+        norm_cond = _normalize_condition(cond)
         ok, err = _validate_condition(norm_cond, hass)
         if not ok:
             return False, err, None
@@ -1984,7 +2248,7 @@ def validate_automation_payload(
     # top-level one, never persisted as a silent/non-existent service.
     normalized_actions: list[dict[str, Any]] = []
     for act in actions:
-        norm_act = _normalize_item(act)
+        norm_act = _normalize_action_conditions(_normalize_item(act, is_action=True))
         if hass is not None:
             # Repair the silent-announcement defect: media_player.play_media
             # handed spoken text never produces audio. Retarget to tts.speak
@@ -2016,6 +2280,25 @@ def validate_automation_payload(
                             f"action targets read-only domain '{eid_domain}' ({eid})",
                             None,
                         )
+        # HA's OWN action schema, asked rather than reimplemented. Every gate
+        # above encodes something HA's schema does not know (a service that is
+        # not registered, a read-only target domain); this is the reverse — the
+        # things HA knows and we kept getting wrong one at a time.
+        #
+        # A null was the running example. Five rounds of review each found the
+        # same mistake in a new place, because "which nulls carry meaning" is a
+        # fact about HA's schemas and a hand-kept list of them is a copy that
+        # is wrong until the next report. Sweeping HA's 21 action
+        # discriminators found eleven more: `{action: null}`, `{delay: null}`,
+        # `{scene: null}` and the rest are all rejected by HA and were all
+        # written happily from here.
+        #
+        # Refused, not repaired: HA's message names the key and the reason, the
+        # retry loop hands it back, and the model fixes its own payload. That
+        # is the shape that generalises — the next key HA adds is covered
+        # without anyone here hearing about it.
+        if error := _ha_action_error(norm_act):
+            return False, error, None
         normalized_actions.append(norm_act)
 
     # Recurse into action control-flow (`choose`, `if`, `repeat`, etc.) so

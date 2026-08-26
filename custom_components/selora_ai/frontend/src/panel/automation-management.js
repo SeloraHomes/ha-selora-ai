@@ -385,13 +385,32 @@ export async function _openDiffViewer(automationId) {
   if (!versions || versions.length < 2)
     await this._loadVersionHistory(automationId);
   const v = this._versions[automationId] || [];
+  // Say so rather than opening a compare dialog with one version in both
+  // selects and an empty diff below them — a dead end that reads as a bug.
+  // Reachable now that the saved chat card offers this straight after a
+  // CREATE, where there is nothing earlier by definition.
+  if (v.length < 2) {
+    this._showToast(
+      this._t(
+        "version_history_nothing_to_compare",
+        "No earlier version to compare — this is the first one saved.",
+      ),
+      "info",
+    );
+    this.requestUpdate();
+    return;
+  }
   this._diffAutomationId = automationId;
   this._diffVersionA = v[0]?.version_id || null;
   this._diffVersionB = v[1]?.version_id || null;
   this._diffResult = [];
   this._diffOpen = true;
   if (this._diffVersionA && this._diffVersionB) {
-    await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
+    // OLDER first. `get_diff(a, b)` is `unified_diff(from=a, to=b)`, and A is
+    // labelled "newer" in the dialog — so passing (A, B) diffed new → old and
+    // presented every line the new version added as a REMOVAL. The selects
+    // keep their meaning; only the direction handed to the store changes.
+    await this._loadDiff(automationId, this._diffVersionB, this._diffVersionA);
   }
   this.requestUpdate();
 }

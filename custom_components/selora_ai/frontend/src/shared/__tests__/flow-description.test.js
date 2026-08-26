@@ -567,6 +567,121 @@ describe("Conditions", () => {
 // ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// A sun window, both bounds and both offsets
+//
+// "Replace the illuminance with 15 minutes before sunset to 15 minutes after
+// sunrise" produced the right YAML and a flowchart reading "after sunset" /
+// "before sunrise" — the offsets were dropped, so a window asked to open
+// fifteen minutes early read as opening at sunset. A condition keeps its shift
+// in `after_offset` / `before_offset`, which the condition branch never looked
+// at.
+// ---------------------------------------------------------------------------
+describe("Sun conditions", () => {
+  it("renders the offset on each bound", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunset",
+        after_offset: "-00:15:00",
+      }),
+    ).toBe("after 15min before sunset");
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        before: "sunrise",
+        before_offset: "00:15:00",
+      }),
+    ).toBe("before 15min after sunrise");
+  });
+
+  it("renders both bounds of one condition together", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunset",
+        after_offset: "-00:15:00",
+        before: "sunrise",
+        before_offset: "00:15:00",
+      }),
+    ).toBe("after 15min before sunset, before 15min after sunrise");
+  });
+
+  it("keeps the bare event when there is no offset", () => {
+    expect(
+      describeFlowItem(mockHass, { condition: "sun", after: "sunset" }),
+    ).toBe("after sunset");
+  });
+
+  it("treats an all-zero offset as no offset", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunset",
+        after_offset: "00:00:00",
+      }),
+    ).toBe("after sunset");
+  });
+
+  it("falls back to the raw value rather than dropping an unparseable offset", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunset",
+        after_offset: "whenever",
+      }),
+    ).toBe("after whenever after sunset");
+  });
+
+  it("accepts the mapping and seconds forms HA also allows", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunset",
+        after_offset: { minutes: 30 },
+      }),
+    ).toBe("after 30min after sunset");
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        before: "sunrise",
+        before_offset: -900,
+      }),
+    ).toBe("before 15min before sunrise");
+  });
+
+  it("reads the direction from a signed mapping", () => {
+    // `cv.time_period` accepts `{minutes: -30}` — half an hour BEFORE. Handing
+    // that straight to `fmtDuration` kept the minus inside the label, so the
+    // chip stated the direction twice and got one of them wrong: "after -30m
+    // after sunset".
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunset",
+        after_offset: { minutes: -30 },
+      }),
+    ).toBe("after 30min before sunset");
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunset",
+        after_offset: { hours: -1, minutes: -15 },
+      }),
+    ).toBe("after 1h 15min before sunset");
+  });
+
+  it("leaves the trigger form alone", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        platform: "sun",
+        event: "sunset",
+        offset: "-00:15:00",
+      }),
+    ).toBe("15min before sunset");
+  });
+});
+
 describe("Actions", () => {
   it("describes turn_on action with target", () => {
     const result = describeFlowItem(mockHass, {
