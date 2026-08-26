@@ -8,6 +8,15 @@
     "enabled": true
   },
   "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "description": "Preset 10 pulls @conventional-changelog/template >= 1.4.0, which plants a tripwire template that throws unless the resolved conventional-changelog-writer is 9 or newer. No released @semantic-release/release-notes-generator depends on one (14.1.1 pins writer ^8), so the whole 10 line breaks the release job at generateNotes and no tag is cut. Not a version ceiling: scripts/changelog-preset.test.mjs fails the merge request that introduces an incompatible pairing, so this bump becomes mergeable on its own once release-notes-generator ships a writer 9. Approval keeps it off the merge-request queue until then rather than reopening a failing branch every run.",
+      "matchPackageNames": [
+        "conventional-changelog-conventionalcommits"
+      ],
+      "dependencyDashboardApproval": true
+    }
+  ],
   "postUpgradeTasks": {
     "commands": [
       "make generate"
