@@ -10,11 +10,25 @@ on:
 permissions:
   contents: read
 
+# Both jobs check out `github.ref_type == 'tag' && github.ref || github.sha`
+# rather than letting checkout default to the event's sha, because A RELEASE TAG
+# MOVES: semantic-release tags the commit it ran on, then commits the CHANGELOG
+# and manifest bump and re-points the tag at that commit. By the time these jobs
+# start, the sha the workflow was dispatched with is no longer what the tag
+# names, and checkout fails outright — "The ref 'refs/tags/vX.Y.Z' does not
+# point to the expected commit" — on every release, reading as a validation
+# failure for a release that is in fact fine.
+#
+# Resolving the ref validates whatever the tag names NOW, which is what shipped:
+# the commit carrying the bumped manifest, and the one worth validating. Branch
+# and pull_request events keep the event sha, where pinning is correct.
 jobs:
   validate-hacs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v7"
+        with:
+          ref: ${{ github.ref_type == 'tag' && github.ref || github.sha }}
       - name: HACS validation
         uses: "hacs/action@main"
         with:
@@ -24,5 +38,7 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - uses: "actions/checkout@v7"
+        with:
+          ref: ${{ github.ref_type == 'tag' && github.ref || github.sha }}
       - name: Hassfest validation
         uses: "home-assistant/actions/hassfest@master"
