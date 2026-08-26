@@ -1,3 +1,27 @@
+## [0.16.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.15.0...v0.16.0) (2026-08-26)
+
+### Features
+
+* add registry, script, and label tools ([e6aa6a4](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e6aa6a4c18decc14de91028e1ff915b544d7fb0f))
+* create dashboards through the panel ([11500e3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/11500e39952bcfa30327a32a1e179527bda788f1))
+* delete a dashboard, and continue after a confirmation ([5de756e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5de756e4cbbf53d50d80c9e3c55a044d6a467fc0))
+* floor and category registry tools ([b3a9671](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b3a96715c97e7a15cd291df1041d819891d51aa1))
+* let chat read and edit dashboard content ([d8314c3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d8314c3527a10ae7c33c268d35c571613a1e8043))
+* move dashboard cards between views and dashboards ([90e30dc](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/90e30dc345cb81bdd5c9291f40d23d589fe46558))
+* **recipes:** recipes install their own Lovelace cards ([4c8e10c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4c8e10c569b9755029d466d43515986216106d59))
+* report which store each app was installed from ([78f5b1f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/78f5b1f4d349ac9a46c474e887f13cfc14721349))
+
+### Bug Fixes
+
+* a chat follow-up edits its automation instead of duplicating it ([2c389af](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2c389afc47eb39526ced4f3206df88218dab5445))
+* autocomplete sensors in the chat composer ([f1c1f36](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f1c1f362dfc498491e902362f1a720974d5663ec))
+* automations that saved but would not load ([1aabdbe](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1aabdbe2cc1b561712d323a22b9871fb0a1f8978))
+* harden the dashboard client-action path ([1ff339b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1ff339bc5e78a5120595c1a104eaef148428c8a3))
+* move every named card in one call, link every page ([2bb23b8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2bb23b81a186dae124df40479ced817f9e7101d4))
+* never export a URL for built-in app stores ([18f2d55](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/18f2d552ef52d169be2601a9e2e2bc9eb57ee457))
+* recognise "create a new office area" ([1e6ca88](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1e6ca88fe8182db6d850b787ee728a47a0c8754f))
+* suppress a dashboard card per page, not per turn ([94baaa5](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/94baaa556149d577017689e72a734db3f93b3562))
+
 ## [0.15.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.14.0...v0.15.0) (2026-08-14)
 
 ## [0.14.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.13.0...v0.14.0) (2026-08-08)
