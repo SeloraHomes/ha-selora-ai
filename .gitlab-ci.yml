@@ -162,6 +162,31 @@ release-script:
   script:
     - node --test scripts/github-release.test.mjs
 
+# The release job runs `npx semantic-release` and nothing else does — it is
+# gated to a scheduled or manual pipeline on the default branch. So a dependency
+# bump that breaks note generation is green in its own merge request and fails
+# days later, mid-release, after the version has already been decided. This
+# renders the changelog preset through whichever writer the lockfile resolves,
+# which is the pairing the release job gets.
+changelog-preset:
+  stage: test
+  image: node:lts-slim
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - package.json
+        - package-lock.json
+        - scripts/changelog-preset.test.mjs
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - package.json
+        - package-lock.json
+        - scripts/changelog-preset.test.mjs
+  before_script:
+    - npm ci --ignore-scripts
+  script:
+    - node --test scripts/changelog-preset.test.mjs
+
 release-patch-script:
   stage: test
   image: python:3.14-slim
