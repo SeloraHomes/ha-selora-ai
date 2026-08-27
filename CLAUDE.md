@@ -147,6 +147,49 @@ custom_components/selora_ai/
 - Do not break the config flow step → strings.json mapping
 - Do not use `dict[str, Any]` for data structures that have a TypedDict in `types.py` — import and use the TypedDict
 - Do not add untyped functions — every new function/method must have full parameter and return type annotations
+- Do not declare a package Home Assistant core already requires in `manifest.json` — see below
+
+### Manifest requirements
+
+HA installs a custom integration's `requirements` with core's
+`package_constraints.txt` passed as `--constraint`, so **core's pin decides the
+version** and our specifier only votes on whether the install *succeeds*. A
+specifier core's pin does not satisfy is unresolvable and the integration never
+sets up — `Requirements for selora_ai not found: ['PyJWT>=2.13.0']` — with the
+config entry, the files and the HACS registration all looking healthy.
+
+- **A package core itself requires must not be declared here at all.** Core
+  installs it before we are set up, so a floor can only ever break the install.
+  `PyJWT` is core's (`Requires-Dist: PyJWT==2.12.1`), and a Renovate security
+  bump to `>=2.13.0` gave 0.16.0 an implicit core ≥ 2026.8 floor — every hub on
+  2026.7.x failed to load, silently, while `hacs.json` still advertised 2025.1.0.
+  Raising the floor protected nobody either: the installed version was core's
+  regardless.
+- **The version that suits the newest core is not the test.** Hubs do not
+  auto-update core, so the guard in `tests/test_manifest_requirements.py`
+  refuses the DECLARATION rather than comparing our floor against the pin the
+  installed core happens to carry — a comparison that passes on CI's recent
+  core and still breaks every older hub, which is the bug itself wearing the
+  guard's clothes. Core owns a version two ways, and both are refused: it
+  requires the package itself (`Requires-Dist`), or it `==`-pins it in the
+  constraints file (`setuptools==81.0.0`, which core does not install).
+- **A package we genuinely need above core's pin is a blocker, not a floor.**
+  Declaring it fails the install; omitting it fails at runtime instead. The
+  test surfaces that at merge time — there is no third option to encode.
+- **A package core merely constrains is checked on the INTERSECTION**, not on
+  our floor against core's ceiling. The conflict runs both ways round: a
+  manifest `foo<4` against a core `foo>=4` is exactly as unresolvable, and one
+  direction reports it as fine. The model is conservative where PEP 440 gets
+  fiddly — `~=`'s implied ceiling, `===`, a `==6.4.*` wildcard contribute a
+  lower bound at most — because a false alarm blocks a merge request over an
+  install that would have worked. That half reads the INSTALLED core, so the
+  residual blind spot is a package an older core bounded and the current one no
+  longer does. Nothing in the manifest is in that class today.
+- CI never resolves the manifest — the test jobs `pip install` their deps
+  directly — so nothing but that test stands between a dependency bump and a
+  release that cannot load. It has to be a test rather than
+  `scripts/validate_manifest.py`: the `validate` job runs on bare
+  `python:3.14-slim` with no core installed and so has no constraints to read.
 
 ## Testing
 
