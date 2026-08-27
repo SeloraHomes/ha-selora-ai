@@ -1,3 +1,9 @@
+## [0.16.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.16.0...v0.16.1) (2026-08-27)
+
+### Bug Fixes
+
+* drop PyJWT from manifest requirements ([2c85d96](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2c85d965e9b6e65a0755e183b7e5c777a734fdc6))
+
 ## [0.16.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.15.0...v0.16.0) (2026-08-26)
 
 ### Features
