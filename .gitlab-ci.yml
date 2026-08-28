@@ -18,6 +18,18 @@ variables:
     paths:
       - .cache/pip
 
+.ha-test-deps: &ha-test-deps
+  - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
+  # The plugin pins `homeassistant` exactly, so capping it is the only handle on
+  # the core version: 0.13.358 pins 2026.9.0b0, whose device_registry
+  # deprecations fail the suite. lefthook.yml carries the same cap.
+  # Lift once 2026.9 ships stable.
+  - pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.358" "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
+  # Pin hassil / home-assistant-intents to the exact versions the installed HA's
+  # conversation component requires — unpinned pulls a newer build that dropped
+  # FuzzyConfig, breaking test_conversation collection.
+  - pip install --quiet $(python -c "import importlib.util,json,os; s=importlib.util.find_spec('homeassistant.components.conversation'); print(' '.join(json.load(open(os.path.join(os.path.dirname(s.origin),'manifest.json')))['requirements']))")
+
 .default-rules: &default-rules
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -76,13 +88,7 @@ unit:
     matrix:
       - PYTHON_VERSION: ["3.13", "3.14"]
   <<: *pip-cache
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
-    - pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
-    # Pin hassil / home-assistant-intents to the exact versions the installed HA's
-    # conversation component requires — unpinned pulls a newer build that dropped
-    # FuzzyConfig, breaking test_conversation collection.
-    - pip install --quiet $(python -c "import importlib.util,json,os; s=importlib.util.find_spec('homeassistant.components.conversation'); print(' '.join(json.load(open(os.path.join(os.path.dirname(s.origin),'manifest.json')))['requirements']))")
+  before_script: *ha-test-deps
   script:
     - pytest tests/ -v
 
@@ -90,13 +96,7 @@ soak:
   stage: test
   image: python:3.14-slim
   <<: *pip-cache
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
-    - pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
-    # Pin hassil / home-assistant-intents to the exact versions the installed HA's
-    # conversation component requires — unpinned pulls a newer build that dropped
-    # FuzzyConfig, breaking test_conversation collection.
-    - pip install --quiet $(python -c "import importlib.util,json,os; s=importlib.util.find_spec('homeassistant.components.conversation'); print(' '.join(json.load(open(os.path.join(os.path.dirname(s.origin),'manifest.json')))['requirements']))")
+  before_script: *ha-test-deps
   script:
     - pytest tests/ -m soak -v
   # Soak tests sleep through rate-limiter windows and pump tens of
