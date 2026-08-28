@@ -595,7 +595,12 @@ describe("Sun conditions", () => {
     ).toBe("before 15min after sunrise");
   });
 
-  it("renders both bounds of one condition together", () => {
+  // Both bounds on ONE condition is HA's wrap-around window — the
+  // sunset/sunrise pair is special-cased to an OR, not an AND — so it is one
+  // fact and has to read as one. Joined with ", " it stated two independent
+  // tests, which is the reading that makes a night window look impossible and
+  // sends the user off to "fix" a condition that was right.
+  it("reads both bounds of one condition as a single window", () => {
     expect(
       describeFlowItem(mockHass, {
         condition: "sun",
@@ -604,7 +609,17 @@ describe("Sun conditions", () => {
         before: "sunrise",
         before_offset: "00:15:00",
       }),
-    ).toBe("after 15min before sunset, before 15min after sunrise");
+    ).toBe("between 15min before sunset and 15min after sunrise");
+  });
+
+  it("reads a daytime window the same way", () => {
+    expect(
+      describeFlowItem(mockHass, {
+        condition: "sun",
+        after: "sunrise",
+        before: "sunset",
+      }),
+    ).toBe("between sunrise and sunset");
   });
 
   it("keeps the bare event when there is no offset", () => {

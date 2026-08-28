@@ -211,6 +211,17 @@ _SHARED_AUTOMATION_RULES = (
     "- For state triggers, 'to' and 'from' MUST be strings, never booleans. Use \"on\"/\"off\" (not true/false).\n"
     "- Time values ('at' in triggers, 'after'/'before' in conditions) MUST be \"HH:MM:SS\" strings (e.g. \"07:00:00\"). NEVER use integer seconds since midnight.\n"
     '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
+    '- NIGHT WINDOW ("at night", "after dark", "between sunset and sunrise"): write ONE sun '
+    "condition carrying both bounds — "
+    '`{condition: sun, after: "sunset", before: "sunrise"}`, with `after_offset` / '
+    "`before_offset` for a shift such as 15 minutes before sunset "
+    '(`after_offset: "-00:15:00"`). Home Assistant reads that single condition as the window '
+    "that wraps midnight. NEVER split it into two sibling sun conditions "
+    '(`{after: "sunset"}` and `{before: "sunrise"}` side by side): sibling conditions are ANDed, '
+    "and no moment is both after tonight's sunset and before this morning's sunrise — the "
+    "automation looks right and never runs.\n"
+    "- The same holds for a CLOCK window that crosses midnight: one condition, "
+    '`{condition: time, after: "22:00:00", before: "06:00:00"}`, never two.\n'
     "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
     "- TRIGGER PLATFORM: common core values are state, numeric_state, time, time_pattern, sun, "
     "template, event, mqtt, webhook, zone, geo_location, device, calendar, tag, conversation, "

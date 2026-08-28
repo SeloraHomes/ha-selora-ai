@@ -99,6 +99,7 @@ REPAIR_TYPES: frozenset[str] = frozenset(
         "cloud_json_salvage",
         "tool_markup_leak",
         "entity_id_in_description",
+        "night_window_merge",
     }
 )
 

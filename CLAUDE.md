@@ -36,6 +36,7 @@ custom_components/selora_ai/
 ├── device_manager.py    # Device discovery, pairing, area assignment, dashboard generation
 ├── conversation.py      # Assist Conversation Agent — routes natural language to HA service calls
 ├── automation_utils.py  # Validation, risk assessment, YAML I/O, async automation CRUD
+├── automation_normalize.py # Pure payload reshaping: field coercion, null-dropping, window merging
 ├── automation_store.py  # Lifecycle + versioning for [Selora AI] automations
 ├── group_manager.py     # HA group-helper CRUD (drives HA's own `group` config flow)
 ├── dashboard_manager.py # Lovelace view/card read + edit (chat tool surface)

@@ -30595,6 +30595,7 @@ var PHRASES = {
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
     cond_after_sun: (s4) => `after ${s4}`,
+    cond_sun_window: (a3, b3) => `between ${a3} and ${b3}`,
     cond_before_sun: (s4) => `before ${s4}`,
     cond_sun_position: "Sun position",
     cond_all: (n4) => `All ${n4} conditions must be true`,
@@ -30722,6 +30723,7 @@ var PHRASES = {
     cond_time_window: "Fen\xEAtre temporelle",
     cond_template_true: "Le mod\xE8le est \xE9valu\xE9 \xE0 vrai",
     cond_after_sun: (s4) => `apr\xE8s ${s4}`,
+    cond_sun_window: (a3, b3) => `entre ${a3} et ${b3}`,
     cond_before_sun: (s4) => `avant ${s4}`,
     cond_sun_position: "Position du soleil",
     cond_all: (n4) => `Les ${n4} conditions doivent \xEAtre vraies`,
@@ -30845,6 +30847,7 @@ var PHRASES = {
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
     cond_after_sun: (s4) => `nach ${s4}`,
+    cond_sun_window: (a3, b3) => `zwischen ${a3} und ${b3}`,
     cond_before_sun: (s4) => `vor ${s4}`,
     cond_sun_position: "Sonnenposition",
     cond_all: (n4) => `Alle ${n4} Bedingungen m\xFCssen erf\xFCllt sein`,
@@ -30970,6 +30973,7 @@ var PHRASES = {
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se eval\xFAa como verdadera",
     cond_after_sun: (s4) => `despu\xE9s de ${s4}`,
+    cond_sun_window: (a3, b3) => `entre ${a3} y ${b3}`,
     cond_before_sun: (s4) => `antes de ${s4}`,
     cond_sun_position: "Posici\xF3n del sol",
     cond_all: (n4) => `Las ${n4} condiciones deben ser verdaderas`,
@@ -31097,6 +31101,7 @@ var PHRASES = {
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello \xE8 valutato vero",
     cond_after_sun: (s4) => `dopo ${s4}`,
+    cond_sun_window: (a3, b3) => `tra ${a3} e ${b3}`,
     cond_before_sun: (s4) => `prima di ${s4}`,
     cond_sun_position: "Posizione del sole",
     cond_all: (n4) => `Tutte le ${n4} condizioni devono essere vere`,
@@ -31226,6 +31231,7 @@ var PHRASES = {
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
     cond_after_sun: (s4) => `na ${s4}`,
+    cond_sun_window: (a3, b3) => `tussen ${a3} en ${b3}`,
     cond_before_sun: (s4) => `v\xF3\xF3r ${s4}`,
     cond_sun_position: "Zonpositie",
     cond_all: (n4) => `Alle ${n4} voorwaarden moeten waar zijn`,
@@ -31357,6 +31363,7 @@ var PHRASES = {
     cond_time_window: "Id\u0151ablak",
     cond_template_true: "A sablon igaznak \xE9rt\xE9kel\u0151dik",
     cond_after_sun: (s4) => `${s4} ut\xE1n`,
+    cond_sun_window: (a3, b3) => `${a3} \xE9s ${b3} k\xF6z\xF6tt`,
     cond_before_sun: (s4) => `${s4} el\u0151tt`,
     cond_sun_position: "Nappoz\xEDci\xF3",
     cond_all: (n4) => `Mind a ${n4} felt\xE9telnek igaznak kell lennie`,
@@ -31765,6 +31772,12 @@ function describeFlowItem(hass, item, ctx) {
         ? t5("sun_offset", off.label, off.neg, sunEvent(value))
         : sunEvent(value);
     };
+    if (item.after && item.before)
+      return t5(
+        "cond_sun_window",
+        bound(item.after, item.after_offset),
+        bound(item.before, item.before_offset),
+      );
     const parts = [];
     if (item.after)
       parts.push(t5("cond_after_sun", bound(item.after, item.after_offset)));
@@ -48823,7 +48836,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "ee50836a7e9d" : "";
+var PANEL_BUILD = true ? "7f47decb7643" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

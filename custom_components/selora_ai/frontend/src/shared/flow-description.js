@@ -101,6 +101,7 @@ const PHRASES = {
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
     cond_after_sun: (s) => `after ${s}`,
+    cond_sun_window: (a, b) => `between ${a} and ${b}`,
     cond_before_sun: (s) => `before ${s}`,
     cond_sun_position: "Sun position",
     cond_all: (n) => `All ${n} conditions must be true`,
@@ -226,6 +227,7 @@ const PHRASES = {
     cond_time_window: "Fenêtre temporelle",
     cond_template_true: "Le modèle est évalué à vrai",
     cond_after_sun: (s) => `après ${s}`,
+    cond_sun_window: (a, b) => `entre ${a} et ${b}`,
     cond_before_sun: (s) => `avant ${s}`,
     cond_sun_position: "Position du soleil",
     cond_all: (n) => `Les ${n} conditions doivent être vraies`,
@@ -349,6 +351,7 @@ const PHRASES = {
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
     cond_after_sun: (s) => `nach ${s}`,
+    cond_sun_window: (a, b) => `zwischen ${a} und ${b}`,
     cond_before_sun: (s) => `vor ${s}`,
     cond_sun_position: "Sonnenposition",
     cond_all: (n) => `Alle ${n} Bedingungen müssen erfüllt sein`,
@@ -474,6 +477,7 @@ const PHRASES = {
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se evalúa como verdadera",
     cond_after_sun: (s) => `después de ${s}`,
+    cond_sun_window: (a, b) => `entre ${a} y ${b}`,
     cond_before_sun: (s) => `antes de ${s}`,
     cond_sun_position: "Posición del sol",
     cond_all: (n) => `Las ${n} condiciones deben ser verdaderas`,
@@ -598,6 +602,7 @@ const PHRASES = {
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello è valutato vero",
     cond_after_sun: (s) => `dopo ${s}`,
+    cond_sun_window: (a, b) => `tra ${a} e ${b}`,
     cond_before_sun: (s) => `prima di ${s}`,
     cond_sun_position: "Posizione del sole",
     cond_all: (n) => `Tutte le ${n} condizioni devono essere vere`,
@@ -724,6 +729,7 @@ const PHRASES = {
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
     cond_after_sun: (s) => `na ${s}`,
+    cond_sun_window: (a, b) => `tussen ${a} en ${b}`,
     cond_before_sun: (s) => `vóór ${s}`,
     cond_sun_position: "Zonpositie",
     cond_all: (n) => `Alle ${n} voorwaarden moeten waar zijn`,
@@ -849,6 +855,7 @@ const PHRASES = {
     cond_time_window: "Időablak",
     cond_template_true: "A sablon igaznak értékelődik",
     cond_after_sun: (s) => `${s} után`,
+    cond_sun_window: (a, b) => `${a} és ${b} között`,
     cond_before_sun: (s) => `${s} előtt`,
     cond_sun_position: "Nappozíció",
     cond_all: (n) => `Mind a ${n} feltételnek igaznak kell lennie`,
@@ -1412,6 +1419,17 @@ export function describeFlowItem(hass, item, ctx) {
         ? t("sun_offset", off.label, off.neg, sunEvent(value))
         : sunEvent(value);
     };
+    // BOTH bounds on one condition is HA's wrap-around window (see
+    // `components/sun/condition.py`: the sunset/sunrise pair evaluates as an
+    // OR, not an AND), so it is one fact and reads as one — ", " between the
+    // halves states them as two independent tests, which is the reading that
+    // makes a night window look impossible.
+    if (item.after && item.before)
+      return t(
+        "cond_sun_window",
+        bound(item.after, item.after_offset),
+        bound(item.before, item.before_offset),
+      );
     const parts = [];
     if (item.after)
       parts.push(t("cond_after_sun", bound(item.after, item.after_offset)));
