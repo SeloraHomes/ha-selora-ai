@@ -33,6 +33,8 @@ pre-push:
     # inside one command so the venv setup runs exactly once.
     test-python:
       glob: "**/*.py"
+      # Same plugin cap as .gitlab-ci.yml — uv installs the pinned pre-release
+      # exactly as pip does, so an uncapped venv fails what CI passes.
       run: >-
         REQUIRED_PY="$(cat .python-version)";
         if [ -d ".venv" ] && ! .venv/bin/python -c "import sys; v='${REQUIRED_PY}'.split('.'); sys.exit(0 if sys.version_info[:len(v)] == tuple(int(p) for p in v) else 1)" 2>/dev/null; then
@@ -42,7 +44,7 @@ pre-push:
         if [ ! -d ".venv" ]; then
           echo "⚙ No .venv found — creating one with Python ${REQUIRED_PY}...";
           uv venv .venv --python "${REQUIRED_PY}" &&
-          uv pip install --python .venv/bin/python pytest pytest-asyncio pytest-homeassistant-custom-component 'ruamel.yaml>=0.18' anthropic home-assistant-intents hassil;
+          uv pip install --python .venv/bin/python pytest pytest-asyncio 'pytest-homeassistant-custom-component<0.13.358' 'ruamel.yaml>=0.18' anthropic home-assistant-intents hassil;
         fi &&
         .venv/bin/python -m pytest tests/ -q &&
         echo "⚙ Running memory-leak soak tests..." &&
