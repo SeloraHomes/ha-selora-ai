@@ -20,6 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from .helpers import device_entries
 from .telemetry import record_activity
 
 if TYPE_CHECKING:
@@ -331,7 +332,7 @@ class DeviceManager:
 
         assigned: list[dict[str, str]] = []
 
-        for device in dev_reg.devices.values():
+        for device in device_entries(dev_reg):
             if device.area_id:
                 continue  # already assigned
             name = (device.name or "").lower()
@@ -390,7 +391,7 @@ class DeviceManager:
         removed_devices: list[str] = []
         removed_entities: list[str] = []
 
-        for device in list(dev_reg.devices.values()):
+        for device in device_entries(dev_reg):
             if not any(ident[0] == DOMAIN for ident in device.identifiers):
                 continue
 

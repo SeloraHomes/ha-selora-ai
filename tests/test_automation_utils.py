@@ -41,6 +41,8 @@ from custom_components.selora_ai.const import (
     AUTOMATION_ID_PREFIX,
 )
 
+from .registry_view import DeviceRegistryView
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -3386,10 +3388,18 @@ def _make_automation_state(
     return state
 
 
+def _fake_device(device_id: str) -> MagicMock:
+    device = MagicMock()
+    device.id = device_id
+    return device
+
+
 def _make_registries(device_count: int):
     """Create mock device and entity registries with N devices, each having an entity."""
     device_reg = MagicMock()
-    device_reg.devices = {f"dev_{i}": MagicMock() for i in range(device_count)}
+    # Keyed AND carrying `.id`: the cap intersects device ids, and from HA
+    # 2026.9 those come off the entries rather than the mapping's keys.
+    device_reg.devices = {f"dev_{i}": _fake_device(f"dev_{i}") for i in range(device_count)}
 
     entity_reg = MagicMock()
     # Each device gets one entity so it counts towards the cap
@@ -3438,7 +3448,7 @@ class TestAutomationCap:
         hass = MagicMock()
         device_reg = MagicMock()
         # 20 devices in registry
-        device_reg.devices = {f"dev_{i}": MagicMock() for i in range(20)}
+        device_reg.devices = {f"dev_{i}": _fake_device(f"dev_{i}") for i in range(20)}
 
         entity_reg = MagicMock()
         # Only 10 devices have entities
@@ -3455,6 +3465,28 @@ class TestAutomationCap:
         ):
             cap = get_selora_automation_cap(hass)
         assert cap == 15  # floor(1.5 * 10), not floor(1.5 * 20)
+
+    def test_cap_reads_the_2026_9_registry_view(self) -> None:
+        """The same count off the view HA serves from 2026.9. Read as a mapping
+        it degrades silently — `set(registry.devices)` becomes a set of ENTRIES,
+        which intersects a set of device ids to nothing and floors the cap for
+        every home."""
+        hass = MagicMock()
+        device_reg = MagicMock()
+        device_reg.devices = DeviceRegistryView([_fake_device(f"dev_{i}") for i in range(10)])
+
+        entity_reg = MagicMock()
+        entity_reg.entities = {}
+        for i in range(10):
+            entry = MagicMock()
+            entry.device_id = f"dev_{i}"
+            entity_reg.entities[f"entity_{i}"] = entry
+
+        with (
+            patch("homeassistant.helpers.device_registry.async_get", return_value=device_reg),
+            patch("homeassistant.helpers.entity_registry.async_get", return_value=entity_reg),
+        ):
+            assert get_selora_automation_cap(hass) == 15
 
 
 class TestCountSeloraAutomations:
@@ -5826,8 +5858,8 @@ def test_a_null_discriminator_beside_a_real_one_is_still_padding() -> None:
 def test_the_kept_action_is_one_home_assistant_accepts() -> None:
     """Asserted against HA's own validator rather than our expectation of it —
     the whole class of bug here is a payload we accept and HA does not."""
-    import voluptuous as vol
     from homeassistant.helpers import config_validation as ha_cv
+    import voluptuous as vol
 
     _, _, norm = validate_automation_payload(
         {
@@ -5850,8 +5882,8 @@ def test_padding_inside_control_flow_is_dropped_too() -> None:
     with `ACTIONS_SET` has two members and `event` wins on `ACTIONS_MAP`
     order — then rejects `action` as an extra key, which is the original failure
     all over again, one level down."""
-    import voluptuous as vol
     from homeassistant.helpers import config_validation as ha_cv
+    import voluptuous as vol
 
     ok, err, norm = validate_automation_payload(
         {
@@ -5943,8 +5975,8 @@ def test_a_null_inline_condition_action_is_refused() -> None:
 
 
 def _ha_accepts(action: dict[str, object]) -> bool:
-    import voluptuous as vol
     from homeassistant.helpers import config_validation as ha_cv
+    import voluptuous as vol
 
     try:
         ha_cv.script_action(dict(action))

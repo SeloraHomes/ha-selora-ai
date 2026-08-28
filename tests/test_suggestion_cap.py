@@ -12,6 +12,8 @@ from custom_components.selora_ai.const import (
     DEFAULT_MIN_SUGGESTIONS,
 )
 
+from .registry_view import DeviceRegistryView
+
 
 def _make_entity_entry(entity_id: str, device_id: str | None = None) -> MagicMock:
     """Create a mock entity registry entry."""
@@ -65,6 +67,48 @@ def _make_collector(
     collector._hass = hass
 
     return collector, mock_device_reg, mock_entity_reg
+
+
+class TestRegistryShapes:
+    """The collector counts devices by id, and HA 2026.9 changed where the id
+    comes from: iterating `registry.devices` used to yield the ids themselves
+    and now yields the ENTRIES. Read the old way against the new core, every
+    device_id lookup misses, every device counts as uncovered, and the cap is
+    wrong in the direction nobody notices — more suggestions, not fewer."""
+
+    async def _run(self, collector, dreg, ereg):
+        with (
+            patch(
+                "custom_components.selora_ai.collector.dr.async_get",
+                return_value=dreg,
+            ),
+            patch(
+                "custom_components.selora_ai.collector.er.async_get",
+                return_value=ereg,
+            ),
+        ):
+            return await collector._calculate_dynamic_cap()
+
+    async def _cap_for(self, devices_view: bool) -> int:
+        device_ids = [f"dev_{i}" for i in range(40)]
+        entity_map = {d: [f"light.lamp_{d}"] for d in device_ids}
+        covered = [
+            {
+                "alias": f"Covered {i}",
+                "trigger": [{"platform": "state", "entity_id": f"light.lamp_dev_{i}"}],
+                "action": [{"service": "light.turn_on"}],
+            }
+            for i in range(20)
+        ]
+        collector, dreg, ereg = _make_collector(device_ids, entity_map, covered)
+        if devices_view:
+            dreg.devices = DeviceRegistryView(list(dreg.devices.values()))
+        return await self._run(collector, dreg, ereg)
+
+    async def test_the_two_registry_shapes_count_the_same(self):
+        """20 of 40 devices are covered, so 20 are not: ceil(20/5) = 4."""
+        assert await self._cap_for(devices_view=False) == 4
+        assert await self._cap_for(devices_view=True) == 4
 
 
 class TestDynamicCap:

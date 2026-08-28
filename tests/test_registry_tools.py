@@ -25,6 +25,7 @@ from homeassistant.helpers import (
 import pytest
 
 from custom_components.selora_ai import registry_manager as rm
+from custom_components.selora_ai.helpers import device_entries
 from custom_components.selora_ai.llm_client.intent import _is_config_request
 from custom_components.selora_ai.mcp_server import _preview_delete_area
 from custom_components.selora_ai.tool_executor import ToolExecutor
@@ -264,7 +265,7 @@ async def test_assign_clears_the_override_when_the_device_already_matches(
     """
     area = ar.async_get(registry_home).async_get_area_by_name("Living Room")
     dev_reg = dr.async_get(registry_home)
-    device = next(iter(dev_reg.devices.values()))
+    device = device_entries(dev_reg)[0]
     dev_reg.async_update_device(device.id, area_id=area.id)
 
     ent_reg = er.async_get(registry_home)
@@ -281,7 +282,7 @@ async def test_assign_device_moves_it_and_reports_carried_entities(
     registry_home: HomeAssistant,
 ) -> None:
     dev_reg = dr.async_get(registry_home)
-    device = next(iter(dev_reg.devices.values()))
+    device = device_entries(dev_reg)[0]
 
     result = await _make_executor(registry_home).execute(
         "assign_area", {"area": "Bedroom", "device_ids": [device.id]}
@@ -396,7 +397,7 @@ async def test_update_device_renames_by_name(registry_home: HomeAssistant) -> No
     )
     assert result["status"] == "updated"
     dev_reg = dr.async_get(registry_home)
-    device = next(iter(dev_reg.devices.values()))
+    device = device_entries(dev_reg)[0]
     assert device.name_by_user == "Entry Lamp"
     assert device.name == "Hallway Lamp"
 
@@ -608,7 +609,7 @@ async def test_disabling_a_device_reports_its_entity_count(
     registry_home: HomeAssistant,
 ) -> None:
     """The blast radius is the point: the user is thinking about one thing."""
-    device = next(iter(dr.async_get(registry_home).devices.values()))
+    device = device_entries(dr.async_get(registry_home))[0]
     result = await _make_executor(registry_home).execute(
         "update_device", {"device": device.id, "disabled": True}
     )
@@ -759,7 +760,7 @@ async def test_device_confirm_uses_the_captured_device_id(
     name, would otherwise be resolved by that name at confirm time.
     """
     dev_reg = dr.async_get(registry_home)
-    original = next(iter(dev_reg.devices.values()))
+    original = device_entries(dev_reg)[0]
 
     held = await _make_executor(registry_home).execute(
         "update_device", {"device": "Hallway Lamp", "disabled": True}
@@ -891,7 +892,7 @@ async def test_device_and_its_entity_in_one_call_leaves_no_override(
     writes an explicit override — redundant the moment the device moves, and it
     stops the entity following the device ever again.
     """
-    device = next(iter(dr.async_get(registry_home).devices.values()))
+    device = device_entries(dr.async_get(registry_home))[0]
 
     result = await _make_executor(registry_home).execute(
         "assign_area",
@@ -913,7 +914,7 @@ async def test_device_and_its_entity_in_one_call_leaves_no_override(
 async def test_device_move_still_carries_its_other_entities(
     registry_home: HomeAssistant,
 ) -> None:
-    device = next(iter(dr.async_get(registry_home).devices.values()))
+    device = device_entries(dr.async_get(registry_home))[0]
     result = await _make_executor(registry_home).execute(
         "assign_area", {"area": "Bedroom", "device_ids": [device.id]}
     )
@@ -1070,7 +1071,7 @@ async def test_renamed_device_resolves_by_its_current_name(
 ) -> None:
     """name_by_user is what the user calls it; the vendor name is the fallback."""
     dev_reg = dr.async_get(registry_home)
-    device = next(iter(dev_reg.devices.values()))
+    device = device_entries(dev_reg)[0]
     dev_reg.async_update_device(device.id, name_by_user="Entry Lamp")
 
     found, error = rm.resolve_device(registry_home, "Entry Lamp")
@@ -1092,7 +1093,7 @@ async def test_vendor_name_does_not_collide_with_a_current_name(
     "Hallway Lamp" means B — one answer, not an ambiguity error.
     """
     dev_reg = dr.async_get(registry_home)
-    original = next(iter(dev_reg.devices.values()))
+    original = device_entries(dev_reg)[0]
     dev_reg.async_update_device(original.id, name_by_user="Entry Lamp")
 
     other = dev_reg.async_get_or_create(

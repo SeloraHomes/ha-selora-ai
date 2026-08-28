@@ -20,6 +20,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
 
 from .const import SIGNAL_INSIGHTS_UPDATED
+from .helpers import device_entries
 
 if TYPE_CHECKING:
     from .health_store import HealthStore
@@ -288,7 +289,7 @@ class AuditRunner:
                 eligible_device_ids.add(e.device_id)
         active = {
             dev.id
-            for dev in dev_reg.devices.values()
+            for dev in device_entries(dev_reg)
             if dev.disabled_by is None and dev.id in eligible_device_ids
         }
         # Preserved offline devices have a finding but no current state — count

@@ -41,6 +41,7 @@ from .const import (
     INSIGHTS_ROSTER_MAX_ENTITIES,
     TRANSIENT_INTEGRATIONS,
 )
+from .helpers import device_entries
 
 if TYPE_CHECKING:
     from .types import (
@@ -313,7 +314,7 @@ def build_home_roster(
     # ── Devices ────────────────────────────────────────────────────────
     devices: list[RosterDevice] = []
     dev_count_by_entry: dict[str, int] = defaultdict(int)
-    for dev in dev_reg.devices.values():
+    for dev in device_entries(dev_reg):
         primary_entry = dev.primary_config_entry or next(iter(dev.config_entries), None)
         integration = entry_meta.get(primary_entry, ("", "", ""))[0] if primary_entry else ""
         for entry_id in dev.config_entries:

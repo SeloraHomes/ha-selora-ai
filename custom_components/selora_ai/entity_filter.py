@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from .helpers import device_entries
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -52,7 +54,7 @@ def resolve_label_tagged_items(hass: HomeAssistant) -> dict[str, list[str]]:
     entities = sorted(
         e.entity_id for e in ent_reg.entities.values() if label_id in (e.labels or ())
     )
-    devices = sorted(d.id for d in dev_reg.devices.values() if label_id in (d.labels or ()))
+    devices = sorted(d.id for d in device_entries(dev_reg) if label_id in (d.labels or ()))
     areas: list[str] = []
     try:
         from homeassistant.helpers import area_registry as ar
@@ -83,7 +85,7 @@ def resolve_ignored_entity_ids(hass: HomeAssistant) -> frozenset[str]:
     # below is a flat membership check instead of two more registry reads
     # per entity.
     label_devices: set[str] = {
-        d.id for d in dev_reg.devices.values() if label_id in (d.labels or ())
+        d.id for d in device_entries(dev_reg) if label_id in (d.labels or ())
     }
     label_areas: set[str] = set()
     try:
