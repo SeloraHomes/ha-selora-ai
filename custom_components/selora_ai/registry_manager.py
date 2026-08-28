@@ -50,7 +50,7 @@ from homeassistant.helpers import (
     floor_registry as fr,
 )
 
-from .helpers import sanitize_untrusted_text
+from .helpers import device_entries, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -189,7 +189,7 @@ def resolve_device(hass: HomeAssistant, ref: str) -> tuple[dr.DeviceEntry | None
         return device, None
 
     wanted = _norm(ref)
-    devices = list(registry.devices.values())
+    devices = device_entries(registry)
 
     def ambiguous(matches: list[dr.DeviceEntry]) -> str:
         ids = ", ".join(d.id for d in matches[:5])
@@ -244,7 +244,7 @@ def area_overview(hass: HomeAssistant, *, include_entities: bool = False) -> dic
             entities_by_area.setdefault(area_id, []).append(entry.entity_id)
 
     devices_by_area: dict[str, list[str]] = {}
-    for device in dev_reg.devices.values():
+    for device in device_entries(dev_reg):
         if device.area_id:
             devices_by_area.setdefault(device.area_id, []).append(device.id)
 
@@ -481,7 +481,7 @@ def area_dependents(hass: HomeAssistant, area_id: str) -> dict[str, Any]:
     dev_reg = dr.async_get(hass)
 
     entities = sum(1 for e in ent_reg.entities.values() if _entity_display_area(hass, e) == area_id)
-    devices = sum(1 for d in dev_reg.devices.values() if d.area_id == area_id)
+    devices = sum(1 for d in device_entries(dev_reg) if d.area_id == area_id)
 
     automations: list[str] = []
     scripts: list[str] = []

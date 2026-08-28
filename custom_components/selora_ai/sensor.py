@@ -43,6 +43,7 @@ from .const import (
     SIGNAL_INSIGHTS_UPDATED,
     SIGNAL_LLM_USAGE,
 )
+from .helpers import device_entries
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -233,7 +234,7 @@ def _build_device_categories(hass: HomeAssistant) -> dict[str, list[dict[str, An
     area_reg = ar.async_get(hass)
     categories: dict[str, list[dict[str, Any]]] = {}
 
-    for device in dev_reg.devices.values():
+    for device in device_entries(dev_reg):
         for ident in device.identifiers:
             # Most integrations register `(domain, unique_id)` 2-tuples,
             # but some (e.g. zha legacy entries) emit longer tuples — only

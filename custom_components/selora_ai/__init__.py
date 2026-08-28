@@ -149,6 +149,7 @@ from .const import (
     TELEMETRY_SNAPSHOT_STARTUP_DELAY,
 )
 from .conversation_store import ConversationStore
+from .helpers import device_entries
 from .scene_utils import get_area_names
 from .telemetry import record_activity
 
@@ -3828,7 +3829,7 @@ def _suggestion_ignore_filter(hass: HomeAssistant) -> Callable[[dict[str, Any]],
     # area still gets filtered out.
     if ignored_areas:
         dev_reg = dr.async_get(hass)
-        for dev in dev_reg.devices.values():
+        for dev in device_entries(dev_reg):
             if dev.area_id and dev.area_id in ignored_areas:
                 ignored_devices.add(dev.id)
 

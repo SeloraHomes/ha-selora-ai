@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistry
 
     from .automation_store import AutomationStore
     from .scene_store import SceneStore
@@ -106,6 +107,31 @@ async def is_auto_generated_dashboard(config: Any) -> bool:
     """
     # `{}` from a failed probe has no "mode", so the default makes it auto-gen.
     return (await dashboard_info(config)).get("mode", "auto-gen") == "auto-gen"
+
+
+def device_entries(registry: DeviceRegistry) -> list[DeviceEntry]:
+    """Every device in the registry, on either side of HA's registry-view change.
+
+    ``DeviceRegistry.devices`` was a mapping of device_id to entry. From 2026.9
+    it is a view whose ITERATION yields the entries, while every mapping access
+    — subscription, ``.values()``, ``.get()``, membership by id — is deprecated
+    and goes in 2027.9.
+
+    The two spellings are not interchangeable, which is what makes this a
+    helper rather than a find-and-replace: iterating the OLD mapping yields
+    device IDS, so the one line that reads correctly on the new core reads
+    silently wrong on the old one. This integration ships to whatever core the
+    hub happens to run, so both have to work today.
+
+    The SHAPE decides, not a version check: only the old registry is a Mapping.
+    Asking with ``hasattr`` would be worse than a version check — the new view
+    answers unknown attributes through ``__getattr__``, which is itself one of
+    the deprecated accesses being avoided.
+    """
+    devices = registry.devices
+    if isinstance(devices, Mapping):
+        return list(devices.values())
+    return list(devices)
 
 
 async def dashboard_info(config: Any) -> dict[str, Any]:

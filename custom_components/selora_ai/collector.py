@@ -73,6 +73,7 @@ from .const import (
     RELEVANCE_WEIGHT_COVERAGE,
     RELEVANCE_WEIGHT_CROSS_DEVICE,
 )
+from .helpers import device_entries
 from .llm_client import LLMClient
 
 if TYPE_CHECKING:
@@ -365,7 +366,7 @@ class DataCollector:
 
         # Count devices whose entities are NOT covered by any automation
         uncovered_count = 0
-        for device_id in device_reg.devices:
+        for device_id in (d.id for d in device_entries(device_reg)):
             entities = device_entities.get(device_id, set())
             if not entities or not entities & covered_entity_ids:
                 uncovered_count += 1
@@ -838,7 +839,7 @@ class DataCollector:
             registry = dr.async_get(self._hass)
             devices = []
 
-            for device in registry.devices.values():
+            for device in device_entries(registry):
                 devices.append(
                     {
                         "id": device.id,

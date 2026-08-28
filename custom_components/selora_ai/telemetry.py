@@ -76,6 +76,7 @@ from .const import (
     TELEMETRY_SNAPSHOT_INTERVAL_HOURS,
     TELEMETRY_STORE_VERSION,
 )
+from .helpers import device_entries
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -389,7 +390,7 @@ class TelemetryClient:
         # project name, so anything not in the known-integrations catalog
         # is collapsed to "other" rather than transmitted verbatim.
         devices_by_integration: dict[str, int] = {}
-        for device in dev_reg.devices.values():
+        for device in device_entries(dev_reg):
             domains: set[str] = set()
             for entry_id in device.config_entries:
                 entry = hass.config_entries.async_get_entry(entry_id)

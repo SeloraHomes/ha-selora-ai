@@ -32,7 +32,7 @@ from homeassistant.helpers import (
     label_registry as lr,
 )
 
-from .helpers import sanitize_untrusted_text
+from .helpers import device_entries, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -87,7 +87,7 @@ def label_usage(hass: HomeAssistant, label_id: str) -> dict[str, int]:
     area_reg = ar.async_get(hass)
     return {
         "entity_count": sum(1 for e in ent_reg.entities.values() if label_id in (e.labels or ())),
-        "device_count": sum(1 for d in dev_reg.devices.values() if label_id in (d.labels or ())),
+        "device_count": sum(1 for d in device_entries(dev_reg) if label_id in (d.labels or ())),
         "area_count": sum(1 for a in area_reg.async_list_areas() if label_id in (a.labels or ())),
     }
 
@@ -137,7 +137,7 @@ def label_overview(hass: HomeAssistant) -> dict[str, Any]:
                     1 for e in ent_reg.entities.values() if label.label_id in (e.labels or ())
                 ),
                 "device_count": sum(
-                    1 for d in dev_reg.devices.values() if label.label_id in (d.labels or ())
+                    1 for d in device_entries(dev_reg) if label.label_id in (d.labels or ())
                 ),
                 "area_count": sum(
                     1 for a in area_reg.async_list_areas() if label.label_id in (a.labels or ())

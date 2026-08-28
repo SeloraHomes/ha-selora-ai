@@ -80,6 +80,7 @@ from .group_manager import (
 from .group_manager import (
     SUPPORTED_GROUP_TYPES as _GROUP_TYPE_ENUM,
 )
+from .helpers import device_entries
 from .lexical import (
     SEARCH_FUZZY_FLOOR,
     SEARCH_W_FUZZY,
@@ -2145,7 +2146,7 @@ async def _tool_list_devices(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     }
 
     devices: list[dict[str, Any]] = []
-    for device in dev_reg.devices.values():
+    for device in device_entries(dev_reg):
         # Resolve area name
         area_name = area_names.get(device.area_id or "") or ""
 

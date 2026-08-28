@@ -29,6 +29,7 @@ from .const import (
     SELORA_AI_LABEL_ID,
     SELORA_AI_LABEL_NAME,
 )
+from .helpers import device_entries
 from .telemetry import record_activity
 
 if TYPE_CHECKING:
@@ -3312,7 +3313,7 @@ def get_selora_automation_cap(hass: HomeAssistant) -> int:
         if entry.device_id:
             devices_with_entities.add(entry.device_id)
 
-    device_count = len(devices_with_entities & set(device_reg.devices))
+    device_count = len(devices_with_entities & {d.id for d in device_entries(device_reg)})
     raw = floor(AUTOMATIONS_PER_DEVICE * device_count)
     return max(AUTOMATION_CAP_FLOOR, min(raw, AUTOMATION_CAP_CEILING))
 
