@@ -5268,6 +5268,335 @@ def test_a_valid_sun_window_still_passes() -> None:
     assert norm is not None
 
 
+# ── A split night window never runs ─────────────────────────────────────────
+#
+# "15 minutes before sunset to 15 minutes after sunrise" came back as two
+# SIBLING sun conditions. HA special-cases the pair inside ONE condition —
+# `now < sunrise+offset or now > sunset+offset`, the window that wraps
+# midnight — but siblings are ANDed, and no instant is both after tonight's
+# sunset and before this morning's sunrise. The automation validates, reloads,
+# renders the right window on the card, and its actions never fire.
+
+
+def test_a_split_night_window_is_merged_into_one_condition() -> None:
+    """The reported shape, offsets and all. Merged rather than refused: the two
+    conditions carry exactly the fields the merged one takes."""
+    ok, err, norm = validate_automation_payload(
+        _sun_payload(
+            [
+                {"condition": "sun", "after": "sunset", "after_offset": "-00:15:00"},
+                {"condition": "sun", "before": "sunrise", "before_offset": "00:15:00"},
+            ]
+        ),
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == [
+        {
+            "condition": "sun",
+            "after": "sunset",
+            "after_offset": "-00:15:00",
+            "before": "sunrise",
+            "before_offset": "00:15:00",
+        }
+    ]
+
+
+def test_the_pair_merges_without_offsets_and_in_either_order() -> None:
+    """Order is the model's, not ours — and the merged condition keeps the
+    position of whichever came first, so the rest of the list is undisturbed."""
+    ok, err, norm = validate_automation_payload(
+        _sun_payload(
+            [
+                {"condition": "sun", "before": "sunrise"},
+                {"condition": "state", "entity_id": "light.sconces", "state": "off"},
+                {"condition": "sun", "after": "sunset"},
+            ]
+        ),
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == [
+        {"condition": "sun", "before": "sunrise", "after": "sunset"},
+        {"condition": "state", "entity_id": "light.sconces", "state": "off"},
+    ]
+
+
+def test_an_or_wrapped_pair_is_left_alone() -> None:
+    """The other correct spelling of the same window. Merging it would be
+    harmless and pointless; `not` is skipped for a real reason — its members
+    are negated one by one, so the never-true argument does not apply."""
+    payload = _sun_payload(
+        [
+            {
+                "condition": "or",
+                "conditions": [
+                    {"condition": "sun", "after": "sunset"},
+                    {"condition": "sun", "before": "sunrise"},
+                ],
+            }
+        ]
+    )
+    ok, err, norm = validate_automation_payload(payload, None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"][0]["conditions"] == [
+        {"condition": "sun", "after": "sunset"},
+        {"condition": "sun", "before": "sunrise"},
+    ]
+
+
+def test_an_and_wrapped_pair_is_merged() -> None:
+    """`and` is the explicit spelling of what a bare list already means, and
+    HA's shorthand `{and: [...]}` is a third. All three reach the same list."""
+    for conditions in (
+        [
+            {
+                "condition": "and",
+                "conditions": [
+                    {"condition": "sun", "after": "sunset"},
+                    {"condition": "sun", "before": "sunrise"},
+                ],
+            }
+        ],
+        [
+            {
+                "and": [
+                    {"condition": "sun", "after": "sunset"},
+                    {"condition": "sun", "before": "sunrise"},
+                ]
+            }
+        ],
+    ):
+        ok, err, norm = validate_automation_payload(_sun_payload(conditions), None)
+        assert ok, err
+        assert norm is not None
+        wrapper = norm["conditions"][0]
+        nested = wrapper.get("conditions", wrapper.get("and"))
+        assert nested == [{"condition": "sun", "after": "sunset", "before": "sunrise"}]
+
+
+def test_the_daytime_pair_is_left_alone() -> None:
+    """`after: sunrise` + `before: sunset` ANDed is true all day — the window
+    does not cross midnight, so there is nothing wrong with it."""
+    conditions = [
+        {"condition": "sun", "after": "sunrise"},
+        {"condition": "sun", "before": "sunset"},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(conditions)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == conditions
+
+
+def test_an_ambiguous_set_of_sun_conditions_is_left_alone() -> None:
+    """Two openers give no single pair to fold, and a condition already
+    carrying both bounds is not half of anything. Merging on a guess would
+    rewrite a window nobody asked to change."""
+    conditions = [
+        {"condition": "sun", "after": "sunset"},
+        {"condition": "sun", "after": "sunset", "after_offset": "-00:30:00"},
+        {"condition": "sun", "before": "sunrise"},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(conditions)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == conditions
+
+
+def test_a_disabled_half_is_not_folded_into_a_live_window() -> None:
+    """A condition also carries `enabled` and `alias`, and only the opener's
+    copy survives the fold. `enabled: false` on the closer leaves an AND-list
+    HA reads as "after sunset" and nothing else — a working automation the
+    merge would silently turn into a live night window."""
+    conditions = [
+        {"condition": "sun", "after": "sunset"},
+        {"condition": "sun", "before": "sunrise", "enabled": False},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(conditions)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == conditions
+
+
+def test_offsets_that_let_the_two_bounds_meet_are_left_alone() -> None:
+    """The AND is only certainly empty while the bounds cannot reach each
+    other. At -12h and +12h the pair is an ordinary DAYTIME window, roughly
+    06:00 to 18:00 — folding it would hand HA the sunset/sunrise special case
+    and make the condition true around the clock. An offset in no shape
+    `cv.time_period` accepts cannot be reasoned about at all."""
+    reaching = [
+        {"condition": "sun", "after": "sunset", "after_offset": "-12:00:00"},
+        {"condition": "sun", "before": "sunrise", "before_offset": "12:00:00"},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(reaching)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == reaching
+
+    unreadable = [
+        {"condition": "sun", "after": "sunset", "after_offset": "whenever"},
+        {"condition": "sun", "before": "sunrise"},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(unreadable)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == unreadable
+
+
+def test_the_offset_shapes_ha_accepts_are_all_read() -> None:
+    """`cv.time_period` takes a signed string, signed seconds, or a mapping —
+    a pair stated in minutes is the same shift whichever way it is written, and
+    reading only one shape would leave the others unmerged."""
+    for after_offset, before_offset in (
+        (-900, 900),
+        ({"minutes": -15}, {"minutes": 15}),
+        ("-00:15:00", {"seconds": 900}),
+    ):
+        ok, err, norm = validate_automation_payload(
+            _sun_payload(
+                [
+                    {"condition": "sun", "after": "sunset", "after_offset": after_offset},
+                    {"condition": "sun", "before": "sunrise", "before_offset": before_offset},
+                ]
+            ),
+            None,
+        )
+        assert ok, err
+        assert norm is not None
+        assert norm["conditions"] == [
+            {
+                "condition": "sun",
+                "after": "sunset",
+                "after_offset": after_offset,
+                "before": "sunrise",
+                "before_offset": before_offset,
+            }
+        ]
+
+
+def test_a_split_clock_window_that_crosses_midnight_is_merged() -> None:
+    """The same failure with a clock instead of the sun: HA reads both bounds
+    on ONE time condition as the window that wraps midnight, and no instant is
+    both after 22:00 and before 06:00 today."""
+    ok, err, norm = validate_automation_payload(
+        _sun_payload(
+            [
+                {"condition": "time", "after": "22:00:00"},
+                {"condition": "time", "before": "06:00:00"},
+            ]
+        ),
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == [
+        {"condition": "time", "after": "22:00:00", "before": "06:00:00"}
+    ]
+
+
+def test_a_clock_window_inside_one_day_is_left_alone() -> None:
+    """`after: 07:00` + `before: 11:00` ANDed is already the window that was
+    asked for. The wrap is the whole evidence that the split was wrong."""
+    conditions = [
+        {"condition": "time", "after": "07:00:00"},
+        {"condition": "time", "before": "11:00:00"},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(conditions)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == conditions
+
+
+def test_a_clock_pair_is_left_alone_when_the_two_disagree_elsewhere() -> None:
+    """A `weekday` on one and not the other is two different windows, not one
+    split in half — and an entity_id bound cannot be compared at all, so
+    nothing shows whether that window wraps."""
+    weekdays = [
+        {"condition": "time", "after": "22:00:00", "weekday": ["mon"]},
+        {"condition": "time", "before": "06:00:00"},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(weekdays)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == weekdays
+
+    entity_bound = [
+        {"condition": "time", "after": "input_datetime.bedtime"},
+        {"condition": "time", "before": "06:00:00"},
+    ]
+    ok, err, norm = validate_automation_payload(_sun_payload(list(entity_bound)), None)
+    assert ok, err
+    assert norm is not None
+    assert norm["conditions"] == entity_bound
+
+
+def test_a_split_window_inside_an_action_is_merged() -> None:
+    """Every condition list an action reaches — `if`, a `choose` branch, a
+    `repeat` guard — is ANDed, so each is a place the split window is never
+    true. The reported automation guarded its light with a `choose`."""
+    ok, err, norm = validate_automation_payload(
+        {
+            "alias": "Stairs Low Light",
+            "triggers": [
+                {"trigger": "state", "entity_id": "binary_sensor.stairs_occupancy", "to": "on"}
+            ],
+            "actions": [
+                {
+                    "if": [
+                        {"condition": "sun", "after": "sunset"},
+                        {"condition": "sun", "before": "sunrise"},
+                    ],
+                    "then": [
+                        {
+                            "choose": [
+                                {
+                                    "conditions": [
+                                        {"condition": "sun", "after": "sunset"},
+                                        {"condition": "sun", "before": "sunrise"},
+                                    ],
+                                    "sequence": [
+                                        {
+                                            "action": "light.turn_on",
+                                            "target": {"entity_id": "light.sconces"},
+                                        }
+                                    ],
+                                }
+                            ]
+                        }
+                    ],
+                }
+            ],
+        },
+        None,
+    )
+    assert ok, err
+    assert norm is not None
+    merged = [{"condition": "sun", "after": "sunset", "before": "sunrise"}]
+    action = norm["actions"][0]
+    assert action["if"] == merged
+    assert action["then"][0]["choose"][0]["conditions"] == merged
+
+
+def test_merging_does_not_rewrite_the_callers_payload() -> None:
+    """The payload the chat handler echoes back to the model and persists on
+    the message is the caller's own object — `_normalize_item` copies one level
+    deep, so the condition dicts handed to the merge are theirs."""
+    conditions = [
+        {"condition": "sun", "after": "sunset"},
+        {"condition": "sun", "before": "sunrise"},
+    ]
+    payload = _sun_payload(conditions)
+    ok, err, _ = validate_automation_payload(payload, None)
+    assert ok, err
+    assert conditions == [
+        {"condition": "sun", "after": "sunset"},
+        {"condition": "sun", "before": "sunrise"},
+    ]
+
+
 def test_nulls_are_dropped_inside_action_control_flow() -> None:
     """Validation always walked `choose` / `if` / `repeat`, because a bad field
     two levels down fails the reload exactly like a top-level one.
