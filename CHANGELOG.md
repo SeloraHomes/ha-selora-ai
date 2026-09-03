@@ -1,3 +1,11 @@
+## [0.16.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.16.1...v0.16.2) (2026-09-03)
+
+### Bug Fixes
+
+* **frontend:** fill the panel shell to the viewport ([24d0c8d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/24d0c8dfb0ca6a8d3ed9bc8cfa25c75905e38d70))
+* merge a split night window into one condition ([515e27c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/515e27c604e02e5d968e6d7ad04e70f36797f475))
+* read the device registry through one compat helper ([24b77e2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/24b77e2d944c5248500b07924df00c1eecdc84bd))
+
 ## [0.16.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.16.0...v0.16.1) (2026-08-27)
 
 ### Bug Fixes
