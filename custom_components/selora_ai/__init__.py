@@ -5148,42 +5148,42 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         panel_version = "0"
     panel_module_url = f"/api/{DOMAIN}/panel.js?v={panel_version}"
 
-    # In recent HA, async_register_panel might be deprecated or renamed
-    # We try both async_register_panel and async_register_built_in_panel
-    if hasattr(frontend, "async_register_panel"):
-        frontend.async_register_panel(
+    # Registered through `frontend.async_register_built_in_panel` rather than
+    # `panel_custom.async_register_panel`: that wrapper composes
+    # `config["_panel_custom"]` from its own fixed arguments and overwrites
+    # whatever it was handed, so `handle_safe_area` cannot reach the frontend
+    # through it. `frontend` itself has never carried a panel-registration
+    # helper under any other name, so probing for one only risks calling a
+    # same-named function with these arguments — which would raise, and would
+    # register a panel without the key below.
+    try:
+        frontend.async_register_built_in_panel(
             hass,
-            frontend_url_path=PANEL_PATH,
-            webcomponent_name=PANEL_NAME,
+            component_name="custom",
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
-            module_url=panel_module_url,
-            config={"domain": DOMAIN},
+            frontend_url_path=PANEL_PATH,
+            config={
+                "_panel_custom": {
+                    "name": PANEL_NAME,
+                    "module_url": panel_module_url,
+                    # The panel owns the device safe areas. Left alone, HA pads
+                    # its container with the insets, which puts a band of
+                    # container background above our own header (HA's native
+                    # toolbars draw *under* the status bar) and doubles the
+                    # inset the composer already reserves at the bottom. Opting
+                    # out hands us the whole viewport; layout.css.js and
+                    # header.css.js consume `--safe-area-inset-*` in its place.
+                    # Ignored by HA builds that predate the container padding,
+                    # which is the same geometry.
+                    "handle_safe_area": True,
+                },
+                "domain": DOMAIN,
+            },
             require_admin=True,
         )
-    elif hasattr(frontend, "async_register_built_in_panel"):
-        try:
-            frontend.async_register_built_in_panel(
-                hass,
-                component_name="custom",
-                sidebar_title=PANEL_TITLE,
-                sidebar_icon=PANEL_ICON,
-                frontend_url_path=PANEL_PATH,
-                config={
-                    "_panel_custom": {
-                        "name": PANEL_NAME,
-                        "module_url": panel_module_url,
-                    },
-                    "domain": DOMAIN,
-                },
-                require_admin=True,
-            )
-        except ValueError as err:
-            _LOGGER.warning("Panel already registered: %s", err)
-    else:
-        _LOGGER.warning(
-            "Neither async_register_panel nor async_register_built_in_panel found in frontend"
-        )
+    except ValueError as err:
+        _LOGGER.warning("Panel already registered: %s", err)
 
     _LOGGER.info("Selora AI initialized (awaiting entry)")
 

@@ -1484,6 +1484,11 @@ var layoutStyles = i`
        screens, and the header scrolls off the top. A closed sidebar does not
        save us — it is width:0, but its content still drives the height.
 
+       The other half of that failure — a parent so short the shell is sized
+       by the tab's content and clips its own overlays — is fixed in JS, since
+       CSS cannot reach an ancestor: sizePanelContainer() gives HA's
+       container the height it does not declare.
+
        max-height bites ONLY in that failure case: when the parent IS sized,
        height:100% already resolves smaller and this never applies, so a panel
        HA deliberately constrains (e.g. below a toolbar) is unaffected.
@@ -1497,6 +1502,33 @@ var layoutStyles = i`
     max-height: 100vh;
     max-height: 100dvh;
     overflow: hidden;
+    /* The panel registration opts out of HA's container padding
+       (handle_safe_area), so the device insets are ours to keep clear of.
+       Horizontal and bottom are plain padding on the shell, so the strip they
+       reserve carries this background and one rule covers every tab at once.
+       The TOP is deliberately absent: it belongs to .header, so the header's own
+       background runs under the status bar the way HA's native toolbars do,
+       rather than leaving a band above it. box-sizing keeps all of it inside
+       the height above instead of overflowing it.
+
+       Each inset reads HA's variable first and env() second: HA resolves the
+       companion app's reported insets into --safe-area-inset-*, which env()
+       alone does not see, while the fallback keeps this correct on builds that
+       predate those variables. Horizontal uses the CONTENT inset, which is 0
+       on the side HA's sidebar already absorbs. */
+    box-sizing: border-box;
+    padding-left: var(
+      --safe-area-content-inset-left,
+      var(--safe-area-inset-left, env(safe-area-inset-left, 0px))
+    );
+    padding-right: var(
+      --safe-area-content-inset-right,
+      var(--safe-area-inset-right, env(safe-area-inset-right, 0px))
+    );
+    padding-bottom: var(
+      --safe-area-inset-bottom,
+      env(safe-area-inset-bottom, 0px)
+    );
     background: var(--primary-background-color);
     color: var(--primary-text-color);
   }
@@ -2191,7 +2223,17 @@ var headerStyles = i`
        this bump the menu reopens hidden behind the drawer on mobile. */
     z-index: 11;
     flex-shrink: 0;
-    height: var(--header-height, 56px);
+    /* The shell owns the device insets (see layout.css.js) and leaves the top
+       one to the header, so the header background runs under the status bar
+       the way HA's native toolbars do. The inset is added to the height as
+       well as padded, since box-sizing is border-box: the toolbar inside still
+       gets its full --header-height, and the glow line pinned to bottom: 0
+       stays on the header's real bottom edge. */
+    height: calc(
+      var(--header-height, 56px) +
+        var(--safe-area-inset-top, env(safe-area-inset-top, 0px))
+    );
+    padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
     box-sizing: border-box;
     position: relative;
     /* Drive tab collapsing off the header's OWN width, not HA's
@@ -3072,7 +3114,8 @@ var chatStyles = i`
   .chat-input-wrapper {
     position: relative;
     flex-shrink: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* No bottom inset here — the shell reserves it for every tab at once
+       (layout.css.js), in this same background colour. */
     background: var(--primary-background-color);
   }
   .composer-dock-particles {
@@ -8910,6 +8953,23 @@ function formatTime(iso) {
   } catch {
     return "";
   }
+}
+
+// src/shared/panel-container.js
+var sized = /* @__PURE__ */ new WeakSet();
+function sizePanelContainer(container) {
+  if (!container || container.localName !== "ha-panel-custom") return false;
+  if (container.style?.height) return false;
+  container.style.height = "100%";
+  sized.add(container);
+  return true;
+}
+function releasePanelContainer(container) {
+  if (!container || !sized.has(container)) return false;
+  sized.delete(container);
+  if (container.style?.height !== "100%") return false;
+  container.style.height = "";
+  return true;
 }
 
 // ../translations/en.json
@@ -48836,7 +48896,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "7f47decb7643" : "";
+var PANEL_BUILD = true ? "0b926ac41e28" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -50909,6 +50969,8 @@ var SeloraAIPanel = class extends i4 {
   }
   connectedCallback() {
     super.connectedCallback();
+    this._panelContainer = this.parentElement;
+    sizePanelContainer(this._panelContainer);
     if (!document.querySelector("link[data-selora-font]")) {
       const link = document.createElement("link");
       link.rel = "stylesheet";
@@ -51160,6 +51222,8 @@ var SeloraAIPanel = class extends i4 {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    releasePanelContainer(this._panelContainer);
+    this._panelContainer = null;
     if (this._unsubscribeRecipeEntityRegistry) {
       this._unsubscribeRecipeEntityRegistry();
     }

@@ -425,7 +425,8 @@ export const chatStyles = css`
   .chat-input-wrapper {
     position: relative;
     flex-shrink: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* No bottom inset here — the shell reserves it for every tab at once
+       (layout.css.js), in this same background colour. */
     background: var(--primary-background-color);
   }
   .composer-dock-particles {

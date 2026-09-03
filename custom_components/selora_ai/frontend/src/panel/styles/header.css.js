@@ -10,7 +10,17 @@ export const headerStyles = css`
        this bump the menu reopens hidden behind the drawer on mobile. */
     z-index: 11;
     flex-shrink: 0;
-    height: var(--header-height, 56px);
+    /* The shell owns the device insets (see layout.css.js) and leaves the top
+       one to the header, so the header background runs under the status bar
+       the way HA's native toolbars do. The inset is added to the height as
+       well as padded, since box-sizing is border-box: the toolbar inside still
+       gets its full --header-height, and the glow line pinned to bottom: 0
+       stays on the header's real bottom edge. */
+    height: calc(
+      var(--header-height, 56px) +
+        var(--safe-area-inset-top, env(safe-area-inset-top, 0px))
+    );
+    padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
     box-sizing: border-box;
     position: relative;
     /* Drive tab collapsing off the header's OWN width, not HA's

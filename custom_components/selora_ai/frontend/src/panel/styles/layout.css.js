@@ -14,6 +14,11 @@ export const layoutStyles = css`
        screens, and the header scrolls off the top. A closed sidebar does not
        save us — it is width:0, but its content still drives the height.
 
+       The other half of that failure — a parent so short the shell is sized
+       by the tab's content and clips its own overlays — is fixed in JS, since
+       CSS cannot reach an ancestor: sizePanelContainer() gives HA's
+       container the height it does not declare.
+
        max-height bites ONLY in that failure case: when the parent IS sized,
        height:100% already resolves smaller and this never applies, so a panel
        HA deliberately constrains (e.g. below a toolbar) is unaffected.
@@ -27,6 +32,33 @@ export const layoutStyles = css`
     max-height: 100vh;
     max-height: 100dvh;
     overflow: hidden;
+    /* The panel registration opts out of HA's container padding
+       (handle_safe_area), so the device insets are ours to keep clear of.
+       Horizontal and bottom are plain padding on the shell, so the strip they
+       reserve carries this background and one rule covers every tab at once.
+       The TOP is deliberately absent: it belongs to .header, so the header's own
+       background runs under the status bar the way HA's native toolbars do,
+       rather than leaving a band above it. box-sizing keeps all of it inside
+       the height above instead of overflowing it.
+
+       Each inset reads HA's variable first and env() second: HA resolves the
+       companion app's reported insets into --safe-area-inset-*, which env()
+       alone does not see, while the fallback keeps this correct on builds that
+       predate those variables. Horizontal uses the CONTENT inset, which is 0
+       on the side HA's sidebar already absorbs. */
+    box-sizing: border-box;
+    padding-left: var(
+      --safe-area-content-inset-left,
+      var(--safe-area-inset-left, env(safe-area-inset-left, 0px))
+    );
+    padding-right: var(
+      --safe-area-content-inset-right,
+      var(--safe-area-inset-right, env(safe-area-inset-right, 0px))
+    );
+    padding-bottom: var(
+      --safe-area-inset-bottom,
+      env(safe-area-inset-bottom, 0px)
+    );
     background: var(--primary-background-color);
     color: var(--primary-text-color);
   }
