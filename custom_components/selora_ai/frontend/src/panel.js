@@ -10,6 +10,10 @@ import { allPanelStyles } from "./panel/styles/index.css.js";
 import "./shared/particles.js";
 import { formatDate } from "./shared/date-utils.js";
 import {
+  sizePanelContainer,
+  releasePanelContainer,
+} from "./shared/panel-container.js";
+import {
   localize as i18nLocalize,
   localizePlural as i18nLocalizePlural,
 } from "./shared/i18n.js";
@@ -821,6 +825,12 @@ class SeloraAIPanel extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    // Before anything renders: the shell needs a definite height, and HA's
+    // panel container is the only place that link can be made. Held onto for
+    // the release on disconnect — by then we have no parent left to ask, and
+    // HA hands the same container to the next custom panel.
+    this._panelContainer = this.parentElement;
+    sizePanelContainer(this._panelContainer);
     // Inject Inter font into document head (Shadow DOM can't @import fonts)
     if (!document.querySelector("link[data-selora-font]")) {
       const link = document.createElement("link");
@@ -1132,6 +1142,8 @@ class SeloraAIPanel extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    releasePanelContainer(this._panelContainer);
+    this._panelContainer = null;
     if (this._unsubscribeRecipeEntityRegistry) {
       this._unsubscribeRecipeEntityRegistry();
     }

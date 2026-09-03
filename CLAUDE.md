@@ -130,6 +130,46 @@ custom_components/selora_ai/
 - Configurable values (like stale days threshold) should come from `host._config` (populated via websocket), not hardcoded as JS constants. This keeps the backend `const.py` as the single source of truth.
 - Keep individual `panel/` files under ~400 lines. If a file grows past that, split the new feature into its own module.
 - Run `node build.js` from `frontend/` after any source change — the bundled `panel.js` is committed.
+- **The shell's height comes from HA's panel container, which has none of its own.**
+  `ha-panel-custom` renders us into its light DOM with `display: block`,
+  `box-sizing: border-box` and safe-area padding, and no height — so it is the
+  containing block our `:host { height: 100% }` resolves against, and a
+  percentage of `auto` is `auto`. The shell then takes the height of whatever
+  the active tab renders, which clips every overlay positioned against it (the
+  app menu, the conversations drawer) at the bottom of that content: a long
+  Automations list hides the clip, the welcome screen shows it. The container's
+  own containing block — HA's drawer content in wide mode, the `ha-drawer` host
+  box in narrow/modal mode — IS sized to the viewport, so
+  `sizePanelContainer()` (`shared/panel-container.js`, called first thing in
+  `connectedCallback`) hands the container `height: 100%` and the border-box
+  padding still reduces that to the area we may draw in. `disconnectedCallback`
+  gives it back (`releasePanelContainer`, off the container captured at
+  connect — a disconnected element has no parent left to ask): HA keeps ONE
+  `ha-panel-custom` for every custom panel and swaps its child, which is what
+  its own `_cleanupPanel()`/`_createPanel()` pair is for, so a height left
+  behind follows the next panel in and constrains a container that means to
+  grow. `max-height: 100dvh`
+  in `layout.css.js` only ever clamped the opposite failure — a shell that
+  grows past the viewport — and cannot stretch a content-sized one.
+- **The device safe areas are ours, not HA's.** The panel registration sets
+  `handle_safe_area` in `_panel_custom`, so HA skips the container padding
+  described above and hands us the whole viewport. Left to HA, that padding put
+  a band of container background above our own header — HA's native toolbars
+  draw *under* the status bar — and doubled the bottom inset the composer
+  already reserved. In its place: `layout.css.js` pads `:host` (border-box, so
+  it stays inside the height) on the left, right and bottom, and the TOP inset
+  is `.header`'s, added to its height and padded, so the header background runs
+  under the status bar and the glow line stays on its real bottom edge.
+  Horizontal reads `--safe-area-content-inset-*`, which is 0 on the side HA's
+  sidebar already absorbs. Every inset reads HA's variable with an `env()`
+  fallback: the companion app reports insets that HA resolves into
+  `--safe-area-inset-*` and `env()` alone does not see, while the fallback
+  covers builds predating those variables. A bottom inset belongs on the shell
+  rather than per tab — one strip, in the shell's own background colour, for the
+  composer and every scroll view at once. Note the opt-out also leaves the
+  container `display: inline`, which is the other thing that keeps its height
+  from mattering, so `sizePanelContainer()` is a belt for builds that block-ify
+  it regardless.
 
 ### Git & Branching
 - Main branch: `main`
