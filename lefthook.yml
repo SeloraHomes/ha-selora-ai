@@ -56,7 +56,7 @@ pre-push:
         - "custom_components/selora_ai/frontend/src/**/*.js"
         - "custom_components/selora_ai/frontend/__tests__/**/*.js"
         - "custom_components/selora_ai/frontend/build-id.js"
-        - "custom_components/selora_ai/frontend/vitest.config.js"
+        - "custom_components/selora_ai/frontend/vitest.config.mjs"
         - "custom_components/selora_ai/frontend/package.json"
         - "custom_components/selora_ai/frontend/package-lock.json"
       run: cd custom_components/selora_ai/frontend && npx vitest run

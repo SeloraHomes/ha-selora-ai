@@ -68,7 +68,11 @@ lint:prettier:
   script:
     - cd custom_components/selora_ai/frontend
     - npm ci
-    - npx prettier --check src/**/*.js *.js
+    # Quoted so prettier expands the globs rather than the shell: `**` is
+    # not recursive in sh, so an unquoted src/**/*.js reaches exactly one
+    # directory level and silently skips src/panel.js, every
+    # */styles/*.css.js module and every __tests__ file.
+    - npx prettier --check "src/**/*.js" "*.js" "*.mjs"
 
 # =============================================================================
 # STAGE: test
