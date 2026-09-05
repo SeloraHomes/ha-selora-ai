@@ -18,9 +18,13 @@
     }
   ],
   "postUpgradeTasks": {
+    "description": "`make generate` needs npm, which Renovate only provisions for managers whose own artifact update uses it. See the Makefile for why the task is not scoped to those managers.",
     "commands": [
       "make generate"
     ],
+    "installTools": {
+      "node": {}
+    },
     "fileFilters": [
       "custom_components/selora_ai/frontend/panel.js",
       "custom_components/selora_ai/frontend/panel.build.json",
