@@ -842,6 +842,7 @@ SELORA_LOCAL_KIND_TO_INTENT: dict[str, str] = {
     "chat_automation": "automation",
     "chat_answer": "answer",
     "chat_clarification": "clarification",
+    "chat_utilities": "utilities",
     "chat_tool_round": "command",
     "session_title": "answer",
     "health_check": "command",
@@ -863,6 +864,7 @@ SELORA_LOCAL_MAX_TOKENS_BY_KIND: dict[str, int] = {
     "chat_automation": 400,
     "chat_answer": 192,
     "chat_clarification": 128,
+    "chat_utilities": 320,
     "chat": 192,
     "chat_tool_round": 80,
     "command": 80,
@@ -883,6 +885,7 @@ SELORA_LOCAL_LORA_FILENAME_KEYWORDS: tuple[str, ...] = (
     "automation",
     "answer",
     "clarification",
+    "utilities",
 )
 
 # Endpoint paths
