@@ -562,7 +562,15 @@ function _measureCaretInTextarea(textarea) {
 function _updateAutocomplete(host, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
-  const trigger = detectTrigger(value, caret, host.hass?.language);
+  // The labels already picked in this composition are handed over so a
+  // caret sitting inside one of them replaces the whole name instead of
+  // splicing the new one into the middle of it.
+  const trigger = detectTrigger(
+    value,
+    caret,
+    host.hass?.language,
+    (host._autocompleteSelections || []).map((s) => s.label),
+  );
   const closeIfOpen = () => {
     if (host._autocomplete?.open) {
       host._autocomplete = {
@@ -776,10 +784,17 @@ function _closeAutocomplete(host) {
 function _selectAutocompleteItem(host, textarea, item) {
   const trigger = host._autocomplete?.trigger;
   if (!trigger || !item) return;
-  const { text, caret } = applySelection(textarea.value, trigger, item);
+  const { text, caret, range } = applySelection(textarea.value, trigger, item);
   host._input = text;
+  // Replacing a name the caret sat inside takes it out of the message, so
+  // its chip has to go with it — otherwise _sendMessage() emits an
+  // [[entity:…]] marker for a device the text no longer names. Pruning
+  // only runs on @input, and a pick fires no input event. The label just
+  // written is excluded from the search: it is this pick's own text, and
+  // one name is often a whole-word prefix of another, so a chip the pick
+  // replaced would otherwise read as still present.
   host._autocompleteSelections = [
-    ...(host._autocompleteSelections || []),
+    ...pruneStaleSelections(text, host._autocompleteSelections || [], range),
     item,
   ];
   _closeAutocomplete(host);

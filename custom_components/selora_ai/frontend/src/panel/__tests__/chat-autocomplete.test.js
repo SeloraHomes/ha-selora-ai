@@ -142,6 +142,129 @@ describe("detectTrigger", () => {
     expect(got.query).toBe("kit");
   });
 
+  it("extends the replaced slice over the rest of the word", () => {
+    // Caret parked mid-word — "GRILLPLA|TS". Replacing only up to the
+    // caret splices the chosen label into the middle of the word and
+    // leaves "TS" behind as its own fragment.
+    const text = "Make the GRILLPLATS plug Pool Spot";
+    const caret = "Make the GRILLPLA".length;
+    const got = detectTrigger(text, caret);
+    expect(got.query).toBe("GRILLPLA");
+    expect(got.end).toBe("Make the GRILLPLATS".length);
+  });
+
+  it("replaces a whole already-picked name the caret sits inside", () => {
+    // The name carries a chip, so it is atomic: clicking another
+    // suggestion from inside it swaps the name rather than splicing.
+    const text = "Make the GRILLPLATS plug Pool Spot";
+    const caret = "Make the GRILLPLATS plug Aqua".length;
+    const got = detectTrigger(text, caret, "en", ["GRILLPLATS plug Pool Spot"]);
+    expect(got.start).toBe("Make the ".length);
+    expect(got.end).toBe(text.length);
+    const { text: out } = applySelection(text, got, {
+      label: "GRILLPLATS plug Aqua Rite",
+    });
+    expect(out).toBe("Make the GRILLPLATS plug Aqua Rite ");
+  });
+
+  it("leaves the rest of the sentence alone past the current word", () => {
+    // The query cannot tell a name's remaining words from the rest of the
+    // sentence, so the extension stops at the next space.
+    const text = "turn on the kit then go to bed";
+    const caret = "turn on the kit".length;
+    const got = detectTrigger(text, caret);
+    expect(got.end).toBe(caret);
+  });
+
+  it("replaces from the head of a name holding a trigger phrase", () => {
+    // "Turn On Lamp" matches the turn-on trigger from inside itself, so
+    // the tightest query starts part-way through a name that is atomic.
+    const text = "Turn On Lamp";
+    const caret = "Turn On L".length;
+    const got = detectTrigger(text, caret, "en", ["Turn On Lamp"]);
+    expect(got.start).toBe(0);
+    expect(got.end).toBe(text.length);
+    const { text: out } = applySelection(text, got, { label: "Kitchen Lamp" });
+    expect(out).toBe("Kitchen Lamp ");
+  });
+
+  it("prefers the outer of two names sharing an end", () => {
+    // "On Lamp" is a suffix of "Turn On Lamp", so both spans end together
+    // and comparing the end alone keeps whichever came first.
+    const text = "Turn On Lamp";
+    const caret = "Turn On L".length;
+    const labels = ["On Lamp", "Turn On Lamp"];
+    expect(detectTrigger(text, caret, "en", labels).start).toBe(0);
+    expect(detectTrigger(text, caret, "en", [...labels].reverse()).start).toBe(
+      0,
+    );
+  });
+
+  it("extends through a hyphen inside the name", () => {
+    // The backward query walk accepts hyphens, so stopping at one leaves
+    // "-room lamp" behind — the fragment the extension exists to remove.
+    const text = "turn on bed-room lamp";
+    const got = detectTrigger(text, "turn on bed".length);
+    expect(got.end).toBe("turn on bed-room".length);
+    // …and from the far side of the hyphen, which splits the name too.
+    const after = detectTrigger(text, "turn on bed-".length);
+    expect(after.end).toBe("turn on bed-room".length);
+  });
+
+  it("stops at a hyphen that is not inside a name", () => {
+    const text = "turn on bed - lamp";
+    const got = detectTrigger(text, "turn on bed".length);
+    expect(got.end).toBe("turn on bed".length);
+  });
+
+  it("keeps the word ahead when the caret is at its start", () => {
+    // A domain-constrained trigger fires here on an empty query, and the
+    // caret is not inside "Front" — eating it would delete a device the
+    // user never touched.
+    const text = "unlock the Front Door";
+    const caret = "unlock the ".length;
+    const got = detectTrigger(text, caret);
+    expect(got.domains).toEqual(["lock"]);
+    expect(got.end).toBe(caret);
+  });
+
+  it("ignores a label that lands inside a longer word", () => {
+    // "AC" occurs inside "BACK". Read as the chip it would replace two
+    // letters out of the middle of the word AND suppress the word
+    // extension, leaving "K light" behind.
+    const text = "turn on AC and turn on BACK light";
+    const caret = "turn on AC and turn on BA".length;
+    const got = detectTrigger(text, caret, "en", ["AC"]);
+    expect(got.end).toBe("turn on AC and turn on BACK".length);
+  });
+
+  it("tests the word boundary of an accented name in Unicode", () => {
+    // "Café" ends in a letter \w does not recognise, so an ASCII boundary
+    // leaves it matching inside "Caféteria" — the completion would stop
+    // after the accent and strand "teria".
+    const text = "turn on the Caféteria";
+    const caret = "turn on the Caf".length;
+    const got = detectTrigger(text, caret, "en", ["Café"]);
+    expect(got.end).toBe(text.length);
+  });
+
+  it("takes label offsets from the text, not a lowercased copy", () => {
+    // "İ".toLowerCase() is two code units, so an offset measured on the
+    // lowercased text lands past the label and eats the comma.
+    const text = "turn on İX, please";
+    const caret = "turn on İ".length;
+    const got = detectTrigger(text, caret, "en", ["İX"]);
+    expect(got.end).toBe("turn on İX".length);
+    expect(text.slice(got.end)).toBe(", please");
+  });
+
+  it("does not extend past a name the caret only touches the edge of", () => {
+    const text = "Make the GRILLPLATS plug Pool Spot and more";
+    const labels = ["GRILLPLATS plug Pool Spot"];
+    const atEnd = "Make the GRILLPLATS plug Pool Spot".length;
+    expect(detectTrigger(text, atEnd, "en", labels).end).toBe(atEnd);
+  });
+
   it("asks for sensors on a condition clause", () => {
     const text = "When the Mygg";
     const got = detectTrigger(text, text.length);
@@ -1058,6 +1181,18 @@ describe("applySelection", () => {
     expect(caret).toBe(out.length);
   });
 
+  it("reports the range the label now occupies", () => {
+    // The trailing space is not part of the name, so it stays outside the
+    // range — pruneStaleSelections searches the text around it.
+    const text = "turn on the kit";
+    const trigger = { kind: "device", query: "kit", start: 12, end: 15 };
+    const { range, text: out } = applySelection(text, trigger, {
+      label: "Kitchen Lamp",
+    });
+    expect(range).toEqual([12, 24]);
+    expect(out.slice(range[0], range[1])).toBe("Kitchen Lamp");
+  });
+
   it("preserves text after the caret", () => {
     const text = "turn on the kit then go to bed";
     const trigger = { kind: "device", query: "kit", start: 12, end: 15 };
@@ -1152,5 +1287,27 @@ describe("pruneStaleSelections", () => {
     expect(pruneStaleSelections("turn on the AC Unit", sels)).toHaveLength(1);
     // 'AC Unit' must not match 'BACK AC Unitary' substring inside a longer word
     expect(pruneStaleSelections("the AC Unitary system", sels)).toEqual([]);
+  });
+
+  it("does not match an accented label inside a longer word", () => {
+    const sels = [{ label: "Café", entity_id: "light.cafe" }];
+    expect(pruneStaleSelections("turn on the Café", sels)).toHaveLength(1);
+    expect(pruneStaleSelections("turn on the Caféteria", sels)).toEqual([]);
+  });
+
+  it("does not count the label span a pick just wrote", () => {
+    // The replaced name is a whole-word prefix of the one that replaced
+    // it, so it still matches the text — but only inside the span the
+    // pick owns, which is the new chip's own name.
+    const sels = [{ label: "Aqua Rite", entity_id: "switch.aqua_rite" }];
+    const text = "Make the Aqua Rite Energy ";
+    expect(pruneStaleSelections(text, sels)).toHaveLength(1);
+    expect(pruneStaleSelections(text, sels, [9, 25])).toEqual([]);
+  });
+
+  it("keeps a label the message still names elsewhere", () => {
+    const sels = [{ label: "Aqua Rite", entity_id: "switch.aqua_rite" }];
+    const text = "Aqua Rite and the Aqua Rite Energy ";
+    expect(pruneStaleSelections(text, sels, [18, 34])).toHaveLength(1);
   });
 });

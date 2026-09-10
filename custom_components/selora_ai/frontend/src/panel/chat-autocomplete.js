@@ -1037,13 +1037,101 @@ function _articleWordsFor(lang) {
 
 // ── Trigger detection ─────────────────────────────────────────────────
 
+// Where a completion stops replacing. The query runs from the trigger
+// phrase to the caret, but the text the caret sits IN can still belong to
+// the name being completed — a caret parked inside a device name (a click
+// into the middle of the message, or an edit part-way through one) would
+// otherwise have the chosen label spliced into the middle of that name and
+// its tail left behind as a fragment.
+//
+// Two extents, widest wins:
+//   1. An already-completed label the caret sits INSIDE. Those names are
+//      atomic: the user picked them from this same dropdown and each still
+//      carries a chip, so picking another replaces the whole name rather
+//      than the prefix they happened to park after.
+//   2. Otherwise the rest of the word under the caret. Nothing past the
+//      next space is touched — the query cannot tell a name's remaining
+//      words from the rest of the sentence, and swallowing "then go to
+//      bed" is worse than leaving one stray word behind.
+//
+// A label counts only where it stands as a WHOLE word (_labelSpans, the
+// same test pruneStaleSelections applies): an "AC" chip occurs inside
+// "BACK", and reading that as the chip both replaces two letters out of
+// the middle of a word and suppresses the word extension that would have
+// covered it. Spans come off the original text, never a lowercased copy —
+// lowercasing is not length-preserving ("İ" becomes two code units), so
+// offsets measured on the copy land past the label and eat what follows.
+// A friendly name can carry a hyphen or an apostrophe ("Guest-Room Lamp",
+// "Kid's Lamp"), and the backward query walk accepts both — so the forward
+// extension has to as well, or a caret before the punctuation stops there
+// and leaves "-room lamp" behind, the exact fragment this extent exists to
+// remove. Intra-word only: a hyphen with no name character on both sides
+// is punctuation ending the name, not part of it.
+const _INTRA_WORD_RE = /['’-]/;
+
+function _isNameChar(text, i) {
+  if (i < 0 || i >= text.length) return false;
+  if (_WORD_CHAR_RE.test(text[i])) return true;
+  if (!_INTRA_WORD_RE.test(text[i])) return false;
+  return (
+    i > 0 &&
+    i + 1 < text.length &&
+    _WORD_CHAR_RE.test(text[i - 1]) &&
+    _WORD_CHAR_RE.test(text[i + 1])
+  );
+}
+
+// Returns { start, end }: `end` as above, and `start` the containing
+// label's own start, or -1 when no label holds the caret. A name is
+// atomic in BOTH directions, and a friendly name can contain a trigger
+// phrase ("Turn On Lamp"), which puts the latest trigger match INSIDE the
+// label — replacing from there leaves the label's own head in front of
+// the new name.
+function _completionSpan(text, caret, labels) {
+  let start = -1;
+  let end = caret;
+  for (const label of labels || []) {
+    if (!label) continue;
+    for (const [from, to] of _labelSpans(text, label)) {
+      if (caret <= from || caret >= to) continue;
+      // Widest span wins, and on a tie the one reaching furthest back:
+      // two picked names can be in a suffix relationship ("On Lamp"
+      // inside "Turn On Lamp") and share an end, so comparing the end
+      // alone keeps whichever was picked first and starts the
+      // replacement inside the name the user means.
+      if (to < end) continue;
+      if (to === end && start >= 0 && from >= start) continue;
+      start = from;
+      end = to;
+    }
+  }
+  if (end > caret) return { start, end };
+  // Strictly INSIDE the token, the same test the label spans get: the
+  // caret has to be splitting one for there to be a tail belonging to it.
+  // Parked at a token's start it is in no token at all — a
+  // domain-constrained trigger fires there on an empty query ("unlock the
+  // |Front Door"), and eating the name ahead would delete a device the
+  // user never touched.
+  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
+    return { start: -1, end };
+  }
+  while (_isNameChar(text, end)) end += 1;
+  return { start: -1, end };
+}
+
 // Inspect the text up to the caret and return the active trigger context,
 // or null if none. Returns { kind, query, start, end } where [start, end)
 // is the slice of `text` that should be REPLACED when the user picks a
 // suggestion (i.e. the partial query, NOT the trigger phrase itself).
-export function detectTrigger(text, caret, lang) {
+// `end` reaches PAST the caret when the caret sits inside the name being
+// completed, and `start` back to that name's head — see _completionSpan.
+// `labels` are the friendly names already picked in this composition (the
+// chips), which is what lets a click into the middle of one replace it
+// whole.
+export function detectTrigger(text, caret, lang, labels) {
   if (typeof text !== "string" || caret == null || caret < 0) return null;
   const before = text.slice(0, caret);
+  const completion = _completionSpan(text, caret, labels);
   const triggers = _triggersFor(lang);
   const articleWords = _articleWordsFor(lang);
 
@@ -1082,7 +1170,7 @@ export function detectTrigger(text, caret, lang) {
           kind: trig.kind,
           query: before.slice(qs, caret),
           start: qs,
-          end: caret,
+          end: completion.end,
           domains: trig.domains || null,
           includeAreas: !!trig.includeAreas,
           includeSensors: !!trig.includeSensors,
@@ -1101,6 +1189,13 @@ export function detectTrigger(text, caret, lang) {
   // trigger matched the shorter "turn on " form and treated "the" as the
   // query. Wait until they start typing the device name.
   if (articleWords.has(best.query.trim().toLowerCase())) return null;
+  // A name holding a trigger phrase ("Turn On Lamp") matches that trigger
+  // from INSIDE itself, so the latest match — normally the tightest query
+  // — starts part-way through a name that is atomic. Replacing from there
+  // leaves its head standing in front of the new one.
+  if (completion.start >= 0 && completion.start < best.start) {
+    best.start = completion.start;
+  }
   return best;
 }
 
@@ -1513,6 +1608,9 @@ export function rankSuggestions(
 
 // Replace the partial query in `text` with the chosen item's friendly label
 // and return the new text + caret position. Pure — no DOM side effects.
+// `range` is the [start, end) the label now occupies, which is what tells
+// pruneStaleSelections which occurrence of a name is this pick's own text
+// rather than a mention the user still has elsewhere.
 export function applySelection(text, trigger, item) {
   const before = text.slice(0, trigger.start);
   const after = text.slice(trigger.end);
@@ -1522,7 +1620,11 @@ export function applySelection(text, trigger, item) {
   const inserted = needsSpace ? insert + " " : insert;
   const newText = before + inserted + after;
   const newCaret = trigger.start + inserted.length;
-  return { text: newText, caret: newCaret };
+  return {
+    text: newText,
+    caret: newCaret,
+    range: [trigger.start, trigger.start + insert.length],
+  };
 }
 
 // Build the [[entities:…]] suffix that gets appended to the outgoing user
@@ -1584,17 +1686,59 @@ export function stripEntityMarkers(text) {
 function _escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-export function pruneStaleSelections(text, selections) {
+// Every span of `text` where `label` stands as a whole word, as
+// [start, end) pairs. One definition of "the message names this device",
+// shared with _completionEnd so what counts as a name still present and
+// what counts as a name a completion replaces cannot drift apart.
+//
+// The boundary is tested against the neighbouring character with
+// _WORD_CHAR_RE rather than written into the pattern as \b: \w is
+// ASCII-only, so a name ending in an accented letter ("Café") anchors on
+// neither side and matches inside "Caféteria" — the same trap that gave
+// the ghost path its Unicode word class, in a home where half the
+// friendly names carry accents. A lookbehind would say it in one regex
+// and is a SyntaxError on Safari below 16.4, which is the wall tablet
+// this panel is pinned to.
+//
+// A label whose own edge is punctuation (rare) can't anchor there and
+// that side goes untested, as a plain substring search would have it.
+function _labelSpans(text, label) {
+  const startsWord = _WORD_CHAR_RE.test(label[0]);
+  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
+  const re = new RegExp(_escapeRegex(label), "gi");
+  const spans = [];
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const start = m.index;
+    const end = start + m[0].length;
+    const before = start > 0 ? text[start - 1] : "";
+    const after = end < text.length ? text[end] : "";
+    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
+    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
+    spans.push([start, end]);
+  }
+  return spans;
+}
+//
+// `ignoreRange` is a [start, end) slice of `text` that does NOT count as
+// the label appearing — the span a completion just wrote. One name is
+// routinely a whole-word prefix of another ("GRILLPLATS plug Aqua Rite"
+// inside "GRILLPLATS plug Aqua Rite Energy"), so a chip replaced by a
+// longer name reads as still named by the very text that replaced it and
+// survives, leaving two chips for one name and two [[entity:…]] markers
+// on the way out. Only the label's occurrences OUTSIDE that span answer
+// the question, since a name mentioned somewhere else as well is still
+// mentioned.
+export function pruneStaleSelections(text, selections, ignoreRange) {
   if (!selections?.length) return selections;
+  const [skipFrom, skipTo] = ignoreRange || [];
+  const skipping =
+    typeof skipFrom === "number" &&
+    typeof skipTo === "number" &&
+    skipTo > skipFrom;
   return selections.filter((s) => {
     if (!s.label) return false;
-    const escaped = _escapeRegex(s.label);
-    // \b only fires between a word char and a non-word char, so labels
-    // that begin or end with a non-word char (rare) can't anchor; fall
-    // back to plain substring in that case.
-    const startWord = /^\w/.test(s.label);
-    const endWord = /\w$/.test(s.label);
-    const pattern = (startWord ? "\\b" : "") + escaped + (endWord ? "\\b" : "");
-    return new RegExp(pattern, "i").test(text);
+    const spans = _labelSpans(text, s.label);
+    if (!skipping) return spans.length > 0;
+    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
   });
 }
