@@ -1860,7 +1860,10 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             answer:        {"r": "<text with {entity_id}>", "q": [<entity_ids>]}
             command:       {"c": [{"s": <svc>, "e": <eid>, "d": <data?>}], "r": "<text>"}
             clarification: {"q": "<question>", "o": [<options>]}
-            automation:    full envelope (already includes intent + response)
+            automation:    {"r": "<text>", "a": {"al":…, "t":[…], "c":[…], "x":[…]}}
+                           — expanded by ``slim_automation`` — or, from an
+                           older specialist, a full envelope that already
+                           includes intent + automation.
 
         Pass-through when the model already returned an enveloped
         response (e.g. automation specialist) or the text isn't valid
@@ -1948,6 +1951,42 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             if visible:
                 return json.dumps({"intent": "answer", "response": visible})
             return text
+        # Slim automation shape: {"r": "<sentence>", "a": {...}}.
+        #
+        # This one is checked first because the slim automation envelope
+        # carries no ``intent``, no ``automation`` and no top-level ``c``,
+        # so every other branch below reads it as a plain answer and the
+        # whole automation — trigger, conditions, actions — is dropped on
+        # the floor without an error. An envelope that already names its
+        # own intent, or that carries a full-word
+        # ``automation``/``scene``/``calls`` key, is left to the enveloped
+        # path below, which owns those shapes — reading an ``a`` key off an
+        # answer envelope would turn an answer into an automation.
+        slim_automation = data.get("a")
+        if (
+            isinstance(slim_automation, dict)
+            and slim_automation
+            and not data.keys() & {"intent", "automation", "scene", "calls"}
+        ):
+            from .slim_automation import SlimAutomationError, expand_slim_automation
+
+            response_text = data.get("r", "") or ""
+            try:
+                automation = expand_slim_automation(slim_automation, response_text)
+            except SlimAutomationError as exc:
+                # A block that did not fully expand hides its steps from
+                # every automation gate. Refuse it and fall through to the
+                # answer branch rather than write an automation nobody
+                # checked.
+                _LOGGER.warning("Slim automation block refused: %s", exc)
+            else:
+                return json.dumps(
+                    {
+                        "intent": "automation",
+                        "response": response_text,
+                        "automation": automation,
+                    }
+                )
         # Already enveloped (automation specialist or older verbose
         # output). Run it through the Qwen drift repair so common
         # failure modes — markdown fences, unknown intent values,

@@ -40,6 +40,28 @@ _RESPONSE_FIELD_RE = re.compile(
 )
 
 
+def unwrap_listed_step_type(value: Any) -> Any:
+    """A trigger/condition type the model wrapped in a list, unwrapped.
+
+    ``{"trigger": ["time"]}`` is a known Qwen drift shape. The list is
+    truthy, so a payload validator accepts it while Home Assistant rejects
+    the entry at reload -- after the file is on disk and the user has been
+    told the automation exists.
+
+    Only the FIRST element and only when it is a string: anything else is
+    not a platform name and must reach the validator rather than be
+    invented into one. Returns ``value`` unchanged otherwise, so a caller
+    can compare identity to tell whether anything happened.
+
+    Shared with ``slim_automation``, which reaches the same malformed
+    trigger by a different route and must not answer differently about it.
+    A second copy is how the two silently drift.
+    """
+    if isinstance(value, list) and value and isinstance(value[0], str):
+        return value[0]
+    return value
+
+
 def coerce_to_answer(text: str) -> dict[str, Any]:
     """Wrap arbitrary model output as a valid `intent: answer` envelope.
 
@@ -154,10 +176,9 @@ def normalize_automation_block(body: dict[str, Any]) -> None:
                 if old_key in t and "at" not in t:
                     t["at"] = t.pop(old_key)
             trig_val = t.get("trigger")
-            if isinstance(trig_val, list) and len(trig_val) >= 1:
-                first = trig_val[0]
-                if isinstance(first, str):
-                    t["trigger"] = first
+            unwrapped = unwrap_listed_step_type(trig_val)
+            if unwrapped is not trig_val:
+                t["trigger"] = unwrapped
             if t.get("trigger") == "time" and "at" not in t:
                 extracted = extract_time_from_prose(prose_for_time)
                 if extracted:
