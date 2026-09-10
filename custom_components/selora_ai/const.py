@@ -1612,3 +1612,10 @@ APPROVAL_VALID_SCOPES = frozenset(
         APPROVAL_SCOPE_DENY,
     }
 )
+
+# Local backend selection (llama-server today; ollama runtime selectable per entry).
+SELORA_LOCAL_BACKEND_LLAMA = "llama"
+SELORA_LOCAL_BACKEND_OLLAMA = "ollama"
+DEFAULT_SELORA_LOCAL_BACKEND = SELORA_LOCAL_BACKEND_LLAMA
+SELORA_LOCAL_OLLAMA_MODEL_PREFIX = "selora-qwen-"
+SELORA_LOCAL_OLLAMA_MODEL_TAG = "0.4.8"
