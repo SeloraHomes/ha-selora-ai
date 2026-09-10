@@ -21,7 +21,7 @@ provider still works against single-model backends.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextvars import ContextVar
 import json
 import logging
@@ -145,11 +145,48 @@ _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION = 25
 _SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = 3598
 _SELORA_LOCAL_RESERVED_TOKENS = 702
 
-# Selora AI Local — backoff between retries when GET /lora-adapters
-# fails (hub still booting, transient network blip). Without this the
-# prewarm task's first call would lock in "no LoRA routing" for the
-# whole HA session because the hub wasn't ready yet.
-_SELORA_LOCAL_DISCOVERY_BACKOFF_S = 30.0
+# Selora AI Local — retry schedule for GET /lora-adapters when the hub
+# is not serving yet (still booting, transient network blip). Without a
+# retry at all the prewarm task's first call would lock in "no LoRA
+# routing" for the whole HA session because the hub wasn't ready.
+#
+# The schedule escalates rather than using one flat delay, because one
+# number was doing two incompatible jobs: about right for a hub that is
+# genuinely down, and far too long for the ordinary case, which is Home
+# Assistant finishing its restart a few seconds before the hub finishes
+# loading its model. There, a flat 30s turns a few seconds of
+# unreadiness into half a minute in which every user request fails
+# outright. Starting short and escalating to the same ceiling costs the
+# common case one slightly slow request and still settles the down-hub
+# case at one probe every 30s.
+_SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S = 0.5
+_SELORA_LOCAL_DISCOVERY_BACKOFF_MAX_S = 30.0
+# How long a user's request may wait for a retry instead of failing.
+# Past this the hub is not "seconds from ready" and failing fast is the
+# honest answer.
+_SELORA_LOCAL_DISCOVERY_WAIT_S = 2.0
+# Slept on top of the remaining window before re-probing, so the probe
+# is never refused for waking a hair early: asyncio may fire a timer
+# within one clock resolution of its deadline, and the re-probe is
+# gated on that same deadline having passed.
+_SELORA_LOCAL_DISCOVERY_WAKE_MARGIN_S = 0.01
+# Per-probe HTTP timeout for the two discovery GETs. Deliberately far
+# below HEALTH_CHECK_TIMEOUT: they read metadata the hub already holds
+# in memory, so a healthy hub answers in milliseconds and a hub that is
+# not listening yet refuses the connection outright. The only case the
+# timeout covers is a socket that accepts and then goes quiet, and a
+# request waiting out the boot race must not be stuck behind that for a
+# quarter of a minute.
+_SELORA_LOCAL_DISCOVERY_PROBE_TIMEOUT_S = 5.0
+
+
+def _log_at(delay: float, escalated: Callable[..., None]) -> Callable[..., None]:
+    """Pick a log level for a discovery retry from how long it armed for.
+
+    A short step is the restart race and settles by itself; a long one means
+    the hub is actually unwell and the line is worth someone's attention.
+    """
+    return _LOGGER.debug if delay < _SELORA_LOCAL_DISCOVERY_WAIT_S else escalated
 
 
 class _SeloraLocalActivationError(ConnectionError):
@@ -736,6 +773,15 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         # without retry, a single startup-race failure would lock the
         # session into "no LoRA routing" until HA restarts.
         self._discovery_retry_after: float = 0.0
+        # Current step of the escalating retry schedule above; reset to
+        # the minimum once discovery succeeds.
+        self._discovery_backoff_s: float = _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S
+        # The step the last _schedule_discovery_retry actually armed.
+        # Distinct from the deadline: the deadline shrinks as the window
+        # elapses, the step does not. Whether a request may wait a
+        # window out is a question about the step ("is this hub seconds
+        # from ready?"), not about how much of it happens to be left.
+        self._discovery_armed_delay: float = 0.0
         # Single-flight gate around (activate slot, run completion).
         # llama-server's /lora-adapters POST swaps the active adapter
         # for ALL subsequent requests until the next swap; without
@@ -743,6 +789,13 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         # specialist can flip the slot mid-completion and the first
         # request gets answered by the wrong LoRA.
         self._request_lock: asyncio.Lock = asyncio.Lock()
+        # Set for the duration of the pre-warm task so its requests don't
+        # spend the retry schedule's short steps before anyone has typed
+        # anything — see prewarm() and _settle_discovery(). A ContextVar
+        # rather than a plain attribute because pre-warm runs as its own
+        # background task and must not change what an overlapping panel
+        # chat does.
+        self._prewarming: ContextVar[bool] = ContextVar("selora_ai_local_prewarming", default=False)
         # ── v0.4.2 training-format chat context ────────────────────────
         # Populated by set_chat_context (called by LLMClient before
         # send_request) so build_payload can reconstruct the EXACT
@@ -1360,6 +1413,14 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
 
     # ── LoRA-slot discovery + activation ──────────────────────────────
 
+    def _schedule_discovery_retry(self) -> float:
+        """Arm the next discovery attempt, escalate the delay, return it."""
+        delay = self._discovery_backoff_s
+        self._discovery_retry_after = time.monotonic() + delay
+        self._discovery_armed_delay = delay
+        self._discovery_backoff_s = min(delay * 2, _SELORA_LOCAL_DISCOVERY_BACKOFF_MAX_S)
+        return delay
+
     async def _ensure_lora_discovery(self) -> None:
         """GET /v1/models + GET /lora-adapters discovery, cached after success.
 
@@ -1382,7 +1443,7 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             if time.monotonic() < self._discovery_retry_after:
                 return
             session = self._get_session()
-            timeout = aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT)
+            timeout = aiohttp.ClientTimeout(total=_SELORA_LOCAL_DISCOVERY_PROBE_TIMEOUT_S)
             # Discover the loaded base model id. Used as the OpenAI
             # ``model`` field for inspectability and as a telemetry tag.
             # The same body carries ``meta.n_ctx``, so _apply_models_payload
@@ -1408,24 +1469,44 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
                     headers=self._get_headers(),
                     timeout=timeout,
                 ) as resp:
-                    if resp.status != 200:
+                    if resp.status == 404:
+                        # No such endpoint: this build serves a single
+                        # model and has no adapters to route between.
+                        # That is an answer, not a hub that is still
+                        # coming up — escalating against it would leave
+                        # ``_lora_slots`` unset and every request
+                        # raising for the life of the process. Record
+                        # "no LoRAs" and let the turns run against the
+                        # base model, which activation already handles.
+                        self._lora_slots = {}
+                        self._n_slots = 0
                         _LOGGER.info(
-                            "Selora Local /lora-adapters returned %s — will retry in %.0fs",
-                            resp.status,
-                            _SELORA_LOCAL_DISCOVERY_BACKOFF_S,
+                            "Selora Local hub has no /lora-adapters endpoint — "
+                            "serving the base model without specialist routing"
                         )
-                        self._discovery_retry_after = (
-                            time.monotonic() + _SELORA_LOCAL_DISCOVERY_BACKOFF_S
+                        return
+                    if resp.status != 200:
+                        delay = self._schedule_discovery_retry()
+                        # The short steps are the ordinary restart race,
+                        # which settles on its own within a second or
+                        # two. Logging each of them puts seven lines in
+                        # everyone's log for a non-event; only once the
+                        # schedule has escalated is something actually
+                        # wrong with the hub.
+                        _log_at(delay, _LOGGER.info)(
+                            "Selora Local /lora-adapters returned %s — will retry in %.1fs",
+                            resp.status,
+                            delay,
                         )
                         return
                     slots = await resp.json()
             except (aiohttp.ClientError, TimeoutError) as exc:
-                _LOGGER.warning(
-                    "Selora Local LoRA discovery failed: %s — will retry in %.0fs",
+                delay = self._schedule_discovery_retry()
+                _log_at(delay, _LOGGER.warning)(
+                    "Selora Local LoRA discovery failed: %s — will retry in %.1fs",
                     exc,
-                    _SELORA_LOCAL_DISCOVERY_BACKOFF_S,
+                    delay,
                 )
-                self._discovery_retry_after = time.monotonic() + _SELORA_LOCAL_DISCOVERY_BACKOFF_S
                 return
             mapping: dict[str, int] = {}
             for slot in slots or []:
@@ -1440,12 +1521,57 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
                         break
             self._lora_slots = mapping
             self._n_slots = len(slots or [])
+            self._discovery_backoff_s = _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S
             _LOGGER.info(
                 "Selora Local discovered base=%s, %d LoRA slots: %s",
                 self._base_model_id or "?",
                 self._n_slots,
                 mapping or "(no recognized intents)",
             )
+
+    async def _settle_discovery(self) -> None:
+        """Give a hub that is seconds from ready one bounded chance.
+
+        Startup race: Home Assistant came back before the hub did. While
+        the schedule is still on one of its short steps the hub is
+        plausibly seconds from ready, so wait that window out once and
+        re-probe rather than failing the user's first request — a
+        slightly slow answer beats an error they have to retry by hand.
+
+        The test is the armed STEP, not the time left in the window.
+        Those differ: a request landing in the last second of a
+        fully-escalated 30s window has a short time remaining, but the
+        hub has by then failed every probe for half a minute. Waiting
+        there buys nothing and only delays the error. Past the cap we
+        fail fast at any point in the window.
+
+        Callers must run this BEFORE taking ``_request_lock``. The wait
+        settles discovery and touches no LoRA slot, so it does not need
+        that lock — and holding it across the sleep would make
+        concurrent requests queue up and pay the window one after
+        another instead of all sharing the one window they are actually
+        waiting on. ``_slot_lock`` inside ``_ensure_lora_discovery``
+        still collapses the wake-up into a single probe.
+        """
+        await self._ensure_lora_discovery()
+        if self._lora_slots is not None:
+            return
+        if self._prewarming.get():
+            # Pre-warm is fire-and-forget at setup: nobody is waiting on
+            # its answer, so there is nothing for a wait to rescue. What
+            # it would do is spend the schedule's short steps — the ones
+            # a user's first request needs — before anyone has typed.
+            return
+        remaining = self._discovery_retry_after - time.monotonic()
+        if (
+            self._discovery_armed_delay <= _SELORA_LOCAL_DISCOVERY_WAIT_S
+            and 0.0 < remaining <= _SELORA_LOCAL_DISCOVERY_WAIT_S
+        ):
+            # Sleeping past the deadline is what lets the re-probe go
+            # through: _ensure_lora_discovery gates on that same
+            # deadline, so nothing has to reach in and clear it.
+            await asyncio.sleep(remaining + _SELORA_LOCAL_DISCOVERY_WAKE_MARGIN_S)
+            await self._ensure_lora_discovery()
 
     async def _activate_lora_for_kind(self, kind: str | None) -> None:
         """POST /lora-adapters so the upcoming chat completion routes
@@ -1591,6 +1717,8 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         timeout: float | None = None,
     ) -> tuple[str | None, str | None]:
         await self._ensure_specialist_prompts_loaded()
+        # Outside the request lock deliberately — see _settle_discovery.
+        await self._settle_discovery()
         # Hold the request lock from activation through completion so
         # an overlapping call can't swap the LoRA mid-flight.
         async with self._request_lock:
@@ -1617,6 +1745,7 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         tools: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         await self._ensure_specialist_prompts_loaded()
+        await self._settle_discovery()
         async with self._request_lock:
             # _SeloraLocalActivationError is a ConnectionError, which
             # the tool-calling loop in LLMClient already handles — so
@@ -1642,7 +1771,23 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         Safe to call multiple times — discovery is cached. Failures are
         swallowed (logged) so a hub hiccup at HA startup never blocks
         async_setup_entry.
+
+        Pre-warm deliberately spends nothing from the discovery retry
+        schedule beyond its own first probe: its requests don't wait out
+        a window, and it stops at the first specialist that can't be
+        reached. A hub that hasn't answered discovery will answer none of
+        the remaining specialists either, and every extra attempt would
+        escalate the backoff that the user's first real request is about
+        to depend on.
         """
+        token = self._prewarming.set(True)
+        try:
+            await self._run_prewarm(entities)
+        finally:
+            self._prewarming.reset(token)
+
+    async def _run_prewarm(self, entities: list[Any] | None) -> None:
+        """The pre-warm loop itself. See prewarm() for what it is for."""
         await self._ensure_lora_discovery()
         ok = 0
         for kind in _SELORA_LOCAL_PREWARM_KINDS:
@@ -1674,6 +1819,16 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
                 _LOGGER.debug("Selora Local pre-warm for %s failed: %s", kind, exc)
             finally:
                 self.set_call_kind(None)
+            if self._lora_slots is None:
+                # The hub hasn't answered discovery. The remaining
+                # specialists would each re-probe a hub we already know
+                # isn't serving and escalate the backoff for it. Stop —
+                # the user's first request retries from a short step.
+                _LOGGER.debug(
+                    "Selora Local pre-warm stopped at %s: the hub is not serving yet",
+                    kind,
+                )
+                break
         _LOGGER.info(
             "Selora Local pre-warm complete: %d/%d specialists primed (%d entities in prefix)",
             ok,
@@ -2258,6 +2413,7 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             return
 
         await self._ensure_specialist_prompts_loaded()
+        await self._settle_discovery()
         async with self._request_lock:
             # If activation fails, let _SeloraLocalActivationError
             # (ConnectionError) propagate out of the generator before
