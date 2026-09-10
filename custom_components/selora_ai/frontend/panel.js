@@ -28613,9 +28613,42 @@ function _articleWordsFor(lang) {
   const key = ARTICLE_WORDS_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
   return new Set(ARTICLE_WORDS_BY_LANG[key]);
 }
-function detectTrigger(text, caret, lang) {
+var _INTRA_WORD_RE = /['’-]/;
+function _isNameChar(text, i7) {
+  if (i7 < 0 || i7 >= text.length) return false;
+  if (_WORD_CHAR_RE.test(text[i7])) return true;
+  if (!_INTRA_WORD_RE.test(text[i7])) return false;
+  return (
+    i7 > 0 &&
+    i7 + 1 < text.length &&
+    _WORD_CHAR_RE.test(text[i7 - 1]) &&
+    _WORD_CHAR_RE.test(text[i7 + 1])
+  );
+}
+function _completionSpan(text, caret, labels) {
+  let start = -1;
+  let end = caret;
+  for (const label of labels || []) {
+    if (!label) continue;
+    for (const [from, to] of _labelSpans(text, label)) {
+      if (caret <= from || caret >= to) continue;
+      if (to < end) continue;
+      if (to === end && start >= 0 && from >= start) continue;
+      start = from;
+      end = to;
+    }
+  }
+  if (end > caret) return { start, end };
+  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
+    return { start: -1, end };
+  }
+  while (_isNameChar(text, end)) end += 1;
+  return { start: -1, end };
+}
+function detectTrigger(text, caret, lang, labels) {
   if (typeof text !== "string" || caret == null || caret < 0) return null;
   const before = text.slice(0, caret);
+  const completion = _completionSpan(text, caret, labels);
   const triggers = _triggersFor(lang);
   const articleWords = _articleWordsFor(lang);
   let queryStart = caret;
@@ -28634,7 +28667,7 @@ function detectTrigger(text, caret, lang) {
           kind: trig.kind,
           query: before.slice(qs, caret),
           start: qs,
-          end: caret,
+          end: completion.end,
           domains: trig.domains || null,
           includeAreas: !!trig.includeAreas,
           includeSensors: !!trig.includeSensors,
@@ -28646,6 +28679,9 @@ function detectTrigger(text, caret, lang) {
   if (!best) return null;
   if (!best.query.trim() && !best.domains) return null;
   if (articleWords.has(best.query.trim().toLowerCase())) return null;
+  if (completion.start >= 0 && completion.start < best.start) {
+    best.start = completion.start;
+  }
   return best;
 }
 function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
@@ -28908,7 +28944,11 @@ function applySelection(text, trigger, item) {
   const inserted = needsSpace ? insert + " " : insert;
   const newText = before + inserted + after;
   const newCaret = trigger.start + inserted.length;
-  return { text: newText, caret: newCaret };
+  return {
+    text: newText,
+    caret: newCaret,
+    range: [trigger.start, trigger.start + insert.length],
+  };
 }
 function buildEntityMarker(selections) {
   if (!selections?.length) return "";
@@ -28947,15 +28987,34 @@ function stripEntityMarkers(text) {
 function _escapeRegex(s4) {
   return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-function pruneStaleSelections(text, selections) {
+function _labelSpans(text, label) {
+  const startsWord = _WORD_CHAR_RE.test(label[0]);
+  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
+  const re = new RegExp(_escapeRegex(label), "gi"); // nosemgrep
+  const spans = [];
+  for (let m3 = re.exec(text); m3; m3 = re.exec(text)) {
+    const start = m3.index;
+    const end = start + m3[0].length;
+    const before = start > 0 ? text[start - 1] : "";
+    const after = end < text.length ? text[end] : "";
+    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
+    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
+    spans.push([start, end]);
+  }
+  return spans;
+}
+function pruneStaleSelections(text, selections, ignoreRange) {
   if (!selections?.length) return selections;
+  const [skipFrom, skipTo] = ignoreRange || [];
+  const skipping =
+    typeof skipFrom === "number" &&
+    typeof skipTo === "number" &&
+    skipTo > skipFrom;
   return selections.filter((s4) => {
     if (!s4.label) return false;
-    const escaped = _escapeRegex(s4.label);
-    const startWord = /^\w/.test(s4.label);
-    const endWord = /\w$/.test(s4.label);
-    const pattern = (startWord ? "\\b" : "") + escaped + (endWord ? "\\b" : "");
-    return new RegExp(pattern, "i").test(text); // nosemgrep
+    const spans = _labelSpans(text, s4.label);
+    if (!skipping) return spans.length > 0;
+    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
   });
 }
 
@@ -29640,7 +29699,12 @@ function _measureCaretInTextarea(textarea) {
 function _updateAutocomplete(host, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
-  const trigger = detectTrigger(value, caret, host.hass?.language);
+  const trigger = detectTrigger(
+    value,
+    caret,
+    host.hass?.language,
+    (host._autocompleteSelections || []).map((s4) => s4.label),
+  );
   const closeIfOpen = () => {
     if (host._autocomplete?.open) {
       host._autocomplete = {
@@ -29799,10 +29863,10 @@ function _closeAutocomplete(host) {
 function _selectAutocompleteItem(host, textarea, item) {
   const trigger = host._autocomplete?.trigger;
   if (!trigger || !item) return;
-  const { text, caret } = applySelection(textarea.value, trigger, item);
+  const { text, caret, range } = applySelection(textarea.value, trigger, item);
   host._input = text;
   host._autocompleteSelections = [
-    ...(host._autocompleteSelections || []),
+    ...pruneStaleSelections(text, host._autocompleteSelections || [], range),
     item,
   ];
   _closeAutocomplete(host);
@@ -49252,7 +49316,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "3b2b2f13daf3" : "";
+var PANEL_BUILD = true ? "b94ba2b99b8b" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
