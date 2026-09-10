@@ -3,6 +3,12 @@ import { toggleYaml } from "./render-automations.js";
 import { burgerMenuAnchor } from "./automation-management.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 import { renderCreatedCheck } from "../shared/created-check.js";
+import {
+  matchesSearchFields,
+  sceneSearchFields,
+  searchTerms,
+} from "../shared/entity-search.js";
+import { renderSearchMatchReason } from "./search-match.js";
 
 // ---------------------------------------------------------------------------
 // Scene card (chat scene confirmations)
@@ -396,7 +402,7 @@ function _sceneEntityCount(scene) {
 }
 
 export function renderScenes(host) {
-  const filterText = (host._sceneFilter || "").toLowerCase();
+  const terms = searchTerms(host._sceneFilter || "");
   const sortBy = host._sceneSortBy || "recent";
   const sortDir = host._sceneSortDir || "desc";
   const statusFilter = host._sceneStatusFilter || "all";
@@ -411,10 +417,19 @@ export function renderScenes(host) {
   } else if (statusFilter === "manual") {
     filtered = filtered.filter((s) => s.source !== "selora");
   }
-  if (filterText) {
-    filtered = filtered.filter((s) =>
-      (s.name || "").toLowerCase().includes(filterText),
-    );
+  // Text search — over the scene's name AND its members, so a scene is
+  // findable by any device it sets or the area those devices sit in.
+  const matchReasons = new Map();
+  if (terms.length) {
+    const reg = host._searchRegistry();
+    filtered = filtered.filter((s) => {
+      const { match, reasons } = matchesSearchFields(
+        sceneSearchFields(s, reg),
+        terms,
+      );
+      if (match && reasons.length) matchReasons.set(s, reasons);
+      return match;
+    });
   }
 
   const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
@@ -526,11 +541,12 @@ export function renderScenes(host) {
                       type="text"
                       placeholder=${host._t(
                         "scenes_filter_placeholder",
-                        "Filter scenes…",
+                        "Search scenes, devices, areas…",
                       )}
                       .value=${host._sceneFilter || ""}
                       @input=${(e) => {
                         host._sceneFilter = e.target.value;
+                        host._ensureSearchRegistries();
                       }}
                     />
                     ${
@@ -703,6 +719,10 @@ export function renderScenes(host) {
                                 class="auto-row-desc auto-row-desc--meta-only"
                                 >${meta}</span
                               >
+                              ${renderSearchMatchReason(
+                                host,
+                                matchReasons.get(s),
+                              )}
                               <span class="auto-row-mobile-meta">
                                 <span>${meta}</span>
                                 <ha-icon
@@ -953,7 +973,12 @@ export function renderScenes(host) {
                     ? html`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        No scenes match "${host._sceneFilter}"
+                        ${host
+                          ._t(
+                            "scenes_search_no_match",
+                            'No scenes match "{query}"',
+                          )
+                          .replace("{query}", host._sceneFilter)}
                       </div>`
                     : ""
                 }

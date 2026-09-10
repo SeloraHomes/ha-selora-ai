@@ -5790,6 +5790,29 @@ var automationsStyles = i`
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* Why a search hit matched, when the row's own title and description say
+     nothing the query names — a device, an area, or an entity it targets. */
+  .auto-row-match {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--selora-accent, var(--secondary-text-color));
+    opacity: 0.85;
+  }
+  .auto-row-match ha-icon {
+    --mdc-icon-size: 12px;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+  .auto-row-match-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   /* When expanded the full description shows in the card body, so hide the
      header's clamped copy to avoid duplication. Use visibility (not display)
      so it still reserves its one line — the header keeps its collapsed height
@@ -8955,6 +8978,223 @@ function formatTime(iso) {
   }
 }
 
+// src/shared/entity-search.js
+function normalizeSearch(value) {
+  if (value == null) return "";
+  return String(value)
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[_.]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function searchTerms(query) {
+  const raw = String(query ?? "");
+  const terms = [];
+  for (const m3 of raw.matchAll(/"([^"]*)"?|([^\s"]+)/g)) {
+    const term = normalizeSearch(m3[1] ?? m3[2]);
+    if (term) terms.push(term);
+  }
+  return terms;
+}
+function _deviceLabel(device) {
+  if (!device) return "";
+  return String(device.name_by_user || device.name || "").trim();
+}
+function buildSearchRegistry(hass, full = null) {
+  const hassOf = typeof hass === "function" ? hass : () => hass;
+  const pick = (key) => {
+    const live = hassOf()?.[key];
+    if (live && Object.keys(live).length) return live;
+    return full?.[key] || {};
+  };
+  const area = (areaId) => {
+    if (!areaId) return "";
+    return String(pick("areas")[areaId]?.name || "").trim();
+  };
+  const floor = (floorId) => {
+    if (!floorId) return "";
+    return String(pick("floors")[floorId]?.name || "").trim();
+  };
+  const label = (labelId) => {
+    if (!labelId) return "";
+    return String(pick("labels")[labelId]?.name || "").trim();
+  };
+  const device = (deviceId) => {
+    if (!deviceId) return null;
+    const d3 = pick("devices")[deviceId];
+    if (!d3) return null;
+    return { name: _deviceLabel(d3), area: area(d3.area_id) };
+  };
+  const entity = (entityId) => {
+    if (!entityId) return null;
+    const h3 = hassOf();
+    const state = h3?.states?.[entityId];
+    const live = h3?.entities?.[entityId];
+    const stored = full?.entities?.[entityId];
+    if (!state && !live && !stored) return null;
+    const name =
+      state?.attributes?.friendly_name ||
+      live?.name ||
+      live?.original_name ||
+      stored?.name ||
+      stored?.original_name ||
+      "";
+    const dev = device(live?.device_id || stored?.device_id);
+    const areaName = area(live?.area_id || stored?.area_id) || dev?.area || "";
+    return {
+      entity_id: entityId,
+      name: String(name || "").trim(),
+      area: areaName,
+      device: dev?.name || "",
+    };
+  };
+  return { entity, device, area, floor, label };
+}
+var ENTITY_ID_RE = /^[a-z0-9_]+\.[a-z0-9_]+$/;
+var _ID_BUCKET = {
+  device_id: "devices",
+  area_id: "areas",
+  floor_id: "floors",
+  label_id: "labels",
+};
+function _idParts(value) {
+  const raw =
+    typeof value === "string" ? [value] : Array.isArray(value) ? value : [];
+  const out = [];
+  for (const v2 of raw) {
+    if (typeof v2 !== "string") continue;
+    for (const part of v2.split(",")) {
+      const trimmed = part.trim();
+      if (trimmed) out.push(trimmed);
+    }
+  }
+  return out;
+}
+function collectConfigRefs(node, acc = null) {
+  const out = acc || {
+    entities: /* @__PURE__ */ new Set(),
+    devices: /* @__PURE__ */ new Set(),
+    areas: /* @__PURE__ */ new Set(),
+    floors: /* @__PURE__ */ new Set(),
+    labels: /* @__PURE__ */ new Set(),
+  };
+  if (node == null) return out;
+  if (Array.isArray(node)) {
+    for (const item of node) collectConfigRefs(item, out);
+    return out;
+  }
+  if (typeof node !== "object") return out;
+  for (const [key, value] of Object.entries(node)) {
+    if (key === "entity_id" || key.endsWith("_entity_id")) {
+      for (const v2 of _idParts(value)) {
+        if (ENTITY_ID_RE.test(v2)) out.entities.add(v2);
+      }
+    } else if (_ID_BUCKET[key]) {
+      for (const v2 of _idParts(value)) out[_ID_BUCKET[key]].add(v2);
+    }
+    if (value && typeof value === "object") collectConfigRefs(value, out);
+  }
+  return out;
+}
+function _refFields(label, blob) {
+  return { label, norm: normalizeSearch(blob) };
+}
+function _pushRef(out, seen, ref) {
+  if (!ref.norm || seen.has(ref.norm)) return;
+  seen.add(ref.norm);
+  out.push(ref);
+}
+function _buildRefs(reg, refs) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const add = (label, ...extra) =>
+    _pushRef(out, seen, _refFields(label, [label, ...extra].join(" ")));
+  for (const id of refs.entities) {
+    const info = reg.entity(id);
+    add(info?.name || id, id);
+    if (info?.device) add(info.device);
+    if (info?.area) add(info.area);
+  }
+  for (const id of refs.devices) {
+    const info = reg.device(id);
+    add(info?.name || id, id);
+    if (info?.area) add(info.area);
+  }
+  for (const id of refs.areas) add(reg.area(id) || id, id);
+  for (const id of refs.floors || []) add(reg.floor(id) || id, id);
+  for (const id of refs.labels || []) add(reg.label(id) || id, id);
+  return out;
+}
+var _fieldCache = /* @__PURE__ */ new WeakMap();
+function _cached(record, reg, build) {
+  if (!record || typeof record !== "object") return build();
+  const hit = _fieldCache.get(record);
+  if (hit && hit.reg === reg) return hit.fields;
+  const fields = build();
+  _fieldCache.set(record, { reg, fields });
+  return fields;
+}
+function automationSearchFields(automation, reg) {
+  return _cached(automation, reg, () => {
+    const primary = normalizeSearch(
+      [
+        automation?.alias,
+        automation?.description,
+        automation?.entity_id,
+        automation?.recipe_title,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    );
+    const refs = collectConfigRefs({
+      triggers: automation?.triggers,
+      conditions: automation?.conditions,
+      actions: automation?.actions,
+    });
+    return { primary, refs: _buildRefs(reg, refs) };
+  });
+}
+function sceneSearchFields(scene, reg) {
+  return _cached(scene, reg, () => {
+    const primary = normalizeSearch(
+      [scene?.name, scene?.entity_id, scene?.scene_id]
+        .filter(Boolean)
+        .join(" "),
+    );
+    const memberIds =
+      scene?.entities && typeof scene.entities === "object"
+        ? Object.keys(scene.entities).filter((id) => ENTITY_ID_RE.test(id))
+        : [];
+    const refs = _buildRefs(reg, {
+      entities: new Set(memberIds),
+      devices: /* @__PURE__ */ new Set(),
+      areas: /* @__PURE__ */ new Set(),
+    });
+    return { primary, refs };
+  });
+}
+function matchesSearchFields(fields, terms) {
+  if (!terms.length) return { match: true, reasons: [] };
+  const reasons = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const term of terms) {
+    if (fields.primary.includes(term)) continue;
+    let hit = false;
+    for (const ref of fields.refs) {
+      if (!ref.norm.includes(term)) continue;
+      hit = true;
+      if (ref.label && !seen.has(ref.label)) {
+        seen.add(ref.label);
+        reasons.push(ref.label);
+      }
+    }
+    if (!hit) return { match: false, reasons: [] };
+  }
+  return { match: true, reasons };
+}
+
 // src/shared/panel-container.js
 var sized = /* @__PURE__ */ new WeakSet();
 function sizePanelContainer(container) {
@@ -9403,7 +9643,8 @@ var en_default = {
       "Home Assistant could not set this automation up, so it is not running. Check its error in Settings \u2192 Automations.",
     automations_action_accept_and_save: "Accept & Save",
     automations_section_title: "Your Automations",
-    automations_filter_placeholder: "Filter automations\u2026",
+    automations_filter_placeholder: "Search automations, devices, areas\u2026",
+    automations_search_no_match: 'No automations match "{query}"',
     automations_sort_recent: "Recent activity",
     automations_sort_alpha: "Alphabetical",
     automations_sort_enabled_first: "Enabled first",
@@ -9484,7 +9725,9 @@ var en_default = {
     scenes_card_proposal_badge: "Proposal",
     scenes_card_accept_save_button: "Accept & Save",
     scenes_section_title: "Your Scenes",
-    scenes_filter_placeholder: "Filter scenes\u2026",
+    scenes_filter_placeholder: "Search scenes, devices, areas\u2026",
+    scenes_search_no_match: 'No scenes match "{query}"',
+    search_match_reason: "matches {targets}",
     scenes_sort_recent: "Recently updated",
     scenes_sort_alpha: "Alphabetical",
     scenes_sort_size: "Most entities",
@@ -10570,7 +10813,10 @@ var fr_default = {
       "Home Assistant n'a pas pu configurer cette automatisation, elle ne fonctionne donc pas. Consultez son erreur dans Param\xE8tres \u2192 Automatisations.",
     automations_action_accept_and_save: "Accepter et enregistrer",
     automations_section_title: "Vos automatisations",
-    automations_filter_placeholder: "Filtrer les automatisations\u2026",
+    automations_filter_placeholder:
+      "Rechercher automatisations, appareils, zones\u2026",
+    automations_search_no_match:
+      "Aucune automatisation ne correspond \xE0 \xAB {query} \xBB",
     automations_sort_recent: "Activit\xE9 r\xE9cente",
     automations_sort_alpha: "Alphab\xE9tique",
     automations_sort_enabled_first: "Activ\xE9es d'abord",
@@ -10653,7 +10899,10 @@ var fr_default = {
     scenes_card_proposal_badge: "Proposition",
     scenes_card_accept_save_button: "Accepter et enregistrer",
     scenes_section_title: "Vos sc\xE8nes",
-    scenes_filter_placeholder: "Filtrer les sc\xE8nes\u2026",
+    scenes_filter_placeholder: "Rechercher sc\xE8nes, appareils, zones\u2026",
+    scenes_search_no_match:
+      "Aucune sc\xE8ne ne correspond \xE0 \xAB {query} \xBB",
+    search_match_reason: "correspond \xE0 {targets}",
     scenes_sort_recent: "R\xE9cemment mises \xE0 jour",
     scenes_sort_alpha: "Alphab\xE9tique",
     scenes_sort_size: "Plus d'entit\xE9s",
@@ -11776,7 +12025,10 @@ var de_default = {
       "Home Assistant konnte diese Automatisierung nicht einrichten, sie l\xE4uft daher nicht. Pr\xFCfe den Fehler unter Einstellungen \u2192 Automatisierungen.",
     automations_action_accept_and_save: "Annehmen & Speichern",
     automations_section_title: "Ihre Automatisierungen",
-    automations_filter_placeholder: "Automatisierungen filtern\u2026",
+    automations_filter_placeholder:
+      "Automatisierungen, Ger\xE4te, Bereiche suchen\u2026",
+    automations_search_no_match:
+      "Keine Automatisierungen passen zu \u201E{query}\u201C",
     automations_sort_recent: "Letzte Aktivit\xE4t",
     automations_sort_alpha: "Alphabetisch",
     automations_sort_enabled_first: "Aktivierte zuerst",
@@ -11859,7 +12111,9 @@ var de_default = {
     scenes_card_proposal_badge: "Vorschlag",
     scenes_card_accept_save_button: "Annehmen & Speichern",
     scenes_section_title: "Ihre Szenen",
-    scenes_filter_placeholder: "Szenen filtern\u2026",
+    scenes_filter_placeholder: "Szenen, Ger\xE4te, Bereiche suchen\u2026",
+    scenes_search_no_match: "Keine Szenen passen zu \u201E{query}\u201C",
+    search_match_reason: "passt zu {targets}",
     scenes_sort_recent: "K\xFCrzlich aktualisiert",
     scenes_sort_alpha: "Alphabetisch",
     scenes_sort_size: "Meiste Entit\xE4ten",
@@ -12971,7 +13225,10 @@ var es_default = {
       "Home Assistant no pudo configurar esta automatizaci\xF3n, por lo que no se est\xE1 ejecutando. Consulta su error en Ajustes \u2192 Automatizaciones.",
     automations_action_accept_and_save: "Aceptar y guardar",
     automations_section_title: "Sus automatizaciones",
-    automations_filter_placeholder: "Filtrar automatizaciones\u2026",
+    automations_filter_placeholder:
+      "Buscar automatizaciones, dispositivos, \xE1reas\u2026",
+    automations_search_no_match:
+      "Ninguna automatizaci\xF3n coincide con \xAB{query}\xBB",
     automations_sort_recent: "Actividad reciente",
     automations_sort_alpha: "Alfab\xE9tico",
     automations_sort_enabled_first: "Activadas primero",
@@ -13053,7 +13310,9 @@ var es_default = {
     scenes_card_proposal_badge: "Propuesta",
     scenes_card_accept_save_button: "Aceptar y guardar",
     scenes_section_title: "Sus escenas",
-    scenes_filter_placeholder: "Filtrar escenas\u2026",
+    scenes_filter_placeholder: "Buscar escenas, dispositivos, \xE1reas\u2026",
+    scenes_search_no_match: "Ninguna escena coincide con \xAB{query}\xBB",
+    search_match_reason: "coincide con {targets}",
     scenes_sort_recent: "Actualizadas recientemente",
     scenes_sort_alpha: "Alfab\xE9tico",
     scenes_sort_size: "M\xE1s entidades",
@@ -14151,7 +14410,9 @@ var it_default = {
       "Home Assistant non \xE8 riuscito a configurare questa automazione, quindi non \xE8 in esecuzione. Controlla l'errore in Impostazioni \u2192 Automazioni.",
     automations_action_accept_and_save: "Accetta e salva",
     automations_section_title: "Le Sue automazioni",
-    automations_filter_placeholder: "Filtra automazioni\u2026",
+    automations_filter_placeholder:
+      "Cerca automazioni, dispositivi, aree\u2026",
+    automations_search_no_match: 'Nessuna automazione corrisponde a "{query}"',
     automations_sort_recent: "Attivit\xE0 recente",
     automations_sort_alpha: "Alfabetico",
     automations_sort_enabled_first: "Prima le attivate",
@@ -14232,7 +14493,9 @@ var it_default = {
     scenes_card_proposal_badge: "Proposta",
     scenes_card_accept_save_button: "Accetta e salva",
     scenes_section_title: "Le Sue scene",
-    scenes_filter_placeholder: "Filtra scene\u2026",
+    scenes_filter_placeholder: "Cerca scene, dispositivi, aree\u2026",
+    scenes_search_no_match: 'Nessuna scena corrisponde a "{query}"',
+    search_match_reason: "corrisponde a {targets}",
     scenes_sort_recent: "Aggiornate di recente",
     scenes_sort_alpha: "Alfabetico",
     scenes_sort_size: "Pi\xF9 entit\xE0",
@@ -15348,7 +15611,10 @@ var nl_default = {
       "Home Assistant kon deze automatisering niet instellen, dus deze werkt niet. Bekijk de fout in Instellingen \u2192 Automatiseringen.",
     automations_action_accept_and_save: "Accepteren & opslaan",
     automations_section_title: "Uw automatiseringen",
-    automations_filter_placeholder: "Automatiseringen filteren\u2026",
+    automations_filter_placeholder:
+      "Zoek automatiseringen, apparaten, gebieden\u2026",
+    automations_search_no_match:
+      'Geen automatiseringen komen overeen met "{query}"',
     automations_sort_recent: "Recente activiteit",
     automations_sort_alpha: "Alfabetisch",
     automations_sort_enabled_first: "Aangezet eerst",
@@ -15431,7 +15697,9 @@ var nl_default = {
     scenes_card_proposal_badge: "Voorstel",
     scenes_card_accept_save_button: "Accepteren & opslaan",
     scenes_section_title: "Uw sc\xE8nes",
-    scenes_filter_placeholder: "Sc\xE8nes filteren\u2026",
+    scenes_filter_placeholder: "Zoek sc\xE8nes, apparaten, gebieden\u2026",
+    scenes_search_no_match: 'Geen sc\xE8nes komen overeen met "{query}"',
+    search_match_reason: "komt overeen met {targets}",
     scenes_sort_recent: "Recent bijgewerkt",
     scenes_sort_alpha: "Alfabetisch",
     scenes_sort_size: "Meeste entiteiten",
@@ -16548,7 +16816,10 @@ var hu_default = {
       "A Home Assistant nem tudta be\xE1ll\xEDtani ezt az automatiz\xE1l\xE1st, ez\xE9rt nem fut. Ellen\u0151rizd a hib\xE1t a Be\xE1ll\xEDt\xE1sok \u2192 Automatiz\xE1l\xE1sok men\xFCben.",
     automations_action_accept_and_save: "Elfogad\xE1s \xE9s ment\xE9s",
     automations_section_title: "Az \xD6n automatizmusai",
-    automations_filter_placeholder: "Automatizmusok sz\u0171r\xE9se\u2026",
+    automations_filter_placeholder:
+      "Automatiz\xE1l\xE1sok, eszk\xF6z\xF6k, ter\xFCletek keres\xE9se\u2026",
+    automations_search_no_match:
+      "Egyetlen automatiz\xE1l\xE1s sem felel meg ennek: \u201E{query}\u201D",
     automations_sort_recent: "Legut\xF3bbi tev\xE9kenys\xE9g",
     automations_sort_alpha: "Bet\u0171rend",
     automations_sort_enabled_first: "Bekapcsoltak el\u0151re",
@@ -16631,7 +16902,11 @@ var hu_default = {
     scenes_card_proposal_badge: "Javaslat",
     scenes_card_accept_save_button: "Elfogad\xE1s \xE9s ment\xE9s",
     scenes_section_title: "Az \xD6n jelenetei",
-    scenes_filter_placeholder: "Jelenetek sz\u0171r\xE9se\u2026",
+    scenes_filter_placeholder:
+      "Jelenetek, eszk\xF6z\xF6k, ter\xFCletek keres\xE9se\u2026",
+    scenes_search_no_match:
+      "Egyetlen jelenet sem felel meg ennek: \u201E{query}\u201D",
+    search_match_reason: "egyezik: {targets}",
     scenes_sort_recent: "Legut\xF3bb friss\xEDtett",
     scenes_sort_alpha: "Bet\u0171rend",
     scenes_sort_size: "Legt\xF6bb entit\xE1s",
@@ -17753,7 +18028,10 @@ var pt_default = {
       "O Home Assistant n\xE3o conseguiu configurar esta automa\xE7\xE3o, por isso n\xE3o est\xE1 em execu\xE7\xE3o. Verifique o erro em Configura\xE7\xF5es \u2192 Automa\xE7\xF5es.",
     automations_action_accept_and_save: "Aceitar e guardar",
     automations_section_title: "As suas automa\xE7\xF5es",
-    automations_filter_placeholder: "Filtrar automa\xE7\xF5es\u2026",
+    automations_filter_placeholder:
+      "Pesquisar automa\xE7\xF5es, dispositivos, \xE1reas\u2026",
+    automations_search_no_match:
+      'Nenhuma automa\xE7\xE3o corresponde a "{query}"',
     automations_sort_recent: "Atividade recente",
     automations_sort_alpha: "Alfab\xE9tica",
     automations_sort_enabled_first: "Ativadas primeiro",
@@ -17835,7 +18113,9 @@ var pt_default = {
     scenes_card_proposal_badge: "Proposta",
     scenes_card_accept_save_button: "Aceitar e guardar",
     scenes_section_title: "As suas cenas",
-    scenes_filter_placeholder: "Filtrar cenas\u2026",
+    scenes_filter_placeholder: "Pesquisar cenas, dispositivos, \xE1reas\u2026",
+    scenes_search_no_match: 'Nenhuma cena corresponde a "{query}"',
+    search_match_reason: "corresponde a {targets}",
     scenes_sort_recent: "Atualizadas recentemente",
     scenes_sort_alpha: "Alfab\xE9tica",
     scenes_sort_size: "Mais entidades",
@@ -19133,7 +19413,9 @@ var ru_default = {
     automations_section_title:
       "\u0412\u0430\u0448\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
     automations_filter_placeholder:
-      "\u0424\u0438\u043B\u044C\u0442\u0440\u043E\u0432\u0430\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438\u2026",
+      "\u041F\u043E\u0438\u0441\u043A \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0439, \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432, \u0437\u043E\u043D\u2026",
+    automations_search_no_match:
+      "\u041D\u0435\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0439, \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0445 \xAB{query}\xBB",
     automations_sort_recent:
       "\u041D\u0435\u0434\u0430\u0432\u043D\u044F\u044F \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u044C",
     automations_sort_alpha:
@@ -19263,7 +19545,11 @@ var ru_default = {
     scenes_section_title:
       "\u0412\u0430\u0448\u0438 \u0441\u0446\u0435\u043D\u044B",
     scenes_filter_placeholder:
-      "\u0424\u0438\u043B\u044C\u0442\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0446\u0435\u043D\u044B\u2026",
+      "\u041F\u043E\u0438\u0441\u043A \u0441\u0446\u0435\u043D, \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432, \u0437\u043E\u043D\u2026",
+    scenes_search_no_match:
+      "\u041D\u0435\u0442 \u0441\u0446\u0435\u043D, \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u044E\u0449\u0438\u0445 \xAB{query}\xBB",
+    search_match_reason:
+      "\u0441\u043E\u0432\u043F\u0430\u0434\u0430\u0435\u0442 \u0441 {targets}",
     scenes_sort_recent:
       "\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u044B\u0435",
     scenes_sort_alpha:
@@ -20787,7 +21073,9 @@ var ja_default = {
     automations_section_title:
       "\u3042\u306A\u305F\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
     automations_filter_placeholder:
-      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u7D5E\u308A\u8FBC\u307F\u2026",
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u30FB\u30C7\u30D0\u30A4\u30B9\u30FB\u30A8\u30EA\u30A2\u3092\u691C\u7D22\u2026",
+    automations_search_no_match:
+      "\u300C{query}\u300D\u306B\u4E00\u81F4\u3059\u308B\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306F\u3042\u308A\u307E\u305B\u3093",
     automations_sort_recent:
       "\u6700\u8FD1\u306E\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3",
     automations_sort_alpha: "\u30A2\u30EB\u30D5\u30A1\u30D9\u30C3\u30C8\u9806",
@@ -20883,7 +21171,10 @@ var ja_default = {
     scenes_card_accept_save_button: "\u627F\u8A8D\u3057\u3066\u4FDD\u5B58",
     scenes_section_title: "\u3042\u306A\u305F\u306E\u30B7\u30FC\u30F3",
     scenes_filter_placeholder:
-      "\u30B7\u30FC\u30F3\u3092\u7D5E\u308A\u8FBC\u307F\u2026",
+      "\u30B7\u30FC\u30F3\u30FB\u30C7\u30D0\u30A4\u30B9\u30FB\u30A8\u30EA\u30A2\u3092\u691C\u7D22\u2026",
+    scenes_search_no_match:
+      "\u300C{query}\u300D\u306B\u4E00\u81F4\u3059\u308B\u30B7\u30FC\u30F3\u306F\u3042\u308A\u307E\u305B\u3093",
+    search_match_reason: "\u4E00\u81F4: {targets}",
     scenes_sort_recent: "\u6700\u8FD1\u66F4\u65B0\u3057\u305F\u9806",
     scenes_sort_alpha: "\u30A2\u30EB\u30D5\u30A1\u30D9\u30C3\u30C8\u9806",
     scenes_sort_size:
@@ -22214,7 +22505,10 @@ var ko_default = {
       "Home Assistant\uAC00 \uC774 \uC790\uB3D9\uD654\uB97C \uC124\uC815\uD560 \uC218 \uC5C6\uC5B4 \uC2E4\uD589\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC124\uC815 \u2192 \uC790\uB3D9\uD654\uC5D0\uC11C \uC624\uB958\uB97C \uD655\uC778\uD558\uC138\uC694.",
     automations_action_accept_and_save: "\uC218\uB77D \uBC0F \uC800\uC7A5",
     automations_section_title: "\uB0B4 \uC790\uB3D9\uD654",
-    automations_filter_placeholder: "\uC790\uB3D9\uD654 \uD544\uD130\u2026",
+    automations_filter_placeholder:
+      "\uC790\uB3D9\uD654, \uAE30\uAE30, \uC601\uC5ED \uAC80\uC0C9\u2026",
+    automations_search_no_match:
+      '"{query}"\uACFC(\uC640) \uC77C\uCE58\uD558\uB294 \uC790\uB3D9\uD654\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4',
     automations_sort_recent: "\uCD5C\uADFC \uD65C\uB3D9",
     automations_sort_alpha: "\uAC00\uB098\uB2E4\uC21C",
     automations_sort_enabled_first:
@@ -22300,7 +22594,11 @@ var ko_default = {
     scenes_card_proposal_badge: "\uC81C\uC548",
     scenes_card_accept_save_button: "\uC218\uB77D \uBC0F \uC800\uC7A5",
     scenes_section_title: "\uB0B4 \uC7A5\uBA74",
-    scenes_filter_placeholder: "\uC7A5\uBA74 \uD544\uD130\u2026",
+    scenes_filter_placeholder:
+      "\uC52C, \uAE30\uAE30, \uC601\uC5ED \uAC80\uC0C9\u2026",
+    scenes_search_no_match:
+      '"{query}"\uACFC(\uC640) \uC77C\uCE58\uD558\uB294 \uC52C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4',
+    search_match_reason: "\uC77C\uCE58: {targets}",
     scenes_sort_recent: "\uCD5C\uADFC \uC5C5\uB370\uC774\uD2B8",
     scenes_sort_alpha: "\uAC00\uB098\uB2E4\uC21C",
     scenes_sort_size: "\uC5D4\uD130\uD2F0 \uB9CE\uC740 \uC21C",
@@ -23530,7 +23828,10 @@ var zh_Hans_default = {
       "Home Assistant \u65E0\u6CD5\u8BBE\u7F6E\u6B64\u81EA\u52A8\u5316\uFF0C\u56E0\u6B64\u5B83\u672A\u5728\u8FD0\u884C\u3002\u8BF7\u5728\u201C\u8BBE\u7F6E \u2192 \u81EA\u52A8\u5316\u201D\u4E2D\u67E5\u770B\u5176\u9519\u8BEF\u3002",
     automations_action_accept_and_save: "\u63A5\u53D7\u5E76\u4FDD\u5B58",
     automations_section_title: "\u60A8\u7684\u81EA\u52A8\u5316",
-    automations_filter_placeholder: "\u7B5B\u9009\u81EA\u52A8\u5316\u2026",
+    automations_filter_placeholder:
+      "\u641C\u7D22\u81EA\u52A8\u5316\u3001\u8BBE\u5907\u3001\u533A\u57DF\u2026",
+    automations_search_no_match:
+      "\u6CA1\u6709\u4E0E\u201C{query}\u201D\u5339\u914D\u7684\u81EA\u52A8\u5316",
     automations_sort_recent: "\u6700\u8FD1\u6D3B\u52A8",
     automations_sort_alpha: "\u6309\u5B57\u6BCD\u987A\u5E8F",
     automations_sort_enabled_first: "\u5DF2\u542F\u7528\u4F18\u5148",
@@ -23613,7 +23914,11 @@ var zh_Hans_default = {
     scenes_card_proposal_badge: "\u63D0\u8BAE",
     scenes_card_accept_save_button: "\u63A5\u53D7\u5E76\u4FDD\u5B58",
     scenes_section_title: "\u60A8\u7684\u573A\u666F",
-    scenes_filter_placeholder: "\u7B5B\u9009\u573A\u666F\u2026",
+    scenes_filter_placeholder:
+      "\u641C\u7D22\u573A\u666F\u3001\u8BBE\u5907\u3001\u533A\u57DF\u2026",
+    scenes_search_no_match:
+      "\u6CA1\u6709\u4E0E\u201C{query}\u201D\u5339\u914D\u7684\u573A\u666F",
+    search_match_reason: "\u5339\u914D {targets}",
     scenes_sort_recent: "\u6700\u8FD1\u66F4\u65B0",
     scenes_sort_alpha: "\u6309\u5B57\u6BCD\u987A\u5E8F",
     scenes_sort_size: "\u5B9E\u4F53\u6700\u591A",
@@ -24809,7 +25114,10 @@ var zh_Hant_default = {
       "Home Assistant \u7121\u6CD5\u8A2D\u5B9A\u6B64\u81EA\u52D5\u5316\uFF0C\u56E0\u6B64\u5B83\u672A\u5728\u57F7\u884C\u3002\u8ACB\u5728\u300C\u8A2D\u5B9A \u2192 \u81EA\u52D5\u5316\u300D\u4E2D\u67E5\u770B\u5176\u932F\u8AA4\u3002",
     automations_action_accept_and_save: "\u63A5\u53D7\u4E26\u5132\u5B58",
     automations_section_title: "\u60A8\u7684\u81EA\u52D5\u5316",
-    automations_filter_placeholder: "\u7BE9\u9078\u81EA\u52D5\u5316\u2026",
+    automations_filter_placeholder:
+      "\u641C\u5C0B\u81EA\u52D5\u5316\u3001\u88DD\u7F6E\u3001\u5340\u57DF\u2026",
+    automations_search_no_match:
+      "\u6C92\u6709\u7B26\u5408\u300C{query}\u300D\u7684\u81EA\u52D5\u5316",
     automations_sort_recent: "\u6700\u8FD1\u6D3B\u52D5",
     automations_sort_alpha: "\u4F9D\u5B57\u6BCD\u6392\u5E8F",
     automations_sort_enabled_first: "\u5DF2\u555F\u7528\u512A\u5148",
@@ -24893,7 +25201,11 @@ var zh_Hant_default = {
     scenes_card_proposal_badge: "\u63D0\u6848",
     scenes_card_accept_save_button: "\u63A5\u53D7\u4E26\u5132\u5B58",
     scenes_section_title: "\u60A8\u7684\u60C5\u5883",
-    scenes_filter_placeholder: "\u7BE9\u9078\u60C5\u5883\u2026",
+    scenes_filter_placeholder:
+      "\u641C\u5C0B\u5834\u666F\u3001\u88DD\u7F6E\u3001\u5340\u57DF\u2026",
+    scenes_search_no_match:
+      "\u6C92\u6709\u7B26\u5408\u300C{query}\u300D\u7684\u5834\u666F",
+    search_match_reason: "\u7B26\u5408 {targets}",
     scenes_sort_recent: "\u6700\u8FD1\u66F4\u65B0",
     scenes_sort_alpha: "\u4F9D\u5B57\u6BCD\u6392\u5E8F",
     scenes_sort_size: "\u5BE6\u9AD4\u6700\u591A",
@@ -33150,6 +33462,17 @@ function renderDiffEntry(host, msgIndex, entry) {
   </div>`;
 }
 
+// src/panel/search-match.js
+function renderSearchMatchReason(host, reasons) {
+  if (!reasons || !reasons.length) return "";
+  return b2`<span class="auto-row-match" title=${reasons.join(", ")}>
+    <ha-icon icon="mdi:magnify"></ha-icon>
+    <span class="auto-row-match-text"
+      >${host._t("search_match_reason", "matches {targets}").replace("{targets}", reasons.join(", "))}</span
+    >
+  </span>`;
+}
+
 // src/panel/render-suggestions.js
 var ClampCursorDirective = class extends i5 {
   update(part, [force]) {
@@ -34619,7 +34942,7 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
   );
 }
 function renderAutomations(host) {
-  const filterText = (host._automationFilter || "").toLowerCase();
+  const terms = searchTerms(host._automationFilter || "");
   const statusFilter = host._statusFilter || "all";
   const sortBy = host._sortBy || "recent";
   const sortDir = host._sortDir || "desc";
@@ -34639,10 +34962,17 @@ function renderAutomations(host) {
       staleSet.has(a3.automation_id),
     );
   }
-  if (filterText) {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      (a3.alias || "").toLowerCase().includes(filterText),
-    );
+  const matchReasons = /* @__PURE__ */ new Map();
+  if (terms.length) {
+    const reg = host._searchRegistry();
+    filteredAutomations = filteredAutomations.filter((a3) => {
+      const { match, reasons } = matchesSearchFields(
+        automationSearchFields(a3, reg),
+        terms,
+      );
+      if (match && reasons.length) matchReasons.set(a3, reasons);
+      return match;
+    });
   }
   const naturalDir = { recent: "desc", alpha: "asc", enabled_first: "asc" };
   if (sortBy === "recent") {
@@ -34838,12 +35168,13 @@ function renderAutomations(host) {
                       type="text"
                       placeholder=${host._t(
                         "automations_filter_placeholder",
-                        "Filter automations\u2026",
+                        "Search automations, devices, areas\u2026",
                       )}
                       .value=${host._automationFilter}
                       @input=${(e6) => {
                         host._automationFilter = e6.target.value;
                         host._automationsPage = 1;
+                        host._ensureSearchRegistries();
                       }}
                     />
                     ${
@@ -35200,20 +35531,23 @@ function renderAutomations(host) {
                                     </button>
                                   `
                                 : null,
-                            tail: b2`<span class="auto-row-mobile-meta">
-                              <span
-                                >${host._t(
-                                  "automations_last_run_prefix",
-                                  "Last run:",
-                                )}
-                                ${lastRun}</span
-                              >
-                              <ha-icon
-                                icon="mdi:chevron-down"
-                                class="card-chevron ${cardExpanded ? "open" : ""}"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                            </span>`,
+                            tail: b2`${renderSearchMatchReason(
+                              host,
+                              matchReasons.get(a3),
+                            )}<span class="auto-row-mobile-meta">
+                                <span
+                                  >${host._t(
+                                    "automations_last_run_prefix",
+                                    "Last run:",
+                                  )}
+                                  ${lastRun}</span
+                                >
+                                <ha-icon
+                                  icon="mdi:chevron-down"
+                                  class="card-chevron ${cardExpanded ? "open" : ""}"
+                                  style="--mdc-icon-size:16px;"
+                                ></ha-icon>
+                              </span>`,
                           })}
                           <span class="auto-row-last-run"
                             ><span class="last-run-prefix"
@@ -35695,7 +36029,12 @@ function renderAutomations(host) {
                     ? b2`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        No automations match "${host._automationFilter}"
+                        ${host
+                          ._t(
+                            "automations_search_no_match",
+                            'No automations match "{query}"',
+                          )
+                          .replace("{query}", host._automationFilter)}
                       </div>`
                     : ""
                 }
@@ -36695,7 +37034,7 @@ function _sceneEntityCount(scene) {
   return Object.keys(scene.entities || {}).length;
 }
 function renderScenes(host) {
-  const filterText = (host._sceneFilter || "").toLowerCase();
+  const terms = searchTerms(host._sceneFilter || "");
   const sortBy = host._sceneSortBy || "recent";
   const sortDir = host._sceneSortDir || "desc";
   const statusFilter = host._sceneStatusFilter || "all";
@@ -36708,10 +37047,17 @@ function renderScenes(host) {
   } else if (statusFilter === "manual") {
     filtered = filtered.filter((s4) => s4.source !== "selora");
   }
-  if (filterText) {
-    filtered = filtered.filter((s4) =>
-      (s4.name || "").toLowerCase().includes(filterText),
-    );
+  const matchReasons = /* @__PURE__ */ new Map();
+  if (terms.length) {
+    const reg = host._searchRegistry();
+    filtered = filtered.filter((s4) => {
+      const { match, reasons } = matchesSearchFields(
+        sceneSearchFields(s4, reg),
+        terms,
+      );
+      if (match && reasons.length) matchReasons.set(s4, reasons);
+      return match;
+    });
   }
   const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
   if (sortBy === "recent") {
@@ -36817,11 +37163,12 @@ function renderScenes(host) {
                       type="text"
                       placeholder=${host._t(
                         "scenes_filter_placeholder",
-                        "Filter scenes\u2026",
+                        "Search scenes, devices, areas\u2026",
                       )}
                       .value=${host._sceneFilter || ""}
                       @input=${(e6) => {
                         host._sceneFilter = e6.target.value;
+                        host._ensureSearchRegistries();
                       }}
                     />
                     ${
@@ -36977,6 +37324,10 @@ function renderScenes(host) {
                                 class="auto-row-desc auto-row-desc--meta-only"
                                 >${meta}</span
                               >
+                              ${renderSearchMatchReason(
+                                host,
+                                matchReasons.get(s4),
+                              )}
                               <span class="auto-row-mobile-meta">
                                 <span>${meta}</span>
                                 <ha-icon
@@ -37227,7 +37578,12 @@ function renderScenes(host) {
                     ? b2`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        No scenes match "${host._sceneFilter}"
+                        ${host
+                          ._t(
+                            "scenes_search_no_match",
+                            'No scenes match "{query}"',
+                          )
+                          .replace("{query}", host._sceneFilter)}
                       </div>`
                     : ""
                 }
@@ -37430,7 +37786,7 @@ function _cachedRegistries(host) {
     ? host._autocompleteRegCache
     : null;
 }
-function _deviceLabel(host, deviceId) {
+function _deviceLabel2(host, deviceId) {
   const cache = _cachedRegistries(host);
   const dev = cache?.devices?.[deviceId];
   return dev?.name_by_user || dev?.name || deviceId;
@@ -37840,7 +38196,7 @@ function renderIgnoreList(host) {
                           _renderChip({
                             host,
                             icon: "mdi:chip",
-                            label: _deviceLabel(host, did),
+                            label: _deviceLabel2(host, did),
                             title: `Open device \xB7 ${did}`,
                             onOpen: () =>
                               _navigate(`/config/devices/device/${did}`),
@@ -48896,7 +49252,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "7937ac22e2b1" : "";
+var PANEL_BUILD = true ? "3b2b2f13daf3" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -50613,6 +50969,8 @@ var SeloraAIPanel = class extends i4 {
       // Automation filter
       _automationFilter: { type: String },
       _statusFilter: { type: String },
+      // Full registries backing device/area search (lazily fetched)
+      _searchRegistries: { type: Object },
       _sortBy: { type: String },
       _sortDir: { type: String },
       // Suggestion filter
@@ -50878,6 +51236,7 @@ var SeloraAIPanel = class extends i4 {
     this._loadingDiff = false;
     this._automationFilter = "";
     this._statusFilter = "all";
+    this._searchRegistries = null;
     this._sortBy = "recent";
     this._sortDir = "desc";
     this._sceneStatusFilter = "all";
@@ -52519,6 +52878,83 @@ var SeloraAIPanel = class extends i4 {
       }
     })();
     return this._fullRegistriesPromise;
+  }
+  // Searching automations and scenes resolves each referenced entity_id to its
+  // device and area name, and the entity→device link exists ONLY in the full
+  // entity registry (`hass.entities` is the display registry and omits it).
+  // Kicked off on the first keystroke rather than at mount: most panel sessions
+  // never search, and the lists stay searchable on names, entity_ids and
+  // entity-level areas while this resolves — the reactive property is what
+  // re-runs the filter once it lands.
+  async _ensureSearchRegistries() {
+    if (this._searchRegistries || this._searchRegistriesLoading) return;
+    this._searchRegistriesLoading = true;
+    try {
+      const loaded = await this._ensureFullRegistries();
+      if (!Object.keys(loaded.entities).length) return;
+      this._searchRegistries = {
+        ...loaded,
+        ...(await this._loadTargetRegistries()),
+      };
+    } finally {
+      this._searchRegistriesLoading = false;
+    }
+  }
+  // Floors and labels are targetable by an automation but ride on neither the
+  // `hass` object nor `_ensureFullRegistries`. Fetched separately, and each
+  // tolerated on its own: both commands are newer than the HA version this
+  // integration supports, so folding them into that helper's `Promise.all`
+  // would let an older hub's rejection take the entity/device/area registries
+  // down with it — and those back the device tooltips, not just this search.
+  async _loadTargetRegistries() {
+    const load = async (type, key) => {
+      try {
+        const rows = await this.hass.callWS({ type });
+        const out = {};
+        for (const row of rows) out[row[key]] = row;
+        return out;
+      } catch (e6) {
+        console.warn(`Selora: ${type} failed`, e6);
+        return {};
+      }
+    };
+    const [floors, labels] = await Promise.all([
+      load("config/floor_registry/list", "floor_id"),
+      load("config/label_registry/list", "label_id"),
+    ]);
+    return { floors, labels };
+  }
+  // Memoised because `entity-search.js` caches each record's derived search
+  // text against the registry's IDENTITY — a fresh wrapper per render would
+  // re-walk every automation's config on every keystroke. It reads `this.hass`
+  // through a getter, so the wrapper survives the hass object being replaced on
+  // each state change while still seeing live states.
+  //
+  // The memo keys on the REGISTRY collections, not on `hass`. Those are
+  // replaced only when a registry actually changes, which is exactly when a
+  // cached ref could be naming a device by a name it no longer has — while
+  // keying on `hass` would invalidate on every state change and keying on
+  // nothing would leave a renamed entity searchable only under its old name
+  // until the panel reloads.
+  _searchRegistry() {
+    const hass = this.hass;
+    if (
+      !this.__searchRegistry ||
+      this.__searchRegistryFull !== this._searchRegistries ||
+      this.__searchRegistryEntities !== hass?.entities ||
+      this.__searchRegistryDevices !== hass?.devices ||
+      this.__searchRegistryAreas !== hass?.areas
+    ) {
+      this.__searchRegistryFull = this._searchRegistries;
+      this.__searchRegistryEntities = hass?.entities;
+      this.__searchRegistryDevices = hass?.devices;
+      this.__searchRegistryAreas = hass?.areas;
+      this.__searchRegistry = buildSearchRegistry(
+        () => this.hass,
+        this._searchRegistries,
+      );
+    }
+    return this.__searchRegistry;
   }
   // Lazily resolve a single function `(entityId) => HTMLElement` that
   // builds an HA card for one entity. Uses the `entities` card type —

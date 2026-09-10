@@ -9,6 +9,7 @@ import { sharedScrollbar } from "./shared/styles/scrollbar.css.js";
 import { allPanelStyles } from "./panel/styles/index.css.js";
 import "./shared/particles.js";
 import { formatDate } from "./shared/date-utils.js";
+import { buildSearchRegistry } from "./shared/entity-search.js";
 import {
   sizePanelContainer,
   releasePanelContainer,
@@ -404,6 +405,8 @@ class SeloraAIPanel extends LitElement {
       // Automation filter
       _automationFilter: { type: String },
       _statusFilter: { type: String },
+      // Full registries backing device/area search (lazily fetched)
+      _searchRegistries: { type: Object },
       _sortBy: { type: String },
       _sortDir: { type: String },
 
@@ -716,6 +719,7 @@ class SeloraAIPanel extends LitElement {
     // Automation filter
     this._automationFilter = "";
     this._statusFilter = "all";
+    this._searchRegistries = null;
     this._sortBy = "recent";
     this._sortDir = "desc";
     this._sceneStatusFilter = "all";
@@ -2680,6 +2684,91 @@ class SeloraAIPanel extends LitElement {
       }
     })();
     return this._fullRegistriesPromise;
+  }
+
+  // Searching automations and scenes resolves each referenced entity_id to its
+  // device and area name, and the entity→device link exists ONLY in the full
+  // entity registry (`hass.entities` is the display registry and omits it).
+  // Kicked off on the first keystroke rather than at mount: most panel sessions
+  // never search, and the lists stay searchable on names, entity_ids and
+  // entity-level areas while this resolves — the reactive property is what
+  // re-runs the filter once it lands.
+  async _ensureSearchRegistries() {
+    if (this._searchRegistries || this._searchRegistriesLoading) return;
+    this._searchRegistriesLoading = true;
+    try {
+      const loaded = await this._ensureFullRegistries();
+      // A transient WS failure resolves to empty maps. Storing those would be
+      // indistinguishable from a loaded registry here and would pin the search
+      // to display-registry data for the panel's lifetime — leave the property
+      // null so the next keystroke retries, which is what `_ensureFullRegistries`
+      // is already prepared for.
+      if (!Object.keys(loaded.entities).length) return;
+      this._searchRegistries = {
+        ...loaded,
+        ...(await this._loadTargetRegistries()),
+      };
+    } finally {
+      this._searchRegistriesLoading = false;
+    }
+  }
+
+  // Floors and labels are targetable by an automation but ride on neither the
+  // `hass` object nor `_ensureFullRegistries`. Fetched separately, and each
+  // tolerated on its own: both commands are newer than the HA version this
+  // integration supports, so folding them into that helper's `Promise.all`
+  // would let an older hub's rejection take the entity/device/area registries
+  // down with it — and those back the device tooltips, not just this search.
+  async _loadTargetRegistries() {
+    const load = async (type, key) => {
+      try {
+        const rows = await this.hass.callWS({ type });
+        const out = {};
+        for (const row of rows) out[row[key]] = row;
+        return out;
+      } catch (e) {
+        console.warn(`Selora: ${type} failed`, e);
+        return {};
+      }
+    };
+    const [floors, labels] = await Promise.all([
+      load("config/floor_registry/list", "floor_id"),
+      load("config/label_registry/list", "label_id"),
+    ]);
+    return { floors, labels };
+  }
+
+  // Memoised because `entity-search.js` caches each record's derived search
+  // text against the registry's IDENTITY — a fresh wrapper per render would
+  // re-walk every automation's config on every keystroke. It reads `this.hass`
+  // through a getter, so the wrapper survives the hass object being replaced on
+  // each state change while still seeing live states.
+  //
+  // The memo keys on the REGISTRY collections, not on `hass`. Those are
+  // replaced only when a registry actually changes, which is exactly when a
+  // cached ref could be naming a device by a name it no longer has — while
+  // keying on `hass` would invalidate on every state change and keying on
+  // nothing would leave a renamed entity searchable only under its old name
+  // until the panel reloads.
+  _searchRegistry() {
+    const hass = this.hass;
+    if (
+      !this.__searchRegistry ||
+      this.__searchRegistryFull !== this._searchRegistries ||
+      this.__searchRegistryEntities !== hass?.entities ||
+      this.__searchRegistryDevices !== hass?.devices ||
+      this.__searchRegistryAreas !== hass?.areas
+    ) {
+      this.__searchRegistryFull = this._searchRegistries;
+      this.__searchRegistryEntities = hass?.entities;
+      this.__searchRegistryDevices = hass?.devices;
+      this.__searchRegistryAreas = hass?.areas;
+      this.__searchRegistry = buildSearchRegistry(
+        () => this.hass,
+        this._searchRegistries,
+      );
+    }
+    return this.__searchRegistry;
   }
 
   // Lazily resolve a single function `(entityId) => HTMLElement` that

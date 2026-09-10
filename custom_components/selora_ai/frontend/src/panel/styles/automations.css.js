@@ -277,6 +277,29 @@ export const automationsStyles = css`
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  /* Why a search hit matched, when the row's own title and description say
+     nothing the query names — a device, an area, or an entity it targets. */
+  .auto-row-match {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--selora-accent, var(--secondary-text-color));
+    opacity: 0.85;
+  }
+  .auto-row-match ha-icon {
+    --mdc-icon-size: 12px;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+  .auto-row-match-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   /* When expanded the full description shows in the card body, so hide the
      header's clamped copy to avoid duplication. Use visibility (not display)
      so it still reserves its one line — the header keeps its collapsed height
