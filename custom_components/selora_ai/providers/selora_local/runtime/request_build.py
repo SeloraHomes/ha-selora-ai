@@ -6,13 +6,12 @@ from __future__ import annotations
 from typing import Any
 
 from ....const import (
-    SELORA_LOCAL_BACKEND_OLLAMA,
+    SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
     SELORA_LOCAL_DEFAULT_INTENT,
     SELORA_LOCAL_DEFAULT_MAX_TOKENS,
     SELORA_LOCAL_KIND_TO_INTENT,
     SELORA_LOCAL_MAX_TOKENS_BY_KIND,
-    SELORA_LOCAL_OLLAMA_MODEL_PREFIX,
-    SELORA_LOCAL_OLLAMA_MODEL_TAG,
+    SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY,
 )
 from ..utilities.rag import _selora_local_retrieve_doc_chunks
 from .streaming import _SELORA_LOCAL_STOP_MARKERS
@@ -45,6 +44,12 @@ _SELORA_LOCAL_RESERVED_TOKENS = 702
 
 # Same, for chat_automation — its system prompt is ~2500 tokens on its own.
 _SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = 3598
+
+
+# Not an intent. The Ollama backend serves ONE self-routing model that
+# was trained on a single router prompt covering every intent, so it
+# keys the same prompt for all of them instead of a per-specialist one.
+_SELORA_LOCAL_UNIFIED_PROMPT_KEY = "unified"
 
 
 class _RequestBuildMixin:
@@ -223,14 +228,23 @@ class _RequestBuildMixin:
     ) -> dict[str, Any]:
         # Reflect the resolved intent in self._model so the usage callback (which reports against self._model) tags telemetry per specialist.
         intent = self._resolve_intent()
-        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA:
-            self._model = (
-                f"{SELORA_LOCAL_OLLAMA_MODEL_PREFIX}{intent}:{SELORA_LOCAL_OLLAMA_MODEL_TAG}"
-            )
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            # ONE self-routing model for every intent; the model infers the intent
+            # from the request. _ensure_unified_model settled the tag before the
+            # request went out, so this only reads it.
+            self._model = self._unified_model or SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY
         else:
             self._model = self._base_model_id or intent
-        # Must match the LoRA's trained prompt format byte-for-byte or it goes OOD.
-        trained_system = self._specialist_prompts.get(intent, system)
+        # Must match the trained prompt format byte-for-byte or the model goes OOD.
+        # The self-routing model was trained against ONE router prompt for every
+        # intent, so handing it a per-specialist prompt is exactly that mismatch --
+        # it would be asked for a shape it never saw in training.
+        prompt_key = (
+            _SELORA_LOCAL_UNIFIED_PROMPT_KEY
+            if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED
+            else intent
+        )
+        trained_system = self._specialist_prompts.get(prompt_key, system)
         # Security: entity/automation fields are untrusted data, never instructions.
         if trained_system:
             trained_system = f"{trained_system}{_SELORA_LOCAL_UNTRUSTED_DATA_BOUNDARY}"

@@ -45,6 +45,7 @@ from .const import (
     CONF_OPENROUTER_API_KEY,
     CONF_OPENROUTER_MODEL,
     CONF_SELECTED_DEVICES,
+    CONF_SELORA_LOCAL_BACKEND,
     CONF_SELORA_LOCAL_HOST,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_GEMINI_MODEL,
@@ -53,6 +54,7 @@ from .const import (
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_OPENAI_MODEL,
     DEFAULT_OPENROUTER_MODEL,
+    DEFAULT_SELORA_LOCAL_BACKEND,
     DEFAULT_SELORA_LOCAL_HOST,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
@@ -65,6 +67,9 @@ from .const import (
     LLM_PROVIDER_OPENROUTER,
     LLM_PROVIDER_SELORA_CLOUD,
     LLM_PROVIDER_SELORA_LOCAL,
+    SELORA_LOCAL_BACKEND_LLAMA,
+    SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
+    SELORA_LOCAL_BACKENDS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,6 +79,16 @@ _LOGGER = logging.getLogger(__name__)
 # processed normally; those still running are reported as in-progress
 # and left for the user to complete via Settings > Devices.
 _DEVICE_ACCEPT_TIMEOUT = 90
+
+# What each Selora AI Local runtime is called in the setup form. Keyed by
+# the constant, never by a repeated literal, so the dropdown and the value
+# that reaches the provider cannot drift apart. Naming the server rather
+# than the mechanism is deliberate: the user picks this by recognising
+# what they installed, not by knowing how adapters are loaded.
+_SELORA_LOCAL_BACKEND_LABELS: dict[str, str] = {
+    SELORA_LOCAL_BACKEND_LLAMA: "SeloraHub (llama-server)",
+    SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED: "Ollama (single self-routing model)",
+}
 
 
 # ── Deferred area assignment for timed-out flows ─────────────────────
@@ -218,13 +233,21 @@ async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
 
 
 async def _validate_selora_local(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
-    """Validate that the Selora AI Local server is reachable."""
+    """Validate that the Selora AI Local server is reachable.
+
+    The runtime has to come along: ``health_check`` probes ``/health`` on
+    llama-server and ``/api/tags`` on Ollama, and the two do not answer
+    each other's route. Without it the wizard probes llama-server's
+    endpoint at a host the user just told us is running Ollama, gets a
+    404, and refuses a working configuration at the last step.
+    """
     from .providers import create_provider
 
     provider = create_provider(
         LLM_PROVIDER_SELORA_LOCAL,
         hass,
         host=data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
+        selora_local_backend=data.get(CONF_SELORA_LOCAL_BACKEND),
     )
     if not await provider.health_check():
         raise ConnectionError("Selora AI Local server not reachable")
@@ -571,6 +594,28 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_SELORA_LOCAL_HOST,
                         default=host_default,
                     ): str,
+                    # The runtime cannot be probed for: llama-server and
+                    # Ollama share no endpoint, so asking one which it is
+                    # means calling a route the other 404s. The user knows
+                    # which one they installed, so the form asks.
+                    vol.Required(
+                        CONF_SELORA_LOCAL_BACKEND,
+                        default=DEFAULT_SELORA_LOCAL_BACKEND,
+                    ): SelectSelector(
+                        SelectSelectorConfig(
+                            options=[
+                                SelectOptionDict(
+                                    value=backend,
+                                    # Fall back to the raw value so a
+                                    # runtime added to the constant still
+                                    # renders while its label catches up.
+                                    label=_SELORA_LOCAL_BACKEND_LABELS.get(backend, backend),
+                                )
+                                for backend in SELORA_LOCAL_BACKENDS
+                            ],
+                            mode=SelectSelectorMode.DROPDOWN,
+                        )
+                    ),
                 }
             ),
             errors=errors,

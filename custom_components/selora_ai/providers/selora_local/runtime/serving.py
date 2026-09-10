@@ -14,12 +14,15 @@ import aiohttp
 from ....const import (
     CONTEXT_WINDOW_PROBE_TTL_S,
     HEALTH_CHECK_TIMEOUT,
-    SELORA_LOCAL_BACKEND_OLLAMA,
+    SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
     SELORA_LOCAL_DEFAULT_INTENT,
     SELORA_LOCAL_KIND_TO_INTENT,
     SELORA_LOCAL_LORA_FILENAME_KEYWORDS,
+    SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY,
 )
 from ...base import _positive_int
+from ...ollama import modelfile_num_ctx
+from ...ollama_unified import resolve_unified_model
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -141,6 +144,115 @@ class _ServingMixin:
             await asyncio.sleep(remaining + _SELORA_LOCAL_DISCOVERY_WAKE_MARGIN_S)
             await self._ensure_lora_discovery()
 
+    async def _ensure_unified_model(self) -> None:
+        """Settle which model the Ollama backend asks for.
+
+        Priority: the config entry's explicit override, else the newest
+        unified tag the host is serving (GET /api/tags), else the bare
+        family name, which Ollama resolves to :latest. No version is
+        written down on this path — ``providers/ollama_unified.py`` holds
+        the ordering rules and this holds the caching.
+
+        An unresolved answer is retried on the same backoff schedule as
+        LoRA discovery, and for the same reason: without one, a host that
+        is down leaves the tag unsettled and every single request pays a
+        fresh /api/tags probe that has to time out before the chat call
+        can even start.
+        """
+        if self._unified_model_settled:
+            return
+        if self._ollama_model_override:
+            self._unified_model = self._ollama_model_override
+            self._unified_model_settled = True
+            _LOGGER.info("Selora Local Ollama model set from config: %s", self._unified_model)
+            return
+        if time.monotonic() < self._discovery_retry_after:
+            return
+        # Same one-time-discovery role as LoRA slot discovery, and the
+        # two are mutually exclusive by backend, so they share the lock
+        # and the retry window.
+        async with self._slot_lock:
+            if self._unified_model_settled:
+                return
+            if time.monotonic() < self._discovery_retry_after:
+                return
+            model = await resolve_unified_model(
+                self._get_session(),
+                self._host,
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
+            )
+            self._unified_model = model
+            # The bare family is what the resolver returns when it could
+            # not reach the host — a fallback, not an answer. Leaving it
+            # unsettled means a host that finishes booting later still
+            # gets its real tag instead of :latest for good.
+            self._unified_model_settled = model != SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY
+            if self._unified_model_settled:
+                _LOGGER.info("Selora Local Ollama model resolved to %s", model)
+            else:
+                # Same escalating schedule the LoRA path uses: the two are mutually
+                # exclusive by backend and share the window, so they must also share
+                # how it grows.
+                delay = self._schedule_discovery_retry()
+                _log_at(delay, _LOGGER.info)(
+                    "Selora Local Ollama model not resolved; using %s and retrying in %.1fs",
+                    model,
+                    delay,
+                )
+
+    async def _refresh_unified_context_window(self) -> None:
+        """Read the served context window from the Ollama daemon.
+
+        ``POST /api/show`` reports the model's Modelfile ``PARAMETER``
+        lines, and a ``num_ctx`` there is what the daemon allocates: it
+        resolves the window as default < Modelfile < per-request options,
+        and this provider speaks the OpenAI-compatible route, which has
+        no per-request context field. Same read ``providers/ollama.py``
+        makes, sharing its parser rather than growing a second one.
+
+        Without a ``num_ctx`` the daemon's own default applies and
+        ``/api/show`` never reports it, so the window stays unknown
+        rather than guessed — a guess could name more room than exists,
+        which is the one direction this must never be wrong in.
+
+        Only a real reading is written. That follows
+        ``_apply_models_payload`` on the llama path, and is safe here
+        because ``_entity_line_cap`` takes the MINIMUM of the derived
+        budget and the trained constant: a stale window can tighten the
+        entity block but can never widen it past what the model saw.
+
+        Never raises.
+        """
+        # /api/show is per-model, so the tag has to be settled first —
+        # and on this runtime that is the same call the chat path makes.
+        await self._ensure_unified_model()
+        model = self._unified_model or SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY
+        try:
+            session = self._get_session()
+            async with session.post(
+                f"{self._host}/api/show",
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
+                data=self._encode_body({"model": model}),
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.debug("Selora Local /api/show probe returned HTTP %s", resp.status)
+                    return
+                data = await resp.json()
+        except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
+            _LOGGER.debug("Selora Local /api/show probe failed: %s", exc)
+            return
+        if not isinstance(data, dict):
+            return
+        parameters = data.get("parameters")
+        window = modelfile_num_ctx(parameters) if isinstance(parameters, str) else None
+        if window is None:
+            return
+        if window != self._context_window:
+            _LOGGER.info("Selora Local Ollama context window is %d tokens", window)
+        self._context_window = window
+
     async def _ensure_lora_discovery(self) -> None:
         """GET /v1/models + GET /lora-adapters discovery, cached after success.
 
@@ -153,6 +265,11 @@ class _ServingMixin:
         until HA restarts. Inside the backoff window the call is a
         no-op so the hub isn't hammered while it's down.
         """
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            # Ollama bakes the adapter into the model and selects by model name, so
+            # there is no slot endpoint to discover. Probing it anyway 404s and arms
+            # the retry schedule, which then fails the user's real requests.
+            return
         if self._lora_slots is not None:
             return
         if time.monotonic() < self._discovery_retry_after:
@@ -251,7 +368,11 @@ class _ServingMixin:
 
     async def _activate_lora_for_kind(self, kind: str | None) -> None:
         """POST /lora-adapters so the upcoming chat completion routes to the right specialist."""
-        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA:
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            # Nothing to activate -- the specialist is baked into the model. What
+            # this backend needs settled before the request goes out is WHICH model
+            # to address.
+            await self._ensure_unified_model()
             return
         await self._ensure_lora_discovery()
         if self._lora_slots is None:
@@ -385,6 +506,42 @@ class _ServingMixin:
 
     # Pre-warm
 
+    def _prewarm_kinds(self, entities: list[Any]) -> tuple[str, ...]:
+        """Which call kinds still need a warm-up request of their own.
+
+        On llama-server each kind has its own LoRA and its own trained
+        system prompt, so each one has a prefix to fill: all of them.
+
+        The Ollama runtime serves ONE self-routing model behind ONE
+        trained prompt, so most of that collapses. What is still allowed
+        to differ is the entity block, whose line cap is tighter for
+        automation than for the rest — so this keeps one kind per
+        distinct rendered request and drops the repeats, which would
+        otherwise re-send a byte-identical body whose prefix the previous
+        one just cached.
+
+        Compares the rendered request rather than the kinds it knows
+        differ, so a future divergence adds itself back automatically.
+        """
+        if self._backend != SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            return _SELORA_LOCAL_PREWARM_KINDS
+        distinct: dict[str, str] = {}
+        try:
+            for kind in _SELORA_LOCAL_PREWARM_KINDS:
+                # set_chat_context snapshots the live call kind, so the
+                # kind has to be in place before the context is built.
+                self.set_call_kind(kind)
+                self.set_chat_context(
+                    user_message="warmup",
+                    entities=entities,
+                    existing_automations=[],
+                    history=[],
+                )
+                distinct.setdefault(self._build_training_user_content(), kind)
+        finally:
+            self.set_call_kind(None)
+        return tuple(distinct.values())
+
     async def prewarm(self, entities: list[Any] | None = None) -> None:
         """Send one tiny request per chat specialist so the hub's prefix
         cache fills and each LoRA loads. Without this, the first real
@@ -420,7 +577,8 @@ class _ServingMixin:
         """The pre-warm loop itself. See prewarm() for what it is for."""
         await self._ensure_lora_discovery()
         ok = 0
-        for kind in _SELORA_LOCAL_PREWARM_KINDS:
+        kinds = self._prewarm_kinds(entities or [])
+        for kind in kinds:
             self.set_call_kind(kind)
             # Same chat context the first real user request will use —
             # this makes build_payload generate the EXACT same prefix
@@ -449,20 +607,30 @@ class _ServingMixin:
                 _LOGGER.debug("Selora Local pre-warm for %s failed: %s", kind, exc)
             finally:
                 self.set_call_kind(None)
-            if self._lora_slots is None:
-                # The hub hasn't answered discovery. The remaining
-                # specialists would each re-probe a hub we already know
-                # isn't serving and escalate the backoff for it. Stop —
-                # the user's first request retries from a short step.
+            # "The host has not answered" is the reason to stop re-probing. On the
+            # Ollama runtime ``_lora_slots`` stays None BY DESIGN -- there is no slot
+            # endpoint -- so reading it there would break after the first prefix and
+            # leave every other one cold, the opposite of what this guard is for.
+            if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+                host_unanswered = (
+                    not self._unified_model_settled and self._ollama_model_override is None
+                )
+            else:
+                host_unanswered = self._lora_slots is None
+            if host_unanswered:
+                # The host hasn't answered discovery. The remaining prefixes would
+                # each re-probe a host we already know isn't serving and escalate
+                # the backoff for it. Stop — the user's first request retries from
+                # a short step.
                 _LOGGER.debug(
                     "Selora Local pre-warm stopped at %s: the hub is not serving yet",
                     kind,
                 )
                 break
         _LOGGER.info(
-            "Selora Local pre-warm complete: %d/%d specialists primed (%d entities in prefix)",
+            "Selora Local pre-warm complete: %d/%d prefixes primed (%d entities in prefix)",
             ok,
-            len(_SELORA_LOCAL_PREWARM_KINDS),
+            len(kinds),
             len(entities or []),
         )
 
@@ -516,7 +684,9 @@ class _ServingMixin:
 
     async def health_check(self) -> bool:
         """Check the host is reachable."""
-        endpoint = "/api/tags" if self._backend == SELORA_LOCAL_BACKEND_OLLAMA else "/health"
+        endpoint = (
+            "/api/tags" if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED else "/health"
+        )
         try:
             session = self._get_session()
             async with session.get(
@@ -596,6 +766,12 @@ class _ServingMixin:
         ):
             return
         self._context_probe_at = now
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            # An Ollama daemon serves /v1/models with no ``meta`` block at all, so
+            # ask the question it does answer. Without this the window stayed
+            # unknown forever there and the entity cap fell back to its constants.
+            await self._refresh_unified_context_window()
+            return
         try:
             session = self._get_session()
             async with session.get(

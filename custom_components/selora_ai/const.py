@@ -829,6 +829,43 @@ CONF_SELORA_LOCAL_HOST = "selora_local_host"
 
 DEFAULT_SELORA_LOCAL_HOST = "http://localhost:8080"
 
+# Selora AI Local: which runtime is serving the model. ``llama``
+# (default) is the SeloraHub llama-server path — one base model, a
+# per-request LoRA swap over POST /lora-adapters. ``ollama-unified``
+# is an Ollama daemon serving ONE self-routing model (base plus a
+# single merged multi-task adapter) for every intent: the model infers
+# the intent from the request, so there is no slot to toggle and no
+# /lora-adapters endpoint to discover.
+CONF_SELORA_LOCAL_BACKEND = "selora_local_backend"
+SELORA_LOCAL_BACKEND_LLAMA = "llama"
+SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED = "ollama-unified"
+DEFAULT_SELORA_LOCAL_BACKEND = SELORA_LOCAL_BACKEND_LLAMA
+# Every runtime the provider can be pointed at, in the order the setup
+# form offers them. Anything rendering a choice reads this instead of
+# repeating the values, so adding a runtime is a one-line change here
+# rather than a hunt for the places that spell it out.
+SELORA_LOCAL_BACKENDS: tuple[str, ...] = (
+    SELORA_LOCAL_BACKEND_LLAMA,
+    SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
+)
+
+# Model FAMILY (no version) for the ollama-unified backend. The
+# concrete tag is resolved at runtime — never written down here — in
+# priority order:
+#   1. the config entry's CONF_SELORA_LOCAL_OLLAMA_MODEL, which a
+#      benchmark run uses to drive a candidate tag without publishing
+#      over the shipped one, else
+#   2. the best ``selora-qwen:<tag>`` the host reports from
+#      GET /api/tags (see providers/ollama_unified.py for the order),
+#      else
+#   3. the bare family, which Ollama resolves to :latest.
+# The older per-specialist models are named ``selora-qwen-<intent>``,
+# so the family plus its colon already tells them apart; nothing needs
+# to carry their prefix around.
+SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY = "selora-qwen"
+# Optional per-entry override for the ollama-unified model name/tag.
+CONF_SELORA_LOCAL_OLLAMA_MODEL = "selora_local_ollama_model"
+
 # Selora AI Local: maps a LLMClient call kind (set via
 # provider.set_call_kind) to the specialist intent name. The intent
 # name is then resolved to a LoRA slot via the discovery map built
@@ -1612,10 +1649,3 @@ APPROVAL_VALID_SCOPES = frozenset(
         APPROVAL_SCOPE_DENY,
     }
 )
-
-# Local backend selection (llama-server today; ollama runtime selectable per entry).
-SELORA_LOCAL_BACKEND_LLAMA = "llama"
-SELORA_LOCAL_BACKEND_OLLAMA = "ollama"
-DEFAULT_SELORA_LOCAL_BACKEND = SELORA_LOCAL_BACKEND_LLAMA
-SELORA_LOCAL_OLLAMA_MODEL_PREFIX = "selora-qwen-"
-SELORA_LOCAL_OLLAMA_MODEL_TAG = "0.4.8"

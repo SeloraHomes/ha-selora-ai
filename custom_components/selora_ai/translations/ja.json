@@ -55,9 +55,10 @@
       },
       "selora_local": {
         "title": "Selora AI Local の設定",
-        "description": "Selora AI Local は、自己ホスト型の llama-server（ポート 8080 で待機）を介して、ご自身のネットワーク上で Selora AI モデルを実行します。以下にそのアドレスを入力してください。既定値は、サーバーが Home Assistant と同じホストで動作している場合に機能します。専門モデルはリクエストごとに自動的に選択されます。",
+        "description": "Selora AI Local は Selora AI モデルをご自身のネットワークで実行します。以下にサーバーのアドレスを入力し、どのランタイムが配信しているかを選択してください。既定のアドレスは Home Assistant と同じホストで自己ホストする llama-server 向けです。Ollama デーモンは別のポートで待ち受けるため、アドレスを合わせて変更してください。",
         "data": {
-          "selora_local_host": "ホスト URL"
+          "selora_local_host": "ホスト URL",
+          "selora_local_backend": "ランタイム"
         }
       },
       "select_devices": {

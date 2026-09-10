@@ -95,7 +95,9 @@ from .const import (
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
     CONF_SELORA_JWT_KEY,
+    CONF_SELORA_LOCAL_BACKEND,
     CONF_SELORA_LOCAL_HOST,
+    CONF_SELORA_LOCAL_OLLAMA_MODEL,
     CONF_TELEMETRY_ENABLED,
     CONF_TELEMETRY_PROMPT_SEEN,
     DEFAULT_ANTHROPIC_MODEL,
@@ -5342,6 +5344,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             provider,
             hass,
             host=entry.data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
+            selora_local_backend=entry.data.get(CONF_SELORA_LOCAL_BACKEND),
+            selora_local_ollama_model=entry.data.get(CONF_SELORA_LOCAL_OLLAMA_MODEL),
         )
         llm = LLMClient(
             hass,

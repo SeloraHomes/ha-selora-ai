@@ -55,9 +55,10 @@
       },
       "selora_local": {
         "title": "Selora AI Local 구성",
-        "description": "Selora AI Local은 자체 호스팅 llama-server(포트 8080에서 수신 대기)를 통해 사용자 네트워크에서 Selora AI 모델을 실행합니다. 아래에 해당 주소를 입력하세요. 기본값은 서버가 Home Assistant와 동일한 호스트에서 실행될 때 작동합니다. 전문 모델은 요청마다 자동으로 선택됩니다.",
+        "description": "Selora AI Local은 사용자의 네트워크에서 Selora AI 모델을 실행합니다. 아래에 서버 주소를 입력하고 어떤 런타임이 모델을 제공하는지 선택하세요. 기본 주소는 Home Assistant와 같은 호스트에서 자체 호스팅하는 llama-server에 맞춰져 있습니다. Ollama 데몬은 다른 포트에서 수신하므로 주소를 맞게 변경하세요.",
         "data": {
-          "selora_local_host": "호스트 URL"
+          "selora_local_host": "호스트 URL",
+          "selora_local_backend": "런타임"
         }
       },
       "select_devices": {
