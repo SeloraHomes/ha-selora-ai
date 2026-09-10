@@ -27,7 +27,7 @@ from ..automation_utils import (
     assess_automation_risk,
     validate_automation_payload,
 )
-from ..json_repair import repair_json_string_controls
+from ..json_repair import loads_first_json_object, repair_json_string_controls
 from ..lexical import (
     KW_FUZZY_FLOOR,
     KW_HELPER_PENALTY,
@@ -2702,13 +2702,27 @@ def parse_architect_response(
     unknown-entity rejection is humanised + auto-corrected; when
     ``user_message`` is provided trigger coercions are applied."""
     try:
-        start = text.find("{")
-        end = text.rfind("}")
-        if start == -1 or end == -1:
+        data = loads_first_json_object(text)
+        if data is None:
             return {"intent": "answer", "response": text}
-
-        data: dict[str, Any] = json.loads(text[start : end + 1])
         data.pop("suppressed_duplicate_command", None)
+        # ``response`` is Required on ``ArchitectResponse`` but nothing
+        # in the model's output guarantees it: a reply carrying only an
+        # intent, or only keys we don't recognise, leaves the caller an
+        # envelope with no text to render. Fall back to the raw text —
+        # the same thing this function returns when there is no JSON at
+        # all — so the bubble shows what the model actually said rather
+        # than nothing.
+        #
+        # Only where nothing later will do better. A missing
+        # ``response`` is also the SIGNAL that makes
+        # ``apply_command_policy`` build its locale-aware confirmation
+        # ("Done — light turn on (living room kitchen)") for a command
+        # the model didn't narrate, and the automation/scene branches
+        # below write their own text. Filling it in unconditionally
+        # would hand those paths raw JSON and undo that.
+        if not data.keys() & {"calls", "automation", "scene"}:
+            data.setdefault("response", text)
 
         if "intent" not in data:
             if "automation" in data:
@@ -2962,14 +2976,9 @@ def parse_command_response_text(text: str) -> ArchitectResponse:
             text = text[:-3]
         text = text.strip()
 
-        start = text.find("{")
-        end = text.rfind("}")
-        if start == -1 or end == -1:
+        result = loads_first_json_object(text, _loads_with_salvage)
+        if result is None:
             return {"calls": [], "response": "Could not parse LLM response"}
-
-        result = _loads_with_salvage(text[start : end + 1])
-        if not isinstance(result, dict):
-            return {"calls": [], "response": "Invalid response format"}
 
         return {
             "calls": result.get("calls", []),
