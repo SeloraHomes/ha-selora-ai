@@ -55,9 +55,10 @@
       },
       "selora_local": {
         "title": "Selora AI Local 設定",
-        "description": "Selora AI Local 透過自行架設的 llama-server（監聽 8080 連接埠）在您自己的網路上執行 Selora AI 模型。請在下方輸入其位址——當伺服器與 Home Assistant 執行於同一主機時，預設值即可使用。系統會為每次請求自動選擇專用模型。",
+        "description": "Selora AI Local 在您自己的網路中執行 Selora AI 模型。請在下方輸入伺服器位址，並選擇由哪個執行環境提供服務。預設位址適用於與 Home Assistant 同一主機上自行架設的 llama-server；Ollama 服務會在其他連接埠監聽，請據此調整位址。",
         "data": {
-          "selora_local_host": "主機網址"
+          "selora_local_host": "主機網址",
+          "selora_local_backend": "執行環境"
         }
       },
       "select_devices": {

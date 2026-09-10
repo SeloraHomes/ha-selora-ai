@@ -64,7 +64,9 @@ from ..const import (
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
     CONF_SELORA_JWT_KEY,
+    CONF_SELORA_LOCAL_BACKEND,
     CONF_SELORA_LOCAL_HOST,
+    CONF_SELORA_LOCAL_OLLAMA_MODEL,
     CONF_SELORA_MCP_URL,
     CONF_TELEMETRY_ENABLED,
     CONF_TELEMETRY_PROMPT_SEEN,
@@ -285,6 +287,13 @@ async def _handle_websocket_update_config(
         CONF_OLLAMA_HOST,
         CONF_OLLAMA_MODEL,
         CONF_SELORA_LOCAL_HOST,
+        # Which runtime is serving the local model, and (for the Ollama
+        # runtime) an explicit model tag. Both change how requests are
+        # addressed, so they belong in data alongside the host rather
+        # than in options — and without them here the allowlist below
+        # would drop every attempt to save one.
+        CONF_SELORA_LOCAL_BACKEND,
+        CONF_SELORA_LOCAL_OLLAMA_MODEL,
         CONF_ENTRY_TYPE,
         CONF_SELORA_CONNECT_ENABLED,
         CONF_SELORA_CONNECT_URL,
@@ -574,8 +583,32 @@ async def _handle_websocket_validate_llm_key(
     elif provider == LLM_PROVIDER_OLLAMA:
         model = model or DEFAULT_OLLAMA_MODEL
         host = host or DEFAULT_OLLAMA_HOST
-    elif provider == LLM_PROVIDER_SELORA_LOCAL:
+    extra: dict[str, Any] = {}
+    if provider == LLM_PROVIDER_SELORA_LOCAL:
         host = host or DEFAULT_SELORA_LOCAL_HOST
+        # The backend decides which route health_check probes:
+        # llama-server answers /health, an Ollama daemon only /api/tags.
+        # Without it the provider falls back to the llama default, an
+        # Ollama host 404s, and a correct configuration always reports
+        # "provider unreachable". This form has no backend field, so
+        # take the one already saved on the entry.
+        #
+        # Only from an entry that is itself on this provider. The domain
+        # holds device-onboarding entries and, on a multi-entry install,
+        # entries for other providers; the setting is meaningless on
+        # those, and reading one would probe the wrong route for the host
+        # the form is actually testing.
+        backend = next(
+            (
+                saved
+                for e in hass.config_entries.async_entries(DOMAIN)
+                if e.data.get(CONF_LLM_PROVIDER) == LLM_PROVIDER_SELORA_LOCAL
+                and (saved := e.data.get(CONF_SELORA_LOCAL_BACKEND))
+            ),
+            None,
+        )
+        if backend:
+            extra["selora_local_backend"] = backend
 
     try:
         llm_provider = create_provider(
@@ -584,6 +617,7 @@ async def _handle_websocket_validate_llm_key(
             api_key=api_key,
             model=model,
             host=host,
+            **extra,
         )
         valid = await llm_provider.health_check()
         if valid:

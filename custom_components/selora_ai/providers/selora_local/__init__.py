@@ -37,12 +37,14 @@ from .commands.vacuum_fan import (
 from .runtime.request_build import (
     _SELORA_LOCAL_MAX_ENTITY_LINES,
     _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION,
+    _SELORA_LOCAL_UNIFIED_PROMPT_KEY,
     _RequestBuildMixin,
 )
 from .runtime.serving import (
     _SELORA_LOCAL_DISCOVERY_BACKOFF_MAX_S,
     _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S,
     _SELORA_LOCAL_DISCOVERY_WAIT_S,
+    _SELORA_LOCAL_PREWARM_KINDS,
     _SeloraLocalActivationError,
     _ServingMixin,
 )
@@ -65,6 +67,7 @@ _SELORA_LOCAL_PROMPT_FILENAMES: dict[str, str] = {
     "automation": "automation_system_prompt.txt",
     "answer": "answer_system_prompt.txt",
     "clarification": "clarification_system_prompt.txt",
+    _SELORA_LOCAL_UNIFIED_PROMPT_KEY: "unified_system_prompt.txt",
     # Must match the LoRA's trained prompt format byte-for-byte or it goes OOD.
     "utilities": "utilities_system_prompt.txt",
 }
@@ -115,6 +118,7 @@ class SeloraLocalProvider(
         *,
         host: str = "",
         selora_local_backend: str | None = None,
+        selora_local_ollama_model: str | None = None,
         **_kwargs: Any,
     ) -> None:
         super().__init__(
@@ -123,8 +127,19 @@ class SeloraLocalProvider(
             host=host or DEFAULT_SELORA_LOCAL_HOST,
             api_key="",
         )
-        # Backend runtime.
+        # Which runtime is serving the model. Everything below that speaks
+        # llama-server's slot API is conditional on this.
         self._backend: str = selora_local_backend or DEFAULT_SELORA_LOCAL_BACKEND
+        # Explicit model/tag for the Ollama backend, straight from the config entry.
+        # A benchmark run sets it to drive a candidate model without republishing
+        # over the shipped tag; left empty, the tag is discovered from the host.
+        self._ollama_model_override: str | None = (selora_local_ollama_model or "").strip() or None
+        # The Ollama model tag actually in use. Discovered, never written down:
+        # "settled" stays False while the only value we have is the unreachable-host
+        # fallback, so a host that finishes booting later still gets resolved instead
+        # of being pinned to :latest for the rest of the process.
+        self._unified_model: str | None = None
+        self._unified_model_settled: bool = False
         # Per-task LoRA selection.
         self._call_kind: ContextVar[str | None] = ContextVar(
             "selora_ai_local_call_kind", default=None
@@ -369,5 +384,6 @@ __all__ = [
     "_SELORA_LOCAL_DISCOVERY_WAIT_S",
     "_SELORA_LOCAL_MAX_ENTITY_LINES",
     "_SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION",
+    "_SELORA_LOCAL_PREWARM_KINDS",
     "_SeloraLocalActivationError",
 ]

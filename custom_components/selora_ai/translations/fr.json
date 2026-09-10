@@ -55,9 +55,10 @@
       },
       "selora_local": {
         "title": "Configuration Selora AI Local",
-        "description": "Selora AI Local exécute le modèle Selora AI sur votre propre réseau via un llama-server auto-hébergé (à l'écoute sur le port 8080). Saisissez son adresse ci-dessous — la valeur par défaut fonctionne lorsque le serveur s'exécute sur le même hôte que Home Assistant. Le modèle spécialisé est sélectionné automatiquement à chaque requête.",
+        "description": "Selora AI Local exécute le modèle Selora AI sur votre propre réseau. Saisissez ci-dessous l'adresse du serveur et choisissez l'environnement d'exécution qui le sert. L'adresse par défaut convient à un llama-server auto-hébergé sur le même hôte que Home Assistant ; un service Ollama écoute sur un autre port, adaptez donc l'adresse.",
         "data": {
-          "selora_local_host": "URL de l'hôte"
+          "selora_local_host": "URL de l'hôte",
+          "selora_local_backend": "Environnement d'exécution"
         }
       },
       "select_devices": {

@@ -55,9 +55,10 @@
       },
       "selora_local": {
         "title": "Selora AI Local konfiguráció",
-        "description": "A Selora AI Local a Selora AI modellt a saját hálózatán futtatja egy önállóan üzemeltetett llama-server segítségével (a 8080-as porton figyel). Adja meg alább a címét — az alapértelmezett érték akkor működik, ha a kiszolgáló a Home Assistanttal azonos gépen fut. A specialista modell kérésenként automatikusan kerül kiválasztásra.",
+        "description": "A Selora AI Local a saját hálózatán futtatja a Selora AI modellt. Adja meg alább a kiszolgáló címét, és válassza ki, melyik futtatókörnyezet szolgálja ki. Az alapértelmezett cím a Home Assistanttal azonos gépen futó, saját üzemeltetésű llama-serverhez való; az Ollama szolgáltatás más porton figyel, ezért módosítsa ennek megfelelően a címet.",
         "data": {
-          "selora_local_host": "Kiszolgáló URL"
+          "selora_local_host": "Kiszolgáló URL",
+          "selora_local_backend": "Futtatókörnyezet"
         }
       },
       "select_devices": {

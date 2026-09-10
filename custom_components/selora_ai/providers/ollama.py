@@ -76,6 +76,26 @@ _CONTEXT_LENGTH_SUFFIX = ".context_length"
 _NUM_CTX_PARAMETER = "num_ctx"
 
 
+def modelfile_num_ctx(parameters: str) -> int | None:
+    """Parse ``num_ctx`` out of a Modelfile PARAMETER block.
+
+    ``parameters`` is the raw text ``POST /api/show`` echoes back — one
+    ``<name><whitespace><value>`` per line, e.g. ``num_ctx  32768`` — and is
+    absent entirely for a model that sets no parameters.
+
+    Free function rather than a method: the Selora AI Local provider makes the
+    same read against the same daemon when it is pointed at the Ollama runtime,
+    and this is the whole of what it needs.
+    """
+    for line in parameters.splitlines():
+        # split(maxsplit=1) collapses the run of padding spaces Ollama
+        # uses to align values, and tolerates a tab.
+        parts = line.split(maxsplit=1)
+        if len(parts) == 2 and parts[0] == _NUM_CTX_PARAMETER:
+            return _positive_int(parts[1])
+    return None
+
+
 class OllamaProvider(OpenAICompatibleProvider):
     """Ollama local LLM provider."""
 
@@ -308,7 +328,7 @@ class OllamaProvider(OpenAICompatibleProvider):
         model_info = data.get("model_info")
         trained = self._trained_context_length(model_info) if isinstance(model_info, dict) else None
         parameters = data.get("parameters")
-        configured = self._modelfile_num_ctx(parameters) if isinstance(parameters, str) else None
+        configured = modelfile_num_ctx(parameters) if isinstance(parameters, str) else None
 
         if configured is None:
             # Without a Modelfile ``num_ctx`` the daemon's own default
@@ -355,22 +375,6 @@ class OllamaProvider(OpenAICompatibleProvider):
         for key, value in model_info.items():
             if key.endswith(_CONTEXT_LENGTH_SUFFIX) and (parsed := _positive_int(value)):
                 return parsed
-        return None
-
-    @staticmethod
-    def _modelfile_num_ctx(parameters: str) -> int | None:
-        """Parse ``num_ctx`` out of the Modelfile PARAMETER block.
-
-        ``parameters`` is the raw text Ollama echoes back — one
-        ``<name><whitespace><value>`` per line, e.g. ``num_ctx  32768``
-        — and is absent entirely for a model that sets no parameters.
-        """
-        for line in parameters.splitlines():
-            # split(maxsplit=1) collapses the run of padding spaces Ollama
-            # uses to align values, and tolerates a tab.
-            parts = line.split(maxsplit=1)
-            if len(parts) == 2 and parts[0] == _NUM_CTX_PARAMETER:
-                return _positive_int(parts[1])
         return None
 
     async def health_check(self) -> bool:
