@@ -65,12 +65,12 @@ _SELORA_LOCAL_PREWARM_KINDS: tuple[str, ...] = (
 # architect prompt) causes the model to produce malformed JSON,
 # echo prior turns, or skip intent fields entirely.
 #
-# Note: ``command_system_prompt.txt`` has been minimally modified from
-# the v0.4.2 corpus to align the advertised service list with
-# ``apply_command_policy``'s allowlist (dropping ``lock.lock`` and
-# ``media_player.play_media``). The LoRA's weights still bias toward
-# the trained services, but the prompt no longer actively teaches it
-# to emit calls the safety layer will block.
+# Note: ``command_system_prompt.txt`` is byte-identical to the prompt the
+# command specialist was trained on. It advertises ``lock.lock`` and
+# ``media_player.play_media`` and both are executable — locks/alarms/scripts
+# via the approval card, ``play_media`` directly (see ``_COMMAND_SERVICE_POLICIES``).
+# Keeping the served prompt equal to the trained one is deliberate: this model
+# goes out of distribution on small prompt diffs.
 _SELORA_LOCAL_PROMPTS_DIR = Path(__file__).resolve().parent.parent / "local_model" / "prompts"
 _SELORA_LOCAL_PROMPT_FILENAMES: dict[str, str] = {
     "command": "command_system_prompt.txt",

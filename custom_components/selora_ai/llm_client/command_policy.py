@@ -180,6 +180,20 @@ _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
         "media_stop": set(),
         "volume_set": {"volume_level"},
         "volume_mute": {"is_volume_muted"},
+        # `play_media` starts specific content ("play Hey Jude in the
+        # kitchen"); `media_play` only resumes whatever is already
+        # loaded. Without this entry the model's play_media call was
+        # either rejected outright — taking every sibling call in the
+        # turn down with it — or verb-repaired into `media_play`, which
+        # silently resumes the wrong thing.
+        #
+        # `announce` is deliberately NOT accepted here. It interrupts
+        # whatever is playing to blast audio at the room, which is the
+        # same capability the `tts` domain is REVIEW-gated for; honouring
+        # it in the SAFE bucket would route that around the approval
+        # card. The model is not trained to emit it, so refusing it
+        # costs nothing.
+        "play_media": {"media_content_id", "media_content_type", "enqueue"},
     },
     "climate": {
         "turn_on": set(),
@@ -217,6 +231,66 @@ _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
     domain: set(services.keys()) for domain, services in _COMMAND_SERVICE_POLICIES.items()
 }
 _SAFE_COMMAND_DOMAINS = ", ".join(sorted(_ALLOWED_COMMAND_SERVICES))
+
+
+# ``media_content_id`` is the one parameter in the table above whose VALUE
+# is a location rather than a setting: Home Assistant, or the speaker it
+# hands the id to, goes and fetches it. Everything in that table runs
+# unattended, so a value naming another host is a request the model made
+# on its own and nobody saw before it left the house — carrying whatever
+# its path and query say. That is worth refusing on its own, and it is
+# also how a device name, a calendar entry or any other untrusted text
+# sitting in the model's prompt would get an address of its choosing
+# fetched from inside the network.
+#
+# Refused by scheme rather than by allowlisting content, so the parameter
+# keeps doing its job: a friendly content name, a ``/media/…`` path, a
+# ``spotify:`` uri and Home Assistant's own ``media-source://`` ids all
+# resolve on this installation and still play without a card.
+_LOCAL_MEDIA_CONTENT_SCHEME = "media-source"
+
+# ``media-source://tts/<engine>?message=…`` is the model's other spelling
+# of an announcement — the automation writer has a whole rewrite for it.
+# It is speech, and the ``tts`` domain is REVIEW-gated for exactly that
+# reason, so accepting it here would route an announcement around the
+# approval card the same way ``announce`` would.
+_TTS_MEDIA_CONTENT_PREFIX = "media-source://tts/"
+
+
+def _remote_media_content_error(service: str, data: Any) -> str | None:
+    """Why this ``play_media`` may not run unattended, or ``None``.
+
+    Applies to ``media_player.play_media`` only; every other service in
+    the safe table takes settings, not addresses.
+
+    Home Assistant requires BOTH ``media_content_id`` and
+    ``media_content_type`` on this service, and the prompt that names it
+    leaves ``d`` optional -- so a call arriving without them is not a
+    request we can run. Reporting it as executable means dispatching a
+    call the service layer rejects, and the user is told the command ran.
+    """
+    if service != "media_player.play_media":
+        return None
+    if not isinstance(data, dict):
+        return f"{service} needs media_content_id and media_content_type"
+    # Absent, not a string, or blank are the same answer: nothing to play.
+    missing = [
+        key
+        for key in ("media_content_id", "media_content_type")
+        if not isinstance(data.get(key), str) or not data[key].strip()
+    ]
+    if missing:
+        return f"{service} needs {' and '.join(missing)}"
+    content_id = data["media_content_id"]
+    lowered = content_id.strip().lower()
+    if lowered.startswith(_TTS_MEDIA_CONTENT_PREFIX):
+        return f"{service} was pointed at a text-to-speech source, which speaks aloud"
+    scheme, separator, _rest = lowered.partition("://")
+    if separator and scheme != _LOCAL_MEDIA_CONTENT_SCHEME:
+        return f"{service} was pointed at {scheme}://, an address outside this Home Assistant"
+    if lowered.startswith("file:"):
+        return f"{service} was pointed at file:, a path outside this Home Assistant"
+    return None
 
 
 # ── REVIEW bucket: requires user approval before execution ──────────────
@@ -680,6 +754,9 @@ def validate_command_action(
                 f"unsupported parameters for {service}: {', '.join(extra)} "
                 f"(allowed: {', '.join(allowed_data_keys) or 'none'})"
             )
+        remote_media = _remote_media_content_error(service, data)
+        if remote_media:
+            errors.append(remote_media)
 
     # Entity-class elevation: a SAFE-domain call (cover.*) can still
     # need approval when its target's device_class is high-risk (a
@@ -4227,6 +4304,9 @@ def _validate_safe_call(
     extra = sorted(set(data) - allowed_data_keys)
     if extra:
         return None, f"{service} included unsupported parameters: {', '.join(extra)}"
+    remote_media = _remote_media_content_error(service, data)
+    if remote_media:
+        return None, remote_media
 
     return (
         {
@@ -4609,6 +4689,9 @@ def apply_command_policy(
                 f"{service} included unsupported parameters: {', '.join(extra_keys)}",
                 result,
             )
+        remote_media = _remote_media_content_error(service, data)
+        if remote_media:
+            return _blocked_command_result(remote_media, result)
 
         safe_call = {
             "service": service,
@@ -4680,8 +4763,19 @@ def apply_command_policy(
         approval_result["calls"] = []  # nothing executes until user approves
         approval_result["command_approval"] = proposal
         approval_result["quick_actions"] = _approval_quick_actions(proposal["proposal_id"])
-        if not approval_result.get("response"):
-            approval_result["response"] = approval_pending_hint(language)
+        # Always replace the model's narration, never just when it is
+        # blank. The command specialist is instructed to return `r` as a
+        # past-tense confirmation ("Front door locked."), so it is never
+        # blank — and printed above a card that is still waiting on the
+        # user it states, falsely, that the action already happened. In a
+        # mixed turn the safe calls are held back alongside the gated one,
+        # so the claim is false about all of them.
+        #
+        # `calls` is [] here by construction, so there is no executed
+        # action whose confirmation this could be discarding. The tool
+        # loop resolves the same conflict the same way — see
+        # synthesize_approval_from_tool_log.
+        approval_result["response"] = approval_pending_hint(language)
         return approval_result
 
     result["calls"] = validated_calls
