@@ -8,6 +8,11 @@ import {
   asArray,
 } from "../shared/flow-description.js";
 import { fmtEntity } from "../shared/formatting.js";
+import {
+  automationSearchFields,
+  matchesSearchFields,
+  searchTerms,
+} from "../shared/entity-search.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 import { renderCreatedCheck } from "../shared/created-check.js";
 import { renderRevealParticles } from "./proposal-reveal.js";
@@ -18,6 +23,7 @@ import {
   renderProposalDiffPanel,
   revealPanel,
 } from "./render-proposal-diff.js";
+import { renderSearchMatchReason } from "./search-match.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
@@ -1058,7 +1064,7 @@ export function masonryColumns(cards, cols = 3, firstColFooter = null) {
 // ---------------------------------------------------------------------------
 
 export function renderAutomations(host) {
-  const filterText = (host._automationFilter || "").toLowerCase();
+  const terms = searchTerms(host._automationFilter || "");
   const statusFilter = host._statusFilter || "all";
   const sortBy = host._sortBy || "recent";
   const sortDir = host._sortDir || "desc";
@@ -1083,11 +1089,20 @@ export function renderAutomations(host) {
     );
   }
 
-  // Text filter
-  if (filterText) {
-    filteredAutomations = filteredAutomations.filter((a) =>
-      (a.alias || "").toLowerCase().includes(filterText),
-    );
+  // Text search — over the automation's own words AND everything it targets,
+  // so "which automations use this sensor?" is askable by typing the sensor's
+  // name. `matchReasons` explains a row the query does not visibly name.
+  const matchReasons = new Map();
+  if (terms.length) {
+    const reg = host._searchRegistry();
+    filteredAutomations = filteredAutomations.filter((a) => {
+      const { match, reasons } = matchesSearchFields(
+        automationSearchFields(a, reg),
+        terms,
+      );
+      if (match && reasons.length) matchReasons.set(a, reasons);
+      return match;
+    });
   }
 
   // Sort. Each `sortBy` has a natural direction (recent: desc by time,
@@ -1293,12 +1308,13 @@ export function renderAutomations(host) {
                       type="text"
                       placeholder=${host._t(
                         "automations_filter_placeholder",
-                        "Filter automations…",
+                        "Search automations, devices, areas…",
                       )}
                       .value=${host._automationFilter}
                       @input=${(e) => {
                         host._automationFilter = e.target.value;
                         host._automationsPage = 1;
+                        host._ensureSearchRegistries();
                       }}
                     />
                     ${
@@ -1674,20 +1690,23 @@ export function renderAutomations(host) {
                                     </button>
                                   `
                                 : null,
-                            tail: html`<span class="auto-row-mobile-meta">
-                              <span
-                                >${host._t(
-                                  "automations_last_run_prefix",
-                                  "Last run:",
-                                )}
-                                ${lastRun}</span
-                              >
-                              <ha-icon
-                                icon="mdi:chevron-down"
-                                class="card-chevron ${cardExpanded ? "open" : ""}"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                            </span>`,
+                            tail: html`${renderSearchMatchReason(
+                                host,
+                                matchReasons.get(a),
+                              )}<span class="auto-row-mobile-meta">
+                                <span
+                                  >${host._t(
+                                    "automations_last_run_prefix",
+                                    "Last run:",
+                                  )}
+                                  ${lastRun}</span
+                                >
+                                <ha-icon
+                                  icon="mdi:chevron-down"
+                                  class="card-chevron ${cardExpanded ? "open" : ""}"
+                                  style="--mdc-icon-size:16px;"
+                                ></ha-icon>
+                              </span>`,
                           })}
                           <span class="auto-row-last-run"
                             ><span class="last-run-prefix"
@@ -2209,7 +2228,12 @@ export function renderAutomations(host) {
                     ? html`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        No automations match "${host._automationFilter}"
+                        ${host
+                          ._t(
+                            "automations_search_no_match",
+                            'No automations match "{query}"',
+                          )
+                          .replace("{query}", host._automationFilter)}
                       </div>`
                     : ""
                 }
