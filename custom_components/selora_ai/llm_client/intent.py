@@ -1188,6 +1188,105 @@ def _classify_chat_intent_polite_command_check(msg: str) -> str | None:
     return None
 
 
+# Docs-grounded utilities/RAG specialist routing (maintenance / troubleshooting / setup how-to).
+
+# Maintenance: updates / upgrades / version conflicts + housekeeping how-tos.
+# Deliberately HOW-TO only. "are there any pending updates" is a live-state
+# question, and ``update`` is not in COLLECTOR_DOMAINS, so no ``update.*`` entity
+# ever reaches AVAILABLE ENTITIES -- the specialist would be asked which
+# integrations have updates while holding nothing that could say. Its prompt
+# names ``update.*`` in ``q`` precisely because that is the intended shape, so
+# these route back here the moment the collector carries the domain.
+_UTIL_MAINTENANCE = re.compile(
+    r"\bhow\s+do\s+i\s+(update|upgrade)\b"
+    r"|\b(update|upgrade)\s+(my|the)\s+"
+    r"(system|home\s*assistant|installation|core|os|supervisor)\b"
+    r"|\bversion\s+(conflict|mismatch)\b"
+    r"|\bout[\s-]of[\s-]date\b"
+    r"|\bhow\s+(do|can|would|should)\s+i\s+"
+    r"(back\s*up|backup|restore|restart|reboot|reload|migrate)\b",
+    re.IGNORECASE,
+)
+
+# Setup how-to: "how do I add/set up/configure a new <HA object>".
+_UTIL_SETUP_HOWTO = re.compile(
+    r"\bhow\s+(do|can|would|should)\s+i\s+"
+    r"(add|set\s*up|setup|configure|install|enable|create|onboard)\b"
+    r"[\w\s']{0,40}\b(integration|integrations|add[\s-]?on|addon|device|"
+    r"automation|script|scene|dashboard|helper|entity|sensor|account)\b",
+    re.IGNORECASE,
+)
+
+# Finding a setting / token in the UI.
+_UTIL_FIND_SETTING = re.compile(
+    # The noun is required: unqualified, this claimed every "where can I find the
+    # kitchen light", which is a question about the home the answer specialist can
+    # see and this one cannot.
+    r"\bwhere\s+(do|can|should)\s+i\s+find\b[\w\s']{0,40}"
+    r"\b(setting|settings|option|options|token|menu|page|tab|config|configuration)\b"
+    r"|\blong[\s-]?lived\s+access\s+token\b"
+    r"|\bwhere\s+is\s+the\s+[\w\s']*\b(setting|settings|option|token|menu|page)\b",
+    re.IGNORECASE,
+)
+
+# Connectivity / availability / fault symptom words.
+_UTIL_SYMPTOM = re.compile(
+    r"\b(unavailable|offline|not\s+responding|stopped\s+(responding|reporting|working)|"
+    r"won'?t\s+connect|can'?t\s+connect|cannot\s+connect|disconnected|"
+    r"not\s+working|not\s+updating|stopped\s+updating|no\s+longer\s+(working|responding)|"
+    r"not\s+triggering|isn'?t\s+triggering|won'?t\s+trigger|"
+    r"failed\s+to\s+load|won'?t\s+load|can'?t\s+load|cannot\s+load|"
+    r"reads?\s+unknown|read\s+unknown|shows?\s+unknown|showing\s+unknown|"
+    r"state\s+unknown|reads?\s+as\s+unknown)\b",
+    re.IGNORECASE,
+)
+
+# Symptom paired with a troubleshooting frame (why / what should I / how do I fix).
+_UTIL_TROUBLE_FRAME = re.compile(
+    r"\bwhy\b"
+    r"|\bwhat\s+should\s+i\b"
+    r"|\bwhat\s+(do|can)\s+i\s+(do|check)\b"
+    r"|\bhow\s+(do|can)\s+i\s+(fix|troubleshoot|debug|check|resolve|diagnose)\b"
+    r"|\bshould\s+i\s+check\b"
+    r"|\bhelp\s+me\s+(fix|troubleshoot)\b"
+    r"|\btroubleshoot\b"
+    r"|\bwhere\s+do\s+i\s+look\b",
+    re.IGNORECASE,
+)
+
+
+# Concept / definition help ("what is a <HA object>", "how do <HA objects> work").
+_UTIL_CONCEPT = re.compile(
+    r"\bwhat\s+(is|are)\s+(a\s+|an\s+|the\s+)?(home\s*assistant\s+)?"
+    r"(scene|scenes|blueprint|blueprints|helper|helpers|area|areas|zone|zones|"
+    r"dashboard|dashboards|label|labels|category|categories|automation|automations|"
+    r"script|scripts|template|templates|add[\s-]?on|addon|integration|integrations)\b"
+    # Not when a live-state qualifier follows: "what are the automations currently
+    # enabled" is an inventory question about THIS home, not a request for the
+    # definition of an automation.
+    r"(?![\w\s']{0,20}\b(currently|enabled|disabled|running|active|on|off|"
+    r"available|installed|configured|set\s*up)\b)"
+    r"|\bhow\s+(do|does)\s+[\w\s']{0,30}\b"
+    r"(areas?|zones?|scenes?|blueprints?|helpers?|dashboards?|automations?|"
+    r"scripts?|labels?|templates?|integrations?|add[\s-]?ons?)\b[\w\s']{0,15}\bwork\b",
+    re.IGNORECASE,
+)
+
+
+def _is_utilities_help(msg: str) -> bool:
+    """True for docs-grounded help that should route to the utilities/RAG specialist."""
+    if _UTIL_MAINTENANCE.search(msg):
+        return True
+    if _UTIL_SETUP_HOWTO.search(msg):
+        return True
+    if _UTIL_FIND_SETTING.search(msg):
+        return True
+    if _UTIL_CONCEPT.search(msg):
+        return True
+    # A symptom routes to utilities only when framed as a problem.
+    return bool(_UTIL_SYMPTOM.search(msg) and _UTIL_TROUBLE_FRAME.search(msg))
+
+
 def _classify_chat_intent(
     user_message: str,
     entities: list[EntitySnapshot] | None = None,
@@ -1195,7 +1294,10 @@ def _classify_chat_intent(
     """Cheap regex pre-classifier for low-context LoRA routing.
 
     Returns one of ``command`` / ``automation`` / ``answer`` /
-    ``clarification``. Used only when ``provider.is_low_context`` —
+    ``clarification`` / ``utilities``. Each maps to a trained LoRA, so a
+    value with no specialist behind it would route traffic at nothing —
+    ``utilities`` is here because the specialist, its prompt and its docs
+    bundle ship alongside it. Used only when ``provider.is_low_context`` —
     cloud providers self-classify in their long system prompt instead.
 
     ``entities`` is optional. When supplied, the classifier also
@@ -1217,6 +1319,14 @@ def _classify_chat_intent(
     # immediate command that would discard the schedule.
     if _POLITE_COMMAND.match(msg) and not any(pat.search(msg) for pat in _AUTOMATION_PATTERNS):
         return "command"
+    # Docs-grounded maintenance / troubleshooting / setup help routes to the
+    # utilities specialist, which answers from the bundled documentation rather
+    # than from the home's state. Checked before the destructive and question
+    # branches: "why is my thermostat unavailable" is a question in shape and a
+    # documentation lookup in substance, and "how do I back up Home Assistant"
+    # trips no device path at all.
+    if _is_utilities_help(msg):
+        return "utilities"
     # Destructive/system-level requests ("shut down home assistant",
     # "delete all my automations", "factory reset") — the command LoRA
     # has no training mapping for these and will hallucinate an
