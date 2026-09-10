@@ -43,6 +43,7 @@ from ..const import (
     SELORA_LOCAL_LORA_FILENAME_KEYWORDS,
     SELORA_LOCAL_MAX_TOKENS_BY_KIND,
 )
+from ..json_repair import loads_first_json_object
 from .base import _positive_int
 from .openai_compat import OpenAICompatibleProvider
 
@@ -1899,27 +1900,18 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         stripped = text.strip()
         if not stripped:
             return text
-        # Find the JSON envelope. Tolerate leading prose by cropping to
-        # the first {...} block.
-        start = stripped.find("{")
-        end = stripped.rfind("}")
-        if start < 0 or end < 0 or end <= start:
-            # No usable JSON envelope. If the LoRA at least emitted
-            # the ``"r":"..."`` prefix, the partial-JSON decoder used
-            # by the streaming visible-text extractor will give us
-            # the answer body even though the closing brace never
-            # arrived (typical when ``max_tokens`` clips a slim
-            # answer mid-``q``-array). Wrap that as an answer envelope
-            # so the chat bubble shows readable prose instead of the
-            # raw truncated JSON.
-            visible = _selora_local_extract_visible(stripped)
-            if visible:
-                return json.dumps({"intent": "answer", "response": visible})
-            return text
+        # Find the JSON envelope. Tolerate leading prose, and crop on
+        # BALANCED braces: a stray ``}`` after the envelope (or a second
+        # object, or prose containing one) makes a first-brace-to-last-
+        # brace slice unbalanced, and the whole command is then thrown
+        # away in favour of visible-text salvage. Shared with the two
+        # llm_client parsers so all three agree on which object is the
+        # model's answer.
         try:
-            data = json.loads(stripped[start : end + 1])
-        except (json.JSONDecodeError, ValueError) as _exc:  # noqa: F841
-            # Strict JSON parse failed. Two common causes:
+            data = loads_first_json_object(stripped)
+        except json.JSONDecodeError:
+            # Candidates existed but none of them parsed. Two common
+            # causes:
             #
             # 1. The output was truncated by the per-intent max_tokens
             #    cap mid-envelope. The slim answer shape puts ``r``
@@ -1943,7 +1935,18 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             from ._qwen_repair import normalize_response_content
 
             return normalize_response_content(text)
-        if not isinstance(data, dict):
+        if data is None:
+            # No usable JSON envelope at all. If the LoRA at least
+            # emitted the ``"r":"..."`` prefix, the partial-JSON decoder
+            # used by the streaming visible-text extractor will give us
+            # the answer body even though the closing brace never
+            # arrived (typical when ``max_tokens`` clips a slim
+            # answer mid-``q``-array). Wrap that as an answer envelope
+            # so the chat bubble shows readable prose instead of the
+            # raw truncated JSON.
+            visible = _selora_local_extract_visible(stripped)
+            if visible:
+                return json.dumps({"intent": "answer", "response": visible})
             return text
         # Already enveloped (automation specialist or older verbose
         # output). Run it through the Qwen drift repair so common
