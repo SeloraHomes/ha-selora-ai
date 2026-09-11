@@ -96,6 +96,64 @@ unit:
   script:
     - pytest tests/ -v
 
+# Forward-compatibility canary for the next CPython. 3.15 lands in early
+# October 2026, and nothing else here would notice until the day we try to
+# move: the `unit` matrix is 3.13/3.14 and every other job pins 3.14. This
+# job is what turns "it broke on release day" into a warning weeks earlier,
+# so it is advisory — `allow_failure` on every rule, a warning on the
+# pipeline rather than a red X.
+#
+# Two signals, deliberately in this order, because they fail for different
+# reasons and only the first one is ours to fix:
+#   1. compileall — our own source against the new GRAMMAR, and nothing
+#      more: it compiles without importing, so a removed stdlib module or
+#      a changed API sails straight through it. That narrowness is the
+#      point. It is the only check that answers while the HA test stack has
+#      no 3.15 support at all, which is the whole window this job exists
+#      for; anything deeper needs the interpreter to import our code, and
+#      importing our code needs homeassistant.
+#   2. the suite — our code against HA's, on the new interpreter. Expect the
+#      dependency install to fail until homeassistant and
+#      pytest-homeassistant-custom-component publish 3.15-compatible
+#      releases. That failure IS the status report; it is not a bug to chase.
+# No pip cache on purpose: this job runs rarely, and a wheel cached from an
+# earlier run is exactly what would hide a resolution that has since changed.
+#
+# On release day, in this order:
+#   - flip the image to `python:3.15-slim` — the `-rc` tag stops being rebuilt
+#     once the final ships, so this job silently tests a stale interpreter
+#   - once the suite passes, add "3.15" to the `unit` matrix above, which is
+#     what makes it blocking, and delete this job
+#   - `.python-version` and ruff's `target-version` are a SEPARATE, later
+#     decision: they follow the oldest runtime we still support, not the
+#     newest one available.
+python-next:
+  stage: test
+  image: python:3.15-rc-slim
+  allow_failure: true
+  rules:
+    # Automatic on the default branch — including a schedule pointed AT the
+    # default branch, which is the same condition and not a second one. A
+    # schedule on `next` or on a maintenance branch is admitted by the
+    # `workflow:` rules above and still skips this job, deliberately: those
+    # refs carry releases, and the canary has nothing to say about a ref
+    # whose interpreter story is main's. Automatic here rather than
+    # everywhere so no merge request grows a job nobody is expected to act
+    # on.
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # Opt-in on a merge request — for the MR that actually does the 3.15
+    # work. `allow_failure` has to be restated here: a manual job defined in
+    # `rules` defaults to allow_failure: false, which would block the
+    # pipeline on a job nobody started.
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+  script:
+    - python --version
+    - python -m compileall -q custom_components/ scripts/ tests/
+    - *ha-test-deps
+    - pytest tests/ -v
+
 soak:
   stage: test
   image: python:3.14-slim
