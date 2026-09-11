@@ -238,8 +238,16 @@ class LLMProvider(ABC):
         existing_automations: list[dict[str, Any]] | None = None,
         history: list[dict[str, str]] | None = None,
         language: str | None = None,
+        turn_token: str | None = None,
     ) -> None:
         """Forward the raw chat context to the provider before send_request.
+
+        ``turn_token`` names THIS turn. A provider that keeps per-turn state
+        cannot otherwise identify which turn a later, separate call belongs
+        to: the context is set inside the request task, while the conversion
+        pass runs in the caller's own context, which never saw the write.
+        The caller owns the value because it is the only party present for
+        both halves. Providers that keep no such state ignore it.
 
         Default: no-op. Selora AI Local overrides this to rebuild the
         outgoing system prompt + user content so each LoRA receives the
@@ -249,8 +257,12 @@ class LLMProvider(ABC):
         ``messages`` directly.
         """
 
-    def convert_response_text(self, text: str) -> str:
+    def convert_response_text(self, text: str, *, turn_token: str | None = None) -> str:
         """Post-process a complete response text before LLMClient parses it.
+
+        ``turn_token`` is the value passed to ``set_chat_context`` for the
+        turn this text belongs to, so a provider holding per-turn state
+        selects THAT turn's rather than whichever was written last.
 
         Default: pass-through. Selora AI Local overrides this to
         translate v0.4.2 slim output schemas (``{r, q}`` / ``{c, r}``

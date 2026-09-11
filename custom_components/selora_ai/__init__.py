@@ -27,6 +27,7 @@ from datetime import datetime, timedelta
 import logging
 import re
 from typing import TYPE_CHECKING, Any
+import uuid
 
 from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
@@ -3080,10 +3081,17 @@ async def _handle_websocket_chat_stream(
         else:
             effective_idle_timeout = STREAM_IDLE_TIMEOUT_S
 
+        # One identity for both halves of this turn. The provider sets its chat
+        # context inside the request task, where the write cannot reach this
+        # context, so the conversion pass below cannot otherwise tell which turn
+        # the state it finds belongs to — and a concurrent turn (a background
+        # analysis cycle) would have overwritten it.
+        turn_token = uuid.uuid4().hex
         async for chunk in _consume_stream_with_guards(
             llm.architect_chat_stream(
                 user_message,
                 entities,
+                turn_token=turn_token,
                 existing_automations=automations,
                 # The streaming path is the panel's own.
                 panel_available=True,
@@ -3245,6 +3253,7 @@ async def _handle_websocket_chat_stream(
         parsed = llm.parse_streamed_response(
             full_text,
             entities=entities,
+            turn_token=turn_token,
             tool_log=tool_executor.call_log if tool_executor else None,
             session_id=session_id,
             user_message=user_message,

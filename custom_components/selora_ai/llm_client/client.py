@@ -831,6 +831,7 @@ class LLMClient:
         session_id: str | None = None,
         language: str | None = None,
         attachments: list[ImageAttachment] | None = None,
+        turn_token: str | None = None,
     ) -> ArchitectResponse:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
@@ -964,6 +965,7 @@ class LLMClient:
                     existing_automations=existing_automations,
                     history=history,
                     language=language or self._hass.config.language,
+                    turn_token=turn_token,
                 )
                 system_prompt = build_minimal_architect_system_prompt(
                     intent_hint,
@@ -1167,6 +1169,7 @@ class LLMClient:
         session_id: str | None = None,
         language: str | None = None,
         attachments: list[ImageAttachment] | None = None,
+        turn_token: str | None = None,
     ) -> AsyncIterator[str]:
         """Async generator — streaming version of architect_chat.
 
@@ -1265,6 +1268,7 @@ class LLMClient:
                     existing_automations=existing_automations,
                     history=history,
                     language=language or self._hass.config.language,
+                    turn_token=turn_token,
                 )
                 system_prompt = build_minimal_architect_system_prompt(
                     intent_hint,
@@ -1499,6 +1503,7 @@ class LLMClient:
         user_message: str | None = None,
         language: str | None = None,
         refining: bool = False,
+        turn_token: str | None = None,
     ) -> ArchitectResponse:
         """Parse completed streamed text — thin wrapper over the module-level parser.
 
@@ -1528,7 +1533,7 @@ class LLMClient:
             # shapes ({r,q} / {c,r} / {q,o}) into the {intent, response,
             # calls/automation} envelope before the parser sees them. Cloud
             # providers pass through unchanged.
-            text = self._provider.convert_response_text(text)
+            text = self._provider.convert_response_text(text, turn_token=turn_token)
             return parse_streamed_response(
                 text,
                 self._hass,
