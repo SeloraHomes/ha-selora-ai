@@ -212,8 +212,23 @@ class _StreamingMixin:
             if result:
                 yield result
 
-    def convert_response_text(self, text: str) -> str:
-        """Apply the v0.4.2 slim → enveloped conversion to the complete response (used by LLMClient.parse_streamed_response)."""
-        source = self._raw_response_buffer.get() or text
-        converted = self._convert_slim_shape(source)
-        return self._ensure_utilities_citations(converted)
+    def convert_response_text(self, text: str, *, turn_token: str | None = None) -> str:
+        """Apply the v0.4.2 slim → enveloped conversion to the complete response (used by LLMClient.parse_streamed_response).
+
+        Binds ``turn_token`` for the duration so the deterministic overrides
+        below resolve THIS turn's context rather than whichever turn wrote
+        last. Safe as a plain attribute because this method is synchronous:
+        no other turn can interleave on the event loop while it is held.
+        """
+        previous = self._active_turn_token
+        self._active_turn_token = turn_token
+        try:
+            source = self._raw_response_buffer.get() or text
+            converted = self._convert_slim_shape(source)
+            return self._ensure_utilities_citations(converted)
+        finally:
+            self._active_turn_token = previous
+            # The turn is answered; drop its snapshot rather than leave it to be
+            # evicted by whichever seven turns happen to follow.
+            if turn_token is not None:
+                self._turn_snapshots.pop(turn_token, None)

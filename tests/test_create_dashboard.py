@@ -313,9 +313,7 @@ async def _session_with_proposal(
             # `async_propose_dashboard` put there. The recorder reads the target
             # off this descriptor rather than off the panel's report, so a
             # fixture without it exercises only the fallback.
-            "client_actions": [
-                {"kind": "create_dashboard", "title": title, "url_path": url_path}
-            ],
+            "client_actions": [{"kind": "create_dashboard", "title": title, "url_path": url_path}],
         },
     )
     return store, session_id, proposal_id
@@ -948,7 +946,7 @@ def test_the_streamed_parser_resolves_the_turn_language(hass: HomeAssistant) -> 
     client._hass = hass
     client._usage = MagicMock()
     client._provider = MagicMock()
-    client._provider.convert_response_text = lambda t: t
+    client._provider.convert_response_text = lambda t, **_kwargs: t
 
     with patch("custom_components.selora_ai.llm_client.client.parse_streamed_response") as parser:
         LLMClient.parse_streamed_response(

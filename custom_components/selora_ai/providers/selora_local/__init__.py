@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections import OrderedDict
 from contextvars import ContextVar
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from homeassistant.core import HomeAssistant
 
@@ -62,6 +63,25 @@ _LOGGER = logging.getLogger(__name__)
 _SELORA_LOCAL_PROMPTS_DIR = (
     Path(__file__).resolve().parent.parent.parent / "local_model" / "prompts"
 )
+# How many turns may hold a snapshot at once. A turn releases its own entry at
+# its conversion pass; one that errors or is cancelled never gets there, so the
+# store is bounded and evicts oldest-first rather than growing for the life of
+# the process.
+_MAX_TURN_SNAPSHOTS = 8
+
+# Key for a caller that passed no token -- the pre-token behaviour, usable only
+# while it is the one turn outstanding.
+_UNTOKENED_TURN = ""
+
+
+class _TurnSnapshot(NamedTuple):
+    """What ``set_chat_context`` was told, for one turn."""
+
+    user_message: str
+    chat_kind: str | None
+    entities: list[Any]
+
+
 _SELORA_LOCAL_PROMPT_FILENAMES: dict[str, str] = {
     "command": "command_system_prompt.txt",
     "automation": "automation_system_prompt.txt",
@@ -203,11 +223,27 @@ class SeloraLocalProvider(
         self._user_message_raw: ContextVar[str] = ContextVar(
             "selora_ai_local_user_message", default=""
         )
-        # Plain-attribute mirror of the current turn's user message + call kind.
-        self._user_message_instance: str = ""
-        self._chat_kind_instance: str | None = None
-        # Same ContextVar → instance-attribute fallback for the injected entity snapshot.
-        self._entities_for_lora_instance: list[Any] = []
+        # Per-turn snapshots of what set_chat_context was told, keyed by the
+        # caller's turn token.
+        #
+        # These exist because the ContextVars above frequently read back EMPTY
+        # where they are needed most: set_chat_context runs inside the request
+        # task, and a write there does not propagate up to the caller's context,
+        # which is where the conversion pass runs. Without a fallback the
+        # deterministic overrides silently skip.
+        #
+        # Keyed rather than a single mirror because a single one is
+        # last-writer-wins: a background analysis cycle overlapping a panel chat
+        # replaced the panel turn's message before its conversion pass read it,
+        # and that turn was then answered from the other one's request.
+        # ``_MAX_TURN_SNAPSHOTS`` bounds the store, since a turn that never
+        # reaches its conversion pass never releases its own entry.
+        self._turn_snapshots: OrderedDict[str, _TurnSnapshot] = OrderedDict()
+        # The turn whose conversion pass is running right now. Set only for the
+        # duration of ``convert_response_text``, which is SYNCHRONOUS -- nothing
+        # else can interleave on the event loop while it is held, which is what
+        # makes a plain attribute safe here where the mirror was not.
+        self._active_turn_token: str | None = None
         # Default=None (not []) so the same list isn't shared across async contexts — ruff's B039 / flake8-bugbear flags ContextVar mutable defaults as a real footgun.
         self._entities_for_lora: ContextVar[list[Any] | None] = ContextVar(
             "selora_ai_local_entities", default=None
@@ -323,20 +359,53 @@ class SeloraLocalProvider(
         if kind is not None:
             self._reset_streaming_state_inner()
 
+    def _store_turn_snapshot(self, turn_token: str | None, snapshot: _TurnSnapshot) -> None:
+        """Record what this turn was told, evicting the oldest when full."""
+        key = turn_token or _UNTOKENED_TURN
+        self._turn_snapshots.pop(key, None)
+        self._turn_snapshots[key] = snapshot
+        while len(self._turn_snapshots) > _MAX_TURN_SNAPSHOTS:
+            self._turn_snapshots.popitem(last=False)
+
+    def _turn_snapshot(self) -> _TurnSnapshot | None:
+        """This turn's snapshot, or None when it cannot be identified.
+
+        A token names the turn outright. Without one there is a single
+        candidate only when a single turn is outstanding — with several, the
+        newest is not knowably this one, and answering a turn from another
+        turn's request is worse than declining to answer deterministically at
+        all, so this reports nothing and the caller falls back to the model's
+        own output.
+        """
+        if self._active_turn_token is not None:
+            return self._turn_snapshots.get(self._active_turn_token)
+        if len(self._turn_snapshots) == 1:
+            return next(iter(self._turn_snapshots.values()))
+        return None
+
     def _current_user_message(self) -> str:
-        """Return the in-flight turn's raw user message."""
-        return self._user_message_raw.get() or self._user_message_instance or ""
+        """This turn's raw user message: the ContextVar, else its snapshot."""
+        ctx = self._user_message_raw.get()
+        if ctx:
+            return ctx
+        snapshot = self._turn_snapshot()
+        return snapshot.user_message if snapshot else ""
 
     def _current_chat_kind(self) -> str | None:
-        """Return the in-flight turn's chat kind, with the same ContextVar → instance-attribute fallback as ``_current_user_message``."""
-        return self._chat_kind.get() or self._chat_kind_instance
+        """This turn's chat kind, resolved like ``_current_user_message``."""
+        ctx = self._chat_kind.get()
+        if ctx:
+            return ctx
+        snapshot = self._turn_snapshot()
+        return snapshot.chat_kind if snapshot else None
 
     def _current_entities(self) -> list[Any]:
-        """Return this turn's injected entity snapshot, with the same ContextVar → instance-attribute fallback as ``_current_user_message``."""
+        """This turn's injected entity snapshot, resolved the same way."""
         ctx = self._entities_for_lora.get()
         if ctx:
             return ctx
-        return self._entities_for_lora_instance or []
+        snapshot = self._turn_snapshot()
+        return list(snapshot.entities) if snapshot else []
 
     def _reset_streaming_state_inner(self) -> None:
         """Drop per-turn streaming buffers without touching ``_call_kind``."""
@@ -359,6 +428,7 @@ class SeloraLocalProvider(
         history: list[dict[str, str]] | None = None,
         language: str | None = None,
         relevant_docs: list[dict[str, str]] | None = None,
+        turn_token: str | None = None,
     ) -> None:
         """Capture the raw chat context from LLMClient so build_payload can reconstruct the v0.4.2 training-format request body."""
         # Snapshot baseline entity states before this turn's command (if any) mutates them.
@@ -366,10 +436,17 @@ class SeloraLocalProvider(
         self._user_message_raw.set(user_message or "")
         # Capture the kind for this turn while ``_call_kind`` still holds the live value.
         self._chat_kind.set(self._call_kind.get())
-        # Plain-attribute mirror that survives the ContextVar-propagation race (see __init__): the conversion pass falls back to these when the ContextVars read back empty.
-        self._user_message_instance = user_message or ""
-        self._chat_kind_instance = self._call_kind.get()
-        self._entities_for_lora_instance = list(entities or [])
+        # Snapshot for the conversion pass, which runs in a context that never saw
+        # the ContextVar writes above (see __init__). Keyed by the caller's token
+        # so the pass selects THIS turn's rather than whichever ran last.
+        self._store_turn_snapshot(
+            turn_token,
+            _TurnSnapshot(
+                user_message=user_message or "",
+                chat_kind=self._call_kind.get(),
+                entities=list(entities or []),
+            ),
+        )
         self._entities_for_lora.set(list(entities or []))
         self._automations_for_lora.set(list(existing_automations or []))
         self._history_for_lora.set(list(history or []))
