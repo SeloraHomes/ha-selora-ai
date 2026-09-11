@@ -61,7 +61,7 @@ Doorbell (event.* / binary_sensor.* / camera.*)
   - `amcrest` / `dahua` → button press is also a `binary_sensor` (often `*_doorbell` or `*_visitor`).
   - `unifiprotect` → button press is `binary_sensor.<name>_doorbell`.
   - `ring` → button press is `event.<name>_ding` (event domain, or `binary_sensor.<name>_ding` on older setups). Aqara, DoorBird, and Hikvision similarly expose the press as an `event.*` entity.
-- IMPORTANT: `event.*` entities are NOT in the entity state list you are given. If the doorbell's button press is an event entity (ring/aqara/doorbird/etc.) and you cannot find a suitable `binary_sensor` press entity, call `get_device_triggers` with the doorbell's device_id to get the correct `platform: device` trigger block — do not guess an entity_id.
+- IMPORTANT: `event.*` entities are NOT in the entity state list you are given. If the doorbell's button press is an event entity (ring/aqara/doorbird/etc.) and you cannot find a suitable `binary_sensor` press entity, call `get_device_triggers` with the doorbell's NAME (it also accepts a registry id) to get the correct `platform: device` trigger block — do not guess an entity_id, and never ask the user for a device id.
 - For a `binary_sensor` press entity, trigger on the off→on transition (`to: "on"`).
 - Configuration: set motion zones to exclude street/sidewalk; adjust ring notification settings; pair with lock for remote unlock after visual confirmation
 

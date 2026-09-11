@@ -2204,14 +2204,20 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
+    from .registry_manager import resolve_device  # noqa: PLC0415
+
     device_id = str(arguments.get("device_id", "")).strip()
     if not device_id:
         return {"error": "device_id is required"}
 
-    dev_reg = dr.async_get(hass)
-    device = dev_reg.async_get(device_id)
+    # A registry id OR the device's user-visible name. Nothing but
+    # ``list_devices`` hands out registry ids — ``search_entities`` and
+    # ``get_entity_state`` resolve an entity, not its device — so an id-only
+    # lookup leaves a caller that knows the device by name with no route here
+    # at all, and the model then asks the user to paste one by hand.
+    device, resolve_error = resolve_device(hass, device_id)
     if device is None:
-        return {"error": f"Device {_sanitize(device_id)} not found"}
+        return {"error": resolve_error or f"Device {_sanitize(device_id)} not found"}
 
     ent_reg = er.async_get(hass)
     area_reg = ar.async_get(hass)
@@ -2334,15 +2340,21 @@ async def _tool_get_device_triggers(
         async_get_device_automations,
     )
     from homeassistant.exceptions import HomeAssistantError
-    from homeassistant.helpers import device_registry as dr
 
-    device_id = str(arguments.get("device_id", "")).strip()
-    if not device_id:
+    from .registry_manager import resolve_device  # noqa: PLC0415
+
+    device_ref = str(arguments.get("device_id", "")).strip()
+    if not device_ref:
         return {"error": "device_id is required"}
 
-    dev_reg = dr.async_get(hass)
-    if dev_reg.async_get(device_id) is None:
-        return {"error": f"Device {_sanitize(device_id)} not found"}
+    # Accepts a name as well as a registry id, for the reason ``get_device``
+    # does: this is the tool the trigger prompt sends the model to for a
+    # button/remote/doorbell, and the id it asks for is not in anything the
+    # model has been given.
+    device, resolve_error = resolve_device(hass, device_ref)
+    if device is None:
+        return {"error": resolve_error or f"Device {_sanitize(device_ref)} not found"}
+    device_id = device.id
 
     try:
         automations = await async_get_device_automations(
@@ -2431,6 +2443,10 @@ async def _tool_get_entity_state(hass: HomeAssistant, arguments: dict[str, Any])
     # entities show area=null and the LLM loses room context in answers.
     area_name: str | None = None
     ent_area_id: str | None = entry.area_id if entry else None
+    # The owning device, so a caller holding only an entity_id can reach
+    # ``get_device`` / ``get_device_triggers``. The lookup is already here for
+    # the area fallback; returning it is what saves a ``list_devices`` dump.
+    ent_device_id: str | None = entry.device_id if entry else None
     if ent_area_id is None and entry and entry.device_id:
         device = dr.async_get(hass).async_get(entry.device_id)
         if device:
@@ -2459,6 +2475,7 @@ async def _tool_get_entity_state(hass: HomeAssistant, arguments: dict[str, Any])
         "state": _format_state_value(state.state),
         "friendly_name": _sanitize(attrs.get("friendly_name", entity_id)),
         "area": _sanitize(area_name) if area_name else None,
+        "device_id": ent_device_id,
         "last_changed": state.last_changed.isoformat() if state.last_changed else None,
         "attributes": filtered,
     }
@@ -2921,6 +2938,10 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
         friendly = str(state.attributes.get("friendly_name", "")).lower()
         aliases = ""
         ent_area_id: str | None = None
+        # The entity's device, so a caller that found the entity here can reach
+        # the device tools without a whole-home ``list_devices`` dump. Resolved
+        # below from the same registry walk the area fallback already does.
+        ent_device_id: str | None = None
         if entry is not None:
             # `compat_aliases` is the plain-string view added in HA
             # 2026.x where `aliases` became list[AliasEntry]
@@ -2931,6 +2952,7 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
                 raw_aliases = entry.aliases
             aliases = " ".join(str(a) for a in raw_aliases).lower() if raw_aliases else ""
             ent_area_id = entry.area_id
+            ent_device_id = entry.device_id
             if ent_area_id is None and entry.device_id:
                 device = dev_reg.async_get(entry.device_id)
                 if device:
@@ -2959,6 +2981,7 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
                         state.attributes.get("friendly_name", state.entity_id)
                     ),
                     "area": _sanitize(area_names.get(ent_area_id or "", "")) or None,
+                    "device_id": ent_device_id,
                     "score": term_hits,
                 },
             )

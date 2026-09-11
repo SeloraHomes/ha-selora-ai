@@ -16,12 +16,15 @@ from custom_components.selora_ai.automation_utils import (
     _parse_automation_yaml,
     _quote_yaml_booleans,
     _read_automations_yaml,
+    _rescue_tts_speak_speaker,
     _resolve_tts_engine,
     _retarget_tts_speak_engine,
+    _rewrite_announcements,
     _rewrite_legacy_tts_say,
     _rewrite_spoken_play_media,
     _rewrite_tts_media_source,
     _tts_engine_usable,
+    _tts_speak_speaker_error,
     _write_automations_yaml,
     assess_automation_risk,
     async_create_automation,
@@ -5524,9 +5527,7 @@ def test_a_split_clock_window_that_crosses_midnight_is_merged() -> None:
     )
     assert ok, err
     assert norm is not None
-    assert norm["conditions"] == [
-        {"condition": "time", "after": "22:00:00", "before": "06:00:00"}
-    ]
+    assert norm["conditions"] == [{"condition": "time", "after": "22:00:00", "before": "06:00:00"}]
 
 
 def test_a_clock_window_inside_one_day_is_left_alone() -> None:
@@ -5680,9 +5681,7 @@ def test_nulls_are_dropped_inside_action_control_flow() -> None:
     assert ok, err
     assert norm is not None
     action = norm["actions"][0]
-    assert action["if"] == [
-        {"condition": "state", "entity_id": "light.sconces", "state": "off"}
-    ]
+    assert action["if"] == [{"condition": "state", "entity_id": "light.sconces", "state": "off"}]
     nested = action["then"][0]["choose"][0]["conditions"]
     assert nested == [{"condition": "sun", "after": "sunset"}]
 
@@ -5950,8 +5949,12 @@ def test_a_null_inline_condition_action_is_refused() -> None:
     wrong instead of the automation failing at reload."""
     for actions in (
         [{"condition": None}],
-        [{"if": [{"condition": "state", "entity_id": "light.x", "state": "on"}],
-          "then": [{"condition": None}]}],
+        [
+            {
+                "if": [{"condition": "state", "entity_id": "light.x", "state": "on"}],
+                "then": [{"condition": None}],
+            }
+        ],
     ):
         ok, err, _ = validate_automation_payload(
             {
@@ -6034,3 +6037,305 @@ def test_the_two_nulls_home_assistant_accepts_are_still_written() -> None:
         assert ok, f"{action}: {err}"
         assert norm is not None
         assert norm["actions"][0] == action
+
+
+class TestTtsSpeakSpeaker:
+    """``tts.speak`` addresses TWO entities — the ENGINE in ``target.entity_id``
+    and the SPEAKER in ``data.media_player_entity_id`` — and a model that knows
+    the speaker but not the split gets it wrong in two ways. Both produce an
+    automation that loads, validates, runs, synthesizes the announcement, and
+    plays it nowhere; HA only checks the service schema at call time, so
+    nothing downstream sees it."""
+
+    @staticmethod
+    def _hass(*, tts_entities: list[str] | None = None) -> MagicMock:
+        tts_entities = ["tts.piper"] if tts_entities is None else tts_entities
+        service_registry: dict[str, set[str]] = {
+            "tts": {"speak"},
+            "media_player": {"play_media", "turn_on", "volume_set"},
+        }
+        hass = MagicMock()
+        hass.services.has_service.side_effect = lambda domain, service: (
+            service in service_registry.get(domain, set())
+        )
+        hass.services.async_services_for_domain.side_effect = lambda domain: (
+            {svc: {} for svc in service_registry[domain]} if service_registry.get(domain) else {}
+        )
+        hass.states.async_entity_ids.side_effect = lambda domain: (
+            list(tts_entities) if domain == "tts" else []
+        )
+        hass.states.get.side_effect = lambda _eid: None
+        return hass
+
+    @pytest.fixture(autouse=True)
+    def _patch_cloud_active(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            "custom_components.selora_ai.automation_utils._cloud_tts_active",
+            lambda _hass: True,
+        )
+
+    # -- the speaker written into the engine slot -------------------------
+
+    def test_speaker_in_target_is_moved_not_discarded(self) -> None:
+        """The engine retarget used to overwrite `target` with a real engine
+        and drop the speaker on the floor — the exact 'no media_player_entity_id'
+        failure."""
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "media_player.living_room_sonos"},
+            "data": {"message": "There is a visitor at the door."},
+        }
+        out = _rewrite_announcements(dict(action), self._hass())
+        assert out["data"]["media_player_entity_id"] == "media_player.living_room_sonos"
+        # …and the vacated engine slot is filled with a real TTS engine.
+        assert out["target"]["entity_id"] == "tts.piper"
+        assert out["data"]["message"] == "There is a visitor at the door."
+
+    def test_speaker_in_bare_entity_id_is_moved(self) -> None:
+        action = {
+            "action": "tts.speak",
+            "entity_id": "media_player.kitchen",
+            "data": {"message": "Dinner is ready."},
+        }
+        out = _rewrite_announcements(dict(action), self._hass())
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+        assert "entity_id" not in out
+        assert out["target"]["entity_id"] == "tts.piper"
+
+    def test_several_speakers_are_kept_as_a_list(self) -> None:
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": ["media_player.kitchen", "media_player.hall"]},
+            "data": {"message": "Visitor."},
+        }
+        out = _rewrite_announcements(dict(action), self._hass())
+        assert out["data"]["media_player_entity_id"] == [
+            "media_player.kitchen",
+            "media_player.hall",
+        ]
+
+    def test_correct_action_is_left_alone(self) -> None:
+        """A speaker already in place plus a usable engine is nothing to fix."""
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.piper"},
+            "data": {
+                "media_player_entity_id": "media_player.living_room_sonos",
+                "message": "Visitor.",
+            },
+        }
+        assert _rescue_tts_speak_speaker(dict(action), self._hass()) is None
+
+    def test_wrong_engine_beside_a_real_speaker_is_only_retargeted(self) -> None:
+        """The speaker is where it belongs, so the media_player in `target` is
+        an ordinary wrong engine — replaced, with the speaker untouched."""
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "media_player.living_room_sonos"},
+            "data": {
+                "media_player_entity_id": "media_player.kitchen",
+                "message": "Visitor.",
+            },
+        }
+        out = _rewrite_announcements(dict(action), self._hass())
+        assert out["target"]["entity_id"] == "tts.piper"
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+
+    def test_no_usable_engine_leaves_the_action_for_the_gates(self) -> None:
+        """Emptying the engine slot on a home with no working TTS would trade a
+        silent action for an invalid one."""
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "media_player.living_room_sonos"},
+            "data": {"message": "Visitor."},
+        }
+        assert _rescue_tts_speak_speaker(dict(action), self._hass(tts_entities=[])) is None
+
+    def test_templated_target_is_left_alone(self) -> None:
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "{{ states('input_text.speaker') }}"},
+            "data": {"message": "Visitor."},
+        }
+        assert _rescue_tts_speak_speaker(dict(action), self._hass()) is None
+
+    def test_rescue_reaches_a_nested_branch(self) -> None:
+        """Same recursion the other announcement repairs get."""
+        action = {
+            "choose": [
+                {
+                    "conditions": [],
+                    "sequence": [
+                        {
+                            "action": "tts.speak",
+                            "target": {"entity_id": "media_player.hall"},
+                            "data": {"message": "Visitor."},
+                        }
+                    ],
+                }
+            ]
+        }
+        out = _rewrite_announcements(action, self._hass())
+        inner = out["choose"][0]["sequence"][0]
+        assert inner["data"]["media_player_entity_id"] == "media_player.hall"
+        assert inner["target"]["entity_id"] == "tts.piper"
+
+    # -- the speaker missing outright -------------------------------------
+
+    def test_missing_speaker_is_reported(self) -> None:
+        error = _tts_speak_speaker_error(
+            {"action": "tts.speak", "target": {"entity_id": "tts.piper"}, "data": {"message": "x"}}
+        )
+        assert error is not None
+        assert "media_player_entity_id" in error
+
+    def test_non_media_player_speaker_is_reported(self) -> None:
+        error = _tts_speak_speaker_error(
+            {
+                "action": "tts.speak",
+                "data": {"media_player_entity_id": "tts.piper", "message": "x"},
+            }
+        )
+        assert error is not None
+        assert "tts.piper" in error
+
+    def test_templated_speaker_is_accepted(self) -> None:
+        assert (
+            _tts_speak_speaker_error(
+                {
+                    "action": "tts.speak",
+                    "data": {
+                        "media_player_entity_id": "{{ states('input_text.speaker') }}",
+                        "message": "x",
+                    },
+                }
+            )
+            is None
+        )
+
+    def test_payload_missing_the_speaker_is_refused(self) -> None:
+        """The end of the chain: the retry loop gets a message naming the field
+        instead of a silent automation reaching automations.yaml."""
+        hass = self._hass()
+        payload = {
+            "alias": "Doorbell Sonos Announcement",
+            "triggers": [
+                {"platform": "state", "entity_id": "binary_sensor.front_door_visitor", "to": "on"}
+            ],
+            "actions": [
+                {
+                    "action": "tts.speak",
+                    "target": {"entity_id": "tts.piper"},
+                    "data": {"message": "There is a visitor at the door."},
+                }
+            ],
+        }
+        ok, error, _ = validate_automation_payload(payload, hass)
+        assert ok is False
+        assert "media_player_entity_id" in error
+
+    def test_payload_with_the_speaker_misplaced_is_repaired_not_refused(self) -> None:
+        """The rescue runs before the gate, so a MISPLACED speaker is fixed
+        rather than bounced back to the model."""
+        hass = self._hass()
+        hass.states.get.side_effect = lambda eid: (
+            MagicMock()
+            if eid
+            in {
+                "binary_sensor.front_door_visitor",
+                "media_player.living_room_sonos",
+                "tts.piper",
+            }
+            else None
+        )
+        payload = {
+            "alias": "Doorbell Sonos Announcement",
+            "triggers": [
+                {"platform": "state", "entity_id": "binary_sensor.front_door_visitor", "to": "on"}
+            ],
+            "actions": [
+                {
+                    "action": "tts.speak",
+                    "target": {"entity_id": "media_player.living_room_sonos"},
+                    "data": {"message": "There is a visitor at the door."},
+                }
+            ],
+        }
+        ok, error, normalized = validate_automation_payload(payload, hass)
+        assert ok is True, error
+        act = normalized["actions"][0]
+        assert act["data"]["media_player_entity_id"] == "media_player.living_room_sonos"
+        assert act["target"]["entity_id"] == "tts.piper"
+
+    # -- review findings --------------------------------------------------
+
+    def test_comma_joined_speakers_are_each_checked(self) -> None:
+        """HA accepts a comma-joined string wherever it accepts a list, so a
+        wrong-domain speaker must not hide behind a correct first one."""
+        error = _tts_speak_speaker_error(
+            {
+                "action": "tts.speak",
+                "data": {
+                    "media_player_entity_id": "media_player.kitchen, light.porch",
+                    "message": "x",
+                },
+            }
+        )
+        assert error is not None
+        assert "light.porch" in error
+
+    def test_comma_joined_speakers_all_valid_pass(self) -> None:
+        assert (
+            _tts_speak_speaker_error(
+                {
+                    "action": "tts.speak",
+                    "data": {
+                        "media_player_entity_id": "media_player.kitchen, media_player.hall",
+                        "message": "x",
+                    },
+                }
+            )
+            is None
+        )
+
+    def test_non_string_speaker_member_is_reported(self) -> None:
+        error = _tts_speak_speaker_error(
+            {
+                "action": "tts.speak",
+                "data": {"media_player_entity_id": ["media_player.kitchen", 123], "message": "x"},
+            }
+        )
+        assert error is not None
+        assert "123" in error
+
+    def test_block_template_speaker_is_accepted(self) -> None:
+        """`{% if %}` is as much a template as `{{ }}` — reading only the
+        expression form refuses a legal speaker as a bad entity_id."""
+        assert (
+            _tts_speak_speaker_error(
+                {
+                    "action": "tts.speak",
+                    "data": {
+                        "media_player_entity_id": (
+                            "{% if is_state('binary_sensor.x', 'on') %}media_player.kitchen"
+                            "{% else %}media_player.hall{% endif %}"
+                        ),
+                        "message": "x",
+                    },
+                }
+            )
+            is None
+        )
+
+    def test_target_with_an_area_selector_is_not_rescued(self) -> None:
+        """Emptying `entity_id` would leave `area_id` behind for the retarget to
+        fill, and HA would then read it as an ENGINE selector — speaking through
+        every TTS entity in that area."""
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "media_player.living_room_sonos", "area_id": "living_room"},
+            "data": {"message": "Visitor."},
+        }
+        assert _rescue_tts_speak_speaker(dict(action), self._hass()) is None
+        # It is refused rather than silently mangled.
+        assert _tts_speak_speaker_error(action) is not None

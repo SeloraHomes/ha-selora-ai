@@ -1550,6 +1550,170 @@ def _retarget_tts_speak_engine(
     return rewritten
 
 
+_TEMPLATE_MARKERS = ("{{", "{%", "{#")
+
+
+def _is_templated(value: str) -> bool:
+    """True when *value* carries Jinja that only resolves at runtime.
+
+    All three delimiters, not just ``{{``. A block template —
+    ``{% if is_state(...) %}media_player.kitchen{% else %}media_player.hall{% endif %}``
+    — is a legal speaker value, and reading only the expression form refuses it
+    as a non-media_player entity_id.
+    """
+    return any(marker in value for marker in _TEMPLATE_MARKERS)
+
+
+def _concrete_speaker_ids(value: Any) -> list[str] | None:
+    """The concrete ``media_player`` entity_ids in *value*, or ``None``.
+
+    ``None`` means "not purely speakers" — a TTS engine, a template, an
+    area/device target, an empty slot. Only an unambiguous list of
+    ``media_player.*`` ids is something we may move.
+    """
+    parts: list[str] = []
+    for item in value if isinstance(value, list) else [value]:
+        if not isinstance(item, str) or _is_templated(item):
+            return None
+        parts.extend(p.strip() for p in item.split(",") if p.strip())
+    if not parts or any(p.split(".")[0] != "media_player" for p in parts):
+        return None
+    return parts
+
+
+def _tts_speak_speaker_error(action: dict[str, Any]) -> str | None:
+    """Reject a ``tts.speak`` action that names no speaker.
+
+    ``tts.speak`` takes the ENGINE in ``target.entity_id`` and the SPEAKER in
+    ``data.media_player_entity_id``. HA's service schema requires the speaker,
+    but a service schema is checked at CALL time, not at load — so an
+    automation missing it loads, validates, reloads and runs, synthesizing the
+    announcement with nowhere to play it. Nothing else in this file could see
+    that: every other TTS repair builds the speaker in, and one the model wrote
+    itself was never asked about.
+
+    Refused rather than repaired: which speaker was meant is not derivable
+    here, and the retry loop hands this message back for the model to fix with
+    the home in front of it. :func:`_rescue_tts_speak_speaker` has already run
+    by this point, so a speaker that was merely MISPLACED is home; what reaches
+    here is genuinely absent.
+    """
+    data = action.get("data")
+    data = data if isinstance(data, dict) else {}
+    raw = data.get("media_player_entity_id")
+    ids: list[str] = []
+    for item in raw if isinstance(raw, list) else [raw]:
+        if item is None or (isinstance(item, str) and not item.strip()):
+            continue
+        if not isinstance(item, str):
+            return (
+                "tts.speak data.media_player_entity_id must be a media_player "
+                f"entity_id (the speaker), got {item!r}"
+            )
+        if _is_templated(item):
+            # Resolves at runtime — nothing here can say what it will name.
+            ids.append(item)
+            continue
+        # HA accepts a comma-joined string wherever it accepts a list, so a
+        # wrong-domain speaker can hide behind a correct first one.
+        ids.extend(part.strip() for part in item.split(",") if part.strip())
+    if not ids:
+        return (
+            "tts.speak is missing data.media_player_entity_id — the speaker to "
+            "play the announcement on. target.entity_id is the TTS ENGINE (a "
+            "tts.* entity), NOT the speaker. Add "
+            '`data: {media_player_entity_id: "media_player.<speaker>"}` with '
+            "the real media_player entity_id."
+        )
+    for sid in ids:
+        if _is_templated(sid):
+            continue
+        if sid.split(".")[0] != "media_player":
+            return (
+                "tts.speak data.media_player_entity_id must be a media_player "
+                f"entity_id (the speaker), got '{sid}'"
+            )
+    return None
+
+
+def _rescue_tts_speak_speaker(
+    action: dict[str, Any],
+    hass: HomeAssistant,
+) -> dict[str, Any] | None:
+    """Move a ``tts.speak`` speaker out of the engine slot into
+    ``data.media_player_entity_id``.
+
+    ``tts.speak`` addresses TWO entities: the ENGINE in ``target.entity_id``
+    and the SPEAKER in ``data.media_player_entity_id``. A model that knows the
+    speaker and not the split writes the speaker where the engine goes, and
+    that is the one shape nothing downstream could see. The engine slot then
+    holds a ``media_player.*``, :func:`_retarget_tts_speak_engine` finds it
+    unusable and overwrites it with a real engine, and the speaker is
+    DISCARDED — leaving an automation that loads, validates, runs, synthesizes
+    the speech, and has nowhere to play it.
+
+    Only an unambiguous ``media_player`` reference is moved, and only when a
+    usable engine exists to take the slot it vacates: emptying the target on a
+    home with no working TTS would trade a silent action for an invalid one.
+
+    Returns the rewritten action, or ``None`` when there is nothing to rescue.
+    """
+    service = str(action.get("action", action.get("service", "")))
+    if service != "tts.speak":
+        return None
+
+    data = action.get("data")
+    data = data if isinstance(data, dict) else {}
+    existing = data.get("media_player_entity_id")
+    if _concrete_speaker_ids(existing) is not None or (
+        isinstance(existing, str) and existing.strip()
+    ):
+        # The speaker is already where it belongs. A media_player still sitting
+        # in `target` is then an ordinary wrong engine, which
+        # _retarget_tts_speak_engine replaces on the same pass.
+        return None
+
+    # No engine to put in the slot we are about to empty — leave the action for
+    # the service/entity gates rather than emit a target-less tts.speak.
+    if _resolve_tts_engine(hass) is None:
+        return None
+
+    target = action.get("target")
+    target = target if isinstance(target, dict) else {}
+    # A target carrying an area/device/label/floor selector is NOT rescued. The
+    # rescue empties only `entity_id`, so those selectors would survive into the
+    # slot the retarget then fills with an engine — and HA would read them as
+    # ENGINE selectors, speaking through every TTS entity they match. There is
+    # no safe reading of what was meant: dropping them discards the target the
+    # model wrote, keeping them changes which engines speak. The gate below
+    # names the missing field instead and the model rewrites its own target.
+    if any(key in target for key in ("area_id", "device_id", "label_id", "floor_id")):
+        return None
+
+    rewritten = dict(action)
+    found: list[str] | None
+    if (found := _concrete_speaker_ids(target.get("entity_id"))) is not None:
+        # Leave the engine slot empty; _retarget_tts_speak_engine fills it with
+        # a usable engine on the same pass.
+        rewritten["target"] = {k: v for k, v in target.items() if k != "entity_id"}
+    elif (found := _concrete_speaker_ids(action.get("entity_id"))) is not None:
+        rewritten.pop("entity_id", None)
+    elif (found := _concrete_speaker_ids(data.get("entity_id"))) is not None:
+        rewritten["data"] = {k: v for k, v in data.items() if k != "entity_id"}
+    else:
+        return None
+
+    new_data = rewritten.get("data")
+    new_data = dict(new_data) if isinstance(new_data, dict) else {}
+    new_data["media_player_entity_id"] = found[0] if len(found) == 1 else found
+    rewritten["data"] = new_data
+    _LOGGER.info(
+        "Moved tts.speak speaker %s out of the engine slot into data.media_player_entity_id.",
+        ", ".join(found),
+    )
+    return rewritten
+
+
 def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
     """Apply the announcement repairs (:func:`_rewrite_tts_media_source`,
     :func:`_rewrite_spoken_play_media`, :func:`_rewrite_legacy_tts_say`, and
@@ -1566,8 +1730,16 @@ def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[
         _rewrite_tts_media_source(action, hass)
         or _rewrite_spoken_play_media(action, hass)
         or _rewrite_legacy_tts_say(action, hass)
-        or _retarget_tts_speak_engine(action, hass)
     )
+    if rewritten is None:
+        # The speaker rescue and the engine retarget are two halves of ONE
+        # repair, so both get a shot at the SAME action. Chained with `or`, a
+        # successful rescue would hide the retarget and leave the engine slot
+        # empty — the three rewriters above need no such pairing because each
+        # emits a complete tts.speak with its engine already resolved.
+        speaker_fixed = _rescue_tts_speak_speaker(action, hass)
+        engine_fixed = _retarget_tts_speak_engine(speaker_fixed or action, hass)
+        rewritten = engine_fixed or speaker_fixed
     if rewritten is not None:
         return rewritten
 
@@ -1949,6 +2121,13 @@ def validate_automation_payload(
                             f"action uses non-existent service '{action_service}'",
                             None,
                         )
+                # An announcement with no speaker is valid YAML, loads, runs,
+                # and is silent — HA only checks the service schema at call
+                # time. Gate it here so the retry loop can hand it back.
+                if action_service == "tts.speak" and (
+                    tts_error := _tts_speak_speaker_error(svc_act)
+                ):
+                    return False, tts_error, None
                 # Reject targets in read-only domains (no services registered at all)
                 target = svc_act.get("target", {})
                 entity_ids = target.get("entity_id", "") if isinstance(target, dict) else ""

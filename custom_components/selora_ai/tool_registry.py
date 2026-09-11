@@ -191,13 +191,18 @@ TOOL_GET_DEVICE = ToolDef(
         "current states and key attributes. Use this when the user asks about a "
         "specific device's state, configuration, or health. Also use it to get "
         "the Zigbee IEEE address (returned as `zha_ieee`) needed to build a "
-        "`zha_event` button-press trigger. Requires a device_id from list_devices."
+        "`zha_event` button-press trigger. Accepts either the device's registry "
+        "id or its name as the user would say it."
     ),
     params=(
         ToolParam(
             name="device_id",
             type="string",
-            description="The HA device registry ID from list_devices",
+            description=(
+                "The HA device registry id (from list_devices, search_entities, "
+                "or get_entity_state) OR the device's name, e.g. 'Front Door "
+                "Doorbell'"
+            ),
             required=True,
         ),
     ),
@@ -214,14 +219,19 @@ TOOL_GET_DEVICE_TRIGGERS = ToolDef(
         "type, and subtype, so drop one straight into the automation's triggers "
         "list instead of hand-assembling an event trigger or guessing a raw "
         "node/IEEE id. An empty list means the device exposes no device "
-        "triggers — fall back to an event or state trigger. Requires a "
-        "device_id from list_devices."
+        "triggers — fall back to an event or state trigger. Accepts either the "
+        "device's registry id or its name, so you never need to ask the user "
+        "for one."
     ),
     params=(
         ToolParam(
             name="device_id",
             type="string",
-            description="The HA device registry ID from list_devices",
+            description=(
+                "The HA device registry id (from list_devices, search_entities, "
+                "or get_entity_state) OR the device's name, e.g. 'Front Door "
+                "Doorbell'"
+            ),
             required=True,
         ),
     ),
@@ -446,7 +456,9 @@ TOOL_SEARCH_ENTITIES = ToolDef(
         "('Stores at 50%'), search with domain='scene' and use the top match's "
         "entity_id verbatim; NEVER guess a scene.<slug> id — a wrong id fails "
         "validation. If the top match looks weak (low score, several close "
-        "candidates), broaden the query or ask the user which one."
+        "candidates), broaden the query or ask the user which one. Each match "
+        "also carries the entity's `device_id`, so this is the cheap way to "
+        "reach get_device / get_device_triggers without listing every device."
     ),
     params=(
         ToolParam(
@@ -458,7 +470,11 @@ TOOL_SEARCH_ENTITIES = ToolDef(
         ToolParam(
             name="domain",
             type="string",
-            description="Optional domain filter (e.g. 'light').",
+            description=(
+                "Optional ENTITY domain filter (e.g. 'light', 'media_player', "
+                "'binary_sensor', 'scene'). Not a device or integration name — "
+                "'device' matches nothing. Omit it to search every domain."
+            ),
         ),
     ),
     large_context_only=True,
