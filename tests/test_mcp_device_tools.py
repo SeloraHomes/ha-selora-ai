@@ -244,10 +244,10 @@ async def test_get_device_missing_id(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_get_device_not_found(hass: HomeAssistant) -> None:
-    """Error when device_id doesn't exist."""
+    """Error when the reference matches neither a registry id nor a name."""
     result = await _tool_get_device(hass, {"device_id": "nonexistent_id"})
     assert "error" in result
-    assert "not found" in result["error"]
+    assert "nonexistent_id" in result["error"]
 
 
 @pytest.mark.asyncio
@@ -338,10 +338,10 @@ async def test_get_device_triggers_missing_id(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_get_device_triggers_not_found(hass: HomeAssistant) -> None:
-    """Error when device_id doesn't exist."""
+    """Error when the reference matches neither a registry id nor a name."""
     result = await _tool_get_device_triggers(hass, {"device_id": "nonexistent_id"})
     assert "error" in result
-    assert "not found" in result["error"]
+    assert "nonexistent_id" in result["error"]
 
 
 @pytest.mark.asyncio
@@ -524,3 +524,67 @@ def test_hand_written_definitions_are_not_accidental_duplicates() -> None:
         # And each really does have a chat namesake, which is what makes them
         # look duplicated.
         assert name.removeprefix("selora_") in TOOL_MAP, name
+
+
+# ── Resolution by name ───────────────────────────────────────────────────────
+#
+# Nothing but ``list_devices`` used to hand out registry ids — ``search_entities``
+# and ``get_entity_state`` resolve an entity, not its device — so a caller that
+# knew the device only by name had no route to either device tool, and the model
+# asked the user to paste an id by hand.
+
+
+@pytest.mark.asyncio
+async def test_get_device_accepts_device_name(hass: HomeAssistant, setup_home) -> None:
+    """A device's user-visible name resolves like its registry id."""
+    result = await _tool_get_device(hass, {"device_id": "Hue Light"})
+    assert "error" not in result
+    assert result["name"] == "Hue Light"
+    by_id = await _tool_get_device(hass, {"device_id": result["device_id"]})
+    assert by_id["device_id"] == result["device_id"]
+
+
+@pytest.mark.asyncio
+async def test_get_device_name_match_is_case_insensitive(hass: HomeAssistant, setup_home) -> None:
+    """A caller typing from memory does not have to match the casing."""
+    result = await _tool_get_device(hass, {"device_id": "hue light"})
+    assert "error" not in result
+    assert result["name"] == "Hue Light"
+
+
+@pytest.mark.asyncio
+async def test_get_device_triggers_accepts_device_name(hass: HomeAssistant, setup_home) -> None:
+    """The trigger tool resolves a name too — it is where the prompt sends a
+    button/doorbell request, and the id it wants is in nothing the model was
+    given."""
+    result = await _tool_get_device_triggers(hass, {"device_id": "Hue Light"})
+    assert "error" not in result
+    # The reported device_id is the resolved registry id, never the name the
+    # caller passed — it goes straight into a `platform: device` trigger.
+    devices = (await _tool_list_devices(hass, {"domain": "light"}))["devices"]
+    assert result["device_id"] == devices[0]["device_id"]
+
+
+@pytest.mark.asyncio
+async def test_search_entities_returns_device_id(hass: HomeAssistant, setup_home) -> None:
+    """An entity match carries its device, so the device tools are reachable
+    without a whole-home list_devices dump."""
+    from custom_components.selora_ai.mcp_server import _tool_search_entities
+
+    result = await _tool_search_entities(hass, {"query": "living room light"})
+    match = next(m for m in result["matches"] if m["entity_id"] == "light.living_room_light")
+    assert match["device_id"]
+
+    detail = await _tool_get_device(hass, {"device_id": match["device_id"]})
+    assert detail["name"] == "Hue Light"
+
+
+@pytest.mark.asyncio
+async def test_get_entity_state_returns_device_id(hass: HomeAssistant, setup_home) -> None:
+    """Same bridge from the targeted single-entity read."""
+    from custom_components.selora_ai.mcp_server import _tool_get_entity_state
+
+    result = await _tool_get_entity_state(hass, {"entity_id": "light.living_room_light"})
+    assert result["device_id"]
+    detail = await _tool_get_device(hass, {"device_id": result["device_id"]})
+    assert detail["name"] == "Hue Light"

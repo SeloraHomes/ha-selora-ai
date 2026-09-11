@@ -23,7 +23,7 @@ Trigger phrases:
 - "What's the status of my thermostat?"
 - "Show me details for [device]"
 - Any follow-up about a specific device after `list_devices`
-- Requires a `device_id` from a prior `list_devices` call
+- Takes a `device_id` OR the device's name; a `device_id` also comes back from `search_entities` and `get_entity_state`, so never ask the user for one
 
 ### `get_home_snapshot` — Entity states overview
 Trigger phrases:
