@@ -1048,14 +1048,23 @@ export const chatStyles = css`
     color: var(--primary-text-color);
     font-family: inherit;
     font-size: 15px;
-    line-height: 22px;
-    padding: 7px 0;
+    /* The caret is drawn the full height of the line box, so a loose
+       line-height leaves a bare bar towering over the placeholder's
+       ~12px glyphs. 20px keeps multi-line text comfortable while the
+       caret stays close to the text it belongs to; the padding makes up
+       the difference so the one-row box is still 36px. */
+    line-height: 20px;
+    padding: 8px 0;
     margin: 0;
     max-height: 200px;
     overflow-y: auto;
     box-sizing: border-box;
     display: block;
     vertical-align: middle;
+    /* Amber rather than the default white bar: against the faint grey
+       placeholder it reads as part of the composer instead of a stray
+       mark sitting on top of the text. */
+    caret-color: var(--selora-accent, #fbbf24);
   }
   .composer-textarea::placeholder {
     color: var(--secondary-text-color);
