@@ -1711,6 +1711,17 @@ _DEVICE_CLASS_NEED_TOKENS: dict[str, tuple[str, ...]] = {
     "doors": ("door", "opening", "window"),
     "open": ("window", "opening", "door"),
     "opened": ("window", "opening", "door"),
+    # Trigger-side needs. An automation names its TARGET ("turn on the hallway
+    # lights") but only describes its TRIGGER ("when motion is detected"), so the
+    # sensor it fires on carries none of the request's words and scores 0 -- it
+    # sorts past the cap and the model writes a trigger against an entity it was
+    # never shown. Each token pins the whole presence cluster because installs
+    # label the same physical sensor motion / occupancy / presence.
+    "motion": ("motion", "occupancy", "presence"),
+    "movement": ("motion", "occupancy", "presence"),
+    "occupancy": ("occupancy", "motion", "presence"),
+    "occupied": ("occupancy", "motion", "presence"),
+    "presence": ("presence", "occupancy", "motion"),
     "co2": ("carbon_dioxide",),
     "illuminance": ("illuminance",),
     "brightness": ("illuminance",),
@@ -1749,7 +1760,7 @@ _DOMAIN_NEED_TOKENS: dict[str, tuple[str, ...]] = {
 # AC / air-conditioner phrasing the keyword tokenizer can't surface as a need
 # token: "ac" and "a/c" are ≤2-char tokens that _low_context_keywords drops,
 # and "air conditioner" tokenizes to "air"/"conditioner" (neither is a need
-# token). Matched against the RAW message in _cloud_pinned_needs so a bare
+# token). Matched against the RAW message in _pinned_needs so a bare
 # "turn on the AC" still pins the climate domain.
 # Trailing boundary is ``(?!\w)`` not ``\b``: the dotted "A.C." ends in a
 # literal period, so a ``\b`` (which needs a word/non-word transition) never
@@ -1853,11 +1864,9 @@ def _need_relevance(entity: EntitySnapshot, keywords: set[str]) -> int:
     return score
 
 
-def _cloud_pinned_needs(
-    keywords: set[str], message: str = ""
-) -> tuple[frozenset[str], frozenset[str]]:
+def _pinned_needs(keywords: set[str], message: str = "") -> tuple[frozenset[str], frozenset[str]]:
     """Resolve a request into the device_classes and domains whose entities
-    must be pinned into the cloud entity block.
+    must be pinned into the entity block.
 
     ``keywords`` drives the table lookups; ``message`` is the raw request,
     scanned for phrasings the tokenizer can't surface (AC). Returns
@@ -1957,6 +1966,35 @@ def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -
     return score
 
 
+def _fallback_low_context_pairs(
+    entities: list[EntitySnapshot],
+    *,
+    cap: int,
+) -> list[tuple[int, EntitySnapshot]]:
+    """:func:`_fallback_low_context_entities` keeping each entity's original
+    index, so need pinning can address the fallback the same way it addresses
+    the keyword ranking."""
+    if cap <= 0:
+        return []
+    by_domain: dict[str, list[tuple[int, EntitySnapshot]]] = {
+        d: [] for d in _LOW_CONTEXT_FALLBACK_DOMAINS
+    }
+    for idx, e in enumerate(entities):
+        eid = e.get("entity_id", "")
+        if "." not in eid:
+            continue
+        domain = eid.split(".", 1)[0]
+        if domain in by_domain:
+            by_domain[domain].append((idx, e))
+    out: list[tuple[int, EntitySnapshot]] = []
+    for domain in _LOW_CONTEXT_FALLBACK_DOMAINS:
+        for pair in by_domain[domain]:
+            out.append(pair)
+            if len(out) >= cap:
+                return out
+    return out
+
+
 def _fallback_low_context_entities(
     entities: list[EntitySnapshot],
     *,
@@ -1967,23 +2005,7 @@ def _fallback_low_context_entities(
     Used when keyword filtering produced no hits — better to give the
     LoRA *some* context than an empty AVAILABLE ENTITIES block.
     """
-    if cap <= 0:
-        return []
-    by_domain: dict[str, list[EntitySnapshot]] = {d: [] for d in _LOW_CONTEXT_FALLBACK_DOMAINS}
-    for e in entities:
-        eid = e.get("entity_id", "")
-        if "." not in eid:
-            continue
-        domain = eid.split(".", 1)[0]
-        if domain in by_domain:
-            by_domain[domain].append(e)
-    out: list[EntitySnapshot] = []
-    for domain in _LOW_CONTEXT_FALLBACK_DOMAINS:
-        for e in by_domain[domain]:
-            out.append(e)
-            if len(out) >= cap:
-                return out
-    return out
+    return [e for _idx, e in _fallback_low_context_pairs(entities, cap=cap)]
 
 
 # ── Unspecified-target clarification ─────────────────────────────────
@@ -2777,6 +2799,7 @@ def _filter_entities_by_keywords(
     keywords: set[str],
     *,
     cap: int,
+    message: str = "",
 ) -> list[EntitySnapshot]:
     """Rank entities by relevance to the user's keywords, return top ``cap``.
 
@@ -2786,8 +2809,30 @@ def _filter_entities_by_keywords(
     empty AVAILABLE ENTITIES block makes it hallucinate entity_ids or
     echo the prior automation, so a small canonical surface is
     strictly better than nothing.
+
+    Need pinning runs over the ranking through the same resolver the cloud
+    selector uses, so there stays one notion of relevance. It reserves a few
+    slots for entities the request implies but never names — the sensor a
+    "when motion is detected ... turn on the lights" automation triggers on
+    scores 0 on the request's words and otherwise sorts past the cap, and the
+    model writes a trigger against an entity it was never shown. A request
+    that names one domain resolves no need, so "turn on the kitchen lights"
+    still fills the whole window with lights. Pinning applies to the fallback
+    too: a need is resolved from the request, not from what matched, so the
+    case where NOTHING matched is the one where it is needed most.
     """
+    device_classes: frozenset[str] = frozenset()
+    domains: frozenset[str] = frozenset()
     if keywords:
+        # Resolved BEFORE the ranking is consulted, because a need does not
+        # depend on anything having matched. "when motion is detected turn on
+        # the A/C" resolves climate off the raw message — the tokenizer drops
+        # "ac" as ≤2 chars, which is why that regex exists — and the presence
+        # cluster off "motion", in a home where no entity is named for either.
+        # Every entity then scores 0, and resolving needs inside the `scored`
+        # arm discarded both: the model got a domain-ordered slice holding
+        # neither the trigger nor the target the request named outright.
+        device_classes, domains = _pinned_needs(keywords, message)
         scored: list[tuple[int, int, EntitySnapshot]] = []
         for idx, e in enumerate(entities):
             s = _score_entity_against_keywords(e, keywords)
@@ -2798,8 +2843,35 @@ def _filter_entities_by_keywords(
             # tiebreaker so the same prompt always produces the same
             # entity list (no flaky training-format prefix).
             scored.sort(key=lambda t: (-t[0], t[1]))
-            return [e for _, _, e in scored[:cap]]
-    return _fallback_low_context_entities(entities, cap=cap)
+            ranked = [(idx, e) for _, idx, e in scored]
+            base_order = {idx: rank for rank, (idx, _e) in enumerate(ranked)}
+            return _pin_needs_into_cap(
+                entities,
+                ranked,
+                base_order,
+                keywords,
+                device_classes,
+                domains,
+                cap=cap,
+                max_pinned=_LOW_CONTEXT_MAX_PINNED,
+                pin_to_front=True,
+            )
+    # Nothing matched a request word. The needs still stand, so they are pinned
+    # into the fallback rather than discarded with the ranking; with none
+    # resolved (or no keywords at all) _pin_needs_into_cap returns the fallback
+    # untouched.
+    fallback = _fallback_low_context_pairs(entities, cap=cap)
+    return _pin_needs_into_cap(
+        entities,
+        fallback,
+        {idx: rank for rank, (idx, _e) in enumerate(fallback)},
+        keywords,
+        device_classes,
+        domains,
+        cap=cap,
+        max_pinned=_LOW_CONTEXT_MAX_PINNED,
+        pin_to_front=True,
+    )
 
 
 def _entity_need_keys(
@@ -2823,6 +2895,140 @@ def _entity_need_keys(
     return keys
 
 
+# Most a trigger need may take out of the low-context entity block. Sized
+# against the TIGHTEST downstream cap, not the 60 selected here: the provider
+# renders 25 lines for chat_automation, and pinned entities lead that block, so
+# an unbounded pin on a home with dozens of motion sensors would crowd out the
+# domain the request actually named — the regression this pinning replaced.
+# A trigger needs one or two sensors; four leaves 21 of 25 lines for the target.
+_LOW_CONTEXT_MAX_PINNED = 4
+
+
+def _pin_needs_into_cap(
+    entities: list[EntitySnapshot],
+    ranked: list[tuple[int, EntitySnapshot]],
+    base_order: dict[int, int],
+    keywords: set[str],
+    device_classes: frozenset[str],
+    domains: frozenset[str],
+    *,
+    cap: int,
+    max_pinned: int | None = None,
+    pin_to_front: bool = False,
+) -> list[EntitySnapshot]:
+    """Reserve cap slots for entities the request NEEDS, then fill from ``ranked``.
+
+    ``ranked`` is the keyword ranking as ``(original_index, entity)`` pairs and
+    ``base_order`` maps an original index to its rank. An entity may be pinned
+    out of ``entities`` even when ``ranked`` omits it — a required-but-unnamed
+    sensor scores 0. Where those land differs by caller: ``pin_to_front`` leads
+    the block with every pinned entity, while without it a pinned entity keeps
+    its keyword rank, which for an unranked one is the end of the block.
+
+    The cap is always honoured: pinned entities count against it, so the prompt
+    never grows. With no need resolved this is exactly the keyword ranking,
+    which is what keeps a single-domain request ("turn on the kitchen lights")
+    from being interleaved with anything else.
+    """
+    ranked_entities = [e for _, e in ranked]
+    if not device_classes and not domains:
+        # No semantic need to pin — keyword ranking decides the cap.
+        return ranked_entities[:cap]
+
+    # Bucket every need-matching entity by its need key, then keep the most
+    # need-relevant few per bucket. Ranking inside a bucket is by
+    # _need_relevance (demotes diagnostic sensors, rewards qualifier/area
+    # match); original index breaks ties so selection is stable.
+    buckets: dict[str, list[tuple[int, int, EntitySnapshot]]] = {}
+    for orig_idx, e in enumerate(entities):
+        for key in _entity_need_keys(e, device_classes, domains):
+            buckets.setdefault(key, []).append((_need_relevance(e, keywords), orig_idx, e))
+
+    per_need: list[tuple[int, str, list[int]]] = []
+    for key, cand in buckets.items():
+        cand.sort(key=lambda t: (-t[0], t[1]))
+        keep = cand[:_PER_NEED_KEEP]
+        if keep:
+            per_need.append((-keep[0][0], key, [orig_idx for _rel, orig_idx, _e in keep]))
+
+    if max_pinned is None:
+        pinned_idx = {i for _best, _key, idxs in per_need for i in idxs}
+    else:
+        # A bounded pin is spent ROUND-ROBIN across the needs, not best-first
+        # over all of them at once. ``_need_relevance`` scores on the request's
+        # own words, so the candidates it ranks highest are the ones the keyword
+        # ranking was already going to keep — spending a tight bound on those
+        # reserves slots for entities that never needed reserving, and starves a
+        # second need whose entities score 0 (the illuminance sensor behind
+        # "when it gets dark") down to nothing. That is the miss this pinning
+        # exists to prevent, reappearing one need over. So every need gets a
+        # slot before any need gets a second one. Needs are visited
+        # best-candidate-first, so a bound too tight to cover them all still
+        # spends what it has on the most relevant; the need key breaks ties so
+        # the selection stays deterministic.
+        per_need.sort(key=lambda t: (t[0], t[1]))
+        pinned_idx: set[int] = set()
+        for depth in range(_PER_NEED_KEEP):
+            for _best, _key, idxs in per_need:
+                if len(pinned_idx) >= max_pinned:
+                    break
+                if depth < len(idxs):
+                    # A set, because one entity can satisfy two needs — a cover
+                    # carrying device_class=door is in ``domain:cover`` AND
+                    # ``class:door`` — and must not spend two of the slots.
+                    pinned_idx.add(idxs[depth])
+            if len(pinned_idx) >= max_pinned:
+                break
+
+    if not pinned_idx:
+        return ranked_entities[:cap]
+
+    def order(i: int) -> int:
+        """Sort key: lower sorts earlier in the rendered block."""
+        # ``pin_to_front`` exists because the low-context path caps TWICE: this
+        # call selects 60, then the provider renders 25 of them for an
+        # automation. A pinned entity left at its keyword rank — the trigger
+        # sensor sits behind thirty lights of the area it is named for — is
+        # simply truncated away by that second cap, so pinning here would be a
+        # no-op where it matters most. Leading the block is what survives it.
+        # The cloud path caps once and keeps pinned entities in keyword order.
+        if pin_to_front and i in pinned_idx:
+            return i - len(entities)
+        rank = base_order.get(i)
+        # Pinned but unranked (scored 0) with no pin_to_front: no rank to sort
+        # by, and the end of the block is where the keyword ranking would have
+        # put a zero score.
+        return rank if rank is not None else len(entities) + i
+
+    # Compose: pinned entities first (so they always make the cut), then
+    # the keyword-ranked remainder until the cap is full. Finally re-sort
+    # the whole selection back into keyword-rank order for a stable,
+    # readable prompt block.
+    pinned = [(order(i), entities[i]) for i in pinned_idx]
+    pinned.sort(key=lambda t: t[0])
+    selected_idx = set(pinned_idx)
+    result_pairs: list[tuple[int, EntitySnapshot]] = list(pinned)
+
+    if len(result_pairs) >= cap:
+        result_pairs.sort(key=lambda t: t[0])
+        return [e for _, e in result_pairs[:cap]]
+
+    # Fill from the keyword ranking (score desc, original index asc), NOT
+    # the raw input order — otherwise early unrelated entities displace
+    # later high-scoring matches whenever a pinned need also fires, which
+    # is exactly the large-install case this selector exists to fix.
+    for orig_idx, e in ranked:
+        if len(result_pairs) >= cap:
+            break
+        if orig_idx in selected_idx:
+            continue
+        result_pairs.append((order(orig_idx), e))
+        selected_idx.add(orig_idx)
+
+    result_pairs.sort(key=lambda t: t[0])
+    return [e for _, e in result_pairs[:cap]]
+
+
 def _filter_cloud_entities(
     entities: list[EntitySnapshot],
     keywords: set[str],
@@ -2844,7 +3050,7 @@ def _filter_cloud_entities(
     This layers required-need PINNING over the keyword ranking:
 
     1. Resolve the request into device_class / domain NEEDS
-       (``_cloud_pinned_needs``): "pressure" → a pressure sensor,
+       (``_pinned_needs``): "pressure" → a pressure sensor,
        "windows"/"open" → opening/door/window binary_sensors, "fan" → the
        fan domain, "weather" → the weather domain, "inside"/"outside"/
        "temperature" → temperature sensors, "thermostat"/"ac" → climate.
@@ -2872,58 +3078,10 @@ def _filter_cloud_entities(
         enumerate(entities),
         key=lambda t: (-_score_entity_against_keywords(t[1], keywords), t[0]),
     )
-    ranked_entities: list[EntitySnapshot] = []
-    for rank_idx, (orig_idx, e) in enumerate(ranked):
-        ranked_entities.append(e)
+    for rank_idx, (orig_idx, _e) in enumerate(ranked):
         base_order[orig_idx] = rank_idx
 
-    device_classes, domains = _cloud_pinned_needs(keywords, message)
-    if not device_classes and not domains:
-        # No semantic need to pin — keyword ranking decides the cap.
-        return ranked_entities[:cap]
-
-    # Bucket every need-matching entity by its need key, then keep the most
-    # need-relevant few per bucket. Ranking inside a bucket is by
-    # _need_relevance (demotes diagnostic sensors, rewards qualifier/area
-    # match); original index breaks ties so selection is stable.
-    buckets: dict[str, list[tuple[int, int, EntitySnapshot]]] = {}
-    for orig_idx, e in enumerate(entities):
-        for key in _entity_need_keys(e, device_classes, domains):
-            buckets.setdefault(key, []).append((_need_relevance(e, keywords), orig_idx, e))
-
-    pinned_idx: set[int] = set()
-    for cand in buckets.values():
-        cand.sort(key=lambda t: (-t[0], t[1]))
-        for _, orig_idx, _e in cand[:_PER_NEED_KEEP]:
-            pinned_idx.add(orig_idx)
-
-    if not pinned_idx:
-        return ranked_entities[:cap]
-
-    # Compose: pinned entities first (so they always make the cut), then
-    # the keyword-ranked remainder until the cap is full. Finally re-sort
-    # the whole selection back into keyword-rank order for a stable,
-    # readable prompt block.
-    pinned = [(base_order[i], entities[i]) for i in pinned_idx]
-    pinned.sort(key=lambda t: t[0])
-    selected_idx = set(pinned_idx)
-    result_pairs: list[tuple[int, EntitySnapshot]] = list(pinned)
-
-    if len(result_pairs) >= cap:
-        result_pairs.sort(key=lambda t: t[0])
-        return [e for _, e in result_pairs[:cap]]
-
-    # Fill from the keyword ranking (score desc, original index asc), NOT
-    # the raw input order — otherwise early unrelated entities displace
-    # later high-scoring matches whenever a pinned need also fires, which
-    # is exactly the large-install case this selector exists to fix.
-    for orig_idx, e in ranked:
-        if len(result_pairs) >= cap:
-            break
-        if orig_idx in selected_idx:
-            continue
-        result_pairs.append((base_order[orig_idx], e))
-        selected_idx.add(orig_idx)
-
-    result_pairs.sort(key=lambda t: t[0])
-    return [e for _, e in result_pairs[:cap]]
+    device_classes, domains = _pinned_needs(keywords, message)
+    return _pin_needs_into_cap(
+        entities, ranked, base_order, keywords, device_classes, domains, cap=cap
+    )

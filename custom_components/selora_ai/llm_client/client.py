@@ -953,6 +953,7 @@ class LLMClient:
                     entities,
                     _low_context_keywords(user_message),
                     cap=60,
+                    message=user_message,
                 )
                 # Pass the filtered chat context so providers like
                 # Selora AI Local can rebuild the outgoing payload to
@@ -1258,6 +1259,7 @@ class LLMClient:
                     entities,
                     _low_context_keywords(user_message),
                     cap=60,
+                    message=user_message,
                 )
                 # Pass the filtered chat context so providers like
                 # Selora AI Local can rebuild the outgoing payload to
@@ -1387,7 +1389,9 @@ class LLMClient:
         header = f"COMMAND: {command}\n\nAVAILABLE ENTITIES (0000):\n"
         cap = self._entity_line_cap(system_prompt, other_context=header)
         selected = trim_entities_to_budget(
-            _filter_entities_by_keywords(entities, _low_context_keywords(command), cap=cap),
+            _filter_entities_by_keywords(
+                entities, _low_context_keywords(command), cap=cap, message=command
+            ),
             cap,
         )
         entity_lines = [_format_entity_line(e) for e in selected]

@@ -558,7 +558,9 @@ def build_minimal_chat_messages(
     from .sanitize import _format_entity_line
 
     keywords = _low_context_keywords(user_message)
-    filtered = _filter_entities_by_keywords(entities, keywords, cap=_LOW_CONTEXT_MAX_ENTITIES)
+    filtered = _filter_entities_by_keywords(
+        entities, keywords, cap=_LOW_CONTEXT_MAX_ENTITIES, message=user_message
+    )
     _LOGGER.debug(
         "build_minimal_chat_messages: user_msg=%r keywords=%s n_in=%d n_filtered=%d "
         "filtered_ids=%s",
