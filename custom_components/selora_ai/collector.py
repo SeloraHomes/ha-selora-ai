@@ -26,7 +26,7 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 import yaml
 
 from .automation_utils import (
@@ -242,35 +242,47 @@ class DataCollector:
         # LLM call exhausts the retry budget and logs a noisy "upstream
         # unreachable" warning on every restart. On reload (HA already
         # running), fire immediately — the upstream is already warm.
-        async def _initial_cycle(delay_seconds: float = 0.0) -> None:
-            if delay_seconds > 0:
-                try:
-                    await asyncio.sleep(delay_seconds)
-                except asyncio.CancelledError:
-                    # async_stop() cancels this during the boot-grace window
-                    # (disable/reload mid-window). Bail out instead of falling
-                    # through to the expensive collect/analyze cycle after the
-                    # collector was already stopped.
-                    return
+        async def _initial_cycle() -> None:
             try:
                 await self._collect_analyze_log()
             except Exception:
                 _LOGGER.exception("Initial collection cycle failed — will retry on next interval")
 
-        def _schedule_initial_cycle(delay_seconds: float = 0.0) -> None:
-            self._initial_cycle_task = self._hass.async_create_task(_initial_cycle(delay_seconds))
+        def _schedule_initial_cycle() -> None:
+            # BACKGROUND, for the reason the comment above gives: the cycle is
+            # a full collect + LLM analysis and can run for minutes, and a
+            # task HA tracks holds up bootstrap ("Waiting for integrations to
+            # complete setup"), every reload, and every test's
+            # ``async_block_till_done()`` for exactly that long. Nothing needs
+            # its result; ``async_stop`` still cancels and drains it.
+            self._initial_cycle_task = self._hass.async_create_background_task(
+                _initial_cycle(), name="selora_ai_initial_collection_cycle"
+            )
 
         if self._hass.state == CoreState.running:
             _schedule_initial_cycle()
         else:
 
             @callback
+            def _on_grace_elapsed(_now: datetime) -> None:
+                self._initial_cycle_unsub = None
+                _schedule_initial_cycle()
+
+            @callback
             def _on_started(_event: Any) -> None:
                 # @callback marks this as event-loop safe so HA does
-                # not dispatch it via the executor — async_create_task
+                # not dispatch it via the executor — async_call_later
                 # is loop-only and would raise from any other thread.
-                self._initial_cycle_unsub = None
-                _schedule_initial_cycle(_INITIAL_CYCLE_BOOT_GRACE)
+                #
+                # The grace window is a TIMER, not a task that sleeps it out:
+                # a sleeping task is one HA is tracking, so every
+                # ``async_block_till_done()`` — a reload, a test — waits the
+                # whole window for it. ``async_stop`` cancels the timer
+                # through the same ``_initial_cycle_unsub`` that held the
+                # start-event listener, so a stop mid-window still lands.
+                self._initial_cycle_unsub = async_call_later(
+                    self._hass, _INITIAL_CYCLE_BOOT_GRACE, _on_grace_elapsed
+                )
 
             self._initial_cycle_unsub = self._hass.bus.async_listen_once(
                 EVENT_HOMEASSISTANT_STARTED, _on_started

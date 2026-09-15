@@ -98,6 +98,28 @@ custom_components/selora_ai/
 - All entities use `_attr_has_entity_name = True` and reference the hub device `(DOMAIN, "selora_ai_hub")`
 - Dispatcher signals for real-time updates: `SIGNAL_DEVICES_UPDATED`, `SIGNAL_ACTIVITY_LOG`
 - Dashboard generation uses HA's Lovelace API (`LovelaceStorage.async_save`), not direct file writes
+- **A startup deferral is a TIMER, never a task that sleeps out its own delay.**
+  `hass.async_create_task` registers the task with HA, so everything that waits
+  for HA to go quiet — bootstrap, every config-entry reload, and every test's
+  `async_block_till_done()` — waits for it to finish. A task whose body is
+  `await asyncio.sleep(delay)` therefore makes each of those sit out the whole
+  delay for an answer nobody wants. The startup telemetry snapshot (120s) and
+  the initial network discovery (30s) were written that way, so a conversation
+  test doing 400ms of work took a flat 120 seconds and the Allen benchmark —
+  one HomeAssistant per case — could not produce a baseline at 36 hours a run.
+  Note the flag does not save you: both slept before checking whether their
+  feature was even enabled, so a config with discovery and telemetry off paid
+  it in full. Use `async_call_later` to arm the delay and
+  `async_create_background_task` for the work it fires, which is what makes a
+  "fire-and-forget" comment true rather than aspirational — `async_block_till_done()`
+  does not wait on background tasks. Cancel the timer on unload (before the
+  first `await`, or it can fire against state that teardown has already
+  popped), and have the callback tolerate a torn-down entry. The pattern is in
+  `health_monitor.py`, `insights_audit.py` and `insights_export.py`; the cases
+  that had to be converted are in `__init__.py`, `collector.py` and
+  `pattern_engine.py`, and `tests/test_startup_delays.py` guards them by
+  TIMEOUT — a regression here makes a test slow, not red, unless something
+  bounds the wait.
 
 ### Config Flow
 - First entry: LLM provider selection → credentials → device discovery → area assignment → results

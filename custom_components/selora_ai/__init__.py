@@ -32,10 +32,10 @@ import uuid
 from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 import voluptuous as vol
 
 if TYPE_CHECKING:
@@ -157,6 +157,10 @@ from .scene_utils import get_area_names
 from .telemetry import record_activity
 
 _LOGGER = logging.getLogger(__name__)
+
+# Delay before the one-off startup network discovery. Armed as a TIMER, never
+# as a sleeping task — see the comment at the call site.
+_INITIAL_DISCOVERY_DELAY_SECONDS = 30
 
 PLATFORMS: list[str] = ["conversation", "sensor"]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -5505,14 +5509,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:
             _LOGGER.exception("Discovery task failed")
 
-    # Initial delayed discovery
-    async def _delayed_discovery() -> None:
-        await asyncio.sleep(30)
-        if discovery_enabled:
-            await _run_discovery()
-
     _bg = hass.data[DOMAIN][entry.entry_id]["_background_tasks"]
-    _bg.append(hass.async_create_task(_delayed_discovery()))
+
+    # Initial delayed discovery, armed with a TIMER rather than a task that
+    # sleeps out its own delay. ``async_create_task`` registers the task with
+    # HA, and everything that waits for HA to go quiet — bootstrap, a
+    # config-entry reload, and every test's ``async_block_till_done()`` — then
+    # waits the full delay for it. The sleep is not work anyone is waiting on,
+    # so it must not be expressed as a pending task; ``async_call_later`` just
+    # arms a timer and returns (same pattern as the health monitor and the
+    # audit runner). The task the timer spawns is a BACKGROUND task, which
+    # nothing blocks on, and lands in ``_bg`` so unload still cancels it.
+    @callback
+    def _fire_initial_discovery(_now: datetime) -> None:
+        entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        if entry_data is None:
+            # Unloaded while the timer was armed — nothing to fire against.
+            return
+        entry_data["unsub_initial_discovery"] = None
+        _bg.append(
+            hass.async_create_background_task(_run_discovery(), name="selora_ai_initial_discovery")
+        )
+
+    if discovery_enabled:
+        hass.data[DOMAIN][entry.entry_id]["unsub_initial_discovery"] = async_call_later(
+            hass, _INITIAL_DISCOVERY_DELAY_SECONDS, _fire_initial_discovery
+        )
 
     # Periodic discovery timer
     unsub_discovery = None
@@ -5547,6 +5569,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # incoming prefix matches what's cached, so we have to prime with
     # the exact entity block the user's first chat will send.
     # Fire-and-forget — pre-warm failures are logged but never block setup.
+    # A BACKGROUND task, which is what makes that true: ``async_create_task``
+    # registers the task with HA, so bootstrap, a reload and every test's
+    # ``async_block_till_done()`` would each wait out its five LoRA priming
+    # round-trips before continuing. Nobody needs pre-warm's answer — the
+    # first real request is what it is for — and ``_bg`` still cancels it on
+    # unload.
     if llm:
         from .providers.selora_local import SeloraLocalProvider  # noqa: PLC0415
 
@@ -5559,7 +5587,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 except Exception:  # noqa: BLE001 — pre-warm must never crash setup
                     _LOGGER.exception("Selora AI Local pre-warm task failed")
 
-            _bg.append(hass.async_create_task(_selora_local_prewarm()))
+            _bg.append(
+                hass.async_create_background_task(
+                    _selora_local_prewarm(), name="selora_ai_local_prewarm"
+                )
+            )
 
     # Start background collection + analysis
     if llm:
@@ -5824,14 +5856,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await telemetry.async_send_snapshot(provider=provider)
         await telemetry.async_send_activity(provider=provider)
 
-    async def _delayed_telemetry_snapshot() -> None:
-        await asyncio.sleep(TELEMETRY_SNAPSHOT_STARTUP_DELAY)
-        # Snapshot only on startup — activity is flushed on the recurring
-        # interval so its period_hours label stays accurate (a startup
-        # flush would emit a ~2-minute window mislabelled as 24h).
-        await _telemetry_snapshot()
+    # Snapshot only on startup — activity is flushed on the recurring
+    # interval so its period_hours label stays accurate (a startup flush
+    # would emit a ~2-minute window mislabelled as 24h).
+    #
+    # Armed with a timer for the reason the initial discovery above is: a
+    # tracked task sleeping out TELEMETRY_SNAPSHOT_STARTUP_DELAY makes every
+    # ``async_block_till_done()`` wait those two minutes, which is the longest
+    # such delay here and so the one that sets the stall's length.
+    @callback
+    def _fire_startup_telemetry(_now: datetime) -> None:
+        entry_data = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        if entry_data is None:
+            # Unloaded while the timer was armed — nothing to fire against.
+            return
+        entry_data["unsub_telemetry_startup"] = None
+        _bg.append(
+            hass.async_create_background_task(
+                _telemetry_snapshot(), name="selora_ai_startup_telemetry"
+            )
+        )
 
-    _bg.append(hass.async_create_task(_delayed_telemetry_snapshot()))
+    hass.data[DOMAIN][entry.entry_id]["unsub_telemetry_startup"] = async_call_later(
+        hass, TELEMETRY_SNAPSHOT_STARTUP_DELAY, _fire_startup_telemetry
+    )
     unsub_telemetry = async_track_time_interval(
         hass, _telemetry_periodic, timedelta(hours=TELEMETRY_SNAPSHOT_INTERVAL_HOURS)
     )
@@ -5940,6 +5988,25 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unsub_discovery = data.get("unsub_discovery")
     unsub_telemetry = data.get("unsub_telemetry")
 
+    # The one-off startup timers, cancelled BEFORE the first await below: an
+    # unfired timer outliving its entry spawns its task against state this
+    # function has already popped, and the collector stop is long enough to
+    # land in.
+    for _unsub_key in ("unsub_initial_discovery", "unsub_telemetry_startup"):
+        unsub_startup = data.get(_unsub_key)
+        if unsub_startup:
+            unsub_startup()
+
+    # Cancel the background tasks here too, ahead of the same await. A task
+    # already in flight — a discovery sweep, a telemetry POST, a pre-warm —
+    # otherwise keeps running against the entry this function has just popped,
+    # dispatching signals and writing for state that is being torn down. The
+    # cancellation is synchronous; the draining await stays below, where it is
+    # safe to suspend.
+    pending_tasks = [t for t in data.get("_background_tasks", []) if not t.done()]
+    for task in pending_tasks:
+        task.cancel()
+
     if collector:
         await collector.async_stop()
 
@@ -5957,11 +6024,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if snap is not None:
             snap.pop(entry.entry_id, None)
 
-    # Cancel tracked background tasks and drain their cancellations so we
-    # don't leak coroutine frames / traceback objects across reloads.
-    pending_tasks = [t for t in data.get("_background_tasks", []) if not t.done()]
-    for task in pending_tasks:
-        task.cancel()
+    # Drain the cancellations issued above so we don't leak coroutine frames /
+    # traceback objects across reloads.
     for task in pending_tasks:
         with suppress(asyncio.CancelledError, Exception):
             await task
