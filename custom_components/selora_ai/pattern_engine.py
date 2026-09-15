@@ -20,8 +20,8 @@ import logging
 import statistics
 from typing import TYPE_CHECKING, Any
 
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.helpers.event import async_call_later, async_track_time_interval
 
 if TYPE_CHECKING:
     from .types import PatternDict, PatternEvidence, StateChange
@@ -40,6 +40,9 @@ from .entity_filter import EntityFilter, resolve_ignored_entity_ids
 from .pattern_store import PatternStore
 
 _LOGGER = logging.getLogger(__name__)
+
+# Delay before the first pattern scan, armed as a timer — see async_start.
+_INITIAL_SCAN_DELAY_SECONDS = 60
 
 # Minimum occurrences to consider a time-based pattern
 _MIN_TIME_OCCURRENCES = 3
@@ -165,6 +168,7 @@ class PatternEngine:
         self._hass = hass
         self._store = pattern_store
         self._unsub_timer: CALLBACK_TYPE | None = None
+        self._unsub_initial: CALLBACK_TYPE | None = None
         self._initial_scan_task: asyncio.Task[None] | None = None
         self.on_patterns_detected: (
             Callable[[list[PatternDict]], Coroutine[Any, Any, None]] | None
@@ -177,18 +181,36 @@ class PatternEngine:
             self._scheduled_scan,
             timedelta(seconds=DEFAULT_PATTERN_INTERVAL),
         )
-        if self._initial_scan_task is None or self._initial_scan_task.done():
-            self._initial_scan_task = self._hass.async_create_task(self._delayed_initial_scan())
+        # Arm the first scan with a timer, NOT ``async_create_task``: a task
+        # that sleeps out its own delay is a task HA is tracking, so bootstrap,
+        # a config-entry reload and every test's ``async_block_till_done()``
+        # each wait the full delay for a sleep nobody is waiting on. Same
+        # pattern as the health monitor and the audit runner.
+        if self._unsub_initial is None and (
+            self._initial_scan_task is None or self._initial_scan_task.done()
+        ):
+            self._unsub_initial = async_call_later(
+                self._hass, _INITIAL_SCAN_DELAY_SECONDS, self._fire_initial_scan
+            )
 
-    async def _delayed_initial_scan(self) -> None:
-        await asyncio.sleep(60)
-        await self._scheduled_scan(None)
+    @callback
+    def _fire_initial_scan(self, _now: datetime) -> None:
+        self._unsub_initial = None
+        # Fires well after bootstrap, so a background task here blocks nothing;
+        # it just must not be garbage-collected mid-flight, and async_stop has
+        # to be able to cancel it.
+        self._initial_scan_task = self._hass.async_create_background_task(
+            self._scheduled_scan(None), name="selora_ai_initial_pattern_scan"
+        )
 
     async def async_stop(self) -> None:
         """Stop the periodic timer."""
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
+        if self._unsub_initial:
+            self._unsub_initial()
+            self._unsub_initial = None
 
         if self._initial_scan_task and not self._initial_scan_task.done():
             self._initial_scan_task.cancel()

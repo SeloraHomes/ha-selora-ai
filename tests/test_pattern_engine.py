@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
+from homeassistant.util import dt as dt_util
 import pytest
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.selora_ai.pattern_engine import (
+    _INITIAL_SCAN_DELAY_SECONDS,
     PatternEngine,
     _count_distinct_days,
     _parse_timestamp,
@@ -984,3 +988,61 @@ class TestScheduledScanCallback:
 
         # Should not raise
         await engine._scheduled_scan(None)
+
+
+# ===========================================================================
+# Initial-scan deferral
+# ===========================================================================
+
+
+class TestInitialScanDeferral:
+    """The first scan is delayed, and the delay must not be a pending task.
+
+    ``async_create_task`` registers the task with HA, so a task sleeping out
+    ``_INITIAL_SCAN_DELAY_SECONDS`` makes bootstrap, every config-entry reload
+    and every test's ``async_block_till_done()`` wait the full minute.
+    """
+
+    @pytest.mark.asyncio
+    async def test_start_arms_a_timer_not_a_sleeping_task(self, hass) -> None:
+        engine = _make_engine(hass)
+        engine._scheduled_scan = AsyncMock()
+
+        await engine.async_start()
+        try:
+            assert engine._unsub_initial is not None
+            assert engine._initial_scan_task is None
+            await asyncio.wait_for(hass.async_block_till_done(), timeout=5)
+            engine._scheduled_scan.assert_not_awaited()
+        finally:
+            await engine.async_stop()
+
+    @pytest.mark.asyncio
+    async def test_the_scan_still_runs_when_the_delay_elapses(self, hass) -> None:
+        engine = _make_engine(hass)
+        engine._scheduled_scan = AsyncMock()
+
+        await engine.async_start()
+        try:
+            async_fire_time_changed(
+                hass,
+                dt_util.utcnow() + timedelta(seconds=_INITIAL_SCAN_DELAY_SECONDS + 1),
+            )
+            await hass.async_block_till_done()
+            engine._scheduled_scan.assert_awaited_once()
+        finally:
+            await engine.async_stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_cancels_the_unfired_timer(self, hass) -> None:
+        engine = _make_engine(hass)
+        engine._scheduled_scan = AsyncMock()
+
+        await engine.async_start()
+        await engine.async_stop()
+
+        async_fire_time_changed(
+            hass, dt_util.utcnow() + timedelta(seconds=_INITIAL_SCAN_DELAY_SECONDS + 1)
+        )
+        await hass.async_block_till_done()
+        engine._scheduled_scan.assert_not_awaited()
