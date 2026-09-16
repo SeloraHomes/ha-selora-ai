@@ -118,7 +118,9 @@ class TestDefaultsUnchanged:
         )
         assert result["intent"] == "answer"
         assert result["calls"] == []
-        assert "no-chat-execution" in result["validation_error"]
+        # Unlisted, not denylisted. Reporting the denylist here pointed the
+        # caller at a list `todo.add_item` is not on.
+        assert "outside the current safe command allowlist" in result["validation_error"]
 
     def test_unlisted_verb_still_refused(self, hass) -> None:
         result = apply_command_policy(
