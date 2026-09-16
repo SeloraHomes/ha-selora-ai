@@ -247,7 +247,18 @@ async def test_execute_command_rejects_blocked_service(hass: HomeAssistant, setu
         {"service": "python_script.exec", "entity_id": "python_script.foo"},
     )
     assert result["valid"] is False
-    assert any("allowlist" in e for e in result["errors"])
+    assert any("no-chat-execution list" in e for e in result["errors"])
+
+    # ``scene.reload`` is the one denylisted service sitting in a SAFE
+    # domain, so ``_classify_call`` — reached only for a domain outside
+    # the curated tables — never saw it. The per-domain verb check was
+    # refusing it, which reads as the same outcome and is not.
+    result = await _tool_execute_command(
+        hass,
+        {"service": "scene.reload", "entity_id": "scene.movie_night"},
+    )
+    assert result["valid"] is False
+    assert any("no-chat-execution list" in e for e in result["errors"])
 
 
 @pytest.mark.asyncio

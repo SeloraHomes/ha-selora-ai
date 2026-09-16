@@ -470,6 +470,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
+    from .command_policy_options import resolve_command_policy_options
     from .entity_capabilities import is_actionable_entity
     from .entity_filter import EntityFilter
 
@@ -479,6 +480,16 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     # needs scenes in AVAILABLE ENTITIES so it can reference their real
     # entity_ids when building automations/commands that activate them.
     _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation", "scene"}
+    # The domain filter is the second half of the safe-command allowlist,
+    # not a separate restriction: a ``todo`` list is absent here for the
+    # same reason ``todo.add_item`` is absent from the service tables.
+    # Relaxing only the tables would leave the opt-out inert on exactly
+    # those calls — the service would be permitted against an entity the
+    # model was never shown and the policy would refuse it one check
+    # later as an unknown entity_id. Widening the snapshot costs prompt
+    # size, which is the price of being able to measure those cases at
+    # all.
+    domain_filtered = resolve_command_policy_options(hass).allowlist_enabled
     all_states = hass.states.async_all()
     ef = EntityFilter(hass, [s.entity_id for s in all_states])
 
@@ -497,7 +508,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
         skip_states = {"unavailable"} if domain == "scene" else _SKIP_STATES
         if state.state in skip_states:
             continue
-        if domain not in _ALLOWED_DOMAINS:
+        if domain_filtered and domain not in _ALLOWED_DOMAINS:
             continue
         if not ef.is_active(state.entity_id):
             continue
@@ -4803,6 +4814,7 @@ async def _resolve_approval(
     # service a free pass. Validate first, grant only the services
     # that actually survived validation AND required approval, then
     # execute.
+    from .command_policy_options import resolve_command_policy_options
     from .llm_client.command_policy import (
         _classify_call,
         _validate_review_call,
@@ -4812,6 +4824,7 @@ async def _resolve_approval(
     )
     from .mcp_server import _safe_command_entity_allowlist
 
+    policy = resolve_command_policy_options(hass)
     safe_entities = _safe_command_entity_allowlist(hass)
     validated_calls: list[tuple[int, dict[str, Any]]] = []
     errors: list[str] = []
@@ -4820,7 +4833,7 @@ async def _resolve_approval(
         if "." not in service:
             errors.append(f"invalid service: {service!r}")
             continue
-        bucket, policy_entry = _classify_call(service)
+        bucket, policy_entry = _classify_call(service, allowlist_enabled=policy.allowlist_enabled)
         if bucket == "blocked":
             errors.append(f"{service}: blocked at execution time")
             continue
@@ -4840,7 +4853,7 @@ async def _resolve_approval(
             # approving such a card would bypass the entity allowlist,
             # max-target cap, and data-key whitelist for services
             # like ``light.turn_on`` or ``scene.turn_on``.
-            validated_safe, shape_err = _validate_safe_call(call, safe_entities)
+            validated_safe, shape_err = _validate_safe_call(call, safe_entities, policy=policy)
             if shape_err is not None or validated_safe is None:
                 errors.append(f"{service}: {shape_err}")
                 continue

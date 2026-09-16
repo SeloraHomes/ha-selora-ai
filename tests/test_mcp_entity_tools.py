@@ -242,13 +242,33 @@ async def test_validate_action_valid_light_turn_on(hass: HomeAssistant, setup_en
 @pytest.mark.asyncio
 async def test_validate_action_rejects_unknown_domain(hass: HomeAssistant) -> None:
     # ``python_script.exec`` is on the BLOCKED denylist — it can never
-    # be auto-approved via the chat-driven approval flow.
+    # be auto-approved via the chat-driven approval flow. The refusal
+    # names the denylist rather than the allowlist: it is not merely a
+    # service nobody curated, and reporting it as one made the denylist
+    # look like it had been consulted when the per-domain verb check was
+    # in fact doing the work.
     result = await _tool_validate_action(
         hass,
         {"service": "python_script.exec", "entity_id": "python_script.foo"},
     )
     assert result["valid"] is False
-    assert any("allowlist" in e for e in result["errors"])
+    assert any("no-chat-execution list" in e for e in result["errors"])
+
+
+@pytest.mark.asyncio
+async def test_validate_action_rejects_denylisted_service_in_a_safe_domain(
+    hass: HomeAssistant,
+) -> None:
+    """``scene.reload`` is denylisted AND sits in a SAFE domain, so it is the
+    one entry whose refusal the domain-scoped ``_classify_call`` never saw —
+    the per-domain verb check refused it instead, which reads as the same
+    outcome and is not."""
+    result = await _tool_validate_action(
+        hass,
+        {"service": "scene.reload", "entity_id": "scene.movie_night"},
+    )
+    assert result["valid"] is False
+    assert any("no-chat-execution list" in e for e in result["errors"])
 
 
 @pytest.mark.asyncio

@@ -19,6 +19,7 @@ import re
 from typing import TYPE_CHECKING, Any
 
 from ..agent_steps import encode_tool_step
+from ..command_policy_options import resolve_command_policy_options
 from ..const import (
     ANALYSIS_LLM_TIMEOUT,
     ANALYSIS_OUTPUT_BASE_TOKENS,
@@ -993,6 +994,9 @@ class LLMClient:
                     slim=cloud_intent_hint == "command",
                     language=language or self._hass.config.language,
                     household_profile=self._household_profile,
+                    unrestricted_commands=not resolve_command_policy_options(
+                        self._hass
+                    ).allowlist_enabled,
                 )
                 messages = self._build_chat_messages(
                     user_message,
@@ -1294,6 +1298,9 @@ class LLMClient:
                     slim=cloud_intent_hint == "command",
                     language=language or self._hass.config.language,
                     household_profile=self._household_profile,
+                    unrestricted_commands=not resolve_command_policy_options(
+                        self._hass
+                    ).allowlist_enabled,
                 )
                 messages = self._build_chat_messages(
                     user_message,

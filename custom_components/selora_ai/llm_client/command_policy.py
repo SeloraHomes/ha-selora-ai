@@ -15,6 +15,11 @@ from typing import TYPE_CHECKING, Any, Final
 import uuid
 
 from ..automation_utils import _rewrite_announcements
+from ..command_policy_options import (
+    ENFORCED,
+    CommandPolicyOptions,
+    resolve_command_policy_options,
+)
 from ..const import (
     APPROVAL_RISK_HIGH,
     APPROVAL_RISK_LOW,
@@ -531,12 +536,22 @@ def _entity_aware_review_entry(
 
 def _classify_call(
     service: str,
+    *,
+    allowlist_enabled: bool = True,
 ) -> tuple[str, dict[str, Any] | None]:
     """Return ``("safe" | "review" | "blocked", policy_entry | None)``.
 
     For REVIEW services, ``policy_entry`` is the matched dict containing
     ``risk``, ``data`` (allowed keys or None for free-form), and
     ``reason``. For SAFE / BLOCKED it's None.
+
+    ``allowlist_enabled=False`` is the opt-out described in ``const``: a
+    service the curated tables have never heard of classifies SAFE
+    instead of BLOCKED. The REVIEW tables are consulted FIRST either
+    way, so ``lock.unlock`` keeps its risk level and its shape check and
+    whether it waits for a human stays a separate question — and
+    ``_BLOCKED_SERVICES`` still wins outright, being a denylist rather
+    than the allowlist this relaxes.
     """
     if not service or "." not in service:
         return ("blocked", None)
@@ -547,10 +562,10 @@ def _classify_call(
         return ("safe", None)
     review_domain = _REVIEW_SERVICE_POLICIES.get(domain)
     if review_domain is None:
-        return ("blocked", None)
+        return ("safe", None) if not allowlist_enabled else ("blocked", None)
     entry = review_domain.get(service_name) or review_domain.get("*")
     if entry is None:
-        return ("blocked", None)
+        return ("safe", None) if not allowlist_enabled else ("blocked", None)
     return ("review", entry)
 
 
@@ -579,11 +594,18 @@ def call_required_approval(
     - SAFE-bucket services elevated by entity device_class
       (cover.open_cover on a garage / gate / front door).
     Returns False for pure SAFE and BLOCKED services.
+
+    Always False once the install has opted out of approval gating:
+    nothing was held, so there is no grant to record and no card whose
+    resolution could be pending.
     """
     service = str(call.get("service", "")).strip()
     if not service:
         return False
-    bucket, _ = _classify_call(service)
+    policy = resolve_command_policy_options(hass)
+    if not policy.approval_required:
+        return False
+    bucket, _ = _classify_call(service, allowlist_enabled=policy.allowlist_enabled)
     if bucket == "review":
         return True
     if bucket != "safe":
@@ -620,7 +642,14 @@ def validate_command_action(
     ``known_entity_ids`` is optional; when provided, each target entity_id is
     checked for membership (so the tool can flag typos). When omitted, only
     shape and domain rules are enforced.
+
+    The tool half of the two overrides in ``const`` is applied here, so
+    the tool path and ``apply_command_policy`` agree about what is
+    executable — a validator that still refused what the JSON path had
+    started accepting would report the capability as missing on exactly
+    the surface a tool-capable provider uses.
     """
+    policy = resolve_command_policy_options(hass)
     approval_store = _resolve_approval_store(hass, approval_store)
     errors: list[str] = []
     service = (service or "").strip()
@@ -630,6 +659,29 @@ def validate_command_action(
             "errors": ["service must be in '<domain>.<verb>' form"],
             "service": service,
             "domain": None,
+            "allowed_data_keys": [],
+        }
+
+    # The denylist, asked FIRST and on every service. ``_classify_call``
+    # below is only reached for a domain outside the curated tables, so
+    # the one ``_BLOCKED_SERVICES`` entry that lives INSIDE a safe domain
+    # — ``scene.reload`` — was never being refused by the denylist here.
+    # It was refused by the per-domain VERB check instead, which reads as
+    # the same outcome and is not: the verb check is exactly what the
+    # allowlist opt-out removes, so relaxing the allowlist made a
+    # denylisted service executable through the tool path. The JSON path
+    # never had the gap — ``apply_command_policy`` classifies every call
+    # before it looks at the domain — and this is what makes the two
+    # agree.
+    if service in _BLOCKED_SERVICES:
+        return {
+            "valid": False,
+            "errors": [
+                f"'{service}' is on the no-chat-execution list and must be run "
+                f"from Home Assistant directly"
+            ],
+            "service": service,
+            "domain": service.split(".", 1)[0],
             "allowed_data_keys": [],
         }
 
@@ -653,7 +705,7 @@ def validate_command_action(
         # rejection — without this branch the LLM would tell the user
         # the request was refused even when the user could just tap
         # "Allow once".
-        bucket, entry = _classify_call(service)
+        bucket, entry = _classify_call(service, allowlist_enabled=policy.allowlist_enabled)
         if bucket == "review" and entry is not None:
             # Shape-validate BEFORE deciding requires_approval. Without
             # this, the tool path would let the LLM smuggle a malformed
@@ -671,6 +723,38 @@ def validate_command_action(
             if data is not None:
                 synthetic_call["data"] = data
             _validated, shape_err = _validate_review_call(synthetic_call, entry)
+            if shape_err is None and not policy.approval_required and known_entity_ids is not None:
+                # Entity-existence guard. This branch returns before the
+                # shared loop below that would ask, and
+                # ``_validate_review_call`` only shape-checks by design,
+                # so nothing else on this path does — while the model
+                # fabricates a plausible id whenever the user names a
+                # domain they do not have ("lock the back door" with no
+                # lock.* entity). HA's entity services MATCH NOTHING
+                # rather than raising, so the tool answers
+                # ``executed: true`` with no states and the model tells
+                # the user it is done. ``apply_command_policy`` guards it.
+                #
+                # Scoped to the approval opt-out, not applied always: a
+                # standing Session/Always grant reaches this same return
+                # with the same gap, and closing THAT is a separate fix on
+                # its own merits rather than something to slip into an
+                # opt-out whose contract is that the defaults do not move.
+                # What the opt-out must not do is inherit it — a grant
+                # covers one service the user chose, this covers every
+                # REVIEW call in the install.
+                #
+                # Read through ``approval_entity_ids`` so ``tts.speak`` is
+                # judged on its SPEAKER — the engine in ``target`` is not
+                # collected and would fail this check outright.
+                _ids = approval_entity_ids(synthetic_call)
+                if entry.get("requires_target", True) and _ids:
+                    unknown = [eid for eid in _ids if eid not in known_entity_ids]
+                    if unknown:
+                        shape_err = (
+                            f"{service} targeted {', '.join(unknown)}, which "
+                            f"isn't a device you have set up"
+                        )
             if shape_err is not None:
                 return {
                     "valid": False,
@@ -684,7 +768,7 @@ def validate_command_action(
                     "risk_level": entry.get("risk"),
                     "approval_reason": entry.get("reason"),
                 }
-            already_approved = _all_targets_approved(
+            already_approved = not policy.approval_required or _all_targets_approved(
                 approval_store, service, _approval_targets, session_id
             )
             return {
@@ -703,23 +787,44 @@ def validate_command_action(
                 "risk_level": entry.get("risk"),
                 "approval_reason": entry.get("reason"),
             }
-        return {
-            "valid": False,
-            "errors": [
-                f"domain '{domain}' is outside the safe command allowlist ({_SAFE_COMMAND_DOMAINS})"
-            ],
-            "service": service,
-            "domain": domain,
-            "allowed_data_keys": [],
-            "allowed_services": sorted(_ALLOWED_COMMAND_SERVICES),
-        }
+        if bucket != "safe":
+            return {
+                "valid": False,
+                "errors": [
+                    f"domain '{domain}' is outside the safe command allowlist "
+                    f"({_SAFE_COMMAND_DOMAINS})"
+                ],
+                "service": service,
+                "domain": domain,
+                "allowed_data_keys": [],
+                "allowed_services": sorted(_ALLOWED_COMMAND_SERVICES),
+            }
+        # SAFE for a domain in no table is only reachable with the
+        # allowlist opt-out set. Fall through to the shared shape checks
+        # rather than answering here: the target form, the entity
+        # existence check and the count cap are not the allowlist and
+        # still apply. ``allowed_services`` / ``allowed_data_keys``
+        # come back empty below, which reads as "nothing to check
+        # against" for a domain that has no curated entry.
 
-    allowed_services = sorted(_ALLOWED_COMMAND_SERVICES[domain])
-    if service_name not in _ALLOWED_COMMAND_SERVICES[domain]:
-        errors.append(
-            f"'{service}' is not a valid {domain} service; expected one of "
-            f"{', '.join(allowed_services)}"
-        )
+    # ``.get`` rather than ``[]``: with the allowlist opt-out set, the
+    # domain reaching here may have no entry at all.
+    allowed_services = sorted(_ALLOWED_COMMAND_SERVICES.get(domain, set()))
+    if service_name not in _ALLOWED_COMMAND_SERVICES.get(domain, set()):
+        if policy.allowlist_enabled:
+            errors.append(
+                f"'{service}' is not a valid {domain} service; expected one of "
+                f"{', '.join(allowed_services)}"
+            )
+        elif _service_is_real(hass, domain, service_name) is False:
+            # The curated verb set has stopped being the authority, so
+            # HA's registry is. Skipping the question entirely would make
+            # this validator LIE: its whole job is to let a small model
+            # self-check before emitting a command, and reporting valid
+            # for a service that then fails at dispatch is worse than
+            # reporting nothing. The JSON path refuses the same call for
+            # the same reason.
+            errors.append(f"'{service}' is not a service Home Assistant has")
 
     if isinstance(entity_id, str):
         target_ids = [entity_id] if entity_id else []
@@ -730,7 +835,12 @@ def validate_command_action(
         target_ids = []
 
     if not target_ids:
-        errors.append("at least one entity_id is required")
+        # Targetless is ordinary outside the curated tables and never
+        # inside them — a curated domain is an entity domain, where HA
+        # falls back to acting on every entity when no target is given.
+        # See the matching branch in ``apply_command_policy``.
+        if policy.allowlist_enabled or domain in _ALLOWED_COMMAND_SERVICES:
+            errors.append("at least one entity_id is required")
     elif len(target_ids) > _MAX_TARGET_ENTITIES:
         errors.append(f"too many entity_ids targeted at once (max {_MAX_TARGET_ENTITIES})")
 
@@ -739,7 +849,12 @@ def validate_command_action(
             errors.append(f"entity_id '{eid}' is not in '<domain>.<object_id>' form")
             continue
         ent_domain = eid.split(".", 1)[0]
-        if ent_domain != domain:
+        # Same reasoning: every curated service is its own domain's, so
+        # "the target domain matches the service domain" holds only
+        # while the curated table is what bounds the call. It is false
+        # for ``homeassistant.turn_on`` on a light, which is exactly the
+        # sort of call the opt-out exists to let through.
+        if ent_domain != domain and policy.allowlist_enabled:
             errors.append(f"entity_id '{eid}' is in the {ent_domain} domain, not {domain}")
         if known_entity_ids is not None and eid not in known_entity_ids:
             errors.append(f"entity_id '{eid}' is not known to Home Assistant")
@@ -748,12 +863,13 @@ def validate_command_action(
     if data is not None and not isinstance(data, dict):
         errors.append("data must be an object")
     elif isinstance(data, dict) and data:
-        extra = sorted(set(data) - set(allowed_data_keys))
-        if extra:
-            errors.append(
-                f"unsupported parameters for {service}: {', '.join(extra)} "
-                f"(allowed: {', '.join(allowed_data_keys) or 'none'})"
-            )
+        if policy.allowlist_enabled:
+            extra = sorted(set(data) - set(allowed_data_keys))
+            if extra:
+                errors.append(
+                    f"unsupported parameters for {service}: {', '.join(extra)} "
+                    f"(allowed: {', '.join(allowed_data_keys) or 'none'})"
+                )
         remote_media = _remote_media_content_error(service, data)
         if remote_media:
             errors.append(remote_media)
@@ -766,7 +882,7 @@ def validate_command_action(
     if not errors:
         review_entry = _entity_aware_review_entry(hass, service, target_ids)
         if review_entry is not None:
-            already_approved = _all_targets_approved(
+            already_approved = not policy.approval_required or _all_targets_approved(
                 approval_store, service, _approval_targets, session_id
             )
             return {
@@ -849,6 +965,29 @@ _SERVICE_REPAIR_HINTS: dict[str, list[tuple[re.Pattern[str], str]]] = {
         (re.compile(r"\block(?:ing|ed)?\b", re.I), "lock"),
     ],
 }
+
+
+def _service_is_real(
+    hass: HomeAssistant | None,
+    domain: str,
+    service_name: str,
+) -> bool | None:
+    """Ask Home Assistant whether ``<domain>.<service_name>`` exists.
+
+    ``None`` means unknowable — no ``hass``, or one whose service
+    registry is not readable. Only consulted once the curated tables
+    have stopped being the authority (the allowlist opt-out): there,
+    "is this a service at all?" is a question only HA can answer, and
+    answering it from ``_SERVICE_REPAIR_HINTS`` would rewrite a real
+    service nobody curated (``media_player.select_source`` into
+    ``media_player.media_play``) rather than run it.
+    """
+    if hass is None:
+        return None
+    try:
+        return bool(hass.services.has_service(domain, service_name))
+    except AttributeError:
+        return None
 
 
 def _repair_service_name(
@@ -4224,6 +4363,8 @@ def _validate_review_call(
 def _validate_safe_call(
     call: dict[str, Any],
     known_entity_ids: set[str],
+    *,
+    policy: CommandPolicyOptions = ENFORCED,
 ) -> tuple[dict[str, Any] | None, str | None]:
     """Apply the full SAFE-bucket policy to one ServiceCallDict.
 
@@ -4248,24 +4389,41 @@ def _validate_safe_call(
     if "." not in service:
         return None, "missing a valid service name"
     domain, service_name = service.split(".", 1)
-    if domain not in _ALLOWED_COMMAND_SERVICES:
-        return None, f"{service} is outside the safe command allowlist"
-    if service_name not in _ALLOWED_COMMAND_SERVICES[domain]:
-        return None, f"{service} is not a valid {domain} service"
+    if policy.allowlist_enabled:
+        if domain not in _ALLOWED_COMMAND_SERVICES:
+            return None, f"{service} is outside the safe command allowlist"
+        if service_name not in _ALLOWED_COMMAND_SERVICES[domain]:
+            return None, f"{service} is not a valid {domain} service"
 
     target = call.get("target", {})
     if target is not None and not isinstance(target, dict):
         return None, f"{service} had an invalid target payload"
     target = target or {}
     entity_ids = target.get("entity_id")
+    # A missing ``entity_id`` is a targetless call, which the allowlist
+    # opt-out accepts on both other paths — so refusing it here would
+    # leave a call ``apply_command_policy`` executes directly unable to
+    # be resolved from a card when it is bundled with a REVIEW one. The
+    # emptiness check below is reached too late to say so: this returns
+    # first. Scoped to a domain outside the curated tables for the
+    # reason that branch gives — a curated domain is an entity domain,
+    # and HA acts on ALL of it when no target is supplied. A non-list,
+    # non-string ``entity_id`` stays malformed.
+    unlisted_targetless = (
+        not policy.allowlist_enabled
+        and entity_ids is None
+        and domain not in _ALLOWED_COMMAND_SERVICES
+    )
     if isinstance(entity_ids, str):
         target_ids: list[str] = [entity_ids] if entity_ids else []
     elif isinstance(entity_ids, list) and all(isinstance(eid, str) for eid in entity_ids):
         target_ids = entity_ids
+    elif unlisted_targetless:
+        target_ids = []
     else:
         return None, f"{service} did not target explicit entity_ids"
 
-    if not target_ids:
+    if not target_ids and not unlisted_targetless:
         return None, f"{service} did not include any target entities"
 
     # Expand wildcard entity_ids — when the model emits ``light.*`` for
@@ -4293,17 +4451,18 @@ def _validate_safe_call(
     for entity_id in target_ids:
         if entity_id not in known_entity_ids:
             return None, f"{service} referenced an unknown entity_id ({entity_id})"
-        if entity_id.split(".", 1)[0] != domain:
+        if entity_id.split(".", 1)[0] != domain and policy.allowlist_enabled:
             return None, f"{service} targeted {entity_id}, which is outside the {domain} domain"
 
     data = call.get("data", {})
     if data is not None and not isinstance(data, dict):
         return None, f"{service} included an invalid data payload"
     data = data or {}
-    allowed_data_keys = _COMMAND_SERVICE_POLICIES[domain][service_name]
-    extra = sorted(set(data) - allowed_data_keys)
-    if extra:
-        return None, f"{service} included unsupported parameters: {', '.join(extra)}"
+    allowed_data_keys = _COMMAND_SERVICE_POLICIES.get(domain, {}).get(service_name)
+    if allowed_data_keys is not None and policy.allowlist_enabled:
+        extra = sorted(set(data) - allowed_data_keys)
+        if extra:
+            return None, f"{service} included unsupported parameters: {', '.join(extra)}"
     remote_media = _remote_media_content_error(service, data)
     if remote_media:
         return None, remote_media
@@ -4401,6 +4560,7 @@ def apply_command_policy(
     language: str | None = None,
 ) -> ArchitectResponse:
     """Reject unsafe immediate commands before any caller can execute them."""
+    policy = resolve_command_policy_options(hass)
     approval_store = _resolve_approval_store(hass, approval_store)
     if not isinstance(result, dict):
         return {"intent": "answer", "response": "Invalid command response"}
@@ -4533,7 +4693,7 @@ def apply_command_policy(
         # services don't fall into the "outside the safe allowlist"
         # rejection (which is what produced the bad UX the approval
         # flow exists to replace).
-        bucket, review_entry = _classify_call(service)
+        bucket, review_entry = _classify_call(service, allowlist_enabled=policy.allowlist_enabled)
         if bucket == "blocked":
             return _blocked_command_result(
                 f"{service} is on the no-chat-execution list and must be run "
@@ -4571,7 +4731,9 @@ def apply_command_policy(
                         f"isn't a device you have set up",
                         result,
                     )
-            approved = _all_targets_approved(approval_store, service, _ids, session_id)
+            approved = not policy.approval_required or _all_targets_approved(
+                approval_store, service, _ids, session_id
+            )
             if approved:
                 validated, err = _validate_review_call(call, review_entry)
                 if err is not None or validated is None:
@@ -4589,23 +4751,44 @@ def apply_command_policy(
             continue
 
         domain, service_name = service.split(".", 1)
-        if domain not in _ALLOWED_COMMAND_SERVICES:
+        if domain not in _ALLOWED_COMMAND_SERVICES and policy.allowlist_enabled:
             # Defensive: _classify_call already routed unknown domains to
             # "blocked", so this branch should be unreachable. Keep the
-            # original rejection here as belt-and-suspenders.
+            # original rejection here as belt-and-suspenders. With the
+            # allowlist opt-out set it IS reachable and must not fire —
+            # _classify_call deliberately returns SAFE there.
             return _blocked_command_result(
                 f"the {domain} domain is outside the current safe command allowlist",
                 result,
             )
-        if service_name not in _ALLOWED_COMMAND_SERVICES[domain]:
+        verb_listed = service_name in _ALLOWED_COMMAND_SERVICES.get(domain, set())
+        # With the allowlist relaxed, a verb HA really has is accepted
+        # verbatim — and must skip the repair below, which would read
+        # "Playing …" off the prose and turn a genuine
+        # ``media_player.select_source`` into ``media_player.media_play``.
+        # A rewritten request answers a question nobody asked, which is
+        # worse than the refusal the opt-out removed.
+        verb_real = (
+            None
+            if policy.allowlist_enabled or verb_listed
+            else _service_is_real(hass, domain, service_name)
+        )
+        if not verb_listed and verb_real is not True:
             # Try to repair common LLM mistakes — `cover.cover`,
             # `cover.garage_door`, etc. — by reading the verb out of
             # the confirmation prose ("Opening the garage door" →
             # `cover.open_cover`). Only kicks in for domains we
             # have a verb-hint table for and only when the
             # response text gives us an unambiguous match.
+            #
+            # The repair itself runs on either setting: it is a
+            # correction, not a restriction, and `cover.cover` names no
+            # service HA has either way. Only the REJECTION below is
+            # the allowlist.
             repaired = _repair_service_name(service, str(result.get("response", "")))
-            if repaired and repaired.split(".", 1)[1] in _ALLOWED_COMMAND_SERVICES[domain]:
+            if repaired and repaired.split(".", 1)[1] in _ALLOWED_COMMAND_SERVICES.get(
+                domain, set()
+            ):
                 _LOGGER.info(
                     "Auto-repaired malformed service %s -> %s (verb inferred from response prose)",
                     service,
@@ -4614,11 +4797,19 @@ def apply_command_policy(
                 service = repaired
                 domain, service_name = service.split(".", 1)
                 call["service"] = service
-            else:
+            elif policy.allowlist_enabled:
                 allowed = sorted(_ALLOWED_COMMAND_SERVICES[domain])
                 return _blocked_command_result(
                     f"`{service}` is not a valid {domain} service; expected one of "
                     f"{', '.join(allowed)}",
+                    result,
+                )
+            elif verb_real is False:
+                # Not the allowlist: HA itself has no such service, so
+                # dispatching would raise and the turn would still read
+                # as a success. Refusing says what actually happened.
+                return _blocked_command_result(
+                    f"`{service}` is not a service Home Assistant has",
                     result,
                 )
 
@@ -4630,17 +4821,40 @@ def apply_command_policy(
             )
 
         entity_ids = target.get("entity_id")
+        # ``entity_ids is None`` is a targetless call. Outside the
+        # curated tables that is ordinary — ``todo.add_item``-shaped and
+        # genuinely targetless services exist — so refusing it there is
+        # the allowlist talking rather than the shape.
+        #
+        # Scoped to a domain the tables do NOT hold, because a curated
+        # domain is an ENTITY domain: HA falls back to acting on EVERY
+        # entity in it when no target is supplied. A targetless
+        # ``cover.open_cover`` would open every cover in the house, and
+        # an empty target list also walks straight past
+        # ``_entity_aware_review_entry`` — so the garage door goes up
+        # with no card, on an install that opted out of the ALLOWLIST
+        # only and left approval gating switched on. That is not the
+        # opt-out being honoured, it is an escalation past a gate the
+        # user never touched. A non-list, non-string ``entity_id`` is
+        # malformed either way and still refused.
+        unlisted_targetless = (
+            not policy.allowlist_enabled
+            and entity_ids is None
+            and domain not in _ALLOWED_COMMAND_SERVICES
+        )
         if isinstance(entity_ids, str):
             target_ids = [entity_ids]
         elif isinstance(entity_ids, list) and all(isinstance(eid, str) for eid in entity_ids):
             target_ids = entity_ids
+        elif unlisted_targetless:
+            target_ids = []
         else:
             return _blocked_command_result(
                 f"{service} did not target explicit entity_ids",
                 result,
             )
 
-        if not target_ids:
+        if not target_ids and not unlisted_targetless:
             return _blocked_command_result(
                 f"{service} did not include any target entities",
                 result,
@@ -4668,7 +4882,12 @@ def apply_command_policy(
                     result,
                 )
             entity_domain = entity_id.split(".", 1)[0]
-            if entity_domain != domain:
+            # Every curated service is its own domain's, so "target
+            # domain == service domain" holds only while the curated
+            # table is what bounds the call. It is false for
+            # ``homeassistant.turn_on`` on a light — one of the calls
+            # the opt-out exists to let through.
+            if entity_domain != domain and policy.allowlist_enabled:
                 return _blocked_command_result(
                     f"{service} targeted {entity_id}, which is outside the {domain} domain",
                     result,
@@ -4682,13 +4901,14 @@ def apply_command_policy(
             )
         data = data or {}
 
-        allowed_data_keys = _COMMAND_SERVICE_POLICIES[domain][service_name]
-        extra_keys = sorted(set(data) - allowed_data_keys)
-        if extra_keys:
-            return _blocked_command_result(
-                f"{service} included unsupported parameters: {', '.join(extra_keys)}",
-                result,
-            )
+        allowed_data_keys = _COMMAND_SERVICE_POLICIES.get(domain, {}).get(service_name)
+        if allowed_data_keys is not None and policy.allowlist_enabled:
+            extra_keys = sorted(set(data) - allowed_data_keys)
+            if extra_keys:
+                return _blocked_command_result(
+                    f"{service} included unsupported parameters: {', '.join(extra_keys)}",
+                    result,
+                )
         remote_media = _remote_media_content_error(service, data)
         if remote_media:
             return _blocked_command_result(remote_media, result)
@@ -4708,7 +4928,9 @@ def apply_command_policy(
         # shape pass is needed here.
         cover_entry = _entity_aware_review_entry(hass, service, list(target_ids))
         if cover_entry is not None:
-            approved = _all_targets_approved(approval_store, service, list(target_ids), session_id)
+            approved = not policy.approval_required or _all_targets_approved(
+                approval_store, service, list(target_ids), session_id
+            )
             if approved:
                 validated_calls.append(safe_call)
                 validated_records.append((idx, safe_call, "", ""))
