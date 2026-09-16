@@ -4266,14 +4266,41 @@ def _tool_failure_response(
 def _blocked_command_result(
     reason: str,
     result: ArchitectResponse | None = None,
+    *,
+    allowlist_hint: bool = False,
 ) -> ArchitectResponse:
-    """Return a safe response when a command proposal is rejected."""
+    """Return a safe response when a command proposal is rejected.
+
+    ``allowlist_hint`` appends the list of domains immediate commands are
+    bounded to. Every rejection in ``apply_command_policy`` arrives here
+    and most are NOT the allowlist — a malformed target, a denylisted
+    service, an entity the home does not have, a service Home Assistant
+    itself does not define — so appending it to all of them names the
+    wrong cause more often than the right one.
+
+    The domain list is the part that misleads, because it is also an
+    absence: a model that invents ``valve.close`` (HA has
+    ``valve.close_valve``) gets a true first sentence followed by a list
+    with no ``valve`` in it, which reads as "valve is blocked by policy"
+    when nothing of the sort happened.
+
+    It defaults OFF because the two failure modes are not symmetric. A
+    site added later that forgets the flag gives a SHORTER explanation;
+    one that inherited it by default gives a WRONG one, and the wrong one
+    is what sends someone looking for a policy problem that does not
+    exist.
+
+    Pass ``allowlist_hint=policy.allowlist_enabled`` rather than ``True``:
+    the list is built from ``_ALLOWED_COMMAND_SERVICES`` at import, so it
+    describes a bound nothing applies once the allowlist is opted out of.
+    """
     _LOGGER.warning("Blocked unsafe LLM command proposal: %s", reason)
-    response = (
-        "I couldn't safely execute that request because "
-        f"{reason}. Immediate commands are currently limited to "
-        f"{_SAFE_COMMAND_DOMAINS} devices with explicit entity targets."
-    )
+    response = f"I couldn't safely execute that request because {reason}."
+    if allowlist_hint:
+        response += (
+            f" Immediate commands are currently limited to {_SAFE_COMMAND_DOMAINS} "
+            "devices with explicit entity targets."
+        )
     blocked_result = dict(result or {})
     blocked_result["intent"] = "answer"
     blocked_result["calls"] = []
@@ -4695,10 +4722,25 @@ def apply_command_policy(
         # flow exists to replace).
         bucket, review_entry = _classify_call(service, allowlist_enabled=policy.allowlist_enabled)
         if bucket == "blocked":
+            # BLOCKED covers two unrelated findings: a service on the
+            # denylist, and one no curated table holds. Reporting both as
+            # the denylist tells a caller whose ``todo.add_item`` was
+            # merely unlisted that it is on a no-chat-execution list, which
+            # is false and points at a list they will not find it on. Ask
+            # the denylist directly rather than inferring it from the
+            # bucket, and let the unlisted half carry the domain hint —
+            # there, the list is the answer.
+            if service in _BLOCKED_SERVICES:
+                return _blocked_command_result(
+                    f"{service} is on the no-chat-execution list and must be run "
+                    f"from Home Assistant directly",
+                    result,
+                )
             return _blocked_command_result(
-                f"{service} is on the no-chat-execution list and must be run "
-                f"from Home Assistant directly",
+                f"the {service.split('.', 1)[0]} domain is outside the current "
+                f"safe command allowlist",
                 result,
+                allowlist_hint=policy.allowlist_enabled,
             )
         if bucket == "review" and review_entry is not None:
             # Extract the call's target ids for per-entity approval
@@ -4760,6 +4802,7 @@ def apply_command_policy(
             return _blocked_command_result(
                 f"the {domain} domain is outside the current safe command allowlist",
                 result,
+                allowlist_hint=policy.allowlist_enabled,
             )
         verb_listed = service_name in _ALLOWED_COMMAND_SERVICES.get(domain, set())
         # With the allowlist relaxed, a verb HA really has is accepted
@@ -4803,6 +4846,7 @@ def apply_command_policy(
                     f"`{service}` is not a valid {domain} service; expected one of "
                     f"{', '.join(allowed)}",
                     result,
+                    allowlist_hint=policy.allowlist_enabled,
                 )
             elif verb_real is False:
                 # Not the allowlist: HA itself has no such service, so
@@ -4855,9 +4899,12 @@ def apply_command_policy(
             )
 
         if not target_ids and not unlisted_targetless:
+            # The hint's "with explicit entity targets" clause IS this rule,
+            # so it is the one shape-ish refusal the list genuinely explains.
             return _blocked_command_result(
                 f"{service} did not include any target entities",
                 result,
+                allowlist_hint=policy.allowlist_enabled,
             )
 
         # Wildcard entity_ids ("*" / "light.*") are NOT expanded on this
@@ -4891,6 +4938,7 @@ def apply_command_policy(
                 return _blocked_command_result(
                     f"{service} targeted {entity_id}, which is outside the {domain} domain",
                     result,
+                    allowlist_hint=policy.allowlist_enabled,
                 )
 
         data = call.get("data", {})
@@ -4908,6 +4956,7 @@ def apply_command_policy(
                 return _blocked_command_result(
                     f"{service} included unsupported parameters: {', '.join(extra_keys)}",
                     result,
+                    allowlist_hint=policy.allowlist_enabled,
                 )
         remote_media = _remote_media_content_error(service, data)
         if remote_media:
