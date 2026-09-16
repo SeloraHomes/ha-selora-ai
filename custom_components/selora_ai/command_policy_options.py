@@ -1,4 +1,4 @@
-"""Resolution of the two entry options that relax the command policy.
+"""Resolution of the entry options that relax the command policy.
 
 Both default to fully-enforced and are read LIVE on every command turn,
 the way ``telemetry.is_enabled`` reads its toggle: there is no reload to
@@ -20,8 +20,10 @@ from typing import TYPE_CHECKING
 from .const import (
     CONF_COMMAND_ALLOWLIST_ENABLED,
     CONF_COMMAND_APPROVAL_REQUIRED,
+    CONF_COMMAND_HANDLERS_ENABLED,
     DEFAULT_COMMAND_ALLOWLIST_ENABLED,
     DEFAULT_COMMAND_APPROVAL_REQUIRED,
+    DEFAULT_COMMAND_HANDLERS_ENABLED,
 )
 
 if TYPE_CHECKING:
@@ -30,15 +32,23 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, slots=True)
 class CommandPolicyOptions:
-    """Which halves of the command policy are in force for this install."""
+    """Which parts of the command policy are in force for this install."""
 
     approval_required: bool = DEFAULT_COMMAND_APPROVAL_REQUIRED
     allowlist_enabled: bool = DEFAULT_COMMAND_ALLOWLIST_ENABLED
+    handlers_enabled: bool = DEFAULT_COMMAND_HANDLERS_ENABLED
 
     @property
     def fully_enforced(self) -> bool:
-        """True when neither override is set — the shipped behaviour."""
-        return self.approval_required and self.allowlist_enabled
+        """True when NO override is set — the shipped behaviour.
+
+        Every field belongs in this conjunction. It is the question other
+        code asks when it wants "is anything relaxed?", so a field left
+        out of it keeps the property's name while checking less than the
+        name claims — and answers True for an install that is running
+        relaxed.
+        """
+        return self.approval_required and self.allowlist_enabled and self.handlers_enabled
 
 
 # The answer whenever there is nothing to read: no ``hass``, no config
@@ -85,5 +95,8 @@ def resolve_command_policy_options(hass: HomeAssistant | None) -> CommandPolicyO
         ),
         allowlist_enabled=bool(
             merged.get(CONF_COMMAND_ALLOWLIST_ENABLED, DEFAULT_COMMAND_ALLOWLIST_ENABLED)
+        ),
+        handlers_enabled=bool(
+            merged.get(CONF_COMMAND_HANDLERS_ENABLED, DEFAULT_COMMAND_HANDLERS_ENABLED)
         ),
     )
