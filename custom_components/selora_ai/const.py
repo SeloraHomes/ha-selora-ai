@@ -1691,3 +1691,27 @@ DEFAULT_COMMAND_APPROVAL_REQUIRED = True
 # entities those services act on.
 CONF_COMMAND_ALLOWLIST_ENABLED = "command_allowlist_enabled"
 DEFAULT_COMMAND_ALLOWLIST_ENABLED = True
+
+# When False, ``_convert_slim_shape`` stops consulting its deterministic
+# overrides and the local model's own text is what gets parsed.
+#
+# Those overrides are a reliability net under a 1.7B and the right thing
+# to ship — nothing here suggests moving the default. What they also do
+# is answer BEFORE the model's text is read, from the user's sentence
+# alone, so a responder that never acts still turns the vacuum on. A
+# control stub took 76.7% of assist-mini that way (30 cases, seed 1729),
+# failing only on `lock` and `valve` — the two domains with no handler in
+# ``providers/selora_local/commands/``. The correlation with handler
+# coverage was total, which is the finding: with the net in place the
+# benchmark scores the net, so a retrain could regress badly and most
+# domains would not move.
+#
+# Named for the MECHANISM, not for commands. The override tuple opens
+# with question handlers (``_maybe_state_filter_envelope``,
+# ``_maybe_single_state_envelope``, ``_maybe_measurement_value_envelope``,
+# ``_maybe_calendar_question_envelope``), so the questions dataset is
+# very likely in the same position — unmeasured as yet. One switch
+# covers both, and a narrower name would misdescribe half of what it
+# turns off.
+CONF_COMMAND_HANDLERS_ENABLED = "command_handlers_enabled"
+DEFAULT_COMMAND_HANDLERS_ENABLED = True

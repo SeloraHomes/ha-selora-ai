@@ -7,6 +7,7 @@ import logging
 import re
 from typing import Any
 
+from ....command_policy_options import resolve_command_policy_options
 from ....json_repair import loads_first_json_object
 from ..commands.vacuum_fan import _canonicalize_vacuum_service
 from ..utilities.rag import _selora_local_ground_citations
@@ -84,6 +85,22 @@ class _SlimParserMixin:
 
     def _convert_slim_shape(self, text: str) -> str:
         """Convert a slim v0.4.2 LoRA output to the {intent, response, calls/automation/scene} envelope LLMClient._parse_architect_response expects."""
+        # Every deterministic override in this function answers from the
+        # user's SENTENCE with the model's ``text`` unread — that is what
+        # makes them a reliability net under a 1.7B, and what makes a
+        # benchmark run through this provider score the net rather than the
+        # model. ``handlers_enabled`` (default True, evaluation opt-out)
+        # is resolved ONCE here so every site below answers the same
+        # question: a turn that consults some overrides and not others
+        # measures neither thing.
+        #
+        # The line is drawn at whose words build the envelope, not at where
+        # the site sits. Salvage that reads the MODEL's raw output —
+        # ``_recover_vacuum_command_from_raw``, ``_utilities_fallback_envelope``,
+        # ``_resolve_truncated_placeholder`` — stays on: recovering what a
+        # model truncated mid-envelope is still reporting what the model
+        # said, and a run measuring the model wants that read, not dropped.
+        overrides_enabled = resolve_command_policy_options(self._hass).handlers_enabled
         # Deterministic overrides. Each ``_maybe_*`` returns a ready-made envelope
         # for a recognised question / command / automation class, or ``None`` to
         # defer to the JSON-parse branches below. The tuple order is the dispatch
@@ -91,37 +108,47 @@ class _SlimParserMixin:
         # overrides before automation overrides). On the first hit, clear the raw
         # user message — a follow-up turn that skips ``set_chat_context`` would
         # otherwise re-trigger the same deterministic override — and return it.
-        for _override_fn in (
-            self._maybe_calendar_question_envelope,  # inventory / count question
-            self._maybe_state_filter_envelope,
-            self._maybe_category_inventory_envelope,
-            self._maybe_todo_question_envelope,  # to-do / task-list question
-            self._maybe_single_state_envelope,  # single-device state ("is the kitchen plug on?")
-            self._maybe_media_player_state_envelope,  # playback state (playing/paused/stopped)
-            self._maybe_polar_valve_state_envelope,  # valve/sprinkler state ("are the sprinklers on?")
-            self._maybe_weather_question_envelope,  # weather/forecast ("is today sunny?")
-            self._maybe_measurement_value_envelope,  # numeric sensor value ("battery level?")
-            self._maybe_missing_domain_clarification,  # "missing domain" safety override
-            self._maybe_todo_command_envelope,  # to-do / shopping-list command
-            self._maybe_light_envelope,  # light command
-            self._maybe_command_envelope,  # media_player command
-            self._maybe_fan_envelope,  # fan command
-            self._maybe_vacuum_envelope,  # vacuum command
-            self._maybe_scene_envelope,  # scene activation
-            self._maybe_input_boolean_envelope,  # input_boolean command
-            self._maybe_cover_envelope,  # cover command
-            self._maybe_climate_envelope,  # climate (thermostat) command
-            self._maybe_presence_automation_envelope,  # presence-duration automation
-            self._maybe_duration_automation_envelope,  # sustained-state ("for N minutes") automation
-            self._maybe_multi_condition_automation_envelope,  # multi-condition automation (A5 class)
-            self._maybe_numeric_state_automation_envelope,  # single-threshold numeric_state automation
-            self._maybe_sun_automation_envelope,  # sun-event automation
-            self._maybe_plain_presence_automation_envelope,  # plain-presence automation
-        ):
-            _override = _override_fn()
-            if _override is not None:
-                self._user_message_raw.set("")
-                return _override
+        #
+        # ``handlers_enabled`` is the evaluation opt-out, default True. Each
+        # ``_maybe_*`` takes no arguments: it reads ``self._user_message_raw``
+        # and builds its envelope from the user's SENTENCE, so a hit returns
+        # without ``text`` ever being read. That is the reliability net working
+        # as intended under a 1.7B — and it is also why a benchmark cannot see
+        # the model through it. A control responder declining every turn still
+        # took 76.7% of assist-mini, failing only on ``lock`` and ``valve``, the
+        # two domains with no handler in ``../commands/``.
+        if overrides_enabled:
+            for _override_fn in (
+                self._maybe_calendar_question_envelope,  # inventory / count question
+                self._maybe_state_filter_envelope,
+                self._maybe_category_inventory_envelope,
+                self._maybe_todo_question_envelope,  # to-do / task-list question
+                self._maybe_single_state_envelope,  # single-device state ("is the kitchen plug on?")
+                self._maybe_media_player_state_envelope,  # playback state (playing/paused/stopped)
+                self._maybe_polar_valve_state_envelope,  # valve/sprinkler state ("are the sprinklers on?")
+                self._maybe_weather_question_envelope,  # weather/forecast ("is today sunny?")
+                self._maybe_measurement_value_envelope,  # numeric sensor value ("battery level?")
+                self._maybe_missing_domain_clarification,  # "missing domain" safety override
+                self._maybe_todo_command_envelope,  # to-do / shopping-list command
+                self._maybe_light_envelope,  # light command
+                self._maybe_command_envelope,  # media_player command
+                self._maybe_fan_envelope,  # fan command
+                self._maybe_vacuum_envelope,  # vacuum command
+                self._maybe_scene_envelope,  # scene activation
+                self._maybe_input_boolean_envelope,  # input_boolean command
+                self._maybe_cover_envelope,  # cover command
+                self._maybe_climate_envelope,  # climate (thermostat) command
+                self._maybe_presence_automation_envelope,  # presence-duration automation
+                self._maybe_duration_automation_envelope,  # sustained-state ("for N minutes") automation
+                self._maybe_multi_condition_automation_envelope,  # multi-condition automation (A5 class)
+                self._maybe_numeric_state_automation_envelope,  # single-threshold numeric_state automation
+                self._maybe_sun_automation_envelope,  # sun-event automation
+                self._maybe_plain_presence_automation_envelope,  # plain-presence automation
+            ):
+                _override = _override_fn()
+                if _override is not None:
+                    self._user_message_raw.set("")
+                    return _override
         stripped = text.strip()
         if not stripped:
             return text
@@ -145,9 +172,10 @@ class _SlimParserMixin:
                 if util_fallback is not None:
                     return util_fallback
                 # A truncated single-state answer ("The kitchen plug is {switch.kitchen_appliance_pl…") loses its closing brace, so the {entity_id} placeholder never resolves and the live state word never reaches the reply.
-                single_state = self._single_state_answer_envelope()
-                if single_state is not None:
-                    return single_state
+                if overrides_enabled:
+                    single_state = self._single_state_answer_envelope()
+                    if single_state is not None:
+                        return single_state
                 # The single-state override above needs ``_user_message_raw``, which is frequently empty here (ContextVar propagation race).
                 salvaged = self._resolve_truncated_placeholder(visible)
                 if salvaged is not None:
@@ -185,9 +213,10 @@ class _SlimParserMixin:
                     if util_fallback is not None:
                         return util_fallback
                     # As above: a single-state answer clipped mid-placeholder is answerable deterministically from hass.states.
-                    single_state = self._single_state_answer_envelope()
-                    if single_state is not None:
-                        return single_state
+                    if overrides_enabled:
+                        single_state = self._single_state_answer_envelope()
+                        if single_state is not None:
+                            return single_state
                     # As above: ``_user_message_raw`` may be empty here, so salvage the clipped placeholder from the prose itself.
                     salvaged = self._resolve_truncated_placeholder(visible)
                     if salvaged is not None:
@@ -263,8 +292,14 @@ class _SlimParserMixin:
                 coerced_env["src"] = _selora_local_ground_citations(coerced_src, resolved_advice)
                 return json.dumps(coerced_env)
         # Deterministic to-do correction for the FULLY ENVELOPED command shape.
-        if data.get("intent") == "command" or (
-            "calls" in data and "automation" not in data and "scene" not in data
+        # Gated with its slim ``c``-branch twin: ``_resolve_todo_add_envelope``
+        # takes no arguments, reads the sentence, and DISCARDS the command the
+        # model produced. Gating one spelling of the shape and not the other
+        # would leave the answer depending on which envelope the model happened
+        # to emit.
+        if overrides_enabled and (
+            data.get("intent") == "command"
+            or ("calls" in data and "automation" not in data and "scene" not in data)
         ):
             todo_fix = self._resolve_todo_add_envelope()
             if todo_fix is not None:
@@ -278,62 +313,69 @@ class _SlimParserMixin:
                 for _call in calls_field:
                     if isinstance(_call, dict) and isinstance(_call.get("service"), str):
                         _call["service"] = _canonicalize_vacuum_service(_call["service"])
-                # Same ContextVar-race-proof message read as the slim branch.
-                env_msg = self._current_user_message().lower().strip()
-                if env_msg and (
-                    self._light_brightness_pct(env_msg) is not None
-                    or self._detect_light_rgb(env_msg) is not None
-                ):
-                    slim_like = [
-                        {"e": c.get("target", {}).get("entity_id")}
-                        for c in calls_field
-                        if isinstance(c, dict)
-                        and isinstance(c.get("target"), dict)
-                        and isinstance(c["target"].get("entity_id"), str)
-                    ]
-                    repoint_fix = self._repoint_colocated_light_brightness(slim_like, env_msg)
-                    if repoint_fix is not None:
-                        return repoint_fix
+                # Same ContextVar-race-proof message read as the slim branch —
+                # and gated with it: this repoints the model's own target from
+                # the user's SENTENCE, so it is the net, not a reading of what
+                # the model asked for. The vacuum canonicalisation above is the
+                # other way round and stays on: it rewrites a verb the model
+                # itself chose.
+                if overrides_enabled:
+                    env_msg = self._current_user_message().lower().strip()
+                    if env_msg and (
+                        self._light_brightness_pct(env_msg) is not None
+                        or self._detect_light_rgb(env_msg) is not None
+                    ):
+                        slim_like = [
+                            {"e": c.get("target", {}).get("entity_id")}
+                            for c in calls_field
+                            if isinstance(c, dict)
+                            and isinstance(c.get("target"), dict)
+                            and isinstance(c["target"].get("entity_id"), str)
+                        ]
+                        repoint_fix = self._repoint_colocated_light_brightness(slim_like, env_msg)
+                        if repoint_fix is not None:
+                            return repoint_fix
             from ..._qwen_repair import normalize_response_content
 
             return normalize_response_content(json.dumps(data))
         # Slim command shape: {"c": [...], "r": "..."}
         if isinstance(data.get("c"), list):
-            # Deterministic light correction (brightness / colour / compound only).
-            light_msg = self._current_user_message().lower().strip()
-            # A plain on/off light command that names a real HA area/floor scope ("activate all first floor lights", "first floor lights on", "shut off the upstairs lights") must ALSO go through the deterministic resolver: the LoRA fans a floor request out to one call per light and trips the per-turn max-calls safety cap (or mis-targets a single light), whereas ``_resolve_light_command`` resolves the scope by registry membership and chunks the targets within the per-call / max-calls caps.
-            names_light_scope = bool(re.search(r"\b(lights?|lamps?)\b", light_msg)) and bool(
-                self._area_ids_for_named_scope(light_msg)
-            )
-            if light_msg and (
-                len(re.split(r"\bthen\b", light_msg)) > 1
-                or self._light_brightness_pct(light_msg) is not None
-                or self._detect_light_rgb(light_msg) is not None
-                or names_light_scope
-            ):
-                light_fix = self._resolve_light_command(light_msg, require_light_word=False)
-                if light_fix is not None:
-                    return light_fix
-                # Fallback: the area/name resolution above came up empty (registry area name differs from the spoken scope, or entities carry no area), but the LoRA's own mis-targeted entity — a co-located ``cover.bedroom`` curtain or an invalid ``switch.set_brightness`` — still reveals the device cluster the user meant.
-                repoint_fix = self._repoint_colocated_light_brightness(data["c"], light_msg)
-                if repoint_fix is not None:
-                    return repoint_fix
-            # Deterministic to-do correction.
-            todo_fix = self._resolve_todo_add_envelope()
-            if todo_fix is not None:
-                return todo_fix
-            # Deterministic media_player correction.
-            if any(
-                isinstance(c, dict)
-                and isinstance(c.get("e"), str)
-                and c["e"].startswith("media_player.")
-                for c in data["c"]
-            ):
-                media_fix = self._resolve_media_command(
-                    self._current_user_message().lower().strip()
+            if overrides_enabled:
+                # Deterministic light correction (brightness / colour / compound only).
+                light_msg = self._current_user_message().lower().strip()
+                # A plain on/off light command that names a real HA area/floor scope ("activate all first floor lights", "first floor lights on", "shut off the upstairs lights") must ALSO go through the deterministic resolver: the LoRA fans a floor request out to one call per light and trips the per-turn max-calls safety cap (or mis-targets a single light), whereas ``_resolve_light_command`` resolves the scope by registry membership and chunks the targets within the per-call / max-calls caps.
+                names_light_scope = bool(re.search(r"\b(lights?|lamps?)\b", light_msg)) and bool(
+                    self._area_ids_for_named_scope(light_msg)
                 )
-                if media_fix is not None:
-                    return media_fix
+                if light_msg and (
+                    len(re.split(r"\bthen\b", light_msg)) > 1
+                    or self._light_brightness_pct(light_msg) is not None
+                    or self._detect_light_rgb(light_msg) is not None
+                    or names_light_scope
+                ):
+                    light_fix = self._resolve_light_command(light_msg, require_light_word=False)
+                    if light_fix is not None:
+                        return light_fix
+                    # Fallback: the area/name resolution above came up empty (registry area name differs from the spoken scope, or entities carry no area), but the LoRA's own mis-targeted entity — a co-located ``cover.bedroom`` curtain or an invalid ``switch.set_brightness`` — still reveals the device cluster the user meant.
+                    repoint_fix = self._repoint_colocated_light_brightness(data["c"], light_msg)
+                    if repoint_fix is not None:
+                        return repoint_fix
+                # Deterministic to-do correction.
+                todo_fix = self._resolve_todo_add_envelope()
+                if todo_fix is not None:
+                    return todo_fix
+                # Deterministic media_player correction.
+                if any(
+                    isinstance(c, dict)
+                    and isinstance(c.get("e"), str)
+                    and c["e"].startswith("media_player.")
+                    for c in data["c"]
+                ):
+                    media_fix = self._resolve_media_command(
+                        self._current_user_message().lower().strip()
+                    )
+                    if media_fix is not None:
+                        return media_fix
             calls: list[dict[str, Any]] = []
             for c in data["c"]:
                 if not isinstance(c, dict):
@@ -399,22 +441,23 @@ class _SlimParserMixin:
             return json.dumps(util_env)
         # Slim answer shape: {"r": "...", "q": [<entity_ids>]}
         if isinstance(data.get("r"), str):
-            # Deterministic media_player command recovery, ContextVar-independent.
-            media_recovery = self._resolve_media_command(
-                self._current_user_message().lower().strip()
-            )
-            if media_recovery is not None:
-                return media_recovery
-            # Deterministic vacuum command recovery, ContextVar-independent.
-            vacuum_recovery = self._resolve_vacuum_command(
-                self._current_user_message().lower().strip()
-            )
-            if vacuum_recovery is not None:
-                return vacuum_recovery
-            # Deterministic single-state answer first.
-            single_state = self._single_state_answer_envelope()
-            if single_state is not None:
-                return single_state
+            if overrides_enabled:
+                # Deterministic media_player command recovery, ContextVar-independent.
+                media_recovery = self._resolve_media_command(
+                    self._current_user_message().lower().strip()
+                )
+                if media_recovery is not None:
+                    return media_recovery
+                # Deterministic vacuum command recovery, ContextVar-independent.
+                vacuum_recovery = self._resolve_vacuum_command(
+                    self._current_user_message().lower().strip()
+                )
+                if vacuum_recovery is not None:
+                    return vacuum_recovery
+                # Deterministic single-state answer first.
+                single_state = self._single_state_answer_envelope()
+                if single_state is not None:
+                    return single_state
             template = data["r"]
 
             # Resolve {entity_id} placeholders against live state.
@@ -440,8 +483,14 @@ class _SlimParserMixin:
                         real_q.append(x)
             if real_q:
                 envelope["q"] = real_q
-            else:
-                # No real entity survived ``q``.
+            elif overrides_enabled:
+                # No real entity survived ``q``. The backfill picks entity_ids
+                # out of the SENTENCE and appends a tile marker to whatever the
+                # model wrote, so it manufactures part of the answer even
+                # though the prose is the model's — gated with the rest. It is
+                # the quietest member of the family: nothing here returns
+                # early, and a test asserting only that the model's words
+                # survive still passes while the marker is bolted on.
                 backfill = self._backfill_answer_marker(resolved)
                 if backfill:
                     resolved = f"{resolved}{backfill}"
