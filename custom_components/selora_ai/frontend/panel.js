@@ -48837,9 +48837,9 @@ ${host._diffResult.map((line) => {
       ? "#fa5252"
       : "var(--primary-text-color)";
   return b2`<span
-    style="display:block;background:${bg};color:${color};padding:1px 4px;"
-    >${line}</span
-  >`;
+                        style="display:block;background:${bg};color:${color};padding:1px 4px;"
+                        >${line}</span
+                      >`;
 })}</pre>`
           }
         </div>
@@ -49339,7 +49339,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "eeb84fdc1510" : "";
+var PANEL_BUILD = true ? "e5551f66ba8c" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

@@ -251,21 +251,21 @@ export function renderDiffViewer(host) {
                     style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
                   >
 ${host._diffResult.map((line) => {
-  const bg = line.startsWith("+")
-    ? "rgba(40,167,69,0.15)"
-    : line.startsWith("-")
-      ? "rgba(220,53,69,0.15)"
-      : "transparent";
-  const color = line.startsWith("+")
-    ? "#40c057"
-    : line.startsWith("-")
-      ? "#fa5252"
-      : "var(--primary-text-color)";
-  return html`<span
-    style="display:block;background:${bg};color:${color};padding:1px 4px;"
-    >${line}</span
-  >`;
-})}</pre>`
+                      const bg = line.startsWith("+")
+                        ? "rgba(40,167,69,0.15)"
+                        : line.startsWith("-")
+                          ? "rgba(220,53,69,0.15)"
+                          : "transparent";
+                      const color = line.startsWith("+")
+                        ? "#40c057"
+                        : line.startsWith("-")
+                          ? "#fa5252"
+                          : "var(--primary-text-color)";
+                      return html`<span
+                        style="display:block;background:${bg};color:${color};padding:1px 4px;"
+                        >${line}</span
+                      >`;
+                    })}</pre>`
           }
         </div>
       </div>
