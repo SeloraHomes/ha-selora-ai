@@ -524,6 +524,28 @@ _LOW_CONTEXT_SYSTEM_PROMPTS: dict[str, str] = {
 }
 
 
+def _command_domain_rule(unrestricted: bool) -> str:
+    """The RULES line that tells the model which domains it may command.
+
+    ``unrestricted`` is the ``command_allowlist_enabled: false`` entry
+    option reaching the prompt. Left unconditional, the prompt keeps
+    saying "only these low-risk domains" while the policy behind it has
+    stopped refusing anything else — so a cloud model declines calls
+    that would now execute, and the opt-out reads as not having taken
+    effect. The LoRA-trained ``_LOW_CONTEXT_SYSTEM_PROMPTS`` are
+    deliberately NOT parameterised the same way: those strings are kept
+    in lock-step with the training corpus, and an unfamiliar prompt
+    there changes what is being measured rather than what is permitted.
+    """
+    if unrestricted:
+        return (
+            "- For immediate commands, any Home Assistant service this "
+            "install actually has is available; prefer the domain that "
+            "owns the entity you are acting on.\n"
+        )
+    return f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
+
+
 def build_minimal_architect_system_prompt(
     intent_hint: str = "answer",
     *,
@@ -659,6 +681,7 @@ def build_architect_system_prompt(
     slim: bool = False,
     language: str | None = None,
     household_profile: str | None = None,
+    unrestricted_commands: bool = False,
 ) -> str:
     """System prompt for the Smart Home Architect role (JSON-mode).
 
@@ -909,8 +932,8 @@ def build_architect_system_prompt(
         "RULES:\n"
         + _SHARED_AUTOMATION_RULES
         + _SHARED_STATE_QUERY_RULES
-        + f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
-        '- When intent is "command", you MUST include a non-empty "calls" array with valid service calls. '
+        + _command_domain_rule(unrestricted_commands)
+        + '- When intent is "command", you MUST include a non-empty "calls" array with valid service calls. '
         "Never describe what you would do without providing the calls to execute it.\n"
         '- NEVER write an action confirmation (e.g. "Turning off the lights", "Setting brightness", '
         '"Done") in `response` unless `calls` contains the matching service calls. If the user\'s '
@@ -940,6 +963,7 @@ def build_architect_stream_system_prompt(
     slim: bool = False,
     language: str | None = None,
     household_profile: str | None = None,
+    unrestricted_commands: bool = False,
 ) -> str:
     """Streaming-optimised system prompt.
 
@@ -1184,8 +1208,8 @@ def build_architect_stream_system_prompt(
         "RULES:\n"
         + _SHARED_AUTOMATION_RULES
         + _SHARED_STATE_QUERY_RULES
-        + f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
-        "- When the user asks to control a device, you MUST return a JSON object with "
+        + _command_domain_rule(unrestricted_commands)
+        + "- When the user asks to control a device, you MUST return a JSON object with "
         '"intent": "command" and a non-empty "calls" array containing the service calls. '
         "Never just describe what you would do — always include the calls so the action is executed.\n"
         '- NEVER write prose like "Turning off the lights", "Setting brightness", or "Done" '

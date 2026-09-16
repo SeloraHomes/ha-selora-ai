@@ -1652,3 +1652,42 @@ APPROVAL_VALID_SCOPES = frozenset(
         APPROVAL_SCOPE_DENY,
     }
 )
+
+
+# ── Command policy overrides (evaluation harnesses) ─────────────────
+# Two entry options that relax the command-execution policy. Both
+# default to ON (fully enforced) and nothing in the shipped UI sets
+# them — they exist so an automated harness can measure the MODEL
+# rather than the policy layer in front of it.
+#
+# Without them the benchmark cannot distinguish a working model from a
+# stub that refuses everything: every case needing a real state change
+# is answered by the approval card or the allowlist rejection, so a
+# scripted "I am not going to do that" scores identically to a GPU
+# serving the real weights on the identical set of cases.
+#
+# They are deliberately absent from ``strings.json``, the options flow
+# and the settings panel. A homeowner turning these on from a UI would
+# be removing the reason an unattended unlock asks first; a harness
+# setting them in ``config_entry_options`` has already accepted that.
+#
+# Neither switches off ``_BLOCKED_SERVICES`` (``homeassistant.stop``,
+# ``python_script.exec``, …) or the remote ``media_content_id`` guard.
+# Those are a denylist and an SSRF check, not the safe-command
+# allowlist, and no dataset case needs them.
+
+# When False, a REVIEW-bucket call (lock.*, alarm_*, vacuum.*, tts.*, a
+# cover whose device_class is garage/door/gate) executes immediately
+# instead of being held behind a ``command_approval`` card. Shape
+# validation still runs — only the "wait for a human" step is dropped.
+CONF_COMMAND_APPROVAL_REQUIRED = "command_approval_required"
+DEFAULT_COMMAND_APPROVAL_REQUIRED = True
+
+# When False, the curated safe-command tables stop bounding which
+# services may run: a domain with no entry (``todo``), a verb with no
+# entry (``media_player.select_source``), and a data key outside the
+# per-service set are all accepted, and the entity snapshot stops being
+# restricted to COLLECTOR_DOMAINS so the model can see and target the
+# entities those services act on.
+CONF_COMMAND_ALLOWLIST_ENABLED = "command_allowlist_enabled"
+DEFAULT_COMMAND_ALLOWLIST_ENABLED = True
