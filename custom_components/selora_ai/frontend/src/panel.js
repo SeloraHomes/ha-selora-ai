@@ -480,9 +480,11 @@ class SeloraAIPanel extends LitElement {
 
       // Inline card tabs (flow / yaml / history)
       _cardActiveTab: { type: Object },
-
-      // Per-card expand toggle for clamped suggestion title/subtitle
-      _expandedSuggestions: { type: Object },
+      // Last tab a suggestion card showed: its panel keeps rendering that
+      // while the close animation runs, and false _cardPanelSettled marks a
+      // card whose open/close transition is still in flight.
+      _cardLastTab: { type: Object },
+      _cardPanelSettled: { type: Object },
 
       // Bulk edit mode
       _bulkEditMode: { type: Boolean },
@@ -750,7 +752,12 @@ class SeloraAIPanel extends LitElement {
     this._generatingSuggestions = false;
     // Inline card tabs
     this._cardActiveTab = {};
-    this._expandedSuggestions = {};
+    this._cardLastTab = {};
+    this._cardPanelSettled = {};
+    // Pending settle timers, keyed by card. Deliberately not a reactive
+    // property: a timer id is bookkeeping, and rendering on it would be a
+    // render per toggle for nothing.
+    this._cardPanelTimers = {};
     this._bulkEditMode = false;
     this._editingAlias = null;
     this._editingAliasValue = "";

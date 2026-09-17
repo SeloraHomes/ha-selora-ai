@@ -1005,6 +1005,52 @@ export const automationsStyles = css`
     flex-direction: column;
     min-width: 0;
   }
+  /* A card whose Flow/YAML panel is open spans the whole grid row. A 280px
+     column shows roughly thirty characters, so every entity_id is cut and the
+     YAML is only readable through a horizontal scrollbar; the collapsed cards
+     keep the multi-column list. */
+  .automations-grid .card.card-expanded {
+    grid-column: 1 / -1;
+  }
+  /* Grow/shrink on open and close. A grid row animated between 0fr and 1fr is
+     how an auto-height panel gets a transition at all: an auto height has
+     nothing to interpolate. 260ms here is PANEL_ANIM_MS in
+     render-suggestions.js; the two have to agree. */
+  .automations-grid .card-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .automations-grid .card-panel.open {
+    grid-template-rows: 1fr;
+  }
+  .automations-grid .card-panel-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Clipping is only needed while the panel is moving. Left on, it would cut
+     off the code editor's entity autocomplete where the list falls past the
+     panel's bottom edge. */
+  .automations-grid .card-panel.settled .card-panel-inner {
+    overflow: visible;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .automations-grid .card-panel {
+      transition: none;
+    }
+  }
+  /* Title, description and the tab strip all toggle the panel, so the pointer
+     is on the whole disclosure rather than on the chevron alone. */
+  .automations-grid .card-disclosure {
+    cursor: pointer;
+  }
+  .automations-grid .card-yaml {
+    min-width: 0;
+  }
+  .automations-grid .card-yaml ha-code-editor {
+    display: block;
+    width: 100%;
+  }
   .automations-grid .card-header {
     margin-bottom: 0;
     align-items: center;
