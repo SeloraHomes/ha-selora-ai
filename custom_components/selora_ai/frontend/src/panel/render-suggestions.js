@@ -1,26 +1,12 @@
 import { html } from "lit";
-import { directive, Directive } from "lit/directive.js";
 import { renderAutomationFlowchart } from "./render-automations.js";
 
-// Sets cursor:pointer only when the element's text is actually clamped
-// (scrollHeight exceeds clientHeight), so non-truncated cards keep the
-// default cursor. `force` keeps the pointer while expanded (collapse hint).
-class ClampCursorDirective extends Directive {
-  update(part, [force]) {
-    const el = part.element;
-    if (force) {
-      el.style.cursor = "pointer";
-    } else {
-      requestAnimationFrame(() => {
-        el.style.cursor =
-          el.scrollHeight > el.clientHeight + 1 ? "pointer" : "";
-      });
-    }
-    return this.render(force);
-  }
-  render() {}
-}
-const clampCursor = directive(ClampCursorDirective);
+// Matches the .card-panel grid-template-rows transition in automations.css.js.
+// The extra margin is what the settle timer waits out; a timer rather than a
+// transitionend listener so a browser that does not animate grid-template-rows,
+// or a reduced-motion user whose transition never runs, still settles.
+const PANEL_ANIM_MS = 260;
+const PANEL_SETTLE_MS = PANEL_ANIM_MS + 60;
 
 const MIN_CONF = 0.8;
 const COLLAPSED_COUNT = 3;
@@ -140,25 +126,66 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     : false;
 
   const fadingOut = !!(host._fadingOutSuggestions || {})[cardKey];
-  const expandedText = !!(host._expandedSuggestions || {})[cardKey];
-  const toggleText = () => {
-    host._expandedSuggestions = {
-      ...(host._expandedSuggestions || {}),
-      [cardKey]: !expandedText,
+  const expanded = !!activeTab;
+  // The panel keeps rendering the last tab it showed after a collapse, so the
+  // shrink has something to shrink. `settled` is false for the length of the
+  // transition: the card stays full-width until the collapse finishes (a
+  // snap-back mid-shrink re-wraps the YAML while it is still visible), and
+  // the panel only stops clipping once it is fully open, so the editor's
+  // entity autocomplete is not cut off by the animation's overflow.
+  const lastTab = (host._cardLastTab || {})[cardKey] || null;
+  const panelTab = activeTab || lastTab;
+  const settled = !!(host._cardPanelSettled || {})[cardKey];
+
+  const setTab = (tab) => {
+    host._cardPanelSettled = {
+      ...(host._cardPanelSettled || {}),
+      [cardKey]: false,
     };
+    host._cardActiveTab = { ...host._cardActiveTab, [cardKey]: tab };
+    if (tab) {
+      host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: tab };
+    }
+    // The pending timer belongs to the transition being replaced: toggling
+    // again inside PANEL_SETTLE_MS would otherwise have it settle the NEW
+    // transition early, snapping the width mid-shrink.
+    const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
+    clearTimeout(timers[cardKey]);
+    timers[cardKey] = setTimeout(() => {
+      host._cardPanelSettled = {
+        ...(host._cardPanelSettled || {}),
+        [cardKey]: true,
+      };
+      // Read the tab as it is NOW, not as it was when the timer was armed.
+      // A card that finished closing drops its content: keeping every card
+      // ever opened mounted holds a CodeMirror instance per card for the
+      // panel's lifetime, and at 0fr with the width already back there is
+      // nothing left for the unmount to disturb.
+      if (!host._cardActiveTab[cardKey]) {
+        host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
+      }
+    }, PANEL_SETTLE_MS);
   };
-  const expandedClass = expandedText ? "expanded" : "";
+  const toggleExpand = () =>
+    setTab(expanded ? null : hasFlow ? "flow" : "yaml");
+  const expandedClass = expanded ? "expanded" : "";
 
   return html`
     <div
-      class="card${fadingOut ? " fading-out" : ""}"
+      class="card${fadingOut ? " fading-out" : ""}${
+        expanded || (panelTab && !settled) ? " card-expanded" : ""
+      }"
       style="padding:16px 18px;display:flex;flex-direction:column;"
     >
-      <div class="card-header" style="margin-bottom:0;">
+      <div
+        class="card-header card-disclosure"
+        style="margin-bottom:0;"
+        @click=${toggleExpand}
+      >
         ${
           bulkMode
             ? html`
-                <label class="card-select">
+                <label class="card-select" @click=${(e) => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     .checked=${!!selectedKeys[cardKey]}
@@ -176,9 +203,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         <h3
           class=${expandedClass}
           style="flex:1;font-size:14px;margin:0;"
-          title=${expandedText ? "" : item.title}
-          @click=${toggleText}
-          ${clampCursor(expandedText)}
+          title=${expanded ? "" : item.title}
         >
           ${item.title}
         </h3>
@@ -188,11 +213,10 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         item.subtitle
           ? html`
               <div
-                class="clamp-2 ${expandedClass}"
+                class="clamp-2 card-disclosure ${expandedClass}"
                 style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;"
-                title=${expandedText ? "" : item.subtitle}
-                @click=${toggleText}
-                ${clampCursor(expandedText)}
+                title=${expanded ? "" : item.subtitle}
+                @click=${toggleExpand}
               >
                 ${item.subtitle}
               </div>
@@ -213,17 +237,19 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
           : ""
       }
 
-      <div class="card-tabs" style="margin-top:12px;">
+      <div
+        class="card-tabs card-disclosure"
+        style="margin-top:12px;"
+        @click=${toggleExpand}
+      >
         ${
           hasFlow
             ? html`
                 <button
                   class="card-tab ${activeTab === "flow" ? "active" : ""}"
-                  @click=${() => {
-                    host._cardActiveTab = {
-                      ...host._cardActiveTab,
-                      [cardKey]: activeTab === "flow" ? null : "flow",
-                    };
+                  @click=${(e) => {
+                    e.stopPropagation();
+                    setTab(activeTab === "flow" ? null : "flow");
                   }}
                 >
                   <ha-icon
@@ -238,11 +264,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         }
         <button
           class="card-tab ${activeTab === "yaml" ? "active" : ""}"
-          @click=${() => {
-            host._cardActiveTab = {
-              ...host._cardActiveTab,
-              [cardKey]: activeTab === "yaml" ? null : "yaml",
-            };
+          @click=${(e) => {
+            e.stopPropagation();
+            setTab(activeTab === "yaml" ? null : "yaml");
           }}
         >
           <ha-icon
@@ -253,42 +277,45 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         </button>
         <ha-icon
           icon="mdi:chevron-down"
-          class="card-chevron ${activeTab ? "open" : ""}"
+          class="card-chevron ${expanded ? "open" : ""}"
           style="margin-left:auto;"
-          @click=${() => {
-            host._cardActiveTab = {
-              ...host._cardActiveTab,
-              [cardKey]: activeTab ? null : hasFlow ? "flow" : "yaml",
-            };
-          }}
         ></ha-icon>
       </div>
 
-      ${
-        activeTab === "flow" && hasFlow
-          ? renderAutomationFlowchart(host, automationData)
-          : ""
-      }
-      ${
-        activeTab === "yaml"
-          ? html`
-              <div style="margin-top:6px;">
-                <ha-code-editor
-                  mode="yaml"
-                  .value=${displayYaml}
-                  @value-changed=${(e) => {
-                    host._editedYaml = {
-                      ...host._editedYaml,
-                      [cardKey]: e.detail.value,
-                    };
-                  }}
-                  autocomplete-entities
-                  style="--code-mirror-font-size:12px;"
-                ></ha-code-editor>
-              </div>
-            `
-          : ""
-      }
+      <div
+        class="card-panel${expanded ? " open" : ""}${
+          expanded && settled ? " settled" : ""
+        }"
+      >
+        <div class="card-panel-inner">
+          ${
+            panelTab === "flow" && hasFlow
+              ? renderAutomationFlowchart(host, automationData)
+              : ""
+          }
+          ${
+            panelTab === "yaml"
+              ? html`
+                  <div class="card-yaml" style="padding-top:6px;">
+                    <ha-code-editor
+                      mode="yaml"
+                      .value=${displayYaml}
+                      @value-changed=${(e) => {
+                        host._editedYaml = {
+                          ...host._editedYaml,
+                          [cardKey]: e.detail.value,
+                        };
+                      }}
+                      autocomplete-entities
+                      linewrap
+                      style="--code-mirror-font-size:12px;--code-mirror-max-height:min(60vh,520px);"
+                    ></ha-code-editor>
+                  </div>
+                `
+              : ""
+          }
+        </div>
+      </div>
 
       <div
         style="display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:12px;"

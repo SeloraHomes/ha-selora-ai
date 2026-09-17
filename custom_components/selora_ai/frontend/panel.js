@@ -6527,6 +6527,52 @@ var automationsStyles = i`
     flex-direction: column;
     min-width: 0;
   }
+  /* A card whose Flow/YAML panel is open spans the whole grid row. A 280px
+     column shows roughly thirty characters, so every entity_id is cut and the
+     YAML is only readable through a horizontal scrollbar; the collapsed cards
+     keep the multi-column list. */
+  .automations-grid .card.card-expanded {
+    grid-column: 1 / -1;
+  }
+  /* Grow/shrink on open and close. A grid row animated between 0fr and 1fr is
+     how an auto-height panel gets a transition at all: an auto height has
+     nothing to interpolate. 260ms here is PANEL_ANIM_MS in
+     render-suggestions.js; the two have to agree. */
+  .automations-grid .card-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .automations-grid .card-panel.open {
+    grid-template-rows: 1fr;
+  }
+  .automations-grid .card-panel-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  /* Clipping is only needed while the panel is moving. Left on, it would cut
+     off the code editor's entity autocomplete where the list falls past the
+     panel's bottom edge. */
+  .automations-grid .card-panel.settled .card-panel-inner {
+    overflow: visible;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .automations-grid .card-panel {
+      transition: none;
+    }
+  }
+  /* Title, description and the tab strip all toggle the panel, so the pointer
+     is on the whole disclosure rather than on the chevron alone. */
+  .automations-grid .card-disclosure {
+    cursor: pointer;
+  }
+  .automations-grid .card-yaml {
+    min-width: 0;
+  }
+  .automations-grid .card-yaml ha-code-editor {
+    display: block;
+    width: 100%;
+  }
   .automations-grid .card-header {
     margin-bottom: 0;
     align-items: center;
@@ -33561,22 +33607,8 @@ function renderSearchMatchReason(host, reasons) {
 }
 
 // src/panel/render-suggestions.js
-var ClampCursorDirective = class extends i5 {
-  update(part, [force]) {
-    const el = part.element;
-    if (force) {
-      el.style.cursor = "pointer";
-    } else {
-      requestAnimationFrame(() => {
-        el.style.cursor =
-          el.scrollHeight > el.clientHeight + 1 ? "pointer" : "";
-      });
-    }
-    return this.render(force);
-  }
-  render() {}
-};
-var clampCursor = e4(ClampCursorDirective);
+var PANEL_ANIM_MS = 260;
+var PANEL_SETTLE_MS = PANEL_ANIM_MS + 60;
 var MIN_CONF = 0.8;
 var COLLAPSED_COUNT = 3;
 function collapsedSuggestionCount() {
@@ -33675,24 +33707,48 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     ? !!host._dismissingProactive[item._suggestionId]
     : false;
   const fadingOut = !!(host._fadingOutSuggestions || {})[cardKey];
-  const expandedText = !!(host._expandedSuggestions || {})[cardKey];
-  const toggleText = () => {
-    host._expandedSuggestions = {
-      ...(host._expandedSuggestions || {}),
-      [cardKey]: !expandedText,
+  const expanded = !!activeTab;
+  const lastTab = (host._cardLastTab || {})[cardKey] || null;
+  const panelTab = activeTab || lastTab;
+  const settled = !!(host._cardPanelSettled || {})[cardKey];
+  const setTab = (tab) => {
+    host._cardPanelSettled = {
+      ...(host._cardPanelSettled || {}),
+      [cardKey]: false,
     };
+    host._cardActiveTab = { ...host._cardActiveTab, [cardKey]: tab };
+    if (tab) {
+      host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: tab };
+    }
+    const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
+    clearTimeout(timers[cardKey]);
+    timers[cardKey] = setTimeout(() => {
+      host._cardPanelSettled = {
+        ...(host._cardPanelSettled || {}),
+        [cardKey]: true,
+      };
+      if (!host._cardActiveTab[cardKey]) {
+        host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
+      }
+    }, PANEL_SETTLE_MS);
   };
-  const expandedClass = expandedText ? "expanded" : "";
+  const toggleExpand = () =>
+    setTab(expanded ? null : hasFlow ? "flow" : "yaml");
+  const expandedClass = expanded ? "expanded" : "";
   return b2`
     <div
-      class="card${fadingOut ? " fading-out" : ""}"
+      class="card${fadingOut ? " fading-out" : ""}${expanded || (panelTab && !settled) ? " card-expanded" : ""}"
       style="padding:16px 18px;display:flex;flex-direction:column;"
     >
-      <div class="card-header" style="margin-bottom:0;">
+      <div
+        class="card-header card-disclosure"
+        style="margin-bottom:0;"
+        @click=${toggleExpand}
+      >
         ${
           bulkMode
             ? b2`
-                <label class="card-select">
+                <label class="card-select" @click=${(e6) => e6.stopPropagation()}>
                   <input
                     type="checkbox"
                     .checked=${!!selectedKeys[cardKey]}
@@ -33710,9 +33766,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         <h3
           class=${expandedClass}
           style="flex:1;font-size:14px;margin:0;"
-          title=${expandedText ? "" : item.title}
-          @click=${toggleText}
-          ${clampCursor(expandedText)}
+          title=${expanded ? "" : item.title}
         >
           ${item.title}
         </h3>
@@ -33722,11 +33776,10 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         item.subtitle
           ? b2`
               <div
-                class="clamp-2 ${expandedClass}"
+                class="clamp-2 card-disclosure ${expandedClass}"
                 style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;"
-                title=${expandedText ? "" : item.subtitle}
-                @click=${toggleText}
-                ${clampCursor(expandedText)}
+                title=${expanded ? "" : item.subtitle}
+                @click=${toggleExpand}
               >
                 ${item.subtitle}
               </div>
@@ -33747,17 +33800,19 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
           : ""
       }
 
-      <div class="card-tabs" style="margin-top:12px;">
+      <div
+        class="card-tabs card-disclosure"
+        style="margin-top:12px;"
+        @click=${toggleExpand}
+      >
         ${
           hasFlow
             ? b2`
                 <button
                   class="card-tab ${activeTab === "flow" ? "active" : ""}"
-                  @click=${() => {
-                    host._cardActiveTab = {
-                      ...host._cardActiveTab,
-                      [cardKey]: activeTab === "flow" ? null : "flow",
-                    };
+                  @click=${(e6) => {
+                    e6.stopPropagation();
+                    setTab(activeTab === "flow" ? null : "flow");
                   }}
                 >
                   <ha-icon
@@ -33772,11 +33827,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         }
         <button
           class="card-tab ${activeTab === "yaml" ? "active" : ""}"
-          @click=${() => {
-            host._cardActiveTab = {
-              ...host._cardActiveTab,
-              [cardKey]: activeTab === "yaml" ? null : "yaml",
-            };
+          @click=${(e6) => {
+            e6.stopPropagation();
+            setTab(activeTab === "yaml" ? null : "yaml");
           }}
         >
           <ha-icon
@@ -33787,38 +33840,39 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
         </button>
         <ha-icon
           icon="mdi:chevron-down"
-          class="card-chevron ${activeTab ? "open" : ""}"
+          class="card-chevron ${expanded ? "open" : ""}"
           style="margin-left:auto;"
-          @click=${() => {
-            host._cardActiveTab = {
-              ...host._cardActiveTab,
-              [cardKey]: activeTab ? null : hasFlow ? "flow" : "yaml",
-            };
-          }}
         ></ha-icon>
       </div>
 
-      ${activeTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
-      ${
-        activeTab === "yaml"
-          ? b2`
-              <div style="margin-top:6px;">
-                <ha-code-editor
-                  mode="yaml"
-                  .value=${displayYaml}
-                  @value-changed=${(e6) => {
-                    host._editedYaml = {
-                      ...host._editedYaml,
-                      [cardKey]: e6.detail.value,
-                    };
-                  }}
-                  autocomplete-entities
-                  style="--code-mirror-font-size:12px;"
-                ></ha-code-editor>
-              </div>
-            `
-          : ""
-      }
+      <div
+        class="card-panel${expanded ? " open" : ""}${expanded && settled ? " settled" : ""}"
+      >
+        <div class="card-panel-inner">
+          ${panelTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
+          ${
+            panelTab === "yaml"
+              ? b2`
+                  <div class="card-yaml" style="padding-top:6px;">
+                    <ha-code-editor
+                      mode="yaml"
+                      .value=${displayYaml}
+                      @value-changed=${(e6) => {
+                        host._editedYaml = {
+                          ...host._editedYaml,
+                          [cardKey]: e6.detail.value,
+                        };
+                      }}
+                      autocomplete-entities
+                      linewrap
+                      style="--code-mirror-font-size:12px;--code-mirror-max-height:min(60vh,520px);"
+                    ></ha-code-editor>
+                  </div>
+                `
+              : ""
+          }
+        </div>
+      </div>
 
       <div
         style="display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:12px;"
@@ -49339,7 +49393,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "e5551f66ba8c" : "";
+var PANEL_BUILD = true ? "e8a53798b07f" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -51118,8 +51172,11 @@ var SeloraAIPanel = class extends i4 {
       _fadingOutSuggestions: { type: Object },
       // Inline card tabs (flow / yaml / history)
       _cardActiveTab: { type: Object },
-      // Per-card expand toggle for clamped suggestion title/subtitle
-      _expandedSuggestions: { type: Object },
+      // Last tab a suggestion card showed: its panel keeps rendering that
+      // while the close animation runs, and false _cardPanelSettled marks a
+      // card whose open/close transition is still in flight.
+      _cardLastTab: { type: Object },
+      _cardPanelSettled: { type: Object },
       // Bulk edit mode
       _bulkEditMode: { type: Boolean },
       // Inline alias editing
@@ -51351,7 +51408,9 @@ var SeloraAIPanel = class extends i4 {
     this._unavailableAutoName = null;
     this._generatingSuggestions = false;
     this._cardActiveTab = {};
-    this._expandedSuggestions = {};
+    this._cardLastTab = {};
+    this._cardPanelSettled = {};
+    this._cardPanelTimers = {};
     this._bulkEditMode = false;
     this._editingAlias = null;
     this._editingAliasValue = "";
