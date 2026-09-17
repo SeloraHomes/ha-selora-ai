@@ -51,27 +51,50 @@ pre-push:
         .venv/bin/python -m pytest tests/ -m soak -q
       fail_text: "Python tests failed. Run: pytest tests/ -v (or pytest tests/ -m soak -v for soak)"
 
-    test-frontend:
+    # Tests and build share one node_modules, and the build's toolchain
+    # decides its output — build.js runs prettier over src/ and again over
+    # panel.js, so the bundle's bytes are a function of the installed
+    # prettier, not just of the sources. An install that has drifted from
+    # package-lock.json therefore produces a bundle CI will reject, and the
+    # failure is silent locally: the hook rewrites the working tree, the
+    # stale commit is pushed regardless, and the diff looks like repo drift
+    # rather than a stale install. `npm ci` is the fix because it is what CI
+    # runs; at ~0.5s for 46 packages the cheaper "check, then reinstall"
+    # variants buy nothing, and the obvious ones are wrong anyway —
+    # `npm ls` validates against package.json's RANGE, so the day 3.9.8
+    # ships it calls a lockfile mismatch valid.
+    #
+    # Kept in ONE command for the reason test-python is: `npm ci` deletes and
+    # repopulates node_modules, so as a separate `parallel: true` command it
+    # would race vitest reading out of the directory being replaced.
+    frontend:
       glob:
         - "custom_components/selora_ai/frontend/src/**/*.js"
         - "custom_components/selora_ai/frontend/__tests__/**/*.js"
-        - "custom_components/selora_ai/frontend/build-id.js"
-        - "custom_components/selora_ai/frontend/vitest.config.mjs"
-        - "custom_components/selora_ai/frontend/package.json"
-        - "custom_components/selora_ai/frontend/package-lock.json"
-      run: cd custom_components/selora_ai/frontend && npx vitest run
-      fail_text: "Frontend tests failed. Run: cd custom_components/selora_ai/frontend && npx vitest run"
-
-    frontend-build:
-      glob:
-        - "custom_components/selora_ai/frontend/src/**/*.js"
         - "custom_components/selora_ai/frontend/build.js"
         - "custom_components/selora_ai/frontend/build-id.js"
         - "custom_components/selora_ai/frontend/postbuild.js"
+        - "custom_components/selora_ai/frontend/vitest.config.mjs"
         - "custom_components/selora_ai/frontend/package.json"
         - "custom_components/selora_ai/frontend/package-lock.json"
-      run: cd custom_components/selora_ai/frontend && npm run build
-      fail_text: "Frontend build failed."
+      # The staleness check mirrors the CI frontend job: a rebuild that
+      # changes tracked files means the committed bundle does not match its
+      # sources. Caught here it is a one-line fix; caught in CI it is a red
+      # pipeline on a merge request.
+      #
+      # Compared against HEAD, not the index. A bare `git diff` asks whether
+      # the tree differs from what is STAGED, so the recovery path this guard
+      # itself provokes defeats it: the first push rebuilds, the developer
+      # runs `git add` and pushes again without committing, the check passes,
+      # and the stale commit goes out anyway.
+      run: >-
+        cd custom_components/selora_ai/frontend &&
+        npm ci --silent &&
+        npx vitest run &&
+        npm run build &&
+        cd ../../.. &&
+        git diff --quiet HEAD -- custom_components/selora_ai/frontend
+      fail_text: "Frontend tests, build, or bundle freshness failed. If the build itself passed, the rebuild changed tracked files — commit them (git add custom_components/selora_ai/frontend && git commit), or stash unrelated uncommitted frontend edits first, since the build reflects the working tree rather than HEAD."
 
     lint-all:
       run: ruff check custom_components/
