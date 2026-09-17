@@ -52,6 +52,7 @@ requirements.txt
 node_modules/
 custom_components/selora_ai/frontend/panel.js
 custom_components/selora_ai/frontend/card.js
+custom_components/selora_ai/frontend/.vitest/
 
 # ── Local dev scripts ─────────────────────────────────────────
 /scripts/
