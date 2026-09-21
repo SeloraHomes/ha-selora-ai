@@ -449,31 +449,70 @@ TOOL_SEARCH_ENTITIES = ToolDef(
     name="search_entities",
     description=(
         "Fuzzy-search entities by free-text query across entity_id, friendly "
-        "name, aliases, and area. Returns ranked matches (with total_scored so "
-        "you can gauge confidence). Use this when the user names a device — or "
-        "a SCENE — informally and you need to resolve it to an entity_id before "
+        "name, aliases, area, and the entity's DEVICE — its name, manufacturer "
+        "and model — so a brand or model query ('IKEA', 'Aqara', 'TRADFRI') "
+        "finds the entities that device owns even though the brand appears in "
+        "no entity name. Returns ranked matches (with total_scored so you can "
+        "gauge confidence). Use this when the user names a device — or a "
+        "SCENE — informally and you need to resolve it to an entity_id before "
         "issuing a command or building an automation. To resolve a named scene "
         "('Stores at 50%'), search with domain='scene' and use the top match's "
         "entity_id verbatim; NEVER guess a scene.<slug> id — a wrong id fails "
-        "validation. If the top match looks weak (low score, several close "
-        "candidates), broaden the query or ask the user which one. Each match "
-        "also carries the entity's `device_id`, so this is the cheap way to "
-        "reach get_device / get_device_triggers without listing every device."
+        "validation. `domain` and `device_class` may each be used ALONE, with "
+        "no query: domain='camera' lists every camera, device_class='battery' "
+        "every battery entity — which is how you find battery levels at all, "
+        "since they are diagnostic and never appear in the home snapshot. "
+        "EVERY domain the home "
+        "has is searchable here — cameras, `update.*`, scenes, automations — "
+        "not only the controllable ones the in-prompt entity list carries, so "
+        "this is how you answer 'all my cameras'. A result carrying "
+        "`omitted` is PARTIAL — say so, or raise `limit`, rather than reading "
+        "the rows you got as the whole home. An empty result is a "
+        "failed name lookup, NOT proof the device is absent: retry with one "
+        "distinctive word, the product name rather than the brand, or a "
+        "device_class, before telling the user they have no such entity. "
+        "If the top match looks weak (low score, several close candidates), "
+        "broaden the query or ask the user which one. Each match also carries "
+        "the entity's `device_id`, so this is the cheap way to reach "
+        "get_device / get_device_triggers without listing every device."
     ),
     params=(
         ToolParam(
             name="query",
             type="string",
-            description="Free-text search query (e.g. 'kitchen island light').",
-            required=True,
+            description=(
+                "Free-text search query (e.g. 'kitchen island light', 'IKEA'). "
+                "Required unless domain or device_class is given."
+            ),
         ),
         ToolParam(
             name="domain",
             type="string",
             description=(
                 "Optional ENTITY domain filter (e.g. 'light', 'media_player', "
-                "'binary_sensor', 'scene'). Not a device or integration name — "
-                "'device' matches nothing. Omit it to search every domain."
+                "'binary_sensor', 'camera', 'scene'). Usable on its own, with "
+                "no query, to list every entity of that domain — 'all my "
+                "cameras' is domain='camera'. Not a device or integration "
+                "name — 'device' matches nothing. Omit it to search every "
+                "domain."
+            ),
+        ),
+        ToolParam(
+            name="device_class",
+            type="string",
+            description=(
+                "Optional device-class filter (e.g. 'battery', 'temperature', "
+                "'motion', 'door'). Usable on its own to list every entity of "
+                "that class."
+            ),
+        ),
+        ToolParam(
+            name="limit",
+            type="integer",
+            description=(
+                "Max matches to return. Defaults to 10 for a query (max 25); "
+                "a device_class-only listing returns every match by default "
+                "(max 50). `omitted` in the result reports anything left out."
             ),
         ),
     ),
@@ -1836,9 +1875,15 @@ TOOL_ADD_DASHBOARD_VIEW = ToolDef(
         "created has no pages at all, so giving it its first one is exactly this "
         "tool's job — CALL IT rather than asking the user to add a page "
         "themselves. Always name which dashboard you added the page to and give "
-        "the url from the result, or they will go looking in the wrong place. A "
-        "new view is EMPTY and shows nothing until insert_dashboard_card or "
-        "move_dashboard_card puts something on it."
+        "the url from the result, or they will go looking in the wrong place. "
+        "PASS `cards` when you already know what goes on the page — a page and "
+        "its contents are one request, and building them in one call is "
+        "all-or-nothing: an entity that does not resolve refuses the whole "
+        "thing, instead of leaving an empty page behind for the user to "
+        "delete. Resolve the entity_ids first (search_entities), then create "
+        "the page complete. Without `cards` the view is EMPTY and shows "
+        "nothing until insert_dashboard_card or move_dashboard_card puts "
+        "something on it."
     ),
     params=(
         ToolParam(
@@ -1858,6 +1903,19 @@ TOOL_ADD_DASHBOARD_VIEW = ToolDef(
             description=(
                 "Use the newer sections layout instead of the classic masonry one. Off by default."
             ),
+        ),
+        ToolParam(
+            name="cards",
+            type="array",
+            description=(
+                "Lovelace card objects to create the page WITH, in order (e.g. "
+                "[{'type': 'picture-entity', 'entity': 'camera.front_gate', "
+                "'camera_view': 'live'}]). "
+                "Every card is validated before anything is written, so one "
+                "bad entity_id or card type refuses the view rather than "
+                "leaving an empty page. Omit for an empty page."
+            ),
+            items_type="object",
         ),
     ),
     requires_admin=True,

@@ -3394,7 +3394,14 @@ var chatStyles = i`
   /* A page, not a device. Deliberately smaller and quieter than an entity
      tile: one row, link-coloured on hover, so a glance tells the two apart. */
   .selora-dashboard-link {
-    display: inline-flex;
+    /* Block-level, shrink-to-fit. As an inline-flex box it sat on the last
+       line of the prose — a top margin does not move an inline box onto a new
+       line — so the card landed mid-sentence, and a paragraph that wrapped
+       put it beside the last two words. fit-content keeps it card-shaped
+       rather than stretching to the bubble, and being block-level is also
+       what stacks two of them without a <br> to carry the layout. */
+    display: flex;
+    width: fit-content;
     align-items: center;
     gap: 10px;
     margin: 8px 0 2px;
@@ -26367,11 +26374,8 @@ function renderMarkdown(text) {
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
-  escaped = escaped.replace(
-    /(<br>)+(<a class="selora-dashboard-link")/g,
-    (_m, _br, tag, offset, whole) =>
-      whole.slice(0, offset).endsWith("</a>") ? `<br>${tag}` : tag,
-  );
+  escaped = escaped.replace(/(<br>)+(<a class="selora-dashboard-link")/g, "$2");
+  escaped = escaped.replace(/(<\/span><\/span><\/a>)(<br>)+/g, "$1");
   const escapeCode = (s4) =>
     s4.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const escapeAttr = (s4) =>
@@ -49393,7 +49397,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "e8a53798b07f" : "";
+var PANEL_BUILD = true ? "afd1964f3071" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

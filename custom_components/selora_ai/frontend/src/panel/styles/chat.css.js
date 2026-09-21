@@ -705,7 +705,14 @@ export const chatStyles = css`
   /* A page, not a device. Deliberately smaller and quieter than an entity
      tile: one row, link-coloured on hover, so a glance tells the two apart. */
   .selora-dashboard-link {
-    display: inline-flex;
+    /* Block-level, shrink-to-fit. As an inline-flex box it sat on the last
+       line of the prose — a top margin does not move an inline box onto a new
+       line — so the card landed mid-sentence, and a paragraph that wrapped
+       put it beside the last two words. fit-content keeps it card-shaped
+       rather than stretching to the bubble, and being block-level is also
+       what stacks two of them without a <br> to carry the layout. */
+    display: flex;
+    width: fit-content;
     align-items: center;
     gap: 10px;
     margin: 8px 0 2px;

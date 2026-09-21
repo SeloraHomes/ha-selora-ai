@@ -887,6 +887,110 @@ no way to change one, so it fell back to reciting the Settings click-path.
   needs its own allowlisted command, schema and validation) — `list_helpers` finds existing helpers to wire automations to, and
   `create_helper` is deliberately absent rather than faked.
 
+## What the read tools can see
+
+**`COLLECTOR_DOMAINS` is not the home.** It is the set worth snapshotting and
+pattern-analysing, and it doubles as the second half of the safe-command
+allowlist (`__init__.py`) — a domain with no entry in the service tables is
+absent from it by design. `camera` is such a domain. Every read tool used to
+gate on it, so a home's cameras were invisible to `search_entities`,
+`find_entities_by_area`, `get_device`, `list_devices` and `get_home_snapshot`
+at once, and "create a dashboard view with all my cameras" was answered "your
+Reolink devices expose motion, person, vehicle, animal and visitor sensors,
+but no camera entities" — the filter, read back as a fact about the house,
+while the dashboard WRITE path would have accepted those same entity_ids
+(`_unknown_entities` checks `hass.states`).
+
+- **Discovery is not permission, and not analysis.** `is_inspectable_entity`
+  in `entity_capabilities.py` answers the read tools; `COLLECTOR_DOMAINS`
+  still answers the collector, the pattern engine, `health_monitor` and the
+  in-prompt entity list. An entity nobody may switch on is still one a caller
+  can place on a dashboard, count, or name in an answer — `execute_command`
+  polices commands on its own, one layer down.
+- **It is a DENY-list of four plumbing domains** (`conversation`, `stt`,
+  `tts`, `wake_word`), not an allow-list of supported ones. The failure runs
+  one way: an entity wrongly hidden is reported to the user as absent, an
+  entity wrongly shown is a row the caller ignores. An allow-list also has the
+  wrong default — a domain nobody has classified yet is one the home
+  genuinely has, which is how `camera` came to be missing in the first place.
+  `is_actionable_entity`'s per-domain exclusions still run underneath, so a
+  camera's IR illuminator stays out of a lighting answer.
+- **The in-prompt entity list stays allowlist-coupled, so the prompt says so.**
+  Widening AVAILABLE ENTITIES costs prompt size on every turn and invites
+  commands the policy then refuses. What was missing is the disclaimer: the
+  rule "only use entity_ids from AVAILABLE ENTITIES" reads, to a model with
+  nothing else to consult, as "entities not in this list do not exist". It now
+  states that the list carries controllable domains only, that a tool result is
+  equally valid ground truth, and that an absence is reported only when a
+  search confirms it.
+- **A widened read must not bulk-export secrets.** `input_text` and `text`
+  hold their value AS their state, and both were outside the collector's
+  domains, so widening made a Wi-Fi key or an alarm code reachable by every
+  inventory read — sent to the configured LLM, and readable by a read-only MCP
+  credential. `_display_state` withholds the VALUE of any entity HA itself
+  marks `mode: password`, and only that: the entity stays listed, because an
+  entity nobody can see is reported to its owner as absent, which is the
+  failure this whole section is about. `execute_command`'s post-state is
+  deliberately exempt — it reports back a value the caller just set.
+- **An entity's area is its device's unless overridden.** `get_home_snapshot`
+  read the entity's own `area_id` alone, which most homes never set, so it
+  grouped the house under `unassigned` — in a tool whose entire shape is a
+  grouping by area. It resolves through the device registry now, as
+  `search_entities` already did.
+
+## Entity search
+
+`_tool_search_entities` (`mcp_server.py`) is the resolution tool for both chat
+and MCP. It is the only route to entities the home snapshot leaves out, which
+makes an empty result load-bearing in a way a search result normally is not.
+
+- **The haystack indexes the entity AND its device.** An entity's names carry
+  the product, never the brand: "IKEA" lives on the device as `manufacturer`
+  ("IKEA of Sweden"), beside the model, while the entity is called
+  "TIMMERFLOTTE temp/hmd sensor Battery". Indexing the entity alone answered
+  `query="IKEA"` with zero matches, which the model reported to the user as
+  having no IKEA battery entities at all — advising them to expose sensors that
+  were already there. `_device_search_index` walks the device registry once per
+  call and contributes name, `name_by_user`, manufacturer and model; the same
+  walk carries the area fallback the loop already needed.
+- **Device text joins term coverage, not the fuzzy component.** Fuzzy is the
+  typo rescue, and a token-set ratio against a longer haystack scores the same
+  typo lower, so folding every device's name and model in would raise
+  `SEARCH_FUZZY_FLOOR` out from under the queries it exists for — trading a
+  typo'd room name for a brand match literal coverage already catches.
+- **Any filter stands alone; only a call carrying none of the three is
+  refused.** "Every battery entity" and "all my cameras" are real requests with
+  no name to search for — the first is where a low-battery automation starts,
+  since batteries are diagnostic and `EntityFilter.is_active` keeps them out of
+  the snapshot entirely. What makes a bare filter safe is the listing ceiling
+  below, not a rule about which filter is narrow enough: an unbounded dump was
+  the actual worry, and refusing the request instead had the model telling the
+  user it could not do it. The class is read from the live attribute first and
+  the registry behind it, or a flat battery — the one the automation is for —
+  drops out of the filter while its device is offline.
+- **An empty result says so.** `searched` names the indexed fields and `hint`
+  states plainly that a miss is a failed lookup rather than an absent device,
+  with what to try next (one distinctive word, the product name, a
+  `device_class`, `list_devices`). The model has nothing to check an empty list
+  against, so without this it reads zero matches as proof and tells the user
+  their hardware does not exist. `_tool_strategy_recipe` carries the same two
+  facts — the snapshot omits diagnostic entities, and no entity name carries
+  its brand — because the belief that the snapshot is the whole home is what
+  makes the empty result convincing.
+- **Matches echo `manufacturer` / `model` / `device_class` when set.** A fuzzy
+  search for a brand returns near misses too, and nothing else in a row says
+  which is which. Omitted when empty — the rows share the tool-result budget.
+- **A ranked search and a filter-only listing have different ceilings.** A
+  query is a resolution — the caller wants the entity it named, the tail is
+  noise, so it defaults to 10 of at most 25. A `device_class`-only call is a
+  listing: "every battery in the house" is the request, and handing back ten of
+  a home's forty loses the other thirty as quietly as the brand search lost all
+  of them — so it returns the lot, up to 50. Both are bounded (the result
+  shares the 16K tool budget), and past the bound `omitted` plus
+  `omitted_note` say the list is partial: `total_scored` alone was there to be
+  inferred from, and a set assembled for an automation is exactly where an
+  unstated omission does damage.
+
 ### Tool lanes
 
 **Lanes apply to LOW-CONTEXT providers only.** A cloud turn gets the whole
@@ -1268,6 +1372,21 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
   a fragment. The view stores fine either way; only the link would be wrong,
   which is the worst shape for a result whose whole job is to be followed, and it is empty until cards are added, which is the other half of
   "I can't see anything". A genuinely separate dashboard is `create_dashboard`.
+- **A page and its cards are ONE write.** `add_dashboard_view` takes `cards`,
+  validates every one of them — the same `_card_type_error` / `_entity_error`
+  pair `insert_dashboard_card` runs — and stores the view only if they all
+  pass. Creating the page and filling it as two calls put the refusal AFTER the
+  artifact: asked for a dashboard of every camera, the model created the page,
+  had its guessed `camera.*` ids refused as unknown entities (correctly), and
+  left the user an empty page under a reply explaining why it was empty. An
+  empty artifact the user must delete is a worse outcome than the request
+  failing, so this one is all-or-nothing. An empty `cards` is ABSENT, per the
+  empty-optional rule — "add a page called X" is still an ordinary request —
+  and a single card object is accepted where the list belongs, since refusing
+  it costs a round to say so. Both surfaces marshal through `add_view_kwargs`
+  in `tool_executor`; the MCP handler was a hand-written second copy, which is
+  the drift this file warns about, and `cards` was the next argument.
+
 - **Nothing here can ask Home Assistant whether a card is valid.** Lovelace has
   no server-side validator: it stores what it is given and the frontend finds
   out, rendering "Unknown type encountered: fan" on the user's wall. An

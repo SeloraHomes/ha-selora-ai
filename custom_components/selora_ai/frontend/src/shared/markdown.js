@@ -491,17 +491,15 @@ export function renderMarkdown(text) {
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
-  // Same idea for the dashboard link, which carries its own vertical margin —
-  // but it is inline-flex, not a block, so the <br> between two of them is
-  // what stacks them. A turn that changed several pages emits one marker per
-  // page, and dropping every break would lay the cards out side by side and
-  // wrap them mid-row. So: exactly one break BETWEEN links, and none before
-  // the first, where the margin already provides the gap.
-  escaped = escaped.replace(
-    /(<br>)+(<a class="selora-dashboard-link")/g,
-    (_m, _br, tag, offset, whole) =>
-      whole.slice(0, offset).endsWith("</a>") ? `<br>${tag}` : tag,
-  );
+  // Same for the dashboard link: it is block-level and carries its own
+  // vertical margin, so every adjacent break is a blank line nobody asked
+  // for. The layout lives in the stylesheet rather than in which <br>s
+  // survive these passes — a card whose placement depended on a break landed
+  // in the middle of the sentence the moment the break was dropped.
+  escaped = escaped.replace(/(<br>)+(<a class="selora-dashboard-link")/g, "$2");
+  // Anchored on the card's own closing shape — label span, text span, anchor —
+  // so an ordinary markdown link later in the reply keeps its line breaks.
+  escaped = escaped.replace(/(<\/span><\/span><\/a>)(<br>)+/g, "$1");
 
   // Restore stashed code with HTML-escaped bodies wrapped in <pre> / <code>.
   // Done last so prior passes never touched the code contents — entity_ids

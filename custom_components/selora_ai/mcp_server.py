@@ -64,16 +64,15 @@ import weakref
 import aiohttp
 from aiohttp import web
 from homeassistant.components.http import KEY_HASS, HomeAssistantView
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, State
 from homeassistant.exceptions import Unauthorized
 
 from .const import (
-    COLLECTOR_DOMAINS,
     DOMAIN,
     SELORA_JWT_ISSUER,
     SELORA_JWT_WRITE_SCOPE,
 )
-from .entity_capabilities import is_actionable_entity
+from .entity_capabilities import is_inspectable_entity
 from .group_manager import (
     SENSOR_STATISTICS as _SENSOR_STATISTIC_ENUM,
 )
@@ -91,6 +90,9 @@ from .lexical import (
 from .selora_auth import AuthenticationError, SeloraAuthContext, authenticate_request
 
 if TYPE_CHECKING:
+    from homeassistant.helpers.device_registry import DeviceRegistry
+    from homeassistant.helpers.entity_registry import RegistryEntry
+
     from . import ConversationStore
     from .automation_store import AutomationStore
     from .collector import DataCollector
@@ -2075,13 +2077,31 @@ def _format_state_value(value: str) -> str:
     return result
 
 
+# HA's own signal that a value is a secret: `input_text` and `text` entities
+# carry `mode: password`, which is what makes the UI mask them. Their STATE is
+# the value itself, so a bulk read hands a Wi-Fi key or an alarm code to the
+# configured LLM and to any read-only MCP credential. The entity stays visible
+# — an entity nobody can see is reported to its owner as absent, which is the
+# failure this whole change is about — and only its value is withheld.
+_REDACTED_STATE = "***"
+
+
+def _display_state(state: State) -> str:
+    """The state as an inventory read may show it, secrets withheld."""
+    if str(state.attributes.get("mode", "")).strip().lower() == "password":
+        return _REDACTED_STATE
+    return _format_state_value(state.state)
+
+
 async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     """Return current entity states grouped by HA area."""
     from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
     area_reg = ar.async_get(hass)
     entity_reg = er.async_get(hass)
+    dev_reg = dr.async_get(hass)
 
     # Build area_id → area_name map
     area_names: dict[str, str] = {
@@ -2091,22 +2111,33 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     areas: dict[str, list[dict[str, Any]]] = {name: [] for name in area_names.values()}
     unassigned: list[dict[str, Any]] = []
 
-    _ALLOWED_DOMAINS: set[str] = COLLECTOR_DOMAINS | {"automation"}
+    # An entity's own ``area_id`` is an OVERRIDE; the common case is no
+    # override and the device's area. Reading only the entity's own put a home
+    # where nobody had overridden anything in ``unassigned`` wholesale — a
+    # snapshot grouped by area that reports the house as unassigned — and a
+    # question about a room was then answered from an empty list.
+    device_areas: dict[str, str] = {
+        device.id: device.area_id for device in device_entries(dev_reg) if device.area_id
+    }
 
     for state in hass.states.async_all():
         domain = state.entity_id.split(".")[0]
-        if domain not in _ALLOWED_DOMAINS:
-            continue
-        if not is_actionable_entity(state.entity_id):
+        # Every domain the home has, not the collector's analysis set: this
+        # tool is what a caller asks when it wants to know what is here, and
+        # an inventory that silently drops cameras is answered as "you have
+        # none".
+        if not is_inspectable_entity(state.entity_id):
             continue
 
         entry = entity_reg.async_get(state.entity_id)
         area_id = entry.area_id if entry else None
+        if area_id is None and entry is not None and entry.device_id:
+            area_id = device_areas.get(entry.device_id)
 
         entity_entry = {
             "entity_id": state.entity_id,
             "domain": domain,
-            "state": _format_state_value(state.state),
+            "state": _display_state(state),
             "friendly_name": _sanitize(state.attributes.get("friendly_name", state.entity_id)),
         }
 
@@ -2159,12 +2190,16 @@ async def _tool_list_devices(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         device_domains: set[str] = set()
         for entity in er.async_entries_for_device(ent_reg, device.id):
             domain = entity.entity_id.split(".")[0]
-            if domain in COLLECTOR_DOMAINS:
+            # A device's entities are what the device IS. Filtering them to the
+            # collector's domains made a camera report as a handful of motion
+            # sensors — and reads as authoritative, since the caller asked
+            # about that device specifically.
+            if is_inspectable_entity(entity.entity_id):
                 state_obj = hass.states.get(entity.entity_id)
                 entities.append(
                     {
                         "entity_id": entity.entity_id,
-                        "state": _format_state_value(state_obj.state) if state_obj else "unknown",
+                        "state": _display_state(state_obj) if state_obj else "unknown",
                     }
                 )
                 device_domains.add(domain)
@@ -2239,7 +2274,7 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
     entities: list[dict[str, Any]] = []
     for entity in er.async_entries_for_device(ent_reg, device.id):
         domain = entity.entity_id.split(".")[0]
-        if domain not in COLLECTOR_DOMAINS:
+        if not is_inspectable_entity(entity.entity_id):
             continue
 
         state = hass.states.get(entity.entity_id)
@@ -2247,7 +2282,7 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
             "entity_id": entity.entity_id,
             "domain": domain,
             "name": _sanitize(entity.name or entity.original_name or entity.entity_id),
-            "state": _format_state_value(state.state) if state else "unavailable",
+            "state": _display_state(state) if state else "unavailable",
         }
 
         # Include key attributes based on domain
@@ -2472,7 +2507,7 @@ async def _tool_get_entity_state(hass: HomeAssistant, arguments: dict[str, Any])
     return {
         "entity_id": entity_id,
         "domain": domain,
-        "state": _format_state_value(state.state),
+        "state": _display_state(state),
         "friendly_name": _sanitize(attrs.get("friendly_name", entity_id)),
         "area": _sanitize(area_name) if area_name else None,
         "device_id": ent_device_id,
@@ -2511,11 +2546,9 @@ async def _tool_find_entities_by_area(
 
     entities: list[dict[str, Any]] = []
     for state in hass.states.async_all():
-        if not is_actionable_entity(state.entity_id):
+        if not is_inspectable_entity(state.entity_id):
             continue
         domain = state.entity_id.split(".", 1)[0]
-        if domain not in COLLECTOR_DOMAINS:
-            continue
         if domain_filter and domain != domain_filter:
             continue
 
@@ -2541,7 +2574,7 @@ async def _tool_find_entities_by_area(
             {
                 "entity_id": state.entity_id,
                 "domain": domain,
-                "state": _format_state_value(state.state),
+                "state": _display_state(state),
                 "friendly_name": _sanitize(state.attributes.get("friendly_name", state.entity_id)),
                 "area": _sanitize(matching_area_ids[ent_area_id]),
             }
@@ -2880,6 +2913,37 @@ async def _tool_execute_command(
 
 # ── Tool: selora_search_entities ───────────────────────────────────────────────
 
+# What the haystack is built from, reported back when nothing matched so the
+# caller can tell a field it did not search from a device that is not there.
+_SEARCH_FIELDS = "entity_id, friendly name, aliases, area, device name/manufacturer/model"
+
+# An empty result is a failed LOOKUP, and the model that receives it has no
+# other view of the home to check it against — battery and other diagnostic
+# entities are filtered out of the snapshot entirely, so this tool is the only
+# route to them. Read as absence, "no match for IKEA" becomes "you have no IKEA
+# battery entities, add them and ask me again" — told to a user whose IKEA
+# sensors are sitting right there, named after the product rather than the
+# brand. So the empty result says what it means and what to try instead.
+# A ranked search is a resolution: the caller wants the entity it named, and a
+# long tail of weaker matches is noise. A FILTER-ONLY call is a listing — every
+# battery in the house, which is the whole of "notify me when batteries are
+# low" — so it gets its own, larger ceiling and returns the lot by default.
+# Both are bounded: the result shares a 16K budget with the rest of the turn,
+# and past the bound ``omitted`` says how many rows are missing rather than
+# letting the list read as complete.
+_MAX_RANKED_MATCHES = 25
+_MAX_LISTING_MATCHES = 50
+_DEFAULT_RANKED_MATCHES = 10
+
+_NO_MATCH_HINT = (
+    "No entity matched. This is a name lookup coming up empty, NOT evidence "
+    "that the device is absent — do not tell the user it does not exist on "
+    "this alone. Try again with one distinctive word rather than a phrase, "
+    "with the product name rather than the brand, with a device_class filter "
+    "(device_class='battery' needs no query at all), or call list_devices to "
+    "see what is actually installed."
+)
+
 
 def _entity_term_count(query_terms: list[str], haystack: str) -> int:
     """Count how many query terms appear literally in the haystack.
@@ -2890,47 +2954,121 @@ def _entity_term_count(query_terms: list[str], haystack: str) -> int:
     return sum(1 for term in query_terms if term in haystack)
 
 
+def _device_search_index(dev_reg: DeviceRegistry) -> dict[str, dict[str, str]]:
+    """Per-device searchable text and area, from one registry walk.
+
+    An entity's own names carry the product and never the brand: "IKEA" lives
+    on the DEVICE as ``manufacturer`` ("IKEA of Sweden"), and the model number
+    beside it, while the entity is called "TIMMERFLOTTE temp/hmd sensor
+    Battery". Indexing the entity alone answers a brand query with nothing —
+    and nothing is the one answer a caller cannot act on. So the device's
+    name, user-given name, manufacturer and model join the haystack, which is
+    also what keeps ``list_devices`` (a whole-home dump this tool exists to
+    avoid) from being the only way to reach a brand's entities.
+
+    One walk per call rather than a registry hit per entity: a home has far
+    fewer devices than entities, and the same walk carries the area fallback
+    the loop needs for an entity whose own ``area_id`` is unset.
+    """
+    index: dict[str, dict[str, str]] = {}
+    for device in device_entries(dev_reg):
+        manufacturer = device.manufacturer or ""
+        model = device.model or ""
+        index[device.id] = {
+            "text": normalize(
+                " ".join(
+                    part
+                    for part in (
+                        device.name_by_user or "",
+                        device.name or "",
+                        manufacturer,
+                        model,
+                    )
+                    if part
+                )
+            ),
+            "area_id": device.area_id or "",
+            "manufacturer": manufacturer,
+            "model": model,
+        }
+    return index
+
+
+def _entity_device_class(state: State, entry: RegistryEntry | None) -> str:
+    """The entity's device class — live attribute first, registry behind it.
+
+    The attribute is what the entity reports now and already reflects a user
+    override, but an unavailable entity can drop it while the registry still
+    knows what it is, and a low-battery request must not miss a sensor whose
+    device is asleep.
+    """
+    live = state.attributes.get("device_class")
+    if live:
+        return str(live).strip().lower()
+    if entry is not None:
+        stored = entry.device_class or entry.original_device_class
+        if stored:
+            return str(stored).strip().lower()
+    return ""
+
+
 async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Fuzzy search for entities across entity_id, friendly_name, aliases, and area."""
+    """Fuzzy search entities across their own names, their area, and their device."""
     from homeassistant.helpers import area_registry as ar
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
     query = normalize(str(arguments.get("query", "")))
     domain_filter = str(arguments.get("domain", "")).strip().lower()
+    device_class_filter = str(arguments.get("device_class", "")).strip().lower()
+
+    query_terms = [t for t in query.split() if t]
+    # Any filter may stand alone; only a call carrying none of the three is
+    # refused. "All my cameras" and "every battery entity" are real requests
+    # with no name to search for — the latter is where a low-battery
+    # automation starts — and refusing them sent the model back to the user
+    # saying it could not do it. What made a bare filter dangerous was an
+    # unbounded dump; the listing ceiling and `omitted` below bound it.
+    if not query_terms and not device_class_filter and not domain_filter:
+        return {
+            "error": (
+                "query is required, or filter alone by domain and/or device_class "
+                "(e.g. domain='camera', device_class='battery')"
+            )
+        }
+
+    # A filter-only call is a listing, so it defaults to its whole ceiling: a
+    # low-battery automation that silently saw the first ten of a home's forty
+    # batteries is the same failure as the search that found none of them.
+    listing = not query_terms
+    ceiling = _MAX_LISTING_MATCHES if listing else _MAX_RANKED_MATCHES
+    default_limit = ceiling if listing else _DEFAULT_RANKED_MATCHES
     try:
-        limit = int(arguments.get("limit", 10))
+        limit = int(arguments.get("limit", default_limit))
     except (
         TypeError,
         ValueError,
     ):
-        limit = 10
-    limit = max(1, min(limit, 25))
-
-    if not query:
-        return {"error": "query is required"}
-
-    query_terms = [t for t in query.split() if t]
-    if not query_terms:
-        return {"error": "query must contain at least one search term"}
+        limit = default_limit
+    limit = max(1, min(limit, ceiling))
 
     ent_reg = er.async_get(hass)
     area_reg = ar.async_get(hass)
     dev_reg = dr.async_get(hass)
     area_names: dict[str, str] = {a.id: a.name for a in area_reg.async_list_areas()}
+    device_index = _device_search_index(dev_reg)
 
     scored: list[tuple[float, dict[str, Any]]] = []
     for state in hass.states.async_all():
-        if not is_actionable_entity(state.entity_id):
+        # Every domain the home has. A scene, a camera and a pending update
+        # are all things a caller resolves by name — this search is how the
+        # architect maps "Stores at 50%" to a real `scene.*` id, and guessing
+        # one instead fails automation validation as an unknown entity_id.
+        # Restricting it to the collector's analysis domains answered "all my
+        # cameras" with nothing at all.
+        if not is_inspectable_entity(state.entity_id):
             continue
         domain = state.entity_id.split(".", 1)[0]
-        # ``scene`` is not collected (a scene has no meaningful state), but it
-        # must be resolvable here: this fuzzy search is how the architect maps
-        # a named scene ("Stores at 50%") to its real entity_id without
-        # bloating context by listing every scene. Guessing the id instead
-        # fails automation validation as an unknown entity_id.
-        if domain not in COLLECTOR_DOMAINS and domain != "scene":
-            continue
         if domain_filter and domain != domain_filter:
             continue
 
@@ -2939,8 +3077,7 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
         aliases = ""
         ent_area_id: str | None = None
         # The entity's device, so a caller that found the entity here can reach
-        # the device tools without a whole-home ``list_devices`` dump. Resolved
-        # below from the same registry walk the area fallback already does.
+        # the device tools without a whole-home ``list_devices`` dump.
         ent_device_id: str | None = None
         if entry is not None:
             # `compat_aliases` is the plain-string view added in HA
@@ -2953,43 +3090,86 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
             aliases = " ".join(str(a) for a in raw_aliases).lower() if raw_aliases else ""
             ent_area_id = entry.area_id
             ent_device_id = entry.device_id
-            if ent_area_id is None and entry.device_id:
-                device = dev_reg.async_get(entry.device_id)
-                if device:
-                    ent_area_id = device.area_id
+
+        device_info = device_index.get(ent_device_id or "", {})
+        if ent_area_id is None:
+            ent_area_id = device_info.get("area_id") or None
+
+        device_class = _entity_device_class(state, entry)
+        if device_class_filter and device_class != device_class_filter:
+            continue
 
         area_name = area_names.get(ent_area_id or "", "")
-        haystack = normalize(" ".join([state.entity_id, friendly, aliases, area_name]))
+        own_haystack = normalize(" ".join([state.entity_id, friendly, aliases, area_name]))
+        device_text = device_info.get("text", "")
+        haystack = f"{own_haystack} {device_text}" if device_text else own_haystack
         # Ensemble rank: literal term coverage + order-insensitive fuzzy
         # similarity. ``score`` stays a plain term-hit count for the LLM;
         # ``rank`` (fuzzy-blended) drives ordering and admits typo-only
         # matches that have zero literal hits.
+        #
+        # Term coverage reads the device text; the fuzzy component stays on the
+        # entity's OWN names. Fuzzy is the typo rescue, and a token-set ratio
+        # against a longer haystack scores the same typo lower — folding every
+        # device's name, brand and model in would raise SEARCH_FUZZY_FLOOR out
+        # from under the queries it exists for, trading a typo'd room name for
+        # a brand match that literal coverage already catches.
         term_hits = _entity_term_count(query_terms, haystack)
-        fuzzy = fuzzy_ratio(query, haystack)
-        if term_hits == 0 and fuzzy < SEARCH_FUZZY_FLOOR:
-            continue
-        rank = SEARCH_W_TERM_RATIO * (term_hits / len(query_terms)) + SEARCH_W_FUZZY * fuzzy
+        if query_terms:
+            fuzzy = fuzzy_ratio(query, own_haystack)
+            if term_hits == 0 and fuzzy < SEARCH_FUZZY_FLOOR:
+                continue
+            rank = SEARCH_W_TERM_RATIO * (term_hits / len(query_terms)) + SEARCH_W_FUZZY * fuzzy
+        else:
+            # device_class alone: every entity past the filters is a match and
+            # there is nothing to rank them by, so they sort by entity_id.
+            rank = 0.0
 
-        scored.append(
-            (
-                rank,
-                {
-                    "entity_id": state.entity_id,
-                    "domain": domain,
-                    "state": _format_state_value(state.state),
-                    "friendly_name": _sanitize(
-                        state.attributes.get("friendly_name", state.entity_id)
-                    ),
-                    "area": _sanitize(area_names.get(ent_area_id or "", "")) or None,
-                    "device_id": ent_device_id,
-                    "score": term_hits,
-                },
-            )
-        )
+        match: dict[str, Any] = {
+            "entity_id": state.entity_id,
+            "domain": domain,
+            "state": _display_state(state),
+            "friendly_name": _sanitize(state.attributes.get("friendly_name", state.entity_id)),
+            "area": _sanitize(area_names.get(ent_area_id or "", "")) or None,
+            "device_id": ent_device_id,
+            "score": term_hits,
+        }
+        # The fields that made a brand or class query match, echoed back so the
+        # caller can tell which rows it actually asked for — a fuzzy search
+        # for "IKEA" returns near misses too, and nothing else in the row says
+        # which is which. Omitted when unset rather than sent empty: the rows
+        # share the tool-result budget with up to `limit` of their neighbours.
+        manufacturer = _sanitize(device_info.get("manufacturer", ""))
+        if manufacturer:
+            match["manufacturer"] = manufacturer
+        model = _sanitize(device_info.get("model", ""))
+        if model:
+            match["model"] = model
+        if device_class:
+            match["device_class"] = device_class
+
+        scored.append((rank, match))
 
     scored.sort(key=lambda x: (-x[0], x[1]["entity_id"]))
     matches = [item for _, item in scored[:limit]]
-    return {"matches": matches, "count": len(matches), "total_scored": len(scored)}
+    result: dict[str, Any] = {
+        "matches": matches,
+        "count": len(matches),
+        "total_scored": len(scored),
+    }
+    # Stated outright rather than left to be inferred from `total_scored`: a
+    # caller listing a device class is assembling a complete set, and a partial
+    # list that does not say so is used as though it were the whole home.
+    if len(scored) > len(matches):
+        result["omitted"] = len(scored) - len(matches)
+        result["omitted_note"] = (
+            f"Showing {len(matches)} of {len(scored)} matches. Raise `limit` "
+            f"(max {ceiling}) or narrow the search to see the rest."
+        )
+    if not scored:
+        result["searched"] = _SEARCH_FIELDS
+        result["hint"] = _NO_MATCH_HINT
+    return result
 
 
 # ── Tool: selora_get_entity_history ────────────────────────────────────────────
@@ -5324,16 +5504,9 @@ async def _tool_add_dashboard_view(
 ) -> dict[str, Any]:
     """Append a view to a dashboard."""
     from .dashboard_manager import async_add_view  # noqa: PLC0415
-    from .tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
+    from .tool_executor import add_view_kwargs  # noqa: PLC0415
 
-    return await async_add_view(
-        hass,
-        target=_opt_str(arguments.get("dashboard_target")),
-        title=str(arguments.get("title", "")),
-        path=_opt_str(arguments.get("path")),
-        icon=_opt_str(arguments.get("icon")),
-        sections=bool(_opt_bool(arguments.get("sections"))),
-    )
+    return await async_add_view(hass, **add_view_kwargs(arguments))
 
 
 async def _tool_update_dashboard_view(
@@ -5960,28 +6133,54 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
         name=TOOL_SEARCH_ENTITIES,
         description=(
             "Fuzzy-search entities by free-text query across entity_id, friendly "
-            "name, registered aliases, and area name. Returns ranked matches "
-            "(score = number of query terms found). Use this when the user names "
-            "a device informally ('kitchen island light', 'master bedroom fan') "
-            "and you need to resolve it to an entity_id before issuing a command."
+            "name, registered aliases, area name, and the entity's DEVICE (name, "
+            "manufacturer, model) — so a brand or model query ('IKEA', 'Aqara', "
+            "'TRADFRI') resolves the entities that device owns, even though the "
+            "brand appears in no entity name. Returns ranked matches (score = "
+            "number of query terms found). Use this when the user names a device "
+            "informally ('kitchen island light', 'master bedroom fan') and you "
+            "need to resolve it to an entity_id before issuing a command. "
+            "`domain` and `device_class` may each be used ALONE, with no query: "
+            "domain='camera' lists every camera, device_class='battery' every "
+            "battery entity — the way to find battery levels, which are "
+            "diagnostic entities and so absent from the home snapshot. An empty "
+            "result is a failed name lookup, not proof the device is absent."
         ),
         inputSchema={
             "type": "object",
-            "required": ["query"],
+            "required": [],
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Free-text search query (e.g. 'kitchen island light').",
+                    "description": (
+                        "Free-text search query (e.g. 'kitchen island light', "
+                        "'IKEA'). Required unless domain or device_class is "
+                        "given."
+                    ),
                 },
                 "domain": {
                     "type": "string",
-                    "description": "Optional domain filter (e.g. 'light').",
+                    "description": (
+                        "Optional domain filter (e.g. 'light', 'camera'). "
+                        "Works with no query, to list the whole domain."
+                    ),
+                },
+                "device_class": {
+                    "type": "string",
+                    "description": (
+                        "Optional device-class filter (e.g. 'battery', "
+                        "'temperature', 'motion'). Works with no query."
+                    ),
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Max results to return (1-25, default 10).",
+                    "description": (
+                        "Max results (default 10, up to 25 for a query; a "
+                        "device_class-only listing defaults to all matches, up "
+                        "to 50). `omitted` reports anything left out."
+                    ),
                     "minimum": 1,
-                    "maximum": 25,
+                    "maximum": 50,
                 },
             },
         },
