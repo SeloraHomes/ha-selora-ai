@@ -680,14 +680,7 @@ class ToolExecutor:
     async def _add_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .dashboard_manager import async_add_view
 
-        return await async_add_view(
-            self._hass,
-            target=_opt_str(arguments.get("dashboard_target")),
-            title=str(arguments.get("title", "")),
-            path=_opt_str(arguments.get("path")),
-            icon=_opt_str(arguments.get("icon")),
-            sections=bool(_opt_bool(arguments.get("sections"))),
-        )
+        return await async_add_view(self._hass, **add_view_kwargs(arguments))
 
     async def _update_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .dashboard_manager import async_update_view
@@ -788,6 +781,43 @@ def _as_list(value: Any) -> list[str]:
     if isinstance(value, (list, tuple, set)):
         return [str(v).strip() for v in value if str(v).strip()]
     return []
+
+
+def _as_card_list(value: Any) -> list[Any]:
+    """Wrap a non-list ``cards`` argument so it is validated, not discarded."""
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def add_view_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``async_add_view`` keyword arguments from raw tool arguments.
+
+    Shared with the MCP surface for the reason ``move_card_kwargs`` is: two
+    hand-written copies drift on the next argument added, quietly, in the shape
+    where the MCP client rejects what chat accepts. ``cards`` was the next
+    argument.
+    """
+    raw_cards = arguments.get("cards")
+    return {
+        "target": _opt_str(arguments.get("dashboard_target")),
+        "title": str(arguments.get("title", "")),
+        "path": _opt_str(arguments.get("path")),
+        "icon": _opt_str(arguments.get("icon")),
+        "sections": bool(_opt_bool(arguments.get("sections"))),
+        # A single card object is accepted where a list belongs: the parameter
+        # names a list, and a model that has one card to place routinely sends
+        # it bare. Refusing costs a round to say so.
+        #
+        # Anything else present is wrapped rather than dropped, so
+        # ``async_add_view`` refuses it by name. Nothing validates tool
+        # arguments against the schema before dispatch, so reading a malformed
+        # value as an omission would create the empty page the all-or-nothing
+        # write exists to prevent — quietly, reporting success. Only ``None``
+        # is absent here; ``[]`` and ``""`` are filtered as padding one layer
+        # down, where "no cards" is a legitimate request.
+        "cards": None if raw_cards is None else _as_card_list(raw_cards),
+    }
 
 
 def move_card_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:

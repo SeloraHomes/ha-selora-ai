@@ -865,16 +865,45 @@ async def async_add_view(
     path: str | None = None,
     icon: str | None = None,
     sections: bool = False,
+    cards: list[Any] | None = None,
 ) -> dict[str, Any]:
-    """Append a view (a page) to a dashboard.
+    """Append a view (a page) to a dashboard, with its cards if it has any.
 
     Appends rather than inserts: a view's position is what the user's sidebar
     order looks like, and silently pushing their existing pages along is a
     change they did not ask for.
+
+    ``cards`` makes a page and its contents ONE write, and it is validated
+    before anything is stored. "A dashboard with all my cameras" is a single
+    request, but creating the page and filling it were two calls with a gap
+    between them — and a refusal in the second (an entity that does not
+    resolve, a card type that is not one) landed AFTER the page existed. The
+    user was left with an empty page they had to delete by hand, under a reply
+    explaining why it was empty, which is a worse outcome than the request
+    simply failing. All-or-nothing: an invalid card means no view.
     """
     title = str(title or "").strip()
     if not title:
         return {"error": "A view title is required."}
+
+    # Empty is absent — models fill unused optional params with `[]`, and a
+    # page created empty on purpose is an ordinary thing to ask for. A card
+    # that is PRESENT but malformed is a different thing: `{}` is falsy and
+    # satisfies the array-of-objects schema, so a truthiness filter would drop
+    # it and report success having created exactly the empty page this refuses.
+    # Only a placeholder with nothing in it at all is treated as padding.
+    new_cards = [c for c in (cards or []) if c is not None and c != ""]
+    for position, card in enumerate(new_cards):
+        if not isinstance(card, dict) or not str(card.get("type", "")).strip():
+            return {"error": f"cards[{position}] must be an object with a 'type' field"}
+        # The same two checks `insert_dashboard_card` runs, and for the same
+        # reason: Lovelace validates nothing server-side, so a card refused
+        # here is a card that would otherwise render "Entity not found" or
+        # "Unknown type encountered" on the user's wall panel.
+        if error := _card_type_error(hass, card):
+            return {"error": f"cards[{position}]: {error}"}
+        if error := _entity_error(hass, card):
+            return {"error": f"cards[{position}]: {error}"}
 
     async with DASHBOARD_LOCK:
         config, error = _writable_dashboard(hass, target)
@@ -903,9 +932,9 @@ async def async_add_view(
         # the first card added to it.
         if sections:
             view["type"] = "sections"
-            view["sections"] = [{"type": "grid", "cards": []}]
+            view["sections"] = [{"type": "grid", "cards": list(new_cards)}]
         else:
-            view["cards"] = []
+            view["cards"] = list(new_cards)
 
         views.append(view)
         if error := await _save(config, document, before):
@@ -932,9 +961,10 @@ async def async_add_view(
         # correctly, and on a resumed turn — the dashboard created moments
         # earlier, this its first page — it reads as the wrong tool having been
         # used.
+        "cards_added": len(new_cards),
         "note": (
-            "This is a new page ON that dashboard, not a new dashboard. It is empty "
-            "until you add cards to it."
+            "This is a new page ON that dashboard, not a new dashboard."
+            + ("" if new_cards else " It is empty until you add cards to it.")
         ),
     }
 

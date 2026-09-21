@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, it, expect } from "vitest";
 import { stripAutomationBlock, renderMarkdown } from "../markdown.js";
 
@@ -727,20 +729,47 @@ describe("the dashboard card", () => {
     expect(html).toContain("mdi:view-dashboard-outline");
   });
 
-  // A turn that created four views emits four markers, one per line. The card
-  // is inline-flex, so the <br> between two of them is what stacks them —
-  // stripping every break laid them out side by side and wrapped them mid-row.
-  it("stacks one card per page and drops the break above the first", () => {
+  // A turn that created four views emits four markers, one per page. The card
+  // is block-level, so the stacking is the stylesheet's job and every adjacent
+  // <br> is a blank line nobody asked for.
+  it("stacks one card per page with no breaks carrying the layout", () => {
     const html = renderMarkdown(
       "Created two views.\n\n[[dashboard:/lovelace/rooms|Rooms]]\n[[dashboard:/lovelace/security|Security]]",
     );
     const cards = html.match(/class="selora-dashboard-link"/g);
     expect(cards).toHaveLength(2);
-    // Exactly one break between them, and none between the prose and the
-    // first — the card carries its own top margin.
-    expect(html).toContain('views.<a class="selora-dashboard-link"');
-    expect(html).toMatch(/<\/a><br><a class="selora-dashboard-link"/);
-    expect(html).not.toMatch(/<\/a><br><br>/);
+    expect(html).not.toMatch(/<br><a class="selora-dashboard-link"/);
+    expect(html).not.toMatch(/<\/span><\/span><\/a><br>/);
+  });
+
+  // The card used to be inline-flex with the break above it deliberately
+  // dropped, on the reasoning that its top margin provided the gap. A margin
+  // does not move an inline box onto its own line, so the card rendered on the
+  // last line of the prose — beside the final two words of a wrapped
+  // paragraph. The layout has to come from the stylesheet, and the markup
+  // pass alone cannot prove that, so this asserts the rule itself.
+  it("declares the card block-level in the stylesheet", () => {
+    const chatStyles = readFileSync(
+      new URL("../../panel/styles/chat.css.js", import.meta.url),
+      "utf8",
+    );
+    const rule = chatStyles.match(/\.selora-dashboard-link \{[^}]*\}/)?.[0];
+    expect(rule).toBeTruthy();
+    // The declaration, not the prose: the comment above it names the shape
+    // this replaced.
+    expect(rule).not.toMatch(/display:\s*inline-flex/);
+    expect(rule).toMatch(/display:\s*flex/);
+    expect(rule).toMatch(/width:\s*fit-content/);
+  });
+
+  // The strip is anchored on the card's own closing shape (label span, text
+  // span, anchor), so prose that follows a card keeps flowing after it — the
+  // block-level card ends the line by itself.
+  it("carries on with the prose after a card", () => {
+    const html = renderMarkdown("[[dashboard:/office/0|Office]]\nHave a look.");
+    expect(html).toContain('class="selora-dashboard-link"');
+    expect(html).toContain("Have a look.");
+    expect(html).not.toMatch(/<\/span><\/span><\/a><br>/);
   });
 
   it("falls back to a label when the marker carries none", () => {

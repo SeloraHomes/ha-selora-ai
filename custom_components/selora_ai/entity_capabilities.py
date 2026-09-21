@@ -98,6 +98,20 @@ DOMAIN_PROFILES: dict[str, DomainProfile] = {
 }
 
 
+# Assist-pipeline plumbing. These are entities in the registry, but nothing in
+# the house corresponds to them and no caller can place one on a dashboard or
+# name one in an automation, so they are noise in an inventory a model reads.
+# Everything else a home has IS shown — see :func:`is_inspectable_entity`.
+TOOL_HIDDEN_DOMAINS: frozenset[str] = frozenset(
+    {
+        "conversation",
+        "stt",
+        "tts",
+        "wake_word",
+    }
+)
+
+
 # ── Derived sets ─────────────────────────────────────────────────────
 
 COLLECTOR_DOMAINS: frozenset[str] = frozenset(
@@ -123,6 +137,31 @@ def is_actionable_entity(entity_id: str) -> bool:
     if profile is None or not profile.exclude_patterns:
         return True
     return not any(pat in entity_id for pat in profile.exclude_patterns)
+
+
+def is_inspectable_entity(entity_id: str) -> bool:
+    """Return True if a read tool may show this entity to a caller.
+
+    ``COLLECTOR_DOMAINS`` answers a different question — what is worth
+    snapshotting and pattern-analysing — and is additionally the second half of
+    the safe-command allowlist, so a domain with no entry in the service tables
+    is absent from it by design. Asking it "does this home have cameras?"
+    returns no, and a model with nothing else to consult reports that to the
+    owner of four Reolinks as a fact about their house. Discovery and
+    permission are separate questions: an entity nobody may switch on is still
+    one the caller can put on a dashboard, count, or name in an answer, and
+    ``execute_command`` polices the commands on its own.
+
+    So this is a DENY-list of four plumbing domains, not an allow-list of
+    supported ones. A domain nobody has classified yet is a domain the home
+    genuinely has, and the failure mode of guessing wrong runs one way: an
+    entity wrongly hidden is reported as absent, while an entity wrongly shown
+    is at worst a row the caller ignores.
+    """
+    domain = entity_id.split(".")[0]
+    if domain in TOOL_HIDDEN_DOMAINS:
+        return False
+    return is_actionable_entity(entity_id)
 
 
 def is_scene_capable(entity_id: str) -> bool:

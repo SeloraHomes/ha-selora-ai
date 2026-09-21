@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     area_registry as ar,
@@ -86,7 +87,79 @@ async def setup_world(hass: HomeAssistant):
     # Scene
     hass.states.async_set("scene.movie_night", "scening")
 
-    return {"kitchen_id": kitchen.id, "bedroom_id": bedroom.id}
+    # An IKEA sensor — the shape that made a brand search come back empty.
+    # "IKEA" is on the DEVICE (manufacturer); the entities are named after the
+    # product, and the battery one is diagnostic, so it is absent from the home
+    # snapshot and reachable only through this tool.
+    pool = area_reg.async_create("Pool")
+    ikea = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "timmerflotte")},
+        name="TIMMERFLOTTE temp/hmd sensor",
+        manufacturer="IKEA of Sweden",
+        model="E2013",
+    )
+    dev_reg.async_update_device(ikea.id, area_id=pool.id)
+
+    ent_reg.async_get_or_create(
+        "sensor",
+        "test",
+        "timmerflotte_battery_uid",
+        suggested_object_id="timmerflotte_temp_hmd_sensor_battery",
+        device_id=ikea.id,
+        original_device_class="battery",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    )
+    hass.states.async_set(
+        "sensor.timmerflotte_temp_hmd_sensor_battery",
+        "54",
+        {
+            "friendly_name": "TIMMERFLOTTE temp/hmd sensor Battery",
+            "device_class": "battery",
+            "unit_of_measurement": "%",
+        },
+    )
+
+    ent_reg.async_get_or_create(
+        "sensor",
+        "test",
+        "timmerflotte_humidity_uid",
+        suggested_object_id="timmerflotte_temp_hmd_sensor_humidity",
+        device_id=ikea.id,
+        original_device_class="humidity",
+    )
+    hass.states.async_set(
+        "sensor.timmerflotte_temp_hmd_sensor_humidity",
+        "51.26",
+        {
+            "friendly_name": "TIMMERFLOTTE temp/hmd sensor Humidity",
+            "device_class": "humidity",
+            "unit_of_measurement": "%",
+        },
+    )
+
+    # A battery whose device is asleep: no live device_class attribute, only
+    # the registry's. A low-battery request must not miss it.
+    ent_reg.async_get_or_create(
+        "sensor",
+        "test",
+        "parasoll_battery_uid",
+        suggested_object_id="parasoll_door_sensor_battery",
+        original_device_class="battery",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    )
+    hass.states.async_set(
+        "sensor.parasoll_door_sensor_battery",
+        "unavailable",
+        {"friendly_name": "PARASOLL door sensor Battery"},
+    )
+
+    return {
+        "kitchen_id": kitchen.id,
+        "bedroom_id": bedroom.id,
+        "pool_id": pool.id,
+        "ikea_device_id": ikea.id,
+    }
 
 
 # ── execute_command ──────────────────────────────────────────────────────────
@@ -1501,6 +1574,221 @@ async def test_search_entities_limit(hass: HomeAssistant, setup_world) -> None:
 async def test_search_entities_missing_query(hass: HomeAssistant) -> None:
     result = await _tool_search_entities(hass, {})
     assert "error" in result
+    # The error names the one filter that stands alone, or the model reads it
+    # as "this tool needs a name" and never tries the class it was after.
+    assert "device_class" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_search_entities_matches_manufacturer(hass: HomeAssistant, setup_world) -> None:
+    """A brand query resolves the entities of that brand's devices.
+
+    "IKEA" appears in no entity_id, friendly name, alias or area — only in the
+    device's manufacturer. Searching the entity alone answered this with
+    nothing, which the model reported to the user as the devices not existing.
+    """
+    result = await _tool_search_entities(hass, {"query": "IKEA", "domain": "sensor"})
+    ids = [m["entity_id"] for m in result["matches"]]
+    assert "sensor.timmerflotte_temp_hmd_sensor_battery" in ids
+    assert "sensor.timmerflotte_temp_hmd_sensor_humidity" in ids
+
+
+@pytest.mark.asyncio
+async def test_search_entities_matches_device_model(hass: HomeAssistant, setup_world) -> None:
+    """The model number is searchable too, and it is nowhere in the names."""
+    result = await _tool_search_entities(hass, {"query": "E2013"})
+    ids = [m["entity_id"] for m in result["matches"]]
+    assert "sensor.timmerflotte_temp_hmd_sensor_battery" in ids
+
+
+@pytest.mark.asyncio
+async def test_search_entities_reports_device_fields(hass: HomeAssistant, setup_world) -> None:
+    """A match echoes what made it match, so near misses are distinguishable."""
+    result = await _tool_search_entities(hass, {"query": "IKEA", "domain": "sensor"})
+    top = next(
+        m
+        for m in result["matches"]
+        if m["entity_id"] == "sensor.timmerflotte_temp_hmd_sensor_battery"
+    )
+    assert top["manufacturer"] == "IKEA of Sweden"
+    assert top["model"] == "E2013"
+    assert top["device_class"] == "battery"
+    # The device's area reaches an entity that has none of its own.
+    assert top["area"] == "Pool"
+
+
+@pytest.mark.asyncio
+async def test_search_entities_device_class_alone_needs_no_query(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """`device_class='battery'` with no query lists every battery entity.
+
+    Battery levels are diagnostic and never reach the home snapshot, so this
+    is the only route to "notify me when batteries are low".
+    """
+    result = await _tool_search_entities(hass, {"device_class": "battery"})
+    ids = {m["entity_id"] for m in result["matches"]}
+    assert ids == {
+        "sensor.parasoll_door_sensor_battery",
+        "sensor.timmerflotte_temp_hmd_sensor_battery",
+    }
+
+
+@pytest.mark.asyncio
+async def test_search_entities_device_class_reads_registry_when_state_lacks_it(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """An unavailable entity drops the attribute but keeps its registry class.
+
+    A flat battery is exactly the one a low-battery automation is for, so the
+    filter must not lose it while the device is offline.
+    """
+    result = await _tool_search_entities(hass, {"device_class": "battery"})
+    ids = [m["entity_id"] for m in result["matches"]]
+    assert "sensor.parasoll_door_sensor_battery" in ids
+
+
+@pytest.mark.asyncio
+async def test_search_entities_device_class_narrows_a_query(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """The class filter applies alongside a query, not instead of it."""
+    result = await _tool_search_entities(hass, {"query": "TIMMERFLOTTE", "device_class": "battery"})
+    ids = [m["entity_id"] for m in result["matches"]]
+    assert ids == ["sensor.timmerflotte_temp_hmd_sensor_battery"]
+
+
+@pytest.mark.asyncio
+async def test_search_entities_class_listing_is_not_capped_at_ten(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """A class listing returns the whole class, not a ranked top-10.
+
+    An ordinary home has dozens of batteries. Handing back ten of them for
+    "notify me when batteries are low" loses the other thirty as quietly as
+    the brand search lost all of them.
+    """
+    ent_reg = er.async_get(hass)
+    for index in range(30):
+        ent_reg.async_get_or_create(
+            "sensor",
+            "test",
+            f"extra_battery_{index}_uid",
+            suggested_object_id=f"extra_sensor_{index}_battery",
+            original_device_class="battery",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+        hass.states.async_set(
+            f"sensor.extra_sensor_{index}_battery",
+            "80",
+            {"friendly_name": f"Extra Sensor {index} Battery", "device_class": "battery"},
+        )
+
+    result = await _tool_search_entities(hass, {"device_class": "battery"})
+    assert result["count"] == 32
+    assert "omitted" not in result
+
+
+@pytest.mark.asyncio
+async def test_search_entities_reports_what_it_left_out(hass: HomeAssistant, setup_world) -> None:
+    """Past the ceiling the result says it is partial rather than looking whole."""
+    ent_reg = er.async_get(hass)
+    for index in range(60):
+        ent_reg.async_get_or_create(
+            "sensor",
+            "test",
+            f"many_battery_{index}_uid",
+            suggested_object_id=f"many_sensor_{index}_battery",
+            original_device_class="battery",
+            entity_category=EntityCategory.DIAGNOSTIC,
+        )
+        hass.states.async_set(
+            f"sensor.many_sensor_{index}_battery",
+            "80",
+            {"friendly_name": f"Many Sensor {index} Battery", "device_class": "battery"},
+        )
+
+    result = await _tool_search_entities(hass, {"device_class": "battery"})
+    assert result["count"] == 50
+    assert result["omitted"] == result["total_scored"] - 50
+    assert "limit" in result["omitted_note"]
+
+
+@pytest.mark.asyncio
+async def test_search_entities_ranked_query_keeps_its_top_ten_default(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """A named search is a resolution, so its default stays small — and says so."""
+    ent_reg = er.async_get(hass)
+    for index in range(20):
+        ent_reg.async_get_or_create(
+            "light",
+            "test",
+            f"hall_light_{index}_uid",
+            suggested_object_id=f"hallway_light_{index}",
+        )
+        hass.states.async_set(
+            f"light.hallway_light_{index}", "off", {"friendly_name": f"Hallway Light {index}"}
+        )
+
+    result = await _tool_search_entities(hass, {"query": "hallway light"})
+    assert result["count"] == 10
+    assert result["omitted"] >= 10
+    result = await _tool_search_entities(hass, {"query": "hallway light", "limit": 25})
+    hallway = [m for m in result["matches"] if m["entity_id"].startswith("light.hallway_light_")]
+    assert len(hallway) == 20
+
+
+@pytest.mark.asyncio
+async def test_search_entities_empty_result_explains_itself(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """Zero matches carry what was searched and that it is not an absence.
+
+    The model has no other view of diagnostic entities, so a bare empty list
+    is read as proof the device is not installed.
+    """
+    result = await _tool_search_entities(hass, {"query": "zzz nonexistent gadget"})
+    assert result["count"] == 0
+    assert "device_class" in result["hint"]
+    assert "manufacturer" in result["searched"]
+
+
+@pytest.mark.asyncio
+async def test_search_entities_a_device_never_costs_a_match(hass: HomeAssistant) -> None:
+    """Attaching a device to an entity only ever adds ways to find it.
+
+    The device text joins literal term coverage but NOT the fuzzy component,
+    which is the typo rescue: a token-set ratio against a longer haystack
+    scores the same typo lower, so blending the brand in would raise the floor
+    out from under the queries it exists for. Asserted as an invariant rather
+    than against a threshold, which moves with the rapidfuzz/difflib backend.
+    """
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(domain="test", entry_id="mock_entry_dilution")
+    entry.add_to_hass(hass)
+    ent_reg = er.async_get(hass)
+    dev_reg = dr.async_get(hass)
+
+    for uid, object_id in (("bare_uid", "study_lamp"), ("owned_uid", "study_lamp_two")):
+        ent_reg.async_get_or_create("light", "test", uid, suggested_object_id=object_id)
+        hass.states.async_set(f"light.{object_id}", "off", {"friendly_name": "Study Lamp"})
+
+    device = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={("test", "wordy")},
+        name="Bathroom Ceiling Downlight Controller Channel Two",
+        manufacturer="Some Very Long Manufacturer Name Limited",
+        model="XKCD-9000-RGBWW-EU-V3",
+    )
+    ent_reg.async_update_entity("light.study_lamp_two", device_id=device.id)
+
+    for query in ("study lamp", "stdy lamp", "studdy"):
+        ids = {
+            m["entity_id"] for m in (await _tool_search_entities(hass, {"query": query}))["matches"]
+        }
+        assert ("light.study_lamp" in ids) == ("light.study_lamp_two" in ids), query
 
 
 # ── get_entity_history ───────────────────────────────────────────────────────

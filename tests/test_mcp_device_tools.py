@@ -137,19 +137,29 @@ async def setup_home(hass: HomeAssistant):
 
 @pytest.mark.asyncio
 async def test_list_devices_returns_all(hass: HomeAssistant, setup_home) -> None:
-    """All devices with collector-domain entities are listed."""
+    """Every device the home has is listed, whatever domains it owns."""
     result = await _tool_list_devices(hass, {})
-    assert result["count"] == 3
+    assert result["count"] == 4
     names = {d["name"] for d in result["devices"]}
-    assert names == {"Hue Light", "Ecobee Thermostat", "Front Door Lock"}
+    assert names == {"Hue Light", "Ecobee Thermostat", "Front Door Lock", "Weather Service"}
 
 
 @pytest.mark.asyncio
-async def test_list_devices_excludes_non_collector_domains(hass: HomeAssistant, setup_home) -> None:
-    """Devices with only non-collector-domain entities are excluded."""
+async def test_list_devices_keeps_devices_outside_the_collector_domains(
+    hass: HomeAssistant, setup_home
+) -> None:
+    """A device is not hidden for owning a domain the collector skips.
+
+    ``COLLECTOR_DOMAINS`` says what is worth snapshotting and pattern-analysing
+    and doubles as the safe-command allowlist; it does not say what the home
+    contains. Filtering the listing by it dropped whole devices — a camera, a
+    weather service — from the inventory a model reads, which is then reported
+    to the user as not owning them.
+    """
     result = await _tool_list_devices(hass, {})
-    names = {d["name"] for d in result["devices"]}
-    assert "Weather Service" not in names
+    weather = next(d for d in result["devices"] if d["name"] == "Weather Service")
+    assert weather["domains"] == ["weather"]
+    assert [e["entity_id"] for e in weather["entities"]] == ["weather.home"]
 
 
 @pytest.mark.asyncio
