@@ -320,14 +320,15 @@ _SHARED_AUTOMATION_RULES = (
     "conditions, triggers, or actions that were not mentioned.\n"
 )
 
-# Editing an automation the session already saved. The reference YAML rides in
-# the user message under "AUTOMATIONS SAVED IN THIS SESSION" — the backend
-# still decides what gets written, but only ``refine_automation_id`` can carry
-# the intent through a rename, and an alias the model silently changes turns an
-# edit into a second automation with the same purpose.
+# Editing an automation already in this conversation — saved here, or opened
+# for refinement. The reference YAML rides in the user message under
+# "AUTOMATIONS IN THIS CONVERSATION" — the backend still decides what gets
+# written, but only ``refine_automation_id`` can carry the intent through a
+# rename, and an alias the model silently changes turns an edit into a second
+# automation with the same purpose.
 _AUTOMATION_REFINE_RULES = (
-    "EDITING AN AUTOMATION ALREADY SAVED IN THIS SESSION:\n"
-    "The user message may carry an AUTOMATIONS SAVED IN THIS SESSION section with each "
+    "EDITING AN AUTOMATION ALREADY IN THIS CONVERSATION:\n"
+    "The user message may carry an AUTOMATIONS IN THIS CONVERSATION section with each "
     "automation's current YAML and its automation_id. When the user's request changes one of "
     "those automations — 'change the time to 7am', 'add the hallway light', 'make it weekdays "
     "only' — do NOT compose a fresh automation:\n"

@@ -350,6 +350,7 @@ class GeminiProvider(LLMProvider):
     ) -> AsyncIterator[str]:
         """Stream Gemini SSE, yielding text and collecting tool calls."""
         stream_usage: LLMUsageInfo = {}
+        self._note_finish_reason(None)
         buffer = ""
         async for raw_chunk in resp.content.iter_any():
             buffer += raw_chunk.decode("utf-8")
@@ -374,6 +375,12 @@ class GeminiProvider(LLMProvider):
                 candidates = event.get("candidates", [])
                 if not candidates:
                     continue
+                # ``MAX_TOKENS`` on the final candidate is Gemini saying the
+                # reply was cut at the output cap. Normalized by the base
+                # class, which compares casefolded.
+                finish = candidates[0].get("finishReason")
+                if finish:
+                    self._note_finish_reason(finish)
                 parts = candidates[0].get("content", {}).get("parts", [])
                 for part in parts:
                     if "text" in part:

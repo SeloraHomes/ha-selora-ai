@@ -151,6 +151,19 @@ export const cardElementStyles = css`
   .card-tab.active {
     color: var(--selora-accent-text);
   }
+  /* Sits inside the tab button, so it inherits the tab's own colour — an
+     accent of its own would read as a notification rather than as a count of
+     what is behind the tab. */
+  .card-tab-count {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--divider-color);
+    color: inherit;
+    opacity: 0.85;
+  }
   .card-chevron {
     display: inline-flex;
     align-items: center;

@@ -1,5 +1,10 @@
 import { html } from "lit";
 import { relativeTime } from "../shared/date-utils.js";
+import { diffLines } from "../shared/yaml-diff.js";
+import {
+  renderProposalDiffPanel,
+  toggleProposalDiff,
+} from "./render-proposal-diff.js";
 
 export function renderVersionHistoryDrawer(host, a) {
   const automationId = a.automation_id || a.entity_id;
@@ -20,13 +25,7 @@ export function renderVersionHistoryDrawer(host, a) {
             : html`
                 <ol class="version-list">
                   ${versions.map((v, i) =>
-                    renderVersionEntry(
-                      host,
-                      automationId,
-                      v,
-                      i,
-                      versions.length,
-                    ),
+                    renderVersionEntry(host, automationId, versions, i),
                   )}
                 </ol>
               `
@@ -35,7 +34,39 @@ export function renderVersionHistoryDrawer(host, a) {
   `;
 }
 
-function renderVersionEntry(host, automationId, v, i, total) {
+// What one stored version changed: the version below it against it.
+//
+// Nothing here picks the pair — unlike the compare dialog, whose two selects
+// are a version PICKER, an entry asks only "what did this version do", and the
+// answer is always the same two documents. Both come out of the version store,
+// which holds what was saved, so the diff is of two things that really existed
+// rather than of a document reconstructed here.
+//
+// Null when there is nothing to compare: the oldest version changed nothing
+// before it, and an entry whose YAML the store never kept has no side.
+export function versionDiff(host, automationId, versions, i) {
+  const newer = versions[i];
+  const older = versions[i + 1];
+  if (!newer || !older) return null;
+  const after = newer.yaml || newer.yaml_content || "";
+  const before = older.yaml || older.yaml_content || "";
+  if (!before || !after) return null;
+
+  if (!host._versionDiffCache) host._versionDiffCache = new Map();
+  const cacheKey = `${automationId}_${newer.version_id}`;
+  const cached = host._versionDiffCache.get(cacheKey);
+  if (cached && cached.before === before && cached.after === after) {
+    return cached.diff;
+  }
+  // OLDER first, so what this version added reads as an addition.
+  const diff = diffLines(before, after);
+  host._versionDiffCache.set(cacheKey, { before, after, diff });
+  return diff;
+}
+
+function renderVersionEntry(host, automationId, versions, i) {
+  const v = versions[i];
+  const total = versions.length;
   const key = `${automationId}_${v.version_id}`;
   const restoring = host._restoringVersion[key];
   const date = new Date(v.created_at);
@@ -44,6 +75,12 @@ function renderVersionEntry(host, automationId, v, i, total) {
   const message = v.message || v.version_message;
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
   const versionNumber = total - i;
+  // Rendered through the proposal card's own panel, so there is one diff
+  // vocabulary in the UI rather than two. The key is this version, not a
+  // message index — the panel treats it as a map key and a selector either way.
+  const diff = versionDiff(host, automationId, versions, i);
+  const diffKey = `verdiff_${key}`;
+  const diffOpen = !!(host._proposalDiffOpen || {})[diffKey];
   return html`
     <li class="version-entry ${isCurrent ? "current" : ""}">
       <span class="version-entry-dot" aria-hidden="true"></span>
@@ -79,6 +116,40 @@ function renderVersionEntry(host, automationId, v, i, total) {
                 : host._t("version_history_view_yaml", "View YAML")
             }
           </button>
+          ${
+            diff
+              ? html`
+                  <button
+                    class="btn btn-outline version-entry-btn"
+                    @click=${() => toggleProposalDiff(host, diffKey)}
+                  >
+                    <ha-icon
+                      icon="mdi:file-compare"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${
+                      diffOpen
+                        ? host._t(
+                            "automations_diff_toggle_hide",
+                            "Hide changes",
+                          )
+                        : host._t(
+                            "automations_diff_toggle_view",
+                            "View changes",
+                          )
+                    }
+                    ${
+                      diff.added > 0 || diff.removed > 0
+                        ? html`<span class="diff-stat-inline">
+                            <span class="diff-stat add">+${diff.added}</span>
+                            <span class="diff-stat del">−${diff.removed}</span>
+                          </span>`
+                        : ""
+                    }
+                  </button>
+                `
+              : ""
+          }
           ${
             !isCurrent
               ? html`
@@ -128,6 +199,10 @@ function renderVersionEntry(host, automationId, v, i, total) {
               </div>`
             : ""
         }
+        ${renderProposalDiffPanel(host, diffKey, diff, {
+          from: `v${versionNumber - 1}`,
+          to: `v${versionNumber}`,
+        })}
       </div>
     </li>
   `;

@@ -98,6 +98,67 @@ async def test_a_non_admin_is_refused_before_the_llm(harness: ChatHarness) -> No
     assert not turn.architect_calls
 
 
+# ── A revision replaces the card it revises ──────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_a_revision_retires_the_card_it_replaces(harness: ChatHarness) -> None:
+    """Two proposals for one automation, neither accepted.
+
+    The second answers the first — leaving both accept-able offers a choice
+    between two versions of one automation, and taking it writes whichever was
+    clicked. This is the sequence that produced a duplicate "Eco Away": propose,
+    revise, accept the revision, get a second automation under the same name.
+    """
+    first = await harness.chat("turn the plug on at midnight", reply=_proposal(at="00:00:00"))
+    first_index = first.done["automation_message_index"]
+
+    second = await harness.chat("make it 7am instead", reply=_proposal(at="07:00:00"))
+
+    assert second.done["superseded_message_indices"] == [first_index]
+    stored = await harness.messages()
+    assert stored[first_index]["automation_status"] == "superseded"
+    # The revision is the live card.
+    assert stored[-1]["automation_status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_a_proposal_for_another_automation_retires_nothing(
+    harness: ChatHarness,
+) -> None:
+    """"Now make one for the porch" is a second automation the user may well
+    want alongside the first — superseding on arrival alone would throw it
+    away."""
+    first = await harness.chat("turn the plug on at midnight", reply=_proposal(at="00:00:00"))
+    second = await harness.chat(
+        "now make one for the porch lights", reply=_proposal(alias="Porch Lights")
+    )
+
+    assert second.done["superseded_message_indices"] is None
+    stored = await harness.messages()
+    assert stored[first.done["automation_message_index"]]["automation_status"] == "pending"
+
+
+@pytest.mark.asyncio
+async def test_an_accepted_card_is_not_retired_by_a_later_revision(
+    harness: ChatHarness,
+) -> None:
+    """Only a PENDING card is a card the user has still to act on. One already
+    saved is a record of what happened, and rewriting its status would lose the
+    automation_id the accept recorded on it."""
+    first = await harness.chat("turn the plug on at midnight", reply=_proposal(at="00:00:00"))
+    first_index = first.done["automation_message_index"]
+    await harness.save_proposal(first_index, "selora_ai_aaa")
+    harness.write_automations([AQUA_ENTRY])
+
+    second = await harness.chat("change the time to 7am", reply=_proposal())
+
+    assert second.done["superseded_message_indices"] is None
+    stored = await harness.messages()
+    assert stored[first_index]["automation_status"] == "saved"
+    assert stored[first_index]["automation_id"] == "selora_ai_aaa"
+
+
 # ── A follow-up edits the automation instead of duplicating it ───────
 
 

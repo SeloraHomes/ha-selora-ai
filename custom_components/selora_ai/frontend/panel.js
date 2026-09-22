@@ -5244,6 +5244,19 @@ var cardElementStyles = i`
   .card-tab.active {
     color: var(--selora-accent-text);
   }
+  /* Sits inside the tab button, so it inherits the tab's own colour — an
+     accent of its own would read as a notification rather than as a count of
+     what is behind the tab. */
+  .card-tab-count {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--divider-color);
+    color: inherit;
+    opacity: 0.85;
+  }
   .card-chevron {
     display: inline-flex;
     align-items: center;
@@ -9692,6 +9705,7 @@ var en_default = {
       "Dismissed. You can refine it by replying below.",
     automations_badge_being_refined: "Being Refined",
     automations_badge_proposal: "Proposal",
+    automations_badge_superseded: "Replaced",
     automations_proposal_elevated_risk: "Elevated risk review recommended.",
     automations_proposal_yaml_edits_note:
       "Your YAML edits will be used when you accept.",
@@ -10019,6 +10033,10 @@ var en_default = {
     chat_actions_interrupt_server_no_reply: "The server didn't reply in time.",
     chat_actions_interrupt_truncated:
       "Response looks cut short \u2014 try again.",
+    chat_actions_interrupt_output_cap:
+      "The model reached its output limit before finishing.",
+    chat_actions_interrupt_stream_ended:
+      "The connection ended before the reply finished.",
     chat_actions_interrupt_llm_unreachable: "Couldn't reach the LLM provider.",
     chat_actions_interrupt_session_start_failed:
       "Couldn't start the chat session.",
@@ -10862,6 +10880,7 @@ var fr_default = {
       "Ignor\xE9e. Vous pouvez l'affiner en r\xE9pondant ci-dessous.",
     automations_badge_being_refined: "En cours d'affinage",
     automations_badge_proposal: "Proposition",
+    automations_badge_superseded: "Remplac\xE9e",
     automations_proposal_elevated_risk:
       "Examen recommand\xE9 pour risque \xE9lev\xE9.",
     automations_proposal_yaml_edits_note:
@@ -11208,6 +11227,10 @@ var fr_default = {
       "Le serveur n'a pas r\xE9pondu \xE0 temps.",
     chat_actions_interrupt_truncated:
       "La r\xE9ponse semble tronqu\xE9e \u2014 r\xE9essayez.",
+    chat_actions_interrupt_output_cap:
+      "Le mod\xE8le a atteint sa limite de sortie avant de terminer.",
+    chat_actions_interrupt_stream_ended:
+      "La connexion s'est interrompue avant la fin de la r\xE9ponse.",
     chat_actions_interrupt_llm_unreachable:
       "Impossible de joindre le fournisseur LLM.",
     chat_actions_interrupt_session_start_failed:
@@ -12075,6 +12098,7 @@ var de_default = {
       "Abgelehnt. Sie k\xF6nnen sie verfeinern, indem Sie unten antworten.",
     automations_badge_being_refined: "Wird verfeinert",
     automations_badge_proposal: "Vorschlag",
+    automations_badge_superseded: "Ersetzt",
     automations_proposal_elevated_risk:
       "\xDCberpr\xFCfung aufgrund erh\xF6hten Risikos empfohlen.",
     automations_proposal_yaml_edits_note:
@@ -12417,6 +12441,10 @@ var de_default = {
       "Der Server hat nicht rechtzeitig geantwortet.",
     chat_actions_interrupt_truncated:
       "Antwort wirkt abgeschnitten \u2014 versuchen Sie es erneut.",
+    chat_actions_interrupt_output_cap:
+      "Das Modell hat sein Ausgabelimit erreicht, bevor es fertig war.",
+    chat_actions_interrupt_stream_ended:
+      "Die Verbindung endete, bevor die Antwort fertig war.",
     chat_actions_interrupt_llm_unreachable:
       "LLM-Anbieter konnte nicht erreicht werden.",
     chat_actions_interrupt_session_start_failed:
@@ -13276,6 +13304,7 @@ var es_default = {
       "Descartada. Puede refinarla respondiendo abajo.",
     automations_badge_being_refined: "En refinamiento",
     automations_badge_proposal: "Propuesta",
+    automations_badge_superseded: "Reemplazada",
     automations_proposal_elevated_risk:
       "Se recomienda revisi\xF3n por riesgo elevado.",
     automations_proposal_yaml_edits_note:
@@ -13615,6 +13644,10 @@ var es_default = {
       "El servidor no respondi\xF3 a tiempo.",
     chat_actions_interrupt_truncated:
       "La respuesta parece cortada \u2014 int\xE9ntelo de nuevo.",
+    chat_actions_interrupt_output_cap:
+      "El modelo alcanz\xF3 su l\xEDmite de salida antes de terminar.",
+    chat_actions_interrupt_stream_ended:
+      "La conexi\xF3n termin\xF3 antes de que la respuesta estuviera completa.",
     chat_actions_interrupt_llm_unreachable:
       "No se pudo conectar con el proveedor de LLM.",
     chat_actions_interrupt_session_start_failed:
@@ -14462,6 +14495,7 @@ var it_default = {
       "Ignorata. Pu\xF2 perfezionarla rispondendo qui sotto.",
     automations_badge_being_refined: "In fase di perfezionamento",
     automations_badge_proposal: "Proposta",
+    automations_badge_superseded: "Sostituita",
     automations_proposal_elevated_risk:
       "Si consiglia una revisione per rischio elevato.",
     automations_proposal_yaml_edits_note:
@@ -14797,6 +14831,10 @@ var it_default = {
       "Il server non ha risposto in tempo.",
     chat_actions_interrupt_truncated:
       "La risposta sembra troncata \u2014 riprovi.",
+    chat_actions_interrupt_output_cap:
+      "Il modello ha raggiunto il limite di output prima di finire.",
+    chat_actions_interrupt_stream_ended:
+      "La connessione si \xE8 interrotta prima del termine della risposta.",
     chat_actions_interrupt_llm_unreachable:
       "Impossibile raggiungere il provider LLM.",
     chat_actions_interrupt_session_start_failed:
@@ -15664,6 +15702,7 @@ var nl_default = {
       "Afgewezen. U kunt deze verfijnen door hieronder te reageren.",
     automations_badge_being_refined: "Wordt verfijnd",
     automations_badge_proposal: "Voorstel",
+    automations_badge_superseded: "Vervangen",
     automations_proposal_elevated_risk:
       "Beoordeling van verhoogd risico aanbevolen.",
     automations_proposal_yaml_edits_note:
@@ -16001,6 +16040,10 @@ var nl_default = {
       "De server heeft niet op tijd geantwoord.",
     chat_actions_interrupt_truncated:
       "Antwoord lijkt afgekapt \u2014 probeer het opnieuw.",
+    chat_actions_interrupt_output_cap:
+      "Het model bereikte zijn uitvoerlimiet voordat het klaar was.",
+    chat_actions_interrupt_stream_ended:
+      "De verbinding eindigde voordat het antwoord klaar was.",
     chat_actions_interrupt_llm_unreachable:
       "Kon de LLM-provider niet bereiken.",
     chat_actions_interrupt_session_start_failed:
@@ -16870,6 +16913,7 @@ var hu_default = {
       "Elvetve. Az al\xE1bbi v\xE1lasszal finom\xEDthatja.",
     automations_badge_being_refined: "Finom\xEDt\xE1s alatt",
     automations_badge_proposal: "Javaslat",
+    automations_badge_superseded: "Lecser\xE9lve",
     automations_proposal_elevated_risk:
       "Magasabb kock\xE1zat\xFA fel\xFClvizsg\xE1lat aj\xE1nlott.",
     automations_proposal_yaml_edits_note:
@@ -17225,6 +17269,10 @@ var hu_default = {
       "A kiszolg\xE1l\xF3 nem v\xE1laszolt id\u0151ben.",
     chat_actions_interrupt_truncated:
       "A v\xE1lasz csonk\xE1nak t\u0171nik \u2014 pr\xF3b\xE1lja \xFAjra.",
+    chat_actions_interrupt_output_cap:
+      "A modell el\xE9rte a kimeneti korl\xE1tj\xE1t, miel\u0151tt befejezte volna.",
+    chat_actions_interrupt_stream_ended:
+      "A kapcsolat v\xE9get \xE9rt, miel\u0151tt a v\xE1lasz elk\xE9sz\xFClt volna.",
     chat_actions_interrupt_llm_unreachable:
       "Az LLM-szolg\xE1ltat\xF3 nem \xE9rhet\u0151 el.",
     chat_actions_interrupt_session_start_failed:
@@ -18083,6 +18131,7 @@ var pt_default = {
       "Dispensada. Pode aperfei\xE7o\xE1-la respondendo abaixo.",
     automations_badge_being_refined: "A ser aperfei\xE7oada",
     automations_badge_proposal: "Proposta",
+    automations_badge_superseded: "Substitu\xEDda",
     automations_proposal_elevated_risk:
       "Recomenda-se a revis\xE3o de risco elevado.",
     automations_proposal_yaml_edits_note:
@@ -18422,6 +18471,10 @@ var pt_default = {
       "O servidor n\xE3o respondeu a tempo.",
     chat_actions_interrupt_truncated:
       "A resposta parece interrompida \u2014 tente novamente.",
+    chat_actions_interrupt_output_cap:
+      "O modelo atingiu o limite de sa\xEDda antes de terminar.",
+    chat_actions_interrupt_stream_ended:
+      "A liga\xE7\xE3o terminou antes de a resposta ficar completa.",
     chat_actions_interrupt_llm_unreachable:
       "N\xE3o foi poss\xEDvel alcan\xE7ar o fornecedor de LLM.",
     chat_actions_interrupt_session_start_failed:
@@ -19461,6 +19514,8 @@ var ru_default = {
       "\u0414\u043E\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F",
     automations_badge_proposal:
       "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
+    automations_badge_superseded:
+      "\u0417\u0430\u043C\u0435\u043D\u0435\u043D\u043E",
     automations_proposal_elevated_risk:
       "\u0420\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0443\u0435\u0442\u0441\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0438\u0437-\u0437\u0430 \u043F\u043E\u0432\u044B\u0448\u0435\u043D\u043D\u043E\u0433\u043E \u0440\u0438\u0441\u043A\u0430.",
     automations_proposal_yaml_edits_note:
@@ -19975,6 +20030,10 @@ var ru_default = {
       "\u0421\u0435\u0440\u0432\u0435\u0440 \u043D\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u043B \u0432\u043E\u0432\u0440\u0435\u043C\u044F.",
     chat_actions_interrupt_truncated:
       "\u041E\u0442\u0432\u0435\u0442 \u0432\u044B\u0433\u043B\u044F\u0434\u0438\u0442 \u043E\u0431\u0440\u0435\u0437\u0430\u043D\u043D\u044B\u043C \u2014 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    chat_actions_interrupt_output_cap:
+      "\u041C\u043E\u0434\u0435\u043B\u044C \u0434\u043E\u0441\u0442\u0438\u0433\u043B\u0430 \u043F\u0440\u0435\u0434\u0435\u043B\u0430 \u0432\u044B\u0432\u043E\u0434\u0430, \u043D\u0435 \u0443\u0441\u043F\u0435\u0432 \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u0442\u044C.",
+    chat_actions_interrupt_stream_ended:
+      "\u0421\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u0435 \u043F\u0440\u0435\u0440\u0432\u0430\u043B\u043E\u0441\u044C \u0434\u043E \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u044F \u043E\u0442\u0432\u0435\u0442\u0430.",
     chat_actions_interrupt_llm_unreachable:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u0432\u044F\u0437\u0430\u0442\u044C\u0441\u044F \u0441 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C LLM.",
     chat_actions_interrupt_session_start_failed:
@@ -21128,6 +21187,7 @@ var ja_default = {
       "\u5374\u4E0B\u3057\u307E\u3057\u305F\u3002\u4E0B\u8A18\u306B\u8FD4\u4FE1\u3057\u3066\u8ABF\u6574\u3067\u304D\u307E\u3059\u3002",
     automations_badge_being_refined: "\u8ABF\u6574\u4E2D",
     automations_badge_proposal: "\u63D0\u6848",
+    automations_badge_superseded: "\u7F6E\u304D\u63DB\u3048\u6E08\u307F",
     automations_proposal_elevated_risk:
       "\u30EA\u30B9\u30AF\u304C\u9AD8\u3044\u305F\u3081\u78BA\u8A8D\u3092\u304A\u3059\u3059\u3081\u3057\u307E\u3059\u3002",
     automations_proposal_yaml_edits_note:
@@ -21540,6 +21600,10 @@ var ja_default = {
       "\u30B5\u30FC\u30D0\u30FC\u304C\u6642\u9593\u5185\u306B\u5FDC\u7B54\u3057\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
     chat_actions_interrupt_truncated:
       "\u5FDC\u7B54\u304C\u9014\u4E2D\u3067\u5207\u308C\u3066\u3044\u308B\u3088\u3046\u3067\u3059 \u2014 \u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    chat_actions_interrupt_output_cap:
+      "\u30E2\u30C7\u30EB\u304C\u5B8C\u4E86\u3059\u308B\u524D\u306B\u51FA\u529B\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002",
+    chat_actions_interrupt_stream_ended:
+      "\u8FD4\u4FE1\u304C\u5B8C\u4E86\u3059\u308B\u524D\u306B\u63A5\u7D9A\u304C\u7D42\u4E86\u3057\u307E\u3057\u305F\u3002",
     chat_actions_interrupt_llm_unreachable:
       "LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u306B\u5230\u9054\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
     chat_actions_interrupt_session_start_failed:
@@ -22563,6 +22627,7 @@ var ko_default = {
       "\uB2EB\uD614\uC2B5\uB2C8\uB2E4. \uC544\uB798\uC5D0 \uB2F5\uC7A5\uD558\uC5EC \uC218\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
     automations_badge_being_refined: "\uC218\uC815 \uC911",
     automations_badge_proposal: "\uC81C\uC548",
+    automations_badge_superseded: "\uB300\uCCB4\uB428",
     automations_proposal_elevated_risk:
       "\uB192\uC740 \uC704\uD5D8\uC73C\uB85C \uAC80\uD1A0\uAC00 \uAD8C\uC7A5\uB429\uB2C8\uB2E4.",
     automations_proposal_yaml_edits_note:
@@ -22941,6 +23006,10 @@ var ko_default = {
       "\uC11C\uBC84\uAC00 \uC81C\uB54C \uC751\uB2F5\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
     chat_actions_interrupt_truncated:
       "\uC751\uB2F5\uC774 \uC798\uB9B0 \uAC83 \uAC19\uC2B5\uB2C8\uB2E4 \u2014 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    chat_actions_interrupt_output_cap:
+      "\uBAA8\uB378\uC774 \uC644\uB8CC\uB418\uAE30 \uC804\uC5D0 \uCD9C\uB825 \uD55C\uB3C4\uC5D0 \uB3C4\uB2EC\uD588\uC2B5\uB2C8\uB2E4.",
+    chat_actions_interrupt_stream_ended:
+      "\uB2F5\uBCC0\uC774 \uC644\uB8CC\uB418\uAE30 \uC804\uC5D0 \uC5F0\uACB0\uC774 \uC885\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
     chat_actions_interrupt_llm_unreachable:
       "LLM \uC81C\uACF5\uC790\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
     chat_actions_interrupt_session_start_failed:
@@ -23888,6 +23957,7 @@ var zh_Hans_default = {
       "\u5DF2\u5FFD\u7565\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u590D\u4EE5\u8FDB\u4E00\u6B65\u5B8C\u5584\u5B83\u3002",
     automations_badge_being_refined: "\u5B8C\u5584\u4E2D",
     automations_badge_proposal: "\u63D0\u8BAE",
+    automations_badge_superseded: "\u5DF2\u66FF\u6362",
     automations_proposal_elevated_risk:
       "\u5EFA\u8BAE\u8FDB\u884C\u9AD8\u98CE\u9669\u5BA1\u67E5\u3002",
     automations_proposal_yaml_edits_note:
@@ -24251,6 +24321,10 @@ var zh_Hans_default = {
       "\u670D\u52A1\u5668\u672A\u53CA\u65F6\u56DE\u590D\u3002",
     chat_actions_interrupt_truncated:
       "\u56DE\u590D\u4F3C\u4E4E\u88AB\u622A\u65AD\u2014\u2014\u8BF7\u91CD\u8BD5\u3002",
+    chat_actions_interrupt_output_cap:
+      "\u6A21\u578B\u5728\u5B8C\u6210\u4E4B\u524D\u8FBE\u5230\u4E86\u8F93\u51FA\u4E0A\u9650\u3002",
+    chat_actions_interrupt_stream_ended:
+      "\u8FDE\u63A5\u5728\u56DE\u590D\u5B8C\u6210\u524D\u4E2D\u65AD\u3002",
     chat_actions_interrupt_llm_unreachable:
       "\u65E0\u6CD5\u8FDE\u63A5\u5230 LLM \u63D0\u4F9B\u5546\u3002",
     chat_actions_interrupt_session_start_failed:
@@ -25175,6 +25249,7 @@ var zh_Hant_default = {
       "\u5DF2\u95DC\u9589\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u8986\u4EE5\u9032\u4E00\u6B65\u8ABF\u6574\u3002",
     automations_badge_being_refined: "\u8ABF\u6574\u4E2D",
     automations_badge_proposal: "\u63D0\u6848",
+    automations_badge_superseded: "\u5DF2\u53D6\u4EE3",
     automations_proposal_elevated_risk:
       "\u5EFA\u8B70\u9032\u884C\u9AD8\u98A8\u96AA\u5BE9\u67E5\u3002",
     automations_proposal_yaml_edits_note:
@@ -25540,6 +25615,10 @@ var zh_Hant_default = {
       "\u4F3A\u670D\u5668\u672A\u53CA\u6642\u56DE\u8986\u3002",
     chat_actions_interrupt_truncated:
       "\u56DE\u61C9\u770B\u8D77\u4F86\u88AB\u622A\u65B7 \u2014 \u8ACB\u518D\u8A66\u4E00\u6B21\u3002",
+    chat_actions_interrupt_output_cap:
+      "\u6A21\u578B\u5728\u5B8C\u6210\u4E4B\u524D\u9054\u5230\u4E86\u8F38\u51FA\u4E0A\u9650\u3002",
+    chat_actions_interrupt_stream_ended:
+      "\u9023\u7DDA\u5728\u56DE\u61C9\u5B8C\u6210\u524D\u4E2D\u65B7\u3002",
     chat_actions_interrupt_llm_unreachable:
       "\u7121\u6CD5\u9023\u7DDA\u81F3 LLM \u4F9B\u61C9\u5546\u3002",
     chat_actions_interrupt_session_start_failed:
@@ -33469,47 +33548,47 @@ async function revealPanel(host, selector) {
   observer.observe(panel);
   setTimeout(() => observer.disconnect(), REVEAL_SETTLE_MS);
 }
-function toggleProposalDiff(host, msgIndex) {
-  const opening = !(host._proposalDiffOpen || {})[msgIndex];
+function toggleProposalDiff(host, key) {
+  const opening = !(host._proposalDiffOpen || {})[key];
   host._proposalDiffOpen = {
     ...(host._proposalDiffOpen || {}),
-    [msgIndex]: opening,
+    [key]: opening,
   };
-  if (opening) invalidateProposalPreviews(host, msgIndex);
+  if (opening) invalidateProposalPreviews(host, key);
   host.requestUpdate();
-  if (opening) revealPanel(host, `[data-diff-panel="${msgIndex}"]`);
+  if (opening) revealPanel(host, `[data-diff-panel="${key}"]`);
 }
-function expandGap(host, msgIndex, start) {
-  const current = (host._proposalDiffExpanded || {})[msgIndex] || [];
+function expandGap(host, key, start) {
+  const current = (host._proposalDiffExpanded || {})[key] || [];
   host._proposalDiffExpanded = {
     ...(host._proposalDiffExpanded || {}),
-    [msgIndex]: [...current, start],
+    [key]: [...current, start],
   };
   host.requestUpdate();
 }
-function toggleFullDiff(host, msgIndex) {
-  const full = !(host._proposalDiffFull || {})[msgIndex];
+function toggleFullDiff(host, key) {
+  const full = !(host._proposalDiffFull || {})[key];
   host._proposalDiffFull = {
     ...(host._proposalDiffFull || {}),
-    [msgIndex]: full,
+    [key]: full,
   };
   if (!full) {
     host._proposalDiffExpanded = {
       ...(host._proposalDiffExpanded || {}),
-      [msgIndex]: [],
+      [key]: [],
     };
   }
   host.requestUpdate();
 }
-function renderProposalDiffToggle(host, msgIndex, diff) {
+function renderProposalDiffToggle(host, key, diff) {
   if (!diff) return "";
-  const open = !!(host._proposalDiffOpen || {})[msgIndex];
+  const open = !!(host._proposalDiffOpen || {})[key];
   const changed = diff.added > 0 || diff.removed > 0;
   return b2`
     <button
       type="button"
       class="subcard-action-link ${open ? "active" : ""}"
-      @click=${() => toggleProposalDiff(host, msgIndex)}
+      @click=${() => toggleProposalDiff(host, key)}
     >
       <ha-icon icon="mdi:file-compare"></ha-icon>
       ${open ? host._t("automations_diff_toggle_hide", "Hide changes") : host._t("automations_diff_toggle_view", "View changes")}
@@ -33524,11 +33603,11 @@ function renderProposalDiffToggle(host, msgIndex, diff) {
     </button>
   `;
 }
-function renderProposalDiffPanel(host, msgIndex, diff) {
+function renderProposalDiffPanel(host, key, diff, legend = {}) {
   if (!diff) return "";
-  if (!(host._proposalDiffOpen || {})[msgIndex]) return "";
+  if (!(host._proposalDiffOpen || {})[key]) return "";
   if (diff.added === 0 && diff.removed === 0) {
-    return b2`<div class="proposal-diff" data-diff-panel=${msgIndex}>
+    return b2`<div class="proposal-diff" data-diff-panel=${key}>
       <div class="proposal-diff-empty">
         ${host._t(
           "automations_diff_identical",
@@ -33537,21 +33616,21 @@ function renderProposalDiffPanel(host, msgIndex, diff) {
       </div>
     </div>`;
   }
-  const full = !!(host._proposalDiffFull || {})[msgIndex];
-  const expanded = (host._proposalDiffExpanded || {})[msgIndex] || [];
+  const full = !!(host._proposalDiffFull || {})[key];
+  const expanded = (host._proposalDiffExpanded || {})[key] || [];
   const collapsed = collapseDiff(diff.lines, DEFAULT_CONTEXT_RADIUS, expanded);
   const entries = full ? diff.lines : collapsed;
   const foldable = full || collapsed.some((e6) => e6.type === "gap");
   return b2`
-    <div class="proposal-diff" data-diff-panel=${msgIndex}>
+    <div class="proposal-diff" data-diff-panel=${key}>
       <div class="proposal-diff-head">
         <span class="proposal-diff-legend">
-          ${host._t("automations_diff_legend_previous", "Previous")}
+          ${legend.from || host._t("automations_diff_legend_previous", "Previous")}
           <ha-icon
             icon="mdi:arrow-right"
             style="--mdc-icon-size:13px;"
           ></ha-icon>
-          ${host._t("automations_diff_legend_proposed", "Proposed")}
+          ${legend.to || host._t("automations_diff_legend_proposed", "Proposed")}
         </span>
         <span class="proposal-diff-head-right">
           ${
@@ -33559,7 +33638,7 @@ function renderProposalDiffPanel(host, msgIndex, diff) {
               ? b2`<button
                   type="button"
                   class="proposal-diff-expand-all"
-                  @click=${() => toggleFullDiff(host, msgIndex)}
+                  @click=${() => toggleFullDiff(host, key)}
                 >
                   <ha-icon
                     icon=${full ? "mdi:unfold-less-horizontal" : "mdi:unfold-more-horizontal"}
@@ -33576,19 +33655,19 @@ function renderProposalDiffPanel(host, msgIndex, diff) {
         </span>
       </div>
       <div class="proposal-diff-body">
-        ${entries.map((entry) => renderDiffEntry(host, msgIndex, entry))}
+        ${entries.map((entry) => renderDiffEntry(host, key, entry))}
       </div>
     </div>
   `;
 }
-function renderDiffEntry(host, msgIndex, entry) {
+function renderDiffEntry(host, key, entry) {
   if (entry.type === "gap") {
     const path = entry.path || [];
     return b2`<button
       type="button"
       class="proposal-diff-gap"
       title=${host._t("automations_diff_expand_tooltip", "Show these lines")}
-      @click=${() => expandGap(host, msgIndex, entry.start)}
+      @click=${() => expandGap(host, key, entry.start)}
     >
       <ha-icon
         icon="mdi:unfold-more-horizontal"
@@ -34852,6 +34931,20 @@ function renderProposalCard(host, msg, msgIndex) {
       </div>
     `;
   }
+  if (status === "superseded") {
+    return b2`
+      <div class="automation-subcard" style="opacity:0.55;">
+        <div class="automation-subcard-header">
+          ${renderAutomationIdentity(automation.alias, msg.description, {
+            badge: host._t("automations_badge_superseded", "Replaced"),
+          })}
+        </div>
+        <div class="automation-subcard-body">
+          ${renderAutomationFlowchart(host, automation)}
+        </div>
+      </div>
+    `;
+  }
   const yamlOpen = host._yamlOpen && host._yamlOpen[msgIndex];
   const yamlKey = `proposal_${msgIndex}`;
   const hasEdits =
@@ -35479,6 +35572,10 @@ function renderAutomations(host) {
                     const isUnavailable = a3.state === "unavailable";
                     const automationId = a3.automation_id || "";
                     const hasAutomationId = !!automationId;
+                    const versionCount =
+                      (host._versions[automationId] || []).length ||
+                      a3.version_count ||
+                      0;
                     const canToggle =
                       hasAutomationId && !host._bulkActionInProgress;
                     const deleting = host._deletingAutomation[automationId];
@@ -36105,6 +36202,24 @@ function renderAutomations(host) {
                                                 "automations_card_tab_history",
                                                 "History",
                                               )}
+                                              ${
+                                                // Off the list payload, so the
+                                                // count is there before the tab
+                                                // is opened — the drawer loads
+                                                // lazily, and a counter that
+                                                // only appears once you look is
+                                                // no counter at all. The loaded
+                                                // list wins when there is one:
+                                                // it is this session's, and a
+                                                // restore or a refine moves it
+                                                // before the list is refetched.
+                                                versionCount > 1
+                                                  ? b2`<span
+                                                      class="card-tab-count"
+                                                      >${versionCount}</span
+                                                    >`
+                                                  : ""
+                                              }
                                             </button>
                                           `
                                         : ""
@@ -48682,13 +48797,7 @@ function renderVersionHistoryDrawer(host, a3) {
             : b2`
                 <ol class="version-list">
                   ${versions.map((v2, i7) =>
-                    renderVersionEntry(
-                      host,
-                      automationId,
-                      v2,
-                      i7,
-                      versions.length,
-                    ),
+                    renderVersionEntry(host, automationId, versions, i7),
                   )}
                 </ol>
               `
@@ -48696,7 +48805,27 @@ function renderVersionHistoryDrawer(host, a3) {
     </div>
   `;
 }
-function renderVersionEntry(host, automationId, v2, i7, total) {
+function versionDiff(host, automationId, versions, i7) {
+  const newer = versions[i7];
+  const older = versions[i7 + 1];
+  if (!newer || !older) return null;
+  const after = newer.yaml || newer.yaml_content || "";
+  const before = older.yaml || older.yaml_content || "";
+  if (!before || !after) return null;
+  if (!host._versionDiffCache)
+    host._versionDiffCache = /* @__PURE__ */ new Map();
+  const cacheKey = `${automationId}_${newer.version_id}`;
+  const cached = host._versionDiffCache.get(cacheKey);
+  if (cached && cached.before === before && cached.after === after) {
+    return cached.diff;
+  }
+  const diff = diffLines(before, after);
+  host._versionDiffCache.set(cacheKey, { before, after, diff });
+  return diff;
+}
+function renderVersionEntry(host, automationId, versions, i7) {
+  const v2 = versions[i7];
+  const total = versions.length;
   const key = `${automationId}_${v2.version_id}`;
   const restoring = host._restoringVersion[key];
   const date = new Date(v2.created_at);
@@ -48705,6 +48834,9 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
   const message = v2.message || v2.version_message;
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
   const versionNumber = total - i7;
+  const diff = versionDiff(host, automationId, versions, i7);
+  const diffKey = `verdiff_${key}`;
+  const diffOpen = !!(host._proposalDiffOpen || {})[diffKey];
   return b2`
     <li class="version-entry ${isCurrent ? "current" : ""}">
       <span class="version-entry-dot" aria-hidden="true"></span>
@@ -48736,6 +48868,40 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
             ></ha-icon>
             ${yamlOpen ? host._t("version_history_hide_yaml", "Hide YAML") : host._t("version_history_view_yaml", "View YAML")}
           </button>
+          ${
+            diff
+              ? b2`
+                  <button
+                    class="btn btn-outline version-entry-btn"
+                    @click=${() => toggleProposalDiff(host, diffKey)}
+                  >
+                    <ha-icon
+                      icon="mdi:file-compare"
+                      style="--mdc-icon-size:14px;"
+                    ></ha-icon>
+                    ${
+                      diffOpen
+                        ? host._t(
+                            "automations_diff_toggle_hide",
+                            "Hide changes",
+                          )
+                        : host._t(
+                            "automations_diff_toggle_view",
+                            "View changes",
+                          )
+                    }
+                    ${
+                      diff.added > 0 || diff.removed > 0
+                        ? b2`<span class="diff-stat-inline">
+                            <span class="diff-stat add">+${diff.added}</span>
+                            <span class="diff-stat del">−${diff.removed}</span>
+                          </span>`
+                        : ""
+                    }
+                  </button>
+                `
+              : ""
+          }
           ${
             !isCurrent
               ? b2`
@@ -48788,6 +48954,10 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
               </div>`
             : ""
         }
+        ${renderProposalDiffPanel(host, diffKey, diff, {
+          from: `v${versionNumber - 1}`,
+          to: `v${versionNumber}`,
+        })}
       </div>
     </li>
   `;
@@ -49413,7 +49583,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "d2ba160c3a0d" : "";
+var PANEL_BUILD = true ? "11d6c2eff664" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -49967,7 +50137,9 @@ async function _resolveApproval(originatingMsg, scope, proposalId) {
 function looksTruncatedResponse(responseText, hasStructured) {
   if (hasStructured) return false;
   const trimmed = (responseText || "").trim();
-  if (trimmed.length === 0 || trimmed.length >= 400) return false;
+  if (trimmed.length === 0) return false;
+  if (((trimmed.match(/```/g) || []).length & 1) === 1) return true;
+  if (trimmed.length >= 400) return false;
   const unterminatedBold = ((trimmed.match(/\*\*/g) || []).length & 1) === 1;
   return (
     /[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
@@ -50189,7 +50361,10 @@ async function _sendMessage(options = {}) {
           event.scene ||
           (event.executed && event.executed.length) ||
           (event.quick_actions && event.quick_actions.length);
-        if (looksTruncatedResponse(responseText, hasStructured)) {
+        if (
+          event.validation_error === "truncated_response" ||
+          looksTruncatedResponse(responseText, hasStructured)
+        ) {
           cancelSubscription();
           assistantMsg.content = responseText;
           if (event.session_id) {
@@ -50202,13 +50377,33 @@ async function _sendMessage(options = {}) {
             this,
             assistantMsg,
             retryPayload,
-            this._t(
-              "chat_actions_interrupt_truncated",
-              "Response looks cut short \u2014 try again.",
-            ),
+            // The bubble already says the reply was cut off. What this line
+            // adds is WHY, when the backend told us — the two causes are not
+            // the same problem and only one of them is ours to fix. Without a
+            // reason it restates the symptom, which is all there is to say.
+            event.truncation_reason === "output_cap"
+              ? this._t(
+                  "chat_actions_interrupt_output_cap",
+                  "The model reached its output limit before finishing.",
+                )
+              : event.truncation_reason === "unreported"
+                ? this._t(
+                    "chat_actions_interrupt_stream_ended",
+                    "The connection ended before the reply finished.",
+                  )
+                : this._t(
+                    "chat_actions_interrupt_truncated",
+                    "Response looks cut short \u2014 try again.",
+                  ),
             myTurn,
           );
           return;
+        }
+        for (const index of event.superseded_message_indices || []) {
+          const superseded = this._messages[index];
+          if (superseded && superseded.automation_status === "pending") {
+            superseded.automation_status = "superseded";
+          }
         }
         assistantMsg.content = responseText;
         assistantMsg.automation = event.automation || null;

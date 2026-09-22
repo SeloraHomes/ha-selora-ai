@@ -102,6 +102,51 @@ def test_unsaved_and_idless_proposals_are_not_candidates() -> None:
     assert _find_session_saved_automation_ids(None, messages) == []
 
 
+def test_an_automation_opened_for_refinement_is_a_candidate() -> None:
+    """Opening one to edit puts it in front of the model exactly as saving it
+    does, and it has to count BEFORE anything is saved — that is the whole
+    gap. Nothing in this session was ever accepted."""
+    messages = [{"automation_status": "refining", "automation_id": "selora_ai_aaa"}]
+    assert _find_session_saved_automation_ids(None, messages) == ["selora_ai_aaa"]
+
+
+def test_a_second_proposal_in_one_refinement_still_targets_the_automation() -> None:
+    """The sequence that wrote the duplicate.
+
+    Refine Eco Away, get a proposal, leave it on screen, ask for a different
+    temperature. The first card is ``pending``, which ends the ACTIVE-refinement
+    scan — correctly, since an unrelated request must not be answered as an
+    edit — and with nothing saved the candidate set was then empty, so accepting
+    the second proposal created a second automation under the same alias, with
+    its own one-entry version history.
+    """
+    messages = [
+        {"automation_status": "refining", "automation_id": "selora_ai_e99e4d0f"},
+        {"automation_status": "pending", "automation": {"alias": "Eco Away"}},
+    ]
+    assert _find_refining_automation_id(messages) is None
+    assert _find_session_saved_automation_ids(None, messages) == ["selora_ai_e99e4d0f"]
+
+    saved = [("selora_ai_e99e4d0f", "Eco Away", "alias: Eco Away\n")]
+    # By the model's claim...
+    assert (
+        _resolve_proposal_write_target({"alias": "Eco Away"}, saved, "selora_ai_e99e4d0f")
+        == "selora_ai_e99e4d0f"
+    )
+    # ...and by the alias alone, when it does not bother to claim one.
+    assert (
+        _resolve_proposal_write_target({"alias": "Eco Away"}, saved, None)
+        == "selora_ai_e99e4d0f"
+    )
+
+
+def test_an_unrelated_proposal_in_a_refinement_is_still_a_create() -> None:
+    """Membership in the candidate set is not what selects a target — "now make
+    one for the porch" names neither the id nor the alias, so it creates."""
+    saved = [("selora_ai_e99e4d0f", "Eco Away", "alias: Eco Away\n")]
+    assert _resolve_proposal_write_target({"alias": "Porch Lights"}, saved, None) is None
+
+
 def test_an_id_survives_its_message_being_pruned() -> None:
     """``append_message`` keeps the first message and the latest 99, so in a
     long session the message that recorded the save is gone — and an id that
@@ -424,7 +469,7 @@ def test_the_prompt_carries_the_id_the_model_has_to_quote(hass: HomeAssistant) -
         automation_context=[("selora_ai_aaa", "Aqua Rite Schedule", AQUA_YAML)],
     )
     body = messages[-1]["content"]
-    assert "AUTOMATIONS SAVED IN THIS SESSION:" in body
+    assert "AUTOMATIONS IN THIS CONVERSATION:" in body
     assert "automation_id: selora_ai_aaa" in body
     assert "Untrusted automation reference data" in body
     assert "description: Turns the plug on" in body

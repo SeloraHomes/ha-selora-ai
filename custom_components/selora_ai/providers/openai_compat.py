@@ -438,6 +438,7 @@ class OpenAICompatibleProvider(LLMProvider):
         """Stream OpenAI/Ollama SSE, yielding text tokens and collecting tool calls."""
         tc_accum: dict[int, dict[str, str]] = {}
         stream_usage: LLMUsageInfo = {}
+        self._note_finish_reason(None)
 
         buffer = ""
         async for raw_chunk in resp.content.iter_any():
@@ -465,6 +466,12 @@ class OpenAICompatibleProvider(LLMProvider):
                 choices = event.get("choices", [])
                 if not choices:
                     continue
+                # Carried on the last event of the stream, beside an empty
+                # delta. ``length`` is the backend saying it stopped at the
+                # output cap, which nothing in the text itself reveals.
+                finish = choices[0].get("finish_reason")
+                if finish:
+                    self._note_finish_reason(finish)
                 delta = choices[0].get("delta", {})
 
                 content = delta.get("content")

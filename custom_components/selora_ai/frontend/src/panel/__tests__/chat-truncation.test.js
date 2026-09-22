@@ -41,4 +41,26 @@ describe("looksTruncatedResponse", () => {
     expect(looksTruncatedResponse("", false)).toBe(false);
     expect(looksTruncatedResponse("the ".repeat(120), false)).toBe(false);
   });
+
+  it("flags a fenced block that was never closed, at any length", () => {
+    // The shape a cut-off proposal takes: prose, an opened block, and half a
+    // JSON object. It is well past the length cap precisely BECAUSE the block
+    // it was part-way through is still in the text.
+    const text =
+      "Updates **Eco Away** so the heat pump uses 15° when away.\n\n" +
+      "```automation\n{\n" +
+      '  "alias": "Eco Away",\n'.repeat(30) +
+      '  "entity_id';
+    expect(text.length).toBeGreaterThan(400);
+    expect(looksTruncatedResponse(text, false)).toBe(true);
+  });
+
+  it("does not flag a closed code block", () => {
+    expect(
+      looksTruncatedResponse(
+        "Here is the shape:\n\n```yaml\nalias: x\n```",
+        false,
+      ),
+    ).toBe(false);
+  });
 });
