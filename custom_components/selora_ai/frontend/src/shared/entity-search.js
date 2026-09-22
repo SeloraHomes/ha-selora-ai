@@ -89,10 +89,24 @@ export function buildSearchRegistry(hass, full = null) {
   // collections lack (the entity→device link) and to stand in for the two
   // registries `hass` does not carry at all (floors, labels). An empty live
   // collection is an HA that does not ship it, not an empty home.
+  //
+  // Memoized on the LIVE collection's identity. `Object.keys(live).length` is
+  // O(collection), and `pick` is called once per referenced entity by both
+  // `device` and `entity` below — so filtering a list walked O(entities x
+  // devices) and a 2000-device home froze for ~95ms on the first keystroke,
+  // twice per load. The panel swaps its whole `hass` object on every state
+  // change but the registry collections inside it keep their identity, so a
+  // hit is the normal case and the emptiness test is paid once per registry
+  // rather than once per lookup.
+  const picked = new Map();
   const pick = (key) => {
     const live = hassOf()?.[key];
-    if (live && Object.keys(live).length) return live;
-    return full?.[key] || {};
+    const cached = picked.get(key);
+    if (cached && cached.live === live) return cached.resolved;
+    const resolved =
+      live && Object.keys(live).length ? live : full?.[key] || {};
+    picked.set(key, { live, resolved });
+    return resolved;
   };
 
   const area = (areaId) => {

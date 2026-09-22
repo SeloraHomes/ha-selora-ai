@@ -53,6 +53,22 @@ export function pickLocale(hass) {
 // The count is interpolated from inside the resolved string via {count} rather
 // than concatenated by the caller — the separator belongs to the language too
 // ("2 days" against "2日"), and a caller joining with a space cannot know that.
+// Fill `{name}` placeholders in a localized phrase.
+//
+// A string pattern in `String.replace` makes `$&`, `` $` `` and `$'` in the
+// REPLACEMENT expand against the match, so user-typed text substitutes itself
+// back in: searching for `` $` `` rendered `No automations match "No automations
+// match """`. A function replacement is the only form that treats the value as
+// literal, and every placeholder site goes through here so the next one cannot
+// get it wrong.
+export function interpolate(phrase, values) {
+  return String(phrase).replace(/\{(\w+)\}/g, (match, name) =>
+    Object.prototype.hasOwnProperty.call(values, name)
+      ? String(values[name])
+      : match,
+  );
+}
+
 export function localizePlural(hass, base, count, fallback) {
   let category = "other";
   try {
@@ -64,7 +80,7 @@ export function localizePlural(hass, base, count, fallback) {
     localize(hass, `${base}_${category}`, null) ??
     localize(hass, `${base}_other`, null) ??
     fallback;
-  return String(phrase).replace("{count}", String(count));
+  return interpolate(phrase, { count });
 }
 
 export function localize(hass, key, fallback) {

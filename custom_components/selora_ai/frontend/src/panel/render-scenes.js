@@ -9,6 +9,7 @@ import {
   searchTerms,
 } from "../shared/entity-search.js";
 import { renderSearchMatchReason } from "./search-match.js";
+import { interpolate } from "../shared/i18n.js";
 
 // ---------------------------------------------------------------------------
 // Scene card (chat scene confirmations)
@@ -973,12 +974,13 @@ export function renderScenes(host) {
                     ? html`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        ${host
-                          ._t(
+                        ${interpolate(
+                          host._t(
                             "scenes_search_no_match",
                             'No scenes match "{query}"',
-                          )
-                          .replace("{query}", host._sceneFilter)}
+                          ),
+                          { query: host._sceneFilter },
+                        )}
                       </div>`
                     : ""
                 }

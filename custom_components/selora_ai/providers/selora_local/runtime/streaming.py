@@ -8,6 +8,7 @@ import json
 import logging
 from typing import Any
 
+from ....command_policy_options import resolve_command_policy_options
 from ....const import (
     SELORA_LOCAL_DEFAULT_INTENT,
     SELORA_LOCAL_KIND_TO_INTENT,
@@ -144,17 +145,26 @@ class _StreamingMixin:
         # Branch by call_kind: * Prose intents (chat_answer, session_title) emit plain text — no JSON envelope to repair.
 
         # Deterministic short-circuit: inventory / state-filter questions are answered from hass.states without involving the LoRA.
-        deterministic = self._maybe_calendar_question_envelope()
-        if deterministic is None:
-            deterministic = self._maybe_state_filter_envelope()
-        if deterministic is None:
-            deterministic = self._maybe_category_inventory_envelope()
-        if deterministic is None:
-            deterministic = self._maybe_single_state_envelope()
-        if deterministic is None:
-            deterministic = self._maybe_polar_valve_state_envelope()
-        if deterministic is None:
-            deterministic = self._maybe_weather_question_envelope()
+        #
+        # Gated on the same ``handlers_enabled`` opt-out ``_convert_slim_shape``
+        # reads, and for the same reason: these handlers answer from the user's
+        # SENTENCE before the model is contacted, so a benchmark measuring the
+        # model through this path would be measuring the net instead. This path
+        # runs EARLIER than the conversion pass, so leaving it ungated makes the
+        # opt-out inert on the panel's own turns.
+        deterministic: str | None = None
+        if resolve_command_policy_options(self._hass).handlers_enabled:
+            deterministic = self._maybe_calendar_question_envelope()
+            if deterministic is None:
+                deterministic = self._maybe_state_filter_envelope()
+            if deterministic is None:
+                deterministic = self._maybe_category_inventory_envelope()
+            if deterministic is None:
+                deterministic = self._maybe_single_state_envelope()
+            if deterministic is None:
+                deterministic = self._maybe_polar_valve_state_envelope()
+            if deterministic is None:
+                deterministic = self._maybe_weather_question_envelope()
         if deterministic is not None:
             try:
                 visible = json.loads(deterministic).get("response") or ""
@@ -229,6 +239,10 @@ class _StreamingMixin:
         finally:
             self._active_turn_token = previous
             # The turn is answered; drop its snapshot rather than leave it to be
-            # evicted by whichever seven turns happen to follow.
+            # evicted by whichever seven turns happen to follow. An untokened
+            # turn has to drop the reserved key too, or the next one inherits it
+            # and is reported ambiguous for a turn that finished long ago.
             if turn_token is not None:
                 self._turn_snapshots.pop(turn_token, None)
+            else:
+                self._drop_untokened_snapshot()

@@ -65,7 +65,28 @@ class _CommandsMediaMixin:
             return None
 
         # Decode the intended media_player action up front, so we only ever intercept turns that actually carry a media_player control signal.
-        vol_match = re.search(r"(\d{1,3})\s*(?:percent|%)?", msg)
+        # The number has to BELONG to the volume, not merely share a sentence
+        # with it. An optional unit matched any stray digit, and volume_set is
+        # first in the ladder below — so "turn the volume down, it's 11pm" set
+        # the speaker to 11%. Accept a unit-bearing number anywhere, or a bare
+        # number attached to the word "volume" ("volume to 50", "volume 50").
+        vol_match = (
+            # "volume up to 50%", "volume 50 percent" -- a unit-bearing number
+            # in the same clause, which is what keeps "my phone is at 8
+            # percent; turn the volume down" from setting the speaker to 8.
+            re.search(r"\bvolume\b[^.;,!?]{0,20}?(?<![\d.])(\d{1,3})(?!\.?\d)\s*(?:percent|%)", msg)
+            # "set the speaker to 50% volume".
+            or re.search(
+                r"(?<![\d.])(\d{1,3})(?!\.?\d)\s*(?:percent|%)[^.;,!?]{0,20}?\bvolume\b", msg
+            )
+            # The boundaries reject a FRAGMENT of a longer number, decimals
+            # included: "1000%" and "10.5%" are both out of the range this can
+            # set, and matching part of either silently picks a wrong volume.
+            # A BARE number has to be the word right after "volume", or after
+            # its preposition: "volume 50", "volume to 50". Anything looser
+            # reads the device ordinal in "turn up the volume on speaker 2".
+            or re.search(r"\bvolume\b\s+(?:to\s+|at\s+)?(?<![\d.])(\d{1,3})(?!\.?\d)\b", msg)
+        )
         want_volume = "volume" in msg and vol_match is not None
         # "Mute the music" / "Mute the outdoor speakers".
         want_mute = bool(re.search(r"\bmute\b", msg)) and not re.search(r"\bun-?mute\b", msg)

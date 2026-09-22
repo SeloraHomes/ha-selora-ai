@@ -862,17 +862,24 @@ def validate_command_action(
     allowed_data_keys = sorted(_COMMAND_SERVICE_POLICIES.get(domain, {}).get(service_name, set()))
     if data is not None and not isinstance(data, dict):
         errors.append("data must be an object")
-    elif isinstance(data, dict) and data:
-        if policy.allowlist_enabled:
-            extra = sorted(set(data) - set(allowed_data_keys))
-            if extra:
-                errors.append(
-                    f"unsupported parameters for {service}: {', '.join(extra)} "
-                    f"(allowed: {', '.join(allowed_data_keys) or 'none'})"
-                )
-        remote_media = _remote_media_content_error(service, data)
-        if remote_media:
-            errors.append(remote_media)
+    elif isinstance(data, dict) and data and policy.allowlist_enabled:
+        extra = sorted(set(data) - set(allowed_data_keys))
+        if extra:
+            errors.append(
+                f"unsupported parameters for {service}: {', '.join(extra)} "
+                f"(allowed: {', '.join(allowed_data_keys) or 'none'})"
+            )
+
+    # Asked unconditionally, OUTSIDE the branch above: the helper's first answer
+    # is that a play_media arriving without media_content_id cannot run, and an
+    # absent or empty ``data`` is precisely that case. Gated on a non-empty dict
+    # it never saw it, so this path reported valid while ``apply_command_policy``
+    # and ``_validate_safe_call`` -- which both call it unconditionally -- refused
+    # the same call, and the tool path dispatched one Home Assistant rejects
+    # while telling the user it ran.
+    remote_media = _remote_media_content_error(service, data)
+    if remote_media:
+        errors.append(remote_media)
 
     # Entity-class elevation: a SAFE-domain call (cover.*) can still
     # need approval when its target's device_class is high-risk (a

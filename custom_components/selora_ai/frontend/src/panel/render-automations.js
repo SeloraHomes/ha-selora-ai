@@ -24,6 +24,7 @@ import {
   revealPanel,
 } from "./render-proposal-diff.js";
 import { renderSearchMatchReason } from "./search-match.js";
+import { interpolate } from "../shared/i18n.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
@@ -2228,12 +2229,13 @@ export function renderAutomations(host) {
                     ? html`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        ${host
-                          ._t(
+                        ${interpolate(
+                          host._t(
                             "automations_search_no_match",
                             'No automations match "{query}"',
-                          )
-                          .replace("{query}", host._automationFilter)}
+                          ),
+                          { query: host._automationFilter },
+                        )}
                       </div>`
                     : ""
                 }

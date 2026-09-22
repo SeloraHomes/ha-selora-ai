@@ -69,9 +69,10 @@ _SELORA_LOCAL_PROMPTS_DIR = (
 # the process.
 _MAX_TURN_SNAPSHOTS = 8
 
-# Key for a caller that passed no token -- the pre-token behaviour, usable only
-# while it is the one turn outstanding.
-_UNTOKENED_TURN = ""
+# Key PREFIX for a turn whose caller passed no token. A real token is a uuid
+# hex string, so the NUL keeps the two namespaces apart -- ``startswith`` is how
+# an untokened snapshot is found again, and an empty prefix matches every key.
+_UNTOKENED_TURN = "\x00untokened:"
 
 
 class _TurnSnapshot(NamedTuple):
@@ -244,6 +245,11 @@ class SeloraLocalProvider(
         # else can interleave on the event loop while it is held, which is what
         # makes a plain attribute safe here where the mirror was not.
         self._active_turn_token: str | None = None
+        # Serial for the per-turn untokened keys; see ``_store_turn_snapshot``.
+        self._untokened_seq: int = 0
+        # Untokened keys that arrived into an overlapping set and so name no
+        # identifiable turn. Never resolved, whatever else has since completed.
+        self._untokened_poisoned: set[str] = set()
         # Default=None (not []) so the same list isn't shared across async contexts — ruff's B039 / flake8-bugbear flags ContextVar mutable defaults as a real footgun.
         self._entities_for_lora: ContextVar[list[Any] | None] = ContextVar(
             "selora_ai_local_entities", default=None
@@ -361,11 +367,55 @@ class SeloraLocalProvider(
 
     def _store_turn_snapshot(self, turn_token: str | None, snapshot: _TurnSnapshot) -> None:
         """Record what this turn was told, evicting the oldest when full."""
-        key = turn_token or _UNTOKENED_TURN
+        if self._prewarming.get():
+            # A warmup turn is not a user turn. Its ``user_message="warmup"``
+            # is never popped (only a real conversion pops), so leaving it here
+            # lets an untokened turn resolve its own request to "warmup".
+            return
+        if turn_token is None:
+            # Untokened turns -- Assist, MCP ``selora_chat``, the automations
+            # websocket -- used to share ONE reserved key, so a second arriving
+            # while the first was outstanding overwrote it and ``_turn_snapshot``
+            # handed the survivor to both.
+            #
+            # A key per turn, and every member of an overlapping set is marked
+            # unusable for as long as it is here. Counting entries alone is not
+            # enough: turns do not complete in the order they arrived, so the
+            # first completion pops SOMEBODY's snapshot and leaves one entry
+            # behind -- which the "exactly one outstanding" rule below would
+            # then hand to whichever turn converts next. Ambiguity is a property
+            # of the set a turn arrived into, not of how many are left.
+            outstanding = [k for k in self._turn_snapshots if k.startswith(_UNTOKENED_TURN)]
+            self._untokened_seq += 1
+            key = f"{_UNTOKENED_TURN}{self._untokened_seq}"
+            if outstanding:
+                self._untokened_poisoned.update(outstanding)
+                self._untokened_poisoned.add(key)
+            # Keys evicted by the cap never reach ``_drop_untokened_snapshot``.
+            self._untokened_poisoned.intersection_update(self._turn_snapshots.keys() | {key})
+        else:
+            key = turn_token
         self._turn_snapshots.pop(key, None)
         self._turn_snapshots[key] = snapshot
         while len(self._turn_snapshots) > _MAX_TURN_SNAPSHOTS:
             self._turn_snapshots.popitem(last=False)
+
+    def _drop_untokened_snapshot(self) -> None:
+        """Release one untokened turn's snapshot once it is answered.
+
+        An untokened conversion cannot say WHICH of several it is, so it
+        releases the oldest. Which one goes does not matter: an overlapping
+        set is marked unusable on arrival and stays that way while any of it
+        is here, so nothing left behind can be resolved by mistake. A turn
+        that dies before converting leaks one entry, which costs the next
+        untokened turn its deterministic overrides once and then clears itself
+        the same way.
+        """
+        for key in self._turn_snapshots:
+            if key.startswith(_UNTOKENED_TURN):
+                self._turn_snapshots.pop(key, None)
+                self._untokened_poisoned.discard(key)
+                return
 
     def _turn_snapshot(self) -> _TurnSnapshot | None:
         """This turn's snapshot, or None when it cannot be identified.
@@ -380,7 +430,10 @@ class SeloraLocalProvider(
         if self._active_turn_token is not None:
             return self._turn_snapshots.get(self._active_turn_token)
         if len(self._turn_snapshots) == 1:
-            return next(iter(self._turn_snapshots.values()))
+            key = next(iter(self._turn_snapshots))
+            if key in self._untokened_poisoned:
+                return None
+            return self._turn_snapshots[key]
         return None
 
     def _current_user_message(self) -> str:

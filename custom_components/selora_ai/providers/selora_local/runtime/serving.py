@@ -337,7 +337,7 @@ class _ServingMixin:
                         )
                         return
                     slots = await resp.json()
-            except (aiohttp.ClientError, TimeoutError) as exc:
+            except (aiohttp.ClientError, TimeoutError, ValueError) as exc:
                 delay = self._schedule_discovery_retry()
                 _log_at(delay, _LOGGER.warning)(
                     "Selora Local LoRA discovery failed: %s — will retry in %.1fs",
@@ -345,19 +345,56 @@ class _ServingMixin:
                     delay,
                 )
                 return
+            # A 200 is not a promise about the body. ``ValueError`` above
+            # covers a truncated or non-JSON payload; a well-formed body of the
+            # wrong SHAPE (a list of strings, a scalar, an object) reaches here
+            # and would raise ``AttributeError`` on ``slot.get`` — outside the
+            # ``_SeloraLocalActivationError`` handling the callers wrap
+            # ``_settle_discovery`` in, so the user's turn dies unclassified
+            # instead of arming the retry. Treat it as the transient failure it
+            # is, exactly as the /v1/models probe above already does.
+            if not isinstance(slots, list):
+                delay = self._schedule_discovery_retry()
+                _log_at(delay, _LOGGER.warning)(
+                    "Selora Local /lora-adapters returned %s, not a list — will retry in %.1fs",
+                    type(slots).__name__,
+                    delay,
+                )
+                return
             mapping: dict[str, int] = {}
-            for slot in slots or []:
-                path = slot.get("path", "") or ""
+            # Counted from the records that are actually addressable, not from
+            # the response length: a skipped record still occupied a position in
+            # ``len(slots)``, and ``_activate_lora_for_kind`` builds its payload
+            # from ``range(self._n_slots)`` -- so one bad record had it name a
+            # slot id no adapter answers to, which a strict hub rejects outright.
+            usable = 0
+            for slot in slots:
+                if not isinstance(slot, dict):
+                    continue
+                # A record's FIELDS are no more trustworthy than its shape:
+                # ``{"path": 17}`` raises AttributeError on rsplit and
+                # ``{"id": "bad"}`` raises ValueError on int, both outside the
+                # activation handling the callers wrap this in. Skip the record
+                # rather than lose the turn -- the other slots are still usable.
+                path = slot.get("path") or ""
+                if not isinstance(path, str):
+                    continue
                 name = path.rsplit("/", 1)[-1].lower()
                 slot_id = slot.get("id")
-                if slot_id is None:
+                # A slot id indexes the hub's adapter list, so a negative one
+                # names no adapter -- and activation would send it on as a
+                # scale-0 payload that disables every adapter instead.
+                if not isinstance(slot_id, int) or isinstance(slot_id, bool):
                     continue
+                if slot_id < 0:
+                    continue
+                usable += 1
                 for keyword in SELORA_LOCAL_LORA_FILENAME_KEYWORDS:
                     if keyword in name and keyword not in mapping:
-                        mapping[keyword] = int(slot_id)
+                        mapping[keyword] = slot_id
                         break
             self._lora_slots = mapping
-            self._n_slots = len(slots or [])
+            self._n_slots = usable
             self._discovery_backoff_s = _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S
             _LOGGER.info(
                 "Selora Local discovered base=%s, %d LoRA slots: %s",

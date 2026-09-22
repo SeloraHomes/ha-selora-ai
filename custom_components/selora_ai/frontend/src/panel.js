@@ -1155,6 +1155,14 @@ class SeloraAIPanel extends LitElement {
     super.disconnectedCallback();
     releasePanelContainer(this._panelContainer);
     this._panelContainer = null;
+    // Suggestion-card panel-settle timers. They are otherwise cleared only by
+    // a later toggle of the SAME card, so navigating away (or accepting the
+    // card) inside PANEL_SETTLE_MS leaves a callback writing to a detached
+    // host, and the map keeps one key per card ever opened.
+    for (const timer of Object.values(this._cardPanelTimers || {})) {
+      clearTimeout(timer);
+    }
+    this._cardPanelTimers = {};
     if (this._unsubscribeRecipeEntityRegistry) {
       this._unsubscribeRecipeEntityRegistry();
     }

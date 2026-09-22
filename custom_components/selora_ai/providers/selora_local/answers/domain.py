@@ -215,6 +215,15 @@ class _AnswersDomainMixin:
     def _maybe_weather_question_envelope(self) -> str | None:
         """Answer a weather/forecast question ("Is today sunny or cloudy?") deterministically from the live ``weather.*`` entity state."""
         # Read via ``_current_user_message`` (ContextVar with instance-mirror fallback), NOT the bare ``_user_message_raw`` ContextVar: the non-streaming ``convert_response_text`` → ``_convert_slim_shape`` pass runs in a context that never saw ``set_chat_context``'s ``set``, so the raw ContextVar reads back empty and the weather detector silently no-ops — the turn then falls through to the LoRA refusal ("I can only answer questions about your home.").
+        # Same per-turn gate as every sibling answer override: a weather word
+        # plus a question mark is not evidence the turn is a question. "It's
+        # about to rain -- can you close the windows?" is a cover command, and
+        # this override sits ahead of the command overrides in both dispatch
+        # orders, so without the gate it answers about the sky and closes
+        # nothing. Read through ``_current_chat_kind`` rather than the bare
+        # ContextVar, for the reason the message is read that way below.
+        if self._current_chat_kind() != "chat_answer":
+            return None
         if not _detect_weather_question(self._current_user_message()):
             return None
         states = self._filtered_domain_states("weather")
