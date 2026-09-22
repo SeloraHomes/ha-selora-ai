@@ -234,6 +234,13 @@ class _CommandsCoverClimateMixin:
     @staticmethod
     def _climate_degree_magnitude(msg: str) -> float | None:
         """Recover the size of a relative thermostat adjustment, in degrees."""
+        # A threshold is not a magnitude. "if the temperature drops below 18,
+        # turn the heat up" names 18 as the CONDITION's operand, and both the
+        # "N degrees" scan and the bare-number last resort would read it as the
+        # adjustment -- writing a setpoint of current + 18. Drop the condition
+        # clause before looking for a magnitude; the conditional gate parses it
+        # off the original message separately.
+        msg = _SELORA_LOCAL_CLIMATE_CONDITION_RE.sub(" ", msg)
         word_numbers: dict[str, float] = {
             "a couple": 2.0,
             "a few": 3.0,

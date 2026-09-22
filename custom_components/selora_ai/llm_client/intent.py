@@ -1203,8 +1203,15 @@ _UTIL_MAINTENANCE = re.compile(
     r"(system|home\s*assistant|installation|core|os|supervisor)\b"
     r"|\bversion\s+(conflict|mismatch)\b"
     r"|\bout[\s-]of[\s-]date\b"
+    # The housekeeping verbs need an HA-SYSTEM object. Unqualified, "how do I
+    # restart the vacuum" is a device question and was being answered out of the
+    # docs.
     r"|\bhow\s+(do|can|would|should)\s+i\s+"
-    r"(back\s*up|backup|restore|restart|reboot|reload|migrate)\b",
+    r"(back\s*up|backup|restore|restart|reboot|reload|migrate)\b"
+    r"[\w\s']{0,30}\b(home\s*assistant|hass|ha|system|core|os|supervisor|"
+    r"instance|server|integration|integrations|add[\s-]?on|addon|config|"
+    r"configuration|database|snapshot|backup|backups|automations?|scripts?|"
+    r"yaml)\b",
     re.IGNORECASE,
 )
 
@@ -1264,8 +1271,20 @@ _UTIL_CONCEPT = re.compile(
     # Not when a live-state qualifier follows: "what are the automations currently
     # enabled" is an inventory question about THIS home, not a request for the
     # definition of an automation.
+    #
+    # A LOCATIVE or POSSESSIVE qualifier says the same thing and was missing:
+    # "what are the scenes in my house", "what are the automations in the
+    # kitchen", "what are the scripts I have", "what are the areas upstairs" are
+    # all questions about this home. The utilities prompt grounds in docs and is
+    # told never to invent state, so each of those came back as a definition
+    # instead of the user's list. ``for <word>`` names a specific instance
+    # ("what is the scene for movie night") while a trailing "what are
+    # blueprints for?" has no word after it and stays a definition.
     r"(?![\w\s']{0,20}\b(currently|enabled|disabled|running|active|on|off|"
-    r"available|installed|configured|set\s*up)\b)"
+    r"available|installed|configured|set\s*up|"
+    r"in\s+my|in\s+the|in\s+this|my|mine|i\s+have|i['’]?ve\s+got|"
+    r"upstairs|downstairs|at\s+home|here)\b"
+    r"|[\w\s']{0,20}\bfor\s+(?!in\b|use\b)[\w'])"
     r"|\bhow\s+(do|does)\s+[\w\s']{0,30}\b"
     r"(areas?|zones?|scenes?|blueprints?|helpers?|dashboards?|automations?|"
     r"scripts?|labels?|templates?|integrations?|add[\s-]?ons?)\b[\w\s']{0,15}\bwork\b",

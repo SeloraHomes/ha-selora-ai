@@ -9066,10 +9066,15 @@ function _deviceLabel(device) {
 }
 function buildSearchRegistry(hass, full = null) {
   const hassOf = typeof hass === "function" ? hass : () => hass;
+  const picked = /* @__PURE__ */ new Map();
   const pick = (key) => {
     const live = hassOf()?.[key];
-    if (live && Object.keys(live).length) return live;
-    return full?.[key] || {};
+    const cached = picked.get(key);
+    if (cached && cached.live === live) return cached.resolved;
+    const resolved =
+      live && Object.keys(live).length ? live : full?.[key] || {};
+    picked.set(key, { live, resolved });
+    return resolved;
   };
   const area = (areaId) => {
     if (!areaId) return "";
@@ -26023,6 +26028,13 @@ function pickLocale(hass) {
   const base = lower.split("-")[0];
   return CATALOG[base] ? base : "en";
 }
+function interpolate(phrase, values) {
+  return String(phrase).replace(/\{(\w+)\}/g, (match, name) =>
+    Object.prototype.hasOwnProperty.call(values, name)
+      ? String(values[name])
+      : match,
+  );
+}
 function localizePlural(hass, base, count, fallback) {
   let category = "other";
   try {
@@ -26032,7 +26044,7 @@ function localizePlural(hass, base, count, fallback) {
     localize(hass, `${base}_${category}`, null) ??
     localize(hass, `${base}_other`, null) ??
     fallback;
-  return String(phrase).replace("{count}", String(count));
+  return interpolate(phrase, { count });
 }
 function localize(hass, key, fallback) {
   const lang = pickLocale(hass);
@@ -33605,7 +33617,9 @@ function renderSearchMatchReason(host, reasons) {
   return b2`<span class="auto-row-match" title=${reasons.join(", ")}>
     <ha-icon icon="mdi:magnify"></ha-icon>
     <span class="auto-row-match-text"
-      >${host._t("search_match_reason", "matches {targets}").replace("{targets}", reasons.join(", "))}</span
+      >${interpolate(host._t("search_match_reason", "matches {targets}"), {
+        targets: reasons.join(", "),
+      })}</span
     >
   </span>`;
 }
@@ -36174,12 +36188,13 @@ function renderAutomations(host) {
                     ? b2`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        ${host
-                          ._t(
+                        ${interpolate(
+                          host._t(
                             "automations_search_no_match",
                             'No automations match "{query}"',
-                          )
-                          .replace("{query}", host._automationFilter)}
+                          ),
+                          { query: host._automationFilter },
+                        )}
                       </div>`
                     : ""
                 }
@@ -37723,12 +37738,13 @@ function renderScenes(host) {
                     ? b2`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
-                        ${host
-                          ._t(
+                        ${interpolate(
+                          host._t(
                             "scenes_search_no_match",
                             'No scenes match "{query}"',
-                          )
-                          .replace("{query}", host._sceneFilter)}
+                          ),
+                          { query: host._sceneFilter },
+                        )}
                       </div>`
                     : ""
                 }
@@ -49397,7 +49413,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "afd1964f3071" : "";
+var PANEL_BUILD = true ? "d2ba160c3a0d" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -51733,6 +51749,10 @@ var SeloraAIPanel = class extends i4 {
     super.disconnectedCallback();
     releasePanelContainer(this._panelContainer);
     this._panelContainer = null;
+    for (const timer of Object.values(this._cardPanelTimers || {})) {
+      clearTimeout(timer);
+    }
+    this._cardPanelTimers = {};
     if (this._unsubscribeRecipeEntityRegistry) {
       this._unsubscribeRecipeEntityRegistry();
     }
