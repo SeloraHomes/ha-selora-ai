@@ -60,6 +60,10 @@ from ..const import (
     CONF_OPENROUTER_API_KEY,
     CONF_OPENROUTER_MODEL,
     CONF_PATTERN_ENABLED,
+    CONF_SELORA_ALEXA_AUDIENCE,
+    CONF_SELORA_ALEXA_ISSUER,
+    CONF_SELORA_ALEXA_JWT_KEY,
+    CONF_SELORA_ALEXA_SCOPE,
     CONF_SELORA_CONNECT_ENABLED,
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
@@ -654,13 +658,37 @@ async def _handle_websocket_unlink_connect(
     new_data.pop(CONF_SELORA_CONNECT_ENABLED, None)
     new_data.pop(CONF_SELORA_INSTALLATION_ID, None)
     new_data.pop(CONF_SELORA_JWT_KEY, None)
+    # Alexa's credential goes with it, whole. It is derived from its own
+    # resource and its own key_epoch, which is what makes it independently
+    # revocable — but independent of the OTHER features, not of Connect itself.
+    # A key left behind is a live voice credential on a hub the user has just
+    # unlinked, and it would be picked back up by the next relink; a stray
+    # audience or issuer left beside a cleared key is what a later partial
+    # relink would build a mismatched validator from.
+    for _alexa_key in (
+        CONF_SELORA_ALEXA_JWT_KEY,
+        CONF_SELORA_ALEXA_AUDIENCE,
+        CONF_SELORA_ALEXA_SCOPE,
+        CONF_SELORA_ALEXA_ISSUER,
+    ):
+        new_data.pop(_alexa_key, None)
     # Keep CONF_SELORA_CONNECT_URL so the user doesn't have to re-enter it
 
     hass.config_entries.async_update_entry(entry, data=new_data)
 
-    # Immediately clear the in-memory validator so Selora JWTs are rejected
-    # right away, even if the scheduled reload below fails.
-    hass.data.get(DOMAIN, {}).pop("selora_jwt_validator", None)
+    # Immediately clear the in-memory state so Selora JWTs are rejected right
+    # away, even if the scheduled reload below fails — and it can fail, in
+    # which case these are the only teardown that happens at all.
+    domain_data = hass.data.get(DOMAIN, {})
+    domain_data.pop("selora_jwt_validator", None)
+    # Re-resolved from what the entry now holds rather than cleared by hand, so
+    # there is one implementation of "what should voice be doing". Not just the
+    # references either: once proactive mode is on the config owns an event-bus
+    # listener, and an unlinked hub would otherwise keep reporting state to
+    # Amazon through a Connect client built from credentials it no longer has.
+    from .. import _async_sync_alexa_runtime
+
+    await _async_sync_alexa_runtime(hass)
 
     connection.send_result(msg["id"], {"status": "unlinked"})
 

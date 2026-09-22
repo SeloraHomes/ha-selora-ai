@@ -27,6 +27,7 @@ import base64
 from dataclasses import dataclass, field
 import hashlib
 import html
+from http import HTTPStatus
 import json
 import logging
 import secrets
@@ -51,6 +52,10 @@ from .const import (
     CONF_AIGATEWAY_USER_EMAIL,
     CONF_AIGATEWAY_USER_ID,
     CONF_LLM_PROVIDER,
+    CONF_SELORA_ALEXA_AUDIENCE,
+    CONF_SELORA_ALEXA_ISSUER,
+    CONF_SELORA_ALEXA_JWT_KEY,
+    CONF_SELORA_ALEXA_SCOPE,
     CONF_SELORA_CONNECT_ENABLED,
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
@@ -214,6 +219,63 @@ def _resolve_callback_base(hass: HomeAssistant, panel_origin: str = "") -> str:
 # ── Exchange helpers (refactored from __init__.py WS handlers) ──────────────
 
 
+_ALEXA_ENTRY_KEYS = (
+    CONF_SELORA_ALEXA_JWT_KEY,
+    CONF_SELORA_ALEXA_AUDIENCE,
+    CONF_SELORA_ALEXA_SCOPE,
+    CONF_SELORA_ALEXA_ISSUER,
+)
+
+
+def _alexa_block(payload: dict[str, Any] | None) -> dict[str, str] | None:
+    """The Alexa credential block from an ``alexa-auth-config`` body.
+
+    Whole or nothing, the same rule Selora OS applies on its side: the key
+    decides what a token is signed with, the audience and scope decide what the
+    validator will accept, and the issuer decides what ``iss`` must say. A hub
+    that took the key and defaulted the rest would hold a perfectly correct
+    credential and refuse every directive — a failure that reads as a bad key
+    and is nothing of the sort. Writing a partial block is how the two halves
+    drift apart, so it is not a shape this produces.
+    """
+    if not isinstance(payload, dict):
+        return None
+    block = {
+        CONF_SELORA_ALEXA_JWT_KEY: payload.get("jwt_key"),
+        CONF_SELORA_ALEXA_AUDIENCE: payload.get("audience"),
+        CONF_SELORA_ALEXA_SCOPE: payload.get("scope"),
+        CONF_SELORA_ALEXA_ISSUER: payload.get("issuer"),
+    }
+    if not all(isinstance(value, str) and value for value in block.values()):
+        return None
+    return {key: str(value) for key, value in block.items()}
+
+
+def _apply_alexa_block(
+    entry_data: dict[str, Any], block: dict[str, str] | None, *, answered: bool
+) -> None:
+    """Write, clear, or leave the Alexa credential on a relink.
+
+    Three outcomes, and collapsing the last two is the bug this exists to name.
+    A block means the Alexa resource is live. Connect ANSWERING without one
+    means the resource is gone or its ``key_epoch`` has rolled, so a credential
+    on record is withdrawn — keeping it would leave the view accepting
+    directives signed with something the cloud has stopped issuing, which is
+    the whole point of a revocable per-feature epoch undone. Connect not
+    answering at all says nothing either way, and deleting on a timeout would
+    break voice on any relink that happened to race a deploy.
+
+    Every member moves together, so a rotation cannot leave last epoch's
+    audience beside this epoch's key.
+    """
+    if block:
+        entry_data.update(block)
+        return
+    if answered:
+        for key in _ALEXA_ENTRY_KEYS:
+            entry_data.pop(key, None)
+
+
 async def exchange_connect_code(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -280,6 +342,8 @@ async def exchange_connect_code(
         # Installation-scoped JWT key — falls back to per-device key.
         jwt_key = None
         scope_id = None
+        alexa_block: dict[str, str] | None = None
+        alexa_key_known = False
         if installation_id:
             try:
                 async with session.get(
@@ -299,24 +363,62 @@ async def exchange_connect_code(
             except (ClientError, TimeoutError) as err:
                 _LOGGER.warning("Could not reach Connect for MCP auth config: %s", err)
 
+            # Alexa's key is a SEPARATE fetch, from alexa_remote_access's own
+            # key_epoch. Its absence is not an error: Connect serves it only
+            # once the Alexa resource exists, and a hub with no Alexa link is
+            # the ordinary case. What must never happen is a fall back to the
+            # MCP key above — that would derive voice's credentials from
+            # another feature's epoch, so rotating that one would silently
+            # revoke Alexa.
+            #
+            # Three outcomes, not two, and conflating the last two is what
+            # makes this worth spelling out. Connect ANSWERING without a key
+            # means the resource is gone — a revoked or rotated key must be
+            # dropped, or the hub keeps accepting directives signed with a
+            # credential that was withdrawn. Connect not answering at all says
+            # nothing about the key, and deleting one on a timeout would break
+            # voice on every relink that happened to race a deploy.
+            alexa_key_known = False
+            try:
+                async with session.get(
+                    f"{connect_url}/api/v1/installations/{installation_id}/alexa-auth-config",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=timeout,
+                ) as resp:
+                    if resp.status == 200:
+                        alexa_block = _alexa_block(await resp.json())
+                        alexa_key_known = True
+                        if alexa_block is None:
+                            _LOGGER.warning(
+                                "Connect returned an incomplete Alexa auth config; "
+                                "voice will stay disabled"
+                            )
+                    elif resp.status == HTTPStatus.NOT_FOUND:
+                        alexa_key_known = True
+                        _LOGGER.debug("No Alexa resource for this installation")
+                    else:
+                        _LOGGER.debug("Alexa auth config unavailable (%s)", resp.status)
+            except (ClientError, TimeoutError) as err:
+                _LOGGER.debug("Could not reach Connect for Alexa auth config: %s", err)
+
     if not jwt_key:
         jwt_key = device_data.get("jwt_key")
     if not jwt_key:
         raise RuntimeError("Connect response missing jwt_key")
 
-    hass.config_entries.async_update_entry(
-        entry,
-        data={
-            **entry.data,
-            CONF_SELORA_CONNECT_ENABLED: True,
-            CONF_SELORA_CONNECT_URL: connect_url,
-            CONF_SELORA_INSTALLATION_ID: scope_id
-            or scope_id_from_device
-            or installation_id
-            or device_id,
-            CONF_SELORA_JWT_KEY: jwt_key,
-        },
-    )
+    entry_data = {
+        **entry.data,
+        CONF_SELORA_CONNECT_ENABLED: True,
+        CONF_SELORA_CONNECT_URL: connect_url,
+        CONF_SELORA_INSTALLATION_ID: scope_id
+        or scope_id_from_device
+        or installation_id
+        or device_id,
+        CONF_SELORA_JWT_KEY: jwt_key,
+    }
+    _apply_alexa_block(entry_data, alexa_block, answered=alexa_key_known)
+
+    hass.config_entries.async_update_entry(entry, data=entry_data)
 
     async def _reload() -> None:
         try:
