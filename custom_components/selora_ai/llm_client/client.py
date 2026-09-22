@@ -1594,6 +1594,10 @@ class LLMClient:
                 user_message=user_message,
                 language=language,
                 refining=refining,
+                # Why the last round stopped, in the backend's own words. Only
+                # this side can answer it — the text reaching the parser is
+                # identical either way.
+                finish_reason=self._provider.last_finish_reason,
             )
 
     # ------------------------------------------------------------------
@@ -1974,6 +1978,19 @@ class LLMClient:
                 # decide presentation. Wrap in ConnectionError so callers
                 # only need to catch one error class for transport issues.
                 raise ConnectionError("LLM stream failed unexpectedly") from exc
+
+            # A round the backend ended at its output cap is incomplete
+            # whatever it looks like: the stream closes cleanly, so nothing
+            # downstream can tell the difference from a finished answer
+            # except the shape of what arrived. Say so in the log, where the
+            # question "why did that turn stop mid-JSON" is asked.
+            if self._provider.last_response_truncated:
+                _LOGGER.warning(
+                    "%s ended the round at its output cap (finish_reason=%s); "
+                    "the reply is incomplete",
+                    self._provider.provider_name,
+                    self._provider.last_finish_reason,
+                )
 
             # If no tool calls, we're done — text was already streamed.
             # Leave usage in the buffer so the calling architect_chat_stream
@@ -2450,7 +2467,7 @@ class LLMClient:
                 f"{a_yaml or _AUTOMATION_TOO_LARGE_NOTE}"
                 for aid, a_alias, a_yaml in automation_context
             ]
-            automation_section = "\n\nAUTOMATIONS SAVED IN THIS SESSION:\n" + "\n".join(auto_parts)
+            automation_section = "\n\nAUTOMATIONS IN THIS CONVERSATION:\n" + "\n".join(auto_parts)
 
         area_section = ""
         if areas:

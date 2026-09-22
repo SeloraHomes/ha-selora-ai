@@ -101,6 +101,7 @@ REPAIR_TYPES: frozenset[str] = frozenset(
         "tool_markup_leak",
         "entity_id_in_description",
         "night_window_merge",
+        "truncated_response",
     }
 )
 

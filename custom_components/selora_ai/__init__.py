@@ -989,7 +989,10 @@ def _find_session_saved_automation_ids(
     session: dict[str, Any] | None,
     stored_messages: list[dict[str, Any]],
 ) -> list[str]:
-    """Return the id of every automation this session saved, oldest first.
+    """Return the id of every automation this session has in play, oldest first.
+
+    Saved here, or opened for refinement — the two ways an automation comes to
+    be one the user was shown in this conversation.
 
     So a caller scanning in reverse meets the most recently saved automation
     first. One entry per automation: re-saving moves it to the end of the scan
@@ -1021,7 +1024,26 @@ def _find_session_saved_automation_ids(
         saved.append(automation_id)
 
     for m in stored_messages:
-        if m.get("automation_status") == "saved" and m.get("automation_id"):
+        status = m.get("automation_status")
+        # A ``refining`` marker is the user opening an automation to edit. It
+        # counts for the same reason a save does — they were just shown that
+        # automation, which is what makes a later proposal naming it an edit
+        # rather than a coincidence — and it counts even though nothing has
+        # been saved yet, which is the whole gap: a refinement that produces
+        # two proposals before either is accepted has an empty candidate set
+        # on the second, so the accept creates a SECOND automation under the
+        # same alias instead of updating the one being refined.
+        #
+        # Deliberately NOT the terminating scan ``_find_refining_automation_id``
+        # runs. That one asks whether the refinement conversation is still
+        # ACTIVE, and must end at the first pending/saved/declined card or an
+        # unrelated later request would be answered as an edit. This asks which
+        # automations the user has put in front of the model in this session,
+        # and a card they have not accepted does not un-choose the automation
+        # they opened. An unrelated proposal is still a create: the resolver
+        # matches on the model's explicit claim or on the alias, never on
+        # membership in this list.
+        if status in ("saved", "refining") and m.get("automation_id"):
             _record(str(m["automation_id"]))
     indexed = (session or {}).get("saved_automations")
     if isinstance(indexed, list):
@@ -1035,7 +1057,7 @@ async def _find_session_saved_automations(
     session: dict[str, Any] | None,
     stored_messages: list[dict[str, Any]],
 ) -> list[tuple[str, str, str]]:
-    """Return (automation_id, alias, yaml) for this session's saved automations.
+    """Return (automation_id, alias, yaml) for this session's automations.
 
     Session order, current content, and only the ones automations.yaml still
     carries. Feeds both the model's reference context and the write-target
@@ -1100,6 +1122,63 @@ def _same_automation_name(left: str, right: str) -> bool:
     return re.sub(r"\s+", " ", left).strip().casefold() == (
         re.sub(r"\s+", " ", right).strip().casefold()
     )
+
+
+async def _supersede_earlier_proposals(
+    store: ConversationStore,
+    session_id: str,
+    stored_messages: list[dict[str, Any]],
+    *,
+    alias: str,
+    target_id: str | None,
+) -> list[int]:
+    """Retire the still-pending cards this new proposal replaces.
+
+    A revision does not sit BESIDE the card it revises. "make it 20 instead"
+    answers the card above it, so leaving that one accept-able offers the user
+    a choice they did not ask for between two versions of one automation — and
+    taking it writes whichever they click, which is how a refinement ends with
+    two automations under the same name.
+
+    It also keeps the refinement alive. ``_find_refining_automation_id`` stops
+    at the first pending/saved/declined card, on the reasoning that such a card
+    ended the refinement conversation — true of an accept, a decline, and a
+    proposal the user moved on from, but NOT of one this turn just replaced.
+    ``superseded`` is deliberately absent from those terminators, so revising
+    keeps editing the same automation instead of quietly becoming a create.
+
+    Matched the way the write target is: the proposal's resolved target, or
+    failing that its alias. A proposal for a DIFFERENT automation retires
+    nothing — "now make one for the porch" is a second automation the user may
+    well want alongside the first, and superseding on arrival alone would
+    throw it away.
+
+    Returns the message indices it retired, so the panel can retire the same
+    cards in the session it already has open rather than re-deriving which.
+    """
+    superseded: list[int] = []
+    for index, message in enumerate(stored_messages):
+        if message.get("automation_status") != "pending":
+            continue
+        earlier = message.get("automation")
+        if not isinstance(earlier, dict):
+            continue
+        earlier_alias = str(earlier.get("alias", "")).strip()
+        earlier_target = str(message.get("refining_automation_id") or "").strip()
+        same_target = bool(target_id) and target_id == earlier_target
+        same_alias = bool(alias and earlier_alias) and _same_automation_name(alias, earlier_alias)
+        if not (same_target or same_alias):
+            continue
+        if await store.set_automation_status(session_id, index, "superseded"):
+            superseded.append(index)
+    if superseded:
+        _LOGGER.debug(
+            "Superseded %d earlier proposal(s) for %s in session %s",
+            len(superseded),
+            target_id or alias,
+            session_id,
+        )
+    return superseded
 
 
 def _resolve_proposal_write_target(
@@ -2495,6 +2574,19 @@ async def _handle_websocket_chat(
             editable_automations,
             result.get("refine_automation_id"),
         )
+    # Before the append, so the indices still describe the stored list — see
+    # the streaming handler.
+    superseded_indices = (
+        await _supersede_earlier_proposals(
+            store,
+            session_id,
+            stored_messages,
+            alias=str((result.get("automation") or {}).get("alias", "")).strip(),
+            target_id=refining_automation_id,
+        )
+        if result.get("automation")
+        else []
+    )
     await store.append_message(
         session_id,
         "assistant",
@@ -2543,6 +2635,8 @@ async def _handle_websocket_chat(
             "config_issue": result.get("config_issue", False),
             "validation_error": result.get("validation_error"),
             "validation_target": result.get("validation_target"),
+            # See the streaming handler: the cards this proposal replaces.
+            "superseded_message_indices": superseded_indices or None,
             "refining_automation_id": refining_automation_id,
             "scene": scene_payload,
             "scene_yaml": scene_yaml_str,
@@ -3438,10 +3532,16 @@ async def _handle_websocket_chat_stream(
         # if `total_chars` differs sharply for the same prompt, the
         # truncation is upstream of HA, not in the integration.
         _LOGGER.info(
-            "Chat stream complete: chunks=%d total_chars=%d provider=%s",
+            "Chat stream complete: chunks=%d total_chars=%d provider=%s finish_reason=%s",
             chunk_count,
             len(full_text),
             getattr(llm.provider, "provider_type", "unknown"),
+            # Why the backend stopped, in its own spelling: "length" /
+            # "max_tokens" is the output cap, and None means it never said —
+            # which is what a relay that drops the tail looks like. The one
+            # line that separates "the model finished" from "something cut it
+            # off", and the two have identical bubbles without it.
+            getattr(llm.provider, "last_finish_reason", None),
         )
 
         parsed = llm.parse_streamed_response(
@@ -3658,6 +3758,19 @@ async def _handle_websocket_chat_stream(
                 editable_automations,
                 parsed.get("refine_automation_id"),
             )
+        # Before the append, so the indices still describe the stored list:
+        # `append_message` prunes a long session, which would shift them.
+        superseded_indices = (
+            await _supersede_earlier_proposals(
+                store,
+                session_id,
+                stored_messages,
+                alias=str((parsed.get("automation") or {}).get("alias", "")).strip(),
+                target_id=refining_automation_id,
+            )
+            if parsed.get("automation")
+            else []
+        )
         await _persist_user_turn(store, session_id, persisted_user_message, resuming)
         await store.append_message(
             session_id,
@@ -3754,6 +3867,17 @@ async def _handle_websocket_chat_stream(
                     else None,
                     "validation_error": parsed.get("validation_error"),
                     "validation_target": parsed.get("validation_target"),
+                    # Set only on a cut-off turn: "output_cap" when the backend
+                    # said it stopped at its limit, "unreported" when it ended
+                    # the stream without saying anything — which is what a relay
+                    # dropping the tail looks like from here. The panel says
+                    # which, because they are not the same problem.
+                    "truncation_reason": parsed.get("truncation_reason"),
+                    # Cards this proposal replaces. The panel retires them in
+                    # the open session rather than re-deriving which, so one
+                    # rule decides it and the stored session and the screen
+                    # cannot disagree about which card is still live.
+                    "superseded_message_indices": superseded_indices or None,
                     "refining_automation_id": refining_automation_id,
                     "executed": executed,
                     "failed": failed,

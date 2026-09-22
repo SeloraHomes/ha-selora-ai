@@ -199,6 +199,12 @@ def model_is_known_large(model: str) -> bool:
 FULL_SCHEMA_SAFE_WINDOW = 32_000
 
 
+# How each backend spells "I stopped because the output cap was reached":
+# OpenAI-compatible ``length``, Anthropic ``max_tokens``, Gemini
+# ``MAX_TOKENS``. Compared casefolded, so only the vocabulary lives here.
+_TRUNCATION_FINISH_REASONS = frozenset({"length", "max_tokens"})
+
+
 class LLMProvider(ABC):
     """Abstract interface for an LLM HTTP backend."""
 
@@ -215,6 +221,40 @@ class LLMProvider(ABC):
         self._host = host.rstrip("/") if host else ""
         self._api_key = api_key
         self._usage_callback: UsageCallback | None = None
+        self._last_finish_reason: str | None = None
+
+    # -- Stream completion ------------------------------------------------
+
+    @property
+    def last_finish_reason(self) -> str | None:
+        """Why the most recent stream stopped, in the backend's own spelling.
+
+        ``None`` means the backend did not say — which is not the same as
+        "it finished". A provider that reports nothing keeps the
+        conservative answer below.
+        """
+        return self._last_finish_reason
+
+    @property
+    def last_response_truncated(self) -> bool:
+        """True when the backend stopped the last stream at its output cap.
+
+        The difference is invisible in the text itself: a reply cut off at
+        the cap arrives as a clean end-of-stream, so the tool loop reads it
+        as a committed answer and the parser is handed half a document.
+        Reasoning models make it routine — the trace spends the completion
+        budget before the answer starts.
+        """
+        return (self._last_finish_reason or "").casefold() in _TRUNCATION_FINISH_REASONS
+
+    def _note_finish_reason(self, reason: str | None) -> None:
+        """Record the finish reason of the stream being consumed.
+
+        Called with ``None`` at the start of every stream: a reason left
+        over from the previous round would otherwise describe the wrong
+        request, and the tool loop asks this question once per round.
+        """
+        self._last_finish_reason = reason
 
     # -- Usage tracking ----------------------------------------------------
 

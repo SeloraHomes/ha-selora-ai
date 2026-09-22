@@ -295,6 +295,7 @@ class AnthropicProvider(LLMProvider):
         """Stream Anthropic SSE, yielding text tokens and collecting tool calls."""
         current_block: dict[str, Any] | None = None
         tool_input_json = ""
+        self._note_finish_reason(None)
         # Anthropic emits input_tokens in `message_start.usage` and the
         # final output_tokens in `message_delta.usage`; merge them so the
         # call counts toward both totals.
@@ -321,6 +322,13 @@ class AnthropicProvider(LLMProvider):
                     stream_usage.update(usage_part)
 
                 event_type = event.get("type", "")
+
+                # ``message_delta`` carries the terminal stop_reason —
+                # ``max_tokens`` when the reply was cut at the output cap.
+                if event_type == "message_delta":
+                    stop_reason = (event.get("delta") or {}).get("stop_reason")
+                    if stop_reason:
+                        self._note_finish_reason(stop_reason)
 
                 if event_type == "content_block_start":
                     block = event.get("content_block", {})

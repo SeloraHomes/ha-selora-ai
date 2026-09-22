@@ -44,6 +44,7 @@ from .command_policy import (
     _call_signature,
     _executed_call_signatures,
     _executed_service_calls_from_log,
+    _normalize_lang,
     _prose_describes_attempted_call,
     _prose_is_trusted_after_tool,
     _response_names_unbacked_entity,
@@ -187,6 +188,124 @@ def _find_bare_block(text: str, type_word: str) -> tuple[str, int, int] | None:
         block_end = end + (fence.end() if fence else 0)
         return json_text, m.start(), block_end
     return None
+
+
+# The backends' spellings of "I stopped at the output cap", as
+# ``LLMProvider.last_response_truncated`` compares them. Restated here rather
+# than imported so the parser stays free of the provider package, which imports
+# this module's siblings.
+_OUTPUT_CAP_REASONS = frozenset({"length", "max_tokens"})
+
+
+def _is_output_cap(finish_reason: str | None) -> bool:
+    return (finish_reason or "").casefold() in _OUTPUT_CAP_REASONS
+
+
+# A fence's info string: the block's name on the opening line
+# (```automation, ```json, ```yaml). Bounded and word-shaped so a closing
+# fence with trailing text on its line is not mistaken for one.
+_INFO_STRING_RE = re.compile(r"[A-Za-z][A-Za-z0-9_+-]{0,31}")
+
+
+# A reply whose last fence opens a block that never closes.
+#
+# Every block the prompt asks for is emitted closed — the fence pair IS the
+# payload's delimiter — so an odd number of fences is not a shape the model
+# produces on purpose. It is the stream having ended early: an output cap the
+# backend applied (a reasoning trace spending the completion budget before the
+# answer starts), or a gateway that dropped the rest.
+#
+# It has to be caught before the block parsers rather than left to them. An
+# unterminated ```automation matches neither the fenced pattern (there is no
+# closing fence) nor the bare-block fallback (the JSON does not balance), so it
+# falls straight through to the prose path — and the turn is then presented as
+# a finished answer: the model's own "Updates Eco Away so the heat pump uses
+# 15°…" above half a JSON object, with no card, nothing saved, and nothing
+# saying so. A confirmation of work that did not happen is the one outcome
+# worse than an error.
+def _truncated_block_start(text: str) -> int | None:
+    """Offset of the fence that opens a block the reply never closes.
+
+    An odd fence count alone does not answer this, because the commonest
+    single-fence reply is a COMPLETE one: a model that drops the OPENING
+    fence and emits a bare ``automation\n{…}`` body closed by a stray ```,
+    with or without a trailing summary after it. The bare-block salvage below
+    recovers that proposal, and reading it as truncated would throw away a
+    reply that arrived whole.
+
+    What separates them is the info string. Every block that carries a payload
+    is tagged (```automation, ```scene, ```command …), so an unmatched fence
+    naming its block is an opener with the block still to come; a leftover
+    closer is a bare ``` alone on its line. An untagged block cut mid-way is
+    not recognised here and keeps the old behaviour — it carries no payload,
+    so the prose path is the right place for it anyway.
+    """
+    fences = [m.start() for m in re.finditer(r"```", text)]
+    if len(fences) % 2 == 0:
+        return None
+    start = fences[-1]
+    rest = text[start + 3 :]
+    info, _, body = rest.partition("\n")
+    if not _INFO_STRING_RE.fullmatch(info.strip()):
+        return None
+    if not body.strip():
+        return None
+    return start
+
+
+# Said in the user's language for the same reason every other deterministic
+# outcome is: the turn resolved one, and an English sentence under a French
+# conversation reads as a different system answering.
+_TRUNCATED_REPLY_BY_LANG: dict[str, str] = {
+    "en": "My reply was cut off before it was finished, so nothing was created or changed. Please ask me again.",
+    "fr": "Ma réponse a été coupée avant d'être terminée : rien n'a été créé ni modifié. Merci de me le redemander.",
+    "de": "Meine Antwort wurde abgeschnitten, bevor sie fertig war — es wurde nichts erstellt oder geändert. Bitte frage mich noch einmal.",
+    "es": "Mi respuesta se cortó antes de terminar, así que no se creó ni se cambió nada. Por favor, vuelve a pedírmelo.",
+    "it": "La mia risposta si è interrotta prima di essere completata, quindi non è stato creato né modificato nulla. Riprova a chiedermelo.",
+    "nl": "Mijn antwoord werd afgebroken voordat het klaar was, dus er is niets aangemaakt of gewijzigd. Vraag het me opnieuw.",
+    "hu": "A válaszom félbeszakadt, mielőtt befejeződött volna, így semmi sem jött létre és nem változott. Kérlek, kérdezd meg újra.",
+    "pt": "A minha resposta foi cortada antes de terminar, por isso nada foi criado nem alterado. Peça-me novamente, por favor.",
+    "ru": "Мой ответ оборвался до завершения, поэтому ничего не создано и не изменено. Пожалуйста, спросите ещё раз.",
+    "ja": "返信が完了する前に途切れたため、何も作成・変更されていません。もう一度お尋ねください。",
+    "ko": "답변이 완료되기 전에 끊겨서 아무것도 생성되거나 변경되지 않았습니다. 다시 요청해 주세요.",
+    "zh": "回复在完成前被截断，因此没有创建或更改任何内容。请再问我一次。",
+}
+
+
+def _truncated_reply(language: str | None, finish_reason: str | None) -> ArchitectResponse:
+    """The envelope for a reply the backend stopped mid-block.
+
+    The model's prose is DROPPED, not prefixed to the notice. By the time a
+    proposal is cut off the prose has already described the automation as
+    written ("Updates Eco Away so the heat pump uses 15°…"), and gluing that
+    onto "…but it was cut off" yields a bubble that both claims and denies the
+    same thing. Same call the validation-rejection path makes, for the same
+    reason.
+
+    ``validation_error`` is what the panel reads to finalize the turn as a
+    retryable interruption instead of an answer; ``validation_target`` is
+    ``response`` rather than ``automation`` so the service-feedback retry loop
+    — which corrects a REJECTED payload — is not handed a turn that has no
+    payload at all.
+
+    ``truncation_reason`` is the backend's own answer to WHY, carried to the
+    panel rather than left in the log. "It was cut off" is a description of
+    the symptom the user just watched; the two causes it can have want
+    different things done about them, and only one of them is ours. ``None``
+    is a distinct answer, not a missing one: a backend that reports nothing at
+    all is what a relay dropping the tail looks like.
+    """
+    record_repair("truncated_response")
+    result: ArchitectResponse = {
+        "intent": "answer",
+        "response": _TRUNCATED_REPLY_BY_LANG.get(
+            _normalize_lang(language), _TRUNCATED_REPLY_BY_LANG["en"]
+        ),
+        "validation_error": "truncated_response",
+        "validation_target": "response",
+    }
+    result["truncation_reason"] = "output_cap" if _is_output_cap(finish_reason) else "unreported"
+    return result
 
 
 def _strip_entity_markers(text: str) -> str:
@@ -3000,6 +3119,7 @@ def parse_streamed_response(
     user_message: str | None = None,
     language: str | None = None,
     refining: bool = False,
+    finish_reason: str | None = None,
 ) -> ArchitectResponse:
     """Parse completed streamed text.
 
@@ -3019,6 +3139,19 @@ def parse_streamed_response(
     loaded into the session; it stands in for the create-intent the
     message itself no longer carries (see ``_is_proposal``).
     """
+    # An unterminated fenced block means the stream ended mid-payload; the
+    # blocks below cannot parse what never arrived, and every one of them
+    # would fall through to the prose path and report the turn as finished.
+    truncated_at = _truncated_block_start(text)
+    if truncated_at is not None:
+        _LOGGER.warning(
+            "Streamed reply ended inside an unterminated fenced block (%d chars, "
+            "finish_reason=%s); reporting the turn as cut off",
+            len(text),
+            finish_reason,
+        )
+        return _truncated_reply(language, finish_reason)
+
     # Extract quick_actions block first — it's supplementary and can
     # appear alongside any other block type. Removing it now also lets
     # the duplicate-strip below see a terminal ```command``` block when

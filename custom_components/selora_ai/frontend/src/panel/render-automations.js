@@ -747,6 +747,26 @@ export function renderProposalCard(host, msg, msgIndex) {
     `;
   }
 
+  // Replaced by a later proposal in the same conversation. Kept visible —
+  // it is what the user asked for at the time and reading back the exchange
+  // without it makes no sense — but not accept-able: the revision below it is
+  // the live one, and offering both is offering a choice between two versions
+  // of one automation that ends with both of them written.
+  if (status === "superseded") {
+    return html`
+      <div class="automation-subcard" style="opacity:0.55;">
+        <div class="automation-subcard-header">
+          ${renderAutomationIdentity(automation.alias, msg.description, {
+            badge: host._t("automations_badge_superseded", "Replaced"),
+          })}
+        </div>
+        <div class="automation-subcard-body">
+          ${renderAutomationFlowchart(host, automation)}
+        </div>
+      </div>
+    `;
+  }
+
   // Pending proposal — full review UI
   const yamlOpen = host._yamlOpen && host._yamlOpen[msgIndex];
   const yamlKey = `proposal_${msgIndex}`;
@@ -1469,6 +1489,13 @@ export function renderAutomations(host) {
                     const isUnavailable = a.state === "unavailable";
                     const automationId = a.automation_id || "";
                     const hasAutomationId = !!automationId;
+                    // How many stored versions this automation has. The list
+                    // payload carries it (`version_count`), so the tab can say
+                    // so before the drawer is ever opened.
+                    const versionCount =
+                      (host._versions[automationId] || []).length ||
+                      a.version_count ||
+                      0;
                     const canToggle =
                       hasAutomationId && !host._bulkActionInProgress;
                     const deleting = host._deletingAutomation[automationId];
@@ -2134,6 +2161,24 @@ export function renderAutomations(host) {
                                                 "automations_card_tab_history",
                                                 "History",
                                               )}
+                                              ${
+                                                // Off the list payload, so the
+                                                // count is there before the tab
+                                                // is opened — the drawer loads
+                                                // lazily, and a counter that
+                                                // only appears once you look is
+                                                // no counter at all. The loaded
+                                                // list wins when there is one:
+                                                // it is this session's, and a
+                                                // restore or a refine moves it
+                                                // before the list is refetched.
+                                                versionCount > 1
+                                                  ? html`<span
+                                                      class="card-tab-count"
+                                                      >${versionCount}</span
+                                                    >`
+                                                  : ""
+                                              }
                                             </button>
                                           `
                                         : ""

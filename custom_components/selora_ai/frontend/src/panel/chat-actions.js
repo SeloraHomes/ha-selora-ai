@@ -177,7 +177,14 @@ export async function _resolveApproval(originatingMsg, scope, proposalId) {
 export function looksTruncatedResponse(responseText, hasStructured) {
   if (hasStructured) return false;
   const trimmed = (responseText || "").trim();
-  if (trimmed.length === 0 || trimmed.length >= 400) return false;
+  if (trimmed.length === 0) return false;
+  // An odd number of ``` fences means a block was opened and never closed.
+  // Unlike the prose signals below that is not a correlation — the model
+  // closes every block it opens — so it is read at any length, ahead of the
+  // cap. A cut-off proposal is long precisely because the block it was
+  // half-way through is still in the text.
+  if (((trimmed.match(/```/g) || []).length & 1) === 1) return true;
+  if (trimmed.length >= 400) return false;
   // Truly unterminated bold means an ODD number of `**` markers. A closed
   // span like `**Foo**` followed by more prose on the same line is NOT
   // truncation — a naive `\*\*[^*\n]*$` test matched the closing `**` plus
@@ -529,7 +536,13 @@ export async function _sendMessage(options = {}) {
           event.scene ||
           (event.executed && event.executed.length) ||
           (event.quick_actions && event.quick_actions.length);
-        if (looksTruncatedResponse(responseText, hasStructured)) {
+        // The server's own verdict comes first: it saw the unterminated
+        // block before dropping it from the bubble, so by the time the text
+        // reaches here there is nothing left for the heuristic to read.
+        if (
+          event.validation_error === "truncated_response" ||
+          looksTruncatedResponse(responseText, hasStructured)
+        ) {
           cancelSubscription();
           // Preserve any tokens already streamed so the user can see
           // what was received before retrying.
@@ -544,13 +557,37 @@ export async function _sendMessage(options = {}) {
             this,
             assistantMsg,
             retryPayload,
-            this._t(
-              "chat_actions_interrupt_truncated",
-              "Response looks cut short — try again.",
-            ),
+            // The bubble already says the reply was cut off. What this line
+            // adds is WHY, when the backend told us — the two causes are not
+            // the same problem and only one of them is ours to fix. Without a
+            // reason it restates the symptom, which is all there is to say.
+            event.truncation_reason === "output_cap"
+              ? this._t(
+                  "chat_actions_interrupt_output_cap",
+                  "The model reached its output limit before finishing.",
+                )
+              : event.truncation_reason === "unreported"
+                ? this._t(
+                    "chat_actions_interrupt_stream_ended",
+                    "The connection ended before the reply finished.",
+                  )
+                : this._t(
+                    "chat_actions_interrupt_truncated",
+                    "Response looks cut short — try again.",
+                  ),
             myTurn,
           );
           return;
+        }
+        // Cards this proposal replaces, decided server-side and applied to
+        // the session already on screen. Retiring them here rather than
+        // working out which ourselves keeps one rule for it, so a reopened
+        // session and a live one never disagree about which card is live.
+        for (const index of event.superseded_message_indices || []) {
+          const superseded = this._messages[index];
+          if (superseded && superseded.automation_status === "pending") {
+            superseded.automation_status = "superseded";
+          }
         }
         assistantMsg.content = responseText;
         assistantMsg.automation = event.automation || null;

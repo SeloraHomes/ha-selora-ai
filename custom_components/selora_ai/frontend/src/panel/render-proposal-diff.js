@@ -307,46 +307,46 @@ export async function revealPanel(host, selector) {
   setTimeout(() => observer.disconnect(), REVEAL_SETTLE_MS);
 }
 
-export function toggleProposalDiff(host, msgIndex) {
-  const opening = !(host._proposalDiffOpen || {})[msgIndex];
+export function toggleProposalDiff(host, key) {
+  const opening = !(host._proposalDiffOpen || {})[key];
   host._proposalDiffOpen = {
     ...(host._proposalDiffOpen || {}),
-    [msgIndex]: opening,
+    [key]: opening,
   };
   // Someone opening the panel is about to read it closely, and the automation
   // may have been edited elsewhere since the last look.
   // requestUpdate before revealPanel: it waits on updateComplete, which
   // resolves straight away when no render is pending yet and would then look
   // for a panel that does not exist.
-  if (opening) invalidateProposalPreviews(host, msgIndex);
+  if (opening) invalidateProposalPreviews(host, key);
   host.requestUpdate();
-  if (opening) revealPanel(host, `[data-diff-panel="${msgIndex}"]`);
+  if (opening) revealPanel(host, `[data-diff-panel="${key}"]`);
 }
 
 // Reveal one collapsed run. Keyed by the run's first line index, which stays
 // valid for as long as the diff itself does — a changed proposal recomputes the
 // diff, and stale indices simply match nothing.
-function expandGap(host, msgIndex, start) {
-  const current = (host._proposalDiffExpanded || {})[msgIndex] || [];
+function expandGap(host, key, start) {
+  const current = (host._proposalDiffExpanded || {})[key] || [];
   host._proposalDiffExpanded = {
     ...(host._proposalDiffExpanded || {}),
-    [msgIndex]: [...current, start],
+    [key]: [...current, start],
   };
   host.requestUpdate();
 }
 
 // Whole-document view. Turning it back off also drops the per-gap expansions,
 // so "changes only" means exactly that rather than whatever was opened before.
-function toggleFullDiff(host, msgIndex) {
-  const full = !(host._proposalDiffFull || {})[msgIndex];
+function toggleFullDiff(host, key) {
+  const full = !(host._proposalDiffFull || {})[key];
   host._proposalDiffFull = {
     ...(host._proposalDiffFull || {}),
-    [msgIndex]: full,
+    [key]: full,
   };
   if (!full) {
     host._proposalDiffExpanded = {
       ...(host._proposalDiffExpanded || {}),
-      [msgIndex]: [],
+      [key]: [],
     };
   }
   host.requestUpdate();
@@ -354,15 +354,15 @@ function toggleFullDiff(host, msgIndex) {
 
 // The chip that sits next to "Edit YAML". Renders nothing when there is no
 // previous version to compare against — a first-time proposal has none.
-export function renderProposalDiffToggle(host, msgIndex, diff) {
+export function renderProposalDiffToggle(host, key, diff) {
   if (!diff) return "";
-  const open = !!(host._proposalDiffOpen || {})[msgIndex];
+  const open = !!(host._proposalDiffOpen || {})[key];
   const changed = diff.added > 0 || diff.removed > 0;
   return html`
     <button
       type="button"
       class="subcard-action-link ${open ? "active" : ""}"
-      @click=${() => toggleProposalDiff(host, msgIndex)}
+      @click=${() => toggleProposalDiff(host, key)}
     >
       <ha-icon icon="mdi:file-compare"></ha-icon>
       ${
@@ -382,12 +382,15 @@ export function renderProposalDiffToggle(host, msgIndex, diff) {
   `;
 }
 
-export function renderProposalDiffPanel(host, msgIndex, diff) {
+// `key` is a map key and a panel selector, nothing more: the pending card
+// passes its message index, a stored version its own id. `legend` names the two
+// documents — a version history compares v1 with v2, not a file with a proposal.
+export function renderProposalDiffPanel(host, key, diff, legend = {}) {
   if (!diff) return "";
-  if (!(host._proposalDiffOpen || {})[msgIndex]) return "";
+  if (!(host._proposalDiffOpen || {})[key]) return "";
 
   if (diff.added === 0 && diff.removed === 0) {
-    return html`<div class="proposal-diff" data-diff-panel=${msgIndex}>
+    return html`<div class="proposal-diff" data-diff-panel=${key}>
       <div class="proposal-diff-empty">
         ${host._t(
           "automations_diff_identical",
@@ -397,8 +400,8 @@ export function renderProposalDiffPanel(host, msgIndex, diff) {
     </div>`;
   }
 
-  const full = !!(host._proposalDiffFull || {})[msgIndex];
-  const expanded = (host._proposalDiffExpanded || {})[msgIndex] || [];
+  const full = !!(host._proposalDiffFull || {})[key];
+  const expanded = (host._proposalDiffExpanded || {})[key] || [];
   const collapsed = collapseDiff(diff.lines, DEFAULT_CONTEXT_RADIUS, expanded);
   const entries = full ? diff.lines : collapsed;
   // Nothing left to unfold means the whole-file switch would do nothing —
@@ -406,15 +409,20 @@ export function renderProposalDiffPanel(host, msgIndex, diff) {
   const foldable = full || collapsed.some((e) => e.type === "gap");
 
   return html`
-    <div class="proposal-diff" data-diff-panel=${msgIndex}>
+    <div class="proposal-diff" data-diff-panel=${key}>
       <div class="proposal-diff-head">
         <span class="proposal-diff-legend">
-          ${host._t("automations_diff_legend_previous", "Previous")}
+          ${
+            legend.from ||
+            host._t("automations_diff_legend_previous", "Previous")
+          }
           <ha-icon
             icon="mdi:arrow-right"
             style="--mdc-icon-size:13px;"
           ></ha-icon>
-          ${host._t("automations_diff_legend_proposed", "Proposed")}
+          ${
+            legend.to || host._t("automations_diff_legend_proposed", "Proposed")
+          }
         </span>
         <span class="proposal-diff-head-right">
           ${
@@ -422,7 +430,7 @@ export function renderProposalDiffPanel(host, msgIndex, diff) {
               ? html`<button
                   type="button"
                   class="proposal-diff-expand-all"
-                  @click=${() => toggleFullDiff(host, msgIndex)}
+                  @click=${() => toggleFullDiff(host, key)}
                 >
                   <ha-icon
                     icon=${
@@ -447,13 +455,13 @@ export function renderProposalDiffPanel(host, msgIndex, diff) {
         </span>
       </div>
       <div class="proposal-diff-body">
-        ${entries.map((entry) => renderDiffEntry(host, msgIndex, entry))}
+        ${entries.map((entry) => renderDiffEntry(host, key, entry))}
       </div>
     </div>
   `;
 }
 
-function renderDiffEntry(host, msgIndex, entry) {
+function renderDiffEntry(host, key, entry) {
   if (entry.type === "gap") {
     // The key path names where the change below it sits — a bare
     // `above: 18 → 19` says nothing until you know which condition owns it.
@@ -462,7 +470,7 @@ function renderDiffEntry(host, msgIndex, entry) {
       type="button"
       class="proposal-diff-gap"
       title=${host._t("automations_diff_expand_tooltip", "Show these lines")}
-      @click=${() => expandGap(host, msgIndex, entry.start)}
+      @click=${() => expandGap(host, key, entry.start)}
     >
       <ha-icon
         icon="mdi:unfold-more-horizontal"
