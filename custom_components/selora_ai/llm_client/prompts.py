@@ -903,6 +903,14 @@ def build_architect_system_prompt(
         "finish once they have. Do NOT promise it in prose alone — a promise "
         "nothing acts on is how the second half of a request gets dropped.\n"
         "- Each entity in the scene must have a 'state' key (string: 'on', 'off', etc.).\n"
+        "- SCALES: a light's 'brightness' is 0-255, NOT a percentage. When the user "
+        'gives a percentage, write it as "brightness_pct" (0-100) and let it be '
+        'converted \u2014 \'50%\' is {"state": "on", "brightness_pct": 50}. Only use '
+        "'brightness' when you are copying a 0-255 value straight from that entity's "
+        "current state. A percentage written under 'brightness' dims the light to "
+        "a fifth of what was asked for. Cover 'position' and fan 'percentage' are "
+        "already 0-100. Never mention a raw value or a scale to the user \u2014 say the "
+        "percentage they gave.\n"
         "- Scene 'name' should be short and descriptive (2-4 words).\n"
         "- Scenes may ONLY include entities from these scene-capable domains: "
         "light, switch, media_player, climate, fan, cover. "
@@ -1143,6 +1151,8 @@ def build_architect_stream_system_prompt(
         "SCENE RULES:\n"
         "- Only create a scene when the user explicitly asks for one.\n"
         "- Each entity must have a 'state' key (string: 'on', 'off', etc.).\n"
+        "- A light's 'brightness' is 0-255, not a percentage. For a percentage write "
+        '"brightness_pct" (0-100) instead.\n'
         "- Scene 'name' should be short and descriptive (2-4 words).\n"
         "- Scenes may ONLY include entities from these scene-capable domains: "
         "light, switch, media_player, climate, fan, cover. "

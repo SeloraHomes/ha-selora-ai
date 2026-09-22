@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
+from custom_components.selora_ai import scene_state_mapper, scene_utils
+from custom_components.selora_ai.scene_state_mapper import MAX_SCENE_ENTITIES
 from custom_components.selora_ai.scene_validation import (
     _MAX_SCENE_NAME_LEN,
     sanitize_scene_name,
@@ -17,7 +17,6 @@ from custom_components.selora_ai.scene_validation import (
     validate_entities_in_area,
     validate_scene_security,
 )
-
 
 # ── sanitize_scene_name ──────────────────────────────────────────────
 
@@ -346,11 +345,19 @@ class TestValidateSceneSecurity:
         assert any(str(_MAX_SCENE_NAME_LEN) in w for w in warnings)
 
     def test_rejects_too_many_entities(self) -> None:
-        entities = {f"light.room_{i}": {"state": "on"} for i in range(51)}
+        entities = {f"light.room_{i}": {"state": "on"} for i in range(MAX_SCENE_ENTITIES + 1)}
         scene = {"name": "Big Scene", "entities": entities}
         is_safe, warnings = validate_scene_security(scene)
         assert not is_safe
-        assert any("maximum" in w.lower() or "50" in w for w in warnings)
+        assert any("maximum" in w.lower() or str(MAX_SCENE_ENTITIES) in w for w in warnings)
+
+    def test_accepts_whole_house_scene(self) -> None:
+        # The propose-time and save-time caps are one constant, so a scene
+        # that reaches the card must not be refused when it is accepted.
+        entities = {f"light.room_{i}": {"state": "on"} for i in range(MAX_SCENE_ENTITIES)}
+        scene = {"name": "Good Night", "entities": entities}
+        assert validate_scene_security(scene)[0]
+        assert scene_utils.validate_scene_payload(scene)[0]
 
     def test_rejects_non_dict_entities(self) -> None:
         scene = {"name": "Test", "entities": "not a dict"}
@@ -469,21 +476,9 @@ class TestValidateSceneSecurity:
 
 
 class TestFullPipelineValidation:
-    """End-to-end tests combining scene_utils, scene_state_mapper, and scene_validation.
-
-    These tests require the scene modules from MRs !103-!105 to be merged.
-    They are skipped on branches where those modules are not yet available.
-    """
+    """End-to-end tests combining scene_utils, scene_state_mapper, and scene_validation."""
 
     async def test_valid_scene_passes_all_checks(self, hass) -> None:
-        scene_state_mapper = pytest.importorskip(
-            "custom_components.selora_ai.scene_state_mapper",
-            reason="scene_state_mapper not yet merged (requires !103-!105)",
-        )
-        scene_utils = pytest.importorskip(
-            "custom_components.selora_ai.scene_utils",
-            reason="scene_utils not yet merged (requires !103-!105)",
-        )
 
         hass.states.async_set("light.living_room", "on")
 
@@ -512,10 +507,6 @@ class TestFullPipelineValidation:
         assert missing == []
 
     async def test_nonexistent_entity_caught(self, hass) -> None:
-        scene_utils = pytest.importorskip(
-            "custom_components.selora_ai.scene_utils",
-            reason="scene_utils not yet merged (requires !103-!105)",
-        )
 
         scene = {
             "name": "Bad Scene",
@@ -530,10 +521,6 @@ class TestFullPipelineValidation:
         assert "light.does_not_exist" in missing
 
     async def test_invalid_brightness_caught_by_state_mapper(self, hass) -> None:
-        scene_state_mapper = pytest.importorskip(
-            "custom_components.selora_ai.scene_state_mapper",
-            reason="scene_state_mapper not yet merged (requires !103-!105)",
-        )
 
         entities = {"light.x": {"state": "on", "brightness": 999}}
         is_valid, _, normalized = scene_state_mapper.validate_entity_states(entities)

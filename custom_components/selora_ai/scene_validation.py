@@ -13,11 +13,11 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 
 from .entity_capabilities import is_scene_capable
+from .scene_state_mapper import MAX_SCENE_ENTITIES
 
 _LOGGER = logging.getLogger(__name__)
 
 _MAX_SCENE_NAME_LEN = 100
-_MAX_ENTITIES_PER_SCENE = 50
 # Domain part: lowercase letters/underscores.  Object ID: letters, digits,
 # underscores, hyphens — matches the pattern accepted by scene_utils.
 _ENTITY_ID_RE = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z0-9][a-z0-9_-]*$")
@@ -141,8 +141,8 @@ def validate_scene_security(
     if not isinstance(entities, dict):
         return False, ["Scene entities must be a dict"]
 
-    if len(entities) > _MAX_ENTITIES_PER_SCENE:
-        return False, [f"Scene exceeds maximum of {_MAX_ENTITIES_PER_SCENE} entities"]
+    if len(entities) > MAX_SCENE_ENTITIES:
+        return False, [f"Scene exceeds maximum of {MAX_SCENE_ENTITIES} entities"]
 
     for entity_id, state_data in entities.items():
         if not isinstance(entity_id, str):

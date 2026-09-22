@@ -118,10 +118,168 @@ class TestValidateScenePayload:
         assert normalized["entities"]["light.living_room"]["state"] == "off"
 
     def test_coerces_numeric_state_to_string(self) -> None:
-        scene = {"name": "Test", "entities": {"climate.thermostat": {"state": 23.5}}}
+        scene = {"name": "Test", "entities": {"media_player.tv": {"state": "PLAYING"}}}
         is_valid, _, normalized = validate_scene_payload(scene)
         assert is_valid
-        assert normalized["entities"]["climate.thermostat"]["state"] == "23.5"
+        assert normalized["entities"]["media_player.tv"]["state"] == "playing"
+
+    def test_rejects_numeric_climate_state(self) -> None:
+        # `climate/reproduce_state.py` does `if state.state in HVAC_MODES`, so
+        # a temperature in the state slot applies no mode at all. The target
+        # belongs under `temperature`, and refusing says so.
+        scene = {"name": "Test", "entities": {"climate.thermostat": {"state": 23.5}}}
+        is_valid, reason, _ = validate_scene_payload(scene)
+        assert not is_valid
+        assert "23.5" in reason
+
+    def test_accepts_climate_hvac_mode_with_temperature(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"climate.thermostat": {"state": "heat", "temperature": 23.5}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        entity = normalized["entities"]["climate.thermostat"]
+        assert entity["state"] == "heat"
+        assert entity["temperature"] == 23.5
+
+    def test_converts_brightness_pct_to_brightness(self) -> None:
+        # HA's scene reproduction reads `brightness` (0-255) only, so a
+        # percentage left under `brightness_pct` is dropped on activation.
+        scene = {
+            "name": "Test",
+            "entities": {"light.living_room": {"state": "on", "brightness_pct": 50}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        entity = normalized["entities"]["light.living_room"]
+        assert entity["brightness"] == 128
+        assert "brightness_pct" not in entity
+
+    def test_brightness_pct_wins_over_brightness(self) -> None:
+        # The pct key declares its unit; a bare `brightness` beside it does not.
+        scene = {
+            "name": "Test",
+            "entities": {
+                "light.living_room": {"state": "on", "brightness": 50, "brightness_pct": 50}
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert normalized["entities"]["light.living_room"]["brightness"] == 128
+
+    def test_accepts_brightness_percent_spelling(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"light.living_room": {"state": "on", "brightness_percent": 100}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        entity = normalized["entities"]["light.living_room"]
+        assert entity["brightness"] == 255
+        assert "brightness_percent" not in entity
+
+    def test_keeps_raw_brightness_unscaled(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"light.living_room": {"state": "on", "brightness": 180}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert normalized["entities"]["light.living_room"]["brightness"] == 180
+
+    def test_clamps_out_of_range_brightness(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {
+                "light.a": {"state": "on", "brightness": 400},
+                "light.b": {"state": "on", "brightness_pct": 130},
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert normalized["entities"]["light.a"]["brightness"] == 255
+        assert normalized["entities"]["light.b"]["brightness"] == 255
+
+    def test_coerces_string_brightness(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"light.living_room": {"state": "on", "brightness_pct": "50%"}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert normalized["entities"]["light.living_room"]["brightness"] == 128
+
+    def test_rejects_non_finite_brightness(self) -> None:
+        # json.loads accepts NaN/Infinity, and min(100.0, nan) is 100.0 --
+        # a clamp alone would turn either into full output.
+        for bad in (float("nan"), float("inf"), "nan", "-Infinity", 10**400, "1e400"):
+            scene = {
+                "name": "Test",
+                "entities": {"light.living_room": {"state": "on", "brightness_pct": bad}},
+            }
+            is_valid, reason, _ = validate_scene_payload(scene)
+            assert not is_valid, bad
+            assert "brightness_pct" in reason
+
+    def test_rejects_non_numeric_brightness(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"light.living_room": {"state": "on", "brightness": "bright"}},
+        }
+        is_valid, reason, _ = validate_scene_payload(scene)
+        assert not is_valid
+        assert "brightness" in reason.lower()
+
+    def test_renames_cover_position_to_current_position(self) -> None:
+        scene = {"name": "Test", "entities": {"cover.blind": {"state": "open", "position": 75}}}
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        entity = normalized["entities"]["cover.blind"]
+        assert entity["current_position"] == 75
+        assert "position" not in entity
+
+    def test_rejects_conflicting_cover_position_spellings(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"cover.blind": {"state": "open", "position": 10, "current_position": 75}},
+        }
+        is_valid, reason, _ = validate_scene_payload(scene)
+        assert not is_valid
+        assert "onflicting" in reason
+
+    def test_agreeing_cover_position_spellings_collapse(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"cover.blind": {"state": "open", "position": 75, "current_position": 75}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        entity = normalized["entities"]["cover.blind"]
+        assert entity["current_position"] == 75
+        assert "position" not in entity
+
+    def test_renames_cover_tilt_position(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"cover.blind": {"state": "open", "tilt_position": 40}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        entity = normalized["entities"]["cover.blind"]
+        assert entity["current_tilt_position"] == 40
+        assert "tilt_position" not in entity
+
+    def test_drops_brightness_on_non_light(self) -> None:
+        # `switch/reproduce_state.py` reads the state and nothing else, so a
+        # brightness on a switch is a key HA would ignore either way.
+        scene = {
+            "name": "Test",
+            "entities": {"switch.plug": {"state": "on", "brightness_pct": 50}},
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert normalized["entities"]["switch.plug"] == {"state": "on"}
 
     def test_accepts_hyphens_in_entity_id(self) -> None:
         scene = {"name": "Test", "entities": {"light.living-room": {"state": "on"}}}

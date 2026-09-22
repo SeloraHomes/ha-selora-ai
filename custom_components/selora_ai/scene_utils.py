@@ -23,6 +23,7 @@ from homeassistant.util import slugify
 
 from .const import SCENE_ID_PREFIX
 from .entity_capabilities import is_scene_capable
+from .scene_state_mapper import validate_entity_states
 
 if TYPE_CHECKING:
     from .types import ScenePayload
@@ -75,12 +76,19 @@ def validate_scene_payload(
     if hass is not None:
         known_entity_ids = {s.entity_id for s in hass.states.async_all()}
 
-    domains: set[str] = set()
-    normalized_entities: dict[str, dict[str, Any]] = {}
-    for entity_id, state_data in entities.items():
+    # Two passes on purpose. This one answers the questions that need *this*
+    # home -- does the entity exist, may it go in a scene at all -- and is the
+    # only place a non-scene entity is STRIPPED rather than rejected, since a
+    # config switch swept in with a room is not a payload the model should be
+    # sent back to fix. What survives is a payload question, and
+    # ``validate_entity_states`` answers those against the per-domain schemas.
+    candidates: dict[str, Any] = {}
+    for raw_entity_id, state_data in entities.items():
+        if not isinstance(raw_entity_id, str):
+            return False, f"Entity ID must be a string, got {type(raw_entity_id).__name__}", None
         # Normalize to lowercase so mixed-case LLM output is accepted
-        entity_id = entity_id.lower()
-        if not isinstance(entity_id, str) or not _ENTITY_ID_RE.match(entity_id):
+        entity_id = raw_entity_id.lower()
+        if not _ENTITY_ID_RE.match(entity_id):
             return False, f"Invalid entity_id format: {entity_id!r}", None
         # Strip entities that aren't scene-capable (wrong domain or
         # config/diagnostic switches) instead of rejecting the whole scene.
@@ -89,30 +97,14 @@ def validate_scene_payload(
             continue
         if known_entity_ids is not None and entity_id not in known_entity_ids:
             return False, f"Entity {entity_id!r} does not exist in Home Assistant", None
-        if not isinstance(state_data, dict):
-            return False, f"State data for {entity_id} must be a dict", None
-        if "state" not in state_data:
-            return False, f"State data for {entity_id} must include 'state'", None
-        # Copy to avoid mutating the caller's input dict
-        state_data = dict(state_data)
-        # HA scene states are always strings — coerce bools/numbers from LLM
-        # but reject containers (list, dict) and None which indicate a bad payload.
-        raw_state = state_data["state"]
-        if isinstance(raw_state, bool):
-            state_data["state"] = "on" if raw_state else "off"
-        elif isinstance(raw_state, (int, float)):
-            state_data["state"] = str(raw_state)
-        elif not isinstance(raw_state, str):
-            return (
-                False,
-                f"Invalid state value for {entity_id}: expected a string, bool, or number",
-                None,
-            )
-        domains.add(entity_id.split(".")[0])
-        normalized_entities[entity_id] = state_data
+        candidates[entity_id] = state_data
 
-    if not normalized_entities:
+    if not candidates:
         return False, "No scene-capable entities remain after filtering", None
+
+    ok, reason, normalized_entities = validate_entity_states(candidates)
+    if not ok or normalized_entities is None:
+        return False, reason, None
 
     normalized: dict[str, Any] = {
         "name": name,

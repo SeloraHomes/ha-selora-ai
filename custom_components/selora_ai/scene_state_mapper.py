@@ -25,6 +25,8 @@ _ENTITY_ID_RE = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z0-9][a-z0-9_-]*$")
 # Expected (element_type, length, per-element (min, max)) for color list attributes.
 _COLOR_LIST_SPECS: dict[str, tuple[type, int, tuple[float, float]]] = {
     "rgb_color": (int, 3, (0, 255)),
+    "rgbw_color": (int, 4, (0, 255)),
+    "rgbww_color": (int, 5, (0, 255)),
     "hs_color": (float, 2, (0.0, 360.0)),  # hue 0-360, sat 0-100 — clamped per-element below
     "xy_color": (float, 2, (0.0, 1.0)),
 }
@@ -32,6 +34,36 @@ _COLOR_LIST_SPECS: dict[str, tuple[type, int, tuple[float, float]]] = {
 _HS_COLOR_RANGES: tuple[tuple[float, float], tuple[float, float]] = (
     (0.0, 360.0),  # hue
     (0.0, 100.0),  # saturation
+)
+
+# ``light/reproduce_state.py`` reads ``color_mode`` to pick WHICH saved colour
+# to send; without it, it falls back to the first attribute present in
+# COLOR_GROUP order. A snapshot carrying both ``hs_color`` and
+# ``color_temp_kelvin`` therefore reproduces the wrong one once the mode is
+# gone. This mirrors that module's COLOR_MODE_TO_ATTRIBUTE: the modes it maps,
+# and the attribute each one needs. Modes absent from it (``onoff``,
+# ``brightness``, ``unknown``) carry no colour and need no entry.
+# Modes with no colour to send (reproduce_state maps none of these, so it
+# sends no colour attribute at all) -- valid, and kept as-is.
+_COLOURLESS_MODES: frozenset[str] = frozenset({"onoff", "brightness", "unknown"})
+_COLOR_MODE_ATTRIBUTE: dict[str, str] = {
+    "color_temp": "color_temp_kelvin",
+    "hs": "hs_color",
+    "rgb": "rgb_color",
+    "rgbw": "rgbw_color",
+    "rgbww": "rgbww_color",
+    "white": "brightness",
+    "xy": "xy_color",
+}
+
+# Percentage spellings a model reaches for when it means "half brightness".
+# HA reproduces ``brightness`` on 0-255 and reads nothing else, so a percentage
+# left under any of these is dropped on activation while the proposal card
+# still previews it -- the scene looks right and does nothing.
+BRIGHTNESS_PCT_KEYS: tuple[str, ...] = (
+    "brightness_pct",
+    "brightness_percent",
+    "brightness_percentage",
 )
 
 # Allowed state values per domain.  Prevents cross-domain confusion like
@@ -50,12 +82,22 @@ _VALID_HVAC_MODES = frozenset({"off", "heat", "cool", "heat_cool", "auto", "dry"
 
 # Allowed state attributes per domain.  Keys are attribute names,
 # values are the expected Python type (used for coercion).
+# Every key here is one ``homeassistant.components.<domain>.reproduce_state``
+# reads off the saved State. An attribute outside the schema is dropped, so a
+# key missing from this table is a scene setting the user asked for and HA
+# never applies -- check the domain's reproduce_state module before trimming
+# one, not the service signature, which is a wider set.
 DOMAIN_STATE_SCHEMAS: dict[str, dict[str, type]] = {
     "light": {
         "state": str,
         "brightness": int,
-        "color_temp": int,
+        "effect": str,
+        "color_mode": str,
+        "color_temp": int,  # legacy mireds; core reproduces kelvin only
+        "color_temp_kelvin": int,
         "rgb_color": list,
+        "rgbw_color": list,
+        "rgbww_color": list,
         "hs_color": list,
         "xy_color": list,
     },
@@ -65,24 +107,38 @@ DOMAIN_STATE_SCHEMAS: dict[str, dict[str, type]] = {
     "media_player": {
         "state": str,
         "volume_level": float,
+        "is_volume_muted": bool,
         "source": str,
+        "sound_mode": str,
+        "media_content_type": str,
+        "media_content_id": str,
     },
     "climate": {
         "state": str,
         "temperature": float,
         "target_temperature": float,  # alias used by ENTITY_SNAPSHOT_ATTRS
+        "target_temp_high": float,
+        "target_temp_low": float,
+        "humidity": float,
         "hvac_mode": str,
         "preset_mode": str,
+        "fan_mode": str,
+        "swing_mode": str,
+        "swing_horizontal_mode": str,
     },
     "fan": {
         "state": str,
         "percentage": int,
         "preset_mode": str,
+        "oscillating": bool,
+        "direction": str,
     },
     "cover": {
         "state": str,
         "current_position": int,  # HA scene snapshot attribute name
         "position": int,  # service-call alias — normalized to current_position
+        "current_tilt_position": int,
+        "tilt_position": int,  # service-call alias — normalized to current_tilt_position
     },
 }
 
@@ -127,21 +183,34 @@ SCENE_INTENT_PRESETS: dict[str, dict[str, dict[str, Any]]] = {
     },
 }
 
-_BRIGHTNESS_RANGE = (0, 255)
+BRIGHTNESS_RANGE = (0, 255)
 # No color_temp clamp — HA lights have per-entity min/max mireds (e.g. 153-500
 # for Hue, up to 588+ for warmer bulbs).  We only reject non-positive values;
 # HA enforces the entity-specific range when the scene is applied.
 _COLOR_TEMP_MIN = 1
-_PERCENTAGE_RANGE = (0, 100)
-_POSITION_RANGE = (0, 100)
+PERCENTAGE_RANGE = (0, 100)
+POSITION_RANGE = (0, 100)
 _VOLUME_RANGE = (0.0, 1.0)
 
+# Attributes that are IDENTIFIERS, not display text. A media-source URI or a
+# signed stream URL routinely passes 200 characters, and a truncated one is not
+# a shorter identifier -- it is one ``play_media`` cannot resolve. Bounded
+# separately, and REFUSED past the bound rather than trimmed.
+_IDENTIFIER_ATTRS: frozenset[str] = frozenset({"media_content_id"})
+_MAX_IDENTIFIER_LEN = 2048
+
 # Guard rails
-_MAX_SCENE_ENTITIES = 50  # reject scenes with more entities than this
+# Bounds the YAML a single scene can write. Set where a whole-house "Good
+# Night" still fits: those routinely pass 50 lights, switches and covers, and
+# refusing one is refusing the scene a homeowner is most likely to ask for.
+# One constant for both gates -- ``validate_scene_security`` runs at SAVE and
+# this one at propose, so a cap raised here alone gets a scene proposed, its
+# card accepted, and the write refused.
+MAX_SCENE_ENTITIES = 250
 _MAX_STATE_VALUE_LEN = 200  # max length for string state values
 
 
-def _coerce_value(value: Any, expected_type: type) -> Any:
+def coerce_value(value: Any, expected_type: type) -> Any:
     """Coerce a value to the expected type, or return None on failure.
 
     Booleans are rejected for numeric types (``isinstance(True, int)`` is
@@ -154,6 +223,15 @@ def _coerce_value(value: Any, expected_type: type) -> Any:
     # Reject bools for int/float — they pass isinstance but are not
     # meaningful numeric scene values.
     if isinstance(value, bool) and expected_type in (int, float):
+        return None
+    # ``bool(value)`` is truthiness, and every non-empty string is truthy, so
+    # a model quoting "false" would mute the speaker it meant to unmute.
+    # Parse the spellings outright and refuse the rest.
+    if expected_type is bool and not isinstance(value, bool):
+        if isinstance(value, int):
+            return value == 1 if value in (0, 1) else None
+        if isinstance(value, str):
+            return _BOOL_STRINGS.get(value.strip().casefold())
         return None
     if isinstance(value, expected_type):
         # Reject non-finite floats even if already the right type
@@ -176,7 +254,10 @@ def _coerce_value(value: Any, expected_type: type) -> Any:
     except (
         TypeError,
         ValueError,
+        OverflowError,
     ):
+        # ``OverflowError``: an unbounded Python int -- ``json.loads`` builds
+        # one from any run of digits -- has no float to convert to.
         return None
     # Reject non-finite floats (nan, inf) — not meaningful HA targets.
     if isinstance(result, float) and not math.isfinite(result):
@@ -184,7 +265,32 @@ def _coerce_value(value: Any, expected_type: type) -> Any:
     return result
 
 
-def _clamp(value: int | float, min_val: int | float, max_val: int | float) -> int | float:
+# Spellings a model writes for a boolean attribute (``is_volume_muted``,
+# ``oscillating``). Anything outside this table is refused rather than guessed.
+_BOOL_STRINGS: dict[str, bool] = {
+    "true": True,
+    "false": False,
+    "yes": True,
+    "no": False,
+    "on": True,
+    "off": False,
+    "1": True,
+    "0": False,
+}
+
+
+def _strip_percent(value: Any) -> Any:
+    """Drop a trailing ``%`` so ``"50%"`` coerces like ``50``.
+
+    Models quote the percentage back as the user typed it. Everything else
+    about the value is ``coerce_value``'s problem.
+    """
+    if isinstance(value, str):
+        return value.strip().rstrip("%")
+    return value
+
+
+def clamp(value: int | float, min_val: int | float, max_val: int | float) -> int | float:
     """Clamp a value to a range."""
     return max(min_val, min(max_val, value))
 
@@ -201,8 +307,8 @@ def validate_entity_states(
     """
     if not isinstance(entities, dict):
         return False, f"Entities payload must be a dict, got {type(entities).__name__}", None
-    if len(entities) > _MAX_SCENE_ENTITIES:
-        return False, f"Scene exceeds maximum of {_MAX_SCENE_ENTITIES} entities", None
+    if len(entities) > MAX_SCENE_ENTITIES:
+        return False, f"Scene exceeds maximum of {MAX_SCENE_ENTITIES} entities", None
     normalized: dict[str, dict[str, Any]] = {}
 
     for raw_entity_id, state_data in entities.items():
@@ -251,18 +357,21 @@ def validate_entity_states(
         # false conflict.  Only check aliases relevant to this domain;
         # stray keys on other domains are dropped as unsupported later.
         _DOMAIN_ALIASES: dict[str, list[tuple[str, str, type, tuple[float, float] | None]]] = {
-            "cover": [("current_position", "position", int, _POSITION_RANGE)],
+            "cover": [
+                ("current_position", "position", int, POSITION_RANGE),
+                ("current_tilt_position", "tilt_position", int, POSITION_RANGE),
+            ],
             "climate": [("temperature", "target_temperature", float, None)],
         }
         for canonical, alias, coerce_type, clamp_range in _DOMAIN_ALIASES.get(domain, []):
             if canonical in state_data and alias in state_data:
-                canon_val = _coerce_value(state_data[canonical], coerce_type)
-                alias_val = _coerce_value(state_data[alias], coerce_type)
+                canon_val = coerce_value(state_data[canonical], coerce_type)
+                alias_val = coerce_value(state_data[alias], coerce_type)
                 # Clamp before comparing so out-of-range duplicates that
                 # normalize to the same value are not a false conflict.
                 if canon_val is not None and alias_val is not None and clamp_range:
-                    canon_val = coerce_type(_clamp(canon_val, *clamp_range))
-                    alias_val = coerce_type(_clamp(alias_val, *clamp_range))
+                    canon_val = coerce_type(clamp(canon_val, *clamp_range))
+                    alias_val = coerce_type(clamp(alias_val, *clamp_range))
                 if canon_val is not None and alias_val is not None and canon_val != alias_val:
                     return (
                         False,
@@ -270,11 +379,66 @@ def validate_entity_states(
                         None,
                     )
 
+        # A light's brightness is the one attribute whose UNIT is ambiguous in
+        # the payload: 0-255 is what HA stores, 0-100 is what the user said. A
+        # percentage key declares the unit outright, so it wins over a
+        # co-present bare ``brightness`` rather than being dropped beside it.
+        # Folded in before the schema walk, which would otherwise drop the key.
+        if domain == "light":
+            pct_key = next((k for k in BRIGHTNESS_PCT_KEYS if k in state_data), None)
+            if pct_key is not None:
+                pct = coerce_value(_strip_percent(state_data[pct_key]), float)
+                if pct is None:
+                    return (
+                        False,
+                        f"Cannot coerce {pct_key}={state_data[pct_key]!r} for {entity_id}",
+                        None,
+                    )
+                state_data = {k: v for k, v in state_data.items() if k not in BRIGHTNESS_PCT_KEYS}
+                state_data["brightness"] = round(clamp(pct, *PERCENTAGE_RANGE) / 100 * 255)
+
+        # A ``color_mode`` whose attribute is missing is worse than none:
+        # reproduce_state logs and RETURNS, leaving the light untouched
+        # entirely. Dropping the mode falls back to the colour that is
+        # actually there, which is what the scene was asking for.
+        if domain == "light" and state_data.get("color_mode") is not None:
+            mode = str(state_data["color_mode"]).strip().casefold()
+            needed = _COLOR_MODE_ATTRIBUTE.get(mode)
+            # HA compares the mode by exact lowercase value, so "RGB" reads as
+            # unrecognised and takes neither the mapped branch nor the
+            # fallback -- no colour is sent at all. Recognised modes are stored
+            # folded; anything else is dropped so the fallback runs.
+            if mode not in _COLOURLESS_MODES and needed is None:
+                _LOGGER.debug("Dropping unknown color_mode %r for %s", mode, entity_id)
+                state_data = {k: v for k, v in state_data.items() if k != "color_mode"}
+            elif needed is not None and state_data.get(needed) is None:
+                # Worse than no mode: reproduce_state logs and RETURNS, leaving
+                # the light untouched. Falling back to the colour that is
+                # actually there is what the scene was asking for.
+                _LOGGER.debug(
+                    "Dropping color_mode %s for %s: no %s to reproduce it with",
+                    mode,
+                    entity_id,
+                    needed,
+                )
+                state_data = {k: v for k, v in state_data.items() if k != "color_mode"}
+            else:
+                state_data = {**state_data, "color_mode": mode}
+
         clean: dict[str, Any] = {}
         for attr, value in state_data.items():
+            # ``str(None)`` is "None", which reaches the service as a literal.
+            # reproduce_state skips a None attribute, so dropping it here says
+            # the same thing. ``state`` is required and falls through to the
+            # missing-state check rather than being silently dropped.
+            if value is None and attr != "state":
+                _LOGGER.debug("Dropping null attribute %s for %s", attr, entity_id)
+                continue
             # Normalize service-call aliases to canonical HA scene attributes
             if attr == "position":
                 attr = "current_position"
+            elif attr == "tilt_position":
+                attr = "current_tilt_position"
             elif attr == "target_temperature":
                 attr = "temperature"
 
@@ -291,7 +455,7 @@ def validate_entity_states(
                 else:
                     value = "on" if value else "off"
 
-            coerced = _coerce_value(value, schema[attr])
+            coerced = coerce_value(value, schema[attr])
             if coerced is None:
                 return (
                     False,
@@ -336,27 +500,64 @@ def validate_entity_states(
                 # Clamp color elements to valid ranges
                 if attr == "hs_color":
                     coerced = [
-                        float(_clamp(coerced[i], *_HS_COLOR_RANGES[i])) for i in range(len(coerced))
+                        float(clamp(coerced[i], *_HS_COLOR_RANGES[i])) for i in range(len(coerced))
                     ]
                 else:
                     lo, hi = default_range
-                    coerced = [elem_type(_clamp(v, lo, hi)) for v in coerced]
+                    coerced = [elem_type(clamp(v, lo, hi)) for v in coerced]
             # Cap string values to prevent oversized payloads
-            if isinstance(coerced, str) and len(coerced) > _MAX_STATE_VALUE_LEN:
-                coerced = coerced[:_MAX_STATE_VALUE_LEN]
+            if isinstance(coerced, str):
+                if attr in _IDENTIFIER_ATTRS:
+                    if len(coerced) > _MAX_IDENTIFIER_LEN:
+                        return (
+                            False,
+                            f"{attr} exceeds {_MAX_IDENTIFIER_LEN} characters for {entity_id}",
+                            None,
+                        )
+                elif len(coerced) > _MAX_STATE_VALUE_LEN:
+                    coerced = coerced[:_MAX_STATE_VALUE_LEN]
             clean[attr] = coerced
 
         # Apply range clamping for known numeric attributes
         if "brightness" in clean:
-            clean["brightness"] = int(_clamp(clean["brightness"], *_BRIGHTNESS_RANGE))
+            clean["brightness"] = int(clamp(clean["brightness"], *BRIGHTNESS_RANGE))
         if "color_temp" in clean:
             clean["color_temp"] = max(_COLOR_TEMP_MIN, int(clean["color_temp"]))
+        if "color_temp_kelvin" in clean:
+            clean["color_temp_kelvin"] = max(_COLOR_TEMP_MIN, int(clean["color_temp_kelvin"]))
         if "percentage" in clean:
-            clean["percentage"] = int(_clamp(clean["percentage"], *_PERCENTAGE_RANGE))
+            clean["percentage"] = int(clamp(clean["percentage"], *PERCENTAGE_RANGE))
         if "current_position" in clean:
-            clean["current_position"] = int(_clamp(clean["current_position"], *_POSITION_RANGE))
+            clean["current_position"] = int(clamp(clean["current_position"], *POSITION_RANGE))
+        if "current_tilt_position" in clean:
+            clean["current_tilt_position"] = int(
+                clamp(clean["current_tilt_position"], *POSITION_RANGE)
+            )
         if "volume_level" in clean:
-            clean["volume_level"] = float(_clamp(clean["volume_level"], *_VOLUME_RANGE))
+            clean["volume_level"] = float(clamp(clean["volume_level"], *_VOLUME_RANGE))
+
+        # ``media_player/reproduce_state.py`` calls play_media only when BOTH
+        # are present, so one alone is inert: the scene reports success and
+        # resumes whatever was loaded before. The caller asked for specific
+        # media, so refuse rather than drop the half that was given.
+        media_pair = [a for a in ("media_content_type", "media_content_id") if clean.get(a)]
+        if len(media_pair) == 1:
+            missing = (
+                "media_content_id"
+                if media_pair[0] == "media_content_type"
+                else "media_content_type"
+            )
+            return (
+                False,
+                f"{media_pair[0]} needs {missing} beside it for {entity_id} — "
+                "Home Assistant plays media only when both are set",
+                None,
+            )
+        # A blank one is absent: it cannot name media, and keeping it would
+        # make the pair look complete while play_media gets nothing to open.
+        for attr in ("media_content_type", "media_content_id"):
+            if attr in clean and not clean[attr]:
+                del clean[attr]
 
         if "state" not in clean:
             return False, f"Entity {entity_id} missing required 'state' attribute", None
@@ -477,9 +678,9 @@ def apply_default_states(
                 raw_pos = merged.get("current_position", merged.get("position"))
                 # Coerce and clamp so "0" (string) and -10 (out-of-range)
                 # compare correctly before state inference.
-                coerced_pos = _coerce_value(raw_pos, int)
+                coerced_pos = coerce_value(raw_pos, int)
                 if coerced_pos is not None:
-                    pos = int(_clamp(coerced_pos, *_POSITION_RANGE))
+                    pos = int(clamp(coerced_pos, *POSITION_RANGE))
                 else:
                     pos = raw_pos
                 inferred = "closed" if pos == 0 else "open"
