@@ -270,3 +270,64 @@ async def test_unload_is_safe_when_optional_state_is_missing(hass) -> None:
     result = await async_unload_entry(hass, entry)
     assert result is True
     assert entry.entry_id not in hass.data.get(DOMAIN, {})
+
+
+@pytest.mark.asyncio
+async def test_unload_stops_alexa_proactive_reporting(hass) -> None:
+    """The Alexa config owns an event-bus listener once proactive mode is on,
+    and that listener outlives the object. Dropping the reference alone leaves
+    it reporting through the unloaded entry's Connect client while the config
+    rebuilt on the next directive registers a second one.
+    """
+    entry = _make_entry()
+    collector = MagicMock()
+    collector.async_stop = AsyncMock()
+    alexa_config = MagicMock()
+    alexa_config.async_disable_proactive_mode = AsyncMock()
+    alexa_config.async_deinitialize = MagicMock()
+
+    hass.data.setdefault(DOMAIN, {}).update(
+        {
+            entry.entry_id: {
+                "collector": collector,
+                "_background_tasks": [],
+                "unsub_discovery": None,
+            },
+            "alexa_config": alexa_config,
+            "selora_alexa_jwt_validator": MagicMock(),
+        }
+    )
+
+    await async_unload_entry(hass, entry)
+
+    alexa_config.async_disable_proactive_mode.assert_awaited_once()
+    alexa_config.async_deinitialize.assert_called_once()
+    assert "alexa_config" not in hass.data.get(DOMAIN, {})
+    # Re-resolved to nothing rather than popped: the fleet-wide sync at the top
+    # of unload owns this key now, and `None` is how every consumer reads
+    # "no validator".
+    assert hass.data[DOMAIN]["selora_alexa_jwt_validator"] is None
+
+
+@pytest.mark.asyncio
+async def test_a_failing_alexa_teardown_does_not_block_unload(hass) -> None:
+    """Everything after this point in unload still has to run."""
+    entry = _make_entry()
+    collector = MagicMock()
+    collector.async_stop = AsyncMock()
+    alexa_config = MagicMock()
+    alexa_config.async_disable_proactive_mode = AsyncMock(side_effect=RuntimeError("boom"))
+
+    hass.data.setdefault(DOMAIN, {}).update(
+        {
+            entry.entry_id: {
+                "collector": collector,
+                "_background_tasks": [],
+                "unsub_discovery": None,
+            },
+            "alexa_config": alexa_config,
+        }
+    )
+
+    await async_unload_entry(hass, entry)
+    assert "alexa_config" not in hass.data.get(DOMAIN, {})

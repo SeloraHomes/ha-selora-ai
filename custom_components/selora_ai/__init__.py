@@ -24,6 +24,8 @@ import asyncio
 from collections.abc import AsyncGenerator, Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
+import hashlib
+import json
 import logging
 import re
 from typing import TYPE_CHECKING, Any
@@ -93,6 +95,10 @@ from .const import (
     CONF_OPENROUTER_MODEL,
     CONF_PATTERN_ENABLED,
     CONF_RECORDER_LOOKBACK_DAYS,
+    CONF_SELORA_ALEXA_AUDIENCE,
+    CONF_SELORA_ALEXA_ISSUER,
+    CONF_SELORA_ALEXA_JWT_KEY,
+    CONF_SELORA_ALEXA_SCOPE,
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
     CONF_SELORA_JWT_KEY,
@@ -138,6 +144,8 @@ from .const import (
     PATTERN_SUGGESTIONS_ENABLED,
     SELORA_EXCLUDE_LABEL_ID,
     SELORA_EXCLUDE_LABEL_NAME,
+    SELORA_JWT_AUDIENCE_ALEXA,
+    SELORA_JWT_SCOPE_PREFIX_ALEXA,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_INSIGHTS_UPDATED,
@@ -651,6 +659,177 @@ def _entry_is_configurable_llm(entry_data: dict[str, Any]) -> bool:
     if entry_data.get(CONF_LLM_PROVIDER):
         return True
     return bool(_aigateway_view(entry_data)["refresh_token"])
+
+
+def _alexa_credentials(
+    hass: HomeAssistant, *, exclude_entry_id: str | None = None
+) -> dict[str, str] | None:
+    """The Alexa credential block, from whichever entry carries one.
+
+    Resolved across the fleet rather than from the entry being set up, because
+    the validator it builds is shared state under ``hass.data[DOMAIN]`` while
+    setup runs once per entry. Read per-entry, a stray unconfigured entry set
+    up after the real one would resolve no credential and clear a working
+    validator on its way past — voice dead, with the entry that owns the
+    credential still loaded and nothing in the log to connect the two. The same
+    walk is what ``alexa_connect.build_client`` and ``alexa_view`` already do.
+
+    ``exclude_entry_id`` is how teardown asks the question. An entry is still
+    listed while it is being unloaded, so without it an unload would resolve the
+    very credential it is tearing down and leave the validator live.
+
+    Never falls back to the MCP key. Its absence means Alexa is not linked;
+    borrowing the other would tie voice to a key epoch that belongs to another
+    feature, so rotating that one would revoke voice with nothing to say why.
+    """
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.entry_id == exclude_entry_id:
+            continue
+        if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
+            continue
+        if entry.disabled_by is not None:
+            # `async_entries` lists disabled entries too. Reading one would
+            # re-enable voice from a credential the user switched off — and it
+            # would happen at the next restart, on another entry's setup, with
+            # nothing tying the two together.
+            continue
+        key = entry.data.get(CONF_SELORA_ALEXA_JWT_KEY)
+        installation_id = entry.data.get(CONF_SELORA_INSTALLATION_ID)
+        if not key or not installation_id:
+            continue
+        return {
+            "key": str(key),
+            "installation_id": str(installation_id),
+            # Delivered with the key so the set cannot drift apart; the issuer
+            # has no fallback worth having.
+            "issuer": _trimmed(entry.data.get(CONF_SELORA_ALEXA_ISSUER)),
+            "audience": _delivered(
+                entry.data.get(CONF_SELORA_ALEXA_AUDIENCE), SELORA_JWT_AUDIENCE_ALEXA
+            ),
+            "scope": _delivered(
+                entry.data.get(CONF_SELORA_ALEXA_SCOPE), SELORA_JWT_SCOPE_PREFIX_ALEXA
+            ),
+        }
+    return None
+
+
+def _trimmed(value: Any) -> str:
+    """Normalize a delivered credential member.
+
+    Stripped HERE, so the string checked for overlap with MCP is the same
+    string handed to PyJWT. Checked trimmed and used untrimmed, a padded
+    " selora-alexa " passes the separation check and then matches no token's
+    audience at all — voice refusing everything while every value on the entry
+    looks right.
+    """
+    return str(value).strip() if value is not None else ""
+
+
+def _delivered(value: Any, fallback: str) -> str:
+    """The delivered value, or the compiled-in one when none was delivered.
+
+    ABSENT and EMPTY are different answers and only one of them takes the
+    fallback. An entry provisioned before these keys existed does not carry
+    them at all, and it has to keep working — that is what the fallback is for.
+    A key that is present and blank is a block that arrived malformed, and
+    quietly substituting a constant there is the failure the delivered values
+    exist to prevent, reached by another door: a hub running on values Connect
+    did not send. Left empty, ``alexa_credential_conflict`` refuses it and
+    voice is off and says so.
+    """
+    return fallback if value is None else _trimmed(value)
+
+
+async def _async_teardown_alexa_config(hass: HomeAssistant) -> None:
+    """Drop the cached Alexa config, stopping what it owns first.
+
+    Dropping the reference is not enough. Once proactive mode is on the config
+    owns an event-bus listener that outlives it, so an un-cancelled one keeps
+    reporting state to Amazon through a Connect client built from credentials
+    that may since have changed, while the config rebuilt on the next directive
+    adds a second.
+    """
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    domain_data.pop("_alexa_config_lock", None)
+    domain_data.pop("_alexa_credential_warned", None)
+    alexa_config = domain_data.pop("alexa_config", None)
+    if alexa_config is None:
+        return
+    try:
+        await alexa_config.async_disable_proactive_mode()
+        alexa_config.async_deinitialize()
+    except Exception:  # noqa: BLE001 — teardown must not block setup or unload
+        _LOGGER.exception("Failed to stop Alexa proactive reporting")
+
+
+async def _async_sync_alexa_runtime(
+    hass: HomeAssistant, *, exclude_entry_id: str | None = None
+) -> None:
+    """Make the Alexa validator agree with what is in the config entries.
+
+    Idempotent and order-independent, so every entry's setup AND unload can run
+    it. This is also how a revocation takes effect: Selora OS drops the
+    credential from the entry, HA reloads, and the absence resolves the
+    validator to None — there is no separate revoke path to keep in step.
+    """
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    credentials = _alexa_credentials(hass, exclude_entry_id=exclude_entry_id)
+
+    # The cached config holds a Connect client minted from the old credential,
+    # so a change has to take it with it. Unchanged credentials leave it alone:
+    # rebuilding on every reload would stop proactive reporting until the next
+    # directive happens to arrive, which on a quiet home is hours.
+    fingerprint = hashlib.sha256(json.dumps(credentials, sort_keys=True).encode()).hexdigest()
+    if domain_data.get("_alexa_credential_fingerprint") != fingerprint:
+        await _async_teardown_alexa_config(hass)
+        domain_data["_alexa_credential_fingerprint"] = fingerprint
+
+    if credentials is None:
+        domain_data["selora_alexa_jwt_validator"] = None
+        return
+
+    if not credentials["issuer"]:
+        # Connect mints `iss` with a value only it knows, and it is not the
+        # Connect URL — defaulting to that would reject every directive while
+        # the hub looked correctly configured. An absent issuer means the block
+        # did not arrive whole, which the OS says cannot happen; refusing is
+        # what keeps that a fact rather than an assumption.
+        _LOGGER.warning(
+            "Alexa credential is missing its issuer — voice is disabled. "
+            "Re-link Selora Connect to reissue it"
+        )
+        domain_data["selora_alexa_jwt_validator"] = None
+        return
+
+    from .selora_auth import alexa_credential_conflict
+
+    conflict = alexa_credential_conflict(credentials["audience"], credentials["scope"])
+    if conflict is not None:
+        # Refused rather than fallen back on. Falling back to the constants
+        # would run voice on values Connect did not send, and the failure this
+        # guards is the one that is invisible: an Alexa path that accepts MCP
+        # tokens looks exactly like an Alexa path that works.
+        _LOGGER.error(
+            "Alexa credential would not be separable from the MCP one (%s) — voice is disabled",
+            conflict,
+        )
+        domain_data["selora_alexa_jwt_validator"] = None
+        return
+
+    from .selora_auth import SeloraJWTValidator, decode_jwt_key
+
+    domain_data["selora_alexa_jwt_validator"] = SeloraJWTValidator(
+        derived_key=decode_jwt_key(credentials["key"]),
+        installation_id=credentials["installation_id"],
+        issuer=credentials["issuer"],
+        audience=credentials["audience"],
+        scope_prefix=credentials["scope"],
+    )
+    _LOGGER.info(
+        "Selora Alexa JWT validator initialized (audience %s, scope %s)",
+        credentials["audience"],
+        credentials["scope"],
+    )
 
 
 def _sanitize_insights_interval(raw: Any) -> int:
@@ -5244,6 +5423,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Selora AI device onboarding entry loaded: %s", entry.title)
         return True
 
+    hass.data.setdefault(DOMAIN, {})
+
+    # Voice is provisioned independently of Selora AI — its own Pangolin
+    # resource, its own key_epoch, its own enable switch — so it is set up
+    # ABOVE the LLM gate rather than below it. A customer who turns Selora AI
+    # off and keeps paying for voice is exactly the case the OS keeps the
+    # integration installed for, and below the gate that customer's hub
+    # answered no directive at all.
+    #
+    # It is also what makes the view's "registered unconditionally" claim true.
+    # Connect's health check for this target authenticates by EXPECTING a 401,
+    # so an absent route reads as an unhealthy hub rather than as an unlinked
+    # one — and the gate was quietly falsifying that for every entry without a
+    # provider.
+    #
+    # Neither call depends on anything below: the view reads only `hass`, and
+    # the credential sync reads only entry data. Nothing here goes into
+    # `hass.data[DOMAIN][entry.entry_id]`, which exists to clean up the LLM
+    # client, collector and device manager on unload and has no Alexa member.
+    from .alexa_view import async_register_view as async_register_alexa_view
+
+    async_register_alexa_view(hass)
+    await _async_sync_alexa_runtime(hass)
+
     # A stray entry that never linked a provider (no explicit llm_provider
     # and no AI Gateway tokens) would otherwise default to Selora Cloud
     # with empty credentials — its collector then fires auth-less requests
@@ -5987,6 +6190,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
         return True
 
+    # Symmetric with the hoist in setup, and above the records-only guard for
+    # the same reason: a voice-only entry creates no per-entry runtime state,
+    # so the guard below returns before any of it runs and the credential would
+    # keep accepting directives until Home Assistant restarted.
+    #
+    # Resolved across the remaining entries rather than from this one, so
+    # unloading a stray entry cannot take down voice that belongs to the entry
+    # still loaded beside it. This entry is excluded because HA still lists it
+    # while it is being unloaded.
+    await _async_sync_alexa_runtime(hass, exclude_entry_id=entry.entry_id)
+
     # Entries skipped at setup (records-only — e.g. an unconfigured stray
     # entry) own no per-entry runtime state, so there's nothing to tear
     # down. Returning early also keeps us from running the shared-state
@@ -6076,7 +6290,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if mcp_token_store is not None:
         await mcp_token_store.async_close()
 
-    # Clear Selora Connect JWT validator so stale credentials can't be used
+    # Clear the MCP validator so stale credentials can't be used. Alexa's is
+    # deliberately NOT popped here: the fleet-wide sync at the top of this
+    # function has already resolved it against the entries that remain, and
+    # popping afterwards would throw that answer away — taking voice down for
+    # an entry that is still loaded and owns a perfectly good credential.
     hass.data[DOMAIN].pop("selora_jwt_validator", None)
     hass.data[DOMAIN].pop("mcp_token_store", None)
 

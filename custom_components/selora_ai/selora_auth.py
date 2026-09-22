@@ -32,9 +32,11 @@ from .const import (
     MCP_TOKEN_PREFIX,
     SELORA_ADMIN_ROLES,
     SELORA_JWT_ALGORITHM,
+    SELORA_JWT_AUDIENCE_MCP,
     SELORA_JWT_ISSUER,
     SELORA_JWT_LEEWAY_SECONDS,
     SELORA_JWT_MAX_SIZE,
+    SELORA_JWT_SCOPE_PREFIX_MCP,
 )
 from .types import MCPTokenMeta
 
@@ -78,7 +80,16 @@ class SeloraAuthContext:
 
 
 class SeloraJWTValidator:
-    """Validates Selora Connect JWTs using a per-installation derived key."""
+    """Validates Selora Connect JWTs using a per-feature derived key.
+
+    One validator answers for exactly one feature. ``derived_key`` comes from
+    that feature's Pangolin resource and its ``key_epoch``; ``audience`` and
+    ``scope_prefix`` name what the token is for. Nothing here is shared between
+    features, so a token minted for one is refused by the other's validator
+    three ways over — signature, audience, and scope — and each of those is
+    worth keeping: the key alone would stop being enough the moment Connect
+    derived two features from one secret, and the failure would be silent.
+    """
 
     def __init__(
         self,
@@ -86,10 +97,14 @@ class SeloraJWTValidator:
         installation_id: str,
         *,
         issuer: str = SELORA_JWT_ISSUER,
+        audience: str = SELORA_JWT_AUDIENCE_MCP,
+        scope_prefix: str = SELORA_JWT_SCOPE_PREFIX_MCP,
     ) -> None:
         self._derived_key = derived_key
         self._installation_id = installation_id
         self._issuer = issuer
+        self._audience = audience
+        self._scope_prefix = scope_prefix
 
     def validate(self, token: str) -> SeloraAuthContext:
         """Decode and validate a Selora Connect JWT.
@@ -108,7 +123,7 @@ class SeloraJWTValidator:
                 self._derived_key,
                 algorithms=[SELORA_JWT_ALGORITHM],
                 issuer=self._issuer,
-                audience="selora-mcp",
+                audience=self._audience,
                 options={"require": ["sub", "iss", "exp", "scope"]},
                 leeway=SELORA_JWT_LEEWAY_SECONDS,
             )
@@ -123,15 +138,18 @@ class SeloraJWTValidator:
         except jwt.InvalidTokenError as err:
             raise AuthenticationError(f"Selora token validation failed: {err}") from err
 
-        # Verify scope contains an MCP grant. The JWT signature already proves
-        # the token belongs to this installation (key is derived per-installation),
-        # so we only check that some MCP scope is present — not a specific format.
-        # Connect may issue mcp:<subdomain>, mcp:device:<id>, etc.
+        # Verify the scope carries a grant for THIS feature. The signature
+        # already proves the token belongs to this installation and to this
+        # feature's key epoch, so only the prefix is checked rather than a
+        # specific format — Connect issues mcp:<subdomain>, mcp:device:<id>,
+        # alexa:<subdomain> and so on, and pinning the tail here would make
+        # every new shape a hub-side release.
         scope = payload.get("scope", "")
         scopes = scope.split() if isinstance(scope, str) else []
-        has_mcp_scope = any(s.startswith("mcp:") for s in scopes)
-        if not has_mcp_scope:
-            raise AuthenticationError("Selora token has no MCP scope")
+        if not any(s.startswith(self._scope_prefix) for s in scopes):
+            raise AuthenticationError(
+                f"Selora token carries no {self._scope_prefix.rstrip(':')} scope"
+            )
 
         # Map role to admin status
         role = payload.get("role", "viewer")
@@ -144,6 +162,45 @@ class SeloraJWTValidator:
             auth_type="selora_jwt",
             scopes=frozenset(scopes),
         )
+
+
+def alexa_credential_conflict(audience: str, scope_prefix: str) -> str | None:
+    """Why these delivered values cannot be used for the Alexa path.
+
+    The audience and scope arrive in the config entry rather than being
+    compiled in, which is what keeps them from drifting away from the key they
+    belong to. The cost is that entry data now decides what the voice path
+    accepts, and the one thing it must never be able to say is "accept MCP
+    tokens" — that collapses the mutual rejection the whole per-feature key
+    design rests on, silently, in the direction where nothing fails.
+
+    Today a cross-path token also fails on the signature, because the two keys
+    come from different epochs. That is exactly the reassurance not to lean on:
+    ``const.py`` keeps the audience and scope checks load-bearing precisely so
+    the property survives Connect ever deriving both features from one secret,
+    and a check that is only redundant until the day it isn't is worth having.
+
+    Scope prefixes are disjoint when neither is a prefix of the other. That
+    rules out the empty string, which is a prefix of everything and would
+    accept every scope there is.
+    """
+    audience = audience.strip()
+    scope_prefix = scope_prefix.strip()
+
+    if not audience:
+        return "the Alexa audience is empty"
+    if audience == SELORA_JWT_AUDIENCE_MCP:
+        return f"the Alexa audience is the MCP audience ({audience!r})"
+    if not scope_prefix:
+        return "the Alexa scope is empty, which would match every scope"
+    if scope_prefix.startswith(SELORA_JWT_SCOPE_PREFIX_MCP) or (
+        SELORA_JWT_SCOPE_PREFIX_MCP.startswith(scope_prefix)
+    ):
+        return (
+            f"the Alexa scope {scope_prefix!r} overlaps the MCP scope "
+            f"{SELORA_JWT_SCOPE_PREFIX_MCP!r}"
+        )
+    return None
 
 
 # ── Dual-auth orchestrator ────────────────────────────────────────────────────

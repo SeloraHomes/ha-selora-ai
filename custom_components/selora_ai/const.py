@@ -1572,6 +1572,48 @@ SELORA_JWT_LEEWAY_SECONDS = 30  # clock skew tolerance for exp/nbf
 SELORA_ADMIN_ROLES = frozenset({"owner", "member"})
 SELORA_JWT_WRITE_SCOPE = "mcp:write"  # presence in JWT scope claim grants write access
 
+# ── Selora Connect credentials, per feature ───────────────────────────
+#
+# Each remote-access feature Connect provisions carries its OWN Pangolin
+# resource with its OWN ``key_epoch``, so each derives its OWN signing key and
+# is validated under its OWN audience and scope prefix. A feature that borrowed
+# another's shape would have its credentials derived from another feature's key
+# at another feature's epoch: rotating that epoch, or disabling that feature,
+# would silently revoke this one — which is precisely the coupling a separate
+# resource is bought to avoid.
+#
+# The two must therefore REJECT each other's tokens, and there are three
+# independent reasons a cross-path token fails: a different derived key fails
+# the signature, a different audience fails ``jwt.decode``, and a different
+# scope prefix fails the grant check. All three are load-bearing — the audience
+# and scope checks are what still refuse an Alexa token on the MCP path if
+# Connect ever derives both from one secret.
+SELORA_JWT_AUDIENCE_MCP = "selora-mcp"
+SELORA_JWT_SCOPE_PREFIX_MCP = "mcp:"
+SELORA_JWT_AUDIENCE_ALEXA = "selora-alexa"
+SELORA_JWT_SCOPE_PREFIX_ALEXA = "alexa:"
+
+# The Alexa credential block, delivered into the config entry by Selora OS
+# (and by Connect's alexa-auth-config on the linking path). It arrives whole or
+# not at all — the OS treats a block missing any member as unusable and injects
+# nothing — so an absent set means Alexa is not linked, and a partial one is
+# not a shape this has to reconstruct.
+#
+# The audience and scope travel WITH the key rather than being compiled in, so
+# the three cannot drift apart across a fleet that updates at its own pace: a
+# hub holding last release's audience against this release's key would reject
+# every directive while looking perfectly configured. The constants below stay
+# as the fallback for an entry provisioned before these keys existed.
+#
+# The issuer is the one that cannot be inferred. Connect mints ``iss`` with
+# exactly this value and it is NOT ``CONF_SELORA_CONNECT_URL``: a hub whose
+# config arrived over a different hostname would refuse every directive while
+# holding a perfectly correct key, and the failure would look like a bad key.
+CONF_SELORA_ALEXA_JWT_KEY = "selora_alexa_jwt_key"
+CONF_SELORA_ALEXA_AUDIENCE = "selora_alexa_audience"
+CONF_SELORA_ALEXA_SCOPE = "selora_alexa_scope"
+CONF_SELORA_ALEXA_ISSUER = "selora_alexa_issuer"
+
 # ── Selora AI Gateway (LLM via OAuth) ───────────────────────────────
 # OAuth-protected LLM provider hosted by Selora. The flow:
 #   1. User clicks "Selora AI Cloud" → opens consent popup at Connect's
