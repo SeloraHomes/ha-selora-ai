@@ -8,6 +8,7 @@ from custom_components.selora_ai.scene_state_mapper import (
     DOMAIN_STATE_SCHEMAS,
     SCENE_INTENT_PRESETS,
     apply_default_states,
+    coerce_value,
     validate_entity_states,
 )
 
@@ -306,7 +307,7 @@ class TestValidateRejections:
             ({"light.kitchen": "on"}, "dict"),
             ({"light.kitchen": ["on", 128]}, "dict"),
             # too many entities
-            ({f"light.room_{i}": {"state": "on"} for i in range(51)}, "50"),
+            ({f"light.room_{i}": {"state": "on"} for i in range(251)}, "250"),
             # missing state
             ({"light.x": {"brightness": 100}}, "state"),
             # invalid coercion
@@ -705,3 +706,241 @@ class TestSceneIntentPresets:
 
     def test_cozy_preset_has_light(self) -> None:
         assert "brightness" in SCENE_INTENT_PRESETS["cozy"]["light"]
+
+
+class TestCoerceValue:
+    """coerce_value is the shared numeric gate for every scene attribute."""
+
+    def test_rejects_unbounded_int(self) -> None:
+        # json.loads builds an unbounded int from any run of digits, and
+        # float() raises OverflowError rather than ValueError on one.
+        assert coerce_value(10**400, float) is None
+        assert coerce_value(10**400, int) == 10**400
+
+    def test_rejects_non_finite(self) -> None:
+        for bad in (float("nan"), float("inf"), float("-inf"), "nan", "1e400"):
+            assert coerce_value(bad, float) is None, bad
+
+    def test_rejects_bools_for_numbers(self) -> None:
+        assert coerce_value(True, int) is None
+        assert coerce_value(False, float) is None
+
+    def test_coerces_numeric_strings(self) -> None:
+        assert coerce_value("50", float) == 50.0
+        assert coerce_value("bright", float) is None
+
+
+class TestBooleanAndTiltAttributes:
+    """Attributes the light/cover schemas gained, and their traps."""
+
+    def test_boolean_strings_keep_their_meaning(self) -> None:
+        # bool("false") is True -- every non-empty string is truthy -- so a
+        # quoted value would mute the speaker it meant to unmute.
+        for text, expected in (("false", False), ("true", True), ("off", False), ("no", False)):
+            assert coerce_value(text, bool) is expected, text
+
+    def test_rejects_unrecognised_boolean_text(self) -> None:
+        assert coerce_value("maybe", bool) is None
+        assert coerce_value(2, bool) is None
+
+    def test_muted_false_survives_as_false(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {"media_player.tv": {"state": "playing", "is_volume_muted": "false"}}
+        )
+        assert ok
+        assert normalized["media_player.tv"]["is_volume_muted"] is False
+
+    def test_clamps_cover_tilt_position(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {"cover.blind": {"state": "open", "tilt_position": 140}}
+        )
+        assert ok
+        assert normalized["cover.blind"]["current_tilt_position"] == 100
+
+    def test_keeps_light_colour_attributes(self) -> None:
+        # These are what `light/reproduce_state.py` reads; dropping one is a
+        # scene setting the user asked for and HA never applies.
+        ok, _, normalized = validate_entity_states(
+            {
+                "light.strip": {
+                    "state": "on",
+                    "color_temp_kelvin": 2700,
+                    "rgbw_color": [255, 128, 0, 64],
+                    "effect": "Rainbow",
+                }
+            }
+        )
+        assert ok
+        entity = normalized["light.strip"]
+        assert entity["color_temp_kelvin"] == 2700
+        assert entity["rgbw_color"] == [255, 128, 0, 64]
+        assert entity["effect"] == "Rainbow"
+
+    def test_converts_brightness_pct(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {"light.lamp": {"state": "on", "brightness_pct": "50%"}}
+        )
+        assert ok
+        assert normalized["light.lamp"]["brightness"] == 128
+
+
+class TestColorMode:
+    """`color_mode` decides WHICH saved colour reproduce_state sends."""
+
+    def test_keeps_color_mode_and_its_attribute(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {
+                "light.lamp": {
+                    "state": "on",
+                    "color_mode": "color_temp",
+                    "color_temp_kelvin": 2700,
+                    "hs_color": [30.0, 80.0],
+                }
+            }
+        )
+        assert ok
+        entity = normalized["light.lamp"]
+        # Without the mode, HA takes the first of COLOR_GROUP -- hs_color --
+        # and the scene reproduces the wrong colour.
+        assert entity["color_mode"] == "color_temp"
+        assert entity["color_temp_kelvin"] == 2700
+
+    def test_drops_color_mode_with_no_value_to_send(self) -> None:
+        # reproduce_state logs and RETURNS on this, leaving the light
+        # untouched; falling back to the colour that is present is better.
+        ok, _, normalized = validate_entity_states(
+            {"light.lamp": {"state": "on", "color_mode": "color_temp", "hs_color": [30.0, 80.0]}}
+        )
+        assert ok
+        entity = normalized["light.lamp"]
+        assert "color_mode" not in entity
+        assert entity["hs_color"] == [30.0, 80.0]
+
+    def test_folds_mode_case(self) -> None:
+        # HA compares the mode by exact lowercase value, so "RGB" reads as
+        # unrecognised and sends no colour at all.
+        ok, _, normalized = validate_entity_states(
+            {"light.lamp": {"state": "on", "color_mode": "RGB", "rgb_color": [1, 2, 3]}}
+        )
+        assert ok
+        assert normalized["light.lamp"]["color_mode"] == "rgb"
+
+    def test_drops_unknown_mode_so_fallback_runs(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {"light.lamp": {"state": "on", "color_mode": "plaid", "rgb_color": [1, 2, 3]}}
+        )
+        assert ok
+        entity = normalized["light.lamp"]
+        assert "color_mode" not in entity
+        assert entity["rgb_color"] == [1, 2, 3]
+
+    def test_floors_negative_kelvin(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {"light.lamp": {"state": "on", "color_temp_kelvin": -100}}
+        )
+        assert ok
+        assert normalized["light.lamp"]["color_temp_kelvin"] == 1
+
+    def test_keeps_colourless_mode(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {"light.lamp": {"state": "on", "color_mode": "brightness", "brightness": 120}}
+        )
+        assert ok
+        assert normalized["light.lamp"]["color_mode"] == "brightness"
+
+
+class TestNullAndIdentifierAttributes:
+    """A null attribute and a long identifier are not display strings."""
+
+    def test_drops_null_attributes(self) -> None:
+        # str(None) is "None", which would reach the service as a literal.
+        ok, _, normalized = validate_entity_states(
+            {"light.x": {"state": "on", "color_mode": None, "rgb_color": [1, 2, 3]}}
+        )
+        assert ok
+        assert normalized["light.x"] == {"state": "on", "rgb_color": [1, 2, 3]}
+
+    def test_null_state_is_still_refused(self) -> None:
+        ok, reason, _ = validate_entity_states({"light.x": {"state": None}})
+        assert not ok
+        assert "state" in reason.lower()
+
+    def test_keeps_long_media_content_id(self) -> None:
+        # A media-source URI or signed stream URL routinely passes 200 chars,
+        # and a truncated one is an id play_media cannot resolve.
+        content_id = "media-source://media_source/local/" + "a" * 400
+        ok, _, normalized = validate_entity_states(
+            {
+                "media_player.tv": {
+                    "state": "playing",
+                    "media_content_type": "music",
+                    "media_content_id": content_id,
+                }
+            }
+        )
+        assert ok
+        assert normalized["media_player.tv"]["media_content_id"] == content_id
+
+    def test_refuses_absurd_media_content_id(self) -> None:
+        ok, reason, _ = validate_entity_states(
+            {
+                "media_player.tv": {
+                    "state": "playing",
+                    "media_content_type": "music",
+                    "media_content_id": "a" * 3000,
+                }
+            }
+        )
+        assert not ok
+        assert "media_content_id" in reason
+
+    def test_still_truncates_display_strings(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {"media_player.tv": {"state": "playing", "source": "s" * 400}}
+        )
+        assert ok
+        assert len(normalized["media_player.tv"]["source"]) == 200
+
+
+class TestMediaContentPair:
+    """play_media fires only when both content attributes are set."""
+
+    def test_refuses_lone_content_id(self) -> None:
+        ok, reason, _ = validate_entity_states(
+            {"media_player.tv": {"state": "playing", "media_content_id": "spotify:track:1"}}
+        )
+        assert not ok
+        assert "media_content_type" in reason
+
+    def test_refuses_lone_content_type(self) -> None:
+        ok, reason, _ = validate_entity_states(
+            {"media_player.tv": {"state": "playing", "media_content_type": "music"}}
+        )
+        assert not ok
+        assert "media_content_id" in reason
+
+    def test_accepts_the_pair(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {
+                "media_player.tv": {
+                    "state": "playing",
+                    "media_content_type": "music",
+                    "media_content_id": "spotify:track:1",
+                }
+            }
+        )
+        assert ok
+        assert normalized["media_player.tv"]["media_content_id"] == "spotify:track:1"
+
+    def test_blank_pair_is_absent(self) -> None:
+        ok, _, normalized = validate_entity_states(
+            {
+                "media_player.tv": {
+                    "state": "playing",
+                    "media_content_type": "",
+                    "media_content_id": "",
+                }
+            }
+        )
+        assert ok
+        assert normalized["media_player.tv"] == {"state": "playing"}
