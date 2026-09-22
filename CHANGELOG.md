@@ -1,3 +1,36 @@
+## [0.17.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.16.2...v0.17.0) (2026-09-22)
+
+### Features
+
+* **alexa:** answer Alexa Smart Home directives ([e7936ed](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e7936ed26f0f3425aa2684a65337aad3fbc5369d))
+* **local:** rank entities by request relevance ([6e14160](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/6e14160d872c66bc40ab474ec85478156b9fa5b4))
+* **local:** re-land the Ollama unified runtime on the package ([d6f7b0a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d6f7b0a7a8dceb2324f78ca59a734bad9f073bd8))
+* **local:** route docs-grounded help to the utilities specialist ([ffd6635](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ffd66357119d2b87affc0e1d20c82d846442ce2c))
+* **panel:** search automations and scenes by what they target ([8baaeda](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8baaedab41015fcfcb25b3a6b48bb80d491dc427))
+* **policy:** opt-in bypass for the override net ([4ae1399](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4ae13991e99ea97953c5ef377c166da0fb47573d))
+* **policy:** opt-in overrides for command gating ([bc6c565](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/bc6c56540ee7df6dbad018303075933655df7048))
+
+### Bug Fixes
+
+* **chat:** unblock doorbell automation creation ([1b9a207](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1b9a207329f8cd995f71d1f194aeda64244f2653))
+* close the pre-release review findings for 0.17.0 ([4442ff8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4442ff8645682ea6b954f79eb60ea30f72456471))
+* **local:** answer each turn from its own chat context ([0852b8b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/0852b8b1f75773d584d4ea2ebe08649ec1062b27))
+* **local:** build the automations the local model returns ([9922b4a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9922b4ade419e4dd0445bfd91ab0347970f8889c))
+* **local:** keep the reply when the model adds trailing bytes ([178dcb0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/178dcb0576438cd3624ef8ad2e6f4ca93c5b87b7))
+* **local:** stop a restart costing half a minute of errors ([9b6c951](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9b6c9514e2025265cd525aa339a82caf7fea1d25))
+* **local:** stop telling the model its locks will fail ([b979b4d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b979b4d10ddd2c09728646889b577df4debda63e))
+* **panel:** replace the whole name when completing an entity mention ([83695ac](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/83695acd7d34401f2aed6c4d252979094366c809))
+* **panel:** tame the composer caret ([6bdd0b5](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/6bdd0b574895b0db6891db83a4dd8bb752e1c466))
+* **policy:** honour the handlers opt-out before the provider ([ffbedd0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ffbedd07cc660781d9a5dcfa431cb70bc175109a))
+* **policy:** name the real cause of a refusal ([517f0aa](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/517f0aa04ee70defb1b4f5b8bf2024589a901f4f))
+* **search:** find entities by brand, model, and device class ([dde3b2e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/dde3b2e93bef09dc445daa6c35d44db8087406ba))
+* **setup:** arm startup deferrals as timers ([234340b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/234340bc6a87121e3b4f9b954b7256aa6c11e648))
+* widen and animate the suggestion card's YAML panel ([29bb788](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/29bb788eae6fd263baad17a240026d9b206709a4))
+
+### Code Refactoring
+
+* **local:** re-land selora_local as a package ([a9f294c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a9f294c4269093b0485e5b716ff0ddcc0554c83b))
+
 ## [0.16.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.16.1...v0.16.2) (2026-09-03)
 
 ### Bug Fixes
