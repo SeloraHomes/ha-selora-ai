@@ -1,3 +1,5 @@
+import { interpolate } from "../shared/i18n.js";
+
 // Scene proposal actions (prototype-assigned to SeloraAIArchitectPanel)
 
 // The backend stores its own index into the (possibly pruned) session
@@ -37,7 +39,20 @@ export async function _acceptScene(msgIndex) {
     await this._loadScenes();
     this._markSceneCreated(result.scene_id);
 
-    this._showToast(`Scene "${scene.name}" created and saved.`, "success");
+    // A refinement rewrites the scene this session already saved — telling the
+    // user it was created is wrong for the commonest one of those, a rename.
+    this._showToast(
+      interpolate(
+        result.replaced
+          ? this._t("scene_actions_updated", 'Scene "{name}" updated.')
+          : this._t(
+              "scene_actions_created",
+              'Scene "{name}" created and saved.',
+            ),
+        { name: scene.name },
+      ),
+      "success",
+    );
 
     // The scene was half the request — "create a scene AND add it to the
     // dashboard". The turn that proposed it ended at the card, and the scene
@@ -125,4 +140,58 @@ export async function _loadSceneToChat(sceneId) {
     this._loadingToChat = { ...this._loadingToChat, [sceneId]: false };
   }
   this.requestUpdate();
+}
+
+// -------------------------------------------------------------------------
+// Rename a saved scene
+// -------------------------------------------------------------------------
+
+export function _startRenameScene(sceneId, currentName) {
+  this._editingSceneName = sceneId;
+  this._editingSceneNameValue = currentName || "";
+  this._openSceneBurger = null;
+  this.requestUpdate();
+  // Focus the input once it has rendered.
+  this.updateComplete.then(() => {
+    const input = this.shadowRoot.querySelector(
+      `.rename-input[data-scene-id="${sceneId}"]`,
+    );
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+
+export async function _saveRenameScene(sceneId) {
+  const name = (this._editingSceneNameValue || "").trim();
+  // An empty field is a cancel, not a rename: the backend refuses the name
+  // anyway, and a toast about it reads as a failure the user did not cause.
+  if (!name) {
+    this._cancelRenameScene();
+    return;
+  }
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/rename_scene",
+      scene_id: sceneId,
+      name,
+    });
+    this._cancelRenameScene();
+    this._showToast(
+      this._t("scene_actions_renamed", "Scene renamed"),
+      "success",
+    );
+    // The row's name comes from the scene list, so it is the reload that
+    // shows the new one.
+    await this._loadScenes();
+  } catch (err) {
+    console.error("Failed to rename scene", err);
+    this._showToast("Failed to rename: " + err.message, "error");
+  }
+}
+
+export function _cancelRenameScene() {
+  this._editingSceneName = null;
+  this._editingSceneNameValue = "";
 }

@@ -3354,16 +3354,22 @@ def parse_streamed_response(
                         "validation_target": "scene",
                     }
                 )
+            # The fallback stands in only when the model wrote no prose of its
+            # own. On a refinement the write will REPLACE the scene this
+            # session already saved — a rename is the commonest one — so
+            # announcing a creation describes the wrong act.
+            refine_scene_id = scene_data.get("refine_scene_id")
             scene_result: dict[str, Any] = {
                 "intent": "scene",
-                "response": response_text or "Scene created.",
+                "response": response_text
+                or ("Here's the updated scene." if refine_scene_id else "Scene created."),
                 "scene": normalized,
                 "scene_yaml": yaml.dump(normalized, default_flow_style=False, allow_unicode=True),
             }
             # Preserve refine_scene_id so the streaming handler can
             # update the existing scene instead of creating a new one.
-            if scene_data.get("refine_scene_id"):
-                scene_result["refine_scene_id"] = scene_data["refine_scene_id"]
+            if refine_scene_id:
+                scene_result["refine_scene_id"] = refine_scene_id
             return _attach_qa(scene_result)
         except (
             json.JSONDecodeError,

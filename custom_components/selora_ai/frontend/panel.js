@@ -9821,6 +9821,8 @@ var en_default = {
     scenes_activate_scene_tooltip: "Activate scene",
     scenes_activate_button: "Activate",
     scenes_more_actions_tooltip: "More actions",
+    scenes_burger_rename: "Rename",
+    scenes_rename_save_tooltip: "Save",
     scenes_loading_label: "Loading\u2026",
     scenes_refine_in_chat_button: "Refine in chat",
     scenes_open_in_ha_button: "Open in HA",
@@ -10055,6 +10057,9 @@ var en_default = {
     automation_crud_yaml_saved: "Automation YAML saved.",
     automation_crud_save_changes_failed: "Failed to save changes:",
     scene_actions_refine_default_name: "the scene",
+    scene_actions_renamed: "Scene renamed",
+    scene_actions_created: 'Scene "{name}" created and saved.',
+    scene_actions_updated: 'Scene "{name}" updated.',
     session_toast_new_automation_chat_failed:
       "Failed to start a new automation chat:",
     session_toast_new_session_failed: "Failed to start a new conversation:",
@@ -11002,6 +11007,8 @@ var fr_default = {
     scenes_activate_scene_tooltip: "Activer la sc\xE8ne",
     scenes_activate_button: "Activer",
     scenes_more_actions_tooltip: "Plus d'actions",
+    scenes_burger_rename: "Renommer",
+    scenes_rename_save_tooltip: "Enregistrer",
     scenes_loading_label: "Chargement\u2026",
     scenes_refine_in_chat_button: "Affiner dans le chat",
     scenes_open_in_ha_button: "Ouvrir dans HA",
@@ -11253,6 +11260,10 @@ var fr_default = {
     automation_crud_save_changes_failed:
       "\xC9chec de l'enregistrement des modifications :",
     scene_actions_refine_default_name: "la sc\xE8ne",
+    scene_actions_renamed: "Sc\xE8ne renomm\xE9e",
+    scene_actions_created:
+      "Sc\xE8ne \xAB {name} \xBB cr\xE9\xE9e et enregistr\xE9e.",
+    scene_actions_updated: "Sc\xE8ne \xAB {name} \xBB mise \xE0 jour.",
     session_toast_new_automation_chat_failed:
       "\xC9chec du d\xE9marrage d'un nouveau chat d'automatisation :",
     session_toast_new_session_failed:
@@ -12220,6 +12231,8 @@ var de_default = {
     scenes_activate_scene_tooltip: "Szene aktivieren",
     scenes_activate_button: "Aktivieren",
     scenes_more_actions_tooltip: "Weitere Aktionen",
+    scenes_burger_rename: "Umbenennen",
+    scenes_rename_save_tooltip: "Speichern",
     scenes_loading_label: "Lade\u2026",
     scenes_refine_in_chat_button: "Im Chat verfeinern",
     scenes_open_in_ha_button: "In HA \xF6ffnen",
@@ -12467,6 +12480,9 @@ var de_default = {
     automation_crud_save_changes_failed:
       "\xC4nderungen konnten nicht gespeichert werden:",
     scene_actions_refine_default_name: "die Szene",
+    scene_actions_renamed: "Szene umbenannt",
+    scene_actions_created: "Szene \u201E{name}\u201C erstellt und gespeichert.",
+    scene_actions_updated: "Szene \u201E{name}\u201C aktualisiert.",
     session_toast_new_automation_chat_failed:
       "Neuer Automatisierungs-Chat konnte nicht gestartet werden:",
     session_toast_new_session_failed:
@@ -13424,6 +13440,8 @@ var es_default = {
     scenes_activate_scene_tooltip: "Activar escena",
     scenes_activate_button: "Activar",
     scenes_more_actions_tooltip: "M\xE1s acciones",
+    scenes_burger_rename: "Cambiar nombre",
+    scenes_rename_save_tooltip: "Guardar",
     scenes_loading_label: "Cargando\u2026",
     scenes_refine_in_chat_button: "Refinar en el chat",
     scenes_open_in_ha_button: "Abrir en HA",
@@ -13667,6 +13685,9 @@ var es_default = {
     automation_crud_yaml_saved: "YAML de la automatizaci\xF3n guardado.",
     automation_crud_save_changes_failed: "No se pudieron guardar los cambios:",
     scene_actions_refine_default_name: "la escena",
+    scene_actions_renamed: "Escena renombrada",
+    scene_actions_created: "Escena \xAB{name}\xBB creada y guardada.",
+    scene_actions_updated: "Escena \xAB{name}\xBB actualizada.",
     session_toast_new_automation_chat_failed:
       "No se pudo iniciar un nuevo chat de automatizaci\xF3n:",
     session_toast_new_session_failed:
@@ -14613,6 +14634,8 @@ var it_default = {
     scenes_activate_scene_tooltip: "Attiva scena",
     scenes_activate_button: "Attiva",
     scenes_more_actions_tooltip: "Altre azioni",
+    scenes_burger_rename: "Rinomina",
+    scenes_rename_save_tooltip: "Salva",
     scenes_loading_label: "Caricamento\u2026",
     scenes_refine_in_chat_button: "Perfeziona in chat",
     scenes_open_in_ha_button: "Apri in HA",
@@ -14854,6 +14877,9 @@ var it_default = {
     automation_crud_yaml_saved: "YAML dell'automazione salvato.",
     automation_crud_save_changes_failed: "Impossibile salvare le modifiche:",
     scene_actions_refine_default_name: "la scena",
+    scene_actions_renamed: "Scena rinominata",
+    scene_actions_created: "Scena \xAB{name}\xBB creata e salvata.",
+    scene_actions_updated: "Scena \xAB{name}\xBB aggiornata.",
     session_toast_new_automation_chat_failed:
       "Impossibile avviare una nuova chat di automazione:",
     session_toast_new_session_failed:
@@ -15823,6 +15849,8 @@ var nl_default = {
     scenes_activate_scene_tooltip: "Sc\xE8ne activeren",
     scenes_activate_button: "Activeren",
     scenes_more_actions_tooltip: "Meer acties",
+    scenes_burger_rename: "Naam wijzigen",
+    scenes_rename_save_tooltip: "Opslaan",
     scenes_loading_label: "Laden\u2026",
     scenes_refine_in_chat_button: "Verfijnen in chat",
     scenes_open_in_ha_button: "Openen in HA",
@@ -16063,6 +16091,10 @@ var nl_default = {
     automation_crud_yaml_saved: "YAML van automatisering opgeslagen.",
     automation_crud_save_changes_failed: "Opslaan van wijzigingen mislukt:",
     scene_actions_refine_default_name: "de sc\xE8ne",
+    scene_actions_renamed: "Naam van sc\xE8ne gewijzigd",
+    scene_actions_created:
+      "Sc\xE8ne \u2018{name}\u2019 aangemaakt en opgeslagen.",
+    scene_actions_updated: "Sc\xE8ne \u2018{name}\u2019 bijgewerkt.",
     session_toast_new_automation_chat_failed:
       "Starten van nieuw automatiseringsgesprek mislukt:",
     session_toast_new_session_failed: "Starten van nieuw gesprek mislukt:",
@@ -17037,6 +17069,8 @@ var hu_default = {
     scenes_activate_scene_tooltip: "Jelenet aktiv\xE1l\xE1sa",
     scenes_activate_button: "Aktiv\xE1l\xE1s",
     scenes_more_actions_tooltip: "Tov\xE1bbi m\u0171veletek",
+    scenes_burger_rename: "\xC1tnevez\xE9s",
+    scenes_rename_save_tooltip: "Ment\xE9s",
     scenes_loading_label: "Bet\xF6lt\xE9s\u2026",
     scenes_refine_in_chat_button: "Finom\xEDt\xE1s a besz\xE9lget\xE9sben",
     scenes_open_in_ha_button: "Megnyit\xE1s a HA-ban",
@@ -17294,6 +17328,10 @@ var hu_default = {
     automation_crud_save_changes_failed:
       "A v\xE1ltoz\xE1sok ment\xE9se nem siker\xFClt:",
     scene_actions_refine_default_name: "a jelenet",
+    scene_actions_renamed: "Jelenet \xE1tnevezve",
+    scene_actions_created:
+      "A(z) \u201E{name}\u201D jelenet l\xE9trehozva \xE9s mentve.",
+    scene_actions_updated: "A(z) \u201E{name}\u201D jelenet friss\xEDtve.",
     session_toast_new_automation_chat_failed:
       "Nem siker\xFClt \xFAj automatizmus-besz\xE9lget\xE9st ind\xEDtani:",
     session_toast_new_session_failed:
@@ -18251,6 +18289,8 @@ var pt_default = {
     scenes_activate_scene_tooltip: "Ativar cena",
     scenes_activate_button: "Ativar",
     scenes_more_actions_tooltip: "Mais a\xE7\xF5es",
+    scenes_burger_rename: "Mudar o nome",
+    scenes_rename_save_tooltip: "Guardar",
     scenes_loading_label: "A carregar\u2026",
     scenes_refine_in_chat_button: "Aperfei\xE7oar na conversa",
     scenes_open_in_ha_button: "Abrir no HA",
@@ -18497,6 +18537,9 @@ var pt_default = {
     automation_crud_save_changes_failed:
       "N\xE3o foi poss\xEDvel guardar as altera\xE7\xF5es:",
     scene_actions_refine_default_name: "a cena",
+    scene_actions_renamed: "Cena renomeada",
+    scene_actions_created: "Cena \xAB{name}\xBB criada e guardada.",
+    scene_actions_updated: "Cena \xAB{name}\xBB atualizada.",
     session_toast_new_automation_chat_failed:
       "N\xE3o foi poss\xEDvel iniciar uma nova conversa de automa\xE7\xE3o:",
     session_toast_new_session_failed:
@@ -19701,6 +19744,10 @@ var ru_default = {
       "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
     scenes_more_actions_tooltip:
       "\u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
+    scenes_burger_rename:
+      "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
+    scenes_rename_save_tooltip:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
     scenes_loading_label:
       "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
     scenes_refine_in_chat_button:
@@ -20059,6 +20106,12 @@ var ru_default = {
     automation_crud_save_changes_failed:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F:",
     scene_actions_refine_default_name: "\u0441\u0446\u0435\u043D\u0430",
+    scene_actions_renamed:
+      "\u0421\u0446\u0435\u043D\u0430 \u043F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u043D\u0430",
+    scene_actions_created:
+      "\u0421\u0446\u0435\u043D\u0430 \xAB{name}\xBB \u0441\u043E\u0437\u0434\u0430\u043D\u0430 \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430.",
+    scene_actions_updated:
+      "\u0421\u0446\u0435\u043D\u0430 \xAB{name}\xBB \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0430.",
     session_toast_new_automation_chat_failed:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0447\u0430\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u0447\u0430\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438:",
     session_toast_new_session_failed:
@@ -21326,6 +21379,8 @@ var ja_default = {
     scenes_activate_scene_tooltip: "\u30B7\u30FC\u30F3\u3092\u8D77\u52D5",
     scenes_activate_button: "\u8D77\u52D5",
     scenes_more_actions_tooltip: "\u305D\u306E\u4ED6\u306E\u64CD\u4F5C",
+    scenes_burger_rename: "\u540D\u524D\u3092\u5909\u66F4",
+    scenes_rename_save_tooltip: "\u4FDD\u5B58",
     scenes_loading_label: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
     scenes_refine_in_chat_button: "\u30C1\u30E3\u30C3\u30C8\u3067\u8ABF\u6574",
     scenes_open_in_ha_button: "HA \u3067\u958B\u304F",
@@ -21628,6 +21683,12 @@ var ja_default = {
     automation_crud_save_changes_failed:
       "\u5909\u66F4\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
     scene_actions_refine_default_name: "\u30B7\u30FC\u30F3",
+    scene_actions_renamed:
+      "\u30B7\u30FC\u30F3\u306E\u540D\u524D\u3092\u5909\u66F4\u3057\u307E\u3057\u305F",
+    scene_actions_created:
+      "\u30B7\u30FC\u30F3\u300C{name}\u300D\u3092\u4F5C\u6210\u3057\u3066\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
+    scene_actions_updated:
+      "\u30B7\u30FC\u30F3\u300C{name}\u300D\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002",
     session_toast_new_automation_chat_failed:
       "\u65B0\u3057\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u30C1\u30E3\u30C3\u30C8\u306E\u958B\u59CB\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
     session_toast_new_session_failed:
@@ -22755,6 +22816,8 @@ var ko_default = {
     scenes_activate_scene_tooltip: "\uC7A5\uBA74 \uD65C\uC131\uD654",
     scenes_activate_button: "\uD65C\uC131\uD654",
     scenes_more_actions_tooltip: "\uCD94\uAC00 \uB3D9\uC791",
+    scenes_burger_rename: "\uC774\uB984 \uBCC0\uACBD",
+    scenes_rename_save_tooltip: "\uC800\uC7A5",
     scenes_loading_label: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
     scenes_refine_in_chat_button: "\uCC44\uD305\uC5D0\uC11C \uC218\uC815",
     scenes_open_in_ha_button: "HA\uC5D0\uC11C \uC5F4\uAE30",
@@ -23034,6 +23097,12 @@ var ko_default = {
     automation_crud_save_changes_failed:
       "\uBCC0\uACBD \uC0AC\uD56D\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
     scene_actions_refine_default_name: "\uC7A5\uBA74",
+    scene_actions_renamed:
+      "\uC7A5\uBA74 \uC774\uB984\uC774 \uBCC0\uACBD\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+    scene_actions_created:
+      "\uC7A5\uBA74 \u2018{name}\u2019\uC744(\uB97C) \uC0DD\uC131\uD558\uACE0 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4.",
+    scene_actions_updated:
+      "\uC7A5\uBA74 \u2018{name}\u2019\uC744(\uB97C) \uC5C5\uB370\uC774\uD2B8\uD588\uC2B5\uB2C8\uB2E4.",
     session_toast_new_automation_chat_failed:
       "\uC0C8 \uC790\uB3D9\uD654 \uCC44\uD305\uC744 \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
     session_toast_new_session_failed:
@@ -24081,6 +24150,8 @@ var zh_Hans_default = {
     scenes_activate_scene_tooltip: "\u6FC0\u6D3B\u573A\u666F",
     scenes_activate_button: "\u6FC0\u6D3B",
     scenes_more_actions_tooltip: "\u66F4\u591A\u64CD\u4F5C",
+    scenes_burger_rename: "\u91CD\u547D\u540D",
+    scenes_rename_save_tooltip: "\u4FDD\u5B58",
     scenes_loading_label: "\u52A0\u8F7D\u4E2D\u2026",
     scenes_refine_in_chat_button: "\u5728\u5BF9\u8BDD\u4E2D\u5B8C\u5584",
     scenes_open_in_ha_button: "\u5728 HA \u4E2D\u6253\u5F00",
@@ -24348,6 +24419,11 @@ var zh_Hans_default = {
     automation_crud_save_changes_failed:
       "\u4FDD\u5B58\u66F4\u6539\u5931\u8D25\uFF1A",
     scene_actions_refine_default_name: "\u8BE5\u573A\u666F",
+    scene_actions_renamed: "\u573A\u666F\u5DF2\u91CD\u547D\u540D",
+    scene_actions_created:
+      "\u573A\u666F\u201C{name}\u201D\u5DF2\u521B\u5EFA\u5E76\u4FDD\u5B58\u3002",
+    scene_actions_updated:
+      "\u573A\u666F\u201C{name}\u201D\u5DF2\u66F4\u65B0\u3002",
     session_toast_new_automation_chat_failed:
       "\u542F\u52A8\u65B0\u7684\u81EA\u52A8\u5316\u5BF9\u8BDD\u5931\u8D25\uFF1A",
     session_toast_new_session_failed:
@@ -25374,6 +25450,8 @@ var zh_Hant_default = {
     scenes_activate_scene_tooltip: "\u555F\u52D5\u60C5\u5883",
     scenes_activate_button: "\u555F\u52D5",
     scenes_more_actions_tooltip: "\u66F4\u591A\u52D5\u4F5C",
+    scenes_burger_rename: "\u91CD\u65B0\u547D\u540D",
+    scenes_rename_save_tooltip: "\u5132\u5B58",
     scenes_loading_label: "\u8F09\u5165\u4E2D\u2026",
     scenes_refine_in_chat_button: "\u5728\u5C0D\u8A71\u4E2D\u8ABF\u6574",
     scenes_open_in_ha_button: "\u5728 HA \u4E2D\u958B\u555F",
@@ -25643,6 +25721,11 @@ var zh_Hant_default = {
     automation_crud_save_changes_failed:
       "\u7121\u6CD5\u5132\u5B58\u8B8A\u66F4\uFF1A",
     scene_actions_refine_default_name: "\u6B64\u60C5\u5883",
+    scene_actions_renamed: "\u60C5\u5883\u5DF2\u91CD\u65B0\u547D\u540D",
+    scene_actions_created:
+      "\u60C5\u5883\u300C{name}\u300D\u5DF2\u5EFA\u7ACB\u4E26\u5132\u5B58\u3002",
+    scene_actions_updated:
+      "\u60C5\u5883\u300C{name}\u300D\u5DF2\u66F4\u65B0\u3002",
     session_toast_new_automation_chat_failed:
       "\u7121\u6CD5\u958B\u59CB\u65B0\u7684\u81EA\u52D5\u5316\u5C0D\u8A71\uFF1A",
     session_toast_new_session_failed:
@@ -37518,7 +37601,7 @@ function renderScenes(host) {
                           @click=${(e6) => {
                             if (
                               e6.target.closest(
-                                ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
+                                ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn, .rename-input, .rename-save-btn",
                               )
                             )
                               return;
@@ -37536,7 +37619,46 @@ function renderScenes(host) {
                             ></ha-icon>
                             <div class="auto-row-name">
                               <div class="auto-row-title-row">
-                                <span class="auto-row-title">${s4.name}</span>
+                                ${
+                                  host._editingSceneName === sceneId
+                                    ? b2`
+                                        <input
+                                          class="rename-input"
+                                          data-scene-id="${sceneId}"
+                                          .value=${host._editingSceneNameValue}
+                                          @input=${(e6) => {
+                                            host._editingSceneNameValue =
+                                              e6.target.value;
+                                          }}
+                                          @click=${(e6) => e6.stopPropagation()}
+                                          @keydown=${(e6) => {
+                                            if (e6.key === "Enter")
+                                              host._saveRenameScene(sceneId);
+                                            if (e6.key === "Escape")
+                                              host._cancelRenameScene();
+                                          }}
+                                        />
+                                        <button
+                                          class="rename-save-btn"
+                                          title=${host._t(
+                                            "scenes_rename_save_tooltip",
+                                            "Save",
+                                          )}
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
+                                            host._saveRenameScene(sceneId);
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:check"
+                                            style="--mdc-icon-size:16px;"
+                                          ></ha-icon>
+                                        </button>
+                                      `
+                                    : b2`<span class="auto-row-title"
+                                        >${s4.name}</span
+                                      >`
+                                }
                                 ${
                                   recipeTitle
                                     ? b2`<span
@@ -37692,6 +37814,29 @@ function renderScenes(host) {
                                                 )
                                           }
                                         </button>
+                                        ${
+                                          isSelora
+                                            ? b2`<button
+                                                class="burger-item"
+                                                @click=${(e6) => {
+                                                  e6.stopPropagation();
+                                                  host._startRenameScene(
+                                                    sceneId,
+                                                    s4.name,
+                                                  );
+                                                }}
+                                              >
+                                                <ha-icon
+                                                  icon="mdi:pencil-outline"
+                                                  style="--mdc-icon-size:14px;"
+                                                ></ha-icon>
+                                                ${host._t(
+                                                  "scenes_burger_rename",
+                                                  "Rename",
+                                                )}
+                                              </button>`
+                                            : ""
+                                        }
                                         <button
                                           class="burger-item"
                                           @click=${(e6) => {
@@ -49583,7 +49728,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "5252654074ce" : "";
+var PANEL_BUILD = true ? "e9883a19b6a2" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -50633,9 +50778,12 @@ async function _copyMessageText(msg, btn, text) {
 var scene_actions_exports = {};
 __export(scene_actions_exports, {
   _acceptScene: () => _acceptScene,
+  _cancelRenameScene: () => _cancelRenameScene,
   _declineScene: () => _declineScene,
   _loadSceneToChat: () => _loadSceneToChat,
   _refineScene: () => _refineScene,
+  _saveRenameScene: () => _saveRenameScene,
+  _startRenameScene: () => _startRenameScene,
 });
 function _storedSceneIndex(msg, msgIndex) {
   return msg && msg.scene_message_index != null
@@ -50659,7 +50807,18 @@ async function _acceptScene(msgIndex) {
     this._messages = [...this._messages];
     await this._loadScenes();
     this._markSceneCreated(result.scene_id);
-    this._showToast(`Scene "${scene.name}" created and saved.`, "success");
+    this._showToast(
+      interpolate(
+        result.replaced
+          ? this._t("scene_actions_updated", 'Scene "{name}" updated.')
+          : this._t(
+              "scene_actions_created",
+              'Scene "{name}" created and saved.',
+            ),
+        { name: scene.name },
+      ),
+      "success",
+    );
     if (result.scene_id) {
       await this._sendMessage?.({ resumeProposalId: result.scene_id });
     }
@@ -50732,6 +50891,48 @@ async function _loadSceneToChat(sceneId) {
     this._loadingToChat = { ...this._loadingToChat, [sceneId]: false };
   }
   this.requestUpdate();
+}
+function _startRenameScene(sceneId, currentName) {
+  this._editingSceneName = sceneId;
+  this._editingSceneNameValue = currentName || "";
+  this._openSceneBurger = null;
+  this.requestUpdate();
+  this.updateComplete.then(() => {
+    const input = this.shadowRoot.querySelector(
+      `.rename-input[data-scene-id="${sceneId}"]`,
+    );
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+async function _saveRenameScene(sceneId) {
+  const name = (this._editingSceneNameValue || "").trim();
+  if (!name) {
+    this._cancelRenameScene();
+    return;
+  }
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/rename_scene",
+      scene_id: sceneId,
+      name,
+    });
+    this._cancelRenameScene();
+    this._showToast(
+      this._t("scene_actions_renamed", "Scene renamed"),
+      "success",
+    );
+    await this._loadScenes();
+  } catch (err) {
+    console.error("Failed to rename scene", err);
+    this._showToast("Failed to rename: " + err.message, "error");
+  }
+}
+function _cancelRenameScene() {
+  this._editingSceneName = null;
+  this._editingSceneNameValue = "";
 }
 
 // src/panel/scene-edit.js
@@ -51458,6 +51659,9 @@ var SeloraAIPanel = class extends i4 {
       _testingScene: { type: Object },
       _sceneYamlOpen: { type: Object },
       _openSceneBurger: { type: String },
+      _editingSceneName: { type: String },
+      // scene_id being renamed
+      _editingSceneNameValue: { type: String },
       _deletingScene: { type: Object },
       _deleteSceneConfirmId: { type: String },
       _deleteSceneConfirmName: { type: String },
@@ -51670,6 +51874,8 @@ var SeloraAIPanel = class extends i4 {
     this._testingScene = {};
     this._sceneYamlOpen = {};
     this._openSceneBurger = null;
+    this._editingSceneName = null;
+    this._editingSceneNameValue = "";
     this._deletingScene = {};
     this._deleteSceneConfirmId = null;
     this._deleteSceneConfirmName = null;

@@ -564,6 +564,8 @@ class SeloraAIPanel extends LitElement {
       _testingScene: { type: Object },
       _sceneYamlOpen: { type: Object },
       _openSceneBurger: { type: String },
+      _editingSceneName: { type: String }, // scene_id being renamed
+      _editingSceneNameValue: { type: String },
       _deletingScene: { type: Object },
       _deleteSceneConfirmId: { type: String },
       _deleteSceneConfirmName: { type: String },
@@ -811,6 +813,8 @@ class SeloraAIPanel extends LitElement {
     this._testingScene = {};
     this._sceneYamlOpen = {};
     this._openSceneBurger = null;
+    this._editingSceneName = null;
+    this._editingSceneNameValue = "";
     this._deletingScene = {};
     this._deleteSceneConfirmId = null;
     this._deleteSceneConfirmName = null;
