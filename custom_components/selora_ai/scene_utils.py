@@ -489,22 +489,33 @@ async def async_rename_scene_yaml(
     ``resolve_scene_entity_id`` is the only path that cares, and it is given
     the new name.
 
-    Raises ``SceneRenameError`` when the name is unusable, the scene is not
-    Selora-managed, it is absent from the file, or the reload rejects the
-    result (rolled back in that case), and ``ScenesYamlError`` when the file
-    cannot be parsed.
+    A scene Home Assistant's own editor wrote is renamed here too, and the
+    display prefix is NOT applied to it: the id decides who manages a scene,
+    so prefixing someone else's would only claim it in the list. Which is also
+    why the entry is MUTATED rather than rebuilt — Home Assistant's editor
+    stores ``icon`` and ``metadata`` alongside the entities, and every entity
+    can carry extras of its own (``device_id``, ``zone_id``, ``friendly_name``
+    on a Lutron scene). A rebuilt entry, which is what ``async_create_scene``
+    writes, keeps only id/name/entities and drops the rest silently.
+
+    Raises ``SceneRenameError`` when the name is unusable, the scene is absent
+    from the file, or the reload rejects the result (rolled back in that case),
+    and ``ScenesYamlError`` when the file cannot be parsed.
     """
     from .scene_store import scene_content_hash  # noqa: PLC0415
     from .scene_validation import sanitize_scene_name  # noqa: PLC0415
 
-    if not scene_id.startswith(SCENE_ID_PREFIX):
-        raise SceneRenameError(f"Cannot rename scene {scene_id!r}: not a Selora-managed scene.")
+    selora_managed = scene_id.startswith(SCENE_ID_PREFIX)
 
-    # The panel shows the name without the prefix the writer adds, so a user
-    # editing what they see hands back a bare name — but one who selects the
-    # whole field and retypes it hands back a prefixed one, and re-adding it
-    # below would double it.
-    name = sanitize_scene_name(new_name.strip().removeprefix("[Selora AI] "))
+    # The panel shows a Selora name without the prefix the writer adds, so a
+    # user editing what they see hands back a bare name — but one who selects
+    # the whole field and retypes it hands back a prefixed one, and re-adding
+    # it below would double it. A Home Assistant scene never had the prefix,
+    # so nothing is stripped from it.
+    raw_name = new_name.strip()
+    if selora_managed:
+        raw_name = raw_name.removeprefix("[Selora AI] ")
+    name = sanitize_scene_name(raw_name)
     if not name:
         raise SceneRenameError("Scene name is empty after sanitization")
 
@@ -524,7 +535,7 @@ async def async_rename_scene_yaml(
         if target is None:
             raise SceneRenameError(f"Scene {scene_id!r} is not in scenes.yaml")
 
-        stored_name = f"[Selora AI] {name}"
+        stored_name = f"[Selora AI] {name}" if selora_managed else name
         target["name"] = stored_name
         entities = target.get("entities") or {}
 
@@ -578,7 +589,7 @@ async def async_rename_scene_yaml(
         "name": name,
         "entity_count": len(renamed_entities),
         "entity_id": resolve_scene_entity_id(hass, scene_id, name),
-        "content_hash": scene_content_hash(scene_id, f"[Selora AI] {name}", renamed_entities),
+        "content_hash": scene_content_hash(scene_id, stored_name, renamed_entities),
         "scene_yaml": yaml.dump(sanitized_scene, default_flow_style=False, allow_unicode=True),
     }
 

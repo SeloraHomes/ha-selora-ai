@@ -480,6 +480,8 @@
     "scenes_activate_button": "Aktiválás",
     "scenes_more_actions_tooltip": "További műveletek",
     "scenes_burger_rename": "Átnevezés",
+    "scenes_rename_blocked_no_yaml_id": "Ennek a jelenetnek nincs id-ja a scenes.yaml fájlban, ezért a Home Assistant a névből képzi az entity_id-t. Az itteni átnevezés áthelyezné az entitást, és mindent elrontana, ami rá hivatkozik — előbb adjon hozzá egy id: mezőt a bejegyzéshez.",
+    "scenes_rename_blocked_integration": "Ez a jelenet másik integrációból származik, a neve is ott van. Nevezze át abban az integrációban, vagy írja felül a nevet a Home Assistant entitásbeállításaiban.",
     "scenes_rename_save_tooltip": "Mentés",
     "scenes_loading_label": "Betöltés…",
     "scenes_refine_in_chat_button": "Finomítás a beszélgetésben",

@@ -460,6 +460,8 @@
     "scenes_activate_button": "Ativar",
     "scenes_more_actions_tooltip": "Mais ações",
     "scenes_burger_rename": "Mudar o nome",
+    "scenes_rename_blocked_no_yaml_id": "Esta cena não tem id no scenes.yaml, por isso o Home Assistant cria o entity_id a partir do nome. Mudar o nome aqui moveria a entidade e quebraria tudo o que aponta para ela — adicione primeiro um id: à entrada.",
+    "scenes_rename_blocked_integration": "Esta cena vem de outra integração, por isso o seu nome está lá. Mude o nome nessa integração ou substitua o nome nas definições de entidade do Home Assistant.",
     "scenes_rename_save_tooltip": "Guardar",
     "scenes_loading_label": "A carregar…",
     "scenes_refine_in_chat_button": "Aperfeiçoar na conversa",

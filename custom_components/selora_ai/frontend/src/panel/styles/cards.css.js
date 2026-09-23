@@ -79,6 +79,16 @@ export const cardElementStyles = css`
   .burger-item:hover {
     background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
   }
+  /* A disabled item stays in the menu on purpose — an action that is missing
+     reads as one that does not exist, and the title says why this one cannot
+     run here — so it has to LOOK unavailable, hover included. */
+  .burger-item:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .burger-item:disabled:hover {
+    background: none;
+  }
   .burger-item.danger {
     color: var(--error-color, #f44336);
   }

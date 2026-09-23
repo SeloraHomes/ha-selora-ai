@@ -5172,6 +5172,16 @@ var cardElementStyles = i`
   .burger-item:hover {
     background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
   }
+  /* A disabled item stays in the menu on purpose — an action that is missing
+     reads as one that does not exist, and the title says why this one cannot
+     run here — so it has to LOOK unavailable, hover included. */
+  .burger-item:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .burger-item:disabled:hover {
+    background: none;
+  }
   .burger-item.danger {
     color: var(--error-color, #f44336);
   }
@@ -9803,6 +9813,10 @@ var en_default = {
     scenes_activate_button: "Activate",
     scenes_more_actions_tooltip: "More actions",
     scenes_burger_rename: "Rename",
+    scenes_rename_blocked_no_yaml_id:
+      "This scene has no id in scenes.yaml, so Home Assistant builds its entity_id from the name. Renaming it here would move the entity and break anything pointing at it \u2014 add an id: to the entry first.",
+    scenes_rename_blocked_integration:
+      "This scene comes from another integration, so its name lives there. Rename it in that integration, or override the name in Home Assistant's entity settings.",
     scenes_rename_save_tooltip: "Save",
     scenes_loading_label: "Loading\u2026",
     scenes_refine_in_chat_button: "Refine in chat",
@@ -10991,6 +11005,10 @@ var fr_default = {
     scenes_activate_button: "Activer",
     scenes_more_actions_tooltip: "Plus d'actions",
     scenes_burger_rename: "Renommer",
+    scenes_rename_blocked_no_yaml_id:
+      "Cette sc\xE8ne n'a pas d'id dans scenes.yaml ; Home Assistant construit donc son entity_id \xE0 partir du nom. La renommer ici d\xE9placerait l'entit\xE9 et casserait tout ce qui y fait r\xE9f\xE9rence \u2014 ajoutez d'abord un id: \xE0 l'entr\xE9e.",
+    scenes_rename_blocked_integration:
+      "Cette sc\xE8ne provient d'une autre int\xE9gration ; son nom y est d\xE9fini. Renommez-la dans cette int\xE9gration, ou remplacez le nom dans les param\xE8tres d'entit\xE9 de Home Assistant.",
     scenes_rename_save_tooltip: "Enregistrer",
     scenes_loading_label: "Chargement\u2026",
     scenes_refine_in_chat_button: "Affiner dans le chat",
@@ -12217,6 +12235,10 @@ var de_default = {
     scenes_activate_button: "Aktivieren",
     scenes_more_actions_tooltip: "Weitere Aktionen",
     scenes_burger_rename: "Umbenennen",
+    scenes_rename_blocked_no_yaml_id:
+      "Diese Szene hat keine id in der scenes.yaml, daher bildet Home Assistant ihre entity_id aus dem Namen. Ein Umbenennen hier w\xFCrde die Entit\xE4t verschieben und alles zerst\xF6ren, was auf sie verweist \u2014 f\xFCgen Sie dem Eintrag zuerst eine id: hinzu.",
+    scenes_rename_blocked_integration:
+      "Diese Szene stammt aus einer anderen Integration, ihr Name liegt dort. Benennen Sie sie in dieser Integration um oder \xFCberschreiben Sie den Namen in den Entit\xE4tseinstellungen von Home Assistant.",
     scenes_rename_save_tooltip: "Speichern",
     scenes_loading_label: "Lade\u2026",
     scenes_refine_in_chat_button: "Im Chat verfeinern",
@@ -13428,6 +13450,10 @@ var es_default = {
     scenes_activate_button: "Activar",
     scenes_more_actions_tooltip: "M\xE1s acciones",
     scenes_burger_rename: "Cambiar nombre",
+    scenes_rename_blocked_no_yaml_id:
+      "Esta escena no tiene id en scenes.yaml, as\xED que Home Assistant crea su entity_id a partir del nombre. Cambiarle el nombre aqu\xED mover\xEDa la entidad y romper\xEDa todo lo que apunte a ella; a\xF1ade primero un id: a la entrada.",
+    scenes_rename_blocked_integration:
+      "Esta escena proviene de otra integraci\xF3n, as\xED que su nombre est\xE1 all\xED. C\xE1mbiale el nombre en esa integraci\xF3n o sobrescribe el nombre en los ajustes de entidad de Home Assistant.",
     scenes_rename_save_tooltip: "Guardar",
     scenes_loading_label: "Cargando\u2026",
     scenes_refine_in_chat_button: "Refinar en el chat",
@@ -14624,6 +14650,10 @@ var it_default = {
     scenes_activate_button: "Attiva",
     scenes_more_actions_tooltip: "Altre azioni",
     scenes_burger_rename: "Rinomina",
+    scenes_rename_blocked_no_yaml_id:
+      "Questa scena non ha un id in scenes.yaml, quindi Home Assistant crea il suo entity_id dal nome. Rinominarla qui sposterebbe l'entit\xE0 e romperebbe tutto ci\xF2 che vi fa riferimento: aggiungi prima un id: alla voce.",
+    scenes_rename_blocked_integration:
+      "Questa scena proviene da un'altra integrazione, quindi il suo nome vive l\xEC. Rinominala in quell'integrazione oppure sovrascrivi il nome nelle impostazioni dell'entit\xE0 di Home Assistant.",
     scenes_rename_save_tooltip: "Salva",
     scenes_loading_label: "Caricamento\u2026",
     scenes_refine_in_chat_button: "Perfeziona in chat",
@@ -15841,6 +15871,10 @@ var nl_default = {
     scenes_activate_button: "Activeren",
     scenes_more_actions_tooltip: "Meer acties",
     scenes_burger_rename: "Naam wijzigen",
+    scenes_rename_blocked_no_yaml_id:
+      "Deze sc\xE8ne heeft geen id in scenes.yaml, dus Home Assistant leidt het entity_id af van de naam. Hier hernoemen verplaatst de entiteit en breekt alles wat ernaar verwijst \u2014 voeg eerst een id: toe aan het item.",
+    scenes_rename_blocked_integration:
+      "Deze sc\xE8ne komt uit een andere integratie, dus daar staat haar naam. Hernoem haar in die integratie of overschrijf de naam in de entiteitsinstellingen van Home Assistant.",
     scenes_rename_save_tooltip: "Opslaan",
     scenes_loading_label: "Laden\u2026",
     scenes_refine_in_chat_button: "Verfijnen in chat",
@@ -17063,6 +17097,10 @@ var hu_default = {
     scenes_activate_button: "Aktiv\xE1l\xE1s",
     scenes_more_actions_tooltip: "Tov\xE1bbi m\u0171veletek",
     scenes_burger_rename: "\xC1tnevez\xE9s",
+    scenes_rename_blocked_no_yaml_id:
+      "Ennek a jelenetnek nincs id-ja a scenes.yaml f\xE1jlban, ez\xE9rt a Home Assistant a n\xE9vb\u0151l k\xE9pzi az entity_id-t. Az itteni \xE1tnevez\xE9s \xE1thelyezn\xE9 az entit\xE1st, \xE9s mindent elrontana, ami r\xE1 hivatkozik \u2014 el\u0151bb adjon hozz\xE1 egy id: mez\u0151t a bejegyz\xE9shez.",
+    scenes_rename_blocked_integration:
+      "Ez a jelenet m\xE1sik integr\xE1ci\xF3b\xF3l sz\xE1rmazik, a neve is ott van. Nevezze \xE1t abban az integr\xE1ci\xF3ban, vagy \xEDrja fel\xFCl a nevet a Home Assistant entit\xE1sbe\xE1ll\xEDt\xE1saiban.",
     scenes_rename_save_tooltip: "Ment\xE9s",
     scenes_loading_label: "Bet\xF6lt\xE9s\u2026",
     scenes_refine_in_chat_button: "Finom\xEDt\xE1s a besz\xE9lget\xE9sben",
@@ -18285,6 +18323,10 @@ var pt_default = {
     scenes_activate_button: "Ativar",
     scenes_more_actions_tooltip: "Mais a\xE7\xF5es",
     scenes_burger_rename: "Mudar o nome",
+    scenes_rename_blocked_no_yaml_id:
+      "Esta cena n\xE3o tem id no scenes.yaml, por isso o Home Assistant cria o entity_id a partir do nome. Mudar o nome aqui moveria a entidade e quebraria tudo o que aponta para ela \u2014 adicione primeiro um id: \xE0 entrada.",
+    scenes_rename_blocked_integration:
+      "Esta cena vem de outra integra\xE7\xE3o, por isso o seu nome est\xE1 l\xE1. Mude o nome nessa integra\xE7\xE3o ou substitua o nome nas defini\xE7\xF5es de entidade do Home Assistant.",
     scenes_rename_save_tooltip: "Guardar",
     scenes_loading_label: "A carregar\u2026",
     scenes_refine_in_chat_button: "Aperfei\xE7oar na conversa",
@@ -19743,6 +19785,10 @@ var ru_default = {
       "\u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
     scenes_burger_rename:
       "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
+    scenes_rename_blocked_no_yaml_id:
+      "\u0423 \u044D\u0442\u043E\u0439 \u0441\u0446\u0435\u043D\u044B \u043D\u0435\u0442 id \u0432 scenes.yaml, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 Home Assistant \u0444\u043E\u0440\u043C\u0438\u0440\u0443\u0435\u0442 entity_id \u0438\u0437 \u0438\u043C\u0435\u043D\u0438. \u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u043D\u0438\u0435 \u0437\u0434\u0435\u0441\u044C \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C \u0438 \u0441\u043B\u043E\u043C\u0430\u0435\u0442 \u0432\u0441\u0451, \u0447\u0442\u043E \u043D\u0430 \u043D\u0435\u0451 \u0441\u0441\u044B\u043B\u0430\u0435\u0442\u0441\u044F \u2014 \u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0434\u043E\u0431\u0430\u0432\u044C\u0442\u0435 id: \u0432 \u0437\u0430\u043F\u0438\u0441\u044C.",
+    scenes_rename_blocked_integration:
+      "\u042D\u0442\u0430 \u0441\u0446\u0435\u043D\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0430 \u0434\u0440\u0443\u0433\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0435\u0439, \u0435\u0451 \u0438\u043C\u044F \u0445\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u0442\u0430\u043C. \u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u0443\u0439\u0442\u0435 \u0435\u0451 \u0432 \u044D\u0442\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438 \u0438\u043B\u0438 \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u0435 \u0438\u043C\u044F \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438 Home Assistant.",
     scenes_rename_save_tooltip:
       "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
     scenes_loading_label:
@@ -21379,6 +21425,10 @@ var ja_default = {
     scenes_activate_button: "\u8D77\u52D5",
     scenes_more_actions_tooltip: "\u305D\u306E\u4ED6\u306E\u64CD\u4F5C",
     scenes_burger_rename: "\u540D\u524D\u3092\u5909\u66F4",
+    scenes_rename_blocked_no_yaml_id:
+      "\u3053\u306E\u30B7\u30FC\u30F3\u306B\u306F scenes.yaml \u306B id \u304C\u306A\u3044\u305F\u3081\u3001Home Assistant \u306F\u540D\u524D\u304B\u3089 entity_id \u3092\u4F5C\u6210\u3057\u307E\u3059\u3002\u3053\u3053\u3067\u540D\u524D\u3092\u5909\u66F4\u3059\u308B\u3068\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u304C\u79FB\u52D5\u3057\u3001\u53C2\u7167\u3057\u3066\u3044\u308B\u3082\u306E\u304C\u3059\u3079\u3066\u58CA\u308C\u307E\u3059\u3002\u307E\u305A\u30A8\u30F3\u30C8\u30EA\u306B id: \u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    scenes_rename_blocked_integration:
+      "\u3053\u306E\u30B7\u30FC\u30F3\u306F\u5225\u306E\u7D71\u5408\u306B\u3088\u308B\u3082\u306E\u3067\u3001\u540D\u524D\u306F\u305D\u3061\u3089\u3067\u7BA1\u7406\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u305D\u306E\u7D71\u5408\u3067\u540D\u524D\u3092\u5909\u66F4\u3059\u308B\u304B\u3001Home Assistant \u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u8A2D\u5B9A\u3067\u540D\u524D\u3092\u4E0A\u66F8\u304D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
     scenes_rename_save_tooltip: "\u4FDD\u5B58",
     scenes_loading_label: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
     scenes_refine_in_chat_button: "\u30C1\u30E3\u30C3\u30C8\u3067\u8ABF\u6574",
@@ -22818,6 +22868,10 @@ var ko_default = {
     scenes_activate_button: "\uD65C\uC131\uD654",
     scenes_more_actions_tooltip: "\uCD94\uAC00 \uB3D9\uC791",
     scenes_burger_rename: "\uC774\uB984 \uBCC0\uACBD",
+    scenes_rename_blocked_no_yaml_id:
+      "\uC774 \uC7A5\uBA74\uC5D0\uB294 scenes.yaml\uC5D0 id\uAC00 \uC5C6\uC5B4 Home Assistant\uAC00 \uC774\uB984\uC5D0\uC11C entity_id\uB97C \uB9CC\uB4ED\uB2C8\uB2E4. \uC5EC\uAE30\uC11C \uC774\uB984\uC744 \uBC14\uAFB8\uBA74 \uC5D4\uD130\uD2F0\uAC00 \uC774\uB3D9\uD574 \uC774\uB97C \uCC38\uC870\uD558\uB294 \uBAA8\uB4E0 \uAC83\uC774 \uAE68\uC9D1\uB2C8\uB2E4. \uBA3C\uC800 \uD56D\uBAA9\uC5D0 id:\uB97C \uCD94\uAC00\uD558\uC138\uC694.",
+    scenes_rename_blocked_integration:
+      "\uC774 \uC7A5\uBA74\uC740 \uB2E4\uB978 \uD1B5\uD569\uC5D0\uC11C \uC81C\uACF5\uB418\uBBC0\uB85C \uC774\uB984\uB3C4 \uADF8\uACF3\uC5D0 \uC788\uC2B5\uB2C8\uB2E4. \uD574\uB2F9 \uD1B5\uD569\uC5D0\uC11C \uC774\uB984\uC744 \uBC14\uAFB8\uAC70\uB098 Home Assistant \uC5D4\uD130\uD2F0 \uC124\uC815\uC5D0\uC11C \uC774\uB984\uC744 \uC7AC\uC815\uC758\uD558\uC138\uC694.",
     scenes_rename_save_tooltip: "\uC800\uC7A5",
     scenes_loading_label: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
     scenes_refine_in_chat_button: "\uCC44\uD305\uC5D0\uC11C \uC218\uC815",
@@ -24154,6 +24208,10 @@ var zh_Hans_default = {
     scenes_activate_button: "\u6FC0\u6D3B",
     scenes_more_actions_tooltip: "\u66F4\u591A\u64CD\u4F5C",
     scenes_burger_rename: "\u91CD\u547D\u540D",
+    scenes_rename_blocked_no_yaml_id:
+      "\u6B64\u573A\u666F\u5728 scenes.yaml \u4E2D\u6CA1\u6709 id\uFF0C\u56E0\u6B64 Home Assistant \u4F1A\u6839\u636E\u540D\u79F0\u751F\u6210 entity_id\u3002\u5728\u6B64\u91CD\u547D\u540D\u4F1A\u79FB\u52A8\u8BE5\u5B9E\u4F53\u5E76\u7834\u574F\u6240\u6709\u6307\u5411\u5B83\u7684\u5185\u5BB9\u2014\u2014\u8BF7\u5148\u4E3A\u8BE5\u6761\u76EE\u6DFB\u52A0 id:\u3002",
+    scenes_rename_blocked_integration:
+      "\u6B64\u573A\u666F\u6765\u81EA\u5176\u4ED6\u96C6\u6210\uFF0C\u5176\u540D\u79F0\u7531\u8BE5\u96C6\u6210\u7BA1\u7406\u3002\u8BF7\u5728\u8BE5\u96C6\u6210\u4E2D\u91CD\u547D\u540D\uFF0C\u6216\u5728 Home Assistant \u7684\u5B9E\u4F53\u8BBE\u7F6E\u4E2D\u8986\u76D6\u540D\u79F0\u3002",
     scenes_rename_save_tooltip: "\u4FDD\u5B58",
     scenes_loading_label: "\u52A0\u8F7D\u4E2D\u2026",
     scenes_refine_in_chat_button: "\u5728\u5BF9\u8BDD\u4E2D\u5B8C\u5584",
@@ -25456,6 +25514,10 @@ var zh_Hant_default = {
     scenes_activate_button: "\u555F\u52D5",
     scenes_more_actions_tooltip: "\u66F4\u591A\u52D5\u4F5C",
     scenes_burger_rename: "\u91CD\u65B0\u547D\u540D",
+    scenes_rename_blocked_no_yaml_id:
+      "\u6B64\u60C5\u5883\u5728 scenes.yaml \u4E2D\u6C92\u6709 id\uFF0C\u56E0\u6B64 Home Assistant \u6703\u4F9D\u540D\u7A31\u7522\u751F entity_id\u3002\u5728\u6B64\u91CD\u65B0\u547D\u540D\u6703\u79FB\u52D5\u8A72\u5BE6\u9AD4\u4E26\u7834\u58DE\u6240\u6709\u6307\u5411\u5B83\u7684\u5167\u5BB9\u2014\u2014\u8ACB\u5148\u70BA\u8A72\u9805\u76EE\u52A0\u5165 id:\u3002",
+    scenes_rename_blocked_integration:
+      "\u6B64\u60C5\u5883\u4F86\u81EA\u5176\u4ED6\u6574\u5408\uFF0C\u5176\u540D\u7A31\u7531\u8A72\u6574\u5408\u7BA1\u7406\u3002\u8ACB\u5728\u8A72\u6574\u5408\u4E2D\u91CD\u65B0\u547D\u540D\uFF0C\u6216\u5728 Home Assistant \u7684\u5BE6\u9AD4\u8A2D\u5B9A\u4E2D\u8986\u5BEB\u540D\u7A31\u3002",
     scenes_rename_save_tooltip: "\u5132\u5B58",
     scenes_loading_label: "\u8F09\u5165\u4E2D\u2026",
     scenes_refine_in_chat_button: "\u5728\u5C0D\u8A71\u4E2D\u8ABF\u6574",
@@ -37582,6 +37644,18 @@ function renderScenes(host) {
                     const updated = formatTimeAgo(s4.updated_at);
                     const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
                     const isSelora = s4.source === "selora";
+                    const renamable =
+                      s4.renamable === void 0 ? isSelora : !!s4.renamable;
+                    const renameBlockedReason = {
+                      no_yaml_id: host._t(
+                        "scenes_rename_blocked_no_yaml_id",
+                        "This scene has no id in scenes.yaml, so Home Assistant builds its entity_id from the name. Renaming it here would move the entity and break anything pointing at it \u2014 add an id: to the entry first.",
+                      ),
+                      integration: host._t(
+                        "scenes_rename_blocked_integration",
+                        "This scene comes from another integration, so its name lives there. Rename it in that integration, or override the name in Home Assistant's entity settings.",
+                      ),
+                    }[s4.rename_blocked || ""];
                     const deletable = s4.deletable !== false;
                     const recipeTitle = s4.recipe_title || "";
                     const recipeSlug = s4.recipe_slug || "";
@@ -37808,29 +37882,28 @@ function renderScenes(host) {
                                                 )
                                           }
                                         </button>
-                                        ${
-                                          isSelora
-                                            ? b2`<button
-                                                class="burger-item"
-                                                @click=${(e6) => {
-                                                  e6.stopPropagation();
-                                                  host._startRenameScene(
-                                                    sceneId,
-                                                    s4.name,
-                                                  );
-                                                }}
-                                              >
-                                                <ha-icon
-                                                  icon="mdi:pencil-outline"
-                                                  style="--mdc-icon-size:14px;"
-                                                ></ha-icon>
-                                                ${host._t(
-                                                  "scenes_burger_rename",
-                                                  "Rename",
-                                                )}
-                                              </button>`
-                                            : ""
-                                        }
+                                        <button
+                                          class="burger-item"
+                                          ?disabled=${!renamable}
+                                          title=${renameBlockedReason || A}
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
+                                            if (!renamable) return;
+                                            host._startRenameScene(
+                                              sceneId,
+                                              s4.name,
+                                            );
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:pencil-outline"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${host._t(
+                                            "scenes_burger_rename",
+                                            "Rename",
+                                          )}
+                                        </button>
                                         <button
                                           class="burger-item"
                                           @click=${(e6) => {
@@ -49722,7 +49795,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "7355598d557c" : "";
+var PANEL_BUILD = true ? "4c26d0748a9e" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

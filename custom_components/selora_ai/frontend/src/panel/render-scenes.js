@@ -610,6 +610,22 @@ export function renderScenes(host) {
                     const updated = formatTimeAgo(s.updated_at);
                     const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` · updated ${updated}` : ""}`;
                     const isSelora = s.source === "selora";
+                    // A yaml entry carrying an id can be renamed whoever wrote
+                    // it — Selora's editor or Home Assistant's. The backend
+                    // decides, and says why when it says no; an older backend
+                    // sends neither field, so fall back to what it did then.
+                    const renamable =
+                      s.renamable === undefined ? isSelora : !!s.renamable;
+                    const renameBlockedReason = {
+                      no_yaml_id: host._t(
+                        "scenes_rename_blocked_no_yaml_id",
+                        "This scene has no id in scenes.yaml, so Home Assistant builds its entity_id from the name. Renaming it here would move the entity and break anything pointing at it — add an id: to the entry first.",
+                      ),
+                      integration: host._t(
+                        "scenes_rename_blocked_integration",
+                        "This scene comes from another integration, so its name lives there. Rename it in that integration, or override the name in Home Assistant's entity settings.",
+                      ),
+                    }[s.rename_blocked || ""];
                     // Selora scenes and HA-native scenes that live in
                     // scenes.yaml can be deleted; scenes from other
                     // integrations (no YAML entry) cannot.
@@ -845,29 +861,30 @@ export function renderScenes(host) {
                                                 )
                                           }
                                         </button>
-                                        ${
-                                          isSelora
-                                            ? html`<button
-                                                class="burger-item"
-                                                @click=${(e) => {
-                                                  e.stopPropagation();
-                                                  host._startRenameScene(
-                                                    sceneId,
-                                                    s.name,
-                                                  );
-                                                }}
-                                              >
-                                                <ha-icon
-                                                  icon="mdi:pencil-outline"
-                                                  style="--mdc-icon-size:14px;"
-                                                ></ha-icon>
-                                                ${host._t(
-                                                  "scenes_burger_rename",
-                                                  "Rename",
-                                                )}
-                                              </button>`
-                                            : ""
-                                        }
+                                        <button
+                                          class="burger-item"
+                                          ?disabled=${!renamable}
+                                          title=${
+                                            renameBlockedReason || nothing
+                                          }
+                                          @click=${(e) => {
+                                            e.stopPropagation();
+                                            if (!renamable) return;
+                                            host._startRenameScene(
+                                              sceneId,
+                                              s.name,
+                                            );
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:pencil-outline"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${host._t(
+                                            "scenes_burger_rename",
+                                            "Rename",
+                                          )}
+                                        </button>
                                         <button
                                           class="burger-item"
                                           @click=${(e) => {
