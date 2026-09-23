@@ -24,6 +24,7 @@ from .. import (
 )
 from ..const import (
     DOMAIN,
+    SCENE_ID_PREFIX,
     SIGNAL_SCENE_DELETED,
     SIGNAL_SCENE_REFRESHED,
 )
@@ -342,12 +343,22 @@ async def _handle_websocket_rename_scene(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Rename a saved Selora scene.
+    """Rename a scene in ``scenes.yaml`` — Selora's own, or Home Assistant's.
 
-    The target is restricted to a scene the store already knows and the writer
-    checks the id prefix again, so a crafted client cannot rename an arbitrary
-    ``scenes.yaml`` entry — the same gate ``save_scene_edits`` applies, and the
-    reason both address the scene by id rather than by position in the file.
+    A scene the Home Assistant scene editor wrote is an ordinary entry in the
+    same file, and this panel already DELETES those; refusing to rename one was
+    the stricter half of an inconsistent pair. What the two classes do not
+    share is their record: a Selora scene is tracked in the scene store, an HA
+    one is not, so the store write below is conditional. Writing a record for
+    an HA scene would list it as Selora-managed, which is the ownership claim
+    the display prefix is withheld to avoid.
+
+    A **Selora** id still has to name a live store record. Its scenes are
+    addressed by an id we mint, so one that resolves to nothing — or to a
+    deleted scene — is a stale or crafted target rather than a rename.
+    Everything else is bounded by the file: the writer rewrites the entry whose
+    ``id`` matches and refuses when there is none, which is the same blast
+    radius the delete handler already accepts for a yaml-managed scene.
 
     The store and every session that references the scene are refreshed after
     the write. Without that the panel's list and the chat history keep serving
@@ -360,7 +371,8 @@ async def _handle_websocket_rename_scene(
     scene_id = msg["scene_id"]
     scene_store = _get_scene_store(hass)
     record = await scene_store.async_get_scene(scene_id)
-    if record is None or record.get("deleted_at") is not None:
+    tracked = record is not None and record.get("deleted_at") is None
+    if scene_id.startswith(SCENE_ID_PREFIX) and not tracked:
         connection.send_error(msg["id"], "not_found", "Scene not found")
         return
 
@@ -380,16 +392,17 @@ async def _handle_websocket_rename_scene(
         connection.send_error(msg["id"], "rename_failed", str(exc))
         return
 
-    try:
-        await scene_store.async_add_scene(
-            scene_id,
-            result["name"],
-            result["entity_count"],
-            entity_id=result.get("entity_id"),
-            content_hash=result["content_hash"],
-        )
-    except Exception:  # noqa: BLE001 — the rename landed; a store refresh failure must not undo it
-        _LOGGER.warning("Failed to update scene %s in store after rename", scene_id)
+    if tracked:
+        try:
+            await scene_store.async_add_scene(
+                scene_id,
+                result["name"],
+                result["entity_count"],
+                entity_id=result.get("entity_id"),
+                content_hash=result["content_hash"],
+            )
+        except Exception:  # noqa: BLE001 — the rename landed; a store refresh must not undo it
+            _LOGGER.warning("Failed to update scene %s in store after rename", scene_id)
 
     try:
         store: ConversationStore = hass.data[DOMAIN].setdefault(
@@ -483,7 +496,15 @@ async def _handle_websocket_get_scenes(
         entry = yaml_by_id.get(record["scene_id"])
         if entry is None:
             enriched.append(
-                {**record, "entities": {}, "yaml": "", "source": "selora", "deletable": True}
+                {
+                    **record,
+                    "entities": {},
+                    "yaml": "",
+                    "source": "selora",
+                    "deletable": True,
+                    "renamable": True,
+                    "rename_blocked": "",
+                }
             )
             continue
         entities = entry.get("entities") or {}
@@ -505,6 +526,8 @@ async def _handle_websocket_get_scenes(
                 "yaml": yaml_text,
                 "source": "selora",
                 "deletable": True,
+                "renamable": True,
+                "rename_blocked": "",
             }
         )
 
@@ -551,6 +574,10 @@ async def _handle_websocket_get_scenes(
                 "source": "home_assistant",
                 # Present in scenes.yaml → removable via the YAML writer.
                 "deletable": True,
+                # And renameable: the entry carries an id, which HA registers
+                # as the scene's unique_id, so rewriting `name` moves nothing.
+                "renamable": True,
+                "rename_blocked": "",
             }
         )
 
@@ -608,6 +635,16 @@ async def _handle_websocket_get_scenes(
                 "yaml": yaml_text,
                 "source": "home_assistant",
                 "deletable": idless_entry is not None,
+                # Neither shape can be renamed from here, and the panel says
+                # which one it is rather than leaving the row's menu short an
+                # item with no explanation. An id-less entry is deletable but
+                # NOT renameable: with no id there is no unique_id, so HA
+                # derives the entity_id from the name — renaming it moves the
+                # entity and silently breaks every automation, script and
+                # dashboard pointing at the old one. Adding an `id:` to the
+                # entry is what makes it renameable.
+                "renamable": False,
+                "rename_blocked": "no_yaml_id" if idless_entry is not None else "integration",
             }
         )
 

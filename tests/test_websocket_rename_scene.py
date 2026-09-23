@@ -203,16 +203,78 @@ async def test_a_failed_reload_rolls_the_name_back(hass: Any) -> None:
     assert (await _read_scenes(hass))[0]["name"] == "[Selora AI] Movie Night"
 
 
+# A scene Home Assistant's own editor wrote: a timestamp id, an icon, a
+# metadata block, and per-entity extras the integration captured.
+HA_SCENE_ID = "1761606947175"
+
+
+def _ha_entry() -> dict[str, Any]:
+    return {
+        "id": HA_SCENE_ID,
+        "name": "External lights",
+        "entities": {
+            "switch.front_porch_overhead_light": {
+                "device_id": "4",
+                "zone_id": "2",
+                "friendly_name": "Front Porch Overhead Light",
+                "state": "on",
+            }
+        },
+        "icon": "mdi:light-recessed",
+        "metadata": {},
+    }
+
+
 @pytest.mark.asyncio
-async def test_refuses_a_scene_that_is_not_selora_managed(hass: Any) -> None:
-    """The writer re-checks the id prefix rather than trusting its caller."""
-    await _write_scenes(hass, [{"id": "movie_night", "name": "Movie Night", "entities": {}}])
+async def test_renames_a_home_assistant_scene_without_claiming_it(hass: Any) -> None:
+    """The display prefix marks ownership, and the id already decides that."""
+    await _write_scenes(hass, [_ha_entry()])
+    _register_reload(hass)
+
+    await async_rename_scene_yaml(hass, HA_SCENE_ID, "Exterior lights")
+
+    entry = (await _read_scenes(hass))[0]
+    assert entry["name"] == "Exterior lights"
+
+
+@pytest.mark.asyncio
+async def test_a_rename_keeps_everything_home_assistant_stored(hass: Any) -> None:
+    """Only ``name`` is touched.
+
+    Rebuilding the entry — which is what ``async_create_scene`` does — keeps
+    id/name/entities and drops the rest, so the icon, the metadata block and
+    every per-entity extra would vanish on a rename.
+    """
+    await _write_scenes(hass, [_ha_entry()])
+    _register_reload(hass)
+
+    await async_rename_scene_yaml(hass, HA_SCENE_ID, "Exterior lights")
+
+    entry = (await _read_scenes(hass))[0]
+    assert entry["icon"] == "mdi:light-recessed"
+    assert entry["metadata"] == {}
+    assert entry["entities"]["switch.front_porch_overhead_light"] == {
+        "device_id": "4",
+        "zone_id": "2",
+        "friendly_name": "Front Porch Overhead Light",
+        "state": "on",
+    }
+    # And the id stays a STRING. A timestamp id re-emitted unquoted reads back
+    # as an int, which no longer matches the unique_id HA registered.
+    assert entry["id"] == HA_SCENE_ID
+    assert isinstance(entry["id"], str)
+
+
+@pytest.mark.asyncio
+async def test_an_unknown_home_assistant_scene_is_refused(hass: Any) -> None:
+    """The file bounds the write: no entry with that id, no rename."""
+    await _write_scenes(hass, [_ha_entry()])
     _register_reload(hass)
 
     with pytest.raises(SceneRenameError):
-        await async_rename_scene_yaml(hass, "movie_night", "Film Night")
+        await async_rename_scene_yaml(hass, "9999999999999", "Exterior lights")
 
-    assert (await _read_scenes(hass))[0]["name"] == "Movie Night"
+    assert (await _read_scenes(hass))[0]["name"] == "External lights"
 
 
 @pytest.mark.asyncio
@@ -317,3 +379,50 @@ async def test_assist_is_told_the_scene_was_renamed(hass: Any) -> None:
 
     assert [(sid, name) for sid, name, _ in refreshed] == [(SCENE_ID, "Film Night")]
     assert "Film Night" in refreshed[0][2]
+
+
+@pytest.mark.asyncio
+async def test_the_handler_renames_a_home_assistant_scene(hass: Any) -> None:
+    """No store record is required — and none is written.
+
+    A record would list the scene as Selora-managed in the panel, which is the
+    ownership claim the withheld display prefix exists to avoid.
+    """
+    await _write_scenes(hass, [_ha_entry()])
+    hass.data.setdefault(DOMAIN, {})
+    _register_reload(hass)
+
+    connection = await _invoke(
+        hass,
+        {
+            "id": 1,
+            "type": "selora_ai/rename_scene",
+            "scene_id": HA_SCENE_ID,
+            "name": "Exterior lights",
+        },
+    )
+
+    connection.send_error.assert_not_called()
+    assert connection.send_result.call_args.args[1]["name"] == "Exterior lights"
+    assert (await _read_scenes(hass))[0]["name"] == "Exterior lights"
+    assert await get_scene_store(hass).async_get_scene(HA_SCENE_ID) is None
+
+
+@pytest.mark.asyncio
+async def test_a_selora_id_the_store_forgot_is_still_refused(hass: Any) -> None:
+    """Widening to HA scenes must not widen to Selora ids nobody tracks.
+
+    Selora addresses its scenes by an id it mints, so one resolving to no live
+    record is a stale or crafted target rather than a rename.
+    """
+    await _write_scenes(hass, [_entry()])
+    hass.data.setdefault(DOMAIN, {})
+    _register_reload(hass)
+
+    connection = await _invoke(
+        hass,
+        {"id": 1, "type": "selora_ai/rename_scene", "scene_id": SCENE_ID, "name": "Film Night"},
+    )
+
+    assert connection.send_error.call_args.args[1] == "not_found"
+    assert (await _read_scenes(hass))[0]["name"] == "[Selora AI] Movie Night"

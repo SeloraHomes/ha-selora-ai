@@ -460,6 +460,8 @@
     "scenes_activate_button": "起動",
     "scenes_more_actions_tooltip": "その他の操作",
     "scenes_burger_rename": "名前を変更",
+    "scenes_rename_blocked_no_yaml_id": "このシーンには scenes.yaml に id がないため、Home Assistant は名前から entity_id を作成します。ここで名前を変更するとエンティティが移動し、参照しているものがすべて壊れます。まずエントリに id: を追加してください。",
+    "scenes_rename_blocked_integration": "このシーンは別の統合によるもので、名前はそちらで管理されています。その統合で名前を変更するか、Home Assistant のエンティティ設定で名前を上書きしてください。",
     "scenes_rename_save_tooltip": "保存",
     "scenes_loading_label": "読み込み中…",
     "scenes_refine_in_chat_button": "チャットで調整",

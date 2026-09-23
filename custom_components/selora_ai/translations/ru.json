@@ -460,6 +460,8 @@
     "scenes_activate_button": "Активировать",
     "scenes_more_actions_tooltip": "Дополнительные действия",
     "scenes_burger_rename": "Переименовать",
+    "scenes_rename_blocked_no_yaml_id": "У этой сцены нет id в scenes.yaml, поэтому Home Assistant формирует entity_id из имени. Переименование здесь переместит сущность и сломает всё, что на неё ссылается — сначала добавьте id: в запись.",
+    "scenes_rename_blocked_integration": "Эта сцена создана другой интеграцией, её имя хранится там. Переименуйте её в этой интеграции или переопределите имя в настройках сущности Home Assistant.",
     "scenes_rename_save_tooltip": "Сохранить",
     "scenes_loading_label": "Загрузка…",
     "scenes_refine_in_chat_button": "Доработать в чате",

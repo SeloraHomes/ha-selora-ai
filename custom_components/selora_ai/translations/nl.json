@@ -480,6 +480,8 @@
     "scenes_activate_button": "Activeren",
     "scenes_more_actions_tooltip": "Meer acties",
     "scenes_burger_rename": "Naam wijzigen",
+    "scenes_rename_blocked_no_yaml_id": "Deze scène heeft geen id in scenes.yaml, dus Home Assistant leidt het entity_id af van de naam. Hier hernoemen verplaatst de entiteit en breekt alles wat ernaar verwijst — voeg eerst een id: toe aan het item.",
+    "scenes_rename_blocked_integration": "Deze scène komt uit een andere integratie, dus daar staat haar naam. Hernoem haar in die integratie of overschrijf de naam in de entiteitsinstellingen van Home Assistant.",
     "scenes_rename_save_tooltip": "Opslaan",
     "scenes_loading_label": "Laden…",
     "scenes_refine_in_chat_button": "Verfijnen in chat",

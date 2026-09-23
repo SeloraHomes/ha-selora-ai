@@ -460,6 +460,8 @@
     "scenes_activate_button": "Activate",
     "scenes_more_actions_tooltip": "More actions",
     "scenes_burger_rename": "Rename",
+    "scenes_rename_blocked_no_yaml_id": "This scene has no id in scenes.yaml, so Home Assistant builds its entity_id from the name. Renaming it here would move the entity and break anything pointing at it — add an id: to the entry first.",
+    "scenes_rename_blocked_integration": "This scene comes from another integration, so its name lives there. Rename it in that integration, or override the name in Home Assistant's entity settings.",
     "scenes_rename_save_tooltip": "Save",
     "scenes_loading_label": "Loading…",
     "scenes_refine_in_chat_button": "Refine in chat",

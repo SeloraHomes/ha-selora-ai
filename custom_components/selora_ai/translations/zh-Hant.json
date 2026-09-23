@@ -460,6 +460,8 @@
     "scenes_activate_button": "啟動",
     "scenes_more_actions_tooltip": "更多動作",
     "scenes_burger_rename": "重新命名",
+    "scenes_rename_blocked_no_yaml_id": "此情境在 scenes.yaml 中沒有 id，因此 Home Assistant 會依名稱產生 entity_id。在此重新命名會移動該實體並破壞所有指向它的內容——請先為該項目加入 id:。",
+    "scenes_rename_blocked_integration": "此情境來自其他整合，其名稱由該整合管理。請在該整合中重新命名，或在 Home Assistant 的實體設定中覆寫名稱。",
     "scenes_rename_save_tooltip": "儲存",
     "scenes_loading_label": "載入中…",
     "scenes_refine_in_chat_button": "在對話中調整",
