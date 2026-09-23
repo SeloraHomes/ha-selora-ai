@@ -798,6 +798,26 @@ class TestParseStreamedSceneResponse:
         assert "scene_yaml" in result
         assert "Movie Time" in result["scene_yaml"]
 
+    def test_a_refinement_with_no_prose_does_not_claim_a_creation(self, hass) -> None:
+        """The fallback stands in when the model writes nothing of its own.
+
+        A refinement replaces the scene the session already saved — renaming
+        one in chat is exactly that — so "Scene created." names the wrong act
+        on the card the user is about to accept.
+        """
+        hass.states.async_set("light.living_room", "on")
+        client = self._make_client(hass)
+        text = (
+            "```scene\n"
+            '{"name": "Film Night", "refine_scene_id": "selora_ai_scene_abcd1234",'
+            ' "entities": {"light.living_room": {"state": "on"}}}\n'
+            "```"
+        )
+        result = client.parse_streamed_response(text)
+        assert result["intent"] == "scene"
+        assert result["refine_scene_id"] == "selora_ai_scene_abcd1234"
+        assert "created" not in result["response"].lower()
+
     def test_invalid_scene_block_falls_back(self, hass) -> None:
         client = self._make_client(hass)
         text = 'Sure thing.\n\n```scene\n{"name": "", "entities": {}}\n```'

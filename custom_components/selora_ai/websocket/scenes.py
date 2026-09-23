@@ -25,6 +25,7 @@ from .. import (
 from ..const import (
     DOMAIN,
     SIGNAL_SCENE_DELETED,
+    SIGNAL_SCENE_REFRESHED,
 )
 from ..conversation_store import ConversationStore
 
@@ -184,6 +185,9 @@ async def _handle_websocket_accept_scene(
         {
             "scene_id": scene_result["scene_id"],
             "entity_id": scene_result.get("entity_id"),
+            # A refinement rewrites the scene the session already saved, so the
+            # panel can say which of the two it did.
+            "replaced": scene_result.get("replaced", False),
         },
     )
 
@@ -321,6 +325,97 @@ async def _handle_websocket_save_scene_edits(
             "entity_count": result["entity_count"],
             "scene_yaml": result["scene_yaml"],
             "entities": normalized["entities"],
+        },
+    )
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/rename_scene",
+        vol.Required("scene_id"): str,
+        vol.Required("name"): str,
+    }
+)
+async def _handle_websocket_rename_scene(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Rename a saved Selora scene.
+
+    The target is restricted to a scene the store already knows and the writer
+    checks the id prefix again, so a crafted client cannot rename an arbitrary
+    ``scenes.yaml`` entry — the same gate ``save_scene_edits`` applies, and the
+    reason both address the scene by id rather than by position in the file.
+
+    The store and every session that references the scene are refreshed after
+    the write. Without that the panel's list and the chat history keep serving
+    the old name — the store until a reconcile happens to run, a session
+    forever, since nothing re-reads a scene block that is already recorded.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    scene_id = msg["scene_id"]
+    scene_store = _get_scene_store(hass)
+    record = await scene_store.async_get_scene(scene_id)
+    if record is None or record.get("deleted_at") is not None:
+        connection.send_error(msg["id"], "not_found", "Scene not found")
+        return
+
+    from ..scene_utils import (  # noqa: PLC0415
+        SceneRenameError,
+        ScenesYamlError,
+        async_rename_scene_yaml,
+    )
+
+    try:
+        result = await async_rename_scene_yaml(hass, scene_id, msg["name"])
+    except (SceneRenameError, ScenesYamlError) as exc:
+        connection.send_error(msg["id"], "rename_failed", str(exc))
+        return
+    except Exception as exc:  # noqa: BLE001 — an unexpected failure is an error, not a dropped request
+        _LOGGER.exception("Error renaming scene %s", scene_id)
+        connection.send_error(msg["id"], "rename_failed", str(exc))
+        return
+
+    try:
+        await scene_store.async_add_scene(
+            scene_id,
+            result["name"],
+            result["entity_count"],
+            entity_id=result.get("entity_id"),
+            content_hash=result["content_hash"],
+        )
+    except Exception:  # noqa: BLE001 — the rename landed; a store refresh failure must not undo it
+        _LOGGER.warning("Failed to update scene %s in store after rename", scene_id)
+
+    try:
+        store: ConversationStore = hass.data[DOMAIN].setdefault(
+            "_conv_store", ConversationStore(hass)
+        )
+        await store.update_scene_in_sessions(scene_id, result["name"], result["scene_yaml"])
+    except Exception:  # noqa: BLE001 — same: sessions are a cache of the file, not the record
+        _LOGGER.warning("Failed to propagate scene %s rename to sessions", scene_id)
+
+    # Assist holds its own in-memory copy of each conversation's scenes, and
+    # nothing repairs it afterwards: the store now carries the new content
+    # hash, so the next reconcile sees no drift and never fires this signal of
+    # its own accord. Left out, an open conversation goes on naming the scene
+    # as it was for the life of the process. Dispatched outside the try above
+    # because the two caches are independent — a failed session write is no
+    # reason to leave Assist stale as well.
+    async_dispatcher_send(
+        hass, SIGNAL_SCENE_REFRESHED, scene_id, result["name"], result["scene_yaml"]
+    )
+
+    connection.send_result(
+        msg["id"],
+        {
+            "scene_id": scene_id,
+            "name": result["name"],
+            "entity_id": result.get("entity_id"),
         },
     )
 
@@ -797,6 +892,7 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _handle_websocket_set_scene_status)
     websocket_api.async_register_command(hass, _handle_websocket_accept_scene)
     websocket_api.async_register_command(hass, _handle_websocket_save_scene_edits)
+    websocket_api.async_register_command(hass, _handle_websocket_rename_scene)
     websocket_api.async_register_command(hass, _handle_websocket_apply_scene_states)
     websocket_api.async_register_command(hass, _handle_websocket_get_scenes)
     websocket_api.async_register_command(hass, _handle_websocket_load_scene_to_session)

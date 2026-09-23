@@ -637,7 +637,7 @@ export function renderScenes(host) {
                           @click=${(e) => {
                             if (
                               e.target.closest(
-                                ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
+                                ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn, .rename-input, .rename-save-btn",
                               )
                             )
                               return;
@@ -655,7 +655,46 @@ export function renderScenes(host) {
                             ></ha-icon>
                             <div class="auto-row-name">
                               <div class="auto-row-title-row">
-                                <span class="auto-row-title">${s.name}</span>
+                                ${
+                                  host._editingSceneName === sceneId
+                                    ? html`
+                                        <input
+                                          class="rename-input"
+                                          data-scene-id="${sceneId}"
+                                          .value=${host._editingSceneNameValue}
+                                          @input=${(e) => {
+                                            host._editingSceneNameValue =
+                                              e.target.value;
+                                          }}
+                                          @click=${(e) => e.stopPropagation()}
+                                          @keydown=${(e) => {
+                                            if (e.key === "Enter")
+                                              host._saveRenameScene(sceneId);
+                                            if (e.key === "Escape")
+                                              host._cancelRenameScene();
+                                          }}
+                                        />
+                                        <button
+                                          class="rename-save-btn"
+                                          title=${host._t(
+                                            "scenes_rename_save_tooltip",
+                                            "Save",
+                                          )}
+                                          @click=${(e) => {
+                                            e.stopPropagation();
+                                            host._saveRenameScene(sceneId);
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:check"
+                                            style="--mdc-icon-size:16px;"
+                                          ></ha-icon>
+                                        </button>
+                                      `
+                                    : html`<span class="auto-row-title"
+                                        >${s.name}</span
+                                      >`
+                                }
                                 ${
                                   recipeTitle
                                     ? html`<span
@@ -813,6 +852,29 @@ export function renderScenes(host) {
                                                 )
                                           }
                                         </button>
+                                        ${
+                                          isSelora
+                                            ? html`<button
+                                                class="burger-item"
+                                                @click=${(e) => {
+                                                  e.stopPropagation();
+                                                  host._startRenameScene(
+                                                    sceneId,
+                                                    s.name,
+                                                  );
+                                                }}
+                                              >
+                                                <ha-icon
+                                                  icon="mdi:pencil-outline"
+                                                  style="--mdc-icon-size:14px;"
+                                                ></ha-icon>
+                                                ${host._t(
+                                                  "scenes_burger_rename",
+                                                  "Rename",
+                                                )}
+                                              </button>`
+                                            : ""
+                                        }
                                         <button
                                           class="burger-item"
                                           @click=${(e) => {
