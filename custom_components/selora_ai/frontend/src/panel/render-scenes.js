@@ -41,16 +41,20 @@ function _entityArea(host, entityId) {
   return areaId ? host.hass?.areas?.[areaId]?.name || null : null;
 }
 
-// One row, two real HA tiles for the same entity:
-//   - left ("Now"): the live entity — interactive, reflects real state.
-//   - right ("Scene sets"): the same tile forced to the scene's target
-//     state via data-scene-states, rendered read-only (pointer-events
-//     disabled in CSS) so it's a preview, not a second control.
-function _renderTargetRow(host, entityId, stateData, editSceneId) {
-  // The right tile shows the (possibly edited) target. When the scene is
-  // editable, its callService is intercepted (see _hydrateEntityChips)
-  // via data-scene-edit-id so dragging the tile changes the scene, not
-  // the device. Non-editable rows (chat proposals) stay read-only.
+// One tile per entity: the entity's own HA tile, forced to the state the
+// scene sets via data-scene-states.
+//
+// It used to be two — the live entity beside the target, an arrow between
+// them — and the pair read as one control duplicated rather than as before
+// and after: both tiles carry the same name and icon, and an unchanged
+// entity makes them identical. What the live half was FOR is answerable
+// from the scene tab, the dashboard, or the tile's own more-info, and none
+// of those sit inside the editor asking to be adjusted.
+function _renderTargetTile(host, entityId, stateData, editSceneId) {
+  // The tile shows the (possibly edited) target. When the scene is editable,
+  // its callService is intercepted (see _hydrateEntityChips) via
+  // data-scene-edit-id so dragging the tile changes the scene, not the
+  // device. Non-editable tiles (chat proposals) stay read-only.
   const target =
     editSceneId && host._sceneEditedEntities(editSceneId)?.[entityId] != null
       ? host._sceneEditedEntities(editSceneId)[entityId]
@@ -58,21 +62,14 @@ function _renderTargetRow(host, entityId, stateData, editSceneId) {
   const single = JSON.stringify({ [entityId]: target });
 
   return html`
-    <div class="scene-ent-row">
-      <div
-        class="selora-entity-grid scene-ent-tile"
-        data-entity-ids=${entityId}
-      ></div>
-      <ha-icon class="scene-ent-arrow" icon="mdi:arrow-right"></ha-icon>
-      <div
-        class="selora-entity-grid scene-ent-tile ${
-          editSceneId ? "scene-ent-tile--edit" : "scene-ent-tile--forced"
-        }"
-        data-entity-ids=${entityId}
-        data-scene-states=${single}
-        data-scene-edit-id=${editSceneId || ""}
-      ></div>
-    </div>
+    <div
+      class="selora-entity-grid scene-ent-tile ${
+        editSceneId ? "" : "scene-ent-tile--forced"
+      }"
+      data-entity-ids=${entityId}
+      data-scene-states=${single}
+      data-scene-edit-id=${editSceneId || ""}
+    ></div>
   `;
 }
 
@@ -107,19 +104,15 @@ function _renderEntityList(host, entities, editSceneId = null) {
         ? html`<div class="scene-ent-hint">
             <ha-icon icon="mdi:gesture-tap"></ha-icon>
             <span
-              >Adjust each entity's desired state on the <strong>right</strong>.
-              Edits don't touch your devices until you <strong>Test</strong> or
-              activate the scene.</span
+              >${host._t(
+                "scenes_edit_hint",
+                "Adjust each entity to the state this scene should set. Edits don't touch your devices until you Test or activate the scene.",
+              )}</span
             >
           </div>`
         : ""
     }
     <div class="scene-ent-list">
-      <div class="scene-ent-head">
-        <span>Now</span>
-        <span></span>
-        <span class="scene-ent-cap--target">Scene sets</span>
-      </div>
       ${sorted.map(
         ([area, areaIds]) => html`
           ${
@@ -131,7 +124,7 @@ function _renderEntityList(host, entities, editSceneId = null) {
               : ""
           }
           ${areaIds.map((id) =>
-            _renderTargetRow(host, id, source[id], editSceneId),
+            _renderTargetTile(host, id, source[id], editSceneId),
           )}
         `,
       )}

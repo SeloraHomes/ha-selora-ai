@@ -433,6 +433,7 @@
     "automations_unavailable_modal_open_in_automations": "在自动化中打开",
     "scenes_card_created_title": "场景已创建",
     "scenes_card_saved_status": "已保存到 Home Assistant",
+    "scenes_edit_hint": "将每个实体调整为此场景应设置的状态。在你使用 Test 或激活场景之前，编辑不会影响你的设备。",
     "scenes_card_activate_button": "激活",
     "scenes_card_test_button": "测试场景",
     "scenes_card_view_in_ha_button": "在 HA 中查看",
