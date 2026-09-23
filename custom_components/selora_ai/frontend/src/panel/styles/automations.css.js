@@ -360,9 +360,10 @@ export const automationsStyles = css`
   .auto-row-expand {
     padding: 14px 16px 16px;
   }
-  /* Scene desired-state list: each row = the entity's real HA tile
-     (left, rendered with the scene's target state) + the final desired
-     state spelled out (right). */
+  /* Scene desired-state list: one tile per entity, showing the state the
+     scene sets. Laid out like a dashboard — the same auto-fill track sizing
+     the chat entity grid uses — so a multi-room scene reads as a few rows of
+     tiles rather than one tall column. */
   .scene-ent-hint {
     display: flex;
     align-items: center;
@@ -409,11 +410,24 @@ export const automationsStyles = css`
     gap: 8px;
   }
   .scene-ent-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    /* Same track sizing as .selora-entity-grid, including the 280px cap:
+       a lone tile must not stretch to the full card width while tiles in a
+       denser row sit at ~260px. */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
     gap: 10px;
+    align-items: start;
   }
+  /* On a phone a capped track leaves dead space beside a lone tile, and
+     there is never room for a second column anyway. */
+  @media (max-width: 600px) {
+    .scene-ent-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  /* Area headers break the tile flow, so they take the whole row. */
   .scene-ent-area {
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -432,40 +446,18 @@ export const automationsStyles = css`
     width: 14px;
     height: 14px;
   }
-  .scene-ent-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
-    align-items: center;
-    gap: 16px;
-  }
-  /* Column headers — same grid template as the rows so "Now" sits over
-     the live tiles and "Scene sets" over the forced tiles. Rendered once
-     at the top of the list, not repeated per row. */
-  .scene-ent-head {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
-    gap: 16px;
-    margin-bottom: 2px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--secondary-text-color);
-  }
-  .scene-ent-cap--target {
-    color: var(--selora-accent);
-  }
   /* Each tile is a single-entity .selora-entity-grid. Override the chat
      grid's auto-fill columns + vertical margin so the lone tile fills
-     its cell instead of capping at 280px. */
+     its cell, which the list above has already sized. */
   .scene-ent-tile {
     min-width: 0;
     margin: 0;
     grid-template-columns: minmax(0, 1fr);
   }
-  /* The forced (scene-target) tile is a read-only preview — block taps
-     so the user can't drive the real device from it; the live "Now"
-     tile on the left is the control. */
+  /* A tile outside the editor (a chat proposal) is a preview of a scene
+     nobody has saved yet — block taps so it cannot drive the real device.
+     In the editor the tile IS the control: its service calls are rerouted
+     into the scene's desired state. */
   .scene-ent-tile--forced {
     pointer-events: none;
   }
@@ -484,19 +476,6 @@ export const automationsStyles = css`
     }
     50% {
       opacity: 0.85;
-    }
-  }
-  .scene-ent-arrow {
-    --mdc-icon-size: 20px;
-    color: var(--secondary-text-color);
-    justify-self: center;
-  }
-  @media (max-width: 600px) {
-    .scene-ent-row {
-      gap: 8px;
-    }
-    .scene-ent-arrow {
-      --mdc-icon-size: 16px;
     }
   }
   .last-run-prefix {

@@ -433,6 +433,7 @@
     "automations_unavailable_modal_open_in_automations": "자동화에서 열기",
     "scenes_card_created_title": "장면 생성됨",
     "scenes_card_saved_status": "Home Assistant에 저장됨",
+    "scenes_edit_hint": "이 장면이 설정할 상태로 각 엔터티를 조정하세요. 변경 사항은 Test를 사용하거나 장면을 활성화하기 전까지 기기에 적용되지 않습니다.",
     "scenes_card_activate_button": "활성화",
     "scenes_card_test_button": "장면 테스트",
     "scenes_card_view_in_ha_button": "HA에서 보기",

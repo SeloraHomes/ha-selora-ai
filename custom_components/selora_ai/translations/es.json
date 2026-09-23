@@ -433,6 +433,7 @@
     "automations_unavailable_modal_open_in_automations": "Abrir en Automatizaciones",
     "scenes_card_created_title": "Escena creada",
     "scenes_card_saved_status": "Guardado en Home Assistant",
+    "scenes_edit_hint": "Ajusta cada entidad al estado que esta escena debe aplicar. Los cambios no afectan a tus dispositivos hasta que uses Test o actives la escena.",
     "scenes_card_activate_button": "Activar",
     "scenes_card_test_button": "Probar escena",
     "scenes_card_view_in_ha_button": "Ver en HA",

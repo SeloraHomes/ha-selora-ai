@@ -5902,9 +5902,10 @@ var automationsStyles = i`
   .auto-row-expand {
     padding: 14px 16px 16px;
   }
-  /* Scene desired-state list: each row = the entity's real HA tile
-     (left, rendered with the scene's target state) + the final desired
-     state spelled out (right). */
+  /* Scene desired-state list: one tile per entity, showing the state the
+     scene sets. Laid out like a dashboard — the same auto-fill track sizing
+     the chat entity grid uses — so a multi-room scene reads as a few rows of
+     tiles rather than one tall column. */
   .scene-ent-hint {
     display: flex;
     align-items: center;
@@ -5951,11 +5952,24 @@ var automationsStyles = i`
     gap: 8px;
   }
   .scene-ent-list {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    /* Same track sizing as .selora-entity-grid, including the 280px cap:
+       a lone tile must not stretch to the full card width while tiles in a
+       denser row sit at ~260px. */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
     gap: 10px;
+    align-items: start;
   }
+  /* On a phone a capped track leaves dead space beside a lone tile, and
+     there is never room for a second column anyway. */
+  @media (max-width: 600px) {
+    .scene-ent-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  /* Area headers break the tile flow, so they take the whole row. */
   .scene-ent-area {
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -5974,40 +5988,18 @@ var automationsStyles = i`
     width: 14px;
     height: 14px;
   }
-  .scene-ent-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
-    align-items: center;
-    gap: 16px;
-  }
-  /* Column headers — same grid template as the rows so "Now" sits over
-     the live tiles and "Scene sets" over the forced tiles. Rendered once
-     at the top of the list, not repeated per row. */
-  .scene-ent-head {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
-    gap: 16px;
-    margin-bottom: 2px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--secondary-text-color);
-  }
-  .scene-ent-cap--target {
-    color: var(--selora-accent);
-  }
   /* Each tile is a single-entity .selora-entity-grid. Override the chat
      grid's auto-fill columns + vertical margin so the lone tile fills
-     its cell instead of capping at 280px. */
+     its cell, which the list above has already sized. */
   .scene-ent-tile {
     min-width: 0;
     margin: 0;
     grid-template-columns: minmax(0, 1fr);
   }
-  /* The forced (scene-target) tile is a read-only preview — block taps
-     so the user can't drive the real device from it; the live "Now"
-     tile on the left is the control. */
+  /* A tile outside the editor (a chat proposal) is a preview of a scene
+     nobody has saved yet — block taps so it cannot drive the real device.
+     In the editor the tile IS the control: its service calls are rerouted
+     into the scene's desired state. */
   .scene-ent-tile--forced {
     pointer-events: none;
   }
@@ -6026,19 +6018,6 @@ var automationsStyles = i`
     }
     50% {
       opacity: 0.85;
-    }
-  }
-  .scene-ent-arrow {
-    --mdc-icon-size: 20px;
-    color: var(--secondary-text-color);
-    justify-self: center;
-  }
-  @media (max-width: 600px) {
-    .scene-ent-row {
-      gap: 8px;
-    }
-    .scene-ent-arrow {
-      --mdc-icon-size: 16px;
     }
   }
   .last-run-prefix {
@@ -9795,6 +9774,8 @@ var en_default = {
     automations_unavailable_modal_open_in_automations: "Open in Automations",
     scenes_card_created_title: "Scene Created",
     scenes_card_saved_status: "Saved to Home Assistant",
+    scenes_edit_hint:
+      "Adjust each entity to the state this scene should set. Edits don't touch your devices until you Test or activate the scene.",
     scenes_card_activate_button: "Activate",
     scenes_card_test_button: "Test Scene",
     scenes_card_view_in_ha_button: "View in HA",
@@ -10980,6 +10961,8 @@ var fr_default = {
       "Ouvrir dans Automatisations",
     scenes_card_created_title: "Sc\xE8ne cr\xE9\xE9e",
     scenes_card_saved_status: "Enregistr\xE9e dans Home Assistant",
+    scenes_edit_hint:
+      "Ajustez chaque entit\xE9 \xE0 l'\xE9tat que cette sc\xE8ne doit appliquer. Les modifications n'affectent vos appareils que lorsque vous utilisez Test ou activez la sc\xE8ne.",
     scenes_card_activate_button: "Activer",
     scenes_card_test_button: "Tester la sc\xE8ne",
     scenes_card_view_in_ha_button: "Voir dans HA",
@@ -12204,6 +12187,8 @@ var de_default = {
       "In Automatisierungen \xF6ffnen",
     scenes_card_created_title: "Szene erstellt",
     scenes_card_saved_status: "In Home Assistant gespeichert",
+    scenes_edit_hint:
+      "Stellen Sie jede Entit\xE4t auf den Zustand ein, den diese Szene setzen soll. \xC4nderungen wirken sich erst auf Ihre Ger\xE4te aus, wenn Sie Test verwenden oder die Szene aktivieren.",
     scenes_card_activate_button: "Aktivieren",
     scenes_card_test_button: "Szene testen",
     scenes_card_view_in_ha_button: "In HA anzeigen",
@@ -13414,6 +13399,8 @@ var es_default = {
       "Abrir en Automatizaciones",
     scenes_card_created_title: "Escena creada",
     scenes_card_saved_status: "Guardado en Home Assistant",
+    scenes_edit_hint:
+      "Ajusta cada entidad al estado que esta escena debe aplicar. Los cambios no afectan a tus dispositivos hasta que uses Test o actives la escena.",
     scenes_card_activate_button: "Activar",
     scenes_card_test_button: "Probar escena",
     scenes_card_view_in_ha_button: "Ver en HA",
@@ -14608,6 +14595,8 @@ var it_default = {
     automations_unavailable_modal_open_in_automations: "Apri in Automazioni",
     scenes_card_created_title: "Scena creata",
     scenes_card_saved_status: "Salvata in Home Assistant",
+    scenes_edit_hint:
+      "Imposta ogni entit\xE0 sullo stato che questa scena deve applicare. Le modifiche non toccano i tuoi dispositivi finch\xE9 non usi Test o attivi la scena.",
     scenes_card_activate_button: "Attiva",
     scenes_card_test_button: "Prova scena",
     scenes_card_view_in_ha_button: "Apri in HA",
@@ -15823,6 +15812,8 @@ var nl_default = {
       "Openen in Automatiseringen",
     scenes_card_created_title: "Sc\xE8ne aangemaakt",
     scenes_card_saved_status: "Opgeslagen in Home Assistant",
+    scenes_edit_hint:
+      "Stel elke entiteit in op de status die deze sc\xE8ne moet instellen. Wijzigingen raken je apparaten pas als je Test gebruikt of de sc\xE8ne activeert.",
     scenes_card_activate_button: "Activeren",
     scenes_card_test_button: "Sc\xE8ne testen",
     scenes_card_view_in_ha_button: "Bekijken in HA",
@@ -17040,6 +17031,8 @@ var hu_default = {
       "Megnyit\xE1s az Automatizmusokban",
     scenes_card_created_title: "Jelenet l\xE9trehozva",
     scenes_card_saved_status: "Mentve a Home Assistantba",
+    scenes_edit_hint:
+      "\xC1ll\xEDtsa be minden entit\xE1st arra az \xE1llapotra, amelyet ennek a jelenetnek be kell \xE1ll\xEDtania. A m\xF3dos\xEDt\xE1sok addig nem \xE9rintik az eszk\xF6zeit, am\xEDg nem haszn\xE1lja a Test gombot, vagy nem aktiv\xE1lja a jelenetet.",
     scenes_card_activate_button: "Aktiv\xE1l\xE1s",
     scenes_card_test_button: "Jelenet tesztel\xE9se",
     scenes_card_view_in_ha_button: "Megtekint\xE9s a HA-ban",
@@ -18263,6 +18256,8 @@ var pt_default = {
       "Abrir em Automa\xE7\xF5es",
     scenes_card_created_title: "Cena criada",
     scenes_card_saved_status: "Guardada no Home Assistant",
+    scenes_edit_hint:
+      "Ajuste cada entidade para o estado que esta cena deve aplicar. As altera\xE7\xF5es n\xE3o afetam os seus dispositivos at\xE9 usar Test ou ativar a cena.",
     scenes_card_activate_button: "Ativar",
     scenes_card_test_button: "Testar cena",
     scenes_card_view_in_ha_button: "Ver no HA",
@@ -19699,6 +19694,8 @@ var ru_default = {
       "\u0421\u0446\u0435\u043D\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0430",
     scenes_card_saved_status:
       "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E \u0432 Home Assistant",
+    scenes_edit_hint:
+      "\u0417\u0430\u0434\u0430\u0439\u0442\u0435 \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0439 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438 \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435, \u043A\u043E\u0442\u043E\u0440\u043E\u0435 \u0434\u043E\u043B\u0436\u043D\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u044D\u0442\u0430 \u0441\u0446\u0435\u043D\u0430. \u0418\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u043D\u0435 \u0437\u0430\u0442\u0440\u043E\u043D\u0443\u0442 \u0432\u0430\u0448\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u043F\u043E\u043A\u0430 \u0432\u044B \u043D\u0435 \u043D\u0430\u0436\u043C\u0451\u0442\u0435 Test \u0438\u043B\u0438 \u043D\u0435 \u0430\u043A\u0442\u0438\u0432\u0438\u0440\u0443\u0435\u0442\u0435 \u0441\u0446\u0435\u043D\u0443.",
     scenes_card_activate_button:
       "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
     scenes_card_test_button:
@@ -21348,6 +21345,8 @@ var ja_default = {
       "\u30B7\u30FC\u30F3\u3092\u4F5C\u6210\u3057\u307E\u3057\u305F",
     scenes_card_saved_status:
       "Home Assistant \u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+    scenes_edit_hint:
+      "\u3053\u306E\u30B7\u30FC\u30F3\u304C\u8A2D\u5B9A\u3059\u308B\u72B6\u614B\u306B\u5404\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u3092\u8ABF\u6574\u3057\u307E\u3059\u3002\u5909\u66F4\u306F\u3001Test \u3092\u4F7F\u7528\u3059\u308B\u304B\u30B7\u30FC\u30F3\u3092\u6709\u52B9\u306B\u3059\u308B\u307E\u3067\u30C7\u30D0\u30A4\u30B9\u306B\u306F\u53CD\u6620\u3055\u308C\u307E\u305B\u3093\u3002",
     scenes_card_activate_button: "\u8D77\u52D5",
     scenes_card_test_button: "\u30B7\u30FC\u30F3\u3092\u30C6\u30B9\u30C8",
     scenes_card_view_in_ha_button: "HA \u3067\u8868\u793A",
@@ -22787,6 +22786,8 @@ var ko_default = {
       "\uC790\uB3D9\uD654\uC5D0\uC11C \uC5F4\uAE30",
     scenes_card_created_title: "\uC7A5\uBA74 \uC0DD\uC131\uB428",
     scenes_card_saved_status: "Home Assistant\uC5D0 \uC800\uC7A5\uB428",
+    scenes_edit_hint:
+      "\uC774 \uC7A5\uBA74\uC774 \uC124\uC815\uD560 \uC0C1\uD0DC\uB85C \uAC01 \uC5D4\uD130\uD2F0\uB97C \uC870\uC815\uD558\uC138\uC694. \uBCC0\uACBD \uC0AC\uD56D\uC740 Test\uB97C \uC0AC\uC6A9\uD558\uAC70\uB098 \uC7A5\uBA74\uC744 \uD65C\uC131\uD654\uD558\uAE30 \uC804\uAE4C\uC9C0 \uAE30\uAE30\uC5D0 \uC801\uC6A9\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
     scenes_card_activate_button: "\uD65C\uC131\uD654",
     scenes_card_test_button: "\uC7A5\uBA74 \uD14C\uC2A4\uD2B8",
     scenes_card_view_in_ha_button: "HA\uC5D0\uC11C \uBCF4\uAE30",
@@ -24121,6 +24122,8 @@ var zh_Hans_default = {
       "\u5728\u81EA\u52A8\u5316\u4E2D\u6253\u5F00",
     scenes_card_created_title: "\u573A\u666F\u5DF2\u521B\u5EFA",
     scenes_card_saved_status: "\u5DF2\u4FDD\u5B58\u5230 Home Assistant",
+    scenes_edit_hint:
+      "\u5C06\u6BCF\u4E2A\u5B9E\u4F53\u8C03\u6574\u4E3A\u6B64\u573A\u666F\u5E94\u8BBE\u7F6E\u7684\u72B6\u6001\u3002\u5728\u4F60\u4F7F\u7528 Test \u6216\u6FC0\u6D3B\u573A\u666F\u4E4B\u524D\uFF0C\u7F16\u8F91\u4E0D\u4F1A\u5F71\u54CD\u4F60\u7684\u8BBE\u5907\u3002",
     scenes_card_activate_button: "\u6FC0\u6D3B",
     scenes_card_test_button: "\u6D4B\u8BD5\u573A\u666F",
     scenes_card_view_in_ha_button: "\u5728 HA \u4E2D\u67E5\u770B",
@@ -25421,6 +25424,8 @@ var zh_Hant_default = {
       "\u5728\u81EA\u52D5\u5316\u4E2D\u958B\u555F",
     scenes_card_created_title: "\u60C5\u5883\u5DF2\u5EFA\u7ACB",
     scenes_card_saved_status: "\u5DF2\u5132\u5B58\u81F3 Home Assistant",
+    scenes_edit_hint:
+      "\u5C07\u6BCF\u500B\u5BE6\u9AD4\u8ABF\u6574\u70BA\u6B64\u60C5\u5883\u61C9\u8A2D\u5B9A\u7684\u72C0\u614B\u3002\u5728\u4F60\u4F7F\u7528 Test \u6216\u555F\u7528\u60C5\u5883\u4E4B\u524D\uFF0C\u7DE8\u8F2F\u4E0D\u6703\u5F71\u97FF\u4F60\u7684\u88DD\u7F6E\u3002",
     scenes_card_activate_button: "\u555F\u52D5",
     scenes_card_test_button: "\u6E2C\u8A66\u5834\u666F",
     scenes_card_view_in_ha_button: "\u5728 HA \u4E2D\u6AA2\u8996",
@@ -37085,26 +37090,19 @@ function _entityArea(host, entityId) {
     entReg?.area_id || host.hass?.devices?.[entReg?.device_id]?.area_id || null;
   return areaId ? host.hass?.areas?.[areaId]?.name || null : null;
 }
-function _renderTargetRow(host, entityId, stateData, editSceneId) {
+function _renderTargetTile(host, entityId, stateData, editSceneId) {
   const target =
     editSceneId && host._sceneEditedEntities(editSceneId)?.[entityId] != null
       ? host._sceneEditedEntities(editSceneId)[entityId]
       : stateData;
   const single = JSON.stringify({ [entityId]: target });
   return b2`
-    <div class="scene-ent-row">
-      <div
-        class="selora-entity-grid scene-ent-tile"
-        data-entity-ids=${entityId}
-      ></div>
-      <ha-icon class="scene-ent-arrow" icon="mdi:arrow-right"></ha-icon>
-      <div
-        class="selora-entity-grid scene-ent-tile ${editSceneId ? "scene-ent-tile--edit" : "scene-ent-tile--forced"}"
-        data-entity-ids=${entityId}
-        data-scene-states=${single}
-        data-scene-edit-id=${editSceneId || ""}
-      ></div>
-    </div>
+    <div
+      class="selora-entity-grid scene-ent-tile ${editSceneId ? "" : "scene-ent-tile--forced"}"
+      data-entity-ids=${entityId}
+      data-scene-states=${single}
+      data-scene-edit-id=${editSceneId || ""}
+    ></div>
   `;
 }
 function _renderEntityList(host, entities, editSceneId = null) {
@@ -37131,19 +37129,15 @@ function _renderEntityList(host, entities, editSceneId = null) {
         ? b2`<div class="scene-ent-hint">
             <ha-icon icon="mdi:gesture-tap"></ha-icon>
             <span
-              >Adjust each entity's desired state on the <strong>right</strong>.
-              Edits don't touch your devices until you <strong>Test</strong> or
-              activate the scene.</span
+              >${host._t(
+                "scenes_edit_hint",
+                "Adjust each entity to the state this scene should set. Edits don't touch your devices until you Test or activate the scene.",
+              )}</span
             >
           </div>`
         : ""
     }
     <div class="scene-ent-list">
-      <div class="scene-ent-head">
-        <span>Now</span>
-        <span></span>
-        <span class="scene-ent-cap--target">Scene sets</span>
-      </div>
       ${sorted.map(
         ([area, areaIds]) => b2`
           ${
@@ -37155,7 +37149,7 @@ function _renderEntityList(host, entities, editSceneId = null) {
               : ""
           }
           ${areaIds.map((id) =>
-            _renderTargetRow(host, id, source[id], editSceneId),
+            _renderTargetTile(host, id, source[id], editSceneId),
           )}
         `,
       )}
@@ -49728,7 +49722,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "e9883a19b6a2" : "";
+var PANEL_BUILD = true ? "7355598d557c" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
