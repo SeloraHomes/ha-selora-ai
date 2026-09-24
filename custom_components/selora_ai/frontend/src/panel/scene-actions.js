@@ -7,7 +7,7 @@ import { interpolate } from "../shared/i18n.js";
 // scene actions stay correct even when the local array has more entries
 // than the stored session. After a reload the local array IS the stored
 // array, so msgIndex is also correct — fall back to it then.
-function _storedSceneIndex(msg, msgIndex) {
+export function storedSceneIndex(msg, msgIndex) {
   return msg && msg.scene_message_index != null
     ? msg.scene_message_index
     : msgIndex;
@@ -25,7 +25,7 @@ export async function _acceptScene(msgIndex) {
     const result = await this.hass.callWS({
       type: "selora_ai/accept_scene",
       session_id: this._activeSessionId,
-      message_index: _storedSceneIndex(msg, msgIndex),
+      message_index: storedSceneIndex(msg, msgIndex),
     });
 
     msg.scene_status = "saved";
@@ -77,7 +77,7 @@ export async function _declineScene(msgIndex) {
     await this.hass.callWS({
       type: "selora_ai/set_scene_status",
       session_id: this._activeSessionId,
-      message_index: _storedSceneIndex(msg, msgIndex),
+      message_index: storedSceneIndex(msg, msgIndex),
       status: "declined",
     });
     const session = await this.hass.callWS({
@@ -98,7 +98,7 @@ export async function _refineScene(msgIndex) {
     await this.hass.callWS({
       type: "selora_ai/set_scene_status",
       session_id: this._activeSessionId,
-      message_index: _storedSceneIndex(msg, msgIndex),
+      message_index: storedSceneIndex(msg, msgIndex),
       status: "refining",
     });
     const session = await this.hass.callWS({

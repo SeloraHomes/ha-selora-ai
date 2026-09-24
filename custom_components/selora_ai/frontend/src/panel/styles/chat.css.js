@@ -472,6 +472,28 @@ export const chatStyles = css`
       align-self: stretch;
     }
   }
+  /* A scene card lays its tiles out in fixed-width grid tracks, and this
+     wrap is inline-flex — sized to its widest content, which is the sentence
+     above the card far more often than the card itself. So the column count
+     followed the prose: the same scene read as two columns under "I've
+     loaded the scene X for refinement. What changes would you like to make?"
+     and as one under "I've updated it so both stores open to 45%", one
+     message apart in the same conversation.
+
+     The bubble is given the width the TILES ask for instead, so the grid
+     decides its own layout. Two of .scene-ent-list's 280px tracks, their
+     10px gap, and this bubble's 16px padding and 1px border on each side:
+     570 + 34. Below that the min() hands the row back to the tiles, which is
+     what the narrow-viewport rule above already does — and this must stay
+     after that rule to win the width on a scene card. */
+  .assistant-wrap--scene {
+    max-width: 100%;
+    width: min(100%, 604px);
+  }
+  /* One tile asks for one track: a lone entity gains no dead column. */
+  .assistant-wrap--scene-single {
+    width: min(100%, 314px);
+  }
   .bubble {
     max-width: 82%;
     padding: 12px 16px;

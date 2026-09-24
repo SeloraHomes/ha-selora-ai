@@ -1309,6 +1309,12 @@ export function renderMessage(host, msg, idx) {
     msg.approval_status !== "approved" &&
     msg.approval_status !== "denied" &&
     msg.approval_status !== "resolving";
+  // How many tile tracks the scene card asks for. The wrap is sized from it
+  // (see .assistant-wrap--scene) rather than from the prose above the card,
+  // so the grid decides its own column count; a one-entity scene asks for
+  // one track and gains no dead column.
+  const sceneIsSingleTile =
+    !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
 
   return html`
     <div class="message-row">
@@ -1345,6 +1351,8 @@ export function renderMessage(host, msg, idx) {
                   msg.command_approval || msg.automation || msg.scene
                     ? " assistant-wrap--approval"
                     : ""
+                }${msg.scene ? " assistant-wrap--scene" : ""}${
+                  sceneIsSingleTile ? " assistant-wrap--scene-single" : ""
                 }"
               >
                 ${renderAgentSteps(host, msg.steps)}

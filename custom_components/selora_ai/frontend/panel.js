@@ -3161,6 +3161,28 @@ var chatStyles = i`
       align-self: stretch;
     }
   }
+  /* A scene card lays its tiles out in fixed-width grid tracks, and this
+     wrap is inline-flex — sized to its widest content, which is the sentence
+     above the card far more often than the card itself. So the column count
+     followed the prose: the same scene read as two columns under "I've
+     loaded the scene X for refinement. What changes would you like to make?"
+     and as one under "I've updated it so both stores open to 45%", one
+     message apart in the same conversation.
+
+     The bubble is given the width the TILES ask for instead, so the grid
+     decides its own layout. Two of .scene-ent-list's 280px tracks, their
+     10px gap, and this bubble's 16px padding and 1px border on each side:
+     570 + 34. Below that the min() hands the row back to the tiles, which is
+     what the narrow-viewport rule above already does — and this must stay
+     after that rule to win the width on a scene card. */
+  .assistant-wrap--scene {
+    max-width: 100%;
+    width: min(100%, 604px);
+  }
+  /* One tile asks for one track: a lone entity gains no dead column. */
+  .assistant-wrap--scene-single {
+    width: min(100%, 314px);
+  }
   .bubble {
     max-width: 82%;
     padding: 12px 16px;
@@ -30589,6 +30611,8 @@ function renderMessage(host, msg, idx) {
     msg.approval_status !== "approved" &&
     msg.approval_status !== "denied" &&
     msg.approval_status !== "resolving";
+  const sceneIsSingleTile =
+    !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
   return b2`
     <div class="message-row">
       ${
@@ -30620,7 +30644,7 @@ function renderMessage(host, msg, idx) {
             `
           : b2`
               <div
-                class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
+                class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}${msg.scene ? " assistant-wrap--scene" : ""}${sceneIsSingleTile ? " assistant-wrap--scene-single" : ""}"
               >
                 ${renderAgentSteps(host, msg.steps)}
                 <div
@@ -33538,6 +33562,168 @@ function _onYamlInput(key, value) {
   this.requestUpdate();
 }
 
+// src/panel/scene-actions.js
+var scene_actions_exports = {};
+__export(scene_actions_exports, {
+  _acceptScene: () => _acceptScene,
+  _cancelRenameScene: () => _cancelRenameScene,
+  _declineScene: () => _declineScene,
+  _loadSceneToChat: () => _loadSceneToChat,
+  _refineScene: () => _refineScene,
+  _saveRenameScene: () => _saveRenameScene,
+  _startRenameScene: () => _startRenameScene,
+  storedSceneIndex: () => storedSceneIndex,
+});
+function storedSceneIndex(msg, msgIndex) {
+  return msg && msg.scene_message_index != null
+    ? msg.scene_message_index
+    : msgIndex;
+}
+async function _acceptScene(msgIndex) {
+  const msg = this._messages[msgIndex] || {};
+  const scene = msg.scene;
+  if (!scene) return;
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/accept_scene",
+      session_id: this._activeSessionId,
+      message_index: storedSceneIndex(msg, msgIndex),
+    });
+    msg.scene_status = "saved";
+    msg.scene_id = result.scene_id;
+    msg.entity_id = result.entity_id;
+    this._markJustCreated(result.scene_id);
+    this._messages = [...this._messages];
+    await this._loadScenes();
+    this._markSceneCreated(result.scene_id);
+    this._showToast(
+      interpolate(
+        result.replaced
+          ? this._t("scene_actions_updated", 'Scene "{name}" updated.')
+          : this._t(
+              "scene_actions_created",
+              'Scene "{name}" created and saved.',
+            ),
+        { name: scene.name },
+      ),
+      "success",
+    );
+    if (result.scene_id) {
+      await this._sendMessage?.({ resumeProposalId: result.scene_id });
+    }
+  } catch (err) {
+    this._showToast("Failed to create scene: " + err.message, "error");
+  }
+}
+async function _declineScene(msgIndex) {
+  const msg = this._messages[msgIndex] || {};
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/set_scene_status",
+      session_id: this._activeSessionId,
+      message_index: storedSceneIndex(msg, msgIndex),
+      status: "declined",
+    });
+    const session = await this.hass.callWS({
+      type: "selora_ai/get_session",
+      session_id: this._activeSessionId,
+    });
+    this._messages = session.messages || [];
+  } catch (err) {
+    console.error("Failed to decline scene", err);
+  }
+}
+async function _refineScene(msgIndex) {
+  const msg = this._messages[msgIndex] || {};
+  const scene = msg.scene;
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/set_scene_status",
+      session_id: this._activeSessionId,
+      message_index: storedSceneIndex(msg, msgIndex),
+      status: "refining",
+    });
+    const session = await this.hass.callWS({
+      type: "selora_ai/get_session",
+      session_id: this._activeSessionId,
+    });
+    this._messages = session.messages || [];
+  } catch (err) {
+    console.error("Failed to mark scene as refining", err);
+  }
+  const name = scene
+    ? scene.name
+    : this._t("scene_actions_refine_default_name", "the scene");
+  this._input = `Refine "${name}": `;
+  this.shadowRoot.querySelector(".composer-textarea")?.focus();
+}
+async function _loadSceneToChat(sceneId) {
+  if (!sceneId) return;
+  this._loadingToChat = { ...this._loadingToChat, [sceneId]: true };
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/load_scene_to_session",
+      scene_id: sceneId,
+    });
+    const sessionId = result?.session_id;
+    if (sessionId) {
+      this._activeSessionId = sessionId;
+      this._input = "";
+      this._setActiveTab("chat");
+      this._showSidebar = false;
+      await this._openSession(sessionId);
+    }
+  } catch (err) {
+    console.error("Failed to load scene to chat", err);
+    this._showToast("Failed to load scene into chat: " + err.message, "error");
+  } finally {
+    this._loadingToChat = { ...this._loadingToChat, [sceneId]: false };
+  }
+  this.requestUpdate();
+}
+function _startRenameScene(sceneId, currentName) {
+  this._editingSceneName = sceneId;
+  this._editingSceneNameValue = currentName || "";
+  this._openSceneBurger = null;
+  this.requestUpdate();
+  this.updateComplete.then(() => {
+    const input = this.shadowRoot.querySelector(
+      `.rename-input[data-scene-id="${sceneId}"]`,
+    );
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+async function _saveRenameScene(sceneId) {
+  const name = (this._editingSceneNameValue || "").trim();
+  if (!name) {
+    this._cancelRenameScene();
+    return;
+  }
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/rename_scene",
+      scene_id: sceneId,
+      name,
+    });
+    this._cancelRenameScene();
+    this._showToast(
+      this._t("scene_actions_renamed", "Scene renamed"),
+      "success",
+    );
+    await this._loadScenes();
+  } catch (err) {
+    console.error("Failed to rename scene", err);
+    this._showToast("Failed to rename: " + err.message, "error");
+  }
+}
+function _cancelRenameScene() {
+  this._editingSceneName = null;
+  this._editingSceneNameValue = "";
+}
+
 // src/panel/render-proposal-diff.js
 var PREVIEW_DEBOUNCE_MS = 350;
 function requestPreview(host, entry, delay) {
@@ -33599,13 +33785,13 @@ function previewWrite(host, msgIndex, request) {
   requestPreview(host, entry, cached ? PREVIEW_DEBOUNCE_MS : 0);
   return entry;
 }
-function invalidateProposalPreviews(host, msgIndex = null) {
-  if (!host._previewCache) return;
-  const entries =
-    msgIndex === null
-      ? host._previewCache.values()
-      : [host._previewCache.get(msgIndex)].filter(Boolean);
-  for (const entry of entries) entry.stale = true;
+function invalidateProposalPreviews(host, key = null) {
+  for (const cache of [host._previewCache, host._scenePreviewCache]) {
+    if (!cache) continue;
+    const entries =
+      key === null ? cache.values() : [cache.get(key)].filter(Boolean);
+    for (const entry of entries) entry.stale = true;
+  }
 }
 function savedDiff(host, msgIndex) {
   const msg = (host._messages || [])[msgIndex];
@@ -33673,6 +33859,82 @@ function proposalDiff(host, msgIndex) {
   });
   return diff;
 }
+function sceneDiffKey(msgIndex) {
+  return `scene_${msgIndex}`;
+}
+function requestScenePreview(host, entry) {
+  const generation = ++entry.generation;
+  entry.pending = true;
+  (async () => {
+    let current = "";
+    let proposed = "";
+    try {
+      const result = await host.hass?.callWS({
+        type: "selora_ai/preview_scene_write",
+        session_id: entry.sessionId,
+        message_index: entry.storedIndex,
+      });
+      current = result?.current_yaml || "";
+      proposed = result?.proposed_yaml || "";
+    } catch {}
+    if (generation !== entry.generation) return;
+    entry.current = current;
+    entry.proposed = proposed;
+    entry.loading = false;
+    entry.pending = false;
+    if (entry.stale) {
+      entry.stale = false;
+      requestScenePreview(host, entry);
+    }
+    host.requestUpdate?.();
+  })();
+}
+function sceneProposalDiff(host, msgIndex) {
+  const msg = (host._messages || [])[msgIndex];
+  if (!msg?.scene) return null;
+  const sessionId = host._activeSessionId;
+  if (!sessionId) return null;
+  const storedIndex = storedSceneIndex(msg, msgIndex);
+  const key = sceneDiffKey(msgIndex);
+  if (!host._scenePreviewCache)
+    host._scenePreviewCache = /* @__PURE__ */ new Map();
+  const cached = host._scenePreviewCache.get(key);
+  let entry = cached;
+  if (
+    !cached ||
+    cached.sessionId !== sessionId ||
+    cached.storedIndex !== storedIndex
+  ) {
+    entry = {
+      sessionId,
+      storedIndex,
+      loading: true,
+      pending: false,
+      stale: false,
+      generation: 0,
+      current: "",
+      proposed: "",
+    };
+    host._scenePreviewCache.set(key, entry);
+    requestScenePreview(host, entry);
+  } else if (cached.stale && !cached.pending) {
+    cached.stale = false;
+    requestScenePreview(host, cached);
+  }
+  if (entry.loading || !entry.current || !entry.proposed) return null;
+  if (!host._sceneDiffCache) host._sceneDiffCache = /* @__PURE__ */ new Map();
+  const hit = host._sceneDiffCache.get(key);
+  if (hit && hit.before === entry.current && hit.after === entry.proposed) {
+    return hit.diff;
+  }
+  const diff = diffLines(entry.current, entry.proposed);
+  host._sceneDiffCache.set(key, {
+    before: entry.current,
+    after: entry.proposed,
+    diff,
+  });
+  return diff;
+}
 function resetProposalDiffState(host) {
   host._proposalDiffOpen = {};
   host._proposalDiffExpanded = {};
@@ -33684,6 +33946,8 @@ function resetProposalDiffState(host) {
     if (entry.timer) clearTimeout(entry.timer);
   }
   host._previewCache = null;
+  host._scenePreviewCache = null;
+  host._sceneDiffCache = null;
 }
 var REVEAL_SETTLE_MS = 800;
 async function revealPanel(host, selector) {
@@ -37398,6 +37662,8 @@ function renderSceneCard(host, msg, msgIndex) {
       </div>
     `;
   }
+  const diff = sceneProposalDiff(host, msgIndex);
+  const diffKey = sceneDiffKey(msgIndex);
   return b2`
     <div style="margin-top:12px;padding:14px 0 0;">
       ${_sceneCardHeader(
@@ -37407,17 +37673,21 @@ function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
-        <div
-          class="yaml-toggle"
-          style="margin-top:12px;"
-          @click=${() => toggleYaml(host, yamlKey)}
-        >
-          <ha-icon
-            icon="mdi:code-braces"
-            style="--mdc-icon-size:14px;"
-          ></ha-icon>
-          ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+        <div class="subcard-actions" style="margin-top:12px;">
+          ${renderProposalDiffToggle(host, diffKey, diff)}
+          <div
+            class="yaml-toggle"
+            style="margin:0;"
+            @click=${() => toggleYaml(host, yamlKey)}
+          >
+            <ha-icon
+              icon="mdi:code-braces"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+          </div>
         </div>
+        ${renderProposalDiffPanel(host, diffKey, diff)}
         ${
           yamlOpen && msg.scene_yaml
             ? b2`
@@ -49795,7 +50065,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "4c26d0748a9e" : "";
+var PANEL_BUILD = true ? "392b9fe92f08" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -50839,167 +51109,6 @@ async function _copyMessageText(msg, btn, text) {
     btn.classList.remove("copied");
     if (icon) icon.setAttribute("icon", "mdi:content-copy");
   }, 1500);
-}
-
-// src/panel/scene-actions.js
-var scene_actions_exports = {};
-__export(scene_actions_exports, {
-  _acceptScene: () => _acceptScene,
-  _cancelRenameScene: () => _cancelRenameScene,
-  _declineScene: () => _declineScene,
-  _loadSceneToChat: () => _loadSceneToChat,
-  _refineScene: () => _refineScene,
-  _saveRenameScene: () => _saveRenameScene,
-  _startRenameScene: () => _startRenameScene,
-});
-function _storedSceneIndex(msg, msgIndex) {
-  return msg && msg.scene_message_index != null
-    ? msg.scene_message_index
-    : msgIndex;
-}
-async function _acceptScene(msgIndex) {
-  const msg = this._messages[msgIndex] || {};
-  const scene = msg.scene;
-  if (!scene) return;
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/accept_scene",
-      session_id: this._activeSessionId,
-      message_index: _storedSceneIndex(msg, msgIndex),
-    });
-    msg.scene_status = "saved";
-    msg.scene_id = result.scene_id;
-    msg.entity_id = result.entity_id;
-    this._markJustCreated(result.scene_id);
-    this._messages = [...this._messages];
-    await this._loadScenes();
-    this._markSceneCreated(result.scene_id);
-    this._showToast(
-      interpolate(
-        result.replaced
-          ? this._t("scene_actions_updated", 'Scene "{name}" updated.')
-          : this._t(
-              "scene_actions_created",
-              'Scene "{name}" created and saved.',
-            ),
-        { name: scene.name },
-      ),
-      "success",
-    );
-    if (result.scene_id) {
-      await this._sendMessage?.({ resumeProposalId: result.scene_id });
-    }
-  } catch (err) {
-    this._showToast("Failed to create scene: " + err.message, "error");
-  }
-}
-async function _declineScene(msgIndex) {
-  const msg = this._messages[msgIndex] || {};
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/set_scene_status",
-      session_id: this._activeSessionId,
-      message_index: _storedSceneIndex(msg, msgIndex),
-      status: "declined",
-    });
-    const session = await this.hass.callWS({
-      type: "selora_ai/get_session",
-      session_id: this._activeSessionId,
-    });
-    this._messages = session.messages || [];
-  } catch (err) {
-    console.error("Failed to decline scene", err);
-  }
-}
-async function _refineScene(msgIndex) {
-  const msg = this._messages[msgIndex] || {};
-  const scene = msg.scene;
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/set_scene_status",
-      session_id: this._activeSessionId,
-      message_index: _storedSceneIndex(msg, msgIndex),
-      status: "refining",
-    });
-    const session = await this.hass.callWS({
-      type: "selora_ai/get_session",
-      session_id: this._activeSessionId,
-    });
-    this._messages = session.messages || [];
-  } catch (err) {
-    console.error("Failed to mark scene as refining", err);
-  }
-  const name = scene
-    ? scene.name
-    : this._t("scene_actions_refine_default_name", "the scene");
-  this._input = `Refine "${name}": `;
-  this.shadowRoot.querySelector(".composer-textarea")?.focus();
-}
-async function _loadSceneToChat(sceneId) {
-  if (!sceneId) return;
-  this._loadingToChat = { ...this._loadingToChat, [sceneId]: true };
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/load_scene_to_session",
-      scene_id: sceneId,
-    });
-    const sessionId = result?.session_id;
-    if (sessionId) {
-      this._activeSessionId = sessionId;
-      this._input = "";
-      this._setActiveTab("chat");
-      this._showSidebar = false;
-      await this._openSession(sessionId);
-    }
-  } catch (err) {
-    console.error("Failed to load scene to chat", err);
-    this._showToast("Failed to load scene into chat: " + err.message, "error");
-  } finally {
-    this._loadingToChat = { ...this._loadingToChat, [sceneId]: false };
-  }
-  this.requestUpdate();
-}
-function _startRenameScene(sceneId, currentName) {
-  this._editingSceneName = sceneId;
-  this._editingSceneNameValue = currentName || "";
-  this._openSceneBurger = null;
-  this.requestUpdate();
-  this.updateComplete.then(() => {
-    const input = this.shadowRoot.querySelector(
-      `.rename-input[data-scene-id="${sceneId}"]`,
-    );
-    if (input) {
-      input.focus();
-      input.select();
-    }
-  });
-}
-async function _saveRenameScene(sceneId) {
-  const name = (this._editingSceneNameValue || "").trim();
-  if (!name) {
-    this._cancelRenameScene();
-    return;
-  }
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/rename_scene",
-      scene_id: sceneId,
-      name,
-    });
-    this._cancelRenameScene();
-    this._showToast(
-      this._t("scene_actions_renamed", "Scene renamed"),
-      "success",
-    );
-    await this._loadScenes();
-  } catch (err) {
-    console.error("Failed to rename scene", err);
-    this._showToast("Failed to rename: " + err.message, "error");
-  }
-}
-function _cancelRenameScene() {
-  this._editingSceneName = null;
-  this._editingSceneNameValue = "";
 }
 
 // src/panel/scene-edit.js

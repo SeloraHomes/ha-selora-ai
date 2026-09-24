@@ -1,5 +1,11 @@
 import { html, nothing } from "lit";
 import { toggleYaml } from "./render-automations.js";
+import {
+  sceneDiffKey,
+  sceneProposalDiff,
+  renderProposalDiffToggle,
+  renderProposalDiffPanel,
+} from "./render-proposal-diff.js";
 import { burgerMenuAnchor } from "./automation-management.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 import { renderCreatedCheck } from "../shared/created-check.js";
@@ -335,7 +341,13 @@ export function renderSceneCard(host, msg, msgIndex) {
     `;
   }
 
-  // Pending proposal — full review UI
+  // Pending proposal — full review UI.
+  //
+  // Null unless accepting would REPLACE a scene this session already saved: a
+  // first-time proposal has nothing to compare against, and the resolver that
+  // answers that question is the accept path's own, server-side.
+  const diff = sceneProposalDiff(host, msgIndex);
+  const diffKey = sceneDiffKey(msgIndex);
   return html`
     <div style="margin-top:12px;padding:14px 0 0;">
       ${_sceneCardHeader(
@@ -345,21 +357,25 @@ export function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
-        <div
-          class="yaml-toggle"
-          style="margin-top:12px;"
-          @click=${() => toggleYaml(host, yamlKey)}
-        >
-          <ha-icon
-            icon="mdi:code-braces"
-            style="--mdc-icon-size:14px;"
-          ></ha-icon>
-          ${
-            yamlOpen
-              ? host._t("scenes_hide_yaml", "Hide YAML")
-              : host._t("scenes_view_yaml", "View YAML")
-          }
+        <div class="subcard-actions" style="margin-top:12px;">
+          ${renderProposalDiffToggle(host, diffKey, diff)}
+          <div
+            class="yaml-toggle"
+            style="margin:0;"
+            @click=${() => toggleYaml(host, yamlKey)}
+          >
+            <ha-icon
+              icon="mdi:code-braces"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            ${
+              yamlOpen
+                ? host._t("scenes_hide_yaml", "Hide YAML")
+                : host._t("scenes_view_yaml", "View YAML")
+            }
+          </div>
         </div>
+        ${renderProposalDiffPanel(host, diffKey, diff)}
         ${
           yamlOpen && msg.scene_yaml
             ? html`

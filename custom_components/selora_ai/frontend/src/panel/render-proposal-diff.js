@@ -29,6 +29,7 @@ import {
   _getRefiningAutomationId,
   _initialStateEdited,
 } from "./automation-crud.js";
+import { storedSceneIndex } from "./scene-actions.js";
 
 // A preview is re-requested as the user types in the YAML editor, which reports
 // every keystroke. The first request for a card goes out immediately so the
@@ -136,13 +137,17 @@ function previewWrite(host, msgIndex, request) {
 // Mark every previewed card for re-request. Called when the panel reloads
 // automations and when a diff is reopened — the two moments where a document
 // edited elsewhere would otherwise keep showing its old contents.
-export function invalidateProposalPreviews(host, msgIndex = null) {
-  if (!host._previewCache) return;
-  const entries =
-    msgIndex === null
-      ? host._previewCache.values()
-      : [host._previewCache.get(msgIndex)].filter(Boolean);
-  for (const entry of entries) entry.stale = true;
+//
+// `key` addresses one card in either family: an automation card is keyed by
+// its message index, a scene card by `sceneDiffKey`, so one lookup in each
+// cache answers for whichever one owns it.
+export function invalidateProposalPreviews(host, key = null) {
+  for (const cache of [host._previewCache, host._scenePreviewCache]) {
+    if (!cache) continue;
+    const entries =
+      key === null ? cache.values() : [cache.get(key)].filter(Boolean);
+    for (const entry of entries) entry.stale = true;
+  }
 }
 
 /**
@@ -253,6 +258,122 @@ export function proposalDiff(host, msgIndex) {
   return diff;
 }
 
+// ---------------------------------------------------------------------------
+// The same panel, for a pending SCENE proposal
+// ---------------------------------------------------------------------------
+// Same question, same division of labour: selora_ai/preview_scene_write
+// resolves the target the way the accept path resolves it and dumps both
+// entries through the writer's own construction, so the `[Selora AI]` prefix
+// and the id line are not changes. Only the diffing and the rendering happen
+// here.
+//
+// Two things differ from the automation card. There is no YAML editor, so the
+// request depends on nothing the user is typing and needs no debounce; and the
+// proposal is addressed by session and message index rather than by a target
+// id, because which scene accepting overwrites is the server's decision and
+// must not be re-derived from a payload the client holds.
+
+// Keyed apart from the automation cards' message indices: the state maps in
+// this module are shared, and a string key cannot collide with a number.
+export function sceneDiffKey(msgIndex) {
+  return `scene_${msgIndex}`;
+}
+
+function requestScenePreview(host, entry) {
+  const generation = ++entry.generation;
+  entry.pending = true;
+  (async () => {
+    let current = "";
+    let proposed = "";
+    try {
+      const result = await host.hass?.callWS({
+        type: "selora_ai/preview_scene_write",
+        session_id: entry.sessionId,
+        message_index: entry.storedIndex,
+      });
+      current = result?.current_yaml || "";
+      proposed = result?.proposed_yaml || "";
+    } catch {
+      // A session that has gone, or an older integration with no such
+      // command: nothing to show rather than something reconstructed here.
+      // Accepting-creates is not an error — it answers with two empty
+      // documents, which reach the same place.
+    }
+    // A slow early answer must not overwrite a fresh one, exactly as on the
+    // automation path.
+    if (generation !== entry.generation) return;
+
+    entry.current = current;
+    entry.proposed = proposed;
+    entry.loading = false;
+    entry.pending = false;
+    if (entry.stale) {
+      entry.stale = false;
+      requestScenePreview(host, entry);
+    }
+    host.requestUpdate?.();
+  })();
+}
+
+/**
+ * Resolve the diff for a pending scene proposal, or null when there is
+ * nothing comparable — accepting will create a new scene, the preview has not
+ * arrived, or it could not be produced.
+ */
+export function sceneProposalDiff(host, msgIndex) {
+  const msg = (host._messages || [])[msgIndex];
+  if (!msg?.scene) return null;
+  const sessionId = host._activeSessionId;
+  if (!sessionId) return null;
+  // The backend indexes the stored (possibly pruned) message list, as every
+  // other scene action does.
+  const storedIndex = storedSceneIndex(msg, msgIndex);
+  const key = sceneDiffKey(msgIndex);
+
+  if (!host._scenePreviewCache) host._scenePreviewCache = new Map();
+  const cached = host._scenePreviewCache.get(key);
+  let entry = cached;
+  if (
+    !cached ||
+    cached.sessionId !== sessionId ||
+    cached.storedIndex !== storedIndex
+  ) {
+    entry = {
+      sessionId,
+      storedIndex,
+      loading: true,
+      pending: false,
+      stale: false,
+      generation: 0,
+      current: "",
+      proposed: "",
+    };
+    host._scenePreviewCache.set(key, entry);
+    requestScenePreview(host, entry);
+  } else if (cached.stale && !cached.pending) {
+    // The scene can be edited in the Scenes tab while this card sits on
+    // screen. Re-request in the background and keep serving the last answer:
+    // dropping it would blank the chip for the length of a round trip.
+    cached.stale = false;
+    requestScenePreview(host, cached);
+  }
+
+  if (entry.loading || !entry.current || !entry.proposed) return null;
+
+  if (!host._sceneDiffCache) host._sceneDiffCache = new Map();
+  const hit = host._sceneDiffCache.get(key);
+  if (hit && hit.before === entry.current && hit.after === entry.proposed) {
+    return hit.diff;
+  }
+  const diff = diffLines(entry.current, entry.proposed);
+  host._sceneDiffCache.set(key, {
+    before: entry.current,
+    after: entry.proposed,
+    diff,
+  });
+  return diff;
+}
+
 // Every piece of diff state is keyed by message index, which means nothing
 // once _messages belongs to a different conversation: a proposal landing at
 // the same index would open with the previous session's panel state. Call this
@@ -272,6 +393,12 @@ export function resetProposalDiffState(host) {
     if (entry.timer) clearTimeout(entry.timer);
   }
   host._previewCache = null;
+  // The scene previews are keyed the same way and mean as little in another
+  // conversation. Nothing to cancel — they are never scheduled — but a reply
+  // still in flight is dropped by its entry going with the cache: the
+  // generation check answers against an entry nothing reads any more.
+  host._scenePreviewCache = null;
+  host._sceneDiffCache = null;
 }
 
 // How long to keep following a panel as it grows. Comfortably covers
