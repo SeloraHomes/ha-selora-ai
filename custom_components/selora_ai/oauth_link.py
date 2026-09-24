@@ -252,7 +252,11 @@ def _alexa_block(payload: dict[str, Any] | None) -> dict[str, str] | None:
 
 
 def _apply_alexa_block(
-    entry_data: dict[str, Any], block: dict[str, str] | None, *, answered: bool
+    entry_data: dict[str, Any],
+    block: dict[str, str] | None,
+    *,
+    answered: bool,
+    delivered_by_file: bool = False,
 ) -> None:
     """Write, clear, or leave the Alexa credential on a relink.
 
@@ -267,7 +271,25 @@ def _apply_alexa_block(
 
     Every member moves together, so a rotation cannot leave last epoch's
     audience beside this epoch's key.
+
+    ``delivered_by_file`` collapses all three into one: Selora OS is handing
+    the credential over as a file, so its desired entry data carries no
+    ``selora_alexa_*`` at all, and its reconciler compares desired against the
+    live entry key by key. A key written here would read as drift and be
+    repaired by stopping Home Assistant Core — on every reconcile, for as long
+    as it stayed. That is the restart the file channel exists to remove,
+    reached through the relink rather than through the credential sync, so the
+    keys are DROPPED rather than merely not written: leaving a stale set behind
+    is the same drift.
+
+    It defaults to False so a call site that has not been updated keeps
+    today's behaviour. Taking the credential out of an entry is not something
+    a caller should be able to ask for by accident.
     """
+    if delivered_by_file:
+        for key in _ALEXA_ENTRY_KEYS:
+            entry_data.pop(key, None)
+        return
     if block:
         entry_data.update(block)
         return
@@ -416,7 +438,17 @@ async def exchange_connect_code(
         or device_id,
         CONF_SELORA_JWT_KEY: jwt_key,
     }
-    _apply_alexa_block(entry_data, alexa_block, answered=alexa_key_known)
+    # Asked of the credential the OS has actually delivered, not of the OS
+    # version: a hub whose Selora OS predates the file channel has no file, so
+    # its entry must keep carrying the credential exactly as before.
+    from .alexa_connect import alexa_file_credential
+
+    _apply_alexa_block(
+        entry_data,
+        alexa_block,
+        answered=alexa_key_known,
+        delivered_by_file=alexa_file_credential(hass.data.get(DOMAIN, {})) is not None,
+    )
 
     hass.config_entries.async_update_entry(entry, data=entry_data)
 

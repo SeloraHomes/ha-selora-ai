@@ -288,6 +288,9 @@ def test_no_client_without_alexas_own_key(hass: Any) -> None:
     """Without it Alexa is simply not linked. It must never fall back to the
     MCP key, which would tie voice to another feature's key epoch."""
     entry = MagicMock()
+    # `build_client` resolves through `_alexa_credentials`, which skips a
+    # disabled entry — and a bare MagicMock's `disabled_by` is a MagicMock.
+    entry.disabled_by = None
     entry.data = {
         CONF_SELORA_INSTALLATION_ID: INSTALLATION_ID,
         CONF_SELORA_CONNECT_URL: CONNECT_URL,

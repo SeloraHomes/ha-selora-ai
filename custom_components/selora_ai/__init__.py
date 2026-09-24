@@ -50,6 +50,17 @@ if TYPE_CHECKING:
     from .types import EntitySnapshot, ImageAttachment
 
 from .agent_steps import decode_step, is_step_chunk, make_step
+
+# Imported eagerly, unlike the rest of the Alexa modules: it is stdlib only,
+# and the credential resolver below is synchronous and needs the type at
+# runtime to tell a cached credential from anything else under hass.data.
+from .alexa_credential_file import (
+    CREDENTIAL_POLL_SECONDS,
+    FileCredential,
+    credential_dir,
+    ensure_ack,
+    read_credential,
+)
 from .automation_utils import suggestion_content_fingerprint
 
 # Imported here, at the integration's own import time, so the stamp it captures
@@ -661,18 +672,46 @@ def _entry_is_configurable_llm(entry_data: dict[str, Any]) -> bool:
     return bool(_aigateway_view(entry_data)["refresh_token"])
 
 
+def _alexa_eligible_entries(
+    hass: HomeAssistant, *, exclude_entry_id: str | None = None
+) -> list[ConfigEntry]:
+    """The entries whose presence means voice is wanted on this hub.
+
+    Device onboarding entries are records only. A disabled entry is one the
+    user switched off, and ``async_entries`` lists it — reading one would turn
+    voice back on at the next restart, on another entry's setup, with nothing
+    tying the two together. ``exclude_entry_id`` is how teardown asks the
+    question: an entry is still listed while it is being unloaded.
+    """
+    return [
+        entry
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if entry.entry_id != exclude_entry_id
+        and entry.data.get(CONF_ENTRY_TYPE) != ENTRY_TYPE_DEVICE
+        and entry.disabled_by is None
+    ]
+
+
 def _alexa_credentials(
     hass: HomeAssistant, *, exclude_entry_id: str | None = None
 ) -> dict[str, str] | None:
-    """The Alexa credential block, from whichever entry carries one.
+    """The Alexa credential block, from the delivered file or from an entry.
+
+    The file Selora OS writes is the PREFERRED source and the config entry is
+    the fallback, because the two are the same credential arriving by
+    different roads and only one of them costs a restart. The fallback is not
+    optional: a hub whose OS predates the file channel still gets its
+    credential in the entry and has to keep working, and that is also what
+    every hub does until it sees our ack.
 
     Resolved across the fleet rather than from the entry being set up, because
     the validator it builds is shared state under ``hass.data[DOMAIN]`` while
     setup runs once per entry. Read per-entry, a stray unconfigured entry set
     up after the real one would resolve no credential and clear a working
     validator on its way past — voice dead, with the entry that owns the
-    credential still loaded and nothing in the log to connect the two. The same
-    walk is what ``alexa_connect.build_client`` and ``alexa_view`` already do.
+    credential still loaded and nothing in the log to connect the two.
+    ``alexa_connect.build_client`` and ``alexa_view._installation_id`` resolve
+    the same two sources in the same order, for the outbound half.
 
     ``exclude_entry_id`` is how teardown asks the question. An entry is still
     listed while it is being unloaded, so without it an unload would resolve the
@@ -682,17 +721,20 @@ def _alexa_credentials(
     borrowing the other would tie voice to a key epoch that belongs to another
     feature, so rotating that one would revoke voice with nothing to say why.
     """
-    for entry in hass.config_entries.async_entries(DOMAIN):
-        if entry.entry_id == exclude_entry_id:
-            continue
-        if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
-            continue
-        if entry.disabled_by is not None:
-            # `async_entries` lists disabled entries too. Reading one would
-            # re-enable voice from a credential the user switched off — and it
-            # would happen at the next restart, on another entry's setup, with
-            # nothing tying the two together.
-            continue
+    entries = _alexa_eligible_entries(hass, exclude_entry_id=exclude_entry_id)
+    if not entries:
+        # The file is fleet-level and outlives any one entry, so on its own it
+        # would answer for a hub whose integration has just been unloaded or
+        # switched off — voice still accepting directives with nothing behind
+        # it. An eligible entry is what says the integration is on; the file
+        # only says what the credential is.
+        return None
+
+    file_credential = _alexa_file_credential(hass)
+    if file_credential is not None:
+        return dict(file_credential.credentials)
+
+    for entry in entries:
         key = entry.data.get(CONF_SELORA_ALEXA_JWT_KEY)
         installation_id = entry.data.get(CONF_SELORA_INSTALLATION_ID)
         if not key or not installation_id:
@@ -740,6 +782,173 @@ def _delivered(value: Any, fallback: str) -> str:
     return fallback if value is None else _trimmed(value)
 
 
+# The last credential read whole off the delivered file, and the timer that
+# keeps re-reading it. Both live under ``hass.data[DOMAIN]`` beside the
+# validator they feed, because the credential is fleet-level while setup runs
+# once per entry.
+_ALEXA_FILE_CREDENTIAL = "_alexa_file_credential"
+_ALEXA_FILE_UNSUB = "_alexa_credential_unsub"
+_ALEXA_FILE_WARNED = "_alexa_credential_read_warned"
+_ALEXA_ACK_WARNED = "_alexa_ack_write_warned"
+
+
+def _alexa_file_credential(hass: HomeAssistant) -> FileCredential | None:
+    """The delivered credential as last read, without touching the disk.
+
+    ``_alexa_credentials`` is synchronous and is called from the event loop, so
+    the read itself happens in an executor and lands here. Cached rather than
+    re-read per call for the same reason a torn file does not revoke voice: the
+    cache IS the last whole credential, and only an absent file clears it.
+    """
+    cached = hass.data.get(DOMAIN, {}).get(_ALEXA_FILE_CREDENTIAL)
+    return cached if isinstance(cached, FileCredential) else None
+
+
+async def _async_refresh_alexa_file_credential(hass: HomeAssistant) -> None:
+    """Re-read the delivered credential into the cache.
+
+    Three outcomes, and the difference between the last two is the whole point:
+    a file that is gone is a WITHDRAWAL and clears the cache, while one that
+    cannot be read or does not parse leaves the last whole credential standing.
+    The OS renames the credential into place so a torn read should not happen;
+    a corrupted or half-restored file is still not a reason to take voice off a
+    home that is paying for it.
+    """
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    result = await hass.async_add_executor_job(read_credential, credential_dir(hass))
+
+    if result.state == "present":
+        domain_data[_ALEXA_FILE_CREDENTIAL] = result.credential
+        domain_data.pop(_ALEXA_FILE_WARNED, None)
+        return
+
+    if result.state == "absent":
+        domain_data.pop(_ALEXA_FILE_CREDENTIAL, None)
+        domain_data.pop(_ALEXA_FILE_WARNED, None)
+        return
+
+    # Logged on the transition, not on the read. This runs every 30 seconds,
+    # and a file stays broken until somebody fixes it.
+    if domain_data.get(_ALEXA_FILE_WARNED) != result.reason:
+        domain_data[_ALEXA_FILE_WARNED] = result.reason
+        _LOGGER.warning(
+            "Ignoring the delivered Alexa credential — voice is left as it is: %s",
+            result.reason,
+        )
+
+
+async def _async_ack_alexa_channel(hass: HomeAssistant, *, wanted: bool, applied: bool) -> None:
+    """Tell Selora OS what channel we speak, and what we have applied.
+
+    Written on every setup, credential or none: the channel declares the
+    CAPABILITY, which is what lets the OS stop putting the keys in the config
+    entry, and that is a separate claim from having applied anything. A
+    rotating credential is momentarily un-applied, and an OS that read the two
+    as one question would put the keys back and take the restart on every
+    rotation — the case the channel exists for.
+
+    ``applied`` is whether the validator standing right now was built from the
+    file, so the digest reports what voice is actually answering with rather
+    than what arrived. A hub still served by the config entry speaks the
+    channel without having applied anything through it.
+
+    Nothing is written once there is no entry left to serve. A reload is an
+    unload followed by a setup, so retracting the digest there would report
+    voice as ``delivering`` for the length of it; and a withdrawn ack is what
+    puts the keys back in the entry, which is the restart this removes.
+    """
+    if not wanted:
+        return
+
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    credential = _alexa_file_credential(hass) if applied else None
+    error = await hass.async_add_executor_job(
+        ensure_ack, credential_dir(hass), credential.digest if credential else None
+    )
+
+    if not error:
+        domain_data.pop(_ALEXA_ACK_WARNED, None)
+        return
+
+    # Reported, not swallowed — without the ack the OS keeps delivering in the
+    # config entry, so voice still works and the restart this channel removes
+    # quietly stays, which is exactly the failure that hides itself. On the
+    # transition, because the poll asks again every 30 seconds.
+    if domain_data.get(_ALEXA_ACK_WARNED) != error:
+        domain_data[_ALEXA_ACK_WARNED] = error
+        _LOGGER.error(
+            "Could not write the Alexa channel ack — Selora OS will keep delivering "
+            "the credential in the config entry, which restarts Home Assistant on "
+            "every change: %s",
+            error,
+        )
+
+
+async def _async_poll_alexa_credential(hass: HomeAssistant, token: object) -> None:
+    """One tick of the credential poll.
+
+    Module-level rather than a closure so a test can drive the real thing —
+    the guard below runs AFTER an await, which a timer cannot be fired into.
+
+    Tolerates a torn-down entry: the sync resolves against whatever entries
+    remain, and with none left it disarms this very timer. But cancelling a
+    timer cannot cancel a tick already inside it, and this one suspends on a
+    file read. Unload lands in that window, and an unloading entry is STILL
+    LISTED — so the resumed tick resolves it as eligible and rebuilds the
+    validator teardown had just cleared, leaving voice accepting directives for
+    an integration that is no longer loaded. ``token`` is the armed handle;
+    teardown pops it, so finding it changed means this tick's answer is out of
+    date and is dropped rather than left standing.
+    """
+    await _async_sync_alexa_runtime(hass)
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if domain_data.get(_ALEXA_FILE_UNSUB) is not token:
+        domain_data["selora_alexa_jwt_validator"] = None
+
+
+@callback
+def _async_watch_alexa_credential(hass: HomeAssistant, *, wanted: bool) -> None:
+    """Arm or disarm the poll that notices a delivered credential changing.
+
+    Reading once at setup is not enough. The credential arrives minutes after
+    the owner links the skill, and making them restart to pick it up is the
+    problem this channel removes, restated. A timer rather than a task that
+    sleeps: a task is registered with HA, so bootstrap, every reload and every
+    test's ``async_block_till_done()`` would sit out the interval.
+
+    Armed exactly while an eligible entry exists, so the disarm rides the same
+    call teardown already makes and cannot be forgotten on a path that unloads
+    the last one.
+    """
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    unsub = domain_data.get(_ALEXA_FILE_UNSUB)
+
+    if not wanted:
+        if unsub is not None:
+            unsub()
+            domain_data.pop(_ALEXA_FILE_UNSUB, None)
+        return
+
+    if unsub is not None:
+        return
+
+    async def _poll(_now: datetime) -> None:
+        # The armed handle is read HERE, at the moment the timer fires, so it
+        # is the generation this run belongs to rather than the one that armed
+        # it — a re-arm between the two is a different timer's work.
+        await _async_poll_alexa_credential(
+            hass, hass.data.setdefault(DOMAIN, {}).get(_ALEXA_FILE_UNSUB)
+        )
+
+    domain_data[_ALEXA_FILE_UNSUB] = async_track_time_interval(
+        hass,
+        _poll,
+        timedelta(seconds=CREDENTIAL_POLL_SECONDS),
+        name="Selora AI Alexa credential",
+        cancel_on_shutdown=True,
+    )
+
+
 async def _async_teardown_alexa_config(hass: HomeAssistant) -> None:
     """Drop the cached Alexa config, stopping what it owns first.
 
@@ -768,11 +977,22 @@ async def _async_sync_alexa_runtime(
     """Make the Alexa validator agree with what is in the config entries.
 
     Idempotent and order-independent, so every entry's setup AND unload can run
-    it. This is also how a revocation takes effect: Selora OS drops the
-    credential from the entry, HA reloads, and the absence resolves the
-    validator to None — there is no separate revoke path to keep in step.
+    it — and it is what the credential poll re-runs, so it is also the one path
+    a delivered credential takes. This is also how a revocation takes effect:
+    Selora OS removes the delivered file (or drops the credential from the
+    entry), the absence resolves the validator to None, and there is no
+    separate revoke path to keep in step.
     """
     domain_data = hass.data.setdefault(DOMAIN, {})
+    wanted = bool(_alexa_eligible_entries(hass, exclude_entry_id=exclude_entry_id))
+
+    # Disarmed before the first await when nothing is left to serve, so the
+    # timer cannot fire against state teardown is in the middle of popping.
+    _async_watch_alexa_credential(hass, wanted=wanted)
+
+    if wanted:
+        await _async_refresh_alexa_file_credential(hass)
+
     credentials = _alexa_credentials(hass, exclude_entry_id=exclude_entry_id)
 
     # The cached config holds a Connect client minted from the old credential,
@@ -780,12 +1000,18 @@ async def _async_sync_alexa_runtime(
     # rebuilding on every reload would stop proactive reporting until the next
     # directive happens to arrive, which on a quiet home is hours.
     fingerprint = hashlib.sha256(json.dumps(credentials, sort_keys=True).encode()).hexdigest()
-    if domain_data.get("_alexa_credential_fingerprint") != fingerprint:
+    # Every log line below is gated on this. The poll re-runs this function
+    # every 30 seconds, so a line written unconditionally — "validator
+    # initialized", or a refusal the hub cannot do anything about — is 2,880
+    # copies a day of something that happened once.
+    changed = domain_data.get("_alexa_credential_fingerprint") != fingerprint
+    if changed:
         await _async_teardown_alexa_config(hass)
         domain_data["_alexa_credential_fingerprint"] = fingerprint
 
     if credentials is None:
         domain_data["selora_alexa_jwt_validator"] = None
+        await _async_ack_alexa_channel(hass, wanted=wanted, applied=False)
         return
 
     if not credentials["issuer"]:
@@ -794,11 +1020,13 @@ async def _async_sync_alexa_runtime(
         # the hub looked correctly configured. An absent issuer means the block
         # did not arrive whole, which the OS says cannot happen; refusing is
         # what keeps that a fact rather than an assumption.
-        _LOGGER.warning(
-            "Alexa credential is missing its issuer — voice is disabled. "
-            "Re-link Selora Connect to reissue it"
-        )
+        if changed:
+            _LOGGER.warning(
+                "Alexa credential is missing its issuer — voice is disabled. "
+                "Re-link Selora Connect to reissue it"
+            )
         domain_data["selora_alexa_jwt_validator"] = None
+        await _async_ack_alexa_channel(hass, wanted=wanted, applied=False)
         return
 
     from .selora_auth import alexa_credential_conflict
@@ -809,11 +1037,13 @@ async def _async_sync_alexa_runtime(
         # would run voice on values Connect did not send, and the failure this
         # guards is the one that is invisible: an Alexa path that accepts MCP
         # tokens looks exactly like an Alexa path that works.
-        _LOGGER.error(
-            "Alexa credential would not be separable from the MCP one (%s) — voice is disabled",
-            conflict,
-        )
+        if changed:
+            _LOGGER.error(
+                "Alexa credential would not be separable from the MCP one (%s) — voice is disabled",
+                conflict,
+            )
         domain_data["selora_alexa_jwt_validator"] = None
+        await _async_ack_alexa_channel(hass, wanted=wanted, applied=False)
         return
 
     from .selora_auth import SeloraJWTValidator, decode_jwt_key
@@ -825,10 +1055,18 @@ async def _async_sync_alexa_runtime(
         audience=credentials["audience"],
         scope_prefix=credentials["scope"],
     )
-    _LOGGER.info(
-        "Selora Alexa JWT validator initialized (audience %s, scope %s)",
-        credentials["audience"],
-        credentials["scope"],
+    if changed:
+        _LOGGER.info(
+            "Selora Alexa JWT validator initialized (audience %s, scope %s)",
+            credentials["audience"],
+            credentials["scope"],
+        )
+    # Applied only when the validator standing now was built from the FILE. A
+    # hub still served by the config entry can speak the channel without having
+    # applied anything through it, and saying otherwise would have the OS
+    # report voice ready on a credential it never delivered.
+    await _async_ack_alexa_channel(
+        hass, wanted=wanted, applied=_alexa_file_credential(hass) is not None
     )
 
 

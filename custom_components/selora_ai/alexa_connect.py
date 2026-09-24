@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any, Final
 from aiohttp import ClientError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .alexa_credential_file import FileCredential
 from .const import SELORA_JWT_ALGORITHM, SELORA_JWT_SCOPE_PREFIX_ALEXA
 
 if TYPE_CHECKING:
@@ -183,28 +184,64 @@ class AlexaConnectClient:
 
 
 def build_client(hass: HomeAssistant, domain_data: dict[str, Any]) -> AlexaConnectClient | None:
-    """Build a client from the linked installation, or None when unlinked."""
-    from .const import (
-        CONF_SELORA_ALEXA_JWT_KEY,
-        CONF_SELORA_CONNECT_URL,
-        CONF_SELORA_INSTALLATION_ID,
-        DEFAULT_SELORA_CONNECT_URL,
-        DOMAIN,
-    )
+    """Build a client from the linked installation, or None when unlinked.
+
+    Asked of `_alexa_credentials`, the same resolver the inbound validator
+    uses — the file Selora OS delivers when there is one, the config entry
+    otherwise. Not optional: once the OS sees our ack it stops writing the
+    Alexa keys into the entry, and an entry-only walk would then find nothing
+    and take proactive reporting down while directives kept being answered,
+    which is the quietest way for half of voice to stop. Sharing the resolver
+    is also what keeps this and `alexa_view._installation_id` naming the same
+    installation, and what applies the device-entry and disabled-entry rules
+    here as well.
+
+    ``domain_data`` is the caller's handle on `hass.data[DOMAIN]` and is kept
+    in the signature it already had.
+
+    The Connect URL is the one member the file does not carry — Connect calls
+    it, the hub only serves it — so it comes off whichever entry has one, and
+    from the compiled-in default when a voice-only hub has none.
+    """
+    from . import _alexa_credentials
     from .selora_auth import decode_jwt_key
 
+    credentials = _alexa_credentials(hass)
+    if credentials is None:
+        return None
+    return AlexaConnectClient(
+        hass,
+        connect_url=_connect_url(hass),
+        installation_id=credentials["installation_id"],
+        derived_key=decode_jwt_key(credentials["key"]),
+    )
+
+
+def alexa_file_credential(domain_data: dict[str, Any]) -> FileCredential | None:
+    """The delivered credential as the credential sync last read it.
+
+    Read off ``hass.data[DOMAIN]`` rather than off the disk: this is called
+    from the directive path, where a blocking read has no business, and the
+    cached value is by construction the last WHOLE credential — a torn file
+    leaves it standing.
+    """
+    cached = domain_data.get("_alexa_file_credential")
+    return cached if isinstance(cached, FileCredential) else None
+
+
+def _connect_url(hass: HomeAssistant) -> str:
+    """The Connect base URL from whichever entry carries one."""
+    from .const import CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL, DOMAIN
+
     for entry in hass.config_entries.async_entries(DOMAIN):
-        key_b64 = entry.data.get(CONF_SELORA_ALEXA_JWT_KEY)
-        installation_id = entry.data.get(CONF_SELORA_INSTALLATION_ID)
-        if not key_b64 or not installation_id:
-            continue
-        return AlexaConnectClient(
-            hass,
-            connect_url=entry.data.get(CONF_SELORA_CONNECT_URL) or DEFAULT_SELORA_CONNECT_URL,
-            installation_id=str(installation_id),
-            derived_key=decode_jwt_key(key_b64),
-        )
-    return None
+        if url := entry.data.get(CONF_SELORA_CONNECT_URL):
+            return str(url)
+    return DEFAULT_SELORA_CONNECT_URL
 
 
-__all__ = ["AlexaConnectClient", "AlexaConnectError", "build_client"]
+__all__ = [
+    "AlexaConnectClient",
+    "AlexaConnectError",
+    "alexa_file_credential",
+    "build_client",
+]

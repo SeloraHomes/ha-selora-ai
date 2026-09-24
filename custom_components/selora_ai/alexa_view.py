@@ -204,8 +204,27 @@ async def _async_get_config(hass: HomeAssistant) -> SeloraAlexaConfig:
 
 
 def _installation_id(hass: HomeAssistant) -> str | None:
-    """Return the Selora installation id from whichever entry carries one."""
-    for entry in hass.config_entries.async_entries(DOMAIN):
+    """Return the Selora installation id, from the one credential resolver.
+
+    Asked of `_alexa_credentials` rather than walked here, so this and
+    `build_client` cannot name different installations: a stray entry carrying
+    only an id sorts ahead of the entry that carries the credential, and the
+    config would then build its endpoints' `customIdentifier` from one
+    installation while its client signed for another. A voice-only hub whose
+    OS has stopped writing the Alexa block can also lose the id from its entry
+    altogether, and the delivered file carries its own.
+    """
+    from . import _alexa_credentials
+
+    if (credentials := _alexa_credentials(hass)) is not None:
+        return credentials["installation_id"]
+
+    # Nothing is linked for voice. The id is still worth having — it is what
+    # makes an endpoint's `customIdentifier` stable — so fall back to any entry
+    # carrying one, skipping the entries the resolver skips.
+    from . import _alexa_eligible_entries
+
+    for entry in _alexa_eligible_entries(hass):
         if installation_id := entry.data.get(CONF_SELORA_INSTALLATION_ID):
             return str(installation_id)
     return None

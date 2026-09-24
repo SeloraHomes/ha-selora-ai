@@ -1885,6 +1885,131 @@ recipe install stage; this module reuses its `_view_card_lists` but nothing else
   the family in both is deliberate: the alternative is another vocabulary
   heuristic choosing a lane, and that decision has been wrong repeatedly.
 
+## The Alexa voice credential
+
+Selora OS provisions voice and has to get the credential to us. It used to do
+that by writing our config entry, which means editing
+`.storage/core.config_entries` directly — safe only with Home Assistant
+stopped. So the reward for linking the skill was the owner's home going down
+for minutes, unannounced, with voice unable to answer until it came back.
+Measured on a production hub: link at 04:00, Core restarted 04:02:09, devices
+visible some minutes later, none of it visible to the owner.
+
+The OS now also writes the credential to `<config>/.selora/alexa_credential.json`
+(mode 0600 in a 0700 directory, renamed into place so a reader always sees a
+whole file — no locking). `alexa_credential_file.py` reads it and
+`_alexa_credentials` prefers it, so applying a credential rebuilds a validator
+in place and restarts nothing.
+
+- **Never write what the file carries into the config entry.** It is the
+  obvious implementation — read the file, `async_update_entry`, let the
+  existing entry walk find it — and it puts every hub into a restart loop.
+  Once the OS sees our ack it stops putting the Alexa keys in its *desired*
+  entry data, and its reconciler compares desired against the live entry key
+  by key (`cmp_view` in `modules/selora-ai.nix`, whose list includes
+  `selora_alexa_*`). A key we add that desired does not have reads as drift:
+  `NEEDS_STOP=true ; NEEDS_RESTART=true`, a Core restart on every reconcile —
+  the exact failure this removes, rebuilt out of its own fix. The file is a
+  transport, not a staging area for the entry.
+- **The credential sync is not the only door into the entry.** A Connect
+  relink from the panel goes through `oauth_link._apply_alexa_block`, which
+  writes the same four keys — so guarding only the sync leaves the restart
+  loop reachable from the panel button. It takes `delivered_by_file`, asked of
+  the credential the OS has actually delivered rather than of any OS version,
+  and when the file is delivering it DROPS the keys rather than merely not
+  writing them: the reconciler compares against the live entry, so a stale set
+  left behind is the same drift. It defaults to False, so a call site that has
+  not been updated keeps today's behaviour.
+- **The entry fallback is not legacy tolerance.** A hub whose OS predates the
+  channel gets its credential in the entry, and so does every hub until the OS
+  sees our ack — which is what lets hub and integration update on separate
+  schedules with no flag day. Both halves read the two sources in the same
+  order, because they ask the ONE resolver: `alexa_connect.build_client` and
+  `alexa_view._installation_id` both call `_alexa_credentials`. Missing the
+  outbound half is the quiet failure — directives keep being answered while
+  proactive reporting is dead, because the entry it walked no longer carries
+  the key. Sharing the resolver is also what stops the two naming different
+  installations (a stray entry carrying only an id sorts ahead of the entry
+  carrying the credential, and the config then builds its endpoints'
+  `customIdentifier` from one installation while its client signs for
+  another), and what applies the device-entry and disabled-entry rules to the
+  outbound half too. The Connect URL is the one member the file does not carry
+  (Connect calls it, the hub only serves it), so it still comes off an entry,
+  or off the compiled-in default.
+- **An eligible entry is what says voice is wanted; the file only says what
+  the credential is.** The file is fleet-level and outlives any one entry, so
+  read on its own it would answer for a hub whose integration has just been
+  unloaded or switched off. `_alexa_eligible_entries` keeps `exclude_entry_id`,
+  the disabled-entry rule and the stray-entry rule working unchanged.
+- **Absent and unreadable are different answers.** An absent file is a
+  WITHDRAWAL and clears the validator — that is the whole revoke path. A
+  malformed or truncated one says nothing about whether voice is provisioned,
+  so it leaves the last whole credential standing: a half-restored or
+  corrupted file is not a reason to take voice off a home that is paying for
+  it. The last good read is cached under `hass.data[DOMAIN]`, which is also
+  what keeps `_alexa_credentials` synchronous — the read itself is an executor
+  job.
+- **The poll is a timer, and it is not optional.** The credential arrives
+  minutes after the owner links the skill, so reading once at setup would make
+  them restart to pick it up — the problem restated.
+  `async_track_time_interval` at `CREDENTIAL_POLL_SECONDS` (30s, against the
+  OS's 5-minute config sync), armed and disarmed inside
+  `_async_sync_alexa_runtime` so the disarm rides the call teardown already
+  makes. Its job runs as a BACKGROUND task, so `async_block_till_done()` does
+  not wait for it — a test driving the poll needs
+  `wait_background_tasks=True`. **Disarming cannot cancel a tick already
+  inside the timer**, and this one suspends on a file read: unload lands in
+  that window, an unloading entry is still listed by `async_entries`, and the
+  resumed tick would rebuild the validator teardown had just cleared. So
+  `_async_poll_alexa_credential` takes the armed handle as a generation token
+  and drops its answer if teardown replaced it. It is module-level rather than
+  a closure precisely so a test can drive it — the guard runs after an await,
+  which a timer cannot be fired into.
+- **Everything the sync logs is gated on the credential fingerprint changing.**
+  It now runs every 30 seconds; a line written unconditionally — "validator
+  initialized", or a refusal the hub cannot act on — is 2,880 copies a day of
+  something that happened once. The file-read and ack-write complaints are
+  logged on the transition for the same reason, so `alexa_credential_file`
+  logs nothing at all — both entry points hand their failure back as a string,
+  because only the caller can see a transition. It also keeps the one module
+  holding the credential's bytes away from the logger entirely.
+- **The ack is `<config>/.selora/alexa_applied.json`, `{"channel": 1}` plus an
+  `applied_digest`.** `channel` is what the OS gates on and is written on every
+  setup, credential or none: it declares the CAPABILITY, which is a separate
+  claim from having applied anything. A rotating credential is momentarily
+  un-applied, and an OS that read the two as one question would put the keys
+  back in the entry and take the restart on every rotation — the case the
+  channel exists for. `applied_digest` follows the VALIDATOR, so a credential
+  refused for overlapping MCP's key space is delivered and not applied.
+  Nothing is written once no entry is left to serve: a reload is an unload
+  followed by a setup, and retracting the digest there would report voice as
+  `delivering` for its length.
+- **The digest is over the file's raw bytes as read.** The OS digests the
+  bytes it wrote, which end in a newline — `jq -cS` output through
+  `printf '%s\n'`. Hashing a re-serialised copy of the parsed JSON gives a
+  different value and the hub reports voice as `delivering` for ever.
+  `hashlib.sha256(path.read_bytes()).hexdigest()`, and the test fixture is
+  byte-identical rather than a re-dump.
+- **Nothing logs the key or the file's contents, at any level**, and a test
+  asserts it against real output. The truncated case is the one that invites
+  it: an error quoting the offending bytes is the natural way to write it, and
+  those bytes are the credential.
+- Key spaces stay disjoint — audience `selora-alexa`, scope prefix `alexa:`,
+  no fallback to the MCP key or epoch — on the file path exactly as on the
+  entry path. Unlike the entry, the file has no history to be tolerant of: the
+  OS emits all five members or emits nothing, so a member missing from a file
+  that exists means the bytes are not whole. `installation_id` is the only
+  member that may arrive as a JSON number (Connect marshals an int64);
+  accepting one anywhere else turns `"jwt_key": 123` into the string `"123"`,
+  a credential shaped well enough to replace the last good one in the cache
+  and then raise out of `decode_jwt_key` every 30 seconds.
+- **Each ack write stages under a name of its own.** Two syncs can be in
+  flight at once — a second entry setting up while the poll runs — and on one
+  shared temp name the later `O_TRUNC` empties the file the earlier writer is
+  about to rename into place. The OS reads a garbled ack as no ack at all,
+  which puts the credential back in the entry and brings the restart back. Both
+  renames are atomic, so the loser is simply overwritten by the next poll.
+
 ## LLM Providers
 
 | Provider | Config Key | Default Model | Notes |
