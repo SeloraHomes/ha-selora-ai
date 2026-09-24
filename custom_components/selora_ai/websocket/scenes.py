@@ -196,6 +196,125 @@ async def _handle_websocket_accept_scene(
 @websocket_api.async_response
 @decorators.websocket_command(
     {
+        vol.Required("type"): "selora_ai/preview_scene_write",
+        vol.Required("session_id"): str,
+        vol.Required("message_index"): int,
+    }
+)
+async def _handle_websocket_preview_scene_write(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return what accepting a scene proposal would overwrite and write.
+
+    Read-only counterpart to ``accept_scene``, for the card's "what changed"
+    panel. Both sides are dumped the same way so a diff between them holds only
+    real changes:
+
+    - ``current_yaml`` is the entry read from scenes.yaml, so a scene edited in
+      the Scenes tab or in HA itself compares against what is really there;
+    - ``proposed_yaml`` is the stored proposal put through the writer's own
+      entry construction — the ``[Selora AI]`` prefix and the sanitized name
+      included — so the id line and the prefix do not read as changes.
+
+    The target is resolved here exactly as ``accept_scene`` resolves it, from
+    the stored proposal and the session's own scenes: a preview that answered a
+    different question from the write would be worse than no preview. Both
+    sides come back empty when accepting would CREATE — there is nothing to
+    diff against — rather than as an error, since that is an ordinary proposal
+    and not a failure.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    import yaml as pyyaml  # noqa: PLC0415
+
+    from ..scene_utils import (  # noqa: PLC0415
+        _SCENES_YAML_LOCK,
+        ScenesYamlError,
+        _get_scenes_path,
+        _read_scenes_yaml,
+    )
+    from ..scene_validation import sanitize_scene_name  # noqa: PLC0415
+
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    session = await store.get_session(msg["session_id"])
+    if not session:
+        connection.send_error(msg["id"], "not_found", "Session not found")
+        return
+    msgs = session.get("messages", [])
+    mi = msg["message_index"]
+    if mi < 0 or mi >= len(msgs):
+        connection.send_error(msg["id"], "not_found", "Message not found")
+        return
+    chat_msg = msgs[mi]
+    scene_data = chat_msg.get("scene")
+    if not isinstance(scene_data, dict) or not scene_data:
+        connection.send_error(msg["id"], "no_scene", "No scene data on this message")
+        return
+
+    nothing_to_diff = {"current_yaml": "", "proposed_yaml": ""}
+
+    existing_scene_id = chat_msg.get("refine_scene_id")
+    session_scene_ids = {s[0] for s in _find_active_scenes(session, msgs)}
+    if (
+        not existing_scene_id
+        or not existing_scene_id.startswith(SCENE_ID_PREFIX)
+        or existing_scene_id not in session_scene_ids
+    ):
+        connection.send_result(msg["id"], nothing_to_diff)
+        return
+
+    name = sanitize_scene_name(scene_data.get("name", ""))
+    entities = scene_data.get("entities")
+    if not name or not isinstance(entities, dict) or not entities:
+        connection.send_result(msg["id"], nothing_to_diff)
+        return
+
+    scenes_path = _get_scenes_path(hass)
+    try:
+        # Under the writer's lock: a torn read during an overlapping write
+        # would describe a state that never existed on disk.
+        async with _SCENES_YAML_LOCK:
+            existing = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    except ScenesYamlError as exc:
+        connection.send_error(msg["id"], "yaml_read_failed", str(exc))
+        return
+    except OSError as exc:
+        connection.send_error(msg["id"], "yaml_read_failed", str(exc))
+        return
+
+    entry = next((s for s in existing if s.get("id") == existing_scene_id), None)
+    if entry is None:
+        # Deleted between the proposal and the card: accepting appends a new
+        # scene, so there is no earlier document to compare against.
+        connection.send_result(msg["id"], nothing_to_diff)
+        return
+
+    # The entry the writer would put in its place, field for field.
+    proposed_entry = {
+        "id": existing_scene_id,
+        "name": f"[Selora AI] {name}",
+        "entities": entities,
+    }
+
+    try:
+        current_yaml = pyyaml.dump(entry, allow_unicode=True, default_flow_style=False)
+        proposed_yaml = pyyaml.dump(proposed_entry, allow_unicode=True, default_flow_style=False)
+    except pyyaml.YAMLError as exc:
+        _LOGGER.exception("Error in preview_scene_write")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+        return
+
+    connection.send_result(
+        msg["id"], {"current_yaml": current_yaml, "proposed_yaml": proposed_yaml}
+    )
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
         vol.Required("type"): "selora_ai/apply_scene_states",
         vol.Required("entities"): dict,
     }
@@ -928,6 +1047,7 @@ def async_register(hass: HomeAssistant) -> None:
 
     websocket_api.async_register_command(hass, _handle_websocket_set_scene_status)
     websocket_api.async_register_command(hass, _handle_websocket_accept_scene)
+    websocket_api.async_register_command(hass, _handle_websocket_preview_scene_write)
     websocket_api.async_register_command(hass, _handle_websocket_save_scene_edits)
     websocket_api.async_register_command(hass, _handle_websocket_rename_scene)
     websocket_api.async_register_command(hass, _handle_websocket_apply_scene_states)
