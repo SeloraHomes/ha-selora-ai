@@ -116,6 +116,8 @@ const PHRASES = {
     notify_via: (tgt) => `Notify via ${tgt}`,
     send_notification: "Send a notification",
     say_quoted: (q) => `Say: "${q}"`,
+    say_quoted_on: (q, tgt) => `Say "${q}" on ${tgt}`,
+    tts_on: (tgt) => `Speak on ${tgt}`,
     tts: "Text-to-speech",
     action_turn_on: "Turn on",
     action_turn_off: "Turn off",
@@ -242,6 +244,8 @@ const PHRASES = {
     notify_via: (tgt) => `Notifier via ${tgt}`,
     send_notification: "Envoyer une notification",
     say_quoted: (q) => `Dire : « ${q} »`,
+    say_quoted_on: (q, tgt) => `Dire « ${q} » sur ${tgt}`,
+    tts_on: (tgt) => `Parler sur ${tgt}`,
     tts: "Synthèse vocale",
     action_turn_on: "Allumer",
     action_turn_off: "Éteindre",
@@ -366,6 +370,8 @@ const PHRASES = {
     notify_via: (tgt) => `Benachrichtigen über ${tgt}`,
     send_notification: "Eine Benachrichtigung senden",
     say_quoted: (q) => `Sagen: „${q}“`,
+    say_quoted_on: (q, tgt) => `„${q}“ auf ${tgt} sagen`,
+    tts_on: (tgt) => `Auf ${tgt} sprechen`,
     tts: "Sprachausgabe",
     action_turn_on: "Einschalten",
     action_turn_off: "Ausschalten",
@@ -492,6 +498,8 @@ const PHRASES = {
     notify_via: (tgt) => `Notificar vía ${tgt}`,
     send_notification: "Enviar una notificación",
     say_quoted: (q) => `Decir: «${q}»`,
+    say_quoted_on: (q, tgt) => `Decir «${q}» en ${tgt}`,
+    tts_on: (tgt) => `Hablar en ${tgt}`,
     tts: "Síntesis de voz",
     action_turn_on: "Encender",
     action_turn_off: "Apagar",
@@ -617,6 +625,8 @@ const PHRASES = {
     notify_via: (tgt) => `Notifica tramite ${tgt}`,
     send_notification: "Invia una notifica",
     say_quoted: (q) => `Dire: «${q}»`,
+    say_quoted_on: (q, tgt) => `Dire «${q}» su ${tgt}`,
+    tts_on: (tgt) => `Parla su ${tgt}`,
     tts: "Sintesi vocale",
     action_turn_on: "Accendi",
     action_turn_off: "Spegni",
@@ -744,6 +754,8 @@ const PHRASES = {
     notify_via: (tgt) => `Melden via ${tgt}`,
     send_notification: "Een melding sturen",
     say_quoted: (q) => `Zeggen: „${q}”`,
+    say_quoted_on: (q, tgt) => `„${q}” zeggen op ${tgt}`,
+    tts_on: (tgt) => `Spreken op ${tgt}`,
     tts: "Tekst-naar-spraak",
     action_turn_on: "Aanzetten",
     action_turn_off: "Uitzetten",
@@ -870,6 +882,8 @@ const PHRASES = {
     notify_via: (tgt) => `Értesítés ${tgt} útján`,
     send_notification: "Értesítés küldése",
     say_quoted: (q) => `Mondás: „${q}”`,
+    say_quoted_on: (q, tgt) => `„${q}” bemondása itt: ${tgt}`,
+    tts_on: (tgt) => `Felolvasás itt: ${tgt}`,
     tts: "Szövegfelolvasás",
     action_turn_on: "Bekapcsolás",
     action_turn_off: "Kikapcsolás",
@@ -930,6 +944,75 @@ function _deviceName(hass, deviceId) {
   if (!deviceId) return null;
   const dev = hass?.devices?.[String(deviceId)];
   return dev?.name_by_user || dev?.name || null;
+}
+
+// The speakers a TTS action plays on. `tts.speak` names them in
+// `media_player_entity_id` and targets the TTS ENGINE (`tts.piper`), while a
+// legacy `tts.*_say` service puts the speaker in `entity_id` — so only
+// media_player ids are kept, whichever field carried them.
+function _ttsMediaPlayers(item) {
+  const out = [];
+  for (const v of [
+    item.data?.media_player_entity_id,
+    item.target?.entity_id,
+    item.data?.entity_id,
+  ].flatMap((x) => (x == null ? [] : Array.isArray(x) ? x : [x]))) {
+    if (
+      typeof v === "string" &&
+      v.startsWith("media_player.") &&
+      !out.includes(v)
+    )
+      out.push(v);
+  }
+  return out;
+}
+
+// HA names a companion app's notify service `mobile_app_<slugified device
+// name>`, so the phone is recoverable from the registry hass ships.
+function _slug(s) {
+  return String(s)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+// Only devices the companion app registered are candidates: a light or a
+// speaker can share the phone's name, and linking it would open the wrong page.
+function _isMobileAppDevice(dev) {
+  return (dev.identifiers || []).some(
+    (i) => Array.isArray(i) && i[0] === "mobile_app",
+  );
+}
+
+function _mobileAppDevice(hass, svcName) {
+  if (!svcName.startsWith("mobile_app_")) return null;
+  const slug = svcName.slice("mobile_app_".length);
+  for (const [id, dev] of Object.entries(hass?.devices || {})) {
+    if (!dev || !_isMobileAppDevice(dev)) continue;
+    if (
+      _slug(dev.name || "") === slug ||
+      _slug(dev.name_by_user || "") === slug
+    )
+      return { deviceId: id, name: dev.name_by_user || dev.name };
+  }
+  return null;
+}
+
+// Who a notify action reaches, or null when the service names no one in
+// particular. `notify.notify` is HA's default service: rendering its name
+// produced "Notify Notify: …". `notify.send_message` addresses notify
+// ENTITIES through `target`, and a mobile_app service resolves to its phone.
+function _notifyTargetName(hass, item, svcName, lang) {
+  if (svcName === "notify") return null;
+  if (svcName === "send_message") {
+    const ids = item.target?.entity_id ?? item.data?.entity_id;
+    return ids ? fmtEntities(hass, ids, lang) : null;
+  }
+  const phone = _mobileAppDevice(hass, svcName);
+  if (phone) return phone.name;
+  return humanizeToken(svcName.replace(/^mobile_app_/, ""));
 }
 
 // HA assigns a trigger without an explicit `id` its zero-based index as the
@@ -1472,25 +1555,28 @@ export function describeFlowItem(hass, item, ctx) {
       return t("send_notification");
     }
     if (domain === "notify") {
-      const target = svcName
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (c) => c.toUpperCase());
+      const target = _notifyTargetName(hass, item, svcName, lang);
       const msg = item.data?.message;
       const title = item.data?.title;
-      if (title) return t("notify_target", target, title);
-      if (msg) {
-        const short = msg.length > 50 ? msg.slice(0, 47) + "…" : msg;
-        return t("notify_target", target, short);
+      const quoted =
+        title || (msg && msg.length > 50 ? msg.slice(0, 47) + "…" : msg);
+      if (!target) {
+        return quoted ? t("notify_quoted", quoted) : t("send_notification");
       }
+      if (quoted) return t("notify_target", target, quoted);
       return t("notify_via", target);
     }
     if (domain === "tts") {
+      const players = _ttsMediaPlayers(item);
+      const where = players.length ? fmtEntities(hass, players, lang) : "";
       const msg = item.data?.message;
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "…" : msg;
-        return t("say_quoted", short);
+        return where
+          ? t("say_quoted_on", short, where)
+          : t("say_quoted", short);
       }
-      return t("tts");
+      return where ? t("tts_on", where) : t("tts");
     }
 
     const ACTION_KEYS = {
@@ -1626,6 +1712,8 @@ export function collectFlowEntityIds(item) {
   push(item.entity_id);
   push(item.target?.entity_id);
   push(item.data?.entity_id);
+  // `tts.speak` names its speaker here, not in `target` (which is the engine).
+  push(item.data?.media_player_entity_id);
   // Template triggers/conditions reference entities inside Jinja calls —
   // surface those too so their descriptions get clickable chips.
   if (typeof item.value_template === "string") {
@@ -1639,19 +1727,25 @@ export function collectFlowEntityIds(item) {
 }
 
 /**
- * Resolve the device referenced by a device trigger / condition so the
- * renderer can turn its name into a link to the device page. Device items
+ * Resolve the device referenced by a device trigger / condition — or the
+ * phone a `notify.mobile_app_*` action reaches — so the renderer can turn
+ * its name into a link to the device page. Device items
  * carry a `device_id` (not an entity_id), so `collectFlowEntityIds` skips
  * them — this is the device-shaped counterpart. Returns a single-element
  * array (or empty when the item isn't a device item or the registry can't
  * resolve the name) to mirror `collectFlowEntityIds`' shape.
  *
  * @param {{ devices?: Object }} hass
- * @param {Object} item - trigger or condition object
+ * @param {Object} item - trigger, condition, or notify action
  * @returns {{ deviceId: string, name: string, domain: string | null }[]}
  */
 export function collectFlowDeviceRefs(hass, item) {
   if (!item || typeof item !== "object") return [];
+  const svc = String(item.action || item.service || "");
+  if (svc.startsWith("notify.")) {
+    const phone = _mobileAppDevice(hass, svc.slice("notify.".length));
+    return phone ? [{ ...phone, domain: "mobile_app" }] : [];
+  }
   const kind = item.platform || item.trigger || item.condition;
   if (kind !== "device" || !item.device_id) return [];
   const name = _deviceName(hass, item.device_id);

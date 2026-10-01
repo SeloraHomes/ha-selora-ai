@@ -748,6 +748,82 @@ describe("Actions", () => {
     expect(result).toContain('Say: "Hello world"');
   });
 
+  it("names the speaker a tts.speak action plays on", () => {
+    const hass = {
+      ...mockHass,
+      states: {
+        ...mockHass.states,
+        "media_player.family_room": {
+          attributes: { friendly_name: "Sonos Family Room" },
+        },
+        "tts.piper": { attributes: { friendly_name: "Piper" } },
+      },
+    };
+    const item = {
+      action: "tts.speak",
+      target: { entity_id: "tts.piper" },
+      data: {
+        media_player_entity_id: "media_player.family_room",
+        message: "Someone is at the door",
+      },
+    };
+    expect(describeFlowItem(hass, item)).toBe(
+      'Say "Someone is at the door" on Sonos Family Room',
+    );
+    expect(collectFlowEntityIds(item)).toContain("media_player.family_room");
+  });
+
+  it("names the speaker of a legacy tts *_say action", () => {
+    const result = describeFlowItem(mockHass, {
+      action: "tts.cloud_say",
+      data: { entity_id: "media_player.kitchen", message: "Hi" },
+    });
+    expect(result).toBe('Say "Hi" on Kitchen');
+  });
+
+  it("does not repeat the service name for notify.notify", () => {
+    const result = describeFlowItem(mockHass, {
+      action: "notify.notify",
+      data: { message: "Front door unlocked" },
+    });
+    expect(result).toBe('Notify: "Front door unlocked"');
+  });
+
+  it("names the notify entities a send_message action targets", () => {
+    const hass = {
+      ...mockHass,
+      states: {
+        ...mockHass.states,
+        "notify.pixel": { attributes: { friendly_name: "Pixel" } },
+      },
+    };
+    const result = describeFlowItem(hass, {
+      action: "notify.send_message",
+      target: { entity_id: "notify.pixel" },
+      data: { message: "Hello" },
+    });
+    expect(result).toBe('Notify Pixel: "Hello"');
+  });
+
+  it("resolves a mobile_app notify service to its phone", () => {
+    const hass = {
+      ...mockHass,
+      devices: {
+        // A same-named non-phone device must not be linked instead.
+        dev0: { name: "Pixel 7 Pro", identifiers: [["hue", "x"]] },
+        dev1: { name: "Pixel 7 Pro", identifiers: [["mobile_app", "abc"]] },
+      },
+    };
+    const item = {
+      action: "notify.mobile_app_pixel_7_pro",
+      data: { message: "Hello" },
+    };
+    expect(describeFlowItem(hass, item)).toBe('Notify Pixel 7 Pro: "Hello"');
+    expect(collectFlowDeviceRefs(hass, item)).toEqual([
+      { deviceId: "dev1", name: "Pixel 7 Pro", domain: "mobile_app" },
+    ]);
+  });
+
   it("describes delay action (string)", () => {
     const result = describeFlowItem(mockHass, {
       delay: "00:05:00",

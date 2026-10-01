@@ -1701,6 +1701,7 @@ export const DOMAIN_ICONS = {
   counter: "mdi:counter",
   group: "mdi:google-circles-communities",
   notify: "mdi:bell",
+  mobile_app: "mdi:cellphone",
   alarm_control_panel: "mdi:shield-home",
   air_quality: "mdi:air-filter",
   remote: "mdi:remote",
