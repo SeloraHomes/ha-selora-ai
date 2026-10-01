@@ -30940,6 +30940,7 @@ var DOMAIN_ICONS3 = {
   counter: "mdi:counter",
   group: "mdi:google-circles-communities",
   notify: "mdi:bell",
+  mobile_app: "mdi:cellphone",
   alarm_control_panel: "mdi:shield-home",
   air_quality: "mdi:air-filter",
   remote: "mdi:remote",
@@ -31384,6 +31385,8 @@ var PHRASES = {
     notify_via: (tgt) => `Notify via ${tgt}`,
     send_notification: "Send a notification",
     say_quoted: (q) => `Say: "${q}"`,
+    say_quoted_on: (q, tgt) => `Say "${q}" on ${tgt}`,
+    tts_on: (tgt) => `Speak on ${tgt}`,
     tts: "Text-to-speech",
     action_turn_on: "Turn on",
     action_turn_off: "Turn off",
@@ -31512,6 +31515,8 @@ var PHRASES = {
     notify_via: (tgt) => `Notifier via ${tgt}`,
     send_notification: "Envoyer une notification",
     say_quoted: (q) => `Dire : \xAB ${q} \xBB`,
+    say_quoted_on: (q, tgt) => `Dire \xAB ${q} \xBB sur ${tgt}`,
+    tts_on: (tgt) => `Parler sur ${tgt}`,
     tts: "Synth\xE8se vocale",
     action_turn_on: "Allumer",
     action_turn_off: "\xC9teindre",
@@ -31636,6 +31641,8 @@ var PHRASES = {
     notify_via: (tgt) => `Benachrichtigen \xFCber ${tgt}`,
     send_notification: "Eine Benachrichtigung senden",
     say_quoted: (q) => `Sagen: \u201E${q}\u201C`,
+    say_quoted_on: (q, tgt) => `\u201E${q}\u201C auf ${tgt} sagen`,
+    tts_on: (tgt) => `Auf ${tgt} sprechen`,
     tts: "Sprachausgabe",
     action_turn_on: "Einschalten",
     action_turn_off: "Ausschalten",
@@ -31762,6 +31769,8 @@ var PHRASES = {
     notify_via: (tgt) => `Notificar v\xEDa ${tgt}`,
     send_notification: "Enviar una notificaci\xF3n",
     say_quoted: (q) => `Decir: \xAB${q}\xBB`,
+    say_quoted_on: (q, tgt) => `Decir \xAB${q}\xBB en ${tgt}`,
+    tts_on: (tgt) => `Hablar en ${tgt}`,
     tts: "S\xEDntesis de voz",
     action_turn_on: "Encender",
     action_turn_off: "Apagar",
@@ -31890,6 +31899,8 @@ var PHRASES = {
     notify_via: (tgt) => `Notifica tramite ${tgt}`,
     send_notification: "Invia una notifica",
     say_quoted: (q) => `Dire: \xAB${q}\xBB`,
+    say_quoted_on: (q, tgt) => `Dire \xAB${q}\xBB su ${tgt}`,
+    tts_on: (tgt) => `Parla su ${tgt}`,
     tts: "Sintesi vocale",
     action_turn_on: "Accendi",
     action_turn_off: "Spegni",
@@ -32020,6 +32031,8 @@ var PHRASES = {
     notify_via: (tgt) => `Melden via ${tgt}`,
     send_notification: "Een melding sturen",
     say_quoted: (q) => `Zeggen: \u201E${q}\u201D`,
+    say_quoted_on: (q, tgt) => `\u201E${q}\u201D zeggen op ${tgt}`,
+    tts_on: (tgt) => `Spreken op ${tgt}`,
     tts: "Tekst-naar-spraak",
     action_turn_on: "Aanzetten",
     action_turn_off: "Uitzetten",
@@ -32152,6 +32165,8 @@ var PHRASES = {
     notify_via: (tgt) => `\xC9rtes\xEDt\xE9s ${tgt} \xFAtj\xE1n`,
     send_notification: "\xC9rtes\xEDt\xE9s k\xFCld\xE9se",
     say_quoted: (q) => `Mond\xE1s: \u201E${q}\u201D`,
+    say_quoted_on: (q, tgt) => `\u201E${q}\u201D bemond\xE1sa itt: ${tgt}`,
+    tts_on: (tgt) => `Felolvas\xE1s itt: ${tgt}`,
     tts: "Sz\xF6vegfelolvas\xE1s",
     action_turn_on: "Bekapcsol\xE1s",
     action_turn_off: "Kikapcsol\xE1s",
@@ -32206,6 +32221,58 @@ function _deviceName(hass, deviceId) {
   if (!deviceId) return null;
   const dev = hass?.devices?.[String(deviceId)];
   return dev?.name_by_user || dev?.name || null;
+}
+function _ttsMediaPlayers(item) {
+  const out = [];
+  for (const v2 of [
+    item.data?.media_player_entity_id,
+    item.target?.entity_id,
+    item.data?.entity_id,
+  ].flatMap((x2) => (x2 == null ? [] : Array.isArray(x2) ? x2 : [x2]))) {
+    if (
+      typeof v2 === "string" &&
+      v2.startsWith("media_player.") &&
+      !out.includes(v2)
+    )
+      out.push(v2);
+  }
+  return out;
+}
+function _slug(s4) {
+  return String(s4)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+function _isMobileAppDevice(dev) {
+  return (dev.identifiers || []).some(
+    (i7) => Array.isArray(i7) && i7[0] === "mobile_app",
+  );
+}
+function _mobileAppDevice(hass, svcName) {
+  if (!svcName.startsWith("mobile_app_")) return null;
+  const slug = svcName.slice("mobile_app_".length);
+  for (const [id, dev] of Object.entries(hass?.devices || {})) {
+    if (!dev || !_isMobileAppDevice(dev)) continue;
+    if (
+      _slug(dev.name || "") === slug ||
+      _slug(dev.name_by_user || "") === slug
+    )
+      return { deviceId: id, name: dev.name_by_user || dev.name };
+  }
+  return null;
+}
+function _notifyTargetName(hass, item, svcName, lang) {
+  if (svcName === "notify") return null;
+  if (svcName === "send_message") {
+    const ids = item.target?.entity_id ?? item.data?.entity_id;
+    return ids ? fmtEntities(hass, ids, lang) : null;
+  }
+  const phone = _mobileAppDevice(hass, svcName);
+  if (phone) return phone.name;
+  return humanizeToken(svcName.replace(/^mobile_app_/, ""));
 }
 function _triggerEffectiveId(tr, index) {
   return tr?.id != null ? String(tr.id) : String(index);
@@ -32591,25 +32658,28 @@ function describeFlowItem(hass, item, ctx) {
       return t5("send_notification");
     }
     if (domain === "notify") {
-      const target = svcName
-        .replace(/_/g, " ")
-        .replace(/\b\w/g, (c4) => c4.toUpperCase());
+      const target = _notifyTargetName(hass, item, svcName, lang);
       const msg = item.data?.message;
       const title = item.data?.title;
-      if (title) return t5("notify_target", target, title);
-      if (msg) {
-        const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return t5("notify_target", target, short);
+      const quoted =
+        title || (msg && msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg);
+      if (!target) {
+        return quoted ? t5("notify_quoted", quoted) : t5("send_notification");
       }
+      if (quoted) return t5("notify_target", target, quoted);
       return t5("notify_via", target);
     }
     if (domain === "tts") {
+      const players = _ttsMediaPlayers(item);
+      const where = players.length ? fmtEntities(hass, players, lang) : "";
       const msg = item.data?.message;
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return t5("say_quoted", short);
+        return where
+          ? t5("say_quoted_on", short, where)
+          : t5("say_quoted", short);
       }
-      return t5("tts");
+      return where ? t5("tts_on", where) : t5("tts");
     }
     const ACTION_KEYS = {
       turn_on: "action_turn_on",
@@ -32728,6 +32798,7 @@ function collectFlowEntityIds(item) {
   push(item.entity_id);
   push(item.target?.entity_id);
   push(item.data?.entity_id);
+  push(item.data?.media_player_entity_id);
   if (typeof item.value_template === "string") {
     for (const m3 of item.value_template.matchAll(
       /(?:states|state_attr|is_state|is_state_attr)\(\s*['"]([^'"]+)['"]/g,
@@ -32739,6 +32810,11 @@ function collectFlowEntityIds(item) {
 }
 function collectFlowDeviceRefs(hass, item) {
   if (!item || typeof item !== "object") return [];
+  const svc = String(item.action || item.service || "");
+  if (svc.startsWith("notify.")) {
+    const phone = _mobileAppDevice(hass, svc.slice("notify.".length));
+    return phone ? [{ ...phone, domain: "mobile_app" }] : [];
+  }
   const kind = item.platform || item.trigger || item.condition;
   if (kind !== "device" || !item.device_id) return [];
   const name = _deviceName(hass, item.device_id);
@@ -50065,7 +50141,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "392b9fe92f08" : "";
+var PANEL_BUILD = true ? "fbff76c68858" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
