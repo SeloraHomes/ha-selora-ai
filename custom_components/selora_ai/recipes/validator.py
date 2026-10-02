@@ -112,6 +112,15 @@ def _coerce_value(spec: InputSpec, raw: Any) -> tuple[Any, str | None]:
             return raw, None
         return None, (f"not one of the allowed choices: {', '.join(map(str, spec.choices))}")
 
+    if spec.type == "mapping":
+        # Resolver-only (InputSpec.validate enforces it), so ``raw`` is
+        # what the resolver returned, not form input. Values are coerced
+        # to str so a mapping lands in a template the way a string input
+        # does; keys are entity ids and stay as they are.
+        if isinstance(raw, dict):
+            return {str(k): ("" if v is None else str(v)) for k, v in raw.items()}, None
+        return None, f"not a mapping: {raw!r}"
+
     # Unknown type — manifest validation should have caught it.
     return None, f"unknown input type {spec.type!r}"
 

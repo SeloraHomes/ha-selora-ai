@@ -16,11 +16,14 @@ worse than a wrong default.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 import logging
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.const import CONF_MAC
 from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers import entity_registry as er
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -36,6 +39,41 @@ class ResolverError(Exception):
     (no Python tracebacks, no internal jargon)."""
 
 
+@dataclass(frozen=True, slots=True)
+class ResolverContext:
+    """What a resolver may read besides ``hass``.
+
+    Some values can't be derived from HA state alone. The Samsung TV
+    MAC is the MAC of the home's *chosen* television, not of "the only
+    Samsung on the network" — in a two-TV home there is no answer
+    without the choice. Every resolver therefore takes this alongside
+    ``hass``, whether it reads it or not: one uniform signature beats
+    a registry holding two call shapes.
+
+    ``bindings`` maps role id to the entity ids resolved for it, the
+    same shape ``ResolutionReport.bindings`` carries. It is EMPTY when
+    the caller has nothing yet — the wizard offers auto-setup from the
+    Match step, where the homeowner may not have picked a device. A
+    resolver must read that as "not chosen yet" and say so, never as
+    "nothing matches".
+    """
+
+    bindings: Mapping[str, Sequence[str]] = field(default_factory=dict)
+
+    @property
+    def entity_ids(self) -> tuple[str, ...]:
+        """Every bound entity id across all roles, de-duplicated, in
+        role order. Resolvers that care about one integration filter
+        this rather than naming a role id: role ids belong to the
+        recipe author and a resolver is shared across recipes.
+        """
+        seen: dict[str, None] = {}
+        for entities in self.bindings.values():
+            for entity_id in entities or ():
+                seen.setdefault(entity_id, None)
+        return tuple(seen)
+
+
 # ── NWS station resolver ───────────────────────────────────────────
 
 
@@ -45,7 +83,7 @@ _NWS_USER_AGENT = "Selora AI (https://selorahomes.com, support@selorahomes.com)"
 _NWS_TIMEOUT_SECONDS = 8
 
 
-async def _resolve_nws_station(hass: HomeAssistant) -> str:
+async def _resolve_nws_station(hass: HomeAssistant, ctx: ResolverContext) -> str:
     """Resolve the home's nearest NWS METAR station identifier from
     the lat/lon configured in Home Assistant. Calls api.weather.gov
     twice — first ``/points/{lat},{lon}`` then the returned
@@ -108,7 +146,7 @@ async def _resolve_nws_station(hass: HomeAssistant) -> str:
 # ── HA location resolvers ──────────────────────────────────────────
 
 
-async def _resolve_hass_latitude(hass: HomeAssistant) -> float:
+async def _resolve_hass_latitude(hass: HomeAssistant, ctx: ResolverContext) -> float:
     """Home Assistant's configured latitude. Used by recipe auto-setup
     to pre-fill the lat/lon fields on integration config flows so the
     homeowner doesn't retype what HA already knows.
@@ -121,7 +159,7 @@ async def _resolve_hass_latitude(hass: HomeAssistant) -> float:
     return float(hass.config.latitude)
 
 
-async def _resolve_hass_longitude(hass: HomeAssistant) -> float:
+async def _resolve_hass_longitude(hass: HomeAssistant, ctx: ResolverContext) -> float:
     if hass.config.longitude is None:
         raise ResolverError(
             "Home location isn't set in Home Assistant. Open Settings "
@@ -142,7 +180,7 @@ async def _resolve_hass_longitude(hass: HomeAssistant) -> float:
 _TTS_ENGINE_PREFERENCE = ("piper", "google")
 
 
-async def _resolve_tts_engine(hass: HomeAssistant) -> str:
+async def _resolve_tts_engine(hass: HomeAssistant, ctx: ResolverContext) -> str:
     """Pick a Text-to-Speech engine entity for ``tts.speak`` announcements.
 
     Recipes used to hard-code ``tts.cloud_say``, which only exists with a
@@ -189,16 +227,145 @@ async def _resolve_tts_engine(hass: HomeAssistant) -> str:
     return usable[0]
 
 
+# ── Samsung TV MAC resolver ────────────────────────────────────────
+
+
+def _names_dont_report(names: Sequence[str]) -> str:
+    """``"The Frame doesn't report"`` / ``"The Frame, Den TV don't report"``
+    — resolver messages reach the homeowner verbatim."""
+    return f"{', '.join(names)} {'doesn' if len(names) == 1 else 'don'}'t report"
+
+
+_SAMSUNG_TV_ADD_BY_HAND = (
+    "You can add it by hand from Settings → Devices & Services → Add Integration → Wake on LAN."
+)
+
+
+def _samsung_tv_entries(hass: HomeAssistant) -> dict[str, Any]:
+    """The home's samsungtv config entries, by entry id — only the ones
+    it is actually using.
+
+    A disabled entry keeps its MAC but exposes no entities, so it can
+    never be a television the homeowner picked; counting it resolves to
+    a set that was replaced. An ignored entry stores no data at all,
+    excluded for the same reason rather than left to the MAC check.
+    """
+    return {
+        entry.entry_id: entry
+        for entry in hass.config_entries.async_entries(
+            "samsungtv", include_ignore=False, include_disabled=False
+        )
+    }
+
+
+def _samsung_tv_picks(hass: HomeAssistant, ctx: ResolverContext) -> dict[str, Any]:
+    """Map each bound entity that is a Samsung TV to its config entry,
+    in the order the roles bound them.
+
+    Entities from the recipe's other roles (speakers, lights) pass
+    through here too and drop out, because their config entry isn't a
+    samsungtv one.
+    """
+    entries = _samsung_tv_entries(hass)
+    picks: dict[str, Any] = {}
+    if bound := ctx.entity_ids:
+        registry = er.async_get(hass)
+        for entity_id in bound:
+            registry_entry = registry.async_get(entity_id)
+            if registry_entry and (entry := entries.get(registry_entry.config_entry_id)):
+                picks[entity_id] = entry
+    return picks
+
+
+async def _resolve_samsung_tv_mac(hass: HomeAssistant, ctx: ResolverContext) -> str:
+    """One MAC address, for seeding HA's ``wake_on_lan`` config flow.
+
+    ``wake_on_lan`` registers ``send_magic_packet`` in the component's
+    ``async_setup``, not per config entry, so a single entry is what
+    makes the service exist for EVERY television. This resolver exists
+    to give that flow its one required field without showing the
+    homeowner a form asking for an address Home Assistant already
+    knows; the automations then carry their own MACs (see
+    ``samsung_tv_macs``). With several TVs picked, the first one is as
+    good as any: the entry is a vehicle for the service, not the
+    recipe's wiring. Returned exactly as stored — HA's own flow runs it
+    through ``dr.format_mac()``.
+    """
+    picks = _samsung_tv_picks(hass, ctx)
+    for entry in picks.values():
+        if mac := entry.data.get(CONF_MAC):
+            return str(mac)
+
+    if picks:
+        # Every television they picked is a model that publishes no MAC.
+        names = sorted({entry.title for entry in picks.values()})
+        raise ResolverError(
+            f"{_names_dont_report(names)} a MAC address, so Wake on LAN can't be "
+            "set up for you — older Samsung models don't publish one. "
+            f"{_SAMSUNG_TV_ADD_BY_HAND}"
+        )
+
+    # Nothing bound yet — the homeowner opened the Wake on LAN row
+    # before picking a television.
+    with_mac = [e for e in _samsung_tv_entries(hass).values() if e.data.get(CONF_MAC)]
+    if len(with_mac) > 1:
+        raise ResolverError(
+            f"This home has {len(with_mac)} Samsung TVs. Pick the ones this "
+            "recipe should wake first, then set up Wake on LAN."
+        )
+    if not with_mac:
+        raise ResolverError(
+            "Your Samsung TV doesn't report a MAC address, so Wake on "
+            "LAN can't be set up for you — older Samsung models don't "
+            f"publish one. {_SAMSUNG_TV_ADD_BY_HAND}"
+        )
+    return str(with_mac[0].data[CONF_MAC])
+
+
+async def _resolve_samsung_tv_macs(hass: HomeAssistant, ctx: ResolverContext) -> dict[str, str]:
+    """Every picked Samsung TV's MAC, keyed by its entity id.
+
+    This is what lets one install cover a whole house: the recipe's
+    template walks its TV role and reads the MAC belonging to each
+    entity, so three televisions become three automations against three
+    addresses rather than three installs of the same recipe (the
+    package is written per slug, so the second install would overwrite
+    the first).
+
+    Raises rather than skipping when a picked television publishes no
+    MAC: silently dropping it would leave a set the homeowner chose
+    with no wake automation and no explanation.
+    """
+    picks = _samsung_tv_picks(hass, ctx)
+    macs: dict[str, str] = {}
+    missing: list[str] = []
+    for entity_id, entry in picks.items():
+        if mac := entry.data.get(CONF_MAC):
+            macs[entity_id] = str(mac)
+        else:
+            missing.append(entry.title or entity_id)
+    if missing:
+        it = "it" if len(missing) == 1 else "them"
+        raise ResolverError(
+            f"{_names_dont_report(missing)} a MAC address, so Wake on LAN "
+            f"can't wake {it} — older Samsung models don't publish one. Leave "
+            f"{it} out of the selection, or add Wake on LAN by hand."
+        )
+    return macs
+
+
 # ── Registry ───────────────────────────────────────────────────────
 
 
-Resolver = Callable[["HomeAssistant"], Awaitable[Any]]
+Resolver = Callable[["HomeAssistant", ResolverContext], Awaitable[Any]]
 
 RESOLVERS: dict[str, Resolver] = {
     "nws_station_from_location": _resolve_nws_station,
     "hass_config_latitude": _resolve_hass_latitude,
     "hass_config_longitude": _resolve_hass_longitude,
     "tts_engine": _resolve_tts_engine,
+    "samsung_tv_mac": _resolve_samsung_tv_mac,
+    "samsung_tv_macs": _resolve_samsung_tv_macs,
 }
 
 
@@ -206,6 +373,8 @@ async def async_apply_auto_inputs(
     hass: HomeAssistant,
     manifest: Manifest,
     inputs: dict[str, Any],
+    *,
+    bindings: Mapping[str, Sequence[str]] | None = None,
 ) -> dict[str, Any]:
     """Mutate ``inputs`` in place with every resolver-driven value.
 
@@ -214,10 +383,17 @@ async def async_apply_auto_inputs(
     wizard (the field is hidden), so any value in ``inputs`` for an
     auto-resolved id is stale / shouldn't be trusted.
 
+    ``bindings`` is the role resolution this install is running with.
+    The pipeline always has it by this stage (roles resolve before
+    inputs), and resolvers that answer "which device did they pick?"
+    need it. Omitted, resolvers see an empty context and fall back to
+    whatever they can read from HA alone.
+
     Returns the same ``inputs`` dict for chaining. Raises
     :class:`ResolverError` from the first failing resolver — the
     pipeline turns that into a "validate" stage punch list entry.
     """
+    ctx = ResolverContext(bindings=dict(bindings or {}))
     for spec in manifest.inputs:
         if not spec.resolver:
             continue
@@ -227,6 +403,6 @@ async def async_apply_auto_inputs(
                 f"Recipe references unknown resolver "
                 f"{spec.resolver!r}. This is a recipe authoring bug."
             )
-        value = await resolver(hass)
+        value = await resolver(hass, ctx)
         inputs[spec.id] = value
     return inputs

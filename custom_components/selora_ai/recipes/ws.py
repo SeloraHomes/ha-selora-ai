@@ -47,7 +47,7 @@ from .pipeline import (
 from .pipeline_items import derive_items
 from .renderer import _group_object_id
 from .resolver import resolve
-from .resolvers import RESOLVERS, ResolverError
+from .resolvers import RESOLVERS, ResolverContext, ResolverError
 from .store import get_install_store
 from .version_gate import integration_version, meets_minimum
 
@@ -510,6 +510,12 @@ async def _ws_recipes_rebind(
         vol.Required("type"): "selora_ai/recipes/auto_setup_integration",
         vol.Required("slug"): str,
         vol.Required("domain"): str,
+        # The wizard's current per-role picks. Auto-setup runs from the
+        # Match step, where a resolver may need to know which device the
+        # homeowner chose (which of two Samsung TVs to wake), so the
+        # selections travel with the request the same way they do on
+        # preview and install.
+        vol.Optional("selections", default=dict): _SELECTIONS_SCHEMA,
     }
 )
 async def _ws_recipes_auto_setup_integration(
@@ -549,6 +555,13 @@ async def _ws_recipes_auto_setup_integration(
         )
         return
 
+    # Resolve the roles against the picks the wizard sent, so a
+    # resolver can read what the homeowner chose. Nothing picked yet is
+    # not an error here: the resolvers decide whether they can answer
+    # without a choice, and say so in their own words if they can't.
+    resolution = resolve(bundle.manifest, hass, selections=msg.get("selections") or {})
+    ctx = ResolverContext(bindings=resolution.bindings)
+
     # Compute the values dict: literals + resolver outputs.
     user_input: dict[str, Any] = dict(spec.auto_setup.get("values") or {})
     for field, resolver_name in (spec.auto_setup.get("resolved") or {}).items():
@@ -561,7 +574,7 @@ async def _ws_recipes_auto_setup_integration(
             )
             return
         try:
-            user_input[field] = await resolver(hass)
+            user_input[field] = await resolver(hass, ctx)
         except ResolverError as exc:
             connection.send_error(msg["id"], "resolver_failed", str(exc))
             return

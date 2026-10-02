@@ -8,6 +8,7 @@ flow will work.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 import shutil
 from types import SimpleNamespace
@@ -252,6 +253,40 @@ def test_manifest_rejects_unknown_role_kind(tmp_path: Path) -> None:
     )
     with pytest.raises(ManifestError, match="unknown kind"):
         load_manifest(bundle)
+
+
+@pytest.mark.parametrize(("binding_mode", "ok"), [("literal", True), ("group", False)])
+def test_mapping_input_is_literal_mode_only(tmp_path: Path, binding_mode: str, ok: bool) -> None:
+    """A mapping is keyed by the entity ids bound at install. Group mode
+    exists so ``recipes/rebind`` can swap those entities later, and rebind
+    never re-runs resolvers, so the mapping would keep answering for the
+    old devices while the rebind reports success.
+    """
+    bundle = tmp_path / "mapped"
+    bundle.mkdir()
+    (bundle / "package").mkdir()
+    (bundle / "package" / "x.yaml.j2").write_text("automation: []\n")
+    (bundle / "manifest.yaml").write_text(
+        "slug: mapped\n"
+        "version: 1.0.0\n"
+        "title: Mapped\n"
+        f"binding_mode: {binding_mode}\n"
+        "roles:\n"
+        "  - id: tv\n"
+        "    kind: media_player\n"
+        "inputs:\n"
+        "  - id: macs\n"
+        "    type: mapping\n"
+        "    label: MACs\n"
+        "    resolver: samsung_tv_macs\n"
+        "package_files:\n"
+        "  - package/x.yaml.j2\n"
+    )
+    if ok:
+        assert load_manifest(bundle).inputs[0].type == "mapping"
+    else:
+        with pytest.raises(ManifestError, match="binding_mode='group'"):
+            load_manifest(bundle)
 
 
 def test_manifest_accepts_event_kind(tmp_path: Path) -> None:
@@ -727,6 +762,56 @@ async def test_tornado_alert_auto_resolver_hides_station_code(
     payload_ids = [i["id"] for i in inputs_items[0].payload["inputs"]]
     assert "station_code" not in payload_ids
     assert {"shelter_zone", "warning_message"}.issubset(set(payload_ids))
+
+
+async def test_auto_setup_row_sorts_after_the_picks(hass, tornado_bundle_dir: Path) -> None:
+    """An integration Selora sets up FOR the homeowner is offered after
+    the device rows, because what it fills in can depend on what they
+    picked — the wake-on-LAN entry is created with the MAC of the
+    television chosen below it. Offered first, it invites a click that
+    can only fail in a home with two candidates.
+    """
+    from custom_components.selora_ai.recipes.pipeline import PipelineResult
+    from custom_components.selora_ai.recipes.pipeline_items import derive_items
+
+    bundle = await async_load_bundle(hass, "tornado-alert")
+    _seed_tornado_home(hass)
+    resolution = resolve(bundle.manifest, hass, selections=_TORNADO_FULL_SELECTION)
+    result = PipelineResult(
+        ok=True,
+        stage_reached="render",
+        bindings=resolution.bindings,
+        candidates=resolution.candidates,
+        pinned=resolution.pinned,
+        selection_modes={r.id: r.selection for r in bundle.manifest.roles},
+    )
+
+    def _positions(loaded: set[str]) -> tuple[int, int]:
+        ids = [it.id for it in derive_items(bundle.manifest, result, integrations_loaded=loaded)]
+        roles = [i for i, item_id in enumerate(ids) if item_id.startswith("configure/role:")]
+        return ids.index("configure/integration:nws"), max(roles)
+
+    nws, last_role = _positions(set())
+    assert nws > last_role
+
+    # Already configured, it has nothing left to fill in and nothing to
+    # read from the picks, so it stays up top as a plain "Ready" line
+    # instead of trailing the rows the homeowner still has to work.
+    nws, last_role = _positions({"nws"})
+    assert nws < last_role
+
+    # An integration that is ALSO where a role's entities come from
+    # gates that role, so it keeps its place in front of the picker
+    # even with auto_setup: scoped to an integration that isn't set up,
+    # the picker holds nothing, and "pick one of zero" is a worse first
+    # row than a setup button.
+    gated = replace(
+        bundle.manifest,
+        roles=tuple(replace(role, integration="nws") for role in bundle.manifest.roles),
+    )
+    ids = [it.id for it in derive_items(gated, result, integrations_loaded=set())]
+    roles = [i for i, item_id in enumerate(ids) if item_id.startswith("configure/role:")]
+    assert ids.index("configure/integration:nws") < max(roles)
 
 
 async def test_render_tornado_alert(hass, tornado_bundle_dir: Path) -> None:

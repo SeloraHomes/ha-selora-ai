@@ -206,9 +206,19 @@ class RoleSpec:
 # ── Input spec ──────────────────────────────────────────────────────
 
 
-InputType = Literal["string", "number", "boolean", "select"]
+# ``mapping`` is the one type no form can produce: a dict of values
+# keyed by entity id, for a recipe that needs one answer PER selected
+# device rather than one answer for the install. The Samsung wake
+# recipe is the case — one MAC per television picked — and a scalar
+# input caps such a recipe at a single device. It is resolver-only,
+# enforced below.
+#
+# Literal-mode only: its keys are entity ids resolved at install, and
+# ``recipes/rebind`` (group mode) swaps entities without re-running
+# resolvers. ``load_manifest`` refuses the combination.
+InputType = Literal["string", "number", "boolean", "select", "mapping"]
 
-_VALID_INPUT_TYPES: frozenset[str] = frozenset({"string", "number", "boolean", "select"})
+_VALID_INPUT_TYPES: frozenset[str] = frozenset({"string", "number", "boolean", "select", "mapping"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -267,6 +277,21 @@ class InputSpec:
             raise ManifestError(f"input {self.id!r}: min/max only allowed with type='number'")
         if self.min is not None and self.max is not None and self.min > self.max:
             raise ManifestError(f"input {self.id!r}: min={self.min} > max={self.max}")
+        # A mapping is keyed by entity id, so only a resolver that has
+        # seen the bindings can fill it. There is no form control for
+        # one, and a hand-written default would be a guess at entity ids
+        # in a home the author has never seen.
+        if self.type == "mapping":
+            if not self.resolver:
+                raise ManifestError(
+                    f"input {self.id!r}: type='mapping' requires a resolver — "
+                    "the wizard can't render a form for one"
+                )
+            if self.default is not None and not isinstance(self.default, dict):
+                raise ManifestError(
+                    f"input {self.id!r}: type='mapping' default must be a mapping, "
+                    f"got {type(self.default).__name__}"
+                )
 
 
 # ── Integration prereq ──────────────────────────────────────────────
@@ -763,6 +788,17 @@ def load_manifest(bundle_root: Path) -> Manifest:
     binding_mode = str(data.get("binding_mode", "literal")).strip().lower()
     if binding_mode not in ("literal", "group"):
         raise ManifestError(f"binding_mode must be 'literal' or 'group', got {binding_mode!r}")
+    # A mapping's keys are the entity ids bound at install. Group mode
+    # exists so ``recipes/rebind`` can swap those entities later, and
+    # rebind only rewrites group membership — it doesn't re-run
+    # resolvers or re-render — so the mapping would keep answering for
+    # the old devices while the rebind reports success. Refuse the
+    # combination here rather than let it go stale silently.
+    if binding_mode == "group" and (mapped := [i.id for i in inputs if i.type == "mapping"]):
+        raise ManifestError(
+            f"input {mapped[0]!r}: type='mapping' is not supported with binding_mode='group' "
+            "— rebinding would leave its per-device values pointing at the old devices"
+        )
 
     dashboard = _coerce_dashboard(data.get("dashboard"))
 
