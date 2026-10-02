@@ -1,25 +1,21 @@
 """Read and edit Lovelace dashboard content — views and cards.
 
 Backs the chat tools that answer "what's on my dashboard", "put the thermostat
-next to the lights", and "give me a page for the garage". Before these existed
-the model could place a card but never *see* one: ``insert_dashboard_card`` took
-a ``view`` argument the model had no way to learn, so it guessed, and in
-practice always landed on view 0.
+next to the lights", and "give me a page for the garage".
 
 What is reachable, and what is not:
 
 * **A dashboard's config is read/write.** ``LovelaceStorage.async_load`` /
   ``async_save`` round-trip the whole document, so views and cards are fully
   editable. Everything here works on that document.
-* **A dashboard ENTRY is not creatable FROM HERE.** Not the same as impossible:
-  ``DashboardsCollection`` — which owns adding and deleting dashboards — is a
-  local inside ``lovelace.async_setup``, published only to the admin-only
-  ``lovelace/dashboards/*`` websocket commands and never to ``hass.data``. The
-  supported API exists; it is only reachable by an authenticated websocket
-  client, which an in-process integration is not. So ``create_dashboard`` is
-  absent here, and the user adds an empty dashboard in the UI for Selora to
-  build out. See the note in CLAUDE.md on the panel-executed route, which would
-  serve interactive panel sessions only — not MCP, and not unattended runs.
+* **A dashboard ENTRY is not creatable FROM HERE.** ``DashboardsCollection`` —
+  which owns adding and deleting dashboards — is a local inside
+  ``lovelace.async_setup``, published only to the admin-only
+  ``lovelace/dashboards/*`` websocket commands and never to ``hass.data``. Only
+  an authenticated websocket client can reach it, so creating and deleting a
+  dashboard is proposed here and performed by the panel after the user confirms
+  (interactive panel sessions only — not MCP, not unattended runs). See
+  ``docs/dev/dashboards.md``.
 
 Three properties of the document shape drive most of the code here:
 

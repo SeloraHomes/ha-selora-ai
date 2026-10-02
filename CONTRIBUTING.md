@@ -1,9 +1,8 @@
 # Contributing to Selora AI
 
 Thanks for working on the integration! This is a quickstart — see
-[`CLAUDE.md`](CLAUDE.md) for the full architecture, conventions, and testing
-details, and the [Selora AI roadmap](https://selorahomes.com/docs/roadmap/) for
-planned features.
+[`CLAUDE.md`](CLAUDE.md) for conventions and design rules, and the
+[Selora AI roadmap](https://selorahomes.com/docs/roadmap/) for planned features.
 
 ## Where this repo lives
 
@@ -19,6 +18,36 @@ docker compose up -d
 Open http://localhost:8123 and add Selora AI under **Settings → Devices &
 Services**. If running Ollama alongside Docker, use
 `http://host.docker.internal:11434` as the Ollama host.
+
+Or bare metal:
+
+```bash
+python3 -m venv venv && source venv/bin/activate
+pip install homeassistant
+hass -c .
+```
+
+## Running the tests
+
+```bash
+uv venv .venv --python 3.14
+source .venv/bin/activate
+uv pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.358" "ruamel.yaml>=0.18" anthropic home-assistant-intents "rapidfuzz>=3.0"
+pytest tests/
+
+cd custom_components/selora_ai/frontend && npm ci && npm test
+```
+
+## Deploying to a dev Home Assistant
+
+1. Install the **Advanced SSH & Web Terminal** add-on (Settings → Add-ons), add
+   your SSH public key in its configuration, and enable SFTP.
+2. `cp .env.example .env` and set `HA_HOST` (e.g. `root@192.168.x.x`). Use the IP
+   rather than `homeassistant.local` — mDNS adds latency to every connection.
+3. `just deploy` builds the frontend, syncs the files and restarts HA.
+   `just deploy-no-restart` skips the restart, which is only safe when no Python
+   changed: Python modules stay loaded while the panel bundle is served fresh,
+   and the panel shows a restart banner when the two disagree.
 
 ## Before you push
 
