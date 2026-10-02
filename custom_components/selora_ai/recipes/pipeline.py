@@ -439,7 +439,15 @@ async def _run(
     # the same id — auto-resolved fields are hidden in the wizard.
     auto_inputs: dict[str, Any] = dict(inputs or {})
     try:
-        await async_apply_auto_inputs(hass, bundle.manifest, auto_inputs)
+        await async_apply_auto_inputs(
+            hass,
+            bundle.manifest,
+            auto_inputs,
+            # Roles resolved at stage 2, so a resolver answering "which
+            # device did they pick?" (the Samsung TV MAC) reads the
+            # binding rather than guessing from HA state.
+            bindings=resolution.bindings,
+        )
     except ResolverError as exc:
         return PipelineResult(
             ok=False,

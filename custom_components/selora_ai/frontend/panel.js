@@ -50141,7 +50141,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "fbff76c68858" : "";
+var PANEL_BUILD = true ? "7bdc0177fde8" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -54702,6 +54702,12 @@ var SeloraAIPanel = class extends i4 {
         type: "selora_ai/recipes/auto_setup_integration",
         slug: this._recipeWizardSlug,
         domain,
+        // What the homeowner has picked so far. A resolver behind this
+        // setup may need the choice — which of two Samsung TVs the Wake
+        // on LAN entry is for — and can't ask for it itself. Empty
+        // until they pick, which the resolvers answer by asking for the
+        // pick rather than guessing.
+        selections: this._recipeWizardSelections || {},
       });
       await this._refreshRecipePreview();
     } catch (err) {

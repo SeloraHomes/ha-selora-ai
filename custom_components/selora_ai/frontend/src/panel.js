@@ -3955,6 +3955,12 @@ class SeloraAIPanel extends LitElement {
         type: "selora_ai/recipes/auto_setup_integration",
         slug: this._recipeWizardSlug,
         domain,
+        // What the homeowner has picked so far. A resolver behind this
+        // setup may need the choice — which of two Samsung TVs the Wake
+        // on LAN entry is for — and can't ask for it itself. Empty
+        // until they pick, which the resolvers answer by asking for the
+        // pick rather than guessing.
+        selections: this._recipeWizardSelections || {},
       });
       // Refresh preview so the integration row flips status.
       await this._refreshRecipePreview();

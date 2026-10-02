@@ -180,16 +180,37 @@ def derive_items(
 
     # 2. One row per declared integration. ``ok`` when the domain has
     # at least one config entry loaded; ``needs_input`` otherwise.
+    #
+    # Two flavours, and they belong on opposite sides of the role rows:
+    #
+    # - A plain prereq ("you need Oral-B / the Samsung integration")
+    #   GATES the pickers below it. Its entities are what the roles are
+    #   scoped to, so it has to come first or the picker is empty and
+    #   the reason is invisible.
+    # - An ``auto_setup`` row is work Selora does FOR the homeowner,
+    #   and what it fills in can depend on what they picked: the Wake
+    #   on LAN entry is created with the MAC of the television chosen
+    #   below. Offering it first invites a click that can only fail on
+    #   a home with two Samsung TVs, so it sorts after the picks.
+    #
+    # An integration can be both — auto_setup AND the source of a role's
+    # entities. Gating wins there: a picker scoped to an integration
+    # that isn't set up yet has nothing in it, and "pick one of zero"
+    # is a worse first row than a setup button that runs early.
     titles = integration_titles or {}
+    gating = {role.integration for role in manifest.roles if role.integration}
+    deferred: list[PipelineItem] = []
     for integration in manifest.integrations:
         loaded = integration.domain in integrations_loaded
+        defer = bool(integration.auto_setup) and not loaded and integration.domain not in gating
         entry_title = titles.get(integration.domain) if loaded else None
         # Prefer the config entry's title (NWS sets it to its lat/lon
         # string, Hue to the bridge IP, etc.) so the user sees a concrete
         # confirmation of what got set up — not just a generic
         # "configured" badge.
         detail = (entry_title or "Configured") if loaded else "Needs setup"
-        items.append(
+        target = deferred if defer else items
+        target.append(
             PipelineItem(
                 id=f"configure/integration:{integration.domain}",
                 stage="configure",
@@ -283,6 +304,12 @@ def derive_items(
                     },
                 )
             )
+
+    # 4. The auto-setup rows held back above, now that every pick they
+    # may read has been offered. An already-configured one isn't held
+    # back at all: it has nothing left to fill in, so it stays with the
+    # other prereqs as a plain "Ready" line.
+    items.extend(deferred)
 
     # ── Apply stage ──────────────────────────────────────────
     # All four steps stay ``pending`` in the preview; the install WS
