@@ -1512,11 +1512,6 @@ def _iter_executed_write_actions(
       reflect any handler-side normalisation) and falls back to the raw
       arguments otherwise. ``data`` is preserved so parameterized
       variants (e.g. different brightness) stay distinct downstream.
-    * ``activate_scene`` — counts when ``result.status == "activated"``.
-      The executor's result carries the resolved ``entity_id``; we
-      represent this as a synthetic ``scene.turn_on`` call so duplicate
-      suppression and failure-path synthesis treat it uniformly with
-      other write tools.
 
     Tools that didn't actually fire (validation failures, runtime errors,
     read-only handlers) are skipped — that's what lets the duplicate
@@ -1554,22 +1549,6 @@ def _iter_executed_write_actions(
             # the data payload (below) is what makes two of them distinct.
             data = args.get("data") if isinstance(args.get("data"), dict) else {}
             actions.append({"service": service, "entity_ids": ids, "data": data})
-        elif tool_name == "activate_scene":
-            if result.get("status") != "activated":
-                continue
-            # The handler resolves scene_id → entity_id and returns the
-            # entity_id it actually called scene.turn_on on. That's the
-            # signature surface a duplicate command block would echo.
-            entity_id = result.get("entity_id")
-            if not isinstance(entity_id, str) or not entity_id:
-                continue
-            actions.append(
-                {
-                    "service": "scene.turn_on",
-                    "entity_ids": [entity_id],
-                    "data": {},
-                }
-            )
     return actions
 
 
@@ -1577,8 +1556,8 @@ def _executed_call_signatures(
     tool_log: list[dict[str, Any]],
 ) -> set[_CallSignature]:
     """Return (service, frozenset(entity_ids), data_sig) signatures for
-    every successful side-effecting tool call (execute_command +
-    activate_scene). See ``_iter_executed_write_actions`` for the
+    every successful side-effecting tool call (execute_command). See
+    ``_iter_executed_write_actions`` for the
     success criteria.
 
     ``data_sig`` is the canonical JSON of the service-data payload (minus
@@ -3635,7 +3614,7 @@ def _executed_service_calls_from_log(
     tool_log: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
     """Return ServiceCallDict-shaped entries for every successful
-    side-effecting tool call (execute_command + activate_scene).
+    side-effecting tool call (execute_command).
 
     Used to synthesize confirmations when the tool loop fails *after*
     one or more services already fired — the user must not be told

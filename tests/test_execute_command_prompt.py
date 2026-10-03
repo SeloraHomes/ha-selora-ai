@@ -225,24 +225,6 @@ def test_synthesize_approval_hint_only_when_nothing_executed() -> None:
     assert result["response"] == "This request needs your approval before I run it."
 
 
-def test_normalized_write_result_maps_scene_to_turn_on() -> None:
-    """P3 (short-circuit path): activate_scene results carry no ``service``,
-    so they're mapped to scene.turn_on so build_executed_confirmation can
-    render them. execute_command results pass through unchanged."""
-    from custom_components.selora_ai.llm_client.client import (
-        _normalized_write_result,
-    )
-
-    scene = _normalized_write_result(
-        "activate_scene", {"entity_id": "scene.movie_night", "status": "activated"}
-    )
-    assert scene == {"service": "scene.turn_on", "entity_ids": ["scene.movie_night"]}
-    cmd = {"executed": True, "service": "light.turn_off", "entity_ids": ["light.kitchen"]}
-    assert _normalized_write_result("execute_command", cmd) is cmd
-    # A scene without entity_id can't be confirmed → None.
-    assert _normalized_write_result("activate_scene", {"status": "activated"}) is None
-
-
 def test_build_executed_confirmation_excludes_already_shown_marker() -> None:
     """Regression: the model narrates 'Locking the Front Door' with an
     [[entity:lock.front_door]] tile in its pre-tool prose, then the
@@ -371,20 +353,16 @@ def _failed_runtime(service: str, entity_id: str) -> dict:
 
 
 def _scene_activated(entity_id: str) -> dict:
-    """A tool-log entry for a successful activate_scene call."""
-    return {
-        "tool": "activate_scene",
-        "arguments": {"entity_id": entity_id},
-        "result": {"entity_id": entity_id, "status": "activated"},
-    }
+    """A tool-log entry for a scene activated through execute_command."""
+    return _executed("scene.turn_on", entity_id)
 
 
 def _scene_failed(entity_id: str) -> dict:
-    """A tool-log entry for a failed activate_scene call."""
+    """A tool-log entry for a scene activation that failed."""
     return {
-        "tool": "activate_scene",
-        "arguments": {"entity_id": entity_id},
-        "result": {"error": "Activation failed: device offline"},
+        "tool": "execute_command",
+        "arguments": {"service": "scene.turn_on", "entity_id": entity_id},
+        "result": {"executed": False, "error": "Activation failed: device offline"},
     }
 
 
@@ -826,12 +804,10 @@ def test_streaming_multi_token_entity_match(hass) -> None:
     assert parsed.get("suppressed_duplicate_command") is True
 
 
-def test_guard_suppresses_duplicate_scene_turn_on_after_activate_scene() -> None:
-    """Regression: activate_scene successfully ran scene.movie_night; the
-    model also echoes a scene.turn_on command block. Without
-    activate_scene in the tracked-tools list, the duplicate guard would
-    miss this and the scene would fire a second time via
-    _execute_command_calls.
+def test_guard_suppresses_duplicate_scene_turn_on_after_activation() -> None:
+    """Regression: scene.movie_night was activated by a tool call; the
+    model also echoes a scene.turn_on command block, which must not fire
+    the scene a second time via _execute_command_calls.
     """
     parsed = {
         "intent": "command",
@@ -847,7 +823,7 @@ def test_guard_suppresses_duplicate_scene_turn_on_after_activate_scene() -> None
     assert "calls" not in result
 
 
-def test_guard_does_not_suppress_after_failed_activate_scene() -> None:
+def test_guard_does_not_suppress_after_failed_scene_activation() -> None:
     """Failed scene activation must NOT count as executed — fallback
     command block must be allowed through to the policy."""
     parsed = {
@@ -862,7 +838,7 @@ def test_guard_does_not_suppress_after_failed_activate_scene() -> None:
     assert result is parsed
 
 
-def test_executed_service_calls_includes_activate_scene() -> None:
+def test_executed_service_calls_includes_scene_activation() -> None:
     """Failure-path synthesis must surface scene activations so users
     aren't told nothing happened after the scene fired."""
     log = [

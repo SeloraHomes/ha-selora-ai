@@ -457,24 +457,6 @@ def _canned(table: dict[str, str], language: str | None) -> str:
     return table.get(base, table["en"])
 
 
-def _normalized_write_result(tool_name: str, result: dict[str, Any]) -> ToolWriteResult | None:
-    """Shape an executed write-tool result for ``build_executed_confirmation``.
-
-    ``activate_scene`` returns ``{entity_id, status}`` with no ``service``
-    field, so the confirmation builder would skip it (and a scene-only
-    request would render a bare "Done."). Map it to the synthetic
-    ``scene.turn_on`` call the builder understands. ``execute_command``
-    results already carry ``service``/``entity_ids`` and pass through.
-    Returns None when an activated scene lacks a resolvable entity_id.
-    """
-    if tool_name == "activate_scene":
-        entity_id = result.get("entity_id")
-        if isinstance(entity_id, str) and entity_id:
-            return {"service": "scene.turn_on", "entity_ids": [entity_id]}
-        return None
-    return result  # type: ignore[return-value]
-
-
 # ── Conversation history budget ────────────────────────────────────────
 # Maximum turns to keep in the LLM message list. Must be large enough
 # to retain multi-turn context but bounded so we don't blow the model's
@@ -1875,15 +1857,11 @@ class LLMClient:
                     if isinstance(result, dict) and result.get("requires_approval"):
                         requires_approval_hit = True
                     elif (
-                        tool_call["name"] in ("execute_command", "activate_scene")
+                        tool_call["name"] == "execute_command"
                         and isinstance(result, dict)
-                        and (result.get("executed") is True or result.get("status") == "activated")
+                        and result.get("executed") is True
                     ):
-                        normalized = _normalized_write_result(tool_call["name"], result)
-                        if normalized is not None:
-                            executed_results.append(normalized)
-                        else:
-                            non_write_tool_seen = True
+                        executed_results.append(result)  # type: ignore[arg-type]
                     else:
                         non_write_tool_seen = True
             except ConnectionError as exc:
@@ -2140,24 +2118,20 @@ class LLMClient:
                     break
                 result = exec_task.result()
                 results.append(result)
-                # Surface read/inspect tools as a timeline step. Write tools
-                # (execute_command / activate_scene) have their own result UI
-                # and are intentionally not narrated here.
-                if tc["name"] not in ("execute_command", "activate_scene"):
+                # Surface read/inspect tools as a timeline step. The write tool
+                # (execute_command) has its own result UI and is intentionally
+                # not narrated here.
+                if tc["name"] != "execute_command":
                     tool_step_seq += 1
                     yield encode_tool_step(tool_step_seq, tc["name"])
                 if isinstance(result, dict) and result.get("requires_approval"):
                     requires_approval_hit = True
                 elif (
-                    tc["name"] in ("execute_command", "activate_scene")
+                    tc["name"] == "execute_command"
                     and isinstance(result, dict)
-                    and (result.get("executed") is True or result.get("status") == "activated")
+                    and result.get("executed") is True
                 ):
-                    normalized = _normalized_write_result(tc["name"], result)
-                    if normalized is not None:
-                        executed_results.append(normalized)
-                    else:
-                        non_write_tool_seen = True
+                    executed_results.append(result)  # type: ignore[arg-type]
                 else:
                     non_write_tool_seen = True
 

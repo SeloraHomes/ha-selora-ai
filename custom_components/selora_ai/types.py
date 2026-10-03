@@ -589,16 +589,14 @@ class OpenAIChatPayload(TypedDict, total=False):
 
 
 class ToolWriteResult(TypedDict, total=False):
-    """Return shape for write-action tools (execute_command,
-    activate_scene). Used by the tool-loop short-circuit and the
+    """Return shape for the write-action tool (execute_command). Used by the tool-loop short-circuit and the
     duplicate-execution guard to detect successful side-effecting
     calls without poking at ``dict[str, Any]``.
 
     ``execute_command`` populates ``executed``/``service``/``entity_ids``/
-    ``states`` on success and ``executed``/``error`` on failure;
-    ``activate_scene`` populates ``status: "activated"`` and the
-    resolved ``entity_id``. ``requires_approval`` is set by both when
-    the validator held the call back pending user approval.
+    ``states`` on success and ``executed``/``error`` on failure.
+    ``requires_approval`` is set when the validator held the call back
+    pending user approval.
     """
 
     # execute_command success
@@ -606,9 +604,6 @@ class ToolWriteResult(TypedDict, total=False):
     service: str
     entity_ids: list[str]
     states: list[EntityStateSnapshot]
-    # activate_scene success
-    entity_id: str
-    status: str
     # validator output (rejection / approval gate)
     valid: bool
     errors: list[str]

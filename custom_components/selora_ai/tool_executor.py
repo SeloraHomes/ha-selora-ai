@@ -94,7 +94,6 @@ class ToolExecutor:
             "find_entities_by_area": self._find_entities_by_area,
             "validate_action": self._validate_action,
             "execute_command": self._execute_command,
-            "activate_scene": self._activate_scene,
             "list_dashboards": self._list_dashboards,
             "insert_dashboard_card": self._insert_dashboard_card,
             "search_entities": self._search_entities,
@@ -199,11 +198,6 @@ class ToolExecutor:
         from .mcp_server import _tool_execute_command
 
         return await _tool_execute_command(self._hass, arguments, session_id=self._session_id)
-
-    async def _activate_scene(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_activate_scene
-
-        return await _tool_activate_scene(self._hass, arguments)
 
     async def _list_dashboards(self, _arguments: dict[str, Any]) -> dict[str, Any]:
         # Every dashboard, not just the writable ones: this is how a caller

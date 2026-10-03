@@ -39,7 +39,7 @@ class AgentStep(TypedDict, total=False):
 # Per-tool mdi icon for the read/inspect tools the architect loop calls. The
 # icon hints at the *kind of work* (a magnifier for a search, an eye for a
 # state read) rather than a generic wrench, so the timeline reads at a glance.
-# Write tools (execute_command / activate_scene) have their own confirmation UI
+# The write tool (execute_command) has its own confirmation UI
 # and are intentionally absent — the loop does not narrate them as steps.
 #
 # Only icons. The labels used to live here too, hand-written in the past tense
