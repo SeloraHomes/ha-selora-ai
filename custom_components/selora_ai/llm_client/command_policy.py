@@ -2252,6 +2252,50 @@ def dashboard_created_line(title: str, url: str, language: str | None) -> str:
     return template.format(title=title, url=url)
 
 
+_HELPER_CREATED_BY_LANG: dict[str, str] = {
+    "fr": "J'ai créé l'assistant {name} ({entity_id}).",
+    "de": "Der Helfer {name} wurde erstellt ({entity_id}).",
+    "es": "He creado el ayudante {name} ({entity_id}).",
+    "it": "Ho creato l'aiutante {name} ({entity_id}).",
+    "nl": "De helper {name} is aangemaakt ({entity_id}).",
+    "pt": "Criei o auxiliar {name} ({entity_id}).",
+    "hu": "Létrehoztam a(z) {name} segédet ({entity_id}).",
+    "ru": "Вспомогательный объект {name} создан ({entity_id}).",
+    "ja": "ヘルパー {name} を作成しました ({entity_id})。",
+    "ko": "도우미 {name}을(를) 만들었습니다 ({entity_id}).",
+    "zh": "已创建辅助元素 {name}（{entity_id}）。",
+}
+
+_HELPER_CREATED_NO_ID_BY_LANG: dict[str, str] = {
+    "fr": "J'ai créé l'assistant {name}.",
+    "de": "Der Helfer {name} wurde erstellt.",
+    "es": "He creado el ayudante {name}.",
+    "it": "Ho creato l'aiutante {name}.",
+    "nl": "De helper {name} is aangemaakt.",
+    "pt": "Criei o auxiliar {name}.",
+    "hu": "Létrehoztam a(z) {name} segédet.",
+    "ru": "Вспомогательный объект {name} создан.",
+    "ja": "ヘルパー {name} を作成しました。",
+    "ko": "도우미 {name}을(를) 만들었습니다.",
+    "zh": "已创建辅助元素 {name}。",
+}
+
+
+def helper_created_line(name: str, entity_id: str | None, language: str | None) -> str:
+    """The confirmation for a helper the panel created, in the user's language.
+
+    Names the entity_id when it is known, because that is what the resumed turn
+    wires the automation to — the collection suffixes the id on a clash, so the
+    name alone does not give it.
+    """
+    lang = _normalize_lang(language)
+    if entity_id:
+        template = _HELPER_CREATED_BY_LANG.get(lang, "Created the {name} helper ({entity_id}).")
+        return template.format(name=name, entity_id=entity_id)
+    template = _HELPER_CREATED_NO_ID_BY_LANG.get(lang, "Created the {name} helper.")
+    return template.format(name=name)
+
+
 def action_failed_line(detail: str, language: str | None) -> str:
     """The failure line for panel-performed work, in the user's language."""
     template = _ACTION_FAILED_BY_LANG.get(_normalize_lang(language), "That did not work: {detail}")
@@ -2917,8 +2961,8 @@ def _delete_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
 # Tools whose work the PANEL performs, because the supported API is a websocket
 # command and we are not a websocket client. Only these may emit a
 # `client_action` descriptor, and the panel allowlists the kinds again.
-_CLIENT_ACTION_TOOLS = frozenset({"create_dashboard", "delete_dashboard"})
-_CLIENT_ACTION_KINDS = frozenset({"create_dashboard", "delete_dashboard"})
+_CLIENT_ACTION_TOOLS = frozenset({"create_dashboard", "delete_dashboard", "create_helper"})
+_CLIENT_ACTION_KINDS = frozenset({"create_dashboard", "delete_dashboard", "create_helper"})
 
 
 def _pending_client_actions_from_log(

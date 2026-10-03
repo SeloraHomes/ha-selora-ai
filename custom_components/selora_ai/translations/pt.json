@@ -1008,7 +1008,8 @@
     "client_action_delete": "Eliminar",
     "client_action_delete_dashboard": "Eliminar o painel {title} — {views} vistas, {cards} cartões",
     "client_action_confirm_mixed": "Confirmar tudo",
-    "client_action_delete_dashboard_unknown": "Eliminar o painel {title} — conteúdo desconhecido"
+    "client_action_delete_dashboard_unknown": "Eliminar o painel {title} — conteúdo desconhecido",
+    "client_action_create_helper": "Criar o auxiliar {name} ({domain})"
   },
   "options": {
     "step": {

@@ -1632,8 +1632,8 @@ TOOL_LIST_HELPERS = ToolDef(
     description=(
         "List the home's helper entities — input_boolean, input_number, timer, "
         "counter, schedule, and the config-entry helpers. Use this to find an existing "
-        "toggle or counter to wire an automation to. Creating a helper is not possible "
-        "from chat; direct the user to Settings → Devices & services → Helpers."
+        "toggle or counter to wire an automation to — and check here before "
+        "create_helper, so you reuse one that already does the job."
     ),
     params=(
         ToolParam(
@@ -1642,6 +1642,144 @@ TOOL_LIST_HELPERS = ToolDef(
             description="Restrict to one helper domain, e.g. 'input_boolean'.",
         ),
     ),
+    large_context_only=True,
+)
+
+# ``create_helper`` is ``panel_only`` for the reason ``create_dashboard`` is:
+# the storage-collection helpers are created by each component's admin-only
+# ``<domain>/create`` websocket command, and only the panel is a websocket
+# client. It proposes; the panel creates.
+TOOL_CREATE_HELPER = ToolDef(
+    name="create_helper",
+    description=(
+        "Create any Home Assistant helper. Two kinds, one tool:\n"
+        "- A storage helper — domain input_boolean (toggle), input_select "
+        "(dropdown), input_number, input_text, input_datetime, input_button, "
+        "counter or timer — with the flat parameters below. CALL IT rather than "
+        "telling the user to make the helper in Settings: it returns a card with "
+        "a Create button and the user's browser creates it, so do NOT say it "
+        "exists until the result comes back, and say what is left in "
+        "`remaining_intent` — you are brought back the moment it exists.\n"
+        "- A config-entry helper — domain template (a template sensor, "
+        "binary_sensor, switch, select, alarm_control_panel …), utility_meter, "
+        "threshold, derivative, min_max and the other helper integrations. It is "
+        "created immediately through Home Assistant's own setup flow, so you can "
+        "use its entity_ids in this same reply. Call it first with just `domain` "
+        "(and `type` when the integration offers several): it returns the "
+        "choices or the form's fields. Then call again with `fields`. A template "
+        "alarm panel with no state template holds its own state; give it an "
+        "action (a 0-second delay is enough) for each arming mode it should offer "
+        "and for trigger.\n"
+        "Call list_helpers first so you do not duplicate one the home already has."
+    ),
+    params=(
+        ToolParam(
+            name="domain",
+            type="string",
+            description=(
+                "A storage helper domain (input_boolean, input_select, input_number, "
+                "input_text, input_datetime, input_button, counter, timer) or a helper "
+                "integration (template, utility_meter, threshold, derivative, …)."
+            ),
+            required=True,
+        ),
+        ToolParam(
+            name="type",
+            type="string",
+            description="Config-entry helpers: which kind, from the choices a first call returns.",
+        ),
+        ToolParam(
+            name="fields",
+            type="object",
+            description="Config-entry helpers: the form's values, keyed by the field names a call without them returns.",
+        ),
+        ToolParam(name="name", type="string", description="Storage helpers: display name."),
+        ToolParam(name="icon", type="string", description="mdi icon, e.g. 'mdi:shield-home'."),
+        ToolParam(
+            name="options",
+            type="array",
+            items_type="string",
+            description="input_select only: the choices, at least one, no duplicates.",
+        ),
+        ToolParam(
+            name="initial",
+            type="string",
+            description=(
+                "Starting value: one of the options (input_select), on/off "
+                "(input_boolean), a number (input_number, counter), text (input_text), "
+                "or a date/time string (input_datetime)."
+            ),
+        ),
+        ToolParam(
+            name="min",
+            type="number",
+            description=(
+                "input_number: lowest value. input_text: shortest length. counter: minimum."
+            ),
+        ),
+        ToolParam(
+            name="max",
+            type="number",
+            description=(
+                "input_number: highest value. input_text: longest length. counter: maximum."
+            ),
+        ),
+        ToolParam(name="step", type="number", description="input_number / counter: increment."),
+        ToolParam(
+            name="mode",
+            type="string",
+            description="input_number: 'slider' or 'box'. input_text: 'text' or 'password'.",
+        ),
+        ToolParam(
+            name="unit_of_measurement",
+            type="string",
+            description="input_number / input_text: unit shown beside the value.",
+        ),
+        ToolParam(name="pattern", type="string", description="input_text: regex to accept."),
+        ToolParam(name="has_date", type="boolean", description="input_datetime: holds a date."),
+        ToolParam(name="has_time", type="boolean", description="input_datetime: holds a time."),
+        ToolParam(name="duration", type="string", description="timer: default 'HH:MM:SS'."),
+        ToolParam(
+            name="restore",
+            type="boolean",
+            description="counter / timer: keep the value across restarts.",
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user taps Create, in one short "
+                "phrase — 'build the arm/disarm automations around it'. The turn ends "
+                "at the card, and this is what brings you back once the helper "
+                "exists. Leave it out when the helper IS the whole request."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+    panel_only=True,
+)
+
+# The same tool where no panel can show a Create button — MCP. Only the
+# setup-flow half works there, so that is all it describes; its parameters are
+# the chat tool's own, so the two cannot drift.
+TOOL_CREATE_FLOW_HELPER = ToolDef(
+    name="create_helper",
+    description=(
+        "Create a Home Assistant helper through its integration's own setup flow: "
+        "template entities of every type (sensor, binary_sensor, switch, select, "
+        "alarm_control_panel …), utility_meter, threshold, derivative, min_max and "
+        "the other helper integrations. Created immediately, no YAML, no restart. "
+        "Call it first with just `domain` (and `type` when the integration offers "
+        "several): it returns the choices or the form's fields. Then call again "
+        "with `fields`. A template alarm panel with no state template holds its own "
+        "state; give it an action (a 0-second delay is enough) for each arming mode "
+        "it should offer and for trigger. Storage helpers (input_boolean, "
+        "input_select, input_number, input_text, input_datetime, input_button, "
+        "counter, timer) cannot be created from here."
+    ),
+    params=tuple(p for p in TOOL_CREATE_HELPER.params if p.name in ("domain", "type", "fields")),
+    requires_admin=True,
     large_context_only=True,
 )
 
@@ -2247,6 +2385,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_ASSIGN_LABELS,
     TOOL_DELETE_LABEL,
     TOOL_LIST_HELPERS,
+    TOOL_CREATE_HELPER,
     TOOL_GET_LOGS,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_DASHBOARD,
@@ -2307,6 +2446,9 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         # and it has been wrong here before — being in both lanes means a
         # phrasing it misses costs a slightly larger schema, not the feature.
         "create_area",
+        # Same reasoning: "add a guest mode toggle" is command-shaped.
+        "list_helpers",
+        "create_helper",
         "delete_floor",
         "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
@@ -2381,6 +2523,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "assign_labels",
         "delete_label",
         "list_helpers",
+        "create_helper",
         "list_scripts",
         "get_script",
         "set_script",

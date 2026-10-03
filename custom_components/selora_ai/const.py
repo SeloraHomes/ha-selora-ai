@@ -1108,6 +1108,22 @@ STREAM_KEEPALIVE = "\x00\x01selora-keepalive\x01\x00"
 # remainder of the chunk after this prefix is the step's JSON payload. Same
 # NUL-delimited shape as STREAM_KEEPALIVE so raw provider text can't collide.
 STREAM_STEP_PREFIX = "\x00\x01selora-step\x01"
+# Sentinel chunk telling the consumer to DISCARD the bubble text streamed so
+# far — the reply is being replaced (see CHAT_PROSE_BUDGET_CHARS). Same
+# NUL-delimited shape as STREAM_KEEPALIVE so raw provider text can't collide.
+STREAM_RESET = "\x00\x01selora-reset\x01\x00"
+# Ceiling on a conversational answer's prose, in characters (~600 words).
+# Past it the stream is abandoned and the model rewrites the answer as a short
+# plan: a ten-page how-to is the failure, not a long answer worth waiting for,
+# and every token past the point it should have stopped is paid for. Proposal
+# and command blocks are exempt — a long automation is legitimate.
+CHAT_PROSE_BUDGET_CHARS = 3500
+# The same ceiling for a "how can I…?" turn, whose answer is a direction and
+# a question back (`_HOWTO_DIRECTIVE`), not instructions.
+CHAT_HOWTO_BUDGET_CHARS = 1200
+# Output cap for the condensing round: the plan is ~150 words, so this bounds
+# a model that ignores the instruction a second time.
+CHAT_CONDENSE_MAX_TOKENS = 1024
 # Shown when the stream completes cleanly but the answer-path reply is
 # blank (provider returned an empty / whitespace-only completion) and
 # there is no structural payload to render. Without this, the "done"

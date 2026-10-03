@@ -141,6 +141,7 @@ class ToolExecutor:
             "get_dashboard": self._get_dashboard,
             "get_dashboard_card": self._get_dashboard_card,
             "create_dashboard": self._create_dashboard,
+            "create_helper": self._create_helper,
             "delete_dashboard": self._delete_dashboard,
             "add_dashboard_view": self._add_dashboard_view,
             "update_dashboard_view": self._update_dashboard_view,
@@ -669,6 +670,22 @@ class ToolExecutor:
             show_in_sidebar=_bool_default_true(_opt_bool(arguments.get("show_in_sidebar"))),
         )
 
+    async def _create_helper(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """A storage helper is PROPOSED for the panel; any other runs its flow."""
+        from .helper_flow import async_create_flow_helper
+        from .helper_manager import CREATABLE_HELPER_DOMAINS, async_propose_helper
+
+        domain = str(arguments.get("domain", "")).strip().lower()
+        if domain in CREATABLE_HELPER_DOMAINS:
+            return await async_propose_helper(self._hass, domain, create_helper_fields(arguments))
+        fields = arguments.get("fields")
+        return await async_create_flow_helper(
+            self._hass,
+            domain,
+            _opt_str(arguments.get("type")),
+            fields if isinstance(fields, dict) and fields else None,
+        )
+
     async def _delete_dashboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Propose deleting a dashboard — the panel performs it, as with create."""
         from .dashboard_manager import async_propose_dashboard_delete
@@ -849,6 +866,54 @@ def move_card_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "expected_view_fingerprint": _opt_str(arguments.get("expected_view_fingerprint")),
         "expected_to_view_fingerprint": _opt_str(arguments.get("expected_to_view_fingerprint")),
     }
+
+
+def create_helper_fields(arguments: dict[str, Any]) -> dict[str, Any]:
+    """The tool's arguments in the helper component's own vocabulary.
+
+    Blank values are absent, per the empty-optional rule. ``min``/``max`` are
+    ``minimum``/``maximum`` to a counter; one pair of parameters keeps the
+    schema small, and only the domain knows which spelling it takes. Values
+    are passed through uncoerced: the component's schema does that, and
+    ``initial`` means a bool, a number or a string depending on the type.
+    """
+    domain = str(arguments.get("domain", "")).strip().lower()
+    fields: dict[str, Any] = {}
+    for key in (
+        "name",
+        "icon",
+        "initial",
+        "min",
+        "max",
+        "step",
+        "mode",
+        "unit_of_measurement",
+        "pattern",
+        "has_date",
+        "has_time",
+        "duration",
+        "restore",
+    ):
+        value = arguments.get(key)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            continue
+        fields[key] = value.strip() if isinstance(value, str) else value
+    options = _opt_list(arguments.get("options"))
+    if options:
+        fields["options"] = options
+    for flag in ("has_date", "has_time", "restore"):
+        if flag in fields:
+            coerced = _opt_bool(fields[flag])
+            if coerced is None:
+                fields.pop(flag)
+            else:
+                fields[flag] = coerced
+    if domain == "counter":
+        if "min" in fields:
+            fields["minimum"] = fields.pop("min")
+        if "max" in fields:
+            fields["maximum"] = fields.pop("max")
+    return fields
 
 
 def _as_index(value: Any) -> int:

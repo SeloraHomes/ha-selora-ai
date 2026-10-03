@@ -2,7 +2,7 @@
  * Actions Selora proposes but the PANEL performs.
  *
  * Creating a dashboard needs Home Assistant's `lovelace/dashboards/create`
- * websocket command. The integration runs in-process and cannot call it; this
+ * websocket command, and creating a helper its `<domain>/create` one. The integration runs in-process and cannot call it; this
  * panel is already an authenticated websocket client, so it can — under the
  * signed-in user's own account and permissions.
  *
@@ -37,8 +37,84 @@ function matchesProposal(existing, expected) {
   );
 }
 
+/**
+ * Helper types this panel will create, and the only fields it will send for
+ * each — the keys of that component's own create schema. The backend has
+ * already run the values through that schema; this is the second allowlist,
+ * so a descriptor cannot pick the websocket command or add a field to it.
+ */
+const HELPER_FIELDS = {
+  input_boolean: ["name", "icon", "initial"],
+  input_button: ["name", "icon"],
+  input_select: ["name", "icon", "initial", "options"],
+  input_number: [
+    "name",
+    "icon",
+    "initial",
+    "min",
+    "max",
+    "step",
+    "mode",
+    "unit_of_measurement",
+  ],
+  input_text: [
+    "name",
+    "icon",
+    "initial",
+    "min",
+    "max",
+    "mode",
+    "pattern",
+    "unit_of_measurement",
+  ],
+  input_datetime: ["name", "icon", "initial", "has_date", "has_time"],
+  counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
+  timer: ["name", "icon", "duration", "restore"],
+};
+
 /** Kinds this panel will execute. Checked again here, not just server-side. */
 const HANDLERS = {
+  create_helper: async (hass, action) => {
+    const domain = String(action.domain || "");
+    const allowed = HELPER_FIELDS[domain];
+    if (!allowed) throw new Error(`Unsupported helper type: ${domain}`);
+    const fields = action.fields || {};
+    const payload = {};
+    for (const key of allowed) {
+      if (fields[key] !== undefined) payload[key] = fields[key];
+    }
+    const name = String(payload.name || "");
+
+    // Idempotent for the same reason create_dashboard is: the create can
+    // succeed and the report fail, and a retry would otherwise make a second
+    // helper — the collection suffixes the id instead of refusing. The backend
+    // refused a name already in use when it built the card, so a match here
+    // appeared since; it is our own earlier attempt only if every field agrees,
+    // which a retry does by construction since these are the values it sent.
+    const existing = await hass.callWS({ type: `${domain}/list` });
+    const already = (existing || []).find((item) => item?.name === name);
+    if (already) {
+      const same = Object.keys(payload).every(
+        (key) => JSON.stringify(already[key]) === JSON.stringify(payload[key]),
+      );
+      if (!same) {
+        throw new Error(
+          `A different ${domain} called "${name}" already exists. ` +
+            `Use it, or ask again with another name.`,
+        );
+      }
+      return { entity_id: `${domain}.${already.id}`, name };
+    }
+
+    // Built field by field from the allowlist above, never spread from the
+    // descriptor, and the command name comes from the allowlist's own key.
+    const created = await hass.callWS({ type: `${domain}/create`, ...payload });
+    return {
+      entity_id: created?.id ? `${domain}.${created.id}` : "",
+      name: created?.name || name,
+    };
+  },
+
   delete_dashboard: async (hass, action) => {
     const urlPath = String(action.url_path || "");
 

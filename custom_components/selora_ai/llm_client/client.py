@@ -24,6 +24,9 @@ from ..const import (
     ANALYSIS_LLM_TIMEOUT,
     ANALYSIS_OUTPUT_BASE_TOKENS,
     ANALYSIS_OUTPUT_TOKENS_PER_SUGGESTION,
+    CHAT_CONDENSE_MAX_TOKENS,
+    CHAT_HOWTO_BUDGET_CHARS,
+    CHAT_PROSE_BUDGET_CHARS,
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     LLM_PROVIDER_ANTHROPIC,
@@ -35,10 +38,12 @@ from ..const import (
     LLM_PROVIDER_SELORA_LOCAL,
     MAX_TOOL_CALL_ROUNDS,
     STREAM_KEEPALIVE,
+    STREAM_RESET,
     STREAM_TOOL_CANCEL_GRACE_S,
     STREAM_TOOL_KEEPALIVE_S,
 )
 from ..entity_capabilities import is_actionable_entity
+from ..telemetry import record_repair
 from ..types import (
     ArchitectResponse,
     EntitySnapshot,
@@ -83,12 +88,14 @@ from .intent import (
     _is_compound_request,
     _is_config_request,
     _is_definite_automation,
+    _is_howto_request,
     _is_pure_greeting,
     _low_context_keywords,
 )
 from .lang_detect import resolve_reply_language
 from .parsers import (
     MarkupLeakGuard,
+    mark_cut_prose,
     parse_architect_response,
     parse_command_response_text,
     parse_streamed_response,
@@ -155,6 +162,62 @@ _FINAL_ROUND_DIRECTIVE = (
     "Answer using only what you have already gathered. If you could not "
     "finish, say so plainly in prose."
 )
+
+# An answer that ran past CHAT_PROSE_BUDGET_CHARS is abandoned mid-stream and
+# replaced. The prompt's PLAN FIRST rule asks for exactly this shape up front;
+# models routinely ignore it once they have gathered device data, so the rule
+# is enforced here rather than restated more loudly. The partial is handed back
+# so the model condenses what it was saying instead of starting over.
+_CONDENSE_DIRECTIVE = (
+    "Your reply above was far too long and has been discarded — the user has "
+    "NOT seen it. Replace it now, in the same language, with at most ~120 words "
+    "and NO code blocks, NO YAML and NO entity markers: say in one or two "
+    "sentences what you recommend for their home, then ask them to confirm the "
+    "direction — whether they want you to set it up, or the one choice only "
+    "they can make — and append quick_actions with two or three answers. Do "
+    "not apologise or mention that a longer reply existed."
+)
+
+# Attached to the CURRENT user message of a "how can I…?" turn — not the system
+# prompt, where the PLAN FIRST rule sat and was ignored once a tool had handed
+# the model device data: asked how to build an alarm panel, it answered with an
+# entity inventory, a design and pages of configuration.yaml before checking
+# that an alarm panel was even what the user wanted. Recency is what the model
+# weighs; the ground-truth block rides in the same place for the same reason.
+_HOWTO_DIRECTIVE = (
+    "\n\nANSWER SHAPE FOR THIS TURN — the user asked HOW to do something:\n"
+    "1. In at most three short sentences, say what it involves and the approach "
+    "you recommend for THEIR home, naming their relevant devices in words.\n"
+    "2. Confirm the direction before going further: ask whether they want you to "
+    "set it up for them (you can create helpers, automations, scenes and "
+    "dashboards from here), or ask the ONE question whose answer decides the "
+    "approach.\n"
+    "3. Append quick_actions with two or three answers.\n"
+    "Stop there. No steps, no code blocks, no YAML, no entity markers until "
+    "they answer.\n"
+)
+
+# A payload block in the round's text exempts it from the prose budget: the
+# card it renders is the answer, and its length is the automation's, not
+# verbosity. Mirrors the openers the websocket suppressor watches for.
+_PAYLOAD_OPENER_RE = re.compile(
+    r"```\s*(?:automation|scene|command|delayed_command|cancel|command_approval)\b"
+    r"|^\s*\{"
+    r"|(?:^|\n)(?:automation|scene)\s*\n\s*\{"
+)
+
+
+# Entity markers render as tiles, not prose — a long "which lights are on?"
+# answer is long because the home is, so they do not count.
+_ENTITY_MARKER_RE = re.compile(r"\[\[[^\]]*\]\]")
+
+
+def _over_prose_budget(text: str, budget: int = CHAT_PROSE_BUDGET_CHARS) -> bool:
+    """Whether a streamed answer has outrun the prose budget."""
+    if len(text) <= budget or _PAYLOAD_OPENER_RE.search(text):
+        return False
+    return len(_ENTITY_MARKER_RE.sub("", text)) > budget
+
 
 # A round that produced NO structured tool call but tripped the leak guard is
 # a failed tool call, not a final answer: the model wrote the call as prose, so
@@ -1230,6 +1293,7 @@ class LLMClient:
         Yields text chunks as they arrive from the LLM.  The caller must
         accumulate the full text and call parse_streamed_response() when done.
         """
+        self._provider.reset_stream_state()
         # Follow the language the user typed in (the panel sends the HA UI
         # locale, which may differ), so the LLM directive AND the
         # deterministic command confirmation match the user's message.
@@ -1376,6 +1440,11 @@ class LLMClient:
                         tool_executor=tool_executor,
                         tools=tools,
                         language=language,
+                        prose_budget=(
+                            CHAT_HOWTO_BUDGET_CHARS
+                            if _is_howto_request(user_message)
+                            else CHAT_PROSE_BUDGET_CHARS
+                        ),
                     ):
                         yield chunk
                 finally:
@@ -1643,7 +1712,7 @@ class LLMClient:
             # calls/automation} envelope before the parser sees them. Cloud
             # providers pass through unchanged.
             text = self._provider.convert_response_text(text, turn_token=turn_token)
-            return parse_streamed_response(
+            result = parse_streamed_response(
                 text,
                 self._hass,
                 entities,
@@ -1656,6 +1725,11 @@ class LLMClient:
                 # this side can answer it — the text reaching the parser is
                 # identical either way.
                 finish_reason=self._provider.last_finish_reason,
+            )
+            return mark_cut_prose(
+                result,
+                finish_reason=self._provider.last_finish_reason,
+                unterminated=self._provider.last_stream_unterminated,
             )
 
     # ------------------------------------------------------------------
@@ -1962,6 +2036,7 @@ class LLMClient:
         tools: list[dict[str, Any]],
         *,
         language: str | None = None,
+        prose_budget: int = CHAT_PROSE_BUDGET_CHARS,
     ) -> AsyncIterator[str]:
         """True streaming with inline tool-call detection.
 
@@ -1981,7 +2056,10 @@ class LLMClient:
         # See _grant_leak_retry — a leaked round must not consume the budget
         # that funds the tool-enabled rounds.
         round_budget = MAX_TOOL_CALL_ROUNDS
-        for _round in range(MAX_TOOL_CALL_ROUNDS + _MAX_LEAK_RETRIES):
+        # Once: the condensing round is itself capped by CHAT_CONDENSE_MAX_TOKENS,
+        # and a second rewrite would only repeat the first.
+        condensing = False
+        for _round in range(MAX_TOOL_CALL_ROUNDS + _MAX_LEAK_RETRIES + 1):
             if _round >= round_budget:
                 break
             # Final round withholds tools so the model streams a committed
@@ -1990,6 +2068,10 @@ class LLMClient:
             is_final_round = _round == round_budget - 1
             round_tools = None if is_final_round else tools
             round_system = system + _FINAL_ROUND_DIRECTIVE if is_final_round else system
+            round_kwargs: dict[str, Any] = (
+                {"max_tokens": CHAT_CONDENSE_MAX_TOKENS} if condensing else {}
+            )
+            over_budget = False
             tool_calls: list[dict[str, Any]] = []
             content_blocks: list[dict[str, Any]] = []
             text_len_before = len(streamed_text_parts)
@@ -2006,7 +2088,7 @@ class LLMClient:
 
             try:
                 async for resp in self._provider.raw_request_stream(
-                    round_system, messages, tools=round_tools
+                    round_system, messages, tools=round_tools, **round_kwargs
                 ):
                     async for text in self._provider.stream_with_tools(
                         resp, tool_calls, content_blocks
@@ -2018,9 +2100,22 @@ class LLMClient:
                         if safe:
                             streamed_text_parts.append(safe)
                             yield safe
+                        # The whole reply, not this round: narration before a
+                        # tool call is in the same bubble, and a reply split
+                        # across rounds must not get the budget once per round.
+                        if not condensing and _over_prose_budget(
+                            "".join(streamed_text_parts), prose_budget
+                        ):
+                            # Stop reading: every further token is paid for and
+                            # thrown away. Leaving the iterator closes the
+                            # response.
+                            over_budget = True
+                            break
+                    if over_budget:
+                        break
                 # Release any tail the guard held back pending more context.
                 tail = leak_guard.flush()
-                if tail:
+                if tail and not over_budget:
                     streamed_text_parts.append(tail)
                     yield tail
 
@@ -2049,6 +2144,35 @@ class LLMClient:
                     self._provider.provider_name,
                     self._provider.last_finish_reason,
                 )
+            elif self._provider.last_stream_unterminated:
+                _LOGGER.warning(
+                    "%s stream closed with no finish_reason and no [DONE]; the reply is incomplete",
+                    self._provider.provider_name,
+                )
+
+            if over_budget:
+                # The panel has been showing this text; tell it to drop it,
+                # and forget it here too. ALL of it, not just this round: the
+                # reset empties the whole bubble and the handler's copy, so an
+                # earlier round's narration kept here would leave this loop
+                # disagreeing with every consumer about what was said.
+                said = "".join(streamed_text_parts[text_len_before:])
+                streamed_text_parts.clear()
+                _LOGGER.info(
+                    "Answer passed the %d-char prose budget in round %d — "
+                    "asking the model to condense it",
+                    prose_budget,
+                    _round,
+                )
+                record_repair("prose_budget_condense")
+                yield STREAM_RESET
+                messages.append({"role": "assistant", "content": said})
+                messages.append({"role": "user", "content": _CONDENSE_DIRECTIVE})
+                condensing = True
+                # The next round is the last and carries no tools: a plan
+                # needs nothing more from the home than the round already had.
+                round_budget = _round + 2
+                continue
 
             # If no tool calls, we're done — text was already streamed.
             # Leave usage in the buffer so the calling architect_chat_stream
@@ -2564,6 +2688,8 @@ class LLMClient:
             + refining_scene_section
             + scene_section
             + automation_section
+            # Last, so nothing in the request sits between it and the answer.
+            + (_HOWTO_DIRECTIVE if _is_howto_request(user_message) else "")
         )
 
         # Size the entity block LAST, against everything else that is going

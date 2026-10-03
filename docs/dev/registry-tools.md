@@ -87,10 +87,44 @@ the model stops reciting Settings click-paths.
 - **Traces are keyed `automation.<config id>`**, not by entity_id;
   `_resolve_trace_key` translates via the state's `id` attribute. A YAML
   automation with no `id` is never traced and gets that explanation.
-- **Storage-collection helpers are read-only from chat.** The
-  `input_*`/`counter`/`timer`/`schedule` collections are locals inside each
-  component's `async_setup`, never published to `hass.data`, so there is no
-  in-process way to create one. They are reachable by an authenticated websocket
-  client, like dashboard entries (see `dashboards.md`), but each domain would need its
-  own allowlisted command, schema and validation. `list_helpers` finds existing
-  helpers to wire automations to; `create_helper` is absent rather than faked.
+- **Storage-collection helpers are created by the PANEL** (`create_helper`,
+  `helper_manager.py`), as dashboards are. The `input_*`/`counter`/`timer`
+  collections are locals inside each component's `async_setup`, reachable only
+  through its admin-only `<domain>/create` websocket command, so the tool is
+  `panel_only` and proposes a `client_action` (`kind: "create_helper"`).
+  - **Validated with the component's OWN create schema** (its collection's
+    `CREATE_UPDATE_SCHEMA`; `SCHEMA` on input_number), so the Create button
+    never fails on something HA rejects, and the fields sent are what HA stores —
+    which is how the panel recognises its own retry. A timer duration is sent as
+    `H:MM:SS` for that reason.
+  - **Two allowlists**: the backend keeps only the schema's keys (inapplicable
+    ones are dropped), `HELPER_FIELDS` in `client-actions.js` picks the command
+    and copies only its keys. `min`/`max` are `minimum`/`maximum` to a counter.
+  - **A name in use is refused at proposal time** — HA would suffix the id and
+    the user would get two helpers of one name.
+  - **The outcome names the entity_id only if it checks out**
+    (`_created_helper_entity_id`: proposed domain, live state, proposed name);
+    the panel is not trusted to say what its work was done to.
+- **Every other helper runs its own config flow, through the same tool**
+  (`helper_flow.py`), the way `group_manager` drives `group`'s — config-entry
+  helpers need no panel. One tool, not one per helper: template entities of
+  every type, utility meters, thresholds, derivatives, min/max all go through
+  `create_helper` with `domain` = the integration. **The flow is the schema**:
+  a call without `fields` returns the menu choices (`type`) or the form's
+  fields, serialized with HA's own `cv.custom_serializer`; a call with them
+  submits the form, so HA's validation decides. Only integrations declaring
+  `integration_type: helper` are driven — a device or cloud-account flow is not
+  one a chat should complete — and `group` is sent to `create_group`, which
+  polices what a generic flow cannot. Every non-success exit aborts the flow,
+  or it lingers in Settings. Only one form is walked; a flow that asks for a
+  second step is reported, not guessed at. A template alarm panel with no state
+  template is optimistic — it holds and restores its own state — and offers a
+  mode only when it has an action for it, which the tool description says.
+- **MCP gets the setup-flow half only** (`selora_create_helper`). The storage
+  half hands the panel a Create button and MCP has no panel, so its definition
+  (`TOOL_CREATE_FLOW_HELPER`) describes only what works there, built from the
+  chat tool's own `domain`/`type`/`fields` params so the two cannot drift, and
+  its handler refuses a storage domain with where to create one instead.
+- **An unknown entity that is not a device gets no device list.**
+  `_humanise_unknown_entity_error` answers a mistyped light by listing the home's
+  lights and locks; a missing alarm panel or helper is named plainly instead.

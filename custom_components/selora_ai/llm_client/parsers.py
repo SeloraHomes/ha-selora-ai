@@ -1571,6 +1571,17 @@ def _humanise_unknown_entity_error(
         "scene": "scenes",
     }
     controllable_domains = tuple(domain_labels)
+    # A missing entity that is not a device — an alarm panel, a helper, a
+    # sensor the model assumed — is not answered by a list of lights and a
+    # question about when it should run: that reads as a non sequitur. Say
+    # which entity does not exist and stop.
+    missing = re.findall(r"\b([a-z_]+)\.[a-z0-9_]+\b", reason.split(":", 1)[-1])
+    missing_ids = re.findall(r"\b[a-z_]+\.[a-z0-9_]+\b", reason.split(":", 1)[-1])
+    if missing and not any(domain in controllable_domains for domain in missing):
+        return (
+            f"I couldn't build that automation: it refers to {', '.join(missing_ids)}, "
+            "which does not exist in your home yet."
+        )
     for e in entities:
         eid = e.get("entity_id", "")
         if "." not in eid:
@@ -3109,6 +3120,41 @@ def parse_command_response_text(text: str) -> ArchitectResponse:
         return {"calls": [], "response": "Failed to parse LLM response"}
 
 
+def mark_cut_prose(
+    result: ArchitectResponse,
+    *,
+    finish_reason: str | None,
+    unterminated: bool,
+) -> ArchitectResponse:
+    """Flag a prose answer whose stream was cut, keeping what did arrive.
+
+    The parser only recognises a cut inside an open block; a reply cut in
+    plain prose — "Verify the entity ID in Developer Tools, because" — has
+    every fence closed and was presented as a finished answer, with nothing
+    telling the user it stopped and no Retry. The backend already said so
+    (an output cap, or a stream that never ended), so that verdict is
+    applied here.
+
+    The prose is KEPT, unlike ``_truncated_reply``: that one drops text that
+    already described a proposal as written, while an answer's partial text
+    claims nothing and is what the user would retry for. Only a plain answer
+    is marked — a proposal, scene or command that parsed is complete in the
+    part that matters, and its card is what the user acts on.
+    """
+    if not (unterminated or _is_output_cap(finish_reason)):
+        return result
+    if result.get("intent") != "answer" or result.get("validation_error"):
+        return result
+    if result.get("automation") or result.get("scene") or result.get("quick_actions"):
+        return result
+    record_repair("truncated_response")
+    marked: ArchitectResponse = dict(result)
+    marked["validation_error"] = "truncated_response"
+    marked["validation_target"] = "response"
+    marked["truncation_reason"] = "output_cap" if _is_output_cap(finish_reason) else "unreported"
+    return marked
+
+
 def parse_streamed_response(
     text: str,
     hass: HomeAssistant,
@@ -3550,7 +3596,7 @@ def parse_streamed_response(
                 # handler's retry loop can build a ground-truth correction.
                 is_clarification = "unknown entity_id" in reason
                 bubble = (
-                    f"{response_text}: {humanised}"
+                    f"{response_text.rstrip()}\n\n{humanised}"
                     if (response_text and is_clarification)
                     else humanised
                 )

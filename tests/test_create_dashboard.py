@@ -663,6 +663,7 @@ def test_a_panel_only_tool_needs_the_caller_to_declare_the_panel() -> None:
     assert _tool_names(panel_available=True) - _tool_names() == {
         "create_dashboard",
         "delete_dashboard",
+        "create_helper",
     }
 
 

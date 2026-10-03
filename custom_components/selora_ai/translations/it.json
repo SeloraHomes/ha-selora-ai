@@ -1008,7 +1008,8 @@
     "client_action_delete": "Elimina",
     "client_action_delete_dashboard": "Elimina la dashboard {title} — {views} viste, {cards} schede",
     "client_action_confirm_mixed": "Conferma tutto",
-    "client_action_delete_dashboard_unknown": "Elimina la dashboard {title} — contenuto sconosciuto"
+    "client_action_delete_dashboard_unknown": "Elimina la dashboard {title} — contenuto sconosciuto",
+    "client_action_create_helper": "Crea l'aiutante {name} ({domain})"
   },
   "options": {
     "step": {

@@ -100,6 +100,31 @@ class TestArchitectPromptVerbosity:
         prompt = build_architect_system_prompt()
         assert "numbered steps" in prompt
 
+    def test_long_guidance_is_planned_first(self, hass) -> None:
+        """Both prompts ask for an outline before a long how-to, without
+        turning a requested automation or scene into a plan."""
+        for prompt in (
+            build_architect_system_prompt(),
+            build_architect_stream_system_prompt(),
+        ):
+            assert "PLAN FIRST — LONG HOW-TO ANSWERS" in prompt
+            assert "deliver ONE part per turn" in prompt
+            assert "emit that proposal block directly, never a" in prompt
+
+    def test_plan_first_survives_tool_lookups(self, hass) -> None:
+        """The tone rules exempt tool-backed answers, and a how-to that began
+        with a search_entities call read itself as one — so the plan rule is
+        its own block, placed after the exemption and the tool policy."""
+        for prompt in (
+            build_architect_system_prompt(tools_available=True),
+            build_architect_stream_system_prompt(tools_available=True),
+        ):
+            plan = prompt.index("PLAN FIRST — LONG HOW-TO ANSWERS")
+            assert plan > prompt.index("NOT tool-backed answers")
+            assert plan > prompt.index("## Output Formatting")
+            assert "does not make the how-to a tool-backed answer" in prompt
+            assert "give step-by-step guidance" not in prompt
+
     def test_brevity_scoped_to_conversational(self, hass) -> None:
         """Brevity rules are scoped to conversational responses, not tool-backed answers."""
         prompt = build_architect_system_prompt()

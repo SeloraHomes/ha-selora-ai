@@ -33,6 +33,7 @@ from ..llm_client.command_policy import (
     action_failed_line,
     dashboard_created_line,
     dashboard_deleted_line,
+    helper_created_line,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -385,7 +386,15 @@ async def _record_client_action_result(
             )
             continue
         succeeded.append(bool(result.get("ok")))
-        if result.get("ok") and str(result.get("kind")) == "delete_dashboard":
+        if result.get("ok") and str(action.get("kind")) == "create_helper":
+            lines.append(
+                helper_created_line(
+                    sanitize_untrusted_text(str(action.get("name") or ""), 60),
+                    _created_helper_entity_id(hass, action, detail),
+                    language,
+                )
+            )
+        elif result.get("ok") and str(result.get("kind")) == "delete_dashboard":
             # No seeding, no card marker: the page is gone, and a link to it
             # would be a link to nothing.
             lines.append(dashboard_deleted_line(title, language))
@@ -424,6 +433,30 @@ async def _record_client_action_result(
         "\n".join(lines) or "Nothing to do.",
     )
     connection.send_result(msg["id"], {"ok": ok})
+
+
+def _created_helper_entity_id(
+    hass: HomeAssistant, action: dict[str, Any], detail: Any
+) -> str | None:
+    """The entity_id the panel reports for a helper it created, if it checks out.
+
+    Worth naming — the resumed turn wires an automation to it, and the
+    collection suffixes the id on a clash so the name does not give it — but
+    the panel is not trusted to say what its work was done to. So the id is
+    kept only when it is in the proposed domain and a live entity answers to
+    it with the proposed name; otherwise the line names the helper without it.
+    """
+    reported = str(detail.get("entity_id") or "").strip() if isinstance(detail, dict) else ""
+    domain = str(action.get("domain") or "")
+    if not domain or not reported.startswith(f"{domain}."):
+        return None
+    state = hass.states.get(reported)
+    if state is None:
+        return None
+    friendly = " ".join(str(state.attributes.get("friendly_name") or "").split()).casefold()
+    if friendly != " ".join(str(action.get("name") or "").split()).casefold():
+        return None
+    return reported
 
 
 def _dashboard_card_marker(url_path: str, title: str) -> str:

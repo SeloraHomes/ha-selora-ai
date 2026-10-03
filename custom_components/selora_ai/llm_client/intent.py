@@ -1075,6 +1075,27 @@ _CONFIG_ENTITY_PHRASE = re.compile(
 )
 
 
+# "How can I…" asks for a direction, not a manual. Interrogative how-to
+# phrasing only, in the shipped conversational languages: an imperative ("set
+# up an alarm", "create an automation that…") is a request to DO it and is
+# answered with tools or a proposal, never with this shape.
+_HOWTO_RE = re.compile(
+    r"\bhow\s+(?:can|could|do|should|would)\s+(?:i|we|you)\b"
+    r"|\bhow\s+to\b"
+    r"|\bwhat(?:'s|\s+is)\s+the\s+best\s+way\b"
+    r"|\bcomment\s+(?:puis-je|je\s+peux|on\s+peut|faire|pourrais-je|configurer|créer)\b"
+    r"|\bwie\s+(?:kann|könnte|sollte)\s+(?:ich|man)\b"
+    r"|\bcómo\s+(?:puedo|podría|se\s+puede|hago)\b"
+    r"|\bcome\s+(?:posso|potrei|si\s+può|faccio)\b",
+    re.IGNORECASE,
+)
+
+
+def _is_howto_request(user_message: str) -> bool:
+    """Whether the turn asks HOW to do something rather than asking for it done."""
+    return bool(_HOWTO_RE.search(user_message or ""))
+
+
 def _is_config_request(user_message: str, area_names: Iterable[str] | None = None) -> bool:
     """True when the turn reconfigures the home rather than operating it.
 
