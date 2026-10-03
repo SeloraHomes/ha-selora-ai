@@ -1837,6 +1837,83 @@ def _entity_integration(hass: HomeAssistant, entity_id: str) -> str | None:
     return entry.platform if entry else None
 
 
+# Real entities offered per unknown id. Enough to contain the one meant when it
+# exists under another name; few enough that the feedback stays a choice.
+_UNKNOWN_ENTITY_CANDIDATES = 5
+_UNKNOWN_ENTITY_MIN_SCORE = 0.5
+
+
+def _unknown_entity_feedback(
+    hass: HomeAssistant, reason: str, rejected: dict[str, Any] | None
+) -> list[str]:
+    """Name the real entities closest to each id the model made up.
+
+    The alternative was guessing for it — swapping in any entity that shared a
+    word with the prompt — which covers the phrasings someone coded for and
+    can silently aim the automation at the wrong device. The model knows what
+    it meant; given the real candidates it can pick one, see that the thing
+    does not exist yet, or ask.
+
+    The ids come from the rejected automation itself when it is there: the
+    validator's reason lists only the first three, and every id left out is a
+    correction round spent finding the next one.
+    """
+    from .lexical import fuzzy_ratio, normalize  # noqa: PLC0415
+
+    unknown: list[str] = []
+    if isinstance(rejected, dict):
+        # The walker reads the plural keys; a model's payload may use either.
+        walkable = {
+            plural: rejected.get(plural) or rejected.get(plural[:-1]) or []
+            for plural in ("triggers", "conditions", "actions")
+        }
+        unknown = sorted(_find_unknown_entity_ids(hass, _collect_referenced_entity_ids(walkable)))
+    if not unknown:
+        unknown = re.findall(r"\b[a-z_]+\.[a-z0-9_]+\b", reason.split(":", 1)[-1])
+    every_state = hass.states.async_all()
+    lines: list[str] = []
+    for entity_id in unknown:
+        domain, object_id = entity_id.split(".", 1)
+        wanted = normalize(object_id)
+        scored: list[tuple[float, str, str]] = []
+        # Every domain, not just the one the model wrote: `light.coffee_maker`
+        # for a real `switch.coffee_maker` is the commonest form of the mistake,
+        # and searching lights alone would report that nothing like it exists.
+        # The model's own domain only breaks ties.
+        for state in every_state:
+            name = str(state.attributes.get("friendly_name") or "")
+            score = max(
+                fuzzy_ratio(wanted, normalize(state.object_id)),
+                fuzzy_ratio(wanted, normalize(name)) if name else 0.0,
+            )
+            if score >= _UNKNOWN_ENTITY_MIN_SCORE:
+                scored.append(
+                    (score + (0.01 if state.domain == domain else 0.0), state.entity_id, name)
+                )
+        scored.sort(key=lambda c: c[0], reverse=True)
+        if scored:
+            choices = ", ".join(
+                f"{eid} ({name})" if name else eid
+                for _, eid, name in scored[:_UNKNOWN_ENTITY_CANDIDATES]
+            )
+            lines.append(
+                f"'{entity_id}' does not exist. The closest real {domain} entities: {choices}."
+            )
+        elif hass.states.async_all(domain):
+            lines.append(f"'{entity_id}' does not exist, and no {domain} entity here resembles it.")
+        else:
+            lines.append(f"'{entity_id}' does not exist: this home has no {domain} entity at all.")
+    lines.append("")
+    lines.append(
+        "Use one of the listed entities only if it is clearly what the user meant. "
+        "If what the automation needs does not exist yet, create it first with your "
+        "tools if you can, or tell the user it is missing. Never substitute an "
+        "unrelated entity, and if you cannot tell which one they meant, ask them "
+        "instead of proposing an automation."
+    )
+    return lines
+
+
 def build_service_feedback(
     hass: HomeAssistant,
     reason: str,
@@ -1898,6 +1975,10 @@ def build_service_feedback(
             "Rewrite the action(s) to use ONLY services listed above. Do not invent "
             "service names. If no suitable service exists for a step, omit that step."
         )
+        return "\n".join(lines)
+
+    if "unknown entity_id" in reason:
+        lines.extend(_unknown_entity_feedback(hass, reason, rejected_automation))
         return "\n".join(lines)
 
     ro_match = re.search(r"read-only domain '([^']+)'", reason)

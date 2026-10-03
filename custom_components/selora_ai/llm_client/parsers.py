@@ -2812,6 +2812,7 @@ def parse_architect_response(
     user_message: str | None = None,
     *,
     language: str | None = None,
+    guess_repairs: bool = True,
 ) -> ArchitectResponse:
     """Parse the JSON response from the architect LLM. Normalises the result
     to always include 'intent' and 'response'; for 'automation' intent
@@ -2899,7 +2900,13 @@ def parse_architect_response(
             #     state trigger with the prompt's ``for: {N}`` window.
             has_presence_duration = _has_presence_for_duration(user_message or "")
 
-            if not is_valid and reason and "unknown entity_id" in reason and entities:
+            if (
+                guess_repairs
+                and not is_valid
+                and reason
+                and "unknown entity_id" in reason
+                and entities
+            ):
                 patched, subs = _resolve_unknown_entity_ids(
                     reason,
                     data["automation"],
@@ -2942,7 +2949,7 @@ def parse_architect_response(
             # Coerce wrong-shape triggers (state instead of numeric_state,
             # time instead of sun) when the prompt hints at the right shape;
             # re-validate and on success replace the original automation.
-            if normalized is not None and user_message:
+            if guess_repairs and normalized is not None and user_message:
                 coerced = _apply_prompt_aware_coercions(
                     data["automation"], user_message, hass, entities
                 )
@@ -2958,7 +2965,8 @@ def parse_architect_response(
             # word "trigger" in the validator reason, but the prompt's
             # ``for N minutes`` is a strong-enough signal to rewrite it.
             should_recover_trigger = (
-                bool(user_message)
+                guess_repairs
+                and bool(user_message)
                 and not is_valid
                 and reason
                 and (("trigger" in reason.lower()) or has_presence_duration)
@@ -3120,6 +3128,7 @@ def parse_streamed_response(
     language: str | None = None,
     refining: bool = False,
     finish_reason: str | None = None,
+    guess_repairs: bool = True,
 ) -> ArchitectResponse:
     """Parse completed streamed text.
 
@@ -3455,7 +3464,13 @@ def parse_streamed_response(
             # (light.coffee_maker → switch.coffee_maker) OR echoed an
             # example entity (lock.front_door) when the prompt names
             # exactly one real device. Mirrors the JSON-only path.
-            if not is_valid and reason and "unknown entity_id" in reason and entities:
+            if (
+                guess_repairs
+                and not is_valid
+                and reason
+                and "unknown entity_id" in reason
+                and entities
+            ):
                 patched, subs = _resolve_unknown_entity_ids(
                     reason,
                     automation_data,
@@ -3501,7 +3516,7 @@ def parse_streamed_response(
             # numeric_state, time → sun) when the model emitted a
             # valid-but-wrong trigger shape that downstream checks
             # reject. Mirrors the JSON-only path.
-            if normalized is not None and user_message:
+            if guess_repairs and normalized is not None and user_message:
                 coerced = _apply_prompt_aware_coercions(
                     automation_data, user_message, hass, entities
                 )
@@ -3518,7 +3533,8 @@ def parse_streamed_response(
             # and the time-trigger reason doesn't contain the word
             # "trigger" in some validator variants.
             should_recover_trigger = (
-                bool(user_message)
+                guess_repairs
+                and bool(user_message)
                 and not is_valid
                 and reason
                 and (("trigger" in reason.lower()) or has_presence_duration)
@@ -3601,7 +3617,9 @@ def parse_streamed_response(
     # and dead-ends as clarification). Same goes for the
     # prompt-aware trigger coercions (state → numeric_state, time
     # → sun).
-    result = parse_architect_response(text, hass, entities, user_message=user_message)
+    result = parse_architect_response(
+        text, hass, entities, user_message=user_message, guess_repairs=guess_repairs
+    )
 
     # The prose we're returning is trustworthy and should bypass
     # the policy's unbacked-action guard in three cases:

@@ -1104,6 +1104,7 @@ class LLMClient:
                     entities,
                     user_message=user_message,
                     language=language,
+                    guess_repairs=self.guesses_repairs,
                 )
                 if tool_log:
                     parsed = _suppress_duplicate_command_after_tool(parsed, tool_log, entities)
@@ -1175,6 +1176,7 @@ class LLMClient:
                 entities,
                 user_message=user_message,
                 language=language,
+                guess_repairs=self.guesses_repairs,
             )
             # Normalise LLM-emitted ``intent: "command_approval"`` so a
             # low-context or non-tool provider that crafts its own
@@ -1656,7 +1658,24 @@ class LLMClient:
                 # this side can answer it — the text reaching the parser is
                 # identical either way.
                 finish_reason=self._provider.last_finish_reason,
+                guess_repairs=self.guesses_repairs,
             )
+
+    @property
+    def guesses_repairs(self) -> bool:
+        """Whether a rejected automation is repaired by guessing from the prompt.
+
+        Only for the low-context model. Swapping an unknown entity for "any
+        entity sharing a word with the prompt", or rebuilding a trigger from a
+        phrase the request happened to use, covers the one phrasing someone
+        coded for and can silently target the wrong device. A model that can
+        take a correction round is handed the validation error and the real
+        candidates instead (``build_service_feedback``) and fixes its own
+        output. Selora AI Local gets no correction round
+        (``_automation_retry_budget``), so it keeps the repairs it was
+        benchmarked with.
+        """
+        return bool(self._provider.is_low_context)
 
     # ------------------------------------------------------------------
     # Tool-calling orchestration

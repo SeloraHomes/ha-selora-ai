@@ -503,25 +503,29 @@ def _clarification_parse() -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_retry_skipped_for_unknown_entity_clarification(
+async def test_an_unknown_entity_is_corrected_not_guessed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """An unknown-entity clarification must NOT enter the correction loop —
-    service ground truth can't resolve a misspelled/ambiguous entity, and
-    re-prompting would burn rounds or replace the clarification with a guess
-    for the wrong entity. The clarification is returned untouched."""
+    """An unknown-entity rejection enters the correction loop with the real
+    candidates, instead of being substituted by a parser guess or surfaced
+    straight away as a list of every device."""
+    seen: list[str] = []
+
+    def _feedback(_hass: Any, reason: str, _rejected: Any) -> str:
+        seen.append(reason)
+        return "'light.kitchn' does not exist. The closest real light entities: light.kitchen."
+
     monkeypatch.setattr(
-        "custom_components.selora_ai.automation_utils.build_service_feedback",
-        lambda *a, **k: "should not be called",
+        "custom_components.selora_ai.automation_utils.build_service_feedback", _feedback
     )
-    architect = AsyncMock()
+    corrected = {"intent": "automation", "response": "Done", "automation": {"alias": "Lights"}}
+    architect = AsyncMock(return_value=corrected)
     llm = _llm(_provider(), architect)
-    clarification = _clarification_parse()
 
     out = await _retry_invalid_automation(
         MagicMock(),
         llm,
-        clarification,
+        _clarification_parse(),
         user_message="turn on the kitchn light",
         entities=[],
         automations=None,
@@ -531,21 +535,21 @@ async def test_retry_skipped_for_unknown_entity_clarification(
         language=None,
         heartbeat=lambda: True,
     )
-    architect.assert_not_awaited()
-    assert out is clarification
-    assert out["intent"] == "clarification"
+
+    assert out is corrected
+    assert seen == ["automation references unknown entity_id(s): light.kitchn"]
+    assert "light.kitchen" in architect.await_args.args[0]
 
 
 @pytest.mark.asyncio
-async def test_retry_stops_when_correction_returns_clarification(
+async def test_an_unresolved_entity_still_ends_as_the_clarification(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """If a correction round (entered for a service failure) comes back as an
-    unknown-entity clarification, the loop must stop and surface it rather than
-    spend further rounds on something the user has to disambiguate."""
+    """When no round resolves it, the user gets the clarification — the loop is
+    bounded by the provider's budget, and never invents a substitute."""
     monkeypatch.setattr(
         "custom_components.selora_ai.automation_utils.build_service_feedback",
-        lambda *a, **k: "fix it",
+        lambda *a, **k: "no such light",
     )
     clarification = _clarification_parse()
     architect = AsyncMock(return_value=clarification)
@@ -554,7 +558,7 @@ async def test_retry_stops_when_correction_returns_clarification(
     out = await _retry_invalid_automation(
         MagicMock(),
         llm,
-        _failed_parse(),  # starts as a service failure → first round runs
+        _failed_parse(),
         user_message="x",
         entities=[],
         automations=None,
@@ -564,9 +568,8 @@ async def test_retry_stops_when_correction_returns_clarification(
         language=None,
         heartbeat=lambda: True,
     )
-    # Exactly one round: the clarification result halts the loop, not budget=3.
-    assert architect.await_count == 1
-    assert out is clarification
+
+    assert architect.await_count == 3
     assert out["intent"] == "clarification"
 
 

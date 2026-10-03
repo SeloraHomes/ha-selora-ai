@@ -6339,3 +6339,73 @@ class TestTtsSpeakSpeaker:
         assert _rescue_tts_speak_speaker(dict(action), self._hass()) is None
         # It is refused rather than silently mangled.
         assert _tts_speak_speaker_error(action) is not None
+
+
+# ── Unknown-entity feedback ─────────────────────────────────────────────────
+
+
+def test_unknown_entity_feedback_names_the_closest_real_entities(hass) -> None:  # noqa: ANN001
+    from custom_components.selora_ai.automation_utils import build_service_feedback
+
+    hass.states.async_set("light.kitchen", "off", {"friendly_name": "Kitchen Light"})
+    hass.states.async_set("light.porch", "off", {"friendly_name": "Porch"})
+
+    text = build_service_feedback(
+        hass, "automation references unknown entity_id(s): light.kitchn", None
+    )
+
+    assert "light.kitchen (Kitchen Light)" in text
+    assert "light.porch" not in text
+    assert "Never substitute an unrelated entity" in text
+
+
+def test_unknown_entity_feedback_says_when_nothing_like_it_exists(hass) -> None:  # noqa: ANN001
+    """The alarm case: no alarm panel at all is the answer, not a list of lights."""
+    from custom_components.selora_ai.automation_utils import build_service_feedback
+
+    hass.states.async_set("light.kitchen", "off", {"friendly_name": "Kitchen Light"})
+
+    text = build_service_feedback(
+        hass,
+        "automation references unknown entity_id(s): alarm_control_panel.home_alarm",
+        None,
+    )
+
+    assert "this home has no alarm_control_panel entity at all" in text
+    assert "create it first" in text
+    assert "light.kitchen" not in text
+
+
+def test_unknown_entity_feedback_crosses_domains(hass) -> None:  # noqa: ANN001
+    """light.coffee_maker for a real switch.coffee_maker is the commonest form
+    of the mistake; searching lights alone would say nothing like it exists."""
+    from custom_components.selora_ai.automation_utils import build_service_feedback
+
+    hass.states.async_set("switch.coffee_maker", "off", {"friendly_name": "Coffee Maker"})
+
+    text = build_service_feedback(
+        hass, "automation references unknown entity_id(s): light.coffee_maker", None
+    )
+
+    assert "switch.coffee_maker (Coffee Maker)" in text
+
+
+def test_unknown_entity_feedback_covers_every_unknown_id(hass) -> None:  # noqa: ANN001
+    """The validator's reason lists three; the rest are read off the payload."""
+    from custom_components.selora_ai.automation_utils import build_service_feedback
+
+    ids = [f"light.ghost_{n}" for n in range(5)]
+    rejected = {
+        "triggers": [{"trigger": "time", "at": "07:00:00"}],
+        "action": [{"action": "light.turn_on", "target": {"entity_id": ids}}],
+    }
+
+    text = build_service_feedback(
+        hass,
+        "automation references unknown entity_id(s): light.ghost_0, light.ghost_1, "
+        "light.ghost_2 (+2 more)",
+        rejected,
+    )
+
+    for entity_id in ids:
+        assert f"'{entity_id}' does not exist" in text
