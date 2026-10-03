@@ -1,0 +1,37 @@
+{
+  "version": "0.4.11",
+  "manifest": "https://huggingface.co/selorahomes/Selora-AI-LLM-1.7B/raw/v0.4.11/manifest.json",
+  "system_prompts": {
+    "command": {
+      "filename": "command_system_prompt.txt",
+      "size_bytes": 1071,
+      "sha256": "9921c6fef09c6ebad4a2ed4fad1dbe7e76efe0bfe4e532bf7c7fe096864de6a4"
+    },
+    "automation": {
+      "filename": "automation_system_prompt.txt",
+      "size_bytes": 2711,
+      "sha256": "04e2d8231e91d00afba0c50964a0647b036303bd4c4dbc9e7c58dd3434d2b682"
+    },
+    "answer": {
+      "filename": "answer_system_prompt.txt",
+      "size_bytes": 856,
+      "sha256": "ec4c2dfb6bcd378e65f891a15d9066d9f0c295a1ac3fc9dbc01cb01a9c0d6cb2"
+    },
+    "clarification": {
+      "filename": "clarification_system_prompt.txt",
+      "size_bytes": 683,
+      "sha256": "c6833a17147574946a7176447a88d65e687bc393e62db1aaa89c57d1fdf9a3ac"
+    },
+    "utilities": {
+      "filename": "utilities_system_prompt.txt",
+      "size_bytes": 1588,
+      "sha256": "ae1155b644b529ba63d9441b2abc347fd6f4e4b3d4bbb25b323509707df90d36"
+    }
+  },
+  "unified": {
+    "source": "https://huggingface.co/selorahomes/Selora-AI-LLM-1.7B-ollama/raw/v0.4.11/system",
+    "filename": "unified_system_prompt.txt",
+    "size_bytes": 2412,
+    "sha256": "ec206a34e3609d227af8d165b8e45b7869d4a237c81fdc100a71e505433ae795"
+  }
+}

@@ -16,6 +16,7 @@ from ....const import (
 from .slim_parser import (
     _SELORA_LOCAL_VISIBLE_VALUE_KEYS,
     _selora_local_extract_visible,
+    selora_local_blueprint_reply,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,7 +61,14 @@ class _StreamingMixin:
             body = json.loads(converted)
         except json.JSONDecodeError:
             return converted
-        if isinstance(body, dict) and body.get("intent") == "answer":
+        # A blueprint is the automation specialist's answer, not an automation
+        # envelope missing its object: re-tagged, it reaches the automation
+        # branch with nothing to validate and the YAML is never shown.
+        if (
+            isinstance(body, dict)
+            and body.get("intent") == "answer"
+            and selora_local_blueprint_reply(str(body.get("response") or "")) is None
+        ):
             body["intent"] = target_intent
             return json.dumps(body, separators=(",", ":"))
         return converted

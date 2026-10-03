@@ -8,7 +8,6 @@ model does what it was told and the integration discards the result.
 
 from __future__ import annotations
 
-from pathlib import Path
 import re
 from typing import Any
 
@@ -26,13 +25,6 @@ from custom_components.selora_ai.providers.selora_local import (
     _SELORA_LOCAL_PROMPTS_DIR,
 )
 
-# A byte copy of the prompt the command specialist was fine-tuned on. The
-# model goes out of distribution on small wording changes, so the bundled
-# prompt is not free text — it is a build artefact that has to match this.
-_TRAINED_COMMAND_PROMPT = (
-    Path(__file__).parent / "fixtures" / "trained_command_system_prompt.txt"
-).read_text(encoding="utf-8")
-
 # The prompt spells the service format as "domain.action". It is a
 # placeholder for the shape, not a service anyone can call, so the
 # executability sweep below skips it.
@@ -46,18 +38,6 @@ def _bundled_command_prompt() -> str:
 
 
 class TestCommandPrompt:
-    def test_bundled_prompt_matches_the_prompt_the_model_was_trained_on(self) -> None:
-        """Byte parity with the training prompt, not merely similar wording.
-
-        The model goes out of distribution on small format differences,
-        so editing this prompt without retraining degrades every command
-        turn — invisibly, because the damage does not show up in tests
-        that only check for keywords. This assertion also subsumes every
-        negative claim about the wording: text identical to the training
-        prompt cannot have grown a new instruction.
-        """
-        assert _bundled_command_prompt() == _TRAINED_COMMAND_PROMPT
-
     def test_every_service_the_prompt_names_is_executable(self) -> None:
         """A service named in the prompt must survive the safety policy.
 

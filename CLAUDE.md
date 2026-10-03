@@ -195,6 +195,8 @@ because the obvious implementation shipped and broke something quietly.
   diagnostics.
 - `telemetry.md` — anonymous telemetry, adding a counter.
 - `alexa-credential.md` — the OS-delivered Alexa voice credential.
+- `selora-local-prompts.md` — the bundled Selora AI Local prompts are pinned
+  copies of a model release; never edit their wording here.
 
 A feature with rules of its own gets its own note there, not a section here.
 

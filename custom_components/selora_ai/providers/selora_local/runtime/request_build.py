@@ -42,8 +42,9 @@ _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION = 25
 # system prompt + history + the user's own line, measured against the trained corpus.
 _SELORA_LOCAL_RESERVED_TOKENS = 702
 
-# Same, for chat_automation — its system prompt is ~2500 tokens on its own.
-_SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = 3598
+# Same, for chat_automation: its trained system prompt (659 Qwen3 tokens)
+# plus the 1121 tokens of everything else the automation request carries.
+_SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = 1780
 
 
 # Not an intent. The Ollama backend serves ONE self-routing model that
@@ -277,5 +278,11 @@ class _RequestBuildMixin:
         # Qwen3 ChatML defaults to thinking mode, which emits <think>…</think> tokens that llama-server strips before returning ``content``.
         kwargs = payload.setdefault("chat_template_kwargs", {})
         kwargs.setdefault("enable_thinking", False)
+        # Ollama ignores ``chat_template_kwargs``; its OpenAI-compatible
+        # endpoint turns thinking off through ``reasoning_effort`` instead. A
+        # GGUF whose template forces thinking off needs neither, but an older
+        # or third-party build would otherwise think on every turn.
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            payload.setdefault("reasoning_effort", "none")
 
         return payload
