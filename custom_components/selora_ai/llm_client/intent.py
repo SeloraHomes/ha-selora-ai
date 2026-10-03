@@ -296,14 +296,6 @@ _POLITE_COMMAND = re.compile(
     re.IGNORECASE,
 )
 
-
-_META_QUESTION = re.compile(
-    r"\b(suggest|recommend|propose|examples?)\b"
-    r"|\b(tell|show|describe|explain)\s+(me|us)\b"
-    r"|\b(what|which)\s+(kinds?|types?|examples?|automations?|commands?|scenes?|things)\b",
-    re.IGNORECASE,
-)
-
 _COMMAND_VERB = re.compile(
     r"\b(turn|switch|toggle|set|start|stop|play|pause|resume|open|close|"
     r"lock|unlock|dim|brighten|increase|decrease|raise|lower|"
@@ -627,16 +619,44 @@ def _is_vague_automation(user_message: str) -> bool:
 # _AUTOMATION_PATTERNS so legitimate "every morning turn on …"
 # requests still reach the automation specialist.
 #
-# NOTE: "suggest|recommend|propose" used to live here but were moved
-# to ``_VAGUE_BARE_REQUEST`` (clarification) — the answer specialist
-# was returning "You can try to automate the coffee maker." for
-# "suggest an automation", which the benchmark counts as an
-# unhelpful non-ask. Routing those to the clarification LoRA forces
-# a "?"-shaped follow-up that gives the user something to act on.
+# "suggest|recommend|propose" are NOT meta-questions: they belong to
+# ``_VAGUE_BARE_REQUEST`` (clarification), because the answer
+# specialist replies "You can try to automate the coffee maker." to
+# "suggest an automation" — an unhelpful non-ask. The clarification
+# LoRA asks a "?"-shaped follow-up the user can act on.
+#
+# "example(s)" only counts when the message ASKS for examples — see
+# ``_EXAMPLES_REQUEST``. The bare word appears in task descriptions
+# ("## Example use cases", "for example, at sunset") that are
+# automation requests, not questions.
 _META_QUESTION = re.compile(
-    r"\bexamples?\b"
-    r"|\b(tell|show|describe|explain)\s+(me|us)\b"
+    r"\b(tell|show|describe|explain)\s+(me|us)\b"
     r"|\b(what|which)\s+(kinds?|types?|examples?|automations?|commands?|scenes?|things)\b",
+    re.IGNORECASE,
+)
+
+# A request FOR examples: "give me some examples of automations", "any
+# examples?", "an example of a scene", "I'd like an example of …", "do
+# you have examples".
+_EXAMPLES_REQUEST = re.compile(
+    r"\b(?:give|show|list|share|provide|send|offer|have|need|want|like|see|get)\s+"
+    r"(?:(?:me|us)\s+)?(?:(?:some|a\s+few|few|more|any|other|an?)\s+)?examples?\b"
+    r"|\b(?:any|some|more|a\s+few)\s+examples?\b"
+    r"|^[^\w#]*(?:(?:an?|some)\s+)?examples?\s+"
+    r"(?:of|automations?|scenes?|scripts?|routines?|blueprints?|commands?)\b"
+    r"|\bexamples?\s*\?",
+    re.IGNORECASE,
+)
+
+# An explicit ask to create an automation or blueprint. It wins over
+# ``_EXAMPLES_REQUEST`` when it comes BEFORE the examples phrase (a task
+# that says "create a blueprint automation" then lists "some examples"
+# of its use) or in a later sentence of its own. In the same sentence
+# after it, it is what the examples are about ("examples of how to
+# create an automation").
+_CREATE_AUTOMATION_REQUEST = re.compile(
+    r"\b(?:create|build|make|write|generate|add|set\s+up)\b"
+    r"[^.\n?!]{0,40}?\b(?:automations?|blueprints?)\b",
     re.IGNORECASE,
 )
 
@@ -1380,6 +1400,14 @@ def _classify_chat_intent(
         return "clarification"
     if _META_QUESTION.search(msg):
         return "answer"
+    examples = _EXAMPLES_REQUEST.search(msg)
+    if examples:
+        create = _CREATE_AUTOMATION_REQUEST.search(msg)
+        if not create or (
+            create.start() > examples.start()
+            and not re.search(r"[.!?\n]", msg[examples.end() : create.start()])
+        ):
+            return "answer"
     # When we have an entity snapshot, catch requests that name a
     # category the user doesn't have ("arm the security system" with
     # no alarm panel, "lock the front door" with no lock, "turn on
