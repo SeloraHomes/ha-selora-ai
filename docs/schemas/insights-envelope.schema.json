@@ -241,6 +241,35 @@
               "transient": {
                 "type": "boolean",
                 "description": "True when EVERY integration backing the device is a transient BLE beacon / presence-advert source (ibeacon, private_ble_device, bluetooth_le_tracker, ble_monitor, bermuda). Such devices go unavailable simply when out of range and are often not the user's — consumers should drop them from the 'needs attention' tally and default device view (behind a toggle). Optional (additive to v2); absent on older producers, treat as false."
+              },
+              "serial_number": {
+                "type": ["string", "null"],
+                "description": "Serial number from the Home Assistant device registry, as the integration reported it. Null when the integration reports none (many do not, and Matter's integration drops serials containing 'test'). Additive within schema_version 2: absent on older producers, treat as null."
+              },
+              "created_at": {
+                "type": ["string", "null"],
+                "format": "date-time",
+                "description": "When Home Assistant added the device to its registry (ISO 8601, UTC). Null when the registry never recorded it: devices that existed before Home Assistant 2024.8 were back-filled with the Unix epoch, which is reported as null rather than as 1970. Additive within schema_version 2: absent on older producers, treat as null."
+              },
+              "matter": {
+                "type": ["object", "null"],
+                "description": "Vendor and product ID from the Basic Information cluster of a directly commissioned Matter node, as the Matter server reports it; the same pair an MT: onboarding payload encodes. Null for non-Matter devices, for devices bridged behind a Matter bridge (no pairing code of their own; the bridge's own device carries the IDs), and while the Matter server is not connected or the node has not been interviewed. Additive within schema_version 2: absent on older producers, treat as null.",
+                "required": ["vendor_id", "product_id"],
+                "additionalProperties": false,
+                "properties": {
+                  "vendor_id": { "type": "integer", "minimum": 0, "maximum": 65535, "description": "Matter vendor ID (VID), decimal." },
+                  "product_id": { "type": "integer", "minimum": 0, "maximum": 65535, "description": "Matter product ID (PID), decimal." }
+                }
+              },
+              "connections": {
+                "type": "array",
+                "description": "Connections from the Home Assistant device registry as [type, value] pairs, sorted, e.g. [[\"mac\", \"aa:bb:cc:dd:ee:ff\"]] for Wi-Fi/Ethernet or [[\"bluetooth\", \"AA:BB:CC:DD:EE:FF\"]]. Values are as HA normalized them (MACs lowercase colon-separated). Empty array when the device has none. Additive within schema_version 2: absent on older producers, treat as [].",
+                "items": {
+                  "type": "array",
+                  "prefixItems": [{ "type": "string" }, { "type": "string" }],
+                  "minItems": 2,
+                  "maxItems": 2
+                }
               }
             }
           }
