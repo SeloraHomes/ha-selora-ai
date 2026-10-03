@@ -356,9 +356,19 @@ _PROMPT_INJECTION = re.compile(
     r"(?:all\s+|any\s+|the\s+|prior\s+|previous\s+|earlier\s+|above\s+)*"
     r"(?:prior|previous|earlier|above|system|original)?\s*"
     r"(?:instruction|instructions|prompt|prompts|rules?|guidelines?|directives?)\b"
-    r"|\b(?:reveal|show|print|leak|expose|display|reproduce|repeat)\s+"
-    r"(?:the\s+|your\s+|me\s+|us\s+)*"
-    r"(?:system\s+)?(?:prompt|instructions?|rules?|guidelines?)\b"
+    r"|\b(?:reveal|show|print|leak|expose|display|reproduce|repeat|disclose|"
+    r"output|dump|recite|share)\s+"
+    r"(?:the\s+|your\s+|me\s+|us\s+|all\s+)*"
+    r"(?:(?:confidential|hidden|secret|internal|initial|initialization|"
+    r"original|system|developer)\s+)*"
+    r"(?:prompt|instructions?|rules?|guidelines?|directives?)\b"
+    # "message" alone is ordinary ("repeat the message"); only the
+    # qualified forms name the model's own instructions.
+    r"|\b(?:reveal|show|print|leak|expose|display|reproduce|repeat|disclose|"
+    r"output|dump|recite|share)\s+"
+    r"(?:the\s+|your\s+|me\s+|us\s+|all\s+)*"
+    r"(?:(?:confidential|hidden|secret|internal|initial|initialization|"
+    r"original|system|developer)\s+)+message\b"
     r"|<\|im_(?:start|end)\|>"
     r"|<\|(?:system|user|assistant|endoftext)\|>"
     # Chat-template role label — only as a LINE-LEADING label

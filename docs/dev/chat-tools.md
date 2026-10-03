@@ -93,3 +93,15 @@ non-streaming by `strip_leaked_tool_markup` and mid-stream by `MarkupLeakGuard`
   `strip_leaked_tool_markup` changing the text), append the stripped prose plus
   `_LEAK_RETRY_DIRECTIVE`, and `continue` — bounded by `_MAX_LEAK_RETRIES` (2)
   independently of the round budget.
+
+## Deterministic shortcuts are for the low-context model
+
+`_pre_provider_short_circuit` answers some turns before the provider is
+called. The safety refusal (prompt injection) runs for every provider. The
+command and clarification helpers — "turn off all the lights" built into a
+command, "turn it off" answered with a "Which light?" picker — run only when
+the provider `is_low_context`: they exist because the 1.7B local model invents
+service calls for those phrasings. A cloud model resolves them itself, with
+tools, history and the home in context, in any language; the helpers are
+patterns for the phrasings someone coded, so on that path they could only
+pre-empt an answer the model would have got right.
