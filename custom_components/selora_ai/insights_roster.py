@@ -10,18 +10,22 @@ This is the user's own home going to their own account (keyed by
 installation_id), so it carries identities + state — distinct from the
 anonymous, counts-only PostHog telemetry. Attribute exposure stays limited to
 what the roster fields need (name/state/availability/area), never the raw
-attribute bag.
+attribute bag. Devices also carry hardware identity (serial number, MAC-style
+connections, Matter vendor/product ID) so Connect can match a pairing code saved
+before the device joined HA; those only go to the export file, never to a log.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 from contextlib import suppress
 from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit, urlunsplit
 
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     area_registry as ar,
@@ -51,6 +55,7 @@ if TYPE_CHECKING:
         RosterDevice,
         RosterEntity,
         RosterIntegration,
+        RosterMatterIds,
         RosterScene,
         RosterScript,
     )
@@ -62,6 +67,7 @@ _LOGGER = logging.getLogger(__name__)
 # awaiting a first reading) — reporting it as unavailable is a false positive.
 _UNAVAILABLE_STATES = frozenset({"unavailable"})
 _SELORA_ALIAS_PREFIX = "[Selora AI]"
+_MATTER_DOMAIN = "matter"
 
 # The Supervisor's own stores. They are identified by slug rather than by the
 # absence of a URL, because they DO carry one — the export contract still says
@@ -135,6 +141,96 @@ def _iso_or_none(value: object) -> str | None:
     if isinstance(value, datetime):
         return value.isoformat()
     return value if isinstance(value, str) else None
+
+
+def _registry_created_at(created_at: datetime) -> str | None:
+    """Return when HA registered the device, or None when it never recorded it.
+
+    The device registry gained ``created_at`` in 2024.8, and its migration
+    stamped every device that already existed with the Unix epoch. A 1970 date
+    is therefore "unknown", not a registration time.
+    """
+    if created_at.timestamp() <= 0:
+        return None
+    return created_at.isoformat()
+
+
+def _matter_ids_by_identifier(hass: HomeAssistant) -> dict[str, RosterMatterIds]:
+    """Map each Matter node's HA device identifier to its vendor and product ID.
+
+    The values come from the node's Basic Information cluster (endpoint 0) as
+    the Matter server reports it — the same pair the onboarding payload of an
+    ``MT:`` QR code carries. The registry has no vendor ID and keeps the
+    product ID only as a model string, so it can't be used instead.
+
+    Only the node's own device is keyed. A device bridged behind a Matter
+    bridge gets an endpoint-suffixed identifier and no entry: it has no pairing
+    code of its own, and the node's IDs belong to the bridge.
+
+    Empty when Matter isn't loaded or the server isn't connected yet.
+
+    Nothing from ``homeassistant.components.matter`` is imported: that would
+    make Matter a manifest dependency, and HA installs a dependency's Matter
+    client on every hub, failing our setup wherever that install fails. The
+    identifier format is persisted in every hub's device registry, so core
+    can't change it without a migration.
+    """
+    client = _matter_client(hass)
+    if client is None:
+        return {}
+    try:
+        server_info = client.server_info
+        nodes = client.get_nodes()
+        fabric_id = server_info.compressed_fabric_id if server_info else None
+    except AttributeError:
+        _LOGGER.debug("Matter client has an unexpected shape; roster matter IDs stay null")
+        return {}
+    if not isinstance(fabric_id, int):
+        return {}
+
+    ids: dict[str, RosterMatterIds] = {}
+    for node in nodes:
+        try:
+            info = node.device_info
+            node_id = node.node_id
+        except (KeyError, AttributeError):  # not interviewed yet: no endpoint 0
+            continue
+        vendor_id = getattr(info, "vendorID", None)
+        product_id = getattr(info, "productID", None)
+        if not all(isinstance(v, int) for v in (vendor_id, product_id, node_id)):
+            continue
+        # matter.helpers.get_device_id for a node's own (non-bridged) device.
+        identifier = f"deviceid_{fabric_id:016X}-{node_id:016X}-MatterNodeDevice"
+        ids[identifier] = {"vendor_id": vendor_id, "product_id": product_id}
+    return ids
+
+
+def _matter_client(hass: HomeAssistant) -> Any:
+    """Return the loaded Matter entry's server client, or None.
+
+    The adapter is the entry's ``runtime_data`` on current cores and lives in
+    ``hass.data["matter"][entry_id]`` on older ones.
+    """
+    legacy = hass.data.get(_MATTER_DOMAIN)
+    for entry in hass.config_entries.async_entries(_MATTER_DOMAIN):
+        if entry.state is not ConfigEntryState.LOADED:
+            continue
+        data = getattr(entry, "runtime_data", None)
+        if data is None and isinstance(legacy, Mapping):
+            data = legacy.get(entry.entry_id)
+        client = getattr(getattr(data, "adapter", None), "matter_client", None)
+        if client is not None:
+            return client
+    return None
+
+
+def _device_matter_ids(
+    identifiers: set[tuple[str, str]], matter_ids: dict[str, RosterMatterIds]
+) -> RosterMatterIds | None:
+    for domain, value in identifiers:
+        if domain == _MATTER_DOMAIN and value in matter_ids:
+            return matter_ids[value]
+    return None
 
 
 def build_home_roster(
@@ -314,6 +410,7 @@ def build_home_roster(
     # ── Devices ────────────────────────────────────────────────────────
     devices: list[RosterDevice] = []
     dev_count_by_entry: dict[str, int] = defaultdict(int)
+    matter_ids = _matter_ids_by_identifier(hass)
     for dev in device_entries(dev_reg):
         primary_entry = dev.primary_config_entry or next(iter(dev.config_entries), None)
         integration = entry_meta.get(primary_entry, ("", "", ""))[0] if primary_entry else ""
@@ -339,6 +436,10 @@ def build_home_roster(
                 "disabled_entities": disabled_by_device.get(dev.id, 0),
                 "url": _strip_url_credentials(dev.configuration_url or ""),
                 "transient": transient,
+                "serial_number": dev.serial_number or None,
+                "created_at": _registry_created_at(dev.created_at),
+                "matter": _device_matter_ids(dev.identifiers, matter_ids),
+                "connections": sorted([kind, value] for kind, value in dev.connections),
             }
         )
 

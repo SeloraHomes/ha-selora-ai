@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import UTC, datetime
 import json
+from types import SimpleNamespace
 
-import pytest
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.selora_ai.insights_roster import build_home_roster
@@ -677,3 +680,157 @@ async def test_roster_strips_credentials_from_device_url(hass: HomeAssistant) ->
     dev_row = next(d for d in roster["devices"] if d["id"] == device.id)
     assert dev_row["url"] == "http://192.168.1.1/"
     assert "secret" not in dev_row["url"]
+
+
+@pytest.mark.asyncio
+async def test_roster_device_hardware_identity(hass: HomeAssistant) -> None:
+    """Serial, registry creation time and connections ride on each device row."""
+    entry = MockConfigEntry(domain="shelly", entry_id="s1", title="Shelly")
+    entry.add_to_hass(hass)
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id="s1",
+        identifiers={("shelly", "plug-1")},
+        connections={
+            (dr.CONNECTION_NETWORK_MAC, "AA:BB:CC:DD:EE:FF"),
+            (dr.CONNECTION_BLUETOOTH, "11:22:33:44:55:66"),
+        },
+        name="Plug",
+        serial_number="SN-123",
+    )
+    bare = dev_reg.async_get_or_create(
+        config_entry_id="s1", identifiers={("shelly", "bare")}, name="Bare"
+    )
+
+    roster = build_home_roster(hass)
+    rows = {d["id"]: d for d in roster["devices"]}
+
+    row = rows[device.id]
+    assert row["serial_number"] == "SN-123"
+    assert row["created_at"] == device.created_at.isoformat()
+    assert datetime.fromisoformat(row["created_at"]).year > 1970
+    # Sorted [type, value] pairs, as HA normalized them (MAC lowercased).
+    assert row["connections"] == [
+        ["bluetooth", "11:22:33:44:55:66"],
+        ["mac", "aa:bb:cc:dd:ee:ff"],
+    ]
+    assert row["matter"] is None
+    json.dumps(row)  # JSON-ready, no tuples or datetimes
+
+    assert rows[bare.id]["serial_number"] is None
+    assert rows[bare.id]["connections"] == []
+
+
+def test_registry_created_at_epoch_is_unknown() -> None:
+    """HA back-filled pre-2024.8 devices with the epoch — that is "unknown", not 1970."""
+    from custom_components.selora_ai.insights_roster import _registry_created_at
+
+    assert _registry_created_at(datetime.fromtimestamp(0, UTC)) is None
+    stamp = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+    assert _registry_created_at(stamp) == "2026-03-01T12:00:00+00:00"
+
+
+_FABRIC = 0xABCD
+_NODE_DEVICE = f"deviceid_{_FABRIC:016X}-{1:016X}-MatterNodeDevice"
+
+
+def _matter_client(nodes: list[object], *, connected: bool = True) -> SimpleNamespace:
+    """A Matter server client as the Matter adapter holds it."""
+    server_info = SimpleNamespace(compressed_fabric_id=_FABRIC) if connected else None
+    return SimpleNamespace(server_info=server_info, get_nodes=lambda: nodes)
+
+
+def _adapter_data(client: SimpleNamespace) -> SimpleNamespace:
+    return SimpleNamespace(adapter=SimpleNamespace(matter_client=client))
+
+
+class _Node:
+    def __init__(self, node_id: int, info: object | None) -> None:
+        self.node_id = node_id
+        self._info = info
+
+    @property
+    def device_info(self) -> object:
+        if self._info is None:
+            raise KeyError(0)  # not interviewed: no endpoint 0
+        return self._info
+
+
+@pytest.fixture
+def matter_entry(hass: HomeAssistant) -> Iterator[MockConfigEntry]:
+    """A Matter entry that reads as loaded, set back so teardown doesn't unload it."""
+    entry = MockConfigEntry(
+        domain="matter", entry_id="m1", title="Matter", state=ConfigEntryState.LOADED
+    )
+    entry.add_to_hass(hass)
+    yield entry
+    entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
+
+
+def _matter_device(hass: HomeAssistant, identifier: str, name: str) -> dr.DeviceEntry:
+    return dr.async_get(hass).async_get_or_create(
+        config_entry_id="m1", identifiers={("matter", identifier)}, name=name
+    )
+
+
+@pytest.mark.asyncio
+async def test_roster_matter_vendor_and_product_id(
+    hass: HomeAssistant, matter_entry: MockConfigEntry
+) -> None:
+    """A commissioned node's device gets VID/PID; bridged children and others don't."""
+    matter_entry.runtime_data = _adapter_data(
+        _matter_client([_Node(1, SimpleNamespace(vendorID=4447, productID=8194)), _Node(2, None)])
+    )
+    node = _matter_device(hass, _NODE_DEVICE, "Plug")
+    bridged = _matter_device(hass, f"deviceid_{_FABRIC:016X}-{1:016X}-3", "Bridged lamp")
+    pending = _matter_device(
+        hass, f"deviceid_{_FABRIC:016X}-{2:016X}-MatterNodeDevice", "Not interviewed"
+    )
+
+    rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
+    assert rows[node.id]["matter"] == {"vendor_id": 4447, "product_id": 8194}
+    assert rows[bridged.id]["matter"] is None
+    assert rows[pending.id]["matter"] is None
+
+
+@pytest.mark.asyncio
+async def test_roster_matter_adapter_in_hass_data(
+    hass: HomeAssistant, matter_entry: MockConfigEntry
+) -> None:
+    """Older cores keep the Matter adapter in hass.data, not on the entry."""
+    client = _matter_client([_Node(1, SimpleNamespace(vendorID=1, productID=2))])
+    hass.data["matter"] = {"m1": _adapter_data(client)}
+    device = _matter_device(hass, _NODE_DEVICE, "Plug")
+
+    rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
+    assert rows[device.id]["matter"] == {"vendor_id": 1, "product_id": 2}
+
+
+@pytest.mark.asyncio
+async def test_roster_matter_null_without_server(
+    hass: HomeAssistant, matter_entry: MockConfigEntry
+) -> None:
+    """A Matter server that isn't connected yet leaves every device's matter null."""
+    matter_entry.runtime_data = _adapter_data(
+        _matter_client([_Node(1, SimpleNamespace(vendorID=1, productID=2))], connected=False)
+    )
+    device = _matter_device(hass, _NODE_DEVICE, "Plug")
+
+    rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
+    assert rows[device.id]["matter"] is None
+
+
+@pytest.mark.asyncio
+async def test_roster_matter_null_without_adapter(
+    hass: HomeAssistant, matter_entry: MockConfigEntry
+) -> None:
+    """A loaded entry with no adapter where we look must not break the roster."""
+    device = _matter_device(hass, _NODE_DEVICE, "Plug")
+
+    rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
+    assert rows[device.id]["matter"] is None
+
+    # Matter data of a shape we don't know is ignored, not dereferenced.
+    hass.data["matter"] = object()
+    rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
+    assert rows[device.id]["matter"] is None

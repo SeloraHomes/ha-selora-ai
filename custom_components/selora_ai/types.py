@@ -1095,6 +1095,18 @@ class RosterDevice(TypedDict):
     disabled_entities: int  # intentionally-off entities (neutral, not broken)
     url: str  # device configuration_url (e.g. add-on homepage), "" if none
     transient: bool  # BLE beacon / presence advert (out-of-range != broken)
+    # Hardware identity, so Connect can match a saved pairing code to the device.
+    serial_number: str | None
+    created_at: str | None  # ISO 8601 registry creation; None if never recorded
+    matter: RosterMatterIds | None  # only for a directly commissioned Matter node
+    connections: list[list[str]]  # [[type, value]], e.g. [["mac", "aa:bb:…"]]
+
+
+class RosterMatterIds(TypedDict):
+    """Vendor and product ID from a Matter node's Basic Information cluster."""
+
+    vendor_id: int
+    product_id: int
 
 
 class RosterApp(TypedDict):

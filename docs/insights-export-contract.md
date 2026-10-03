@@ -173,6 +173,20 @@ Additive within v2 (nullable/optional, no version bump):
   user's (a passing car's TPMS, a neighbour's tag). Consumers should exclude
   them from the "needs attention" tally and the default device view, keeping
   them behind a toggle. Absent on older producers → treat as `false`.
+- `roster.devices[].serial_number` / `created_at` / `matter` / `connections` —
+  hardware identity, so a pairing code saved before the device joined Home
+  Assistant can be matched to it exactly. All absent on older producers.
+  - `serial_number` — registry serial, `null` when the integration reports none.
+  - `created_at` — when HA registered the device (ISO 8601). `null` when never
+    recorded: devices older than HA 2024.8 were back-filled with the Unix
+    epoch, which is reported as `null`, not as 1970.
+  - `matter` — `{vendor_id, product_id}` (integers) from a directly
+    commissioned Matter node's Basic Information cluster; the pair an `MT:`
+    payload encodes. `null` for non-Matter devices, for devices bridged behind
+    a Matter bridge (the bridge's own device carries the IDs), and while the
+    Matter server is disconnected or the node is not interviewed.
+  - `connections` — registry `[type, value]` pairs, sorted, e.g.
+    `[["mac", "aa:bb:cc:dd:ee:ff"]]`; `[]` when none.
 
 `roster.devices[].unavailable_entities` counts only **enabled, visible**
 entities with no usable state — it excludes disabled and hidden entities.
