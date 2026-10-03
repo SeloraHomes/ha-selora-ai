@@ -130,3 +130,81 @@ async def test_a_backend_that_says_nothing_is_not_assumed_truncated(hass) -> Non
     await _drain(provider, _openai_sse(None))
     assert provider.last_finish_reason is None
     assert provider.last_response_truncated is False
+
+
+# ── A stream nobody ended ───────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider_name", ["openai", "selora_cloud"])
+async def test_a_stream_with_no_terminator_is_unterminated(hass, provider_name: str) -> None:
+    """No finish_reason and no [DONE]: something between us and the model
+    dropped the tail, and the text alone cannot say so."""
+    provider = create_provider(provider_name, hass, api_key="k", model="gpt-5.4")
+    body = 'data: {"choices": [{"delta": {"content": "Verify it, because"}}]}\n\n'
+    assert await _drain(provider, body) == "Verify it, because"
+    assert provider.last_stream_unterminated is True
+    assert provider.last_response_truncated is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("finish", ["stop", None], ids=["finish-reason", "done-only"])
+async def test_either_terminator_ends_a_stream_cleanly(hass, finish: str | None) -> None:
+    provider = create_provider("openai", hass, api_key="k", model="gpt-5.4")
+    await _drain(provider, _openai_sse(finish))
+    assert provider.last_stream_unterminated is False
+
+
+@pytest.mark.asyncio
+async def test_a_clean_stream_clears_an_earlier_cut(hass) -> None:
+    provider = create_provider("openai", hass, api_key="k", model="gpt-5.4")
+    await _drain(provider, 'data: {"choices": [{"delta": {"content": "x"}}]}\n\n')
+    await _drain(provider, _openai_sse("stop"))
+    assert provider.last_stream_unterminated is False
+
+
+# ── The parser applies the verdict to prose ─────────────────────────────────
+
+
+def _answer(text: str = "Verify the entity ID, because") -> dict[str, Any]:
+    return {"intent": "answer", "response": text}
+
+
+@pytest.mark.parametrize(
+    ("finish", "unterminated", "reason"),
+    [("length", False, "output_cap"), (None, True, "unreported"), ("stop", True, "unreported")],
+)
+def test_a_cut_answer_is_marked_and_keeps_its_text(
+    finish: str | None, unterminated: bool, reason: str
+) -> None:
+    from custom_components.selora_ai.llm_client.parsers import mark_cut_prose
+
+    result = mark_cut_prose(_answer(), finish_reason=finish, unterminated=unterminated)
+
+    assert result["validation_error"] == "truncated_response"
+    assert result["truncation_reason"] == reason
+    # What arrived is what the user would retry for — not replaced.
+    assert result["response"] == "Verify the entity ID, because"
+
+
+def test_a_clean_answer_is_left_alone() -> None:
+    from custom_components.selora_ai.llm_client.parsers import mark_cut_prose
+
+    result = mark_cut_prose(_answer(), finish_reason="stop", unterminated=False)
+    assert "validation_error" not in result
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        {"intent": "automation", "response": "Here it is", "automation": {"alias": "x"}},
+        {"intent": "command", "response": "Done", "calls": [{"service": "light.turn_on"}]},
+        {"intent": "answer", "response": "x", "validation_error": "truncated_response"},
+    ],
+    ids=["proposal", "command", "already-marked"],
+)
+def test_a_parsed_payload_is_not_marked(result: dict[str, Any]) -> None:
+    """The card is what the user acts on, and it parsed whole."""
+    from custom_components.selora_ai.llm_client.parsers import mark_cut_prose
+
+    assert mark_cut_prose(dict(result), finish_reason="length", unterminated=True) == result

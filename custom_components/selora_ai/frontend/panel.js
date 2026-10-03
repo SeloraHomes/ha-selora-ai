@@ -10484,6 +10484,7 @@ var en_default = {
     client_action_confirm_mixed: "Confirm all",
     client_action_delete_dashboard_unknown:
       "Delete the {title} dashboard \u2014 contents unknown",
+    client_action_create_helper: "Create the {name} helper ({domain})",
   },
   options: {
     step: {
@@ -11738,6 +11739,7 @@ var fr_default = {
     client_action_confirm_mixed: "Tout confirmer",
     client_action_delete_dashboard_unknown:
       "Supprimer le tableau de bord {title} \u2014 contenu inconnu",
+    client_action_create_helper: "Cr\xE9er l'assistant {name} ({domain})",
   },
   options: {
     step: {
@@ -12982,6 +12984,7 @@ var de_default = {
     client_action_confirm_mixed: "Alles best\xE4tigen",
     client_action_delete_dashboard_unknown:
       "Dashboard {title} l\xF6schen \u2014 Inhalt unbekannt",
+    client_action_create_helper: "Helfer {name} erstellen ({domain})",
   },
   options: {
     step: {
@@ -14208,6 +14211,7 @@ var es_default = {
     client_action_confirm_mixed: "Confirmar todo",
     client_action_delete_dashboard_unknown:
       "Eliminar el panel {title}: contenido desconocido",
+    client_action_create_helper: "Crear el ayudante {name} ({domain})",
   },
   options: {
     step: {
@@ -15433,6 +15437,7 @@ var it_default = {
     client_action_confirm_mixed: "Conferma tutto",
     client_action_delete_dashboard_unknown:
       "Elimina la dashboard {title} \u2014 contenuto sconosciuto",
+    client_action_create_helper: "Crea l'aiutante {name} ({domain})",
   },
   options: {
     step: {
@@ -16676,6 +16681,7 @@ var nl_default = {
     client_action_confirm_mixed: "Alles bevestigen",
     client_action_delete_dashboard_unknown:
       "Dashboard {title} verwijderen \u2014 inhoud onbekend",
+    client_action_create_helper: "Helper {name} aanmaken ({domain})",
   },
 };
 
@@ -17963,6 +17969,8 @@ var hu_default = {
     client_action_confirm_mixed: "\xD6sszes meger\u0151s\xEDt\xE9se",
     client_action_delete_dashboard_unknown:
       "A(z) {title} vez\xE9rl\u0151pult t\xF6rl\xE9se \u2013 ismeretlen tartalom",
+    client_action_create_helper:
+      "A(z) {name} seg\xE9d l\xE9trehoz\xE1sa ({domain})",
   },
 };
 
@@ -19182,6 +19190,7 @@ var pt_default = {
     client_action_confirm_mixed: "Confirmar tudo",
     client_action_delete_dashboard_unknown:
       "Eliminar o painel {title} \u2014 conte\xFAdo desconhecido",
+    client_action_create_helper: "Criar o auxiliar {name} ({domain})",
   },
   options: {
     step: {
@@ -20999,6 +21008,8 @@ var ru_default = {
       "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u044C \u0432\u0441\u0451",
     client_action_delete_dashboard_unknown:
       "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C {title} \u2014 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E",
+    client_action_create_helper:
+      "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0432\u0441\u043F\u043E\u043C\u043E\u0433\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u043E\u0431\u044A\u0435\u043A\u0442 {name} ({domain})",
   },
   options: {
     step: {
@@ -22505,6 +22516,8 @@ var ja_default = {
     client_action_confirm_mixed: "\u3059\u3079\u3066\u78BA\u8A8D",
     client_action_delete_dashboard_unknown:
       "{title} \u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092\u524A\u9664 \u2014 \u5185\u5BB9\u306F\u4E0D\u660E",
+    client_action_create_helper:
+      "\u30D8\u30EB\u30D1\u30FC {name} \u3092\u4F5C\u6210 ({domain})",
   },
   options: {
     step: {
@@ -23909,6 +23922,8 @@ var ko_default = {
     client_action_confirm_mixed: "\uBAA8\uB450 \uD655\uC778",
     client_action_delete_dashboard_unknown:
       "{title} \uB300\uC2DC\uBCF4\uB4DC \uC0AD\uC81C \u2014 \uB0B4\uC6A9 \uC54C \uC218 \uC5C6\uC74C",
+    client_action_create_helper:
+      "\uB3C4\uC6B0\uBBF8 {name} \uB9CC\uB4E4\uAE30 ({domain})",
   },
   options: {
     step: {
@@ -25238,6 +25253,8 @@ var zh_Hans_default = {
     client_action_confirm_mixed: "\u5168\u90E8\u786E\u8BA4",
     client_action_delete_dashboard_unknown:
       "\u5220\u9664 {title} \u4EEA\u8868\u677F\u2014\u2014\u5185\u5BB9\u672A\u77E5",
+    client_action_create_helper:
+      "\u521B\u5EFA\u8F85\u52A9\u5143\u7D20 {name}\uFF08{domain}\uFF09",
   },
   options: {
     step: {
@@ -26574,6 +26591,8 @@ var zh_Hant_default = {
     client_action_confirm_mixed: "\u5168\u90E8\u78BA\u8A8D",
     client_action_delete_dashboard_unknown:
       "\u522A\u9664 {title} \u5100\u8868\u677F\u2014\u2014\u5167\u5BB9\u672A\u77E5",
+    client_action_create_helper:
+      "\u5EFA\u7ACB\u8F14\u52A9\u5143\u7D20 {name}\uFF08{domain}\uFF09",
   },
   options: {
     step: {
@@ -27487,7 +27506,64 @@ function matchesProposal(existing, expected) {
     Boolean(existing.show_in_sidebar) === Boolean(expected.show_in_sidebar)
   );
 }
+var HELPER_FIELDS = {
+  input_boolean: ["name", "icon", "initial"],
+  input_button: ["name", "icon"],
+  input_select: ["name", "icon", "initial", "options"],
+  input_number: [
+    "name",
+    "icon",
+    "initial",
+    "min",
+    "max",
+    "step",
+    "mode",
+    "unit_of_measurement",
+  ],
+  input_text: [
+    "name",
+    "icon",
+    "initial",
+    "min",
+    "max",
+    "mode",
+    "pattern",
+    "unit_of_measurement",
+  ],
+  input_datetime: ["name", "icon", "initial", "has_date", "has_time"],
+  counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
+  timer: ["name", "icon", "duration", "restore"],
+};
 var HANDLERS = {
+  create_helper: async (hass, action) => {
+    const domain = String(action.domain || "");
+    const allowed = HELPER_FIELDS[domain];
+    if (!allowed) throw new Error(`Unsupported helper type: ${domain}`);
+    const fields = action.fields || {};
+    const payload = {};
+    for (const key of allowed) {
+      if (fields[key] !== void 0) payload[key] = fields[key];
+    }
+    const name = String(payload.name || "");
+    const existing = await hass.callWS({ type: `${domain}/list` });
+    const already = (existing || []).find((item) => item?.name === name);
+    if (already) {
+      const same = Object.keys(payload).every(
+        (key) => JSON.stringify(already[key]) === JSON.stringify(payload[key]),
+      );
+      if (!same) {
+        throw new Error(
+          `A different ${domain} called "${name}" already exists. Use it, or ask again with another name.`,
+        );
+      }
+      return { entity_id: `${domain}.${already.id}`, name };
+    }
+    const created = await hass.callWS({ type: `${domain}/create`, ...payload });
+    return {
+      entity_id: created?.id ? `${domain}.${created.id}` : "",
+      name: created?.name || name,
+    };
+  },
   delete_dashboard: async (hass, action) => {
     const urlPath = String(action.url_path || "");
     const dashboardId = String(action.dashboard_id || "");
@@ -28150,6 +28226,12 @@ function _actionLabel(host, action) {
       .replace("{views}", String(action.view_count))
       .replace("{cards}", String(action.card_count));
   }
+  if (action.kind === "create_helper") {
+    return host
+      ._t("client_action_create_helper", "Create the {name} helper ({domain})")
+      .replace("{name}", action.name || "")
+      .replace("{domain}", action.domain || "");
+  }
   if (action.kind === "create_dashboard") {
     return host
       ._t(
@@ -28164,6 +28246,7 @@ function _actionLabel(host, action) {
 var _CLIENT_ACTION_ICONS = {
   create_dashboard: "mdi:view-dashboard-outline",
   delete_dashboard: "mdi:view-dashboard-outline",
+  create_helper: "mdi:tune-variant",
 };
 function _renderClientActionRow(host, action) {
   return b2`
@@ -50787,7 +50870,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "e1740b98a578" : "";
+var PANEL_BUILD = true ? "1b149ddc146d" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -51537,6 +51620,10 @@ async function _sendMessage(options = {}) {
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         if (this._activeTurn === myTurn) this._loading = false;
+      } else if (event.type === "reset") {
+        lastActivityAt = Date.now();
+        assistantMsg.content = "";
+        this._messages = [...this._messages];
       } else if (event.type === "heartbeat") {
         lastActivityAt = Date.now();
       } else if (event.type === "step" && event.step && event.step.id) {

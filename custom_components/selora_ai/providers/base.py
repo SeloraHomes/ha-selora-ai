@@ -222,6 +222,7 @@ class LLMProvider(ABC):
         self._api_key = api_key
         self._usage_callback: UsageCallback | None = None
         self._last_finish_reason: str | None = None
+        self._last_stream_terminated: bool = True
 
     # -- Stream completion ------------------------------------------------
 
@@ -246,6 +247,30 @@ class LLMProvider(ABC):
         budget before the answer starts.
         """
         return (self._last_finish_reason or "").casefold() in _TRUNCATION_FINISH_REASONS
+
+    @property
+    def last_stream_unterminated(self) -> bool:
+        """True when the last stream closed without the backend ending it.
+
+        An OpenAI-compatible stream always ends with a ``finish_reason`` and
+        a ``[DONE]``; one that closes with neither was cut by something in
+        between — a gateway or relay dropping the tail. The connection closes
+        cleanly, so like the output cap this is invisible in the text, and a
+        reply cut mid-sentence would otherwise be presented as finished.
+        Providers that do not track it report False, the old behaviour.
+        """
+        return not self._last_stream_terminated
+
+    def reset_stream_state(self) -> None:
+        """Forget how the previous stream ended, at the start of a turn.
+
+        The provider outlives the turn, and both answers are refreshed only
+        when a stream is consumed. A turn answered WITHOUT one — a canned
+        greeting, a refusal — would otherwise inherit the last turn's verdict
+        and be reported as cut off.
+        """
+        self._last_finish_reason = None
+        self._last_stream_terminated = True
 
     def _note_finish_reason(self, reason: str | None) -> None:
         """Record the finish reason of the stream being consumed.

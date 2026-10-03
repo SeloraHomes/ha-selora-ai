@@ -513,6 +513,12 @@ function _actionLabel(host, action) {
       .replace("{views}", String(action.view_count))
       .replace("{cards}", String(action.card_count));
   }
+  if (action.kind === "create_helper") {
+    return host
+      ._t("client_action_create_helper", "Create the {name} helper ({domain})")
+      .replace("{name}", action.name || "")
+      .replace("{domain}", action.domain || "");
+  }
   if (action.kind === "create_dashboard") {
     // `_t` does not interpolate, so the placeholders are filled here — the
     // same shape localizePlural uses for {count}.
@@ -530,6 +536,7 @@ function _actionLabel(host, action) {
 const _CLIENT_ACTION_ICONS = {
   create_dashboard: "mdi:view-dashboard-outline",
   delete_dashboard: "mdi:view-dashboard-outline",
+  create_helper: "mdi:tune-variant",
 };
 
 /** One proposed client action, in the shared card's row shape. */

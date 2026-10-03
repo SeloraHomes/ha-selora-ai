@@ -167,6 +167,7 @@ from .const import (
     STREAM_IDLE_TIMEOUT_S,
     STREAM_KEEPALIVE,
     STREAM_MAX_BYTES,
+    STREAM_RESET,
     TELEMETRY_SNAPSHOT_INTERVAL_HOURS,
     TELEMETRY_SNAPSHOT_STARTUP_DELAY,
 )
@@ -383,6 +384,12 @@ async def _consume_stream_with_guards(
             except StopAsyncIteration:
                 return
             if chunk == STREAM_KEEPALIVE:
+                yield chunk
+                continue
+            if chunk == STREAM_RESET:
+                # The text so far was discarded, so it no longer counts
+                # against the size ceiling.
+                accum = 0
                 yield chunk
                 continue
             accum += len(chunk.encode("utf-8"))
@@ -3638,6 +3645,23 @@ async def _handle_websocket_chat_stream(
                     websocket_api.event_message(msg["id"], {"type": "heartbeat"}),
                 ):
                     # Client gone — stop pumping the LLM into a dead socket.
+                    return
+                continue
+            if chunk == STREAM_RESET:
+                # The answer ran past the prose budget and is being rewritten
+                # (`_stream_request_with_tools`). Drop what was streamed, here
+                # and in the bubble — `done` replaces the bubble's text too,
+                # but until it arrives the user would watch the rewrite append
+                # to the very text it replaces.
+                full_text = ""
+                # The send cursor indexes `full_text`; left at the discarded
+                # answer's length it skips the whole (shorter) rewrite, and the
+                # bubble sits blank until `done`.
+                sent_chars = 0
+                if not _safe_send_message(
+                    connection,
+                    websocket_api.event_message(msg["id"], {"type": "reset"}),
+                ):
                     return
                 continue
             if is_step_chunk(chunk):

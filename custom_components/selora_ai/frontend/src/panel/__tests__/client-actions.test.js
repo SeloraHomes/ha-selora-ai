@@ -893,3 +893,89 @@ describe("an id can be reused, so the metadata is checked too", () => {
     expect(deleted(hass)).toBe(true);
   });
 });
+
+describe("runClientAction create_helper", () => {
+  const helperHass = (existing, created) => ({
+    callWS: vi.fn(async (payload) =>
+      payload.type.endsWith("/list") ? existing : created,
+    ),
+  });
+
+  it("builds <domain>/create from the allowlisted fields only", async () => {
+    const hass = helperHass([], { id: "alarm_mode", name: "Alarm mode" });
+
+    const result = await runClientAction(hass, {
+      kind: "create_helper",
+      domain: "input_select",
+      name: "Alarm mode",
+      fields: {
+        name: "Alarm mode",
+        options: ["disarmed", "armed_home", "armed_away"],
+        // Not an input_select field — must not ride along.
+        user_id: "someone",
+        type: "config/auth/create",
+      },
+    });
+
+    expect(hass.callWS).toHaveBeenCalledWith({
+      type: "input_select/create",
+      name: "Alarm mode",
+      options: ["disarmed", "armed_home", "armed_away"],
+    });
+    expect(result).toEqual({
+      ok: true,
+      kind: "create_helper",
+      detail: { entity_id: "input_select.alarm_mode", name: "Alarm mode" },
+    });
+  });
+
+  it("refuses a helper type it does not allowlist", async () => {
+    const hass = helperHass([], {});
+
+    const result = await runClientAction(hass, {
+      kind: "create_helper",
+      domain: "config/auth",
+      fields: { name: "x" },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(hass.callWS).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a retry of its own create instead of making a second", async () => {
+    const hass = helperHass(
+      [{ id: "guest_mode", name: "Guest mode", icon: "mdi:account" }],
+      {},
+    );
+
+    const result = await runClientAction(hass, {
+      kind: "create_helper",
+      domain: "input_boolean",
+      name: "Guest mode",
+      fields: { name: "Guest mode", icon: "mdi:account" },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.detail.entity_id).toBe("input_boolean.guest_mode");
+    expect(
+      hass.callWS.mock.calls.some((c) => c[0].type === "input_boolean/create"),
+    ).toBe(false);
+  });
+
+  it("refuses a different helper already holding the name", async () => {
+    const hass = helperHass(
+      [{ id: "alarm_mode", name: "Alarm mode", options: ["on", "off"] }],
+      {},
+    );
+
+    const result = await runClientAction(hass, {
+      kind: "create_helper",
+      domain: "input_select",
+      name: "Alarm mode",
+      fields: { name: "Alarm mode", options: ["disarmed", "armed_away"] },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.detail).toContain("already exists");
+  });
+});

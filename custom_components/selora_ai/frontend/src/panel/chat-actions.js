@@ -489,6 +489,12 @@ export async function _sendMessage(options = {}) {
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         if (this._activeTurn === myTurn) this._loading = false;
+      } else if (event.type === "reset") {
+        // The server abandoned an over-long answer and is streaming a short
+        // replacement; what was shown so far is not part of it.
+        lastActivityAt = Date.now();
+        assistantMsg.content = "";
+        this._messages = [...this._messages];
       } else if (event.type === "heartbeat") {
         // Server is alive but has nothing to forward yet (slow first
         // token, or JSON output being suppressed by the backend). Bump

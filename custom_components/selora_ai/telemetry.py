@@ -102,6 +102,7 @@ REPAIR_TYPES: frozenset[str] = frozenset(
         "entity_id_in_description",
         "night_window_merge",
         "truncated_response",
+        "prose_budget_condense",
     }
 )
 

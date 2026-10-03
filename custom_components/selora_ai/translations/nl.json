@@ -1028,6 +1028,7 @@
     "client_action_delete": "Verwijderen",
     "client_action_delete_dashboard": "Dashboard {title} verwijderen — {views} weergaven, {cards} kaarten",
     "client_action_confirm_mixed": "Alles bevestigen",
-    "client_action_delete_dashboard_unknown": "Dashboard {title} verwijderen — inhoud onbekend"
+    "client_action_delete_dashboard_unknown": "Dashboard {title} verwijderen — inhoud onbekend",
+    "client_action_create_helper": "Helper {name} aanmaken ({domain})"
   }
 }

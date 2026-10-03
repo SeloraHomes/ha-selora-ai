@@ -439,6 +439,7 @@ class OpenAICompatibleProvider(LLMProvider):
         tc_accum: dict[int, dict[str, str]] = {}
         stream_usage: LLMUsageInfo = {}
         self._note_finish_reason(None)
+        terminated = False
 
         buffer = ""
         async for raw_chunk in resp.content.iter_any():
@@ -450,6 +451,7 @@ class OpenAICompatibleProvider(LLMProvider):
                     continue
                 raw = line[6:]
                 if raw.strip() == "[DONE]":
+                    terminated = True
                     continue
                 try:
                     event = json.loads(raw)
@@ -472,6 +474,7 @@ class OpenAICompatibleProvider(LLMProvider):
                 finish = choices[0].get("finish_reason")
                 if finish:
                     self._note_finish_reason(finish)
+                    terminated = True
                 delta = choices[0].get("delta", {})
 
                 content = delta.get("content")
@@ -493,6 +496,8 @@ class OpenAICompatibleProvider(LLMProvider):
                         tc_accum[idx]["name"] = fn["name"]
                     if fn.get("arguments"):
                         tc_accum[idx]["arguments"] += fn["arguments"]
+
+        self._last_stream_terminated = terminated
 
         # Finalize accumulated tool calls
         for _idx, tc_data in sorted(tc_accum.items()):

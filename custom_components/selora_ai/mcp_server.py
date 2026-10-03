@@ -363,6 +363,7 @@ TOOL_CREATE_LABEL = "selora_create_label"
 TOOL_ASSIGN_LABELS = "selora_assign_labels"
 TOOL_DELETE_LABEL = "selora_delete_label"
 TOOL_LIST_HELPERS = "selora_list_helpers"
+TOOL_CREATE_HELPER = "selora_create_helper"
 TOOL_GET_LOGS = "selora_get_logs"
 TOOL_GET_AUTOMATION_TRACES = "selora_get_automation_traces"
 TOOL_LIST_BLUEPRINTS = "selora_list_blueprints"
@@ -393,6 +394,7 @@ TOOL_GROUP_DASHBOARD_CARDS = "selora_group_dashboard_cards"
 # read-only credential.
 _ADMIN_TOOLS = frozenset(
     {
+        TOOL_CREATE_HELPER,
         TOOL_CREATE_AUTOMATION,
         TOOL_ACCEPT_AUTOMATION,
         TOOL_DELETE_AUTOMATION,
@@ -1052,6 +1054,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_ASSIGN_LABELS: _tool_assign_labels,
         TOOL_DELETE_LABEL: _tool_delete_label,
         TOOL_LIST_HELPERS: _tool_list_helpers,
+        TOOL_CREATE_HELPER: _tool_create_helper,
         TOOL_GET_LOGS: _tool_get_logs,
         TOOL_GET_AUTOMATION_TRACES: _tool_get_automation_traces,
         TOOL_LIST_BLUEPRINTS: _tool_list_blueprints,
@@ -5426,6 +5429,34 @@ async def _tool_list_helpers(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     return await helper_overview(hass, _opt_str(arguments.get("domain")))
 
 
+async def _tool_create_helper(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create a config-entry helper through its own setup flow.
+
+    The storage-helper half of the chat tool is not here: it hands the panel a
+    Create button, and MCP has no panel to show one.
+    """
+    from .helper_flow import async_create_flow_helper  # noqa: PLC0415
+    from .helper_manager import CREATABLE_HELPER_DOMAINS  # noqa: PLC0415
+    from .tool_executor import _opt_str  # noqa: PLC0415
+
+    domain = str(arguments.get("domain", "")).strip().lower()
+    if domain in CREATABLE_HELPER_DOMAINS:
+        return {
+            "error": (
+                f"A {domain} helper is created from the Selora panel or in Home "
+                "Assistant under Settings → Devices & services → Helpers; it cannot "
+                "be created over MCP."
+            )
+        }
+    fields = arguments.get("fields")
+    return await async_create_flow_helper(
+        hass,
+        domain,
+        _opt_str(arguments.get("type")),
+        fields if isinstance(fields, dict) and fields else None,
+    )
+
+
 async def _tool_get_logs(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Recent deduplicated errors and warnings."""
     from .diagnostics_tools import get_logs  # noqa: PLC0415
@@ -6669,6 +6700,21 @@ _TOOL_DEFINITIONS.extend(
     _mcp_tool_from_chat_tool(mcp_name, chat_name)
     for mcp_name, chat_name in _DERIVED_MCP_TOOLS.items()
 )
+
+
+def _create_helper_definition() -> MCPTool:
+    """The setup-flow half of ``create_helper`` — see ``TOOL_CREATE_FLOW_HELPER``."""
+    from .tool_registry import TOOL_CREATE_FLOW_HELPER  # noqa: PLC0415
+
+    definition = TOOL_CREATE_FLOW_HELPER.to_anthropic()
+    return MCPTool(
+        name=TOOL_CREATE_HELPER,
+        description=f"{definition['description']} Requires admin access.",
+        inputSchema=definition["input_schema"],
+    )
+
+
+_TOOL_DEFINITIONS.append(_create_helper_definition())
 
 
 def _dashboard_write_tools() -> frozenset[str]:

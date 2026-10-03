@@ -1008,7 +1008,8 @@
     "client_action_delete": "删除",
     "client_action_delete_dashboard": "删除 {title} 仪表板——{views} 个视图，{cards} 张卡片",
     "client_action_confirm_mixed": "全部确认",
-    "client_action_delete_dashboard_unknown": "删除 {title} 仪表板——内容未知"
+    "client_action_delete_dashboard_unknown": "删除 {title} 仪表板——内容未知",
+    "client_action_create_helper": "创建辅助元素 {name}（{domain}）"
   },
   "options": {
     "step": {
