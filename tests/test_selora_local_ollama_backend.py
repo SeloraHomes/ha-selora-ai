@@ -249,6 +249,28 @@ def test_the_llama_backend_still_names_the_intent() -> None:
     assert payload_for(make(SELORA_LOCAL_BACKEND_LLAMA))[0] == "command"
 
 
+# ── thinking off, in each runtime's own vocabulary ───────────────────────────
+
+
+def _full_payload(provider: SeloraLocalProvider) -> dict[str, Any]:
+    payload_for(provider)
+    return provider.build_payload("CALLER FALLBACK", [{"role": "user", "content": "x"}])
+
+
+def test_the_ollama_backend_turns_thinking_off_through_reasoning_effort() -> None:
+    """Ollama ignores ``chat_template_kwargs``, so ``enable_thinking`` alone
+    leaves a build whose template defaults to thinking thinking on every turn."""
+    assert _full_payload(make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED))["reasoning_effort"] == "none"
+
+
+def test_the_llama_backend_keeps_the_chat_template_switch_only() -> None:
+    """llama-server reads ``enable_thinking``; it is not handed an OpenAI
+    reasoning knob it was never asked to honour."""
+    payload = _full_payload(make(SELORA_LOCAL_BACKEND_LLAMA))
+    assert payload["chat_template_kwargs"]["enable_thinking"] is False
+    assert "reasoning_effort" not in payload
+
+
 # ── which system prompt each backend sends ───────────────────────────────────
 
 

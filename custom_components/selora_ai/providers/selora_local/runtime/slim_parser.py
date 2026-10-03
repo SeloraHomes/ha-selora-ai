@@ -74,6 +74,32 @@ def _selora_local_decode_json_partial(raw: str) -> str:
     return "".join(out)
 
 
+# A fenced YAML block whose top level declares ``blueprint:``. The automation
+# specialist's trained prompt asks for exactly this when the user wants a
+# reusable, parameterised automation: the whole reply is one ```yaml block,
+# inline comments allowed.
+_SELORA_LOCAL_BLUEPRINT_RE = re.compile(
+    r"```ya?ml[ \t]*\n(?:(?!```)[\s\S])*?^blueprint:[ \t]*(?:#.*)?$[\s\S]*?\n```",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def selora_local_blueprint_reply(text: str) -> str | None:
+    """Return ``text`` stripped when it carries a fenced automation blueprint, else ``None``.
+
+    A blueprint is a template with ``!input`` references, not an automation:
+    nothing here can save one, so it is shown to the user as the code block
+    the model wrote. It has to be recognised before any JSON is looked for,
+    because blueprint YAML routinely holds what reads as JSON — ``data: {}``,
+    a flow mapping, a ``{{ trigger.entity_id }}`` template — and the JSON crop
+    then takes a fragment of it for the envelope or strips the fence.
+    """
+    stripped = text.strip()
+    if _SELORA_LOCAL_BLUEPRINT_RE.search(stripped):
+        return stripped
+    return None
+
+
 # Sentinel for "candidates existed but none parsed", kept distinct from the ``None``
 # ``loads_first_json_object`` returns for "the model wrote no object at all". The two
 # route to different salvage and collapsing them loses that split.
@@ -117,6 +143,13 @@ class _SlimParserMixin:
         # the model through it. A control responder declining every turn still
         # took 76.7% of assist-mini, failing only on ``lock`` and ``valve``, the
         # two domains with no handler in ``../commands/``.
+        # A blueprint is read before the overrides: they build a CONCRETE
+        # automation from the sentence, and the model only writes a blueprint
+        # when one was asked for, so the override would answer the wrong
+        # question.
+        blueprint = selora_local_blueprint_reply(text)
+        if blueprint is not None:
+            return json.dumps({"intent": "answer", "response": blueprint})
         if overrides_enabled:
             for _override_fn in (
                 self._maybe_calendar_question_envelope,  # inventory / count question

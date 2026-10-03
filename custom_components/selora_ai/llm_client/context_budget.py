@@ -51,11 +51,10 @@ if TYPE_CHECKING:
 # which leaves the budget on the safe side of the window.
 #
 # Calibration anchor: ``local_model/prompts/automation_system_prompt.txt``
-# is 10,352 characters, and the comment at ``selora_local._SELORA_LOCAL_MAX_
-# ENTITY_LINES_AUTOMATION`` describes that prompt as "~2500 tokens".
-# 10352 / 3.5 = 2958, i.e. this estimate runs ~18% conservative against a
+# is 2,703 characters once stripped and 659 tokens on the Qwen3 tokenizer.
+# 2703 / 3.5 = 773, i.e. this estimate runs ~17% conservative against a
 # real tokenizer — the intended direction. A tokenizer dependency would buy
-# that 18% back and is not worth the install weight.
+# that 17% back and is not worth the install weight.
 _CHARS_PER_TOKEN = 3.5
 
 # One line costs its text plus the newline that separates it from the next.
