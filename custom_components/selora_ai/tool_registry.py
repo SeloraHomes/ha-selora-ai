@@ -323,7 +323,11 @@ TOOL_EXECUTE_COMMAND = ToolDef(
         "validate_action before invoking hass.services. Returns post-execution "
         "state. Prefer this over emitting JSON command intents when you have a "
         "known entity_id. Include the 'data' object for parameterized commands "
-        "(brightness, temperature, volume, position, etc.)."
+        "(brightness, temperature, volume, position, etc.). A scene is "
+        "activated with 'scene.turn_on' on its entity_id. To CREATE a scene there "
+        "is deliberately no tool: emit the scene JSON block (intent 'scene') and "
+        "the user gets a card to accept it — never tell the user scene creation "
+        "is unavailable."
     ),
     params=(
         ToolParam(
@@ -350,27 +354,6 @@ TOOL_EXECUTE_COMMAND = ToolDef(
                 "{'position': 30} for cover.set_cover_position. "
                 "Omit when no parameters are needed (e.g. plain turn_on/turn_off)."
             ),
-        ),
-    ),
-    requires_admin=True,
-)
-
-TOOL_ACTIVATE_SCENE = ToolDef(
-    name="activate_scene",
-    description=(
-        "Activate a Home Assistant scene by entity_id (e.g. 'scene.movie_night'). "
-        "Calls scene.turn_on. Use this when the user names a scene rather than "
-        "individual devices. To CREATE a scene there is deliberately no tool: "
-        "emit the scene JSON block (intent 'scene') and the user gets a card to "
-        "accept it. Not finding a create-scene tool does not mean you cannot "
-        "make one — never tell the user scene creation is unavailable."
-    ),
-    params=(
-        ToolParam(
-            name="entity_id",
-            type="string",
-            description="Scene entity_id (must start with 'scene.').",
-            required=True,
         ),
     ),
     requires_admin=True,
@@ -2205,7 +2188,6 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_VALIDATE_ACTION,
     TOOL_EXECUTE_COMMAND,
-    TOOL_ACTIVATE_SCENE,
     TOOL_LIST_DASHBOARDS,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_SEARCH_ENTITIES,
@@ -2280,7 +2262,6 @@ TOOL_MAP: dict[str, ToolDef] = {t.name: t for t in CHAT_TOOLS}
 COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
     {
         "execute_command",
-        "activate_scene",
         "find_entities_by_area",
         "search_entities",
         "get_entity_state",

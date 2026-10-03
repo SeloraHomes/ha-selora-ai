@@ -1907,10 +1907,9 @@ def test_large_context_only_tools_are_marked() -> None:
 
 
 def test_universal_tools_are_not_gated() -> None:
-    """execute_command and activate_scene must be available to all providers."""
+    """execute_command must be available to all providers."""
     by_name = {t.name: t for t in CHAT_TOOLS}
     assert by_name["execute_command"].large_context_only is False
-    assert by_name["activate_scene"].large_context_only is False
     assert by_name["get_entity_state"].large_context_only is False
     assert by_name["validate_action"].large_context_only is False
 
@@ -1923,7 +1922,6 @@ def test_provider_filter_drops_large_only_for_low_context() -> None:
     assert "get_entity_history" not in names
     assert "eval_template" not in names
     assert "execute_command" in names
-    assert "activate_scene" in names
 
 
 # ── data parameter exposed on chat-facing schema ────────────────────────────

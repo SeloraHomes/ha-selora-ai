@@ -1066,7 +1066,7 @@ def test_chat_has_no_create_scene_tool_on_purpose() -> None:
 
     chat = {t.name for t in CHAT_TOOLS}
     assert "create_scene" not in chat
-    assert {"activate_scene", "delete_scene"} <= chat
+    assert "delete_scene" in chat
     assert "selora_create_scene" in {t.name for t in mcp_server._TOOL_DEFINITIONS}
 
 
@@ -1077,7 +1077,16 @@ def test_the_scene_tools_name_the_route_that_does_create_one() -> None:
     list for "scene" finds these two, so the answer belongs in them."""
     from custom_components.selora_ai.tool_registry import TOOL_MAP
 
-    for tool in ("activate_scene", "delete_scene"):
+    for tool in ("execute_command", "delete_scene"):
         description = TOOL_MAP[tool].description
         assert "no tool" in description
         assert "intent 'scene'" in description
+
+
+def test_scenes_are_activated_through_execute_command() -> None:
+    """A dedicated activate_scene chat tool was scene.turn_on under a second
+    name; execute_command's allowlist already carries it."""
+    from custom_components.selora_ai.tool_registry import TOOL_MAP
+
+    assert "activate_scene" not in TOOL_MAP
+    assert "scene.turn_on" in TOOL_MAP["execute_command"].description
