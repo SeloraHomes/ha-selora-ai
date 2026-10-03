@@ -102,3 +102,21 @@ from the sidebar) would otherwise take the create path and write a duplicate.
   `{# … #}` as its own alternative and passes it through, since the id inside
   `states('sensor.temperature')` resolves like prose would. Each opener also
   matches to end-of-string, so an unterminated template shields what follows.
+
+## A rejected proposal is corrected, not guessed at
+
+- **A model that gets a correction round is told what was wrong, with the real
+  options.** `_retry_invalid_automation` feeds every validation rejection back
+  through `build_service_feedback` — a non-existent service gets the
+  integration's real services, an unknown entity the closest real entities
+  (`_unknown_entity_feedback`), or the fact that the home has none of that kind,
+  with the instruction to create it first or ask rather than substitute. An
+  unknown entity used to stop the loop and go straight to a list of every
+  device; now the list is only what the user sees if every round fails.
+- **The prompt-aware repairs in `parsers` run for the low-context model only**
+  (`LLMClient.guesses_repairs`). Swapping an unknown entity for any entity
+  sharing a word with the prompt, or rebuilding a trigger from "for 10 minutes"
+  / "at sunset" / "below 18", covers the phrasings someone coded for and can
+  aim an automation at the wrong device. They were written for Selora AI Local,
+  which gets no correction round (`_automation_retry_budget`), and stay there
+  until the Allen benchmark shows the local model does as well without them.

@@ -2991,10 +2991,6 @@ async def _retry_invalid_automation(
         attempt < budget
         and parsed.get("validation_target") == "automation"
         and parsed.get("validation_error")
-        # Stop (don't retry) once a round comes back as an "unknown entity_id"
-        # clarification — the user must pick the entity; correcting service
-        # ground truth can't resolve it. Surface the clarification instead.
-        and parsed.get("intent") != "clarification"
     ):
         rejected = parsed.get("rejected_automation")
         if not isinstance(rejected, dict):
@@ -3006,7 +3002,8 @@ async def _retry_invalid_automation(
             "was NOT created. Here is the automation you proposed:\n\n"
             f"```json\n{json.dumps(rejected, indent=2, default=str)}\n```\n\n"
             f"{feedback}\n\n"
-            "Resubmit the corrected automation now."
+            "Resubmit the corrected automation now — unless the feedback above "
+            "tells you to ask the user instead."
         )
         _LOGGER.info(
             "Automation validation failed (%s); correction round %d/%d.",
@@ -3019,7 +3016,7 @@ async def _retry_invalid_automation(
                 make_step(
                     f"correct-{attempt}",
                     "correct",
-                    "Fixed an invalid service and retried",
+                    "Corrected it against your Home Assistant",
                     status="done",
                     detail=str(parsed["validation_error"]),
                 )
@@ -3807,18 +3804,12 @@ async def _handle_websocket_chat_stream(
         # outright or hand-coding a rewrite per bad service. No-op unless the
         # parse came back as an automation with a validation_error.
         #
-        # Skip a clarification: an "unknown entity_id" rejection sets
-        # validation_target/validation_error too, but the parser marks it
-        # intent="clarification" because the user should disambiguate the
-        # entity, not have the model guess a different one. build_service_feedback
-        # targets service/read-only-domain failures; running it here would burn
-        # correction rounds and could replace the clarification with a proposal
-        # for the wrong entity. Surface the clarification immediately instead.
-        if (
-            parsed.get("validation_target") == "automation"
-            and parsed.get("validation_error")
-            and parsed.get("intent") != "clarification"
-        ):
+        # An "unknown entity_id" rejection is corrected too, not surfaced
+        # straight away: build_service_feedback names the real entities closest
+        # to the one the model made up — or says none exists — and tells it to
+        # ask the user rather than substitute an unrelated one. If every round
+        # still fails, the clarification is what the user sees.
+        if parsed.get("validation_target") == "automation" and parsed.get("validation_error"):
             _emit_step(
                 make_step(
                     "validate",
