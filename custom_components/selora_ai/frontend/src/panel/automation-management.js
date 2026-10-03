@@ -353,10 +353,38 @@ export async function _openVersionHistory(automationId) {
     ...this._versionHistoryOpen,
     [automationId]: !isOpen,
   };
-  if (!isOpen && !this._versions[automationId]) {
-    await this._loadVersionHistory(automationId);
-  }
+  // Fetched on every open, not once per page: a version's summary is written
+  // in the background seconds after the save, so a history cached at accept
+  // time is missing the sentence the next open should show.
+  if (!isOpen) await this._loadVersionHistory(automationId);
   this.requestUpdate();
+}
+
+// After the automations list is re-read, drop every cached history whose
+// newest version is no longer the automation's current one, and refetch the
+// histories on screen. Every write path — accepting a chat refinement, the
+// YAML editor, a restore — ends in a list reload, so asking here covers them
+// all instead of each remembering to invalidate.
+export function _refreshStaleVersionHistories() {
+  const cached = this._versions || {};
+  let dropped = false;
+  const next = { ...cached };
+  for (const a of this._automations || []) {
+    const id = a.automation_id;
+    const versions = id ? cached[id] : null;
+    if (!versions || !a.current_version_id) continue;
+    if (versions[0]?.version_id === a.current_version_id) continue;
+    const onScreen =
+      this._cardActiveTab?.[a.entity_id] === "history" ||
+      this._versionHistoryOpen?.[id];
+    if (onScreen) {
+      this._loadVersionHistory(id);
+    } else {
+      next[id] = null;
+      dropped = true;
+    }
+  }
+  if (dropped) this._versions = next;
 }
 
 export async function _loadVersionHistory(automationId) {

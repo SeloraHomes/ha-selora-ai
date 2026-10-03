@@ -41,8 +41,10 @@ import uuid
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
+from .automation_changes import CHANGES_FORMAT, compute_version_changes
 from .const import AUTOMATION_STORE_KEY, MAX_VERSIONS_PER_AUTOMATION
 from .telemetry import record_activity
+from .version_summaries import schedule_version_summary
 
 if TYPE_CHECKING:
     from .types import (
@@ -56,6 +58,26 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _STORE_VERSION = 1
+
+
+def _backfill_changes(data: AutomationStoreData) -> bool:
+    """Fill in ``changes`` where it is missing or from an older comparison.
+
+    Runs once per version per ``CHANGES_FORMAT``: the result is saved with
+    the format it was computed under. The oldest kept version gets None, since
+    its predecessor may have been evicted. Returns whether anything changed.
+    """
+    filled = False
+    for record in data.get("records", {}).values():
+        versions = record.get("versions", [])
+        for i, version in enumerate(versions):
+            if version.get("changes_format") == CHANGES_FORMAT:
+                continue
+            before = versions[i - 1].get("data") if i else None
+            version["changes"] = compute_version_changes(before, version.get("data") or {})
+            version["changes_format"] = CHANGES_FORMAT
+            filled = True
+    return filled
 
 
 class AutomationStore:
@@ -80,6 +102,8 @@ class AutomationStore:
                 for record in self._data.get("records", {}).values():
                     if "lineage" not in record:
                         record["lineage"] = []
+                if _backfill_changes(self._data):
+                    await self._store.async_save(self._data)
             else:
                 self._data = {"records": {}, "session_index": {}}
             # Migrate: drop the abandoned "drafts" bucket. Draft rows were
@@ -119,6 +143,9 @@ class AutomationStore:
         data_store = await self._get_loaded_data()
         version_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
+        records: dict[str, AutomationRecord] = data_store["records"]
+        is_new: bool = automation_id not in records
+        previous = records[automation_id]["versions"] if not is_new else []
         version: AutomationVersion = {
             "version_id": version_id,
             "automation_id": automation_id,
@@ -127,9 +154,11 @@ class AutomationStore:
             "data": data,
             "message": message,
             "session_id": session_id,
+            "changes": compute_version_changes(
+                previous[-1].get("data") if previous else None, data
+            ),
+            "changes_format": CHANGES_FORMAT,
         }
-        records: dict[str, AutomationRecord] = data_store["records"]
-        is_new: bool = automation_id not in records
         if is_new:
             records[automation_id] = {
                 "automation_id": automation_id,
@@ -182,6 +211,10 @@ class AutomationStore:
         elif resolved_action in ("refined", "updated"):
             record_activity(self._hass, "automations_refined")
 
+        # The written summary is an LLM call, so it is fired off rather than
+        # awaited: the save has already landed and must not wait on it.
+        schedule_version_summary(self._hass, self, automation_id, version_id)
+
         return version_id
 
     async def get_record(self, automation_id: str) -> AutomationRecord | None:
@@ -214,6 +247,26 @@ class AutomationStore:
             tofile=f"version:{version_id_b[:8]}",
         )
         return "".join(diff)
+
+    async def async_set_version_summary(
+        self,
+        automation_id: str,
+        version_id: str,
+        summary: str,
+        language: str,
+    ) -> bool:
+        """Store the written summary of one version. False if it is gone."""
+        record = await self.get_record(automation_id)
+        version = next(
+            (v for v in (record or {}).get("versions", []) if v["version_id"] == version_id),
+            None,
+        )
+        if version is None:
+            return False
+        version["summary"] = summary
+        version["summary_language"] = language
+        await self._store.async_save(await self._get_loaded_data())
+        return True
 
     # ── Lifecycle ────────────────────────────────────────────────────────
 

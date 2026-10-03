@@ -80,6 +80,8 @@ export async function _loadAutomations() {
     // Automations were just re-read, so any proposal card's write preview may
     // describe a document that has since changed on disk.
     invalidateProposalPreviews(this);
+    // …and any open History tab may be missing the version just written.
+    this._refreshStaleVersionHistories();
   } catch (err) {
     console.error("Failed to load automations", err);
   }

@@ -321,6 +321,18 @@ export const cardElementStyles = css`
     color: var(--primary-text-color);
     opacity: 0.85;
   }
+  .version-entry-summary {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--primary-text-color);
+  }
+  .version-entry-message.secondary {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    opacity: 1;
+  }
   .version-entry-actions {
     display: flex;
     flex-wrap: wrap;

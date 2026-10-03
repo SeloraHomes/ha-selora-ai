@@ -29,6 +29,7 @@ from ..const import (
     SELORA_AI_LABEL_ID,
 )
 from ..conversation_store import ConversationStore
+from ..version_summaries import schedule_missing_summaries
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -728,6 +729,9 @@ async def _handle_websocket_get_automation_versions(
             result.append(entry)
 
         connection.send_result(msg["id"], result)
+        # Versions saved before summaries existed get theirs now, in the
+        # background; they show the change-list wording until the next open.
+        schedule_missing_summaries(hass, store, msg["automation_id"], versions)
     except Exception as exc:
         _LOGGER.exception("Error in get_automation_versions")
         connection.send_error(msg["id"], "unknown_error", str(exc))
