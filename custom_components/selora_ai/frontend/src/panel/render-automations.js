@@ -1492,10 +1492,10 @@ export function renderAutomations(host) {
                     // How many stored versions this automation has. The list
                     // payload carries it (`version_count`), so the tab can say
                     // so before the drawer is ever opened.
-                    const versionCount =
-                      (host._versions[automationId] || []).length ||
-                      a.version_count ||
-                      0;
+                    const versionCount = Math.max(
+                      (host._versions[automationId] || []).length,
+                      a.version_count || 0,
+                    );
                     const canToggle =
                       hasAutomationId && !host._bulkActionInProgress;
                     const deleting = host._deletingAutomation[automationId];
@@ -2143,10 +2143,7 @@ export function renderAutomations(host) {
                                                     ? null
                                                     : "history",
                                                 };
-                                                if (
-                                                  !isActive &&
-                                                  !host._versions[automationId]
-                                                ) {
+                                                if (!isActive) {
                                                   host._versionHistoryOpen = {
                                                     ...host._versionHistoryOpen,
                                                     [automationId]: true,

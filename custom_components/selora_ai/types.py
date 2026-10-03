@@ -149,6 +149,34 @@ class GroupInfo(TypedDict):
 # ── Version & lineage structures ──────────────────────────────────────
 
 
+class LeafChange(TypedDict):
+    """One value that differs inside a changed trigger/condition/action."""
+
+    path: list[str | int]
+    before: Any
+    after: Any
+    # The entity of the step the value sits in, when it has exactly one.
+    entity: NotRequired[str]
+
+
+class VersionChange(TypedDict, total=False):
+    """One thing a version changed relative to the version before it.
+
+    ``kind`` is ``item_changed`` / ``item_added`` / ``item_removed`` /
+    ``reordered`` (with ``section`` naming triggers/conditions/actions) or
+    ``field_changed`` (with ``field`` naming the top-level key).
+    """
+
+    kind: Required[str]
+    section: str
+    index: int
+    field: str
+    before: Any
+    after: Any
+    details: list[LeafChange]
+    detail_count: int
+
+
 class AutomationVersion(TypedDict):
     """A single immutable version snapshot."""
 
@@ -159,6 +187,15 @@ class AutomationVersion(TypedDict):
     data: dict[str, Any]
     message: str
     session_id: str | None
+    # What this version changed against the one before it; None when there
+    # was no earlier version to compare with.
+    changes: NotRequired[list[VersionChange] | None]
+    # Which revision of the comparison produced ``changes``.
+    changes_format: NotRequired[int]
+    # One sentence the LLM wrote about this edit, and the base language it
+    # was written in (``version_summaries``).
+    summary: NotRequired[str]
+    summary_language: NotRequired[str]
 
 
 class LineageEntry(TypedDict):

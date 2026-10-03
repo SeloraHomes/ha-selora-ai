@@ -5436,6 +5436,18 @@ var cardElementStyles = i`
     color: var(--primary-text-color);
     opacity: 0.85;
   }
+  .version-entry-summary {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--primary-text-color);
+  }
+  .version-entry-message.secondary {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    opacity: 1;
+  }
   .version-entry-actions {
     display: flex;
     flex-wrap: wrap;
@@ -9970,6 +9982,29 @@ var en_default = {
     version_history_compare_title: "Compare Versions",
     version_history_nothing_to_compare:
       "No earlier version to compare \u2014 this is the first one saved.",
+    version_summary_section_triggers: "trigger",
+    version_summary_section_conditions: "condition",
+    version_summary_section_actions: "action",
+    version_summary_part_triggers: "triggers",
+    version_summary_part_conditions: "conditions",
+    version_summary_part_actions: "actions",
+    version_summary_item_changed:
+      "{section} changed from \u201C{from}\u201D to \u201C{to}\u201D",
+    version_summary_value_changed: "{field} changed from {from} to {to}",
+    version_summary_value_set: "{field} set to {to}",
+    version_summary_value_removed: "{field} removed",
+    version_summary_item_updated: "{section} updated",
+    version_summary_item_added: "{section} added: \u201C{item}\u201D",
+    version_summary_item_removed: "{section} removed: \u201C{item}\u201D",
+    version_summary_added: "{section} added",
+    version_summary_removed: "{section} removed",
+    version_summary_reordered: "{parts} reordered",
+    version_summary_renamed: "renamed to \u201C{name}\u201D",
+    version_summary_description_updated: "description updated",
+    version_summary_field_mode: "run mode",
+    version_summary_entity_field: "{entity} {field}",
+    version_summary_other_changes: "other changes",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "Version A (newer):",
     version_history_version_b_label: "Version B (older):",
     version_history_loading_diff: "Loading diff\u2026",
@@ -11169,6 +11204,29 @@ var fr_default = {
     version_history_compare_title: "Comparer les versions",
     version_history_nothing_to_compare:
       "Aucune version ant\xE9rieure \xE0 comparer \u2014 c'est la premi\xE8re enregistr\xE9e.",
+    version_summary_section_triggers: "d\xE9clencheur",
+    version_summary_section_conditions: "condition",
+    version_summary_section_actions: "action",
+    version_summary_part_triggers: "d\xE9clencheurs",
+    version_summary_part_conditions: "conditions",
+    version_summary_part_actions: "actions",
+    version_summary_item_changed:
+      "{section} modifi\xE9 de \xAB {from} \xBB \xE0 \xAB {to} \xBB",
+    version_summary_value_changed: "{field} modifi\xE9 de {from} \xE0 {to}",
+    version_summary_value_set: "{field} d\xE9fini \xE0 {to}",
+    version_summary_value_removed: "{field} supprim\xE9",
+    version_summary_item_updated: "{section} mis \xE0 jour",
+    version_summary_item_added: "{section} ajout\xE9 : \xAB {item} \xBB",
+    version_summary_item_removed: "{section} supprim\xE9 : \xAB {item} \xBB",
+    version_summary_added: "{section} ajout\xE9",
+    version_summary_removed: "{section} supprim\xE9",
+    version_summary_reordered: "{parts} r\xE9ordonn\xE9s",
+    version_summary_renamed: "renomm\xE9e en \xAB {name} \xBB",
+    version_summary_description_updated: "description mise \xE0 jour",
+    version_summary_field_mode: "mode d'ex\xE9cution",
+    version_summary_entity_field: "{field} de {entity}",
+    version_summary_other_changes: "autres modifications",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "Version A (plus r\xE9cente) :",
     version_history_version_b_label: "Version B (plus ancienne) :",
     version_history_loading_diff: "Chargement du diff\u2026",
@@ -12395,6 +12453,29 @@ var de_default = {
     version_history_compare_title: "Versionen vergleichen",
     version_history_nothing_to_compare:
       "Keine fr\xFChere Version zum Vergleichen \u2014 dies ist die erste gespeicherte.",
+    version_summary_section_triggers: "Ausl\xF6ser",
+    version_summary_section_conditions: "Bedingung",
+    version_summary_section_actions: "Aktion",
+    version_summary_part_triggers: "Ausl\xF6ser",
+    version_summary_part_conditions: "Bedingungen",
+    version_summary_part_actions: "Aktionen",
+    version_summary_item_changed:
+      "{section} ge\xE4ndert von \u201E{from}\u201C zu \u201E{to}\u201C",
+    version_summary_value_changed: "{field} ge\xE4ndert von {from} zu {to}",
+    version_summary_value_set: "{field} auf {to} gesetzt",
+    version_summary_value_removed: "{field} entfernt",
+    version_summary_item_updated: "{section} aktualisiert",
+    version_summary_item_added: "{section} hinzugef\xFCgt: \u201E{item}\u201C",
+    version_summary_item_removed: "{section} entfernt: \u201E{item}\u201C",
+    version_summary_added: "{section} hinzugef\xFCgt",
+    version_summary_removed: "{section} entfernt",
+    version_summary_reordered: "{parts} neu angeordnet",
+    version_summary_renamed: "umbenannt in \u201E{name}\u201C",
+    version_summary_description_updated: "Beschreibung aktualisiert",
+    version_summary_field_mode: "Ausf\xFChrungsmodus",
+    version_summary_entity_field: "{field} von {entity}",
+    version_summary_other_changes: "weitere \xC4nderungen",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "Version A (neuer):",
     version_history_version_b_label: "Version B (\xE4lter):",
     version_history_loading_diff: "Lade Diff\u2026",
@@ -13609,6 +13690,29 @@ var es_default = {
     version_history_compare_title: "Comparar versiones",
     version_history_nothing_to_compare:
       "No hay una versi\xF3n anterior con la que comparar: esta es la primera guardada.",
+    version_summary_section_triggers: "disparador",
+    version_summary_section_conditions: "condici\xF3n",
+    version_summary_section_actions: "acci\xF3n",
+    version_summary_part_triggers: "disparadores",
+    version_summary_part_conditions: "condiciones",
+    version_summary_part_actions: "acciones",
+    version_summary_item_changed:
+      "{section} cambiado de \xAB{from}\xBB a \xAB{to}\xBB",
+    version_summary_value_changed: "{field} cambiado de {from} a {to}",
+    version_summary_value_set: "{field} establecido en {to}",
+    version_summary_value_removed: "{field} eliminado",
+    version_summary_item_updated: "{section} actualizado",
+    version_summary_item_added: "{section} a\xF1adido: \xAB{item}\xBB",
+    version_summary_item_removed: "{section} eliminado: \xAB{item}\xBB",
+    version_summary_added: "{section} a\xF1adido",
+    version_summary_removed: "{section} eliminado",
+    version_summary_reordered: "{parts} reordenados",
+    version_summary_renamed: "renombrada a \xAB{name}\xBB",
+    version_summary_description_updated: "descripci\xF3n actualizada",
+    version_summary_field_mode: "modo de ejecuci\xF3n",
+    version_summary_entity_field: "{field} de {entity}",
+    version_summary_other_changes: "otros cambios",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "Versi\xF3n A (m\xE1s reciente):",
     version_history_version_b_label: "Versi\xF3n B (m\xE1s antigua):",
     version_history_loading_diff: "Cargando diferencias\u2026",
@@ -14809,6 +14913,29 @@ var it_default = {
     version_history_compare_title: "Confronta versioni",
     version_history_nothing_to_compare:
       "Nessuna versione precedente da confrontare: questa \xE8 la prima salvata.",
+    version_summary_section_triggers: "attivazione",
+    version_summary_section_conditions: "condizione",
+    version_summary_section_actions: "azione",
+    version_summary_part_triggers: "attivazioni",
+    version_summary_part_conditions: "condizioni",
+    version_summary_part_actions: "azioni",
+    version_summary_item_changed:
+      "{section} modificato da \xAB{from}\xBB a \xAB{to}\xBB",
+    version_summary_value_changed: "{field} modificato da {from} a {to}",
+    version_summary_value_set: "{field} impostato a {to}",
+    version_summary_value_removed: "{field} rimosso",
+    version_summary_item_updated: "{section} aggiornato",
+    version_summary_item_added: "{section} aggiunto: \xAB{item}\xBB",
+    version_summary_item_removed: "{section} rimosso: \xAB{item}\xBB",
+    version_summary_added: "{section} aggiunto",
+    version_summary_removed: "{section} rimosso",
+    version_summary_reordered: "{parts} riordinati",
+    version_summary_renamed: "rinominata in \xAB{name}\xBB",
+    version_summary_description_updated: "descrizione aggiornata",
+    version_summary_field_mode: "modalit\xE0 di esecuzione",
+    version_summary_entity_field: "{field} di {entity}",
+    version_summary_other_changes: "altre modifiche",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "Versione A (pi\xF9 recente):",
     version_history_version_b_label: "Versione B (precedente):",
     version_history_loading_diff: "Caricamento differenze\u2026",
@@ -16030,6 +16157,29 @@ var nl_default = {
     version_history_compare_title: "Versies vergelijken",
     version_history_nothing_to_compare:
       "Geen eerdere versie om te vergelijken \u2014 dit is de eerste die is opgeslagen.",
+    version_summary_section_triggers: "trigger",
+    version_summary_section_conditions: "voorwaarde",
+    version_summary_section_actions: "actie",
+    version_summary_part_triggers: "triggers",
+    version_summary_part_conditions: "voorwaarden",
+    version_summary_part_actions: "acties",
+    version_summary_item_changed:
+      "{section} gewijzigd van \u2018{from}\u2019 naar \u2018{to}\u2019",
+    version_summary_value_changed: "{field} gewijzigd van {from} naar {to}",
+    version_summary_value_set: "{field} ingesteld op {to}",
+    version_summary_value_removed: "{field} verwijderd",
+    version_summary_item_updated: "{section} bijgewerkt",
+    version_summary_item_added: "{section} toegevoegd: \u2018{item}\u2019",
+    version_summary_item_removed: "{section} verwijderd: \u2018{item}\u2019",
+    version_summary_added: "{section} toegevoegd",
+    version_summary_removed: "{section} verwijderd",
+    version_summary_reordered: "volgorde van {parts} gewijzigd",
+    version_summary_renamed: "hernoemd naar \u2018{name}\u2019",
+    version_summary_description_updated: "beschrijving bijgewerkt",
+    version_summary_field_mode: "uitvoeringsmodus",
+    version_summary_entity_field: "{field} van {entity}",
+    version_summary_other_changes: "andere wijzigingen",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "Versie A (nieuwer):",
     version_history_version_b_label: "Versie B (ouder):",
     version_history_loading_diff: "Diff laden\u2026",
@@ -17265,6 +17415,31 @@ var hu_default = {
     version_history_compare_title: "Verzi\xF3k \xF6sszehasonl\xEDt\xE1sa",
     version_history_nothing_to_compare:
       "Nincs kor\xE1bbi verzi\xF3 az \xF6sszehasonl\xEDt\xE1shoz \u2014 ez az els\u0151 mentett.",
+    version_summary_section_triggers: "esem\xE9nyind\xEDt\xF3",
+    version_summary_section_conditions: "felt\xE9tel",
+    version_summary_section_actions: "m\u0171velet",
+    version_summary_part_triggers: "esem\xE9nyind\xEDt\xF3k",
+    version_summary_part_conditions: "felt\xE9telek",
+    version_summary_part_actions: "m\u0171veletek",
+    version_summary_item_changed:
+      "{section} m\xF3dos\xEDtva: \u201E{from}\u201D \u2192 \u201E{to}\u201D",
+    version_summary_value_changed:
+      "{field} m\xF3dos\xEDtva: {from} \u2192 {to}",
+    version_summary_value_set: "{field} be\xE1ll\xEDtva: {to}",
+    version_summary_value_removed: "{field} elt\xE1vol\xEDtva",
+    version_summary_item_updated: "{section} friss\xEDtve",
+    version_summary_item_added: "{section} hozz\xE1adva: \u201E{item}\u201D",
+    version_summary_item_removed:
+      "{section} elt\xE1vol\xEDtva: \u201E{item}\u201D",
+    version_summary_added: "{section} hozz\xE1adva",
+    version_summary_removed: "{section} elt\xE1vol\xEDtva",
+    version_summary_reordered: "{parts} \xE1trendezve",
+    version_summary_renamed: "\xE1tnevezve erre: \u201E{name}\u201D",
+    version_summary_description_updated: "le\xEDr\xE1s friss\xEDtve",
+    version_summary_field_mode: "futtat\xE1si m\xF3d",
+    version_summary_entity_field: "{entity} {field}",
+    version_summary_other_changes: "egy\xE9b m\xF3dos\xEDt\xE1sok",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "A verzi\xF3 (\xFAjabb):",
     version_history_version_b_label: "B verzi\xF3 (r\xE9gebbi):",
     version_history_loading_diff: "K\xFCl\xF6nbs\xE9g bet\xF6lt\xE9se\u2026",
@@ -18483,6 +18658,29 @@ var pt_default = {
     version_history_compare_title: "Comparar vers\xF5es",
     version_history_nothing_to_compare:
       "N\xE3o h\xE1 vers\xE3o anterior para comparar \u2014 esta \xE9 a primeira guardada.",
+    version_summary_section_triggers: "gatilho",
+    version_summary_section_conditions: "condi\xE7\xE3o",
+    version_summary_section_actions: "a\xE7\xE3o",
+    version_summary_part_triggers: "gatilhos",
+    version_summary_part_conditions: "condi\xE7\xF5es",
+    version_summary_part_actions: "a\xE7\xF5es",
+    version_summary_item_changed:
+      "{section} alterado de \u201C{from}\u201D para \u201C{to}\u201D",
+    version_summary_value_changed: "{field} alterado de {from} para {to}",
+    version_summary_value_set: "{field} definido como {to}",
+    version_summary_value_removed: "{field} removido",
+    version_summary_item_updated: "{section} atualizado",
+    version_summary_item_added: "{section} adicionado: \u201C{item}\u201D",
+    version_summary_item_removed: "{section} removido: \u201C{item}\u201D",
+    version_summary_added: "{section} adicionado",
+    version_summary_removed: "{section} removido",
+    version_summary_reordered: "{parts} reordenados",
+    version_summary_renamed: "renomeada para \u201C{name}\u201D",
+    version_summary_description_updated: "descri\xE7\xE3o atualizada",
+    version_summary_field_mode: "modo de execu\xE7\xE3o",
+    version_summary_entity_field: "{field} de {entity}",
+    version_summary_other_changes: "outras altera\xE7\xF5es",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "Vers\xE3o A (mais recente):",
     version_history_version_b_label: "Vers\xE3o B (mais antiga):",
     version_history_loading_diff: "A carregar diferen\xE7as\u2026",
@@ -20007,6 +20205,47 @@ var ru_default = {
       "\u0421\u0440\u0430\u0432\u043D\u0438\u0442\u044C \u0432\u0435\u0440\u0441\u0438\u0438",
     version_history_nothing_to_compare:
       "\u041D\u0435\u0442 \u0431\u043E\u043B\u0435\u0435 \u0440\u0430\u043D\u043D\u0435\u0439 \u0432\u0435\u0440\u0441\u0438\u0438 \u0434\u043B\u044F \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F \u2014 \u044D\u0442\u043E \u043F\u0435\u0440\u0432\u0430\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u0430\u044F.",
+    version_summary_section_triggers:
+      "\u0442\u0440\u0438\u0433\u0433\u0435\u0440",
+    version_summary_section_conditions:
+      "\u0443\u0441\u043B\u043E\u0432\u0438\u0435",
+    version_summary_section_actions:
+      "\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435",
+    version_summary_part_triggers:
+      "\u0442\u0440\u0438\u0433\u0433\u0435\u0440\u044B",
+    version_summary_part_conditions:
+      "\u0443\u0441\u043B\u043E\u0432\u0438\u044F",
+    version_summary_part_actions:
+      "\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
+    version_summary_item_changed:
+      "{section}: \xAB{from}\xBB \u2192 \xAB{to}\xBB",
+    version_summary_value_changed: "{field}: {from} \u2192 {to}",
+    version_summary_value_set:
+      "{field}: \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E {to}",
+    version_summary_value_removed:
+      "{field}: \u0443\u0434\u0430\u043B\u0435\u043D\u043E",
+    version_summary_item_updated:
+      "{section}: \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u043E",
+    version_summary_item_added:
+      "{section} \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E: \xAB{item}\xBB",
+    version_summary_item_removed:
+      "{section} \u0443\u0434\u0430\u043B\u0435\u043D\u043E: \xAB{item}\xBB",
+    version_summary_added:
+      "{section} \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E",
+    version_summary_removed:
+      "{section} \u0443\u0434\u0430\u043B\u0435\u043D\u043E",
+    version_summary_reordered:
+      "\u0438\u0437\u043C\u0435\u043D\u0451\u043D \u043F\u043E\u0440\u044F\u0434\u043E\u043A: {parts}",
+    version_summary_renamed:
+      "\u043F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u043D\u0430 \u0432 \xAB{name}\xBB",
+    version_summary_description_updated:
+      "\u043E\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u043E",
+    version_summary_field_mode:
+      "\u0440\u0435\u0436\u0438\u043C \u0437\u0430\u043F\u0443\u0441\u043A\u0430",
+    version_summary_entity_field: "{field} ({entity})",
+    version_summary_other_changes:
+      "\u0434\u0440\u0443\u0433\u0438\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label:
       "\u0412\u0435\u0440\u0441\u0438\u044F A (\u043D\u043E\u0432\u0435\u0435):",
     version_history_version_b_label:
@@ -21611,6 +21850,33 @@ var ja_default = {
       "\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u6BD4\u8F03",
     version_history_nothing_to_compare:
       "\u6BD4\u8F03\u3067\u304D\u308B\u4EE5\u524D\u306E\u30D0\u30FC\u30B8\u30E7\u30F3\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u3053\u308C\u304C\u6700\u521D\u306B\u4FDD\u5B58\u3055\u308C\u305F\u3082\u306E\u3067\u3059\u3002",
+    version_summary_section_triggers: "\u30C8\u30EA\u30AC\u30FC",
+    version_summary_section_conditions: "\u6761\u4EF6",
+    version_summary_section_actions: "\u30A2\u30AF\u30B7\u30E7\u30F3",
+    version_summary_part_triggers: "\u30C8\u30EA\u30AC\u30FC",
+    version_summary_part_conditions: "\u6761\u4EF6",
+    version_summary_part_actions: "\u30A2\u30AF\u30B7\u30E7\u30F3",
+    version_summary_item_changed:
+      "{section}\u3092\u300C{from}\u300D\u304B\u3089\u300C{to}\u300D\u306B\u5909\u66F4",
+    version_summary_value_changed:
+      "{field}\u3092{from}\u304B\u3089{to}\u306B\u5909\u66F4",
+    version_summary_value_set: "{field}\u3092{to}\u306B\u8A2D\u5B9A",
+    version_summary_value_removed: "{field}\u3092\u524A\u9664",
+    version_summary_item_updated: "{section}\u3092\u66F4\u65B0",
+    version_summary_item_added:
+      "{section}\u3092\u8FFD\u52A0\uFF1A\u300C{item}\u300D",
+    version_summary_item_removed:
+      "{section}\u3092\u524A\u9664\uFF1A\u300C{item}\u300D",
+    version_summary_added: "{section}\u3092\u8FFD\u52A0",
+    version_summary_removed: "{section}\u3092\u524A\u9664",
+    version_summary_reordered: "{parts}\u306E\u9806\u5E8F\u3092\u5909\u66F4",
+    version_summary_renamed:
+      "\u540D\u524D\u3092\u300C{name}\u300D\u306B\u5909\u66F4",
+    version_summary_description_updated: "\u8AAC\u660E\u3092\u66F4\u65B0",
+    version_summary_field_mode: "\u5B9F\u884C\u30E2\u30FC\u30C9",
+    version_summary_entity_field: "{entity}\u306E{field}",
+    version_summary_other_changes: "\u305D\u306E\u4ED6\u306E\u5909\u66F4",
+    version_summary_sentence: "{clauses}\u3002",
     version_history_version_a_label:
       "\u30D0\u30FC\u30B8\u30E7\u30F3 A\uFF08\u65B0\u3057\u3044\uFF09\uFF1A",
     version_history_version_b_label:
@@ -23040,6 +23306,32 @@ var ko_default = {
     version_history_compare_title: "\uBC84\uC804 \uBE44\uAD50",
     version_history_nothing_to_compare:
       "\uBE44\uAD50\uD560 \uC774\uC804 \uBC84\uC804\uC774 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 \uC774\uAC83\uC774 \uCC98\uC74C \uC800\uC7A5\uB41C \uBC84\uC804\uC785\uB2C8\uB2E4.",
+    version_summary_section_triggers: "\uD2B8\uB9AC\uAC70",
+    version_summary_section_conditions: "\uC870\uAC74",
+    version_summary_section_actions: "\uB3D9\uC791",
+    version_summary_part_triggers: "\uD2B8\uB9AC\uAC70",
+    version_summary_part_conditions: "\uC870\uAC74",
+    version_summary_part_actions: "\uB3D9\uC791",
+    version_summary_item_changed:
+      "{section} \uBCC0\uACBD: \u201C{from}\u201D \u2192 \u201C{to}\u201D",
+    version_summary_value_changed: "{field} \uBCC0\uACBD: {from} \u2192 {to}",
+    version_summary_value_set:
+      "{field}\uC744(\uB97C) {to}(\uC73C)\uB85C \uC124\uC815",
+    version_summary_value_removed: "{field} \uC0AD\uC81C",
+    version_summary_item_updated: "{section} \uC5C5\uB370\uC774\uD2B8",
+    version_summary_item_added: "{section} \uCD94\uAC00: \u201C{item}\u201D",
+    version_summary_item_removed: "{section} \uC0AD\uC81C: \u201C{item}\u201D",
+    version_summary_added: "{section} \uCD94\uAC00",
+    version_summary_removed: "{section} \uC0AD\uC81C",
+    version_summary_reordered: "{parts} \uC21C\uC11C \uBCC0\uACBD",
+    version_summary_renamed:
+      "\uC774\uB984\uC744 \u201C{name}\u201D(\uC73C)\uB85C \uBCC0\uACBD",
+    version_summary_description_updated:
+      "\uC124\uBA85 \uC5C5\uB370\uC774\uD2B8",
+    version_summary_field_mode: "\uC2E4\uD589 \uBAA8\uB4DC",
+    version_summary_entity_field: "{entity} {field}",
+    version_summary_other_changes: "\uAE30\uD0C0 \uBCC0\uACBD",
+    version_summary_sentence: "{clauses}.",
     version_history_version_a_label: "\uBC84\uC804 A (\uCD5C\uC2E0):",
     version_history_version_b_label: "\uBC84\uC804 B (\uC774\uC804):",
     version_history_loading_diff:
@@ -24376,6 +24668,31 @@ var zh_Hans_default = {
     version_history_compare_title: "\u6BD4\u8F83\u7248\u672C",
     version_history_nothing_to_compare:
       "\u6CA1\u6709\u53EF\u6BD4\u8F83\u7684\u65E9\u671F\u7248\u672C \u2014 \u8FD9\u662F\u7B2C\u4E00\u4E2A\u4FDD\u5B58\u7684\u7248\u672C\u3002",
+    version_summary_section_triggers: "\u89E6\u53D1\u5668",
+    version_summary_section_conditions: "\u6761\u4EF6",
+    version_summary_section_actions: "\u52A8\u4F5C",
+    version_summary_part_triggers: "\u89E6\u53D1\u5668",
+    version_summary_part_conditions: "\u6761\u4EF6",
+    version_summary_part_actions: "\u52A8\u4F5C",
+    version_summary_item_changed:
+      "{section}\u4ECE\u201C{from}\u201D\u6539\u4E3A\u201C{to}\u201D",
+    version_summary_value_changed: "{field}\u4ECE {from} \u6539\u4E3A {to}",
+    version_summary_value_set: "{field}\u8BBE\u4E3A {to}",
+    version_summary_value_removed: "\u5DF2\u5220\u9664{field}",
+    version_summary_item_updated: "{section}\u5DF2\u66F4\u65B0",
+    version_summary_item_added:
+      "\u5DF2\u6DFB\u52A0{section}\uFF1A\u201C{item}\u201D",
+    version_summary_item_removed:
+      "\u5DF2\u5220\u9664{section}\uFF1A\u201C{item}\u201D",
+    version_summary_added: "\u5DF2\u6DFB\u52A0{section}",
+    version_summary_removed: "\u5DF2\u5220\u9664{section}",
+    version_summary_reordered: "\u5DF2\u8C03\u6574{parts}\u987A\u5E8F",
+    version_summary_renamed: "\u5DF2\u91CD\u547D\u540D\u4E3A\u201C{name}\u201D",
+    version_summary_description_updated: "\u63CF\u8FF0\u5DF2\u66F4\u65B0",
+    version_summary_field_mode: "\u8FD0\u884C\u6A21\u5F0F",
+    version_summary_entity_field: "{entity}\u7684{field}",
+    version_summary_other_changes: "\u5176\u4ED6\u66F4\u6539",
+    version_summary_sentence: "{clauses}\u3002",
     version_history_version_a_label:
       "\u7248\u672C A\uFF08\u8F83\u65B0\uFF09\uFF1A",
     version_history_version_b_label:
@@ -25680,6 +25997,32 @@ var zh_Hant_default = {
     version_history_compare_title: "\u6BD4\u8F03\u7248\u672C",
     version_history_nothing_to_compare:
       "\u6C92\u6709\u53EF\u6BD4\u8F03\u7684\u65E9\u671F\u7248\u672C \u2014 \u9019\u662F\u7B2C\u4E00\u500B\u5132\u5B58\u7684\u7248\u672C\u3002",
+    version_summary_section_triggers: "\u89F8\u767C\u5668",
+    version_summary_section_conditions: "\u689D\u4EF6",
+    version_summary_section_actions: "\u52D5\u4F5C",
+    version_summary_part_triggers: "\u89F8\u767C\u5668",
+    version_summary_part_conditions: "\u689D\u4EF6",
+    version_summary_part_actions: "\u52D5\u4F5C",
+    version_summary_item_changed:
+      "{section}\u5F9E\u300C{from}\u300D\u6539\u70BA\u300C{to}\u300D",
+    version_summary_value_changed: "{field}\u5F9E {from} \u6539\u70BA {to}",
+    version_summary_value_set: "{field}\u8A2D\u70BA {to}",
+    version_summary_value_removed: "\u5DF2\u522A\u9664{field}",
+    version_summary_item_updated: "{section}\u5DF2\u66F4\u65B0",
+    version_summary_item_added:
+      "\u5DF2\u65B0\u589E{section}\uFF1A\u300C{item}\u300D",
+    version_summary_item_removed:
+      "\u5DF2\u522A\u9664{section}\uFF1A\u300C{item}\u300D",
+    version_summary_added: "\u5DF2\u65B0\u589E{section}",
+    version_summary_removed: "\u5DF2\u522A\u9664{section}",
+    version_summary_reordered: "\u5DF2\u8ABF\u6574{parts}\u9806\u5E8F",
+    version_summary_renamed:
+      "\u5DF2\u91CD\u65B0\u547D\u540D\u70BA\u300C{name}\u300D",
+    version_summary_description_updated: "\u63CF\u8FF0\u5DF2\u66F4\u65B0",
+    version_summary_field_mode: "\u57F7\u884C\u6A21\u5F0F",
+    version_summary_entity_field: "{entity}\u7684{field}",
+    version_summary_other_changes: "\u5176\u4ED6\u8B8A\u66F4",
+    version_summary_sentence: "{clauses}\u3002",
     version_history_version_a_label:
       "\u7248\u672C A\uFF08\u8F03\u65B0\uFF09\uFF1A",
     version_history_version_b_label:
@@ -29940,9 +30283,9 @@ function _maybeDecodePercentEncoded(text) {
   return null;
 }
 function _handlePaste(host, e6) {
-  const clip = e6.clipboardData;
-  if (!clip) return;
-  const imageFiles = Array.from(clip.files || []).filter((f3) =>
+  const clip2 = e6.clipboardData;
+  if (!clip2) return;
+  const imageFiles = Array.from(clip2.files || []).filter((f3) =>
     f3.type.startsWith("image/"),
   );
   if (imageFiles.length) {
@@ -29950,7 +30293,7 @@ function _handlePaste(host, e6) {
     addImageAttachments(host, imageFiles);
     return;
   }
-  const decoded = _maybeDecodePercentEncoded(clip.getData("text"));
+  const decoded = _maybeDecodePercentEncoded(clip2.getData("text"));
   if (decoded === null) return;
   e6.preventDefault();
   const ta = e6.target;
@@ -36062,10 +36405,10 @@ function renderAutomations(host) {
                     const isUnavailable = a3.state === "unavailable";
                     const automationId = a3.automation_id || "";
                     const hasAutomationId = !!automationId;
-                    const versionCount =
-                      (host._versions[automationId] || []).length ||
-                      a3.version_count ||
-                      0;
+                    const versionCount = Math.max(
+                      (host._versions[automationId] || []).length,
+                      a3.version_count || 0,
+                    );
                     const canToggle =
                       hasAutomationId && !host._bulkActionInProgress;
                     const deleting = host._deletingAutomation[automationId];
@@ -36674,10 +37017,7 @@ function renderAutomations(host) {
                                                     ? null
                                                     : "history",
                                                 };
-                                                if (
-                                                  !isActive &&
-                                                  !host._versions[automationId]
-                                                ) {
+                                                if (!isActive) {
                                                   host._versionHistoryOpen = {
                                                     ...host._versionHistoryOpen,
                                                     [automationId]: true,
@@ -36974,6 +37314,7 @@ __export(automation_management_exports, {
   _openAutomationInHA: () => _openAutomationInHA,
   _openDiffViewer: () => _openDiffViewer,
   _openVersionHistory: () => _openVersionHistory,
+  _refreshStaleVersionHistories: () => _refreshStaleVersionHistories,
   _restoreVersion: () => _restoreVersion,
   _runAutomation: () => _runAutomation,
   _saveRenameAutomation: () => _saveRenameAutomation,
@@ -37282,10 +37623,29 @@ async function _openVersionHistory(automationId) {
     ...this._versionHistoryOpen,
     [automationId]: !isOpen,
   };
-  if (!isOpen && !this._versions[automationId]) {
-    await this._loadVersionHistory(automationId);
-  }
+  if (!isOpen) await this._loadVersionHistory(automationId);
   this.requestUpdate();
+}
+function _refreshStaleVersionHistories() {
+  const cached = this._versions || {};
+  let dropped = false;
+  const next = { ...cached };
+  for (const a3 of this._automations || []) {
+    const id = a3.automation_id;
+    const versions = id ? cached[id] : null;
+    if (!versions || !a3.current_version_id) continue;
+    if (versions[0]?.version_id === a3.current_version_id) continue;
+    const onScreen =
+      this._cardActiveTab?.[a3.entity_id] === "history" ||
+      this._versionHistoryOpen?.[id];
+    if (onScreen) {
+      this._loadVersionHistory(id);
+    } else {
+      next[id] = null;
+      dropped = true;
+    }
+  }
+  if (dropped) this._versions = next;
 }
 async function _loadVersionHistory(automationId) {
   this._loadingVersions = { ...this._loadingVersions, [automationId]: true };
@@ -49336,6 +49696,280 @@ function renderRecipesV2(host) {
   `;
 }
 
+// src/panel/version-summary.js
+var SECTION_FALLBACK = {
+  triggers: { one: "trigger", part: "triggers" },
+  conditions: { one: "condition", part: "conditions" },
+  actions: { one: "action", part: "actions" },
+};
+var MAX_CLAUSES = 3;
+var MAX_ITEM_CHARS = 90;
+var MAX_VALUE_CHARS = 40;
+var TIME_UNITS = /* @__PURE__ */ new Set([
+  "hours",
+  "minutes",
+  "seconds",
+  "milliseconds",
+]);
+var ENTITY_ID_RE2 = /^[a-z_]+\.[a-z0-9_]+$/;
+function clip(text, max) {
+  const s4 = String(text ?? "").trim();
+  return s4.length > max ? `${s4.slice(0, max - 1).trimEnd()}\u2026` : s4;
+}
+function humanize(key) {
+  return String(key).replace(/_/g, " ");
+}
+function joinList(hass, parts) {
+  try {
+    return new Intl.ListFormat(pickLocale(hass), {
+      style: "long",
+      type: "conjunction",
+    }).format(parts);
+  } catch {
+    return parts.join(", ");
+  }
+}
+function capitalize(s4) {
+  return s4 ? s4.charAt(0).toUpperCase() + s4.slice(1) : s4;
+}
+function fmtValue(hass, value) {
+  if (Array.isArray(value)) {
+    return clip(
+      value.map((v2) => fmtValue(hass, v2)).join(", "),
+      MAX_VALUE_CHARS,
+    );
+  }
+  if (value && typeof value === "object") {
+    return clip(JSON.stringify(value), MAX_VALUE_CHARS);
+  }
+  const s4 = String(value ?? "");
+  if (ENTITY_ID_RE2.test(s4) && hass?.states?.[s4]) return fmtEntity(hass, s4);
+  return clip(s4, MAX_VALUE_CHARS);
+}
+function leafLabel(path) {
+  const keys = (path || []).filter((p4) => typeof p4 === "string");
+  const last = keys[keys.length - 1];
+  if (!last) return "";
+  const parent = keys[keys.length - 2];
+  if (TIME_UNITS.has(last) && parent) return `${humanize(parent)} (${last})`;
+  return humanize(last);
+}
+function valueClause(t5, hass, field, before, after) {
+  if (after === void 0 || after === null) {
+    return interpolate(t5("version_summary_value_removed", "{field} removed"), {
+      field,
+    });
+  }
+  if (before === void 0 || before === null) {
+    return interpolate(t5("version_summary_value_set", "{field} set to {to}"), {
+      field,
+      to: fmtValue(hass, after),
+    });
+  }
+  return interpolate(
+    t5("version_summary_value_changed", "{field} changed from {from} to {to}"),
+    { field, from: fmtValue(hass, before), to: fmtValue(hass, after) },
+  );
+}
+function phraseVersionChanges(host, changes) {
+  if (!Array.isArray(changes) || !changes.length) return "";
+  const hass = host.hass;
+  const t5 = (key, fallback) =>
+    typeof host._t === "function" ? host._t(key, fallback) : fallback;
+  const sectionLabel = (section) =>
+    t5(
+      `version_summary_section_${section}`,
+      SECTION_FALLBACK[section]?.one || humanize(section),
+    );
+  const describe = (item) =>
+    clip(describeFlowItem(hass, item, {}), MAX_ITEM_CHARS + 1);
+  const clauses = [];
+  const pendingTwins = /* @__PURE__ */ new Map();
+  let descriptionChanged = false;
+  for (const change of changes) {
+    const section = change.section;
+    switch (change.kind) {
+      case "item_changed": {
+        const from = change.before != null ? describe(change.before) : "";
+        const to = change.after != null ? describe(change.after) : "";
+        if (
+          from &&
+          to &&
+          from !== to &&
+          from.length <= MAX_ITEM_CHARS &&
+          to.length <= MAX_ITEM_CHARS
+        ) {
+          clauses.push(
+            interpolate(
+              t5(
+                "version_summary_item_changed",
+                "{section} changed from \u201C{from}\u201D to \u201C{to}\u201D",
+              ),
+              { section: sectionLabel(section), from, to },
+            ),
+          );
+          break;
+        }
+        const details = change.details || [];
+        const count = change.detail_count ?? details.length;
+        if (details.length && count <= details.length) {
+          for (const d3 of details) {
+            const label = leafLabel(d3.path) || sectionLabel(section);
+            const field = d3.entity
+              ? interpolate(
+                  t5("version_summary_entity_field", "{entity} {field}"),
+                  { entity: fmtEntity(hass, d3.entity), field: label },
+                )
+              : label;
+            clauses.push(valueClause(t5, hass, field, d3.before, d3.after));
+          }
+          break;
+        }
+        clauses.push(
+          interpolate(t5("version_summary_item_updated", "{section} updated"), {
+            section: sectionLabel(section),
+          }),
+        );
+        break;
+      }
+      case "item_added":
+      case "item_removed": {
+        const added = change.kind === "item_added";
+        const item = added ? change.after : change.before;
+        const text =
+          item != null
+            ? clip(describeFlowItem(hass, item, {}), MAX_ITEM_CHARS)
+            : "";
+        const twinKey = `${section}|${added ? "removed" : "added"}|${text}`;
+        const twin = text ? pendingTwins.get(twinKey) : void 0;
+        if (twin !== void 0) {
+          pendingTwins.delete(twinKey);
+          clauses[twin] = interpolate(
+            t5("version_summary_item_updated", "{section} updated"),
+            { section: sectionLabel(section) },
+          );
+          break;
+        }
+        if (text) {
+          pendingTwins.set(
+            `${section}|${added ? "added" : "removed"}|${text}`,
+            clauses.length,
+          );
+        }
+        if (item != null) {
+          clauses.push(
+            interpolate(
+              added
+                ? t5(
+                    "version_summary_item_added",
+                    "{section} added: \u201C{item}\u201D",
+                  )
+                : t5(
+                    "version_summary_item_removed",
+                    "{section} removed: \u201C{item}\u201D",
+                  ),
+              {
+                section: sectionLabel(section),
+                item: text,
+              },
+            ),
+          );
+        } else {
+          clauses.push(
+            interpolate(
+              added
+                ? t5("version_summary_added", "{section} added")
+                : t5("version_summary_removed", "{section} removed"),
+              { section: sectionLabel(section) },
+            ),
+          );
+        }
+        break;
+      }
+      case "reordered":
+        clauses.push(
+          interpolate(t5("version_summary_reordered", "{parts} reordered"), {
+            parts: t5(
+              `version_summary_part_${section}`,
+              SECTION_FALLBACK[section]?.part || humanize(section),
+            ),
+          }),
+        );
+        break;
+      case "field_changed":
+        if (change.field === "description") {
+          descriptionChanged = true;
+        } else if (change.field === "alias" && change.after) {
+          clauses.push(
+            interpolate(
+              t5("version_summary_renamed", "renamed to \u201C{name}\u201D"),
+              {
+                name: clip(change.after, MAX_ITEM_CHARS),
+              },
+            ),
+          );
+        } else {
+          const field =
+            change.field === "mode"
+              ? t5("version_summary_field_mode", "run mode")
+              : humanize(change.field);
+          clauses.push(
+            valueClause(t5, hass, field, change.before, change.after),
+          );
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  if (!clauses.length && descriptionChanged) {
+    clauses.push(
+      t5("version_summary_description_updated", "description updated"),
+    );
+  }
+  if (!clauses.length) return "";
+  const shown =
+    clauses.length > MAX_CLAUSES
+      ? [
+          ...clauses.slice(0, MAX_CLAUSES - 1),
+          t5("version_summary_other_changes", "other changes"),
+        ]
+      : clauses;
+  return capitalize(
+    interpolate(t5("version_summary_sentence", "{clauses}."), {
+      clauses: joinList(hass, shown),
+    }),
+  );
+}
+function versionSummary(host, automationId, version) {
+  if (!version) return "";
+  if (
+    version.summary &&
+    String(version.summary_language || "").toLowerCase() ===
+      pickLocale(host.hass).split("-")[0]
+  ) {
+    return version.summary;
+  }
+  const entities = host.hass?.entities;
+  const devices = host.hass?.devices;
+  const cache = host._versionSummaryCache;
+  if (!cache || cache.entities !== entities || cache.devices !== devices) {
+    host._versionSummaryCache = {
+      entities,
+      devices,
+      summaries: /* @__PURE__ */ new Map(),
+    };
+  }
+  const summaries = host._versionSummaryCache.summaries;
+  const key = `${automationId}_${version.version_id}_${pickLocale(host.hass)}`;
+  let summary = summaries.get(key);
+  if (summary === void 0) {
+    summary = phraseVersionChanges(host, version.changes);
+    summaries.set(key, summary);
+  }
+  return summary;
+}
+
 // src/panel/render-version-history.js
 function renderVersionHistoryDrawer(host, a3) {
   const automationId = a3.automation_id || a3.entity_id;
@@ -49344,7 +49978,9 @@ function renderVersionHistoryDrawer(host, a3) {
   return b2`
     <div class="version-history">
       ${
-        loading
+        // A refetch keeps the versions already on screen rather than
+        // blanking the list to "Loading…" each time the tab opens.
+        loading && versions.length === 0
           ? b2`<div class="version-history-empty">
               ${host._t("version_history_loading", "Loading\u2026")}
             </div>`
@@ -49390,6 +50026,7 @@ function renderVersionEntry(host, automationId, versions, i7) {
   const timeAgo = relativeTime(date);
   const isCurrent = i7 === 0;
   const message = v2.message || v2.version_message;
+  const summary = versionSummary(host, automationId, v2);
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
   const versionNumber = total - i7;
   const diff = versionDiff(host, automationId, versions, i7);
@@ -49414,7 +50051,16 @@ function renderVersionEntry(host, automationId, versions, i7) {
             >${timeAgo}</time
           >
         </header>
-        ${message ? b2`<p class="version-entry-message">${message}</p>` : ""}
+        ${summary ? b2`<p class="version-entry-summary">${summary}</p>` : ""}
+        ${
+          message
+            ? b2`<p
+                class="version-entry-message ${summary ? "secondary" : ""}"
+              >
+                ${message}
+              </p>`
+            : ""
+        }
         <div class="version-entry-actions">
           <button
             class="btn btn-outline version-entry-btn"
@@ -50141,7 +50787,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "7bdc0177fde8" : "";
+var PANEL_BUILD = true ? "e1740b98a578" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -50241,6 +50887,7 @@ async function _loadAutomations() {
       ),
     );
     invalidateProposalPreviews(this);
+    this._refreshStaleVersionHistories();
   } catch (err) {
     console.error("Failed to load automations", err);
   }

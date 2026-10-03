@@ -96,6 +96,7 @@ from .parsers import (
     strip_leaked_tool_markup,
 )
 from .prompts import (
+    _language_directive,
     build_analysis_prompt,
     build_architect_stream_system_prompt,
     build_architect_system_prompt,
@@ -1530,6 +1531,63 @@ class LLMClient:
             finally:
                 self._usage.flush("session_title")
         return user_msg[:60]
+
+    async def summarize_automation_change(
+        self,
+        before_yaml: str,
+        after_yaml: str,
+        entity_names: dict[str, str],
+        language: str | None,
+        *,
+        changes: str,
+    ) -> str | None:
+        """Describe in one sentence what an automation edit changed.
+
+        ``changes`` is the computed difference, one line per change; the two
+        documents are context for reading it. The sentence is about those
+        lines only — asked to compare the documents itself, the model reports
+        differences that are not edits.
+
+        None on a low-context provider (it is trained on JSON schemas and
+        cannot write free prose, the same reason ``generate_session_title``
+        skips it) and on any failure — the caller keeps its own fallback.
+        """
+        if self._provider.is_low_context:
+            return None
+        names = "\n".join(f"{eid}: {name}" for eid, name in sorted(entity_names.items()))
+        system = (
+            _language_directive(language)
+            + "You write one line of a Home Assistant automation's change "
+            "history, for the homeowner. CHANGES lists exactly what this edit "
+            "changed; BEFORE and AFTER are the automation around it, for "
+            "context only. Reply with ONE short sentence (at most 20 words) "
+            "describing the CHANGES in terms of what the automation now does "
+            "differently — when it runs, what it does, to which device. "
+            "Describe nothing that is not in CHANGES, and do not restate the "
+            "parts of the automation that stayed the same. Name devices by the "
+            "friendly names given, never by entity_id, and never mention YAML, "
+            "keys or ids. Reply with the sentence only."
+        )
+        content = (
+            f"CHANGES:\n{changes}\n\n"
+            f"BEFORE:\n```yaml\n{before_yaml}\n```\n\n"
+            f"AFTER:\n```yaml\n{after_yaml}\n```\n\n"
+            f"Friendly names:\n{names or '(none)'}"
+        )
+        with self._usage.scope("version_summary"):
+            try:
+                result, _error = await self._provider.send_request(
+                    system=system,
+                    messages=[{"role": "user", "content": content}],
+                    max_tokens=120,
+                    log_errors=False,
+                )
+            finally:
+                self._usage.flush("version_summary")
+        if not result:
+            return None
+        sentence = " ".join(result.split()).strip().strip('"').strip("'").strip()
+        return sentence[:240] or None
 
     async def health_check(self) -> bool:
         """Verify the LLM backend is reachable."""

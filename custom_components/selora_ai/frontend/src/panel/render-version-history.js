@@ -5,6 +5,7 @@ import {
   renderProposalDiffPanel,
   toggleProposalDiff,
 } from "./render-proposal-diff.js";
+import { versionSummary } from "./version-summary.js";
 
 export function renderVersionHistoryDrawer(host, a) {
   const automationId = a.automation_id || a.entity_id;
@@ -14,7 +15,9 @@ export function renderVersionHistoryDrawer(host, a) {
   return html`
     <div class="version-history">
       ${
-        loading
+        // A refetch keeps the versions already on screen rather than
+        // blanking the list to "Loading…" each time the tab opens.
+        loading && versions.length === 0
           ? html`<div class="version-history-empty">
               ${host._t("version_history_loading", "Loading…")}
             </div>`
@@ -73,6 +76,7 @@ function renderVersionEntry(host, automationId, versions, i) {
   const timeAgo = relativeTime(date);
   const isCurrent = i === 0;
   const message = v.message || v.version_message;
+  const summary = versionSummary(host, automationId, v);
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
   const versionNumber = total - i;
   // Rendered through the proposal card's own panel, so there is one diff
@@ -100,7 +104,16 @@ function renderVersionEntry(host, automationId, versions, i) {
             >${timeAgo}</time
           >
         </header>
-        ${message ? html`<p class="version-entry-message">${message}</p>` : ""}
+        ${summary ? html`<p class="version-entry-summary">${summary}</p>` : ""}
+        ${
+          message
+            ? html`<p
+                class="version-entry-message ${summary ? "secondary" : ""}"
+              >
+                ${message}
+              </p>`
+            : ""
+        }
         <div class="version-entry-actions">
           <button
             class="btn btn-outline version-entry-btn"
