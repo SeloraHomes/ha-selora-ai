@@ -297,9 +297,19 @@ def _pre_provider_short_circuit(
     has_attachments: bool = False,
     language: str | None = None,
     hass: HomeAssistant | None = None,
+    low_context: bool = True,
 ) -> dict[str, Any] | None:
     """Return a slim response envelope when a deterministic intent helper
     can answer the turn without going to the provider.
+
+    The command and clarification helpers answer for the LOW-CONTEXT model
+    only (``low_context``). They exist because the 1.7B local model invents a
+    service call for "turn off all the lights" or picks an arbitrary device for
+    "turn it off". A cloud model resolves both itself — with tools, history and
+    the home in context, in any language — while the helpers are patterns for
+    the phrasings someone coded, so on the cloud path they could only pre-empt
+    an answer the model would have got right, or ask "Which light?" about a
+    request it could resolve. The safety refusal runs for every provider.
 
     Order matters and is intentional:
 
@@ -363,6 +373,8 @@ def _pre_provider_short_circuit(
     # leave the next one added ungated by default. ``hass=None`` resolves
     # to ENFORCED, so a caller that cannot establish an opt-out keeps the
     # shipped behaviour.
+    if not low_context:
+        return None
     if not resolve_command_policy_options(hass).handlers_enabled:
         return None
     # An attached image can BE the missing target context ("turn this
@@ -932,6 +944,7 @@ class LLMClient:
             has_attachments=bool(attachments),
             language=effective_language,
             hass=self._hass,
+            low_context=self._provider.is_low_context,
         )
         if short_circuit is not None:
             if short_circuit.get("intent") == "command":
@@ -1273,6 +1286,7 @@ class LLMClient:
             has_attachments=bool(attachments),
             language=effective_language,
             hass=self._hass,
+            low_context=self._provider.is_low_context,
         )
         if short_circuit is not None:
             yield json.dumps(short_circuit)
