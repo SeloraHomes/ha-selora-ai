@@ -179,6 +179,43 @@ def default_dashboard_key(dashboards: Mapping[str | None, Any]) -> str | None:
 # ── Text sanitisation ────────────────────────────────────────────────────────
 
 
+def registered_storage_collection(
+    hass: HomeAssistant, command: str, expected: type[Any]
+) -> Any | None:
+    """The storage collection behind a component's ``<prefix>/create`` command.
+
+    Dashboards and the ``input_*`` / ``counter`` / ``timer`` helpers keep their
+    collection as a local in ``async_setup`` and publish it only through
+    websocket commands. Each registers ``<prefix>/create`` as a bound method of
+    the ``*StorageCollectionWebsocket`` holding it, wrapped in
+    ``require_admin(async_response(...))`` — both ``functools.wraps`` — so
+    ``inspect.unwrap`` reaches the method and ``__self__`` its owner. Calling
+    the collection runs the component's own schema and listeners, as the
+    command does.
+
+    That layout is Home Assistant's, not an API, so the result must be an
+    instance of *expected*; anything else answers None and the caller reports
+    the limitation instead of guessing.
+    """
+    import inspect  # noqa: PLC0415
+
+    from homeassistant.components.websocket_api import (  # noqa: PLC0415
+        DOMAIN as WEBSOCKET_DOMAIN,
+    )
+
+    handlers = hass.data.get(WEBSOCKET_DOMAIN)
+    registered = handlers.get(command) if isinstance(handlers, dict) else None
+    if not registered:
+        return None
+    try:
+        handler = inspect.unwrap(registered[0])
+    except (TypeError, ValueError, IndexError):
+        return None
+    owner = getattr(handler, "__self__", None)
+    found = getattr(owner, "storage_collection", None)
+    return found if isinstance(found, expected) else None
+
+
 def sanitize_untrusted_text(value: object, limit: int = 200) -> str:
     """Normalize and truncate untrusted string fields.
 

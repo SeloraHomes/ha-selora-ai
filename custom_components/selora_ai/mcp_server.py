@@ -5475,24 +5475,18 @@ async def _tool_list_helpers(hass: HomeAssistant, arguments: dict[str, Any]) -> 
 
 
 async def _tool_create_helper(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Create a config-entry helper through its own setup flow.
+    """Create a helper: a storage helper directly, any other through its setup flow.
 
-    The storage-helper half of the chat tool is not here: it hands the panel a
-    Create button, and MCP has no panel to show one.
+    Chat proposes a storage helper for the panel to create; MCP has no panel,
+    so it is created here, after the same validation.
     """
     from .helper_flow import async_create_flow_helper  # noqa: PLC0415
-    from .helper_manager import CREATABLE_HELPER_DOMAINS  # noqa: PLC0415
-    from .tool_executor import _opt_str  # noqa: PLC0415
+    from .helper_manager import CREATABLE_HELPER_DOMAINS, async_create_helper  # noqa: PLC0415
+    from .tool_executor import _opt_str, create_helper_fields  # noqa: PLC0415
 
     domain = str(arguments.get("domain", "")).strip().lower()
     if domain in CREATABLE_HELPER_DOMAINS:
-        return {
-            "error": (
-                f"A {domain} helper is created from the Selora panel or in Home "
-                "Assistant under Settings → Devices & services → Helpers; it cannot "
-                "be created over MCP."
-            )
-        }
+        return await async_create_helper(hass, domain, create_helper_fields(arguments))
     fields = arguments.get("fields")
     return await async_create_flow_helper(
         hass,
@@ -6801,10 +6795,10 @@ _TOOL_DEFINITIONS.extend(
 
 
 def _create_helper_definition() -> MCPTool:
-    """The setup-flow half of ``create_helper`` — see ``TOOL_CREATE_FLOW_HELPER``."""
-    from .tool_registry import TOOL_CREATE_FLOW_HELPER  # noqa: PLC0415
+    """``create_helper`` as MCP runs it — see ``TOOL_CREATE_HELPER_DIRECT``."""
+    from .tool_registry import TOOL_CREATE_HELPER_DIRECT  # noqa: PLC0415
 
-    definition = TOOL_CREATE_FLOW_HELPER.to_anthropic()
+    definition = TOOL_CREATE_HELPER_DIRECT.to_anthropic()
     return MCPTool(
         name=TOOL_CREATE_HELPER,
         description=f"{definition['description']} Requires admin access.",

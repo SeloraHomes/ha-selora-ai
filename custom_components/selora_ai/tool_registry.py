@@ -1628,10 +1628,9 @@ TOOL_LIST_HELPERS = ToolDef(
     large_context_only=True,
 )
 
-# ``create_helper`` is ``panel_only`` for the reason ``create_dashboard`` is:
-# the storage-collection helpers are created by each component's admin-only
-# ``<domain>/create`` websocket command, and only the panel is a websocket
-# client. It proposes; the panel creates.
+# ``create_helper`` is ``panel_only`` in chat for the reason ``create_dashboard``
+# is: a storage helper is proposed and the panel creates it after a tap. MCP
+# creates it directly — see ``TOOL_CREATE_HELPER_DIRECT``.
 TOOL_CREATE_HELPER = ToolDef(
     name="create_helper",
     description=(
@@ -1743,25 +1742,30 @@ TOOL_CREATE_HELPER = ToolDef(
     panel_only=True,
 )
 
-# The same tool where no panel can show a Create button — MCP. Only the
-# setup-flow half works there, so that is all it describes; its parameters are
-# the chat tool's own, so the two cannot drift.
-TOOL_CREATE_FLOW_HELPER = ToolDef(
+# The same tool where no panel can show a Create button — MCP — and both kinds
+# are created on the spot. Its description says so; its parameters are the
+# chat tool's own, minus the resumption trigger, so the two cannot drift.
+TOOL_CREATE_HELPER_DIRECT = ToolDef(
     name="create_helper",
     description=(
-        "Create a Home Assistant helper through its integration's own setup flow: "
-        "template entities of every type (sensor, binary_sensor, switch, select, "
-        "alarm_control_panel …), utility_meter, threshold, derivative, min_max and "
-        "the other helper integrations. Created immediately, no YAML, no restart. "
-        "Call it first with just `domain` (and `type` when the integration offers "
-        "several): it returns the choices or the form's fields. Then call again "
-        "with `fields`. A template alarm panel with no state template holds its own "
-        "state; give it an action (a 0-second delay is enough) for each arming mode "
-        "it should offer and for trigger. Storage helpers (input_boolean, "
-        "input_select, input_number, input_text, input_datetime, input_button, "
-        "counter, timer) cannot be created from here."
+        "Create any Home Assistant helper, immediately — no YAML, no restart. Two "
+        "kinds, one tool:\n"
+        "- A storage helper — domain input_boolean (toggle), input_select "
+        "(dropdown), input_number, input_text, input_datetime, input_button, "
+        "counter or timer — with the flat parameters below. The result gives its "
+        "entity_id.\n"
+        "- A config-entry helper — domain template (a template sensor, "
+        "binary_sensor, switch, select, alarm_control_panel …), utility_meter, "
+        "threshold, derivative, min_max and the other helper integrations — "
+        "through Home Assistant's own setup flow. Call it first with just "
+        "`domain` (and `type` when the integration offers several): it returns "
+        "the choices or the form's fields. Then call again with `fields`. A "
+        "template alarm panel with no state template holds its own state; give it "
+        "an action (a 0-second delay is enough) for each arming mode it should "
+        "offer and for trigger.\n"
+        "Call list_helpers first so you do not duplicate one the home already has."
     ),
-    params=tuple(p for p in TOOL_CREATE_HELPER.params if p.name in ("domain", "type", "fields")),
+    params=tuple(p for p in TOOL_CREATE_HELPER.params if p.name != "remaining_intent"),
     requires_admin=True,
     large_context_only=True,
 )

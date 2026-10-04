@@ -1,13 +1,13 @@
-"""Propose a storage-collection helper for the PANEL to create.
+"""Create storage-collection helpers: proposed for the panel, or directly.
 
 ``input_boolean``, ``input_select`` and the rest of the UI-created helpers are
 storage collections whose collection object is a local inside each
-component's ``async_setup``. The only supported way to add one is the
-component's admin-only ``<domain>/create`` websocket command, which an
-in-process integration cannot call and the panel — an authenticated websocket
-client — can. Same arrangement as ``create_dashboard``: this module validates
-and hands back a closed intent; the panel builds the fixed websocket call from
-it under the signed-in user's own account.
+component's ``async_setup``, published only through its admin-only
+``<domain>/create`` websocket command. Same arrangement as dashboards: chat
+validates and hands back a closed intent, and the panel builds the fixed
+websocket call from it under the signed-in user's own account; MCP, which has
+no panel, creates through the collection recovered from that command
+(``helpers.registered_storage_collection``) after the same validation.
 
 Validation uses each component's OWN create schema, read off its collection
 class, so anything Home Assistant would reject is refused here — before the
@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Any, Final
 from homeassistant.exceptions import HomeAssistantError
 import voluptuous as vol
 
-from .helpers import sanitize_untrusted_text
+from .helpers import registered_storage_collection, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -183,4 +183,65 @@ async def async_propose_helper(
             "fields": _jsonable(dict(validated)),
             "label": f"Create the {sanitize_untrusted_text(name, 60)} {domain} helper",
         },
+    }
+
+
+def _helper_collection(hass: HomeAssistant, domain: str) -> Any | None:
+    """The component's storage collection, or None when it cannot be reached."""
+    class_name, _ = _COLLECTIONS[domain]
+    try:
+        module = importlib.import_module(f"homeassistant.components.{domain}")
+    except ImportError:
+        return None
+    expected = getattr(module, class_name, None)
+    if not isinstance(expected, type):
+        return None
+    return registered_storage_collection(hass, f"{domain}/create", expected)
+
+
+async def async_create_helper(
+    hass: HomeAssistant,
+    domain: str,
+    fields: dict[str, Any],
+) -> dict[str, Any]:
+    """Create a storage helper on the spot — for callers with no panel (MCP).
+
+    Validated exactly as the proposal is — the same refusals, a name in use
+    included — then created through the component's own collection, which
+    re-applies its schema and registers the entity.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    proposal = await async_propose_helper(hass, domain, fields)
+    if "error" in proposal:
+        return proposal
+    intent = proposal["client_action"]
+    domain = intent["domain"]
+
+    collection = _helper_collection(hass, domain)
+    if collection is None:
+        return {
+            "error": (
+                f"This Home Assistant version does not let Selora reach its {domain} "
+                "helpers, so it has to be created under Settings → Devices & "
+                "services → Helpers."
+            )
+        }
+    try:
+        item = await collection.async_create_item(dict(intent["fields"]))
+    except (vol.Invalid, HomeAssistantError, ValueError) as exc:
+        return {
+            "error": (
+                f"Home Assistant refused that {domain}: {sanitize_untrusted_text(str(exc), 200)}"
+            )
+        }
+
+    # The collection suffixes the id on a clash, so the name does not give
+    # the entity_id; the registry does, keyed by the item id.
+    entity_id = er.async_get(hass).async_get_entity_id(domain, domain, str(item.get("id")))
+    return {
+        "status": "created",
+        "domain": domain,
+        "name": intent["name"],
+        **({"entity_id": entity_id} if entity_id else {}),
     }
