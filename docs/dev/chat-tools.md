@@ -73,6 +73,11 @@ deriver:
   chat description promises a confirmation card, but MCP has none and executes on
   the spot.
 
+**The MCP `serverInfo.version` is `<manifest version>+<tool-set hash>`**
+(`_async_server_version`). A client may keep the tool list it already has while
+the version is unchanged, and the manifest moves only on release. The hash covers every definition's
+name, description and schema, so touching a tool moves it with no manual bump.
+
 ## Leaked tool markup
 
 `tool_markup_leak` fires when a model writes its tool-call syntax as plain text

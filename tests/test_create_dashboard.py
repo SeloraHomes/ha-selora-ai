@@ -36,14 +36,14 @@ def test_create_dashboard_is_registered_in_both_lanes() -> None:
     assert "create_dashboard" in CONFIG_TOOL_NAMES
 
 
-def test_create_dashboard_is_not_on_mcp() -> None:
-    """It only works where a panel is connected. MCP, scheduled actions and any
-    unattended run have none, so offering it there would advertise a capability
-    that cannot fire."""
+def test_mcp_creates_directly_rather_than_proposing() -> None:
+    """MCP has no panel to tap, so it gets its own handler that creates on the
+    spot (`tests/test_dashboard_entry.py`), not the chat proposal."""
     from custom_components.selora_ai import mcp_server
 
-    assert "selora_create_dashboard" not in {t.name for t in mcp_server._TOOL_DEFINITIONS}
-    assert "create_dashboard" not in mcp_server._DERIVED_MCP_TOOLS.values()
+    assert mcp_server._DERIVED_MCP_TOOLS["selora_create_dashboard"] == "create_dashboard"
+    handler = mcp_server._get_tool_handlers()["selora_create_dashboard"]
+    assert handler is mcp_server._tool_create_dashboard
 
 
 def test_the_description_warns_against_claiming_success() -> None:
@@ -1586,11 +1586,12 @@ def test_delete_dashboard_is_a_client_action_and_panel_only() -> None:
     assert "delete_dashboard" in _CLIENT_ACTION_KINDS
 
 
-def test_delete_dashboard_is_not_on_mcp() -> None:
-    """Like create, it only works where a panel is connected."""
+def test_mcp_deletes_directly_rather_than_proposing() -> None:
+    """Like create: MCP has no card to tap, so its handler deletes on the spot."""
     from custom_components.selora_ai import mcp_server
 
-    assert "selora_delete_dashboard" not in {t.name for t in mcp_server._TOOL_DEFINITIONS}
+    handler = mcp_server._get_tool_handlers()["selora_delete_dashboard"]
+    assert handler is mcp_server._tool_delete_dashboard
 
 
 async def test_the_delete_card_carries_the_collection_id(hass: HomeAssistant) -> None:

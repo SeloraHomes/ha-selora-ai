@@ -1812,12 +1812,11 @@ TOOL_GET_AUTOMATION_TRACES = ToolDef(
 
 # ── Dashboards ──────────────────────────────────────────────────────────────
 #
-# ``create_dashboard`` is ``panel_only`` because a dashboard ENTRY needs
-# ``DashboardsCollection``, which lovelace keeps as a local in ``async_setup``
-# and publishes only to its admin-only websocket commands — the same wall the
-# ``input_*`` helpers hit. Not reachable in-process; reachable by an
-# authenticated websocket CLIENT, which the panel is, so it proposes and the
-# panel executes.
+# ``create_dashboard`` is ``panel_only`` in chat: it proposes, and the panel
+# creates the dashboard under the user's own credentials after a tap. MCP
+# derives the same tool but creates on the spot, through the collection
+# ``dashboard_manager._dashboards_collection`` recovers in-process; a chat turn
+# without a panel (Assist, MCP ``selora_chat``) is offered neither.
 #
 # Which means ``add_dashboard_view`` must NOT describe itself as the way to get
 # a new dashboard, in either direction. Claiming to be the substitute had a

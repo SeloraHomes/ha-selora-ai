@@ -52,6 +52,7 @@ from collections.abc import Callable
 import contextlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
+import functools
 import hashlib
 from http import HTTPStatus
 import json
@@ -387,6 +388,8 @@ TOOL_UPDATE_DASHBOARD_CARD = "selora_update_dashboard_card"
 TOOL_REMOVE_DASHBOARD_CARD = "selora_remove_dashboard_card"
 TOOL_MOVE_DASHBOARD_CARD = "selora_move_dashboard_card"
 TOOL_GROUP_DASHBOARD_CARDS = "selora_group_dashboard_cards"
+TOOL_CREATE_DASHBOARD = "selora_create_dashboard"
+TOOL_DELETE_DASHBOARD = "selora_delete_dashboard"
 
 # Tools that require admin / write scope: mutating operations plus
 # eval_template, which exposes HA's full Jinja engine — broad state
@@ -443,6 +446,8 @@ _ADMIN_TOOLS = frozenset(
         TOOL_REMOVE_DASHBOARD_CARD,
         TOOL_MOVE_DASHBOARD_CARD,
         TOOL_GROUP_DASHBOARD_CARDS,
+        TOOL_CREATE_DASHBOARD,
+        TOOL_DELETE_DASHBOARD,
         # Read-only, but admin-gated to match Home Assistant: it guards both
         # ``system_log/list`` and every ``trace/*`` command with
         # ``require_admin``. Logs carry exception text and configuration
@@ -956,7 +961,42 @@ class SeloraAIMCPView(HomeAssistantView):
 
 _MCP_PROTOCOL_VERSION = "2025-03-26"
 _MCP_SERVER_NAME = "selora-ai"
-_MCP_SERVER_VERSION = "0.3.2"
+
+
+async def _async_server_version(hass: HomeAssistant) -> str:
+    """The integration version, plus a hash of the tool set as build metadata.
+
+    A client may treat an unchanged ``serverInfo.version`` as an unchanged tool
+    set and keep the list it already has. The manifest version moves only on
+    release, so a deploy that adds or rewords a tool would look the same. The
+    hash covers every definition — name, description, schema — so touching a
+    tool changes the version with nobody having to remember to bump it, and a
+    change elsewhere in the code does not.
+    """
+    from homeassistant.loader import (  # noqa: PLC0415
+        IntegrationNotFound,
+        async_get_integration,
+    )
+
+    release = "0"
+    with contextlib.suppress(IntegrationNotFound):
+        version = (await async_get_integration(hass, DOMAIN)).version
+        if version is not None:
+            release = str(version)
+    return f"{release}+{_tool_set_hash()}"
+
+
+@functools.cache
+def _tool_set_hash() -> str:
+    """Content hash of every tool definition; they are fixed once imported."""
+    payload = json.dumps(
+        [
+            {"name": t.name, "description": t.description, "inputSchema": t.inputSchema}
+            for t in sorted(_TOOL_DEFINITIONS, key=lambda t: t.name)
+        ],
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()[:8]
 
 
 async def _jsonrpc_dispatch(
@@ -970,7 +1010,10 @@ async def _jsonrpc_dispatch(
         return {
             "protocolVersion": _MCP_PROTOCOL_VERSION,
             "capabilities": {"tools": {}},
-            "serverInfo": {"name": _MCP_SERVER_NAME, "version": _MCP_SERVER_VERSION},
+            "serverInfo": {
+                "name": _MCP_SERVER_NAME,
+                "version": await _async_server_version(hass),
+            },
         }
     if method == "ping":
         return {}
@@ -1078,6 +1121,8 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_REMOVE_DASHBOARD_CARD: _tool_remove_dashboard_card,
         TOOL_MOVE_DASHBOARD_CARD: _tool_move_dashboard_card,
         TOOL_GROUP_DASHBOARD_CARDS: _tool_group_dashboard_cards,
+        TOOL_CREATE_DASHBOARD: _tool_create_dashboard,
+        TOOL_DELETE_DASHBOARD: _tool_delete_dashboard,
     }
 
 
@@ -5639,6 +5684,28 @@ async def _tool_group_dashboard_cards(
     )
 
 
+async def _tool_create_dashboard(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create a dashboard on the spot — MCP has no panel to defer it to."""
+    from .dashboard_manager import async_create_dashboard  # noqa: PLC0415
+    from .tool_executor import _bool_default_true, _opt_bool, _opt_str  # noqa: PLC0415
+
+    return await async_create_dashboard(
+        hass,
+        title=str(arguments.get("title", "")),
+        url_path=_opt_str(arguments.get("url_path")),
+        icon=_opt_str(arguments.get("icon")),
+        require_admin=_opt_bool(arguments.get("require_admin")) or False,
+        show_in_sidebar=_bool_default_true(_opt_bool(arguments.get("show_in_sidebar"))),
+    )
+
+
+async def _tool_delete_dashboard(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete a dashboard on the spot (MCP clients run their own confirmation)."""
+    from .dashboard_manager import async_delete_dashboard  # noqa: PLC0415
+
+    return await async_delete_dashboard(hass, str(arguments.get("dashboard_target", "")))
+
+
 async def _preview_remove_dashboard_view(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
@@ -6636,6 +6703,35 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_REMOVE_DASHBOARD_CARD: "remove_dashboard_card",
     TOOL_MOVE_DASHBOARD_CARD: "move_dashboard_card",
     TOOL_GROUP_DASHBOARD_CARDS: "group_dashboard_cards",
+    TOOL_CREATE_DASHBOARD: "create_dashboard",
+    TOOL_DELETE_DASHBOARD: "delete_dashboard",
+}
+
+
+# Chat descriptions written around the panel's confirmation card — the Create
+# button, "do not say it exists until the result comes back" — are false over
+# MCP, where the handler acts at once. Restating that as a suffix leaves both
+# halves in one schema, and a contradiction there does not resolve as the newer
+# half winning, so these replace the chat text outright. Parameters are still
+# derived.
+_MCP_DESCRIPTIONS: dict[str, str] = {
+    "create_dashboard": (
+        "Create a whole new dashboard, with its own sidebar entry, immediately. "
+        "THIS is the tool for 'create a dashboard' / 'make me a new dashboard' — do "
+        "not add a page to an existing dashboard instead. The new dashboard has no "
+        "pages: give it its first one straight away with selora_add_dashboard_view, "
+        "passing the cards, rather than asking the user to. Use "
+        "selora_add_dashboard_view alone for a page on a dashboard that already "
+        "exists."
+    ),
+    "delete_dashboard": (
+        "Delete a whole dashboard and everything on it. This runs IMMEDIATELY and "
+        "cannot be undone, and the result names how many views and cards went with "
+        "it — confirm with the user yourself before calling it. The default "
+        "dashboard cannot be deleted and a YAML dashboard has to be removed from "
+        "configuration.yaml. To remove one PAGE rather than the whole dashboard, use "
+        "selora_remove_dashboard_view."
+    ),
 }
 
 
@@ -6670,7 +6766,9 @@ def _mcp_tool_from_chat_tool(mcp_name: str, chat_name: str) -> MCPTool:
 
     definition = TOOL_MAP[chat_name].to_anthropic()
     description = definition["description"]
-    if chat_name in _DELETE_TOOLS or chat_name in _DESTRUCTIVE_TOOLS:
+    if chat_name in _MCP_DESCRIPTIONS:
+        description = _MCP_DESCRIPTIONS[chat_name]
+    elif chat_name in _DELETE_TOOLS or chat_name in _DESTRUCTIVE_TOOLS:
         description = (
             f"{description} NOTE: any confirmation card described above is the "
             f"chat surface. Over MCP this runs IMMEDIATELY and cannot be undone — "
