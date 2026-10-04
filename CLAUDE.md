@@ -194,6 +194,7 @@ because the obvious implementation shipped and broke something quietly.
 - `blueprints.md` — blueprint reads and blueprint-backed automations.
 - `registry-tools.md` — areas, floors, entities, scripts, labels, categories,
   diagnostics.
+- `mcp-service-calls.md` — any service over MCP, gated by risk and `confirmed`.
 - `telemetry.md` — anonymous telemetry, adding a counter.
 - `alexa-credential.md` — the OS-delivered Alexa voice credential.
 - `selora-local-prompts.md` — the bundled Selora AI Local prompts are pinned
