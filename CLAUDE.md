@@ -148,7 +148,7 @@ lowercases and strips the region. The panel reads `translations/en.json`, not
 
 ## Testing
 
-`pytest tests/` (setup in `CONTRIBUTING.md`; the PHCC pin `<0.13.358` matters)
+`pytest tests/` (setup in `CONTRIBUTING.md`; the PHCC pin `<0.13.368` matters — it tracks the latest stable core)
 and `npm test` in `frontend/`. Tests are one file per module or feature.
 
 **`tests/chat_harness.py`** drives `selora_ai/chat` and `selora_ai/chat_stream`
