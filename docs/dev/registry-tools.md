@@ -23,6 +23,13 @@ the model stops reciting Settings click-paths.
   Pinning would strand the entity in the old room next time the device moves. The
   result reports `entities_assigned` and `entities_now_inheriting` separately so a
   blank `area_id` read back is not taken as failure.
+- **From HA 2026.10 an entity with no name of its own cannot have an area of its
+  own** — the device's main entity takes the device's area, and the registry
+  raises `ValueError` on any user edit of `area_id` or `name` that would leave
+  one. `async_assign_area` reports it per entity in `failed` (naming the device
+  to move) so the rest of the call still lands; `async_update_entity` returns it
+  as an error. Uncaught, it was "Tool execution failed" with devices already
+  moved.
 - **`AreaEntry` exposes `.id`, not `.area_id`** (`FloorEntry` has `.floor_id`,
   entity/device entries `.area_id`). Getting it wrong is an `AttributeError`
   surfacing as "Tool execution failed".

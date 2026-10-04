@@ -53,10 +53,15 @@ def _to_field_list(schema: vol.Schema) -> Any:
     serializer answers "unsupported" with ITS library's sentinel, which the
     other library does not recognise and returns in place of the field list —
     so the serializer has to be the one ``cv`` itself imports, not whichever
-    happens to be installed. And ``voluptuous_serialize`` is imported only on a
-    core that still uses it, since a 2026.9 install need not have it at all.
+    happens to be installed. 2026.9 imports ``to_field_list`` into ``cv``;
+    2026.10 imports the ``probatio`` module instead. And
+    ``voluptuous_serialize`` is imported only on a core that still uses it,
+    since a 2026.9+ install need not have it at all.
     """
-    if (to_field_list := getattr(cv, "to_field_list", None)) is not None:
+    to_field_list = getattr(cv, "to_field_list", None) or getattr(
+        getattr(cv, "probatio", None), "to_field_list", None
+    )
+    if to_field_list is not None:
         return to_field_list(schema, custom_serializer=cv.custom_serializer)
     import voluptuous_serialize  # noqa: PLC0415
 

@@ -269,7 +269,10 @@ async def test_assign_clears_the_override_when_the_device_already_matches(
     dev_reg.async_update_device(device.id, area_id=area.id)
 
     ent_reg = er.async_get(registry_home)
-    ent_reg.async_update_entity("light.hallway_lamp", area_id=area.id)
+    # A name of its own: from Home Assistant 2026.10 an entity without one
+    # cannot hold an area override at all, so the stale override this test
+    # clears can only exist on a named entity.
+    ent_reg.async_update_entity("light.hallway_lamp", name="Reading light", area_id=area.id)
 
     result = await _make_executor(registry_home).execute(
         "assign_area", {"area": "Living Room", "entity_ids": ["light.hallway_lamp"]}
@@ -1180,3 +1183,61 @@ async def test_an_ordinary_rename_still_succeeds(registry_home: HomeAssistant) -
         registry_home, entity_id="light.floor_lamp", new_entity_id="light.reading_lamp"
     )
     assert result["entity_id"] == "light.reading_lamp"
+
+
+# ── Home Assistant refusing an entity's own area (2026.10+) ──────────────────
+
+_NO_OWN_AREA = (
+    "An entity without a name of its own cannot have an area of its own, "
+    "set the area on its device instead"
+)
+
+
+def _refuse_entity_area(monkeypatch: pytest.MonkeyPatch, registry: er.EntityRegistry) -> None:
+    """Make the registry refuse an area on an entity, as 2026.10 does for a
+    device's main entity — so the path is tested on every core."""
+    real = registry.async_update_entity
+
+    def _update(entity_id: str, **changes: object) -> er.RegistryEntry:
+        if changes.get("area_id") is not None:
+            raise ValueError(_NO_OWN_AREA)
+        return real(entity_id, **changes)
+
+    monkeypatch.setattr(registry, "async_update_entity", _update)
+
+
+async def test_an_entity_that_takes_its_devices_area_is_reported_not_crashed(
+    registry_home: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A device's main entity cannot have an area of its own from 2026.10. The
+    rest of the call still lands, and the refusal names the device to move."""
+    dev_reg = dr.async_get(registry_home)
+    device = device_entries(dev_reg)[0]
+    _refuse_entity_area(monkeypatch, er.async_get(registry_home))
+
+    result = await _make_executor(registry_home).execute(
+        "assign_area", {"area": "Bedroom", "entity_ids": ["light.hallway_lamp"]}
+    )
+
+    (failure,) = result["failed"]
+    assert failure["entity_id"] == "light.hallway_lamp"
+    assert "cannot have an area of its own" in failure["reason"]
+    assert device.id in failure["reason"]
+    assert result["entities_assigned"] == []
+
+
+async def test_a_refused_entity_change_is_an_error_not_a_crash(
+    registry_home: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = er.async_get(registry_home)
+
+    def _refuse(*_args: object, **_changes: object) -> er.RegistryEntry:
+        raise ValueError(_NO_OWN_AREA)
+
+    monkeypatch.setattr(registry, "async_update_entity", _refuse)
+
+    result = await rm.async_update_entity(
+        registry_home, entity_id="light.hallway_lamp", new_name="Hallway Lamp"
+    )
+
+    assert "Home Assistant refused the change" in result["error"]
