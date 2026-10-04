@@ -138,6 +138,12 @@ the model stops reciting Settings click-paths.
   second step is reported, not guessed at. A template alarm panel with no state
   template is optimistic — it holds and restores its own state — and offers a
   mode only when it has an action for it, which the tool description says.
+  - **The form is serialized with the library `cv` itself uses**
+    (`_to_field_list`): `cv.to_field_list` (probatio) from HA 2026.9, else
+    `voluptuous_serialize.convert`, imported lazily. 2026.9 dropped
+    `voluptuous-serialize` from its requirements, and `cv.custom_serializer`
+    answers "unsupported" with its own library's sentinel, which the other
+    library returns in place of the field list.
 - **MCP creates both kinds on the spot** (`selora_create_helper`). A storage
   helper goes through `async_create_helper`, which runs the proposal's
   validation (a name in use included) and then the collection recovered from
