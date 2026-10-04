@@ -2738,6 +2738,7 @@ _DELETE_TOOLS = frozenset(
         "delete_category",
         "delete_script",
         "delete_label",
+        "delete_helper",
     }
 )
 
@@ -2751,7 +2752,7 @@ _DELETE_TOOLS = frozenset(
 # model's prose, and the synthesizer then drops the descriptor — leaving the
 # user an empty reply and no card.
 _DELETE_KINDS = frozenset(
-    {"automation", "scene", "group", "area", "floor", "category", "script", "label"}
+    {"automation", "scene", "group", "area", "floor", "category", "script", "label", "helper"}
 )
 
 

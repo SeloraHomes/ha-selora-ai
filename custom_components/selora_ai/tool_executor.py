@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 import json
 import logging
-from typing import Any
+from typing import Any, Final
 
 from homeassistant.core import HomeAssistant
 
@@ -141,6 +141,8 @@ class ToolExecutor:
             "get_dashboard_card": self._get_dashboard_card,
             "create_dashboard": self._create_dashboard,
             "create_helper": self._create_helper,
+            "update_helper": self._update_helper,
+            "delete_helper": self._delete_helper,
             "delete_dashboard": self._delete_dashboard,
             "update_dashboard": self._update_dashboard,
             "add_dashboard_view": self._add_dashboard_view,
@@ -681,6 +683,17 @@ class ToolExecutor:
             fields if isinstance(fields, dict) and fields else None,
         )
 
+    async def _update_helper(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .helper_manager import async_update_helper
+
+        return await async_update_helper(self._hass, **update_helper_kwargs(arguments))
+
+    async def _delete_helper(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Resolve a helper deletion and surface a confirmation card."""
+        from .helper_manager import async_preview_helper_delete
+
+        return await async_preview_helper_delete(self._hass, str(arguments.get("entity_id", "")))
+
     async def _delete_dashboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Propose deleting a dashboard — the panel performs it, as with create."""
         from .dashboard_manager import async_propose_dashboard_delete
@@ -885,6 +898,26 @@ def update_dashboard_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def update_helper_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``update_helper``'s arguments, coerced once for both surfaces.
+
+    The settings share ``create_helper_fields`` with creation; the domain it
+    needs (a counter spells ``min`` as ``minimum``) is the entity_id's.
+    """
+    entity_id = str(arguments.get("entity_id", "")).strip().lower()
+    domain = entity_id.split(".", 1)[0]
+    clear = _opt_list(arguments.get("clear"))
+    # `clear` names settings by the same parameter names, so it is translated
+    # the same way — or `clear: ["max"]` on a counter is an unknown setting.
+    if clear is not None and domain == "counter":
+        clear = [_COUNTER_SPELLING.get(key, key) for key in clear]
+    return {
+        "entity_id": entity_id,
+        "fields": create_helper_fields({**arguments, "domain": domain}),
+        "clear": clear,
+    }
+
+
 def create_helper_fields(arguments: dict[str, Any]) -> dict[str, Any]:
     """The tool's arguments in the helper component's own vocabulary.
 
@@ -926,11 +959,14 @@ def create_helper_fields(arguments: dict[str, Any]) -> dict[str, Any]:
             else:
                 fields[flag] = coerced
     if domain == "counter":
-        if "min" in fields:
-            fields["minimum"] = fields.pop("min")
-        if "max" in fields:
-            fields["maximum"] = fields.pop("max")
+        for alias, stored in _COUNTER_SPELLING.items():
+            if alias in fields:
+                fields[stored] = fields.pop(alias)
     return fields
+
+
+# The tool's one pair of bound parameters, as a counter stores them.
+_COUNTER_SPELLING: Final = {"min": "minimum", "max": "maximum"}
 
 
 def _as_index(value: Any) -> int:

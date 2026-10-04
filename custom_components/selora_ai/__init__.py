@@ -5199,6 +5199,21 @@ async def _resolve_delete_approval(
                     errors.append(f"{label}: now a different label; not deleted")
                     continue
                 res = async_delete_label(hass, target_id)
+            elif kind == "helper":
+                # The entity_id is derived from the helper's name, so one deleted
+                # and recreated under that name answers to it; the content
+                # fingerprint is re-checked inside the delete, with no await
+                # between the check and the delete.
+                if not target_id:
+                    errors.append(f"{label}: missing helper id; not deleted")
+                    continue
+                from .helper_manager import async_delete_helper  # noqa: PLC0415
+
+                res = await async_delete_helper(
+                    hass,
+                    target_id,
+                    expected_fingerprint=str(descriptor.get("fingerprint") or ""),
+                )
             else:
                 errors.append(f"{label or kind}: unknown delete kind")
                 continue

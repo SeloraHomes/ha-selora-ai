@@ -1890,7 +1890,7 @@ class TestDeleteApprovalCard:
                     "arguments": {},
                     "result": {
                         "requires_approval": True,
-                        "delete": {"kind": "helper", "target_id": "x", "entity_id": "y"},
+                        "delete": {"kind": "integration", "target_id": "x", "entity_id": "y"},
                     },
                 }
             ]
