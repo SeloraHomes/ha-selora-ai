@@ -37,8 +37,19 @@ to current core.
   descriptions REPLACE the chat ones (`_MCP_DESCRIPTIONS`): the chat text
   describes a Create button and a result that arrives later.
 
-Chat still defers to the panel: the server validates and proposes a closed
-intent; the panel performs it after the user taps; the panel reports back.
+- **Changing a dashboard's settings runs directly on BOTH surfaces**
+  (`update_dashboard` → `async_update_dashboard`): title, icon,
+  `show_in_sidebar`, `require_admin` — nothing is lost and each can be set back,
+  so no card. The url_path is not updatable (HA's update schema lacks it). It
+  needs a collection item: the default Overview has one only once HA has
+  migrated it to a `lovelace` entry; an unmigrated default and YAML dashboards
+  are refused with where to change them. A non-admin may not set
+  `require_admin` (it would hide the dashboard from them), and an omitted
+  setting is left alone — booleans stay `None` when absent.
+
+Creating and deleting in chat still defers to the panel: the server validates
+and proposes a closed intent; the panel performs it after the user taps; the
+panel reports back.
 
 - **In chat, panel sessions only, declared by the CALLER, not the model.**
   `panel_only` on the `ToolDef` withholds the schema unless

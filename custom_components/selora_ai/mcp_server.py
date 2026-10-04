@@ -390,6 +390,7 @@ TOOL_MOVE_DASHBOARD_CARD = "selora_move_dashboard_card"
 TOOL_GROUP_DASHBOARD_CARDS = "selora_group_dashboard_cards"
 TOOL_CREATE_DASHBOARD = "selora_create_dashboard"
 TOOL_DELETE_DASHBOARD = "selora_delete_dashboard"
+TOOL_UPDATE_DASHBOARD = "selora_update_dashboard"
 
 # Tools that require admin / write scope: mutating operations plus
 # eval_template, which exposes HA's full Jinja engine — broad state
@@ -448,6 +449,7 @@ _ADMIN_TOOLS = frozenset(
         TOOL_GROUP_DASHBOARD_CARDS,
         TOOL_CREATE_DASHBOARD,
         TOOL_DELETE_DASHBOARD,
+        TOOL_UPDATE_DASHBOARD,
         # Read-only, but admin-gated to match Home Assistant: it guards both
         # ``system_log/list`` and every ``trace/*`` command with
         # ``require_admin``. Logs carry exception text and configuration
@@ -1123,6 +1125,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_GROUP_DASHBOARD_CARDS: _tool_group_dashboard_cards,
         TOOL_CREATE_DASHBOARD: _tool_create_dashboard,
         TOOL_DELETE_DASHBOARD: _tool_delete_dashboard,
+        TOOL_UPDATE_DASHBOARD: _tool_update_dashboard,
     }
 
 
@@ -5700,6 +5703,14 @@ async def _tool_delete_dashboard(hass: HomeAssistant, arguments: dict[str, Any])
     return await async_delete_dashboard(hass, str(arguments.get("dashboard_target", "")))
 
 
+async def _tool_update_dashboard(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Change a dashboard's title, icon, sidebar visibility or admin-only flag."""
+    from .dashboard_manager import async_update_dashboard  # noqa: PLC0415
+    from .tool_executor import update_dashboard_kwargs  # noqa: PLC0415
+
+    return await async_update_dashboard(hass, **update_dashboard_kwargs(arguments))
+
+
 async def _preview_remove_dashboard_view(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
@@ -6699,6 +6710,7 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_GROUP_DASHBOARD_CARDS: "group_dashboard_cards",
     TOOL_CREATE_DASHBOARD: "create_dashboard",
     TOOL_DELETE_DASHBOARD: "delete_dashboard",
+    TOOL_UPDATE_DASHBOARD: "update_dashboard",
 }
 
 

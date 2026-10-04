@@ -142,6 +142,7 @@ class ToolExecutor:
             "create_dashboard": self._create_dashboard,
             "create_helper": self._create_helper,
             "delete_dashboard": self._delete_dashboard,
+            "update_dashboard": self._update_dashboard,
             "add_dashboard_view": self._add_dashboard_view,
             "update_dashboard_view": self._update_dashboard_view,
             "remove_dashboard_view": self._remove_dashboard_view,
@@ -688,6 +689,11 @@ class ToolExecutor:
             self._hass, str(arguments.get("dashboard_target", ""))
         )
 
+    async def _update_dashboard(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .dashboard_manager import async_update_dashboard
+
+        return await async_update_dashboard(self._hass, **update_dashboard_kwargs(arguments))
+
     async def _add_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .dashboard_manager import async_add_view
 
@@ -859,6 +865,23 @@ def move_card_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "expected_fingerprint": _opt_str(arguments.get("expected_fingerprint")),
         "expected_view_fingerprint": _opt_str(arguments.get("expected_view_fingerprint")),
         "expected_to_view_fingerprint": _opt_str(arguments.get("expected_to_view_fingerprint")),
+    }
+
+
+def update_dashboard_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``update_dashboard``'s arguments, coerced once for both surfaces.
+
+    Booleans go through ``_opt_bool`` — ``bool("false")`` is True, and some
+    providers send booleans as strings — and stay None when absent, which is
+    what "leave it as it is" means here.
+    """
+    return {
+        "target": _opt_str(arguments.get("dashboard_target")) or "",
+        "title": _opt_str(arguments.get("title")),
+        "icon": _opt_str(arguments.get("icon")),
+        "require_admin": _opt_bool(arguments.get("require_admin")),
+        "show_in_sidebar": _opt_bool(arguments.get("show_in_sidebar")),
+        "clear": _opt_list(arguments.get("clear")),
     }
 
 

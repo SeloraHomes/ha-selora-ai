@@ -1989,6 +1989,47 @@ TOOL_DELETE_DASHBOARD = ToolDef(
     panel_only=True,
 )
 
+TOOL_UPDATE_DASHBOARD = ToolDef(
+    name="update_dashboard",
+    description=(
+        "Change a whole dashboard's settings: its title (the name in the sidebar), "
+        "its sidebar icon, whether it shows in the sidebar, and whether it is "
+        "admin-only. Takes effect immediately; every setting can be changed back. "
+        "Its URL cannot be changed. To rename a PAGE on a dashboard, use "
+        "update_dashboard_view."
+    ),
+    params=(
+        ToolParam(
+            name="dashboard_target",
+            type="string",
+            description="url_path from list_dashboards. Omit for the default dashboard.",
+        ),
+        ToolParam(name="title", type="string", description="New dashboard title."),
+        ToolParam(name="icon", type="string", description="New mdi icon for the sidebar."),
+        ToolParam(
+            name="show_in_sidebar",
+            type="boolean",
+            description="Whether it appears in the sidebar.",
+        ),
+        ToolParam(
+            name="require_admin",
+            type="boolean",
+            description="Whether only administrators can see it.",
+        ),
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description=(
+                "Settings to REMOVE: only 'icon'. Use this rather than passing an "
+                "empty string, which is read as 'not set'."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_ADD_DASHBOARD_VIEW = ToolDef(
     name="add_dashboard_view",
     description=(
@@ -2377,6 +2418,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_DASHBOARD_CARD,
     TOOL_CREATE_DASHBOARD,
     TOOL_DELETE_DASHBOARD,
+    TOOL_UPDATE_DASHBOARD,
     TOOL_ADD_DASHBOARD_VIEW,
     TOOL_UPDATE_DASHBOARD_VIEW,
     TOOL_REMOVE_DASHBOARD_VIEW,
@@ -2453,6 +2495,7 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "insert_dashboard_card",
         "create_dashboard",
         "delete_dashboard",
+        "update_dashboard",
         "add_dashboard_view",
         "update_dashboard_view",
         "remove_dashboard_view",
@@ -2530,6 +2573,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "insert_dashboard_card",
         "create_dashboard",
         "delete_dashboard",
+        "update_dashboard",
         "add_dashboard_view",
         "update_dashboard_view",
         "remove_dashboard_view",

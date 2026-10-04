@@ -2345,3 +2345,127 @@ async def async_delete_dashboard(hass: HomeAssistant, target: str) -> dict[str, 
         "url_path": intent["url_path"],
         **{k: intent[k] for k in ("view_count", "card_count") if k in intent},
     }
+
+
+_UPDATABLE_CLEAR: Final = frozenset({"icon"})
+
+
+async def async_update_dashboard(
+    hass: HomeAssistant,
+    target: str,
+    *,
+    title: str | None = None,
+    icon: str | None = None,
+    require_admin: bool | None = None,
+    show_in_sidebar: bool | None = None,
+    clear: list[str] | None = None,
+) -> dict[str, Any]:
+    """Change a dashboard ENTRY's settings: title, icon, sidebar, admin-only.
+
+    Executes directly on both surfaces, like every other non-destructive edit:
+    nothing is lost, and each setting can be changed back. The url_path is not
+    a setting — Home Assistant's update schema does not take it.
+
+    Needs a collection item, which every UI-created dashboard has and so does
+    the default Overview once Home Assistant has migrated it to a ``lovelace``
+    entry. An unmigrated default has none and is refused with where to change
+    it; so is a YAML dashboard.
+    """
+    from homeassistant.components.lovelace.const import MODE_STORAGE  # noqa: PLC0415
+    from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
+    from homeassistant.helpers import config_validation as cv  # noqa: PLC0415
+    from homeassistant.helpers.collection import ItemNotFound  # noqa: PLC0415
+    import voluptuous as vol  # noqa: PLC0415
+
+    unknown = sorted(set(clear or ()) - _UPDATABLE_CLEAR)
+    if unknown:
+        return {"error": f"Only the icon can be cleared, not {', '.join(unknown)}."}
+    clear_icon = "icon" in (clear or ())
+    if clear_icon and icon:
+        return {"error": "Pass either a new icon or clear it, not both."}
+
+    updates: dict[str, Any] = {}
+    if title is not None:
+        clean_title = str(title).strip()
+        if not clean_title:
+            return {"error": "A dashboard title cannot be empty."}
+        updates["title"] = clean_title
+    if icon:
+        clean_icon = str(icon).strip()
+        try:
+            cv.icon(clean_icon)
+        except vol.Invalid:
+            return {
+                "error": (
+                    f"'{sanitize_untrusted_text(clean_icon, 40)}' is not a usable icon. "
+                    f"Home Assistant wants the 'prefix:name' form, like 'mdi:chef-hat'."
+                )
+            }
+        updates["icon"] = clean_icon
+    elif clear_icon:
+        updates["icon"] = None
+    if require_admin is not None:
+        # Same reason as at creation: a non-admin who makes it admin-only
+        # loses it the moment the change lands.
+        if require_admin and not CALLER_IS_ADMIN.get():
+            return {
+                "error": (
+                    "Only an administrator can make a dashboard admin-only: it would "
+                    "be hidden from you as soon as the change was saved."
+                )
+            }
+        updates["require_admin"] = bool(require_admin)
+    if show_in_sidebar is not None:
+        updates["show_in_sidebar"] = bool(show_in_sidebar)
+    if not updates:
+        return {
+            "error": (
+                "Nothing to change. Pass a title, icon, require_admin or "
+                "show_in_sidebar, or clear=['icon']."
+            )
+        }
+
+    target = str(target or "").strip()
+    config, error = _lovelace_dashboard(hass, target or None)
+    if error or config is None:
+        return {"error": error or "Dashboard not found."}
+    if getattr(config, "mode", None) != MODE_STORAGE:
+        return {
+            "error": (
+                f"'{sanitize_untrusted_text(target or 'lovelace', 60)}' is a YAML-mode "
+                f"dashboard. Its settings are in configuration.yaml, so they have to "
+                f"be changed there."
+            )
+        }
+    meta = getattr(config, "config", None)
+    dashboard_id = str(meta.get("id") or "") if isinstance(meta, dict) else ""
+    if not dashboard_id:
+        return {
+            "error": (
+                "This default dashboard has no settings of its own yet — Home "
+                "Assistant has not turned it into a regular dashboard entry, so its "
+                "title and icon cannot be changed here."
+            )
+        }
+
+    collection = _dashboards_collection(hass)
+    if collection is None:
+        return {"error": _NO_COLLECTION_NOTE.format(verb="changed")}
+    try:
+        item = await collection.async_update_item(dashboard_id, updates)
+    except ItemNotFound:
+        return {"error": "That dashboard no longer exists."}
+    except (vol.Invalid, HomeAssistantError, ValueError) as err:
+        return {"error": f"Home Assistant refused the change: {err}"}
+
+    # The stored strings are user-controlled — a title set in the UI can carry
+    # newlines or run long — so they leave bounded, as list_dashboards' do.
+    fields = _entry_fields(item)
+    return {
+        "status": "updated",
+        "url_path": sanitize_untrusted_text(str(item.get("url_path") or target), 60),
+        **fields,
+        "title": sanitize_untrusted_text(fields["title"], 60),
+        "icon": sanitize_untrusted_text(fields["icon"], 60),
+        "changed": sorted(updates),
+    }
