@@ -124,7 +124,11 @@ async def test_roster_flags_transient_ble_devices(hass: HomeAssistant) -> None:
 async def test_roster_merged_device_not_transient_if_any_real(hass: HomeAssistant) -> None:
     """A device merged across config entries is transient only when EVERY backing
     integration is transient. A real integration in the mix keeps it visible,
-    deterministically — regardless of which entry is primary or iteration order."""
+    deterministically — regardless of which entry is primary or iteration order.
+
+    Home Assistant 2026.9 gives a device a single config entry and migrates
+    merged ones, so a merged device exists only on older cores; there the
+    registry refuses the merge and the case has nothing to test."""
     ble = MockConfigEntry(domain="private_ble_device", entry_id="ble1", title="BLE")
     ble.add_to_hass(hass)
     hue = MockConfigEntry(domain="hue", entry_id="h1", title="Hue")
@@ -139,7 +143,12 @@ async def test_roster_merged_device_not_transient_if_any_real(hass: HomeAssistan
         identifiers={("hue", "lamp-1")},
         name="Living Room Lamp",
     )
-    merged = dev_reg.async_update_device(merged.id, add_config_entry_id="ble1")
+    try:
+        merged = dev_reg.async_update_device(merged.id, add_config_entry_id="ble1")
+    except RuntimeError as err:
+        if "single config entry" not in str(err):
+            raise
+        pytest.skip("this core gives a device a single config entry; nothing merges")
     # Device backed only by transient integrations stays transient.
     all_ble = dev_reg.async_get_or_create(
         config_entry_id="ble1",

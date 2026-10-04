@@ -21,10 +21,12 @@ variables:
 .ha-test-deps: &ha-test-deps
   - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
   # The plugin pins `homeassistant` exactly, so capping it is the only handle on
-  # the core version: 0.13.358 pins 2026.9.0b0, whose device_registry
-  # deprecations fail the suite. lefthook.yml carries the same cap.
-  # Lift once 2026.9 ships stable.
-  - pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.358" "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
+  # the core version. The cap tracks the LATEST STABLE core: 0.13.367 pins
+  # 2026.9.4, and 0.13.368 already pins 2026.10.0b0. Raise it to the release
+  # that pins the next stable core as soon as one ships — a stale cap is how
+  # 2026.9 went untested while hubs ran it. lefthook.yml and CONTRIBUTING.md
+  # carry the same cap.
+  - pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.368" "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
   # Pin hassil / home-assistant-intents to the exact versions the installed HA's
   # conversation component requires — unpinned pulls a newer build that dropped
   # FuzzyConfig, breaking test_conversation collection.

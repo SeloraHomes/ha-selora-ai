@@ -32,7 +32,7 @@ hass -c .
 ```bash
 uv venv .venv --python 3.14
 source .venv/bin/activate
-uv pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.358" "ruamel.yaml>=0.18" anthropic home-assistant-intents "rapidfuzz>=3.0"
+uv pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.368" "ruamel.yaml>=0.18" anthropic home-assistant-intents "rapidfuzz>=3.0"
 pytest tests/
 
 cd custom_components/selora_ai/frontend && npm ci && npm test
