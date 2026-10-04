@@ -132,15 +132,17 @@ def test_a_missing_non_device_is_named_without_a_device_dump() -> None:
 # ── Over MCP ────────────────────────────────────────────────────────────────
 
 
-def test_mcp_offers_the_setup_flow_half_only() -> None:
-    """MCP has no panel to show a Create button, so it is told only about the
-    half that works there — with the chat tool's own parameters."""
+def test_mcp_offers_both_kinds_with_the_chat_parameters() -> None:
+    """Both kinds are created on the spot over MCP, so it is told about both —
+    with the chat tool's own parameters, minus the resumption trigger."""
     from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.tool_registry import TOOL_CREATE_HELPER
 
     (tool,) = [t for t in mcp_server._TOOL_DEFINITIONS if t.name == "selora_create_helper"]
-    assert set(tool.inputSchema["properties"]) == {"domain", "type", "fields"}
+    chat = {p.name for p in TOOL_CREATE_HELPER.params}
+    assert set(tool.inputSchema["properties"]) == chat - {"remaining_intent"}
     assert "Create button" not in tool.description
-    assert "cannot be created from here" in tool.description
+    assert "input_boolean" in tool.description
     assert "selora_create_helper" in mcp_server._ADMIN_TOOLS
 
 
@@ -152,10 +154,3 @@ async def test_mcp_creates_a_template_helper(hass: HomeAssistant, template: None
         {"domain": "template", "type": "sensor", "fields": {"name": "Answer", "state": "{{ 42 }}"}},
     )
     assert result["status"] == "created", result
-
-
-async def test_mcp_refuses_a_storage_helper(hass: HomeAssistant) -> None:
-    from custom_components.selora_ai.mcp_server import _tool_create_helper
-
-    result = await _tool_create_helper(hass, {"domain": "input_boolean", "name": "Guest"})
-    assert "cannot be created over MCP" in result["error"]

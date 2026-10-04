@@ -56,6 +56,7 @@ from .helpers import (
     default_dashboard_key,
     is_auto_generated_dashboard,
     is_strategy_document,
+    registered_storage_collection,
     sanitize_untrusted_text,
 )
 
@@ -2201,41 +2202,16 @@ async def async_propose_dashboard(
 
 
 def _dashboards_collection(hass: HomeAssistant) -> Any | None:
-    """HA's ``DashboardsCollection``, recovered from its websocket create command.
+    """HA's ``DashboardsCollection``, or None when it cannot be reached.
 
-    lovelace keeps the collection as a local, but registers
-    ``lovelace/dashboards/create`` as a bound method of the
-    ``DashboardsCollectionWebSocket`` holding it, wrapped in
-    ``require_admin(async_response(...))`` — both ``functools.wraps``, so
-    ``inspect.unwrap`` reaches the method and ``__self__`` its owner. Calling
-    the collection runs HA's own create schema and listeners, exactly as the
-    websocket command does, minus the connection.
-
-    That layout is HA's, not a published API, so it is checked rather than
-    trusted: anything other than a real ``DashboardsCollection`` answers None,
-    and the caller reports the limitation instead of guessing.
-    ``tests/test_dashboard_entry.py`` pins it against the installed core.
+    See ``helpers.registered_storage_collection``; ``tests/test_dashboard_entry.py``
+    pins the layout against the installed core.
     """
-    import inspect  # noqa: PLC0415
-
     from homeassistant.components.lovelace.dashboard import (  # noqa: PLC0415
         DashboardsCollection,
     )
-    from homeassistant.components.websocket_api import (  # noqa: PLC0415
-        DOMAIN as WEBSOCKET_DOMAIN,
-    )
 
-    handlers = hass.data.get(WEBSOCKET_DOMAIN)
-    registered = handlers.get("lovelace/dashboards/create") if isinstance(handlers, dict) else None
-    if not registered:
-        return None
-    try:
-        handler = inspect.unwrap(registered[0])
-    except (TypeError, ValueError, IndexError):
-        return None
-    owner = getattr(handler, "__self__", None)
-    found = getattr(owner, "storage_collection", None)
-    return found if isinstance(found, DashboardsCollection) else None
+    return registered_storage_collection(hass, "lovelace/dashboards/create", DashboardsCollection)
 
 
 _NO_COLLECTION_NOTE: Final = (

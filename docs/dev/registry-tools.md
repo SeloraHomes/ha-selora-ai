@@ -87,10 +87,10 @@ the model stops reciting Settings click-paths.
 - **Traces are keyed `automation.<config id>`**, not by entity_id;
   `_resolve_trace_key` translates via the state's `id` attribute. A YAML
   automation with no `id` is never traced and gets that explanation.
-- **Storage-collection helpers are created by the PANEL** (`create_helper`,
+- **Storage-collection helpers are created by the PANEL in chat** (`create_helper`,
   `helper_manager.py`), as dashboards are. The `input_*`/`counter`/`timer`
-  collections are locals inside each component's `async_setup`, reachable only
-  through its admin-only `<domain>/create` websocket command, so the tool is
+  collections are locals inside each component's `async_setup`, published only
+  through its admin-only `<domain>/create` websocket command, so the chat tool is
   `panel_only` and proposes a `client_action` (`kind: "create_helper"`).
   - **Validated with the component's OWN create schema** (its collection's
     `CREATE_UPDATE_SCHEMA`; `SCHEMA` on input_number), so the Create button
@@ -120,11 +120,15 @@ the model stops reciting Settings click-paths.
   second step is reported, not guessed at. A template alarm panel with no state
   template is optimistic — it holds and restores its own state — and offers a
   mode only when it has an action for it, which the tool description says.
-- **MCP gets the setup-flow half only** (`selora_create_helper`). The storage
-  half hands the panel a Create button and MCP has no panel, so its definition
-  (`TOOL_CREATE_FLOW_HELPER`) describes only what works there, built from the
-  chat tool's own `domain`/`type`/`fields` params so the two cannot drift, and
-  its handler refuses a storage domain with where to create one instead.
+- **MCP creates both kinds on the spot** (`selora_create_helper`). A storage
+  helper goes through `async_create_helper`, which runs the proposal's
+  validation (a name in use included) and then the collection recovered from
+  `<domain>/create` by `helpers.registered_storage_collection` — the dashboards'
+  mechanism (`dashboards.md`), identical for all eight domains from 2025.1 on and
+  pinned per domain by `tests/test_mcp_storage_helpers.py`. The entity_id comes
+  from the entity registry by item id, since the collection suffixes on a clash.
+  Its definition (`TOOL_CREATE_HELPER_DIRECT`) takes the chat tool's params minus
+  `remaining_intent`, so the two cannot drift, and says nothing of a Create button.
 - **An unknown entity that is not a device gets no device list.**
   `_humanise_unknown_entity_error` answers a mistyped light by listing the home's
   lights and locks; a missing alarm panel or helper is named plainly instead.
