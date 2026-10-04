@@ -535,6 +535,7 @@ class SeloraAIPanel extends LitElement {
 
       // MCP tokens
       _mcpTokens: { type: Array },
+      _mcpTools: { type: Array },
       _showCreateTokenDialog: { type: Boolean },
       _newTokenName: { type: String },
       _newTokenPermission: { type: String },
@@ -792,6 +793,7 @@ class SeloraAIPanel extends LitElement {
     this._revokingApprovalKey = null;
     // MCP tokens
     this._mcpTokens = [];
+    this._mcpTools = [];
     this._showCreateTokenDialog = false;
     this._newTokenName = "";
     this._newTokenPermission = "read_only";
@@ -1831,6 +1833,8 @@ class SeloraAIPanel extends LitElement {
         type: "selora_ai/list_mcp_tokens",
       });
       this._mcpTokens = result.tokens || [];
+      // The grantable tools come from the server, which owns the list.
+      this._mcpTools = result.tools || [];
     } catch (err) {
       console.error("Failed to load MCP tokens", err);
     }

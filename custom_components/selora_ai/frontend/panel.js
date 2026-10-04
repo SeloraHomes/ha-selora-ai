@@ -41070,53 +41070,17 @@ function renderSettings(host) {
     </div>
   `;
 }
-var MCP_TOOLS = [
-  { name: "selora_list_automations", label: "List automations", admin: false },
-  { name: "selora_get_automation", label: "Get automation", admin: false },
-  {
-    name: "selora_validate_automation",
-    label: "Validate automation",
-    admin: false,
-  },
-  {
-    name: "selora_create_automation",
-    label: "Create automation",
-    admin: true,
-  },
-  {
-    name: "selora_accept_automation",
-    label: "Accept automation",
-    admin: true,
-  },
-  {
-    name: "selora_delete_automation",
-    label: "Delete automation",
-    admin: true,
-  },
-  {
-    name: "selora_get_home_snapshot",
-    label: "Get home snapshot",
-    admin: false,
-  },
-  { name: "selora_chat", label: "Chat", admin: true },
-  { name: "selora_list_sessions", label: "List sessions", admin: false },
-  { name: "selora_list_patterns", label: "List patterns", admin: false },
-  { name: "selora_get_pattern", label: "Get pattern", admin: false },
-  { name: "selora_list_suggestions", label: "List suggestions", admin: false },
-  {
-    name: "selora_accept_suggestion",
-    label: "Accept suggestion",
-    admin: true,
-  },
-  {
-    name: "selora_dismiss_suggestion",
-    label: "Dismiss suggestion",
-    admin: true,
-  },
-  { name: "selora_trigger_scan", label: "Trigger scan", admin: true },
-  { name: "selora_list_devices", label: "List devices", admin: false },
-  { name: "selora_get_device", label: "Get device", admin: false },
-];
+function mcpToolLabel(name) {
+  const words = String(name || "")
+    .replace(/^selora_/, "")
+    .replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+function _grantableTools(host) {
+  return [...(host._mcpTools || [])].sort((a3, b3) =>
+    mcpToolLabel(a3.name).localeCompare(mcpToolLabel(b3.name)),
+  );
+}
 function renderApprovalGrants(host) {
   const grants = host._approvalGrants || [];
   if (!grants.length) {
@@ -41359,7 +41323,7 @@ function renderCreateTokenDialog(host) {
                     )}</label
                   >
                   <div class="mcp-tool-checklist">
-                    ${MCP_TOOLS.map(
+                    ${_grantableTools(host).map(
                       (tool) => b2`
                         <label class="mcp-tool-check">
                           <input
@@ -41373,7 +41337,7 @@ function renderCreateTokenDialog(host) {
                               host.requestUpdate();
                             }}
                           />
-                          <span>${tool.label}</span>
+                          <span>${mcpToolLabel(tool.name)}</span>
                           ${
                             tool.admin
                               ? b2`<span
@@ -50872,7 +50836,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "1185af2e8535" : "";
+var PANEL_BUILD = true ? "2209d459cdf5" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -52621,6 +52585,7 @@ var SeloraAIPanel = class extends i4 {
       _submittingFeedback: { type: Boolean },
       // MCP tokens
       _mcpTokens: { type: Array },
+      _mcpTools: { type: Array },
       _showCreateTokenDialog: { type: Boolean },
       _newTokenName: { type: String },
       _newTokenPermission: { type: String },
@@ -52843,6 +52808,7 @@ var SeloraAIPanel = class extends i4 {
     this._approvalGrants = [];
     this._revokingApprovalKey = null;
     this._mcpTokens = [];
+    this._mcpTools = [];
     this._showCreateTokenDialog = false;
     this._newTokenName = "";
     this._newTokenPermission = "read_only";
@@ -53730,6 +53696,7 @@ var SeloraAIPanel = class extends i4 {
         type: "selora_ai/list_mcp_tokens",
       });
       this._mcpTokens = result.tokens || [];
+      this._mcpTools = result.tools || [];
     } catch (err) {
       console.error("Failed to load MCP tokens", err);
     }
