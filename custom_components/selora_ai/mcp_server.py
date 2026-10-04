@@ -393,6 +393,9 @@ TOOL_GROUP_DASHBOARD_CARDS = "selora_group_dashboard_cards"
 TOOL_CREATE_DASHBOARD = "selora_create_dashboard"
 TOOL_DELETE_DASHBOARD = "selora_delete_dashboard"
 TOOL_UPDATE_DASHBOARD = "selora_update_dashboard"
+TOOL_LIST_DASHBOARD_RESOURCES = "selora_list_dashboard_resources"
+TOOL_ADD_DASHBOARD_RESOURCE = "selora_add_dashboard_resource"
+TOOL_REMOVE_DASHBOARD_RESOURCE = "selora_remove_dashboard_resource"
 
 # Tools that require admin / write scope: mutating operations plus
 # eval_template, which exposes HA's full Jinja engine — broad state
@@ -454,6 +457,8 @@ _ADMIN_TOOLS = frozenset(
         TOOL_CREATE_DASHBOARD,
         TOOL_DELETE_DASHBOARD,
         TOOL_UPDATE_DASHBOARD,
+        TOOL_ADD_DASHBOARD_RESOURCE,
+        TOOL_REMOVE_DASHBOARD_RESOURCE,
         # Read-only, but admin-gated to match Home Assistant: it guards both
         # ``system_log/list`` and every ``trace/*`` command with
         # ``require_admin``. Logs carry exception text and configuration
@@ -499,6 +504,7 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_FLOORS,
         TOOL_LIST_DASHBOARDS,
         TOOL_GET_DASHBOARD_CARD,
+        TOOL_LIST_DASHBOARD_RESOURCES,
     }
 )
 
@@ -1132,6 +1138,9 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_CREATE_DASHBOARD: _tool_create_dashboard,
         TOOL_DELETE_DASHBOARD: _tool_delete_dashboard,
         TOOL_UPDATE_DASHBOARD: _tool_update_dashboard,
+        TOOL_LIST_DASHBOARD_RESOURCES: _tool_list_dashboard_resources,
+        TOOL_ADD_DASHBOARD_RESOURCE: _tool_add_dashboard_resource,
+        TOOL_REMOVE_DASHBOARD_RESOURCE: _tool_remove_dashboard_resource,
     }
 
 
@@ -5846,6 +5855,39 @@ async def _tool_update_dashboard(hass: HomeAssistant, arguments: dict[str, Any])
     return await async_update_dashboard(hass, **update_dashboard_kwargs(arguments))
 
 
+async def _tool_list_dashboard_resources(
+    hass: HomeAssistant, _arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """The JS and CSS resources custom cards load — see ``dashboard_resources``."""
+    from .dashboard_resources import async_list_resources  # noqa: PLC0415
+
+    return await async_list_resources(hass)
+
+
+async def _tool_add_dashboard_resource(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Register a resource; an external URL only once confirmed."""
+    from .dashboard_resources import async_add_resource  # noqa: PLC0415
+    from .tool_executor import _opt_bool  # noqa: PLC0415
+
+    return await async_add_resource(
+        hass,
+        str(arguments.get("url", "")),
+        str(arguments.get("type") or "module"),
+        confirmed=_opt_bool(arguments.get("confirmed")) is True,
+    )
+
+
+async def _tool_remove_dashboard_resource(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Unregister a resource outright (MCP clients run their own confirmation)."""
+    from .dashboard_resources import async_remove_resource  # noqa: PLC0415
+
+    return await async_remove_resource(hass, str(arguments.get("resource", "")))
+
+
 async def _preview_remove_dashboard_view(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
@@ -6979,6 +7021,77 @@ def _create_helper_definition() -> MCPTool:
 
 
 _TOOL_DEFINITIONS.append(_create_helper_definition())
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_LIST_DASHBOARD_RESOURCES,
+            description=(
+                "List the dashboard resources: the JavaScript and CSS files custom "
+                "cards (custom:button-card, card-mod, mushroom …) need loaded before "
+                "they render. A custom: card whose resource is missing shows 'Custom "
+                "element doesn't exist'. editable false means they are defined in YAML."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        MCPTool(
+            name=TOOL_ADD_DASHBOARD_RESOURCE,
+            description=(
+                "Register a dashboard resource so a custom card can load. A path on "
+                "this Home Assistant (a HACS card at /hacsfiles/<card>/<card>.js, or a "
+                "file in /local/) is added at once. An external https:// URL loads "
+                "third-party code into every user's browser, so it comes back with "
+                "requires_confirmation and adds nothing: ask the user, and only once "
+                "they agree call again with confirmed=true. The page must be reloaded "
+                "for a new resource to load. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": (
+                            "'/hacsfiles/button-card/button-card.js', '/local/x.js', "
+                            "or an https:// URL."
+                        ),
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": ["module", "js", "css"],
+                        "description": "module (default, for nearly every card), js or css.",
+                    },
+                    "confirmed": {
+                        "type": "boolean",
+                        "description": (
+                            "Set ONLY after the user agreed to an external URL that "
+                            "came back with requires_confirmation."
+                        ),
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_REMOVE_DASHBOARD_RESOURCE,
+            description=(
+                "Unregister a dashboard resource. Every card that uses it stops "
+                "rendering. Runs IMMEDIATELY — confirm with the user first. Resources "
+                "a recipe installed are removed by removing the recipe. Requires "
+                "admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["resource"],
+                "properties": {
+                    "resource": {
+                        "type": "string",
+                        "description": "The resource's id or URL, from list_dashboard_resources.",
+                    },
+                },
+            },
+        ),
+    ]
+)
 
 
 def _dashboard_write_tools() -> frozenset[str]:
