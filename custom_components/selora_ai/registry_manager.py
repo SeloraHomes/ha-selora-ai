@@ -603,7 +603,21 @@ async def async_assign_area(
         if registry_entry.area_id == area_entry.id:
             unchanged.append(entity_id)
             continue
-        ent_reg.async_update_entity(entity_id, area_id=area_entry.id)
+        try:
+            ent_reg.async_update_entity(entity_id, area_id=area_entry.id)
+        except ValueError as exc:
+            # Home Assistant 2026.10: an entity with no name of its own (the
+            # device's main entity) takes its device's area and cannot have one
+            # of its own. Reported per entity, so devices already moved in this
+            # call and the other entities still land.
+            reason = sanitize_untrusted_text(str(exc), 200)
+            if device is not None:
+                reason = (
+                    f"{reason}. It is its device's main entity — move the device "
+                    f"(device_ids: ['{device.id}']) to move it."
+                )
+            failed.append({"entity_id": entity_id, "reason": reason})
+            continue
         assigned.append(entity_id)
 
     # Counted after the entity loop, not at move time: an entity named in the
@@ -803,7 +817,18 @@ async def async_update_entity(
         }
 
     if changes:
-        entry = ent_reg.async_update_entity(entity_id, **changes)
+        try:
+            entry = ent_reg.async_update_entity(entity_id, **changes)
+        except ValueError as exc:
+            # Home Assistant refuses some combinations outright — from 2026.10,
+            # an entity left without a name of its own cannot keep an area of
+            # its own. Nothing was written.
+            return {
+                "error": (
+                    f"Home Assistant refused the change to '{entity_id}': "
+                    f"{sanitize_untrusted_text(str(exc), 200)}"
+                )
+            }
 
     result: dict[str, Any] = {
         "status": "updated",
