@@ -149,6 +149,31 @@ panel reports back.
   - The row label is composed in the frontend from the descriptor's parts, not
     its English server-built `label`.
 
+## Resources (custom card JS)
+
+`dashboard_resources.py` backs `selora_list/add/remove_dashboard_resource` (MCP
+only). A resource is code every user's browser runs with their HA session, so
+**origin decides the gate**: a same-origin path (`/hacsfiles/…`, `/local/…`) is
+added directly; an external `https://` URL needs `confirmed: true` (honouring the
+`approval_required` opt-out, as service calls do); `http:`, `data:`,
+`javascript:` and protocol-relative `//host` are refused.
+
+- **A local path must be one a browser will not reinterpret** (`_LOCAL_PATH_RE`):
+  plain path characters only, no `.`/`..` segments, `//`, `%` or backslash. A
+  browser reads `\` as `/` (`/\evil.example/x.js` loads from evil.example) and
+  `%2e` as `.`, so anything looser lets an external or recipe-owned URL pass as
+  an ordinary local one — the string checked must be the string loaded.
+- **Duplicates are refused by bare URL** (query/fragment stripped — HACS appends
+  `?hacstag=`): HA does not deduplicate, and a module loaded twice throws on its
+  second `customElements.define`. Adds share `recipes/resources._INSTALL_LOCK`.
+- **`/selora_ai_resources/` belongs to recipes** (downloaded, verified, pruned by
+  `recipes/resources.py`): listed with `managed_by_recipe`, never added or
+  removed here.
+- **YAML-mode resources are read-only** (`ResourceYAMLCollection`), reported as
+  `editable: false` with where to edit them.
+- Read through `_registered_items`, which calls `async_get_info` first — an
+  unloaded storage collection reads as empty.
+
 ## Tool descriptions
 
 - **`add_dashboard_view` must neither claim to create a dashboard nor deny that
