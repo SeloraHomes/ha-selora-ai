@@ -8,14 +8,13 @@ What is reachable, and what is not:
 * **A dashboard's config is read/write.** ``LovelaceStorage.async_load`` /
   ``async_save`` round-trip the whole document, so views and cards are fully
   editable. Everything here works on that document.
-* **A dashboard ENTRY is not creatable FROM HERE.** ``DashboardsCollection`` —
-  which owns adding and deleting dashboards — is a local inside
-  ``lovelace.async_setup``, published only to the admin-only
-  ``lovelace/dashboards/*`` websocket commands and never to ``hass.data``. Only
-  an authenticated websocket client can reach it, so creating and deleting a
-  dashboard is proposed here and performed by the panel after the user confirms
-  (interactive panel sessions only — not MCP, not unattended runs). See
-  ``docs/dev/dashboards.md``.
+* **A dashboard ENTRY is reachable only through its websocket commands.**
+  ``DashboardsCollection`` — which owns adding and deleting dashboards — is a
+  local inside ``lovelace.async_setup``, never put in ``hass.data``. The
+  ``lovelace/dashboards/*`` command handlers it registers are bound to it, so
+  ``_dashboards_collection`` recovers it from the websocket command registry.
+  MCP creates and deletes through that directly; chat proposes and the panel
+  performs it after the user confirms. See ``docs/dev/dashboards.md``.
 
 Three properties of the document shape drive most of the code here:
 
@@ -38,6 +37,7 @@ Three properties of the document shape drive most of the code here:
 from __future__ import annotations
 
 from collections import Counter
+import contextlib
 import copy
 import hashlib
 import json
@@ -1892,14 +1892,15 @@ async def async_group_cards(
     }
 
 
-# ── Client-executed dashboard creation ───────────────────────────────────────
+# ── Dashboard creation and deletion ──────────────────────────────────────────
 #
 # Creating a dashboard ENTRY needs `DashboardsCollection`, which lovelace keeps
 # as a local and exposes only through its admin-only `lovelace/dashboards/*`
-# websocket commands. We cannot reach it; the PANEL can, because it is already
-# an authenticated websocket client.
+# websocket commands. `_dashboards_collection` recovers it from those commands'
+# handlers, and MCP — which has no panel to defer to — calls it directly. Chat
+# still defers to the panel, under the user's own credentials, after a tap.
 #
-# So this half only ever PROPOSES. It validates against HA's own create schema,
+# The proposal half only ever PROPOSES. It validates against HA's own create schema,
 # returns a closed intent, and the panel builds the fixed websocket call from
 # it. The model never authors a websocket payload — if it could, it could issue
 # any admin command through the user's session.
@@ -2001,6 +2002,16 @@ async def async_initialize_created_dashboard(hass: HomeAssistant, url_path: str)
             _LOGGER.warning("Could not initialize dashboard %s: %s", url_path, exc)
             return False
     return True
+
+
+def _entry_fields(meta: dict[str, Any]) -> dict[str, Any]:
+    """The four fields a dashboard entry is told apart by, normalised."""
+    return {
+        "title": str(meta.get("title") or ""),
+        "icon": str(meta.get("icon") or ""),
+        "require_admin": bool(meta.get("require_admin")),
+        "show_in_sidebar": bool(meta.get("show_in_sidebar", True)),
+    }
 
 
 async def async_propose_dashboard_delete(hass: HomeAssistant, target: str) -> dict[str, Any]:
@@ -2111,12 +2122,7 @@ async def async_propose_dashboard_delete(hass: HomeAssistant, target: str) -> di
             # Raw, not `title`: that one is sanitized and truncated for the
             # card label, and comparing it against what HA stores would report
             # a mismatch for any dashboard named at length.
-            "expected": {
-                "title": str(meta.get("title") or ""),
-                "icon": str(meta.get("icon") or ""),
-                "require_admin": bool(meta.get("require_admin")),
-                "show_in_sidebar": bool(meta.get("show_in_sidebar", True)),
-            },
+            "expected": _entry_fields(meta),
         },
     }
 
@@ -2191,4 +2197,175 @@ async def async_propose_dashboard(
             "allow_single_word": "-" not in slug,
             "label": f"Create the {sanitize_untrusted_text(title, 60)} dashboard at /{slug}",
         },
+    }
+
+
+def _dashboards_collection(hass: HomeAssistant) -> Any | None:
+    """HA's ``DashboardsCollection``, recovered from its websocket create command.
+
+    lovelace keeps the collection as a local, but registers
+    ``lovelace/dashboards/create`` as a bound method of the
+    ``DashboardsCollectionWebSocket`` holding it, wrapped in
+    ``require_admin(async_response(...))`` — both ``functools.wraps``, so
+    ``inspect.unwrap`` reaches the method and ``__self__`` its owner. Calling
+    the collection runs HA's own create schema and listeners, exactly as the
+    websocket command does, minus the connection.
+
+    That layout is HA's, not a published API, so it is checked rather than
+    trusted: anything other than a real ``DashboardsCollection`` answers None,
+    and the caller reports the limitation instead of guessing.
+    ``tests/test_dashboard_entry.py`` pins it against the installed core.
+    """
+    import inspect  # noqa: PLC0415
+
+    from homeassistant.components.lovelace.dashboard import (  # noqa: PLC0415
+        DashboardsCollection,
+    )
+    from homeassistant.components.websocket_api import (  # noqa: PLC0415
+        DOMAIN as WEBSOCKET_DOMAIN,
+    )
+
+    handlers = hass.data.get(WEBSOCKET_DOMAIN)
+    registered = handlers.get("lovelace/dashboards/create") if isinstance(handlers, dict) else None
+    if not registered:
+        return None
+    try:
+        handler = inspect.unwrap(registered[0])
+    except (TypeError, ValueError, IndexError):
+        return None
+    owner = getattr(handler, "__self__", None)
+    found = getattr(owner, "storage_collection", None)
+    return found if isinstance(found, DashboardsCollection) else None
+
+
+_NO_COLLECTION_NOTE: Final = (
+    "This Home Assistant version does not let Selora reach its dashboard list, so "
+    "the dashboard has to be {verb} in Settings > Dashboards."
+)
+
+
+async def async_create_dashboard(
+    hass: HomeAssistant,
+    *,
+    title: str,
+    url_path: str | None = None,
+    icon: str | None = None,
+    require_admin: bool = False,
+    show_in_sidebar: bool = True,
+) -> dict[str, Any]:
+    """Create a dashboard ENTRY, and give it a stored document to write to.
+
+    Validated by the same checks as the panel proposal, so both surfaces refuse
+    the same requests with the same words; the entry is then created through
+    HA's own collection. Without the seeded document every write to the new
+    dashboard is refused as auto-generated — see
+    `async_initialize_created_dashboard`.
+    """
+    from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
+    import voluptuous as vol  # noqa: PLC0415
+
+    # A write-scoped credential need not be an HA admin. An admin-only
+    # dashboard is hidden from such a caller the moment it exists, so it could
+    # neither be seeded nor filled — a dashboard created only to be lost.
+    if require_admin and not CALLER_IS_ADMIN.get():
+        return {
+            "error": (
+                "Only an administrator can create an admin-only dashboard: it would "
+                "be hidden from you as soon as it existed. Create it without "
+                "require_admin, or ask an administrator."
+            )
+        }
+
+    proposal = await async_propose_dashboard(
+        hass,
+        title=title,
+        url_path=url_path,
+        icon=icon,
+        require_admin=require_admin,
+        show_in_sidebar=show_in_sidebar,
+    )
+    if "error" in proposal:
+        return proposal
+    intent = proposal["client_action"]
+
+    collection = _dashboards_collection(hass)
+    if collection is None:
+        return {"error": _NO_COLLECTION_NOTE.format(verb="created")}
+
+    slug = intent["url_path"]
+    data: dict[str, Any] = {
+        "title": intent["title"],
+        "url_path": slug,
+        "require_admin": intent["require_admin"],
+        "show_in_sidebar": intent["show_in_sidebar"],
+        "allow_single_word": intent["allow_single_word"],
+    }
+    if intent["icon"]:
+        data["icon"] = intent["icon"]
+    try:
+        await collection.async_create_item(data)
+    except (vol.Invalid, HomeAssistantError, ValueError) as err:
+        return {"error": f"Home Assistant refused the dashboard: {err}"}
+
+    seeded = await async_initialize_created_dashboard(hass, slug)
+    return {
+        "status": "created",
+        "title": intent["title"],
+        "url_path": slug,
+        "url": f"/{slug}",
+        # Without a stored document every write is refused as auto-generated,
+        # so promising add_dashboard_view would send the caller into a refusal.
+        "note": (
+            "The dashboard exists and has no pages yet. Give it its first one with "
+            "add_dashboard_view, passing the cards."
+            if seeded
+            else "The dashboard exists, but it could not be prepared for editing. "
+            "Open it, use the pencil and pick 'Take control', then it can be filled."
+        ),
+    }
+
+
+async def async_delete_dashboard(hass: HomeAssistant, target: str) -> dict[str, Any]:
+    """Delete a dashboard ENTRY and its document, on the spot.
+
+    The checks are the delete proposal's — never the default, never a YAML
+    dashboard, hidden ones are absent — and so is the identity: the collection
+    id the proposal resolved, which is what HA deletes by. Resolving it awaits
+    a document read, and a dashboard's id is derived from its url_path, so one
+    deleted and remade at that path meanwhile would answer to the same id. The stored item
+    is compared against the proposal's ``expected`` fields under the lock, as
+    the panel's ``matchesProposal`` does before its delete.
+    """
+    from homeassistant.helpers.collection import ItemNotFound  # noqa: PLC0415
+
+    proposal = await async_propose_dashboard_delete(hass, target)
+    if "error" in proposal:
+        return proposal
+    intent = proposal["client_action"]
+
+    dashboard_id = intent["dashboard_id"]
+    if not dashboard_id:
+        return {"error": _NO_COLLECTION_NOTE.format(verb="deleted")}
+    collection = _dashboards_collection(hass)
+    if collection is None:
+        return {"error": _NO_COLLECTION_NOTE.format(verb="deleted")}
+
+    async with DASHBOARD_LOCK:
+        item = collection.data.get(dashboard_id)
+        if item is not None and _entry_fields(item) != intent["expected"]:
+            return {
+                "error": (
+                    "That dashboard changed while it was being read. Check it with "
+                    "list_dashboards and retry."
+                )
+            }
+        # Gone between the read and the delete: what was asked for is true.
+        with contextlib.suppress(ItemNotFound):
+            await collection.async_delete_item(dashboard_id)
+
+    return {
+        "status": "deleted",
+        "title": intent["title"],
+        "url_path": intent["url_path"],
+        **{k: intent[k] for k in ("view_count", "card_count") if k in intent},
     }

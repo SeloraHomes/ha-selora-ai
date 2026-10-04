@@ -8,20 +8,44 @@
 `delete_dashboard`. It is separate from `recipes/dashboard.py` (the recipe install
 stage) and reuses only its `_view_card_lists`.
 
-## Creating and deleting dashboards: the panel does it
+## Creating and deleting dashboards
 
-A dashboard ENTRY cannot be created or deleted **in-process**:
-`DashboardsCollection` is a local inside `lovelace.async_setup`, published only to
-the admin-only `lovelace/dashboards/*` websocket commands, and core's only
-lovelace service is `reload_resources`. An authenticated websocket CLIENT can do
-it, and the panel is one (`hass.callWS`). So the server validates and proposes a
-closed intent; the panel performs it after the user taps; the panel reports back.
+`DashboardsCollection` is a local inside `lovelace.async_setup`, never put in
+`hass.data`; core's only lovelace service is `reload_resources`. But the
+`lovelace/dashboards/create` handler is a bound method of the
+`DashboardsCollectionWebSocket` holding it, wrapped in `require_admin` /
+`async_response` (both `functools.wraps`), so `_dashboards_collection` recovers it
+with `inspect.unwrap(handler).__self__.storage_collection` — identical from 2025.1
+to current core.
 
-- **Panel sessions only, declared by the CALLER, not the model.** `panel_only` on
-  the `ToolDef` withholds the schema unless `_get_tools_for_provider` gets
-  `panel_available=True`, which the three panel entry points pass (chat handler,
-  its correction round, streaming path). Default False. **`for_assist` is not the
-  same question** — an MCP `selora_chat` turn has no panel either. A fact the
+- **It is HA's layout, not an API**, so it is type-checked (`isinstance`
+  `DashboardsCollection`) and a miss reports "create it in Settings > Dashboards"
+  rather than raising. `tests/test_dashboard_entry.py` pins it against the
+  installed core.
+- **The collection id is not the url_path.** It is HA's `slugify` of it, with
+  underscores (`basement-pool` → `basement_pool`); look items up by `url_path`.
+- **MCP creates and deletes on the spot** (`selora_create_dashboard` /
+  `selora_delete_dashboard`), admin-gated, through `async_create_dashboard` /
+  `async_delete_dashboard`. Both run the proposal's validation first, so the two
+  surfaces refuse the same requests in the same words. Create seeds the document
+  (see below) and, when seeding fails, does not point the caller at
+  `add_dashboard_view`. **A non-admin may not create an admin-only dashboard** —
+  a write-scoped credential need not be an HA admin, and the dashboard would be
+  hidden from it on creation, unseedable and unfillable. Delete re-compares the stored item against the proposal's
+  `expected` under `DASHBOARD_LOCK`, since resolving awaits a read and a
+  dashboard remade at the same path answers to the same id. Their MCP
+  descriptions REPLACE the chat ones (`_MCP_DESCRIPTIONS`): the chat text
+  describes a Create button and a result that arrives later.
+
+Chat still defers to the panel: the server validates and proposes a closed
+intent; the panel performs it after the user taps; the panel reports back.
+
+- **In chat, panel sessions only, declared by the CALLER, not the model.**
+  `panel_only` on the `ToolDef` withholds the schema unless
+  `_get_tools_for_provider` gets `panel_available=True`, which the three panel
+  entry points pass (chat handler, its correction round, streaming path). Default
+  False. **`for_assist` is not the same question** — an MCP `selora_chat` turn has
+  no panel either. A fact the
   model cannot observe must not be a condition it applies: told "only in a panel
   chat", it refused users sitting in the panel. The tool's PRESENCE carries it and
   the description states availability flatly.
@@ -89,9 +113,9 @@ closed intent; the panel performs it after the user taps; the panel reports back
   A YAML dashboard is refused with where to change it.
   - **The descriptor carries an `expected` block** (raw stored title, icon,
     `require_admin`, `show_in_sidebar`), compared through the same
-    `matchesProposal` the create uses. A dashboard's id IS its `url_path`, so a
-    replacement made at that path between proposal and tap answers to every
-    handle. A card with no `expected` (older proposal) still deletes.
+    `matchesProposal` the create uses. A dashboard's id is derived from its
+    `url_path`, so a replacement made at that path between proposal and tap
+    answers to every handle. A card with no `expected` (older proposal) still deletes.
   - **The default is refused by IDENTITY, not name** — `/default` is a path a user
     can have. The target is resolved and compared against
     `_lovelace_dashboard(hass, None)`.
