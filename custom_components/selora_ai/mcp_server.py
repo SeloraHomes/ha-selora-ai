@@ -6981,6 +6981,16 @@ def _create_helper_definition() -> MCPTool:
 _TOOL_DEFINITIONS.append(_create_helper_definition())
 
 
+def mcp_tool_catalog() -> list[dict[str, Any]]:
+    """Every MCP tool a token can be granted, with whether it needs admin.
+
+    The settings panel builds its custom-token picker from this. It carried
+    its own list once, and every tool added after it could not be granted
+    to a custom token at all.
+    """
+    return [{"name": tool.name, "admin": tool.name in _ADMIN_TOOLS} for tool in _TOOL_DEFINITIONS]
+
+
 def _dashboard_write_tools() -> frozenset[str]:
     """Every MCP tool that mutates a dashboard.
 

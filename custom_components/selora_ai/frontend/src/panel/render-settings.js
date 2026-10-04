@@ -1648,53 +1648,22 @@ export function renderSettings(host) {
 
 // ── MCP Token helpers ───────────────────────────────────────────────────────
 
-const MCP_TOOLS = [
-  { name: "selora_list_automations", label: "List automations", admin: false },
-  { name: "selora_get_automation", label: "Get automation", admin: false },
-  {
-    name: "selora_validate_automation",
-    label: "Validate automation",
-    admin: false,
-  },
-  {
-    name: "selora_create_automation",
-    label: "Create automation",
-    admin: true,
-  },
-  {
-    name: "selora_accept_automation",
-    label: "Accept automation",
-    admin: true,
-  },
-  {
-    name: "selora_delete_automation",
-    label: "Delete automation",
-    admin: true,
-  },
-  {
-    name: "selora_get_home_snapshot",
-    label: "Get home snapshot",
-    admin: false,
-  },
-  { name: "selora_chat", label: "Chat", admin: true },
-  { name: "selora_list_sessions", label: "List sessions", admin: false },
-  { name: "selora_list_patterns", label: "List patterns", admin: false },
-  { name: "selora_get_pattern", label: "Get pattern", admin: false },
-  { name: "selora_list_suggestions", label: "List suggestions", admin: false },
-  {
-    name: "selora_accept_suggestion",
-    label: "Accept suggestion",
-    admin: true,
-  },
-  {
-    name: "selora_dismiss_suggestion",
-    label: "Dismiss suggestion",
-    admin: true,
-  },
-  { name: "selora_trigger_scan", label: "Trigger scan", admin: true },
-  { name: "selora_list_devices", label: "List devices", admin: false },
-  { name: "selora_get_device", label: "Get device", admin: false },
-];
+// The custom-token picker lists the tools the server reports
+// (`selora_ai/list_mcp_tokens` → `tools`), so a tool added to the MCP server
+// can be granted the day it ships. A copy kept here went stale: most tools
+// could not be granted to a custom token at all.
+export function mcpToolLabel(name) {
+  const words = String(name || "")
+    .replace(/^selora_/, "")
+    .replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function _grantableTools(host) {
+  return [...(host._mcpTools || [])].sort((a, b) =>
+    mcpToolLabel(a.name).localeCompare(mcpToolLabel(b.name)),
+  );
+}
 
 function renderApprovalGrants(host) {
   const grants = host._approvalGrants || [];
@@ -1964,7 +1933,7 @@ function renderCreateTokenDialog(host) {
                     )}</label
                   >
                   <div class="mcp-tool-checklist">
-                    ${MCP_TOOLS.map(
+                    ${_grantableTools(host).map(
                       (tool) => html`
                         <label class="mcp-tool-check">
                           <input
@@ -1978,7 +1947,7 @@ function renderCreateTokenDialog(host) {
                               host.requestUpdate();
                             }}
                           />
-                          <span>${tool.label}</span>
+                          <span>${mcpToolLabel(tool.name)}</span>
                           ${
                             tool.admin
                               ? html`<span
