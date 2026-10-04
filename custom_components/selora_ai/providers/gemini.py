@@ -327,6 +327,21 @@ class GeminiProvider(LLMProvider):
         texts = [p["text"] for p in parts if "text" in p]
         return "".join(texts) if texts else None
 
+    def stream_line_ends_stream(self, line: str) -> bool | None:
+        # The last chunk carries ``finishReason``; there is no ``[DONE]``.
+        if not line.startswith("data: "):
+            return False
+        try:
+            obj = json.loads(line[6:])
+        except ValueError:
+            return False
+        candidates = obj.get("candidates") if isinstance(obj, dict) else None
+        finish = candidates[0].get("finishReason") if candidates else None
+        if finish:
+            self._note_finish_reason(finish)
+            return True
+        return False
+
     def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
         if not line.startswith("data: "):
             return None
@@ -434,6 +449,7 @@ class GeminiProvider(LLMProvider):
         messages: list[dict[str, str]],
         *,
         max_tokens: int = 1024,
+        timeout: float | None = None,
     ) -> AsyncIterator[str]:
         """Yield text chunks from a streaming Gemini request."""
         session = self._get_session()
@@ -442,7 +458,7 @@ class GeminiProvider(LLMProvider):
         async with session.post(
             self._stream_endpoint,
             headers=self._get_headers(),
-            timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+            timeout=aiohttp.ClientTimeout(connect=15, sock_read=timeout or DEFAULT_LLM_TIMEOUT),
             data=self._encode_body(payload),
         ) as resp:
             await self._raise_if_rate_limited(resp)
@@ -468,6 +484,8 @@ class GeminiProvider(LLMProvider):
 
             buffer = ""
             stream_usage: LLMUsageInfo = {}
+            self._note_finish_reason(None)
+            ended = False
             async for raw_chunk in resp.content.iter_any():
                 buffer += raw_chunk.decode("utf-8")
                 while "\n" in buffer:
@@ -478,9 +496,11 @@ class GeminiProvider(LLMProvider):
                     usage_part = self.parse_stream_usage(line)
                     if usage_part:
                         stream_usage.update(usage_part)
+                    ended = bool(self.stream_line_ends_stream(line)) or ended
                     text = self.parse_stream_line(line)
                     if text:
                         yield text
+            self._last_stream_terminated = ended
             self._report_usage(stream_usage or None)
 
     # -- Health check ------------------------------------------------------

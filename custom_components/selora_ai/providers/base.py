@@ -599,6 +599,15 @@ class LLMProvider(ABC):
     def parse_stream_line(self, line: str) -> str | None:
         """Extract a text token from a single SSE line."""
 
+    def stream_line_ends_stream(self, line: str) -> bool | None:
+        """Whether this SSE line is the backend ending the stream.
+
+        Read by ``send_request_stream`` to answer ``last_stream_unterminated``.
+        ``None`` means the provider does not report stream ends, which keeps
+        that answer False.
+        """
+        return None
+
     @abstractmethod
     async def stream_with_tools(
         self,
@@ -911,8 +920,13 @@ class LLMProvider(ABC):
         messages: list[dict[str, Any]],
         *,
         max_tokens: int = 1024,
+        timeout: float | None = None,
     ) -> AsyncIterator[str]:
-        """Async generator that yields text chunks from an SSE stream."""
+        """Async generator that yields text chunks from an SSE stream.
+
+        ``timeout`` overrides the longest silence between chunks (seconds),
+        for calls whose model may think for minutes before its first token.
+        """
         try:
             session = self._get_session()
             payload = self.prepare_payload(
@@ -925,7 +939,9 @@ class LLMProvider(ABC):
                 async with session.post(
                     self._endpoint,
                     headers=self._get_headers(),
-                    timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+                    timeout=aiohttp.ClientTimeout(
+                        connect=15, sock_read=timeout or DEFAULT_LLM_TIMEOUT
+                    ),
                     data=self._encode_body(payload),
                 ) as resp:
                     await self._raise_if_rate_limited(resp)
@@ -953,6 +969,8 @@ class LLMProvider(ABC):
 
                     buffer = ""
                     stream_usage: LLMUsageInfo = {}
+                    self._note_finish_reason(None)
+                    ended: bool | None = None
                     async for raw_chunk in resp.content.iter_any():
                         buffer += raw_chunk.decode("utf-8")
                         while "\n" in buffer:
@@ -963,9 +981,13 @@ class LLMProvider(ABC):
                             usage_part = self.parse_stream_usage(line)
                             if usage_part:
                                 stream_usage.update(usage_part)
+                            marker = self.stream_line_ends_stream(line)
+                            if marker is not None:
+                                ended = bool(ended) or marker
                             text = self.parse_stream_line(line)
                             if text:
                                 yield text
+                    self._last_stream_terminated = ended is not False
                     self._report_usage(stream_usage or None)
                     return
         except RateLimitError:

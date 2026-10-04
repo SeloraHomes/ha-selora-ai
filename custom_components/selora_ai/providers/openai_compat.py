@@ -404,6 +404,25 @@ class OpenAICompatibleProvider(LLMProvider):
             return choices[0].get("delta", {}).get("content")
         return None
 
+    def stream_line_ends_stream(self, line: str) -> bool | None:
+        # A stream ends with a ``finish_reason`` and a ``[DONE]``; either one
+        # counts, and the reason is recorded for ``last_response_truncated``.
+        if not line.startswith("data: "):
+            return False
+        raw = line[6:].strip()
+        if raw == "[DONE]":
+            return True
+        try:
+            obj = json.loads(raw)
+        except ValueError:
+            return False
+        choices = obj.get("choices") if isinstance(obj, dict) else None
+        finish = choices[0].get("finish_reason") if choices else None
+        if finish:
+            self._note_finish_reason(finish)
+            return True
+        return False
+
     def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
         if not line.startswith("data: "):
             return None

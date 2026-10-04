@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..const import MAX_TOOL_CALL_ROUNDS
-from ..types import EntitySnapshot, HomeSnapshot
+from ..types import AutomationSnapshot, EntitySnapshot, HomeSnapshot
 from .command_policy import (
     _MAX_COMMAND_CALLS,
     _MAX_TARGET_ENTITIES,
@@ -1392,6 +1392,22 @@ def build_suggestions_system_prompt(
     )
 
 
+# Entities listed per existing automation in the analysis prompt. Enough to
+# say what it watches and drives; the cap keeps a large home's prompt bounded.
+_PROMPT_AUTOMATION_ENTITIES = 8
+
+
+def _automation_line(automation: AutomationSnapshot) -> str:
+    """One EXISTING AUTOMATIONS line: the alias, then the entities it uses."""
+    line = f"  - {automation.get('alias') or automation.get('entity_id', 'unknown')}"
+    entities = automation.get("entities") or []
+    if entities:
+        shown = ", ".join(entities[:_PROMPT_AUTOMATION_ENTITIES])
+        extra = len(entities) - _PROMPT_AUTOMATION_ENTITIES
+        line += f" (uses: {shown}{f', +{extra} more' if extra > 0 else ''})"
+    return line
+
+
 def build_analysis_prompt(
     snapshot: HomeSnapshot,
     *,
@@ -1416,8 +1432,12 @@ def build_analysis_prompt(
 
     automations = snapshot.get("automations", [])
     if automations:
-        auto_lines = [f"  - {a.get('alias', a.get('entity_id', 'unknown'))}" for a in automations]
-        auto_section = "EXISTING AUTOMATIONS (do not duplicate):\n" + "\n".join(auto_lines)
+        auto_lines = [_automation_line(a) for a in automations]
+        auto_section = (
+            "EXISTING AUTOMATIONS (do not duplicate — an automation that watches the "
+            "same entities for the same purpose already exists, whatever its name):\n"
+            + "\n".join(auto_lines)
+        )
     else:
         auto_section = "EXISTING AUTOMATIONS: None yet."
 
