@@ -154,3 +154,42 @@ async def test_mcp_creates_a_template_helper(hass: HomeAssistant, template: None
         {"domain": "template", "type": "sensor", "fields": {"name": "Answer", "state": "{{ 42 }}"}},
     )
     assert result["status"] == "created", result
+
+
+# ── Serializing the form across Home Assistant releases ─────────────────────
+
+
+def test_the_form_is_serialized_with_the_library_cv_uses(monkeypatch: pytest.MonkeyPatch) -> None:
+    """2026.9 serializes forms with probatio and answers "unsupported" with
+    probatio's sentinel, which voluptuous_serialize returns in place of the
+    field list. Whatever serializer `cv` carries is the one to use."""
+    import voluptuous as vol
+
+    from custom_components.selora_ai import helper_flow
+
+    seen: list[Any] = []
+
+    def _to_field_list(schema: Any, *, custom_serializer: Any) -> list[dict[str, Any]]:
+        seen.append(custom_serializer)
+        return [{"name": "state", "required": True}]
+
+    monkeypatch.setattr(helper_flow.cv, "to_field_list", _to_field_list, raising=False)
+
+    fields = helper_flow._describe_fields(vol.Schema({vol.Required("state"): str}))
+
+    assert fields == [{"name": "state", "required": True}]
+    assert seen == [helper_flow.cv.custom_serializer]
+
+
+def test_a_serializer_that_returns_no_list_describes_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A mismatched sentinel came back as the whole result and crashed the
+    tool on iteration; it describes no fields instead."""
+    import voluptuous as vol
+
+    from custom_components.selora_ai import helper_flow
+
+    monkeypatch.setattr(helper_flow.cv, "to_field_list", lambda *_a, **_k: object(), raising=False)
+
+    assert helper_flow._describe_fields(vol.Schema({vol.Required("state"): str})) == []

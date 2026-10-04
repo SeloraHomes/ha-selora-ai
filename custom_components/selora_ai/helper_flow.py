@@ -26,7 +26,6 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import IntegrationNotFound, async_get_integration
 import voluptuous as vol
-import voluptuous_serialize
 
 from .helpers import sanitize_untrusted_text
 
@@ -46,13 +45,34 @@ _FLOW_ERRORS = (AbortFlow, UnknownFlow, UnknownStep, vol.Invalid, ValueError, Ke
 _FIELD_KEYS: Final = ("name", "required", "default", "selector", "options", "type")
 
 
+def _to_field_list(schema: vol.Schema) -> Any:
+    """Serialize a form schema with the library ``cv.custom_serializer`` pairs with.
+
+    Home Assistant 2026.9 moved form serialization from ``voluptuous_serialize``
+    to ``probatio`` and dropped the former from its requirements. The custom
+    serializer answers "unsupported" with ITS library's sentinel, which the
+    other library does not recognise and returns in place of the field list —
+    so the serializer has to be the one ``cv`` itself imports, not whichever
+    happens to be installed. And ``voluptuous_serialize`` is imported only on a
+    core that still uses it, since a 2026.9 install need not have it at all.
+    """
+    if (to_field_list := getattr(cv, "to_field_list", None)) is not None:
+        return to_field_list(schema, custom_serializer=cv.custom_serializer)
+    import voluptuous_serialize  # noqa: PLC0415
+
+    return voluptuous_serialize.convert(schema, custom_serializer=cv.custom_serializer)
+
+
 def _describe_fields(schema: vol.Schema | None) -> list[dict[str, Any]]:
     if schema is None:
         return []
     try:
-        fields = voluptuous_serialize.convert(schema, custom_serializer=cv.custom_serializer)
+        fields = _to_field_list(schema)
     except (TypeError, ValueError, vol.Invalid) as exc:
         _LOGGER.debug("Could not describe helper form: %s", exc)
+        return []
+    if not isinstance(fields, list):
+        _LOGGER.debug("Could not describe helper form: serializer returned %r", fields)
         return []
     described = []
     for field in fields:
