@@ -57,6 +57,7 @@ const _DELETE_KIND_LABELS = {
   area: "area",
   script: "script",
   label: "label",
+  helper: "helper",
   entity: "entity",
   device: "device",
 };
@@ -68,6 +69,7 @@ const _DELETE_KIND_ICONS = {
   area: "mdi:floor-plan",
   script: "mdi:script-text-outline",
   label: "mdi:label-outline",
+  helper: "mdi:tools",
   entity: "mdi:shape-outline",
   device: "mdi:devices",
 };

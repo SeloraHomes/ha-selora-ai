@@ -245,3 +245,232 @@ async def async_create_helper(
         "name": intent["name"],
         **({"entity_id": entity_id} if entity_id else {}),
     }
+
+
+def _resolve_storage_helper(
+    hass: HomeAssistant, entity_id: str
+) -> tuple[str, Any, dict[str, Any]] | str:
+    """``(domain, collection, stored item)`` for a UI-created helper, or why not.
+
+    The item is found through the entity registry: a storage helper's entity
+    is registered under its own domain as platform with the item id as
+    unique_id, and the collection suffixes that id on a clash, so the name
+    does not give it. A helper defined in YAML has no item in the storage
+    collection, and a config-entry helper (template, utility_meter …) is not
+    in one at all; each is refused with where to change it.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    entity_id = str(entity_id or "").strip().lower()
+    domain = entity_id.split(".", 1)[0]
+    shown = sanitize_untrusted_text(entity_id, 80)
+    entry = er.async_get(hass).async_get(entity_id)
+    if domain not in _COLLECTIONS:
+        if entry is not None and entry.config_entry_id:
+            return (
+                f"{shown} is a helper set up as an integration. Change or remove it "
+                "under Settings → Devices & services → Helpers."
+            )
+        return (
+            f"'{shown}' is not a helper that can be changed here. Supported: "
+            f"{', '.join(CREATABLE_HELPER_DOMAINS)}."
+        )
+    if hass.states.get(entity_id) is None and entry is None:
+        return f"No helper {shown} exists. Call list_helpers for the right entity_id."
+    collection = _helper_collection(hass, domain)
+    if collection is None:
+        return (
+            f"This Home Assistant version does not let Selora reach its {domain} "
+            "helpers. Change it under Settings → Devices & services → Helpers."
+        )
+    item = (
+        collection.data.get(entry.unique_id)
+        if entry is not None and entry.platform == domain
+        else None
+    )
+    if not isinstance(item, dict):
+        return (
+            f"{shown} is defined in configuration.yaml, so Home Assistant does not "
+            "let anything change it from the UI. It has to be edited there."
+        )
+    return domain, collection, item
+
+
+def helper_fingerprint(item: dict[str, Any]) -> str:
+    """Content hash of a stored helper — its identity on a confirmation card.
+
+    The item id is derived from the name, so a helper deleted and recreated
+    under that name answers to the same entity_id. What the user saw on the
+    card is what may be deleted, so the card carries this and the delete
+    re-checks it.
+    """
+    import hashlib  # noqa: PLC0415
+    import json  # noqa: PLC0415
+
+    payload = json.dumps(item, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode()).hexdigest()[:16]
+
+
+async def async_helper_dependents(hass: HomeAssistant, entity_id: str) -> list[str]:
+    """What stops working when this helper goes, as countable phrases.
+
+    Home Assistant rewrites no references, so an automation testing a deleted
+    toggle fails silently. An unreadable dashboard is named as unknown rather
+    than counted as clean.
+    """
+    from .group_manager import group_dependents  # noqa: PLC0415
+    from .recipes.dashboard import async_dashboards_with_entity  # noqa: PLC0415
+
+    refs = group_dependents(hass, entity_id)
+    phrases = [
+        f"{len(refs[kind])} {kind[:-1] if len(refs[kind]) == 1 else kind}"
+        for kind in ("automations", "scripts", "scenes", "groups")
+        if refs[kind]
+    ]
+    dashboards, unreadable = await async_dashboards_with_entity(hass, entity_id)
+    if dashboards:
+        phrases.append(f"{len(dashboards)} dashboard{'s' if len(dashboards) != 1 else ''}")
+    if unreadable:
+        phrases.append(
+            f"{len(unreadable)} unreadable dashboard{'s' if len(unreadable) != 1 else ''}"
+        )
+    return phrases
+
+
+async def async_update_helper(
+    hass: HomeAssistant,
+    entity_id: str,
+    fields: dict[str, Any],
+    clear: list[str] | None = None,
+) -> dict[str, Any]:
+    """Change a UI-created helper's settings, keeping every one not named.
+
+    Home Assistant's helper update REPLACES the stored item — ``_update_data``
+    returns the id plus the validated update, nothing else — so passing only
+    the changed fields would wipe the rest (a dropdown losing its icon, a
+    number its unit). The stored item is merged with the change and the whole
+    validated with the component's own schema first. ``clear`` removes an
+    optional setting, since a blank value reads as "not set".
+    """
+    resolved = _resolve_storage_helper(hass, entity_id)
+    if isinstance(resolved, str):
+        return {"error": resolved}
+    domain, collection, item = resolved
+    schema = _create_schema(domain)
+    if schema is None:
+        return {"error": f"Could not read Home Assistant's {domain} schema."}
+    accepted = _schema_keys(schema)
+
+    to_clear = sorted(set(clear or ()))
+    unknown = [key for key in to_clear if key not in accepted]
+    if unknown:
+        return {"error": f"A {domain} has no {', '.join(unknown)} setting to clear."}
+    supplied = {k: v for k, v in fields.items() if v is not None and k in accepted}
+    if not supplied and not to_clear:
+        return {"error": f"Nothing to change. Pass a {domain} setting, or clear=[…]."}
+    both = sorted(set(supplied) & set(to_clear))
+    if both:
+        return {"error": f"Pass either a new {', '.join(both)} or clear it, not both."}
+
+    if "name" in supplied:
+        name = str(supplied["name"]).strip()
+        other = _existing_helper(hass, domain, name)
+        if other is not None and other != entity_id.strip().lower():
+            return {
+                "error": (
+                    f"A {domain} named '{sanitize_untrusted_text(name, 60)}' already "
+                    f"exists as {other}. Pick a different name."
+                )
+            }
+        supplied["name"] = name
+
+    merged = {k: v for k, v in item.items() if k != "id" and k not in to_clear}
+    merged.update(supplied)
+    try:
+        validated = schema(merged)
+    except (vol.Invalid, HomeAssistantError) as exc:
+        return {
+            "error": (
+                f"Home Assistant would refuse that {domain}: "
+                f"{sanitize_untrusted_text(str(exc), 200)}"
+            )
+        }
+    try:
+        updated = await collection.async_update_item(item["id"], _jsonable(dict(validated)))
+    except (vol.Invalid, HomeAssistantError, ValueError) as exc:
+        return {
+            "error": (
+                f"Home Assistant refused that {domain}: {sanitize_untrusted_text(str(exc), 200)}"
+            )
+        }
+    return {
+        "status": "updated",
+        "entity_id": entity_id.strip().lower(),
+        "name": sanitize_untrusted_text(str(updated.get("name") or ""), 60),
+        "changed": sorted({*supplied, *to_clear}),
+    }
+
+
+async def async_preview_helper_delete(hass: HomeAssistant, entity_id: str) -> dict[str, Any]:
+    """Resolve a helper deletion for a confirmation card, deleting nothing."""
+    resolved = _resolve_storage_helper(hass, entity_id)
+    if isinstance(resolved, str):
+        return {"error": resolved}
+    _, _, item = resolved
+    entity_id = entity_id.strip().lower()
+    name = sanitize_untrusted_text(str(item.get("name") or entity_id), 60)
+    label = f"Delete the {name} helper"
+    if dependents := await async_helper_dependents(hass, entity_id):
+        label = f"{label} — used by {', '.join(dependents)}"
+    return {
+        "requires_approval": True,
+        "delete": {
+            "kind": "helper",
+            "target_id": entity_id,
+            "entity_id": entity_id,
+            "name": name,
+            "label": label,
+            "fingerprint": helper_fingerprint(item),
+        },
+    }
+
+
+async def async_delete_helper(
+    hass: HomeAssistant,
+    entity_id: str,
+    *,
+    expected_fingerprint: str | None = None,
+) -> dict[str, Any]:
+    """Delete a UI-created helper, naming what used it.
+
+    With *expected_fingerprint* (a confirmation card) the stored item must
+    still be the one the user saw. Resolving, checking and the delete's first
+    step run with no await between them, so nothing can change in between.
+    """
+    from homeassistant.helpers.collection import ItemNotFound  # noqa: PLC0415
+
+    entity_id = str(entity_id or "").strip().lower()
+    dependents = await async_helper_dependents(hass, entity_id)
+
+    resolved = _resolve_storage_helper(hass, entity_id)
+    if isinstance(resolved, str):
+        return {"error": resolved}
+    _, collection, item = resolved
+    if expected_fingerprint and helper_fingerprint(item) != expected_fingerprint:
+        return {
+            "error": (
+                "That helper has changed since it was shown for confirmation, so it "
+                "was not deleted. Check it and ask again."
+            )
+        }
+    try:
+        await collection.async_delete_item(item["id"])
+    except ItemNotFound:
+        return {"error": "That helper no longer exists."}
+    return {
+        "status": "deleted",
+        "entity_id": entity_id,
+        "name": sanitize_untrusted_text(str(item.get("name") or ""), 60),
+        # Home Assistant rewrites no references; these now point at nothing.
+        **({"was_used_by": dependents} if dependents else {}),
+    }

@@ -27857,6 +27857,7 @@ var _DELETE_KIND_LABELS = {
   area: "area",
   script: "script",
   label: "label",
+  helper: "helper",
   entity: "entity",
   device: "device",
 };
@@ -27867,6 +27868,7 @@ var _DELETE_KIND_ICONS = {
   area: "mdi:floor-plan",
   script: "mdi:script-text-outline",
   label: "mdi:label-outline",
+  helper: "mdi:tools",
   entity: "mdi:shape-outline",
   device: "mdi:devices",
 };
@@ -50870,7 +50872,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "1b149ddc146d" : "";
+var PANEL_BUILD = true ? "1185af2e8535" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

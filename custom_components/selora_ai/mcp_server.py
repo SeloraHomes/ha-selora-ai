@@ -365,6 +365,8 @@ TOOL_ASSIGN_LABELS = "selora_assign_labels"
 TOOL_DELETE_LABEL = "selora_delete_label"
 TOOL_LIST_HELPERS = "selora_list_helpers"
 TOOL_CREATE_HELPER = "selora_create_helper"
+TOOL_UPDATE_HELPER = "selora_update_helper"
+TOOL_DELETE_HELPER = "selora_delete_helper"
 TOOL_GET_LOGS = "selora_get_logs"
 TOOL_GET_AUTOMATION_TRACES = "selora_get_automation_traces"
 TOOL_LIST_BLUEPRINTS = "selora_list_blueprints"
@@ -399,6 +401,8 @@ TOOL_UPDATE_DASHBOARD = "selora_update_dashboard"
 _ADMIN_TOOLS = frozenset(
     {
         TOOL_CREATE_HELPER,
+        TOOL_UPDATE_HELPER,
+        TOOL_DELETE_HELPER,
         TOOL_CREATE_AUTOMATION,
         TOOL_ACCEPT_AUTOMATION,
         TOOL_DELETE_AUTOMATION,
@@ -1100,6 +1104,8 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_DELETE_LABEL: _tool_delete_label,
         TOOL_LIST_HELPERS: _tool_list_helpers,
         TOOL_CREATE_HELPER: _tool_create_helper,
+        TOOL_UPDATE_HELPER: _tool_update_helper,
+        TOOL_DELETE_HELPER: _tool_delete_helper,
         TOOL_GET_LOGS: _tool_get_logs,
         TOOL_GET_AUTOMATION_TRACES: _tool_get_automation_traces,
         TOOL_LIST_BLUEPRINTS: _tool_list_blueprints,
@@ -5477,6 +5483,21 @@ async def _tool_list_helpers(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     return await helper_overview(hass, _opt_str(arguments.get("domain")))
 
 
+async def _tool_update_helper(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Change a UI-created helper's settings, keeping the rest."""
+    from .helper_manager import async_update_helper  # noqa: PLC0415
+    from .tool_executor import update_helper_kwargs  # noqa: PLC0415
+
+    return await async_update_helper(hass, **update_helper_kwargs(arguments))
+
+
+async def _tool_delete_helper(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete a UI-created helper outright (MCP clients run their own confirmation)."""
+    from .helper_manager import async_delete_helper  # noqa: PLC0415
+
+    return await async_delete_helper(hass, str(arguments.get("entity_id", "")))
+
+
 async def _tool_create_helper(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Create a helper: a storage helper directly, any other through its setup flow.
 
@@ -6695,6 +6716,8 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_ASSIGN_LABELS: "assign_labels",
     TOOL_DELETE_LABEL: "delete_label",
     TOOL_LIST_HELPERS: "list_helpers",
+    TOOL_UPDATE_HELPER: "update_helper",
+    TOOL_DELETE_HELPER: "delete_helper",
     TOOL_GET_LOGS: "get_logs",
     TOOL_GET_AUTOMATION_TRACES: "get_automation_traces",
     TOOL_LIST_DASHBOARDS: "list_dashboards",

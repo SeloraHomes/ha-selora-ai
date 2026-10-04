@@ -105,6 +105,24 @@ the model stops reciting Settings click-paths.
   - **The outcome names the entity_id only if it checks out**
     (`_created_helper_entity_id`: proposed domain, live state, proposed name);
     the panel is not trusted to say what its work was done to.
+- **Changing and deleting a storage helper** (`update_helper` / `delete_helper`,
+  `helper_manager.py`) goes through the same collection on both surfaces.
+  - **HA's helper update REPLACES the stored item** (`_update_data` returns the
+    id plus the validated update, nothing else). The stored item is merged with
+    the change and the whole validated with the component's schema first;
+    passing only the changed fields wipes the rest. `clear` removes an optional
+    setting, since a blank value reads as "not set".
+  - **The item is found through the entity registry** (platform = domain,
+    unique_id = item id). No item means a YAML helper; a config-entry helper is
+    not in a collection at all — each is refused with where to change it.
+    Changing or removing a config-entry helper is removing an integration.
+  - **Update runs directly, delete is carded in chat** (kind `helper`, in both
+    `_DELETE_TOOLS` and `_DELETE_KINDS`). The entity_id is derived from the name,
+    so the card carries a content fingerprint (`helper_fingerprint`) that the
+    delete re-checks with no await in between. The card and the MCP result name
+    what used it (`async_helper_dependents`: automations, scripts, scenes,
+    groups, dashboards) — HA rewrites no references.
+  - A rename onto another helper's name is refused, as at creation.
 - **Every other helper runs its own config flow, through the same tool**
   (`helper_flow.py`), the way `group_manager` drives `group`'s — config-entry
   helpers need no panel. One tool, not one per helper: template entities of

@@ -1770,6 +1770,74 @@ TOOL_CREATE_HELPER_DIRECT = ToolDef(
     large_context_only=True,
 )
 
+_HELPER_SETTING_PARAMS = tuple(
+    p
+    for p in TOOL_CREATE_HELPER.params
+    if p.name not in ("domain", "type", "fields", "remaining_intent")
+)
+
+TOOL_UPDATE_HELPER = ToolDef(
+    name="update_helper",
+    description=(
+        "Change a helper created in the Home Assistant UI — input_boolean, "
+        "input_select, input_number, input_text, input_datetime, input_button, "
+        "counter or timer: its name, icon, a dropdown's options, a number's range, "
+        "a timer's duration and so on. Pass only what changes; every other setting "
+        "is kept. Takes effect immediately. Template and other integration-backed "
+        "helpers are changed in Settings. Call list_helpers for the entity_id."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="The helper's entity_id, e.g. 'input_select.house_mode'.",
+            required=True,
+        ),
+        *_HELPER_SETTING_PARAMS,
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description=(
+                "Optional settings to REMOVE, e.g. ['icon']. Use this rather than "
+                "passing an empty string, which is read as 'not set'."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_DELETE_HELPER = ToolDef(
+    name="delete_helper",
+    description=(
+        "Delete a helper created in the Home Assistant UI — input_boolean, "
+        "input_select, input_number, input_text, input_datetime, input_button, "
+        "counter or timer. Automations, scripts and dashboard cards using it stop "
+        "working, and the confirmation card names how many do. The user gets a "
+        "confirmation card. Call list_helpers for the entity_id."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="The helper's entity_id, e.g. 'input_boolean.guest_mode'.",
+            required=True,
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short "
+                "phrase. The turn ends at the card, so this is the only thing "
+                "that brings you back. Leave it out when deleting IS the request."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_GET_LOGS = ToolDef(
     name="get_logs",
     description=(
@@ -2412,6 +2480,8 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_DELETE_LABEL,
     TOOL_LIST_HELPERS,
     TOOL_CREATE_HELPER,
+    TOOL_UPDATE_HELPER,
+    TOOL_DELETE_HELPER,
     TOOL_GET_LOGS,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_DASHBOARD,
@@ -2475,6 +2545,8 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         # Same reasoning: "add a guest mode toggle" is command-shaped.
         "list_helpers",
         "create_helper",
+        "update_helper",
+        "delete_helper",
         "delete_floor",
         "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
@@ -2551,6 +2623,8 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "delete_label",
         "list_helpers",
         "create_helper",
+        "update_helper",
+        "delete_helper",
         "list_scripts",
         "get_script",
         "set_script",
