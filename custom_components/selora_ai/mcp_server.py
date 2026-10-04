@@ -1070,8 +1070,8 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_GET_DEVICE_TRIGGERS: _tool_get_device_triggers,
         TOOL_GET_ENTITY_STATE: _tool_get_entity_state,
         TOOL_FIND_ENTITIES_BY_AREA: _tool_find_entities_by_area,
-        TOOL_VALIDATE_ACTION: _tool_validate_action,
-        TOOL_EXECUTE_COMMAND: _tool_execute_command,
+        TOOL_VALIDATE_ACTION: _tool_mcp_validate_action,
+        TOOL_EXECUTE_COMMAND: _tool_mcp_execute_command,
         TOOL_SEARCH_ENTITIES: _tool_search_entities,
         TOOL_GET_ENTITY_HISTORY: _tool_get_entity_history,
         TOOL_EVAL_TEMPLATE: _tool_eval_template,
@@ -2905,6 +2905,26 @@ async def _tool_execute_command(
     if not validation["valid"]:
         return validation
 
+    return await _call_service_and_settle(hass, service, target_ids, data)
+
+
+async def _call_service_and_settle(
+    hass: HomeAssistant,
+    service: str,
+    target_ids: list[str],
+    data: dict[str, Any],
+    *,
+    want_response: bool = False,
+    settle: bool = True,
+) -> dict[str, Any]:
+    """Run an already-validated service call and read back its targets' states.
+
+    Shared by chat's policy-gated path and MCP's any-service path, so both
+    wait for the state to settle the same way. ``want_response`` asks for
+    the service's response data (to-do items, calendar events, forecasts),
+    which Home Assistant refuses to return unless asked. ``settle=False``
+    skips the wait, for a read that changes no state.
+    """
     domain, service_name = service.split(".", 1)
     # No-target REVIEW services (notify.mobile_app_*, script.foo, …)
     # must NOT carry an empty ``entity_id`` field — HA rejects it as
@@ -2921,7 +2941,7 @@ async def _tool_execute_command(
     # timeout. Arming only the transitioning subset also keeps a mixed batch
     # (one light already on, one off) prompt.
     expected = _requested_terminal_state(service)
-    settle_ids = _targets_awaiting_transition(hass, expected, target_ids)
+    settle_ids = _targets_awaiting_transition(hass, expected, target_ids) if settle else []
     # Arm the settle watch BEFORE the call so synchronous state writes (and
     # idempotent no-op state_reported events) are caught, not just delayed ones.
     # When the terminal state is known, the watch waits for it specifically so a
@@ -2931,7 +2951,13 @@ async def _tool_execute_command(
     )
     try:
         try:
-            await hass.services.async_call(domain, service_name, service_data, blocking=True)
+            response = await hass.services.async_call(
+                domain,
+                service_name,
+                service_data,
+                blocking=True,
+                return_response=want_response,
+            )
         except Exception as exc:  # noqa: BLE001 — surface failure to the LLM
             _LOGGER.error("execute_command failed for %s: %s", service, exc)
             return {
@@ -2960,12 +2986,51 @@ async def _tool_execute_command(
         if state is not None:
             post_states.append({"entity_id": eid, "state": _format_state_value(state.state)})
 
-    return {
+    result: dict[str, Any] = {
         "executed": True,
         "service": service,
         "entity_ids": target_ids,
         "states": post_states,
     }
+    if want_response and response is not None:
+        result["response"] = response
+    return result
+
+
+async def _tool_mcp_validate_action(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """MCP's pre-flight check: the same verdict ``_tool_mcp_execute_command`` acts on."""
+    from .mcp_service_call import check_service_call  # noqa: PLC0415
+
+    return dict(
+        check_service_call(
+            hass,
+            str(arguments.get("service", "")),
+            arguments.get("entity_id"),
+            arguments.get("data"),
+        )
+    )
+
+
+async def _tool_mcp_execute_command(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Any service over MCP, gated by risk — see ``mcp_service_call``.
+
+    Chat's ``_tool_execute_command`` keeps its allowlist and approval cards;
+    MCP has no card, so a risky call is confirmed by calling again.
+    """
+    from .mcp_service_call import async_execute_service_call  # noqa: PLC0415
+    from .tool_executor import _opt_bool  # noqa: PLC0415
+
+    return await async_execute_service_call(
+        hass,
+        str(arguments.get("service", "")),
+        arguments.get("entity_id"),
+        arguments.get("data"),
+        confirmed=_opt_bool(arguments.get("confirmed")) is True,
+    )
 
 
 # ── Tool: selora_search_entities ───────────────────────────────────────────────
@@ -6194,22 +6259,24 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
     MCPTool(
         name=TOOL_VALIDATE_ACTION,
         description=(
-            "Validate a Home Assistant service call against Selora's safe-command policy "
-            "WITHOUT executing it. Returns 'valid' (bool), 'errors' (list of issues), and "
-            "'allowed_data_keys' (parameters the LLM may include in 'data' for this "
-            "service). Use this before emitting a command to catch wrong-domain, unknown-"
-            "verb, unknown-entity, and unsupported-parameter mistakes."
+            "Check a Home Assistant service call WITHOUT running it: whether the "
+            "service and entities exist, its risk level, and whether "
+            "selora_execute_command would ask for confirmation first. Gives exactly "
+            "the verdict selora_execute_command acts on."
         ),
         inputSchema={
             "type": "object",
-            "required": ["service", "entity_id"],
+            "required": ["service"],
             "properties": {
                 "service": {
                     "type": "string",
                     "description": "Service in '<domain>.<verb>' form (e.g. 'light.turn_on').",
                 },
                 "entity_id": {
-                    "description": "Target entity_id (string or list of strings).",
+                    "description": (
+                        "Target entity_id (string or list of strings). Omit for a "
+                        "service that targets no entity (notify, script)."
+                    ),
                     "oneOf": [
                         {"type": "string"},
                         {"type": "array", "items": {"type": "string"}},
@@ -6225,22 +6292,30 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
     MCPTool(
         name=TOOL_EXECUTE_COMMAND,
         description=(
-            "Execute a Home Assistant service call within Selora's safe-command "
-            "allowlist (light, switch, fan, media_player, climate, cover, "
-            "input_boolean, scene). Validates the call against the same policy as "
-            "validate_action before invoking hass.services. Returns the post-"
-            "execution state of each target entity. Requires admin access."
+            "Call any Home Assistant service — lights, locks, scripts, notifications, "
+            "to-do lists, buttons, number and select entities, and the rest. A "
+            "low-risk call runs at once. A riskier one (a lock, the alarm, a garage "
+            "door, a script, a service Selora does not know) comes back with "
+            "requires_confirmation, its risk_level and the reason, and runs nothing: "
+            "ask the user, and only once they agree call again with confirmed=true. "
+            "Restarting Home Assistant, purging history and rebooting the host are "
+            "refused. A service that returns data (todo.get_items, "
+            "calendar.get_events, weather.get_forecasts) returns it as `response`. "
+            "Returns the targets' states afterwards. Requires admin access."
         ),
         inputSchema={
             "type": "object",
-            "required": ["service", "entity_id"],
+            "required": ["service"],
             "properties": {
                 "service": {
                     "type": "string",
                     "description": "Service in '<domain>.<verb>' form (e.g. 'light.turn_on').",
                 },
                 "entity_id": {
-                    "description": "Target entity_id (string or list of strings).",
+                    "description": (
+                        "Target entity_id (string or list of strings). Omit for a "
+                        "service that targets no entity (notify, script)."
+                    ),
                     "oneOf": [
                         {"type": "string"},
                         {"type": "array", "items": {"type": "string"}},
@@ -6249,6 +6324,13 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                 "data": {
                     "type": "object",
                     "description": "Optional service data (e.g. {'brightness_pct': 80}).",
+                },
+                "confirmed": {
+                    "type": "boolean",
+                    "description": (
+                        "Set ONLY after the user has agreed to a call that came back "
+                        "with requires_confirmation."
+                    ),
                 },
             },
         },
