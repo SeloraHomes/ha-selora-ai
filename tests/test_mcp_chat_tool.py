@@ -199,15 +199,15 @@ async def test_a_local_model_cannot_refine_at_all(hass: HomeAssistant) -> None:
 async def test_a_hand_written_target_is_refused_before_the_work(
     hass: HomeAssistant, llm: LLMClient
 ) -> None:
-    """selora_create_automation will not replace a non-Selora automation, so
-    refining one spends a turn on a revision the instructed write path then
-    rejects — and selora_list_automations returns every yaml automation, so
-    naming one is an easy mistake to make."""
+    """A refinement can leave a card the panel accepts through the proposal
+    path, which must not reshape a user's automation — so the caller is sent
+    to the direct route, which replaces it through Home Assistant's validator."""
     _write_automations(hass, [HAND_WRITTEN_ENTRY])
     result, stub = await _chat(
         hass, llm, {"message": "change the time", "refine_automation_id": "my_own_automation"}
     )
     assert "not created by Selora AI" in result["error"]
+    assert "selora_create_automation with automation_id" in result["error"]
     stub.assert_not_awaited()
 
 
@@ -361,18 +361,24 @@ async def test_replacing_an_unknown_automation_is_refused(hass: HomeAssistant) -
     result = await _tool_create_automation(
         hass, {"yaml": PROPOSAL_YAML, "automation_id": "selora_ai_gone"}
     )
-    assert "not found" in result["error"]
+    assert "is not in automations.yaml" in result["error"]
 
 
 @pytest.mark.asyncio
-async def test_a_hand_written_automation_is_not_rewritten(hass: HomeAssistant) -> None:
-    # async_update_automation re-validates through the proposal validator,
-    # which a hand-written automation's YAML need not satisfy.
+async def test_a_hand_written_automation_skips_the_proposal_validator(
+    hass: HomeAssistant,
+) -> None:
+    """The proposal validator reshapes what it accepts and holds hand-written
+    YAML to rules it need not meet, so a user's automation is replaced through
+    Home Assistant's validator instead (`tests/test_mcp_user_automation.py`)."""
     _write_automations(hass, [HAND_WRITTEN_ENTRY])
-    result = await _tool_create_automation(
-        hass, {"yaml": PROPOSAL_YAML, "automation_id": "my_own_automation"}
-    )
-    assert "not created by Selora AI" in result["error"]
+    update = AsyncMock(return_value=True)
+    with patch("custom_components.selora_ai.automation_utils.async_update_automation", update):
+        result = await _tool_create_automation(
+            hass, {"yaml": PROPOSAL_YAML, "automation_id": "my_own_automation"}
+        )
+    assert result["status"] == "updated", result
+    assert update.await_args.kwargs["validate_with"] == "home_assistant"
 
 
 @pytest.mark.asyncio

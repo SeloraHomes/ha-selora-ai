@@ -9,14 +9,16 @@ import logging
 from math import floor
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 import urllib.parse
 import uuid
 
 from homeassistant.const import EVENT_STATE_CHANGED, STATE_OFF, STATE_ON
 from homeassistant.core import Context, Event, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+import voluptuous as vol
 import yaml
 
 from .automation_normalize import (
@@ -2699,8 +2701,18 @@ async def async_update_automation(
     version_message: str = "Updated via YAML editor",
     preserve_enabled_state: bool = True,
     report: dict[str, Any] | None = None,
+    validate_with: Literal["proposal", "home_assistant"] = "proposal",
 ) -> bool:
     """Replace an existing automation (by id) in automations.yaml and reload.
+
+    ``validate_with="home_assistant"`` is for an automation Selora did not
+    create. The proposal validator also RESHAPES what it accepts (singular keys
+    moved to plural, trigger values coerced) and holds hand-written YAML to
+    rules it need not meet, so such an automation is validated by Home
+    Assistant's own ``async_validate_config_item`` — what its automation editor
+    calls — and written exactly as given. No version is recorded: the version
+    history belongs to Selora's automations. A refusal's reason goes into
+    ``report["error"]``.
 
     ``preserve_enabled_state`` (default) keeps the automation's active/inactive
     status identical across the forced ``automation.reload`` *without* altering its
@@ -2728,9 +2740,18 @@ async def async_update_automation(
     False can still be live after a manual toggle, and the gate leaves it off by
     skipping the restore rather than by writing anything.
     """
-    is_valid, reason, normalized = await prepare_write_payload(hass, updated)
-    if not is_valid or normalized is None:
+    normalized: dict[str, Any] | None
+    if validate_with == "home_assistant":
+        reason = await _home_assistant_validation_error(hass, automation_id, updated)
+        normalized = None if reason else updated
+    else:
+        is_valid, reason, normalized = await prepare_write_payload(hass, updated)
+        if not is_valid:
+            normalized = None
+    if normalized is None:
         _LOGGER.error("Invalid automation update for %s: %s", automation_id, reason)
+        if report is not None:
+            report["error"] = reason
         return False
 
     # A content edit must not leave a newly elevated-risk automation live. The
@@ -2866,11 +2887,11 @@ async def async_update_automation(
                         ):
                             break
 
-                # Record version
-                store = _get_automation_store(hass)
-                await store.add_version(
-                    automation_id, yaml_text, updated, version_message, session_id
-                )
+                if validate_with == "proposal":
+                    store = _get_automation_store(hass)
+                    await store.add_version(
+                        automation_id, yaml_text, updated, version_message, session_id
+                    )
 
                 return True
             except Exception as exc:
@@ -2880,6 +2901,29 @@ async def async_update_automation(
             # Idempotent — no-op if already stopped on the success path.
             if toggle_watcher is not None:
                 toggle_watcher.stop()
+
+
+async def _home_assistant_validation_error(
+    hass: HomeAssistant, automation_id: str, config: dict[str, Any]
+) -> str | None:
+    """Why Home Assistant would refuse this automation, or None if it accepts it."""
+    import copy  # noqa: PLC0415
+
+    from homeassistant.components.automation.config import (  # noqa: PLC0415
+        async_validate_config_item,
+    )
+
+    # A deep copy: HA's validators rewrite nested dicts in place (a legacy
+    # `service:` becomes `action:`), and the config is written as given.
+    try:
+        validated = await async_validate_config_item(
+            hass, automation_id, {**copy.deepcopy(config), "id": automation_id}
+        )
+    except (vol.Invalid, HomeAssistantError) as exc:
+        return f"Home Assistant rejected the automation: {exc}"
+    if validated is None:
+        return "Home Assistant rejected the automation."
+    return None
 
 
 async def async_create_automation(

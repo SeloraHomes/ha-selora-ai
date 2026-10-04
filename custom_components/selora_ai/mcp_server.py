@@ -1570,10 +1570,13 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
     ``automation_id`` makes this the write path for a refinement: an agent that
     took a revised automation out of ``selora_chat`` has nowhere else to put it,
     and creating it again leaves two automations with one alias both running.
-    Restricted to Selora-managed entries for the reason ``_tool_accept_automation``
-    splits on the same question — ``async_update_automation`` re-validates against
-    the proposal validator, which a hand-written automation's YAML need not
-    satisfy, so rewriting one could reject legitimate config or quietly reshape it.
+
+    Any automation in automations.yaml can be replaced, on one of two paths. A
+    Selora-managed one goes through the proposal validator and gets a version
+    record. Any other is validated by Home Assistant's own automation validator
+    and written exactly as given — the proposal validator reshapes what it
+    accepts and holds hand-written YAML to rules it need not meet. Both keep
+    the automation's enabled state and the risk gate.
     """
     import yaml as _yaml
 
@@ -1602,15 +1605,6 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
     if not isinstance(parsed, dict):
         return {"error": "YAML must be a mapping"}
 
-    is_valid: bool
-    reason: str
-    normalized: AutomationDict | None
-    is_valid, reason, normalized = validate_automation_payload(parsed, hass)
-    if not is_valid or normalized is None:
-        return {"error": f"Invalid automation: {reason}"}
-
-    risk: RiskAssessment = assess_automation_risk(normalized)
-
     if target_id:
         existing = next(
             (
@@ -1621,15 +1615,27 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
             None,
         )
         if existing is None:
-            return {"error": f"Automation {_sanitize(target_id)} not found in automations.yaml"}
-        if not _is_selora(existing):
             return {
                 "error": (
-                    f"Automation {_sanitize(target_id)} was not created by Selora AI — "
-                    "replacing it could reshape hand-written YAML. Edit it in Home "
-                    "Assistant, or omit automation_id to create a separate automation."
+                    f"Automation {_sanitize(target_id)} is not in automations.yaml. Only "
+                    "automations saved there (the ones Home Assistant's editor manages) "
+                    "can be replaced; one defined in a package or another file has to "
+                    "be edited there."
                 )
             }
+        if not _is_selora(existing):
+            return await _replace_user_automation(hass, target_id, parsed)
+
+    is_valid: bool
+    reason: str
+    normalized: AutomationDict | None
+    is_valid, reason, normalized = validate_automation_payload(parsed, hass)
+    if not is_valid or normalized is None:
+        return {"error": f"Invalid automation: {reason}"}
+
+    risk: RiskAssessment = assess_automation_risk(normalized)
+
+    if target_id:
         # preserve_enabled_state: this is a content revision, not an
         # enable/disable, so the automation's current state is left alone and
         # `enabled` is ignored (documented on the tool). The risk gate inside
@@ -1683,6 +1689,48 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
             "Automation created disabled because it uses elevated-risk primitives "
             "(shell_command, python_script, webhook trigger, etc.). Review and "
             "enable manually if intended."
+        )
+    return response
+
+
+async def _replace_user_automation(
+    hass: HomeAssistant, target_id: str, config: dict[str, Any]
+) -> dict[str, Any]:
+    """Replace an automation Selora did not create, exactly as given.
+
+    Validated by Home Assistant rather than the proposal validator, so the
+    user's own YAML is neither reshaped nor held to Selora's rules. Its enabled
+    state is kept, and the risk gate still turns off an edit that newly adds
+    elevated-risk primitives.
+    """
+    from .automation_utils import assess_automation_risk, async_update_automation
+
+    config = {k: v for k, v in config.items() if k != "id"}
+    risk: RiskAssessment = assess_automation_risk(config)
+    report: dict[str, Any] = {}
+    if not await async_update_automation(
+        hass,
+        target_id,
+        config,
+        report=report,
+        validate_with="home_assistant",
+    ):
+        return {
+            "error": _sanitize(
+                report.get("error") or f"Failed to update automation {target_id}", limit=500
+            )
+        }
+    response: dict[str, Any] = {
+        "automation_id": target_id,
+        "status": "updated",
+        "risk_assessment": _sanitize_risk(risk),
+    }
+    if report.get("forced_disabled"):
+        response["forced_disabled"] = True
+        response["note"] = (
+            "Automation left DISABLED because the replacement adds elevated-risk "
+            "primitives (shell_command, python_script, webhook, etc.). Review it "
+            "and enable manually if intended."
         )
     return response
 
@@ -3419,11 +3467,12 @@ async def _refining_context_for(
     session last said about it. ``id`` is dropped — the write path owns it, and
     a model that echoes it back would have it stripped anyway.
 
-    A non-Selora automation is refused HERE rather than let through, because
-    ``selora_create_automation`` will not replace one — refining it would spend
-    a turn producing a revision the instructed write path then rejects, and the
-    caller learns that only after the work. ``selora_list_automations`` returns
-    every yaml automation, so naming one is an easy mistake to make.
+    A non-Selora automation is refused HERE. A refinement can leave a card the
+    user accepts in the panel, and the panel saves through the proposal path —
+    the one that reshapes what it accepts and so must not touch a user's
+    automation. The caller is pointed at the direct route instead: read it with
+    ``selora_get_automation``, then replace it with ``selora_create_automation``,
+    which validates a user's automation with Home Assistant's own validator.
     """
     import yaml as _yaml  # noqa: PLC0415
 
@@ -3432,10 +3481,10 @@ async def _refining_context_for(
             continue
         if not _is_selora(entry):
             return None, (
-                f"Automation {_sanitize(automation_id)} was not created by Selora AI, "
-                "and selora_create_automation will not replace one — a revision here "
-                "could not be saved. Edit it in Home Assistant, or omit "
-                "refine_automation_id to build a separate automation."
+                f"Automation {_sanitize(automation_id)} was not created by Selora AI, so "
+                "it is not refined through chat. Edit it directly: read it with "
+                "selora_get_automation, change the YAML, and pass it to "
+                "selora_create_automation with automation_id to replace it."
             )
         alias = _sanitize(str(entry.get("alias", "")) or automation_id, limit=100)
         body = {k: v for k, v in entry.items() if k != "id"}
@@ -5943,7 +5992,11 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
         name=TOOL_CREATE_AUTOMATION,
         description=(
             "Create a new Home Assistant automation from a YAML string, or REPLACE an "
-            "existing Selora-managed one by passing automation_id. "
+            "existing one by passing automation_id — any automation saved in "
+            "automations.yaml, whoever created it. A replacement is the WHOLE "
+            "automation: read it with selora_get_automation first and send it back "
+            "with your changes. One Selora did not create is validated by Home "
+            "Assistant and written exactly as given. "
             "Server-side validation and risk assessment run unconditionally. "
             "New automations are created DISABLED by default — set enabled=true to "
             "override; a replacement keeps the automation's current enabled state, "
@@ -5963,8 +6016,8 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                 "automation_id": {
                     "type": "string",
                     "description": (
-                        "Replace this Selora-managed automation instead of creating a new "
-                        "one. Omit to create."
+                        "Replace this automation (any one in automations.yaml) instead "
+                        "of creating a new one. Omit to create."
                     ),
                 },
                 "enabled": {
@@ -5974,7 +6027,9 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                 },
                 "version_message": {
                     "type": "string",
-                    "description": "Optional note recorded in the version history.",
+                    "description": (
+                        "Optional note recorded in the version history (Selora's automations only)."
+                    ),
                 },
             },
         },
