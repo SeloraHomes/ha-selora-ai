@@ -80,15 +80,25 @@ from the sidebar) would otherwise take the create path and write a duplicate.
   `refining_context` — an external agent naming one target IS the directive case.
   An unresolvable id is **refused**, since ignoring it turns the edit into a
   second automation. The response reports `refine_automation_id`, and
-  `selora_create_automation` takes it as `automation_id` to replace, restricted
-  to Selora-managed entries (as `_tool_accept_automation` does), because
-  `async_update_automation` re-validates through the proposal validator.
+  `selora_create_automation` takes it as `automation_id` to replace.
+  - **`selora_create_automation` replaces ANY automation in automations.yaml.**
+    A Selora-managed one goes through the proposal validator and gets a version
+    record. Any other goes through `async_update_automation(validate_with=
+    "home_assistant")`: validated by HA's `async_validate_config_item` (on a
+    DEEP copy — HA's validators rewrite nested dicts in place, `service:` →
+    `action:`) and written exactly as given, since the proposal validator
+    reshapes what it accepts and holds hand-written YAML to rules it need not
+    meet. No version record. Both keep the enabled state and the risk gate. An
+    automation defined outside automations.yaml (packages) is refused with where
+    to edit it.
   - On MCP, the too-large rule above refuses even an EXPLICIT refinement: there
     is no confirmation card between the revision and the write, so the refusal
     points the caller at reading and editing the YAML itself. The panel's Refine
     keeps its diff, which is why it stays allowed.
-  - A non-Selora automation is refused at `_refining_context_for`, since
-    `selora_create_automation` would reject the revision anyway.
+  - A non-Selora automation is refused at `_refining_context_for`: a
+    refinement can leave a card the panel accepts through the proposal path,
+    which must not reshape a user's automation. The refusal points at the
+    direct route (`selora_get_automation` → `selora_create_automation`).
   - `architect_chat`'s first two arguments are positional (`user_message`,
     `entities`) and `existing_automations` holds records, not alias strings —
     `tests/test_mcp_chat_tool.py` pins the call with `autospec`.
