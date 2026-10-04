@@ -642,12 +642,24 @@ class EntitySnapshot(TypedDict, total=False):
     attributes: dict[str, Any]
 
 
+class AutomationSnapshot(TypedDict, total=False):
+    """An existing automation as included in home snapshots."""
+
+    entity_id: str
+    alias: str
+    state: str
+    last_triggered: Any
+    # Every entity it references, whatever defined it — UI, YAML, a recipe
+    # package or a blueprint.
+    entities: list[str]
+
+
 class HomeSnapshot(TypedDict, total=False):
     """The home data snapshot sent to the LLM for analysis."""
 
     devices: list[dict[str, Any]]
     entity_states: list[EntitySnapshot]
-    automations: list[dict[str, Any]]
+    automations: list[AutomationSnapshot]
     recorder_history: list[dict[str, Any]]
     _feedback_summary: str
 

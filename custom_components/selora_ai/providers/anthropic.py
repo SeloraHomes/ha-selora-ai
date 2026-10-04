@@ -259,6 +259,27 @@ class AnthropicProvider(LLMProvider):
             return obj.get("delta", {}).get("text")
         return None
 
+    def stream_line_ends_stream(self, line: str) -> bool | None:
+        # ``message_delta`` carries the stop reason, ``message_stop`` closes
+        # the message; either one means the backend ended it.
+        if not line.startswith("data: "):
+            return False
+        try:
+            obj = json.loads(line[6:])
+        except ValueError:
+            return False
+        if not isinstance(obj, dict):
+            return False
+        if obj.get("type") == "message_stop":
+            return True
+        stop = (
+            obj.get("delta", {}).get("stop_reason") if obj.get("type") == "message_delta" else None
+        )
+        if stop:
+            self._note_finish_reason(stop)
+            return True
+        return False
+
     def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
         if not line.startswith("data: "):
             return None

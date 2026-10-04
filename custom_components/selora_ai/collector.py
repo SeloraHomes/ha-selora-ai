@@ -22,6 +22,7 @@ import re
 import time
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.components.automation import entities_in_automation
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
@@ -80,7 +81,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from .pattern_store import PatternStore
-    from .types import HomeSnapshot, RecorderHistoryRecord
+    from .types import AutomationSnapshot, HomeSnapshot, RecorderHistoryRecord
 
 _LOGGER = logging.getLogger(__name__)
 _STALE_NOTIFICATION_ID = "selora_ai_stale_automations"
@@ -211,7 +212,12 @@ class DataCollector:
             }
             states[eid] = [e.get("state", ""), snapshot_attrs]
         device_ids = sorted(d.get("id", "") for d in snapshot.get("devices", []))
-        auto_aliases = sorted(a.get("alias", "") for a in snapshot.get("automations", []))
+        # The entities too: an automation edited under the same alias changes
+        # what the prompt says is covered.
+        auto_aliases = sorted(
+            f"{a.get('alias', '')}:{','.join(a.get('entities') or ())}"
+            for a in snapshot.get("automations", [])
+        )
         active_entities = sorted(
             {h.get("entity_id", "") for h in snapshot.get("recorder_history", [])}
         )
@@ -500,12 +506,22 @@ class DataCollector:
             if alias:
                 existing_aliases.add(alias)
 
-        # Filter out suggestions that duplicate existing automations
+        # Filter out suggestions that duplicate existing automations — by
+        # alias, or by touching only entities one automation already uses.
+        automations = snapshot.get("automations", [])
         novel: list[dict[str, Any]] = []
         for s in suggestions:
             alias = (s.get("alias") or "").strip().lower()
             if alias in existing_aliases:
                 _LOGGER.debug("Skipping suggestion that already exists: %s", s.get("alias"))
+                continue
+            covering = self._covering_automation(s, automations)
+            if covering:
+                _LOGGER.info(
+                    "Skipping suggestion '%s': existing automation '%s' already covers it",
+                    s.get("alias", "<no alias>"),
+                    covering,
+                )
                 continue
             novel.append(s)
 
@@ -584,17 +600,11 @@ class DataCollector:
         if filtered_out:
             _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
 
-        # Build entity coverage set for scoring
-        existing_auto_entity_ids: set[str] = set()
-        try:
-            automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
-            existing_automations = await self._hass.async_add_executor_job(
-                self._read_automations_yaml, automations_path
-            )
-            for auto in existing_automations:
-                existing_auto_entity_ids.update(self._extract_entity_ids(auto))
-        except Exception:
-            _LOGGER.debug("Could not read automations.yaml for coverage scoring")
+        # Build entity coverage set for scoring, from every automation HA
+        # loaded — automations.yaml alone misses recipe packages and YAML files.
+        existing_auto_entity_ids: set[str] = {
+            entity_id for auto in automations for entity_id in auto.get("entities") or ()
+        }
 
         # Pre-compute entity change counts once for all suggestions
         history = snapshot.get("recorder_history", [])
@@ -772,8 +782,8 @@ class DataCollector:
             snapshot["_feedback_summary"] = feedback_summary
 
         # Step 2: Feed snapshot to the configured LLM (with timeout)
-        # Wrapper allows a small buffer over the per-request HTTP timeout
-        # so the provider's own timeout fires first with a clean error.
+        # The analysis streams, and a stream only times out on a stalled
+        # read, so this wrapper is what bounds the whole call.
         analysis_timeout = ANALYSIS_LLM_TIMEOUT + 30
         try:
             suggestions = await asyncio.wait_for(
@@ -960,21 +970,52 @@ class DataCollector:
             _LOGGER.exception("Failed to collect entity states")
             return []
 
-    def _collect_automations(self) -> list[dict[str, Any]]:
-        """Get existing automations so the LLM doesn't suggest duplicates."""
-        automations = []
+    def _collect_automations(self) -> list[AutomationSnapshot]:
+        """Get existing automations so the LLM doesn't suggest duplicates.
 
-        for state in self._hass.states.async_all("automation"):
-            automations.append(
-                {
-                    "entity_id": state.entity_id,
-                    "alias": state.attributes.get("friendly_name", ""),
-                    "state": state.state,
-                    "last_triggered": state.attributes.get("last_triggered"),
-                }
-            )
+        Each carries the entities it references: an alias alone ("Water Leak
+        Alert — leak detected") does not say which sensor it watches, so the
+        model re-suggested automations the home already had.
+        """
+        return [
+            {
+                "entity_id": state.entity_id,
+                "alias": state.attributes.get("friendly_name", ""),
+                "state": state.state,
+                "last_triggered": state.attributes.get("last_triggered"),
+                "entities": sorted(entities_in_automation(self._hass, state.entity_id)),
+            }
+            for state in self._hass.states.async_all("automation")
+        ]
 
-        return automations
+    def _covering_automation(
+        self, suggestion: dict[str, Any], automations: list[AutomationSnapshot]
+    ) -> str | None:
+        """Alias of an existing automation that already covers *suggestion*.
+
+        Covered means the suggestion drives entities from entity triggers, and
+        one automation already uses every one of them. Shared entities alone
+        say nothing about behaviour, so anything less is kept: a suggestion
+        with no entity trigger (time, sun) is a new routine, and one that acts
+        on no entity (a notification) shares only its trigger — "notify on
+        motion" is not "lights on motion". The prompt's EXISTING AUTOMATIONS
+        entities are what keep the model from proposing those duplicates.
+        """
+        triggers = suggestion.get("triggers", suggestion.get("trigger"))
+        actions = suggestion.get("actions", suggestion.get("action"))
+        trigger_entities = self._extract_entity_ids(triggers)
+        action_entities = self._extract_entity_ids(actions)
+        if not trigger_entities or not action_entities:
+            return None
+        used = (
+            trigger_entities
+            | action_entities
+            | self._extract_entity_ids(suggestion.get("conditions", suggestion.get("condition")))
+        )
+        for automation in automations:
+            if used <= set(automation.get("entities") or ()):
+                return automation.get("alias") or automation.get("entity_id", "")
+        return None
 
     @staticmethod
     def _normalize_alias(alias: str) -> str:

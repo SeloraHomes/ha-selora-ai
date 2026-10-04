@@ -848,22 +848,33 @@ class LLMClient:
         through here instead. A provider/gateway failure surfaces as
         ``(None, error)`` exactly like ``send_request``.
         """
-        chunks: list[str] = []
         with self._usage.scope(kind):
             try:
-                async for chunk in self._provider.send_request_stream(
-                    system, messages, max_tokens=max_tokens
-                ):
-                    chunks.append(chunk)
-            except ConnectionError as exc:
-                return None, str(exc)
-            except Exception as exc:  # noqa: BLE001 — mirror send_request's (None, error) shape
-                _LOGGER.warning("Streamed request failed: %s", exc)
-                return None, str(exc)
+                return await self._collect_stream(system, messages, max_tokens=max_tokens)
             finally:
                 self._usage.flush(kind)
-        text = "".join(chunks)
-        return (text or None), None
+
+    async def _collect_stream(
+        self,
+        system: str,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int,
+        timeout: float | None = None,
+    ) -> tuple[str | None, str | None]:
+        """``send_request_streamed`` without a usage scope — the caller owns it."""
+        chunks: list[str] = []
+        try:
+            async for chunk in self._provider.send_request_stream(
+                system, messages, max_tokens=max_tokens, timeout=timeout
+            ):
+                chunks.append(chunk)
+        except ConnectionError as exc:
+            return None, str(exc)
+        except Exception as exc:  # noqa: BLE001 — mirror send_request's (None, error) shape
+            _LOGGER.warning("Streamed request failed: %s", exc)
+            return None, str(exc)
+        return ("".join(chunks) or None), None
 
     # ------------------------------------------------------------------
     # Public API
@@ -893,22 +904,55 @@ class LLMClient:
         # Parse inside the scope so the JSON-salvage repair counter
         # (cloud_json_salvage) is captured — the repair buffer is emitted on
         # scope exit, mirroring the command path's in-scope parsing.
+        #
+        # STREAMED: Selora Cloud answers a long non-streaming completion with a
+        # 502 (an upstream read timeout on the single blocking response), and
+        # the analysis — large prompt, thousands of output tokens — is the
+        # longest call we make, so most cycles failed. A stream keeps the
+        # connection fed. ``timeout`` is the longest silence between chunks;
+        # the collector's ``wait_for`` bounds the total time.
         with self._usage.scope("suggestions"):
             try:
-                result, error = await self._provider.send_request(
-                    system=system_prompt,
-                    messages=[{"role": "user", "content": user_prompt}],
-                    timeout=ANALYSIS_LLM_TIMEOUT,
+                result, error = await self._collect_stream(
+                    system_prompt,
+                    [{"role": "user", "content": user_prompt}],
                     max_tokens=ANALYSIS_OUTPUT_BASE_TOKENS
                     + ANALYSIS_OUTPUT_TOKENS_PER_SUGGESTION * self._max_suggestions,
+                    timeout=ANALYSIS_LLM_TIMEOUT,
                 )
             finally:
                 self._usage.flush("suggestions")
 
+            # A failed request is not "no suggestions": raise so the collector
+            # logs the provider error instead of reporting an empty analysis
+            # and marking the snapshot analysed, which defers the retry for
+            # hours. An empty stream and one closed before the backend ended
+            # it (half a JSON array) are failures too.
+            if error:
+                raise ConnectionError(error)
             if not result:
-                return []
+                raise ConnectionError(f"{self.provider_name} returned an empty analysis")
+            if self._provider.last_stream_unterminated:
+                raise ConnectionError(
+                    f"{self.provider_name} analysis stream was cut off after "
+                    f"{len(result)} characters"
+                )
 
-            return parse_suggestions(result, self.provider_name)
+            suggestions = parse_suggestions(result, self.provider_name)
+            # Stopped at the output cap: keep what the salvage recovered, since
+            # a retry hits the same cap. Nothing recovered is a failure.
+            if self._provider.last_response_truncated:
+                if not suggestions:
+                    raise ConnectionError(
+                        f"{self.provider_name} analysis stopped at the output cap "
+                        "before a complete suggestion"
+                    )
+                _LOGGER.warning(
+                    "%s analysis stopped at the output cap; kept %d complete suggestion(s)",
+                    self.provider_name,
+                    len(suggestions),
+                )
+            return suggestions
 
     async def architect_chat(
         self,
