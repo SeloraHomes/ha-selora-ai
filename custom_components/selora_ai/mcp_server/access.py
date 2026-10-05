@@ -48,6 +48,7 @@ from .names import (
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BLUEPRINT,
+    TOOL_GET_CAMERA_IMAGE,
     TOOL_GET_CONFIG_YAML,
     TOOL_GET_DASHBOARD,
     TOOL_GET_DASHBOARD_CARD,
@@ -202,6 +203,10 @@ _ADMIN_TOOLS = frozenset(
         # neither is something a read-only credential should be able to mine.
         TOOL_GET_LOGS,
         TOOL_GET_AUTOMATION_TRACES,
+        # Read-only too, but a camera shows the inside of the home — more than
+        # its states say — and a read-only credential is the one most often
+        # handed to an outside assistant.
+        TOOL_GET_CAMERA_IMAGE,
     }
 )
 

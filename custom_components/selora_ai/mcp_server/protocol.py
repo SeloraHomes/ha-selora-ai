@@ -28,6 +28,24 @@ class MCPTextContent:
     text: str = ""
 
 
+@dataclass
+class MCPImageContent:
+    """MCP image content block: base64 ``data`` and its ``mimeType``."""
+
+    data: str
+    mimeType: str
+    type: str = "image"
+
+
+@dataclass
+class ToolImage:
+    """A tool result carrying an image, with the JSON fields sent beside it."""
+
+    data: bytes
+    mime_type: str
+    fields: dict[str, Any]
+
+
 _MCP_URL = "/api/selora_ai/mcp"
 _PROTECTED_RESOURCE_URL = "/.well-known/oauth-protected-resource/api/selora_ai/mcp"
 _OAUTH_AS_METADATA_URL = "/.well-known/oauth-authorization-server/api/selora_ai/mcp"

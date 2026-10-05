@@ -51,6 +51,7 @@ from .names import (
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BLUEPRINT,
+    TOOL_GET_CAMERA_IMAGE,
     TOOL_GET_CONFIG_YAML,
     TOOL_GET_DASHBOARD,
     TOOL_GET_DASHBOARD_CARD,
@@ -1566,4 +1567,25 @@ _TOOL_DEFINITIONS.extend(
             },
         ),
     ]
+)
+
+_TOOL_DEFINITIONS.append(
+    MCPTool(
+        name=TOOL_GET_CAMERA_IMAGE,
+        description=(
+            "A snapshot from a camera, returned as an image you can look at — who is at "
+            "the door, whether the garage closed, a package on the porch. Scaled to fit "
+            "width × height (1280 × 720 unless you ask for more) where the camera allows; "
+            "ask for more only to read detail. Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["entity_id"],
+            "properties": {
+                "entity_id": {"type": "string", "description": "e.g. 'camera.front_door'."},
+                "width": {"type": "integer", "minimum": 160, "maximum": 3840},
+                "height": {"type": "integer", "minimum": 120, "maximum": 2160},
+            },
+        },
+    )
 )
