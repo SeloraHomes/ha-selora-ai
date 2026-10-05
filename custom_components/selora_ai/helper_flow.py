@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.data_entry_flow import AbortFlow, InvalidData, UnknownFlow, UnknownStep
@@ -79,9 +80,23 @@ def _describe_fields(schema: vol.Schema | None) -> list[dict[str, Any]]:
     if not isinstance(fields, list):
         _LOGGER.debug("Could not describe helper form: serializer returned %r", fields)
         return []
+    return _describe_serialized(fields)
+
+
+# A field whose value is a credential, by its name — alongside a password-type
+# text selector. Over-matching only hides a current value.
+_SENSITIVE_NAME: Final = re.compile(r"pass|token|secret|key$|code|pin$|credential", re.I)
+
+
+def _describe_serialized(fields: list[Any]) -> list[dict[str, Any]]:
+    """Each field's name, type and choices, its current value unless it is a
+    credential, and the fields inside it when it is a collapsible section."""
     described = []
     for field in fields:
+        if not isinstance(field, dict):
+            continue
         entry = {k: field[k] for k in _FIELD_KEYS if k in field}
+        sensitive = bool(_SENSITIVE_NAME.search(str(field.get("name", ""))))
         selector = entry.get("selector")
         if isinstance(selector, dict):
             # {"select": {"options": [...], "mode": ...}} → keep the kind and
@@ -89,10 +104,28 @@ def _describe_fields(schema: vol.Schema | None) -> list[dict[str, Any]]:
             kind = next(iter(selector), None)
             config = selector.get(kind) if kind else None
             entry["selector"] = kind
-            if isinstance(config, dict) and isinstance(config.get("options"), list):
-                entry["options"] = [
-                    o.get("value") if isinstance(o, dict) else o for o in config["options"]
-                ]
+            if isinstance(config, dict):
+                if isinstance(config.get("options"), list):
+                    entry["options"] = [
+                        o.get("value") if isinstance(o, dict) else o for o in config["options"]
+                    ]
+                if kind == "text" and config.get("type") == "password":
+                    sensitive = True
+        # An options form shows what is set now as the field's suggested value
+        # (or its default). A stored credential is said to be set, never shown.
+        description = field.get("description")
+        current = (
+            description["suggested_value"]
+            if isinstance(description, dict) and "suggested_value" in description
+            else entry.get("default")
+        )
+        if sensitive:
+            entry.pop("default", None)
+            entry["is_set"] = current not in (None, "")
+        elif isinstance(description, dict) and "suggested_value" in description:
+            entry["current"] = current
+        if isinstance(field.get("schema"), list):
+            entry["fields"] = _describe_serialized(field["schema"])
         described.append(entry)
     return described
 

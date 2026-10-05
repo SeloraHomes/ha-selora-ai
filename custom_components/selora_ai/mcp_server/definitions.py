@@ -88,6 +88,7 @@ from .names import (
     TOOL_LIST_FLOORS,
     TOOL_LIST_GROUPS,
     TOOL_LIST_HELPERS,
+    TOOL_LIST_INTEGRATIONS,
     TOOL_LIST_LABELS,
     TOOL_LIST_PATTERNS,
     TOOL_LIST_SCENES,
@@ -97,14 +98,18 @@ from .names import (
     TOOL_LIST_SUGGESTIONS,
     TOOL_MOVE_DASHBOARD_CARD,
     TOOL_READ_FILE,
+    TOOL_RELOAD_INTEGRATION,
     TOOL_REMOVE_DASHBOARD_CARD,
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
+    TOOL_REMOVE_INTEGRATION,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_ENERGY_PREFS,
+    TOOL_SET_INTEGRATION_ENABLED,
+    TOOL_SET_INTEGRATION_OPTIONS,
     TOOL_SET_SCRIPT,
     TOOL_TRIGGER_AUTOMATION,
     TOOL_TRIGGER_SCAN,
@@ -1815,6 +1820,104 @@ _TOOL_DEFINITIONS.extend(
                 "type": "object",
                 "required": ["pipeline_id"],
                 "properties": {"pipeline_id": _PIPELINE_ID_PARAM},
+            },
+        ),
+    ]
+)
+
+_ENTRY_ID_PARAM: dict[str, Any] = {
+    "type": "string",
+    "description": "The integration's entry_id, from list_integrations.",
+}
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_LIST_INTEGRATIONS,
+            description=(
+                "The home's integrations, as Settings → Devices & services lists them: "
+                "each with its entry_id, domain, title, state (loaded, setup_error, "
+                "setup_retry, not_loaded …), the reason when it is not working, whether "
+                "it is disabled, how many devices and entities it has, and whether it "
+                "has options. problems_only=true lists just the ones not working — "
+                "start there when something stopped working."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "domain": {
+                        "type": "string",
+                        "description": "Only this integration, e.g. 'hue'.",
+                    },
+                    "problems_only": {"type": "boolean"},
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_RELOAD_INTEGRATION,
+            description=(
+                "Reload an integration — the usual fix for one stuck in setup_retry or "
+                "showing stale devices — and return the state it came back in. "
+                "Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["entry_id"],
+                "properties": {"entry_id": _ENTRY_ID_PARAM},
+            },
+        ),
+        MCPTool(
+            name=TOOL_SET_INTEGRATION_ENABLED,
+            description=(
+                "Enable or disable an integration. Disabling unloads it and makes its "
+                "devices and entities unavailable until it is enabled again. Requires "
+                "admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["entry_id", "enabled"],
+                "properties": {"entry_id": _ENTRY_ID_PARAM, "enabled": {"type": "boolean"}},
+            },
+        ),
+        MCPTool(
+            name=TOOL_REMOVE_INTEGRATION,
+            description=(
+                "Remove an integration with all its devices and entities. Comes back "
+                "first with requires_confirmation and what would go, removing nothing: "
+                "tell the user, and only once they agree call again with "
+                "confirmed=true. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["entry_id"],
+                "properties": {"entry_id": _ENTRY_ID_PARAM, "confirmed": _CONFIRMED_PARAM},
+            },
+        ),
+        MCPTool(
+            name=TOOL_SET_INTEGRATION_OPTIONS,
+            description=(
+                "Change an integration's options through its own options form. Call "
+                "first without `options`: it returns the form's fields with their "
+                "current values — a credential only says whether it is set — and the "
+                "fields inside any section (or the choices, when the form starts with a "
+                "menu — then pass `type`). A section's fields go in an object under the "
+                "section's name. Then call again with `options` holding the fields "
+                "to set. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["entry_id"],
+                "properties": {
+                    "entry_id": _ENTRY_ID_PARAM,
+                    "type": {
+                        "type": "string",
+                        "description": "When the form starts with a menu: the choice.",
+                    },
+                    "options": {
+                        "type": "object",
+                        "description": "The form's values, keyed by its field names.",
+                    },
+                },
             },
         ),
     ]
