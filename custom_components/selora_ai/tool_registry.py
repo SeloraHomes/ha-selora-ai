@@ -1628,7 +1628,7 @@ TOOL_LIST_HELPERS = ToolDef(
     name="list_helpers",
     description=(
         "List the home's helper entities — input_boolean, input_number, timer, "
-        "counter, schedule, and the config-entry helpers. Use this to find an existing "
+        "counter, schedule, zone, and the config-entry helpers. Use this to find an existing "
         "toggle or counter to wire an automation to — and check here before "
         "create_helper, so you reuse one that already does the job."
     ),
@@ -1651,7 +1651,8 @@ TOOL_CREATE_HELPER = ToolDef(
         "Create any Home Assistant helper. Two kinds, one tool:\n"
         "- A storage helper — domain input_boolean (toggle), input_select "
         "(dropdown), input_number, input_text, input_datetime, input_button, "
-        "counter or timer — with the flat parameters below. CALL IT rather than "
+        "counter, timer, or zone (a place people are tracked in: work, school) "
+        "— with the flat parameters below. CALL IT rather than "
         "telling the user to make the helper in Settings: it returns a card with "
         "a Create button and the user's browser creates it, so do NOT say it "
         "exists until the result comes back, and say what is left in "
@@ -1674,7 +1675,7 @@ TOOL_CREATE_HELPER = ToolDef(
             type="string",
             description=(
                 "A storage helper domain (input_boolean, input_select, input_number, "
-                "input_text, input_datetime, input_button, counter, timer) or a helper "
+                "input_text, input_datetime, input_button, counter, timer, zone) or a helper "
                 "integration (template, utility_meter, threshold, derivative, …)."
             ),
             required=True,
@@ -1740,6 +1741,16 @@ TOOL_CREATE_HELPER = ToolDef(
             type="boolean",
             description="counter / timer: keep the value across restarts.",
         ),
+        ToolParam(name="latitude", type="number", description="zone: centre latitude."),
+        ToolParam(name="longitude", type="number", description="zone: centre longitude."),
+        ToolParam(
+            name="radius", type="number", description="zone: radius in meters (default 100)."
+        ),
+        ToolParam(
+            name="passive",
+            type="boolean",
+            description="zone: only for automations — nobody is shown as in it.",
+        ),
         ToolParam(
             name="remaining_intent",
             type="string",
@@ -1766,7 +1777,8 @@ TOOL_CREATE_HELPER_DIRECT = ToolDef(
         "kinds, one tool:\n"
         "- A storage helper — domain input_boolean (toggle), input_select "
         "(dropdown), input_number, input_text, input_datetime, input_button, "
-        "counter or timer — with the flat parameters below. The result gives its "
+        "counter, timer, or zone (a place people are tracked in: work, school) "
+        "— with the flat parameters below. The result gives its "
         "entity_id.\n"
         "- A config-entry helper — domain template (a template sensor, "
         "binary_sensor, switch, select, alarm_control_panel …), utility_meter, "
@@ -1795,8 +1807,8 @@ TOOL_UPDATE_HELPER = ToolDef(
     description=(
         "Change a helper created in the Home Assistant UI — input_boolean, "
         "input_select, input_number, input_text, input_datetime, input_button, "
-        "counter or timer: its name, icon, a dropdown's options, a number's range, "
-        "a timer's duration and so on. Pass only what changes; every other setting "
+        "counter, timer or zone: its name, icon, a dropdown's options, a number's "
+        "range, a timer's duration, a zone's place and radius and so on. Pass only what changes; every other setting "
         "is kept. Takes effect immediately. Template and other integration-backed "
         "helpers are changed in Settings. Call list_helpers for the entity_id."
     ),
@@ -1827,7 +1839,7 @@ TOOL_DELETE_HELPER = ToolDef(
     description=(
         "Delete a helper created in the Home Assistant UI — input_boolean, "
         "input_select, input_number, input_text, input_datetime, input_button, "
-        "counter or timer. Automations, scripts and dashboard cards using it stop "
+        "counter, timer or zone. Automations, scripts and dashboard cards using it stop "
         "working, and the confirmation card names how many do. The user gets a "
         "confirmation card. Call list_helpers for the entity_id."
     ),

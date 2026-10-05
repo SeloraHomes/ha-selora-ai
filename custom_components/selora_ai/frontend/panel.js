@@ -27533,6 +27533,7 @@ var HELPER_FIELDS = {
   input_datetime: ["name", "icon", "initial", "has_date", "has_time"],
   counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
   timer: ["name", "icon", "duration", "restore"],
+  zone: ["name", "icon", "latitude", "longitude", "radius", "passive"],
 };
 var HANDLERS = {
   create_helper: async (hass, action) => {
@@ -50836,7 +50837,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "c30b81e2e869" : "";
+var PANEL_BUILD = true ? "2355f0438e19" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

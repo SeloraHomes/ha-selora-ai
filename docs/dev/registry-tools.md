@@ -130,6 +130,11 @@ the model stops reciting Settings click-paths.
     what used it (`async_helper_dependents`: automations, scripts, scenes,
     groups, dashboards) — HA rewrites no references.
   - A rename onto another helper's name is refused, as at creation.
+- **Zones are storage helpers here** (`zone` in `_COLLECTIONS`, schema
+  `CREATE_SCHEMA`): the same collection shape, so the helper tools create,
+  move and delete them rather than a zone toolset of their own. `zone.home` is
+  not stored — HA draws it from the home's location — and is refused with
+  where to change it (Settings → System → General).
 - **Every other helper runs its own config flow, through the same tool**
   (`helper_flow.py`), the way `group_manager` drives `group`'s — config-entry
   helpers need no panel. One tool, not one per helper: template entities of

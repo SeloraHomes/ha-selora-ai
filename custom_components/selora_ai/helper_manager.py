@@ -34,9 +34,10 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # domain → (collection class, attribute holding its create schema). Named
-# rather than discovered: the attribute is ``SCHEMA`` on input_number and
-# ``CREATE_UPDATE_SCHEMA`` everywhere else, and a domain added here is one the
-# panel also has to allowlist.
+# rather than discovered: the attribute is ``SCHEMA`` on input_number,
+# ``CREATE_SCHEMA`` on zone and ``CREATE_UPDATE_SCHEMA`` everywhere else, and a
+# domain added here is one the panel also has to allowlist. A zone is not a
+# helper to the user, but it is the same kind of storage collection.
 _COLLECTIONS: Final[dict[str, tuple[str, str]]] = {
     "input_boolean": ("InputBooleanStorageCollection", "CREATE_UPDATE_SCHEMA"),
     "input_button": ("InputButtonStorageCollection", "CREATE_UPDATE_SCHEMA"),
@@ -46,6 +47,7 @@ _COLLECTIONS: Final[dict[str, tuple[str, str]]] = {
     "input_datetime": ("DateTimeStorageCollection", "CREATE_UPDATE_SCHEMA"),
     "counter": ("CounterStorageCollection", "CREATE_UPDATE_SCHEMA"),
     "timer": ("TimerStorageCollection", "CREATE_UPDATE_SCHEMA"),
+    "zone": ("ZoneStorageCollection", "CREATE_SCHEMA"),
 }
 
 CREATABLE_HELPER_DOMAINS: Final = tuple(_COLLECTIONS)
@@ -181,7 +183,11 @@ async def async_propose_helper(
             "domain": domain,
             "name": name,
             "fields": _jsonable(dict(validated)),
-            "label": f"Create the {sanitize_untrusted_text(name, 60)} {domain} helper",
+            "label": (
+                f"Create the {sanitize_untrusted_text(name, 60)} zone"
+                if domain == "zone"
+                else f"Create the {sanitize_untrusted_text(name, 60)} {domain} helper"
+            ),
         },
     }
 
@@ -264,6 +270,10 @@ def _resolve_storage_helper(
     entity_id = str(entity_id or "").strip().lower()
     domain = entity_id.split(".", 1)[0]
     shown = sanitize_untrusted_text(entity_id, 80)
+    if entity_id == "zone.home":
+        # Not a stored zone: Home Assistant draws it from the home's own
+        # location and radius.
+        return "zone.home is the home's own location. Change it under Settings → System → General."
     entry = er.async_get(hass).async_get(entity_id)
     if domain not in _COLLECTIONS:
         if entry is not None and entry.config_entry_id:
@@ -416,10 +426,10 @@ async def async_preview_helper_delete(hass: HomeAssistant, entity_id: str) -> di
     resolved = _resolve_storage_helper(hass, entity_id)
     if isinstance(resolved, str):
         return {"error": resolved}
-    _, _, item = resolved
+    domain, _, item = resolved
     entity_id = entity_id.strip().lower()
     name = sanitize_untrusted_text(str(item.get("name") or entity_id), 60)
-    label = f"Delete the {name} helper"
+    label = f"Delete the {name} {'zone' if domain == 'zone' else 'helper'}"
     if dependents := await async_helper_dependents(hass, entity_id):
         label = f"{label} — used by {', '.join(dependents)}"
     return {
