@@ -44,6 +44,7 @@ from ..const import (
 )
 from ..entity_capabilities import is_actionable_entity
 from ..telemetry import record_repair
+from ..tool_executor import commands_run_together
 from ..types import (
     ArchitectResponse,
     EntitySnapshot,
@@ -269,6 +270,26 @@ def _grant_leak_retry(
         messages.append({"role": "assistant", "content": said})
     messages.append({"role": "user", "content": _LEAK_RETRY_DIRECTIVE})
     return min(round_budget + 1, MAX_TOOL_CALL_ROUNDS + _MAX_LEAK_RETRIES)
+
+
+async def _grace_then_cancel(task: asyncio.Future[dict[str, Any]]) -> None:
+    """Give an unfinished tool call STREAM_TOOL_CANCEL_GRACE_S, then cancel it."""
+    if task.done():
+        return
+    with contextlib.suppress(TimeoutError, asyncio.CancelledError):
+        await asyncio.wait_for(asyncio.shield(task), timeout=STREAM_TOOL_CANCEL_GRACE_S)
+    if not task.done():
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+
+def _log_tool_call(tool_call: dict[str, Any]) -> None:
+    _LOGGER.info(
+        "LLM tool call: %s(%s)",
+        tool_call["name"],
+        json.dumps(tool_call["arguments"], default=str)[:200],
+    )
 
 
 def _join_stream_boundary(streamed: str, synthesized: str) -> str:
@@ -1988,17 +2009,32 @@ class LLMClient:
                 requires_approval_hit = False
                 executed_results: list[ToolWriteResult] = []
                 non_write_tool_seen = False
-                for tool_call in requested_tools:
-                    _LOGGER.info(
-                        "LLM tool call: %s(%s)",
-                        tool_call["name"],
-                        json.dumps(tool_call["arguments"], default=str)[:200],
+                together: list[dict[str, Any]] | None = None
+                if commands_run_together(requested_tools):
+                    for tool_call in requested_tools:
+                        _log_tool_call(tool_call)
+                    together = list(
+                        await asyncio.gather(
+                            *(
+                                tool_executor.execute(tc["name"], tc["arguments"])
+                                for tc in requested_tools
+                            )
+                        )
                     )
-                    result = await tool_executor.execute(tool_call["name"], tool_call["arguments"])
+                for index, tool_call in enumerate(requested_tools):
+                    if together is not None:
+                        result = together[index]
+                    else:
+                        _log_tool_call(tool_call)
+                        result = await tool_executor.execute(
+                            tool_call["name"], tool_call["arguments"]
+                        )
                     tool_calls_log.append(
                         {
                             "tool": tool_call["name"],
-                            "arguments": tool_call["arguments"],
+                            "arguments": tool_executor.logged_arguments(
+                                tool_call["name"], tool_call["arguments"]
+                            ),
                             "result": result,
                         }
                     )
@@ -2285,56 +2321,62 @@ class LLMClient:
             requires_approval_hit = False
             executed_results: list[ToolWriteResult] = []
             non_write_tool_seen = False
-            for tc in tool_calls:
-                yield STREAM_KEEPALIVE
-                _LOGGER.info(
-                    "LLM tool call: %s(%s)",
-                    tc["name"],
-                    json.dumps(tc["arguments"], default=str)[:200],
-                )
-                exec_task = asyncio.ensure_future(
-                    tool_executor.execute(tc["name"], tc["arguments"])
-                )
-                try:
-                    while not exec_task.done():
-                        try:
-                            await asyncio.wait_for(
-                                asyncio.shield(exec_task),
-                                timeout=STREAM_TOOL_KEEPALIVE_S,
-                            )
-                        except TimeoutError:
-                            yield STREAM_KEEPALIVE
-                finally:
-                    if not exec_task.done():
-                        with contextlib.suppress(TimeoutError, asyncio.CancelledError):
-                            await asyncio.wait_for(
-                                asyncio.shield(exec_task),
-                                timeout=STREAM_TOOL_CANCEL_GRACE_S,
-                            )
-                        if not exec_task.done():
-                            exec_task.cancel()
-                            with contextlib.suppress(asyncio.CancelledError):
-                                await exec_task
-                if exec_task.cancelled():
-                    break
-                result = exec_task.result()
-                results.append(result)
-                # Surface read/inspect tools as a timeline step. The write tool
-                # (execute_command) has its own result UI and is intentionally
-                # not narrated here.
-                if tc["name"] != "execute_command":
-                    tool_step_seq += 1
-                    yield encode_tool_step(tool_step_seq, tc["name"])
-                if isinstance(result, dict) and result.get("requires_approval"):
-                    requires_approval_hit = True
-                elif (
-                    tc["name"] == "execute_command"
-                    and isinstance(result, dict)
-                    and result.get("executed") is True
-                ):
-                    executed_results.append(result)  # type: ignore[arg-type]
-                else:
-                    non_write_tool_seen = True
+            # A round that can run together starts every call now; the loop
+            # below then only collects them, in the model's order.
+            started: list[asyncio.Future[dict[str, Any]]] = []
+            if commands_run_together(tool_calls):
+                for tc in tool_calls:
+                    _log_tool_call(tc)
+                    started.append(
+                        asyncio.ensure_future(tool_executor.execute(tc["name"], tc["arguments"]))
+                    )
+            try:
+                for index, tc in enumerate(tool_calls):
+                    yield STREAM_KEEPALIVE
+                    if started:
+                        exec_task = started[index]
+                    else:
+                        _log_tool_call(tc)
+                        exec_task = asyncio.ensure_future(
+                            tool_executor.execute(tc["name"], tc["arguments"])
+                        )
+                    try:
+                        while not exec_task.done():
+                            try:
+                                await asyncio.wait_for(
+                                    asyncio.shield(exec_task),
+                                    timeout=STREAM_TOOL_KEEPALIVE_S,
+                                )
+                            except TimeoutError:
+                                yield STREAM_KEEPALIVE
+                    finally:
+                        await _grace_then_cancel(exec_task)
+                    if exec_task.cancelled():
+                        break
+                    result = exec_task.result()
+                    results.append(result)
+                    # Surface read/inspect tools as a timeline step. The write tool
+                    # (execute_command) has its own result UI and is intentionally
+                    # not narrated here.
+                    if tc["name"] != "execute_command":
+                        tool_step_seq += 1
+                        yield encode_tool_step(tool_step_seq, tc["name"])
+                    if isinstance(result, dict) and result.get("requires_approval"):
+                        requires_approval_hit = True
+                    elif (
+                        tc["name"] == "execute_command"
+                        and isinstance(result, dict)
+                        and result.get("executed") is True
+                    ):
+                        executed_results.append(result)  # type: ignore[arg-type]
+                    else:
+                        non_write_tool_seen = True
+            finally:
+                # Calls started together but not yet collected — the stream
+                # closed, or one was cancelled — get the same grace as the one
+                # being collected, so a dispatched command still logs itself.
+                for task in started:
+                    await _grace_then_cancel(task)
 
             self._provider.append_streaming_tool_results(
                 messages, content_blocks, tool_calls, results

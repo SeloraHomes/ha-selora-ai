@@ -291,13 +291,11 @@ class _CommandsLightMixin:
             resp = "Turned on the lights." if len(targets) > 1 else "Turned on the light."
         else:
             return None
-        # Mirror command_policy._MAX_TARGET_ENTITIES so each fanned-out call stays within the
-        # per-call entity cap. It does NOT keep the TOTAL under _MAX_COMMAND_CALLS (5): three
-        # targets per call means 15 lights is the ceiling, and a floor with more than that
-        # builds an envelope apply_command_policy rejects outright as too many actions. The
-        # policy has no area_id target to collapse them into, so raising the ceiling is a
-        # policy change rather than something this handler can chunk its way around.
-        chunk_size = 3
+        # The policy's per-call cap, so each fanned-out call passes it. Read
+        # here rather than at import: the policy module imports the providers.
+        from ....llm_client.command_policy import _MAX_TARGET_ENTITIES  # noqa: PLC0415
+
+        chunk_size = _MAX_TARGET_ENTITIES
         calls: list[dict[str, Any]] = []
         for i in range(0, len(targets), chunk_size):
             chunk = targets[i : i + chunk_size]

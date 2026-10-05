@@ -110,3 +110,26 @@ service calls for those phrasings. A cloud model resolves them itself, with
 tools, history and the home in context, in any language; the helpers are
 patterns for the phrasings someone coded, so on that path they could only
 pre-empt an answer the model would have got right.
+
+That only holds because a cloud model can do a multi-device request in ONE
+response. A response whose tool calls are all `execute_command` ends the turn
+(the loop writes the confirmation from the results instead of paying for
+another round), so "turn off all the lights" must arrive as every call at once:
+`execute_command` takes `entity_ids` (folded into `entity_id` by
+`execute_command_arguments`), and its description states the end-of-turn rule —
+the description travels with every prompt variant, slim command prompt included.
+With one entity per call, a cloud model sent one call, the turn ended, and only
+one light went off.
+
+- **A safe call covers a whole category** (`_MAX_TARGET_ENTITIES`, 50). A call
+  that needs approval stays at `_MAX_APPROVAL_TARGET_ENTITIES` (3), so the card
+  names a handful of devices. A per-call cap the model can split around only
+  costs time: at 3, sixteen lights took seven calls.
+- **A round of commands that commute runs at once**
+  (`commands_run_together`): one idempotent verb (no `toggle`), the same
+  data, distinct targets, no scene/script — a group can share members with
+  another target, so only calls that agree on the end state may race.
+  Each call waits up to `_STATE_SETTLE_TIMEOUT` for its devices to report, so
+  run in turn the waits add up. Anything else keeps the model's order.
+- **The confirmation has one sentence per action**, not per call
+  (`build_executed_confirmation`).

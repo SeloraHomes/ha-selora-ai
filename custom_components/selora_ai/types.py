@@ -553,6 +553,19 @@ class ServiceCallDict(TypedDict, total=False):
     data: dict[str, Any]
 
 
+class ExecuteCommandArgs(TypedDict, total=False):
+    """The chat ``execute_command`` tool's arguments, as the command path reads them.
+
+    ``entity_id`` is one id or several (``entity_ids`` folded in by
+    ``tool_executor.execute_command_arguments``). ``data`` is the model's raw
+    payload: the command path checks it is a mapping before using it.
+    """
+
+    service: str
+    entity_id: str | list[str]
+    data: Any
+
+
 class EntityStateSnapshot(TypedDict):
     """Post-execution entity state captured by ``_tool_execute_command``."""
 
