@@ -36,6 +36,7 @@ from .names import (
     TOOL_DELETE_AUTOMATION,
     TOOL_DELETE_CATEGORY,
     TOOL_DELETE_DASHBOARD,
+    TOOL_DELETE_FILE,
     TOOL_DELETE_FLOOR,
     TOOL_DELETE_GROUP,
     TOOL_DELETE_HELPER,
@@ -71,6 +72,7 @@ from .names import (
     TOOL_LIST_DASHBOARD_RESOURCES,
     TOOL_LIST_DASHBOARDS,
     TOOL_LIST_DEVICES,
+    TOOL_LIST_FILES,
     TOOL_LIST_FLOORS,
     TOOL_LIST_GROUPS,
     TOOL_LIST_HELPERS,
@@ -82,6 +84,7 @@ from .names import (
     TOOL_LIST_SESSIONS,
     TOOL_LIST_SUGGESTIONS,
     TOOL_MOVE_DASHBOARD_CARD,
+    TOOL_READ_FILE,
     TOOL_REMOVE_DASHBOARD_CARD,
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
@@ -102,6 +105,7 @@ from .names import (
     TOOL_VALIDATE_ACTION,
     TOOL_VALIDATE_AUTOMATION,
     TOOL_VALIDATE_SCENE,
+    TOOL_WRITE_FILE,
 )
 from .protocol import MCPTool
 
@@ -1351,3 +1355,98 @@ def _dashboard_write_tools() -> frozenset[str]:
             if "dashboard" in chat_name and TOOL_MAP[chat_name].requires_admin
         )
     return _DASHBOARD_WRITE_TOOLS
+
+
+_FILE_PARAM: dict[str, Any] = {
+    "type": "string",
+    "description": (
+        "A path under www/, themes/, custom_templates/ or dashboards/ (and blueprints/ "
+        "for reading), e.g. 'www/pool/background.svg'. Files in www/ are served at "
+        "/local/<the rest>."
+    ),
+}
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_LIST_FILES,
+            description=(
+                "List one folder's files and subfolders under www/, themes/, "
+                "custom_templates/, dashboards/ or blueprints/. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["folder"],
+                "properties": {
+                    "folder": {"type": "string", "description": "e.g. 'www' or 'www/pool'."},
+                    "pattern": {"type": "string", "description": "Optional glob, e.g. '*.js'."},
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_READ_FILE,
+            description=(
+                "Read a text file under www/, themes/, custom_templates/, dashboards/ or "
+                "blueprints/. Long files come in chunks: pass next_offset back as offset. "
+                "configuration.yaml and packages are read with selora_get_config_yaml. "
+                "Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                    "file": _FILE_PARAM,
+                    "offset": {
+                        "type": "integer",
+                        "description": "Byte offset to continue from: the next_offset a read returned.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_WRITE_FILE,
+            description=(
+                "Create a text file under www/, themes/, custom_templates/ or dashboards/ "
+                "— card files, theme assets, Jinja macros, YAML dashboards. Replacing an "
+                "existing file needs overwrite=true, and the old version is backed up. "
+                "A file a browser runs (www/ .js, .html, .svg …) comes back with "
+                "requires_confirmation and writes nothing: show the user what it does, and "
+                "only once they agree call again with confirmed=true. Edit "
+                "configuration.yaml and packages with selora_set_config_yaml. Requires "
+                "admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["file", "content"],
+                "properties": {
+                    "file": _FILE_PARAM,
+                    "content": {"type": "string", "description": "The file's full text."},
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Replace the file if it exists. Off by default.",
+                    },
+                    "confirmed": {
+                        "type": "boolean",
+                        "description": (
+                            "Set ONLY after the user agreed to a file that came back "
+                            "with requires_confirmation."
+                        ),
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_DELETE_FILE,
+            description=(
+                "Delete a text file under www/, themes/, custom_templates/ or dashboards/. "
+                "Runs IMMEDIATELY (a backup is kept) — confirm with the user first. "
+                "Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["file"],
+                "properties": {"file": _FILE_PARAM},
+            },
+        ),
+    ]
+)
