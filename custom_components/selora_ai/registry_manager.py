@@ -909,11 +909,9 @@ async def async_update_device(
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
-# The helper domains HA backs with a storage collection. These are created and
-# deleted through the websocket API only — the collection object is a local in
-# each component's ``async_setup`` and is never published to ``hass.data``, so
-# there is no supported in-process way to add one. They are listed here so the
-# model can find and USE an existing helper; creating one still means the UI.
+# The helper domains HA backs with a storage collection (zones included), listed
+# so the model can find and USE an existing one. Creating, changing and deleting
+# them is ``helper_manager``'s.
 _STORAGE_HELPER_DOMAINS: Final = (
     "input_boolean",
     "input_button",
@@ -924,6 +922,7 @@ _STORAGE_HELPER_DOMAINS: Final = (
     "counter",
     "timer",
     "schedule",
+    "zone",
 )
 
 

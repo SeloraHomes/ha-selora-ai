@@ -1060,6 +1060,10 @@ def create_helper_fields(arguments: dict[str, Any]) -> dict[str, Any]:
         "has_time",
         "duration",
         "restore",
+        "latitude",
+        "longitude",
+        "radius",
+        "passive",
     ):
         value = arguments.get(key)
         if value is None or (isinstance(value, str) and not value.strip()):
@@ -1068,7 +1072,7 @@ def create_helper_fields(arguments: dict[str, Any]) -> dict[str, Any]:
     options = _opt_list(arguments.get("options"))
     if options:
         fields["options"] = options
-    for flag in ("has_date", "has_time", "restore"):
+    for flag in ("has_date", "has_time", "restore", "passive"):
         if flag in fields:
             coerced = _opt_bool(fields[flag])
             if coerced is None:
