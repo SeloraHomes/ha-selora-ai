@@ -19,7 +19,8 @@ variables:
       - .cache/pip
 
 .ha-test-deps: &ha-test-deps
-  - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
+  # g++: pymicro-vad and pyspeex-noise (assist_pipeline) ship no wheel for 3.13+.
+  - apt-get update -qq && apt-get install -y -qq gcc g++ python3-dev > /dev/null
   # The plugin pins `homeassistant` exactly, so capping it is the only handle on
   # the core version. The cap tracks the LATEST STABLE core: 0.13.367 pins
   # 2026.9.4, and 0.13.368 already pins 2026.10.0b0. Raise it to the release
@@ -27,10 +28,8 @@ variables:
   # 2026.9 went untested while hubs ran it. lefthook.yml and CONTRIBUTING.md
   # carry the same cap.
   - pip install pytest pytest-asyncio "pytest-homeassistant-custom-component<0.13.368" "ruamel.yaml>=0.18" anthropic PyJWT "rapidfuzz>=3.0" --quiet
-  # Pin hassil / home-assistant-intents to the exact versions the installed HA's
-  # conversation component requires — unpinned pulls a newer build that dropped
-  # FuzzyConfig, breaking test_conversation collection.
-  - pip install --quiet $(python -c "import importlib.util,json,os; s=importlib.util.find_spec('homeassistant.components.conversation'); print(' '.join(json.load(open(os.path.join(os.path.dirname(s.origin),'manifest.json')))['requirements']))")
+  # The core components' requirements, at the versions the installed HA pins.
+  - pip install --quiet $(python scripts/core_test_requirements.py)
 
 .default-rules: &default-rules
   rules:

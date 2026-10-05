@@ -33,6 +33,7 @@ from .names import (
     TOOL_CREATE_LABEL,
     TOOL_CREATE_SCENE,
     TOOL_DELETE_AREA,
+    TOOL_DELETE_ASSIST_PIPELINE,
     TOOL_DELETE_AUTOMATION,
     TOOL_DELETE_CALENDAR_EVENT,
     TOOL_DELETE_CATEGORY,
@@ -75,6 +76,7 @@ from .names import (
     TOOL_HOME_ANALYTICS,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_LIST_AREAS,
+    TOOL_LIST_ASSIST_PIPELINES,
     TOOL_LIST_AUTOMATIONS,
     TOOL_LIST_BLUEPRINTS,
     TOOL_LIST_CALENDAR_EVENTS,
@@ -99,6 +101,7 @@ from .names import (
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
     TOOL_SEARCH_ENTITIES,
+    TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_ENERGY_PREFS,
@@ -1741,6 +1744,77 @@ _TOOL_DEFINITIONS.extend(
                         "description": _ENERGY_LIST_DESCRIPTION,
                     },
                 },
+            },
+        ),
+    ]
+)
+
+_PIPELINE_ID_PARAM: dict[str, Any] = {
+    "type": "string",
+    "description": "The pipeline's id, from list_assist_pipelines.",
+}
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_LIST_ASSIST_PIPELINES,
+            description=(
+                "Assist's voice pipelines: for each, its conversation agent, speech-to-"
+                "text, text-to-speech and wake word engines with their languages, and "
+                "which pipeline is preferred. Also the engine entities installed, to "
+                "pick from when changing one."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        MCPTool(
+            name=TOOL_SET_ASSIST_PIPELINE,
+            description=(
+                "Create an Assist pipeline, or change one by passing pipeline_id — only "
+                "the settings you pass change. A new one needs name, language, "
+                "conversation_engine and conversation_language; speech-to-text, text-to-"
+                "speech and wake word stay off unless set, and each engine set needs its "
+                "language. An empty string turns an engine off. preferred=true makes "
+                "it the pipeline Assist uses by default. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pipeline_id": {
+                        "type": "string",
+                        "description": "The pipeline to change. Leave out to create one.",
+                    },
+                    "name": {"type": "string"},
+                    "language": {"type": "string", "description": "e.g. 'en', 'fr'."},
+                    "conversation_engine": {
+                        "type": "string",
+                        "description": "A conversation entity, or 'conversation.home_assistant'.",
+                    },
+                    "conversation_language": {"type": "string"},
+                    "stt_engine": {"type": "string", "description": "An stt entity."},
+                    "stt_language": {"type": "string"},
+                    "tts_engine": {"type": "string", "description": "A tts entity."},
+                    "tts_language": {"type": "string"},
+                    "tts_voice": {"type": "string"},
+                    "wake_word_entity": {"type": "string", "description": "A wake_word entity."},
+                    "wake_word_id": {"type": "string"},
+                    "prefer_local_intents": {
+                        "type": "boolean",
+                        "description": "Answer known commands locally before the agent.",
+                    },
+                    "preferred": {"type": "boolean"},
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_DELETE_ASSIST_PIPELINE,
+            description=(
+                "Delete an Assist pipeline, IMMEDIATELY. The preferred pipeline cannot "
+                "be deleted; make another preferred first. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["pipeline_id"],
+                "properties": {"pipeline_id": _PIPELINE_ID_PARAM},
             },
         ),
     ]
