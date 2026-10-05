@@ -39,11 +39,13 @@ def test_create_dashboard_is_registered_in_both_lanes() -> None:
 def test_mcp_creates_directly_rather_than_proposing() -> None:
     """MCP has no panel to tap, so it gets its own handler that creates on the
     spot (`tests/test_dashboard_entry.py`), not the chat proposal."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import dashboards as mcp_dashboards
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
+    from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
-    assert mcp_server._DERIVED_MCP_TOOLS["selora_create_dashboard"] == "create_dashboard"
-    handler = mcp_server._get_tool_handlers()["selora_create_dashboard"]
-    assert handler is mcp_server._tool_create_dashboard
+    assert mcp_definitions._DERIVED_MCP_TOOLS["selora_create_dashboard"] == "create_dashboard"
+    handler = mcp_dispatch._get_tool_handlers()["selora_create_dashboard"]
+    assert handler is mcp_dashboards._tool_create_dashboard
 
 
 def test_the_description_warns_against_claiming_success() -> None:
@@ -1588,10 +1590,11 @@ def test_delete_dashboard_is_a_client_action_and_panel_only() -> None:
 
 def test_mcp_deletes_directly_rather_than_proposing() -> None:
     """Like create: MCP has no card to tap, so its handler deletes on the spot."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import dashboards as mcp_dashboards
+    from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
-    handler = mcp_server._get_tool_handlers()["selora_delete_dashboard"]
-    assert handler is mcp_server._tool_delete_dashboard
+    handler = mcp_dispatch._get_tool_handlers()["selora_delete_dashboard"]
+    assert handler is mcp_dashboards._tool_delete_dashboard
 
 
 async def test_the_delete_card_carries_the_collection_id(hass: HomeAssistant) -> None:

@@ -72,9 +72,7 @@ class TestAWeatherWordDoesNotHijackACommand:
 
     async def test_a_real_weather_question_still_answers(self) -> None:
         provider = _provider([_state("weather.home", "cloudy")])
-        await _set_context(
-            provider, kind="chat_answer", message="is it sunny or cloudy today?"
-        )
+        await _set_context(provider, kind="chat_answer", message="is it sunny or cloudy today?")
         envelope = provider._maybe_weather_question_envelope()
         assert envelope is not None
         assert "cloudy" in json.loads(envelope)["response"]
@@ -252,9 +250,7 @@ class TestInventoryQuestionsAreNotDocsQuestions:
             "what is the scene for movie night",
         ],
     )
-    def test_a_home_inventory_question_does_not_route_to_utilities(
-        self, message: str
-    ) -> None:
+    def test_a_home_inventory_question_does_not_route_to_utilities(self, message: str) -> None:
         assert _classify_chat_intent(message) != "utilities"
 
     @pytest.mark.parametrize(
@@ -282,9 +278,7 @@ class TestAWarmupIsNotATurn:
         provider = _provider()
         token = provider._prewarming.set(True)
         try:
-            await _set_context(
-                provider, kind="chat_command", message="warmup", token=None
-            )
+            await _set_context(provider, kind="chat_command", message="warmup", token=None)
         finally:
             provider._prewarming.reset(token)
         provider._active_turn_token = None
@@ -304,9 +298,7 @@ class TestTwoUntokenedTurnsDeclineRatherThanGuess:
         await _set_context(
             provider, kind="chat_answer", message="what is my energy usage", token=None
         )
-        await _set_context(
-            provider, kind="chat_command", message="turn off the lights", token=None
-        )
+        await _set_context(provider, kind="chat_command", message="turn off the lights", token=None)
         # The SECOND turn finishes first.
         provider._drop_untokened_snapshot()
         provider._active_turn_token = None
@@ -330,23 +322,17 @@ class TestTwoUntokenedTurnsDeclineRatherThanGuess:
         await _set_context(
             provider, kind="chat_answer", message="what is my energy usage", token=None
         )
-        await _set_context(
-            provider, kind="chat_command", message="turn off the lights", token=None
-        )
+        await _set_context(provider, kind="chat_command", message="turn off the lights", token=None)
         # The first turn is answered and releases its snapshot.
         provider._drop_untokened_snapshot()
         # A third arrives before the second has converted.
-        await _set_context(
-            provider, kind="chat_command", message="lock the front door", token=None
-        )
+        await _set_context(provider, kind="chat_command", message="lock the front door", token=None)
         provider._active_turn_token = None
         assert provider._turn_snapshot() is None
 
     async def test_an_overlapping_pair_is_not_resolved(self) -> None:
         provider = _provider()
-        await _set_context(
-            provider, kind="chat_command", message="turn off the lights", token=None
-        )
+        await _set_context(provider, kind="chat_command", message="turn off the lights", token=None)
         await _set_context(
             provider, kind="chat_command", message="what is my energy usage", token=None
         )
@@ -357,9 +343,7 @@ class TestTwoUntokenedTurnsDeclineRatherThanGuess:
         """The reserved key is released when its turn is answered, so the next
         untokened turn is unambiguous again."""
         provider = _provider()
-        await _set_context(
-            provider, kind="chat_command", message="turn off the lights", token=None
-        )
+        await _set_context(provider, kind="chat_command", message="turn off the lights", token=None)
         provider._drop_untokened_snapshot()
         await _set_context(
             provider, kind="chat_command", message="what is my energy usage", token=None
@@ -386,9 +370,7 @@ class TestAMalformedSlotRecordDoesNotKillTheTurn:
             [{"path": "command-lora", "id": -1}],
         ],
     )
-    async def test_a_bad_record_is_skipped_rather_than_raised(
-        self, slots: list[Any]
-    ) -> None:
+    async def test_a_bad_record_is_skipped_rather_than_raised(self, slots: list[Any]) -> None:
         provider = _provider()
         mapping: dict[str, int] = {}
         # The loop as shipped, over the record shapes a hub can return.

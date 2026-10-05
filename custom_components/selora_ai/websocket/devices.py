@@ -45,7 +45,7 @@ async def _handle_websocket_get_device_detail(
         device_id = msg["device_id"]
 
         # 1. Device metadata + entity states (reuse MCP tool)
-        from ..mcp_server import _tool_get_device
+        from ..mcp_server.entities import _tool_get_device
 
         device_data = await _tool_get_device(hass, {"device_id": device_id})
         if "error" in device_data:

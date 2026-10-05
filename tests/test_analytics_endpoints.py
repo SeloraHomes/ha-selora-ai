@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.selora_ai.mcp_server import _tool_home_analytics
+from custom_components.selora_ai.mcp_server.entities import _tool_home_analytics
 from custom_components.selora_ai.websocket.usage import _handle_websocket_get_analytics
 
 # Access the original coroutine behind the @async_response decorator

@@ -126,7 +126,7 @@ async def test_a_revision_retires_the_card_it_replaces(harness: ChatHarness) -> 
 async def test_a_proposal_for_another_automation_retires_nothing(
     harness: ChatHarness,
 ) -> None:
-    """"Now make one for the porch" is a second automation the user may well
+    """ "Now make one for the porch" is a second automation the user may well
     want alongside the first — superseding on arrival alone would throw it
     away."""
     first = await harness.chat("turn the plug on at midnight", reply=_proposal(at="00:00:00"))

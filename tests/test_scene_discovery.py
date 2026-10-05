@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-
 from custom_components.selora_ai.scene_utils import get_area_names
-
 
 # ── get_area_names ───────────────────────────────────────────────────
 

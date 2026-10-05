@@ -13,8 +13,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 import pytest
 
-from custom_components.selora_ai import mcp_server
 from custom_components.selora_ai.helper_manager import CREATABLE_HELPER_DOMAINS
+from custom_components.selora_ai.mcp_server import access as mcp_access
+from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
+from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import (
     COMMAND_TOOL_NAMES,
@@ -31,7 +33,7 @@ async def helpers_loaded(hass: HomeAssistant) -> None:
 
 
 async def _mcp(hass: HomeAssistant, tool: str, **arguments: Any) -> dict[str, Any]:
-    handler = mcp_server._get_tool_handlers()[f"selora_{tool}"]
+    handler = mcp_dispatch._get_tool_handlers()[f"selora_{tool}"]
     return await handler(hass, arguments)
 
 
@@ -56,7 +58,7 @@ def test_registered_in_both_lanes_and_admin_gated(tool: str) -> None:
     assert not TOOL_MAP[tool].panel_only
     assert tool in COMMAND_TOOL_NAMES
     assert tool in CONFIG_TOOL_NAMES
-    assert f"selora_{tool}" in mcp_server._ADMIN_TOOLS
+    assert f"selora_{tool}" in mcp_access._ADMIN_TOOLS
 
 
 def test_a_chat_delete_is_a_confirmed_kind() -> None:
@@ -71,7 +73,7 @@ def test_a_chat_delete_is_a_confirmed_kind() -> None:
 
 
 def test_the_mcp_delete_says_it_runs_immediately() -> None:
-    (tool,) = [t for t in mcp_server._TOOL_DEFINITIONS if t.name == "selora_delete_helper"]
+    (tool,) = [t for t in mcp_definitions._TOOL_DEFINITIONS if t.name == "selora_delete_helper"]
     assert "IMMEDIATELY" in tool.description
     assert "remaining_intent" not in tool.inputSchema["properties"]
 

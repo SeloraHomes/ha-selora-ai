@@ -48,9 +48,9 @@ def test_create_helper_is_panel_only_and_in_both_lanes() -> None:
 def test_the_panel_tool_is_not_derived_onto_mcp() -> None:
     """Its description promises a Create button MCP has none of; MCP gets
     `TOOL_CREATE_HELPER_DIRECT` instead (`tests/test_mcp_storage_helpers.py`)."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 
-    assert "create_helper" not in mcp_server._DERIVED_MCP_TOOLS.values()
+    assert "create_helper" not in mcp_definitions._DERIVED_MCP_TOOLS.values()
 
 
 def test_list_helpers_no_longer_says_creation_is_impossible() -> None:

@@ -29,7 +29,7 @@ house.
 
 ## Entity search
 
-`_tool_search_entities` (`mcp_server.py`) is the resolution tool for chat and MCP
+`_tool_search_entities` (`mcp_server/entities.py`) is the resolution tool for chat and MCP
 and the only route to entities the snapshot leaves out, so an empty result is
 load-bearing.
 

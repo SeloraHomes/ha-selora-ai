@@ -14,8 +14,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 import pytest
 
-from custom_components.selora_ai import mcp_server
 from custom_components.selora_ai.command_policy_options import CommandPolicyOptions
+from custom_components.selora_ai.mcp_server import access as mcp_access
+from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
 BUTTON_CARD = "/hacsfiles/button-card/button-card.js"
 
@@ -28,7 +29,7 @@ async def lovelace(hass: HomeAssistant) -> HomeAssistant:
 
 
 async def _call(hass: HomeAssistant, tool: str, **arguments: Any) -> dict[str, Any]:
-    return await mcp_server._get_tool_handlers()[f"selora_{tool}"](hass, arguments)
+    return await mcp_dispatch._get_tool_handlers()[f"selora_{tool}"](hass, arguments)
 
 
 async def _urls(hass: HomeAssistant) -> list[str]:
@@ -160,6 +161,6 @@ async def test_yaml_resources_are_refused_with_where_to_edit(hass: HomeAssistant
 
 
 def test_the_writes_are_admin_and_the_list_is_not() -> None:
-    assert "selora_add_dashboard_resource" in mcp_server._ADMIN_TOOLS
-    assert "selora_remove_dashboard_resource" in mcp_server._ADMIN_TOOLS
-    assert "selora_list_dashboard_resources" in mcp_server._READ_ONLY_TOOLS
+    assert "selora_add_dashboard_resource" in mcp_access._ADMIN_TOOLS
+    assert "selora_remove_dashboard_resource" in mcp_access._ADMIN_TOOLS
+    assert "selora_list_dashboard_resources" in mcp_access._READ_ONLY_TOOLS

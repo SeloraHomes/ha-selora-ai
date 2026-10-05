@@ -18,13 +18,13 @@ from homeassistant.helpers import (
 )
 import pytest
 
-from custom_components.selora_ai.mcp_server import (
-    _tool_delete_scene,
+from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
+from custom_components.selora_ai.mcp_server.entities import (
     _tool_eval_template,
-    _tool_execute_command,
     _tool_get_entity_history,
     _tool_search_entities,
 )
+from custom_components.selora_ai.mcp_server.scenes import _tool_delete_scene
 from custom_components.selora_ai.tool_registry import CHAT_TOOLS
 
 

@@ -14,7 +14,7 @@ from homeassistant.helpers import (
 )
 import pytest
 
-from custom_components.selora_ai.mcp_server import (
+from custom_components.selora_ai.mcp_server.entities import (
     _tool_get_device,
     _tool_get_device_triggers,
     _tool_list_devices,
@@ -436,10 +436,8 @@ def test_every_mcp_handler_is_declared() -> None:
     discover or call it. Nothing else caught it because both halves are valid
     on their own.
     """
-    from custom_components.selora_ai.mcp_server import (
-        _TOOL_DEFINITIONS,
-        _get_tool_handlers,
-    )
+    from custom_components.selora_ai.mcp_server.definitions import _TOOL_DEFINITIONS
+    from custom_components.selora_ai.mcp_server.dispatch import _get_tool_handlers
 
     declared = {t.name for t in _TOOL_DEFINITIONS}
     handlers = set(_get_tool_handlers())
@@ -454,11 +452,8 @@ def test_every_mcp_tool_has_an_access_class() -> None:
     unclassified tool is reachable by a read-only credential because nobody
     classified it — not because anybody decided it was safe.
     """
-    from custom_components.selora_ai.mcp_server import (
-        _ADMIN_TOOLS,
-        _READ_ONLY_TOOLS,
-        _get_tool_handlers,
-    )
+    from custom_components.selora_ai.mcp_server.access import _ADMIN_TOOLS, _READ_ONLY_TOOLS
+    from custom_components.selora_ai.mcp_server.dispatch import _get_tool_handlers
 
     unclassified = set(_get_tool_handlers()) - (_ADMIN_TOOLS | _READ_ONLY_TOOLS)
     assert unclassified == set(), f"unclassified MCP tools: {sorted(unclassified)}"
@@ -479,26 +474,26 @@ def test_no_mcp_tool_advertises_a_panel_only_parameter() -> None:
     an absent one — an agent will use it and then wait for a continuation that
     is never coming.
     """
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 
     # Named literally, NOT via `_PANEL_ONLY_PARAMS`: asking the module which
     # parameters it drops and then checking it dropped them is a test that
     # passes when the set is emptied, which is exactly the regression.
     offenders = [
         tool.name
-        for tool in mcp_server._TOOL_DEFINITIONS
+        for tool in mcp_definitions._TOOL_DEFINITIONS
         if "remaining_intent" in ((tool.inputSchema or {}).get("properties") or {})
     ]
     assert offenders == []
-    assert "remaining_intent" in mcp_server._PANEL_ONLY_PARAMS
+    assert "remaining_intent" in mcp_definitions._PANEL_ONLY_PARAMS
 
 
 def test_a_dropped_parameter_is_dropped_from_required_too() -> None:
     """A schema listing a required property it does not define is invalid, and
     a strict client rejects the whole tool rather than the argument."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 
-    for tool in mcp_server._TOOL_DEFINITIONS:
+    for tool in mcp_definitions._TOOL_DEFINITIONS:
         schema = tool.inputSchema or {}
         properties = set(schema.get("properties") or {})
         required = set(schema.get("required") or [])
@@ -518,10 +513,10 @@ def test_hand_written_definitions_are_not_accidental_duplicates() -> None:
     which do not exist over MCP). This test is here so the next person to
     measure the overlap does not tidy it away.
     """
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
     from custom_components.selora_ai.tool_registry import TOOL_MAP
 
-    derived = set(mcp_server._DERIVED_MCP_TOOLS)
+    derived = set(mcp_definitions._DERIVED_MCP_TOOLS)
     for name in (
         "selora_search_entities",
         "selora_create_group",
@@ -581,7 +576,7 @@ async def test_get_device_triggers_accepts_device_name(hass: HomeAssistant, setu
 async def test_search_entities_returns_device_id(hass: HomeAssistant, setup_home) -> None:
     """An entity match carries its device, so the device tools are reachable
     without a whole-home list_devices dump."""
-    from custom_components.selora_ai.mcp_server import _tool_search_entities
+    from custom_components.selora_ai.mcp_server.entities import _tool_search_entities
 
     result = await _tool_search_entities(hass, {"query": "living room light"})
     match = next(m for m in result["matches"] if m["entity_id"] == "light.living_room_light")
@@ -594,7 +589,7 @@ async def test_search_entities_returns_device_id(hass: HomeAssistant, setup_home
 @pytest.mark.asyncio
 async def test_get_entity_state_returns_device_id(hass: HomeAssistant, setup_home) -> None:
     """Same bridge from the targeted single-entity read."""
-    from custom_components.selora_ai.mcp_server import _tool_get_entity_state
+    from custom_components.selora_ai.mcp_server.entities import _tool_get_entity_state
 
     result = await _tool_get_entity_state(hass, {"entity_id": "light.living_room_light"})
     assert result["device_id"]

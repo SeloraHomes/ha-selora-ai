@@ -20,7 +20,8 @@ import pytest
 import yaml
 
 from custom_components.selora_ai.llm_client.client import LLMClient
-from custom_components.selora_ai.mcp_server import _tool_chat, _tool_create_automation
+from custom_components.selora_ai.mcp_server.automations import _tool_create_automation
+from custom_components.selora_ai.mcp_server.chat import _tool_chat
 
 SELORA_ENTRY = {
     "id": "selora_ai_aaa",
@@ -78,7 +79,7 @@ async def _chat(
     """
     result_payload = architect_result or {"intent": "answer", "response": "ok"}
     with (
-        patch("custom_components.selora_ai.mcp_server._get_llm", return_value=llm),
+        patch("custom_components.selora_ai.mcp_server.chat._get_llm", return_value=llm),
         patch.object(
             LLMClient, "architect_chat", autospec=True, return_value=result_payload
         ) as stub,
@@ -163,7 +164,7 @@ async def test_an_unresolvable_target_leaves_no_empty_session(
     """This is the refusal an agent hits repeatedly — a stale or invented id —
     and a session created before the check is left empty in the user's sidebar,
     eventually evicting real conversations under the store's cap."""
-    from custom_components.selora_ai.mcp_server import _get_conv_store
+    from custom_components.selora_ai.mcp_server.common import _get_conv_store
 
     _write_automations(hass, [SELORA_ENTRY])
     result, _stub = await _chat(
@@ -238,7 +239,7 @@ async def test_the_pending_proposal_keeps_its_target_for_the_panel(
     """Sessions are shared with the panel, so a card this tool leaves pending is
     one the user can open and accept there — and the panel reads the target off
     the stored message, not off this tool's return value."""
-    from custom_components.selora_ai.mcp_server import _get_conv_store
+    from custom_components.selora_ai.mcp_server.common import _get_conv_store
 
     _write_automations(hass, [SELORA_ENTRY])
     result, _stub = await _chat(
@@ -266,7 +267,7 @@ async def test_an_mcp_follow_up_resolves_by_alias(hass: HomeAssistant, llm: LLMC
     ordinary case, and the caller has no id of its own here — so without the
     shared claim-or-alias resolution the documented flow sends the agent to
     selora_create_automation with no automation_id, which duplicates."""
-    from custom_components.selora_ai.mcp_server import _get_conv_store
+    from custom_components.selora_ai.mcp_server.common import _get_conv_store
 
     _write_automations(hass, [SELORA_ENTRY])
     store = _get_conv_store(hass)
@@ -294,7 +295,7 @@ async def test_an_mcp_follow_up_resolves_by_alias(hass: HomeAssistant, llm: LLMC
 
 @pytest.mark.asyncio
 async def test_a_plain_mcp_proposal_stores_no_target(hass: HomeAssistant, llm: LLMClient) -> None:
-    from custom_components.selora_ai.mcp_server import _get_conv_store
+    from custom_components.selora_ai.mcp_server.common import _get_conv_store
 
     result, _stub = await _chat(
         hass,

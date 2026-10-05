@@ -12,7 +12,6 @@ from custom_components.selora_ai.scene_state_mapper import (
     validate_entity_states,
 )
 
-
 # ── validate_entity_states ───────────────────────────────────────────
 
 

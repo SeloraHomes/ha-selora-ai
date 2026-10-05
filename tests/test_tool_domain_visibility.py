@@ -25,7 +25,7 @@ from custom_components.selora_ai.entity_capabilities import (
     COLLECTOR_DOMAINS,
     is_inspectable_entity,
 )
-from custom_components.selora_ai.mcp_server import (
+from custom_components.selora_ai.mcp_server.entities import (
     _tool_find_entities_by_area,
     _tool_get_device,
     _tool_get_home_snapshot,
@@ -318,8 +318,8 @@ async def test_a_cards_argument_of_the_wrong_shape_is_refused(hass: HomeAssistan
     model emitting a string where the list belongs reached a coercion that read
     it as absent — and created the empty page all of this exists to prevent.
     """
-    from custom_components.selora_ai.tool_executor import add_view_kwargs
     from custom_components.selora_ai.dashboard_manager import async_add_view
+    from custom_components.selora_ai.tool_executor import add_view_kwargs
 
     await _setup_lovelace(hass)
     before = await _stored_views(hass)

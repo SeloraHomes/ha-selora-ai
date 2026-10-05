@@ -11,19 +11,20 @@ from unittest.mock import AsyncMock, MagicMock
 
 from homeassistant.core import HomeAssistant
 
-from custom_components.selora_ai import mcp_server
 from custom_components.selora_ai.const import DOMAIN
+from custom_components.selora_ai.mcp_server import access as mcp_access
+from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 from custom_components.selora_ai.websocket import tokens as tokens_ws
 
 _list_tokens = tokens_ws._handle_websocket_list_mcp_tokens.__wrapped__
 
 
 def test_every_tool_is_grantable_with_its_admin_flag() -> None:
-    catalog = mcp_server.mcp_tool_catalog()
+    catalog = mcp_definitions.mcp_tool_catalog()
 
-    assert [t["name"] for t in catalog] == [t.name for t in mcp_server._TOOL_DEFINITIONS]
+    assert [t["name"] for t in catalog] == [t.name for t in mcp_definitions._TOOL_DEFINITIONS]
     for tool in catalog:
-        assert tool["admin"] is (tool["name"] in mcp_server._ADMIN_TOOLS), tool["name"]
+        assert tool["admin"] is (tool["name"] in mcp_access._ADMIN_TOOLS), tool["name"]
 
 
 async def test_the_token_list_carries_the_tools(hass: HomeAssistant) -> None:
@@ -37,6 +38,6 @@ async def test_the_token_list_carries_the_tools(hass: HomeAssistant) -> None:
 
     (_, payload), _ = connection.send_result.call_args
     assert payload["tokens"] == []
-    assert payload["tools"] == mcp_server.mcp_tool_catalog()
+    assert payload["tools"] == mcp_definitions.mcp_tool_catalog()
     names = {t["name"] for t in payload["tools"]}
     assert {"selora_create_dashboard", "selora_update_helper"} <= names

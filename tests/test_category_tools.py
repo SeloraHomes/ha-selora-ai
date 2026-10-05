@@ -7,11 +7,11 @@ real category and entity registries.
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import category_registry as cr, entity_registry as er
+from homeassistant.helpers import category_registry as cr
+from homeassistant.helpers import entity_registry as er
 import pytest
 
 from custom_components.selora_ai.tool_executor import ToolExecutor
@@ -291,27 +291,28 @@ def test_the_delete_kind_is_executable() -> None:
 
 @pytest.mark.parametrize("name", _CATEGORY_TOOLS)
 def test_every_category_tool_reaches_mcp(name: str) -> None:
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
+    from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
     mcp_name = f"selora_{name}"
-    assert any(t.name == mcp_name for t in mcp_server._TOOL_DEFINITIONS)
-    assert mcp_name in mcp_server._get_tool_handlers()
-    assert mcp_server._DERIVED_MCP_TOOLS[mcp_name] == name
+    assert any(t.name == mcp_name for t in mcp_definitions._TOOL_DEFINITIONS)
+    assert mcp_name in mcp_dispatch._get_tool_handlers()
+    assert mcp_definitions._DERIVED_MCP_TOOLS[mcp_name] == name
 
 
 def test_mcp_category_access_matches_the_chat_definitions() -> None:
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import access as mcp_access
 
     for name in _CATEGORY_TOOLS:
         mcp_name = f"selora_{name}"
         if TOOL_MAP[name].requires_admin:
-            assert mcp_name in mcp_server._ADMIN_TOOLS, mcp_name
+            assert mcp_name in mcp_access._ADMIN_TOOLS, mcp_name
         else:
-            assert mcp_name in mcp_server._READ_ONLY_TOOLS, mcp_name
+            assert mcp_name in mcp_access._READ_ONLY_TOOLS, mcp_name
 
 
 async def test_mcp_deletes_the_category_on_the_spot(filed: HomeAssistant) -> None:
-    from custom_components.selora_ai.mcp_server import _tool_delete_category
+    from custom_components.selora_ai.mcp_server.registry import _tool_delete_category
 
     result = await _tool_delete_category(filed, {"scope": "automation", "category": "Lights"})
 
@@ -547,7 +548,7 @@ async def test_an_out_of_scope_assignment_can_still_be_cleared(
 async def test_a_padded_scope_still_deletes_on_mcp(filed: HomeAssistant) -> None:
     """resolve_category strips internally, so a padded scope RESOLVED and then
     failed at the delete — found, then reported missing."""
-    from custom_components.selora_ai.mcp_server import _tool_delete_category
+    from custom_components.selora_ai.mcp_server.registry import _tool_delete_category
 
     result = await _tool_delete_category(filed, {"scope": "  automation  ", "category": "Lights"})
 

@@ -157,7 +157,7 @@ class ToolExecutor:
     # ── Read tools ──────────────────────────────────────────────────
 
     async def _get_home_snapshot(self, _arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_get_home_snapshot
+        from .mcp_server.entities import _tool_get_home_snapshot
 
         return await _tool_get_home_snapshot(self._hass)
 
@@ -169,37 +169,37 @@ class ToolExecutor:
         return {"flows": flows}
 
     async def _list_devices(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_list_devices
+        from .mcp_server.entities import _tool_list_devices
 
         return await _tool_list_devices(self._hass, arguments)
 
     async def _get_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_get_device
+        from .mcp_server.entities import _tool_get_device
 
         return await _tool_get_device(self._hass, arguments)
 
     async def _get_device_triggers(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_get_device_triggers
+        from .mcp_server.entities import _tool_get_device_triggers
 
         return await _tool_get_device_triggers(self._hass, arguments)
 
     async def _get_entity_state(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_get_entity_state
+        from .mcp_server.entities import _tool_get_entity_state
 
         return await _tool_get_entity_state(self._hass, arguments)
 
     async def _find_entities_by_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_find_entities_by_area
+        from .mcp_server.entities import _tool_find_entities_by_area
 
         return await _tool_find_entities_by_area(self._hass, arguments)
 
     async def _validate_action(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_validate_action
+        from .mcp_server.commands import _tool_validate_action
 
         return await _tool_validate_action(self._hass, arguments, session_id=self._session_id)
 
     async def _execute_command(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_execute_command
+        from .mcp_server.commands import _tool_execute_command
 
         return await _tool_execute_command(self._hass, arguments, session_id=self._session_id)
 
@@ -217,22 +217,22 @@ class ToolExecutor:
         return await async_insert_card(self._hass, arguments)
 
     async def _search_entities(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_search_entities
+        from .mcp_server.entities import _tool_search_entities
 
         return await _tool_search_entities(self._hass, arguments)
 
     async def _get_entity_history(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_get_entity_history
+        from .mcp_server.entities import _tool_get_entity_history
 
         return await _tool_get_entity_history(self._hass, arguments)
 
     async def _eval_template(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_eval_template
+        from .mcp_server.entities import _tool_eval_template
 
         return await _tool_eval_template(self._hass, arguments)
 
     async def _list_groups(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        from .mcp_server import _tool_list_groups
+        from .mcp_server.groups import _tool_list_groups
 
         return await _tool_list_groups(self._hass, arguments)
 
@@ -352,7 +352,7 @@ class ToolExecutor:
         ``command_approval`` card; the actual delete runs only when the user
         taps Delete (``_resolve_approval`` in ``__init__``).
         """
-        from .mcp_server import _preview_delete_automation
+        from .mcp_server.automations import _preview_delete_automation
 
         return await _preview_delete_automation(self._hass, arguments)
 
@@ -362,19 +362,19 @@ class ToolExecutor:
         See :meth:`_delete_automation` — deletion is deferred to the user's
         tap on the confirmation card.
         """
-        from .mcp_server import _preview_delete_scene
+        from .mcp_server.scenes import _preview_delete_scene
 
         return await _preview_delete_scene(self._hass, arguments)
 
     async def _create_group(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Create a group helper (executes immediately — creation is reversible)."""
-        from .mcp_server import _tool_create_group
+        from .mcp_server.groups import _tool_create_group
 
         return await _tool_create_group(self._hass, arguments)
 
     async def _update_group(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Change a group's members or name (executes immediately)."""
-        from .mcp_server import _tool_update_group
+        from .mcp_server.groups import _tool_update_group
 
         return await _tool_update_group(self._hass, arguments)
 
@@ -384,7 +384,7 @@ class ToolExecutor:
         See :meth:`_delete_automation` — deletion is deferred to the user's
         tap on the confirmation card.
         """
-        from .mcp_server import _preview_delete_group
+        from .mcp_server.groups import _preview_delete_group
 
         return await _preview_delete_group(self._hass, arguments)
 
@@ -424,7 +424,7 @@ class ToolExecutor:
 
         See :meth:`_delete_area` — deletion waits for the user's tap.
         """
-        from .mcp_server import _preview_delete_floor
+        from .mcp_server.registry import _preview_delete_floor
 
         return await _preview_delete_floor(self._hass, arguments)
 
@@ -469,7 +469,7 @@ class ToolExecutor:
 
     async def _delete_category(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Resolve a delete target and surface a confirmation card."""
-        from .mcp_server import _preview_delete_category
+        from .mcp_server.registry import _preview_delete_category
 
         return await _preview_delete_category(self._hass, arguments)
 
@@ -522,7 +522,7 @@ class ToolExecutor:
         See :meth:`_delete_automation` — deletion is deferred to the user's
         tap on the confirmation card.
         """
-        from .mcp_server import _preview_delete_area
+        from .mcp_server.registry import _preview_delete_area
 
         return await _preview_delete_area(self._hass, arguments)
 
@@ -532,13 +532,13 @@ class ToolExecutor:
         See :meth:`_delete_automation` — the irreversible cases are deferred to
         the user's tap on the confirmation card.
         """
-        from .mcp_server import _preview_update_entity
+        from .mcp_server.previews import _preview_update_entity
 
         return await _preview_update_entity(self._hass, arguments)
 
     async def _update_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Rename and area moves execute; a disable asks first."""
-        from .mcp_server import _preview_update_device
+        from .mcp_server.previews import _preview_update_device
 
         return await _preview_update_device(self._hass, arguments)
 
@@ -556,7 +556,7 @@ class ToolExecutor:
 
     async def _set_script(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Creating a script executes; replacing an existing one asks first."""
-        from .mcp_server import _preview_set_script
+        from .mcp_server.previews import _preview_set_script
 
         sequence = arguments.get("sequence")
         if not isinstance(sequence, list):
@@ -569,7 +569,7 @@ class ToolExecutor:
         See :meth:`_delete_automation` — deletion is deferred to the user's
         tap on the confirmation card.
         """
-        from .mcp_server import _preview_delete_script
+        from .mcp_server.scripts_helpers import _preview_delete_script
 
         return await _preview_delete_script(self._hass, arguments)
 
@@ -604,7 +604,7 @@ class ToolExecutor:
 
     async def _delete_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Resolve a delete target and surface a confirmation card."""
-        from .mcp_server import _preview_delete_label
+        from .mcp_server.scripts_helpers import _preview_delete_label
 
         return await _preview_delete_label(self._hass, arguments)
 
@@ -732,7 +732,7 @@ class ToolExecutor:
         A view takes every card on it, so this defers to the user's tap — see
         :meth:`_delete_automation`.
         """
-        from .mcp_server import _preview_remove_dashboard_view
+        from .mcp_server.dashboards import _preview_remove_dashboard_view
 
         return await _preview_remove_dashboard_view(self._hass, arguments)
 

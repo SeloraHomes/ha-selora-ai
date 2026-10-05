@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 from homeassistant.helpers import entity_registry as er
+import pytest
 
 from custom_components.selora_ai.recipes.manifest import (
     ManifestError,

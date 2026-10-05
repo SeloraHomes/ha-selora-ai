@@ -16,7 +16,7 @@ from unittest.mock import MagicMock
 from aiohttp import web
 import pytest
 
-from custom_components.selora_ai import mcp_server
+from custom_components.selora_ai.mcp_server import http as mcp_http
 
 
 @pytest.fixture
@@ -38,14 +38,14 @@ def _route_count(hass: Any) -> int:
 
 
 def test_repeat_registration_adds_no_further_routes(fake_hass: Any) -> None:
-    mcp_server.register_mcp_server(fake_hass)
+    mcp_http.register_mcp_server(fake_hass)
     after_first = _route_count(fake_hass)
     views_after_first = len(fake_hass.registered_views)
     assert after_first > 0, "expected the protected-resource routes to be added"
 
     # Simulate ten config-entry reloads.
     for _ in range(10):
-        mcp_server.register_mcp_server(fake_hass)
+        mcp_http.register_mcp_server(fake_hass)
 
     assert _route_count(fake_hass) == after_first
     assert len(fake_hass.registered_views) == views_after_first
@@ -53,7 +53,7 @@ def test_repeat_registration_adds_no_further_routes(fake_hass: Any) -> None:
 
 def test_distinct_instances_each_register(fake_hass: Any) -> None:
     """The guard is per-instance, not process-global — a second HA still gets views."""
-    mcp_server.register_mcp_server(fake_hass)
+    mcp_http.register_mcp_server(fake_hass)
     first_routes = _route_count(fake_hass)
 
     other = MagicMock()
@@ -63,7 +63,7 @@ def test_distinct_instances_each_register(fake_hass: Any) -> None:
     other_views: list[Any] = []
     other.http.register_view.side_effect = other_views.append
 
-    mcp_server.register_mcp_server(other)
+    mcp_http.register_mcp_server(other)
     assert _route_count(other) == first_routes
     assert other_views, "a distinct HomeAssistant must still get its views"
 
@@ -87,7 +87,7 @@ def test_a_failed_view_is_retried_without_re_adding_the_successful_one(
 
     fake_hass.http.register_view.side_effect = _register
 
-    mcp_server.register_mcp_server(fake_hass)
+    mcp_http.register_mcp_server(fake_hass)
     first = list(attempts)
     assert "selora_ai:oauth_token_proxy" in first
     assert len(first) == 2  # both attempted despite one raising
@@ -95,7 +95,7 @@ def test_a_failed_view_is_retried_without_re_adding_the_successful_one(
     # The transient condition clears; the next config-entry reload retries.
     fail_for.clear()
     attempts.clear()
-    mcp_server.register_mcp_server(fake_hass)
+    mcp_http.register_mcp_server(fake_hass)
 
     assert attempts == ["selora_ai:oauth_token_proxy"], (
         "only the failed view should be re-attempted"
@@ -103,7 +103,7 @@ def test_a_failed_view_is_retried_without_re_adding_the_successful_one(
 
     # Now that everything succeeded, further reloads are complete no-ops.
     attempts.clear()
-    mcp_server.register_mcp_server(fake_hass)
+    mcp_http.register_mcp_server(fake_hass)
     assert attempts == []
 
 
@@ -122,12 +122,12 @@ def test_a_failed_raw_route_is_retried(fake_hass: Any) -> None:
 
     fake_hass.http.app = type("App", (), {"router": _Router()})()
 
-    mcp_server.register_mcp_server(fake_hass)
+    mcp_http.register_mcp_server(fake_hass)
     assert added == ["GET", "OPTIONS"]
 
     fail.clear()
     added.clear()
-    mcp_server.register_mcp_server(fake_hass)
+    mcp_http.register_mcp_server(fake_hass)
     assert added == ["OPTIONS"], "only the failed method should be re-attempted"
 
 
@@ -147,7 +147,7 @@ async def test_registration_succeeds_against_the_real_http_stack(hass: Any) -> N
     assert await async_setup_component(hass, "http", {})
     await hass.async_block_till_done()
 
-    mcp_server.register_mcp_server(hass)
+    mcp_http.register_mcp_server(hass)
 
     routed = {getattr(resource, "canonical", None) for resource in hass.http.app.router.resources()}
     assert "/api/selora_ai/mcp" in routed
@@ -163,17 +163,17 @@ async def test_every_step_is_marked_done_so_reloads_do_not_retry(hass: Any) -> N
     assert await async_setup_component(hass, "http", {})
     await hass.async_block_till_done()
 
-    mcp_server.register_mcp_server(hass)
-    done = mcp_server._REGISTERED_STEPS[hass]
+    mcp_http.register_mcp_server(hass)
+    done = mcp_http._REGISTERED_STEPS[hass]
     assert "selora_ai:mcp" in done
     assert "selora_ai:oauth_token_proxy" in done
 
     before = len(list(hass.http.app.router.routes()))
-    mcp_server.register_mcp_server(hass)
+    mcp_http.register_mcp_server(hass)
     assert len(list(hass.http.app.router.routes())) == before
 
 
 async def test_a_view_that_never_routed_is_still_reported(hass: Any) -> None:
     """The quieting is conditional on the router actually holding the route —
     a genuine failure must still warn, and now says why."""
-    assert mcp_server._route_exists(web.Application(), "/api/selora_ai/mcp") is False
+    assert mcp_http._route_exists(web.Application(), "/api/selora_ai/mcp") is False

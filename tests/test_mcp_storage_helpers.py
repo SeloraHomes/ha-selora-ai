@@ -14,8 +14,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 import pytest
 
-from custom_components.selora_ai import helper_manager, mcp_server
+from custom_components.selora_ai import helper_manager
 from custom_components.selora_ai.helper_manager import CREATABLE_HELPER_DOMAINS
+from custom_components.selora_ai.mcp_server import scripts_helpers as mcp_scripts_helpers
 
 
 @pytest.fixture
@@ -26,7 +27,7 @@ async def helpers_loaded(hass: HomeAssistant) -> None:
 
 
 async def _create(hass: HomeAssistant, **arguments: Any) -> dict[str, Any]:
-    return await mcp_server._tool_create_helper(hass, arguments)
+    return await mcp_scripts_helpers._tool_create_helper(hass, arguments)
 
 
 @pytest.mark.parametrize("domain", CREATABLE_HELPER_DOMAINS)

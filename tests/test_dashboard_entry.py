@@ -16,8 +16,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.setup import async_setup_component
 import pytest
 
-from custom_components.selora_ai import dashboard_manager, mcp_server
+from custom_components.selora_ai import dashboard_manager
 from custom_components.selora_ai.helpers import caller_scope
+from custom_components.selora_ai.mcp_server import access as mcp_access
+from custom_components.selora_ai.mcp_server import dashboards as mcp_dashboards
+from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 
 
 @pytest.fixture
@@ -29,12 +32,12 @@ async def lovelace(hass: HomeAssistant) -> HomeAssistant:
 
 async def _create(hass: HomeAssistant, **arguments: Any) -> dict[str, Any]:
     with caller_scope(True):
-        return await mcp_server._tool_create_dashboard(hass, arguments)
+        return await mcp_dashboards._tool_create_dashboard(hass, arguments)
 
 
 async def _delete(hass: HomeAssistant, target: str) -> dict[str, Any]:
     with caller_scope(True):
-        return await mcp_server._tool_delete_dashboard(hass, {"dashboard_target": target})
+        return await mcp_dashboards._tool_delete_dashboard(hass, {"dashboard_target": target})
 
 
 # ── Reaching the collection ─────────────────────────────────────────────────
@@ -81,7 +84,7 @@ async def test_mcp_creates_a_dashboard_it_can_then_fill(lovelace: HomeAssistant)
     assert "pool" in lovelace.data.get(DATA_PANELS, {})
 
     with caller_scope(True):
-        added = await mcp_server._tool_add_dashboard_view(
+        added = await mcp_dashboards._tool_add_dashboard_view(
             lovelace,
             {
                 "dashboard_target": "pool",
@@ -135,7 +138,7 @@ async def test_a_non_admin_cannot_create_a_dashboard_hidden_from_itself(
     """A write-scoped credential need not be an HA admin. The dashboard would
     be hidden from it on creation, so it could never be seeded or filled."""
     with caller_scope(False, can_write=True):
-        result = await mcp_server._tool_create_dashboard(
+        result = await mcp_dashboards._tool_create_dashboard(
             lovelace, {"title": "Pool", "require_admin": True}
         )
 
@@ -145,7 +148,7 @@ async def test_a_non_admin_cannot_create_a_dashboard_hidden_from_itself(
 
 async def test_a_non_admin_can_create_a_dashboard_it_can_fill(lovelace: HomeAssistant) -> None:
     with caller_scope(False, can_write=True):
-        result = await mcp_server._tool_create_dashboard(lovelace, {"title": "Pool"})
+        result = await mcp_dashboards._tool_create_dashboard(lovelace, {"title": "Pool"})
 
     assert result["status"] == "created"
     assert "add_dashboard_view" in result["note"]
@@ -212,13 +215,13 @@ async def test_delete_refuses_a_dashboard_that_changed_under_it(lovelace: HomeAs
 
 
 def _definition(name: str) -> Any:
-    return next(t for t in mcp_server._TOOL_DEFINITIONS if t.name == name)
+    return next(t for t in mcp_definitions._TOOL_DEFINITIONS if t.name == name)
 
 
 @pytest.mark.parametrize("name", ["selora_create_dashboard", "selora_delete_dashboard"])
 def test_the_mcp_tools_are_admin_gated(name: str) -> None:
-    assert name in mcp_server._ADMIN_TOOLS
-    assert name in mcp_server._dashboard_write_tools()
+    assert name in mcp_access._ADMIN_TOOLS
+    assert name in mcp_definitions._dashboard_write_tools()
 
 
 def test_the_mcp_descriptions_promise_no_card() -> None:
@@ -245,7 +248,7 @@ def test_the_mcp_create_schema_matches_chat_without_resumption() -> None:
 
 async def _update(hass: HomeAssistant, **arguments: Any) -> dict[str, Any]:
     with caller_scope(True):
-        return await mcp_server._tool_update_dashboard(hass, arguments)
+        return await mcp_dashboards._tool_update_dashboard(hass, arguments)
 
 
 def _item(hass: HomeAssistant, url_path: str) -> dict[str, Any]:
@@ -329,7 +332,7 @@ async def test_a_non_admin_cannot_hide_a_dashboard_from_itself(lovelace: HomeAss
     await _create(lovelace, title="Pool")
 
     with caller_scope(False, can_write=True):
-        result = await mcp_server._tool_update_dashboard(
+        result = await mcp_dashboards._tool_update_dashboard(
             lovelace, {"dashboard_target": "pool", "require_admin": True}
         )
 
@@ -395,5 +398,5 @@ def test_update_is_in_both_lanes_and_admin_gated_on_mcp() -> None:
     assert not TOOL_MAP["update_dashboard"].panel_only
     assert "update_dashboard" in COMMAND_TOOL_NAMES
     assert "update_dashboard" in CONFIG_TOOL_NAMES
-    assert "selora_update_dashboard" in mcp_server._ADMIN_TOOLS
-    assert "selora_update_dashboard" in mcp_server._dashboard_write_tools()
+    assert "selora_update_dashboard" in mcp_access._ADMIN_TOOLS
+    assert "selora_update_dashboard" in mcp_definitions._dashboard_write_tools()

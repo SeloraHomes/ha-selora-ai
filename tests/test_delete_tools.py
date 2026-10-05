@@ -78,7 +78,7 @@ class TestDeleteHandlers:
             },
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._preview_delete_automation",
+            "custom_components.selora_ai.mcp_server.automations._preview_delete_automation",
             new_callable=AsyncMock,
             return_value=preview,
         ) as mock_preview:
@@ -102,7 +102,7 @@ class TestDeleteHandlers:
             },
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._preview_delete_scene",
+            "custom_components.selora_ai.mcp_server.scenes._preview_delete_scene",
             new_callable=AsyncMock,
             return_value=preview,
         ):
@@ -261,7 +261,7 @@ class TestPreviewDeleteAutomation:
         from pathlib import Path
 
         from custom_components.selora_ai.automation_utils import _write_automations_yaml
-        from custom_components.selora_ai.mcp_server import _preview_delete_automation
+        from custom_components.selora_ai.mcp_server.automations import _preview_delete_automation
 
         path = Path(hass.config.config_dir) / "automations.yaml"
         await hass.async_add_executor_job(
@@ -285,7 +285,7 @@ class TestPreviewDeleteAutomation:
         from pathlib import Path
 
         from custom_components.selora_ai.automation_utils import _write_automations_yaml
-        from custom_components.selora_ai.mcp_server import _preview_delete_automation
+        from custom_components.selora_ai.mcp_server.automations import _preview_delete_automation
 
         # An id-less yaml automation, loaded as an entity with no `id` attr.
         await hass.async_add_executor_job(
@@ -314,7 +314,7 @@ class TestPreviewDeleteScene:
         time."""
         from pathlib import Path
 
-        from custom_components.selora_ai.mcp_server import _preview_delete_scene
+        from custom_components.selora_ai.mcp_server.scenes import _preview_delete_scene
         from custom_components.selora_ai.scene_utils import _write_scenes_yaml
 
         # Empty scenes.yaml → no yaml entry maps to the entity.
@@ -357,7 +357,7 @@ class TestResolveDeleteApproval:
             ],
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._tool_delete_automation",
+            "custom_components.selora_ai.mcp_server.automations._tool_delete_automation",
             new_callable=AsyncMock,
             return_value={"error": "reload failed"},
         ):
@@ -400,7 +400,7 @@ class TestResolveDeleteApproval:
             ],
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._tool_delete_automation",
+            "custom_components.selora_ai.mcp_server.automations._tool_delete_automation",
             new_callable=AsyncMock,
             return_value={"automation_id": "auto42", "status": "deleted"},
         ) as mock_del:
@@ -438,7 +438,7 @@ class TestResolveDeleteApproval:
             ],
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._tool_delete_scene",
+            "custom_components.selora_ai.mcp_server.scenes._tool_delete_scene",
             new_callable=AsyncMock,
             return_value={"scene_id": "sc1", "status": "deleted"},
         ):
@@ -483,7 +483,7 @@ class TestResolveDeleteApproval:
             ],
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._tool_delete_automation",
+            "custom_components.selora_ai.mcp_server.automations._tool_delete_automation",
             new_callable=AsyncMock,
             return_value={"status": "deleted"},
         ) as mock_del:
@@ -516,7 +516,7 @@ class TestResolveDeleteApproval:
             ],
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._tool_delete_automation",
+            "custom_components.selora_ai.mcp_server.automations._tool_delete_automation",
             new_callable=AsyncMock,
         ) as mock_del:
             await _resolve_delete_approval(
@@ -558,7 +558,7 @@ class TestResolveDeleteApproval:
             ],
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._tool_delete_scene",
+            "custom_components.selora_ai.mcp_server.scenes._tool_delete_scene",
             new_callable=AsyncMock,
             return_value={"entity_id": "scene.hand_authored", "status": "deleted"},
         ) as mock_del:
@@ -702,7 +702,7 @@ class TestPreviewDeleteSceneStaleId:
         so confirm uses the entity fallback instead of a not-found scene_id."""
         from pathlib import Path
 
-        from custom_components.selora_ai.mcp_server import _preview_delete_scene
+        from custom_components.selora_ai.mcp_server.scenes import _preview_delete_scene
         from custom_components.selora_ai.scene_utils import _write_scenes_yaml
 
         await hass.async_add_executor_job(
@@ -729,7 +729,7 @@ class TestPreviewDeleteSceneStaleId:
         id (no fingerprint needed), not by the mutable entity_id."""
         from pathlib import Path
 
-        from custom_components.selora_ai.mcp_server import _preview_delete_scene
+        from custom_components.selora_ai.mcp_server.scenes import _preview_delete_scene
         from custom_components.selora_ai.scene_utils import _write_scenes_yaml
 
         await hass.async_add_executor_job(
@@ -757,7 +757,9 @@ class TestAtomicIdlessBackend:
             _read_automations_yaml,
             _write_automations_yaml,
         )
-        from custom_components.selora_ai.mcp_server import _delete_idless_automation_by_alias
+        from custom_components.selora_ai.mcp_server.automations import (
+            _delete_idless_automation_by_alias,
+        )
 
         path = Path(hass.config.config_dir) / "automations.yaml"
         await hass.async_add_executor_job(
@@ -774,7 +776,9 @@ class TestAtomicIdlessBackend:
         from pathlib import Path
 
         from custom_components.selora_ai.automation_utils import _write_automations_yaml
-        from custom_components.selora_ai.mcp_server import _delete_idless_automation_by_alias
+        from custom_components.selora_ai.mcp_server.automations import (
+            _delete_idless_automation_by_alias,
+        )
 
         path = Path(hass.config.config_dir) / "automations.yaml"
         await hass.async_add_executor_job(
@@ -796,7 +800,9 @@ class TestAtomicIdlessBackend:
             _read_automations_yaml,
             _write_automations_yaml,
         )
-        from custom_components.selora_ai.mcp_server import _delete_idless_automation_by_alias
+        from custom_components.selora_ai.mcp_server.automations import (
+            _delete_idless_automation_by_alias,
+        )
 
         path = Path(hass.config.config_dir) / "automations.yaml"
         await hass.async_add_executor_job(
@@ -872,7 +878,7 @@ class TestAtomicIdlessBackend:
         """With a confirmed name, _tool_delete_scene routes straight to the
         name-based yaml helper and never consults the SceneStore — so a new
         Selora scene that reused the entity_id can't be deleted instead."""
-        from custom_components.selora_ai.mcp_server import _tool_delete_scene
+        from custom_components.selora_ai.mcp_server.scenes import _tool_delete_scene
 
         with (
             patch("custom_components.selora_ai.helpers.get_scene_store") as mock_getter,

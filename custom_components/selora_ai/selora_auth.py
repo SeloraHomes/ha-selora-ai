@@ -47,7 +47,7 @@ class AuthenticationError(Exception):
     """Raised when MCP request authentication fails."""
 
 
-# Import KEY_HASS_USER safely (same pattern as mcp_server.py)
+# Import KEY_HASS_USER safely: older cores do not export it.
 try:
     from homeassistant.components.http import KEY_HASS_USER
 except ImportError:

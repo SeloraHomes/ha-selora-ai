@@ -308,7 +308,7 @@ async def async_execute_service_call(
     """
     from homeassistant.core import SupportsResponse  # noqa: PLC0415
 
-    from .mcp_server import _call_service_and_settle  # noqa: PLC0415
+    from .mcp_server.commands import _call_service_and_settle  # noqa: PLC0415
     from .tool_executor import _truncate_result  # noqa: PLC0415
 
     verdict = check_service_call(hass, service, raw_entity, data, confirmed=confirmed)

@@ -20,7 +20,7 @@ from custom_components.selora_ai.llm_client.command_policy import (
     _pending_deletes_from_log,
     synthesize_approval_from_tool_log,
 )
-from custom_components.selora_ai.mcp_server import (
+from custom_components.selora_ai.mcp_server.groups import (
     _preview_delete_group,
     _tool_create_group,
     _tool_delete_group,
@@ -166,7 +166,7 @@ class TestExecutorAdminGating:
         """The chat tool must never delete directly — it previews."""
         executor = _make_executor(hass, is_admin=True)
         with patch(
-            "custom_components.selora_ai.mcp_server._preview_delete_group",
+            "custom_components.selora_ai.mcp_server.groups._preview_delete_group",
             new_callable=AsyncMock,
             return_value={"requires_approval": True, "delete": {}},
         ) as preview:
@@ -1921,7 +1921,7 @@ class TestResolveDeleteApproval:
             ],
         }
         with patch(
-            "custom_components.selora_ai.mcp_server._tool_delete_group",
+            "custom_components.selora_ai.mcp_server.groups._tool_delete_group",
             new_callable=AsyncMock,
             return_value={"status": "deleted"},
         ) as mock_del:

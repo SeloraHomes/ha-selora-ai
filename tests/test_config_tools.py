@@ -91,7 +91,7 @@ def test_diagnostics_are_admin_only() -> None:
     expose what automations do and when. Neither belongs to a read-only
     credential just because it performs no write.
     """
-    from custom_components.selora_ai.mcp_server import _ADMIN_TOOLS, _READ_ONLY_TOOLS
+    from custom_components.selora_ai.mcp_server.access import _ADMIN_TOOLS, _READ_ONLY_TOOLS
 
     for tool in ("get_logs", "get_automation_traces"):
         assert TOOL_MAP[tool].requires_admin is True
@@ -137,7 +137,7 @@ async def test_set_script_replaces_by_alias(script_home: HomeAssistant) -> None:
     assert held["requires_approval"] is True
     assert held["destructive"]["verb"] == "replace"
 
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     # The card carries no payload — the replay arguments live in the tool log.
     assert "payload" not in held["destructive"]
@@ -568,7 +568,7 @@ async def test_delete_label_card_names_targeting_automations(
     """A carrier loses a tag; a targeter silently stops matching."""
     from unittest.mock import patch
 
-    from custom_components.selora_ai.mcp_server import _preview_delete_label
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _preview_delete_label
 
     await _make_executor(label_home).execute("create_label", {"name": "holiday"})
     label = lr.async_get(label_home).async_get_label_by_name("holiday")
@@ -668,7 +668,7 @@ async def test_label_delete_card_carries_an_instance_fingerprint(
 ) -> None:
     """label_id is name-derived, so a recreated label reuses it."""
     from custom_components.selora_ai import _fingerprint_changed
-    from custom_components.selora_ai.mcp_server import _preview_delete_label
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _preview_delete_label
 
     await _make_executor(label_home).execute("create_label", {"name": "holiday"})
     registry = lr.async_get(label_home)
@@ -694,7 +694,10 @@ async def test_script_delete_card_carries_a_config_fingerprint(
     Without this, editing a script while its delete card is open lets the stale
     card destroy the new content.
     """
-    from custom_components.selora_ai.mcp_server import _preview_delete_script, _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import (
+        _preview_delete_script,
+        _tool_set_script,
+    )
     from custom_components.selora_ai.script_manager import async_delete_script
 
     executor = _make_executor(script_home)
@@ -723,7 +726,7 @@ async def test_script_delete_card_carries_a_config_fingerprint(
 async def test_stale_replace_card_cannot_overwrite_a_newer_edit(
     script_home: HomeAssistant,
 ) -> None:
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
     from custom_components.selora_ai.script_manager import async_set_script
 
     executor = _make_executor(script_home)
@@ -760,7 +763,7 @@ async def test_stale_replace_card_cannot_overwrite_a_newer_edit(
 
 async def test_matching_fingerprint_still_applies(script_home: HomeAssistant) -> None:
     """The guard must not block the ordinary case."""
-    from custom_components.selora_ai.mcp_server import _preview_delete_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _preview_delete_script
     from custom_components.selora_ai.script_manager import async_delete_script
 
     executor = _make_executor(script_home)
@@ -776,8 +779,8 @@ async def test_matching_fingerprint_still_applies(script_home: HomeAssistant) ->
 
 async def test_traces_with_datetime_timestamps_are_json_safe() -> None:
     """as_short_dict returns datetimes; the MCP dispatcher json.dumps has no default."""
-    import json as _json
     from datetime import UTC, datetime
+    import json as _json
 
     from custom_components.selora_ai.diagnostics_tools import _json_safe
 
@@ -896,7 +899,7 @@ async def test_slug_collision_does_not_overwrite_an_unrelated_script(
     the slug unchecked overwrote it, and the preview called the call a creation
     so no confirmation was ever shown.
     """
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     # Occupy the slug with a script whose alias is different.
     await _tool_set_script(
@@ -923,7 +926,7 @@ async def test_slug_collision_does_not_overwrite_an_unrelated_script(
 
 async def test_editing_by_alias_still_replaces_in_place(script_home: HomeAssistant) -> None:
     """Unique-slug allocation must not turn every edit into a duplicate."""
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     executor = _make_executor(script_home)
     await executor.execute(
@@ -949,7 +952,7 @@ async def test_genuine_booleans_survive_the_yaml_round_trip(
     string "on"/"off", which silently rewrote script actions — in every script
     in the file, on every write.
     """
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     await _tool_set_script(
         script_home,
@@ -972,7 +975,7 @@ async def test_genuine_booleans_survive_the_yaml_round_trip(
 
 async def test_state_values_are_still_quoted(script_home: HomeAssistant) -> None:
     """A bare `on` in a state position must come back as a string, not a bool."""
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     await _tool_set_script(
         script_home,
@@ -989,7 +992,7 @@ async def test_state_values_are_still_quoted(script_home: HomeAssistant) -> None
 
 async def test_an_unrelated_script_is_not_rewritten(script_home: HomeAssistant) -> None:
     """Every write rewrites the whole file, so a neighbour must survive intact."""
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     await _tool_set_script(
         script_home,
@@ -1009,7 +1012,7 @@ async def test_replacement_preserves_fields_and_variables(
     script_home: HomeAssistant,
 ) -> None:
     """set_script has no parameter for these; dropping them breaks every caller."""
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     await _tool_set_script(
         script_home,
@@ -1053,7 +1056,7 @@ async def test_boolean_service_data_named_state_is_preserved(
     evohome.set_dhw_override takes a boolean `state`; rewriting it by key name
     changed valid service data in every script in the file.
     """
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     await _tool_set_script(
         script_home,
@@ -1099,8 +1102,9 @@ async def test_creation_racing_a_creation_does_not_become_a_replacement(
     create-only expectation carried into the lock, the write re-resolves, sees
     a replacement, and overwrites a script that never got a confirmation card.
     """
-    from custom_components.selora_ai.mcp_server import _preview_set_script, _tool_set_script
     from custom_components.selora_ai import script_manager as sm
+    from custom_components.selora_ai.mcp_server.previews import _preview_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     real_load = sm._load
     raced = False
@@ -1138,7 +1142,7 @@ async def test_creation_racing_a_creation_does_not_become_a_replacement(
 
 async def test_uncontended_creation_still_executes(script_home: HomeAssistant) -> None:
     """The guard must not turn ordinary creation into a refusal."""
-    from custom_components.selora_ai.mcp_server import _preview_set_script
+    from custom_components.selora_ai.mcp_server.previews import _preview_set_script
 
     result = await _preview_set_script(
         script_home, {"alias": "Quiet", "sequence": [{"delay": {"seconds": 1}}]}
@@ -1154,7 +1158,7 @@ async def test_ambiguous_script_alias_is_refused_not_guessed(
     delete_script and set_script would have removed or overwritten whichever
     happened to come first in the mapping.
     """
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
     from custom_components.selora_ai.script_manager import async_delete_script
 
     for object_id in ("movie_a", "movie_b"):
@@ -1184,7 +1188,7 @@ async def test_ambiguous_script_alias_is_refused_not_guessed(
 
 async def test_object_id_disambiguates_a_shared_alias(script_home: HomeAssistant) -> None:
     """The error tells the caller to use an object_id — that must then work."""
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
     from custom_components.selora_ai.script_manager import async_delete_script
 
     for object_id in ("movie_a", "movie_b"):
@@ -1258,7 +1262,7 @@ async def test_metadata_can_push_a_modest_script_over_the_limit(
     """
     import yaml as _yaml
 
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     await _tool_set_script(
         script_home,
@@ -1288,7 +1292,7 @@ async def test_a_small_script_with_metadata_stays_editable(
     """The stricter check must not make ordinary scripts uneditable."""
     import yaml as _yaml
 
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     await _tool_set_script(
         script_home,
@@ -1314,7 +1318,7 @@ async def test_a_large_replacement_card_stays_bounded(script_home: HomeAssistant
     import json as _json
 
     from custom_components.selora_ai.const import MAX_TOOL_RESULT_CHARS
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     big = [{"service": "light.turn_on", "target": {"entity_id": f"light.l{i}"}} for i in range(400)]
     await _tool_set_script(
@@ -1370,7 +1374,7 @@ async def test_external_edit_during_validation_is_not_clobbered(
     import yaml as _yaml
 
     from custom_components.selora_ai import script_manager as sm
-    from custom_components.selora_ai.mcp_server import _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
 
     path = Path(script_home.config.path("scripts.yaml"))
     real_validate = None
@@ -1406,7 +1410,10 @@ async def test_external_edit_to_our_target_is_refused(script_home: HomeAssistant
     """An unrelated concurrent edit is preserved; one to OUR script is refused."""
     import yaml as _yaml
 
-    from custom_components.selora_ai.mcp_server import _preview_delete_script, _tool_set_script
+    from custom_components.selora_ai.mcp_server.scripts_helpers import (
+        _preview_delete_script,
+        _tool_set_script,
+    )
 
     path = Path(script_home.config.path("scripts.yaml"))
     await _tool_set_script(

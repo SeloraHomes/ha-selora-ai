@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 from aiohttp import web
 import pytest
 
-from custom_components.selora_ai.mcp_server import (
+from custom_components.selora_ai.mcp_server.http import (
     _add_cors,
     _cors_headers,
     _cors_preflight,

@@ -16,7 +16,6 @@ from __future__ import annotations
 # ruff: noqa: ANN001, ANN202
 from unittest.mock import AsyncMock, MagicMock
 
-
 from custom_components.selora_ai.llm_client import LLMClient
 from custom_components.selora_ai.providers import create_provider
 
