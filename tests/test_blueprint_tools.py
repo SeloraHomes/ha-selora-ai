@@ -86,22 +86,23 @@ async def test_a_non_admin_cannot_read_blueprints(installed: HomeAssistant, name
 
 @pytest.mark.parametrize("name", _BLUEPRINT_TOOLS)
 def test_every_blueprint_tool_reaches_mcp(name: str) -> None:
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
+    from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
     mcp_name = f"selora_{name}"
-    assert any(t.name == mcp_name for t in mcp_server._TOOL_DEFINITIONS)
-    assert mcp_name in mcp_server._get_tool_handlers()
-    assert mcp_server._DERIVED_MCP_TOOLS[mcp_name] == name
+    assert any(t.name == mcp_name for t in mcp_definitions._TOOL_DEFINITIONS)
+    assert mcp_name in mcp_dispatch._get_tool_handlers()
+    assert mcp_definitions._DERIVED_MCP_TOOLS[mcp_name] == name
 
 
 @pytest.mark.parametrize("name", _BLUEPRINT_TOOLS)
 def test_mcp_blueprint_access_matches_the_chat_definitions(name: str) -> None:
     """A read-only MCP credential must not reach them either."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import access as mcp_access
 
     mcp_name = f"selora_{name}"
-    assert mcp_name in mcp_server._ADMIN_TOOLS
-    assert mcp_name not in mcp_server._READ_ONLY_TOOLS
+    assert mcp_name in mcp_access._ADMIN_TOOLS
+    assert mcp_name not in mcp_access._READ_ONLY_TOOLS
 
 
 # ── Read ────────────────────────────────────────────────────────────────────

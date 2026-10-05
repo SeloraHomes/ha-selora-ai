@@ -12,7 +12,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import area_registry as ar, floor_registry as fr
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import floor_registry as fr
 import pytest
 
 from custom_components.selora_ai.tool_executor import ToolExecutor
@@ -219,30 +220,31 @@ async def test_deleting_an_unknown_floor_is_refused(home: HomeAssistant) -> None
 
 @pytest.mark.parametrize("name", _FLOOR_TOOLS)
 def test_every_floor_tool_reaches_mcp(name: str) -> None:
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
+    from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
     mcp_name = f"selora_{name}"
-    assert any(t.name == mcp_name for t in mcp_server._TOOL_DEFINITIONS)
-    assert mcp_name in mcp_server._get_tool_handlers()
-    assert mcp_server._DERIVED_MCP_TOOLS[mcp_name] == name
+    assert any(t.name == mcp_name for t in mcp_definitions._TOOL_DEFINITIONS)
+    assert mcp_name in mcp_dispatch._get_tool_handlers()
+    assert mcp_definitions._DERIVED_MCP_TOOLS[mcp_name] == name
 
 
 def test_mcp_floor_access_matches_the_chat_definitions() -> None:
     """A read tool in the admin set is unreachable for a read-only credential;
     a write tool missing from it is reachable by one."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import access as mcp_access
 
     for name in _FLOOR_TOOLS:
         mcp_name = f"selora_{name}"
         if TOOL_MAP[name].requires_admin:
-            assert mcp_name in mcp_server._ADMIN_TOOLS, mcp_name
+            assert mcp_name in mcp_access._ADMIN_TOOLS, mcp_name
         else:
-            assert mcp_name in mcp_server._READ_ONLY_TOOLS, mcp_name
+            assert mcp_name in mcp_access._READ_ONLY_TOOLS, mcp_name
 
 
 async def test_mcp_deletes_the_floor_on_the_spot(home: HomeAssistant) -> None:
     """MCP clients run their own confirmation — there is no card."""
-    from custom_components.selora_ai.mcp_server import _tool_delete_floor
+    from custom_components.selora_ai.mcp_server.registry import _tool_delete_floor
 
     result = await _tool_delete_floor(home, {"floor": "Ground"})
 
@@ -252,9 +254,9 @@ async def test_mcp_deletes_the_floor_on_the_spot(home: HomeAssistant) -> None:
 
 def test_mcp_says_the_floor_delete_is_immediate() -> None:
     """The shared description promises a confirmation card MCP cannot deliver."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 
-    tool = next(t for t in mcp_server._TOOL_DEFINITIONS if t.name == "selora_delete_floor")
+    tool = next(t for t in mcp_definitions._TOOL_DEFINITIONS if t.name == "selora_delete_floor")
     assert "runs IMMEDIATELY" in tool.description
 
 

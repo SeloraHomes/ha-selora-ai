@@ -21,7 +21,6 @@ from custom_components.selora_ai.scene_utils import (
     validate_scene_payload,
 )
 
-
 # ── validate_scene_payload ───────────────────────────────────────────
 
 
@@ -1061,13 +1060,13 @@ def test_chat_has_no_create_scene_tool_on_purpose() -> None:
     that drift, and would write without the review the composer exists to
     provide. So the absence is deliberate, and this test says so.
     """
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
     from custom_components.selora_ai.tool_registry import CHAT_TOOLS
 
     chat = {t.name for t in CHAT_TOOLS}
     assert "create_scene" not in chat
     assert "delete_scene" in chat
-    assert "selora_create_scene" in {t.name for t in mcp_server._TOOL_DEFINITIONS}
+    assert "selora_create_scene" in {t.name for t in mcp_definitions._TOOL_DEFINITIONS}
 
 
 def test_the_scene_tools_name_the_route_that_does_create_one() -> None:

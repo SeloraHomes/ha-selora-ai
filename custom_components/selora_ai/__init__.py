@@ -4898,7 +4898,8 @@ async def _apply_destructive_actions(
     can carry both kinds and each must be applied exactly once by exactly one
     implementation.
     """
-    from .mcp_server import _tool_set_script, _tool_update_device, _tool_update_entity
+    from .mcp_server.registry import _tool_update_device, _tool_update_entity
+    from .mcp_server.scripts_helpers import _tool_set_script
 
     applied: list[str] = []
     errors: list[str] = []
@@ -5053,7 +5054,9 @@ async def _resolve_delete_approval(
         )
         return
 
-    from .mcp_server import _tool_delete_automation, _tool_delete_group, _tool_delete_scene
+    from .mcp_server.automations import _tool_delete_automation
+    from .mcp_server.groups import _tool_delete_group
+    from .mcp_server.scenes import _tool_delete_scene
 
     deleted_labels: list[str] = []
     errors: list[str] = []
@@ -5393,7 +5396,7 @@ async def _resolve_approval(
         approval_entity_ids,
         call_required_approval,
     )
-    from .mcp_server import _safe_command_entity_allowlist
+    from .mcp_server.commands import _safe_command_entity_allowlist
 
     policy = resolve_command_policy_options(hass)
     safe_entities = _safe_command_entity_allowlist(hass)
@@ -6020,7 +6023,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "_background_tasks": [],  # Tracked for cancellation on unload
     }
 
-    from .mcp_server import register_mcp_server
+    from .mcp_server.http import register_mcp_server
 
     register_mcp_server(hass)
 

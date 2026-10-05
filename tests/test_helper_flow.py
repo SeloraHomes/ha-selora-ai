@@ -135,19 +135,20 @@ def test_a_missing_non_device_is_named_without_a_device_dump() -> None:
 def test_mcp_offers_both_kinds_with_the_chat_parameters() -> None:
     """Both kinds are created on the spot over MCP, so it is told about both —
     with the chat tool's own parameters, minus the resumption trigger."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import access as mcp_access
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
     from custom_components.selora_ai.tool_registry import TOOL_CREATE_HELPER
 
-    (tool,) = [t for t in mcp_server._TOOL_DEFINITIONS if t.name == "selora_create_helper"]
+    (tool,) = [t for t in mcp_definitions._TOOL_DEFINITIONS if t.name == "selora_create_helper"]
     chat = {p.name for p in TOOL_CREATE_HELPER.params}
     assert set(tool.inputSchema["properties"]) == chat - {"remaining_intent"}
     assert "Create button" not in tool.description
     assert "input_boolean" in tool.description
-    assert "selora_create_helper" in mcp_server._ADMIN_TOOLS
+    assert "selora_create_helper" in mcp_access._ADMIN_TOOLS
 
 
 async def test_mcp_creates_a_template_helper(hass: HomeAssistant, template: None) -> None:
-    from custom_components.selora_ai.mcp_server import _tool_create_helper
+    from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_create_helper
 
     result = await _tool_create_helper(
         hass,

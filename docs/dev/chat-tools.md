@@ -64,7 +64,7 @@ allowlists: add a new delete tool to **both** plus a branch in `_resolve_approva
 synthesizer drops the descriptor, and the user gets an empty reply and no card.
 
 **MCP definitions are derived** from the chat `ToolDef`s (`_DERIVED_MCP_TOOLS` /
-`_mcp_tool_from_chat_tool` in `mcp_server.py`), never restated — a second copy
+`_mcp_tool_from_chat_tool` in `mcp_server/definitions.py`), never restated — a second copy
 drifts quietly, with the MCP client rejecting an argument chat accepts. The
 deriver:
 - drops `_PANEL_ONLY_PARAMS` from `properties` AND `required` (a schema requiring

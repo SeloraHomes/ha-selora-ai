@@ -8,21 +8,19 @@ the URL-install and upload UI buttons their guarantee.
 from __future__ import annotations
 
 import io
-import tarfile
-import zipfile
 from pathlib import Path
+import tarfile
 from unittest.mock import patch
+import zipfile
 
 import pytest
 
 from custom_components.selora_ai.recipes.archive import (
     ArchiveError,
-    _safe_extract,
     _validate_url,
     async_install_from_url,
     async_stage_archive_file,
 )
-
 
 # ── Helpers ─────────────────────────────────────────────────────────
 

@@ -27,7 +27,7 @@ import pytest
 from custom_components.selora_ai import registry_manager as rm
 from custom_components.selora_ai.helpers import device_entries
 from custom_components.selora_ai.llm_client.intent import _is_config_request
-from custom_components.selora_ai.mcp_server import _preview_delete_area
+from custom_components.selora_ai.mcp_server.registry import _preview_delete_area
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import (
     CHAT_TOOLS,
@@ -360,7 +360,7 @@ async def test_entity_id_rename_asks_before_renaming(registry_home: HomeAssistan
 
 async def test_confirming_a_rename_applies_it(registry_home: HomeAssistant) -> None:
     """The confirm path replays the held arguments through the same code."""
-    from custom_components.selora_ai.mcp_server import _tool_update_entity
+    from custom_components.selora_ai.mcp_server.registry import _tool_update_entity
 
     held = await _make_executor(registry_home).execute(
         "update_entity",
@@ -778,7 +778,7 @@ async def test_device_confirm_uses_the_captured_device_id(
         name="Hallway Lamp",
     )
 
-    from custom_components.selora_ai.mcp_server import _tool_update_device
+    from custom_components.selora_ai.mcp_server.registry import _tool_update_device
 
     payload = {"device": held["destructive"]["target_id"], "disabled": True}
     await _tool_update_device(registry_home, payload)

@@ -133,7 +133,7 @@ async def _handle_websocket_list_mcp_tokens(
         connection.send_error(msg["id"], "not_ready", "MCP token store not initialized")
         return
 
-    from ..mcp_server import mcp_tool_catalog  # noqa: PLC0415
+    from ..mcp_server.definitions import mcp_tool_catalog  # noqa: PLC0415
 
     tokens = await store.async_list_tokens()
     # The tools a custom token can be granted, from the server's own list —

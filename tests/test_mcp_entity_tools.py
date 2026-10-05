@@ -16,10 +16,10 @@ from homeassistant.helpers import (
 )
 import pytest
 
-from custom_components.selora_ai.mcp_server import (
+from custom_components.selora_ai.mcp_server.commands import _tool_validate_action
+from custom_components.selora_ai.mcp_server.entities import (
     _tool_find_entities_by_area,
     _tool_get_entity_state,
-    _tool_validate_action,
 )
 
 
@@ -362,7 +362,7 @@ async def test_validate_action_rejects_unavailable_entity(
     then rejected by execute_command's dispatch — a confusing
     'validated but failed to run' workflow for the model.
     """
-    from custom_components.selora_ai.mcp_server import _tool_execute_command
+    from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
 
     # Drop the entity into "unavailable" so _collect_entity_states skips it.
     hass.states.async_set("light.kitchen_light", "unavailable")
@@ -394,7 +394,7 @@ async def test_execute_command_waits_for_delayed_state(hass: HomeAssistant, setu
     "commands executed but lights still report off" bug. The read-back must wait
     for the fresh state.
     """
-    from custom_components.selora_ai.mcp_server import _tool_execute_command
+    from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
 
     async def _delayed_turn_off(call: ServiceCall) -> None:
         # Simulate a handler that returns before the state propagates.
@@ -427,7 +427,7 @@ async def test_execute_command_no_op_returns_promptly(hass: HomeAssistant, setup
     The service handler here writes no state at all; the short wait_for makes a
     regression to waiting out _STATE_SETTLE_TIMEOUT fail the test.
     """
-    from custom_components.selora_ai.mcp_server import _tool_execute_command
+    from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
 
     handler_calls: list[str] = []
 
@@ -461,7 +461,7 @@ async def test_execute_command_mixed_batch_settles_on_transitioning_only(
     transitions a beat later. Only the transitioning target should be armed, so
     the already-on one can't keep the settle wait pending until the timeout.
     """
-    from custom_components.selora_ai.mcp_server import _tool_execute_command
+    from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
 
     async def _turn_on(call: ServiceCall) -> None:
         for eid in call.data.get("entity_id", []):
@@ -506,7 +506,7 @@ async def test_execute_command_waits_for_terminal_not_transitional_state(
     """
     from homeassistant.helpers import entity_registry as er
 
-    from custom_components.selora_ai.mcp_server import _tool_execute_command
+    from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
 
     ent_reg = er.async_get(hass)
     ent_reg.async_get_or_create("cover", "test", "garage_uid", suggested_object_id="garage")

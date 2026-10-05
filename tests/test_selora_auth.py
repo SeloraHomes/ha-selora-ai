@@ -515,11 +515,11 @@ class TestJWTWriteScopeGating:
     def test_jwt_without_write_scope_blocked_from_admin_tool(self) -> None:
         from homeassistant.exceptions import Unauthorized
 
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_EXECUTE_COMMAND,
+        from custom_components.selora_ai.mcp_server.access import (
             _can_access_tool,
             _check_tool_access,
         )
+        from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         ctx = self._ctx(scopes=frozenset({"mcp:sub"}))
         assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is False
@@ -527,11 +527,11 @@ class TestJWTWriteScopeGating:
             _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)
 
     def test_jwt_with_write_scope_allowed(self) -> None:
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_EXECUTE_COMMAND,
+        from custom_components.selora_ai.mcp_server.access import (
             _can_access_tool,
             _check_tool_access,
         )
+        from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         ctx = self._ctx(scopes=frozenset({"mcp:sub", "mcp:write"}))
         assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is True
@@ -539,29 +539,23 @@ class TestJWTWriteScopeGating:
 
     def test_jwt_admin_role_still_allowed_without_scope(self) -> None:
         """Backwards-compat: role-derived is_admin keeps working if Connect emits it."""
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_EXECUTE_COMMAND,
-            _can_access_tool,
-        )
+        from custom_components.selora_ai.mcp_server.access import _can_access_tool
+        from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         ctx = self._ctx(scopes=frozenset({"mcp:sub"}), is_admin=True)
         assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is True
 
     def test_jwt_read_only_tool_always_allowed(self) -> None:
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_GET_HOME_SNAPSHOT,
-            _can_access_tool,
-        )
+        from custom_components.selora_ai.mcp_server.access import _can_access_tool
+        from custom_components.selora_ai.mcp_server.names import TOOL_GET_HOME_SNAPSHOT
 
         ctx = self._ctx(scopes=frozenset({"mcp:sub"}))
         assert _can_access_tool(ctx, TOOL_GET_HOME_SNAPSHOT) is True
 
     def test_ha_token_unaffected_by_scope_logic(self) -> None:
         """HA-token path still uses binary is_admin, ignores scopes."""
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_EXECUTE_COMMAND,
-            _can_access_tool,
-        )
+        from custom_components.selora_ai.mcp_server.access import _can_access_tool
+        from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         non_admin = self._ctx(auth_type="ha_token")
         assert _can_access_tool(non_admin, TOOL_EXECUTE_COMMAND) is False
@@ -572,10 +566,8 @@ class TestJWTWriteScopeGating:
         """HA-token denial must raise Unauthorized without AttributeError."""
         from homeassistant.exceptions import Unauthorized
 
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_EXECUTE_COMMAND,
-            _check_tool_access,
-        )
+        from custom_components.selora_ai.mcp_server.access import _check_tool_access
+        from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         ctx = self._ctx(auth_type="ha_token")
         with pytest.raises(Unauthorized):
@@ -584,10 +576,8 @@ class TestJWTWriteScopeGating:
     def test_mcp_token_allowlist_denial_raises_cleanly(self) -> None:
         from homeassistant.exceptions import Unauthorized
 
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_EXECUTE_COMMAND,
-            _check_tool_access,
-        )
+        from custom_components.selora_ai.mcp_server.access import _check_tool_access
+        from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         ctx = SeloraAuthContext(
             user_id="mcp_token:abc",
@@ -603,10 +593,8 @@ class TestJWTWriteScopeGating:
     def test_mcp_token_read_only_denial_raises_cleanly(self) -> None:
         from homeassistant.exceptions import Unauthorized
 
-        from custom_components.selora_ai.mcp_server import (
-            TOOL_EXECUTE_COMMAND,
-            _check_tool_access,
-        )
+        from custom_components.selora_ai.mcp_server.access import _check_tool_access
+        from custom_components.selora_ai.mcp_server.names import TOOL_EXECUTE_COMMAND
 
         ctx = SeloraAuthContext(
             user_id="mcp_token:abc",

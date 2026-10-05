@@ -6,10 +6,10 @@ import asyncio
 from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState
 from homeassistant.util import dt as dt_util
+import pytest
 from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 from custom_components.selora_ai.collector import _INITIAL_CYCLE_BOOT_GRACE, DataCollector

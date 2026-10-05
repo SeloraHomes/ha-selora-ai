@@ -246,7 +246,7 @@ class TestSuggestionStatusCap:
     for the life of the process)."""
 
     def test_set_status_evicts_oldest_past_cap(self) -> None:
-        from custom_components.selora_ai.mcp_server import (
+        from custom_components.selora_ai.mcp_server.chat import (
             _MCP_SUGGESTION_STATUS_MAX,
             _set_suggestion_status,
         )
@@ -262,7 +262,7 @@ class TestSuggestionStatusCap:
         assert f"sug-{total - 1}" in store
 
     def test_re_touch_survives_eviction(self) -> None:
-        from custom_components.selora_ai.mcp_server import (
+        from custom_components.selora_ai.mcp_server.chat import (
             _MCP_SUGGESTION_STATUS_MAX,
             _set_suggestion_status,
         )

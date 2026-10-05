@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 import pytest
 import yaml
 
-from custom_components.selora_ai.mcp_server import _tool_create_automation
+from custom_components.selora_ai.mcp_server.automations import _tool_create_automation
 
 USER_ENTRY = {
     "id": "morning_routine",
@@ -43,9 +43,7 @@ def home(hass: HomeAssistant) -> None:
 
 
 async def _replace(hass: HomeAssistant, text: str) -> dict[str, Any]:
-    return await _tool_create_automation(
-        hass, {"yaml": text, "automation_id": "morning_routine"}
-    )
+    return await _tool_create_automation(hass, {"yaml": text, "automation_id": "morning_routine"})
 
 
 async def test_a_user_automation_is_written_exactly_as_given(hass: HomeAssistant) -> None:

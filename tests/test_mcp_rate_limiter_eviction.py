@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import time
 
-from custom_components.selora_ai.mcp_server import _RateLimiter
+from custom_components.selora_ai.mcp_server.http import _RateLimiter
 
 
 def test_allow_creates_one_entry_per_key() -> None:

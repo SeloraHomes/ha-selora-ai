@@ -135,8 +135,7 @@ def test_a_second_proposal_in_one_refinement_still_targets_the_automation() -> N
     )
     # ...and by the alias alone, when it does not bother to claim one.
     assert (
-        _resolve_proposal_write_target({"alias": "Eco Away"}, saved, None)
-        == "selora_ai_e99e4d0f"
+        _resolve_proposal_write_target({"alias": "Eco Away"}, saved, None) == "selora_ai_e99e4d0f"
     )
 
 

@@ -395,7 +395,7 @@ async def test_mcp_previews_are_untouched(hass: HomeAssistant) -> None:
     nothing to resume — the shared preview must not grow a chat-only field."""
     from homeassistant.helpers import area_registry as ar
 
-    from custom_components.selora_ai.mcp_server import _preview_delete_area
+    from custom_components.selora_ai.mcp_server.registry import _preview_delete_area
 
     ar.async_get(hass).async_create("Study")
     result = await _preview_delete_area(hass, {"area": "Study", "remaining_intent": "recreate it"})

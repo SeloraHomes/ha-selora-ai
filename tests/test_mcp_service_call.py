@@ -13,23 +13,26 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 import pytest
 from pytest_homeassistant_custom_component.common import async_mock_service
 
-from custom_components.selora_ai import mcp_server
 from custom_components.selora_ai.command_policy_options import CommandPolicyOptions
+from custom_components.selora_ai.mcp_server import access as mcp_access
+from custom_components.selora_ai.mcp_server import commands as mcp_commands
+from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
+from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
 
 async def _execute(hass: HomeAssistant, **arguments: Any) -> dict[str, Any]:
-    return await mcp_server._get_tool_handlers()["selora_execute_command"](hass, arguments)
+    return await mcp_dispatch._get_tool_handlers()["selora_execute_command"](hass, arguments)
 
 
 async def _validate(hass: HomeAssistant, **arguments: Any) -> dict[str, Any]:
-    return await mcp_server._get_tool_handlers()["selora_validate_action"](hass, arguments)
+    return await mcp_dispatch._get_tool_handlers()["selora_validate_action"](hass, arguments)
 
 
 @pytest.fixture(autouse=True)
 def _no_settle_wait() -> Any:
     """The mocked services change no state, so the read-back would wait out
     its full timeout on every call that expects a transition."""
-    with patch.object(mcp_server, "_STATE_SETTLE_TIMEOUT", 0.01):
+    with patch.object(mcp_commands, "_STATE_SETTLE_TIMEOUT", 0.01):
         yield
 
 
@@ -219,11 +222,11 @@ async def test_chat_keeps_its_allowlist(home: HomeAssistant) -> None:
 
 
 def test_the_mcp_definition_takes_any_service() -> None:
-    (tool,) = [t for t in mcp_server._TOOL_DEFINITIONS if t.name == "selora_execute_command"]
+    (tool,) = [t for t in mcp_definitions._TOOL_DEFINITIONS if t.name == "selora_execute_command"]
     assert tool.inputSchema["required"] == ["service"]
     assert "confirmed" in tool.inputSchema["properties"]
     assert "allowlist" not in tool.description
-    assert "selora_execute_command" in mcp_server._ADMIN_TOOLS
+    assert "selora_execute_command" in mcp_access._ADMIN_TOOLS
 
 
 async def test_an_entity_service_is_recognised_by_its_schema(home: HomeAssistant) -> None:
@@ -274,7 +277,7 @@ async def test_a_read_does_not_wait_for_a_state_change(home: HomeAssistant) -> N
         "todo", "get_items", _items, supports_response=SupportsResponse.ONLY
     )
 
-    with patch.object(mcp_server, "_STATE_SETTLE_TIMEOUT", 30):
+    with patch.object(mcp_commands, "_STATE_SETTLE_TIMEOUT", 30):
         result = await asyncio.wait_for(
             _execute(home, service="todo.get_items", entity_id="todo.shopping"), 2
         )

@@ -157,7 +157,7 @@ async def test_device_detail_success(hass: HomeAssistant, mock_connection, devic
 
     with (
         patch(
-            "custom_components.selora_ai.mcp_server._tool_get_device",
+            "custom_components.selora_ai.mcp_server.entities._tool_get_device",
             new_callable=AsyncMock,
             return_value=device_data,
         ),
@@ -186,7 +186,7 @@ async def test_device_detail_not_found(hass: HomeAssistant, mock_connection):
     msg = {"id": 1, "type": "selora_ai/get_device_detail", "device_id": "bad_id"}
 
     with patch(
-        "custom_components.selora_ai.mcp_server._tool_get_device",
+        "custom_components.selora_ai.mcp_server.entities._tool_get_device",
         new_callable=AsyncMock,
         return_value={"error": "Device bad_id not found"},
     ):
@@ -218,7 +218,7 @@ async def test_device_detail_linked_automations(hass: HomeAssistant, mock_connec
 
     with (
         patch(
-            "custom_components.selora_ai.mcp_server._tool_get_device",
+            "custom_components.selora_ai.mcp_server.entities._tool_get_device",
             new_callable=AsyncMock,
             return_value=device_data,
         ),
@@ -266,7 +266,7 @@ async def test_device_detail_related_patterns(hass: HomeAssistant, mock_connecti
 
     with (
         patch(
-            "custom_components.selora_ai.mcp_server._tool_get_device",
+            "custom_components.selora_ai.mcp_server.entities._tool_get_device",
             new_callable=AsyncMock,
             return_value=device_data,
         ),

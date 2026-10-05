@@ -17,7 +17,7 @@ from homeassistant.setup import async_setup_component
 import pytest
 
 from custom_components.selora_ai import dashboard_manager as dm
-from custom_components.selora_ai.mcp_server import _preview_remove_dashboard_view
+from custom_components.selora_ai.mcp_server.dashboards import _preview_remove_dashboard_view
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import (
     COMMAND_TOOL_NAMES,
@@ -763,7 +763,7 @@ async def test_a_label_row_in_an_entities_list_is_not_an_entity(board: HomeAssis
 def test_remove_view_exposes_the_fingerprint_to_mcp_clients() -> None:
     """The MCP handler deletes immediately and reads ``expected_fingerprint``, so
     a schema that hides it leaves an MCP delete unpinnable."""
-    from custom_components.selora_ai.mcp_server import _TOOL_DEFINITIONS
+    from custom_components.selora_ai.mcp_server.definitions import _TOOL_DEFINITIONS
 
     tool = next(t for t in _TOOL_DEFINITIONS if t.name == "selora_remove_dashboard_view")
     assert "expected_fingerprint" in tool.inputSchema["properties"]
@@ -772,7 +772,7 @@ def test_remove_view_exposes_the_fingerprint_to_mcp_clients() -> None:
 async def test_mcp_remove_view_refuses_a_stale_fingerprint(board: HomeAssistant) -> None:
     from homeassistant.components.lovelace.const import LOVELACE_DATA
 
-    from custom_components.selora_ai.mcp_server import _tool_remove_dashboard_view
+    from custom_components.selora_ai.mcp_server.dashboards import _tool_remove_dashboard_view
 
     result = await _tool_remove_dashboard_view(
         board, {"view": 0, "expected_fingerprint": "deadbeef"}
@@ -1062,31 +1062,33 @@ def test_mcp_exposes_the_tools_its_own_dashboard_workflow_needs(
     """The other MCP dashboard tools tell clients to call these two: without
     them a client cannot discover a non-default target, and a view made with
     selora_add_dashboard_view can never be filled."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
+    from custom_components.selora_ai.mcp_server import dispatch as mcp_dispatch
 
-    assert any(t.name == mcp_name for t in mcp_server._TOOL_DEFINITIONS)
-    assert mcp_name in mcp_server._get_tool_handlers()
-    assert mcp_server._DERIVED_MCP_TOOLS[mcp_name] == chat_name
+    assert any(t.name == mcp_name for t in mcp_definitions._TOOL_DEFINITIONS)
+    assert mcp_name in mcp_dispatch._get_tool_handlers()
+    assert mcp_definitions._DERIVED_MCP_TOOLS[mcp_name] == chat_name
 
 
 def test_mcp_dashboard_access_matches_the_chat_definitions() -> None:
     """A read tool in the admin set is unreachable for a read-only credential;
     a write tool missing from it is reachable by one."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import access as mcp_access
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
     from custom_components.selora_ai.tool_registry import TOOL_MAP
 
-    for mcp_name, chat_name in mcp_server._DERIVED_MCP_TOOLS.items():
+    for mcp_name, chat_name in mcp_definitions._DERIVED_MCP_TOOLS.items():
         if "dashboard" not in chat_name:
             continue
         if TOOL_MAP[chat_name].requires_admin:
-            assert mcp_name in mcp_server._ADMIN_TOOLS, mcp_name
+            assert mcp_name in mcp_access._ADMIN_TOOLS, mcp_name
         else:
-            assert mcp_name in mcp_server._READ_ONLY_TOOLS, mcp_name
+            assert mcp_name in mcp_access._READ_ONLY_TOOLS, mcp_name
 
 
 async def test_mcp_can_fill_a_view_it_just_created(board: HomeAssistant) -> None:
     """The end-to-end gap: every other MCP write tool edits a card already there."""
-    from custom_components.selora_ai.mcp_server import (
+    from custom_components.selora_ai.mcp_server.dashboards import (
         _tool_add_dashboard_view,
         _tool_insert_dashboard_card,
         _tool_list_dashboards,
@@ -1109,7 +1111,7 @@ async def test_mcp_can_fill_a_view_it_just_created(board: HomeAssistant) -> None
 
 async def test_mcp_insert_validates_exactly_as_chat_does(board: HomeAssistant) -> None:
     """Both surfaces share one body, so an unknown entity is refused on each."""
-    from custom_components.selora_ai.mcp_server import _tool_insert_dashboard_card
+    from custom_components.selora_ai.mcp_server.dashboards import _tool_insert_dashboard_card
 
     args = {"card": {"type": "light", "entity": "light.no_such_lamp"}}
     mcp_result = await _tool_insert_dashboard_card(board, args)
@@ -1295,7 +1297,7 @@ async def test_an_unscoped_call_is_treated_as_non_admin(board: HomeAssistant) ->
 
 async def test_the_mcp_surface_carries_caller_identity(board: HomeAssistant) -> None:
     from custom_components.selora_ai.helpers import caller_scope
-    from custom_components.selora_ai.mcp_server import _tool_get_dashboard
+    from custom_components.selora_ai.mcp_server.dashboards import _tool_get_dashboard
 
     _admin_only_board(board)
     with caller_scope(False):
@@ -1702,17 +1704,17 @@ async def test_insertion_uses_the_indices_the_reads_advertise(board: HomeAssista
 def test_mcp_says_a_confirmation_gated_tool_runs_immediately(mcp_name: str) -> None:
     """The shared description promises a confirmation card, but MCP has none —
     an agent acting on that contract loses the view before anyone is asked."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 
-    tool = next(t for t in mcp_server._TOOL_DEFINITIONS if t.name == mcp_name)
+    tool = next(t for t in mcp_definitions._TOOL_DEFINITIONS if t.name == mcp_name)
     assert "runs IMMEDIATELY" in tool.description
 
 
 def test_a_tool_with_no_card_gets_no_such_warning() -> None:
     """Derived from the preview allowlists, so it does not leak onto reads."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
 
-    tool = next(t for t in mcp_server._TOOL_DEFINITIONS if t.name == "selora_get_dashboard")
+    tool = next(t for t in mcp_definitions._TOOL_DEFINITIONS if t.name == "selora_get_dashboard")
     assert "runs IMMEDIATELY" not in tool.description
 
 
@@ -2000,7 +2002,10 @@ async def test_an_authorized_non_admin_writer_is_told_it_can_edit(
     is read-only contradicted the calls that then succeeded. Driven through the
     MCP handler because that is the only surface where the two answers differ."""
     from custom_components.selora_ai.helpers import caller_scope
-    from custom_components.selora_ai.mcp_server import _tool_get_dashboard, _tool_list_dashboards
+    from custom_components.selora_ai.mcp_server.dashboards import (
+        _tool_get_dashboard,
+        _tool_list_dashboards,
+    )
 
     with caller_scope(False, can_write=True):
         read = await _tool_get_dashboard(board, {})
@@ -2014,7 +2019,7 @@ async def test_a_read_only_credential_is_still_told_it_cannot_edit(
     board: HomeAssistant,
 ) -> None:
     from custom_components.selora_ai.helpers import caller_scope
-    from custom_components.selora_ai.mcp_server import _tool_get_dashboard
+    from custom_components.selora_ai.mcp_server.dashboards import _tool_get_dashboard
 
     with caller_scope(False, can_write=False):
         read = await _tool_get_dashboard(board, {})
@@ -2028,7 +2033,7 @@ async def test_write_capability_does_not_unhide_an_admin_only_dashboard(
     """require_admin is about who HA hides the page from, not about scopes —
     so the two answers must stay separate booleans."""
     from custom_components.selora_ai.helpers import caller_scope
-    from custom_components.selora_ai.mcp_server import _tool_get_dashboard
+    from custom_components.selora_ai.mcp_server.dashboards import _tool_get_dashboard
 
     _admin_only_board(board)
 
@@ -2073,20 +2078,16 @@ def _mcp_token_ctx(allowed: set[str]) -> MagicMock:
 def test_any_allowed_dashboard_mutation_counts_as_write(allowed: set[str]) -> None:
     """An allowlist naming only `insert` authorises a real editing workflow —
     testing one representative tool called that credential read-only."""
-    from custom_components.selora_ai.mcp_server import (
-        _can_access_tool,
-        _dashboard_write_tools,
-    )
+    from custom_components.selora_ai.mcp_server.access import _can_access_tool
+    from custom_components.selora_ai.mcp_server.definitions import _dashboard_write_tools
 
     ctx = _mcp_token_ctx(allowed)
     assert any(_can_access_tool(ctx, name) for name in _dashboard_write_tools())
 
 
 def test_a_read_only_allowlist_is_not_a_write_capability() -> None:
-    from custom_components.selora_ai.mcp_server import (
-        _can_access_tool,
-        _dashboard_write_tools,
-    )
+    from custom_components.selora_ai.mcp_server.access import _can_access_tool
+    from custom_components.selora_ai.mcp_server.definitions import _dashboard_write_tools
 
     ctx = _mcp_token_ctx({"selora_list_dashboards", "selora_get_dashboard"})
     assert not any(_can_access_tool(ctx, name) for name in _dashboard_write_tools())
@@ -2095,11 +2096,11 @@ def test_a_read_only_allowlist_is_not_a_write_capability() -> None:
 def test_the_write_tool_set_is_derived_not_listed() -> None:
     """A mutation added to the family must be covered without anyone naming it
     here — the failure otherwise is quiet."""
-    from custom_components.selora_ai import mcp_server
+    from custom_components.selora_ai.mcp_server import definitions as mcp_definitions
     from custom_components.selora_ai.tool_registry import TOOL_MAP
 
-    derived = mcp_server._dashboard_write_tools()
-    for mcp_name, chat_name in mcp_server._DERIVED_MCP_TOOLS.items():
+    derived = mcp_definitions._dashboard_write_tools()
+    for mcp_name, chat_name in mcp_definitions._DERIVED_MCP_TOOLS.items():
         if "dashboard" not in chat_name:
             continue
         assert (mcp_name in derived) is TOOL_MAP[chat_name].requires_admin, mcp_name
@@ -3219,7 +3220,9 @@ async def test_a_failed_save_leaves_the_dashboard_as_it_was(
 
     config = board.data[LOVELACE_DATA].dashboards[None]
 
-    with patch.object(config._store, "async_save", AsyncMock(side_effect=RuntimeError("disk full"))):
+    with patch.object(
+        config._store, "async_save", AsyncMock(side_effect=RuntimeError("disk full"))
+    ):
         result = await _make_executor(board).execute(tool, arguments)
 
     assert "refused to save" in result["error"], result
@@ -3253,7 +3256,7 @@ def test_move_declares_its_destination_on_both_surfaces() -> None:
     """MCP derives its schema from the chat ToolDef, so a destination chat
     accepts and MCP does not is a tool that looks identical in both listings
     and rejects half the calls made against one of them."""
-    from custom_components.selora_ai.mcp_server import _TOOL_DEFINITIONS
+    from custom_components.selora_ai.mcp_server.definitions import _TOOL_DEFINITIONS
 
     move = TOOL_MAP["move_dashboard_card"]
     wanted = {"to_dashboard", "to_view", "expected_to_view_fingerprint"}
@@ -3568,7 +3571,7 @@ async def test_a_group_move_across_dashboards_verifies_every_card_landed(
 def test_move_offers_both_spellings_on_both_surfaces() -> None:
     """MCP derives its schema from the chat ToolDef, so a group move chat
     accepts and MCP does not is a tool that looks identical in both listings."""
-    from custom_components.selora_ai.mcp_server import _TOOL_DEFINITIONS
+    from custom_components.selora_ai.mcp_server.definitions import _TOOL_DEFINITIONS
 
     move = TOOL_MAP["move_dashboard_card"]
     assert {"from_index", "from_indices"} <= {p.name for p in move.params}

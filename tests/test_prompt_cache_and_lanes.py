@@ -19,7 +19,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.selora_ai.llm_client.client import LLMClient
-from custom_components.selora_ai.tool_registry import CHAT_TOOLS
 
 
 def _client(*, holds_schema: bool = True, low_context: bool = False) -> MagicMock:

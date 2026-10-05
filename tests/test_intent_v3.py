@@ -15,7 +15,6 @@ chat traffic to the right LoRA specialist BEFORE the model runs.
 from __future__ import annotations
 
 # ruff: noqa: ANN001, ANN202
-
 import pytest
 
 from custom_components.selora_ai.llm_client.intent import (

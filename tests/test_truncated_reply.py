@@ -94,7 +94,7 @@ def _reason_for(client, finish_reason: str | None) -> str:
 
 
 def test_the_reason_is_carried_to_the_panel(hass, client) -> None:
-    """"It was cut off" describes what the user just watched. Which of the two
+    """ "It was cut off" describes what the user just watched. Which of the two
     causes it was is the part they cannot see, and only this side knows it."""
     # OpenAI's spelling, then Anthropic's and Gemini's for the same thing.
     assert _reason_for(client, "length") == "output_cap"

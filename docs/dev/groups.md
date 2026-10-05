@@ -105,9 +105,10 @@ edits membership in Settings → Helpers.
   helper entries, `_yaml_parent_groups()` (HA's `groups_with_entity`) walks legacy
   YAML groups — and recipes write YAML groups, so a helper nested in one is
   ordinary.
-- Adding a tool here touches `group_manager.py`, `mcp_server.py` (`_tool_*` +
-  `MCPTool` schema + name constant + handler map + `_ADMIN_TOOLS` /
-  `_READ_ONLY_TOOLS`), `tool_registry.py` (`ToolDef` + `CHAT_TOOLS` +
+- Adding a tool here touches `group_manager.py`, the `mcp_server/` package
+  (`_tool_*` in `groups.py`, `MCPTool` schema in `definitions.py`, name constant
+  in `names.py`, handler map in `dispatch.py`, `_ADMIN_TOOLS` /
+  `_READ_ONLY_TOOLS` in `access.py`), `tool_registry.py` (`ToolDef` + `CHAT_TOOLS` +
   `COMMAND_TOOL_NAMES`), and `tool_executor.py`. `COMMAND_TOOL_NAMES` matters:
   group phrasings classify as `"command"`, which trims the low-context schema to
   that set.

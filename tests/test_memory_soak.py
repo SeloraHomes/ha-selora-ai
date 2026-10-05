@@ -34,7 +34,7 @@ from custom_components.selora_ai.const import (
     PATTERN_HISTORY_MAX_PER_ENTITY,
     PATTERN_HISTORY_MAX_TOTAL,
 )
-from custom_components.selora_ai.mcp_server import _RateLimiter
+from custom_components.selora_ai.mcp_server.http import _RateLimiter
 from custom_components.selora_ai.pattern_store import PatternStore
 
 # Every test in this module is opt-in via ``-m soak``. The default

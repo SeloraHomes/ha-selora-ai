@@ -17,7 +17,6 @@ from custom_components.selora_ai.llm_client.command_policy import (
     _repair_service_name,
 )
 
-
 # --- Repair 1: bogus light brightness verbs -------------------------------
 
 
