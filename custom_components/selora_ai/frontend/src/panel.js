@@ -848,12 +848,16 @@ class SeloraAIPanel extends LitElement {
     // HA hands the same container to the next custom panel.
     this._panelContainer = this.parentElement;
     sizePanelContainer(this._panelContainer);
-    // Inject Inter font into document head (Shadow DOM can't @import fonts)
+    // Inject the bundled Inter font into document head (Shadow DOM can't
+    // @import fonts). Served next to this module; reusing the module's own
+    // ?v= refetches the stylesheet with each deploy.
     if (!document.querySelector("link[data-selora-font]")) {
+      const moduleUrl = new URL(import.meta.url);
+      const fontsUrl = new URL("fonts/fonts.css", moduleUrl);
+      fontsUrl.search = moduleUrl.search;
       const link = document.createElement("link");
       link.rel = "stylesheet";
-      link.href =
-        "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap";
+      link.href = fontsUrl.href;
       link.dataset.seloraFont = "1";
       document.head.appendChild(link);
     }
