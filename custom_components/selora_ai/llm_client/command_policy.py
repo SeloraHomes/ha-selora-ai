@@ -141,7 +141,13 @@ def _resolve_approval_store(
 
 
 _MAX_COMMAND_CALLS = 5
-_MAX_TARGET_ENTITIES = 3
+# Targets per call. A safe call (lights, switches, …) may cover a whole
+# category — "turn off all the lights" is one call, and splitting it only
+# costs time, since nothing bounds the number of calls a tool round can
+# make. A call that needs approval stays small, so the card the user
+# approves names a handful of devices, not a domain.
+_MAX_TARGET_ENTITIES = 50
+_MAX_APPROVAL_TARGET_ENTITIES = 3
 
 _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
     "light": {
@@ -888,7 +894,13 @@ def validate_command_action(
     # REVIEW return shape so the tool path raises requires_approval.
     if not errors:
         review_entry = _entity_aware_review_entry(hass, service, target_ids)
-        if review_entry is not None:
+        if review_entry is not None and len(target_ids) > _MAX_APPROVAL_TARGET_ENTITIES:
+            errors.append(
+                f"{service} needs approval for one of its targets, so it can target at "
+                f"most {_MAX_APPROVAL_TARGET_ENTITIES} entities; send those devices in "
+                f"a call of their own"
+            )
+        elif review_entry is not None:
             already_approved = not policy.approval_required or _all_targets_approved(
                 approval_store, service, _approval_targets, session_id
             )
@@ -2396,6 +2408,12 @@ def build_executed_confirmation(
     in earlier streamed prose (the model's pre-tool narration). Those are
     dropped from this message's ``[[entities:…]]`` marker so the chat
     doesn't show two identical entity cards for one executed action.
+
+    Back-to-back calls that read the same ("Turned off") share one
+    sentence: turning off every light and every switch is one action to the
+    user, however many calls it took. Only back-to-back ones — merging an
+    action into an earlier one with something in between would reorder what
+    happened.
     """
     excluded = exclude_marker_ids or set()
     done_text = _done_text(language)
@@ -2403,8 +2421,10 @@ def build_executed_confirmation(
         return done_text
     lang = _normalize_lang(language)
     fmt = _SENTENCE_FORMAT_BY_LANG.get(lang, _SENTENCE_FORMAT_BY_LANG["en"])
-    sentences: list[str] = []
     entity_ids: list[str] = []
+    # One entry per sentence: (past verb, target ids, names) — a targetless
+    # call's entry is already its sentence, with no ids.
+    groups: list[tuple[str, list[str], list[str]]] = []
     for call in executed_calls:
         service = str(call.get("service", "")).strip()
         if not service:
@@ -2421,12 +2441,22 @@ def build_executed_confirmation(
                 ids = []
         past = past_verb_for(service, language)
         if ids:
-            names = [friendly_name_resolver(eid) if friendly_name_resolver else eid for eid in ids]
-            sentences.append(fmt.format(past=past, target=", ".join(names)))
-            entity_ids.extend(ids)
+            if not groups or groups[-1][0] != past or not groups[-1][1]:
+                groups.append((past, [], []))
+            _past, group_ids, names = groups[-1]
+            for eid in ids:
+                if eid not in group_ids:
+                    group_ids.append(eid)
+                    names.append(friendly_name_resolver(eid) if friendly_name_resolver else eid)
+                if eid not in entity_ids:
+                    entity_ids.append(eid)
         else:
             tail = service.split(".", 1)[1] if "." in service else service
-            sentences.append(fmt.format(past=past, target=tail))
+            groups.append((fmt.format(past=past, target=tail), [], []))
+    sentences = [
+        fmt.format(past=text, target=", ".join(names)) if group_ids else text
+        for text, group_ids, names in groups
+    ]
     content = " ".join(sentences) if sentences else done_text
     marker_ids = [eid for eid in entity_ids if eid not in excluded]
     if marker_ids:
@@ -4395,8 +4425,11 @@ def _validate_review_call(
     # time. Other services gate on their target.entity_id as before.
     gate_ids = approval_entity_ids(call) if service == "tts.speak" else target_ids
 
-    if len(gate_ids) > _MAX_TARGET_ENTITIES:
-        return None, f"{service} targeted too many entities at once (max {_MAX_TARGET_ENTITIES})"
+    if len(gate_ids) > _MAX_APPROVAL_TARGET_ENTITIES:
+        return (
+            None,
+            f"{service} targeted too many entities at once (max {_MAX_APPROVAL_TARGET_ENTITIES})",
+        )
 
     # Without ``requires_target=False`` we treat the entity_id as
     # mandatory. HA entity-services (lock.*, alarm_*, vacuum.*,
@@ -5007,6 +5040,12 @@ def apply_command_policy(
         # the equivalent REVIEW entry's allowed keys, so no second
         # shape pass is needed here.
         cover_entry = _entity_aware_review_entry(hass, service, list(target_ids))
+        if cover_entry is not None and len(target_ids) > _MAX_APPROVAL_TARGET_ENTITIES:
+            return _blocked_command_result(
+                f"{service} targeted too many entities at once for a call that needs "
+                f"approval (max {_MAX_APPROVAL_TARGET_ENTITIES})",
+                result,
+            )
         if cover_entry is not None:
             approved = not policy.approval_required or _all_targets_approved(
                 approval_store, service, list(target_ids), session_id

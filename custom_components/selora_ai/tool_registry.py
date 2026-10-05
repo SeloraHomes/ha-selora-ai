@@ -327,7 +327,13 @@ TOOL_EXECUTE_COMMAND = ToolDef(
         "activated with 'scene.turn_on' on its entity_id. To CREATE a scene there "
         "is deliberately no tool: emit the scene JSON block (intent 'scene') and "
         "the user gets a card to accept it — never tell the user scene creation "
-        "is unavailable."
+        "is unavailable. A response whose tool calls are ALL execute_command ENDS "
+        "your turn: the confirmation is written from the results and you are not "
+        "called again. So when the request covers several devices ('all the "
+        "lights', 'turn them off'), put EVERY call it needs in this one response — "
+        "one call per service, with all its devices in entity_ids (light.turn_off "
+        "for every light, switch.turn_off for every switch) — never one device now "
+        "and the rest later."
     ),
     params=(
         ToolParam(
@@ -339,8 +345,16 @@ TOOL_EXECUTE_COMMAND = ToolDef(
         ToolParam(
             name="entity_id",
             type="string",
-            description="Target entity_id (single string).",
-            required=True,
+            description="One target entity_id. For several, use entity_ids.",
+        ),
+        ToolParam(
+            name="entity_ids",
+            type="array",
+            items_type="string",
+            description=(
+                "Every target entity_id for this service, up to 50. A call that "
+                "needs approval (locks, garage doors, alarms) takes at most 3."
+            ),
         ),
         ToolParam(
             name="data",

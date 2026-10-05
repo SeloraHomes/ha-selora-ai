@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 import json
 import logging
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.core import HomeAssistant
 
@@ -17,6 +17,9 @@ from .const import MAX_TOOL_RESULT_CHARS
 from .device_manager import DeviceManager
 from .helpers import caller_scope, sanitize_untrusted_text
 from .tool_registry import TOOL_MAP
+
+if TYPE_CHECKING:
+    from .types import ExecuteCommandArgs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +52,7 @@ class ToolExecutor:
 
     async def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Dispatch a tool call and return a JSON-serialisable result."""
+        arguments = self.logged_arguments(tool_name, arguments)
         tool_def = TOOL_MAP.get(tool_name)
         if tool_def is None:
             _LOGGER.warning("Unknown tool requested by LLM: %s", tool_name)
@@ -77,6 +81,19 @@ class ToolExecutor:
         truncated = _attach_remaining_intent(_truncate_result(result), arguments)
         self.call_log.append({"tool": tool_name, "arguments": arguments, "result": truncated})
         return truncated
+
+    @staticmethod
+    def logged_arguments(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        """The arguments as the tool log records them.
+
+        The log's readers (approval cards, duplicate guards) read an
+        ``execute_command`` target from ``entity_id`` alone, so ``entity_ids``
+        is folded into it here; every other key is kept as sent.
+        """
+        if tool_name != "execute_command":
+            return arguments
+        rest = {k: v for k, v in arguments.items() if k not in ("entity_id", "entity_ids")}
+        return {**rest, **execute_command_arguments(arguments)}
 
     @property
     def _handlers(self) -> dict[str, Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]]:
@@ -204,7 +221,9 @@ class ToolExecutor:
     async def _execute_command(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server.commands import _tool_execute_command
 
-        return await _tool_execute_command(self._hass, arguments, session_id=self._session_id)
+        return await _tool_execute_command(
+            self._hass, execute_command_arguments(arguments), session_id=self._session_id
+        )
 
     async def _list_dashboards(self, _arguments: dict[str, Any]) -> dict[str, Any]:
         # Every dashboard, not just the writable ones: this is how a caller
@@ -914,6 +933,86 @@ def update_dashboard_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "show_in_sidebar": _opt_bool(arguments.get("show_in_sidebar")),
         "clear": _opt_list(arguments.get("clear")),
     }
+
+
+def execute_command_arguments(arguments: dict[str, Any]) -> ExecuteCommandArgs:
+    """Fold ``entity_ids`` into the one ``entity_id`` the command path reads.
+
+    Several devices for one service go in one call (``entity_ids``), so a
+    request covering several lights fits in the single round a write-only
+    response gets — the tool loop confirms from the results and does not ask
+    the model again. ``entity_id`` stays for the single-device call; both may
+    be given, duplicates are dropped, order is kept.
+    """
+    ids: list[str] = []
+    single = arguments.get("entity_id")
+    if isinstance(single, str) and single.strip():
+        ids.append(single.strip())
+    elif isinstance(single, list):
+        ids.extend(str(e).strip() for e in single if str(e).strip())
+    several = arguments.get("entity_ids")
+    if isinstance(several, list):
+        ids.extend(str(e).strip() for e in several if str(e).strip())
+    elif isinstance(several, str) and several.strip():
+        ids.append(several.strip())
+    merged = list(dict.fromkeys(ids))
+    # Built from the three keys the command path reads; anything else the
+    # model sent is dropped rather than passed along.
+    out: ExecuteCommandArgs = {"service": str(arguments.get("service", ""))}
+    if merged:
+        out["entity_id"] = merged[0] if len(merged) == 1 else merged
+    if "data" in arguments:
+        out["data"] = arguments["data"]
+    return out
+
+
+# Domains whose services act beyond the entity they name — a scene or script
+# sets other devices, so the order the model gave its calls in is the order
+# it meant them to land.
+_ORDERED_COMMAND_DOMAINS: Final = frozenset({"scene", "script", "automation", "homeassistant"})
+
+# Verbs whose result doesn't depend on the state they find. ``toggle``,
+# ``volume_up`` or ``next_track`` do: two of them racing on a member two
+# groups share can land as one.
+_IDEMPOTENT_COMMAND_VERBS: Final = frozenset(
+    {"turn_on", "turn_off", "open_cover", "close_cover", "stop_cover", "set_cover_position"}
+)
+
+
+def commands_run_together(tool_calls: list[dict[str, Any]]) -> bool:
+    """Whether a round's calls can be dispatched at once rather than in turn.
+
+    Only a round of ``execute_command`` calls that all apply the same verb,
+    with the same data, to distinct devices ("turn off" every light, every
+    switch): those land the same in any order, so running them one after
+    another — each waiting for its devices to report — only adds up the waits.
+    The data must match, not just the ids differ, because a group entity can
+    share members with another target: two ``turn_on`` calls at different
+    brightness would then race on those members. Anything else keeps the
+    model's order. Devices that depend on each other (a plug feeding a lamp)
+    get no ordering here — nor do they within one call naming both, which
+    Home Assistant also runs at once.
+    """
+    if len(tool_calls) < 2:
+        return False
+    verbs: set[str] = set()
+    payloads: set[str] = set()
+    seen: set[str] = set()
+    for call in tool_calls:
+        if call.get("name") != "execute_command":
+            return False
+        args = execute_command_arguments(call.get("arguments") or {})
+        domain, _, verb = args["service"].strip().partition(".")
+        if verb not in _IDEMPOTENT_COMMAND_VERBS or domain in _ORDERED_COMMAND_DOMAINS:
+            return False
+        verbs.add(verb)
+        payloads.add(json.dumps(args.get("data") or {}, sort_keys=True, default=str))
+        target = args.get("entity_id")
+        ids = [target] if isinstance(target, str) else list(target or [])
+        if not ids or seen.intersection(ids):
+            return False
+        seen.update(ids)
+    return len(verbs) == 1 and len(payloads) == 1
 
 
 def update_helper_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:

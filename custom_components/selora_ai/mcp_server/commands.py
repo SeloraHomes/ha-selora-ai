@@ -6,11 +6,14 @@ import asyncio
 from collections.abc import Callable
 import contextlib
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 
 from .entities import _format_state_value
+
+if TYPE_CHECKING:
+    from ..types import ExecuteCommandArgs
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -222,7 +225,7 @@ def _arm_state_settle(
 
 async def _tool_execute_command(
     hass: HomeAssistant,
-    arguments: dict[str, Any],
+    arguments: ExecuteCommandArgs,
     *,
     session_id: str | None = None,
 ) -> dict[str, Any]:
