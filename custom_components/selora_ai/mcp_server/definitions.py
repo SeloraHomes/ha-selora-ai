@@ -58,6 +58,7 @@ from .names import (
     TOOL_GET_DASHBOARD_CARD,
     TOOL_GET_DEVICE,
     TOOL_GET_DEVICE_TRIGGERS,
+    TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
     TOOL_GET_HOME_SNAPSHOT,
@@ -100,6 +101,7 @@ from .names import (
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
+    TOOL_SET_ENERGY_PREFS,
     TOOL_SET_SCRIPT,
     TOOL_TRIGGER_AUTOMATION,
     TOOL_TRIGGER_SCAN,
@@ -1681,6 +1683,63 @@ _TOOL_DEFINITIONS.extend(
                     "entity_id": _CALENDAR_ENTITY_PARAM,
                     "uid": {"type": "string"},
                     **_OCCURRENCE_PARAMS,
+                },
+            },
+        ),
+    ]
+)
+
+_ENERGY_LIST_DESCRIPTION = (
+    "The whole list, as get_energy_prefs gave it with your change applied — it "
+    "replaces the stored one. Leave out to keep it."
+)
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_GET_ENERGY_PREFS,
+            description=(
+                "The Energy dashboard's configuration: energy_sources (grid, solar, "
+                "battery, gas, water — each naming the statistics it reads), "
+                "device_consumption and device_consumption_water (individual devices). "
+                "Also the issues Home Assistant finds with it (a missing statistic, a "
+                "wrong unit), and the config_hash set_energy_prefs needs."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        MCPTool(
+            name=TOOL_SET_ENERGY_PREFS,
+            description=(
+                "Change the Energy dashboard's configuration. Call get_energy_prefs "
+                "first, change what it returned, and send back each list you changed "
+                "in full with its config_hash; a list you leave out is kept. Refused "
+                "if the configuration changed since that read. The result lists the "
+                "issues Home Assistant now finds — fix any you caused. Requires admin "
+                "access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["config_hash"],
+                "properties": {
+                    "config_hash": {
+                        "type": "string",
+                        "description": "From the get_energy_prefs this change is based on.",
+                    },
+                    "energy_sources": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": _ENERGY_LIST_DESCRIPTION,
+                    },
+                    "device_consumption": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": _ENERGY_LIST_DESCRIPTION,
+                    },
+                    "device_consumption_water": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": _ENERGY_LIST_DESCRIPTION,
+                    },
                 },
             },
         ),
