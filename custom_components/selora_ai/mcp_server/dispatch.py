@@ -71,6 +71,12 @@ from .entities import (
     _tool_list_devices,
     _tool_search_entities,
 )
+from .files import (
+    _tool_delete_file,
+    _tool_list_files,
+    _tool_read_file,
+    _tool_write_file,
+)
 from .groups import _tool_create_group, _tool_delete_group, _tool_list_groups, _tool_update_group
 from .names import (
     TOOL_ACCEPT_AUTOMATION,
@@ -95,6 +101,7 @@ from .names import (
     TOOL_DELETE_AUTOMATION,
     TOOL_DELETE_CATEGORY,
     TOOL_DELETE_DASHBOARD,
+    TOOL_DELETE_FILE,
     TOOL_DELETE_FLOOR,
     TOOL_DELETE_GROUP,
     TOOL_DELETE_HELPER,
@@ -130,6 +137,7 @@ from .names import (
     TOOL_LIST_DASHBOARD_RESOURCES,
     TOOL_LIST_DASHBOARDS,
     TOOL_LIST_DEVICES,
+    TOOL_LIST_FILES,
     TOOL_LIST_FLOORS,
     TOOL_LIST_GROUPS,
     TOOL_LIST_HELPERS,
@@ -141,6 +149,7 @@ from .names import (
     TOOL_LIST_SESSIONS,
     TOOL_LIST_SUGGESTIONS,
     TOOL_MOVE_DASHBOARD_CARD,
+    TOOL_READ_FILE,
     TOOL_REMOVE_DASHBOARD_CARD,
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
@@ -161,6 +170,7 @@ from .names import (
     TOOL_VALIDATE_ACTION,
     TOOL_VALIDATE_AUTOMATION,
     TOOL_VALIDATE_SCENE,
+    TOOL_WRITE_FILE,
 )
 from .protocol import MCPTextContent
 from .registry import (
@@ -383,6 +393,10 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_UPDATE_DASHBOARD: _tool_update_dashboard,
         TOOL_GET_CONFIG_YAML: _tool_get_config_yaml,
         TOOL_SET_CONFIG_YAML: _tool_set_config_yaml,
+        TOOL_LIST_FILES: _tool_list_files,
+        TOOL_READ_FILE: _tool_read_file,
+        TOOL_WRITE_FILE: _tool_write_file,
+        TOOL_DELETE_FILE: _tool_delete_file,
         TOOL_LIST_DASHBOARD_RESOURCES: _tool_list_dashboard_resources,
         TOOL_ADD_DASHBOARD_RESOURCE: _tool_add_dashboard_resource,
         TOOL_REMOVE_DASHBOARD_RESOURCE: _tool_remove_dashboard_resource,

@@ -33,6 +33,7 @@ from .names import (
     TOOL_DELETE_AUTOMATION,
     TOOL_DELETE_CATEGORY,
     TOOL_DELETE_DASHBOARD,
+    TOOL_DELETE_FILE,
     TOOL_DELETE_FLOOR,
     TOOL_DELETE_GROUP,
     TOOL_DELETE_HELPER,
@@ -68,6 +69,7 @@ from .names import (
     TOOL_LIST_DASHBOARD_RESOURCES,
     TOOL_LIST_DASHBOARDS,
     TOOL_LIST_DEVICES,
+    TOOL_LIST_FILES,
     TOOL_LIST_FLOORS,
     TOOL_LIST_GROUPS,
     TOOL_LIST_HELPERS,
@@ -79,6 +81,7 @@ from .names import (
     TOOL_LIST_SESSIONS,
     TOOL_LIST_SUGGESTIONS,
     TOOL_MOVE_DASHBOARD_CARD,
+    TOOL_READ_FILE,
     TOOL_REMOVE_DASHBOARD_CARD,
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
@@ -99,6 +102,7 @@ from .names import (
     TOOL_VALIDATE_ACTION,
     TOOL_VALIDATE_AUTOMATION,
     TOOL_VALIDATE_SCENE,
+    TOOL_WRITE_FILE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -171,6 +175,13 @@ _ADMIN_TOOLS = frozenset(
         # integration settings, and inline credentials are masked by pattern,
         # which is a best effort rather than a boundary.
         TOOL_GET_CONFIG_YAML,
+        TOOL_WRITE_FILE,
+        TOOL_DELETE_FILE,
+        # Read-only, but admin-gated like configuration YAML: they reach the
+        # config folder, and what sits in www/ or custom_templates/ is the
+        # user's own.
+        TOOL_LIST_FILES,
+        TOOL_READ_FILE,
         # Read-only, but admin-gated to match Home Assistant: it guards both
         # ``system_log/list`` and every ``trace/*`` command with
         # ``require_admin``. Logs carry exception text and configuration

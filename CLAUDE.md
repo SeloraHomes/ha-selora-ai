@@ -196,6 +196,7 @@ because the obvious implementation shipped and broke something quietly.
   diagnostics.
 - `mcp-service-calls.md` — any service over MCP, gated by risk and `confirmed`.
 - `config-yaml.md` — editing configuration/package/theme YAML over MCP.
+- `config-files.md` — reading and writing www/, themes/, templates and dashboard files over MCP.
 - `telemetry.md` — anonymous telemetry, adding a counter.
 - `alexa-credential.md` — the OS-delivered Alexa voice credential.
 - `selora-local-prompts.md` — the bundled Selora AI Local prompts are pinned

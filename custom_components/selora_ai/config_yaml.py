@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import asyncio
 from collections import Counter
-from datetime import UTC, datetime
 import difflib
 import hashlib
 import io
@@ -44,6 +43,7 @@ from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any, Final
 
+from . import fs_safety
 from .helpers import sanitize_untrusted_text
 
 if TYPE_CHECKING:
@@ -587,99 +587,21 @@ async def _config_errors(hass: HomeAssistant) -> Counter[str] | None:
     )
 
 
-# Config files carry inline credentials, so nothing this module creates is
-# readable beyond the owner, and a rewrite keeps the original's mode.
-_PRIVATE_FILE: Final = 0o600
-_PRIVATE_DIR: Final = 0o700
-
-
-def _create_private(path: Path, text: str, mode: int = _PRIVATE_FILE) -> None:
-    """Write ``text`` to a NEW file created with ``mode`` — never wider first.
-
-    Exclusive and not following links: a name that already exists, a planted
-    symlink included, fails instead of being written through.
-    """
-    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
-    fd = os.open(path, flags, mode)
-    with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
-        handle.write(text)
-    os.chmod(path, mode)
-
-
 def _backup(config_dir: Path, rel: str, text: str) -> str:
-    """Copy ``text`` into the backup folder, owner-only; return its relative path.
-
-    Every level of the backup folder is created here or must be a real
-    directory: a planted symlink at `.selora_ai` would take the unmasked copy
-    (and the chmod) wherever it points.
-    """
-    folder = config_dir
-    for part in Path(_BACKUP_DIR).parts:
-        folder = folder / part
-        if folder.is_symlink():
-            raise ConfigYamlError(
-                f"{_BACKUP_DIR} is a symlink; no backup is written through one, so the "
-                "edit was not made."
-            )
-        if not folder.exists():
-            folder.mkdir(mode=_PRIVATE_DIR)
-        os.chmod(folder, _PRIVATE_DIR)
-    stem = rel.replace("/", "__")
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
-    target = folder / f"{stem}.{stamp}.bak"
-    _create_private(target, text)
-    for old in sorted(folder.glob(f"{stem}.*.bak"))[:-_BACKUPS_KEPT]:
-        old.unlink(missing_ok=True)
-    return f"{_BACKUP_DIR}/{target.name}"
+    """Back the file up, owner-only (config files carry inline credentials)."""
+    try:
+        return fs_safety.backup(config_dir, _BACKUP_DIR, rel, text, _BACKUPS_KEPT)
+    except fs_safety.UnsafePathError as exc:
+        raise ConfigYamlError(str(exc)) from exc
 
 
 def _current(path: Path) -> str | None:
-    """The file's text, or None when there is no file."""
-    if not path.exists():
-        return None
-    # newline="": the bytes as they are. Universal-newline reading turns CRLF
-    # into LF, and then neither the confirmation token nor the conflict check
-    # is bound to what is on disk.
-    with path.open(encoding="utf-8", newline="") as handle:
-        return handle.read()
+    return fs_safety.read_exact(path)
 
 
 def _replace_if_unchanged(path: Path, expected: str | None, text: str | None) -> bool:
-    """Put ``text`` at ``path`` (None removes it) only if it still holds ``expected``.
-
-    None on either side means "no file", distinct from an empty one.
-
-    Synchronous, after everything this module awaits, so no coroutine can fall
-    between the compare and the replace. The new bytes are written to a unique
-    temporary file FIRST (``mkstemp``: exclusive, so a symlink planted at a
-    predictable name is never written through), leaving only the compare and
-    ``os.replace`` back to back. That narrows the window to a few system calls
-    but does not close it: a filesystem has no compare-and-swap against
-    writers that take no lock, which HA's editors and git do not. The file
-    keeps its mode (owner-only when new).
-    """
-    import tempfile  # noqa: PLC0415
-
-    if text is None:
-        if _current(path) != expected:
-            return False
-        path.unlink(missing_ok=True)
-        return True
-    path.parent.mkdir(parents=True, exist_ok=True)
-    mode = (path.stat().st_mode & 0o777) if path.exists() else _PRIVATE_FILE
-    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".selora-tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
-            handle.write(text)
-        os.chmod(tmp_name, mode)
-        if _current(path) != expected:
-            Path(tmp_name).unlink(missing_ok=True)
-            return False
-        os.replace(tmp_name, path)
-    except BaseException:
-        Path(tmp_name).unlink(missing_ok=True)
-        raise
-    return True
+    """See ``fs_safety.replace_if_unchanged``; a new file is owner-only."""
+    return fs_safety.replace_if_unchanged(path, expected, text)
 
 
 def _themes_folder_loaded(config_text: str) -> bool:
