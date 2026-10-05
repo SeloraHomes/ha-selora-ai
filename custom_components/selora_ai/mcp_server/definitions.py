@@ -102,6 +102,8 @@ from .names import (
     TOOL_REMOVE_DASHBOARD_CARD,
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
+    TOOL_REMOVE_DEVICE,
+    TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_ASSIST_PIPELINE,
@@ -1916,6 +1918,53 @@ _TOOL_DEFINITIONS.extend(
                     "options": {
                         "type": "object",
                         "description": "The form's values, keyed by its field names.",
+                    },
+                },
+            },
+        ),
+    ]
+)
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_REMOVE_DEVICE,
+            description=(
+                "Remove a device with its entities — one that is gone for good. Its "
+                "integration has to agree, and most refuse a device they still see; a "
+                "device several integrations share is removed in Settings instead. "
+                "Comes back first with requires_confirmation, what would go and what "
+                "uses it, removing nothing: tell the user, and only once they agree "
+                "call again with confirmed=true. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["device_id"],
+                "properties": {
+                    "device_id": {"type": "string", "description": "From list_devices."},
+                    "confirmed": _CONFIRMED_PARAM,
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_REMOVE_ENTITY,
+            description=(
+                "Remove an entity its integration no longer provides (Home Assistant "
+                "shows it as restored / unavailable). One still provided would come "
+                "back on the next reload — disable it with update_entity instead. Comes "
+                "back first with requires_confirmation, what uses it and its "
+                "registry_id: tell the user, and only once they agree call again with "
+                "confirmed=true and that registry_id. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["entity_id"],
+                "properties": {
+                    "entity_id": {"type": "string"},
+                    "confirmed": _CONFIRMED_PARAM,
+                    "registry_id": {
+                        "type": "string",
+                        "description": "With confirmed=true: the registry_id the first call returned.",
                     },
                 },
             },
