@@ -1,0 +1,10 @@
+/* The Selora panel's font, served by Home Assistant so the panel never loads
+   anything from Google. See README.md for the source and checksums. */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("inter-4.1/InterVariable.woff2") format("woff2");
+}

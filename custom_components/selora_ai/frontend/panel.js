@@ -50836,7 +50836,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "2209d459cdf5" : "";
+var PANEL_BUILD = true ? "c30b81e2e869" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -52852,10 +52852,12 @@ var SeloraAIPanel = class extends i4 {
     this._panelContainer = this.parentElement;
     sizePanelContainer(this._panelContainer);
     if (!document.querySelector("link[data-selora-font]")) {
+      const moduleUrl = new URL(import.meta.url);
+      const fontsUrl = new URL("fonts/fonts.css", moduleUrl);
+      fontsUrl.search = moduleUrl.search;
       const link = document.createElement("link");
       link.rel = "stylesheet";
-      link.href =
-        "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap";
+      link.href = fontsUrl.href;
       link.dataset.seloraFont = "1";
       document.head.appendChild(link);
     }

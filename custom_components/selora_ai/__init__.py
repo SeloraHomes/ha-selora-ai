@@ -5687,6 +5687,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
+    from .fonts import FONTS_DIR, FONTS_URL_BASE
+
     try:
         from homeassistant.components.http import StaticPathConfig
 
@@ -5707,6 +5709,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                     hass.config.path(f"custom_components/{DOMAIN}/brand/logo-light.png"),
                     True,
                 ),
+                StaticPathConfig(FONTS_URL_BASE, str(FONTS_DIR), True),
             ]
         )
     except (
@@ -5729,6 +5732,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             hass.config.path(f"custom_components/{DOMAIN}/brand/logo-light.png"),
             True,
         )
+        hass.http.register_static_path(FONTS_URL_BASE, str(FONTS_DIR), True)
 
     # Register custom side panel in the sidebar
     # Cache-bust the panel module: the static path is served without a
