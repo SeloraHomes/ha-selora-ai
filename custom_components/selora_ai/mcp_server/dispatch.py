@@ -78,6 +78,13 @@ from .files import (
     _tool_write_file,
 )
 from .groups import _tool_create_group, _tool_delete_group, _tool_list_groups, _tool_update_group
+from .hacs import (
+    _tool_hacs_add_repository,
+    _tool_hacs_info,
+    _tool_hacs_install,
+    _tool_hacs_remove,
+    _tool_hacs_search,
+)
 from .names import (
     TOOL_ACCEPT_AUTOMATION,
     TOOL_ACCEPT_SUGGESTION,
@@ -129,6 +136,11 @@ from .names import (
     TOOL_GET_SCENE,
     TOOL_GET_SCRIPT,
     TOOL_GROUP_DASHBOARD_CARDS,
+    TOOL_HACS_ADD_REPOSITORY,
+    TOOL_HACS_INFO,
+    TOOL_HACS_INSTALL,
+    TOOL_HACS_REMOVE,
+    TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_LIST_AREAS,
@@ -400,6 +412,11 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_READ_FILE: _tool_read_file,
         TOOL_WRITE_FILE: _tool_write_file,
         TOOL_DELETE_FILE: _tool_delete_file,
+        TOOL_HACS_SEARCH: _tool_hacs_search,
+        TOOL_HACS_INFO: _tool_hacs_info,
+        TOOL_HACS_INSTALL: _tool_hacs_install,
+        TOOL_HACS_REMOVE: _tool_hacs_remove,
+        TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
         TOOL_LIST_DASHBOARD_RESOURCES: _tool_list_dashboard_resources,
         TOOL_ADD_DASHBOARD_RESOURCE: _tool_add_dashboard_resource,
         TOOL_REMOVE_DASHBOARD_RESOURCE: _tool_remove_dashboard_resource,
