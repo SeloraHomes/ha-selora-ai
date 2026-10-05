@@ -1865,9 +1865,11 @@ TOOL_GET_LOGS = ToolDef(
 TOOL_GET_AUTOMATION_TRACES = ToolDef(
     name="get_automation_traces",
     description=(
-        "Return the most recent runs of one automation: when it triggered, whether a "
-        "condition stopped it, and where it ended. This is how to answer 'why didn't "
-        "my automation run?' — do not guess from the YAML when a trace exists."
+        "Return the most recent runs of one automation: what triggered it, and the "
+        "step each run stopped at — that step's configuration and its result (a "
+        "condition that returned false, an action that errored). This is how to "
+        "answer 'why didn't my automation run?' — do not guess from the YAML when a "
+        "trace exists."
     ),
     params=(
         ToolParam(
@@ -1881,6 +1883,70 @@ TOOL_GET_AUTOMATION_TRACES = ToolDef(
     large_context_only=True,
 )
 
+
+# A name is a claim, not a behaviour. An automation called "Goodnight Scene" is
+# not the Goodnight scene, and either one's name or description can disagree
+# with what it does. Each description names the question it answers so the
+# model reaches for the read instead of reasoning from names.
+TOOL_GET_AUTOMATION = ToolDef(
+    name="get_automation",
+    description=(
+        "Return one automation's full configuration — triggers, conditions, actions, "
+        "description — and when it last triggered. Read it before saying what an "
+        "automation does or why it stopped: its name and description are labels "
+        "and can be wrong. An automation is only ever an automation.* entity; a "
+        "scene or script with a similar name is a different thing."
+    ),
+    params=(
+        ToolParam(
+            name="automation",
+            type="string",
+            description="Automation entity_id or its exact name.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_GET_SCENE = ToolDef(
+    name="get_scene",
+    description=(
+        "Return the entities a scene sets and the state it sets each one to. A scene "
+        "changes ONLY those entities, so this answers 'why didn't my scene turn X "
+        "off?'. A scene is only ever a scene.* entity — an automation or script "
+        "named after it is a different thing."
+    ),
+    params=(
+        ToolParam(
+            name="scene",
+            type="string",
+            description="Scene entity_id or its exact name.",
+            required=True,
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_FIND_REFERENCES = ToolDef(
+    name="find_references",
+    description=(
+        "List the automations, scripts and scenes that use an entity or a device — "
+        "as a trigger, condition, target or member. Answers 'what does this button "
+        "do?', 'what turns this light off?' and 'what breaks if I remove this?'. "
+        "For a button or remote, pass its device_id or one of its entities; the "
+        "device's own triggers are included."
+    ),
+    params=(
+        ToolParam(
+            name="target",
+            type="string",
+            description="An entity_id, or a device_id from search_entities / list_devices.",
+            required=True,
+        ),
+    ),
+    large_context_only=True,
+)
 
 # ── Dashboards ──────────────────────────────────────────────────────────────
 #
@@ -2484,6 +2550,9 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_DELETE_HELPER,
     TOOL_GET_LOGS,
     TOOL_GET_AUTOMATION_TRACES,
+    TOOL_GET_AUTOMATION,
+    TOOL_GET_SCENE,
+    TOOL_FIND_REFERENCES,
     TOOL_GET_DASHBOARD,
     TOOL_GET_DASHBOARD_CARD,
     TOOL_CREATE_DASHBOARD,

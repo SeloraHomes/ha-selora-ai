@@ -188,7 +188,7 @@ because the obvious implementation shipped and broke something quietly.
   follow-up edits, MCP refinement.
 - `resumption.md` — continuing a turn after the user confirms a card.
 - `answer-length.md` — how-to answer shape, the prose budget, cut-off replies.
-- `read-tools.md` — what inventory reads expose, entity search.
+- `read-tools.md` — what inventory reads expose, entity search, configuration reads.
 - `dashboards.md` — Lovelace reads and edits, panel-executed create/delete.
 - `groups.md` — group helpers.
 - `blueprints.md` — blueprint reads and blueprint-backed automations.

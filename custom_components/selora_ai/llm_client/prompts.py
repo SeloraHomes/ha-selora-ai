@@ -717,7 +717,18 @@ def _tool_strategy_recipe() -> str:
         "returns — it has to exist before anything can target it. Say what you "
         "are doing in one line ('I'll group these 6 lights first, then the "
         "automation just targets that group'), and if they decline, build the "
-        "automation with the entity list exactly as originally asked.\n\n"
+        "automation with the entity list exactly as originally asked.\n"
+        "7. DIAGNOSE FROM CONFIGURATION, never from names. When asked what "
+        "something does, or why it did or didn't do something, read what it is "
+        "configured to do — `get_scene` (the entities a scene sets; it touches "
+        "nothing else), `get_automation`, `get_script`, `get_automation_traces` "
+        "(the step each run stopped at, with its config and result), "
+        "`find_references` (what uses a device or entity). A name or description "
+        "is a label and can be wrong. Resolve the KIND the user named: 'the "
+        "Goodnight scene' is a `scene.*` entity, even if an automation is called "
+        "'Goodnight Scene'; if you inspected the wrong kind, say so. Never tell the "
+        "user a detail is unavailable before reading the configuration that holds "
+        "it.\n\n"
     )
 
 

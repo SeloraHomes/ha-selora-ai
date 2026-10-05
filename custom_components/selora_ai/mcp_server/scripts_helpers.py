@@ -260,3 +260,10 @@ async def _tool_get_automation_traces(
     from ..diagnostics_tools import get_automation_traces  # noqa: PLC0415
 
     return await get_automation_traces(hass, str(arguments.get("automation", "")))
+
+
+async def _tool_find_references(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Automations, scripts and scenes that use an entity or device."""
+    from ..config_inspect import find_references  # noqa: PLC0415
+
+    return find_references(hass, str(arguments.get("target", "")))
