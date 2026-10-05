@@ -44,8 +44,9 @@ pre-push:
         if [ ! -d ".venv" ]; then
           echo "⚙ No .venv found — creating one with Python ${REQUIRED_PY}...";
           uv venv .venv --python "${REQUIRED_PY}" &&
-          uv pip install --python .venv/bin/python pytest pytest-asyncio 'pytest-homeassistant-custom-component<0.13.368' 'ruamel.yaml>=0.18' anthropic home-assistant-intents hassil;
+          uv pip install --python .venv/bin/python pytest pytest-asyncio 'pytest-homeassistant-custom-component<0.13.368' 'ruamel.yaml>=0.18' anthropic PyJWT 'rapidfuzz>=3.0';
         fi &&
+        uv pip install --quiet --python .venv/bin/python $(.venv/bin/python scripts/core_test_requirements.py) &&
         .venv/bin/python -m pytest tests/ -q &&
         echo "⚙ Running memory-leak soak tests..." &&
         .venv/bin/python -m pytest tests/ -m soak -q

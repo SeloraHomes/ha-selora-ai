@@ -114,6 +114,7 @@ from .names import (
     TOOL_CREATE_LABEL,
     TOOL_CREATE_SCENE,
     TOOL_DELETE_AREA,
+    TOOL_DELETE_ASSIST_PIPELINE,
     TOOL_DELETE_AUTOMATION,
     TOOL_DELETE_CALENDAR_EVENT,
     TOOL_DELETE_CATEGORY,
@@ -156,6 +157,7 @@ from .names import (
     TOOL_HOME_ANALYTICS,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_LIST_AREAS,
+    TOOL_LIST_ASSIST_PIPELINES,
     TOOL_LIST_AUTOMATIONS,
     TOOL_LIST_BLUEPRINTS,
     TOOL_LIST_CALENDAR_EVENTS,
@@ -180,6 +182,7 @@ from .names import (
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
     TOOL_SEARCH_ENTITIES,
+    TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_ENERGY_PREFS,
@@ -199,6 +202,11 @@ from .names import (
     TOOL_VALIDATE_AUTOMATION,
     TOOL_VALIDATE_SCENE,
     TOOL_WRITE_FILE,
+)
+from .pipelines import (
+    _tool_delete_assist_pipeline,
+    _tool_list_assist_pipelines,
+    _tool_set_assist_pipeline,
 )
 from .protocol import MCPImageContent, MCPTextContent, ToolImage
 from .registry import (
@@ -435,6 +443,9 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_DELETE_CALENDAR_EVENT: _tool_delete_calendar_event,
         TOOL_GET_ENERGY_PREFS: _tool_get_energy_prefs,
         TOOL_SET_ENERGY_PREFS: _tool_set_energy_prefs,
+        TOOL_LIST_ASSIST_PIPELINES: _tool_list_assist_pipelines,
+        TOOL_SET_ASSIST_PIPELINE: _tool_set_assist_pipeline,
+        TOOL_DELETE_ASSIST_PIPELINE: _tool_delete_assist_pipeline,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
