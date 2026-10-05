@@ -190,6 +190,8 @@ from .names import (
     TOOL_REMOVE_DASHBOARD_CARD,
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
+    TOOL_REMOVE_DEVICE,
+    TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_ASSIST_PIPELINE,
@@ -241,6 +243,7 @@ from .registry import (
     _tool_update_entity,
     _tool_update_floor,
 )
+from .removals import _tool_remove_device, _tool_remove_entity
 from .scenes import (
     _tool_activate_scene,
     _tool_create_scene,
@@ -463,6 +466,8 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_SET_INTEGRATION_ENABLED: _tool_set_integration_enabled,
         TOOL_REMOVE_INTEGRATION: _tool_remove_integration,
         TOOL_SET_INTEGRATION_OPTIONS: _tool_set_integration_options,
+        TOOL_REMOVE_DEVICE: _tool_remove_device,
+        TOOL_REMOVE_ENTITY: _tool_remove_entity,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,

@@ -194,3 +194,27 @@ Devices & services does.
   entity counts) — Home Assistant rewrites no automation that used them.
 - Listing is read-only access, as `config_entries/get` is in Home Assistant;
   every change needs admin.
+
+## Removing devices and entities (MCP)
+
+`registry_removal.py` puts a confirmation in front of removal and adds the
+entity counterpart.
+
+- **A device goes through `device_removal`**, the Health card's path: released
+  from its ONE owning integration (whose hook may refuse) or nothing changes. A
+  device several integrations share, or one whose integration has no removal
+  hook, is refused up front — Settings is where the user picks an owner.
+- **An entity is removed only once its integration no longer provides it**
+  (no state or a `restored: true` one, while its integration is LOADED and the
+  entity is not disabled), which is when HA's UI offers "Remove". Neither signal
+  holds alone: a disabled entity has no state, and HA gives every entity of a
+  failed, retrying or starting integration a restored one — each comes back.
+  Disabling hides one still provided.
+- **Child devices (2026.9+)**: a parent's preview names its parts and their
+  entities, since they go with it; a part's own id is refused (it has its own
+  removal API, and the release-and-detach path fails halfway on it).
+- **A confirmed entity removal carries the preview's `registry_id`** — an
+  entity_id is a name a rename frees for another entity.
+- Both answer `requires_confirmation` first with what uses them — HA rewrites no
+  automation that referred to them. Selora AI's own device and entities are
+  refused.
