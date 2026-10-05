@@ -58,6 +58,9 @@ def test_bundled_prompt_matches_the_published_release(intent: str) -> None:
         f"({len(data)} bytes, sha256 {digest}; published {pin['size_bytes']} bytes, "
         f"sha256 {pin['sha256']}). Copy the published file rather than editing it here."
     )
+    assert len(data) == pin["size_bytes"], (
+        f"{filename} is {len(data)} bytes; the fixture pins {pin['size_bytes']}"
+    )
 
 
 def test_every_bundled_prompt_is_pinned() -> None:

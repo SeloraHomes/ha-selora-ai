@@ -1,6 +1,6 @@
 {
-  "version": "0.4.11",
-  "manifest": "https://huggingface.co/selorahomes/Selora-AI-LLM-1.7B/raw/v0.4.11/manifest.json",
+  "version": "0.5.0",
+  "manifest": "https://huggingface.co/selorahomes/Selora-AI-LLM-1.7B/raw/v0.5.0/manifest.json",
   "system_prompts": {
     "command": {
       "filename": "command_system_prompt.txt",
@@ -29,9 +29,9 @@
     }
   },
   "unified": {
-    "source": "https://huggingface.co/selorahomes/Selora-AI-LLM-1.7B-ollama/raw/v0.4.11/system",
+    "source": "https://huggingface.co/selorahomes/Selora-AI-LLM-1.7B-ollama/raw/v0.5.0/system",
     "filename": "unified_system_prompt.txt",
-    "size_bytes": 2412,
-    "sha256": "ec206a34e3609d227af8d165b8e45b7869d4a237c81fdc100a71e505433ae795"
+    "size_bytes": 2893,
+    "sha256": "cdbd03ed54d0243652bd11871aa055a14ef29f18825f7a4b5207ca461b7b3be0"
   }
 }
