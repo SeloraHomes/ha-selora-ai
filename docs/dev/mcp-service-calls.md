@@ -49,3 +49,22 @@ read-back), so they cannot disagree about what a call DID.
   `_within_budget` halves the longest list at any depth until it fits and sets
   `response_truncated`. A response-ONLY service is a read and skips the state
   settle wait, which would otherwise sit out its full timeout every time.
+
+## Calendar events
+
+Reading and adding events works through the any-service tool
+(`calendar.get_events`, `calendar.create_event`), but the result leaves out each
+event's `uid`, and changing or removing an event has no service — only the
+`calendar/event/*` websocket commands. `calendar_manager.py` goes to the
+calendar entity as those commands do (`DATA_COMPONENT.get_entity`, the
+`CalendarEntityFeature` check, `WEBSOCKET_EVENT_SCHEMA`), behind
+`selora_list_calendar_events` / `selora_set_calendar_event` /
+`selora_delete_calendar_event`.
+
+- **A change replaces the event** — Home Assistant's update takes a whole event,
+  so the tool requires summary/start/end and says a field left out is removed.
+- **`recurrence_range` is compared verbatim** by Home Assistant; anything but
+  `THISANDFUTURE` would silently act on one occurrence, so it is refused.
+- **Event text is untrusted** — a shared or subscribed calendar is written by
+  someone else — so it is bounded and sanitized before a model reads it.
+- Listing is read-only access; adding, changing and removing need admin.

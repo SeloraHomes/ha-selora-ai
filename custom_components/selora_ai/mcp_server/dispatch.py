@@ -28,6 +28,11 @@ from .automations import (
     _tool_trigger_automation,
     _tool_validate_automation,
 )
+from .calendars import (
+    _tool_delete_calendar_event,
+    _tool_list_calendar_events,
+    _tool_set_calendar_event,
+)
 from .cameras import _tool_get_camera_image
 from .chat import (
     _tool_accept_suggestion,
@@ -109,6 +114,7 @@ from .names import (
     TOOL_CREATE_SCENE,
     TOOL_DELETE_AREA,
     TOOL_DELETE_AUTOMATION,
+    TOOL_DELETE_CALENDAR_EVENT,
     TOOL_DELETE_CATEGORY,
     TOOL_DELETE_DASHBOARD,
     TOOL_DELETE_FILE,
@@ -150,6 +156,7 @@ from .names import (
     TOOL_LIST_AREAS,
     TOOL_LIST_AUTOMATIONS,
     TOOL_LIST_BLUEPRINTS,
+    TOOL_LIST_CALENDAR_EVENTS,
     TOOL_LIST_CATEGORIES,
     TOOL_LIST_DASHBOARD_RESOURCES,
     TOOL_LIST_DASHBOARDS,
@@ -171,6 +178,7 @@ from .names import (
     TOOL_REMOVE_DASHBOARD_RESOURCE,
     TOOL_REMOVE_DASHBOARD_VIEW,
     TOOL_SEARCH_ENTITIES,
+    TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_SCRIPT,
     TOOL_TRIGGER_AUTOMATION,
@@ -419,6 +427,9 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_HACS_SEARCH: _tool_hacs_search,
         TOOL_HACS_INFO: _tool_hacs_info,
         TOOL_GET_CAMERA_IMAGE: _tool_get_camera_image,
+        TOOL_LIST_CALENDAR_EVENTS: _tool_list_calendar_events,
+        TOOL_SET_CALENDAR_EVENT: _tool_set_calendar_event,
+        TOOL_DELETE_CALENDAR_EVENT: _tool_delete_calendar_event,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
