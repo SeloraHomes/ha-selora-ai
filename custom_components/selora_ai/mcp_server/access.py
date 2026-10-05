@@ -61,6 +61,11 @@ from .names import (
     TOOL_GET_SCENE,
     TOOL_GET_SCRIPT,
     TOOL_GROUP_DASHBOARD_CARDS,
+    TOOL_HACS_ADD_REPOSITORY,
+    TOOL_HACS_INFO,
+    TOOL_HACS_INSTALL,
+    TOOL_HACS_REMOVE,
+    TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_LIST_AREAS,
@@ -178,6 +183,13 @@ _ADMIN_TOOLS = frozenset(
         TOOL_GET_CONFIG_YAML,
         TOOL_WRITE_FILE,
         TOOL_DELETE_FILE,
+        TOOL_HACS_INSTALL,
+        TOOL_HACS_REMOVE,
+        TOOL_HACS_ADD_REPOSITORY,
+        # Read-only, but admin-gated to match HACS, whose commands are all
+        # require_admin.
+        TOOL_HACS_SEARCH,
+        TOOL_HACS_INFO,
         # Read-only, but admin-gated like configuration YAML: they reach the
         # config folder, and what sits in www/ or custom_templates/ is the
         # user's own.

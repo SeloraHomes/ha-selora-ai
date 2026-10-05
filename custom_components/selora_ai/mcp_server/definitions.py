@@ -64,6 +64,11 @@ from .names import (
     TOOL_GET_SCENE,
     TOOL_GET_SCRIPT,
     TOOL_GROUP_DASHBOARD_CARDS,
+    TOOL_HACS_ADD_REPOSITORY,
+    TOOL_HACS_INFO,
+    TOOL_HACS_INSTALL,
+    TOOL_HACS_REMOVE,
+    TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_LIST_AREAS,
@@ -1448,6 +1453,116 @@ _TOOL_DEFINITIONS.extend(
                 "type": "object",
                 "required": ["file"],
                 "properties": {"file": _FILE_PARAM},
+            },
+        ),
+    ]
+)
+
+_HACS_REPOSITORY_PARAM: dict[str, Any] = {
+    "type": "string",
+    "description": "The repository's id or 'owner/repo', from selora_hacs_search.",
+}
+_HACS_CATEGORY_PARAM: dict[str, Any] = {
+    "type": "string",
+    "enum": ["integration", "plugin", "theme", "appdaemon", "python_script", "template"],
+    "description": "plugin = dashboard cards; theme; integration = Python integrations.",
+}
+_CONFIRMED_PARAM: dict[str, Any] = {
+    "type": "boolean",
+    "description": "Set ONLY after the user agreed to a call that came back with "
+    "requires_confirmation.",
+}
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_HACS_SEARCH,
+            description=(
+                "Search HACS (the Home Assistant Community Store) for dashboard cards "
+                "(category plugin — button-card, card-mod, mushroom …), themes and "
+                "integrations, installed ones first. Requires HACS and admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "Words to match, e.g. 'card mod'."},
+                    "category": _HACS_CATEGORY_PARAM,
+                    "installed_only": {
+                        "type": "boolean",
+                        "description": "Only what is installed.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_HACS_INFO,
+            description=(
+                "One HACS repository's details: versions, releases, whether it is "
+                "installed, authors. Requires HACS and admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["repository"],
+                "properties": {"repository": _HACS_REPOSITORY_PARAM},
+            },
+        ),
+        MCPTool(
+            name=TOOL_HACS_INSTALL,
+            description=(
+                "Install a HACS repository, or update it (to version, or its latest "
+                "release). Always comes back first with requires_confirmation and "
+                "installs nothing: a card or theme is third-party code every browser runs; "
+                "an integration is third-party Python running inside Home Assistant. Tell "
+                "the user which, and only once they agree call again with confirmed=true. "
+                "A card is registered as a dashboard resource by HACS; an integration "
+                "needs a restart. Requires HACS and admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["repository"],
+                "properties": {
+                    "repository": _HACS_REPOSITORY_PARAM,
+                    "version": {
+                        "type": "string",
+                        "description": "A release from selora_hacs_info. Omit for the latest.",
+                    },
+                    "confirmed": _CONFIRMED_PARAM,
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_HACS_REMOVE,
+            description=(
+                "Uninstall a HACS repository. Runs IMMEDIATELY — confirm with the user "
+                "first; dashboards using a removed card stop rendering it. Requires HACS "
+                "and admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["repository"],
+                "properties": {"repository": _HACS_REPOSITORY_PARAM},
+            },
+        ),
+        MCPTool(
+            name=TOOL_HACS_ADD_REPOSITORY,
+            description=(
+                "Add a custom GitHub repository to HACS so it can be installed — for "
+                "something not in HACS's default list. It is not reviewed by HACS, so this "
+                "always comes back first with requires_confirmation: tell the user who "
+                "they would be trusting, and only once they agree call again with "
+                "confirmed=true. Requires HACS and admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["repository", "category"],
+                "properties": {
+                    "repository": {
+                        "type": "string",
+                        "description": "'owner/repo' on GitHub.",
+                    },
+                    "category": _HACS_CATEGORY_PARAM,
+                    "confirmed": _CONFIRMED_PARAM,
+                },
             },
         ),
     ]
