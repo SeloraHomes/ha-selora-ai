@@ -168,3 +168,29 @@ the model stops reciting Settings click-paths.
 - **An unknown entity that is not a device gets no device list.**
   `_humanise_unknown_entity_error` answers a mistyped light by listing the home's
   lights and locks; a missing alarm panel or helper is named plainly instead.
+
+## Integrations (MCP)
+
+`integration_manager.py` lists config entries and reloads, enables/disables,
+removes or reconfigures one, through `hass.config_entries` as Settings →
+Devices & services does.
+
+- **Selora AI's own entry is refused for every change.** Disabling, removing or
+  reloading it cuts the connection the request came in on, and its options hold
+  the AI provider credentials, which are never configured automatically.
+- **Options go through the entry's own options flow**, driven like
+  `helper_flow` drives a config flow: no `options` describes the form (with each
+  field's `current` value, from its `suggested_value`), `options` submits it.
+  Multi-step options flows report the next step rather than walking it.
+  - **A credential's value is never described** — options forms pre-fill
+    stored passwords (HEOS does). A password selector or a credential-like
+    name reports only `is_set`, its default dropped too.
+  - **Sections are described recursively** (`fields` under an `expandable`),
+    or a form like `scrape`'s cannot be filled in.
+  - **`{}` is a submission**, not "describe": some forms take it on purpose.
+- **A disable or enable whose unload/load failed says `require_restart`**, as
+  Home Assistant's own `config_entries/disable` does.
+- **Removing always asks first** (`requires_confirmation` with the device and
+  entity counts) — Home Assistant rewrites no automation that used them.
+- Listing is read-only access, as `config_entries/get` is in Home Assistant;
+  every change needs admin.
