@@ -83,3 +83,19 @@ drift from behaviour, and defended the answer.
   their target states from the loaded entity (`scene_config.states`).
 - **`find_references` folds in the entity's device.** Device triggers and device
   targets name the device, not the entity the user sees.
+
+## Camera snapshots (MCP)
+
+`selora_get_camera_image` answers with an MCP **image** block beside a small
+JSON text block — a handler returns `ToolImage` and `_dispatch` turns it into
+both. Everything else stays text.
+
+- **Admin-gated though read-only**, like logs and traces: a camera shows the
+  inside of the home, and a read-only credential is the one most often handed to
+  an outside assistant.
+- **Scaled to 1280 × 720 by default.** Home Assistant scales only a JPEG, and
+  only when given BOTH sides, so both are always passed; over 4 MB is refused
+  with a request for a smaller size.
+- **The camera component is imported at call time** and only once
+  `camera` is loaded: it pulls in image libraries an install without cameras
+  may not have. `image/jpg`, which many cameras report, is sent as `image/jpeg`.

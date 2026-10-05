@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 import contextlib
+import dataclasses
 import functools
 import hashlib
 import json
@@ -26,6 +28,7 @@ from .automations import (
     _tool_trigger_automation,
     _tool_validate_automation,
 )
+from .cameras import _tool_get_camera_image
 from .chat import (
     _tool_accept_suggestion,
     _tool_chat,
@@ -123,6 +126,7 @@ from .names import (
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BLUEPRINT,
+    TOOL_GET_CAMERA_IMAGE,
     TOOL_GET_CONFIG_YAML,
     TOOL_GET_DASHBOARD,
     TOOL_GET_DASHBOARD_CARD,
@@ -185,7 +189,7 @@ from .names import (
     TOOL_VALIDATE_SCENE,
     TOOL_WRITE_FILE,
 )
-from .protocol import MCPTextContent
+from .protocol import MCPImageContent, MCPTextContent, ToolImage
 from .registry import (
     _tool_assign_area,
     _tool_assign_category,
@@ -308,7 +312,7 @@ async def _jsonrpc_dispatch(
         tool_name = (params or {}).get("name", "")
         arguments = (params or {}).get("arguments", {})
         content = await _dispatch(hass, tool_name, arguments, auth_ctx=auth_ctx)
-        return {"content": [{"type": c.type, "text": c.text} for c in content]}
+        return {"content": [dataclasses.asdict(c) for c in content]}
     raise ValueError(f"Unknown method: {method}")
 
 
@@ -414,6 +418,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_DELETE_FILE: _tool_delete_file,
         TOOL_HACS_SEARCH: _tool_hacs_search,
         TOOL_HACS_INFO: _tool_hacs_info,
+        TOOL_GET_CAMERA_IMAGE: _tool_get_camera_image,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
@@ -429,9 +434,9 @@ async def _dispatch(
     arguments: dict[str, Any],
     *,
     auth_ctx: SeloraAuthContext,
-) -> list[MCPTextContent]:
-    """Route a tool call to its handler and return MCP TextContent."""
-    result: dict[str, Any] | list[dict[str, Any]]
+) -> list[MCPTextContent | MCPImageContent]:
+    """Route a tool call to its handler and return its MCP content blocks."""
+    result: dict[str, Any] | list[dict[str, Any]] | ToolImage
     try:
         _check_tool_access(auth_ctx, name)
 
@@ -464,4 +469,11 @@ async def _dispatch(
         _LOGGER.exception("Tool %s raised an exception", name)
         result = {"error": "Tool execution failed"}
 
+    if isinstance(result, ToolImage):
+        return [
+            MCPTextContent(type="text", text=json.dumps(result.fields, ensure_ascii=False)),
+            MCPImageContent(
+                data=base64.b64encode(result.data).decode("ascii"), mimeType=result.mime_type
+            ),
+        ]
     return [MCPTextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
