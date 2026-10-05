@@ -15,7 +15,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Final
 
 if TYPE_CHECKING:
-    from homeassistant.core import HomeAssistant
+    from homeassistant.core import HomeAssistant, State
     from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistry
 
     from .automation_store import AutomationStore
@@ -226,6 +226,39 @@ def sanitize_untrusted_text(value: object, limit: int = 200) -> str:
     if len(text) > limit:
         text = text[: limit - 3] + "..."
     return text
+
+
+def resolve_domain_ref(
+    hass: HomeAssistant, domain: str, ref: str, *, kind: str | None = None
+) -> tuple[State | None, str | None]:
+    """Return the *domain* entity *ref* names — its entity_id or its exact name.
+
+    Returns ``(state, error)``. Only the given domain is searched: a scene, a
+    script and an automation can share a name, and "the Goodnight scene" must
+    never resolve to an automation called "Goodnight Scene". A name is not
+    unique, so a name matching several entities is an ambiguity, not a match.
+    """
+    kind = kind or domain
+    ref = str(ref or "").strip()
+    if not ref:
+        return None, f"A {kind} entity_id or name is required."
+    candidate = ref if "." in ref else f"{domain}.{ref}"
+    if candidate.startswith(f"{domain}.") and (state := hass.states.get(candidate)):
+        return state, None
+    wanted = ref.casefold()
+    matches = [state for state in hass.states.async_all(domain) if state.name.casefold() == wanted]
+    if len(matches) == 1:
+        return matches[0], None
+    if matches:
+        ids = ", ".join(sorted(state.entity_id for state in matches))
+        return None, (
+            f"{len(matches)} {kind}s are named '{sanitize_untrusted_text(ref, 60)}' "
+            f"({ids}). Pass the entity_id."
+        )
+    return None, (
+        f"No {kind} matching '{sanitize_untrusted_text(ref, 60)}'. Resolve it with "
+        f"search_entities(domain='{domain}') — a {kind} is only ever a {domain}.* entity."
+    )
 
 
 def format_untrusted_text(value: object) -> str:

@@ -55,3 +55,31 @@ load-bearing.
   is a resolution — default 10, max 25. A `device_class`-only call is a listing —
   returns all, up to 50. Past the bound, `omitted` + `omitted_note` say the list
   is partial.
+
+## Configuration reads
+
+`get_automation`, `get_scene`, `get_automation_traces` and `find_references`
+(`config_inspect.py`, `diagnostics_tools.py`) answer "what does X do / why
+didn't it". Without them the model answered from names and descriptions, which
+drift from behaviour, and defended the answer.
+
+- **Resolve within the kind the user named.** `resolve_domain_ref` (`helpers.py`)
+  searches one domain only: a scene, a script and an automation share names
+  freely ("Goodnight" scene, "Goodnight Scene" automation). A name matching
+  several entities is an error that lists them, never the first hit.
+- **A trace step carries its config and result.** `last_step` alone
+  (`condition/0`) is an index into a config the model never saw. `stopped_at`
+  reads the extended trace: the config the run used at that path and the step's
+  result. `_step_config` maps trace paths' singular keys onto either config form
+  (`condition` / `conditions`, a mapping or a list).
+- **automations.yaml is not every automation.** Packages and includes load too;
+  `_loaded_automation_yaml` reads the entity's `raw_config`, JSON round-tripped
+  so the loader's line-number subclasses don't dump as `!!python` tags.
+- **The loaded config has `!secret` values resolved**, so it is read only behind
+  the chat `get_automation`, which is admin-only like core's `automation/config`.
+  MCP `selora_get_automation` is open to read-only tokens and does not fall back.
+- **A scene changes only what it lists**, and the result says so — that is the
+  answer to "why didn't my scene turn X off". Scenes outside `scenes.yaml` report
+  their target states from the loaded entity (`scene_config.states`).
+- **`find_references` folds in the entity's device.** Device triggers and device
+  targets name the device, not the entity the user sees.

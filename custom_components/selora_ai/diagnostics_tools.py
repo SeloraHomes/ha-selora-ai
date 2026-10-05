@@ -20,7 +20,7 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
-from .helpers import sanitize_untrusted_text
+from .helpers import resolve_domain_ref, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -129,23 +129,9 @@ def _resolve_trace_key(hass: HomeAssistant, ref: str) -> tuple[str | None, str |
     the tool surface gives out) does not work as a key on its own and has to be
     translated through the state's ``id`` attribute.
     """
-    ref = str(ref or "").strip()
-    if not ref:
-        return None, "An automation entity_id or name is required."
-
-    state = hass.states.get(ref) if ref.startswith("automation.") else None
+    state, error = resolve_domain_ref(hass, "automation", ref)
     if state is None:
-        wanted = ref.casefold()
-        state = next(
-            (
-                candidate
-                for candidate in hass.states.async_all("automation")
-                if candidate.name.casefold() == wanted or candidate.entity_id.casefold() == wanted
-            ),
-            None,
-        )
-    if state is None:
-        return None, f"No automation matching '{sanitize_untrusted_text(ref, 60)}'."
+        return None, error
 
     unique_id = state.attributes.get("id")
     if not unique_id:
@@ -154,6 +140,64 @@ def _resolve_trace_key(hass: HomeAssistant, ref: str) -> tuple[str | None, str |
             "for it. YAML automations without an 'id' are not traced."
         )
     return f"automation.{unique_id}", None
+
+
+def _step_config(config: Any, path: str) -> Any:
+    """Return the piece of *config* a trace path such as ``condition/0`` names.
+
+    Trace paths use HA's singular keys (``condition``, ``action``), while the
+    stored config may use either form (``conditions:`` is the current one), and
+    a single condition may be written as a mapping rather than a one-item list.
+    """
+    node = config
+    for segment in path.split("/"):
+        if isinstance(node, list) and segment.isdigit():
+            index = int(segment)
+            if index >= len(node):
+                return None
+            node = node[index]
+        elif isinstance(node, dict) and segment.isdigit():
+            if segment != "0":
+                return None
+        elif isinstance(node, dict):
+            for key in (segment, f"{segment}s", segment.removesuffix("s")):
+                if key in node:
+                    node = node[key]
+                    break
+            else:
+                return None
+        else:
+            return None
+    return node
+
+
+async def _stopped_at(hass: HomeAssistant, key: str, run_id: str, path: str) -> dict[str, Any]:
+    """Describe the step a run ended on: its configuration and its result.
+
+    A bare path (``condition/0``) is an index into a config the model has not
+    seen, so on its own it only lets the model say *that* a condition failed.
+    The extended trace carries the config the run used and the step's result
+    (for a condition, ``result: false`` plus the entities it checked), which is
+    what answers "which prerequisite failed".
+    """
+    from homeassistant.components.trace.util import async_get_trace  # noqa: PLC0415
+
+    try:
+        extended = await async_get_trace(hass, key, run_id)
+    except KeyError:
+        return {"path": path}
+    step: dict[str, Any] = {"path": path}
+    config = _step_config(extended.get("config"), path)
+    if config is not None:
+        step["config"] = _json_safe(config)
+    elements = (extended.get("trace") or {}).get(path) or []
+    if elements:
+        last = elements[-1]
+        if "result" in last:
+            step["result"] = _json_safe(last["result"])
+        if last.get("error"):
+            step["error"] = sanitize_untrusted_text(last["error"], 300)
+    return step
 
 
 async def get_automation_traces(hass: HomeAssistant, ref: str) -> dict[str, Any]:
@@ -180,13 +224,21 @@ async def get_automation_traces(hass: HomeAssistant, ref: str) -> dict[str, Any]
         # ``last_step`` is where the run ended: a condition path means the
         # automation triggered and was stopped by a condition, which is the
         # single most common answer to "why didn't it run?".
+        last_step = trace.get("last_step")
+        run_id = trace.get("run_id")
         traces.append(
             {
-                "run_id": trace.get("run_id"),
+                "run_id": run_id,
                 "timestamp": _json_safe(trace.get("timestamp")),
+                "trigger": sanitize_untrusted_text(trace.get("trigger"), 200)
+                if trace.get("trigger")
+                else None,
                 "state": trace.get("state"),
                 "script_execution": trace.get("script_execution"),
-                "last_step": trace.get("last_step"),
+                "last_step": last_step,
+                "stopped_at": await _stopped_at(hass, key, str(run_id), last_step)
+                if last_step and run_id
+                else None,
                 "error": sanitize_untrusted_text(trace.get("error"), 300)
                 if trace.get("error")
                 else None,

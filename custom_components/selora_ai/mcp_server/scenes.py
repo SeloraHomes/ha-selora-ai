@@ -284,7 +284,10 @@ async def _tool_get_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dic
     if record is not None:
         result.update(_serialize_scene_record(record))
     else:
-        result["entity_count"] = len(state.attributes.get("entity_id", []) or [])
+        members = list(state.attributes.get("entity_id", []) or [])
+        result["entity_count"] = len(members)
+        if not entities:
+            result["entity_ids"] = members
     return result
 
 

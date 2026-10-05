@@ -137,6 +137,9 @@ class ToolExecutor:
             "list_helpers": self._list_helpers,
             "get_logs": self._get_logs,
             "get_automation_traces": self._get_automation_traces,
+            "get_automation": self._get_automation,
+            "get_scene": self._get_scene,
+            "find_references": self._find_references,
             "get_dashboard": self._get_dashboard,
             "get_dashboard_card": self._get_dashboard_card,
             "create_dashboard": self._create_dashboard,
@@ -628,6 +631,21 @@ class ToolExecutor:
         from .diagnostics_tools import get_automation_traces
 
         return await get_automation_traces(self._hass, str(arguments.get("automation", "")))
+
+    async def _get_automation(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .config_inspect import get_automation_config
+
+        return await get_automation_config(self._hass, str(arguments.get("automation", "")))
+
+    async def _get_scene(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .config_inspect import get_scene_config
+
+        return await get_scene_config(self._hass, str(arguments.get("scene", "")))
+
+    async def _find_references(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .config_inspect import find_references
+
+        return find_references(self._hass, str(arguments.get("target", "")))
 
     # ── Dashboards ──────────────────────────────────────────────────
 
