@@ -67,6 +67,7 @@ from .dashboards import (
     _tool_update_dashboard_view,
 )
 from .definitions import _TOOL_DEFINITIONS, _dashboard_write_tools
+from .energy import _tool_get_energy_prefs, _tool_set_energy_prefs
 from .entities import (
     _tool_eval_template,
     _tool_find_entities_by_area,
@@ -138,6 +139,7 @@ from .names import (
     TOOL_GET_DASHBOARD_CARD,
     TOOL_GET_DEVICE,
     TOOL_GET_DEVICE_TRIGGERS,
+    TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
     TOOL_GET_HOME_SNAPSHOT,
@@ -180,6 +182,7 @@ from .names import (
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
+    TOOL_SET_ENERGY_PREFS,
     TOOL_SET_SCRIPT,
     TOOL_TRIGGER_AUTOMATION,
     TOOL_TRIGGER_SCAN,
@@ -430,6 +433,8 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_LIST_CALENDAR_EVENTS: _tool_list_calendar_events,
         TOOL_SET_CALENDAR_EVENT: _tool_set_calendar_event,
         TOOL_DELETE_CALENDAR_EVENT: _tool_delete_calendar_event,
+        TOOL_GET_ENERGY_PREFS: _tool_get_energy_prefs,
+        TOOL_SET_ENERGY_PREFS: _tool_set_energy_prefs,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
