@@ -23,6 +23,7 @@ from .names import (
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
     TOOL_CHAT,
+    TOOL_CHECK_SYSTEM,
     TOOL_CREATE_AREA,
     TOOL_CREATE_AUTOMATION,
     TOOL_CREATE_CATEGORY,
@@ -1046,6 +1047,8 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
 _DASHBOARD_WRITE_TOOLS: frozenset[str] | None = None
 
 _DERIVED_MCP_TOOLS: dict[str, str] = {
+    TOOL_CHECK_SYSTEM: "check_system",
+    TOOL_RELOAD_INTEGRATION: "reload_integration",
     # Has had a handler since it was written but no definition, so it never
     # appeared in tools/list and no MCP client could reach it. Deriving it here
     # is the whole fix; see ``test_every_mcp_handler_is_declared``.
@@ -1863,19 +1866,6 @@ _TOOL_DEFINITIONS.extend(
                     },
                     "problems_only": {"type": "boolean"},
                 },
-            },
-        ),
-        MCPTool(
-            name=TOOL_RELOAD_INTEGRATION,
-            description=(
-                "Reload an integration — the usual fix for one stuck in setup_retry or "
-                "showing stale devices — and return the state it came back in. "
-                "Requires admin access."
-            ),
-            inputSchema={
-                "type": "object",
-                "required": ["entry_id"],
-                "properties": {"entry_id": _ENTRY_ID_PARAM},
             },
         ),
         MCPTool(

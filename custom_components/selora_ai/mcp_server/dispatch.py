@@ -98,6 +98,7 @@ from .hacs import (
     _tool_hacs_search,
 )
 from .integrations import (
+    _tool_check_system,
     _tool_list_integrations,
     _tool_reload_integration,
     _tool_remove_integration,
@@ -114,6 +115,7 @@ from .names import (
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
     TOOL_CHAT,
+    TOOL_CHECK_SYSTEM,
     TOOL_CREATE_AREA,
     TOOL_CREATE_AUTOMATION,
     TOOL_CREATE_CATEGORY,
@@ -493,6 +495,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_GET_APP_LOGS: _tool_get_app_logs,
         TOOL_IMPORT_BLUEPRINT: _tool_import_blueprint,
         TOOL_DELETE_BLUEPRINT: _tool_delete_blueprint,
+        TOOL_CHECK_SYSTEM: _tool_check_system,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,

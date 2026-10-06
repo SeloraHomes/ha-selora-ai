@@ -66,3 +66,10 @@ async def _tool_set_integration_options(
         _opt_str(arguments.get("type")),
         options if isinstance(options, dict) else None,
     )
+
+
+async def _tool_check_system(hass: HomeAssistant, _arguments: dict[str, Any]) -> dict[str, Any]:
+    """See ``system_check``."""
+    from ..system_check import async_check_system  # noqa: PLC0415
+
+    return await async_check_system(hass)

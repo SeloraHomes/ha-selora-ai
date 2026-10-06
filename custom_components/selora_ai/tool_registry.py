@@ -1888,6 +1888,39 @@ TOOL_GET_LOGS = ToolDef(
     large_context_only=True,
 )
 
+TOOL_CHECK_SYSTEM = ToolDef(
+    name="check_system",
+    description=(
+        "What in the home needs attention, in one call: integrations not working "
+        "(with why), open repairs (title, description, whether it has a fix), updates "
+        "waiting, and whether automatic backups are working. Call it when the user "
+        "asks if anything is wrong, why something stopped working, or what needs "
+        "updating — before get_logs."
+    ),
+    params=(),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_RELOAD_INTEGRATION = ToolDef(
+    name="reload_integration",
+    description=(
+        "Reload an integration — the usual fix for one stuck in setup_retry or showing "
+        "stale devices — and return the state it came back in. The entry_id comes from "
+        "check_system. Selora AI does not reload itself."
+    ),
+    params=(
+        ToolParam(
+            name="entry_id",
+            type="string",
+            description="The integration's entry_id.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_GET_AUTOMATION_TRACES = ToolDef(
     name="get_automation_traces",
     description=(
@@ -2591,6 +2624,8 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_REMOVE_DASHBOARD_CARD,
     TOOL_MOVE_DASHBOARD_CARD,
     TOOL_GROUP_DASHBOARD_CARDS,
+    TOOL_CHECK_SYSTEM,
+    TOOL_RELOAD_INTEGRATION,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
