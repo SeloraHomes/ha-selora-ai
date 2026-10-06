@@ -153,6 +153,12 @@ and `npm test` in `frontend/`. Tests are one file per module or feature. Every
 test's hass gets a private, empty `config_dir` (`conftest._private_config_dir`):
 PHCC's shared `testing_config` made tests see each other's files.
 
+**`tests/test_option_coverage.py` fails when Home Assistant grows an option.** It
+reads core's own schemas (the settings pages' registry commands, automation and
+script schemas, each helper's create schema) and requires every option to have
+a tool or a recorded reason. A failure after raising the PHCC pin is a decision
+to make — support the option or list why not — not a regression.
+
 **`tests/chat_harness.py`** drives `selora_ai/chat` and `selora_ai/chat_stream`
 end to end, stubbing only the provider round trip (`architect_chat` /
 `architect_chat_stream`) and keeping a real `LLMClient`, `ConversationStore` and
