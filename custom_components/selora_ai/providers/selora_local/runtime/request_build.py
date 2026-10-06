@@ -38,19 +38,55 @@ _SELORA_LOCAL_MAX_ENTITY_LINES = 60
 # Cap: hub ctx is 4096 tokens; overflow -> HTTP 500, so bound entities/history.
 _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION = 25
 
-# Non-entity tokens the request reserves before the entity block gets what is left:
-# system prompt + history + the user's own line, measured against the trained corpus.
-_SELORA_LOCAL_RESERVED_TOKENS = 702
-
-# Same, for chat_automation: its trained system prompt (659 Qwen3 tokens)
-# plus the 1121 tokens of everything else the automation request carries.
-_SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = 1780
-
-
 # Not an intent. The Ollama backend serves ONE self-routing model that
 # was trained on a single router prompt covering every intent, so it
 # keys the same prompt for all of them instead of a per-specialist one.
 _SELORA_LOCAL_UNIFIED_PROMPT_KEY = "unified"
+
+# Qwen3 token count of each bundled system prompt (stripped, as sent).
+# tests/test_selora_local_published_prompts.py ties every count to the
+# sha256 of the file it was measured on, so a prompt release fails there
+# until the counts are re-measured.
+_SELORA_LOCAL_PROMPT_TOKENS: dict[str, int] = {
+    "command": 263,
+    "automation": 659,
+    "answer": 195,
+    "clarification": 154,
+    "utilities": 348,
+    _SELORA_LOCAL_UNIFIED_PROMPT_KEY: 694,
+}
+
+# Everything a request carries besides its system prompt and entity block:
+# security boundary, language directive, history, the user's own line and
+# the reply. The plain figure is what the reservation has always left next
+# to the largest non-automation specialist prompt; the automation one
+# includes chat_automation's 400-token output cap and EXISTING AUTOMATIONS.
+_SELORA_LOCAL_REQUEST_TOKENS = 354
+_SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS = 1121
+
+# Non-entity tokens a request reserves before the entity block gets what is
+# left, on the llama backend, where each intent sends its own specialist prompt.
+_SELORA_LOCAL_RESERVED_TOKENS = (
+    max(
+        _SELORA_LOCAL_PROMPT_TOKENS[intent]
+        for intent in ("command", "answer", "clarification", "utilities")
+    )
+    + _SELORA_LOCAL_REQUEST_TOKENS
+)
+_SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS = (
+    _SELORA_LOCAL_PROMPT_TOKENS["automation"] + _SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS
+)
+
+# Same, on ollama-unified, which sends the unified prompt for every intent.
+# It is larger than every specialist prompt but the automation one's, so the
+# specialist figures would hand the entity block room the prompt already took.
+_SELORA_LOCAL_UNIFIED_RESERVED_TOKENS = (
+    _SELORA_LOCAL_PROMPT_TOKENS[_SELORA_LOCAL_UNIFIED_PROMPT_KEY] + _SELORA_LOCAL_REQUEST_TOKENS
+)
+_SELORA_LOCAL_UNIFIED_AUTOMATION_RESERVED_TOKENS = (
+    _SELORA_LOCAL_PROMPT_TOKENS[_SELORA_LOCAL_UNIFIED_PROMPT_KEY]
+    + _SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS
+)
 
 
 class _RequestBuildMixin:
@@ -116,14 +152,24 @@ class _RequestBuildMixin:
             return fallback
         derived = entity_budget(
             window,
-            reserved=(
-                _SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS
-                if automation
-                else _SELORA_LOCAL_RESERVED_TOKENS
-            ),
+            reserved=self._reserved_tokens(automation=automation),
             tokens_per_line=LOCAL_ENTITY_LINE_TOKENS,
         )
         return min(fallback, derived)
+
+    def _reserved_tokens(self, *, automation: bool) -> int:
+        """Non-entity tokens for the call in flight, sized for the system prompt this backend sends."""
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
+            return (
+                _SELORA_LOCAL_UNIFIED_AUTOMATION_RESERVED_TOKENS
+                if automation
+                else _SELORA_LOCAL_UNIFIED_RESERVED_TOKENS
+            )
+        return (
+            _SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS
+            if automation
+            else _SELORA_LOCAL_RESERVED_TOKENS
+        )
 
     def _format_entities_block(self, entities: list[Any]) -> str:
         """Render the entity list in the EXACT shape the v0.4.2 corpus used (model-tester ENTITIES fixture format)."""

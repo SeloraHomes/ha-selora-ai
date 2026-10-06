@@ -21,11 +21,15 @@ from custom_components.selora_ai.const import (
     SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
     SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY,
 )
+from custom_components.selora_ai.llm_client.context_budget import estimate_tokens
 from custom_components.selora_ai.providers.selora_local import (
     _SELORA_LOCAL_PREWARM_KINDS,
     _SELORA_LOCAL_PROMPT_FILENAMES,
     _SELORA_LOCAL_UNIFIED_PROMPT_KEY,
     SeloraLocalProvider,
+)
+from custom_components.selora_ai.providers.selora_local.runtime.request_build import (
+    _SELORA_LOCAL_PROMPT_TOKENS,
 )
 
 FAM = SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY
@@ -381,6 +385,85 @@ async def test_the_llama_backend_still_reads_the_served_window() -> None:
     await provider.async_refresh_capabilities()
     assert provider.context_window == 2048
     assert not provider._fake_session.posts
+
+
+# ── the request fits the served window ───────────────────────────────────────
+
+# The trained budget, and a smaller launch where the entity block is what
+# has to give.
+_WINDOWS = (4096, 2048)
+
+# ChatML wraps every message in <|im_start|>role\n … <|im_end|>\n.
+_CHATML_TOKENS_PER_MESSAGE = 5
+
+
+def _large_home(count: int = 1700) -> list[dict[str, Any]]:
+    domains = ("light", "switch", "sensor", "binary_sensor", "media_player")
+    return [
+        {
+            "entity_id": f"{domains[i % len(domains)]}.device_{i}",
+            "state": "on",
+            "attributes": {"friendly_name": f"Device {i}"},
+        }
+        for i in range(count)
+    ]
+
+
+def _request_tokens(payload: dict[str, Any]) -> int:
+    """Tokens the request occupies in the window: the prompt plus the reply
+    it declares room for. The bundled system prompt counts at its measured
+    Qwen3 size; everything else at the conservative character estimate."""
+    unified = SeloraLocalProvider._load_specialist_prompts()[_SELORA_LOCAL_UNIFIED_PROMPT_KEY]
+    total = payload["max_tokens"]
+    for message in payload["messages"]:
+        content = message["content"]
+        total += _CHATML_TOKENS_PER_MESSAGE
+        if message["role"] == "system":
+            assert unified in content
+            total += _SELORA_LOCAL_PROMPT_TOKENS[_SELORA_LOCAL_UNIFIED_PROMPT_KEY]
+            content = content.replace(unified, "")
+        total += estimate_tokens(content)
+    return total
+
+
+@pytest.mark.parametrize("window", _WINDOWS)
+@pytest.mark.parametrize("kind", ["chat_command", "chat_answer", "chat_clarification"])
+def test_a_large_home_fits_the_served_window_on_the_ollama_backend(kind: str, window: int) -> None:
+    """The unified prompt goes out for every intent, and it is twice the
+    size of most specialist prompts. Sizing the entity block for the
+    specialist prompt overfills the window, which the runtime answers with
+    an HTTP 500 or by silently dropping the front of the prompt."""
+    provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED)
+    provider._specialist_prompts = SeloraLocalProvider._load_specialist_prompts()
+    provider._specialist_prompts_loaded = True
+    provider._context_window = window
+    provider.set_call_kind(kind)
+    provider.set_chat_context(
+        user_message="which lights are still on in the living room right now?",
+        entities=_large_home(),
+        existing_automations=[],
+        history=[
+            {"role": "user", "content": "turn off the kitchen lights please"},
+            {"role": "assistant", "content": "Done, the kitchen lights are off."},
+            {"role": "user", "content": "and dim the hallway to thirty percent"},
+            {"role": "assistant", "content": "The hallway light is now at 30%."},
+        ],
+        language="en",
+    )
+    payload = provider.build_payload("CALLER FALLBACK", [{"role": "user", "content": "x"}])
+    assert _request_tokens(payload) <= window
+
+
+def test_the_ollama_backend_leaves_the_entity_block_less_room() -> None:
+    """Same window, same call: the unified prompt is the larger one, so the
+    entity block that shares the window with it gets fewer lines."""
+    caps = {}
+    for backend in (SELORA_LOCAL_BACKEND_LLAMA, SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED):
+        provider = make(backend)
+        provider._context_window = 2048
+        provider.set_call_kind("chat_command")
+        caps[backend] = provider._entity_line_cap()
+    assert caps[SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED] < caps[SELORA_LOCAL_BACKEND_LLAMA]
 
 
 # ── pre-warm ─────────────────────────────────────────────────────────────────
