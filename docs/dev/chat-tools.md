@@ -144,6 +144,15 @@ updates, backup health — from the managers the per-topic MCP tools use, each
 section capped. With `reload_integration` it costs ~240 tokens per turn;
 the four MCP tools it stands for would cost several times that.
 
+- **Removals are one tool too**: `remove_from_home` (`removal_cards.py`) takes a
+  `kind` — device, entity, integration, blueprint — and returns a delete card
+  (all four kinds in `_DELETE_KINDS`). The preview is each kind's own removal
+  check asked without confirmation, so chat refuses what MCP refuses; the card
+  carries the target's identity (device id, entity registry id, entry_id,
+  blueprint file hash), which the confirmed removal re-checks. MCP keeps its
+  per-kind tools, whose `confirmed` contract differs from a card.
+- **Repairs**: `fix_repair` (destructive card) and `ignore_repair` — see
+  `registry-tools.md`.
 - **Adding a chat tool moves its MCP definition to `_DERIVED_MCP_TOOLS`** —
   `reload_integration` was hand-written for MCP and is now derived, so the two
   cannot drift (see "Adding a delete tool").
