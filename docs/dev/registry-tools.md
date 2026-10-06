@@ -251,3 +251,38 @@ completed for a week.
   dates are compared as instants, not strings. Admin-gated, as `backup/info` is.
 - Creating is a service (`backup.create_automatic`, or `hassio.backup_full` on
   a supervised install), already callable over MCP. Restoring is not offered.
+
+## Repairs (MCP)
+
+`repairs_manager.py` lists the issue registry's open repairs, ignores one, or
+runs its fix flow.
+
+- **Titles and descriptions are rendered** from the CREATOR's (`issue.domain`)
+  `issues` translations in the home's language, placeholders filled, as the
+  Repairs page shows them — `issue_domain` only names who the issue is about.
+- **A fix is walked step by step across calls**: the first call starts it and
+  returns its first step — the step's own `fix_flow.step.<id>` title and
+  description, fields or menu choices — with a `flow_id`; each later call
+  answers that step (`fields`, or `choice` for a menu). Fixes start with menus
+  and run several forms, so a single submission cannot cover them.
+  - Only flows started here can be continued (`_open_flows`), and one left
+    between steps for `_FLOW_TTL` is aborted. A browser (external) step returns
+    its URL to finish in Settings → Repairs.
+- Listing is read-only access, as `repairs/list_issues` is in Home Assistant;
+  ignoring and fixing need admin. `repairs` is an `after_dependency` for
+  hassfest, since the fix flow manager comes from it.
+
+## Apps (MCP)
+
+`apps_manager.py` lists installed apps (formerly add-ons) and reads an app's
+logs. Start/stop/restart are services (`hassio.app_*` with `{app: slug}`;
+`hassio.addon_*` with `{addon: slug}` on older cores), already callable.
+
+- **Logs go through HA's `hassio` client** (`send_command("/addons/<slug>/logs")`),
+  whose path check refuses anything that normalizes differently; the slug is
+  also matched against `^[a-z0-9_]+$` and the installed list first.
+- **Last N lines only** (100, max 500), ANSI and control characters stripped,
+  each line bounded. `HassioAPIError` is a `RuntimeError`, not a
+  `HomeAssistantError`.
+- Both admin-gated, as HA's app pages are — app logs print credentials.
+  `get_apps_list` is the newer alias of `get_addons_list` (2025.1).

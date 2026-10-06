@@ -50,6 +50,8 @@ from .names import (
     TOOL_EXECUTE_COMMAND,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
+    TOOL_FIX_REPAIR,
+    TOOL_GET_APP_LOGS,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BACKUPS,
@@ -76,7 +78,9 @@ from .names import (
     TOOL_HACS_REMOVE,
     TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
+    TOOL_IGNORE_REPAIR,
     TOOL_INSERT_DASHBOARD_CARD,
+    TOOL_LIST_APPS,
     TOOL_LIST_AREAS,
     TOOL_LIST_ASSIST_PIPELINES,
     TOOL_LIST_AUTOMATIONS,
@@ -93,6 +97,7 @@ from .names import (
     TOOL_LIST_INTEGRATIONS,
     TOOL_LIST_LABELS,
     TOOL_LIST_PATTERNS,
+    TOOL_LIST_REPAIRS,
     TOOL_LIST_SCENES,
     TOOL_LIST_SCRIPTS,
     TOOL_LIST_SERVICES,
@@ -2025,4 +2030,94 @@ _TOOL_DEFINITIONS.append(
         ),
         inputSchema={"type": "object", "properties": {}},
     )
+)
+
+_REPAIR_PARAMS: dict[str, Any] = {
+    "domain": {"type": "string", "description": "From list_repairs."},
+    "issue_id": {"type": "string", "description": "From list_repairs."},
+}
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_LIST_REPAIRS,
+            description=(
+                "Home Assistant's open repairs (Settings → Repairs), most severe first: "
+                "each with its title and description in the home's language, whether "
+                "it has an automatic fix, and the version it breaks in. Start here when "
+                "something is wrong. include_ignored also lists ignored ones."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {"include_ignored": {"type": "boolean"}},
+            },
+        ),
+        MCPTool(
+            name=TOOL_IGNORE_REPAIR,
+            description=(
+                "Ignore a repair, as the Repairs page's Ignore does — or show it again "
+                "with ignore=false. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["domain", "issue_id"],
+                "properties": {**_REPAIR_PARAMS, "ignore": {"type": "boolean"}},
+            },
+        ),
+        MCPTool(
+            name=TOOL_FIX_REPAIR,
+            description=(
+                "Run a fixable repair's own fix, step by step. Call first with domain "
+                "and issue_id: it starts the fix and describes its first step (title, "
+                "description, and fields or menu choices) with a flow_id, changing "
+                "nothing yet. Tell the user what the step does, and only once they agree "
+                "call again with the flow_id and `fields` ({} when there are none) — or "
+                "`choice` for a menu. Repeat until it says fixed. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["domain", "issue_id"],
+                "properties": {
+                    **_REPAIR_PARAMS,
+                    "flow_id": {
+                        "type": "string",
+                        "description": "To answer a step: the flow_id the last call returned.",
+                    },
+                    "fields": {"type": "object", "description": "The step's values."},
+                    "choice": {"type": "string", "description": "For a menu step: the choice."},
+                },
+            },
+        ),
+    ]
+)
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_LIST_APPS,
+            description=(
+                "The installed apps (formerly add-ons) — Mosquitto, Z-Wave JS, Node-RED "
+                "… — each with its slug, state (started, stopped …), version and "
+                "whether an update is available. Supervised installs only. Start, stop "
+                "or restart one with execute_command service hassio.app_start / "
+                "app_stop / app_restart and data {app: slug}. Requires admin access."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        MCPTool(
+            name=TOOL_GET_APP_LOGS,
+            description=(
+                "The last lines an app logged (100 by default, at most 500) — read them "
+                "when an app will not start or misbehaves. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["slug"],
+                "properties": {
+                    "slug": {"type": "string", "description": "From list_apps."},
+                    "lines": {"type": "integer", "minimum": 1, "maximum": 500},
+                },
+            },
+        ),
+    ]
 )
