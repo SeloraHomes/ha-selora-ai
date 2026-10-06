@@ -149,7 +149,9 @@ lowercases and strips the region. The panel reads `translations/en.json`, not
 ## Testing
 
 `pytest tests/` (setup in `CONTRIBUTING.md`; the PHCC pin `<0.13.368` matters — it tracks the latest stable core)
-and `npm test` in `frontend/`. Tests are one file per module or feature.
+and `npm test` in `frontend/`. Tests are one file per module or feature. Every
+test's hass gets a private, empty `config_dir` (`conftest._private_config_dir`):
+PHCC's shared `testing_config` made tests see each other's files.
 
 **`tests/chat_harness.py`** drives `selora_ai/chat` and `selora_ai/chat_stream`
 end to end, stubbing only the provider round trip (`architect_chat` /
