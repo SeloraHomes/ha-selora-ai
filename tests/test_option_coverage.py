@@ -79,6 +79,12 @@ _REGISTRY_COVERED: dict[str, dict[str, str]] = {
         "labels": "assign_labels",
         "name": "update_entity.new_name",
         "new_entity_id": "update_entity.new_entity_id",
+        "device_class": "update_entity.show_as",
+        "options": (
+            "update_entity.settings (display settings) / update_entity.expose_to_* "
+            "(voice assistants); a lock's default code is refused (entity_settings)"
+        ),
+        "options_domain": "update_entity.settings",
     },
     "device": {
         "area_id": "update_device.area",
@@ -112,15 +118,6 @@ _REGISTRY_COVERED: dict[str, dict[str, str]] = {
 
 # Field → why no tool sets it. Known gaps say so; they are the backlog.
 _REGISTRY_LEFT_OUT: dict[str, dict[str, str]] = {
-    "entity": {
-        "device_class": "Known gap: the 'Show as' override (a switch shown as a light).",
-        "options": (
-            "Known gap, partly covered: voice-assistant exposure is set "
-            "(update_entity.expose_to_*); other per-domain options (a sensor's "
-            "display precision and unit) are not."
-        ),
-        "options_domain": "Addresses `options` above.",
-    },
     "area": {"picture": "An uploaded image; there is no file to upload from a tool call."},
 }
 
