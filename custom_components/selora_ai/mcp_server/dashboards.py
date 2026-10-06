@@ -77,21 +77,11 @@ async def _tool_add_dashboard_view(
 async def _tool_update_dashboard_view(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
-    """Change a view's title, path, or icon."""
+    """Change a view's title, path, icon, layout or options."""
     from ..dashboard_manager import async_update_view  # noqa: PLC0415
-    from ..tool_executor import _opt_list, _opt_str  # noqa: PLC0415
+    from ..tool_executor import update_view_kwargs  # noqa: PLC0415
 
-    return await async_update_view(
-        hass,
-        target=_opt_str(arguments.get("dashboard_target")),
-        view=arguments.get("view"),
-        title=_opt_str(arguments.get("title")),
-        path=_opt_str(arguments.get("path")),
-        icon=_opt_str(arguments.get("icon")),
-        clear=_opt_list(arguments.get("clear")),
-        expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
-        layout=_opt_str(arguments.get("layout")),
-    )
+    return await async_update_view(hass, **update_view_kwargs(arguments))
 
 
 async def _tool_remove_dashboard_view(

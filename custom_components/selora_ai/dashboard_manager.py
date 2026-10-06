@@ -420,8 +420,15 @@ def _set_layout(view: dict[str, Any], layout: str) -> str | None:
     cards = [card for _owner, _position, card in _flat_cards(view)]
     if layout == "panel" and len(cards) > 1:
         return f"That page has {len(cards)} cards. {_PANEL_ONE_CARD}"
+    from .dashboard_view_options import SECTIONS_ONLY  # noqa: PLC0415
+
     for key in ("type", "cards", "sections"):
         view.pop(key, None)
+    if layout != "sections":
+        # Options only a sections page has would be stored and ignored, then
+        # come back unasked if the page were switched back.
+        for key in SECTIONS_ONLY:
+            view.pop(key, None)
     if layout == "sections":
         view["type"] = "sections"
         view["sections"] = [{"type": "grid", "cards": cards}]
@@ -648,7 +655,20 @@ async def async_get_dashboard(
     if error or index is None:
         return {**result, "error": error}
 
+    from .dashboard_view_options import sections_summary, view_options_summary  # noqa: PLC0415
+
     cards = _flat_cards(views[index])
+    section_of = {
+        id(section.get("cards")): n
+        for n, section in enumerate(views[index].get("sections") or [])
+        if isinstance(section, dict)
+    }
+    described = []
+    for i, (owner, _, card) in enumerate(cards[:_MAX_CARDS_PER_VIEW]):
+        row = _describe_card(card, i)
+        if views[index].get("type") == "sections" and id(owner) in section_of:
+            row["section"] = section_of[id(owner)]
+        described.append(row)
     result["view"] = {
         "index": index,
         "title": sanitize_untrusted_text(views[index].get("title") or "", 60),
@@ -658,10 +678,12 @@ async def async_get_dashboard(
         # here it cannot pass `expected_view_fingerprint` to any of the writes
         # that demand one.
         "fingerprint": view_fingerprint(views[index]),
-        "cards": [_describe_card(card, i) for i, (_, _, card) in enumerate(cards)][
-            :_MAX_CARDS_PER_VIEW
-        ],
+        "cards": described,
     }
+    if options := view_options_summary(views[index]):
+        result["view"]["options"] = options
+    if views[index].get("type") == "sections":
+        result["view"]["sections"] = sections_summary(views[index])
     if len(cards) > _MAX_CARDS_PER_VIEW:
         result["view"]["cards_omitted"] = len(cards) - _MAX_CARDS_PER_VIEW
     # The taxonomy rides on the read the model does BEFORE composing — this
@@ -848,12 +870,21 @@ async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> d
     else:
         view = view_raw if view_raw not in ("", None) else 0
 
+    # An index, or "new" for a section added at the end; blank is absent.
+    section_raw = str(arguments.get("section") if arguments.get("section") is not None else "")
+    section: int | str | None = section_raw.strip().lower() or None
+    if section not in (None, "new"):
+        if not str(section).isdigit():
+            return {"error": "section is a section index ('0', '1', …) or 'new'."}
+        section = int(str(section))
+
     result = await async_place_card(
         hass,
         card=card,
         tag=str(arguments.get("tag") or "selora_chat"),
         target=arguments.get("dashboard_target") or None,
         view=view,
+        section=section,
     )
     return {
         "ok": result.ok,
@@ -907,8 +938,12 @@ async def async_add_view(
     sections: bool = False,
     cards: list[Any] | None = None,
     layout: str | None = None,
+    options: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Append a view (a page) to a dashboard, with its cards if it has any.
+
+    ``options`` are ``dashboard_view_options.VIEW_OPTIONS``, checked with the
+    cards before anything is written.
 
     ``layout`` is one of ``VIEW_LAYOUTS``; ``sections=True`` is the older way
     of asking for the sections one.
@@ -980,6 +1015,16 @@ async def async_add_view(
         view["cards"] = list(new_cards)
         if error := _set_layout(view, chosen_layout):
             return {"error": error}
+        if options is not None:
+            from .dashboard_view_options import (  # noqa: PLC0415
+                OptionError,
+                async_apply_view_options,
+            )
+
+            try:
+                await async_apply_view_options(hass, view, options)
+            except OptionError as exc:
+                return {"error": str(exc)}
 
         views.append(view)
         if error := await _save(config, document, before):
@@ -1025,9 +1070,14 @@ async def async_update_view(
     clear: list[str] | None = None,
     expected_fingerprint: str | None = None,
     layout: str | None = None,
+    options: dict[str, Any] | None = None,
+    section: int | None = None,
 ) -> dict[str, Any]:
-    """Change a view's title, path, icon or layout. Cards are kept — a layout
-    change carries them over (``_set_layout``).
+    """Change a view's title, path, icon, layout or options. Cards are kept — a
+    layout change carries them over (``_set_layout``).
+
+    With ``section``, ``options`` and ``clear`` apply to that section of a
+    sections page instead (``SECTION_OPTIONS``).
 
     ``clear`` names fields to REMOVE. Setting and clearing need separate
     arguments because an empty string cannot mean "clear" here: `_opt_str`
@@ -1084,11 +1134,57 @@ async def async_update_view(
             if error := _set_layout(target_view, str(layout).strip().lower()):
                 return {"error": error}
             changes.append(f"layout {str(layout).strip().lower()}")
-        for field in clear or ():
-            if field not in ("icon", "path"):
-                return {"error": f"clear accepts 'icon' or 'path', not '{field}'."}
-            if target_view.pop(field, None) is not None:
-                changes.append(f"cleared {field}")
+        from .dashboard_view_options import (  # noqa: PLC0415
+            SECTION_OPTIONS,
+            VIEW_OPTIONS,
+            OptionError,
+            apply_section_options,
+            async_apply_view_options,
+            check_view,
+        )
+
+        if section is not None:
+            sections = target_view.get("sections")
+            if target_view.get("type") != "sections" or not isinstance(sections, list):
+                return {"error": "That page has no sections; section applies to a sections page."}
+            if not 0 <= section < len(sections) or not isinstance(sections[section], dict):
+                return {"error": f"That page has sections 0 to {len(sections) - 1}."}
+            if title or path or icon or layout:
+                return {"error": "With section, only options and clear apply."}
+            target_section = sections[section]
+            try:
+                for name in clear or ():
+                    if name not in SECTION_OPTIONS:
+                        raise OptionError(
+                            f"clear takes {', '.join(SECTION_OPTIONS)} for a section, not '{name}'."
+                        )
+                changed = (
+                    apply_section_options(target_section, options) if options is not None else []
+                )
+            except OptionError as exc:
+                return {"error": str(exc)}
+            changes.extend(f"section {section} {name}" for name in changed)
+            for name in clear or ():
+                if target_section.pop(name, None) is not None:
+                    changes.append(f"section {section} cleared {name}")
+        else:
+            for field in clear or ():
+                if field not in ("icon", "path", *VIEW_OPTIONS):
+                    return {
+                        "error": (
+                            f"clear accepts icon, path or a view option "
+                            f"({', '.join(VIEW_OPTIONS)}), not '{field}'."
+                        )
+                    }
+            try:
+                if options is not None:
+                    changes.extend(await async_apply_view_options(hass, target_view, options))
+                for field in clear or ():
+                    if target_view.pop(field, None) is not None:
+                        changes.append(f"cleared {field}")
+                check_view(target_view)
+            except OptionError as exc:
+                return {"error": str(exc)}
 
         if not changes:
             return {

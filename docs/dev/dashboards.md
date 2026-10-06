@@ -421,3 +421,33 @@ to restyle one reached for another MCP server.
 - **A layout change carries the cards over** (`_set_layout`): a sections page's
   cards are flattened into one list; a list becomes one grid section.
 - `sections=true` still works, as `layout='sections'`.
+
+## View options, badges and sections
+
+`dashboard_view_options.py`. `add_dashboard_view` / `update_dashboard_view` take
+one `options` object (`VIEW_OPTIONS`: theme, background, subview + back_path,
+visible, badges, and for a sections page max_columns and
+dense_section_placement); `clear` removes any of them by name.
+
+- **Every option is checked before anything is written** — Lovelace validates
+  none of it, so a misspelt theme, a badge for a missing entity or a column count
+  on a masonry page would be stored and silently ignored. The theme must be
+  installed, badge entities must resolve, `visible` names resolve to exactly one
+  user (stored as `{user: id}`), sections-only options are refused elsewhere, and
+  `back_path` needs `subview` — checked on the page as it ends up (`check_view`),
+  after options and clears, so turning off or clearing `subview` alone is refused.
+  Malformed `options` are refused, never dropped: dropped, the page is created
+  without them and the call reports success.
+- **Leaving the sections layout drops `max_columns` / `dense_section_placement`**
+  (`_set_layout`) — stored, they would be ignored, then return unasked on a switch
+  back.
+- **Badges are stored as objects** (`{type: entity, entity: …}`), what the
+  editor writes; a bare entity id is accepted and converted. An entity badge
+  must name an entity; a custom badge type need not.
+- **Sections are addressed by index in `view["sections"]`.** `get_dashboard`
+  tags each card of a sections page with its `section` and lists the sections
+  (card count, options). `insert_dashboard_card(section=…)` takes an index or
+  `"new"`; without it the card goes into the first section as before.
+  `update_dashboard_view(section=N)` makes `options` / `clear` apply to that
+  section (`SECTION_OPTIONS`: column_span 1–4, visibility conditions) and refuses
+  title, path, icon or layout in the same call.

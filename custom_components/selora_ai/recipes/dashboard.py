@@ -723,16 +723,29 @@ def replace_tagged_card(view_obj: dict[str, Any], tag: str, card: dict[str, Any]
     return done[0]
 
 
-def _insert_target_cards(view_obj: dict[str, Any]) -> list[Any]:
+def _insert_target_cards(view_obj: dict[str, Any], section: int | str | None = None) -> list[Any]:
     """The card list a NEW card should be appended to. For a sections
     view that's the first section (created if none exist) — appending to
-    the view's top-level ``cards`` there would silently not render.
+    the view's top-level ``cards`` there would silently not render — or the
+    ``section`` named: an index, or ``"new"`` for a section added at the end.
+    Raises ``ValueError`` for a section the view does not have.
     """
     if view_obj.get("type") == "sections":
         sections = view_obj.setdefault("sections", [])
+        if section == "new":
+            sections.append({"type": "grid", "cards": []})
+            return sections[-1]["cards"]
+        if section is not None:
+            if not 0 <= int(section) < len(sections) or not isinstance(
+                sections[int(section)], dict
+            ):
+                raise ValueError(f"That page has sections 0 to {len(sections) - 1}.")
+            return sections[int(section)].setdefault("cards", [])
         if not sections or not isinstance(sections[0], dict):
             sections.insert(0, {"type": "grid", "cards": []})
         return sections[0].setdefault("cards", [])
+    if section is not None:
+        raise ValueError("That page has no sections; section applies to a sections page.")
     return view_obj.setdefault("cards", [])
 
 
@@ -743,6 +756,7 @@ async def async_place_card(
     tag: str,
     target: str | None = None,
     view: int | str = 0,
+    section: int | str | None = None,
 ) -> DashboardInsertResult:
     """Insert (or replace) one already-resolved card on a dashboard.
 
@@ -845,7 +859,16 @@ async def async_place_card(
                             "change the page's layout."
                         ),
                     )
-                _insert_target_cards(view_obj).append(tagged)
+                try:
+                    _insert_target_cards(view_obj, section).append(tagged)
+                except ValueError as exc:
+                    return DashboardInsertResult(
+                        ok=False,
+                        reason="section_not_found",
+                        target=target,
+                        view=view,
+                        message=str(exc),
+                    )
 
             await dashboard.async_save(config)
     except Exception as exc:  # noqa: BLE001 — never let a card failure abort the caller
