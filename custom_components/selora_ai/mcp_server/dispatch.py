@@ -102,6 +102,7 @@ from .integrations import (
     _tool_list_integrations,
     _tool_reload_integration,
     _tool_remove_integration,
+    _tool_restart_home_assistant,
     _tool_set_integration_enabled,
     _tool_set_integration_options,
 )
@@ -208,6 +209,7 @@ from .names import (
     TOOL_REMOVE_DEVICE,
     TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
+    TOOL_RESTART_HOME_ASSISTANT,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
@@ -496,6 +498,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_IMPORT_BLUEPRINT: _tool_import_blueprint,
         TOOL_DELETE_BLUEPRINT: _tool_delete_blueprint,
         TOOL_CHECK_SYSTEM: _tool_check_system,
+        TOOL_RESTART_HOME_ASSISTANT: _tool_restart_home_assistant,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,

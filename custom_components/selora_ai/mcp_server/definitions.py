@@ -116,6 +116,7 @@ from .names import (
     TOOL_REMOVE_DEVICE,
     TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
+    TOOL_RESTART_HOME_ASSISTANT,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
@@ -2149,4 +2150,23 @@ _TOOL_DEFINITIONS.extend(
             },
         ),
     ]
+)
+
+_TOOL_DEFINITIONS.append(
+    MCPTool(
+        name=TOOL_RESTART_HOME_ASSISTANT,
+        description=(
+            "Restart Home Assistant — how YAML edits (set_config_yaml) and newly "
+            "installed integrations (hacs_install) take effect. The configuration is "
+            "checked first, and an invalid one is reported with its errors instead of "
+            "restarting. Comes back first with requires_confirmation: a restart stops "
+            "every automation for about a minute and drops this connection. Tell the "
+            "user, and only once they agree call again with confirmed=true. Requires "
+            "admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {"confirmed": _CONFIRMED_PARAM},
+        },
+    )
 )
