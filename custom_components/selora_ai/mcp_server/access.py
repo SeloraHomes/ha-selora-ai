@@ -131,6 +131,7 @@ from .names import (
     TOOL_UPDATE_AREA,
     TOOL_UPDATE_DASHBOARD,
     TOOL_UPDATE_DASHBOARD_CARD,
+    TOOL_UPDATE_DASHBOARD_RESOURCE,
     TOOL_UPDATE_DASHBOARD_VIEW,
     TOOL_UPDATE_DEVICE,
     TOOL_UPDATE_ENTITY,
@@ -210,6 +211,7 @@ _ADMIN_TOOLS = frozenset(
         TOOL_UPDATE_DASHBOARD,
         TOOL_ADD_DASHBOARD_RESOURCE,
         TOOL_REMOVE_DASHBOARD_RESOURCE,
+        TOOL_UPDATE_DASHBOARD_RESOURCE,
         TOOL_SET_CONFIG_YAML,
         # Read-only, but admin-gated: configuration.yaml carries the home's
         # integration settings, and inline credentials are masked by pattern,

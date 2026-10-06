@@ -227,6 +227,22 @@ async def _tool_remove_dashboard_resource(
     return await async_remove_resource(hass, str(arguments.get("resource", "")))
 
 
+async def _tool_update_dashboard_resource(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Point a resource at a new URL or type — see ``dashboard_resources``."""
+    from ..dashboard_resources import async_update_resource  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
+
+    return await async_update_resource(
+        hass,
+        str(arguments.get("resource", "")),
+        url=_opt_str(arguments.get("url")),
+        resource_type=_opt_str(arguments.get("type")),
+        confirmed=_opt_bool(arguments.get("confirmed")) is True,
+    )
+
+
 async def _tool_get_config_yaml(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Read configuration YAML — see ``config_yaml``."""
     from ..config_yaml import async_read  # noqa: PLC0415
