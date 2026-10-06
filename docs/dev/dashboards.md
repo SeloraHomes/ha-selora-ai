@@ -405,3 +405,19 @@ renders "Unknown type encountered: fan" on the wall. Three checks stand in:
   it.
 - **Every dashboard tool is in BOTH tool lanes** — "add a card" classifies as
   `command`, "reorganise my dashboard" as `config`.
+
+## View layouts
+
+`add_dashboard_view` / `update_dashboard_view` take `layout`: `masonry` (the
+default, stored as no `type`), `sections`, `panel`, `sidebar` (`VIEW_LAYOUTS`).
+Without `panel` the tools could not build a full-screen page, and a model asked
+to restyle one reached for another MCP server.
+
+- **A panel page renders ONLY its first card**, full width — full-screen
+  wall-panel pages put their tiles inside one `grid`/stack card. So a panel page
+  with more than one card is refused (on add and on a layout change), and
+  `insert_dashboard_card` refuses a second card on one (`panel_full`): stored,
+  it would never show.
+- **A layout change carries the cards over** (`_set_layout`): a sections page's
+  cards are flattened into one list; a list becomes one grid section.
+- `sections=true` still works, as `layout='sections'`.

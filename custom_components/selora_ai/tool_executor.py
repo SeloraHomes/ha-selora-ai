@@ -809,6 +809,7 @@ class ToolExecutor:
             icon=_opt_str(arguments.get("icon")),
             clear=_opt_list(arguments.get("clear")),
             expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+            layout=_opt_str(arguments.get("layout")),
         )
 
     async def _remove_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -920,6 +921,7 @@ def add_view_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "path": _opt_str(arguments.get("path")),
         "icon": _opt_str(arguments.get("icon")),
         "sections": bool(_opt_bool(arguments.get("sections"))),
+        "layout": _opt_str(arguments.get("layout")),
         # A single card object is accepted where a list belongs: the parameter
         # names a list, and a model that has one card to place routinely sends
         # it bare. Refusing costs a round to say so.

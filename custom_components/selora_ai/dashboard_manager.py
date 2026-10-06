@@ -391,6 +391,47 @@ def _flat_cards(view: dict[str, Any]) -> list[tuple[list[Any], int, Any]]:
     return out
 
 
+# A view's layout, as Home Assistant's view `type`. `masonry` is the default
+# and is stored as no type at all; `panel` shows ONE card across the whole
+# page — how full-screen wall-panel pages are built, with the tiles inside a
+# grid or stack card.
+VIEW_LAYOUTS = ("masonry", "sections", "panel", "sidebar")
+
+_PANEL_ONE_CARD = (
+    "A panel page shows only its first card, full width. Put the cards inside one "
+    "container card — a 'grid' (with 'columns') or a 'vertical-stack' — and make "
+    "that the page's card."
+)
+
+
+def _layout_of(view: dict[str, Any]) -> str:
+    kind = str(view.get("type") or "masonry")
+    return kind if kind in VIEW_LAYOUTS else kind
+
+
+def _set_layout(view: dict[str, Any], layout: str) -> str | None:
+    """Re-lay *view* out as *layout*, carrying its cards over. An error, or None.
+
+    Cards move with the layout: a sections page's cards are flattened into one
+    list, and a list becomes a sections page's single grid section.
+    """
+    if layout not in VIEW_LAYOUTS:
+        return f"layout must be one of {', '.join(VIEW_LAYOUTS)}."
+    cards = [card for _owner, _position, card in _flat_cards(view)]
+    if layout == "panel" and len(cards) > 1:
+        return f"That page has {len(cards)} cards. {_PANEL_ONE_CARD}"
+    for key in ("type", "cards", "sections"):
+        view.pop(key, None)
+    if layout == "sections":
+        view["type"] = "sections"
+        view["sections"] = [{"type": "grid", "cards": cards}]
+        return None
+    if layout != "masonry":
+        view["type"] = layout
+    view["cards"] = cards
+    return None
+
+
 def resolve_view(document: dict[str, Any], ref: object) -> tuple[int | None, str | None]:
     """Resolve a view to its index. Returns ``(index, error)``.
 
@@ -577,7 +618,9 @@ async def async_get_dashboard(
                 "index": i,
                 "title": sanitize_untrusted_text(v.get("title") or "", 60),
                 "path": str(v.get("path") or ""),
-                "type": str(v.get("type") or "cards"),
+                # The layout name the view tools take — `masonry` for a view with
+                # no type — so what is read can be passed back.
+                "type": _layout_of(v),
                 "card_count": len(_flat_cards(v)),
                 # Pass this back on an edit so it cannot land on a different
                 # page if the dashboard changed in between.
@@ -863,8 +906,12 @@ async def async_add_view(
     icon: str | None = None,
     sections: bool = False,
     cards: list[Any] | None = None,
+    layout: str | None = None,
 ) -> dict[str, Any]:
     """Append a view (a page) to a dashboard, with its cards if it has any.
+
+    ``layout`` is one of ``VIEW_LAYOUTS``; ``sections=True`` is the older way
+    of asking for the sections one.
 
     Appends rather than inserts: a view's position is what the user's sidebar
     order looks like, and silently pushing their existing pages along is a
@@ -882,6 +929,9 @@ async def async_add_view(
     title = str(title or "").strip()
     if not title:
         return {"error": "A view title is required."}
+    chosen_layout = str(layout or ("sections" if sections else "masonry")).strip().lower()
+    if chosen_layout not in VIEW_LAYOUTS:
+        return {"error": f"layout must be one of {', '.join(VIEW_LAYOUTS)}."}
 
     # Empty is absent — models fill unused optional params with `[]`, and a
     # page created empty on purpose is an ordinary thing to ask for. A card
@@ -924,14 +974,12 @@ async def async_add_view(
             view["path"] = slug
         if icon:
             view["icon"] = str(icon).strip()
-        # A sections view stores cards under sections[]; seed one so the view is
-        # immediately usable as an insert target rather than silently dropping
-        # the first card added to it.
-        if sections:
-            view["type"] = "sections"
-            view["sections"] = [{"type": "grid", "cards": list(new_cards)}]
-        else:
-            view["cards"] = list(new_cards)
+        # A sections view stores cards under sections[]; _set_layout seeds one
+        # so the view is immediately usable as an insert target rather than
+        # silently dropping the first card added to it.
+        view["cards"] = list(new_cards)
+        if error := _set_layout(view, chosen_layout):
+            return {"error": error}
 
         views.append(view)
         if error := await _save(config, document, before):
@@ -976,8 +1024,10 @@ async def async_update_view(
     icon: str | None = None,
     clear: list[str] | None = None,
     expected_fingerprint: str | None = None,
+    layout: str | None = None,
 ) -> dict[str, Any]:
-    """Change a view's title, path, or icon. Cards are untouched.
+    """Change a view's title, path, icon or layout. Cards are kept — a layout
+    change carries them over (``_set_layout``).
 
     ``clear`` names fields to REMOVE. Setting and clearing need separate
     arguments because an empty string cannot mean "clear" here: `_opt_str`
@@ -1030,6 +1080,10 @@ async def async_update_view(
         if icon and str(icon).strip():
             target_view["icon"] = str(icon).strip()
             changes.append("icon")
+        if layout and str(layout).strip().lower() != _layout_of(target_view):
+            if error := _set_layout(target_view, str(layout).strip().lower()):
+                return {"error": error}
+            changes.append(f"layout {str(layout).strip().lower()}")
         for field in clear or ():
             if field not in ("icon", "path"):
                 return {"error": f"clear accepts 'icon' or 'path', not '{field}'."}
@@ -1291,6 +1345,11 @@ _DOMAIN_NAMED_CARDS: Final = frozenset(
         "media_control",
         "alarm_panel",
         "weather_forecast",
+        # Core cards too: nearly every home has button.* entities (ESPHome,
+        # restart buttons), and leaving `button` out refused the button card
+        # there as "a domain, not a card type".
+        "button",
+        "clock",
     }
 )
 
@@ -1611,6 +1670,16 @@ async def async_move_card(
                     f"{to_index} is out of range."
                 )
             }
+
+        # A panel page renders only its first card: moving cards onto one that
+        # would then hold more would store them where they never show. Asked
+        # before either document is touched.
+        if (
+            not same_view
+            and dst_view_obj.get("type") == "panel"
+            and len(dst_cards) + len(wanted) > 1
+        ):
+            return {"error": f"The destination is a panel page. {_PANEL_ONE_CARD}"}
 
         # Snapshotted before anything is touched, so a failed save can put the
         # cache back — see `_save`. Two documents means two snapshots, and one
