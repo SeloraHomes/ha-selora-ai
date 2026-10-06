@@ -68,3 +68,19 @@ calendar entity as those commands do (`DATA_COMPONENT.get_entity`, the
 - **Event text is untrusted** — a shared or subscribed calendar is written by
   someone else — so it is bounded and sanitized before a model reads it.
 - Listing is read-only access; adding, changing and removing need admin.
+
+## Restarting
+
+`homeassistant.restart` stays on the denylist: the generic tool must not reach
+it. `selora_restart_home_assistant` (`restart_manager.py`) is the dedicated
+path, because YAML edits and new integrations only take effect after one:
+
+- **HA's own config check runs first** and its errors come back, redacted as
+  the YAML editor's are (`_redact_problem`: HA quotes the rejected value, which
+  can be a password). HA's restart service checks too, but only by raising
+  after the call — a client that fired it would not learn why nothing happened.
+- **It asks first** (`requires_confirmation`), and is refused while a database
+  upgrade runs, as HA refuses it.
+- **Started, not awaited** — HA stops under the call, so the answer leaves first.
+- `set_config_yaml`'s `restart_required` and a HACS integration install name
+  this tool in their hint.

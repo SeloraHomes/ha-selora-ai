@@ -90,6 +90,12 @@ _FRONTEND_THEMES: Final = "frontend.themes"
 # would wrap it in the filename too, and the frontend drops the nested theme.
 _THEMES_INCLUDE_TAG: Final = "!include_dir_merge_named"
 
+# An edit no reload can make live, and how to finish it.
+_RESTART_REQUIRED: Final = {
+    "post_action": "restart_required",
+    "hint": "Takes effect after a restart: call selora_restart_home_assistant.",
+}
+
 # Reload services that make an edit live without a restart.
 _RELOAD_SERVICES: Final[dict[str, str]] = {
     "template": "template.reload",
@@ -639,10 +645,10 @@ async def _activate(hass: HomeAssistant, kind: str, yaml_path: str) -> dict[str,
     else:
         service = _RELOAD_SERVICES.get(yaml_path, "")
     if not service:
-        return {"post_action": "restart_required"}
+        return dict(_RESTART_REQUIRED)
     domain, name = service.split(".", 1)
     if not hass.services.has_service(domain, name):
-        return {"post_action": "restart_required"}
+        return dict(_RESTART_REQUIRED)
     try:
         await hass.services.async_call(domain, name, {}, blocking=True)
     except Exception as exc:  # noqa: BLE001 — the write landed; report the reload

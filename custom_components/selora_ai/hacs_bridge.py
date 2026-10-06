@@ -270,7 +270,9 @@ async def async_download(
     elif category == "theme":
         result["note"] = "Select it under the user's profile, or set it with frontend.set_theme."
     else:
-        result["note"] = "Home Assistant must be restarted before it loads."
+        result["note"] = (
+            "Home Assistant must be restarted before it loads: call selora_restart_home_assistant."
+        )
     return result
 
 

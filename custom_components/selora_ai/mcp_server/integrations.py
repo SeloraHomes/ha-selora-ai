@@ -73,3 +73,13 @@ async def _tool_check_system(hass: HomeAssistant, _arguments: dict[str, Any]) ->
     from ..system_check import async_check_system  # noqa: PLC0415
 
     return await async_check_system(hass)
+
+
+async def _tool_restart_home_assistant(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """See ``restart_manager``."""
+    from ..restart_manager import async_restart  # noqa: PLC0415
+    from ..tool_executor import _opt_bool  # noqa: PLC0415
+
+    return await async_restart(hass, confirmed=_opt_bool(arguments.get("confirmed")) is True)

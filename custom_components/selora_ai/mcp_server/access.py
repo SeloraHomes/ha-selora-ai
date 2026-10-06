@@ -113,6 +113,7 @@ from .names import (
     TOOL_REMOVE_DEVICE,
     TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
+    TOOL_RESTART_HOME_ASSISTANT,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
@@ -260,6 +261,7 @@ _ADMIN_TOOLS = frozenset(
         # Read-only, but it reads backups and integration titles, which Home
         # Assistant keeps admin-only.
         TOOL_CHECK_SYSTEM,
+        TOOL_RESTART_HOME_ASSISTANT,
     }
 )
 
