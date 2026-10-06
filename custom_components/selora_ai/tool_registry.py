@@ -1921,6 +1921,47 @@ TOOL_RELOAD_INTEGRATION = ToolDef(
     large_context_only=True,
 )
 
+_REPAIR_PARAMS = (
+    ToolParam(name="domain", type="string", description="From check_system.", required=True),
+    ToolParam(name="issue_id", type="string", description="From check_system.", required=True),
+)
+
+TOOL_FIX_REPAIR = ToolDef(
+    name="fix_repair",
+    description=(
+        "Run a fixable repair's own fix (one check_system lists as fixable). The user "
+        "gets a confirmation card describing the fix; nothing changes until they "
+        "confirm. A fix that asks for choices is done in Settings → Repairs instead."
+    ),
+    params=(
+        *_REPAIR_PARAMS,
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short phrase. "
+                "Leave it out when the fix IS the request."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_IGNORE_REPAIR = ToolDef(
+    name="ignore_repair",
+    description=(
+        "Ignore a repair, as the Repairs page's Ignore does — or show it again with "
+        "ignore=false. Takes effect immediately."
+    ),
+    params=(
+        *_REPAIR_PARAMS,
+        ToolParam(name="ignore", type="boolean", description="false shows it again."),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_GET_AUTOMATION_TRACES = ToolDef(
     name="get_automation_traces",
     description=(
@@ -2626,6 +2667,8 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GROUP_DASHBOARD_CARDS,
     TOOL_CHECK_SYSTEM,
     TOOL_RELOAD_INTEGRATION,
+    TOOL_FIX_REPAIR,
+    TOOL_IGNORE_REPAIR,
 )
 
 # Name → ToolDef lookup for admin checks in the executor

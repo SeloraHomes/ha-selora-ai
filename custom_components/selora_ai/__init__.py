@@ -4942,6 +4942,15 @@ async def _apply_destructive_actions(
                     view=view_index,
                     expected_fingerprint=str(action.get("fingerprint") or ""),
                 )
+            elif kind == "repair":
+                # target_id is "<domain>/<issue_id>"; the fingerprint is the issue
+                # as the card showed it, so one re-raised since is not fixed blind.
+                from .repairs_manager import async_run_confirmed_fix  # noqa: PLC0415
+
+                repair_domain, _, issue_id = target_id.partition("/")
+                res = await async_run_confirmed_fix(
+                    hass, repair_domain, issue_id, str(action.get("fingerprint") or "")
+                )
             elif kind == "script":
                 # Same reusable-slug hazard as the script DELETE path, plus the
                 # in-place edit case: the card described one version of the
