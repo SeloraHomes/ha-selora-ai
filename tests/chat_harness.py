@@ -34,9 +34,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
+import shutil
+import tempfile
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
+import weakref
 
 from homeassistant.core import HomeAssistant
 import yaml
@@ -162,6 +165,14 @@ class ChatHarness:
         """
         from custom_components.selora_ai.providers import create_provider
 
+        # A config directory of its own. PHCC points every test's hass at one
+        # shared ``testing_config`` directory, so ``automations.yaml`` — the
+        # file the refine context reads — was whatever the last test to touch
+        # it left there, and a harness test failed intermittently in a full run
+        # depending on test order.
+        config_dir = tempfile.mkdtemp(prefix="selora-chat-harness-")
+        hass.config.config_dir = config_dir
+
         llm = LLMClient(hass, provider=create_provider(provider, hass, api_key="test-key"))
         store = ConversationStore(hass)
         hass.data.setdefault(DOMAIN, {})
@@ -169,6 +180,7 @@ class ChatHarness:
         # `_find_llm` walks the per-entry dicts under DOMAIN.
         hass.data[DOMAIN]["harness_entry"] = {"llm": llm}
         harness = cls(hass, llm, store)
+        weakref.finalize(harness, shutil.rmtree, config_dir, ignore_errors=True)
         harness.write_automations(list(automations or []))
         return harness
 
