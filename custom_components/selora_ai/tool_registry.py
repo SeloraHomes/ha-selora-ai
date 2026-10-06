@@ -1494,12 +1494,29 @@ TOOL_UPDATE_ENTITY = ToolDef(
             description="Rename the entity_id itself. Same domain only; refused if anything references it.",
         ),
         ToolParam(
+            name="show_as",
+            type="string",
+            description=(
+                "Show a cover, or a binary sensor within its kind, as another class: "
+                "a door as a window, motion as occupancy."
+            ),
+        ),
+        ToolParam(
+            name="settings",
+            type="object",
+            description=(
+                "Display settings, null resets one: sensor/number unit_of_measurement, "
+                "sensor display_precision (0-6), weather *_unit, calendar color, "
+                "device_tracker associated_zone."
+            ),
+        ),
+        ToolParam(
             name="clear",
             type="array",
             items_type="string",
             description=(
                 "Settings to reset: 'name' and 'icon' (back to the integration's), "
-                "'area' (follow its device's again)."
+                "'area' (follow its device's again), 'show_as'."
             ),
         ),
     ),

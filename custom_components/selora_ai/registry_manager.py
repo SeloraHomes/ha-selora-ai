@@ -790,8 +790,11 @@ async def async_update_entity(
     expose: dict[str, bool] | None = None,
     new_entity_id: str | None = None,
     clear: Iterable[str] | None = None,
+    show_as: str | None = None,
+    settings: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Rename, alias, hide, disable, or re-expose a single entity.
+    """Rename, alias, hide, disable, or re-expose a single entity, or change
+    what it is shown as and its display settings (``entity_settings``).
 
     ``expose`` maps ``entity_exposure.ASSISTANTS`` names to on/off. ``clear``
     removes the user's name or icon (the integration's come back) or the
@@ -818,14 +821,32 @@ async def async_update_entity(
         }
 
     clear = list(clear or ())  # read twice: checked, then applied
-    if error := _clear_error(clear, ("name", "icon", "area"), {"name": new_name, "icon": icon}):
+    if error := _clear_error(
+        clear,
+        ("name", "icon", "area", "show_as"),
+        {"name": new_name, "icon": icon, "show_as": show_as},
+    ):
         return {"error": error}
+    from .entity_settings import SettingError, check_settings, check_show_as  # noqa: PLC0415
+
+    if settings is not None and not isinstance(settings, dict):
+        return {"error": "settings is an object, e.g. {'display_precision': 1}."}
+
+    try:
+        shown_as = check_show_as(entry, show_as) if show_as else None
+        new_options = check_settings(hass, entry, settings) if settings else None
+    except SettingError as exc:
+        return {"error": str(exc)}
 
     changes: dict[str, Any] = {}
     for field in clear or ():
-        key = "area_id" if field == "area" else field
+        key = {"area": "area_id", "show_as": "device_class"}.get(field, field)
         if getattr(entry, key) is not None:
             changes[key] = None
+    if shown_as is not None and shown_as != entry.device_class:
+        changes["device_class"] = shown_as
+    if new_options is not None and new_options == dict(entry.options.get(entry.domain) or {}):
+        new_options = None
     new_name = str(new_name or "").strip()
     if new_name:
         changes["name"] = new_name
@@ -880,7 +901,7 @@ async def async_update_entity(
         if error := unavailable(hass, expose):
             return {"error": error}
 
-    if not changes and not expose:
+    if not changes and not expose and new_options is None:
         return {
             "status": "unchanged",
             "entity_id": entity_id,
@@ -905,13 +926,23 @@ async def async_update_entity(
         from .entity_exposure import async_set_exposure  # noqa: PLC0415
 
         async_set_exposure(hass, renamed_to or entity_id, expose)
+    if new_options is not None:
+        ent_reg.async_update_entity_options(renamed_to or entity_id, entry.domain, new_options)
 
     result: dict[str, Any] = {
         "status": "updated",
         "entity_id": renamed_to or entity_id,
         "name": sanitize_untrusted_text(entry.name or entry.original_name, 60),
-        "changed": sorted([*changes, *(f"expose_to_{name}" for name in expose)]),
+        "changed": sorted(
+            [
+                *changes,
+                *(f"expose_to_{name}" for name in expose),
+                *(["settings"] if new_options is not None else []),
+            ]
+        ),
     }
+    if new_options is not None:
+        result["settings"] = new_options
     if renamed_to:
         result["previous_entity_id"] = entity_id
     if expose:

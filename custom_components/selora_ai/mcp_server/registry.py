@@ -98,7 +98,7 @@ def _update_entity_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
     """``update_entity``'s arguments as ``async_update_entity`` takes them —
     one reading for the direct call, the preview and the confirmed card."""
     from ..entity_exposure import ASSISTANTS  # noqa: PLC0415
-    from ..tool_executor import _opt_bool, _opt_list, _opt_str  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_list, _opt_options, _opt_str  # noqa: PLC0415
 
     expose = {
         name: flag
@@ -115,6 +115,8 @@ def _update_entity_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "expose": expose,
         "new_entity_id": _opt_str(arguments.get("new_entity_id")),
         "clear": _opt_list(arguments.get("clear")),
+        "show_as": _opt_str(arguments.get("show_as")),
+        "settings": _opt_options(arguments.get("settings")),
     }
 
 

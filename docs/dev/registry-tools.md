@@ -61,6 +61,18 @@ the model stops reciting Settings click-paths.
   device class) and raises `ValueError`, reported as the refusal. The fields
   arrived after 2025.1, so a core without them is refused by name
   (`hasattr(area, "temperature_entity_id")`) rather than failing on the kwarg.
+- **"Show as" and display settings are checked here, not by Home Assistant**
+  (`entity_settings.py`). The registry stores any device class and any options
+  mapping, and a wrong one is ignored later (a sensor keeps its own unit). So
+  "Show as" offers what the frontend's dialog does — any class for a cover, a
+  binary sensor only within its own group (door ↔ window) — and settings are
+  checked against the tables components read: the sensor/number
+  `UNIT_CONVERTERS` for the device class (the entity's own unit must be one too —
+  HA converts only from a unit it knows), weather's `VALID_UNITS`, a precision
+  of 0–6, an existing zone for a `tracking_type: connection` tracker only (a GPS
+  one places itself and never reads it). A lock's or alarm's `default_code` is refused: it is
+  the code itself. A switch shown as a light is the `switch_as_x` helper, which
+  the refusal names.
 - **Deleting an area unassigns, silently** — automations targeting
   `area_id: living_room` keep loading and match nothing. Hence the card, with
   counts in its label.
