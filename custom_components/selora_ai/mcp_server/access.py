@@ -62,6 +62,7 @@ from .names import (
     TOOL_GET_HOME_SNAPSHOT,
     TOOL_GET_LOGS,
     TOOL_GET_PATTERN,
+    TOOL_GET_RELEASE_NOTES,
     TOOL_GET_SCENE,
     TOOL_GET_SCRIPT,
     TOOL_GROUP_DASHBOARD_CARDS,
@@ -93,6 +94,7 @@ from .names import (
     TOOL_LIST_SERVICES,
     TOOL_LIST_SESSIONS,
     TOOL_LIST_SUGGESTIONS,
+    TOOL_LIST_UPDATES,
     TOOL_MOVE_DASHBOARD_CARD,
     TOOL_READ_FILE,
     TOOL_RELOAD_INTEGRATION,
@@ -233,6 +235,8 @@ _ADMIN_TOOLS = frozenset(
         TOOL_SET_INTEGRATION_OPTIONS,
         TOOL_REMOVE_DEVICE,
         TOOL_REMOVE_ENTITY,
+        # Read-only, but admin-gated as Home Assistant's update/release_notes is.
+        TOOL_GET_RELEASE_NOTES,
     }
 )
 
@@ -277,6 +281,7 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_GET_ENERGY_PREFS,
         TOOL_LIST_ASSIST_PIPELINES,
         TOOL_LIST_INTEGRATIONS,
+        TOOL_LIST_UPDATES,
     }
 )
 

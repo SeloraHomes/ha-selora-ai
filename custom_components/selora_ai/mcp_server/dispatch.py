@@ -153,6 +153,7 @@ from .names import (
     TOOL_GET_HOME_SNAPSHOT,
     TOOL_GET_LOGS,
     TOOL_GET_PATTERN,
+    TOOL_GET_RELEASE_NOTES,
     TOOL_GET_SCENE,
     TOOL_GET_SCRIPT,
     TOOL_GROUP_DASHBOARD_CARDS,
@@ -184,6 +185,7 @@ from .names import (
     TOOL_LIST_SERVICES,
     TOOL_LIST_SESSIONS,
     TOOL_LIST_SUGGESTIONS,
+    TOOL_LIST_UPDATES,
     TOOL_MOVE_DASHBOARD_CARD,
     TOOL_READ_FILE,
     TOOL_RELOAD_INTEGRATION,
@@ -269,6 +271,7 @@ from .scripts_helpers import (
     _tool_set_script,
     _tool_update_helper,
 )
+from .updates import _tool_get_release_notes, _tool_list_updates
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -468,6 +471,8 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_SET_INTEGRATION_OPTIONS: _tool_set_integration_options,
         TOOL_REMOVE_DEVICE: _tool_remove_device,
         TOOL_REMOVE_ENTITY: _tool_remove_entity,
+        TOOL_LIST_UPDATES: _tool_list_updates,
+        TOOL_GET_RELEASE_NOTES: _tool_get_release_notes,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
