@@ -6647,6 +6647,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if unsub_startup:
             unsub_startup()
 
+    # Flows held open between tool calls, and their expiry timers.
+    from .flow_sessions import async_close_all as _close_open_flows  # noqa: PLC0415
+
+    _close_open_flows(hass)
+
     # Cancel the background tasks here too, ahead of the same await. A task
     # already in flight — a discovery sweep, a telemetry POST, a pre-warm —
     # otherwise keeps running against the entry this function has just popped,

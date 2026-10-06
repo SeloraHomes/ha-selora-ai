@@ -1726,7 +1726,8 @@ TOOL_CREATE_HELPER = ToolDef(
         "created immediately through Home Assistant's own setup flow, so you can "
         "use its entity_ids in this same reply. Call it first with just `domain` "
         "(and `type` when the integration offers several): it returns the "
-        "choices or the form's fields. Then call again with `fields`. A template "
+        "choices or the form's fields. Then call again with `fields`; a setup "
+        "with more steps returns the next one with a flow_id to pass back. A template "
         "alarm panel with no state template holds its own state; give it an "
         "action (a 0-second delay is enough) for each arming mode it should offer "
         "and for trigger.\n"
@@ -1752,6 +1753,14 @@ TOOL_CREATE_HELPER = ToolDef(
             name="fields",
             type="object",
             description="Config-entry helpers: the form's values, keyed by the field names a call without them returns.",
+        ),
+        ToolParam(
+            name="flow_id",
+            type="string",
+            description=(
+                "Config-entry helpers: the flow_id a previous call returned, to answer "
+                "the next step of the same setup."
+            ),
         ),
         ToolParam(name="name", type="string", description="Storage helpers: display name."),
         ToolParam(name="icon", type="string", description="mdi icon, e.g. 'mdi:shield-home'."),
@@ -1848,7 +1857,8 @@ TOOL_CREATE_HELPER_DIRECT = ToolDef(
         "threshold, derivative, min_max and the other helper integrations — "
         "through Home Assistant's own setup flow. Call it first with just "
         "`domain` (and `type` when the integration offers several): it returns "
-        "the choices or the form's fields. Then call again with `fields`. A "
+        "the choices or the form's fields. Then call again with `fields`; a setup "
+        "with more steps returns the next one with a flow_id to pass back. A "
         "template alarm panel with no state template holds its own state; give it "
         "an action (a 0-second delay is enough) for each arming mode it should "
         "offer and for trigger.\n"
@@ -1862,7 +1872,7 @@ TOOL_CREATE_HELPER_DIRECT = ToolDef(
 _HELPER_SETTING_PARAMS = tuple(
     p
     for p in TOOL_CREATE_HELPER.params
-    if p.name not in ("domain", "type", "fields", "remaining_intent")
+    if p.name not in ("domain", "type", "fields", "flow_id", "remaining_intent")
 )
 
 TOOL_UPDATE_HELPER = ToolDef(

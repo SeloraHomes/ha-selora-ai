@@ -760,13 +760,7 @@ class ToolExecutor:
         domain = str(arguments.get("domain", "")).strip().lower()
         if domain in CREATABLE_HELPER_DOMAINS:
             return await async_propose_helper(self._hass, domain, create_helper_fields(arguments))
-        fields = arguments.get("fields")
-        return await async_create_flow_helper(
-            self._hass,
-            domain,
-            _opt_str(arguments.get("type")),
-            fields if isinstance(fields, dict) and fields else None,
-        )
+        return await async_create_flow_helper(self._hass, domain, *flow_helper_args(arguments))
 
     async def _update_helper(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .helper_manager import async_update_helper
@@ -926,6 +920,20 @@ def add_view_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "cards": None if raw_cards is None else _as_card_list(raw_cards),
         "options": _opt_options(arguments.get("options")),
     }
+
+
+def flow_helper_args(arguments: dict[str, Any]) -> tuple[str | None, Any, str | None]:
+    """``(type, fields, flow_id)`` for a config-entry helper's flow, shared with MCP.
+
+    Starting a flow, an empty ``fields`` is padding and means "describe the
+    form". Continuing one, ``{}`` is the answer to a step with no fields — a
+    confirmation — and read as absent the flow could never advance.
+    """
+    flow_id = _opt_str(arguments.get("flow_id"))
+    fields = arguments.get("fields")
+    if not isinstance(fields, dict) or (not fields and flow_id is None):
+        fields = None
+    return _opt_str(arguments.get("type")), fields, flow_id
 
 
 def update_view_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:

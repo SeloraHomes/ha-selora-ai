@@ -227,18 +227,12 @@ async def _tool_create_helper(hass: HomeAssistant, arguments: dict[str, Any]) ->
     """
     from ..helper_flow import async_create_flow_helper  # noqa: PLC0415
     from ..helper_manager import CREATABLE_HELPER_DOMAINS, async_create_helper  # noqa: PLC0415
-    from ..tool_executor import _opt_str, create_helper_fields  # noqa: PLC0415
+    from ..tool_executor import create_helper_fields, flow_helper_args  # noqa: PLC0415
 
     domain = str(arguments.get("domain", "")).strip().lower()
     if domain in CREATABLE_HELPER_DOMAINS:
         return await async_create_helper(hass, domain, create_helper_fields(arguments))
-    fields = arguments.get("fields")
-    return await async_create_flow_helper(
-        hass,
-        domain,
-        _opt_str(arguments.get("type")),
-        fields if isinstance(fields, dict) and fields else None,
-    )
+    return await async_create_flow_helper(hass, domain, *flow_helper_args(arguments))
 
 
 async def _tool_get_logs(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:

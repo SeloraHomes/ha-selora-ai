@@ -155,9 +155,10 @@ the model stops reciting Settings click-paths.
   submits the form, so HA's validation decides. Only integrations declaring
   `integration_type: helper` are driven — a device or cloud-account flow is not
   one a chat should complete — and `group` is sent to `create_group`, which
-  polices what a generic flow cannot. Every non-success exit aborts the flow,
-  or it lingers in Settings. Only one form is walked; a flow that asks for a
-  second step is reported, not guessed at. A template alarm panel with no state
+  polices what a generic flow cannot. **A setup of several forms or menus is
+  walked one step per call** (`flow_sessions.async_drive`): every answer that
+  leads to another step returns it with a `flow_id`, and the next call passes
+  it back; a rejected answer keeps the same form open for a corrected one. A template alarm panel with no state
   template is optimistic — it holds and restores its own state — and offers a
   mode only when it has an action for it, which the tool description says.
   - **The form is serialized with the library `cv` itself uses**
@@ -166,6 +167,15 @@ the model stops reciting Settings click-paths.
     `voluptuous-serialize` from its requirements, and `cv.custom_serializer`
     answers "unsupported" with its own library's sentinel, which the other
     library returns in place of the field list.
+- **Flows held open between calls** (`flow_sessions.py`, shared by helper
+  setups, options and repair fixes):
+  - **Only flows started here, for what they were started for**, can be
+    continued — an owner tuple per flow. Any other flow_id (the user's own flow
+    in the UI, a discovery, another entry's options) is refused.
+  - **Nothing lingers.** Each step re-arms a `FLOW_TTL` timer that aborts the
+    flow; unload aborts them all. The timer's job is `cancel_on_shutdown` — a
+    stopping Home Assistant drops every flow anyway, and the test harness counts
+    any other timer still armed at teardown as lingering.
 - **MCP creates both kinds on the spot** (`selora_create_helper`). A storage
   helper goes through `async_create_helper`, which runs the proposal's
   validation (a name in use included) and then the collection recovered from
@@ -191,7 +201,7 @@ Devices & services does.
 - **Options go through the entry's own options flow**, driven like
   `helper_flow` drives a config flow: no `options` describes the form (with each
   field's `current` value, from its `suggested_value`), `options` submits it.
-  Multi-step options flows report the next step rather than walking it.
+  Multi-step options flows are walked by `flow_id`, as a helper's setup is.
   - **A credential's value is never described** — options forms pre-fill
     stored passwords (HEOS does). A password selector or a credential-like
     name reports only `is_set`, its default dropped too.
@@ -284,8 +294,7 @@ runs its fix flow.
   description, fields or menu choices — with a `flow_id`; each later call
   answers that step (`fields`, or `choice` for a menu). Fixes start with menus
   and run several forms, so a single submission cannot cover them.
-  - Only flows started here can be continued (`_open_flows`), and one left
-    between steps for `_FLOW_TTL` is aborted. A browser (external) step returns
+  - Held open by `flow_sessions`, like a helper's setup. A browser (external) step returns
     its URL to finish in Settings → Repairs.
 - Listing is read-only access, as `repairs/list_issues` is in Home Assistant;
   ignoring and fixing need admin. `repairs` is an `after_dependency` for

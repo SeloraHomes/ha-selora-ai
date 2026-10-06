@@ -17,12 +17,11 @@ cloud account is not something a chat should be completing.
 
 from __future__ import annotations
 
-import contextlib
 import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
 
-from homeassistant.data_entry_flow import AbortFlow, InvalidData, UnknownFlow, UnknownStep
+from homeassistant.data_entry_flow import AbortFlow, UnknownFlow, UnknownStep
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 from homeassistant.loader import IntegrationNotFound, async_get_integration
@@ -138,19 +137,20 @@ async def _is_helper_integration(hass: HomeAssistant, domain: str) -> bool:
     return integration.integration_type == "helper" and bool(integration.config_flow)
 
 
-def _abort(hass: HomeAssistant, flow_id: str | None) -> None:
-    if flow_id:
-        with contextlib.suppress(UnknownFlow):
-            hass.config_entries.flow.async_abort(flow_id)
-
-
 async def async_create_flow_helper(
     hass: HomeAssistant,
     integration: str,
     kind: str | None,
     options: dict[str, Any] | None,
+    flow_id: str | None = None,
 ) -> dict[str, Any]:
-    """Create a config-entry helper, or describe what its form needs."""
+    """Create a config-entry helper, or describe the step its flow is on.
+
+    The flow is held open between calls (``flow_sessions``), so a helper whose
+    setup runs several forms is created one step per call, by ``flow_id``.
+    """
+    from .flow_sessions import async_drive  # noqa: PLC0415
+
     integration = str(integration or "").strip().lower()
     if integration in _DEDICATED:
         return {"error": f"Use {_DEDICATED[integration]} for a {integration} helper."}
@@ -164,63 +164,22 @@ async def async_create_flow_helper(
             )
         }
 
-    flow_id: str | None = None
-    succeeded = False
-    try:
-        result = await hass.config_entries.flow.async_init(integration, context={"source": "user"})
-        flow_id = result.get("flow_id")
-        if result.get("type") == "menu":
-            choices = [str(o) for o in (result.get("menu_options") or [])]
-            if not kind or kind not in choices:
-                return {
-                    "status": "needs_type",
-                    "integration": integration,
-                    "types": choices,
-                    "hint": "Call again with `type` set to one of these.",
-                }
-            result = await hass.config_entries.flow.async_configure(flow_id, {"next_step_id": kind})
-        if result.get("type") != "form":
-            return {"error": f"The {integration} flow did not present a form."}
-        fields = _describe_fields(result.get("data_schema"))
-        if not options:
-            return {
-                "status": "needs_options",
-                "integration": integration,
-                "type": kind,
-                "fields": fields,
-                "hint": "Call again with `options` holding these fields.",
-            }
-        try:
-            result = await hass.config_entries.flow.async_configure(flow_id, options)
-        except InvalidData as exc:
-            return {
-                "error": f"Home Assistant rejected those options: {exc.schema_errors or exc}",
-                "fields": fields,
-            }
-        if result.get("type") == "form":
-            # Either the same form with errors, or a further step this generic
-            # driver does not walk.
-            return {
-                "error": (
-                    f"The {integration} flow wants more: "
-                    f"{result.get('errors') or result.get('step_id')}"
-                ),
-                "fields": _describe_fields(result.get("data_schema")),
-            }
-        if result.get("type") != "create_entry":
-            reason = result.get("reason") or result.get("type")
-            return {
-                "error": f"The helper was not created ({sanitize_untrusted_text(str(reason))})."
-            }
-        succeeded = True
-    except _FLOW_ERRORS as exc:
-        _LOGGER.warning("%s helper flow failed: %s", integration, exc)
-        return {"error": f"Home Assistant rejected the helper: {exc}"}
-    finally:
-        if not succeeded:
-            _abort(hass, flow_id)
+    manager = hass.config_entries.flow
+    outcome = await async_drive(
+        hass,
+        manager,
+        owner=("helper", integration),
+        start=lambda: manager.async_init(integration, context={"source": "user"}),
+        flow_id=flow_id,
+        choice=kind,
+        values=options,
+        values_param="fields",
+        errors=_FLOW_ERRORS,
+    )
+    if "done" not in outcome:
+        return {"integration": integration, **outcome}
 
-    entry = result["result"]
+    entry = outcome["done"]["result"]
     await hass.async_block_till_done()
     entity_ids = [
         e.entity_id for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)

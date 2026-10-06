@@ -15,18 +15,16 @@ hold the AI provider's credentials, which are never configured automatically.
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.config_entries import ConfigEntryDisabler, OperationNotAllowed, UnknownEntry
-from homeassistant.data_entry_flow import InvalidData
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
-from .helper_flow import _FLOW_ERRORS, _describe_fields
+from .helper_flow import _FLOW_ERRORS
 from .helpers import sanitize_untrusted_text
 
 if TYPE_CHECKING:
@@ -175,9 +173,16 @@ async def async_integration_options(
     entry_id: str,
     kind: str | None,
     options: dict[str, Any] | None,
+    flow_id: str | None = None,
 ) -> dict[str, Any]:
-    """Describe an integration's options form, or submit it."""
-    from homeassistant.data_entry_flow import UnknownFlow  # noqa: PLC0415
+    """Describe the step an integration's options flow is on, or answer it.
+
+    Held open between calls like a helper's setup (``flow_sessions``), so a
+    multi-step options flow is walked one step per call by ``flow_id``.
+    ``None`` describes; an empty mapping is a submission — some options forms
+    take ``{}`` on purpose (clearing optional credentials).
+    """
+    from .flow_sessions import async_drive  # noqa: PLC0415
 
     entry = _entry(hass, entry_id, "change the options of")
     if isinstance(entry, str):
@@ -186,60 +191,18 @@ async def async_integration_options(
         return {"error": f"{entry.domain} has no options to change."}
 
     manager = hass.config_entries.options
-    flow_id: str | None = None
-    try:
-        result = await manager.async_init(entry.entry_id)
-        flow_id = result.get("flow_id")
-        if result.get("type") == "menu":
-            choices = [str(o) for o in (result.get("menu_options") or [])]
-            if not kind or kind not in choices:
-                return {
-                    "status": "needs_type",
-                    "entry_id": entry.entry_id,
-                    "types": choices,
-                    "hint": "Call again with `type` set to one of these.",
-                }
-            result = await manager.async_configure(flow_id, {"next_step_id": kind})
-        if result.get("type") != "form":
-            return {"error": f"The {entry.domain} options did not present a form."}
-        fields = _describe_fields(result.get("data_schema"))
-        # None is "describe the form"; an empty mapping is a submission — some
-        # options forms take {} on purpose (clearing optional credentials).
-        if options is None:
-            return {
-                "status": "needs_options",
-                "entry_id": entry.entry_id,
-                "type": kind,
-                "fields": fields,
-                "hint": "Call again with `options` holding the fields to set.",
-            }
-        try:
-            result = await manager.async_configure(flow_id, options)
-        except InvalidData as exc:
-            return {
-                "error": f"Home Assistant rejected those options: {exc.schema_errors or exc}",
-                "fields": fields,
-            }
-        if result.get("type") == "form":
-            return {
-                "error": (
-                    f"The {entry.domain} options want more: "
-                    f"{result.get('errors') or result.get('step_id')}"
-                ),
-                "fields": _describe_fields(result.get("data_schema")),
-            }
-        if result.get("type") != "create_entry":
-            reason = result.get("reason") or result.get("type")
-            return {
-                "error": f"The options were not saved ({sanitize_untrusted_text(str(reason))})."
-            }
-        flow_id = None
-    except _FLOW_ERRORS as exc:
-        _LOGGER.warning("%s options flow failed: %s", entry.domain, exc)
-        return {"error": f"Home Assistant rejected the options: {exc}"}
-    finally:
-        if flow_id:
-            with contextlib.suppress(UnknownFlow):
-                manager.async_abort(flow_id)
+    outcome = await async_drive(
+        hass,
+        manager,
+        owner=("options", entry.entry_id),
+        start=lambda: manager.async_init(entry.entry_id),
+        flow_id=flow_id,
+        choice=kind,
+        values=options,
+        values_param="options",
+        errors=_FLOW_ERRORS,
+    )
+    if "done" not in outcome:
+        return {"entry_id": entry.entry_id, **outcome}
     await hass.async_block_till_done()
     return {"status": "saved", **_row(hass, entry)}
