@@ -67,6 +67,13 @@ _LOGGER = logging.getLogger(__name__)
 _MAX_LISTED: Final = 30
 
 
+# update_area's sensor arguments, and the area fields they set.
+_AREA_SENSORS: Final = {
+    "temperature_sensor": "temperature_entity_id",
+    "humidity_sensor": "humidity_entity_id",
+}
+
+
 def _clear_error(
     clear: Iterable[str] | None, allowed: tuple[str, ...], given: dict[str, Any]
 ) -> str | None:
@@ -267,6 +274,9 @@ def area_overview(hass: HomeAssistant, *, include_entities: bool = False) -> dic
         }
         if area.aliases:
             record["aliases"] = sorted(sanitize_untrusted_text(a, 60) for a in area.aliases)
+        for name, field in _AREA_SENSORS.items():
+            if entity_id := getattr(area, field, None):
+                record[name] = entity_id
         if include_entities:
             record["entities"] = ent_ids[:_MAX_LISTED]
             if len(ent_ids) > _MAX_LISTED:
@@ -415,10 +425,14 @@ def async_update_area(
     icon: str | None = None,
     aliases: Iterable[str] | None = None,
     clear: Iterable[str] | None = None,
+    temperature_sensor: str | None = None,
+    humidity_sensor: str | None = None,
 ) -> dict[str, Any]:
-    """Rename an area, move it to a floor, or change its icon/aliases.
+    """Rename an area, move it to a floor, or change its icon/aliases, or the
+    sensors that give its temperature and humidity on Home Assistant's area
+    cards. Home Assistant checks those are temperature / humidity sensors.
 
-    ``clear`` removes the icon or takes the area off its floor.
+    ``clear`` removes the icon, the area's floor, or either sensor.
 
     An empty optional argument is treated as absent — models routinely emit
     ``""`` / ``[]`` for parameters they are not using, and honouring those
@@ -429,8 +443,27 @@ def async_update_area(
     if error or area_entry is None:
         return {"error": error or "Area not found."}
     clear = list(clear or ())  # read twice: checked, then applied
-    if error := _clear_error(clear, ("icon", "floor"), {"icon": icon, "floor": floor}):
+    if error := _clear_error(
+        clear,
+        ("icon", "floor", *_AREA_SENSORS),
+        {
+            "icon": icon,
+            "floor": floor,
+            "temperature_sensor": temperature_sensor,
+            "humidity_sensor": humidity_sensor,
+        },
+    ):
         return {"error": error}
+    sensors = {"temperature_sensor": temperature_sensor, "humidity_sensor": humidity_sensor}
+    if (any(sensors.values()) or set(clear) & set(_AREA_SENSORS)) and not hasattr(
+        area_entry, "temperature_entity_id"
+    ):
+        return {
+            "error": (
+                "This Home Assistant version has no area temperature or humidity "
+                "sensors; they arrived in a later release."
+            )
+        }
 
     changes: dict[str, Any] = {}
     new_name = str(new_name or "").strip()
@@ -456,8 +489,11 @@ def async_update_area(
         cleaned = {str(a).strip() for a in aliases if str(a).strip()}
         if cleaned != set(area_entry.aliases or ()):
             changes["aliases"] = cleaned
+    for name, entity_id in sensors.items():
+        if entity_id and str(entity_id).strip() != getattr(area_entry, _AREA_SENSORS[name]):
+            changes[_AREA_SENSORS[name]] = str(entity_id).strip()
     for field in clear or ():
-        key = "floor_id" if field == "floor" else field
+        key = {"floor": "floor_id", **_AREA_SENSORS}.get(field, field)
         if getattr(area_entry, key) is not None:
             changes[key] = None
 
@@ -469,7 +505,15 @@ def async_update_area(
             "message": "No changes were requested.",
         }
 
-    updated = ar.async_get(hass).async_update(area_entry.id, **changes)
+    try:
+        updated = ar.async_get(hass).async_update(area_entry.id, **changes)
+    except ValueError as exc:
+        # Home Assistant's own check: the entity exists and is a sensor of
+        # the right device class. The area is unchanged; a floor this call
+        # created for it goes too, or the refusal leaves it behind.
+        if created_floor and changes.get("floor_id"):
+            fr.async_get(hass).async_delete(changes["floor_id"])
+        return {"error": f"Home Assistant refused it: {sanitize_untrusted_text(str(exc), 200)}"}
     result: dict[str, Any] = {
         "status": "updated",
         "area_id": updated.id,

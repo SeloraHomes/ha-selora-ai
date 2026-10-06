@@ -67,6 +67,8 @@ def _update_area_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "icon": _opt_str(arguments.get("icon")),
         "aliases": _opt_list(arguments.get("aliases")),
         "clear": _opt_list(arguments.get("clear")),
+        "temperature_sensor": _opt_str(arguments.get("temperature_sensor")),
+        "humidity_sensor": _opt_str(arguments.get("humidity_sensor")),
     }
 
 

@@ -55,6 +55,12 @@ the model stops reciting Settings click-paths.
   `_clear_error` refuses an unknown name and a field set and cleared in one
   call. The argument readers (`mcp_server/registry.py` `_update_*_kwargs`) are
   shared by chat, MCP, the preview and the confirmed card.
+- **An area's temperature and humidity sensors** (`update_area`
+  `temperature_sensor` / `humidity_sensor`, shown by `list_areas`) are what HA's
+  area cards display. HA validates them (`_validate_*_entity`: a `sensor` of that
+  device class) and raises `ValueError`, reported as the refusal. The fields
+  arrived after 2025.1, so a core without them is refused by name
+  (`hasattr(area, "temperature_entity_id")`) rather than failing on the kwarg.
 - **Deleting an area unassigns, silently** — automations targeting
   `area_id: living_room` keep loading and match nothing. Hence the card, with
   counts in its label.
