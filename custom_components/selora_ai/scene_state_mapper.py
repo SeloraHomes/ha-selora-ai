@@ -10,9 +10,12 @@ from __future__ import annotations
 import logging
 import math
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .entity_capabilities import SCENE_CAPABLE_DOMAINS
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -295,8 +298,42 @@ def clamp(value: int | float, min_val: int | float, max_val: int | float) -> int
     return max(min_val, min(max_val, value))
 
 
+_UNUSABLE = object()
+_MAX_PASSTHROUGH_STRING = 255
+_MAX_PASSTHROUGH_LIST = 16
+
+
+def _passthrough_value(value: Any) -> Any:
+    """A scalar, or a short list of scalars, bounded; ``_UNUSABLE`` otherwise."""
+    if isinstance(value, str):
+        return value[:_MAX_PASSTHROUGH_STRING]
+    if isinstance(value, (bool, int, float)):
+        return value
+    if isinstance(value, list) and len(value) <= _MAX_PASSTHROUGH_LIST:
+        items = [_passthrough_value(v) for v in value]
+        if all(i is not _UNUSABLE and not isinstance(i, list) for i in items):
+            return items
+    return _UNUSABLE
+
+
+def _passthrough(state_data: dict[str, Any], entity_id: str) -> dict[str, Any] | str:
+    """A schema-less entity's state and attributes, bounded; or why not."""
+    out: dict[str, Any] = {}
+    for attr, value in state_data.items():
+        if not isinstance(attr, str) or value is None:
+            continue
+        if attr == "state" and isinstance(value, bool):
+            value = "on" if value else "off"
+        kept = _passthrough_value(value)
+        if kept is _UNUSABLE:
+            return f"Unsupported value for {attr} on {entity_id}"
+        out[attr] = str(kept) if attr == "state" else kept
+    return out
+
+
 def validate_entity_states(
     entities: dict[str, dict[str, Any]],
+    hass: HomeAssistant | None = None,
 ) -> tuple[bool, str, dict[str, dict[str, Any]] | None]:
     """Validate and normalize entity state data against domain schemas.
 
@@ -344,12 +381,25 @@ def validate_entity_states(
         schema = DOMAIN_STATE_SCHEMAS.get(domain)
 
         if schema is None:
-            return (
-                False,
-                f"Entity {entity_id} belongs to unsupported domain '{domain}'. "
-                f"Scene-capable domains: {', '.join(sorted(DOMAIN_STATE_SCHEMAS))}",
-                None,
-            )
+            # A domain without a schema of ours (input_*, select, number, lock,
+            # valve …): which domains a scene may hold is decided by the caller
+            # (``scene_supports``); here the state and its attributes go through
+            # as given, bounded — reproduce_state ignores what it does not use.
+            from .entity_capabilities import scene_exclusion  # noqa: PLC0415
+
+            if reason := scene_exclusion(hass, entity_id):
+                return (
+                    False,
+                    f"Entity {entity_id} belongs to unsupported domain '{domain}': {reason}",
+                    None,
+                )
+            if "state" not in state_data or state_data["state"] is None:
+                return False, f"Missing 'state' for {entity_id}", None
+            passthrough = _passthrough(state_data, entity_id)
+            if isinstance(passthrough, str):
+                return False, passthrough, None
+            normalized[entity_id] = passthrough
+            continue
 
         # Detect conflicting snapshot/target aliases before iteration — the
         # LLM may emit both with different values; whichever is iterated
@@ -443,6 +493,8 @@ def validate_entity_states(
                 attr = "temperature"
 
             if attr not in schema:
+                # The domain's schema lists every attribute its reproduce_state
+                # uses, so anything else (brightness on a switch) would be ignored.
                 _LOGGER.debug("Ignoring unsupported attribute %s for domain %s", attr, domain)
                 continue
 

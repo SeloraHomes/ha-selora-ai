@@ -22,7 +22,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 
 from .const import SCENE_ID_PREFIX
-from .entity_capabilities import is_scene_capable
+from .entity_capabilities import scene_exclusion, scene_supports
 from .scene_state_mapper import validate_entity_states
 
 if TYPE_CHECKING:
@@ -90,10 +90,11 @@ def validate_scene_payload(
         entity_id = raw_entity_id.lower()
         if not _ENTITY_ID_RE.match(entity_id):
             return False, f"Invalid entity_id format: {entity_id!r}", None
-        # Strip entities that aren't scene-capable (wrong domain or
-        # config/diagnostic switches) instead of rejecting the whole scene.
-        if not is_scene_capable(entity_id):
-            _LOGGER.debug("Stripping non-scene entity %s", entity_id)
+        # An entity no scene can set (a sensor swept in with a room) is left
+        # out — and NAMED, via ``scene_left_out``, rather than dropped without
+        # a word. Every domain whose integration can restore a state is kept,
+        # whatever its name.
+        if not scene_supports(hass, entity_id):
             continue
         if known_entity_ids is not None and entity_id not in known_entity_ids:
             return False, f"Entity {entity_id!r} does not exist in Home Assistant", None
@@ -102,7 +103,7 @@ def validate_scene_payload(
     if not candidates:
         return False, "No scene-capable entities remain after filtering", None
 
-    ok, reason, normalized_entities = validate_entity_states(candidates)
+    ok, reason, normalized_entities = validate_entity_states(candidates, hass)
     if not ok or normalized_entities is None:
         return False, reason, None
 
@@ -112,6 +113,18 @@ def validate_scene_payload(
     }
 
     return True, "valid", normalized
+
+
+def scene_left_out(scene: Any, hass: HomeAssistant | None = None) -> list[dict[str, str]]:
+    """The entities ``validate_scene_payload`` leaves out of *scene*, and why."""
+    entities = scene.get("entities") if isinstance(scene, dict) else None
+    if not isinstance(entities, dict):
+        return []
+    left: list[dict[str, str]] = []
+    for eid in sorted(e.lower() for e in entities if isinstance(e, str)):
+        if reason := scene_exclusion(hass, eid):
+            left.append({"entity_id": eid, "reason": reason})
+    return left
 
 
 def generate_scene_id() -> str:
@@ -269,7 +282,7 @@ async def async_create_scene(
         validate_scene_security,
     )
 
-    is_safe, sec_warnings = validate_scene_security(scene_data)
+    is_safe, sec_warnings = validate_scene_security(scene_data, hass)
     if not is_safe:
         raise SceneCreateError(f"Scene rejected by security validation: {sec_warnings[0]}")
     for warning in sec_warnings:

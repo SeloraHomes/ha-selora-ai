@@ -439,7 +439,8 @@ class TestValidateRejections:
 
 
 class TestValidateUnknownDomains:
-    """Entities with domains not in DOMAIN_STATE_SCHEMAS are now rejected."""
+    """A domain without a schema of ours passes through when a scene can restore
+    it (it has reproduce_state), and is rejected otherwise."""
 
     def test_rejects_unknown_domain(self) -> None:
         ok, reason, _ = validate_entity_states({"custom_domain.x": {"state": "active"}})
@@ -456,10 +457,12 @@ class TestValidateUnknownDomains:
         assert not ok
         assert "unsupported domain" in reason.lower()
 
-    def test_rejects_input_select_domain(self) -> None:
-        ok, reason, _ = validate_entity_states({"input_select.mode": {"state": "eco"}})
-        assert not ok
-        assert "unsupported domain" in reason.lower()
+    def test_accepts_a_domain_a_scene_can_restore_without_a_schema_of_ours(self) -> None:
+        """input_select has a reproduce_state platform, so a scene can set it;
+        its state passes through as given."""
+        ok, reason, normalized = validate_entity_states({"input_select.mode": {"state": "eco"}})
+        assert ok, reason
+        assert normalized == {"input_select.mode": {"state": "eco"}}
 
 
 class TestValidateEntityIdFormats:

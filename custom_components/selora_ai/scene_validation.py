@@ -12,7 +12,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .entity_capabilities import is_scene_capable
+from .entity_capabilities import scene_exclusion
 from .scene_state_mapper import MAX_SCENE_ENTITIES
 
 _LOGGER = logging.getLogger(__name__)
@@ -110,6 +110,7 @@ async def validate_entities_in_area(
 
 def validate_scene_security(
     scene: dict[str, Any],
+    hass: HomeAssistant | None = None,
 ) -> tuple[bool, list[str]]:
     """Run security checks on a scene payload.
 
@@ -151,11 +152,10 @@ def validate_scene_security(
         if not _ENTITY_ID_RE.match(entity_id):
             return False, [f"Invalid entity_id format: {entity_id!r}"]
 
-        if not is_scene_capable(entity_id):
-            return False, [
-                f"Entity {entity_id} is not scene-capable "
-                f"(wrong domain or config/diagnostic entity)"
-            ]
+        # *hass* lets a loaded integration answer for itself, as the payload
+        # validation before this already did.
+        if reason := scene_exclusion(hass, entity_id):
+            return False, [f"Entity {entity_id} is not scene-capable: {reason}"]
 
         if not isinstance(state_data, dict):
             return False, [f"State data for {entity_id} must be a dict"]

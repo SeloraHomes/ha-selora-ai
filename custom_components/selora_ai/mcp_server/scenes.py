@@ -315,7 +315,7 @@ async def _tool_validate_scene(hass: HomeAssistant, arguments: dict[str, Any]) -
             "normalized_yaml": None,
         }
 
-    is_safe, sec_warnings = validate_scene_security(normalized)
+    is_safe, sec_warnings = validate_scene_security(normalized, hass)
     if not is_safe:
         return {
             "valid": False,
@@ -339,7 +339,16 @@ async def _tool_validate_scene(hass: HomeAssistant, arguments: dict[str, Any]) -
         "warnings": [_sanitize(w) for w in sec_warnings],
         "normalized_yaml": normalized_yaml,
         "entity_count": len(normalized["entities"]),
+        **_left_out(payload, hass),
     }
+
+
+def _left_out(payload: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
+    """The entities left out because no scene can set them — said, not hidden."""
+    from ..scene_utils import scene_left_out  # noqa: PLC0415
+
+    left = scene_left_out(payload, hass)
+    return {"left_out": left} if left else {}
 
 
 async def _tool_create_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -395,6 +404,7 @@ async def _tool_create_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         "entity_id": result.get("entity_id"),
         "scene_yaml": result.get("scene_yaml", ""),
         "status": "created",
+        **_left_out(payload, hass),
     }
 
 
