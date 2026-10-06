@@ -86,6 +86,16 @@ drift from behaviour, and defended the answer.
   searches one domain only: a scene, a script and an automation share names
   freely ("Goodnight" scene, "Goodnight Scene" automation). A name matching
   several entities is an error that lists them, never the first hit.
+- **Traces are read for scripts too** (`get_automation_traces`). An entity_id
+  or object id of either kind is taken as written (checked with
+  `valid_entity_id` first: the state machine lowercases, so a NAME like
+  "Bedtime" would match `script.bedtime`); otherwise every exact name across
+  both kinds is collected at once, and more than one is refused — an ambiguity
+  in either kind must not fall through to the other's runs. A script's trace key is `script.<unique_id>`
+  from the registry, which survives an entity_id rename.
+- **A run stopped in a condition ends on a leaf** (`…/entity_id/0`), a string
+  inside the step. `stopped_at.config` is the nearest enclosing mapping — the
+  step as written — while `result` stays the leaf's (state vs wanted state).
 - **A trace step carries its config and result.** `last_step` alone
   (`condition/0`) is an index into a config the model never saw. `stopped_at`
   reads the extended trace: the config the run used at that path and the step's

@@ -2224,17 +2224,17 @@ TOOL_INSTALL_UPDATE = ToolDef(
 TOOL_GET_AUTOMATION_TRACES = ToolDef(
     name="get_automation_traces",
     description=(
-        "Return the most recent runs of one automation: what triggered it, and the "
-        "step each run stopped at — that step's configuration and its result (a "
-        "condition that returned false, an action that errored). This is how to "
-        "answer 'why didn't my automation run?' — do not guess from the YAML when a "
-        "trace exists."
+        "Return the most recent runs of one automation or script: what triggered "
+        "it, and the step each run stopped at — that step's configuration and its "
+        "result (a condition that returned false, an action that errored). This is "
+        "how to answer 'why didn't my automation run?' or 'why did my script stop?' "
+        "— do not guess from the YAML when a trace exists."
     ),
     params=(
         ToolParam(
             name="automation",
             type="string",
-            description="Automation entity_id or its exact name.",
+            description="Automation or script entity_id, or its exact name.",
             required=True,
         ),
     ),

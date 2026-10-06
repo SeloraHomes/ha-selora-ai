@@ -20,6 +20,8 @@ from datetime import datetime
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
+from homeassistant.core import valid_entity_id
+
 from .helpers import resolve_domain_ref, sanitize_untrusted_text
 
 if TYPE_CHECKING:
@@ -124,16 +126,56 @@ def _json_safe(value: Any) -> Any:
 
 
 def _resolve_trace_key(hass: HomeAssistant, ref: str) -> tuple[str | None, str | None]:
-    """Map an automation entity_id or alias to its trace key.
+    """Map an automation's or a script's entity_id or name to its trace key.
 
-    The key is ``automation.<config id>`` — the automation's *config* id, not
-    its object_id, so ``automation.porch_light`` (the only handle the rest of
-    the tool surface gives out) does not work as a key on its own and has to be
-    translated through the state's ``id`` attribute.
+    An automation's key is ``automation.<config id>`` — the config id, not its
+    object_id, so ``automation.porch_light`` (the only handle the rest of the
+    tool surface gives out) is translated through the state's ``id``
+    attribute. A script's is ``script.<unique id>``, from the registry, which
+    survives a rename of its entity_id.
+
+    A ``script.`` entity_id is a script; anything else is looked up as an
+    automation first, then as a script. A name both use is refused: they
+    share names freely, and the wrong one's runs would answer the question.
     """
-    state, error = resolve_domain_ref(hass, "automation", ref)
-    if state is None:
-        return None, error
+    ref = str(ref or "").strip()
+    if not ref:
+        return None, "An automation or script entity_id or name is required."
+    # An entity_id, or a bare object id, of either kind — exactly as written:
+    # the state machine lowercases what it is asked, so a NAME such as
+    # "Bedtime" would otherwise be taken for script.bedtime here.
+    for candidate in (ref, f"automation.{ref}", f"script.{ref}"):
+        if (
+            candidate.split(".", 1)[0] in ("automation", "script")
+            and valid_entity_id(candidate)
+            and (found := hass.states.get(candidate))
+        ):
+            matches = [found]
+            break
+    else:
+        # Every exact name across both kinds at once: an ambiguity in either is
+        # an ambiguity, and must not fall through to the other kind's runs.
+        wanted = ref.casefold()
+        matches = [
+            state
+            for domain in ("automation", "script")
+            for state in hass.states.async_all(domain)
+            if state.name.casefold() == wanted
+        ]
+    if len(matches) > 1:
+        ids = ", ".join(sorted(state.entity_id for state in matches))
+        return None, (
+            f"{len(matches)} automations or scripts are named "
+            f"'{sanitize_untrusted_text(ref, 60)}' ({ids}). Pass the entity_id."
+        )
+    if not matches:
+        return None, (
+            f"No automation or script matching '{sanitize_untrusted_text(ref, 60)}'. "
+            "Resolve it with search_entities(domain='automation') or domain='script'."
+        )
+    state = matches[0]
+    if state.domain == "script":
+        return _script_trace_key(hass, state.entity_id)
 
     unique_id = state.attributes.get("id")
     if not unique_id:
@@ -142,6 +184,17 @@ def _resolve_trace_key(hass: HomeAssistant, ref: str) -> tuple[str | None, str |
             "for it. YAML automations without an 'id' are not traced."
         )
     return f"automation.{unique_id}", None
+
+
+def _script_trace_key(hass: HomeAssistant, ref: str) -> tuple[str | None, str | None]:
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    state, error = resolve_domain_ref(hass, "script", ref)
+    if state is None:
+        return None, error
+    entry = er.async_get(hass).async_get(state.entity_id)
+    unique_id = entry.unique_id if entry is not None else state.entity_id.split(".", 1)[1]
+    return f"script.{unique_id}", None
 
 
 def _step_config(config: Any, path: str) -> Any:
@@ -189,9 +242,15 @@ async def _stopped_at(hass: HomeAssistant, key: str, run_id: str, path: str) -> 
     except KeyError:
         return {"path": path}
     step: dict[str, Any] = {"path": path}
-    config = _step_config(extended.get("config"), path)
-    if config is not None:
-        step["config"] = _json_safe(config)
+    # A run stopped inside a condition ends on a leaf such as
+    # `sequence/1/entity_id/0` — a string within the step, not the step. The
+    # nearest enclosing mapping is the step the user wrote.
+    segments = path.split("/")
+    for end in range(len(segments), 0, -1):
+        config = _step_config(extended.get("config"), "/".join(segments[:end]))
+        if isinstance(config, dict):
+            step["config"] = _json_safe(config)
+            break
     elements = (extended.get("trace") or {}).get(path) or []
     if elements:
         last = elements[-1]
@@ -203,7 +262,7 @@ async def _stopped_at(hass: HomeAssistant, key: str, run_id: str, path: str) -> 
 
 
 async def get_automation_traces(hass: HomeAssistant, ref: str) -> dict[str, Any]:
-    """Return the most recent runs of one automation, newest first."""
+    """Return the most recent runs of one automation or script, newest first."""
     try:
         from homeassistant.components.trace.util import (  # noqa: PLC0415
             async_list_traces,
@@ -214,9 +273,10 @@ async def get_automation_traces(hass: HomeAssistant, ref: str) -> dict[str, Any]
     key, error = _resolve_trace_key(hass, ref)
     if error or key is None:
         return {"error": error or "Automation not found."}
+    domain = key.split(".", 1)[0]
 
     try:
-        raw_traces = await async_list_traces(hass, "automation", key)
+        raw_traces = await async_list_traces(hass, domain, key)
     except Exception as exc:  # noqa: BLE001 — HomeAssistantError and friends
         return {"error": f"Could not read traces: {exc}"}
 
@@ -250,11 +310,12 @@ async def get_automation_traces(hass: HomeAssistant, ref: str) -> dict[str, Any]
     if not traces:
         return {
             "entity_id": ref,
+            "trace_key": key,
             "traces": [],
             "message": (
-                "No retained trace is available for this automation. Home Assistant "
-                "keeps a bounded number of traces per automation and restores saved "
-                "ones after a restart, so this does not prove the automation has never "
+                f"No retained trace is available for this {domain}. Home Assistant "
+                f"keeps a bounded number of traces per {domain} and restores saved "
+                f"ones after a restart, so this does not prove the {domain} has never "
                 "run — only that no trace it kept is available now."
             ),
         }
