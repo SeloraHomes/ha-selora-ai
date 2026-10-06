@@ -8,6 +8,10 @@ that should be excluded from user-facing features.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 
 @dataclass(frozen=True)
@@ -162,6 +166,83 @@ def is_inspectable_entity(entity_id: str) -> bool:
     if domain in TOOL_HIDDEN_DOMAINS:
         return False
     return is_actionable_entity(entity_id)
+
+
+# Core domains whose integration ships a ``reproduce_state`` platform — what a
+# scene can set — for callers with no hass to ask.
+_CORE_REPRODUCIBLE_DOMAINS: frozenset[str] = frozenset(
+    {
+        "alarm_control_panel",
+        "climate",
+        "counter",
+        "cover",
+        "fan",
+        "group",
+        "humidifier",
+        "input_boolean",
+        "input_datetime",
+        "input_number",
+        "input_select",
+        "input_text",
+        "light",
+        "lock",
+        "media_player",
+        "number",
+        "remote",
+        "select",
+        "switch",
+        "text",
+        "timer",
+        "vacuum",
+        "water_heater",
+    }
+)
+
+
+# Domains a scene must not set even though HA could: activating a scene would
+# unlock a door or disarm an alarm with none of the approval those need.
+_SCENE_SECURITY_DOMAINS: frozenset[str] = frozenset({"lock", "alarm_control_panel"})
+
+
+def _restorable(hass: HomeAssistant | None, domain: str) -> bool:
+    """Whether the domain's integration can restore a state (``reproduce_state``)."""
+    if hass is not None:
+        from homeassistant.loader import (  # noqa: PLC0415
+            IntegrationNotLoaded,
+            async_get_loaded_integration,
+        )
+
+        try:
+            integration = async_get_loaded_integration(hass, domain)
+        except IntegrationNotLoaded:
+            # Not loaded is not "cannot": decide by the core list instead.
+            return domain in _CORE_REPRODUCIBLE_DOMAINS
+        return bool(integration.platforms_exists(("reproduce_state",)))
+    return domain in _CORE_REPRODUCIBLE_DOMAINS
+
+
+def scene_exclusion(hass: HomeAssistant | None, entity_id: str) -> str | None:
+    """Why a scene must not set *entity_id*, or None when it may.
+
+    Home Assistant applies a scene through each domain's ``reproduce_state``,
+    so that decides which domains — not a fixed list. On top: locks and alarms
+    stay out (a scene would bypass their approval), and so do the device
+    setting switches ``is_actionable_entity`` recognises (a camera's privacy
+    mode swept into a room's scene would quietly stop it recording).
+    """
+    domain = entity_id.split(".", 1)[0]
+    if domain in _SCENE_SECURITY_DOMAINS:
+        return "a scene must not unlock or disarm — that needs an approval"
+    if not _restorable(hass, domain):
+        return "it has no state a scene can restore"
+    if not is_actionable_entity(entity_id):
+        return "it looks like a device setting, not something a scene should change"
+    return None
+
+
+def scene_supports(hass: HomeAssistant | None, entity_id: str) -> bool:
+    """Whether a scene may set *entity_id* — see ``scene_exclusion``."""
+    return scene_exclusion(hass, entity_id) is None
 
 
 def is_scene_capable(entity_id: str) -> bool:
