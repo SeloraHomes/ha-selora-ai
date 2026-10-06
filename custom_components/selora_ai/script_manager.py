@@ -64,6 +64,10 @@ _MAX_LISTED: Final = 50
 _MAX_RESULT_CHARS: Final = MAX_TOOL_RESULT_CHARS - 500
 
 
+# Settings ``set_script`` can remove: everything but the alias and sequence.
+CLEARABLE = ("description", "icon", "mode", "fields", "variables", "max", "max_exceeded")
+
+
 def _scripts_path(hass: HomeAssistant) -> Path:
     return Path(hass.config.path(SCRIPTS_FILE))
 
@@ -426,8 +430,18 @@ async def async_set_script(
     icon: str | None = None,
     expected_fingerprint: str | None = None,
     expect_create: bool = False,
+    fields: dict[str, Any] | None = None,
+    variables: dict[str, Any] | None = None,
+    max_runs: int | None = None,
+    max_exceeded: str | None = None,
+    clear: list[str] | None = None,
 ) -> dict[str, Any]:
     """Create a script, or replace an existing one wholesale.
+
+    ``fields`` (the inputs callers pass) and ``variables`` replace the
+    script's own when given; ``clear`` removes settings by name
+    (``CLEARABLE``). Changing or removing fields can break what calls the
+    script, so an update that does names those callers.
 
     Replacement is total, not a merge: a partial sequence merged into an
     existing script would produce a sequence neither the user nor the model
@@ -444,6 +458,27 @@ async def async_set_script(
         return {"error": "A script alias (name) is required."}
     if not isinstance(sequence, list) or not sequence:
         return {"error": "A non-empty sequence of actions is required."}
+    for name, value in (("fields", fields), ("variables", variables)):
+        if value is not None and not isinstance(value, dict):
+            return {"error": f"{name} must be an object keyed by name."}
+    unknown = [c for c in clear or () if c not in CLEARABLE]
+    if unknown:
+        return {"error": f"clear takes {', '.join(CLEARABLE)}, not {unknown}."}
+    given = {
+        name
+        for name, value in (
+            ("description", description),
+            ("icon", icon),
+            ("mode", mode),
+            ("fields", fields),
+            ("variables", variables),
+            ("max", max_runs),
+            ("max_exceeded", max_exceeded),
+        )
+        if value not in (None, "")
+    }
+    if both := sorted(given & set(clear or ())):
+        return {"error": f"{', '.join(both)}: set and cleared in one call; do one or the other."}
 
     path = _scripts_path(hass)
     # The lock spans read → validate → write. Holding it only around the write
@@ -485,6 +520,7 @@ async def async_set_script(
         # the right way round: an unwanted leftover is visible in the UI, whereas
         # a deleted ``fields`` block shows up as callers failing later.
         config: dict[str, Any] = dict(scripts[target] or {}) if existed else {}
+        fields_before = config.get("fields")
         config.update({"alias": alias, "sequence": sequence})
         if description:
             config["description"] = str(description).strip()
@@ -492,6 +528,16 @@ async def async_set_script(
             config["mode"] = str(mode).strip()
         if icon:
             config["icon"] = str(icon).strip()
+        if fields is not None:
+            config["fields"] = fields
+        if variables is not None:
+            config["variables"] = variables
+        if max_runs is not None:
+            config["max"] = max_runs
+        if max_exceeded:
+            config["max_exceeded"] = str(max_exceeded).strip()
+        for name in clear or ():
+            config.pop(name, None)
 
         from homeassistant.components.script.config import (  # noqa: PLC0415
             async_validate_config_item,
@@ -543,6 +589,16 @@ async def async_set_script(
         "alias": sanitize_untrusted_text(alias, 80),
         "step_count": len(sequence),
     }
+    if config.get("fields"):
+        result["fields"] = sorted(config["fields"])
+    if existed and config.get("fields") != fields_before:
+        callers = script_dependents(hass, _entity_id(target))
+        if any(callers.values()):
+            result["check_callers"] = callers
+            result["note"] = (
+                "The script's fields changed. These call it and may pass inputs it no "
+                "longer takes, or miss ones it now requires."
+            )
     if reload_error:
         result["reload_error"] = reload_error
     return result
@@ -573,7 +629,31 @@ def script_dependents(hass: HomeAssistant, entity_id: str) -> dict[str, list[str
     """
     from .group_manager import group_dependents  # noqa: PLC0415
 
-    return group_dependents(hass, entity_id)
+    found = group_dependents(hass, entity_id)
+    # Home Assistant's reference tracking follows `entity_id` targets only, so
+    # the usual way of calling a script — `action: script.<name>` — is not a
+    # reference to it there.
+    for kind, domain in (("automations", "automation"), ("scripts", "script")):
+        component = hass.data.get(domain)
+        direct = {
+            entity.entity_id
+            for entity in getattr(component, "entities", ())
+            if entity.entity_id != entity_id
+            and _calls(getattr(entity, "raw_config", None), entity_id)
+        }
+        found[kind] = sorted(set(found.get(kind, ())) | direct)
+    return found
+
+
+def _calls(config: Any, entity_id: str) -> bool:
+    """Whether a config calls *entity_id* as an action, anywhere in it."""
+    if isinstance(config, dict):
+        if entity_id in (config.get("action"), config.get("service")):
+            return True
+        return any(_calls(value, entity_id) for value in config.values())
+    if isinstance(config, list):
+        return any(_calls(item, entity_id) for item in config)
+    return False
 
 
 async def async_delete_script(

@@ -32,13 +32,18 @@ async def _tool_get_script(hass: HomeAssistant, arguments: dict[str, Any]) -> di
 async def _tool_set_script(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Create or wholesale-replace a script."""
     from ..script_manager import async_set_script  # noqa: PLC0415
-    from ..tool_executor import _opt_str  # noqa: PLC0415
+    from ..tool_executor import _opt_index, _opt_list, _opt_options, _opt_str  # noqa: PLC0415
 
     sequence = arguments.get("sequence")
     if not isinstance(sequence, list):
         return {"error": "sequence must be a list of action steps."}
     return await async_set_script(
         hass,
+        fields=_opt_options(arguments.get("fields")),
+        variables=_opt_options(arguments.get("variables")),
+        max_runs=_opt_index(arguments.get("max")),
+        max_exceeded=_opt_str(arguments.get("max_exceeded")),
+        clear=_opt_list(arguments.get("clear")),
         alias=str(arguments.get("alias", "")),
         sequence=sequence,
         object_id=_opt_str(arguments.get("object_id")),

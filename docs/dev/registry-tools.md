@@ -64,6 +64,17 @@ the model stops reciting Settings click-paths.
   HA's `async_validate_config_item` runs **before** the write. A *reload* failure
   after a successful write is reported as `reload_error` beside the write, not
   raised, since the change did land.
+- **Settings not passed are kept; `clear` removes them** (`CLEARABLE`). `fields`
+  and `variables` replace the script's own when given. Rebuilding the config
+  from the parameters alone stripped a parameterised script's inputs and broke
+  every caller.
+- **Changing fields names the callers** (`check_callers`), and on chat the
+  replacement card says the inputs change or go. Fields are what callers pass;
+  a required one added, or one removed, fails those calls at run time.
+- **`script_dependents` also finds `action: script.<name>` calls.** HA's
+  reference tracking follows `entity_id` targets only, so the usual way of
+  calling a script was invisible — to this and to the delete card's warning.
+  It walks the loaded automations' and scripts' `raw_config`.
 
 ## Labels and categories
 
