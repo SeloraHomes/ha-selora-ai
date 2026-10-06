@@ -61,7 +61,21 @@ components (the same object the websocket API serves).
     truncated digest is short enough to find two texts sharing it.
   - The first call writes nothing and returns a `content_hash` of the fetched
     text; the confirmed call refetches and writes only if the hash still matches.
-    An existing file is never overwritten.
+  - **An existing blueprint is replaced only with `overwrite`** — the only way an
+    author's new version reaches what is built on it, since delete refuses a
+    blueprint in use. The preview's `replaces` names the users and
+    `would_break`: each user's stored inputs against the new version's required
+    ones (no default), the set `BlueprintInputs.validate` refuses — computed from
+    `inputs_with_default`, since `MissingInput` keeps no names. A user's inputs
+    are its `_blueprint_inputs` — NOT `raw_config`, which for a blueprint
+    automation or script is the expanded config without `use_blueprint`; a user
+    whose inputs cannot be read is `unchecked` and blocks like a break.
+  - A confirmed overwrite is refused while anything would break, or if the
+    file's hash (`replaces_hash`) changed since the preview. The hash check and
+    the write are ONE executor job (`_replace_if_digest`, temp file +
+    `os.replace`), then the store's cache is set and its users reloaded as
+    `async_add_blueprint` would — through its private `_blueprints` /
+    `_reload_blueprint_consumers` (present from 2025.1).
   - Delete names what uses the blueprint (HA refuses one in use) or asks first.
     It checks the FILE exists rather than loading it — a blueprint that fails to
     parse is listed, and is exactly the kind worth deleting.
