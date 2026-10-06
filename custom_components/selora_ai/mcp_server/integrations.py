@@ -65,6 +65,7 @@ async def _tool_set_integration_options(
         str(arguments.get("entry_id") or ""),
         _opt_str(arguments.get("type")),
         options if isinstance(options, dict) else None,
+        _opt_str(arguments.get("flow_id")),
     )
 
 

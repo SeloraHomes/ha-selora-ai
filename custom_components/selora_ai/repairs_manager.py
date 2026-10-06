@@ -17,14 +17,13 @@ from __future__ import annotations
 import contextlib
 import logging
 import re
-import time
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.data_entry_flow import InvalidData, UnknownFlow
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.translation import async_get_translations
 
-from .const import DOMAIN
+from .flow_sessions import keep_open, owner_of, release
 from .helper_flow import _FLOW_ERRORS, _describe_fields
 from .helpers import sanitize_untrusted_text
 
@@ -35,8 +34,6 @@ _LOGGER = logging.getLogger(__name__)
 
 _PLACEHOLDER: Final = re.compile(r"\{(\w+)\}")
 _SEVERITY_ORDER: Final = {"critical": 0, "error": 1, "warning": 2}
-# A fix left between steps this long is aborted.
-_FLOW_TTL: Final = 15 * 60
 
 
 def _fill(text: str, placeholders: dict[str, Any] | None) -> str:
@@ -119,27 +116,6 @@ def async_ignore_repair(
     }
 
 
-def _open_flows(hass: HomeAssistant) -> dict[str, tuple[str, str, float]]:
-    """Fix flows this tool started and has not finished:
-    flow_id → (domain, issue_id, last step at).
-
-    A flow continues across calls, so it stays open between them; only these
-    may be continued, only for the repair they were started for, and one left
-    alone past ``_FLOW_TTL`` since its last step is aborted.
-    """
-    return hass.data.setdefault(DOMAIN, {}).setdefault("_repair_fix_flows", {})
-
-
-def _prune(hass: HomeAssistant, manager: Any) -> None:
-    flows = _open_flows(hass)
-    now = time.monotonic()
-    for flow_id, (_domain, _issue_id, last_step) in list(flows.items()):
-        if now - last_step > _FLOW_TTL:
-            flows.pop(flow_id, None)
-            with contextlib.suppress(UnknownFlow):
-                manager.async_abort(flow_id)
-
-
 def _step(issue: ir.IssueEntry, texts: dict[str, str], result: dict[str, Any]) -> dict[str, Any]:
     """The current step of a fix flow, with its own title and description."""
     step_id = result.get("step_id") or "init"
@@ -198,26 +174,24 @@ async def async_fix_repair(
     manager = repairs_flow_manager(hass)
     if manager is None:
         return {"error": "Repairs are not set up in this Home Assistant."}
-    _prune(hass, manager)
-    flows = _open_flows(hass)
     texts = await _texts(hass, [issue])
 
     try:
         if flow_id is None:
             result = await manager.async_init(issue.domain, data={"issue_id": issue.issue_id})
         else:
-            started_for = flows.get(flow_id)
-            if started_for is None:
+            started_for = owner_of(hass, flow_id)
+            if started_for is None or started_for[0] != "repair":
                 return {
                     "error": (
                         "That fix is not one in progress here (or it timed out). Start "
                         "again without flow_id."
                     )
                 }
-            if started_for[:2] != (issue.domain, issue.issue_id):
+            if started_for[1:] != (issue.domain, issue.issue_id):
                 return {
                     "error": (
-                        f"That flow_id fixes {started_for[0]}/{started_for[1]}, not this repair."
+                        f"That flow_id fixes {started_for[1]}/{started_for[2]}, not this repair."
                     )
                 }
             if choice:
@@ -230,17 +204,18 @@ async def async_fix_repair(
         return {"error": f"The fix rejected that input: {exc.schema_errors or exc}"}
     except _FLOW_ERRORS as exc:
         _LOGGER.warning("%s repair flow failed: %s", issue.domain, exc)
-        if flow_id:
-            flows.pop(flow_id, None)
+        release(hass, flow_id, abort=True)
         return {"error": f"The fix failed: {sanitize_untrusted_text(str(exc), 200)}"}
 
     kind = result.get("type")
     if kind in ("form", "menu", "external"):
         # Pending again: (re)start its inactivity clock.
         if result.get("flow_id"):
-            flows[result["flow_id"]] = (issue.domain, issue.issue_id, time.monotonic())
+            keep_open(
+                hass, manager, result["flow_id"], ("repair", issue.domain, issue.issue_id), result
+            )
         return {"domain": issue.domain, "issue_id": issue.issue_id, **_step(issue, texts, result)}
-    flows.pop(result.get("flow_id") or flow_id or "", None)
+    release(hass, result.get("flow_id") or flow_id, abort=kind != "create_entry")
     if kind == "create_entry":
         return {"status": "fixed", "domain": issue.domain, "issue_id": issue.issue_id}
     reason = result.get("reason") or kind

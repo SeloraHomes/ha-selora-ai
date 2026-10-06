@@ -43,8 +43,9 @@ async def test_a_typed_call_describes_the_form(hass: HomeAssistant, template: No
     assert result["status"] == "needs_options"
     names = {f["name"] for f in result["fields"]}
     assert {"name", "arm_away", "arm_home", "trigger", "code_arm_required"} <= names
-    # Nothing was left half-done in Settings.
-    assert not hass.config_entries.flow.async_progress()
+    # Held open for the answer, under the flow_id returned.
+    (open_flow,) = hass.config_entries.flow.async_progress()
+    assert open_flow["flow_id"] == result["flow_id"]
 
 
 async def test_an_alarm_panel_works_with_no_helper_behind_it(
@@ -93,6 +94,14 @@ async def test_rejected_fields_come_back_with_the_form(hass: HomeAssistant, temp
     result = await _create(hass, domain="template", type="sensor", fields={"state": "{{ 1 }}"})
     assert "error" in result
     assert result["fields"]
+    # The same form takes a corrected answer.
+    retry = await _create(
+        hass,
+        domain="template",
+        flow_id=result["flow_id"],
+        fields={"name": "One", "state": "{{ 1 }}"},
+    )
+    assert retry["status"] == "created", retry
     assert not hass.config_entries.flow.async_progress()
 
 

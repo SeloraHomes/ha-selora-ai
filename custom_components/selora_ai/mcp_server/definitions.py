@@ -1881,7 +1881,9 @@ _TOOL_DEFINITIONS.extend(
                 "fields inside any section (or the choices, when the form starts with a "
                 "menu — then pass `type`). A section's fields go in an object under the "
                 "section's name. Then call again with `options` holding the fields "
-                "to set. Requires admin access."
+                "to set. An options flow with more steps returns the next one with a "
+                "flow_id: pass it back with that step's `options` (or `type` for a "
+                "menu). Requires admin access."
             ),
             inputSchema={
                 "type": "object",
@@ -1895,6 +1897,10 @@ _TOOL_DEFINITIONS.extend(
                     "options": {
                         "type": "object",
                         "description": "The form's values, keyed by its field names.",
+                    },
+                    "flow_id": {
+                        "type": "string",
+                        "description": "From a previous call, to answer the flow's next step.",
                     },
                 },
             },
