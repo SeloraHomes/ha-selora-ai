@@ -1149,6 +1149,10 @@ def create_helper_fields(arguments: dict[str, Any]) -> dict[str, Any]:
     options = _opt_list(arguments.get("options"))
     if options:
         fields["options"] = options
+    # Passed on even when malformed, for `_expand_schedule` to refuse by name:
+    # dropped, the schedule would be created with no time on any day.
+    if (schedule := _opt_options(arguments.get("schedule"))) is not None:
+        fields["schedule"] = schedule
     for flag in ("has_date", "has_time", "restore", "passive"):
         if flag in fields:
             coerced = _opt_bool(fields[flag])

@@ -48,9 +48,34 @@ _COLLECTIONS: Final[dict[str, tuple[str, str]]] = {
     "counter": ("CounterStorageCollection", "CREATE_UPDATE_SCHEMA"),
     "timer": ("TimerStorageCollection", "CREATE_UPDATE_SCHEMA"),
     "zone": ("ZoneStorageCollection", "CREATE_SCHEMA"),
+    "schedule": ("ScheduleStorageCollection", "SCHEMA"),
 }
 
 CREATABLE_HELPER_DOMAINS: Final = tuple(_COLLECTIONS)
+
+_DAYS: Final = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+
+
+def _expand_schedule(fields: dict[str, Any]) -> str | None:
+    """Spread a ``schedule`` argument (``{day: [{from, to}, …]}``) into the
+    per-day keys a schedule stores, in place; an error, or None.
+
+    One object rather than seven parameters keeps the tool schema small. A day
+    named wrongly is refused rather than dropped as unknown fields are: dropped,
+    "mon" would save a schedule that is never on, and say it was created.
+    """
+    if "schedule" not in fields:
+        return None
+    week = fields.pop("schedule")
+    if not isinstance(week, dict):
+        return "schedule is an object of days, e.g. {'monday': [{'from': '07:00', 'to': '09:00'}]}."
+    for key, blocks in week.items():
+        name = str(key).strip().lower()
+        day = next((d for d in _DAYS if d == name or d[:3] == name), None)
+        if day is None:
+            return f"'{sanitize_untrusted_text(key, 20)}' is not a day; use monday … sunday."
+        fields[day] = blocks if isinstance(blocks, list) else [blocks]
+    return None
 
 
 def _create_schema(domain: str) -> vol.Schema | None:
@@ -142,6 +167,9 @@ async def async_propose_helper(
     if schema is None:
         return {"error": f"Could not read Home Assistant's {domain} schema."}
 
+    fields = dict(fields)
+    if error := _expand_schedule(fields):
+        return {"error": error}
     accepted = _schema_keys(schema)
     supplied = {k: v for k, v in fields.items() if v is not None}
     dropped = sorted(set(supplied) - accepted)
@@ -370,6 +398,9 @@ async def async_update_helper(
     if schema is None:
         return {"error": f"Could not read Home Assistant's {domain} schema."}
     accepted = _schema_keys(schema)
+    fields = dict(fields)
+    if error := _expand_schedule(fields):
+        return {"error": error}
 
     to_clear = sorted(set(clear or ()))
     unknown = [key for key in to_clear if key not in accepted]

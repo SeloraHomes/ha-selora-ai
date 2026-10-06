@@ -1771,7 +1771,8 @@ TOOL_CREATE_HELPER = ToolDef(
         "Create any Home Assistant helper. Two kinds, one tool:\n"
         "- A storage helper — domain input_boolean (toggle), input_select "
         "(dropdown), input_number, input_text, input_datetime, input_button, "
-        "counter, timer, or zone (a place people are tracked in: work, school) "
+        "counter, timer, schedule (weekly on/off time blocks), or zone (a place "
+        "people are tracked in: work, school) "
         "— with the flat parameters below. CALL IT rather than "
         "telling the user to make the helper in Settings: it returns a card with "
         "a Create button and the user's browser creates it, so do NOT say it "
@@ -1796,7 +1797,8 @@ TOOL_CREATE_HELPER = ToolDef(
             type="string",
             description=(
                 "A storage helper domain (input_boolean, input_select, input_number, "
-                "input_text, input_datetime, input_button, counter, timer, zone) or a helper "
+                "input_text, input_datetime, input_button, counter, timer, schedule, zone) "
+                "or a helper "
                 "integration (template, utility_meter, threshold, derivative, …)."
             ),
             required=True,
@@ -1881,6 +1883,15 @@ TOOL_CREATE_HELPER = ToolDef(
             description="zone: only for automations — nobody is shown as in it.",
         ),
         ToolParam(
+            name="schedule",
+            type="object",
+            description=(
+                "schedule: the weekly blocks when it is on, by day — {'monday': "
+                "[{'from': '07:00:00', 'to': '09:00:00'}], 'saturday': []}. On an "
+                "update, days left out are kept and [] empties one."
+            ),
+        ),
+        ToolParam(
             name="remaining_intent",
             type="string",
             description=(
@@ -1906,7 +1917,8 @@ TOOL_CREATE_HELPER_DIRECT = ToolDef(
         "kinds, one tool:\n"
         "- A storage helper — domain input_boolean (toggle), input_select "
         "(dropdown), input_number, input_text, input_datetime, input_button, "
-        "counter, timer, or zone (a place people are tracked in: work, school) "
+        "counter, timer, schedule (weekly on/off time blocks), or zone (a place "
+        "people are tracked in: work, school) "
         "— with the flat parameters below. The result gives its "
         "entity_id.\n"
         "- A config-entry helper — domain template (a template sensor, "
@@ -1937,7 +1949,7 @@ TOOL_UPDATE_HELPER = ToolDef(
     description=(
         "Change a helper created in the Home Assistant UI — input_boolean, "
         "input_select, input_number, input_text, input_datetime, input_button, "
-        "counter, timer or zone: its name, icon, a dropdown's options, a number's "
+        "counter, timer, schedule or zone: its name, icon, a dropdown's options, a number's "
         "range, a timer's duration, a zone's place and radius and so on. Pass only what changes; every other setting "
         "is kept. Takes effect immediately. Template and other integration-backed "
         "helpers are changed in Settings. Call list_helpers for the entity_id."
@@ -1969,7 +1981,7 @@ TOOL_DELETE_HELPER = ToolDef(
     description=(
         "Delete a helper created in the Home Assistant UI — input_boolean, "
         "input_select, input_number, input_text, input_datetime, input_button, "
-        "counter, timer or zone. Automations, scripts and dashboard cards using it stop "
+        "counter, timer, schedule or zone. Automations, scripts and dashboard cards using it stop "
         "working, and the confirmation card names how many do. The user gets a "
         "confirmation card. Call list_helpers for the entity_id."
     ),
