@@ -212,11 +212,11 @@ def _with_part(hass: HomeAssistant) -> tuple[dr.DeviceEntry, Any, str]:
 
 
 async def test_a_parent_device_names_its_parts(hass: HomeAssistant) -> None:
-    device, _part, part_entity = _with_part(hass)
+    device, part, part_entity = _with_part(hass)
 
     asked = await _mcp(hass, TOOL_REMOVE_DEVICE, device_id=device.id)
 
-    assert asked["parts"] == 1
+    assert asked["parts"] == [{"id": part.id, "name": "Subwoofer"}]
     assert part_entity in asked["entities"]
     assert "1 part" in asked["hint"]
 
