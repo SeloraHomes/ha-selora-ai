@@ -622,62 +622,6 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
         },
     ),
     MCPTool(
-        name=TOOL_SEARCH_ENTITIES,
-        description=(
-            "Fuzzy-search entities by free-text query across entity_id, friendly "
-            "name, registered aliases, area name, and the entity's DEVICE (name, "
-            "manufacturer, model) — so a brand or model query ('IKEA', 'Aqara', "
-            "'TRADFRI') resolves the entities that device owns, even though the "
-            "brand appears in no entity name. Returns ranked matches (score = "
-            "number of query terms found). Use this when the user names a device "
-            "informally ('kitchen island light', 'master bedroom fan') and you "
-            "need to resolve it to an entity_id before issuing a command. "
-            "`domain` and `device_class` may each be used ALONE, with no query: "
-            "domain='camera' lists every camera, device_class='battery' every "
-            "battery entity — the way to find battery levels, which are "
-            "diagnostic entities and so absent from the home snapshot. An empty "
-            "result is a failed name lookup, not proof the device is absent."
-        ),
-        inputSchema={
-            "type": "object",
-            "required": [],
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": (
-                        "Free-text search query (e.g. 'kitchen island light', "
-                        "'IKEA'). Required unless domain or device_class is "
-                        "given."
-                    ),
-                },
-                "domain": {
-                    "type": "string",
-                    "description": (
-                        "Optional domain filter (e.g. 'light', 'camera'). "
-                        "Works with no query, to list the whole domain."
-                    ),
-                },
-                "device_class": {
-                    "type": "string",
-                    "description": (
-                        "Optional device-class filter (e.g. 'battery', "
-                        "'temperature', 'motion'). Works with no query."
-                    ),
-                },
-                "limit": {
-                    "type": "integer",
-                    "description": (
-                        "Max results (default 10, up to 25 for a query; a "
-                        "device_class-only listing defaults to all matches, up "
-                        "to 50). `omitted` reports anything left out."
-                    ),
-                    "minimum": 1,
-                    "maximum": 50,
-                },
-            },
-        },
-    ),
-    MCPTool(
         name=TOOL_EVAL_TEMPLATE,
         description=(
             "Evaluate a Home Assistant Jinja template using HA's sandbox. Use this "
@@ -1078,6 +1022,7 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
 _DASHBOARD_WRITE_TOOLS: frozenset[str] | None = None
 
 _DERIVED_MCP_TOOLS: dict[str, str] = {
+    TOOL_SEARCH_ENTITIES: "search_entities",
     TOOL_GET_ENTITY_HISTORY: "get_entity_history",
     TOOL_IGNORE_REPAIR: "ignore_repair",
     TOOL_CHECK_SYSTEM: "check_system",
@@ -1142,6 +1087,22 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
 # half winning, so these replace the chat text outright. Parameters are still
 # derived.
 _MCP_DESCRIPTIONS: dict[str, str] = {
+    # The chat text leans on the in-prompt entity list, which MCP has none of.
+    "search_entities": (
+        "Fuzzy-search entities by free-text query across entity_id, friendly "
+        "name, registered aliases, area name, and the entity's DEVICE (name, "
+        "manufacturer, model) — so a brand or model query ('IKEA', 'Aqara', "
+        "'TRADFRI') resolves the entities that device owns, even though the "
+        "brand appears in no entity name. Returns ranked matches (score = "
+        "number of query terms found). Use this when the user names a device "
+        "informally and you need to resolve it to an entity_id. Every filter "
+        "(domain, device_class, area, state, label) may be used ALONE, with no "
+        "query: domain='camera' lists every camera, state='unavailable' every "
+        "entity that dropped off, device_class='battery' every battery entity — "
+        "the way to find battery levels, which are diagnostic. A result with "
+        "`omitted` is partial. An empty result is a failed name lookup, not "
+        "proof the device is absent."
+    ),
     "create_dashboard": (
         "Create a whole new dashboard, with its own sidebar entry, immediately. "
         "THIS is the tool for 'create a dashboard' / 'make me a new dashboard' — do "

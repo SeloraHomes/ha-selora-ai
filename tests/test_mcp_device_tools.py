@@ -505,9 +505,8 @@ def test_hand_written_definitions_are_not_accidental_duplicates() -> None:
     hand. That looks like the drift `_mcp_tool_from_chat_tool` exists to
     prevent, and it is not: they diverge on purpose.
 
-    Deriving them would either drop an MCP-only parameter — `search_entities`
-    has `limit`, `create_group` a
-    `group_type`, `accept_suggestion` an `enabled` flag — or replace
+    Deriving them would either drop an MCP-only parameter — `create_group` has
+    a `group_type`, `accept_suggestion` an `enabled` flag — or replace
     MCP-specific documentation with chat-specific advice (`execute_command`'s
     chat text tells the model to prefer it over emitting JSON command intents,
     which do not exist over MCP). This test is here so the next person to
@@ -518,7 +517,6 @@ def test_hand_written_definitions_are_not_accidental_duplicates() -> None:
 
     derived = set(mcp_definitions._DERIVED_MCP_TOOLS)
     for name in (
-        "selora_search_entities",
         "selora_create_group",
         "selora_accept_suggestion",
         "selora_execute_command",
@@ -528,6 +526,9 @@ def test_hand_written_definitions_are_not_accidental_duplicates() -> None:
         # And each really does have a chat namesake, which is what makes them
         # look duplicated.
         assert name.removeprefix("selora_") in TOOL_MAP, name
+    # Derived, with its own description: the chat one has every parameter
+    # (`limit` included) and its text alone is chat-specific.
+    assert "selora_search_entities" in derived
     # MCP-only: it also takes a Selora `scene_id`, and chat activates a scene
     # through execute_command.
     assert "selora_activate_scene" not in derived
