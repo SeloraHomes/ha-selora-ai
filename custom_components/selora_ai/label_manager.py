@@ -44,6 +44,10 @@ _LOGGER = logging.getLogger(__name__)
 _MAX_LISTED: Final = 50
 
 
+# Settings ``create_label`` can remove from an existing label.
+_CLEARABLE = ("icon", "color", "description")
+
+
 def _norm(value: object) -> str:
     return " ".join(str(value or "").split()).casefold()
 
@@ -153,35 +157,71 @@ def async_create_label(
     name: str,
     icon: str | None = None,
     color: str | None = None,
+    description: str | None = None,
+    new_name: str | None = None,
+    clear: Iterable[str] | None = None,
 ) -> dict[str, Any]:
-    """Create a label, or report the existing one with the same name.
+    """Create a label, or change the one already called *name*.
 
-    Same reasoning as ``create_area``: two labels called ``holiday`` is a worse
-    outcome than a no-op, because every later lookup becomes ambiguous and an
-    automation targeting one of them silently misses the entities carrying the
-    other.
+    Never a second label with the same name: two labels called ``holiday`` make
+    every later lookup ambiguous, and an automation targeting one of them
+    silently misses the entities carrying the other. So a taken name is the
+    existing label — changed when ``new_name``, ``icon``, ``color``,
+    ``description`` or ``clear`` say how, reported as it is otherwise. Changing
+    a label keeps every assignment; deleting and recreating it would not.
     """
     name = str(name or "").strip()
     if not name:
         return {"error": "A label name is required."}
+    clear = list(clear or ())
+    if unknown := [c for c in clear if c not in _CLEARABLE]:
+        return {"error": f"clear takes {', '.join(_CLEARABLE)}, not {unknown}."}
+    given = {"icon": icon, "color": color, "description": description}
+    if both := sorted(c for c in clear if given.get(c)):
+        return {"error": f"{', '.join(both)}: set and cleared in one call; do one or the other."}
 
+    registry = lr.async_get(hass)
     existing, _error = resolve_label(hass, name)
-    if existing is not None:
+    new_name = str(new_name or "").strip() or None
+    if existing is None:
+        if new_name:
+            return {"error": f"There is no label '{sanitize_untrusted_text(name, 40)}' to rename."}
+        label = registry.async_create(
+            name,
+            icon=str(icon).strip() if icon else None,
+            color=str(color).strip() if color else None,
+            description=str(description).strip() if description else None,
+        )
+        return {
+            "status": "created",
+            "label_id": label.label_id,
+            "name": sanitize_untrusted_text(label.name, 40),
+        }
+
+    changes: dict[str, Any] = {
+        key: str(value).strip() for key, value in given.items() if value and str(value).strip()
+    }
+    changes.update(dict.fromkeys(clear))
+    if new_name and new_name != existing.name:
+        clash = registry.async_get_label_by_name(new_name)
+        if clash is not None and clash.label_id != existing.label_id:
+            return {
+                "error": f"A label named '{sanitize_untrusted_text(new_name, 40)}' already exists."
+            }
+        changes["name"] = new_name
+    changes = {k: v for k, v in changes.items() if getattr(existing, k) != v}
+    if not changes:
         return {
             "status": "exists",
             "label_id": existing.label_id,
             "name": sanitize_untrusted_text(existing.name, 40),
         }
-
-    label = lr.async_get(hass).async_create(
-        name,
-        icon=str(icon).strip() if icon else None,
-        color=str(color).strip() if color else None,
-    )
+    updated = registry.async_update(existing.label_id, **changes)
     return {
-        "status": "created",
-        "label_id": label.label_id,
-        "name": sanitize_untrusted_text(label.name, 40),
+        "status": "updated",
+        "label_id": updated.label_id,
+        "name": sanitize_untrusted_text(updated.name, 40),
+        "changed": sorted(changes),
     }
 
 

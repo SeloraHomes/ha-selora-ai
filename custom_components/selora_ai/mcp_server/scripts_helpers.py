@@ -126,16 +126,11 @@ async def _tool_list_labels(hass: HomeAssistant, _arguments: dict[str, Any]) -> 
 
 
 async def _tool_create_label(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Create a label, or report the existing one with that name."""
+    """Create a label, or change the one with that name."""
     from ..label_manager import async_create_label  # noqa: PLC0415
-    from ..tool_executor import _opt_str  # noqa: PLC0415
+    from ..tool_executor import label_kwargs  # noqa: PLC0415
 
-    return async_create_label(
-        hass,
-        name=str(arguments.get("name", "")),
-        icon=_opt_str(arguments.get("icon")),
-        color=_opt_str(arguments.get("color")),
-    )
+    return async_create_label(hass, **label_kwargs(arguments))
 
 
 async def _tool_assign_labels(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:

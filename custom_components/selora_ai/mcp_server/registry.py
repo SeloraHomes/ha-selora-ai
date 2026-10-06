@@ -170,16 +170,11 @@ async def _tool_list_categories(hass: HomeAssistant, arguments: dict[str, Any]) 
 
 
 async def _tool_create_category(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Create a category within one list."""
+    """Create a category within one list, or change one."""
     from ..category_manager import async_create_category  # noqa: PLC0415
-    from ..tool_executor import _opt_str  # noqa: PLC0415
+    from ..tool_executor import category_kwargs  # noqa: PLC0415
 
-    return async_create_category(
-        hass,
-        scope=str(arguments.get("scope", "")),
-        name=str(arguments.get("name", "")),
-        icon=_opt_str(arguments.get("icon")),
-    )
+    return async_create_category(hass, **category_kwargs(arguments))
 
 
 async def _tool_assign_category(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
