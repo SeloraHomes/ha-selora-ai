@@ -222,9 +222,18 @@ entity counterpart.
 ## Updates (MCP)
 
 `update_manager.py` lists `update.*` entities waiting to be installed and reads
-one's release notes; it changes nothing. Installing, skipping and un-skipping
-are services (`update.install`, `update.skip`, `update.clear_skipped`), already
-callable over MCP and gated by risk there.
+one's release notes. Over MCP, installing, skipping and un-skipping are services
+(`update.install`, `update.skip`, `update.clear_skipped`), gated by risk there.
+
+- **Chat installs through a destructive card** (`install_update`, kind
+  `update`, verb `install`). The card names both versions, the backup and the
+  restart (core/OS/supervisor). Its fingerprint is what the user approves —
+  the update's registry entry id (an entity_id can be taken by another), the
+  version named, and the backup promised — and each is re-checked on confirm: a
+  newer version, a replaced entity, or a backup that can no longer be made
+  refuses rather than installing something else. The install pins `version`
+  where the entity supports that, and is not awaited — it can take minutes, and a core update
+  restarts HA under the request; progress shows on the entity.
 
 - **Grouped as HA's "Update all" groups them**: `home_assistant` (the hassio
   core/os/supervisor entities, by unique_id prefix), `app` (other hassio),

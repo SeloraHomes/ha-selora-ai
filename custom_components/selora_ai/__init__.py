@@ -4942,6 +4942,14 @@ async def _apply_destructive_actions(
                     view=view_index,
                     expected_fingerprint=str(action.get("fingerprint") or ""),
                 )
+            elif kind == "update":
+                # target_id is the update entity; the fingerprint is the version
+                # the card named, so a newer one published since is not installed.
+                from .update_manager import async_install_confirmed  # noqa: PLC0415
+
+                res = await async_install_confirmed(
+                    hass, target_id, str(action.get("fingerprint") or "")
+                )
             elif kind == "repair":
                 # target_id is "<domain>/<issue_id>"; the fingerprint is the issue
                 # as the card showed it, so one re-raised since is not fixed blind.

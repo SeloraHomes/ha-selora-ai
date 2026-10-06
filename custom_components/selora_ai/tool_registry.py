@@ -2006,6 +2006,34 @@ TOOL_REMOVE_FROM_HOME = ToolDef(
     large_context_only=True,
 )
 
+TOOL_INSTALL_UPDATE = ToolDef(
+    name="install_update",
+    description=(
+        "Install an update check_system lists (Home Assistant itself, an app, a HACS "
+        "repository, device firmware). The user gets a confirmation card naming the "
+        "versions, whether a backup is made first, and whether Home Assistant "
+        "restarts; nothing is installed until they confirm. One call per update."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="The update.* entity, from check_system.",
+            required=True,
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short phrase. "
+                "Leave it out when installing IS the request."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_GET_AUTOMATION_TRACES = ToolDef(
     name="get_automation_traces",
     description=(
@@ -2714,6 +2742,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_FIX_REPAIR,
     TOOL_IGNORE_REPAIR,
     TOOL_REMOVE_FROM_HOME,
+    TOOL_INSTALL_UPDATE,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -2773,6 +2802,7 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "fix_repair",
         "ignore_repair",
         "remove_from_home",
+        "install_update",
         "delete_floor",
         "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
@@ -2859,6 +2889,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "fix_repair",
         "ignore_repair",
         "remove_from_home",
+        "install_update",
         "list_scripts",
         "get_script",
         "set_script",
