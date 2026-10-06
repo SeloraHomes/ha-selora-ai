@@ -186,6 +186,22 @@ def _register_common_services(hass) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _private_config_dir(request, tmp_path_factory) -> None:
+    """Give every test's hass a config directory of its own.
+
+    PHCC points every hass at one shared ``testing_config`` directory, and
+    tests write automations.yaml, scenes.yaml, configuration.yaml and more
+    into it — so each test saw what earlier ones left (one wrote a broken
+    configuration.yaml on purpose), and locally it persisted between runs.
+    Autouse, so it runs before a test's own fixtures write anything; a test
+    that sets ``config_dir`` itself still can.
+    """
+    if "hass" in request.fixturenames:
+        hass = request.getfixturevalue("hass")
+        hass.config.config_dir = str(tmp_path_factory.mktemp("config"))
+
+
+@pytest.fixture(autouse=True)
 def _hass_with_common_services(request):
     """Auto-register common services on any test that uses the ``hass`` fixture.
 
