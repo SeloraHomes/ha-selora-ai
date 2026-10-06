@@ -148,16 +148,12 @@ async def _preview_update_entity(hass: HomeAssistant, arguments: dict[str, Any])
 async def _preview_update_device(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Hold a device disable for confirmation; rename and area move execute."""
     from ..registry_manager import async_update_device, resolve_device  # noqa: PLC0415
-    from ..tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
+    from ..tool_executor import _opt_bool  # noqa: PLC0415
 
     if _opt_bool(arguments.get("disabled")) is not True:
-        return await async_update_device(
-            hass,
-            device=str(arguments.get("device", "")),
-            new_name=_opt_str(arguments.get("new_name")),
-            area=_opt_str(arguments.get("area")),
-            disabled=_opt_bool(arguments.get("disabled")),
-        )
+        from .registry import _update_device_kwargs  # noqa: PLC0415
+
+        return await async_update_device(hass, **_update_device_kwargs(arguments))
 
     device, error = resolve_device(hass, str(arguments.get("device", "")))
     if error or device is None:

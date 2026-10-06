@@ -1088,6 +1088,12 @@ TOOL_UPDATE_AREA = ToolDef(
                 "remove all aliases; omit the argument to leave them unchanged."
             ),
         ),
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description=("Settings to remove: 'icon', 'floor' (take the area off its floor)."),
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
@@ -1438,6 +1444,15 @@ TOOL_UPDATE_ENTITY = ToolDef(
             type="string",
             description="Rename the entity_id itself. Same domain only; refused if anything references it.",
         ),
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description=(
+                "Settings to reset: 'name' and 'icon' (back to the integration's), "
+                "'area' (follow its device's again)."
+            ),
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
@@ -1463,6 +1478,15 @@ TOOL_UPDATE_DEVICE = ToolDef(
             name="disabled",
             type="boolean",
             description="Disable the device and all its entities.",
+        ),
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description=(
+                "Settings to reset: 'name' (back to the integration's), 'area' "
+                "(none; its entities that follow it lose theirs)."
+            ),
         ),
     ),
     requires_admin=True,

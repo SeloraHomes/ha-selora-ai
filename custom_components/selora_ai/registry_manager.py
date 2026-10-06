@@ -67,6 +67,19 @@ _LOGGER = logging.getLogger(__name__)
 _MAX_LISTED: Final = 30
 
 
+def _clear_error(
+    clear: Iterable[str] | None, allowed: tuple[str, ...], given: dict[str, Any]
+) -> str | None:
+    """Why *clear* cannot be honoured, or None: an unknown field, or one also
+    being set in the same call."""
+    names = list(clear or ())
+    if unknown := [n for n in names if n not in allowed]:
+        return f"clear takes {', '.join(allowed)}, not {unknown}."
+    if both := sorted(n for n in names if given.get(n) not in (None, "", [])):
+        return f"{', '.join(both)}: set and cleared in one call; do one or the other."
+    return None
+
+
 def _norm(value: object) -> str:
     """Casefold and collapse whitespace for name matching."""
     return " ".join(str(value or "").split()).casefold()
@@ -401,8 +414,11 @@ def async_update_area(
     floor: str | None = None,
     icon: str | None = None,
     aliases: Iterable[str] | None = None,
+    clear: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Rename an area, move it to a floor, or change its icon/aliases.
+
+    ``clear`` removes the icon or takes the area off its floor.
 
     An empty optional argument is treated as absent — models routinely emit
     ``""`` / ``[]`` for parameters they are not using, and honouring those
@@ -412,6 +428,9 @@ def async_update_area(
     area_entry, error = resolve_area(hass, area)
     if error or area_entry is None:
         return {"error": error or "Area not found."}
+    clear = list(clear or ())  # read twice: checked, then applied
+    if error := _clear_error(clear, ("icon", "floor"), {"icon": icon, "floor": floor}):
+        return {"error": error}
 
     changes: dict[str, Any] = {}
     new_name = str(new_name or "").strip()
@@ -437,6 +456,10 @@ def async_update_area(
         cleaned = {str(a).strip() for a in aliases if str(a).strip()}
         if cleaned != set(area_entry.aliases or ()):
             changes["aliases"] = cleaned
+    for field in clear or ():
+        key = "floor_id" if field == "floor" else field
+        if getattr(area_entry, key) is not None:
+            changes[key] = None
 
     if not changes:
         return {
@@ -722,10 +745,13 @@ async def async_update_entity(
     disabled: bool | None = None,
     expose: dict[str, bool] | None = None,
     new_entity_id: str | None = None,
+    clear: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Rename, alias, hide, disable, or re-expose a single entity.
 
-    ``expose`` maps ``entity_exposure.ASSISTANTS`` names to on/off.
+    ``expose`` maps ``entity_exposure.ASSISTANTS`` names to on/off. ``clear``
+    removes the user's name or icon (the integration's come back) or the
+    entity's own area (it follows its device's again).
 
     ``new_name`` sets the *friendly name* and leaves the entity_id alone, which
     is what "call it the Reading Lamp" means — the id is plumbing the user
@@ -747,7 +773,15 @@ async def async_update_entity(
             )
         }
 
+    clear = list(clear or ())  # read twice: checked, then applied
+    if error := _clear_error(clear, ("name", "icon", "area"), {"name": new_name, "icon": icon}):
+        return {"error": error}
+
     changes: dict[str, Any] = {}
+    for field in clear or ():
+        key = "area_id" if field == "area" else field
+        if getattr(entry, key) is not None:
+            changes[key] = None
     new_name = str(new_name or "").strip()
     if new_name:
         changes["name"] = new_name
@@ -848,8 +882,12 @@ async def async_update_device(
     new_name: str | None = None,
     area: str | None = None,
     disabled: bool | None = None,
+    clear: Iterable[str] | None = None,
 ) -> dict[str, Any]:
     """Rename a device, move it to an area, or disable it.
+
+    ``clear`` removes the user's name (the integration's comes back) or the
+    device's area (its entities that follow it lose theirs too).
 
     The rename writes ``name_by_user`` and leaves the integration-supplied
     ``name`` intact, so clearing the override later restores the vendor name
@@ -858,8 +896,15 @@ async def async_update_device(
     entry, error = resolve_device(hass, device)
     if error or entry is None:
         return {"error": error or "Device not found."}
+    clear = list(clear or ())  # read twice: checked, then applied
+    if error := _clear_error(clear, ("name", "area"), {"name": new_name, "area": area}):
+        return {"error": error}
 
     changes: dict[str, Any] = {}
+    if "name" in (clear or ()) and entry.name_by_user is not None:
+        changes["name_by_user"] = None
+    if "area" in (clear or ()) and entry.area_id is not None:
+        changes["area_id"] = None
     new_name = str(new_name or "").strip()
     if new_name and new_name != entry.name_by_user:
         changes["name_by_user"] = new_name
@@ -891,6 +936,14 @@ async def async_update_device(
         ),
         "changed": sorted(changes),
     }
+    if "area_id" in changes and changes["area_id"] is None:
+        result["entities_without_area"] = sum(
+            1
+            for e in er.async_entries_for_device(
+                er.async_get(hass), entry.id, include_disabled_entities=True
+            )
+            if e.area_id is None
+        )
     if area_name:
         result["area"] = area_name
         result["entities_moved"] = sum(
@@ -1162,9 +1215,10 @@ def async_update_floor(
     if aliases is not None:
         updates["aliases"] = {str(a).strip() for a in aliases if str(a).strip()}
 
+    clear = list(clear or ())  # read twice: checked, then applied
+    if error := _clear_error(clear, ("icon", "level"), {"icon": icon, "level": level}):
+        return {"error": error}
     for field in clear or ():
-        if field not in ("icon", "level"):
-            return {"error": f"clear accepts 'icon' or 'level', not '{field}'."}
         updates[field] = None
 
     if not updates:
