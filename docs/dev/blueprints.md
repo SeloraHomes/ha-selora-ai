@@ -45,6 +45,24 @@ components (the same object the websocket API serves).
   `require_admin`): a blueprint carries its source URL and input defaults. Same
   reasoning as `get_logs` / `get_automation_traces` — read-only is not
   unprivileged.
-- **Import is deliberately absent.** Fetching YAML from an LLM-chosen URL and
-  writing it to the config directory is a different risk class; it belongs behind
-  a confirmation card naming the source.
+- **Import and delete are MCP-only, behind a confirmation** (`blueprint_import.py`).
+  Fetching YAML from a model-chosen URL and writing it to the config directory is
+  a different risk class, so:
+  - Only HA's DEDICATED readers fetch (forum, GitHub, gists, HA website), each
+    called directly by host, over https. Never `fetch_blueprint_from_url`: it
+    falls through to the generic reader — even for an allowed host's URL it does
+    not recognise — which follows redirects and re-resolves the hostname, so no
+    address check made beforehand keeps it out of the home network.
+  - The result is re-validated with the STORE's own domain schema before the
+    preview: the importer checks only the generic schema and the store writes
+    what it is given, so an automation blueprint without actions would "import"
+    and then fail to load.
+  - The `content_hash` is the whole SHA-256 — the source picks the text, and a
+    truncated digest is short enough to find two texts sharing it.
+  - The first call writes nothing and returns a `content_hash` of the fetched
+    text; the confirmed call refetches and writes only if the hash still matches.
+    An existing file is never overwritten.
+  - Delete names what uses the blueprint (HA refuses one in use) or asks first.
+    It checks the FILE exists rather than loading it — a blueprint that fails to
+    parse is listed, and is exactly the kind worth deleting.
+  - Not in chat: there it would want a card showing the source.

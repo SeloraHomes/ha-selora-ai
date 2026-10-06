@@ -30,6 +30,7 @@ from .automations import (
     _tool_validate_automation,
 )
 from .backups import _tool_get_backups
+from .blueprints_write import _tool_delete_blueprint, _tool_import_blueprint
 from .calendars import (
     _tool_delete_calendar_event,
     _tool_list_calendar_events,
@@ -125,6 +126,7 @@ from .names import (
     TOOL_DELETE_AREA,
     TOOL_DELETE_ASSIST_PIPELINE,
     TOOL_DELETE_AUTOMATION,
+    TOOL_DELETE_BLUEPRINT,
     TOOL_DELETE_CALENDAR_EVENT,
     TOOL_DELETE_CATEGORY,
     TOOL_DELETE_DASHBOARD,
@@ -169,6 +171,7 @@ from .names import (
     TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
     TOOL_IGNORE_REPAIR,
+    TOOL_IMPORT_BLUEPRINT,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_LIST_APPS,
     TOOL_LIST_AREAS,
@@ -488,6 +491,8 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_FIX_REPAIR: _tool_fix_repair,
         TOOL_LIST_APPS: _tool_list_apps,
         TOOL_GET_APP_LOGS: _tool_get_app_logs,
+        TOOL_IMPORT_BLUEPRINT: _tool_import_blueprint,
+        TOOL_DELETE_BLUEPRINT: _tool_delete_blueprint,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
