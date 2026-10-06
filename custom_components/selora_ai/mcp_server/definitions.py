@@ -12,7 +12,7 @@ from ..group_manager import (
     SUPPORTED_GROUP_TYPES as _GROUP_TYPE_ENUM,
 )
 from .access import _ADMIN_TOOLS
-from .entities import _HISTORY_MAX_CHANGES, _HISTORY_MAX_HOURS, _TEMPLATE_MAX_CHARS
+from .entities import _TEMPLATE_MAX_CHARS
 from .names import (
     TOOL_ACCEPT_AUTOMATION,
     TOOL_ACCEPT_SUGGESTION,
@@ -673,32 +673,6 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
         },
     ),
     MCPTool(
-        name=TOOL_GET_ENTITY_HISTORY,
-        description=(
-            "Return recent state changes for a single entity from the Home "
-            "Assistant recorder. Use this for temporal questions ('when did the "
-            "front door last open?', 'how long has the heat been on?'). "
-            f"Window is bounded to {_HISTORY_MAX_HOURS}h and "
-            f"{_HISTORY_MAX_CHANGES} changes."
-        ),
-        inputSchema={
-            "type": "object",
-            "required": ["entity_id"],
-            "properties": {
-                "entity_id": {
-                    "type": "string",
-                    "description": "Full entity_id (e.g. 'binary_sensor.front_door').",
-                },
-                "hours": {
-                    "type": "number",
-                    "description": f"Hours of history (0.25-{_HISTORY_MAX_HOURS}, default 6).",
-                    "minimum": 0.25,
-                    "maximum": float(_HISTORY_MAX_HOURS),
-                },
-            },
-        },
-    ),
-    MCPTool(
         name=TOOL_EVAL_TEMPLATE,
         description=(
             "Evaluate a Home Assistant Jinja template using HA's sandbox. Use this "
@@ -1048,6 +1022,7 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
 _DASHBOARD_WRITE_TOOLS: frozenset[str] | None = None
 
 _DERIVED_MCP_TOOLS: dict[str, str] = {
+    TOOL_GET_ENTITY_HISTORY: "get_entity_history",
     TOOL_IGNORE_REPAIR: "ignore_repair",
     TOOL_CHECK_SYSTEM: "check_system",
     TOOL_RELOAD_INTEGRATION: "reload_integration",

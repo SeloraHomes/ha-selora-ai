@@ -821,82 +821,13 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
 # ── Tool: selora_get_entity_history ────────────────────────────────────────────
 
 
-# Bound the history window: large queries are expensive and tool results are
-# capped at MAX_TOOL_RESULT_CHARS anyway.
-_HISTORY_MAX_HOURS = 24
-_HISTORY_MAX_CHANGES = 50
-
-
 async def _tool_get_entity_history(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
-    """Return recent state changes for a single entity from the recorder."""
-    from datetime import UTC, datetime, timedelta
+    """State changes over a time range, or long-term statistics — see ``history_reader``."""
+    from ..history_reader import async_read_history  # noqa: PLC0415
 
-    entity_id = str(arguments.get("entity_id", "")).strip()
-    if not entity_id or "." not in entity_id:
-        return {"error": "entity_id is required (e.g. 'light.kitchen')"}
-    if hass.states.get(entity_id) is None:
-        return {"error": f"entity '{_sanitize(entity_id)}' not found"}
-
-    try:
-        hours = float(arguments.get("hours", 6))
-    except (
-        TypeError,
-        ValueError,
-    ):
-        hours = 6.0
-    hours = max(0.25, min(hours, float(_HISTORY_MAX_HOURS)))
-
-    try:
-        from homeassistant.components.recorder import get_instance
-        from homeassistant.components.recorder.history import get_significant_states
-    except ImportError:
-        return {"error": "recorder is not available"}
-
-    now = datetime.now(UTC)
-    start = now - timedelta(hours=hours)
-
-    try:
-        states = await get_instance(hass).async_add_executor_job(
-            get_significant_states,
-            hass,
-            start,
-            now,
-            [entity_id],
-        )
-    except Exception as exc:  # noqa: BLE001
-        _LOGGER.exception("get_entity_history failed for %s", entity_id)
-        return {"error": f"history lookup failed: {exc}"}
-
-    entries = states.get(entity_id, []) or []
-    changes: list[dict[str, Any]] = []
-    prev: str | None = None
-    for s in entries:
-        value = _format_state_value(s.state)
-        if value == prev:
-            continue
-        prev = value
-        when = s.last_changed if getattr(s, "last_changed", None) else None
-        changes.append(
-            {
-                "state": value,
-                "at": when.isoformat() if when is not None else None,
-            }
-        )
-
-    truncated = False
-    if len(changes) > _HISTORY_MAX_CHANGES:
-        changes = changes[-_HISTORY_MAX_CHANGES:]
-        truncated = True
-
-    return {
-        "entity_id": entity_id,
-        "hours": hours,
-        "changes": changes,
-        "count": len(changes),
-        "truncated": truncated,
-    }
+    return await async_read_history(hass, arguments)
 
 
 # ── Tool: selora_eval_template ─────────────────────────────────────────────────
