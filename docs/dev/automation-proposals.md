@@ -130,3 +130,28 @@ from the sidebar) would otherwise take the create path and write a duplicate.
   aim an automation at the wrong device. They were written for Selora AI Local,
   which gets no correction round (`_automation_retry_budget`), and stay there
   until the Allen benchmark shows the local model does as well without them.
+
+## A valid automation comes through unchanged
+
+The validator REBUILDS the payload, so anything it does not carry over is lost
+silently — the failure mode is "accepted, and written as something else".
+`tests/test_automation_fidelity.py` asserts on the values that come out, for
+configs HA itself accepts; add a case there for any new field or shape.
+
+- **Top-level fields** beyond alias/description/triggers/conditions/actions/mode/
+  initial_state go through `_PASSTHROUGH_FIELDS` (variables, trigger_variables,
+  max, max_exceeded, trace) — type-checked, contents left to HA (bar max, below). A `queued`
+  automation with `max: 3` came back with HA's default of 10.
+- **Lists stay lists**: `to`/`from`/`state: [...]` and `at: [...]` are coerced
+  item by item, and `at: {entity_id, offset}` passes through; they were turned
+  into the text `"['on', 'off']"`.
+- **A dotted trigger is accepted when HA's trigger registry has its FULL key**
+  (`hass.data["triggers"]`: `light.turned_on`, `zwave_js.value_updated`). A bare
+  entry (`mqtt`) is an old-style platform that wants the bare name, so
+  `mqtt.foo` stays refused, as does `timer.finished` (an event written as a
+  trigger).
+- **`max`/`max_exceeded` are checked with HA's own `make_script_schema`** —
+  `max` starts at 2, and a copy of that rule would drift.
+- **The read-only-target gate exempts services that act on any entity**
+  (`_ANY_ENTITY_SERVICES`: `homeassistant.update_entity`, `reload_config_entry`)
+  — `homeassistant.turn_on` on a binary_sensor is still refused.

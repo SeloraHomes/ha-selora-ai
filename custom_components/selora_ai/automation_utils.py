@@ -9,7 +9,7 @@ import logging
 from math import floor
 from pathlib import Path
 import re
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Final, Literal
 import urllib.parse
 import uuid
 
@@ -166,6 +166,24 @@ def _validate_condition(
     return True, ""
 
 
+def _registered_trigger(hass: HomeAssistant | None, platform: str) -> bool:
+    """Whether HA knows *platform* as a trigger: a new-style one
+    (``light.turned_on``, HA 2026.7+, or an integration's own such as
+    ``zwave_js.value_updated``). ``timer.finished`` — an
+    EVENT a model writes as a trigger — is neither, so it stays refused.
+    Read from the registry HA's trigger helper keeps; a core without it keeps
+    the old refusal."""
+    if hass is None:
+        return False
+    registered = hass.data.get("triggers")
+    if not isinstance(registered, dict):
+        return False
+    # The full key only: a bare entry (`mqtt`) is an old-style platform whose
+    # schema wants the bare name, so `mqtt.foo` is not one of its triggers.
+    # Integrations with sub-types (zwave_js) register each as its own key.
+    return platform in registered
+
+
 def _validate_trigger(
     trig: dict[str, Any],
     hass: HomeAssistant | None,
@@ -208,7 +226,7 @@ def _validate_trigger(
         del trig["platform"]
 
     platform = trig.get("trigger")
-    if isinstance(platform, str) and "." in platform:
+    if isinstance(platform, str) and "." in platform and not _registered_trigger(hass, platform):
         return (
             False,
             f"'{platform}' is not a valid trigger type — use "
@@ -2003,6 +2021,22 @@ def build_service_feedback(
 
 _VALID_MODES = frozenset({"single", "restart", "queued", "parallel"})
 
+# Top-level automation fields carried through as given (HA validates their
+# contents at reload), with the type each must be.
+_PASSTHROUGH_FIELDS: Final = {
+    "variables": dict,
+    "trigger_variables": dict,
+    "max": int,
+    "max_exceeded": str,
+    "trace": dict,
+}
+_KIND_NAMES: Final = {dict: "a mapping", str: "text", int: "a whole number"}
+
+# Services that act on an entity of any domain, read-only ones included.
+_ANY_ENTITY_SERVICES: Final = frozenset(
+    {"homeassistant.update_entity", "homeassistant.reload_config_entry"}
+)
+
 
 async def _blueprint_path_error(hass: HomeAssistant, path: str) -> str | None:
     """Refuse a path the AUTOMATION blueprint store does not hold.
@@ -2059,6 +2093,31 @@ def _finalize_payload(
     raw_initial_state = automation.get("initial_state")
     if isinstance(raw_initial_state, bool):
         normalized["initial_state"] = raw_initial_state
+
+    # The other top-level fields HA takes. Rebuilding the payload from a fixed
+    # list dropped them without a word: a `queued` automation with `max: 3`
+    # came back with HA's default of 10, its `variables` gone.
+    for key, kind in _PASSTHROUGH_FIELDS.items():
+        if key not in automation or automation[key] is None:
+            continue
+        value = automation[key]
+        if kind is int:
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                return False, f"'{key}' must be a positive whole number", None
+        elif not isinstance(value, kind):
+            return False, f"'{key}' must be {_KIND_NAMES[kind]}", None
+        normalized[key] = value
+
+    # `max` and `max_exceeded` are checked by HA's own script schema (`max`
+    # starts at 2; `max_exceeded` is a log level) rather than a copy of it.
+    if "max" in normalized or "max_exceeded" in normalized:
+        from homeassistant.helpers.script import make_script_schema  # noqa: PLC0415
+
+        mode_fields = {k: normalized[k] for k in ("mode", "max", "max_exceeded") if k in normalized}
+        try:
+            make_script_schema({}, "single")(mode_fields)
+        except vol.Invalid as exc:
+            return False, f"automation mode settings are invalid: {exc}", None
 
     try:
         yaml_text = yaml.safe_dump(normalized, allow_unicode=True, default_flow_style=False)
@@ -2211,8 +2270,13 @@ def validate_automation_payload(
                     tts_error := _tts_speak_speaker_error(svc_act)
                 ):
                     return False, tts_error, None
-                # Reject targets in read-only domains (no services registered at all)
-                target = svc_act.get("target", {})
+                # Reject targets in read-only domains (no services registered at
+                # all) — turning on a binary_sensor does nothing. Except for the
+                # services that DO act on any entity: update_entity on a sensor is
+                # the usual "refresh it".
+                target = (
+                    svc_act.get("target", {}) if action_service not in _ANY_ENTITY_SERVICES else {}
+                )
                 entity_ids = target.get("entity_id", "") if isinstance(target, dict) else ""
                 if isinstance(entity_ids, str):
                     entity_ids = [entity_ids] if entity_ids else []
@@ -2577,7 +2641,7 @@ async def prepare_write_payload(
     # ordinary path had it too. `id` and `initial_state` are deliberately left
     # alone: `apply_managed_fields` owns those, and writing them here would
     # fight it.
-    for key in ("alias", "description", "mode", "use_blueprint"):
+    for key in ("alias", "description", "mode", "use_blueprint", *_PASSTHROUGH_FIELDS):
         if key in normalized:
             updated[key] = normalized[key]
 
