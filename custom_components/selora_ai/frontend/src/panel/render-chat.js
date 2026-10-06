@@ -18,6 +18,11 @@ const AUTOMATION_LABEL_INTERVAL_MS = 5_000;
 import { formatTime } from "../shared/date-utils.js";
 import { renderDeviceDetail } from "./render-device-detail.js";
 import { renderQuickActions } from "./quick-actions.js";
+import {
+  activeRefinement,
+  renderRefineHeading,
+  renderRefineSuggestions,
+} from "./refine-guide.js";
 import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
 import {
@@ -387,7 +392,7 @@ export function renderChat(host) {
               `
             : ""
         }
-        ${_renderComposer(host)}
+        ${renderRefineSuggestions(host)} ${_renderComposer(host)}
       </div>
     </div>
   `;
@@ -964,6 +969,7 @@ function _renderComposer(host, opts = {}) {
     host._composerDragOver = false;
     addImageAttachments(host, e.dataTransfer.files);
   };
+  const refining = !welcome && !!activeRefinement(host._messages);
   return html`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
@@ -1159,10 +1165,15 @@ function _renderComposer(host, opts = {}) {
                       "composer_placeholder_automation",
                       "Describe the automation you’d like to create…",
                     )
-                  : host._t(
-                      "composer_placeholder_ask",
-                      "Ask Selora AI anything…",
-                    )
+                  : refining
+                    ? host._t(
+                        "composer_placeholder_refine",
+                        "Describe the changes…",
+                      )
+                    : host._t(
+                        "composer_placeholder_ask",
+                        "Ask Selora AI anything…",
+                      )
               }
               ?disabled=${host._loading || host._streaming}
               rows="1"
@@ -1261,8 +1272,8 @@ export function renderMessage(host, msg, idx) {
   // context (the "Describe the changes" message), or a superseded original
   // once a refinement supersedes it. It isn't an LLM-authored artifact, so
   // there's nothing to copy or rate there.
-  const isRefineSource =
-    msg.automation_status === "refining" || msg.scene_status === "refining";
+  const isLoadedAutomation = msg.automation_status === "refining";
+  const isRefineSource = isLoadedAutomation || msg.scene_status === "refining";
   // What the copy button yields. On a genuine proposal the artifact worth
   // copying is the resulting YAML, not the prose preamble ("Adjusting the
   // delay to 10 minutes…") — so automation/scene proposals copy their YAML.
@@ -1317,6 +1328,7 @@ export function renderMessage(host, msg, idx) {
     !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
 
   return html`
+    ${isLoadedAutomation ? renderRefineHeading(host, idx) : ""}
     <div class="message-row">
       ${
         isUser
@@ -1368,7 +1380,10 @@ export function renderMessage(host, msg, idx) {
                   style="max-width:100%;align-self:auto;"
                 >
                   ${
-                    msg.command_approval
+                    // A loaded automation's stored prose ("Describe the
+                    // changes") is context for the model; the composer's
+                    // placeholder and chip say it to the user.
+                    msg.command_approval || isLoadedAutomation
                       ? ""
                       : html`<span
                           class="msg-content ${

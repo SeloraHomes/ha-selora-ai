@@ -568,13 +568,9 @@ export async function _loadAutomationToChat(automationId) {
       this._showSidebar = false;
       this._input = "";
       await this._openSession(sessionId);
-      this._showToast(
-        this._t(
-          "automation_management_loaded_to_chat",
-          "Automation loaded into chat.",
-        ),
-        "success",
-      );
+      // The next thing the user does is describe the change.
+      await this.updateComplete;
+      this.shadowRoot?.querySelector(".composer-textarea")?.focus();
     }
   } catch (err) {
     console.error("Failed to load automation to chat", err);

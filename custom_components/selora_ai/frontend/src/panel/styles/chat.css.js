@@ -144,6 +144,10 @@ export const chatStyles = css`
       0 1px 2px rgba(0, 0, 0, 0.3),
       0 6px 16px rgba(0, 0, 0, 0.35);
   }
+  /* No prose above it (a loaded automation), so no gap to separate it from. */
+  .bubble > .automation-subcard:first-child {
+    margin-top: 0;
+  }
   :host(:not([dark])) .automation-subcard {
     border-color: var(--divider-color);
     box-shadow:
@@ -1359,8 +1363,7 @@ export const chatStyles = css`
   }
   .composer-selection-chip button:hover {
     color: var(--primary-text-color);
-  }
-  /* Quiet ghost sibling of .composer-send — opens the image file picker.
+  } /* Quiet ghost sibling of .composer-send — opens the image file picker.
      Only rendered when the active model supports vision. */
   .composer-attach {
     position: relative;

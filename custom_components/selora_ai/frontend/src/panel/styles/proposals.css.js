@@ -608,6 +608,95 @@ export const proposalStyles = css`
     border: 1px solid rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15);
     color: var(--primary-text-color);
   }
+  /* A step on the automation being refined: clicking it starts describing a
+     change to it. The pencil keeps its space while hidden so hovering never
+     reflows the chart; touch screens have no hover, so it stays visible. */
+  .flow-node--editable {
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+  }
+  .flow-node--editable:hover,
+  .flow-node--editable:focus-visible {
+    border-color: rgba(251, 191, 36, 0.6);
+    background: rgba(251, 191, 36, 0.06);
+    outline: none;
+  }
+  .flow-node-edit {
+    --mdc-icon-size: 14px;
+    margin-left: 6px;
+    vertical-align: -2px;
+    color: var(--selora-accent, #fbbf24);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .flow-node--editable:hover .flow-node-edit,
+  .flow-node--editable:focus-visible .flow-node-edit {
+    opacity: 1;
+  }
+  @media (hover: none) {
+    .flow-node-edit {
+      opacity: 0.6;
+    }
+  }
+  /* Card of its own above the automation being refined, spanning the chat
+     column: what is being edited and how to go about it. */
+  .refine-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(251, 191, 36, 0.08) 0%,
+        rgba(251, 191, 36, 0.02) 60%
+      ),
+      var(--card-background-color, #1c1c1e);
+  }
+  .refine-heading-icon {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(251, 191, 36, 0.14);
+    color: var(--selora-accent, #fbbf24);
+  }
+  .refine-heading-icon ha-icon {
+    --mdc-icon-size: 22px;
+  }
+  .refine-heading-text {
+    min-width: 0;
+  }
+  .refine-heading-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--primary-text-color);
+    overflow-wrap: anywhere;
+  }
+  .refine-heading-hint {
+    margin-top: 3px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--secondary-text-color);
+  }
+  @media (max-width: 600px) {
+    .refine-heading {
+      align-items: flex-start;
+      padding: 14px 16px;
+    }
+    .refine-heading-icon {
+      width: 34px;
+      height: 34px;
+    }
+  }
   .flow-entity-link {
     display: inline-flex;
     align-items: baseline;

@@ -1,5 +1,7 @@
 // Automation CRUD actions (prototype-assigned to SeloraAIArchitectPanel)
 
+import { REFINEMENT_TERMINATORS } from "./refine-guide.js";
+
 // Match the key `initial_state`, optionally quoted, with a value we capture.
 // The backreference \1 makes the closing quote match the opening one (or none).
 // YAML permits whitespace before the `:` separator (`initial_state : false`).
@@ -164,9 +166,7 @@ export function _getRefiningAutomationId(msgIndex = null) {
   for (let i = start; i >= 0; i--) {
     const m = this._messages[i] || {};
     const status = m.automation_status;
-    if (status === "pending" || status === "saved" || status === "declined") {
-      return null;
-    }
+    if (REFINEMENT_TERMINATORS.has(status)) return null;
     if (status === "refining") {
       if (m.automation_id) return m.automation_id;
       if (m.automation?.id) return m.automation.id;
@@ -376,32 +376,6 @@ export async function _declineAutomation(msgIndex) {
   } catch (err) {
     console.error("Failed to decline automation", err);
   }
-}
-
-export async function _refineAutomation(msgIndex, automation, description) {
-  // Mark the original proposal as "refining" so the card shows it's superseded
-  try {
-    const msg = this._messages[msgIndex] || {};
-    const backendIndex = msg.automation_message_index ?? msgIndex;
-    await this.hass.callWS({
-      type: "selora_ai/set_automation_status",
-      session_id: this._activeSessionId,
-      message_index: backendIndex,
-      status: "refining",
-    });
-    const session = await this.hass.callWS({
-      type: "selora_ai/get_session",
-      session_id: this._activeSessionId,
-    });
-    this._messages = session.messages || [];
-  } catch (err) {
-    console.error("Failed to mark automation as refining", err);
-  }
-
-  // Pre-fill with rich context so the user just needs to describe the change
-  const ctx = description ? ` (${description})` : "";
-  this._input = `Refine "${automation.alias}"${ctx}: `;
-  this.shadowRoot.querySelector(".composer-textarea")?.focus();
 }
 
 export async function _createAutomationFromSuggestion(automation) {

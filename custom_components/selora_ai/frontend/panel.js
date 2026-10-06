@@ -2833,6 +2833,10 @@ var chatStyles = i`
       0 1px 2px rgba(0, 0, 0, 0.3),
       0 6px 16px rgba(0, 0, 0, 0.35);
   }
+  /* No prose above it (a loaded automation), so no gap to separate it from. */
+  .bubble > .automation-subcard:first-child {
+    margin-top: 0;
+  }
   :host(:not([dark])) .automation-subcard {
     border-color: var(--divider-color);
     box-shadow:
@@ -4048,8 +4052,7 @@ var chatStyles = i`
   }
   .composer-selection-chip button:hover {
     color: var(--primary-text-color);
-  }
-  /* Quiet ghost sibling of .composer-send — opens the image file picker.
+  } /* Quiet ghost sibling of .composer-send — opens the image file picker.
      Only rendered when the active model supports vision. */
   .composer-attach {
     position: relative;
@@ -4779,6 +4782,95 @@ var proposalStyles = i`
     background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.06);
     border: 1px solid rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15);
     color: var(--primary-text-color);
+  }
+  /* A step on the automation being refined: clicking it starts describing a
+     change to it. The pencil keeps its space while hidden so hovering never
+     reflows the chart; touch screens have no hover, so it stays visible. */
+  .flow-node--editable {
+    cursor: pointer;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+  }
+  .flow-node--editable:hover,
+  .flow-node--editable:focus-visible {
+    border-color: rgba(251, 191, 36, 0.6);
+    background: rgba(251, 191, 36, 0.06);
+    outline: none;
+  }
+  .flow-node-edit {
+    --mdc-icon-size: 14px;
+    margin-left: 6px;
+    vertical-align: -2px;
+    color: var(--selora-accent, #fbbf24);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .flow-node--editable:hover .flow-node-edit,
+  .flow-node--editable:focus-visible .flow-node-edit {
+    opacity: 1;
+  }
+  @media (hover: none) {
+    .flow-node-edit {
+      opacity: 0.6;
+    }
+  }
+  /* Card of its own above the automation being refined, spanning the chat
+     column: what is being edited and how to go about it. */
+  .refine-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    background:
+      linear-gradient(
+        90deg,
+        rgba(251, 191, 36, 0.08) 0%,
+        rgba(251, 191, 36, 0.02) 60%
+      ),
+      var(--card-background-color, #1c1c1e);
+  }
+  .refine-heading-icon {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(251, 191, 36, 0.14);
+    color: var(--selora-accent, #fbbf24);
+  }
+  .refine-heading-icon ha-icon {
+    --mdc-icon-size: 22px;
+  }
+  .refine-heading-text {
+    min-width: 0;
+  }
+  .refine-heading-title {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--primary-text-color);
+    overflow-wrap: anywhere;
+  }
+  .refine-heading-hint {
+    margin-top: 3px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--secondary-text-color);
+  }
+  @media (max-width: 600px) {
+    .refine-heading {
+      align-items: flex-start;
+      padding: 14px 16px;
+    }
+    .refine-heading-icon {
+      width: 34px;
+      height: 34px;
+    }
   }
   .flow-entity-link {
     display: inline-flex;
@@ -9465,6 +9557,24 @@ var en_default = {
     composer_placeholder_ask: "Ask Selora AI anything\u2026",
     composer_placeholder_automation:
       "Describe the automation you\u2019d like to create\u2026",
+    composer_placeholder_refine: "Describe the changes\u2026",
+    refine_suggest_threshold: "Change the threshold ({value})",
+    refine_prefill_threshold: "Change the threshold from {value} to",
+    refine_suggest_delay: "Change the delay ({value})",
+    refine_prefill_delay: "Change the delay from {value} to",
+    refine_suggest_time: "Change the time ({value})",
+    refine_prefill_time: "Change the time from {value} to",
+    refine_suggest_brightness: "Change the brightness ({value}%)",
+    refine_prefill_brightness: "Change the brightness from {value}% to",
+    refine_suggest_hours: "Only between certain hours",
+    refine_prefill_hours: "Only run it between",
+    refine_suggest_notify: "Also notify me",
+    refine_prefill_notify: "Also send me a notification when it runs",
+    refine_prefill_step: 'Change "{step}" to',
+    refine_edit_step_tooltip: "Change this step",
+    refine_heading: "Editing {name}",
+    refine_heading_hint:
+      "Describe what to change below, or click any step. Nothing changes until you accept the new version.",
     panel_quota_provider_default: "your LLM provider",
     panel_quota_reached: "quota reached.",
     panel_quota_try_again_prefix: "Try again in",
@@ -9726,7 +9836,7 @@ var en_default = {
     automations_proposal_declined_title: "Automation Declined",
     automations_proposal_declined_body:
       "Dismissed. You can refine it by replying below.",
-    automations_badge_being_refined: "Being Refined",
+    automations_badge_current_version: "Current version",
     automations_badge_proposal: "Proposal",
     automations_badge_superseded: "Replaced",
     automations_proposal_elevated_risk: "Elevated risk review recommended.",
@@ -10078,7 +10188,6 @@ var en_default = {
     automation_management_deleted: "Automation deleted.",
     automation_management_cannot_refine_no_id:
       "This automation cannot be refined because it has no automation ID.",
-    automation_management_loaded_to_chat: "Automation loaded into chat.",
     action_format_run_verb: "Run",
     action_format_ran_verb: "Ran",
     chat_actions_interrupt_disconnect:
@@ -10659,6 +10768,25 @@ var fr_default = {
     composer_placeholder_ask: "Demandez n'importe quoi \xE0 Selora AI\u2026",
     composer_placeholder_automation:
       "D\xE9crivez l'automatisation que vous souhaitez cr\xE9er\u2026",
+    composer_placeholder_refine: "D\xE9crivez les modifications\u2026",
+    refine_suggest_threshold: "Modifier le seuil ({value})",
+    refine_prefill_threshold: "Changer le seuil de {value} \xE0",
+    refine_suggest_delay: "Modifier le d\xE9lai ({value})",
+    refine_prefill_delay: "Changer le d\xE9lai de {value} \xE0",
+    refine_suggest_time: "Modifier l'heure ({value})",
+    refine_prefill_time: "Changer l'heure de {value} \xE0",
+    refine_suggest_brightness: "Modifier la luminosit\xE9 ({value} %)",
+    refine_prefill_brightness: "Changer la luminosit\xE9 de {value} % \xE0",
+    refine_suggest_hours: "Seulement \xE0 certaines heures",
+    refine_prefill_hours: "Ne l'ex\xE9cuter qu'entre",
+    refine_suggest_notify: "Me notifier aussi",
+    refine_prefill_notify:
+      "M'envoyer aussi une notification quand elle s'ex\xE9cute",
+    refine_prefill_step: "Changer \xAB {step} \xBB en",
+    refine_edit_step_tooltip: "Modifier cette \xE9tape",
+    refine_heading: "Modification de {name}",
+    refine_heading_hint:
+      "D\xE9crivez ci-dessous ce qu'il faut changer, ou cliquez sur une \xE9tape. Rien ne change tant que vous n'acceptez pas la nouvelle version.",
     panel_quota_provider_default: "votre fournisseur LLM",
     panel_quota_reached: "quota atteint.",
     panel_quota_try_again_prefix: "R\xE9essayer dans",
@@ -10936,7 +11064,7 @@ var fr_default = {
     automations_proposal_declined_title: "Automatisation refus\xE9e",
     automations_proposal_declined_body:
       "Ignor\xE9e. Vous pouvez l'affiner en r\xE9pondant ci-dessous.",
-    automations_badge_being_refined: "En cours d'affinage",
+    automations_badge_current_version: "Version actuelle",
     automations_badge_proposal: "Proposition",
     automations_badge_superseded: "Remplac\xE9e",
     automations_proposal_elevated_risk:
@@ -11304,8 +11432,6 @@ var fr_default = {
     automation_management_deleted: "Automatisation supprim\xE9e.",
     automation_management_cannot_refine_no_id:
       "Cette automatisation ne peut pas \xEAtre affin\xE9e car elle n'a pas d'ID d'automatisation.",
-    automation_management_loaded_to_chat:
-      "Automatisation charg\xE9e dans le chat.",
     action_format_run_verb: "Ex\xE9cuter",
     action_format_ran_verb: "Ex\xE9cut\xE9e",
     chat_actions_interrupt_disconnect:
@@ -11916,6 +12042,25 @@ var de_default = {
     composer_placeholder_ask: "Fragen Sie Selora AI alles\u2026",
     composer_placeholder_automation:
       "Beschreiben Sie die Automatisierung, die Sie erstellen m\xF6chten\u2026",
+    composer_placeholder_refine: "Beschreiben Sie die \xC4nderungen\u2026",
+    refine_suggest_threshold: "Schwellenwert \xE4ndern ({value})",
+    refine_prefill_threshold: "Schwellenwert von {value} \xE4ndern auf",
+    refine_suggest_delay: "Verz\xF6gerung \xE4ndern ({value})",
+    refine_prefill_delay: "Verz\xF6gerung von {value} \xE4ndern auf",
+    refine_suggest_time: "Uhrzeit \xE4ndern ({value})",
+    refine_prefill_time: "Uhrzeit von {value} \xE4ndern auf",
+    refine_suggest_brightness: "Helligkeit \xE4ndern ({value} %)",
+    refine_prefill_brightness: "Helligkeit von {value} % \xE4ndern auf",
+    refine_suggest_hours: "Nur zu bestimmten Zeiten",
+    refine_prefill_hours: "Nur ausf\xFChren zwischen",
+    refine_suggest_notify: "Mich auch benachrichtigen",
+    refine_prefill_notify:
+      "Schicke mir auch eine Benachrichtigung, wenn sie ausgef\xFChrt wird",
+    refine_prefill_step: "\u201E{step}\u201C \xE4ndern zu",
+    refine_edit_step_tooltip: "Diesen Schritt \xE4ndern",
+    refine_heading: "{name} bearbeiten",
+    refine_heading_hint:
+      "Beschreiben Sie unten, was ge\xE4ndert werden soll, oder klicken Sie auf einen Schritt. Nichts \xE4ndert sich, bis Sie die neue Version annehmen.",
     panel_quota_provider_default: "Ihr LLM-Anbieter",
     panel_quota_reached: "Kontingent erreicht.",
     panel_quota_try_again_prefix: "Erneut versuchen in",
@@ -12190,7 +12335,7 @@ var de_default = {
     automations_proposal_declined_title: "Automatisierung abgelehnt",
     automations_proposal_declined_body:
       "Abgelehnt. Sie k\xF6nnen sie verfeinern, indem Sie unten antworten.",
-    automations_badge_being_refined: "Wird verfeinert",
+    automations_badge_current_version: "Aktuelle Version",
     automations_badge_proposal: "Vorschlag",
     automations_badge_superseded: "Ersetzt",
     automations_proposal_elevated_risk:
@@ -12554,8 +12699,6 @@ var de_default = {
     automation_management_deleted: "Automatisierung gel\xF6scht.",
     automation_management_cannot_refine_no_id:
       "Diese Automatisierung kann nicht verfeinert werden, da sie keine Automatisierungs-ID hat.",
-    automation_management_loaded_to_chat:
-      "Automatisierung in den Chat geladen.",
     action_format_run_verb: "Ausf\xFChren",
     action_format_ran_verb: "Ausgef\xFChrt",
     chat_actions_interrupt_disconnect:
@@ -13159,6 +13302,25 @@ var es_default = {
     composer_placeholder_ask: "Pregunte cualquier cosa a Selora AI\u2026",
     composer_placeholder_automation:
       "Describa la automatizaci\xF3n que desea crear\u2026",
+    composer_placeholder_refine: "Describa los cambios\u2026",
+    refine_suggest_threshold: "Cambiar el umbral ({value})",
+    refine_prefill_threshold: "Cambiar el umbral de {value} a",
+    refine_suggest_delay: "Cambiar el retardo ({value})",
+    refine_prefill_delay: "Cambiar el retardo de {value} a",
+    refine_suggest_time: "Cambiar la hora ({value})",
+    refine_prefill_time: "Cambiar la hora de {value} a",
+    refine_suggest_brightness: "Cambiar el brillo ({value} %)",
+    refine_prefill_brightness: "Cambiar el brillo de {value} % a",
+    refine_suggest_hours: "Solo entre ciertas horas",
+    refine_prefill_hours: "Ejecutarla solo entre",
+    refine_suggest_notify: "Avisarme tambi\xE9n",
+    refine_prefill_notify:
+      "Env\xEDame tambi\xE9n una notificaci\xF3n cuando se ejecute",
+    refine_prefill_step: "Cambiar \xAB{step}\xBB a",
+    refine_edit_step_tooltip: "Cambiar este paso",
+    refine_heading: "Editando {name}",
+    refine_heading_hint:
+      "Describa abajo qu\xE9 cambiar o haga clic en un paso. Nada cambia hasta que acepte la nueva versi\xF3n.",
     panel_quota_provider_default: "su proveedor de LLM",
     panel_quota_reached: "cuota alcanzada.",
     panel_quota_try_again_prefix: "Vuelva a intentarlo en",
@@ -13431,7 +13593,7 @@ var es_default = {
     automations_proposal_declined_title: "Automatizaci\xF3n rechazada",
     automations_proposal_declined_body:
       "Descartada. Puede refinarla respondiendo abajo.",
-    automations_badge_being_refined: "En refinamiento",
+    automations_badge_current_version: "Versi\xF3n actual",
     automations_badge_proposal: "Propuesta",
     automations_badge_superseded: "Reemplazada",
     automations_proposal_elevated_risk:
@@ -13793,8 +13955,6 @@ var es_default = {
     automation_management_deleted: "Automatizaci\xF3n eliminada.",
     automation_management_cannot_refine_no_id:
       "Esta automatizaci\xF3n no se puede refinar porque no tiene ID de automatizaci\xF3n.",
-    automation_management_loaded_to_chat:
-      "Automatizaci\xF3n cargada en el chat.",
     action_format_run_verb: "Ejecutar",
     action_format_ran_verb: "Ejecutado",
     chat_actions_interrupt_disconnect:
@@ -14385,6 +14545,24 @@ var it_default = {
     composer_placeholder_ask: "Chiedi qualsiasi cosa a Selora AI\u2026",
     composer_placeholder_automation:
       "Descrivi l'automazione che vuoi creare\u2026",
+    composer_placeholder_refine: "Descrivi le modifiche\u2026",
+    refine_suggest_threshold: "Cambia la soglia ({value})",
+    refine_prefill_threshold: "Cambia la soglia da {value} a",
+    refine_suggest_delay: "Cambia il ritardo ({value})",
+    refine_prefill_delay: "Cambia il ritardo da {value} a",
+    refine_suggest_time: "Cambia l'orario ({value})",
+    refine_prefill_time: "Cambia l'orario da {value} a",
+    refine_suggest_brightness: "Cambia la luminosit\xE0 ({value}%)",
+    refine_prefill_brightness: "Cambia la luminosit\xE0 da {value}% a",
+    refine_suggest_hours: "Solo in certe ore",
+    refine_prefill_hours: "Eseguila solo tra",
+    refine_suggest_notify: "Avvisami anche",
+    refine_prefill_notify: "Inviami anche una notifica quando viene eseguita",
+    refine_prefill_step: 'Cambia "{step}" in',
+    refine_edit_step_tooltip: "Cambia questo passaggio",
+    refine_heading: "Modifica di {name}",
+    refine_heading_hint:
+      "Descrivi qui sotto cosa cambiare, oppure clicca su un passaggio. Non cambia nulla finch\xE9 non accetti la nuova versione.",
     panel_quota_provider_default: "il Suo provider LLM",
     panel_quota_reached: "quota raggiunta.",
     panel_quota_try_again_prefix: "Riprovi tra",
@@ -14657,7 +14835,7 @@ var it_default = {
     automations_proposal_declined_title: "Automazione rifiutata",
     automations_proposal_declined_body:
       "Ignorata. Pu\xF2 perfezionarla rispondendo qui sotto.",
-    automations_badge_being_refined: "In fase di perfezionamento",
+    automations_badge_current_version: "Versione attuale",
     automations_badge_proposal: "Proposta",
     automations_badge_superseded: "Sostituita",
     automations_proposal_elevated_risk:
@@ -15016,7 +15194,6 @@ var it_default = {
     automation_management_deleted: "Automazione eliminata.",
     automation_management_cannot_refine_no_id:
       "Questa automazione non pu\xF2 essere perfezionata perch\xE9 non ha un ID automazione.",
-    automation_management_loaded_to_chat: "Automazione caricata nella chat.",
     action_format_run_verb: "Esegui",
     action_format_ran_verb: "Eseguito",
     chat_actions_interrupt_disconnect:
@@ -15630,6 +15807,25 @@ var nl_default = {
     composer_placeholder_ask: "Vraag Selora AI iets\u2026",
     composer_placeholder_automation:
       "Beschrijf de automatisering die u wilt aanmaken\u2026",
+    composer_placeholder_refine: "Beschrijf de wijzigingen\u2026",
+    refine_suggest_threshold: "Drempel wijzigen ({value})",
+    refine_prefill_threshold: "Wijzig de drempel van {value} naar",
+    refine_suggest_delay: "Vertraging wijzigen ({value})",
+    refine_prefill_delay: "Wijzig de vertraging van {value} naar",
+    refine_suggest_time: "Tijd wijzigen ({value})",
+    refine_prefill_time: "Wijzig de tijd van {value} naar",
+    refine_suggest_brightness: "Helderheid wijzigen ({value}%)",
+    refine_prefill_brightness: "Wijzig de helderheid van {value}% naar",
+    refine_suggest_hours: "Alleen tussen bepaalde tijden",
+    refine_prefill_hours: "Voer het alleen uit tussen",
+    refine_suggest_notify: "Stuur mij ook een melding",
+    refine_prefill_notify:
+      "Stuur mij ook een melding wanneer het wordt uitgevoerd",
+    refine_prefill_step: 'Wijzig "{step}" naar',
+    refine_edit_step_tooltip: "Deze stap wijzigen",
+    refine_heading: "{name} bewerken",
+    refine_heading_hint:
+      "Beschrijf hieronder wat er moet veranderen, of klik op een stap. Er verandert niets totdat u de nieuwe versie accepteert.",
     panel_quota_provider_default: "uw LLM-provider",
     panel_quota_reached: "quotum bereikt.",
     panel_quota_try_again_prefix: "Probeer opnieuw over",
@@ -15899,7 +16095,7 @@ var nl_default = {
     automations_proposal_declined_title: "Automatisering geweigerd",
     automations_proposal_declined_body:
       "Afgewezen. U kunt deze verfijnen door hieronder te reageren.",
-    automations_badge_being_refined: "Wordt verfijnd",
+    automations_badge_current_version: "Huidige versie",
     automations_badge_proposal: "Voorstel",
     automations_badge_superseded: "Vervangen",
     automations_proposal_elevated_risk:
@@ -16260,7 +16456,6 @@ var nl_default = {
     automation_management_deleted: "Automatisering verwijderd.",
     automation_management_cannot_refine_no_id:
       "Deze automatisering kan niet worden verfijnd omdat ze geen automatisering-ID heeft.",
-    automation_management_loaded_to_chat: "Automatisering geladen in chat.",
     action_format_run_verb: "Uitvoeren",
     action_format_ran_verb: "Uitgevoerd",
     chat_actions_interrupt_disconnect:
@@ -16860,6 +17055,30 @@ var hu_default = {
     composer_placeholder_ask: "K\xE9rdezzen b\xE1rmit a Selora AI-t\xF3l\u2026",
     composer_placeholder_automation:
       "\xCDrja le a l\xE9trehozni k\xEDv\xE1nt automatizmust\u2026",
+    composer_placeholder_refine: "\xCDrja le a m\xF3dos\xEDt\xE1sokat\u2026",
+    refine_suggest_threshold:
+      "K\xFCsz\xF6b\xE9rt\xE9k m\xF3dos\xEDt\xE1sa ({value})",
+    refine_prefill_threshold:
+      "A k\xFCsz\xF6b\xE9rt\xE9k m\xF3dos\xEDt\xE1sa {value} \xE9rt\xE9kr\u0151l erre:",
+    refine_suggest_delay: "K\xE9sleltet\xE9s m\xF3dos\xEDt\xE1sa ({value})",
+    refine_prefill_delay:
+      "A k\xE9sleltet\xE9s m\xF3dos\xEDt\xE1sa {value} \xE9rt\xE9kr\u0151l erre:",
+    refine_suggest_time: "Id\u0151pont m\xF3dos\xEDt\xE1sa ({value})",
+    refine_prefill_time:
+      "Az id\u0151pont m\xF3dos\xEDt\xE1sa {value} \xE9rt\xE9kr\u0151l erre:",
+    refine_suggest_brightness: "F\xE9nyer\u0151 m\xF3dos\xEDt\xE1sa ({value}%)",
+    refine_prefill_brightness:
+      "A f\xE9nyer\u0151 m\xF3dos\xEDt\xE1sa {value}% \xE9rt\xE9kr\u0151l erre:",
+    refine_suggest_hours: "Csak bizonyos \xF3r\xE1kban",
+    refine_prefill_hours: "Csak ekkor fusson:",
+    refine_suggest_notify: "Engem is \xE9rtes\xEDtsen",
+    refine_prefill_notify:
+      "K\xFCldj\xF6n nekem \xE9rtes\xEDt\xE9st is, amikor lefut",
+    refine_prefill_step: "\u201E{step}\u201D m\xF3dos\xEDt\xE1sa erre:",
+    refine_edit_step_tooltip: "A l\xE9p\xE9s m\xF3dos\xEDt\xE1sa",
+    refine_heading: "{name} szerkeszt\xE9se",
+    refine_heading_hint:
+      "\xCDrja le lent, mit m\xF3dos\xEDtson, vagy kattintson egy l\xE9p\xE9sre. Semmi sem v\xE1ltozik, am\xEDg el nem fogadja az \xFAj verzi\xF3t.",
     panel_quota_provider_default: "az \xD6n LLM-szolg\xE1ltat\xF3ja",
     panel_quota_reached: "kv\xF3ta el\xE9rve.",
     panel_quota_try_again_prefix:
@@ -17146,7 +17365,7 @@ var hu_default = {
     automations_proposal_declined_title: "Automatizmus elutas\xEDtva",
     automations_proposal_declined_body:
       "Elvetve. Az al\xE1bbi v\xE1lasszal finom\xEDthatja.",
-    automations_badge_being_refined: "Finom\xEDt\xE1s alatt",
+    automations_badge_current_version: "Jelenlegi verzi\xF3",
     automations_badge_proposal: "Javaslat",
     automations_badge_superseded: "Lecser\xE9lve",
     automations_proposal_elevated_risk:
@@ -17525,8 +17744,6 @@ var hu_default = {
     automation_management_deleted: "Automatizmus t\xF6r\xF6lve.",
     automation_management_cannot_refine_no_id:
       "Ez az automatizmus nem finom\xEDthat\xF3, mert nincs automatizmusazonos\xEDt\xF3ja.",
-    automation_management_loaded_to_chat:
-      "Automatizmus bet\xF6ltve a besz\xE9lget\xE9sbe.",
     action_format_run_verb: "Futtat\xE1s",
     action_format_ran_verb: "Lefutott",
     chat_actions_interrupt_disconnect:
@@ -18126,6 +18343,25 @@ var pt_default = {
     composer_placeholder_ask: "Pergunte qualquer coisa ao Selora AI\u2026",
     composer_placeholder_automation:
       "Descreva a automa\xE7\xE3o que gostaria de criar\u2026",
+    composer_placeholder_refine: "Descreva as altera\xE7\xF5es\u2026",
+    refine_suggest_threshold: "Alterar o limite ({value})",
+    refine_prefill_threshold: "Alterar o limite de {value} para",
+    refine_suggest_delay: "Alterar o atraso ({value})",
+    refine_prefill_delay: "Alterar o atraso de {value} para",
+    refine_suggest_time: "Alterar a hora ({value})",
+    refine_prefill_time: "Alterar a hora de {value} para",
+    refine_suggest_brightness: "Alterar o brilho ({value}%)",
+    refine_prefill_brightness: "Alterar o brilho de {value}% para",
+    refine_suggest_hours: "S\xF3 entre certas horas",
+    refine_prefill_hours: "Execut\xE1-la s\xF3 entre",
+    refine_suggest_notify: "Notificar-me tamb\xE9m",
+    refine_prefill_notify:
+      "Envia-me tamb\xE9m uma notifica\xE7\xE3o quando for executada",
+    refine_prefill_step: 'Alterar "{step}" para',
+    refine_edit_step_tooltip: "Alterar este passo",
+    refine_heading: "A editar {name}",
+    refine_heading_hint:
+      "Descreva abaixo o que alterar, ou clique num passo. Nada muda at\xE9 aceitar a nova vers\xE3o.",
     panel_quota_provider_default: "o seu fornecedor de LLM",
     panel_quota_reached: "quota atingida.",
     panel_quota_try_again_prefix: "Tente novamente em",
@@ -18403,7 +18639,7 @@ var pt_default = {
     automations_proposal_declined_title: "Automa\xE7\xE3o recusada",
     automations_proposal_declined_body:
       "Dispensada. Pode aperfei\xE7o\xE1-la respondendo abaixo.",
-    automations_badge_being_refined: "A ser aperfei\xE7oada",
+    automations_badge_current_version: "Vers\xE3o atual",
     automations_badge_proposal: "Proposta",
     automations_badge_superseded: "Substitu\xEDda",
     automations_proposal_elevated_risk:
@@ -18765,8 +19001,6 @@ var pt_default = {
     automation_management_deleted: "Automa\xE7\xE3o eliminada.",
     automation_management_cannot_refine_no_id:
       "Esta automa\xE7\xE3o n\xE3o pode ser aperfei\xE7oada porque n\xE3o tem ID de automa\xE7\xE3o.",
-    automation_management_loaded_to_chat:
-      "Automa\xE7\xE3o carregada na conversa.",
     action_format_run_verb: "Executar",
     action_format_ran_verb: "Executou",
     chat_actions_interrupt_disconnect:
@@ -19403,6 +19637,40 @@ var ru_default = {
       "\u0421\u043F\u0440\u043E\u0441\u0438\u0442\u0435 Selora AI \u043E \u0447\u0451\u043C \u0443\u0433\u043E\u0434\u043D\u043E\u2026",
     composer_placeholder_automation:
       "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u0445\u043E\u0442\u0438\u0442\u0435 \u0441\u043E\u0437\u0434\u0430\u0442\u044C\u2026",
+    composer_placeholder_refine:
+      "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u2026",
+    refine_suggest_threshold:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u043E\u0440\u043E\u0433 ({value})",
+    refine_prefill_threshold:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u043E\u0440\u043E\u0433 \u0441 {value} \u043D\u0430",
+    refine_suggest_delay:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0437\u0430\u0434\u0435\u0440\u0436\u043A\u0443 ({value})",
+    refine_prefill_delay:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0437\u0430\u0434\u0435\u0440\u0436\u043A\u0443 \u0441 {value} \u043D\u0430",
+    refine_suggest_time:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0432\u0440\u0435\u043C\u044F ({value})",
+    refine_prefill_time:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0432\u0440\u0435\u043C\u044F \u0441 {value} \u043D\u0430",
+    refine_suggest_brightness:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u044F\u0440\u043A\u043E\u0441\u0442\u044C ({value}%)",
+    refine_prefill_brightness:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u044F\u0440\u043A\u043E\u0441\u0442\u044C \u0441 {value}% \u043D\u0430",
+    refine_suggest_hours:
+      "\u0422\u043E\u043B\u044C\u043A\u043E \u0432 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D\u043D\u044B\u0435 \u0447\u0430\u0441\u044B",
+    refine_prefill_hours:
+      "\u0417\u0430\u043F\u0443\u0441\u043A\u0430\u0442\u044C \u0442\u043E\u043B\u044C\u043A\u043E \u043C\u0435\u0436\u0434\u0443",
+    refine_suggest_notify:
+      "\u0422\u0430\u043A\u0436\u0435 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u044F\u0442\u044C \u043C\u0435\u043D\u044F",
+    refine_prefill_notify:
+      "\u0422\u0430\u043A\u0436\u0435 \u043F\u0440\u0438\u0441\u044B\u043B\u0430\u0439 \u043C\u043D\u0435 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u0435 \u043F\u0440\u0438 \u0437\u0430\u043F\u0443\u0441\u043A\u0435",
+    refine_prefill_step:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \xAB{step}\xBB \u043D\u0430",
+    refine_edit_step_tooltip:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u044D\u0442\u043E\u0442 \u0448\u0430\u0433",
+    refine_heading:
+      "\u0420\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435: {name}",
+    refine_heading_hint:
+      "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0438\u0436\u0435, \u0447\u0442\u043E \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C, \u0438\u043B\u0438 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \u043D\u0430 \u043B\u044E\u0431\u043E\u0439 \u0448\u0430\u0433. \u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u0441\u044F, \u043F\u043E\u043A\u0430 \u0432\u044B \u043D\u0435 \u043F\u0440\u0438\u043C\u0435\u0442\u0435 \u043D\u043E\u0432\u0443\u044E \u0432\u0435\u0440\u0441\u0438\u044E.",
     panel_quota_provider_default:
       "\u0432\u0430\u0448 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 LLM",
     panel_quota_reached:
@@ -19819,8 +20087,8 @@ var ru_default = {
       "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0430",
     automations_proposal_declined_body:
       "\u041E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u043E. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u043E\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0435\u0451, \u043E\u0442\u0432\u0435\u0442\u0438\u0432 \u043D\u0438\u0436\u0435.",
-    automations_badge_being_refined:
-      "\u0414\u043E\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F",
+    automations_badge_current_version:
+      "\u0422\u0435\u043A\u0443\u0449\u0430\u044F \u0432\u0435\u0440\u0441\u0438\u044F",
     automations_badge_proposal:
       "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
     automations_badge_superseded:
@@ -20377,8 +20645,6 @@ var ru_default = {
       "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0430.",
     automation_management_cannot_refine_no_id:
       "\u042D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u043D\u0435\u043B\u044C\u0437\u044F \u0434\u043E\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C, \u0442\u0430\u043A \u043A\u0430\u043A \u0443 \u043D\u0435\u0451 \u043D\u0435\u0442 \u0438\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438.",
-    automation_management_loaded_to_chat:
-      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u0430 \u0432 \u0447\u0430\u0442.",
     action_format_run_verb:
       "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C",
     action_format_ran_verb: "\u0417\u0430\u043F\u0443\u0449\u0435\u043D\u043E",
@@ -21211,6 +21477,34 @@ var ja_default = {
       "Selora AI \u306B\u4F55\u3067\u3082\u8CEA\u554F\u2026",
     composer_placeholder_automation:
       "\u4F5C\u6210\u3057\u305F\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u2026",
+    composer_placeholder_refine:
+      "\u5909\u66F4\u5185\u5BB9\u3092\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u2026",
+    refine_suggest_threshold:
+      "\u3057\u304D\u3044\u5024\u3092\u5909\u66F4 ({value})",
+    refine_prefill_threshold:
+      "\u3057\u304D\u3044\u5024\u3092 {value} \u304B\u3089\u6B21\u306B\u5909\u66F4:",
+    refine_suggest_delay: "\u9045\u5EF6\u3092\u5909\u66F4 ({value})",
+    refine_prefill_delay:
+      "\u9045\u5EF6\u3092 {value} \u304B\u3089\u6B21\u306B\u5909\u66F4:",
+    refine_suggest_time: "\u6642\u523B\u3092\u5909\u66F4 ({value})",
+    refine_prefill_time:
+      "\u6642\u523B\u3092 {value} \u304B\u3089\u6B21\u306B\u5909\u66F4:",
+    refine_suggest_brightness:
+      "\u660E\u308B\u3055\u3092\u5909\u66F4 ({value}%)",
+    refine_prefill_brightness:
+      "\u660E\u308B\u3055\u3092 {value}% \u304B\u3089\u6B21\u306B\u5909\u66F4:",
+    refine_suggest_hours: "\u7279\u5B9A\u306E\u6642\u9593\u5E2F\u306E\u307F",
+    refine_prefill_hours:
+      "\u6B21\u306E\u6642\u9593\u5E2F\u306E\u307F\u5B9F\u884C:",
+    refine_suggest_notify: "\u901A\u77E5\u3082\u53D7\u3051\u53D6\u308B",
+    refine_prefill_notify:
+      "\u5B9F\u884C\u6642\u306B\u901A\u77E5\u3082\u9001\u3063\u3066\u304F\u3060\u3055\u3044",
+    refine_prefill_step: "\u300C{step}\u300D\u3092\u6B21\u306B\u5909\u66F4:",
+    refine_edit_step_tooltip:
+      "\u3053\u306E\u30B9\u30C6\u30C3\u30D7\u3092\u5909\u66F4",
+    refine_heading: "{name} \u3092\u7DE8\u96C6\u4E2D",
+    refine_heading_hint:
+      "\u5909\u66F4\u5185\u5BB9\u3092\u4E0B\u306B\u5165\u529B\u3059\u308B\u304B\u3001\u4EFB\u610F\u306E\u30B9\u30C6\u30C3\u30D7\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u65B0\u3057\u3044\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u627F\u8A8D\u3059\u308B\u307E\u3067\u4F55\u3082\u5909\u308F\u308A\u307E\u305B\u3093\u3002",
     panel_quota_provider_default:
       "\u304A\u4F7F\u3044\u306E LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC",
     panel_quota_reached:
@@ -21553,7 +21847,8 @@ var ja_default = {
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F",
     automations_proposal_declined_body:
       "\u5374\u4E0B\u3057\u307E\u3057\u305F\u3002\u4E0B\u8A18\u306B\u8FD4\u4FE1\u3057\u3066\u8ABF\u6574\u3067\u304D\u307E\u3059\u3002",
-    automations_badge_being_refined: "\u8ABF\u6574\u4E2D",
+    automations_badge_current_version:
+      "\u73FE\u5728\u306E\u30D0\u30FC\u30B8\u30E7\u30F3",
     automations_badge_proposal: "\u63D0\u6848",
     automations_badge_superseded: "\u7F6E\u304D\u63DB\u3048\u6E08\u307F",
     automations_proposal_elevated_risk:
@@ -21991,8 +22286,6 @@ var ja_default = {
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3057\u307E\u3057\u305F\u3002",
     automation_management_cannot_refine_no_id:
       "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306F\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3 ID \u304C\u306A\u3044\u305F\u3081\u8ABF\u6574\u3067\u304D\u307E\u305B\u3093\u3002",
-    automation_management_loaded_to_chat:
-      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u30C1\u30E3\u30C3\u30C8\u306B\u8AAD\u307F\u8FBC\u307F\u307E\u3057\u305F\u3002",
     action_format_run_verb: "\u5B9F\u884C",
     action_format_ran_verb: "\u5B9F\u884C\u3057\u307E\u3057\u305F",
     chat_actions_interrupt_disconnect:
@@ -22709,6 +23002,32 @@ var ko_default = {
       "Selora AI\uC5D0\uAC8C \uBB34\uC5C7\uC774\uB4E0 \uBB3C\uC5B4\uBCF4\uC138\uC694\u2026",
     composer_placeholder_automation:
       "\uB9CC\uB4E4\uACE0 \uC2F6\uC740 \uC790\uB3D9\uD654\uB97C \uC124\uBA85\uD558\uC138\uC694\u2026",
+    composer_placeholder_refine:
+      "\uBCC0\uACBD \uC0AC\uD56D\uC744 \uC124\uBA85\uD558\uC138\uC694\u2026",
+    refine_suggest_threshold: "\uC784\uACC4\uAC12 \uBCC0\uACBD ({value})",
+    refine_prefill_threshold:
+      "\uC784\uACC4\uAC12\uC744 {value}\uC5D0\uC11C \uB2E4\uC74C\uC73C\uB85C \uBCC0\uACBD:",
+    refine_suggest_delay: "\uC9C0\uC5F0 \uC2DC\uAC04 \uBCC0\uACBD ({value})",
+    refine_prefill_delay:
+      "\uC9C0\uC5F0 \uC2DC\uAC04\uC744 {value}\uC5D0\uC11C \uB2E4\uC74C\uC73C\uB85C \uBCC0\uACBD:",
+    refine_suggest_time: "\uC2DC\uAC04 \uBCC0\uACBD ({value})",
+    refine_prefill_time:
+      "\uC2DC\uAC04\uC744 {value}\uC5D0\uC11C \uB2E4\uC74C\uC73C\uB85C \uBCC0\uACBD:",
+    refine_suggest_brightness: "\uBC1D\uAE30 \uBCC0\uACBD ({value}%)",
+    refine_prefill_brightness:
+      "\uBC1D\uAE30\uB97C {value}%\uC5D0\uC11C \uB2E4\uC74C\uC73C\uB85C \uBCC0\uACBD:",
+    refine_suggest_hours: "\uD2B9\uC815 \uC2DC\uAC04\uB300\uC5D0\uB9CC",
+    refine_prefill_hours:
+      "\uB2E4\uC74C \uC2DC\uAC04\uB300\uC5D0\uB9CC \uC2E4\uD589:",
+    refine_suggest_notify: "\uB098\uC5D0\uAC8C\uB3C4 \uC54C\uB9BC",
+    refine_prefill_notify:
+      "\uC2E4\uD589\uB420 \uB54C \uB098\uC5D0\uAC8C\uB3C4 \uC54C\uB9BC\uC744 \uBCF4\uB0B4 \uC918",
+    refine_prefill_step:
+      '"{step}"\uC744(\uB97C) \uB2E4\uC74C\uC73C\uB85C \uBCC0\uACBD:',
+    refine_edit_step_tooltip: "\uC774 \uB2E8\uACC4 \uBCC0\uACBD",
+    refine_heading: "{name} \uD3B8\uC9D1 \uC911",
+    refine_heading_hint:
+      "\uC544\uB798\uC5D0 \uBCC0\uACBD\uD560 \uB0B4\uC6A9\uC744 \uC785\uB825\uD558\uAC70\uB098 \uB2E8\uACC4\uB97C \uD074\uB9AD\uD558\uC138\uC694. \uC0C8 \uBC84\uC804\uC744 \uC218\uB77D\uD560 \uB54C\uAE4C\uC9C0 \uC544\uBB34\uAC83\uB3C4 \uBC14\uB00C\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
     panel_quota_provider_default:
       "\uC0AC\uC6A9 \uC911\uC778 LLM \uC81C\uACF5\uC790",
     panel_quota_reached:
@@ -23036,7 +23355,7 @@ var ko_default = {
       "\uC790\uB3D9\uD654 \uAC70\uBD80\uB428",
     automations_proposal_declined_body:
       "\uB2EB\uD614\uC2B5\uB2C8\uB2E4. \uC544\uB798\uC5D0 \uB2F5\uC7A5\uD558\uC5EC \uC218\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
-    automations_badge_being_refined: "\uC218\uC815 \uC911",
+    automations_badge_current_version: "\uD604\uC7AC \uBC84\uC804",
     automations_badge_proposal: "\uC81C\uC548",
     automations_badge_superseded: "\uB300\uCCB4\uB428",
     automations_proposal_elevated_risk:
@@ -23439,8 +23758,6 @@ var ko_default = {
       "\uC790\uB3D9\uD654\uAC00 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
     automation_management_cannot_refine_no_id:
       "\uC774 \uC790\uB3D9\uD654\uB294 \uC790\uB3D9\uD654 ID\uAC00 \uC5C6\uC5B4 \uC218\uC815\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
-    automation_management_loaded_to_chat:
-      "\uC790\uB3D9\uD654\uAC00 \uCC44\uD305\uC5D0 \uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
     action_format_run_verb: "\uC2E4\uD589",
     action_format_ran_verb: "\uC2E4\uD589\uD568",
     chat_actions_interrupt_disconnect:
@@ -24106,6 +24423,27 @@ var zh_Hans_default = {
       "\u5411 Selora AI \u63D0\u51FA\u4EFB\u4F55\u95EE\u9898\u2026",
     composer_placeholder_automation:
       "\u63CF\u8FF0\u60A8\u60F3\u521B\u5EFA\u7684\u81EA\u52A8\u5316\u2026",
+    composer_placeholder_refine:
+      "\u63CF\u8FF0\u60A8\u8981\u505A\u7684\u66F4\u6539\u2026",
+    refine_suggest_threshold: "\u66F4\u6539\u9608\u503C\uFF08{value}\uFF09",
+    refine_prefill_threshold: "\u5C06\u9608\u503C\u4ECE {value} \u6539\u4E3A",
+    refine_suggest_delay: "\u66F4\u6539\u5EF6\u8FDF\uFF08{value}\uFF09",
+    refine_prefill_delay: "\u5C06\u5EF6\u8FDF\u4ECE {value} \u6539\u4E3A",
+    refine_suggest_time: "\u66F4\u6539\u65F6\u95F4\uFF08{value}\uFF09",
+    refine_prefill_time: "\u5C06\u65F6\u95F4\u4ECE {value} \u6539\u4E3A",
+    refine_suggest_brightness: "\u66F4\u6539\u4EAE\u5EA6\uFF08{value}%\uFF09",
+    refine_prefill_brightness: "\u5C06\u4EAE\u5EA6\u4ECE {value}% \u6539\u4E3A",
+    refine_suggest_hours: "\u4EC5\u5728\u7279\u5B9A\u65F6\u6BB5",
+    refine_prefill_hours:
+      "\u4EC5\u5728\u4EE5\u4E0B\u65F6\u6BB5\u8FD0\u884C\uFF1A",
+    refine_suggest_notify: "\u540C\u65F6\u901A\u77E5\u6211",
+    refine_prefill_notify:
+      "\u8FD0\u884C\u65F6\u4E5F\u7ED9\u6211\u53D1\u9001\u901A\u77E5",
+    refine_prefill_step: "\u5C06\u201C{step}\u201D\u6539\u4E3A",
+    refine_edit_step_tooltip: "\u66F4\u6539\u6B64\u6B65\u9AA4",
+    refine_heading: "\u6B63\u5728\u7F16\u8F91 {name}",
+    refine_heading_hint:
+      "\u5728\u4E0B\u65B9\u63CF\u8FF0\u8981\u66F4\u6539\u7684\u5185\u5BB9\uFF0C\u6216\u70B9\u51FB\u4EFB\u4E00\u6B65\u9AA4\u3002\u5728\u60A8\u63A5\u53D7\u65B0\u7248\u672C\u4E4B\u524D\uFF0C\u4E0D\u4F1A\u6709\u4EFB\u4F55\u66F4\u6539\u3002",
     panel_quota_provider_default: "\u60A8\u7684 LLM \u63D0\u4F9B\u5546",
     panel_quota_reached: "\u5DF2\u8FBE\u5230\u914D\u989D\u3002",
     panel_quota_try_again_prefix:
@@ -24408,7 +24746,7 @@ var zh_Hans_default = {
     automations_proposal_declined_title: "\u81EA\u52A8\u5316\u5DF2\u62D2\u7EDD",
     automations_proposal_declined_body:
       "\u5DF2\u5FFD\u7565\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u590D\u4EE5\u8FDB\u4E00\u6B65\u5B8C\u5584\u5B83\u3002",
-    automations_badge_being_refined: "\u5B8C\u5584\u4E2D",
+    automations_badge_current_version: "\u5F53\u524D\u7248\u672C",
     automations_badge_proposal: "\u63D0\u8BAE",
     automations_badge_superseded: "\u5DF2\u66FF\u6362",
     automations_proposal_elevated_risk:
@@ -24795,8 +25133,6 @@ var zh_Hans_default = {
     automation_management_deleted: "\u81EA\u52A8\u5316\u5DF2\u5220\u9664\u3002",
     automation_management_cannot_refine_no_id:
       "\u65E0\u6CD5\u5B8C\u5584\u6B64\u81EA\u52A8\u5316\uFF0C\u56E0\u4E3A\u5B83\u6CA1\u6709\u81EA\u52A8\u5316 ID\u3002",
-    automation_management_loaded_to_chat:
-      "\u81EA\u52A8\u5316\u5DF2\u52A0\u8F7D\u5230\u5BF9\u8BDD\u4E2D\u3002",
     action_format_run_verb: "\u8FD0\u884C",
     action_format_ran_verb: "\u5DF2\u8FD0\u884C",
     chat_actions_interrupt_disconnect:
@@ -25436,6 +25772,27 @@ var zh_Hant_default = {
       "\u5411 Selora AI \u8A62\u554F\u4EFB\u4F55\u554F\u984C\u2026",
     composer_placeholder_automation:
       "\u63CF\u8FF0\u60A8\u60F3\u5EFA\u7ACB\u7684\u81EA\u52D5\u5316\u2026",
+    composer_placeholder_refine:
+      "\u63CF\u8FF0\u60A8\u8981\u505A\u7684\u8B8A\u66F4\u2026",
+    refine_suggest_threshold: "\u8B8A\u66F4\u95BE\u503C\uFF08{value}\uFF09",
+    refine_prefill_threshold: "\u5C07\u95BE\u503C\u5F9E {value} \u6539\u70BA",
+    refine_suggest_delay: "\u8B8A\u66F4\u5EF6\u9072\uFF08{value}\uFF09",
+    refine_prefill_delay: "\u5C07\u5EF6\u9072\u5F9E {value} \u6539\u70BA",
+    refine_suggest_time: "\u8B8A\u66F4\u6642\u9593\uFF08{value}\uFF09",
+    refine_prefill_time: "\u5C07\u6642\u9593\u5F9E {value} \u6539\u70BA",
+    refine_suggest_brightness: "\u8B8A\u66F4\u4EAE\u5EA6\uFF08{value}%\uFF09",
+    refine_prefill_brightness: "\u5C07\u4EAE\u5EA6\u5F9E {value}% \u6539\u70BA",
+    refine_suggest_hours: "\u50C5\u5728\u7279\u5B9A\u6642\u6BB5",
+    refine_prefill_hours:
+      "\u50C5\u5728\u4EE5\u4E0B\u6642\u6BB5\u57F7\u884C\uFF1A",
+    refine_suggest_notify: "\u540C\u6642\u901A\u77E5\u6211",
+    refine_prefill_notify:
+      "\u57F7\u884C\u6642\u4E5F\u50B3\u9001\u901A\u77E5\u7D66\u6211",
+    refine_prefill_step: "\u5C07\u300C{step}\u300D\u6539\u70BA",
+    refine_edit_step_tooltip: "\u8B8A\u66F4\u6B64\u6B65\u9A5F",
+    refine_heading: "\u6B63\u5728\u7DE8\u8F2F {name}",
+    refine_heading_hint:
+      "\u5728\u4E0B\u65B9\u63CF\u8FF0\u8981\u8B8A\u66F4\u7684\u5167\u5BB9\uFF0C\u6216\u9EDE\u9078\u4EFB\u4E00\u6B65\u9A5F\u3002\u5728\u60A8\u63A5\u53D7\u65B0\u7248\u672C\u4E4B\u524D\uFF0C\u4E0D\u6703\u6709\u4EFB\u4F55\u8B8A\u66F4\u3002",
     panel_quota_provider_default: "\u60A8\u7684 LLM \u4F9B\u61C9\u5546",
     panel_quota_reached: "\u5DF2\u9054\u7528\u91CF\u4E0A\u9650\u3002",
     panel_quota_try_again_prefix:
@@ -25740,7 +26097,7 @@ var zh_Hant_default = {
     automations_proposal_declined_title: "\u81EA\u52D5\u5316\u5DF2\u62D2\u7D55",
     automations_proposal_declined_body:
       "\u5DF2\u95DC\u9589\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u8986\u4EE5\u9032\u4E00\u6B65\u8ABF\u6574\u3002",
-    automations_badge_being_refined: "\u8ABF\u6574\u4E2D",
+    automations_badge_current_version: "\u76EE\u524D\u7248\u672C",
     automations_badge_proposal: "\u63D0\u6848",
     automations_badge_superseded: "\u5DF2\u53D6\u4EE3",
     automations_proposal_elevated_risk:
@@ -26130,8 +26487,6 @@ var zh_Hant_default = {
     automation_management_deleted: "\u81EA\u52D5\u5316\u5DF2\u522A\u9664\u3002",
     automation_management_cannot_refine_no_id:
       "\u6B64\u81EA\u52D5\u5316\u56E0\u70BA\u6C92\u6709\u81EA\u52D5\u5316 ID \u800C\u7121\u6CD5\u8ABF\u6574\u3002",
-    automation_management_loaded_to_chat:
-      "\u81EA\u52D5\u5316\u5DF2\u8F09\u5165\u5C0D\u8A71\u4E2D\u3002",
     action_format_run_verb: "\u57F7\u884C",
     action_format_ran_verb: "\u5DF2\u57F7\u884C",
     chat_actions_interrupt_disconnect:
@@ -27497,3944 +27852,6 @@ function renderConfirmChip(host, action, onClick) {
   `;
 }
 
-// src/panel/client-actions.js
-function matchesProposal(existing, expected) {
-  return (
-    String(existing.title || "") === String(expected.title || "") &&
-    String(existing.icon || "") === String(expected.icon || "") &&
-    Boolean(existing.require_admin) === Boolean(expected.require_admin) &&
-    Boolean(existing.show_in_sidebar) === Boolean(expected.show_in_sidebar)
-  );
-}
-var HELPER_FIELDS = {
-  input_boolean: ["name", "icon", "initial"],
-  input_button: ["name", "icon"],
-  input_select: ["name", "icon", "initial", "options"],
-  input_number: [
-    "name",
-    "icon",
-    "initial",
-    "min",
-    "max",
-    "step",
-    "mode",
-    "unit_of_measurement",
-  ],
-  input_text: [
-    "name",
-    "icon",
-    "initial",
-    "min",
-    "max",
-    "mode",
-    "pattern",
-    "unit_of_measurement",
-  ],
-  input_datetime: ["name", "icon", "initial", "has_date", "has_time"],
-  counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
-  timer: ["name", "icon", "duration", "restore"],
-  zone: ["name", "icon", "latitude", "longitude", "radius", "passive"],
-};
-var HANDLERS = {
-  create_helper: async (hass, action) => {
-    const domain = String(action.domain || "");
-    const allowed = HELPER_FIELDS[domain];
-    if (!allowed) throw new Error(`Unsupported helper type: ${domain}`);
-    const fields = action.fields || {};
-    const payload = {};
-    for (const key of allowed) {
-      if (fields[key] !== void 0) payload[key] = fields[key];
-    }
-    const name = String(payload.name || "");
-    const existing = await hass.callWS({ type: `${domain}/list` });
-    const already = (existing || []).find((item) => item?.name === name);
-    if (already) {
-      const same = Object.keys(payload).every(
-        (key) => JSON.stringify(already[key]) === JSON.stringify(payload[key]),
-      );
-      if (!same) {
-        throw new Error(
-          `A different ${domain} called "${name}" already exists. Use it, or ask again with another name.`,
-        );
-      }
-      return { entity_id: `${domain}.${already.id}`, name };
-    }
-    const created = await hass.callWS({ type: `${domain}/create`, ...payload });
-    return {
-      entity_id: created?.id ? `${domain}.${created.id}` : "",
-      name: created?.name || name,
-    };
-  },
-  delete_dashboard: async (hass, action) => {
-    const urlPath = String(action.url_path || "");
-    const dashboardId = String(action.dashboard_id || "");
-    const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
-    const match = (existing || []).find(
-      (d3) => d3?.id && d3.id === dashboardId,
-    );
-    if (!match) {
-      return { url_path: urlPath, title: action.title, already_gone: true };
-    }
-    if (urlPath && match.url_path !== urlPath) {
-      throw new Error(
-        `That dashboard is no longer at /${urlPath} \u2014 it is at /${match.url_path}. Ask again to confirm which one to delete.`,
-      );
-    }
-    if (action.expected && !matchesProposal(match, action.expected)) {
-      throw new Error(
-        `The dashboard at /${match.url_path} is not the one this card named \u2014 "${String(match.title || "")}" is there now. Ask again to confirm which one to delete.`,
-      );
-    }
-    await hass.callWS({
-      type: "lovelace/dashboards/delete",
-      dashboard_id: match.id,
-    });
-    return { url_path: urlPath, title: match.title || action.title };
-  },
-  create_dashboard: async (hass, action) => {
-    const urlPath = String(action.url_path || "");
-    const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
-    const already = (existing || []).find((d3) => d3?.url_path === urlPath);
-    if (already) {
-      if (!matchesProposal(already, action)) {
-        throw new Error(
-          `The dashboard at /${urlPath} is not the one proposed \u2014 "${String(already.title || "")}" is already there. Pick another url_path, or edit that dashboard instead.`,
-        );
-      }
-      return {
-        url_path: already.url_path,
-        title: already.title || action.title,
-      };
-    }
-    const payload = {
-      type: "lovelace/dashboards/create",
-      title: String(action.title || ""),
-      url_path: String(action.url_path || ""),
-      require_admin: Boolean(action.require_admin),
-      show_in_sidebar: Boolean(action.show_in_sidebar),
-    };
-    if (action.icon) payload.icon = String(action.icon);
-    if (action.allow_single_word) payload.allow_single_word = true;
-    const created = await hass.callWS(payload);
-    return {
-      url_path: created?.url_path || payload.url_path,
-      title: created?.title || payload.title,
-    };
-  },
-};
-async function runClientAction(hass, action) {
-  const kind = String(action?.kind || "");
-  const handler = HANDLERS[kind];
-  if (!handler) {
-    return { ok: false, kind, detail: `Unsupported action: ${kind}` };
-  }
-  try {
-    const detail = await handler(hass, action);
-    return { ok: true, kind, detail };
-  } catch (err) {
-    return { ok: false, kind, detail: err?.message || String(err) };
-  }
-}
-var IN_FLIGHT = /* @__PURE__ */ new Set();
-async function resolveClientActions(host, msg, approval) {
-  const proposalId = approval?.proposal_id;
-  if ((msg && msg._resolving) || IN_FLIGHT.has(proposalId)) return;
-  IN_FLIGHT.add(proposalId);
-  const actions = approval?.client_actions || [];
-  const sessionId = host._activeSessionId;
-  let ok = false;
-  let reported = true;
-  try {
-    if (msg) {
-      msg._resolving = true;
-      msg.quick_actions = null;
-      msg.approval_status = "resolving";
-      host._messages = [...host._messages];
-    }
-    const results = [];
-    for (const action of actions) {
-      results.push(await runClientAction(host.hass, action));
-    }
-    ok = results.length > 0 && results.every((r4) => r4.ok);
-    try {
-      await host.hass.callWS({
-        type: "selora_ai/client_action_result",
-        session_id: sessionId,
-        proposal_id: approval.proposal_id,
-        results,
-        // The language RESOLVED for the turn, carried on the proposal. NOT
-        // hass.language, which is only the UI locale: a French message on an
-        // English-UI install must get a French outcome, and the panel cannot
-        // work out which — only the turn that detected it knows.
-        ...(approval.language || host.hass?.language
-          ? { language: approval.language || host.hass.language }
-          : {}),
-      });
-    } catch (err) {
-      reported = false;
-      console.error("Selora AI: could not report client action result", err);
-    }
-    if (msg) {
-      msg._resolving = false;
-      msg.approval_status = ok ? "approved" : "denied";
-      host._messages = [...host._messages];
-    }
-  } finally {
-    IN_FLIGHT.delete(proposalId);
-  }
-  if (reported && sessionId && host._activeSessionId === sessionId) {
-    await host._openSession?.(sessionId);
-    if (ok) {
-      await host._sendMessage?.({ resumeProposalId: proposalId });
-    }
-  }
-  host.requestUpdate();
-}
-
-// src/panel/action-format.js
-var DOMAIN_ICONS = {
-  light: "mdi:lightbulb",
-  switch: "mdi:toggle-switch",
-  scene: "mdi:palette",
-  cover: "mdi:window-shutter",
-  fan: "mdi:fan",
-  climate: "mdi:thermostat",
-  input_boolean: "mdi:toggle-switch-outline",
-  media_player: "mdi:speaker",
-  lock: "mdi:lock",
-  alarm_control_panel: "mdi:shield-home",
-  vacuum: "mdi:robot-vacuum",
-  water_heater: "mdi:water-boiler",
-  tts: "mdi:account-voice",
-  notify: "mdi:bell",
-  script: "mdi:script-text-play",
-  shell_command: "mdi:console",
-};
-var SERVICE_FORMS = {
-  "lock.lock": { imperative: "Lock", past: "Locked" },
-  "lock.unlock": { imperative: "Unlock", past: "Unlocked" },
-  "lock.open": { imperative: "Open", past: "Opened" },
-  "tts.cloud_say": { imperative: "Announce on", past: "Announced on" },
-  "tts.google_translate_say": {
-    imperative: "Announce on",
-    past: "Announced on",
-  },
-  "tts.speak": { imperative: "Announce on", past: "Announced on" },
-  "alarm_control_panel.alarm_arm_home": {
-    imperative: "Arm (home mode)",
-    past: "Armed (home mode)",
-  },
-  "alarm_control_panel.alarm_arm_away": {
-    imperative: "Arm (away mode)",
-    past: "Armed (away mode)",
-  },
-  "alarm_control_panel.alarm_arm_night": {
-    imperative: "Arm (night mode)",
-    past: "Armed (night mode)",
-  },
-  "alarm_control_panel.alarm_disarm": {
-    imperative: "Disarm",
-    past: "Disarmed",
-  },
-  "vacuum.start": { imperative: "Start", past: "Started" },
-  "vacuum.pause": { imperative: "Pause", past: "Paused" },
-  "vacuum.stop": { imperative: "Stop", past: "Stopped" },
-  "vacuum.return_to_base": {
-    imperative: "Send to dock",
-    past: "Sent to dock",
-  },
-  "vacuum.clean_spot": {
-    imperative: "Spot-clean with",
-    past: "Spot-cleaned with",
-  },
-  "water_heater.set_temperature": {
-    imperative: "Set temperature on",
-    past: "Updated temperature on",
-  },
-  "water_heater.set_operation_mode": {
-    imperative: "Change mode on",
-    past: "Changed mode on",
-  },
-  // SAFE-bucket services that can appear in a bundled approval (the
-  // policy holds an entire turn back until the user clicks through
-  // the REVIEW call). Past tense matters here because these may also
-  // run via the Done message synthesizer below.
-  "light.turn_on": { imperative: "Turn on", past: "Turned on" },
-  "light.turn_off": { imperative: "Turn off", past: "Turned off" },
-  "light.toggle": { imperative: "Toggle", past: "Toggled" },
-  "switch.turn_on": { imperative: "Turn on", past: "Turned on" },
-  "switch.turn_off": { imperative: "Turn off", past: "Turned off" },
-  "scene.turn_on": { imperative: "Activate", past: "Activated" },
-};
-var DOMAIN_FORMS = {
-  tts: { imperative: "Announce on", past: "Announced on" },
-  notify: {
-    imperative: "Send a notification via",
-    past: "Sent a notification via",
-  },
-  script: { imperative: "Run script", past: "Ran script" },
-  shell_command: {
-    imperative: "Run shell command",
-    past: "Ran shell command",
-  },
-};
-function _domainOf(s4) {
-  return (s4 || "").split(".", 1)[0];
-}
-function _serviceSuffix(s4) {
-  const parts = (s4 || "").split(".");
-  return parts.length > 1 ? parts.slice(1).join(".") : "";
-}
-function _friendlyName(host, entityId) {
-  return host?.hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
-}
-function actionIcon(service) {
-  return DOMAIN_ICONS[_domainOf(service)] || "mdi:cog-play-outline";
-}
-function callTargetEntityIds(call) {
-  const raw =
-    call?.service === "tts.speak"
-      ? call?.data?.media_player_entity_id
-      : call?.target?.entity_id;
-  return Array.isArray(raw) ? raw : raw ? [raw] : [];
-}
-function describeCall(host, call) {
-  const service = call?.service || "";
-  const ids = callTargetEntityIds(call);
-  const forms =
-    SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
-  const t5 =
-    typeof host?._t === "function"
-      ? (k2, fb) => host._t(k2, fb)
-      : (_k, fb) => fb;
-  const imperative = forms?.imperative || t5("action_format_run_verb", "Run");
-  const pastVerb = forms?.past || t5("action_format_ran_verb", "Ran");
-  if (ids.length) {
-    const names = ids.map((eid) => _friendlyName(host, eid));
-    return {
-      verb: imperative,
-      pastVerb,
-      targetText: names.join(", "),
-      entityIds: ids,
-    };
-  }
-  const tail = _serviceSuffix(service);
-  return {
-    verb: imperative,
-    pastVerb,
-    targetText: tail || service,
-    entityIds: [],
-  };
-}
-
-// src/panel/render-approval-card.js
-var RISK_LEVEL_STYLES = {
-  low: {
-    accent: "#3b82f6",
-    icon: "mdi:information-outline",
-    explainerKey: "approval_risk_explainer_low",
-    explainerFallback:
-      "Low risk: minor or fully reversible impact (sound, notifications, vacuum start/stop).",
-  },
-  medium: {
-    accent: "#f59e0b",
-    icon: "mdi:alert-outline",
-    explainerKey: "approval_risk_explainer_medium",
-    explainerFallback:
-      "Medium risk: noticeable side effects you may not want to undo (arming the alarm, locking a door, running a user script).",
-  },
-  high: {
-    accent: "#ef4444",
-    icon: "mdi:shield-alert-outline",
-    explainerKey: "approval_risk_explainer_high",
-    explainerFallback:
-      "High risk: physical access, security, or host-level impact (unlocking a door, disarming the alarm, running shell commands).",
-  },
-};
-var _DELETE_KIND_LABELS = {
-  automation: "automation",
-  scene: "scene",
-  group: "group",
-  area: "area",
-  script: "script",
-  label: "label",
-  helper: "helper",
-  entity: "entity",
-  device: "device",
-};
-var _DELETE_KIND_ICONS = {
-  scene: "mdi:palette-outline",
-  group: "mdi:google-circles-communities",
-  automation: "mdi:robot-outline",
-  area: "mdi:floor-plan",
-  script: "mdi:script-text-outline",
-  label: "mdi:label-outline",
-  helper: "mdi:tools",
-  entity: "mdi:shape-outline",
-  device: "mdi:devices",
-};
-var _CONFIRM_VARIANTS = {
-  delete: {
-    accent: "#ef4444",
-    headIcon: "mdi:alert-outline",
-    rows: (approval) => [
-      ...(approval.deletes || []),
-      ...(approval.actions || []),
-    ],
-    renderRow: (host, row) => _renderDeleteRow(host, row),
-    doneIcon: "mdi:trash-can-outline",
-    doneKey: "approval_status_deleted",
-    doneFallback: "Deleted",
-    titleKey: "delete_approval_title",
-    titleFallback: "Delete this?",
-    titlePluralKey: "delete_approval_title_plural",
-    titlePluralFallback: "Delete these?",
-    warningKey: "delete_approval_warning",
-    warningFallback: "This permanently removes it and can't be undone.",
-  },
-  destructive: {
-    accent: "#ef4444",
-    headIcon: "mdi:alert-outline",
-    rows: (approval) => [
-      ...(approval.deletes || []),
-      ...(approval.actions || []),
-    ],
-    renderRow: (host, row) => _renderDeleteRow(host, row),
-    doneIcon: "mdi:check-circle-outline",
-    doneKey: "approval_status_applied",
-    doneFallback: "Applied",
-    titleKey: "destructive_approval_title",
-    titleFallback: "Apply this change?",
-    titlePluralKey: "destructive_approval_title_plural",
-    titlePluralFallback: "Apply these changes?",
-    warningKey: "destructive_approval_warning",
-    warningFallback: "This can't be undone from chat.",
-  },
-  // Work the PANEL performs. The only shape with its own button: the others
-  // resolve server-side and get their Allow / Deny from `msg.quick_actions`,
-  // while this one has no server-side resolver to call — the press is what
-  // makes the privileged websocket command the signed-in user's own.
-  client_action: {
-    accent: "var(--selora-accent)",
-    // What the CARD is — a thing waiting on the user — the way the delete
-    // card's head says "destructive". The row below says what the thing is,
-    // so repeating its icon here rendered the same glyph twice.
-    headIcon: "mdi:gesture-tap",
-    rows: (approval) => approval.client_actions || [],
-    renderRow: (host, row) => _renderClientActionRow(host, row),
-    doneIcon: "mdi:check-circle-outline",
-    doneKey: "client_action_done",
-    doneFallback: "Done.",
-    cancelledKey: "client_action_failed",
-    cancelledFallback: "That did not work.",
-    titleKey: "client_action_title",
-    titleFallback: "Needs your confirmation",
-    titlePluralKey: "client_action_title",
-    titlePluralFallback: "Needs your confirmation",
-    confirm: {
-      // The same quiet chip the risk card's Allow uses. Its styles exist so
-      // confirmation buttons "stay visually quiet next to the risk card" — a
-      // filled button here would shout where Allow murmurs.
-      //
-      // Wording and tone follow the ACTION, not the card: "Create" on a button
-      // that deletes a dashboard would be worse than unhelpful.
-      byKind: {
-        delete_dashboard: {
-          tone: "deny",
-          icon: "mdi:trash-can-outline",
-          labelKey: "client_action_delete",
-          labelFallback: "Delete",
-        },
-      },
-      tone: "approve",
-      icon: "mdi:plus",
-      labelKey: "client_action_confirm",
-      labelFallback: "Create",
-      busyKey: "client_action_working",
-      busyFallback: "Working\u2026",
-      run: (host, msg, approval) => resolveClientActions(host, msg, approval),
-    },
-  },
-};
-function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
-  const mixedDelete =
-    variant === "delete" && (approval.actions || []).length > 0;
-  const copy = mixedDelete
-    ? _CONFIRM_VARIANTS.destructive
-    : _CONFIRM_VARIANTS[variant];
-  const accent = copy.accent;
-  const rows = copy.rows(approval);
-  if (approvalStatus === "approved" || approvalStatus === "denied") {
-    const resolved = approvalStatus === "approved";
-    return b2`
-      <div
-        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
-      >
-        <ha-icon
-          icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
-          style="--mdc-icon-size:16px;flex-shrink:0;"
-        ></ha-icon>
-        <span
-          >${
-            resolved
-              ? host._t(copy.doneKey, copy.doneFallback)
-              : host._t(
-                  copy.cancelledKey || "approval_status_cancelled",
-                  copy.cancelledFallback || "Cancelled",
-                )
-          }</span
-        >
-      </div>
-    `;
-  }
-  if (approvalStatus === "resolving") {
-    return b2`
-      <div
-        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
-      >
-        <span class="spinner" style="width:14px;height:14px;"></span>
-        <span
-          >${host._t(
-            copy.confirm?.busyKey || "approval_working",
-            copy.confirm?.busyFallback || "Working\u2026",
-          )}</span
-        >
-      </div>
-    `;
-  }
-  return b2`
-    <div
-      style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
-    >
-      <div
-        style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:4px;"
-      >
-        <ha-icon
-          icon=${copy.headIcon}
-          style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
-        ></ha-icon>
-        <span
-          >${rows.length > 1 ? host._t(copy.titlePluralKey, copy.titlePluralFallback) : host._t(copy.titleKey, copy.titleFallback)}</span
-        >
-      </div>
-      <div style="display:flex;flex-direction:column;">
-        ${rows.map((row) => copy.renderRow(host, row))}
-      </div>
-      ${
-        approval.remaining_intent
-          ? b2`<div
-              style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
-            >
-              <ha-icon
-                icon="mdi:arrow-right-bottom"
-                style="--mdc-icon-size:14px;flex-shrink:0;"
-              ></ha-icon>
-              <span
-                >${host._t("approval_then", "then")}
-                ${approval.remaining_intent}</span
-              >
-            </div>`
-          : ""
-      }
-      ${
-        copy.warningKey
-          ? b2`<div
-              style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
-            >
-              ${host._t(copy.warningKey, copy.warningFallback)}
-            </div>`
-          : ""
-      }
-      ${
-        copy.confirm
-          ? b2`<div class="qa-group qa-group--confirmations">
-              ${(() => {
-                const kinds = rows.map((row) => String(row?.kind || ""));
-                const destructive = kinds.filter(
-                  (kind) => copy.confirm.byKind?.[kind]?.tone === "deny",
-                );
-                const confirm2 = !destructive.length
-                  ? copy.confirm
-                  : destructive.length === kinds.length
-                    ? {
-                        ...copy.confirm,
-                        ...copy.confirm.byKind[destructive[0]],
-                      }
-                    : {
-                        // Mixed. Neutral wording, because neither verb
-                        // describes the whole press — and the destructive tone,
-                        // because something here deletes data.
-                        ...copy.confirm,
-                        ...copy.confirm.byKind[destructive[0]],
-                        icon: "mdi:check",
-                        labelKey: "client_action_confirm_mixed",
-                        labelFallback: "Confirm all",
-                      };
-                return renderConfirmChip(
-                  host,
-                  {
-                    label: host._t(confirm2.labelKey, confirm2.labelFallback),
-                    icon: confirm2.icon,
-                    tone: confirm2.tone,
-                  },
-                  () => copy.confirm.run(host, msg, approval),
-                );
-              })()}
-            </div>`
-          : ""
-      }
-    </div>
-  `;
-}
-function _renderDeleteRow(host, d3) {
-  const label = d3.label || d3.entity_id || d3.target_id || "";
-  const entityId = d3.entity_id || "";
-  const kind = _DELETE_KIND_LABELS[d3.kind] || "";
-  return b2`
-    <div
-      style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:10px;"
-    >
-      <ha-icon
-        icon=${_DELETE_KIND_ICONS[d3.kind] || "mdi:robot-outline"}
-        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
-      ></ha-icon>
-      <div style="display:flex;flex-direction:column;min-width:0;">
-        <span
-          style="font-size:13px;font-weight:600;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-          title=${label}
-          >${label}</span
-        >
-        <span
-          style="font-size:11px;color:var(--secondary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-          >${entityId || kind}</span
-        >
-      </div>
-    </div>
-  `;
-}
-function _renderActionTile(call) {
-  const service = call?.service || "";
-  const icon = actionIcon(service);
-  const { verb } = describeCall({ hass: { states: {} } }, call);
-  return b2`
-    <div
-      style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;min-width:88px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);"
-      title=${service}
-    >
-      <ha-icon
-        icon=${icon}
-        style="--mdc-icon-size:24px;color:var(--secondary-text-color);"
-      ></ha-icon>
-      <span
-        style="font-size:12px;font-weight:600;color:var(--primary-text-color);text-align:center;line-height:1.2;"
-        >${verb}</span
-      >
-    </div>
-  `;
-}
-function _renderCallRow(host, call, reason) {
-  const ids = callTargetEntityIds(call);
-  const { targetText } = describeCall(host, call);
-  const rightSide = ids.length
-    ? b2`
-        <div
-          class="selora-entity-grid"
-          data-entity-ids=${ids.join(",")}
-          data-no-features="true"
-          style="flex:1;min-width:0;margin:0;"
-        ></div>
-      `
-    : b2`
-        <div
-          style="flex:1;min-width:0;padding:12px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);font-size:13px;color:var(--primary-text-color);"
-        >
-          ${targetText}
-        </div>
-      `;
-  return b2`
-    <div
-      style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;flex-direction:column;gap:8px;"
-    >
-      <div style="display:flex;align-items:center;gap:10px;">
-        ${_renderActionTile(call)}
-        <ha-icon
-          icon="mdi:arrow-right"
-          style="--mdc-icon-size:18px;color:var(--secondary-text-color);flex-shrink:0;"
-        ></ha-icon>
-        ${rightSide}
-      </div>
-      ${
-        reason
-          ? b2`<div
-              style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
-            >
-              ${reason}
-            </div>`
-          : ""
-      }
-    </div>
-  `;
-}
-function _proposalEntityIds(approval) {
-  const seen = /* @__PURE__ */ new Set();
-  const ids = [];
-  for (const call of approval?.calls || []) {
-    for (const eid of callTargetEntityIds(call)) {
-      if (typeof eid === "string" && !seen.has(eid)) {
-        seen.add(eid);
-        ids.push(eid);
-      }
-    }
-  }
-  return ids;
-}
-function _domainOfEntity(entityId) {
-  return (entityId || "").split(".", 1)[0];
-}
-function _scopeLabel(host, scope, entityIds) {
-  if (!entityIds.length) return null;
-  if (scope === "all") {
-    const domains = new Set(entityIds.map(_domainOfEntity));
-    if (domains.size === 1) {
-      const d3 = [...domains][0];
-      return `All ${d3}s`;
-    }
-    return host._t("approval_scope_all_matching", "All matching entities");
-  }
-  if (entityIds.length === 1) {
-    const friendly =
-      host?.hass?.states?.[entityIds[0]]?.attributes?.friendly_name ||
-      entityIds[0];
-    return `Just ${friendly}`;
-  }
-  return host._t("approval_scope_just_these", "Just these entities");
-}
-function _actionLabel(host, action) {
-  if (action.kind === "delete_dashboard") {
-    const title = action.title || action.url_path || "";
-    if (action.view_count == null || action.card_count == null) {
-      return host
-        ._t(
-          "client_action_delete_dashboard_unknown",
-          "Delete the {title} dashboard \u2014 contents unknown",
-        )
-        .replace("{title}", title);
-    }
-    return host
-      ._t(
-        "client_action_delete_dashboard",
-        "Delete the {title} dashboard \u2014 {views} views, {cards} cards",
-      )
-      .replace("{title}", title)
-      .replace("{views}", String(action.view_count))
-      .replace("{cards}", String(action.card_count));
-  }
-  if (action.kind === "create_helper") {
-    return host
-      ._t("client_action_create_helper", "Create the {name} helper ({domain})")
-      .replace("{name}", action.name || "")
-      .replace("{domain}", action.domain || "");
-  }
-  if (action.kind === "create_dashboard") {
-    return host
-      ._t(
-        "client_action_create_dashboard",
-        "Create the {title} dashboard at /{url}",
-      )
-      .replace("{title}", action.title || "")
-      .replace("{url}", action.url_path || "");
-  }
-  return action.label || action.kind;
-}
-var _CLIENT_ACTION_ICONS = {
-  create_dashboard: "mdi:view-dashboard-outline",
-  delete_dashboard: "mdi:view-dashboard-outline",
-  create_helper: "mdi:tune-variant",
-};
-function _renderClientActionRow(host, action) {
-  return b2`
-    <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">
-      <ha-icon
-        icon=${_CLIENT_ACTION_ICONS[action.kind] || "mdi:cog-outline"}
-        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
-      ></ha-icon>
-      <span
-        style="font-size:13px;font-weight:600;color:var(--primary-text-color);min-width:0;overflow:hidden;text-overflow:ellipsis;"
-        >${_actionLabel(host, action)}</span
-      >
-    </div>
-  `;
-}
-function renderApprovalCard(host, msg, approval, approvalStatus) {
-  if (!approval) return "";
-  if (_CONFIRM_VARIANTS[approval.approval_kind]) {
-    return renderConfirmationCard(
-      host,
-      msg,
-      approval,
-      approvalStatus,
-      approval.approval_kind,
-    );
-  }
-  const level = (approval.risk_level || "low").toLowerCase();
-  const { accent, icon, explainerKey, explainerFallback } =
-    RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;
-  const explainer = host._t(explainerKey, explainerFallback);
-  const reasons = approval.risk_reasons || [];
-  const calls = approval.calls || [];
-  const entityIds = _proposalEntityIds(approval);
-  const scope = msg?._entityScope === "all" ? "all" : "this";
-  if (approvalStatus === "approved" || approvalStatus === "denied") {
-    const resolvedColor =
-      approvalStatus === "approved" ? "#10b981" : "var(--secondary-text-color)";
-    const resolvedIcon =
-      approvalStatus === "approved"
-        ? "mdi:check-circle-outline"
-        : "mdi:close-circle-outline";
-    return b2`
-      <div
-        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolvedColor};"
-      >
-        <ha-icon
-          icon=${resolvedIcon}
-          style="--mdc-icon-size:16px;flex-shrink:0;"
-        ></ha-icon>
-        <span
-          >${approvalStatus === "approved" ? host._t("approval_status_approved", "Approved") : host._t("approval_status_denied", "Denied")}</span
-        >
-      </div>
-    `;
-  }
-  if (approvalStatus === "resolving") {
-    return b2`
-      <div
-        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
-      >
-        <span class="spinner" style="width:14px;height:14px;"></span>
-        <span>${host._t("approval_working", "Working\u2026")}</span>
-      </div>
-    `;
-  }
-  const reasonFor = (i7) => reasons[i7] || "";
-  return b2`
-    <div
-      style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
-    >
-      <div
-        style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:10px;"
-      >
-        <ha-icon
-          icon=${icon}
-          style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
-        ></ha-icon>
-        <span>${host._t("approval_required_title", "Approval required")}</span>
-        <span
-          title=${explainer}
-          style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:4px;color:${accent};border:1px solid ${accent};line-height:1.2;cursor:help;"
-          >${level.toUpperCase()}</span
-        >
-      </div>
-      <div style="display:flex;flex-direction:column;">
-        ${calls.map((c4, i7) => _renderCallRow(host, c4, reasonFor(i7)))}
-      </div>
-      ${
-        entityIds.length
-          ? b2`
-              <div
-                style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
-              >
-                <span
-                  >${host._t(
-                    "approval_scope_label",
-                    "For Session / Always:",
-                  )}</span
-                >
-                <button
-                  @click=${() => host._toggleApprovalScope?.(msg)}
-                  title=${host._t(
-                    "approval_scope_button_title",
-                    "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
-                  )}
-                  style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
-                >
-                  <ha-icon
-                    icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
-                    style="--mdc-icon-size:14px;color:${scope === "all" ? "#f59e0b" : "#10b981"};"
-                  ></ha-icon>
-                  <span>${_scopeLabel(host, scope, entityIds)}</span>
-                  <ha-icon
-                    icon="mdi:chevron-down"
-                    style="--mdc-icon-size:14px;opacity:0.6;"
-                  ></ha-icon>
-                </button>
-              </div>
-            `
-          : ""
-      }
-    </div>
-  `;
-}
-
-// src/panel/render-agent-steps.js
-var STATUS_ICON = {
-  active: "mdi:loading",
-  done: "mdi:check-circle-outline",
-  warn: "mdi:alert-circle-outline",
-  error: "mdi:close-circle-outline",
-};
-var KIND_ICON = {
-  tool: "mdi:cog-outline",
-  draft: "mdi:pencil-outline",
-  validate: "mdi:shield-check-outline",
-  correct: "mdi:autorenew",
-  info: "mdi:information-outline",
-};
-var STATUS_SEVERITY = { done: 0, active: 1, warn: 2, error: 3 };
-function _stepColor(status) {
-  if (status === "warn") return "var(--warning-color, #f59e0b)";
-  if (status === "error") return "var(--error-color, #ef4444)";
-  return "var(--secondary-text-color)";
-}
-function _stepIcon(step) {
-  if (step.status === "active") return STATUS_ICON.active;
-  if (step.status === "warn") return STATUS_ICON.warn;
-  if (step.status === "error") return STATUS_ICON.error;
-  return step.icon || KIND_ICON[step.kind] || STATUS_ICON.done;
-}
-function _dedupeSteps(steps) {
-  const byKey = /* @__PURE__ */ new Map();
-  for (const step of steps) {
-    if (!step || !step.label) continue;
-    const key = `${step.kind || ""}::${step.label}`;
-    const prev = byKey.get(key);
-    if (!prev) {
-      byKey.set(key, { ...step });
-      continue;
-    }
-    if (
-      (STATUS_SEVERITY[step.status] ?? 0) > (STATUS_SEVERITY[prev.status] ?? 0)
-    ) {
-      prev.status = step.status;
-      if (step.detail) prev.detail = step.detail;
-    }
-  }
-  return [...byKey.values()];
-}
-function renderAgentSteps(host, steps) {
-  if (!Array.isArray(steps) || steps.length === 0) return "";
-  const items = _dedupeSteps(steps);
-  if (items.length === 0) return "";
-  const lastIndex = items.length - 1;
-  return b2`
-    <div
-      class="agent-steps"
-      style="display:flex;flex-direction:column;gap:7px;margin:2px 2px 10px;"
-    >
-      ${items.map((step, i7) => {
-        const color = _stepColor(step.status);
-        const spinning = step.status === "active";
-        const emphasised = step.status === "warn" || step.status === "error";
-        const showRail = i7 !== lastIndex;
-        return b2`
-          <div
-            class="agent-step"
-            style="display:flex;align-items:center;gap:9px;"
-            title=${step.detail || ""}
-          >
-            <div
-              style="position:relative;width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"
-            >
-              ${
-                showRail
-                  ? b2`<span
-                      style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
-                    ></span>`
-                  : ""
-              }
-              <ha-icon
-                icon=${_stepIcon(step)}
-                class=${spinning ? "agent-step-spin" : ""}
-                style="--mdc-icon-size:16px;color:${color};"
-              ></ha-icon>
-            </div>
-            <span
-              style="font-size:12px;line-height:1.3;color:${emphasised ? color : "var(--secondary-text-color)"};${emphasised ? "" : "opacity:0.9;"}"
-              >${step.label}</span
-            >
-          </div>
-        `;
-      })}
-    </div>
-  `;
-}
-
-// src/panel/chat-autocomplete.js
-var AUTOCOMPLETE_MIN_CHARS = 3;
-var AUTOCOMPLETE_MAX_RESULTS = 6;
-var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
-  "light",
-  "switch",
-  "lock",
-  "cover",
-  "fan",
-  "media_player",
-  "climate",
-  "vacuum",
-  "camera",
-  "humidifier",
-  "water_heater",
-  "input_boolean",
-  "input_select",
-  "input_number",
-  "input_button",
-  "remote",
-  "lawn_mower",
-]);
-var SENSOR_DOMAINS = /* @__PURE__ */ new Set(["sensor", "binary_sensor"]);
-var SENSOR_DEVICE_CLASS_ICONS = {
-  motion: "mdi:motion-sensor",
-  occupancy: "mdi:motion-sensor",
-  presence: "mdi:home-account",
-  door: "mdi:door",
-  garage_door: "mdi:garage",
-  window: "mdi:window-closed-variant",
-  opening: "mdi:square-outline",
-  moisture: "mdi:water-alert",
-  smoke: "mdi:smoke-detector",
-  gas: "mdi:gas-cylinder",
-  carbon_monoxide: "mdi:molecule-co",
-  carbon_dioxide: "mdi:molecule-co2",
-  vibration: "mdi:vibrate",
-  sound: "mdi:volume-high",
-  tamper: "mdi:shield-alert",
-  temperature: "mdi:thermometer",
-  humidity: "mdi:water-percent",
-  illuminance: "mdi:brightness-5",
-  pressure: "mdi:gauge",
-  power: "mdi:flash",
-  energy: "mdi:lightning-bolt",
-  pm25: "mdi:air-filter",
-};
-var DOMAIN_ICONS2 = {
-  light: "mdi:lightbulb",
-  switch: "mdi:toggle-switch",
-  lock: "mdi:lock",
-  cover: "mdi:window-shutter",
-  fan: "mdi:fan",
-  media_player: "mdi:speaker",
-  climate: "mdi:thermostat",
-  vacuum: "mdi:robot-vacuum",
-  camera: "mdi:cctv",
-  humidifier: "mdi:air-humidifier",
-  water_heater: "mdi:water-boiler",
-  remote: "mdi:remote",
-  lawn_mower: "mdi:mower",
-  input_boolean: "mdi:toggle-switch-outline",
-  input_select: "mdi:form-dropdown",
-  input_number: "mdi:numeric",
-  input_button: "mdi:gesture-tap-button",
-  sensor: "mdi:gauge",
-  binary_sensor: "mdi:checkbox-marked-circle-outline",
-  scene: "mdi:palette",
-  automation: "mdi:robot",
-  script: "mdi:script-text",
-  area: "mdi:floor-plan",
-};
-var sensorCapable = (pattern) => ({
-  kind: "device",
-  pattern,
-  includeAreas: true,
-  includeSensors: true,
-});
-var BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
-var LOCALE_TRIGGERS = {
-  en: [
-    { kind: "area", pattern: /\bin (?:the |a )?$/i },
-    { kind: "area", pattern: /\bof (?:the |a )?$/i },
-    { kind: "scene", pattern: /\bactivate $/i },
-    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
-    { kind: "scene", pattern: /\bscene $/i },
-    { kind: "automation", pattern: /\brun $/i },
-    { kind: "automation", pattern: /\btrigger $/i },
-    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:open|close) (?:the |my )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:start|stop) (?:the |my )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
-    sensorCapable(/\bthe $/i),
-    sensorCapable(/\bmy $/i),
-  ],
-  fr: [
-    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
-    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
-    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
-    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
-    { kind: "scene", pattern: /\bscène $/i },
-    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
-    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
-    {
-      kind: "automation",
-      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
-    ),
-    sensorCapable(/\ble $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\bles $/i),
-    sensorCapable(/\bl['’]$/i),
-    sensorCapable(/\bmon $/i),
-    sensorCapable(/\bma $/i),
-    sensorCapable(/\bmes $/i),
-  ],
-  de: [
-    { kind: "area", pattern: /\bim $/i },
-    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
-    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
-    { kind: "scene", pattern: /\bSzene $/i },
-    {
-      kind: "automation",
-      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
-    },
-    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\bdimme (?:die |das |meine )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
-    ),
-    sensorCapable(/\bdie $/i),
-    sensorCapable(/\bder $/i),
-    sensorCapable(/\bdas $/i),
-    sensorCapable(/\bden $/i),
-    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
-  ],
-  es: [
-    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
-    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
-    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
-    { kind: "scene", pattern: /\bescena $/i },
-    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
-    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
-    ),
-    sensorCapable(/\bel $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\blos $/i),
-    sensorCapable(/\blas $/i),
-    sensorCapable(/\bmi $/i),
-    sensorCapable(/\bmis $/i),
-  ],
-  it: [
-    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
-    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
-    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
-    { kind: "scene", pattern: /\bscena $/i },
-    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
-    {
-      kind: "automation",
-      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
-    sensorCapable(/\bil $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\bi $/i),
-    sensorCapable(/\ble $/i),
-    sensorCapable(/\bgli $/i),
-    sensorCapable(/\blo $/i),
-    sensorCapable(/\bmio $/i),
-    sensorCapable(/\bmia $/i),
-    sensorCapable(/\bmiei $/i),
-  ],
-  nl: [
-    { kind: "area", pattern: /\bin (?:de |het )?$/i },
-    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
-    { kind: "scene", pattern: /\bscène $/i },
-    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
-    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
-    {
-      kind: "device",
-      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\bdim (?:de |het |mijn )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
-    sensorCapable(/\bde $/i),
-    sensorCapable(/\bhet $/i),
-    sensorCapable(/\bmijn $/i),
-  ],
-  hu: [
-    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
-    { kind: "scene", pattern: /\bjelenet $/i },
-    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
-    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
-    {
-      kind: "device",
-      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
-    sensorCapable(/\ba $/i),
-    sensorCapable(/\baz $/i),
-  ],
-};
-function _toUnicodeBoundary(re) {
-  let src = re.source;
-  if (src.startsWith("\\b")) {
-    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
-  }
-  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
-  return new RegExp(src, flags); // nosemgrep
-}
-for (const t5 of BASE_TRIGGERS) {
-  t5.pattern = _toUnicodeBoundary(t5.pattern);
-}
-for (const list of Object.values(LOCALE_TRIGGERS)) {
-  for (const t5 of list) {
-    t5.pattern = _toUnicodeBoundary(t5.pattern);
-  }
-}
-function _langKey(lang) {
-  const base = String(lang || "en")
-    .toLowerCase()
-    .split("-")[0];
-  return LOCALE_TRIGGERS[base] ? base : "en";
-}
-function _triggersFor(lang) {
-  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey(lang)]];
-}
-var QUERY_STOP_RE = /[\n.?!]/;
-var MAX_QUERY_LEN = 40;
-var GHOST_VOCABULARY_BY_LANG = {
-  en: [
-    "automation",
-    "automations",
-    "trigger",
-    "triggers",
-    "condition",
-    "conditions",
-    "action",
-    "actions",
-    "scene",
-    "scenes",
-    "script",
-    "scripts",
-    "device",
-    "devices",
-    "entity",
-    "entities",
-    "schedule",
-    "weekday",
-    "weekdays",
-    "weekend",
-    "weekends",
-    "midnight",
-    "morning",
-    "afternoon",
-    "evening",
-    "sunrise",
-    "sunset",
-    "minutes",
-    "hours",
-    "seconds",
-    "temperature",
-    "brightness",
-    "thermostat",
-    "lights",
-    "lighting",
-    "bedroom",
-    "bathroom",
-    "kitchen",
-    "living",
-    "garage",
-    "office",
-    "hallway",
-    "basement",
-    "downstairs",
-    "upstairs",
-    "outside",
-    "create",
-    "suggest",
-    "notify",
-    "notification",
-    "between",
-    "before",
-    "after",
-    "during",
-    "while",
-    "everyone",
-    "nobody",
-  ],
-  fr: [
-    "automatisation",
-    "automatisations",
-    "d\xE9clencheur",
-    "d\xE9clencheurs",
-    "condition",
-    "conditions",
-    "action",
-    "actions",
-    "sc\xE8ne",
-    "sc\xE8nes",
-    "script",
-    "scripts",
-    "appareil",
-    "appareils",
-    "entit\xE9",
-    "entit\xE9s",
-    "planification",
-    "semaine",
-    "week-end",
-    "minuit",
-    "matin",
-    "apr\xE8s-midi",
-    "soir",
-    "lever",
-    "coucher",
-    "minutes",
-    "heures",
-    "secondes",
-    "temp\xE9rature",
-    "luminosit\xE9",
-    "thermostat",
-    "lumi\xE8re",
-    "lumi\xE8res",
-    "\xE9clairage",
-    "chambre",
-    "salle de bains",
-    "cuisine",
-    "salon",
-    "garage",
-    "bureau",
-    "couloir",
-    "sous-sol",
-    "\xE9tage",
-    "rez-de-chauss\xE9e",
-    "ext\xE9rieur",
-    "cr\xE9er",
-    "sugg\xE9rer",
-    "notifier",
-    "notification",
-    "entre",
-    "avant",
-    "apr\xE8s",
-    "pendant",
-    "tout le monde",
-    "personne",
-  ],
-  de: [
-    "Automatisierung",
-    "Automatisierungen",
-    "Ausl\xF6ser",
-    "Bedingung",
-    "Bedingungen",
-    "Aktion",
-    "Aktionen",
-    "Szene",
-    "Szenen",
-    "Skript",
-    "Skripte",
-    "Ger\xE4t",
-    "Ger\xE4te",
-    "Entit\xE4t",
-    "Entit\xE4ten",
-    "Zeitplan",
-    "Wochentag",
-    "Wochenende",
-    "Mitternacht",
-    "Morgen",
-    "Nachmittag",
-    "Abend",
-    "Sonnenaufgang",
-    "Sonnenuntergang",
-    "Minuten",
-    "Stunden",
-    "Sekunden",
-    "Temperatur",
-    "Helligkeit",
-    "Thermostat",
-    "Licht",
-    "Lichter",
-    "Beleuchtung",
-    "Schlafzimmer",
-    "Badezimmer",
-    "K\xFCche",
-    "Wohnzimmer",
-    "Garage",
-    "B\xFCro",
-    "Flur",
-    "Keller",
-    "drau\xDFen",
-    "erstelle",
-    "vorschlagen",
-    "benachrichtigen",
-    "Benachrichtigung",
-    "zwischen",
-    "vor",
-    "nach",
-    "w\xE4hrend",
-    "jeder",
-    "niemand",
-  ],
-  es: [
-    "automatizaci\xF3n",
-    "automatizaciones",
-    "disparador",
-    "disparadores",
-    "condici\xF3n",
-    "condiciones",
-    "acci\xF3n",
-    "acciones",
-    "escena",
-    "escenas",
-    "script",
-    "scripts",
-    "dispositivo",
-    "dispositivos",
-    "entidad",
-    "entidades",
-    "programaci\xF3n",
-    "semana",
-    "fin de semana",
-    "medianoche",
-    "ma\xF1ana",
-    "tarde",
-    "noche",
-    "amanecer",
-    "atardecer",
-    "minutos",
-    "horas",
-    "segundos",
-    "temperatura",
-    "brillo",
-    "termostato",
-    "luz",
-    "luces",
-    "iluminaci\xF3n",
-    "dormitorio",
-    "ba\xF1o",
-    "cocina",
-    "sal\xF3n",
-    "garaje",
-    "oficina",
-    "pasillo",
-    "s\xF3tano",
-    "exterior",
-    "crear",
-    "sugerir",
-    "notificar",
-    "notificaci\xF3n",
-    "entre",
-    "antes",
-    "despu\xE9s",
-    "durante",
-    "mientras",
-    "todos",
-    "nadie",
-  ],
-  it: [
-    "automazione",
-    "automazioni",
-    "trigger",
-    "condizione",
-    "condizioni",
-    "azione",
-    "azioni",
-    "scena",
-    "scene",
-    "script",
-    "dispositivo",
-    "dispositivi",
-    "entit\xE0",
-    "pianificazione",
-    "settimana",
-    "fine settimana",
-    "mezzanotte",
-    "mattina",
-    "pomeriggio",
-    "sera",
-    "alba",
-    "tramonto",
-    "minuti",
-    "ore",
-    "secondi",
-    "temperatura",
-    "luminosit\xE0",
-    "termostato",
-    "luce",
-    "luci",
-    "illuminazione",
-    "camera",
-    "bagno",
-    "cucina",
-    "soggiorno",
-    "garage",
-    "ufficio",
-    "corridoio",
-    "cantina",
-    "esterno",
-    "crea",
-    "suggerisci",
-    "notifica",
-    "tra",
-    "prima",
-    "dopo",
-    "durante",
-    "mentre",
-    "tutti",
-    "nessuno",
-  ],
-  nl: [
-    "automatisering",
-    "automatiseringen",
-    "trigger",
-    "triggers",
-    "voorwaarde",
-    "voorwaarden",
-    "actie",
-    "acties",
-    "sc\xE8ne",
-    "sc\xE8nes",
-    "script",
-    "scripts",
-    "apparaat",
-    "apparaten",
-    "entiteit",
-    "entiteiten",
-    "planning",
-    "weekdag",
-    "weekend",
-    "middernacht",
-    "ochtend",
-    "middag",
-    "avond",
-    "zonsopgang",
-    "zonsondergang",
-    "minuten",
-    "uren",
-    "seconden",
-    "temperatuur",
-    "helderheid",
-    "thermostaat",
-    "licht",
-    "lichten",
-    "verlichting",
-    "slaapkamer",
-    "badkamer",
-    "keuken",
-    "woonkamer",
-    "garage",
-    "kantoor",
-    "gang",
-    "kelder",
-    "buiten",
-    "maak",
-    "suggereer",
-    "meld",
-    "melding",
-    "tussen",
-    "voor",
-    "na",
-    "tijdens",
-    "terwijl",
-    "iedereen",
-    "niemand",
-  ],
-  hu: [
-    "automatizmus",
-    "automatizmusok",
-    "trigger",
-    "triggerek",
-    "felt\xE9tel",
-    "felt\xE9telek",
-    "m\u0171velet",
-    "m\u0171veletek",
-    "jelenet",
-    "jelenetek",
-    "szkript",
-    "szkriptek",
-    "eszk\xF6z",
-    "eszk\xF6z\xF6k",
-    "entit\xE1s",
-    "entit\xE1sok",
-    "\xFCtemez\xE9s",
-    "h\xE9tk\xF6znap",
-    "h\xE9tv\xE9ge",
-    "\xE9jf\xE9l",
-    "reggel",
-    "d\xE9lut\xE1n",
-    "este",
-    "napkelte",
-    "napnyugta",
-    "percek",
-    "\xF3r\xE1k",
-    "m\xE1sodpercek",
-    "h\u0151m\xE9rs\xE9klet",
-    "f\xE9nyer\u0151",
-    "termoszt\xE1t",
-    "f\xE9ny",
-    "f\xE9nyek",
-    "vil\xE1g\xEDt\xE1s",
-    "h\xE1l\xF3szoba",
-    "f\xFCrd\u0151szoba",
-    "konyha",
-    "nappali",
-    "gar\xE1zs",
-    "iroda",
-    "folyos\xF3",
-    "pince",
-    "kint",
-    "l\xE9trehoz",
-    "javasol",
-    "\xE9rtes\xEDt",
-    "\xE9rtes\xEDt\xE9s",
-    "k\xF6z\xF6tt",
-    "el\u0151tt",
-    "ut\xE1n",
-    "alatt",
-    "k\xF6zben",
-    "mindenki",
-    "senki",
-  ],
-};
-var _ghostSorted = {};
-function _ghostVocabFor(lang) {
-  const key = GHOST_VOCABULARY_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
-  if (!_ghostSorted[key]) {
-    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
-      (a3, b3) => a3.length - b3.length,
-    );
-  }
-  return _ghostSorted[key];
-}
-var GHOST_MIN_PREFIX = 3;
-var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
-function _partialWordAt(text, caret) {
-  if (caret <= 0) return null;
-  let i7 = caret;
-  while (i7 > 0 && _WORD_CHAR_RE.test(text[i7 - 1])) i7--;
-  const word = text.slice(i7, caret);
-  if (!word) return null;
-  return { word, start: i7 };
-}
-function findGhostSuggestion(text, caret, lang) {
-  if (typeof text !== "string") return null;
-  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
-  const part = _partialWordAt(text, caret);
-  if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
-  const lower = part.word.toLowerCase();
-  for (const w2 of _ghostVocabFor(lang)) {
-    const wLower = w2.toLowerCase();
-    if (wLower === lower) return null;
-    if (wLower.startsWith(lower)) {
-      return {
-        suffix: w2.slice(part.word.length),
-        word: w2,
-        start: part.start,
-      };
-    }
-  }
-  return null;
-}
-var ARTICLE_WORDS_BY_LANG = {
-  en: ["the", "my", "a", "an"],
-  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
-  de: [
-    "die",
-    "der",
-    "das",
-    "den",
-    "dem",
-    "mein",
-    "meine",
-    "meinen",
-    "meiner",
-    "meinem",
-    "ein",
-    "eine",
-    "einen",
-  ],
-  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
-  it: [
-    "il",
-    "la",
-    "lo",
-    "i",
-    "le",
-    "gli",
-    "mio",
-    "mia",
-    "miei",
-    "mie",
-    "un",
-    "una",
-    "uno",
-  ],
-  nl: ["de", "het", "een", "mijn"],
-  hu: ["a", "az", "egy"],
-};
-function _articleWordsFor(lang) {
-  const key = ARTICLE_WORDS_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
-  return new Set(ARTICLE_WORDS_BY_LANG[key]);
-}
-var _INTRA_WORD_RE = /['’-]/;
-function _isNameChar(text, i7) {
-  if (i7 < 0 || i7 >= text.length) return false;
-  if (_WORD_CHAR_RE.test(text[i7])) return true;
-  if (!_INTRA_WORD_RE.test(text[i7])) return false;
-  return (
-    i7 > 0 &&
-    i7 + 1 < text.length &&
-    _WORD_CHAR_RE.test(text[i7 - 1]) &&
-    _WORD_CHAR_RE.test(text[i7 + 1])
-  );
-}
-function _completionSpan(text, caret, labels) {
-  let start = -1;
-  let end = caret;
-  for (const label of labels || []) {
-    if (!label) continue;
-    for (const [from, to] of _labelSpans(text, label)) {
-      if (caret <= from || caret >= to) continue;
-      if (to < end) continue;
-      if (to === end && start >= 0 && from >= start) continue;
-      start = from;
-      end = to;
-    }
-  }
-  if (end > caret) return { start, end };
-  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
-    return { start: -1, end };
-  }
-  while (_isNameChar(text, end)) end += 1;
-  return { start: -1, end };
-}
-function detectTrigger(text, caret, lang, labels) {
-  if (typeof text !== "string" || caret == null || caret < 0) return null;
-  const before = text.slice(0, caret);
-  const completion = _completionSpan(text, caret, labels);
-  const triggers = _triggersFor(lang);
-  const articleWords = _articleWordsFor(lang);
-  let queryStart = caret;
-  while (queryStart > 0) {
-    const ch = before[queryStart - 1];
-    if (QUERY_STOP_RE.test(ch)) break;
-    queryStart -= 1;
-    if (caret - queryStart > MAX_QUERY_LEN) break;
-  }
-  let best = null;
-  for (let qs = queryStart; qs <= caret; qs++) {
-    const prefix = before.slice(0, qs);
-    for (const trig of triggers) {
-      if (trig.pattern.test(prefix)) {
-        best = {
-          kind: trig.kind,
-          query: before.slice(qs, caret),
-          start: qs,
-          end: completion.end,
-          domains: trig.domains || null,
-          includeAreas: !!trig.includeAreas,
-          includeSensors: !!trig.includeSensors,
-        };
-        break;
-      }
-    }
-  }
-  if (!best) return null;
-  if (!best.query.trim() && !best.domains) return null;
-  if (articleWords.has(best.query.trim().toLowerCase())) return null;
-  if (completion.start >= 0 && completion.start < best.start) {
-    best.start = completion.start;
-  }
-  return best;
-}
-function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
-  const items = [];
-  if (!hass?.states) return items;
-  const areaById = {};
-  if (areas && typeof areas === "object") {
-    for (const [id, a3] of Object.entries(areas)) {
-      areaById[id] = a3?.name || a3?.area_id || id;
-    }
-  }
-  const fullEntReg = entities || {};
-  const displayEntReg = hass.entities || {};
-  for (const [entityId, state] of Object.entries(hass.states)) {
-    const domain = entityId.split(".")[0];
-    const friendly = state?.attributes?.friendly_name;
-    if (!friendly) continue;
-    const entry = fullEntReg[entityId] || displayEntReg[entityId];
-    let areaId = entry?.area_id || null;
-    if (!areaId && entry?.device_id && devices) {
-      areaId = devices[entry.device_id]?.area_id || null;
-    }
-    const areaName = areaId ? areaById[areaId] || null : null;
-    if (SENSOR_DOMAINS.has(domain)) {
-      if (entry?.entity_category) continue;
-      if (entry?.hidden_by || entry?.hidden) continue;
-      items.push({
-        kind: "sensor",
-        domain,
-        entity_id: entityId,
-        device_id: entry?.device_id || null,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon:
-          state?.attributes?.icon ||
-          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
-          DOMAIN_ICONS2[domain],
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (DEVICE_DOMAINS.has(domain)) {
-      items.push({
-        kind: "device",
-        domain,
-        entity_id: entityId,
-        device_id: entry?.device_id || null,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon: DOMAIN_ICONS2[domain] || "mdi:devices",
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "scene") {
-      items.push({
-        kind: "scene",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon: DOMAIN_ICONS2.scene,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "automation") {
-      items.push({
-        kind: "automation",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: null,
-        area: null,
-        icon: DOMAIN_ICONS2.automation,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "script") {
-      items.push({
-        kind: "automation",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: null,
-        area: null,
-        icon: DOMAIN_ICONS2.script,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    }
-  }
-  for (const [areaId, name] of Object.entries(areaById)) {
-    items.push({
-      kind: "area",
-      entity_id: null,
-      area_id: areaId,
-      label: name,
-      area: null,
-      icon: DOMAIN_ICONS2.area,
-      _lowerLabel: name.toLowerCase(),
-    });
-  }
-  return dedupeDeviceItems(items);
-}
-var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
-function normLabel(s4) {
-  return s4.toLowerCase().replace(/\s+/g, " ").trim();
-}
-function baseLabel(normalized) {
-  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
-}
-function isParenPrefix(shorter, longer) {
-  if (shorter === longer) return true;
-  if (!longer.startsWith(shorter)) return false;
-  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
-}
-function labelsForked(labels) {
-  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
-  for (let i7 = 0; i7 + 1 < sorted.length; i7++) {
-    if (!isParenPrefix(sorted[i7], sorted[i7 + 1])) return true;
-  }
-  return false;
-}
-function dedupeDeviceItems(items) {
-  const devices = items.filter((i7) => i7.kind === "device");
-  const domainsByDevice = /* @__PURE__ */ new Map();
-  for (const it of devices) {
-    if (!it.device_id) continue;
-    if (!domainsByDevice.has(it.device_id)) {
-      domainsByDevice.set(it.device_id, /* @__PURE__ */ new Set());
-    }
-    domainsByDevice.get(it.device_id).add(it.domain);
-  }
-  const kept = /* @__PURE__ */ new Set();
-  const seenIdentity = /* @__PURE__ */ new Set();
-  for (const it of devices) {
-    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
-    if (
-      parent &&
-      it.device_id &&
-      domainsByDevice.get(it.device_id)?.has(parent)
-    ) {
-      continue;
-    }
-    const disambig = it.device_id || it.entity_id;
-    const identity = `${disambig}\0${it._lowerLabel}\0${it.area_id || ""}\0${it.domain}`;
-    if (seenIdentity.has(identity)) continue;
-    seenIdentity.add(identity);
-    kept.add(it);
-  }
-  const sameDeviceAreaTagged = /* @__PURE__ */ new Set();
-  for (const it of kept) {
-    if (it.area_id && it.device_id) {
-      sameDeviceAreaTagged.add(
-        `${it.device_id}\0${it._lowerLabel}\0${it.domain}`,
-      );
-    }
-  }
-  for (const it of [...kept]) {
-    if (it.area_id || !it.device_id) continue;
-    const key = `${it.device_id}\0${it._lowerLabel}\0${it.domain}`;
-    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
-  }
-  const buckets = /* @__PURE__ */ new Map();
-  for (const it of kept) {
-    const key = `${baseLabel(normLabel(it.label))}\0${it.domain}`;
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key).push(it);
-  }
-  for (const rows of buckets.values()) {
-    const labels = new Set(rows.map((r4) => normLabel(r4.label)));
-    if (labels.size < 2) continue;
-    if (!rows.some((r4) => r4.area_id)) continue;
-    if (labelsForked(labels)) continue;
-    for (const it of rows) {
-      if (!it.area_id && it.device_id) kept.delete(it);
-    }
-  }
-  return items.filter((i7) => i7.kind !== "device" || kept.has(i7));
-}
-var SCORE_WORD_EXACT = 1500;
-var SCORE_LABEL_PREFIX = 1e3;
-var SCORE_WORD_PREFIX = 500;
-var SCORE_SUBSTRING = 100;
-var SCORE_SUBSEQUENCE = 10;
-var KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
-function _scoreItem(item, lowerQuery) {
-  const label = item._lowerLabel;
-  if (!label) return 0;
-  const words = label.split(/\s+/);
-  for (const w2 of words) {
-    if (w2 === lowerQuery) return SCORE_WORD_EXACT;
-  }
-  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
-  for (const w2 of words) {
-    if (w2.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
-  }
-  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
-  let qi = 0;
-  for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
-    if (label[i7] === lowerQuery[qi]) qi += 1;
-  }
-  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
-  return 0;
-}
-function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
-  if (!items?.length || !domains?.length) return [];
-  const domainSet = new Set(domains);
-  const out = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (!domainSet.has(it.domain)) continue;
-    out.push(it);
-  }
-  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
-  return out.slice(0, max);
-}
-function findExactMatches(items, kind, query, domains = null) {
-  if (!items?.length || !query) return [];
-  const lowerQuery = query.trim().toLowerCase();
-  if (!lowerQuery) return [];
-  const domainSet = domains ? new Set(domains) : null;
-  const out = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (domainSet && !domainSet.has(it.domain)) continue;
-    if (it._lowerLabel === lowerQuery) out.push(it);
-  }
-  return out;
-}
-function rankSuggestions(
-  items,
-  kind,
-  query,
-  max = AUTOCOMPLETE_MAX_RESULTS,
-  domains = null,
-) {
-  if (!items?.length || !query) return [];
-  const lowerQuery = query.trim().toLowerCase();
-  if (!lowerQuery) return [];
-  const domainSet = domains ? new Set(domains) : null;
-  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
-  const scored = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (domainSet && !domainSet.has(it.domain)) continue;
-    const score = _scoreItem(it, lowerQuery);
-    if (score >= minScore) scored.push({ item: it, score });
-  }
-  scored.sort((a3, b3) => {
-    if (b3.score !== a3.score) return b3.score - a3.score;
-    if (a3.item.label.length !== b3.item.label.length) {
-      return a3.item.label.length - b3.item.label.length;
-    }
-    return a3.item.label.localeCompare(b3.item.label);
-  });
-  return scored.slice(0, max).map((s4) => s4.item);
-}
-function applySelection(text, trigger, item) {
-  const before = text.slice(0, trigger.start);
-  const after = text.slice(trigger.end);
-  const insert = item.label;
-  const needsSpace = !after.startsWith(" ");
-  const inserted = needsSpace ? insert + " " : insert;
-  const newText = before + inserted + after;
-  const newCaret = trigger.start + inserted.length;
-  return {
-    text: newText,
-    caret: newCaret,
-    range: [trigger.start, trigger.start + insert.length],
-  };
-}
-function buildEntityMarker(selections) {
-  if (!selections?.length) return "";
-  const seenEntities = /* @__PURE__ */ new Set();
-  const seenAreas = /* @__PURE__ */ new Set();
-  const entityIds = [];
-  const areaNames = [];
-  for (const sel of selections) {
-    if (sel.entity_id) {
-      if (seenEntities.has(sel.entity_id)) continue;
-      seenEntities.add(sel.entity_id);
-      entityIds.push(sel.entity_id);
-    } else if (sel.kind === "area" && sel.area_id) {
-      if (seenAreas.has(sel.area_id)) continue;
-      seenAreas.add(sel.area_id);
-      areaNames.push(sel.label);
-    }
-  }
-  const parts = [];
-  if (entityIds.length === 1) {
-    parts.push(`[[entity:${entityIds[0]}]]`);
-  } else if (entityIds.length > 1) {
-    parts.push(`[[entities:${entityIds.join(",")}]]`);
-  }
-  if (areaNames.length) {
-    parts.push(`[[areas:${areaNames.join(",")}]]`);
-  }
-  return parts.length ? "\n\n" + parts.join(" ") : "";
-}
-function stripEntityMarkers(text) {
-  if (typeof text !== "string" || !text) return text;
-  return text
-    .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
-    .trimEnd();
-}
-function _escapeRegex(s4) {
-  return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-function _labelSpans(text, label) {
-  const startsWord = _WORD_CHAR_RE.test(label[0]);
-  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
-  const re = new RegExp(_escapeRegex(label), "gi"); // nosemgrep
-  const spans = [];
-  for (let m3 = re.exec(text); m3; m3 = re.exec(text)) {
-    const start = m3.index;
-    const end = start + m3[0].length;
-    const before = start > 0 ? text[start - 1] : "";
-    const after = end < text.length ? text[end] : "";
-    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
-    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
-    spans.push([start, end]);
-  }
-  return spans;
-}
-function pruneStaleSelections(text, selections, ignoreRange) {
-  if (!selections?.length) return selections;
-  const [skipFrom, skipTo] = ignoreRange || [];
-  const skipping =
-    typeof skipFrom === "number" &&
-    typeof skipTo === "number" &&
-    skipTo > skipFrom;
-  return selections.filter((s4) => {
-    if (!s4.label) return false;
-    const spans = _labelSpans(text, s4.label);
-    if (!skipping) return spans.length > 0;
-    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
-  });
-}
-
-// src/panel/chat-attachments.js
-var MAX_CHAT_ATTACHMENTS = 4;
-var MAX_B64_PER_IMAGE = 2 * 1024 * 1024;
-var MAX_B64_TOTAL = 3 * 1024 * 1024;
-var MAX_EDGE_PX = 1568;
-var JPEG_QUALITY = 0.85;
-var KEEP_ORIGINAL_MAX_BYTES = 300 * 1024;
-var ACCEPTED_MIME = /* @__PURE__ */ new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-function supportsImageAttachments(host) {
-  return !!host._config?.supports_vision;
-}
-function _b64Length(attachment) {
-  return Math.max(
-    0,
-    attachment.dataUrl.length - attachment.dataUrl.indexOf(",") - 1,
-  );
-}
-function _readAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-function _loadImage(dataUrl) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("decode failed"));
-    img.src = dataUrl;
-  });
-}
-async function _processImageFile(file) {
-  const originalDataUrl = await _readAsDataUrl(file);
-  const img = await _loadImage(originalDataUrl);
-  const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
-  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
-  const fitsAsIs =
-    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
-  if (file.type === "image/gif" && fitsAsIs) {
-    return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
-  }
-  const lossless = file.type === "image/png" || file.type === "image/gif";
-  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-  const ctx = canvas.getContext("2d");
-  if (outMime === "image/jpeg") {
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return {
-    name: file.name,
-    mimeType: outMime,
-    dataUrl:
-      outMime === "image/png"
-        ? canvas.toDataURL("image/png")
-        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
-  };
-}
-async function addImageAttachments(host, files) {
-  const images = Array.from(files || []).filter((f3) =>
-    ACCEPTED_MIME.has(f3.type),
-  );
-  if (!images.length) return;
-  if (!supportsImageAttachments(host)) {
-    host._attachmentNotice = host._t(
-      "chat_attachment_unsupported",
-      "Your current AI model can't analyze images.",
-    );
-    return;
-  }
-  const reserved = host._attachmentSlotsReserved || 0;
-  const room =
-    MAX_CHAT_ATTACHMENTS - (host._chatAttachments || []).length - reserved;
-  if (room <= 0) {
-    host._attachmentNotice = host._t(
-      "chat_attachment_limit",
-      "You can attach up to 4 images per message.",
-    );
-    return;
-  }
-  const accepted = images.slice(0, room);
-  const results = [];
-  host._attachmentsBusy = (host._attachmentsBusy || 0) + 1;
-  host._attachmentSlotsReserved = reserved + accepted.length;
-  let totalB64 = (host._chatAttachments || []).reduce(
-    (sum, a3) => sum + _b64Length(a3),
-    0,
-  );
-  try {
-    for (const file of accepted) {
-      try {
-        const processed = await _processImageFile(file);
-        const size = _b64Length(processed);
-        if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
-          host._attachmentNotice = host._t(
-            "chat_attachment_too_large",
-            "That image is too large to send.",
-          );
-          continue;
-        }
-        totalB64 += size;
-        results.push(processed);
-      } catch (_2) {
-        host._attachmentNotice = host._t(
-          "chat_attachment_read_error",
-          "Couldn't read that image.",
-        );
-      }
-    }
-  } finally {
-    host._attachmentsBusy = Math.max(0, (host._attachmentsBusy || 1) - 1);
-    host._attachmentSlotsReserved = Math.max(
-      0,
-      (host._attachmentSlotsReserved || accepted.length) - accepted.length,
-    );
-  }
-  if (!results.length) return;
-  host._chatAttachments = [...(host._chatAttachments || []), ...results].slice(
-    0,
-    MAX_CHAT_ATTACHMENTS,
-  );
-  host._attachmentNotice =
-    images.length > room
-      ? host._t(
-          "chat_attachment_limit",
-          "You can attach up to 4 images per message.",
-        )
-      : "";
-}
-function removeChatAttachment(host, idx) {
-  host._chatAttachments = (host._chatAttachments || []).filter(
-    (_2, i7) => i7 !== idx,
-  );
-  host._attachmentNotice = "";
-}
-function attachmentsForSend(host) {
-  return (host._chatAttachments || [])
-    .map((a3) => {
-      const comma = a3.dataUrl.indexOf(",");
-      if (comma < 0) return null;
-      return { mime_type: a3.mimeType, data: a3.dataUrl.slice(comma + 1) };
-    })
-    .filter(Boolean);
-}
-function createGlobalDropGuard(host) {
-  const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
-  let depth = 0;
-  const setDropActive = (value) => {
-    if (host._chatDropActive !== value) host._chatDropActive = value;
-  };
-  const onDragEnter = (e6) => {
-    if (!isFileDrag(e6)) return;
-    depth += 1;
-    if (host._activeTab === "chat" && supportsImageAttachments(host)) {
-      setDropActive(true);
-    }
-  };
-  const onDragLeave = (e6) => {
-    if (!isFileDrag(e6)) return;
-    depth = Math.max(0, depth - 1);
-    if (depth === 0) setDropActive(false);
-  };
-  const onDragOver = (e6) => {
-    if (isFileDrag(e6)) e6.preventDefault();
-  };
-  const onDrop = (e6) => {
-    depth = 0;
-    setDropActive(false);
-    if (!isFileDrag(e6) || e6.defaultPrevented) return;
-    e6.preventDefault();
-    if (host._activeTab === "chat" && e6.dataTransfer.files?.length) {
-      addImageAttachments(host, e6.dataTransfer.files);
-    }
-  };
-  window.addEventListener("dragenter", onDragEnter);
-  window.addEventListener("dragleave", onDragLeave);
-  window.addEventListener("dragover", onDragOver);
-  window.addEventListener("drop", onDrop);
-  return () => {
-    window.removeEventListener("dragenter", onDragEnter);
-    window.removeEventListener("dragleave", onDragLeave);
-    window.removeEventListener("dragover", onDragOver);
-    window.removeEventListener("drop", onDrop);
-  };
-}
-function renderDropOverlay(host) {
-  if (!host._chatDropActive) return b2``;
-  return b2`
-    <div class="chat-drop-overlay">
-      <div class="chat-drop-overlay-inner">
-        <ha-icon icon="mdi:image-plus-outline"></ha-icon>
-        <span
-          >${host._t("chat_attachment_drop_here", "Drop images to attach")}</span
-        >
-      </div>
-    </div>
-  `;
-}
-function renderAttachmentStrip(host) {
-  const attachments = host._chatAttachments || [];
-  if (!attachments.length && !host._attachmentNotice) return b2``;
-  return b2`
-    <div class="composer-attachments">
-      ${attachments.map(
-        (a3, idx) => b2`
-          <span class="composer-attachment">
-            <img src=${a3.dataUrl} alt=${a3.name || "image"} />
-            <button
-              type="button"
-              class="composer-attachment-remove"
-              title=${host._t("chat_attachment_remove", "Remove image")}
-              @click=${() => removeChatAttachment(host, idx)}
-            >
-              ×
-            </button>
-          </span>
-        `,
-      )}
-      ${
-        host._attachmentNotice
-          ? b2`<span class="composer-attachment-notice"
-              >${host._attachmentNotice}</span
-            >`
-          : b2``
-      }
-    </div>
-  `;
-}
-
-// src/panel/render-chat.js
-var AUTOMATION_LABEL_KEYS = [
-  ["chat_automation_label_building", "Building automation..."],
-  ["chat_automation_label_triggers", "Drafting triggers..."],
-  ["chat_automation_label_conditions", "Wiring conditions..."],
-  ["chat_automation_label_actions", "Composing actions..."],
-  ["chat_automation_label_almost", "Almost ready..."],
-];
-var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
-var AUTOCOMPLETE_KIND_LABEL_KEYS = {
-  device: ["chat_autocomplete_kind_devices", "Devices"],
-  sensor: ["chat_autocomplete_kind_sensors", "Sensors"],
-  area: ["chat_autocomplete_kind_areas", "Areas"],
-  scene: ["chat_autocomplete_kind_scenes", "Scenes"],
-  automation: ["chat_autocomplete_kind_automations", "Automations"],
-};
-function _formatReplyMs(ms) {
-  if (ms < 1e3) return `${ms} ms`;
-  const seconds = ms / 1e3;
-  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
-}
-function _formatToolArgs(args) {
-  if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
-  const parts = [];
-  for (const [k2, v2] of Object.entries(args)) {
-    let val;
-    if (v2 === null || v2 === void 0) {
-      val = "null";
-    } else if (typeof v2 === "string") {
-      val =
-        v2.length > 60
-          ? JSON.stringify(v2.slice(0, 60) + "\u2026")
-          : JSON.stringify(v2);
-    } else if (typeof v2 === "object") {
-      const json = JSON.stringify(v2);
-      val = json.length > 60 ? json.slice(0, 60) + "\u2026" : json;
-    } else {
-      val = String(v2);
-    }
-    parts.push(`${k2}=${val}`);
-  }
-  return parts.join(", ");
-}
-function renderToolCalls(host, toolCalls) {
-  return b2`
-    <details
-      class="dev-tool-calls"
-      style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
-    >
-      <summary
-        style="cursor:pointer;padding:6px 10px;color:var(--secondary-text-color);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;"
-      >
-        <ha-icon
-          icon="mdi:wrench-outline"
-          style="--mdc-icon-size:14px;"
-        ></ha-icon>
-        <span
-          >${host._t("chat_tools_used", "Tools used")}
-          (${toolCalls.length})</span
-        >
-      </summary>
-      <div
-        style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
-      >
-        ${toolCalls.map(
-          (tc, i7) => b2`
-            <div
-              style="padding:2px 0;${i7 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
-            >
-              <span style="color:var(--primary-text-color);font-weight:600;"
-                >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
-            </div>
-          `,
-        )}
-      </div>
-    </details>
-  `;
-}
-function _welcomeSuggestions(host) {
-  return [
-    {
-      label: host._t(
-        "chat_welcome_suggestion_lights_label",
-        "Turn off all lights at midnight",
-      ),
-      value: host._t(
-        "chat_welcome_suggestion_lights_value",
-        "Create an automation that turns off all lights at midnight",
-      ),
-      icon: "mdi:lightbulb-off-outline",
-    },
-    {
-      label: host._t(
-        "chat_welcome_suggestion_devices_label",
-        "What devices do I have?",
-      ),
-      value: host._t(
-        "chat_welcome_suggestion_devices_value",
-        "What devices do I have and which ones are currently on?",
-      ),
-      icon: "mdi:devices",
-    },
-    {
-      label: host._t(
-        "chat_welcome_suggestion_suggest_label",
-        "Suggest automations for my home",
-      ),
-      value: host._t(
-        "chat_welcome_suggestion_suggest_value",
-        "Suggest useful automations based on my devices and usage patterns",
-      ),
-      icon: "mdi:auto-fix",
-    },
-  ];
-}
-function renderAutomationSuggestButton(host) {
-  const busy = !!host._suggestingAutomation;
-  return b2`
-    <button
-      class="welcome-suggest-btn"
-      ?disabled=${busy || host._loading || host._streaming}
-      @click=${() => host._suggestAutomationIdea()}
-    >
-      ${
-        busy
-          ? b2`<span class="spinner green"></span>`
-          : b2`<ha-icon
-              icon="mdi:auto-fix"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>`
-      }
-      <span
-        >${busy ? host._t("chat_suggest_thinking", "Thinking\u2026") : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
-      >
-    </button>
-  `;
-}
-function renderChat(host) {
-  const isEmpty = host._messages.length === 0;
-  if (isEmpty) {
-    return b2`
-      <div class="chat-pane">
-        ${renderDropOverlay(host)}
-        <div class="chat-welcome-center" id="chat-messages">
-          ${i6(
-            host._welcomeKey || 0,
-            b2`
-              <div class="welcome-center-content">
-                <img
-                  src="/api/selora_ai/logo.png"
-                  alt="Selora AI"
-                  style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
-                />
-                <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
-                  ${
-                    host._newAutomationMode
-                      ? b2`${host._t("new_automation_title_prefix", "New")}
-                          <span class="gold-text"
-                            >${host._t("new_automation_gold", "Automation")}</span
-                          >`
-                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
-                          <span class="gold-text">Selora AI</span>`
-                  }
-                </div>
-                <div
-                  style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
-                >
-                  ${
-                    host._newAutomationMode
-                      ? host._t(
-                          "new_automation_subtitle",
-                          "Describe what you want to automate \u2014 mention the devices, times, or conditions involved.",
-                        )
-                      : host._t(
-                          "welcome_subtitle",
-                          "Your intelligent home automation architect",
-                        )
-                  }
-                </div>
-
-                ${
-                  host._llmNeedsSetup
-                    ? b2`
-                        <div
-                          style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
-                          @click=${() => host._goToSettings()}
-                        >
-                          <ha-icon
-                            icon="mdi:rocket-launch-outline"
-                            style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
-                          ></ha-icon>
-                          <div
-                            style="font-size:16px;font-weight:700;margin-bottom:6px;"
-                          >
-                            ${host._t("get_started", "Get started")}
-                          </div>
-                          <div
-                            style="font-size:13px;opacity:0.6;margin-bottom:16px;"
-                          >
-                            ${host._t(
-                              "get_started_body",
-                              "Configure your LLM provider in the Settings tab to start chatting with your home.",
-                            )}
-                          </div>
-                          <span
-                            style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
-                          >
-                            ${host._t("open_settings", "Open Settings")}
-                            <ha-icon
-                              icon="mdi:arrow-right"
-                              style="--mdc-icon-size:16px;"
-                            ></ha-icon>
-                          </span>
-                        </div>
-                      `
-                    : b2`
-                        <div class="welcome-composer-area">
-                          <selora-particles
-                            class="welcome-composer-particles"
-                            .count=${260}
-                            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
-                            .maxOpacity=${host._isDark ? 0.55 : 0.5}
-                            .speed=${host._streaming || host._loading ? 2.2 : 1}
-                          ></selora-particles>
-                          ${_renderComposer(host, { welcome: true })}
-                        </div>
-
-                        ${
-                          host._newAutomationMode
-                            ? renderAutomationSuggestButton(host)
-                            : b2`
-                                <details class="welcome-quickstart">
-                                  <summary class="welcome-quickstart-summary">
-                                    <span
-                                      >${host._t(
-                                        "quick_start",
-                                        "Quick start",
-                                      )}</span
-                                    >
-                                    <ha-icon
-                                      icon="mdi:chevron-down"
-                                      class="welcome-quickstart-chevron"
-                                    ></ha-icon>
-                                  </summary>
-                                  ${renderQuickActions(
-                                    host,
-                                    _welcomeSuggestions(host),
-                                  )}
-                                </details>
-                              `
-                        }
-                      `
-                }
-              </div>
-            `,
-          )}
-        </div>
-      </div>
-    `;
-  }
-  const lastMsg = host._messages[host._messages.length - 1];
-  const lastQuickActions =
-    lastMsg &&
-    lastMsg.role !== "user" &&
-    lastMsg.quick_actions &&
-    lastMsg.quick_actions.length && // Approval cards render their Allow/Deny row INLINE inside the
-    // bubble so the user sees the buttons next to the proposal
-    // they're approving. Without this guard the sticky composer row
-    // below would render the same four buttons again — 8 buttons
-    // on screen with no obvious link back to the card.
-    !lastMsg.command_approval
-      ? lastMsg
-      : null;
-  return b2`
-    <div class="chat-pane">
-      ${renderDropOverlay(host)}
-      <div
-        class="chat-messages"
-        id="chat-messages"
-        @scroll=${host._onChatScroll}
-      >
-        ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
-        ${host._deviceDetail ? renderDeviceDetail(host) : ""}
-        ${
-          host._loading
-            ? b2`
-                <div class="typing-bubble">
-                  <div class="typing-dot"></div>
-                  <div class="typing-dot"></div>
-                  <div class="typing-dot"></div>
-                </div>
-              `
-            : ""
-        }
-      </div>
-
-      <div class="chat-input-wrapper">
-        ${
-          host._chatScrolledAway && host._messages.length > 0
-            ? b2`
-                <button
-                  class="chat-jump-bottom"
-                  @click=${() => host._scrollChatToBottom()}
-                  title=${host._t("chat_jump_to_latest", "Go to latest message")}
-                  aria-label=${host._t(
-                    "chat_jump_to_latest",
-                    "Go to latest message",
-                  )}
-                >
-                  <ha-icon icon="mdi:chevron-down"></ha-icon>
-                </button>
-              `
-            : ""
-        }
-        ${
-          lastQuickActions
-            ? b2`
-                <div class="chat-quick-actions">
-                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
-                    used: !!lastQuickActions._qa_used,
-                  })}
-                </div>
-              `
-            : ""
-        }
-        ${_renderComposer(host)}
-      </div>
-    </div>
-  `;
-}
-function _autoResize(textarea) {
-  textarea.style.height = "auto";
-  textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
-}
-var _ENCODED_BLOB_RE = /^[A-Za-z0-9\-_.!~*'()%+]+$/;
-function _maybeDecodePercentEncoded(text) {
-  if (typeof text !== "string" || !text) return null;
-  if (!_ENCODED_BLOB_RE.test(text)) return null;
-  if (!/%0A/i.test(text)) return null;
-  try {
-    const decoded = decodeURIComponent(text.replace(/\+/g, " "));
-    if (decoded !== text && /\s/.test(decoded)) return decoded;
-  } catch (_2) {}
-  return null;
-}
-function _handlePaste(host, e6) {
-  const clip2 = e6.clipboardData;
-  if (!clip2) return;
-  const imageFiles = Array.from(clip2.files || []).filter((f3) =>
-    f3.type.startsWith("image/"),
-  );
-  if (imageFiles.length) {
-    e6.preventDefault();
-    addImageAttachments(host, imageFiles);
-    return;
-  }
-  const decoded = _maybeDecodePercentEncoded(clip2.getData("text"));
-  if (decoded === null) return;
-  e6.preventDefault();
-  const ta = e6.target;
-  const start = ta.selectionStart ?? ta.value.length;
-  const end = ta.selectionEnd ?? ta.value.length;
-  const next = ta.value.slice(0, start) + decoded + ta.value.slice(end);
-  ta.value = next;
-  const caret = start + decoded.length;
-  ta.setSelectionRange(caret, caret);
-  host._input = next;
-  host._autocompleteSelections = pruneStaleSelections(
-    next,
-    host._autocompleteSelections || [],
-  );
-  _autoResize(ta);
-  _updateAutocomplete(host, ta);
-  _updateGhost(host, ta);
-}
-var _MIRROR_COPY_PROPS = [
-  "boxSizing",
-  "width",
-  "height",
-  "overflowX",
-  "overflowY",
-  "borderTopWidth",
-  "borderRightWidth",
-  "borderBottomWidth",
-  "borderLeftWidth",
-  "borderStyle",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "fontStyle",
-  "fontVariant",
-  "fontWeight",
-  "fontStretch",
-  "fontSize",
-  "fontSizeAdjust",
-  "lineHeight",
-  "fontFamily",
-  "textAlign",
-  "textTransform",
-  "textIndent",
-  "textDecoration",
-  "letterSpacing",
-  "wordSpacing",
-  "tabSize",
-  "MozTabSize",
-  "whiteSpace",
-  "wordWrap",
-];
-function _measureCaretInTextarea(textarea) {
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const mirror = document.createElement("div");
-  const style = mirror.style;
-  const cs = window.getComputedStyle(textarea);
-  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
-  style.position = "absolute";
-  style.visibility = "hidden";
-  style.top = "0";
-  style.left = "0";
-  style.whiteSpace = "pre-wrap";
-  style.wordWrap = "break-word";
-  const textNode = document.createTextNode(value.slice(0, caret) || " ");
-  mirror.appendChild(textNode);
-  textarea.parentNode.insertBefore(mirror, textarea);
-  const range = document.createRange();
-  const len = caret === 0 ? 0 : (value.slice(0, caret) || " ").length;
-  range.setStart(textNode, len);
-  range.setEnd(textNode, len);
-  const rect = range.getBoundingClientRect();
-  const taRect = textarea.getBoundingClientRect();
-  const left = rect.left - taRect.left - textarea.scrollLeft;
-  const top = rect.top - taRect.top - textarea.scrollTop;
-  const height =
-    rect.height || parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
-  mirror.remove();
-  return { left, top, height };
-}
-function _updateAutocomplete(host, textarea) {
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const trigger = detectTrigger(
-    value,
-    caret,
-    host.hass?.language,
-    (host._autocompleteSelections || []).map((s4) => s4.label),
-  );
-  const closeIfOpen = () => {
-    if (host._autocomplete?.open) {
-      host._autocomplete = {
-        open: false,
-        items: [],
-        activeIndex: 0,
-        trigger: null,
-        anchor: null,
-      };
-    }
-  };
-  if (!trigger) {
-    closeIfOpen();
-    return;
-  }
-  const qLen = trigger.query.trim().length;
-  if (!host._autocompleteRegCache && host._ensureFullRegistries) {
-    host._autocompleteRegCache = "pending";
-    host._ensureFullRegistries().then((reg) => {
-      host._autocompleteRegCache = reg || null;
-    });
-  }
-  const cache =
-    host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
-      ? host._autocompleteRegCache
-      : null;
-  const index = buildSuggestionIndex(
-    host.hass,
-    cache?.areas || host.hass?.areas,
-    cache?.devices || null,
-    cache?.entities || null,
-  );
-  let items;
-  if (trigger.domains) {
-    items = qLen
-      ? rankSuggestions(
-          index,
-          trigger.kind,
-          trigger.query,
-          void 0,
-          trigger.domains,
-        )
-      : listByDomain(index, trigger.kind, trigger.domains);
-  } else if (qLen >= AUTOCOMPLETE_MIN_CHARS) {
-    items = rankSuggestions(index, trigger.kind, trigger.query);
-  } else {
-    items = findExactMatches(index, trigger.kind, trigger.query);
-  }
-  if (trigger.includeSensors) {
-    const sensorMatches =
-      qLen >= AUTOCOMPLETE_MIN_CHARS
-        ? rankSuggestions(
-            index,
-            "sensor",
-            trigger.query,
-            3,
-            // same cap as areas: the primary kind stays on top
-          )
-        : findExactMatches(index, "sensor", trigger.query);
-    if (sensorMatches.length) items = [...items, ...sensorMatches];
-  }
-  if (trigger.includeAreas) {
-    const areaMatches =
-      qLen >= AUTOCOMPLETE_MIN_CHARS
-        ? rankSuggestions(
-            index,
-            "area",
-            trigger.query,
-            3,
-            // cap area rows so devices still dominate the list
-          )
-        : findExactMatches(index, "area", trigger.query);
-    if (areaMatches.length) items = [...items, ...areaMatches];
-  }
-  if (!items.length) {
-    closeIfOpen();
-    return;
-  }
-  const savedCaret = textarea.selectionStart;
-  textarea.selectionStart = textarea.selectionEnd = trigger.start;
-  const anchor = _measureCaretInTextarea(textarea);
-  textarea.selectionStart = textarea.selectionEnd = savedCaret;
-  host._autocomplete = { open: true, items, activeIndex: 0, trigger, anchor };
-}
-function _updateGhost(host, textarea) {
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const hit = findGhostSuggestion(value, caret, host.hass?.language);
-  if (!hit) {
-    host._ghost = null;
-    return;
-  }
-  const anchor = _measureCaretInTextarea(textarea);
-  host._ghost = { suffix: hit.suffix, anchor };
-}
-function _acceptGhost(host, textarea) {
-  if (!host._ghost?.suffix) return false;
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const newText =
-    value.slice(0, caret) + host._ghost.suffix + value.slice(caret);
-  const newCaret = caret + host._ghost.suffix.length;
-  host._input = newText;
-  host._ghost = null;
-  requestAnimationFrame(() => {
-    textarea.value = newText;
-    textarea.setSelectionRange(newCaret, newCaret);
-    textarea.focus();
-    _autoResize(textarea);
-  });
-  return true;
-}
-function _renderGhostOverlay(host) {
-  const suffix = host._ghost?.suffix;
-  if (!suffix) return "";
-  const anchor = host._ghost.anchor;
-  if (!anchor) return "";
-  return b2`
-    <span
-      class="composer-ghost-suffix"
-      aria-hidden="true"
-      style="left:${anchor.left}px;top:${anchor.top}px;line-height:${anchor.height}px;"
-      >${suffix}</span
-    >
-  `;
-}
-function _scrollActiveItemIntoView(host) {
-  const scroll = () => {
-    const list = host.shadowRoot?.querySelector(".composer-autocomplete");
-    const active = list?.querySelector(".composer-autocomplete-item.active");
-    if (!list || !active) return;
-    const listRect = list.getBoundingClientRect();
-    const itemRect = active.getBoundingClientRect();
-    if (itemRect.bottom > listRect.bottom) {
-      list.scrollTop += itemRect.bottom - listRect.bottom;
-    } else if (itemRect.top < listRect.top) {
-      list.scrollTop -= listRect.top - itemRect.top;
-    }
-  };
-  if (host.updateComplete?.then) {
-    host.updateComplete.then(scroll);
-  } else {
-    requestAnimationFrame(scroll);
-  }
-}
-function _closeAutocomplete(host) {
-  if (host._autocomplete?.open) {
-    host._autocomplete = {
-      open: false,
-      items: [],
-      activeIndex: 0,
-      trigger: null,
-    };
-  }
-}
-function _selectAutocompleteItem(host, textarea, item) {
-  const trigger = host._autocomplete?.trigger;
-  if (!trigger || !item) return;
-  const { text, caret, range } = applySelection(textarea.value, trigger, item);
-  host._input = text;
-  host._autocompleteSelections = [
-    ...pruneStaleSelections(text, host._autocompleteSelections || [], range),
-    item,
-  ];
-  _closeAutocomplete(host);
-  requestAnimationFrame(() => {
-    textarea.value = text;
-    textarea.setSelectionRange(caret, caret);
-    textarea.focus();
-    _autoResize(textarea);
-  });
-}
-function _removeSelection(host, idx) {
-  const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i7) => i7 !== idx);
-}
-function _renderAutocomplete(host) {
-  const ac = host._autocomplete;
-  if (!ac?.open || !ac.items?.length) return "";
-  const ta = host.shadowRoot?.querySelector(".composer-textarea");
-  const wrap = host.shadowRoot?.querySelector(".composer-wrap");
-  let positionStyle = "";
-  if (wrap) {
-    const wrapRect = wrap.getBoundingClientRect();
-    const maxH = Math.max(0, Math.min(320, wrapRect.top - 12));
-    let horizontal = "";
-    if (ac.anchor && ta) {
-      const taRect = ta.getBoundingClientRect();
-      let leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
-      const maxLeft = Math.max(0, wrapRect.width - 320);
-      leftPx = Math.min(Math.max(0, leftPx), maxLeft);
-      horizontal = `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`;
-    }
-    positionStyle = `bottom:calc(100% + 6px);top:auto;max-height:${maxH}px;${horizontal}`;
-  }
-  const groupOrder = [];
-  const groups = /* @__PURE__ */ new Map();
-  for (const item of ac.items) {
-    if (!groups.has(item.kind)) {
-      groups.set(item.kind, []);
-      groupOrder.push(item.kind);
-    }
-    groups.get(item.kind).push(item);
-  }
-  return b2`
-    <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
-      ${groupOrder.map((kind) => {
-        const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
-        const header = headerKV
-          ? host._t(headerKV[0], headerKV[1])
-          : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
-        return b2`
-          <div class="composer-autocomplete-header">
-            <span>${header}</span>
-          </div>
-          ${groups.get(kind).map((item) => _renderAutocompleteRow(host, ac, item))}
-        `;
-      })}
-      <div class="composer-autocomplete-hint">
-        ${host._t(
-          "chat_autocomplete_hint",
-          "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
-        )}
-      </div>
-    </div>
-  `;
-}
-function _renderAutocompleteRow(host, ac, item) {
-  const idx = ac.items.indexOf(item);
-  return b2`<button
-    type="button"
-    class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
-    role="option"
-    @mousedown=${(e6) => {
-      e6.preventDefault();
-      const ta = host.shadowRoot?.querySelector(".composer-textarea");
-      if (ta) _selectAutocompleteItem(host, ta, item);
-    }}
-    @mouseenter=${() => {
-      host._autocomplete = { ...ac, activeIndex: idx };
-    }}
-  >
-    <ha-icon icon=${item.icon}></ha-icon>
-    <span class="composer-autocomplete-label">${item.label}</span>
-    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
-  </button>`;
-}
-function _renderSelectionChips(host) {
-  const sels = host._autocompleteSelections || [];
-  if (!sels.length) return "";
-  return b2`
-    <div class="composer-selections-inline">
-      ${sels.map(
-        (s4, idx) => b2`
-          <span
-            class="composer-selection-chip"
-            title=${s4.entity_id || s4.area_id || ""}
-          >
-            <ha-icon icon=${s4.icon}></ha-icon>
-            ${s4.label}
-            <button
-              type="button"
-              title=${host._t("chat_selection_remove", "Remove")}
-              @click=${() => _removeSelection(host, idx)}
-            >
-              ×
-            </button>
-          </span>
-        `,
-      )}
-    </div>
-  `;
-}
-function _renderComposer(host, opts = {}) {
-  const welcome = !!opts.welcome;
-  const onDragOver = (e6) => {
-    if (!e6.dataTransfer?.types?.includes?.("Files")) return;
-    e6.preventDefault();
-    if (!supportsImageAttachments(host)) return;
-    if (!host._composerDragOver) host._composerDragOver = true;
-  };
-  const onDragLeave = (e6) => {
-    if (e6.currentTarget.contains(e6.relatedTarget)) return;
-    if (host._composerDragOver) host._composerDragOver = false;
-  };
-  const onDrop = (e6) => {
-    if (!e6.dataTransfer?.files?.length) return;
-    e6.preventDefault();
-    host._composerDragOver = false;
-    addImageAttachments(host, e6.dataTransfer.files);
-  };
-  return b2`
-    <div class="composer-wrap">
-      ${_renderAutocomplete(host)}
-      <div
-        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${host._composerDragOver ? " composer-dragover" : ""}"
-        @dragover=${onDragOver}
-        @dragleave=${onDragLeave}
-        @drop=${onDrop}
-      >
-        <div class="composer-input-col">
-          ${renderAttachmentStrip(host)}
-          <div class="composer-textarea-wrap">
-            ${_renderGhostOverlay(host)}
-            <textarea
-              class="composer-textarea"
-              .value=${host._input}
-              @paste=${(e6) => _handlePaste(host, e6)}
-              @input=${(e6) => {
-                host._input = e6.target.value;
-                host._autocompleteSelections = pruneStaleSelections(
-                  e6.target.value,
-                  host._autocompleteSelections || [],
-                );
-                _autoResize(e6.target);
-                _updateAutocomplete(host, e6.target);
-                _updateGhost(host, e6.target);
-              }}
-              @click=${(e6) => {
-                _updateAutocomplete(host, e6.target);
-                _updateGhost(host, e6.target);
-              }}
-              @keyup=${(e6) => {
-                if (
-                  e6.key === "ArrowLeft" ||
-                  e6.key === "ArrowRight" ||
-                  e6.key === "Home" ||
-                  e6.key === "End"
-                ) {
-                  _updateAutocomplete(host, e6.target);
-                  _updateGhost(host, e6.target);
-                }
-              }}
-              @blur=${() => {
-                setTimeout(() => _closeAutocomplete(host), 150);
-              }}
-              @keydown=${(e6) => {
-                const ac = host._autocomplete;
-                if (ac?.open && ac.items.length) {
-                  if (e6.key === "ArrowDown") {
-                    e6.preventDefault();
-                    host._autocomplete = {
-                      ...ac,
-                      activeIndex: (ac.activeIndex + 1) % ac.items.length,
-                    };
-                    _scrollActiveItemIntoView(host);
-                    return;
-                  }
-                  if (e6.key === "ArrowUp") {
-                    e6.preventDefault();
-                    host._autocomplete = {
-                      ...ac,
-                      activeIndex:
-                        (ac.activeIndex - 1 + ac.items.length) %
-                        ac.items.length,
-                    };
-                    _scrollActiveItemIntoView(host);
-                    return;
-                  }
-                  if (e6.key === "Enter" || e6.key === "Tab") {
-                    e6.preventDefault();
-                    _selectAutocompleteItem(
-                      host,
-                      e6.target,
-                      ac.items[ac.activeIndex],
-                    );
-                    return;
-                  }
-                  if (e6.key === "Escape") {
-                    e6.preventDefault();
-                    _closeAutocomplete(host);
-                    return;
-                  }
-                }
-                if (e6.key === "Enter" && !e6.shiftKey) {
-                  e6.preventDefault();
-                  host._sendMessage();
-                  return;
-                }
-                if (e6.key === "Tab" && !e6.shiftKey) {
-                  e6.preventDefault();
-                  _acceptGhost(host, e6.target);
-                  return;
-                }
-                if (
-                  e6.key === "ArrowRight" &&
-                  host._ghost?.suffix &&
-                  e6.target.selectionStart === e6.target.value.length &&
-                  e6.target.selectionEnd === e6.target.value.length
-                ) {
-                  e6.preventDefault();
-                  _acceptGhost(host, e6.target);
-                  return;
-                }
-                const userHistory = host._messages
-                  .filter((m3) => m3.role === "user" && m3.content)
-                  .map((m3) => stripEntityMarkers(m3.content));
-                const ta = e6.target;
-                const atStart =
-                  ta.selectionStart === 0 && ta.selectionEnd === 0;
-                const atEnd =
-                  ta.selectionStart === ta.value.length &&
-                  ta.selectionEnd === ta.value.length;
-                const inHistory =
-                  host._historyIndex !== null && host._historyIndex !== void 0;
-                const applyHistory = (idx) => {
-                  const recalled = userHistory[userHistory.length - 1 - idx];
-                  host._historyIndex = idx;
-                  host._input = recalled;
-                  requestAnimationFrame(() => {
-                    ta.value = recalled;
-                    ta.setSelectionRange(ta.value.length, ta.value.length);
-                    _autoResize(ta);
-                  });
-                };
-                if (
-                  e6.key === "ArrowUp" &&
-                  userHistory.length > 0 &&
-                  (inHistory || atStart || !host._input)
-                ) {
-                  if (!inHistory) {
-                    host._historyDraft = host._input || "";
-                    e6.preventDefault();
-                    applyHistory(0);
-                    return;
-                  }
-                  if (host._historyIndex < userHistory.length - 1) {
-                    e6.preventDefault();
-                    applyHistory(host._historyIndex + 1);
-                    return;
-                  }
-                  e6.preventDefault();
-                  return;
-                }
-                if (e6.key === "ArrowDown" && inHistory && atEnd) {
-                  e6.preventDefault();
-                  if (host._historyIndex > 0) {
-                    applyHistory(host._historyIndex - 1);
-                    return;
-                  }
-                  const draft = host._historyDraft || "";
-                  host._historyIndex = null;
-                  host._historyDraft = "";
-                  host._input = draft;
-                  requestAnimationFrame(() => {
-                    ta.value = draft;
-                    ta.setSelectionRange(ta.value.length, ta.value.length);
-                    _autoResize(ta);
-                  });
-                  return;
-                }
-              }}
-              placeholder=${
-                host._newAutomationMode
-                  ? host._t(
-                      "composer_placeholder_automation",
-                      "Describe the automation you\u2019d like to create\u2026",
-                    )
-                  : host._t(
-                      "composer_placeholder_ask",
-                      "Ask Selora AI anything\u2026",
-                    )
-              }
-              ?disabled=${host._loading || host._streaming}
-              rows="1"
-            ></textarea>
-          </div>
-          ${_renderSelectionChips(host)}
-        </div>
-        ${
-          supportsImageAttachments(host)
-            ? b2`<input
-                  type="file"
-                  id="selora-chat-image-input"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  multiple
-                  hidden
-                  @change=${(e6) => {
-                    addImageAttachments(host, e6.target.files);
-                    e6.target.value = "";
-                  }}
-                /><button
-                  class="composer-attach"
-                  title=${host._t(
-                    "chat_attach_image",
-                    "Attach an image \u2014 drag & drop or paste works too",
-                  )}
-                  ?disabled=${host._loading || host._streaming}
-                  @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
-                >
-                  <ha-icon icon="mdi:image-plus-outline"></ha-icon>
-                </button>`
-            : b2``
-        }
-        ${
-          host._streaming
-            ? b2`<button
-                class="composer-send"
-                @click=${() => host._stopStreaming()}
-                title=${host._t("chat_stop_generating", "Stop generating")}
-              >
-                <ha-icon icon="mdi:stop"></ha-icon>
-              </button>`
-            : b2`<button
-                class="composer-send"
-                @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
-                title=${host._t("chat_send", "Send")}
-              >
-                <ha-icon icon="mdi:arrow-up"></ha-icon>
-              </button>`
-        }
-      </div>
-    </div>
-  `;
-}
-function renderMessage(host, msg, idx) {
-  const isUser = msg.role === "user";
-  if (msg._streaming && !msg.content) return b2``;
-  let displayContent = msg.content;
-  let showAutomationSpinner = false;
-  let showSceneSpinner = false;
-  if (!isUser) {
-    const { text, isPartialBlock, partialBlockType } = stripAutomationBlock(
-      msg.content,
-    );
-    displayContent = text;
-    showAutomationSpinner =
-      isPartialBlock && msg._streaming && partialBlockType === "automation";
-    showSceneSpinner =
-      isPartialBlock && msg._streaming && partialBlockType === "scene";
-    if (msg.command_approval) {
-      displayContent = displayContent
-        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*\.?$/i, "")
-        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*/gi, " ")
-        .trim();
-    }
-  }
-  const isRefineSource =
-    msg.automation_status === "refining" || msg.scene_status === "refining";
-  const isProposal =
-    !isUser && !isRefineSource && !!(msg.automation || msg.scene);
-  const isActionCard = !!(msg.automation || msg.scene || msg.command_approval);
-  const copyText = isProposal
-    ? (msg.automation ? msg.automation_yaml : msg.scene_yaml || "").trim()
-    : isActionCard
-      ? ""
-      : (displayContent || "").trim();
-  const canCopy = !isUser && !msg._streaming && !!copyText;
-  const canFeedback =
-    !isUser &&
-    !msg._streaming &&
-    !msg.command_approval &&
-    !isRefineSource &&
-    !!displayContent?.trim();
-  const canRetry = !isUser && !!(msg._interrupted && msg._retryWith);
-  const hasProposalActions = !isUser && !!msg.automation;
-  const showQuickActions =
-    !isUser &&
-    !!(msg.quick_actions && msg.quick_actions.length) && // Only approval cards render their action row inline in the bubble, so
-    // the Allow/Deny buttons sit next to the proposal they resolve. Standard
-    // quick_actions render exclusively in the sticky composer row (see
-    // lastQuickActions in renderChat); rendering them here too would show the
-    // same chips twice (in-card AND above the input).
-    msg.command_approval && // Hide approval action cards once the proposal has been resolved (or
-    // is mid-resolve). Re-clicking after the status flipped would 404
-    // server-side, and the approved/denied chip already says what happened.
-    msg.approval_status !== "approved" &&
-    msg.approval_status !== "denied" &&
-    msg.approval_status !== "resolving";
-  const sceneIsSingleTile =
-    !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
-  return b2`
-    <div class="message-row">
-      ${
-        isUser
-          ? b2`
-              <div class="bubble user">
-                ${
-                  msg.attachments?.length
-                    ? b2`
-                        <div class="bubble-attachments">
-                          ${msg.attachments.map(
-                            (a3) => b2`
-                              <img
-                                src=${a3.dataUrl}
-                                alt=${a3.name || "image"}
-                                loading="lazy"
-                              />
-                            `,
-                          )}
-                        </div>
-                      `
-                    : b2``
-                }
-                <span
-                  class="msg-content"
-                  .textContent=${stripEntityMarkers(msg.content)}
-                ></span>
-              </div>
-            `
-          : b2`
-              <div
-                class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}${msg.scene ? " assistant-wrap--scene" : ""}${sceneIsSingleTile ? " assistant-wrap--scene-single" : ""}"
-              >
-                ${renderAgentSteps(host, msg.steps)}
-                <div
-                  class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
-                  style="max-width:100%;align-self:auto;"
-                >
-                  ${
-                    msg.command_approval
-                      ? ""
-                      : b2`<span
-                          class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
-                          @click=${host._onCodeCopyClick}
-                          .innerHTML=${renderMarkdown(displayContent)}
-                        ></span>`
-                  }
-                  ${
-                    showAutomationSpinner
-                      ? (() => {
-                          const startedAt = msg._sentAt || Date.now();
-                          const labelIdx =
-                            Math.floor(
-                              (Date.now() - startedAt) /
-                                AUTOMATION_LABEL_INTERVAL_MS,
-                            ) % AUTOMATION_LABEL_KEYS.length;
-                          const [labelKey, labelFallback] =
-                            AUTOMATION_LABEL_KEYS[labelIdx];
-                          return b2`
-                            <div
-                              style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                            >
-                              <div
-                                class="typing-dot"
-                                style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                              ></div>
-                              <span
-                                style="font-size:13px;font-weight:500;color:#fbbf24;"
-                                >${host._t(labelKey, labelFallback)}</span
-                              >
-                            </div>
-                          `;
-                        })()
-                      : ""
-                  }
-                  ${
-                    showSceneSpinner
-                      ? b2`
-                          <div
-                            style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                          >
-                            <div
-                              class="typing-dot"
-                              style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                            ></div>
-                            <span
-                              style="font-size:13px;font-weight:500;color:#fbbf24;"
-                              >${host._t(
-                                "chat_building_scene",
-                                "Building scene...",
-                              )}</span
-                            >
-                          </div>
-                        `
-                      : ""
-                  }
-                  ${
-                    msg.config_issue
-                      ? b2`
-                          <div style="margin-top: 10px;">
-                            <mwc-button
-                              dense
-                              raised
-                              @click=${host._goToSettings}
-                              >${host._t(
-                                "chat_go_to_settings",
-                                "Go to Settings",
-                              )}</mwc-button
-                            >
-                          </div>
-                        `
-                      : ""
-                  }
-                  ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
-                  ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
-                  ${
-                    msg.command_approval
-                      ? renderApprovalCard(
-                          host,
-                          msg,
-                          msg.command_approval,
-                          msg.approval_status,
-                        )
-                      : ""
-                  }
-                  ${
-                    msg._interrupted
-                      ? b2`
-                          <div class="stream-interrupt">
-                            <ha-icon
-                              icon="mdi:alert-circle-outline"
-                              style="--mdc-icon-size:16px;flex-shrink:0;"
-                            ></ha-icon>
-                            <span class="stream-interrupt-text"
-                              >${
-                                msg._interruptReason ||
-                                host._t(
-                                  "chat_response_cut_short",
-                                  "Response was cut short.",
-                                )
-                              }</span
-                            >
-                          </div>
-                        `
-                      : ""
-                  }
-                  ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
-                </div>
-                ${
-                  msg._streaming ||
-                  canCopy ||
-                  canFeedback ||
-                  canRetry ||
-                  showQuickActions ||
-                  hasProposalActions
-                    ? b2`<div
-                        class="bubble-meta"
-                        style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
-                      >
-                        ${
-                          msg._streaming
-                            ? b2`<span style="opacity:0.5;">
-                                Selora AI ·
-                                ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
-                              </span>`
-                            : canCopy || canFeedback || canRetry
-                              ? b2`<div class="msg-actions">
-                                  ${
-                                    canCopy
-                                      ? b2`<button
-                                          class="msg-action-btn"
-                                          title=${host._t(
-                                            isProposal
-                                              ? "chat_copy_yaml"
-                                              : "chat_copy_message",
-                                            isProposal
-                                              ? "Copy YAML"
-                                              : "Copy message",
-                                          )}
-                                          aria-label=${host._t(
-                                            isProposal
-                                              ? "chat_copy_yaml"
-                                              : "chat_copy_message",
-                                            isProposal
-                                              ? "Copy YAML"
-                                              : "Copy message",
-                                          )}
-                                          @click=${(e6) =>
-                                            host._copyMessageText(
-                                              msg,
-                                              e6.currentTarget,
-                                              copyText,
-                                            )}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:content-copy"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                        </button>`
-                                      : ""
-                                  }
-                                  ${
-                                    canFeedback &&
-                                    host._config?.telemetry_enabled
-                                      ? b2`<button
-                                            class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
-                                            title=${host._t(
-                                              "chat_feedback_helpful",
-                                              "Good response",
-                                            )}
-                                            aria-label=${host._t(
-                                              "chat_feedback_helpful",
-                                              "Good response",
-                                            )}
-                                            @click=${(e6) =>
-                                              host._recordChatFeedback(
-                                                msg,
-                                                "positive",
-                                                e6.currentTarget,
-                                              )}
-                                          >
-                                            <ha-icon
-                                              icon=${msg._feedback === "positive" ? "mdi:thumb-up" : "mdi:thumb-up-outline"}
-                                              style="--mdc-icon-size:14px;"
-                                            ></ha-icon>
-                                          </button>
-                                          <button
-                                            class="msg-action-btn${msg._feedback === "negative" ? " active" : ""}"
-                                            title=${host._t(
-                                              "chat_feedback_not_helpful",
-                                              "Bad response",
-                                            )}
-                                            aria-label=${host._t(
-                                              "chat_feedback_not_helpful",
-                                              "Bad response",
-                                            )}
-                                            @click=${(e6) =>
-                                              host._recordChatFeedback(
-                                                msg,
-                                                "negative",
-                                                e6.currentTarget,
-                                              )}
-                                          >
-                                            <ha-icon
-                                              icon=${msg._feedback === "negative" ? "mdi:thumb-down" : "mdi:thumb-down-outline"}
-                                              style="--mdc-icon-size:14px;"
-                                            ></ha-icon>
-                                          </button>`
-                                      : ""
-                                  }
-                                  ${
-                                    msg._interrupted && msg._retryWith
-                                      ? b2`<button
-                                          class="msg-action-btn"
-                                          title=${host._t("chat_retry", "Retry")}
-                                          aria-label=${host._t("chat_retry", "Retry")}
-                                          @click=${() => host._retryMessage(msg._retryWith)}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:refresh"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                        </button>`
-                                      : ""
-                                  }
-                                </div>`
-                              : ""
-                        }
-                        ${
-                          hasProposalActions || showQuickActions
-                            ? b2`<div class="msg-quick">
-                                ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
-                                ${
-                                  showQuickActions
-                                    ? renderQuickActions(
-                                        host,
-                                        msg.quick_actions,
-                                        {
-                                          used: !!msg._qa_used,
-                                        },
-                                      )
-                                    : ""
-                                }
-                              </div>`
-                            : ""
-                        }
-                      </div>`
-                    : ""
-                }
-              </div>
-            `
-      }
-    </div>
-  `;
-}
-var DOMAIN_ICONS3 = {
-  light: "mdi:lightbulb",
-  switch: "mdi:toggle-switch",
-  climate: "mdi:thermostat",
-  lock: "mdi:lock",
-  cover: "mdi:window-shutter",
-  fan: "mdi:fan",
-  media_player: "mdi:speaker",
-  vacuum: "mdi:robot-vacuum",
-  sensor: "mdi:eye",
-  binary_sensor: "mdi:motion-sensor",
-  water_heater: "mdi:water-boiler",
-  humidifier: "mdi:air-humidifier",
-  camera: "mdi:cctv",
-  device_tracker: "mdi:map-marker",
-  person: "mdi:account",
-  zone: "mdi:map-marker-radius",
-  sun: "mdi:weather-sunny",
-  weather: "mdi:weather-partly-cloudy",
-  automation: "mdi:robot",
-  scene: "mdi:palette",
-  script: "mdi:script-text",
-  input_boolean: "mdi:toggle-switch-variant",
-  input_number: "mdi:numeric",
-  input_select: "mdi:form-dropdown",
-  input_text: "mdi:form-textbox",
-  input_datetime: "mdi:calendar-clock",
-  input_button: "mdi:gesture-tap-button",
-  timer: "mdi:timer-outline",
-  counter: "mdi:counter",
-  group: "mdi:google-circles-communities",
-  notify: "mdi:bell",
-  mobile_app: "mdi:cellphone",
-  alarm_control_panel: "mdi:shield-home",
-  air_quality: "mdi:air-filter",
-  remote: "mdi:remote",
-};
-function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
-  const readOnly = !!opts.readOnly;
-  host._initYamlEdit(key, originalYaml);
-  const current = readOnly
-    ? originalYaml
-    : (host._editedYaml[key] ?? originalYaml);
-  const isDirty = !readOnly && current !== originalYaml;
-  const saving = !!host._savingYaml[key];
-  return b2`
-    <ha-code-editor
-      mode="yaml"
-      .value=${current}
-      ?read-only=${readOnly}
-      @value-changed=${(e6) => {
-        if (readOnly) return;
-        host._onYamlInput(key, e6.detail.value);
-      }}
-      autocomplete-entities
-      style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
-    ></ha-code-editor>
-    ${
-      isDirty || (onSave && !readOnly)
-        ? b2`
-            <div class="yaml-edit-bar">
-              ${
-                isDirty
-                  ? b2`
-                      <span class="yaml-unsaved">
-                        <ha-icon
-                          icon="mdi:circle-edit-outline"
-                          style="--mdc-icon-size:13px;"
-                        ></ha-icon>
-                        ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
-                      </span>
-                    `
-                  : b2`<span style="flex:1;"></span>`
-              }
-              ${
-                onSave
-                  ? b2`
-                      <button
-                        class="btn btn-primary"
-                        ?disabled=${saving || !isDirty}
-                        @click=${() => onSave(key)}
-                      >
-                        <ha-icon
-                          icon="mdi:content-save"
-                          style="--mdc-icon-size:13px;"
-                        ></ha-icon>
-                        ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
-                      </button>
-                    `
-                  : ""
-              }
-            </div>
-          `
-        : ""
-    }
-  `;
-}
-
 // src/shared/formatting.js
 function humanizeToken(value) {
   if (value == null || value === "") return "";
@@ -31464,7 +27881,7 @@ var _LIST_CONNECTORS = {
   nl: { last: " en ", oxford: " en " },
   hu: { last: " \xE9s ", oxford: " \xE9s " },
 };
-function _langKey2(language, table) {
+function _langKey(language, table) {
   const base = String(language || "en")
     .toLowerCase()
     .split("-")[0];
@@ -31474,7 +27891,7 @@ function fmtEntities(hass, val, language) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
   if (arr.length === 1) return fmtEntity(hass, arr[0]);
-  const c4 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
+  const c4 = _LIST_CONNECTORS[_langKey(language, _LIST_CONNECTORS)];
   if (arr.length === 2)
     return `${fmtEntity(hass, arr[0])}${c4.last}${fmtEntity(hass, arr[1])}`;
   return (
@@ -31596,7 +28013,7 @@ var _STATE_NAMES = {
 function fmtState(state, language) {
   if (state == null) return null;
   const s4 = String(state);
-  const table = _STATE_NAMES[_langKey2(language, _STATE_NAMES)];
+  const table = _STATE_NAMES[_langKey(language, _STATE_NAMES)];
   return table[s4] || s4.replace(/_/g, " ");
 }
 function fmtDuration(value) {
@@ -31678,7 +28095,7 @@ var _WEEKDAYS = {
 };
 function fmtWeekdays(value, language) {
   if (!value) return "";
-  const dayMap = _WEEKDAYS[_langKey2(language, _WEEKDAYS)];
+  const dayMap = _WEEKDAYS[_langKey(language, _WEEKDAYS)];
   const days = Array.isArray(value) ? value : [value];
   return days.map((d3) => dayMap[String(d3)] || humanizeToken(d3)).join(", ");
 }
@@ -33350,6 +29767,4192 @@ function displayTriggers(triggers, conditions, actions) {
   return mergeEquivalentTriggers(trigs);
 }
 
+// src/panel/refine-guide.js
+var REFINEMENT_TERMINATORS = /* @__PURE__ */ new Set([
+  "pending",
+  "saved",
+  "declined",
+]);
+var MAX_SUGGESTIONS = 4;
+function activeRefinement(messages) {
+  const list = messages || [];
+  for (let i7 = list.length - 1; i7 >= 0; i7--) {
+    const m3 = list[i7] || {};
+    const status = m3.automation_status;
+    if (REFINEMENT_TERMINATORS.has(status)) return null;
+    if (status === "refining" && m3.automation_yaml) return { index: i7 };
+  }
+  return null;
+}
+var _disabled = (node) => node?.enabled === false;
+function _leaves(automation) {
+  const out = [];
+  const visitCondition = (raw) => {
+    const c4 = normalizeCondition(raw);
+    if (!c4 || typeof c4 !== "object" || _disabled(c4)) return;
+    if (["and", "or", "not"].includes(c4.condition)) {
+      asArray(c4.conditions).forEach(visitCondition);
+      return;
+    }
+    out.push({ kind: "condition", item: c4 });
+  };
+  const visitAction = (a3) => {
+    if (!a3 || typeof a3 !== "object" || _disabled(a3)) return;
+    if (a3.if != null || a3.choose != null || a3.parallel != null) {
+      asArray(a3.if).forEach(visitCondition);
+      asArray(a3.then).forEach(visitAction);
+      asArray(a3.else).forEach(visitAction);
+      for (const option of asArray(a3.choose)) {
+        asArray(option?.conditions).forEach(visitCondition);
+        asArray(option?.sequence).forEach(visitAction);
+      }
+      asArray(a3.default).forEach(visitAction);
+      asArray(a3.parallel).forEach(visitAction);
+      return;
+    }
+    if (a3.sequence != null) return asArray(a3.sequence).forEach(visitAction);
+    if (a3.repeat != null) {
+      return asArray(a3.repeat?.sequence).forEach(visitAction);
+    }
+    out.push({ kind: "action", item: a3 });
+  };
+  asArray(automation?.triggers ?? automation?.trigger).forEach((t5) => {
+    if (t5 && typeof t5 === "object" && !_disabled(t5)) {
+      out.push({ kind: "trigger", item: t5 });
+    }
+  });
+  asArray(automation?.conditions ?? automation?.condition).forEach(
+    visitCondition,
+  );
+  asArray(automation?.actions ?? automation?.action).forEach(visitAction);
+  return out;
+}
+var _triggerType = (t5) => t5.trigger ?? t5.platform;
+var _service = (a3) => String(a3.action ?? a3.service ?? "");
+var _isNumber = (v2) => typeof v2 === "number" || /^-?\d+(\.\d+)?$/.test(v2);
+function refineSuggestions(host, automation) {
+  const leaves = _leaves(automation);
+  const t5 = (key, fallback, values) =>
+    interpolate(host._t(key, fallback), values || {});
+  const out = [];
+  const add = (icon, label, prefill) => out.push({ icon, label, prefill });
+  const threshold = leaves.find(
+    ({ item }) =>
+      (_triggerType(item) === "numeric_state" ||
+        item.condition === "numeric_state") &&
+      (_isNumber(item.below) || _isNumber(item.above)),
+  );
+  if (threshold) {
+    const value = String(threshold.item.below ?? threshold.item.above);
+    add(
+      "mdi:tune-vertical",
+      t5("refine_suggest_threshold", "Change the threshold ({value})", {
+        value,
+      }),
+      t5("refine_prefill_threshold", "Change the threshold from {value} to", {
+        value,
+      }),
+    );
+  }
+  const delayed = leaves.find(
+    ({ kind, item }) =>
+      (kind !== "action" && item.for != null) ||
+      (kind === "action" && item.delay != null),
+  );
+  const delay = delayed && fmtDuration(delayed.item.for ?? delayed.item.delay);
+  if (delay && !delay.includes("{")) {
+    add(
+      "mdi:timer-outline",
+      t5("refine_suggest_delay", "Change the delay ({value})", {
+        value: delay,
+      }),
+      t5("refine_prefill_delay", "Change the delay from {value} to", {
+        value: delay,
+      }),
+    );
+  }
+  const timed = leaves.find(
+    ({ kind, item }) =>
+      kind === "trigger" &&
+      _triggerType(item) === "time" &&
+      typeof item.at === "string" && // Not an input_datetime / sensor reference or a template.
+      !/[.{]/.test(item.at),
+  );
+  if (timed) {
+    const value = fmtTime(host.hass, timed.item.at);
+    add(
+      "mdi:clock-outline",
+      t5("refine_suggest_time", "Change the time ({value})", { value }),
+      t5("refine_prefill_time", "Change the time from {value} to", { value }),
+    );
+  }
+  const dimmed = leaves.find(
+    ({ kind, item }) =>
+      kind === "action" &&
+      _isNumber((item.data ?? item.service_data)?.brightness_pct),
+  );
+  if (dimmed) {
+    const value = String(
+      (dimmed.item.data ?? dimmed.item.service_data).brightness_pct,
+    );
+    add(
+      "mdi:brightness-6",
+      t5("refine_suggest_brightness", "Change the brightness ({value}%)", {
+        value,
+      }),
+      t5(
+        "refine_prefill_brightness",
+        "Change the brightness from {value}% to",
+        {
+          value,
+        },
+      ),
+    );
+  }
+  const hasTimeWindow = leaves.some(
+    ({ kind, item }) =>
+      (kind === "condition" && item.condition === "time") ||
+      (kind === "trigger" && _triggerType(item) === "time"),
+  );
+  if (!hasTimeWindow) {
+    add(
+      "mdi:calendar-clock",
+      t5("refine_suggest_hours", "Only between certain hours"),
+      t5("refine_prefill_hours", "Only run it between"),
+    );
+  }
+  const notifies = leaves.some(
+    ({ kind, item }) =>
+      kind === "action" &&
+      (_service(item).startsWith("notify.") ||
+        _service(item) === "persistent_notification.create"),
+  );
+  if (!notifies) {
+    add(
+      "mdi:bell-outline",
+      t5("refine_suggest_notify", "Also notify me"),
+      t5("refine_prefill_notify", "Also send me a notification when it runs"),
+    );
+  }
+  return out.slice(0, MAX_SUGGESTIONS);
+}
+function stepPrefill(host, description) {
+  return interpolate(host._t("refine_prefill_step", 'Change "{step}" to'), {
+    step: description,
+  });
+}
+async function prefillComposer(host, text) {
+  host._input = `${text} `;
+  host.requestUpdate?.();
+  await host.updateComplete;
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  if (!ta) return;
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+function renderRefineHeading(host, msgIndex) {
+  if (activeRefinement(host._messages)?.index !== msgIndex) return "";
+  const alias = host._messages[msgIndex]?.automation?.alias || "";
+  return b2`
+    <div class="refine-heading">
+      <div class="refine-heading-icon">
+        <ha-icon icon="mdi:pencil-outline"></ha-icon>
+      </div>
+      <div class="refine-heading-text">
+        <div class="refine-heading-title">
+          ${interpolate(host._t("refine_heading", "Editing {name}"), {
+            name: alias,
+          })}
+        </div>
+        <div class="refine-heading-hint">
+          ${host._t(
+            "refine_heading_hint",
+            "Describe what to change below, or click any step. Nothing changes until you accept the new version.",
+          )}
+        </div>
+      </div>
+    </div>
+  `;
+}
+function renderRefineSuggestions(host) {
+  if (host._input || host._loading || host._streaming) return "";
+  const active = activeRefinement(host._messages);
+  if (!active) return "";
+  const automation = host._messages[active.index]?.automation;
+  const suggestions = refineSuggestions(host, automation);
+  if (!suggestions.length) return "";
+  return b2`
+    <div class="chat-quick-actions refine-suggestions">
+      <div class="qa-group">
+        ${suggestions.map(
+          (s4) => b2`
+            <button
+              class="qa-suggestion"
+              @click=${() => prefillComposer(host, s4.prefill)}
+            >
+              <span class="qa-glow-track" aria-hidden="true">
+                <span class="qa-glow-spot"></span>
+              </span>
+              <ha-icon class="qa-suggestion-lead" icon=${s4.icon}></ha-icon>
+              <span class="qa-suggestion-label">${s4.label}</span>
+            </button>
+          `,
+        )}
+      </div>
+    </div>
+  `;
+}
+
+// src/panel/client-actions.js
+function matchesProposal(existing, expected) {
+  return (
+    String(existing.title || "") === String(expected.title || "") &&
+    String(existing.icon || "") === String(expected.icon || "") &&
+    Boolean(existing.require_admin) === Boolean(expected.require_admin) &&
+    Boolean(existing.show_in_sidebar) === Boolean(expected.show_in_sidebar)
+  );
+}
+var HELPER_FIELDS = {
+  input_boolean: ["name", "icon", "initial"],
+  input_button: ["name", "icon"],
+  input_select: ["name", "icon", "initial", "options"],
+  input_number: [
+    "name",
+    "icon",
+    "initial",
+    "min",
+    "max",
+    "step",
+    "mode",
+    "unit_of_measurement",
+  ],
+  input_text: [
+    "name",
+    "icon",
+    "initial",
+    "min",
+    "max",
+    "mode",
+    "pattern",
+    "unit_of_measurement",
+  ],
+  input_datetime: ["name", "icon", "initial", "has_date", "has_time"],
+  counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
+  timer: ["name", "icon", "duration", "restore"],
+  zone: ["name", "icon", "latitude", "longitude", "radius", "passive"],
+};
+var HANDLERS = {
+  create_helper: async (hass, action) => {
+    const domain = String(action.domain || "");
+    const allowed = HELPER_FIELDS[domain];
+    if (!allowed) throw new Error(`Unsupported helper type: ${domain}`);
+    const fields = action.fields || {};
+    const payload = {};
+    for (const key of allowed) {
+      if (fields[key] !== void 0) payload[key] = fields[key];
+    }
+    const name = String(payload.name || "");
+    const existing = await hass.callWS({ type: `${domain}/list` });
+    const already = (existing || []).find((item) => item?.name === name);
+    if (already) {
+      const same = Object.keys(payload).every(
+        (key) => JSON.stringify(already[key]) === JSON.stringify(payload[key]),
+      );
+      if (!same) {
+        throw new Error(
+          `A different ${domain} called "${name}" already exists. Use it, or ask again with another name.`,
+        );
+      }
+      return { entity_id: `${domain}.${already.id}`, name };
+    }
+    const created = await hass.callWS({ type: `${domain}/create`, ...payload });
+    return {
+      entity_id: created?.id ? `${domain}.${created.id}` : "",
+      name: created?.name || name,
+    };
+  },
+  delete_dashboard: async (hass, action) => {
+    const urlPath = String(action.url_path || "");
+    const dashboardId = String(action.dashboard_id || "");
+    const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
+    const match = (existing || []).find(
+      (d3) => d3?.id && d3.id === dashboardId,
+    );
+    if (!match) {
+      return { url_path: urlPath, title: action.title, already_gone: true };
+    }
+    if (urlPath && match.url_path !== urlPath) {
+      throw new Error(
+        `That dashboard is no longer at /${urlPath} \u2014 it is at /${match.url_path}. Ask again to confirm which one to delete.`,
+      );
+    }
+    if (action.expected && !matchesProposal(match, action.expected)) {
+      throw new Error(
+        `The dashboard at /${match.url_path} is not the one this card named \u2014 "${String(match.title || "")}" is there now. Ask again to confirm which one to delete.`,
+      );
+    }
+    await hass.callWS({
+      type: "lovelace/dashboards/delete",
+      dashboard_id: match.id,
+    });
+    return { url_path: urlPath, title: match.title || action.title };
+  },
+  create_dashboard: async (hass, action) => {
+    const urlPath = String(action.url_path || "");
+    const existing = await hass.callWS({ type: "lovelace/dashboards/list" });
+    const already = (existing || []).find((d3) => d3?.url_path === urlPath);
+    if (already) {
+      if (!matchesProposal(already, action)) {
+        throw new Error(
+          `The dashboard at /${urlPath} is not the one proposed \u2014 "${String(already.title || "")}" is already there. Pick another url_path, or edit that dashboard instead.`,
+        );
+      }
+      return {
+        url_path: already.url_path,
+        title: already.title || action.title,
+      };
+    }
+    const payload = {
+      type: "lovelace/dashboards/create",
+      title: String(action.title || ""),
+      url_path: String(action.url_path || ""),
+      require_admin: Boolean(action.require_admin),
+      show_in_sidebar: Boolean(action.show_in_sidebar),
+    };
+    if (action.icon) payload.icon = String(action.icon);
+    if (action.allow_single_word) payload.allow_single_word = true;
+    const created = await hass.callWS(payload);
+    return {
+      url_path: created?.url_path || payload.url_path,
+      title: created?.title || payload.title,
+    };
+  },
+};
+async function runClientAction(hass, action) {
+  const kind = String(action?.kind || "");
+  const handler = HANDLERS[kind];
+  if (!handler) {
+    return { ok: false, kind, detail: `Unsupported action: ${kind}` };
+  }
+  try {
+    const detail = await handler(hass, action);
+    return { ok: true, kind, detail };
+  } catch (err) {
+    return { ok: false, kind, detail: err?.message || String(err) };
+  }
+}
+var IN_FLIGHT = /* @__PURE__ */ new Set();
+async function resolveClientActions(host, msg, approval) {
+  const proposalId = approval?.proposal_id;
+  if ((msg && msg._resolving) || IN_FLIGHT.has(proposalId)) return;
+  IN_FLIGHT.add(proposalId);
+  const actions = approval?.client_actions || [];
+  const sessionId = host._activeSessionId;
+  let ok = false;
+  let reported = true;
+  try {
+    if (msg) {
+      msg._resolving = true;
+      msg.quick_actions = null;
+      msg.approval_status = "resolving";
+      host._messages = [...host._messages];
+    }
+    const results = [];
+    for (const action of actions) {
+      results.push(await runClientAction(host.hass, action));
+    }
+    ok = results.length > 0 && results.every((r4) => r4.ok);
+    try {
+      await host.hass.callWS({
+        type: "selora_ai/client_action_result",
+        session_id: sessionId,
+        proposal_id: approval.proposal_id,
+        results,
+        // The language RESOLVED for the turn, carried on the proposal. NOT
+        // hass.language, which is only the UI locale: a French message on an
+        // English-UI install must get a French outcome, and the panel cannot
+        // work out which — only the turn that detected it knows.
+        ...(approval.language || host.hass?.language
+          ? { language: approval.language || host.hass.language }
+          : {}),
+      });
+    } catch (err) {
+      reported = false;
+      console.error("Selora AI: could not report client action result", err);
+    }
+    if (msg) {
+      msg._resolving = false;
+      msg.approval_status = ok ? "approved" : "denied";
+      host._messages = [...host._messages];
+    }
+  } finally {
+    IN_FLIGHT.delete(proposalId);
+  }
+  if (reported && sessionId && host._activeSessionId === sessionId) {
+    await host._openSession?.(sessionId);
+    if (ok) {
+      await host._sendMessage?.({ resumeProposalId: proposalId });
+    }
+  }
+  host.requestUpdate();
+}
+
+// src/panel/action-format.js
+var DOMAIN_ICONS = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  scene: "mdi:palette",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  climate: "mdi:thermostat",
+  input_boolean: "mdi:toggle-switch-outline",
+  media_player: "mdi:speaker",
+  lock: "mdi:lock",
+  alarm_control_panel: "mdi:shield-home",
+  vacuum: "mdi:robot-vacuum",
+  water_heater: "mdi:water-boiler",
+  tts: "mdi:account-voice",
+  notify: "mdi:bell",
+  script: "mdi:script-text-play",
+  shell_command: "mdi:console",
+};
+var SERVICE_FORMS = {
+  "lock.lock": { imperative: "Lock", past: "Locked" },
+  "lock.unlock": { imperative: "Unlock", past: "Unlocked" },
+  "lock.open": { imperative: "Open", past: "Opened" },
+  "tts.cloud_say": { imperative: "Announce on", past: "Announced on" },
+  "tts.google_translate_say": {
+    imperative: "Announce on",
+    past: "Announced on",
+  },
+  "tts.speak": { imperative: "Announce on", past: "Announced on" },
+  "alarm_control_panel.alarm_arm_home": {
+    imperative: "Arm (home mode)",
+    past: "Armed (home mode)",
+  },
+  "alarm_control_panel.alarm_arm_away": {
+    imperative: "Arm (away mode)",
+    past: "Armed (away mode)",
+  },
+  "alarm_control_panel.alarm_arm_night": {
+    imperative: "Arm (night mode)",
+    past: "Armed (night mode)",
+  },
+  "alarm_control_panel.alarm_disarm": {
+    imperative: "Disarm",
+    past: "Disarmed",
+  },
+  "vacuum.start": { imperative: "Start", past: "Started" },
+  "vacuum.pause": { imperative: "Pause", past: "Paused" },
+  "vacuum.stop": { imperative: "Stop", past: "Stopped" },
+  "vacuum.return_to_base": {
+    imperative: "Send to dock",
+    past: "Sent to dock",
+  },
+  "vacuum.clean_spot": {
+    imperative: "Spot-clean with",
+    past: "Spot-cleaned with",
+  },
+  "water_heater.set_temperature": {
+    imperative: "Set temperature on",
+    past: "Updated temperature on",
+  },
+  "water_heater.set_operation_mode": {
+    imperative: "Change mode on",
+    past: "Changed mode on",
+  },
+  // SAFE-bucket services that can appear in a bundled approval (the
+  // policy holds an entire turn back until the user clicks through
+  // the REVIEW call). Past tense matters here because these may also
+  // run via the Done message synthesizer below.
+  "light.turn_on": { imperative: "Turn on", past: "Turned on" },
+  "light.turn_off": { imperative: "Turn off", past: "Turned off" },
+  "light.toggle": { imperative: "Toggle", past: "Toggled" },
+  "switch.turn_on": { imperative: "Turn on", past: "Turned on" },
+  "switch.turn_off": { imperative: "Turn off", past: "Turned off" },
+  "scene.turn_on": { imperative: "Activate", past: "Activated" },
+};
+var DOMAIN_FORMS = {
+  tts: { imperative: "Announce on", past: "Announced on" },
+  notify: {
+    imperative: "Send a notification via",
+    past: "Sent a notification via",
+  },
+  script: { imperative: "Run script", past: "Ran script" },
+  shell_command: {
+    imperative: "Run shell command",
+    past: "Ran shell command",
+  },
+};
+function _domainOf(s4) {
+  return (s4 || "").split(".", 1)[0];
+}
+function _serviceSuffix(s4) {
+  const parts = (s4 || "").split(".");
+  return parts.length > 1 ? parts.slice(1).join(".") : "";
+}
+function _friendlyName(host, entityId) {
+  return host?.hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+}
+function actionIcon(service) {
+  return DOMAIN_ICONS[_domainOf(service)] || "mdi:cog-play-outline";
+}
+function callTargetEntityIds(call) {
+  const raw =
+    call?.service === "tts.speak"
+      ? call?.data?.media_player_entity_id
+      : call?.target?.entity_id;
+  return Array.isArray(raw) ? raw : raw ? [raw] : [];
+}
+function describeCall(host, call) {
+  const service = call?.service || "";
+  const ids = callTargetEntityIds(call);
+  const forms =
+    SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
+  const t5 =
+    typeof host?._t === "function"
+      ? (k2, fb) => host._t(k2, fb)
+      : (_k, fb) => fb;
+  const imperative = forms?.imperative || t5("action_format_run_verb", "Run");
+  const pastVerb = forms?.past || t5("action_format_ran_verb", "Ran");
+  if (ids.length) {
+    const names = ids.map((eid) => _friendlyName(host, eid));
+    return {
+      verb: imperative,
+      pastVerb,
+      targetText: names.join(", "),
+      entityIds: ids,
+    };
+  }
+  const tail = _serviceSuffix(service);
+  return {
+    verb: imperative,
+    pastVerb,
+    targetText: tail || service,
+    entityIds: [],
+  };
+}
+
+// src/panel/render-approval-card.js
+var RISK_LEVEL_STYLES = {
+  low: {
+    accent: "#3b82f6",
+    icon: "mdi:information-outline",
+    explainerKey: "approval_risk_explainer_low",
+    explainerFallback:
+      "Low risk: minor or fully reversible impact (sound, notifications, vacuum start/stop).",
+  },
+  medium: {
+    accent: "#f59e0b",
+    icon: "mdi:alert-outline",
+    explainerKey: "approval_risk_explainer_medium",
+    explainerFallback:
+      "Medium risk: noticeable side effects you may not want to undo (arming the alarm, locking a door, running a user script).",
+  },
+  high: {
+    accent: "#ef4444",
+    icon: "mdi:shield-alert-outline",
+    explainerKey: "approval_risk_explainer_high",
+    explainerFallback:
+      "High risk: physical access, security, or host-level impact (unlocking a door, disarming the alarm, running shell commands).",
+  },
+};
+var _DELETE_KIND_LABELS = {
+  automation: "automation",
+  scene: "scene",
+  group: "group",
+  area: "area",
+  script: "script",
+  label: "label",
+  helper: "helper",
+  entity: "entity",
+  device: "device",
+};
+var _DELETE_KIND_ICONS = {
+  scene: "mdi:palette-outline",
+  group: "mdi:google-circles-communities",
+  automation: "mdi:robot-outline",
+  area: "mdi:floor-plan",
+  script: "mdi:script-text-outline",
+  label: "mdi:label-outline",
+  helper: "mdi:tools",
+  entity: "mdi:shape-outline",
+  device: "mdi:devices",
+};
+var _CONFIRM_VARIANTS = {
+  delete: {
+    accent: "#ef4444",
+    headIcon: "mdi:alert-outline",
+    rows: (approval) => [
+      ...(approval.deletes || []),
+      ...(approval.actions || []),
+    ],
+    renderRow: (host, row) => _renderDeleteRow(host, row),
+    doneIcon: "mdi:trash-can-outline",
+    doneKey: "approval_status_deleted",
+    doneFallback: "Deleted",
+    titleKey: "delete_approval_title",
+    titleFallback: "Delete this?",
+    titlePluralKey: "delete_approval_title_plural",
+    titlePluralFallback: "Delete these?",
+    warningKey: "delete_approval_warning",
+    warningFallback: "This permanently removes it and can't be undone.",
+  },
+  destructive: {
+    accent: "#ef4444",
+    headIcon: "mdi:alert-outline",
+    rows: (approval) => [
+      ...(approval.deletes || []),
+      ...(approval.actions || []),
+    ],
+    renderRow: (host, row) => _renderDeleteRow(host, row),
+    doneIcon: "mdi:check-circle-outline",
+    doneKey: "approval_status_applied",
+    doneFallback: "Applied",
+    titleKey: "destructive_approval_title",
+    titleFallback: "Apply this change?",
+    titlePluralKey: "destructive_approval_title_plural",
+    titlePluralFallback: "Apply these changes?",
+    warningKey: "destructive_approval_warning",
+    warningFallback: "This can't be undone from chat.",
+  },
+  // Work the PANEL performs. The only shape with its own button: the others
+  // resolve server-side and get their Allow / Deny from `msg.quick_actions`,
+  // while this one has no server-side resolver to call — the press is what
+  // makes the privileged websocket command the signed-in user's own.
+  client_action: {
+    accent: "var(--selora-accent)",
+    // What the CARD is — a thing waiting on the user — the way the delete
+    // card's head says "destructive". The row below says what the thing is,
+    // so repeating its icon here rendered the same glyph twice.
+    headIcon: "mdi:gesture-tap",
+    rows: (approval) => approval.client_actions || [],
+    renderRow: (host, row) => _renderClientActionRow(host, row),
+    doneIcon: "mdi:check-circle-outline",
+    doneKey: "client_action_done",
+    doneFallback: "Done.",
+    cancelledKey: "client_action_failed",
+    cancelledFallback: "That did not work.",
+    titleKey: "client_action_title",
+    titleFallback: "Needs your confirmation",
+    titlePluralKey: "client_action_title",
+    titlePluralFallback: "Needs your confirmation",
+    confirm: {
+      // The same quiet chip the risk card's Allow uses. Its styles exist so
+      // confirmation buttons "stay visually quiet next to the risk card" — a
+      // filled button here would shout where Allow murmurs.
+      //
+      // Wording and tone follow the ACTION, not the card: "Create" on a button
+      // that deletes a dashboard would be worse than unhelpful.
+      byKind: {
+        delete_dashboard: {
+          tone: "deny",
+          icon: "mdi:trash-can-outline",
+          labelKey: "client_action_delete",
+          labelFallback: "Delete",
+        },
+      },
+      tone: "approve",
+      icon: "mdi:plus",
+      labelKey: "client_action_confirm",
+      labelFallback: "Create",
+      busyKey: "client_action_working",
+      busyFallback: "Working\u2026",
+      run: (host, msg, approval) => resolveClientActions(host, msg, approval),
+    },
+  },
+};
+function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
+  const mixedDelete =
+    variant === "delete" && (approval.actions || []).length > 0;
+  const copy = mixedDelete
+    ? _CONFIRM_VARIANTS.destructive
+    : _CONFIRM_VARIANTS[variant];
+  const accent = copy.accent;
+  const rows = copy.rows(approval);
+  if (approvalStatus === "approved" || approvalStatus === "denied") {
+    const resolved = approvalStatus === "approved";
+    return b2`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+      >
+        <ha-icon
+          icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
+          style="--mdc-icon-size:16px;flex-shrink:0;"
+        ></ha-icon>
+        <span
+          >${
+            resolved
+              ? host._t(copy.doneKey, copy.doneFallback)
+              : host._t(
+                  copy.cancelledKey || "approval_status_cancelled",
+                  copy.cancelledFallback || "Cancelled",
+                )
+          }</span
+        >
+      </div>
+    `;
+  }
+  if (approvalStatus === "resolving") {
+    return b2`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+      >
+        <span class="spinner" style="width:14px;height:14px;"></span>
+        <span
+          >${host._t(
+            copy.confirm?.busyKey || "approval_working",
+            copy.confirm?.busyFallback || "Working\u2026",
+          )}</span
+        >
+      </div>
+    `;
+  }
+  return b2`
+    <div
+      style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
+    >
+      <div
+        style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:4px;"
+      >
+        <ha-icon
+          icon=${copy.headIcon}
+          style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
+        ></ha-icon>
+        <span
+          >${rows.length > 1 ? host._t(copy.titlePluralKey, copy.titlePluralFallback) : host._t(copy.titleKey, copy.titleFallback)}</span
+        >
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        ${rows.map((row) => copy.renderRow(host, row))}
+      </div>
+      ${
+        approval.remaining_intent
+          ? b2`<div
+              style="margin-top:6px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+            >
+              <ha-icon
+                icon="mdi:arrow-right-bottom"
+                style="--mdc-icon-size:14px;flex-shrink:0;"
+              ></ha-icon>
+              <span
+                >${host._t("approval_then", "then")}
+                ${approval.remaining_intent}</span
+              >
+            </div>`
+          : ""
+      }
+      ${
+        copy.warningKey
+          ? b2`<div
+              style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+            >
+              ${host._t(copy.warningKey, copy.warningFallback)}
+            </div>`
+          : ""
+      }
+      ${
+        copy.confirm
+          ? b2`<div class="qa-group qa-group--confirmations">
+              ${(() => {
+                const kinds = rows.map((row) => String(row?.kind || ""));
+                const destructive = kinds.filter(
+                  (kind) => copy.confirm.byKind?.[kind]?.tone === "deny",
+                );
+                const confirm2 = !destructive.length
+                  ? copy.confirm
+                  : destructive.length === kinds.length
+                    ? {
+                        ...copy.confirm,
+                        ...copy.confirm.byKind[destructive[0]],
+                      }
+                    : {
+                        // Mixed. Neutral wording, because neither verb
+                        // describes the whole press — and the destructive tone,
+                        // because something here deletes data.
+                        ...copy.confirm,
+                        ...copy.confirm.byKind[destructive[0]],
+                        icon: "mdi:check",
+                        labelKey: "client_action_confirm_mixed",
+                        labelFallback: "Confirm all",
+                      };
+                return renderConfirmChip(
+                  host,
+                  {
+                    label: host._t(confirm2.labelKey, confirm2.labelFallback),
+                    icon: confirm2.icon,
+                    tone: confirm2.tone,
+                  },
+                  () => copy.confirm.run(host, msg, approval),
+                );
+              })()}
+            </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+function _renderDeleteRow(host, d3) {
+  const label = d3.label || d3.entity_id || d3.target_id || "";
+  const entityId = d3.entity_id || "";
+  const kind = _DELETE_KIND_LABELS[d3.kind] || "";
+  return b2`
+    <div
+      style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:10px;"
+    >
+      <ha-icon
+        icon=${_DELETE_KIND_ICONS[d3.kind] || "mdi:robot-outline"}
+        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
+      ></ha-icon>
+      <div style="display:flex;flex-direction:column;min-width:0;">
+        <span
+          style="font-size:13px;font-weight:600;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          title=${label}
+          >${label}</span
+        >
+        <span
+          style="font-size:11px;color:var(--secondary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+          >${entityId || kind}</span
+        >
+      </div>
+    </div>
+  `;
+}
+function _renderActionTile(call) {
+  const service = call?.service || "";
+  const icon = actionIcon(service);
+  const { verb } = describeCall({ hass: { states: {} } }, call);
+  return b2`
+    <div
+      style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;min-width:88px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);"
+      title=${service}
+    >
+      <ha-icon
+        icon=${icon}
+        style="--mdc-icon-size:24px;color:var(--secondary-text-color);"
+      ></ha-icon>
+      <span
+        style="font-size:12px;font-weight:600;color:var(--primary-text-color);text-align:center;line-height:1.2;"
+        >${verb}</span
+      >
+    </div>
+  `;
+}
+function _renderCallRow(host, call, reason) {
+  const ids = callTargetEntityIds(call);
+  const { targetText } = describeCall(host, call);
+  const rightSide = ids.length
+    ? b2`
+        <div
+          class="selora-entity-grid"
+          data-entity-ids=${ids.join(",")}
+          data-no-features="true"
+          style="flex:1;min-width:0;margin:0;"
+        ></div>
+      `
+    : b2`
+        <div
+          style="flex:1;min-width:0;padding:12px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);font-size:13px;color:var(--primary-text-color);"
+        >
+          ${targetText}
+        </div>
+      `;
+  return b2`
+    <div
+      style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;flex-direction:column;gap:8px;"
+    >
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${_renderActionTile(call)}
+        <ha-icon
+          icon="mdi:arrow-right"
+          style="--mdc-icon-size:18px;color:var(--secondary-text-color);flex-shrink:0;"
+        ></ha-icon>
+        ${rightSide}
+      </div>
+      ${
+        reason
+          ? b2`<div
+              style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+            >
+              ${reason}
+            </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+function _proposalEntityIds(approval) {
+  const seen = /* @__PURE__ */ new Set();
+  const ids = [];
+  for (const call of approval?.calls || []) {
+    for (const eid of callTargetEntityIds(call)) {
+      if (typeof eid === "string" && !seen.has(eid)) {
+        seen.add(eid);
+        ids.push(eid);
+      }
+    }
+  }
+  return ids;
+}
+function _domainOfEntity(entityId) {
+  return (entityId || "").split(".", 1)[0];
+}
+function _scopeLabel(host, scope, entityIds) {
+  if (!entityIds.length) return null;
+  if (scope === "all") {
+    const domains = new Set(entityIds.map(_domainOfEntity));
+    if (domains.size === 1) {
+      const d3 = [...domains][0];
+      return `All ${d3}s`;
+    }
+    return host._t("approval_scope_all_matching", "All matching entities");
+  }
+  if (entityIds.length === 1) {
+    const friendly =
+      host?.hass?.states?.[entityIds[0]]?.attributes?.friendly_name ||
+      entityIds[0];
+    return `Just ${friendly}`;
+  }
+  return host._t("approval_scope_just_these", "Just these entities");
+}
+function _actionLabel(host, action) {
+  if (action.kind === "delete_dashboard") {
+    const title = action.title || action.url_path || "";
+    if (action.view_count == null || action.card_count == null) {
+      return host
+        ._t(
+          "client_action_delete_dashboard_unknown",
+          "Delete the {title} dashboard \u2014 contents unknown",
+        )
+        .replace("{title}", title);
+    }
+    return host
+      ._t(
+        "client_action_delete_dashboard",
+        "Delete the {title} dashboard \u2014 {views} views, {cards} cards",
+      )
+      .replace("{title}", title)
+      .replace("{views}", String(action.view_count))
+      .replace("{cards}", String(action.card_count));
+  }
+  if (action.kind === "create_helper") {
+    return host
+      ._t("client_action_create_helper", "Create the {name} helper ({domain})")
+      .replace("{name}", action.name || "")
+      .replace("{domain}", action.domain || "");
+  }
+  if (action.kind === "create_dashboard") {
+    return host
+      ._t(
+        "client_action_create_dashboard",
+        "Create the {title} dashboard at /{url}",
+      )
+      .replace("{title}", action.title || "")
+      .replace("{url}", action.url_path || "");
+  }
+  return action.label || action.kind;
+}
+var _CLIENT_ACTION_ICONS = {
+  create_dashboard: "mdi:view-dashboard-outline",
+  delete_dashboard: "mdi:view-dashboard-outline",
+  create_helper: "mdi:tune-variant",
+};
+function _renderClientActionRow(host, action) {
+  return b2`
+    <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">
+      <ha-icon
+        icon=${_CLIENT_ACTION_ICONS[action.kind] || "mdi:cog-outline"}
+        style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
+      ></ha-icon>
+      <span
+        style="font-size:13px;font-weight:600;color:var(--primary-text-color);min-width:0;overflow:hidden;text-overflow:ellipsis;"
+        >${_actionLabel(host, action)}</span
+      >
+    </div>
+  `;
+}
+function renderApprovalCard(host, msg, approval, approvalStatus) {
+  if (!approval) return "";
+  if (_CONFIRM_VARIANTS[approval.approval_kind]) {
+    return renderConfirmationCard(
+      host,
+      msg,
+      approval,
+      approvalStatus,
+      approval.approval_kind,
+    );
+  }
+  const level = (approval.risk_level || "low").toLowerCase();
+  const { accent, icon, explainerKey, explainerFallback } =
+    RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;
+  const explainer = host._t(explainerKey, explainerFallback);
+  const reasons = approval.risk_reasons || [];
+  const calls = approval.calls || [];
+  const entityIds = _proposalEntityIds(approval);
+  const scope = msg?._entityScope === "all" ? "all" : "this";
+  if (approvalStatus === "approved" || approvalStatus === "denied") {
+    const resolvedColor =
+      approvalStatus === "approved" ? "#10b981" : "var(--secondary-text-color)";
+    const resolvedIcon =
+      approvalStatus === "approved"
+        ? "mdi:check-circle-outline"
+        : "mdi:close-circle-outline";
+    return b2`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolvedColor};"
+      >
+        <ha-icon
+          icon=${resolvedIcon}
+          style="--mdc-icon-size:16px;flex-shrink:0;"
+        ></ha-icon>
+        <span
+          >${approvalStatus === "approved" ? host._t("approval_status_approved", "Approved") : host._t("approval_status_denied", "Denied")}</span
+        >
+      </div>
+    `;
+  }
+  if (approvalStatus === "resolving") {
+    return b2`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+      >
+        <span class="spinner" style="width:14px;height:14px;"></span>
+        <span>${host._t("approval_working", "Working\u2026")}</span>
+      </div>
+    `;
+  }
+  const reasonFor = (i7) => reasons[i7] || "";
+  return b2`
+    <div
+      style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
+    >
+      <div
+        style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:10px;"
+      >
+        <ha-icon
+          icon=${icon}
+          style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
+        ></ha-icon>
+        <span>${host._t("approval_required_title", "Approval required")}</span>
+        <span
+          title=${explainer}
+          style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:4px;color:${accent};border:1px solid ${accent};line-height:1.2;cursor:help;"
+          >${level.toUpperCase()}</span
+        >
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        ${calls.map((c4, i7) => _renderCallRow(host, c4, reasonFor(i7)))}
+      </div>
+      ${
+        entityIds.length
+          ? b2`
+              <div
+                style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+              >
+                <span
+                  >${host._t(
+                    "approval_scope_label",
+                    "For Session / Always:",
+                  )}</span
+                >
+                <button
+                  @click=${() => host._toggleApprovalScope?.(msg)}
+                  title=${host._t(
+                    "approval_scope_button_title",
+                    "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
+                  )}
+                  style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
+                >
+                  <ha-icon
+                    icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
+                    style="--mdc-icon-size:14px;color:${scope === "all" ? "#f59e0b" : "#10b981"};"
+                  ></ha-icon>
+                  <span>${_scopeLabel(host, scope, entityIds)}</span>
+                  <ha-icon
+                    icon="mdi:chevron-down"
+                    style="--mdc-icon-size:14px;opacity:0.6;"
+                  ></ha-icon>
+                </button>
+              </div>
+            `
+          : ""
+      }
+    </div>
+  `;
+}
+
+// src/panel/render-agent-steps.js
+var STATUS_ICON = {
+  active: "mdi:loading",
+  done: "mdi:check-circle-outline",
+  warn: "mdi:alert-circle-outline",
+  error: "mdi:close-circle-outline",
+};
+var KIND_ICON = {
+  tool: "mdi:cog-outline",
+  draft: "mdi:pencil-outline",
+  validate: "mdi:shield-check-outline",
+  correct: "mdi:autorenew",
+  info: "mdi:information-outline",
+};
+var STATUS_SEVERITY = { done: 0, active: 1, warn: 2, error: 3 };
+function _stepColor(status) {
+  if (status === "warn") return "var(--warning-color, #f59e0b)";
+  if (status === "error") return "var(--error-color, #ef4444)";
+  return "var(--secondary-text-color)";
+}
+function _stepIcon(step) {
+  if (step.status === "active") return STATUS_ICON.active;
+  if (step.status === "warn") return STATUS_ICON.warn;
+  if (step.status === "error") return STATUS_ICON.error;
+  return step.icon || KIND_ICON[step.kind] || STATUS_ICON.done;
+}
+function _dedupeSteps(steps) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const step of steps) {
+    if (!step || !step.label) continue;
+    const key = `${step.kind || ""}::${step.label}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, { ...step });
+      continue;
+    }
+    if (
+      (STATUS_SEVERITY[step.status] ?? 0) > (STATUS_SEVERITY[prev.status] ?? 0)
+    ) {
+      prev.status = step.status;
+      if (step.detail) prev.detail = step.detail;
+    }
+  }
+  return [...byKey.values()];
+}
+function renderAgentSteps(host, steps) {
+  if (!Array.isArray(steps) || steps.length === 0) return "";
+  const items = _dedupeSteps(steps);
+  if (items.length === 0) return "";
+  const lastIndex = items.length - 1;
+  return b2`
+    <div
+      class="agent-steps"
+      style="display:flex;flex-direction:column;gap:7px;margin:2px 2px 10px;"
+    >
+      ${items.map((step, i7) => {
+        const color = _stepColor(step.status);
+        const spinning = step.status === "active";
+        const emphasised = step.status === "warn" || step.status === "error";
+        const showRail = i7 !== lastIndex;
+        return b2`
+          <div
+            class="agent-step"
+            style="display:flex;align-items:center;gap:9px;"
+            title=${step.detail || ""}
+          >
+            <div
+              style="position:relative;width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"
+            >
+              ${
+                showRail
+                  ? b2`<span
+                      style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
+                    ></span>`
+                  : ""
+              }
+              <ha-icon
+                icon=${_stepIcon(step)}
+                class=${spinning ? "agent-step-spin" : ""}
+                style="--mdc-icon-size:16px;color:${color};"
+              ></ha-icon>
+            </div>
+            <span
+              style="font-size:12px;line-height:1.3;color:${emphasised ? color : "var(--secondary-text-color)"};${emphasised ? "" : "opacity:0.9;"}"
+              >${step.label}</span
+            >
+          </div>
+        `;
+      })}
+    </div>
+  `;
+}
+
+// src/panel/chat-autocomplete.js
+var AUTOCOMPLETE_MIN_CHARS = 3;
+var AUTOCOMPLETE_MAX_RESULTS = 6;
+var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
+  "light",
+  "switch",
+  "lock",
+  "cover",
+  "fan",
+  "media_player",
+  "climate",
+  "vacuum",
+  "camera",
+  "humidifier",
+  "water_heater",
+  "input_boolean",
+  "input_select",
+  "input_number",
+  "input_button",
+  "remote",
+  "lawn_mower",
+]);
+var SENSOR_DOMAINS = /* @__PURE__ */ new Set(["sensor", "binary_sensor"]);
+var SENSOR_DEVICE_CLASS_ICONS = {
+  motion: "mdi:motion-sensor",
+  occupancy: "mdi:motion-sensor",
+  presence: "mdi:home-account",
+  door: "mdi:door",
+  garage_door: "mdi:garage",
+  window: "mdi:window-closed-variant",
+  opening: "mdi:square-outline",
+  moisture: "mdi:water-alert",
+  smoke: "mdi:smoke-detector",
+  gas: "mdi:gas-cylinder",
+  carbon_monoxide: "mdi:molecule-co",
+  carbon_dioxide: "mdi:molecule-co2",
+  vibration: "mdi:vibrate",
+  sound: "mdi:volume-high",
+  tamper: "mdi:shield-alert",
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  illuminance: "mdi:brightness-5",
+  pressure: "mdi:gauge",
+  power: "mdi:flash",
+  energy: "mdi:lightning-bolt",
+  pm25: "mdi:air-filter",
+};
+var DOMAIN_ICONS2 = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  climate: "mdi:thermostat",
+  vacuum: "mdi:robot-vacuum",
+  camera: "mdi:cctv",
+  humidifier: "mdi:air-humidifier",
+  water_heater: "mdi:water-boiler",
+  remote: "mdi:remote",
+  lawn_mower: "mdi:mower",
+  input_boolean: "mdi:toggle-switch-outline",
+  input_select: "mdi:form-dropdown",
+  input_number: "mdi:numeric",
+  input_button: "mdi:gesture-tap-button",
+  sensor: "mdi:gauge",
+  binary_sensor: "mdi:checkbox-marked-circle-outline",
+  scene: "mdi:palette",
+  automation: "mdi:robot",
+  script: "mdi:script-text",
+  area: "mdi:floor-plan",
+};
+var sensorCapable = (pattern) => ({
+  kind: "device",
+  pattern,
+  includeAreas: true,
+  includeSensors: true,
+});
+var BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
+var LOCALE_TRIGGERS = {
+  en: [
+    { kind: "area", pattern: /\bin (?:the |a )?$/i },
+    { kind: "area", pattern: /\bof (?:the |a )?$/i },
+    { kind: "scene", pattern: /\bactivate $/i },
+    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
+    { kind: "scene", pattern: /\bscene $/i },
+    { kind: "automation", pattern: /\brun $/i },
+    { kind: "automation", pattern: /\btrigger $/i },
+    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|close) (?:the |my )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:the |my )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
+    sensorCapable(/\bthe $/i),
+    sensorCapable(/\bmy $/i),
+  ],
+  fr: [
+    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
+    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
+    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
+    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
+    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
+    {
+      kind: "automation",
+      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
+    ),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bles $/i),
+    sensorCapable(/\bl['’]$/i),
+    sensorCapable(/\bmon $/i),
+    sensorCapable(/\bma $/i),
+    sensorCapable(/\bmes $/i),
+  ],
+  de: [
+    { kind: "area", pattern: /\bim $/i },
+    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
+    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
+    { kind: "scene", pattern: /\bSzene $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
+    },
+    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdimme (?:die |das |meine )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
+    ),
+    sensorCapable(/\bdie $/i),
+    sensorCapable(/\bder $/i),
+    sensorCapable(/\bdas $/i),
+    sensorCapable(/\bden $/i),
+    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
+  ],
+  es: [
+    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
+    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
+    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
+    { kind: "scene", pattern: /\bescena $/i },
+    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
+    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
+    ),
+    sensorCapable(/\bel $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\blos $/i),
+    sensorCapable(/\blas $/i),
+    sensorCapable(/\bmi $/i),
+    sensorCapable(/\bmis $/i),
+  ],
+  it: [
+    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
+    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
+    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
+    { kind: "scene", pattern: /\bscena $/i },
+    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
+    sensorCapable(/\bil $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bi $/i),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bgli $/i),
+    sensorCapable(/\blo $/i),
+    sensorCapable(/\bmio $/i),
+    sensorCapable(/\bmia $/i),
+    sensorCapable(/\bmiei $/i),
+  ],
+  nl: [
+    { kind: "area", pattern: /\bin (?:de |het )?$/i },
+    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
+    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdim (?:de |het |mijn )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
+    sensorCapable(/\bde $/i),
+    sensorCapable(/\bhet $/i),
+    sensorCapable(/\bmijn $/i),
+  ],
+  hu: [
+    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
+    { kind: "scene", pattern: /\bjelenet $/i },
+    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
+    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
+    sensorCapable(/\ba $/i),
+    sensorCapable(/\baz $/i),
+  ],
+};
+function _toUnicodeBoundary(re) {
+  let src = re.source;
+  if (src.startsWith("\\b")) {
+    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
+  }
+  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
+  return new RegExp(src, flags); // nosemgrep
+}
+for (const t5 of BASE_TRIGGERS) {
+  t5.pattern = _toUnicodeBoundary(t5.pattern);
+}
+for (const list of Object.values(LOCALE_TRIGGERS)) {
+  for (const t5 of list) {
+    t5.pattern = _toUnicodeBoundary(t5.pattern);
+  }
+}
+function _langKey2(lang) {
+  const base = String(lang || "en")
+    .toLowerCase()
+    .split("-")[0];
+  return LOCALE_TRIGGERS[base] ? base : "en";
+}
+function _triggersFor(lang) {
+  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey2(lang)]];
+}
+var QUERY_STOP_RE = /[\n.?!]/;
+var MAX_QUERY_LEN = 40;
+var GHOST_VOCABULARY_BY_LANG = {
+  en: [
+    "automation",
+    "automations",
+    "trigger",
+    "triggers",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "scene",
+    "scenes",
+    "script",
+    "scripts",
+    "device",
+    "devices",
+    "entity",
+    "entities",
+    "schedule",
+    "weekday",
+    "weekdays",
+    "weekend",
+    "weekends",
+    "midnight",
+    "morning",
+    "afternoon",
+    "evening",
+    "sunrise",
+    "sunset",
+    "minutes",
+    "hours",
+    "seconds",
+    "temperature",
+    "brightness",
+    "thermostat",
+    "lights",
+    "lighting",
+    "bedroom",
+    "bathroom",
+    "kitchen",
+    "living",
+    "garage",
+    "office",
+    "hallway",
+    "basement",
+    "downstairs",
+    "upstairs",
+    "outside",
+    "create",
+    "suggest",
+    "notify",
+    "notification",
+    "between",
+    "before",
+    "after",
+    "during",
+    "while",
+    "everyone",
+    "nobody",
+  ],
+  fr: [
+    "automatisation",
+    "automatisations",
+    "d\xE9clencheur",
+    "d\xE9clencheurs",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "appareil",
+    "appareils",
+    "entit\xE9",
+    "entit\xE9s",
+    "planification",
+    "semaine",
+    "week-end",
+    "minuit",
+    "matin",
+    "apr\xE8s-midi",
+    "soir",
+    "lever",
+    "coucher",
+    "minutes",
+    "heures",
+    "secondes",
+    "temp\xE9rature",
+    "luminosit\xE9",
+    "thermostat",
+    "lumi\xE8re",
+    "lumi\xE8res",
+    "\xE9clairage",
+    "chambre",
+    "salle de bains",
+    "cuisine",
+    "salon",
+    "garage",
+    "bureau",
+    "couloir",
+    "sous-sol",
+    "\xE9tage",
+    "rez-de-chauss\xE9e",
+    "ext\xE9rieur",
+    "cr\xE9er",
+    "sugg\xE9rer",
+    "notifier",
+    "notification",
+    "entre",
+    "avant",
+    "apr\xE8s",
+    "pendant",
+    "tout le monde",
+    "personne",
+  ],
+  de: [
+    "Automatisierung",
+    "Automatisierungen",
+    "Ausl\xF6ser",
+    "Bedingung",
+    "Bedingungen",
+    "Aktion",
+    "Aktionen",
+    "Szene",
+    "Szenen",
+    "Skript",
+    "Skripte",
+    "Ger\xE4t",
+    "Ger\xE4te",
+    "Entit\xE4t",
+    "Entit\xE4ten",
+    "Zeitplan",
+    "Wochentag",
+    "Wochenende",
+    "Mitternacht",
+    "Morgen",
+    "Nachmittag",
+    "Abend",
+    "Sonnenaufgang",
+    "Sonnenuntergang",
+    "Minuten",
+    "Stunden",
+    "Sekunden",
+    "Temperatur",
+    "Helligkeit",
+    "Thermostat",
+    "Licht",
+    "Lichter",
+    "Beleuchtung",
+    "Schlafzimmer",
+    "Badezimmer",
+    "K\xFCche",
+    "Wohnzimmer",
+    "Garage",
+    "B\xFCro",
+    "Flur",
+    "Keller",
+    "drau\xDFen",
+    "erstelle",
+    "vorschlagen",
+    "benachrichtigen",
+    "Benachrichtigung",
+    "zwischen",
+    "vor",
+    "nach",
+    "w\xE4hrend",
+    "jeder",
+    "niemand",
+  ],
+  es: [
+    "automatizaci\xF3n",
+    "automatizaciones",
+    "disparador",
+    "disparadores",
+    "condici\xF3n",
+    "condiciones",
+    "acci\xF3n",
+    "acciones",
+    "escena",
+    "escenas",
+    "script",
+    "scripts",
+    "dispositivo",
+    "dispositivos",
+    "entidad",
+    "entidades",
+    "programaci\xF3n",
+    "semana",
+    "fin de semana",
+    "medianoche",
+    "ma\xF1ana",
+    "tarde",
+    "noche",
+    "amanecer",
+    "atardecer",
+    "minutos",
+    "horas",
+    "segundos",
+    "temperatura",
+    "brillo",
+    "termostato",
+    "luz",
+    "luces",
+    "iluminaci\xF3n",
+    "dormitorio",
+    "ba\xF1o",
+    "cocina",
+    "sal\xF3n",
+    "garaje",
+    "oficina",
+    "pasillo",
+    "s\xF3tano",
+    "exterior",
+    "crear",
+    "sugerir",
+    "notificar",
+    "notificaci\xF3n",
+    "entre",
+    "antes",
+    "despu\xE9s",
+    "durante",
+    "mientras",
+    "todos",
+    "nadie",
+  ],
+  it: [
+    "automazione",
+    "automazioni",
+    "trigger",
+    "condizione",
+    "condizioni",
+    "azione",
+    "azioni",
+    "scena",
+    "scene",
+    "script",
+    "dispositivo",
+    "dispositivi",
+    "entit\xE0",
+    "pianificazione",
+    "settimana",
+    "fine settimana",
+    "mezzanotte",
+    "mattina",
+    "pomeriggio",
+    "sera",
+    "alba",
+    "tramonto",
+    "minuti",
+    "ore",
+    "secondi",
+    "temperatura",
+    "luminosit\xE0",
+    "termostato",
+    "luce",
+    "luci",
+    "illuminazione",
+    "camera",
+    "bagno",
+    "cucina",
+    "soggiorno",
+    "garage",
+    "ufficio",
+    "corridoio",
+    "cantina",
+    "esterno",
+    "crea",
+    "suggerisci",
+    "notifica",
+    "tra",
+    "prima",
+    "dopo",
+    "durante",
+    "mentre",
+    "tutti",
+    "nessuno",
+  ],
+  nl: [
+    "automatisering",
+    "automatiseringen",
+    "trigger",
+    "triggers",
+    "voorwaarde",
+    "voorwaarden",
+    "actie",
+    "acties",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "apparaat",
+    "apparaten",
+    "entiteit",
+    "entiteiten",
+    "planning",
+    "weekdag",
+    "weekend",
+    "middernacht",
+    "ochtend",
+    "middag",
+    "avond",
+    "zonsopgang",
+    "zonsondergang",
+    "minuten",
+    "uren",
+    "seconden",
+    "temperatuur",
+    "helderheid",
+    "thermostaat",
+    "licht",
+    "lichten",
+    "verlichting",
+    "slaapkamer",
+    "badkamer",
+    "keuken",
+    "woonkamer",
+    "garage",
+    "kantoor",
+    "gang",
+    "kelder",
+    "buiten",
+    "maak",
+    "suggereer",
+    "meld",
+    "melding",
+    "tussen",
+    "voor",
+    "na",
+    "tijdens",
+    "terwijl",
+    "iedereen",
+    "niemand",
+  ],
+  hu: [
+    "automatizmus",
+    "automatizmusok",
+    "trigger",
+    "triggerek",
+    "felt\xE9tel",
+    "felt\xE9telek",
+    "m\u0171velet",
+    "m\u0171veletek",
+    "jelenet",
+    "jelenetek",
+    "szkript",
+    "szkriptek",
+    "eszk\xF6z",
+    "eszk\xF6z\xF6k",
+    "entit\xE1s",
+    "entit\xE1sok",
+    "\xFCtemez\xE9s",
+    "h\xE9tk\xF6znap",
+    "h\xE9tv\xE9ge",
+    "\xE9jf\xE9l",
+    "reggel",
+    "d\xE9lut\xE1n",
+    "este",
+    "napkelte",
+    "napnyugta",
+    "percek",
+    "\xF3r\xE1k",
+    "m\xE1sodpercek",
+    "h\u0151m\xE9rs\xE9klet",
+    "f\xE9nyer\u0151",
+    "termoszt\xE1t",
+    "f\xE9ny",
+    "f\xE9nyek",
+    "vil\xE1g\xEDt\xE1s",
+    "h\xE1l\xF3szoba",
+    "f\xFCrd\u0151szoba",
+    "konyha",
+    "nappali",
+    "gar\xE1zs",
+    "iroda",
+    "folyos\xF3",
+    "pince",
+    "kint",
+    "l\xE9trehoz",
+    "javasol",
+    "\xE9rtes\xEDt",
+    "\xE9rtes\xEDt\xE9s",
+    "k\xF6z\xF6tt",
+    "el\u0151tt",
+    "ut\xE1n",
+    "alatt",
+    "k\xF6zben",
+    "mindenki",
+    "senki",
+  ],
+};
+var _ghostSorted = {};
+function _ghostVocabFor(lang) {
+  const key = GHOST_VOCABULARY_BY_LANG[_langKey2(lang)]
+    ? _langKey2(lang)
+    : "en";
+  if (!_ghostSorted[key]) {
+    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
+      (a3, b3) => a3.length - b3.length,
+    );
+  }
+  return _ghostSorted[key];
+}
+var GHOST_MIN_PREFIX = 3;
+var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
+function _partialWordAt(text, caret) {
+  if (caret <= 0) return null;
+  let i7 = caret;
+  while (i7 > 0 && _WORD_CHAR_RE.test(text[i7 - 1])) i7--;
+  const word = text.slice(i7, caret);
+  if (!word) return null;
+  return { word, start: i7 };
+}
+function findGhostSuggestion(text, caret, lang) {
+  if (typeof text !== "string") return null;
+  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
+  const part = _partialWordAt(text, caret);
+  if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
+  const lower = part.word.toLowerCase();
+  for (const w2 of _ghostVocabFor(lang)) {
+    const wLower = w2.toLowerCase();
+    if (wLower === lower) return null;
+    if (wLower.startsWith(lower)) {
+      return {
+        suffix: w2.slice(part.word.length),
+        word: w2,
+        start: part.start,
+      };
+    }
+  }
+  return null;
+}
+var ARTICLE_WORDS_BY_LANG = {
+  en: ["the", "my", "a", "an"],
+  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
+  de: [
+    "die",
+    "der",
+    "das",
+    "den",
+    "dem",
+    "mein",
+    "meine",
+    "meinen",
+    "meiner",
+    "meinem",
+    "ein",
+    "eine",
+    "einen",
+  ],
+  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
+  it: [
+    "il",
+    "la",
+    "lo",
+    "i",
+    "le",
+    "gli",
+    "mio",
+    "mia",
+    "miei",
+    "mie",
+    "un",
+    "una",
+    "uno",
+  ],
+  nl: ["de", "het", "een", "mijn"],
+  hu: ["a", "az", "egy"],
+};
+function _articleWordsFor(lang) {
+  const key = ARTICLE_WORDS_BY_LANG[_langKey2(lang)] ? _langKey2(lang) : "en";
+  return new Set(ARTICLE_WORDS_BY_LANG[key]);
+}
+var _INTRA_WORD_RE = /['’-]/;
+function _isNameChar(text, i7) {
+  if (i7 < 0 || i7 >= text.length) return false;
+  if (_WORD_CHAR_RE.test(text[i7])) return true;
+  if (!_INTRA_WORD_RE.test(text[i7])) return false;
+  return (
+    i7 > 0 &&
+    i7 + 1 < text.length &&
+    _WORD_CHAR_RE.test(text[i7 - 1]) &&
+    _WORD_CHAR_RE.test(text[i7 + 1])
+  );
+}
+function _completionSpan(text, caret, labels) {
+  let start = -1;
+  let end = caret;
+  for (const label of labels || []) {
+    if (!label) continue;
+    for (const [from, to] of _labelSpans(text, label)) {
+      if (caret <= from || caret >= to) continue;
+      if (to < end) continue;
+      if (to === end && start >= 0 && from >= start) continue;
+      start = from;
+      end = to;
+    }
+  }
+  if (end > caret) return { start, end };
+  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
+    return { start: -1, end };
+  }
+  while (_isNameChar(text, end)) end += 1;
+  return { start: -1, end };
+}
+function detectTrigger(text, caret, lang, labels) {
+  if (typeof text !== "string" || caret == null || caret < 0) return null;
+  const before = text.slice(0, caret);
+  const completion = _completionSpan(text, caret, labels);
+  const triggers = _triggersFor(lang);
+  const articleWords = _articleWordsFor(lang);
+  let queryStart = caret;
+  while (queryStart > 0) {
+    const ch = before[queryStart - 1];
+    if (QUERY_STOP_RE.test(ch)) break;
+    queryStart -= 1;
+    if (caret - queryStart > MAX_QUERY_LEN) break;
+  }
+  let best = null;
+  for (let qs = queryStart; qs <= caret; qs++) {
+    const prefix = before.slice(0, qs);
+    for (const trig of triggers) {
+      if (trig.pattern.test(prefix)) {
+        best = {
+          kind: trig.kind,
+          query: before.slice(qs, caret),
+          start: qs,
+          end: completion.end,
+          domains: trig.domains || null,
+          includeAreas: !!trig.includeAreas,
+          includeSensors: !!trig.includeSensors,
+        };
+        break;
+      }
+    }
+  }
+  if (!best) return null;
+  if (!best.query.trim() && !best.domains) return null;
+  if (articleWords.has(best.query.trim().toLowerCase())) return null;
+  if (completion.start >= 0 && completion.start < best.start) {
+    best.start = completion.start;
+  }
+  return best;
+}
+function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
+  const items = [];
+  if (!hass?.states) return items;
+  const areaById = {};
+  if (areas && typeof areas === "object") {
+    for (const [id, a3] of Object.entries(areas)) {
+      areaById[id] = a3?.name || a3?.area_id || id;
+    }
+  }
+  const fullEntReg = entities || {};
+  const displayEntReg = hass.entities || {};
+  for (const [entityId, state] of Object.entries(hass.states)) {
+    const domain = entityId.split(".")[0];
+    const friendly = state?.attributes?.friendly_name;
+    if (!friendly) continue;
+    const entry = fullEntReg[entityId] || displayEntReg[entityId];
+    let areaId = entry?.area_id || null;
+    if (!areaId && entry?.device_id && devices) {
+      areaId = devices[entry.device_id]?.area_id || null;
+    }
+    const areaName = areaId ? areaById[areaId] || null : null;
+    if (SENSOR_DOMAINS.has(domain)) {
+      if (entry?.entity_category) continue;
+      if (entry?.hidden_by || entry?.hidden) continue;
+      items.push({
+        kind: "sensor",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon:
+          state?.attributes?.icon ||
+          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
+          DOMAIN_ICONS2[domain],
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (DEVICE_DOMAINS.has(domain)) {
+      items.push({
+        kind: "device",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS2[domain] || "mdi:devices",
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "scene") {
+      items.push({
+        kind: "scene",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS2.scene,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "automation") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS2.automation,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "script") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS2.script,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    }
+  }
+  for (const [areaId, name] of Object.entries(areaById)) {
+    items.push({
+      kind: "area",
+      entity_id: null,
+      area_id: areaId,
+      label: name,
+      area: null,
+      icon: DOMAIN_ICONS2.area,
+      _lowerLabel: name.toLowerCase(),
+    });
+  }
+  return dedupeDeviceItems(items);
+}
+var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
+function normLabel(s4) {
+  return s4.toLowerCase().replace(/\s+/g, " ").trim();
+}
+function baseLabel(normalized) {
+  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
+}
+function isParenPrefix(shorter, longer) {
+  if (shorter === longer) return true;
+  if (!longer.startsWith(shorter)) return false;
+  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
+}
+function labelsForked(labels) {
+  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
+  for (let i7 = 0; i7 + 1 < sorted.length; i7++) {
+    if (!isParenPrefix(sorted[i7], sorted[i7 + 1])) return true;
+  }
+  return false;
+}
+function dedupeDeviceItems(items) {
+  const devices = items.filter((i7) => i7.kind === "device");
+  const domainsByDevice = /* @__PURE__ */ new Map();
+  for (const it of devices) {
+    if (!it.device_id) continue;
+    if (!domainsByDevice.has(it.device_id)) {
+      domainsByDevice.set(it.device_id, /* @__PURE__ */ new Set());
+    }
+    domainsByDevice.get(it.device_id).add(it.domain);
+  }
+  const kept = /* @__PURE__ */ new Set();
+  const seenIdentity = /* @__PURE__ */ new Set();
+  for (const it of devices) {
+    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
+    if (
+      parent &&
+      it.device_id &&
+      domainsByDevice.get(it.device_id)?.has(parent)
+    ) {
+      continue;
+    }
+    const disambig = it.device_id || it.entity_id;
+    const identity = `${disambig}\0${it._lowerLabel}\0${it.area_id || ""}\0${it.domain}`;
+    if (seenIdentity.has(identity)) continue;
+    seenIdentity.add(identity);
+    kept.add(it);
+  }
+  const sameDeviceAreaTagged = /* @__PURE__ */ new Set();
+  for (const it of kept) {
+    if (it.area_id && it.device_id) {
+      sameDeviceAreaTagged.add(
+        `${it.device_id}\0${it._lowerLabel}\0${it.domain}`,
+      );
+    }
+  }
+  for (const it of [...kept]) {
+    if (it.area_id || !it.device_id) continue;
+    const key = `${it.device_id}\0${it._lowerLabel}\0${it.domain}`;
+    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
+  }
+  const buckets = /* @__PURE__ */ new Map();
+  for (const it of kept) {
+    const key = `${baseLabel(normLabel(it.label))}\0${it.domain}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(it);
+  }
+  for (const rows of buckets.values()) {
+    const labels = new Set(rows.map((r4) => normLabel(r4.label)));
+    if (labels.size < 2) continue;
+    if (!rows.some((r4) => r4.area_id)) continue;
+    if (labelsForked(labels)) continue;
+    for (const it of rows) {
+      if (!it.area_id && it.device_id) kept.delete(it);
+    }
+  }
+  return items.filter((i7) => i7.kind !== "device" || kept.has(i7));
+}
+var SCORE_WORD_EXACT = 1500;
+var SCORE_LABEL_PREFIX = 1e3;
+var SCORE_WORD_PREFIX = 500;
+var SCORE_SUBSTRING = 100;
+var SCORE_SUBSEQUENCE = 10;
+var KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
+function _scoreItem(item, lowerQuery) {
+  const label = item._lowerLabel;
+  if (!label) return 0;
+  const words = label.split(/\s+/);
+  for (const w2 of words) {
+    if (w2 === lowerQuery) return SCORE_WORD_EXACT;
+  }
+  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
+  for (const w2 of words) {
+    if (w2.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
+  }
+  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
+  let qi = 0;
+  for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
+    if (label[i7] === lowerQuery[qi]) qi += 1;
+  }
+  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
+  return 0;
+}
+function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
+  if (!items?.length || !domains?.length) return [];
+  const domainSet = new Set(domains);
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (!domainSet.has(it.domain)) continue;
+    out.push(it);
+  }
+  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
+  return out.slice(0, max);
+}
+function findExactMatches(items, kind, query, domains = null) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    if (it._lowerLabel === lowerQuery) out.push(it);
+  }
+  return out;
+}
+function rankSuggestions(
+  items,
+  kind,
+  query,
+  max = AUTOCOMPLETE_MAX_RESULTS,
+  domains = null,
+) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
+  const scored = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    const score = _scoreItem(it, lowerQuery);
+    if (score >= minScore) scored.push({ item: it, score });
+  }
+  scored.sort((a3, b3) => {
+    if (b3.score !== a3.score) return b3.score - a3.score;
+    if (a3.item.label.length !== b3.item.label.length) {
+      return a3.item.label.length - b3.item.label.length;
+    }
+    return a3.item.label.localeCompare(b3.item.label);
+  });
+  return scored.slice(0, max).map((s4) => s4.item);
+}
+function applySelection(text, trigger, item) {
+  const before = text.slice(0, trigger.start);
+  const after = text.slice(trigger.end);
+  const insert = item.label;
+  const needsSpace = !after.startsWith(" ");
+  const inserted = needsSpace ? insert + " " : insert;
+  const newText = before + inserted + after;
+  const newCaret = trigger.start + inserted.length;
+  return {
+    text: newText,
+    caret: newCaret,
+    range: [trigger.start, trigger.start + insert.length],
+  };
+}
+function buildEntityMarker(selections) {
+  if (!selections?.length) return "";
+  const seenEntities = /* @__PURE__ */ new Set();
+  const seenAreas = /* @__PURE__ */ new Set();
+  const entityIds = [];
+  const areaNames = [];
+  for (const sel of selections) {
+    if (sel.entity_id) {
+      if (seenEntities.has(sel.entity_id)) continue;
+      seenEntities.add(sel.entity_id);
+      entityIds.push(sel.entity_id);
+    } else if (sel.kind === "area" && sel.area_id) {
+      if (seenAreas.has(sel.area_id)) continue;
+      seenAreas.add(sel.area_id);
+      areaNames.push(sel.label);
+    }
+  }
+  const parts = [];
+  if (entityIds.length === 1) {
+    parts.push(`[[entity:${entityIds[0]}]]`);
+  } else if (entityIds.length > 1) {
+    parts.push(`[[entities:${entityIds.join(",")}]]`);
+  }
+  if (areaNames.length) {
+    parts.push(`[[areas:${areaNames.join(",")}]]`);
+  }
+  return parts.length ? "\n\n" + parts.join(" ") : "";
+}
+function stripEntityMarkers(text) {
+  if (typeof text !== "string" || !text) return text;
+  return text
+    .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
+    .trimEnd();
+}
+function _escapeRegex(s4) {
+  return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function _labelSpans(text, label) {
+  const startsWord = _WORD_CHAR_RE.test(label[0]);
+  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
+  const re = new RegExp(_escapeRegex(label), "gi"); // nosemgrep
+  const spans = [];
+  for (let m3 = re.exec(text); m3; m3 = re.exec(text)) {
+    const start = m3.index;
+    const end = start + m3[0].length;
+    const before = start > 0 ? text[start - 1] : "";
+    const after = end < text.length ? text[end] : "";
+    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
+    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
+    spans.push([start, end]);
+  }
+  return spans;
+}
+function pruneStaleSelections(text, selections, ignoreRange) {
+  if (!selections?.length) return selections;
+  const [skipFrom, skipTo] = ignoreRange || [];
+  const skipping =
+    typeof skipFrom === "number" &&
+    typeof skipTo === "number" &&
+    skipTo > skipFrom;
+  return selections.filter((s4) => {
+    if (!s4.label) return false;
+    const spans = _labelSpans(text, s4.label);
+    if (!skipping) return spans.length > 0;
+    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
+  });
+}
+
+// src/panel/chat-attachments.js
+var MAX_CHAT_ATTACHMENTS = 4;
+var MAX_B64_PER_IMAGE = 2 * 1024 * 1024;
+var MAX_B64_TOTAL = 3 * 1024 * 1024;
+var MAX_EDGE_PX = 1568;
+var JPEG_QUALITY = 0.85;
+var KEEP_ORIGINAL_MAX_BYTES = 300 * 1024;
+var ACCEPTED_MIME = /* @__PURE__ */ new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+function supportsImageAttachments(host) {
+  return !!host._config?.supports_vision;
+}
+function _b64Length(attachment) {
+  return Math.max(
+    0,
+    attachment.dataUrl.length - attachment.dataUrl.indexOf(",") - 1,
+  );
+}
+function _readAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+function _loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("decode failed"));
+    img.src = dataUrl;
+  });
+}
+async function _processImageFile(file) {
+  const originalDataUrl = await _readAsDataUrl(file);
+  const img = await _loadImage(originalDataUrl);
+  const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
+  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const fitsAsIs =
+    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
+  if (file.type === "image/gif" && fitsAsIs) {
+    return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
+  }
+  const lossless = file.type === "image/png" || file.type === "image/gif";
+  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d");
+  if (outMime === "image/jpeg") {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return {
+    name: file.name,
+    mimeType: outMime,
+    dataUrl:
+      outMime === "image/png"
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+  };
+}
+async function addImageAttachments(host, files) {
+  const images = Array.from(files || []).filter((f3) =>
+    ACCEPTED_MIME.has(f3.type),
+  );
+  if (!images.length) return;
+  if (!supportsImageAttachments(host)) {
+    host._attachmentNotice = host._t(
+      "chat_attachment_unsupported",
+      "Your current AI model can't analyze images.",
+    );
+    return;
+  }
+  const reserved = host._attachmentSlotsReserved || 0;
+  const room =
+    MAX_CHAT_ATTACHMENTS - (host._chatAttachments || []).length - reserved;
+  if (room <= 0) {
+    host._attachmentNotice = host._t(
+      "chat_attachment_limit",
+      "You can attach up to 4 images per message.",
+    );
+    return;
+  }
+  const accepted = images.slice(0, room);
+  const results = [];
+  host._attachmentsBusy = (host._attachmentsBusy || 0) + 1;
+  host._attachmentSlotsReserved = reserved + accepted.length;
+  let totalB64 = (host._chatAttachments || []).reduce(
+    (sum, a3) => sum + _b64Length(a3),
+    0,
+  );
+  try {
+    for (const file of accepted) {
+      try {
+        const processed = await _processImageFile(file);
+        const size = _b64Length(processed);
+        if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
+          host._attachmentNotice = host._t(
+            "chat_attachment_too_large",
+            "That image is too large to send.",
+          );
+          continue;
+        }
+        totalB64 += size;
+        results.push(processed);
+      } catch (_2) {
+        host._attachmentNotice = host._t(
+          "chat_attachment_read_error",
+          "Couldn't read that image.",
+        );
+      }
+    }
+  } finally {
+    host._attachmentsBusy = Math.max(0, (host._attachmentsBusy || 1) - 1);
+    host._attachmentSlotsReserved = Math.max(
+      0,
+      (host._attachmentSlotsReserved || accepted.length) - accepted.length,
+    );
+  }
+  if (!results.length) return;
+  host._chatAttachments = [...(host._chatAttachments || []), ...results].slice(
+    0,
+    MAX_CHAT_ATTACHMENTS,
+  );
+  host._attachmentNotice =
+    images.length > room
+      ? host._t(
+          "chat_attachment_limit",
+          "You can attach up to 4 images per message.",
+        )
+      : "";
+}
+function removeChatAttachment(host, idx) {
+  host._chatAttachments = (host._chatAttachments || []).filter(
+    (_2, i7) => i7 !== idx,
+  );
+  host._attachmentNotice = "";
+}
+function attachmentsForSend(host) {
+  return (host._chatAttachments || [])
+    .map((a3) => {
+      const comma = a3.dataUrl.indexOf(",");
+      if (comma < 0) return null;
+      return { mime_type: a3.mimeType, data: a3.dataUrl.slice(comma + 1) };
+    })
+    .filter(Boolean);
+}
+function createGlobalDropGuard(host) {
+  const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
+  let depth = 0;
+  const setDropActive = (value) => {
+    if (host._chatDropActive !== value) host._chatDropActive = value;
+  };
+  const onDragEnter = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth += 1;
+    if (host._activeTab === "chat" && supportsImageAttachments(host)) {
+      setDropActive(true);
+    }
+  };
+  const onDragLeave = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth = Math.max(0, depth - 1);
+    if (depth === 0) setDropActive(false);
+  };
+  const onDragOver = (e6) => {
+    if (isFileDrag(e6)) e6.preventDefault();
+  };
+  const onDrop = (e6) => {
+    depth = 0;
+    setDropActive(false);
+    if (!isFileDrag(e6) || e6.defaultPrevented) return;
+    e6.preventDefault();
+    if (host._activeTab === "chat" && e6.dataTransfer.files?.length) {
+      addImageAttachments(host, e6.dataTransfer.files);
+    }
+  };
+  window.addEventListener("dragenter", onDragEnter);
+  window.addEventListener("dragleave", onDragLeave);
+  window.addEventListener("dragover", onDragOver);
+  window.addEventListener("drop", onDrop);
+  return () => {
+    window.removeEventListener("dragenter", onDragEnter);
+    window.removeEventListener("dragleave", onDragLeave);
+    window.removeEventListener("dragover", onDragOver);
+    window.removeEventListener("drop", onDrop);
+  };
+}
+function renderDropOverlay(host) {
+  if (!host._chatDropActive) return b2``;
+  return b2`
+    <div class="chat-drop-overlay">
+      <div class="chat-drop-overlay-inner">
+        <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+        <span
+          >${host._t("chat_attachment_drop_here", "Drop images to attach")}</span
+        >
+      </div>
+    </div>
+  `;
+}
+function renderAttachmentStrip(host) {
+  const attachments = host._chatAttachments || [];
+  if (!attachments.length && !host._attachmentNotice) return b2``;
+  return b2`
+    <div class="composer-attachments">
+      ${attachments.map(
+        (a3, idx) => b2`
+          <span class="composer-attachment">
+            <img src=${a3.dataUrl} alt=${a3.name || "image"} />
+            <button
+              type="button"
+              class="composer-attachment-remove"
+              title=${host._t("chat_attachment_remove", "Remove image")}
+              @click=${() => removeChatAttachment(host, idx)}
+            >
+              ×
+            </button>
+          </span>
+        `,
+      )}
+      ${
+        host._attachmentNotice
+          ? b2`<span class="composer-attachment-notice"
+              >${host._attachmentNotice}</span
+            >`
+          : b2``
+      }
+    </div>
+  `;
+}
+
+// src/panel/render-chat.js
+var AUTOMATION_LABEL_KEYS = [
+  ["chat_automation_label_building", "Building automation..."],
+  ["chat_automation_label_triggers", "Drafting triggers..."],
+  ["chat_automation_label_conditions", "Wiring conditions..."],
+  ["chat_automation_label_actions", "Composing actions..."],
+  ["chat_automation_label_almost", "Almost ready..."],
+];
+var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
+var AUTOCOMPLETE_KIND_LABEL_KEYS = {
+  device: ["chat_autocomplete_kind_devices", "Devices"],
+  sensor: ["chat_autocomplete_kind_sensors", "Sensors"],
+  area: ["chat_autocomplete_kind_areas", "Areas"],
+  scene: ["chat_autocomplete_kind_scenes", "Scenes"],
+  automation: ["chat_autocomplete_kind_automations", "Automations"],
+};
+function _formatReplyMs(ms) {
+  if (ms < 1e3) return `${ms} ms`;
+  const seconds = ms / 1e3;
+  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
+}
+function _formatToolArgs(args) {
+  if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
+  const parts = [];
+  for (const [k2, v2] of Object.entries(args)) {
+    let val;
+    if (v2 === null || v2 === void 0) {
+      val = "null";
+    } else if (typeof v2 === "string") {
+      val =
+        v2.length > 60
+          ? JSON.stringify(v2.slice(0, 60) + "\u2026")
+          : JSON.stringify(v2);
+    } else if (typeof v2 === "object") {
+      const json = JSON.stringify(v2);
+      val = json.length > 60 ? json.slice(0, 60) + "\u2026" : json;
+    } else {
+      val = String(v2);
+    }
+    parts.push(`${k2}=${val}`);
+  }
+  return parts.join(", ");
+}
+function renderToolCalls(host, toolCalls) {
+  return b2`
+    <details
+      class="dev-tool-calls"
+      style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
+    >
+      <summary
+        style="cursor:pointer;padding:6px 10px;color:var(--secondary-text-color);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;"
+      >
+        <ha-icon
+          icon="mdi:wrench-outline"
+          style="--mdc-icon-size:14px;"
+        ></ha-icon>
+        <span
+          >${host._t("chat_tools_used", "Tools used")}
+          (${toolCalls.length})</span
+        >
+      </summary>
+      <div
+        style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
+      >
+        ${toolCalls.map(
+          (tc, i7) => b2`
+            <div
+              style="padding:2px 0;${i7 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+            >
+              <span style="color:var(--primary-text-color);font-weight:600;"
+                >${tc.tool}</span
+              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
+            </div>
+          `,
+        )}
+      </div>
+    </details>
+  `;
+}
+function _welcomeSuggestions(host) {
+  return [
+    {
+      label: host._t(
+        "chat_welcome_suggestion_lights_label",
+        "Turn off all lights at midnight",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_lights_value",
+        "Create an automation that turns off all lights at midnight",
+      ),
+      icon: "mdi:lightbulb-off-outline",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_devices_label",
+        "What devices do I have?",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_devices_value",
+        "What devices do I have and which ones are currently on?",
+      ),
+      icon: "mdi:devices",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_suggest_label",
+        "Suggest automations for my home",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_suggest_value",
+        "Suggest useful automations based on my devices and usage patterns",
+      ),
+      icon: "mdi:auto-fix",
+    },
+  ];
+}
+function renderAutomationSuggestButton(host) {
+  const busy = !!host._suggestingAutomation;
+  return b2`
+    <button
+      class="welcome-suggest-btn"
+      ?disabled=${busy || host._loading || host._streaming}
+      @click=${() => host._suggestAutomationIdea()}
+    >
+      ${
+        busy
+          ? b2`<span class="spinner green"></span>`
+          : b2`<ha-icon
+              icon="mdi:auto-fix"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>`
+      }
+      <span
+        >${busy ? host._t("chat_suggest_thinking", "Thinking\u2026") : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
+      >
+    </button>
+  `;
+}
+function renderChat(host) {
+  const isEmpty = host._messages.length === 0;
+  if (isEmpty) {
+    return b2`
+      <div class="chat-pane">
+        ${renderDropOverlay(host)}
+        <div class="chat-welcome-center" id="chat-messages">
+          ${i6(
+            host._welcomeKey || 0,
+            b2`
+              <div class="welcome-center-content">
+                <img
+                  src="/api/selora_ai/logo.png"
+                  alt="Selora AI"
+                  style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
+                />
+                <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
+                  ${
+                    host._newAutomationMode
+                      ? b2`${host._t("new_automation_title_prefix", "New")}
+                          <span class="gold-text"
+                            >${host._t("new_automation_gold", "Automation")}</span
+                          >`
+                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
+                          <span class="gold-text">Selora AI</span>`
+                  }
+                </div>
+                <div
+                  style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
+                >
+                  ${
+                    host._newAutomationMode
+                      ? host._t(
+                          "new_automation_subtitle",
+                          "Describe what you want to automate \u2014 mention the devices, times, or conditions involved.",
+                        )
+                      : host._t(
+                          "welcome_subtitle",
+                          "Your intelligent home automation architect",
+                        )
+                  }
+                </div>
+
+                ${
+                  host._llmNeedsSetup
+                    ? b2`
+                        <div
+                          style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
+                          @click=${() => host._goToSettings()}
+                        >
+                          <ha-icon
+                            icon="mdi:rocket-launch-outline"
+                            style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
+                          ></ha-icon>
+                          <div
+                            style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                          >
+                            ${host._t("get_started", "Get started")}
+                          </div>
+                          <div
+                            style="font-size:13px;opacity:0.6;margin-bottom:16px;"
+                          >
+                            ${host._t(
+                              "get_started_body",
+                              "Configure your LLM provider in the Settings tab to start chatting with your home.",
+                            )}
+                          </div>
+                          <span
+                            style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
+                          >
+                            ${host._t("open_settings", "Open Settings")}
+                            <ha-icon
+                              icon="mdi:arrow-right"
+                              style="--mdc-icon-size:16px;"
+                            ></ha-icon>
+                          </span>
+                        </div>
+                      `
+                    : b2`
+                        <div class="welcome-composer-area">
+                          <selora-particles
+                            class="welcome-composer-particles"
+                            .count=${260}
+                            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
+                            .maxOpacity=${host._isDark ? 0.55 : 0.5}
+                            .speed=${host._streaming || host._loading ? 2.2 : 1}
+                          ></selora-particles>
+                          ${_renderComposer(host, { welcome: true })}
+                        </div>
+
+                        ${
+                          host._newAutomationMode
+                            ? renderAutomationSuggestButton(host)
+                            : b2`
+                                <details class="welcome-quickstart">
+                                  <summary class="welcome-quickstart-summary">
+                                    <span
+                                      >${host._t(
+                                        "quick_start",
+                                        "Quick start",
+                                      )}</span
+                                    >
+                                    <ha-icon
+                                      icon="mdi:chevron-down"
+                                      class="welcome-quickstart-chevron"
+                                    ></ha-icon>
+                                  </summary>
+                                  ${renderQuickActions(
+                                    host,
+                                    _welcomeSuggestions(host),
+                                  )}
+                                </details>
+                              `
+                        }
+                      `
+                }
+              </div>
+            `,
+          )}
+        </div>
+      </div>
+    `;
+  }
+  const lastMsg = host._messages[host._messages.length - 1];
+  const lastQuickActions =
+    lastMsg &&
+    lastMsg.role !== "user" &&
+    lastMsg.quick_actions &&
+    lastMsg.quick_actions.length && // Approval cards render their Allow/Deny row INLINE inside the
+    // bubble so the user sees the buttons next to the proposal
+    // they're approving. Without this guard the sticky composer row
+    // below would render the same four buttons again — 8 buttons
+    // on screen with no obvious link back to the card.
+    !lastMsg.command_approval
+      ? lastMsg
+      : null;
+  return b2`
+    <div class="chat-pane">
+      ${renderDropOverlay(host)}
+      <div
+        class="chat-messages"
+        id="chat-messages"
+        @scroll=${host._onChatScroll}
+      >
+        ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
+        ${host._deviceDetail ? renderDeviceDetail(host) : ""}
+        ${
+          host._loading
+            ? b2`
+                <div class="typing-bubble">
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                </div>
+              `
+            : ""
+        }
+      </div>
+
+      <div class="chat-input-wrapper">
+        ${
+          host._chatScrolledAway && host._messages.length > 0
+            ? b2`
+                <button
+                  class="chat-jump-bottom"
+                  @click=${() => host._scrollChatToBottom()}
+                  title=${host._t("chat_jump_to_latest", "Go to latest message")}
+                  aria-label=${host._t(
+                    "chat_jump_to_latest",
+                    "Go to latest message",
+                  )}
+                >
+                  <ha-icon icon="mdi:chevron-down"></ha-icon>
+                </button>
+              `
+            : ""
+        }
+        ${
+          lastQuickActions
+            ? b2`
+                <div class="chat-quick-actions">
+                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
+                    used: !!lastQuickActions._qa_used,
+                  })}
+                </div>
+              `
+            : ""
+        }
+        ${renderRefineSuggestions(host)} ${_renderComposer(host)}
+      </div>
+    </div>
+  `;
+}
+function _autoResize(textarea) {
+  textarea.style.height = "auto";
+  textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+}
+var _ENCODED_BLOB_RE = /^[A-Za-z0-9\-_.!~*'()%+]+$/;
+function _maybeDecodePercentEncoded(text) {
+  if (typeof text !== "string" || !text) return null;
+  if (!_ENCODED_BLOB_RE.test(text)) return null;
+  if (!/%0A/i.test(text)) return null;
+  try {
+    const decoded = decodeURIComponent(text.replace(/\+/g, " "));
+    if (decoded !== text && /\s/.test(decoded)) return decoded;
+  } catch (_2) {}
+  return null;
+}
+function _handlePaste(host, e6) {
+  const clip2 = e6.clipboardData;
+  if (!clip2) return;
+  const imageFiles = Array.from(clip2.files || []).filter((f3) =>
+    f3.type.startsWith("image/"),
+  );
+  if (imageFiles.length) {
+    e6.preventDefault();
+    addImageAttachments(host, imageFiles);
+    return;
+  }
+  const decoded = _maybeDecodePercentEncoded(clip2.getData("text"));
+  if (decoded === null) return;
+  e6.preventDefault();
+  const ta = e6.target;
+  const start = ta.selectionStart ?? ta.value.length;
+  const end = ta.selectionEnd ?? ta.value.length;
+  const next = ta.value.slice(0, start) + decoded + ta.value.slice(end);
+  ta.value = next;
+  const caret = start + decoded.length;
+  ta.setSelectionRange(caret, caret);
+  host._input = next;
+  host._autocompleteSelections = pruneStaleSelections(
+    next,
+    host._autocompleteSelections || [],
+  );
+  _autoResize(ta);
+  _updateAutocomplete(host, ta);
+  _updateGhost(host, ta);
+}
+var _MIRROR_COPY_PROPS = [
+  "boxSizing",
+  "width",
+  "height",
+  "overflowX",
+  "overflowY",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "borderStyle",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "fontStyle",
+  "fontVariant",
+  "fontWeight",
+  "fontStretch",
+  "fontSize",
+  "fontSizeAdjust",
+  "lineHeight",
+  "fontFamily",
+  "textAlign",
+  "textTransform",
+  "textIndent",
+  "textDecoration",
+  "letterSpacing",
+  "wordSpacing",
+  "tabSize",
+  "MozTabSize",
+  "whiteSpace",
+  "wordWrap",
+];
+function _measureCaretInTextarea(textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const mirror = document.createElement("div");
+  const style = mirror.style;
+  const cs = window.getComputedStyle(textarea);
+  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
+  style.position = "absolute";
+  style.visibility = "hidden";
+  style.top = "0";
+  style.left = "0";
+  style.whiteSpace = "pre-wrap";
+  style.wordWrap = "break-word";
+  const textNode = document.createTextNode(value.slice(0, caret) || " ");
+  mirror.appendChild(textNode);
+  textarea.parentNode.insertBefore(mirror, textarea);
+  const range = document.createRange();
+  const len = caret === 0 ? 0 : (value.slice(0, caret) || " ").length;
+  range.setStart(textNode, len);
+  range.setEnd(textNode, len);
+  const rect = range.getBoundingClientRect();
+  const taRect = textarea.getBoundingClientRect();
+  const left = rect.left - taRect.left - textarea.scrollLeft;
+  const top = rect.top - taRect.top - textarea.scrollTop;
+  const height =
+    rect.height || parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+  mirror.remove();
+  return { left, top, height };
+}
+function _updateAutocomplete(host, textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const trigger = detectTrigger(
+    value,
+    caret,
+    host.hass?.language,
+    (host._autocompleteSelections || []).map((s4) => s4.label),
+  );
+  const closeIfOpen = () => {
+    if (host._autocomplete?.open) {
+      host._autocomplete = {
+        open: false,
+        items: [],
+        activeIndex: 0,
+        trigger: null,
+        anchor: null,
+      };
+    }
+  };
+  if (!trigger) {
+    closeIfOpen();
+    return;
+  }
+  const qLen = trigger.query.trim().length;
+  if (!host._autocompleteRegCache && host._ensureFullRegistries) {
+    host._autocompleteRegCache = "pending";
+    host._ensureFullRegistries().then((reg) => {
+      host._autocompleteRegCache = reg || null;
+    });
+  }
+  const cache =
+    host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
+      ? host._autocompleteRegCache
+      : null;
+  const index = buildSuggestionIndex(
+    host.hass,
+    cache?.areas || host.hass?.areas,
+    cache?.devices || null,
+    cache?.entities || null,
+  );
+  let items;
+  if (trigger.domains) {
+    items = qLen
+      ? rankSuggestions(
+          index,
+          trigger.kind,
+          trigger.query,
+          void 0,
+          trigger.domains,
+        )
+      : listByDomain(index, trigger.kind, trigger.domains);
+  } else if (qLen >= AUTOCOMPLETE_MIN_CHARS) {
+    items = rankSuggestions(index, trigger.kind, trigger.query);
+  } else {
+    items = findExactMatches(index, trigger.kind, trigger.query);
+  }
+  if (trigger.includeSensors) {
+    const sensorMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "sensor",
+            trigger.query,
+            3,
+            // same cap as areas: the primary kind stays on top
+          )
+        : findExactMatches(index, "sensor", trigger.query);
+    if (sensorMatches.length) items = [...items, ...sensorMatches];
+  }
+  if (trigger.includeAreas) {
+    const areaMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "area",
+            trigger.query,
+            3,
+            // cap area rows so devices still dominate the list
+          )
+        : findExactMatches(index, "area", trigger.query);
+    if (areaMatches.length) items = [...items, ...areaMatches];
+  }
+  if (!items.length) {
+    closeIfOpen();
+    return;
+  }
+  const savedCaret = textarea.selectionStart;
+  textarea.selectionStart = textarea.selectionEnd = trigger.start;
+  const anchor = _measureCaretInTextarea(textarea);
+  textarea.selectionStart = textarea.selectionEnd = savedCaret;
+  host._autocomplete = { open: true, items, activeIndex: 0, trigger, anchor };
+}
+function _updateGhost(host, textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const hit = findGhostSuggestion(value, caret, host.hass?.language);
+  if (!hit) {
+    host._ghost = null;
+    return;
+  }
+  const anchor = _measureCaretInTextarea(textarea);
+  host._ghost = { suffix: hit.suffix, anchor };
+}
+function _acceptGhost(host, textarea) {
+  if (!host._ghost?.suffix) return false;
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const newText =
+    value.slice(0, caret) + host._ghost.suffix + value.slice(caret);
+  const newCaret = caret + host._ghost.suffix.length;
+  host._input = newText;
+  host._ghost = null;
+  requestAnimationFrame(() => {
+    textarea.value = newText;
+    textarea.setSelectionRange(newCaret, newCaret);
+    textarea.focus();
+    _autoResize(textarea);
+  });
+  return true;
+}
+function _renderGhostOverlay(host) {
+  const suffix = host._ghost?.suffix;
+  if (!suffix) return "";
+  const anchor = host._ghost.anchor;
+  if (!anchor) return "";
+  return b2`
+    <span
+      class="composer-ghost-suffix"
+      aria-hidden="true"
+      style="left:${anchor.left}px;top:${anchor.top}px;line-height:${anchor.height}px;"
+      >${suffix}</span
+    >
+  `;
+}
+function _scrollActiveItemIntoView(host) {
+  const scroll = () => {
+    const list = host.shadowRoot?.querySelector(".composer-autocomplete");
+    const active = list?.querySelector(".composer-autocomplete-item.active");
+    if (!list || !active) return;
+    const listRect = list.getBoundingClientRect();
+    const itemRect = active.getBoundingClientRect();
+    if (itemRect.bottom > listRect.bottom) {
+      list.scrollTop += itemRect.bottom - listRect.bottom;
+    } else if (itemRect.top < listRect.top) {
+      list.scrollTop -= listRect.top - itemRect.top;
+    }
+  };
+  if (host.updateComplete?.then) {
+    host.updateComplete.then(scroll);
+  } else {
+    requestAnimationFrame(scroll);
+  }
+}
+function _closeAutocomplete(host) {
+  if (host._autocomplete?.open) {
+    host._autocomplete = {
+      open: false,
+      items: [],
+      activeIndex: 0,
+      trigger: null,
+    };
+  }
+}
+function _selectAutocompleteItem(host, textarea, item) {
+  const trigger = host._autocomplete?.trigger;
+  if (!trigger || !item) return;
+  const { text, caret, range } = applySelection(textarea.value, trigger, item);
+  host._input = text;
+  host._autocompleteSelections = [
+    ...pruneStaleSelections(text, host._autocompleteSelections || [], range),
+    item,
+  ];
+  _closeAutocomplete(host);
+  requestAnimationFrame(() => {
+    textarea.value = text;
+    textarea.setSelectionRange(caret, caret);
+    textarea.focus();
+    _autoResize(textarea);
+  });
+}
+function _removeSelection(host, idx) {
+  const sels = host._autocompleteSelections || [];
+  host._autocompleteSelections = sels.filter((_2, i7) => i7 !== idx);
+}
+function _renderAutocomplete(host) {
+  const ac = host._autocomplete;
+  if (!ac?.open || !ac.items?.length) return "";
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  const wrap = host.shadowRoot?.querySelector(".composer-wrap");
+  let positionStyle = "";
+  if (wrap) {
+    const wrapRect = wrap.getBoundingClientRect();
+    const maxH = Math.max(0, Math.min(320, wrapRect.top - 12));
+    let horizontal = "";
+    if (ac.anchor && ta) {
+      const taRect = ta.getBoundingClientRect();
+      let leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
+      const maxLeft = Math.max(0, wrapRect.width - 320);
+      leftPx = Math.min(Math.max(0, leftPx), maxLeft);
+      horizontal = `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`;
+    }
+    positionStyle = `bottom:calc(100% + 6px);top:auto;max-height:${maxH}px;${horizontal}`;
+  }
+  const groupOrder = [];
+  const groups = /* @__PURE__ */ new Map();
+  for (const item of ac.items) {
+    if (!groups.has(item.kind)) {
+      groups.set(item.kind, []);
+      groupOrder.push(item.kind);
+    }
+    groups.get(item.kind).push(item);
+  }
+  return b2`
+    <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
+      ${groupOrder.map((kind) => {
+        const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
+        const header = headerKV
+          ? host._t(headerKV[0], headerKV[1])
+          : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
+        return b2`
+          <div class="composer-autocomplete-header">
+            <span>${header}</span>
+          </div>
+          ${groups.get(kind).map((item) => _renderAutocompleteRow(host, ac, item))}
+        `;
+      })}
+      <div class="composer-autocomplete-hint">
+        ${host._t(
+          "chat_autocomplete_hint",
+          "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
+        )}
+      </div>
+    </div>
+  `;
+}
+function _renderAutocompleteRow(host, ac, item) {
+  const idx = ac.items.indexOf(item);
+  return b2`<button
+    type="button"
+    class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
+    role="option"
+    @mousedown=${(e6) => {
+      e6.preventDefault();
+      const ta = host.shadowRoot?.querySelector(".composer-textarea");
+      if (ta) _selectAutocompleteItem(host, ta, item);
+    }}
+    @mouseenter=${() => {
+      host._autocomplete = { ...ac, activeIndex: idx };
+    }}
+  >
+    <ha-icon icon=${item.icon}></ha-icon>
+    <span class="composer-autocomplete-label">${item.label}</span>
+    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
+  </button>`;
+}
+function _renderSelectionChips(host) {
+  const sels = host._autocompleteSelections || [];
+  if (!sels.length) return "";
+  return b2`
+    <div class="composer-selections-inline">
+      ${sels.map(
+        (s4, idx) => b2`
+          <span
+            class="composer-selection-chip"
+            title=${s4.entity_id || s4.area_id || ""}
+          >
+            <ha-icon icon=${s4.icon}></ha-icon>
+            ${s4.label}
+            <button
+              type="button"
+              title=${host._t("chat_selection_remove", "Remove")}
+              @click=${() => _removeSelection(host, idx)}
+            >
+              ×
+            </button>
+          </span>
+        `,
+      )}
+    </div>
+  `;
+}
+function _renderComposer(host, opts = {}) {
+  const welcome = !!opts.welcome;
+  const onDragOver = (e6) => {
+    if (!e6.dataTransfer?.types?.includes?.("Files")) return;
+    e6.preventDefault();
+    if (!supportsImageAttachments(host)) return;
+    if (!host._composerDragOver) host._composerDragOver = true;
+  };
+  const onDragLeave = (e6) => {
+    if (e6.currentTarget.contains(e6.relatedTarget)) return;
+    if (host._composerDragOver) host._composerDragOver = false;
+  };
+  const onDrop = (e6) => {
+    if (!e6.dataTransfer?.files?.length) return;
+    e6.preventDefault();
+    host._composerDragOver = false;
+    addImageAttachments(host, e6.dataTransfer.files);
+  };
+  const refining = !welcome && !!activeRefinement(host._messages);
+  return b2`
+    <div class="composer-wrap">
+      ${_renderAutocomplete(host)}
+      <div
+        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${host._composerDragOver ? " composer-dragover" : ""}"
+        @dragover=${onDragOver}
+        @dragleave=${onDragLeave}
+        @drop=${onDrop}
+      >
+        <div class="composer-input-col">
+          ${renderAttachmentStrip(host)}
+          <div class="composer-textarea-wrap">
+            ${_renderGhostOverlay(host)}
+            <textarea
+              class="composer-textarea"
+              .value=${host._input}
+              @paste=${(e6) => _handlePaste(host, e6)}
+              @input=${(e6) => {
+                host._input = e6.target.value;
+                host._autocompleteSelections = pruneStaleSelections(
+                  e6.target.value,
+                  host._autocompleteSelections || [],
+                );
+                _autoResize(e6.target);
+                _updateAutocomplete(host, e6.target);
+                _updateGhost(host, e6.target);
+              }}
+              @click=${(e6) => {
+                _updateAutocomplete(host, e6.target);
+                _updateGhost(host, e6.target);
+              }}
+              @keyup=${(e6) => {
+                if (
+                  e6.key === "ArrowLeft" ||
+                  e6.key === "ArrowRight" ||
+                  e6.key === "Home" ||
+                  e6.key === "End"
+                ) {
+                  _updateAutocomplete(host, e6.target);
+                  _updateGhost(host, e6.target);
+                }
+              }}
+              @blur=${() => {
+                setTimeout(() => _closeAutocomplete(host), 150);
+              }}
+              @keydown=${(e6) => {
+                const ac = host._autocomplete;
+                if (ac?.open && ac.items.length) {
+                  if (e6.key === "ArrowDown") {
+                    e6.preventDefault();
+                    host._autocomplete = {
+                      ...ac,
+                      activeIndex: (ac.activeIndex + 1) % ac.items.length,
+                    };
+                    _scrollActiveItemIntoView(host);
+                    return;
+                  }
+                  if (e6.key === "ArrowUp") {
+                    e6.preventDefault();
+                    host._autocomplete = {
+                      ...ac,
+                      activeIndex:
+                        (ac.activeIndex - 1 + ac.items.length) %
+                        ac.items.length,
+                    };
+                    _scrollActiveItemIntoView(host);
+                    return;
+                  }
+                  if (e6.key === "Enter" || e6.key === "Tab") {
+                    e6.preventDefault();
+                    _selectAutocompleteItem(
+                      host,
+                      e6.target,
+                      ac.items[ac.activeIndex],
+                    );
+                    return;
+                  }
+                  if (e6.key === "Escape") {
+                    e6.preventDefault();
+                    _closeAutocomplete(host);
+                    return;
+                  }
+                }
+                if (e6.key === "Enter" && !e6.shiftKey) {
+                  e6.preventDefault();
+                  host._sendMessage();
+                  return;
+                }
+                if (e6.key === "Tab" && !e6.shiftKey) {
+                  e6.preventDefault();
+                  _acceptGhost(host, e6.target);
+                  return;
+                }
+                if (
+                  e6.key === "ArrowRight" &&
+                  host._ghost?.suffix &&
+                  e6.target.selectionStart === e6.target.value.length &&
+                  e6.target.selectionEnd === e6.target.value.length
+                ) {
+                  e6.preventDefault();
+                  _acceptGhost(host, e6.target);
+                  return;
+                }
+                const userHistory = host._messages
+                  .filter((m3) => m3.role === "user" && m3.content)
+                  .map((m3) => stripEntityMarkers(m3.content));
+                const ta = e6.target;
+                const atStart =
+                  ta.selectionStart === 0 && ta.selectionEnd === 0;
+                const atEnd =
+                  ta.selectionStart === ta.value.length &&
+                  ta.selectionEnd === ta.value.length;
+                const inHistory =
+                  host._historyIndex !== null && host._historyIndex !== void 0;
+                const applyHistory = (idx) => {
+                  const recalled = userHistory[userHistory.length - 1 - idx];
+                  host._historyIndex = idx;
+                  host._input = recalled;
+                  requestAnimationFrame(() => {
+                    ta.value = recalled;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                };
+                if (
+                  e6.key === "ArrowUp" &&
+                  userHistory.length > 0 &&
+                  (inHistory || atStart || !host._input)
+                ) {
+                  if (!inHistory) {
+                    host._historyDraft = host._input || "";
+                    e6.preventDefault();
+                    applyHistory(0);
+                    return;
+                  }
+                  if (host._historyIndex < userHistory.length - 1) {
+                    e6.preventDefault();
+                    applyHistory(host._historyIndex + 1);
+                    return;
+                  }
+                  e6.preventDefault();
+                  return;
+                }
+                if (e6.key === "ArrowDown" && inHistory && atEnd) {
+                  e6.preventDefault();
+                  if (host._historyIndex > 0) {
+                    applyHistory(host._historyIndex - 1);
+                    return;
+                  }
+                  const draft = host._historyDraft || "";
+                  host._historyIndex = null;
+                  host._historyDraft = "";
+                  host._input = draft;
+                  requestAnimationFrame(() => {
+                    ta.value = draft;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                  return;
+                }
+              }}
+              placeholder=${
+                host._newAutomationMode
+                  ? host._t(
+                      "composer_placeholder_automation",
+                      "Describe the automation you\u2019d like to create\u2026",
+                    )
+                  : refining
+                    ? host._t(
+                        "composer_placeholder_refine",
+                        "Describe the changes\u2026",
+                      )
+                    : host._t(
+                        "composer_placeholder_ask",
+                        "Ask Selora AI anything\u2026",
+                      )
+              }
+              ?disabled=${host._loading || host._streaming}
+              rows="1"
+            ></textarea>
+          </div>
+          ${_renderSelectionChips(host)}
+        </div>
+        ${
+          supportsImageAttachments(host)
+            ? b2`<input
+                  type="file"
+                  id="selora-chat-image-input"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                  hidden
+                  @change=${(e6) => {
+                    addImageAttachments(host, e6.target.files);
+                    e6.target.value = "";
+                  }}
+                /><button
+                  class="composer-attach"
+                  title=${host._t(
+                    "chat_attach_image",
+                    "Attach an image \u2014 drag & drop or paste works too",
+                  )}
+                  ?disabled=${host._loading || host._streaming}
+                  @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
+                >
+                  <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+                </button>`
+            : b2``
+        }
+        ${
+          host._streaming
+            ? b2`<button
+                class="composer-send"
+                @click=${() => host._stopStreaming()}
+                title=${host._t("chat_stop_generating", "Stop generating")}
+              >
+                <ha-icon icon="mdi:stop"></ha-icon>
+              </button>`
+            : b2`<button
+                class="composer-send"
+                @click=${() => host._sendMessage()}
+                ?disabled=${host._loading || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
+                title=${host._t("chat_send", "Send")}
+              >
+                <ha-icon icon="mdi:arrow-up"></ha-icon>
+              </button>`
+        }
+      </div>
+    </div>
+  `;
+}
+function renderMessage(host, msg, idx) {
+  const isUser = msg.role === "user";
+  if (msg._streaming && !msg.content) return b2``;
+  let displayContent = msg.content;
+  let showAutomationSpinner = false;
+  let showSceneSpinner = false;
+  if (!isUser) {
+    const { text, isPartialBlock, partialBlockType } = stripAutomationBlock(
+      msg.content,
+    );
+    displayContent = text;
+    showAutomationSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "automation";
+    showSceneSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "scene";
+    if (msg.command_approval) {
+      displayContent = displayContent
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*\.?$/i, "")
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*/gi, " ")
+        .trim();
+    }
+  }
+  const isLoadedAutomation = msg.automation_status === "refining";
+  const isRefineSource = isLoadedAutomation || msg.scene_status === "refining";
+  const isProposal =
+    !isUser && !isRefineSource && !!(msg.automation || msg.scene);
+  const isActionCard = !!(msg.automation || msg.scene || msg.command_approval);
+  const copyText = isProposal
+    ? (msg.automation ? msg.automation_yaml : msg.scene_yaml || "").trim()
+    : isActionCard
+      ? ""
+      : (displayContent || "").trim();
+  const canCopy = !isUser && !msg._streaming && !!copyText;
+  const canFeedback =
+    !isUser &&
+    !msg._streaming &&
+    !msg.command_approval &&
+    !isRefineSource &&
+    !!displayContent?.trim();
+  const canRetry = !isUser && !!(msg._interrupted && msg._retryWith);
+  const hasProposalActions = !isUser && !!msg.automation;
+  const showQuickActions =
+    !isUser &&
+    !!(msg.quick_actions && msg.quick_actions.length) && // Only approval cards render their action row inline in the bubble, so
+    // the Allow/Deny buttons sit next to the proposal they resolve. Standard
+    // quick_actions render exclusively in the sticky composer row (see
+    // lastQuickActions in renderChat); rendering them here too would show the
+    // same chips twice (in-card AND above the input).
+    msg.command_approval && // Hide approval action cards once the proposal has been resolved (or
+    // is mid-resolve). Re-clicking after the status flipped would 404
+    // server-side, and the approved/denied chip already says what happened.
+    msg.approval_status !== "approved" &&
+    msg.approval_status !== "denied" &&
+    msg.approval_status !== "resolving";
+  const sceneIsSingleTile =
+    !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
+  return b2`
+    ${isLoadedAutomation ? renderRefineHeading(host, idx) : ""}
+    <div class="message-row">
+      ${
+        isUser
+          ? b2`
+              <div class="bubble user">
+                ${
+                  msg.attachments?.length
+                    ? b2`
+                        <div class="bubble-attachments">
+                          ${msg.attachments.map(
+                            (a3) => b2`
+                              <img
+                                src=${a3.dataUrl}
+                                alt=${a3.name || "image"}
+                                loading="lazy"
+                              />
+                            `,
+                          )}
+                        </div>
+                      `
+                    : b2``
+                }
+                <span
+                  class="msg-content"
+                  .textContent=${stripEntityMarkers(msg.content)}
+                ></span>
+              </div>
+            `
+          : b2`
+              <div
+                class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}${msg.scene ? " assistant-wrap--scene" : ""}${sceneIsSingleTile ? " assistant-wrap--scene-single" : ""}"
+              >
+                ${renderAgentSteps(host, msg.steps)}
+                <div
+                  class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
+                  style="max-width:100%;align-self:auto;"
+                >
+                  ${
+                    // A loaded automation's stored prose ("Describe the
+                    // changes") is context for the model; the composer's
+                    // placeholder and chip say it to the user.
+                    msg.command_approval || isLoadedAutomation
+                      ? ""
+                      : b2`<span
+                          class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
+                          @click=${host._onCodeCopyClick}
+                          .innerHTML=${renderMarkdown(displayContent)}
+                        ></span>`
+                  }
+                  ${
+                    showAutomationSpinner
+                      ? (() => {
+                          const startedAt = msg._sentAt || Date.now();
+                          const labelIdx =
+                            Math.floor(
+                              (Date.now() - startedAt) /
+                                AUTOMATION_LABEL_INTERVAL_MS,
+                            ) % AUTOMATION_LABEL_KEYS.length;
+                          const [labelKey, labelFallback] =
+                            AUTOMATION_LABEL_KEYS[labelIdx];
+                          return b2`
+                            <div
+                              style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                            >
+                              <div
+                                class="typing-dot"
+                                style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                              ></div>
+                              <span
+                                style="font-size:13px;font-weight:500;color:#fbbf24;"
+                                >${host._t(labelKey, labelFallback)}</span
+                              >
+                            </div>
+                          `;
+                        })()
+                      : ""
+                  }
+                  ${
+                    showSceneSpinner
+                      ? b2`
+                          <div
+                            style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                          >
+                            <div
+                              class="typing-dot"
+                              style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                            ></div>
+                            <span
+                              style="font-size:13px;font-weight:500;color:#fbbf24;"
+                              >${host._t(
+                                "chat_building_scene",
+                                "Building scene...",
+                              )}</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${
+                    msg.config_issue
+                      ? b2`
+                          <div style="margin-top: 10px;">
+                            <mwc-button
+                              dense
+                              raised
+                              @click=${host._goToSettings}
+                              >${host._t(
+                                "chat_go_to_settings",
+                                "Go to Settings",
+                              )}</mwc-button
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
+                  ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
+                  ${
+                    msg.command_approval
+                      ? renderApprovalCard(
+                          host,
+                          msg,
+                          msg.command_approval,
+                          msg.approval_status,
+                        )
+                      : ""
+                  }
+                  ${
+                    msg._interrupted
+                      ? b2`
+                          <div class="stream-interrupt">
+                            <ha-icon
+                              icon="mdi:alert-circle-outline"
+                              style="--mdc-icon-size:16px;flex-shrink:0;"
+                            ></ha-icon>
+                            <span class="stream-interrupt-text"
+                              >${
+                                msg._interruptReason ||
+                                host._t(
+                                  "chat_response_cut_short",
+                                  "Response was cut short.",
+                                )
+                              }</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
+                </div>
+                ${
+                  msg._streaming ||
+                  canCopy ||
+                  canFeedback ||
+                  canRetry ||
+                  showQuickActions ||
+                  hasProposalActions
+                    ? b2`<div
+                        class="bubble-meta"
+                        style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
+                      >
+                        ${
+                          msg._streaming
+                            ? b2`<span style="opacity:0.5;">
+                                Selora AI ·
+                                ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
+                              </span>`
+                            : canCopy || canFeedback || canRetry
+                              ? b2`<div class="msg-actions">
+                                  ${
+                                    canCopy
+                                      ? b2`<button
+                                          class="msg-action-btn"
+                                          title=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          aria-label=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          @click=${(e6) =>
+                                            host._copyMessageText(
+                                              msg,
+                                              e6.currentTarget,
+                                              copyText,
+                                            )}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:content-copy"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    canFeedback &&
+                                    host._config?.telemetry_enabled
+                                      ? b2`<button
+                                            class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
+                                            title=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            @click=${(e6) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "positive",
+                                                e6.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${msg._feedback === "positive" ? "mdi:thumb-up" : "mdi:thumb-up-outline"}
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>
+                                          <button
+                                            class="msg-action-btn${msg._feedback === "negative" ? " active" : ""}"
+                                            title=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            @click=${(e6) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "negative",
+                                                e6.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${msg._feedback === "negative" ? "mdi:thumb-down" : "mdi:thumb-down-outline"}
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    msg._interrupted && msg._retryWith
+                                      ? b2`<button
+                                          class="msg-action-btn"
+                                          title=${host._t("chat_retry", "Retry")}
+                                          aria-label=${host._t("chat_retry", "Retry")}
+                                          @click=${() => host._retryMessage(msg._retryWith)}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:refresh"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                </div>`
+                              : ""
+                        }
+                        ${
+                          hasProposalActions || showQuickActions
+                            ? b2`<div class="msg-quick">
+                                ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
+                                ${
+                                  showQuickActions
+                                    ? renderQuickActions(
+                                        host,
+                                        msg.quick_actions,
+                                        {
+                                          used: !!msg._qa_used,
+                                        },
+                                      )
+                                    : ""
+                                }
+                              </div>`
+                            : ""
+                        }
+                      </div>`
+                    : ""
+                }
+              </div>
+            `
+      }
+    </div>
+  `;
+}
+var DOMAIN_ICONS3 = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  climate: "mdi:thermostat",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  vacuum: "mdi:robot-vacuum",
+  sensor: "mdi:eye",
+  binary_sensor: "mdi:motion-sensor",
+  water_heater: "mdi:water-boiler",
+  humidifier: "mdi:air-humidifier",
+  camera: "mdi:cctv",
+  device_tracker: "mdi:map-marker",
+  person: "mdi:account",
+  zone: "mdi:map-marker-radius",
+  sun: "mdi:weather-sunny",
+  weather: "mdi:weather-partly-cloudy",
+  automation: "mdi:robot",
+  scene: "mdi:palette",
+  script: "mdi:script-text",
+  input_boolean: "mdi:toggle-switch-variant",
+  input_number: "mdi:numeric",
+  input_select: "mdi:form-dropdown",
+  input_text: "mdi:form-textbox",
+  input_datetime: "mdi:calendar-clock",
+  input_button: "mdi:gesture-tap-button",
+  timer: "mdi:timer-outline",
+  counter: "mdi:counter",
+  group: "mdi:google-circles-communities",
+  notify: "mdi:bell",
+  mobile_app: "mdi:cellphone",
+  alarm_control_panel: "mdi:shield-home",
+  air_quality: "mdi:air-filter",
+  remote: "mdi:remote",
+};
+function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
+  const readOnly = !!opts.readOnly;
+  host._initYamlEdit(key, originalYaml);
+  const current = readOnly
+    ? originalYaml
+    : (host._editedYaml[key] ?? originalYaml);
+  const isDirty = !readOnly && current !== originalYaml;
+  const saving = !!host._savingYaml[key];
+  return b2`
+    <ha-code-editor
+      mode="yaml"
+      .value=${current}
+      ?read-only=${readOnly}
+      @value-changed=${(e6) => {
+        if (readOnly) return;
+        host._onYamlInput(key, e6.detail.value);
+      }}
+      autocomplete-entities
+      style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
+    ></ha-code-editor>
+    ${
+      isDirty || (onSave && !readOnly)
+        ? b2`
+            <div class="yaml-edit-bar">
+              ${
+                isDirty
+                  ? b2`
+                      <span class="yaml-unsaved">
+                        <ha-icon
+                          icon="mdi:circle-edit-outline"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
+                      </span>
+                    `
+                  : b2`<span style="flex:1;"></span>`
+              }
+              ${
+                onSave
+                  ? b2`
+                      <button
+                        class="btn btn-primary"
+                        ?disabled=${saving || !isDirty}
+                        @click=${() => onSave(key)}
+                      >
+                        <ha-icon
+                          icon="mdi:content-save"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
+                      </button>
+                    `
+                  : ""
+              }
+            </div>
+          `
+        : ""
+    }
+  `;
+}
+
 // src/shared/created-check.js
 function renderCreatedCheck({ animate = false, size = 14 } = {}) {
   return b2`
@@ -33563,7 +34166,6 @@ __export(automation_crud_exports, {
   _initialStateEdited: () => _initialStateEdited,
   _loadLineage: () => _loadLineage,
   _onYamlInput: () => _onYamlInput,
-  _refineAutomation: () => _refineAutomation,
   _saveActiveAutomationYaml: () => _saveActiveAutomationYaml,
 });
 var _INITIAL_STATE_KEY = /(['"]?)initial_state\1[ \t]*:[ \t]*(.*)$/;
@@ -33675,9 +34277,7 @@ function _getRefiningAutomationId(msgIndex = null) {
   for (let i7 = start; i7 >= 0; i7--) {
     const m3 = this._messages[i7] || {};
     const status = m3.automation_status;
-    if (status === "pending" || status === "saved" || status === "declined") {
-      return null;
-    }
+    if (REFINEMENT_TERMINATORS.has(status)) return null;
     if (status === "refining") {
       if (m3.automation_id) return m3.automation_id;
       if (m3.automation?.id) return m3.automation.id;
@@ -33847,28 +34447,6 @@ async function _declineAutomation(msgIndex) {
   } catch (err) {
     console.error("Failed to decline automation", err);
   }
-}
-async function _refineAutomation(msgIndex, automation, description) {
-  try {
-    const msg = this._messages[msgIndex] || {};
-    const backendIndex = msg.automation_message_index ?? msgIndex;
-    await this.hass.callWS({
-      type: "selora_ai/set_automation_status",
-      session_id: this._activeSessionId,
-      message_index: backendIndex,
-      status: "refining",
-    });
-    const session = await this.hass.callWS({
-      type: "selora_ai/get_session",
-      session_id: this._activeSessionId,
-    });
-    this._messages = session.messages || [];
-  } catch (err) {
-    console.error("Failed to mark automation as refining", err);
-  }
-  const ctx = description ? ` (${description})` : "";
-  this._input = `Refine "${automation.alias}"${ctx}: `;
-  this.shadowRoot.querySelector(".composer-textarea")?.focus();
 }
 async function _createAutomationFromSuggestion(automation) {
   try {
@@ -35418,16 +35996,38 @@ function renderFlowDescription(host, item, ctx) {
 }
 function renderFlowNode(host, item, kind, ctx) {
   const off = item?.enabled === false;
+  const tag = off
+    ? b2`<span class="flow-off-tag"
+        >${host._t("automations_flow_disabled", "disabled")}</span
+      >`
+    : "";
+  const onEdit = ctx?.onEditStep;
+  if (onEdit) {
+    const edit = () => onEdit(describeFlowItem(host.hass, item, ctx));
+    return b2`<div
+      class="flow-node ${kind}-node flow-node--editable ${off ? "flow-node--off" : ""}"
+      role="button"
+      tabindex="0"
+      title=${host._t("refine_edit_step_tooltip", "Change this step")}
+      @click=${edit}
+      @keydown=${(e6) => {
+        if (e6.target !== e6.currentTarget) return;
+        if (e6.key !== "Enter" && e6.key !== " ") return;
+        e6.preventDefault();
+        edit();
+      }}
+    >
+      ${renderFlowDescription(host, item, ctx)}${tag}<ha-icon
+        class="flow-node-edit"
+        icon="mdi:pencil-outline"
+        aria-hidden="true"
+      ></ha-icon>
+    </div>`;
+  }
   return b2`<div
     class="flow-node ${kind}-node ${off ? "flow-node--off" : ""}"
   >
-    ${renderFlowDescription(host, item, ctx)}${
-      off
-        ? b2`<span class="flow-off-tag"
-            >${host._t("automations_flow_disabled", "disabled")}</span
-          >`
-        : ""
-    }
+    ${renderFlowDescription(host, item, ctx)}${tag}
   </div>`;
 }
 function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
@@ -35691,7 +36291,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     </div>
   `;
 }
-function renderAutomationFlowchart(host, auto) {
+function renderAutomationFlowchart(host, auto, opts = {}) {
   if (!auto) return b2``;
   const triggers = (() => {
     const t5 = auto.triggers ?? auto.trigger ?? [];
@@ -35706,7 +36306,7 @@ function renderAutomationFlowchart(host, auto) {
     return Array.isArray(a3) ? a3 : [a3];
   })();
   if (!triggers.length && !actions.length) return b2``;
-  const ctx = { triggers };
+  const ctx = { triggers, onEditStep: opts.onEditStep };
   const shownTriggers = displayTriggers(triggers, conditions, actions);
   return b2`
     <div class="flow-chart">
@@ -35830,6 +36430,10 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
+    const editing = activeRefinement(host._messages)?.index === msgIndex;
+    const flowOpts = editing
+      ? { onEditStep: (step) => prefillComposer(host, stepPrefill(host, step)) }
+      : {};
     return b2`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
@@ -35838,14 +36442,14 @@ function renderProposalCard(host, msg, msgIndex) {
             msg.description || automation.description,
             {
               badge: host._t(
-                "automations_badge_being_refined",
-                "Being Refined",
+                "automations_badge_current_version",
+                "Current version",
               ),
             },
           )}
         </div>
         <div class="automation-subcard-body">
-          ${renderAutomationFlowchart(host, automation)}
+          ${renderAutomationFlowchart(host, automation, flowOpts)}
         </div>
       </div>
     `;
@@ -37893,13 +38497,8 @@ async function _loadAutomationToChat(automationId) {
       this._showSidebar = false;
       this._input = "";
       await this._openSession(sessionId);
-      this._showToast(
-        this._t(
-          "automation_management_loaded_to_chat",
-          "Automation loaded into chat.",
-        ),
-        "success",
-      );
+      await this.updateComplete;
+      this.shadowRoot?.querySelector(".composer-textarea")?.focus();
     }
   } catch (err) {
     console.error("Failed to load automation to chat", err);
@@ -50837,7 +51436,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "2355f0438e19" : "";
+var PANEL_BUILD = true ? "84d1f1def05d" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
