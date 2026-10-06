@@ -1962,6 +1962,50 @@ TOOL_IGNORE_REPAIR = ToolDef(
     large_context_only=True,
 )
 
+TOOL_REMOVE_FROM_HOME = ToolDef(
+    name="remove_from_home",
+    description=(
+        "Remove a device, an entity, an integration or a blueprint for good. The user "
+        "gets a confirmation card naming what goes and what uses it; nothing is "
+        "removed until they confirm. A device's integration has to agree, and an "
+        "entity only goes once its integration no longer provides it — disable one "
+        "still provided with update_entity instead. A blueprint in use is refused."
+    ),
+    params=(
+        ToolParam(
+            name="kind",
+            type="string",
+            description="What to remove.",
+            enum=("device", "entity", "integration", "blueprint"),
+            required=True,
+        ),
+        ToolParam(
+            name="id",
+            type="string",
+            description=(
+                "device_id, entity_id, the integration's entry_id (from check_system), "
+                "or the blueprint's path (from list_blueprints)."
+            ),
+            required=True,
+        ),
+        ToolParam(
+            name="domain",
+            type="string",
+            description="Blueprints only: automation, script or template.",
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short phrase. "
+                "Leave it out when removing IS the request."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_GET_AUTOMATION_TRACES = ToolDef(
     name="get_automation_traces",
     description=(
@@ -2669,6 +2713,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_RELOAD_INTEGRATION,
     TOOL_FIX_REPAIR,
     TOOL_IGNORE_REPAIR,
+    TOOL_REMOVE_FROM_HOME,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -2720,6 +2765,14 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "create_helper",
         "update_helper",
         "delete_helper",
+        # Health and removal: "remove sensor.old", "fix the Hue repair" and
+        # "reload Hue" fall through to these lanes; reload needs check_system's
+        # entry_id.
+        "check_system",
+        "reload_integration",
+        "fix_repair",
+        "ignore_repair",
+        "remove_from_home",
         "delete_floor",
         "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
@@ -2798,6 +2851,14 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "create_helper",
         "update_helper",
         "delete_helper",
+        # Health and removal: "remove sensor.old", "fix the Hue repair" and
+        # "reload Hue" fall through to these lanes; reload needs check_system's
+        # entry_id.
+        "check_system",
+        "reload_integration",
+        "fix_repair",
+        "ignore_repair",
+        "remove_from_home",
         "list_scripts",
         "get_script",
         "set_script",

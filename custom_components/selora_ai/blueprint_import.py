@@ -223,10 +223,42 @@ def _file_exists(folder: Any, path: str) -> bool:
     return target.is_relative_to(root) and target.is_file()
 
 
+def _file_digest(folder: Any, path: str) -> str:
+    """The blueprint file's content hash — its identity on a confirmation card,
+    since a path freed by a delete can be taken by a different file."""
+    return hashlib.sha256((folder / path).read_bytes()).hexdigest()
+
+
+def _unlink_if_digest(folder: Any, path: str, digest: str) -> bool:
+    """Delete the file only if its content still hashes to *digest*."""
+    if not _file_exists(folder, path) or _file_digest(folder, path) != digest:
+        return False
+    (folder / path).unlink()
+    return True
+
+
+async def async_blueprint_fingerprint(hass: HomeAssistant, domain: str, path: str) -> str | None:
+    """The content hash of the blueprint file at *path*, or None if there is none."""
+    store = _domain_blueprints(hass).get(str(domain or "").strip())
+    path = str(path or "").strip()
+    if store is None or not path:
+        return None
+    folder = store.blueprint_folder
+    if not await hass.async_add_executor_job(_file_exists, folder, path):
+        return None
+    return await hass.async_add_executor_job(_file_digest, folder, path)
+
+
 async def async_delete_blueprint(
-    hass: HomeAssistant, domain: str, path: str, *, confirmed: bool = False
+    hass: HomeAssistant,
+    domain: str,
+    path: str,
+    *,
+    confirmed: bool = False,
+    expected_fingerprint: str | None = None,
 ) -> dict[str, Any]:
-    """Delete a blueprint nothing uses, once confirmed."""
+    """Delete a blueprint nothing uses, once confirmed — and, with
+    *expected_fingerprint* (a chat card), only the file the card showed."""
     from homeassistant.components.blueprint.errors import BlueprintInUse  # noqa: PLC0415
 
     domain = str(domain or "").strip()
@@ -253,6 +285,21 @@ async def async_delete_blueprint(
             "path": path,
             "hint": f"This deletes the {shown} blueprint file. {_CONFIRM}.",
         }
+    if expected_fingerprint is not None:
+        # Checked and removed in ONE executor job: with an await between the
+        # hash and the unlink, a file written to the path meanwhile would be
+        # deleted unseen. The store's own removal re-checks "in use" first and
+        # then unlinks; this path asked that just above.
+        try:
+            removed = await hass.async_add_executor_job(
+                _unlink_if_digest, store.blueprint_folder, path, expected_fingerprint
+            )
+        except OSError as exc:
+            return {"error": f"It was not deleted: {sanitize_untrusted_text(str(exc), 200)}"}
+        if not removed:
+            return {"error": f"{shown} has changed since it was shown; ask again."}
+        await store.async_reset_cache()
+        return {"status": "deleted", "domain": domain, "path": path}
     try:
         await store.async_remove_blueprint(path)
     except BlueprintInUse:

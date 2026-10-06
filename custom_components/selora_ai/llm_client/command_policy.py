@@ -2761,6 +2761,7 @@ def _normalize_explicit_approval(
 _DELETE_TOOLS = frozenset(
     {
         "delete_automation",
+        "remove_from_home",
         "delete_scene",
         "delete_group",
         "delete_area",
@@ -2782,7 +2783,22 @@ _DELETE_TOOLS = frozenset(
 # model's prose, and the synthesizer then drops the descriptor — leaving the
 # user an empty reply and no card.
 _DELETE_KINDS = frozenset(
-    {"automation", "scene", "group", "area", "floor", "category", "script", "label", "helper"}
+    {
+        "automation",
+        "scene",
+        "group",
+        "area",
+        "floor",
+        "category",
+        "script",
+        "label",
+        "helper",
+        # remove_from_home (removal_cards.REMOVAL_KINDS)
+        "device",
+        "entity",
+        "integration",
+        "blueprint",
+    }
 )
 
 

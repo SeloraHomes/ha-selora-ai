@@ -5226,6 +5226,13 @@ async def _resolve_delete_approval(
                     target_id,
                     expected_fingerprint=str(descriptor.get("fingerprint") or ""),
                 )
+            elif kind in ("device", "entity", "integration", "blueprint"):
+                # remove_from_home: the descriptor carries the target's identity
+                # (device id, registry entry id, entry_id, file hash); the
+                # removal re-checks it, so what goes is what the card named.
+                from .removal_cards import async_confirm_removal  # noqa: PLC0415
+
+                res = await async_confirm_removal(hass, descriptor)
             else:
                 errors.append(f"{label or kind}: unknown delete kind")
                 continue
