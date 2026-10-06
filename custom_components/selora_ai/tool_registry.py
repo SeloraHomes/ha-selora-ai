@@ -1117,10 +1117,23 @@ TOOL_UPDATE_AREA = ToolDef(
             ),
         ),
         ToolParam(
+            name="temperature_sensor",
+            type="string",
+            description="Temperature sensor shown for the area (a sensor.* entity).",
+        ),
+        ToolParam(
+            name="humidity_sensor",
+            type="string",
+            description="Humidity sensor shown for the area (a sensor.* entity).",
+        ),
+        ToolParam(
             name="clear",
             type="array",
             items_type="string",
-            description=("Settings to remove: 'icon', 'floor' (take the area off its floor)."),
+            description=(
+                "Settings to remove: 'icon', 'floor' (take the area off its floor), "
+                "'temperature_sensor', 'humidity_sensor'."
+            ),
         ),
     ),
     requires_admin=True,
