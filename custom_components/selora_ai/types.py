@@ -58,6 +58,12 @@ class AutomationDict(TypedDict, total=False):
     actions: list[AutomationAction]
     mode: str
     initial_state: bool
+    # Passed through as given; HA validates their contents at reload.
+    variables: dict[str, Any]
+    trigger_variables: dict[str, Any]
+    max: int
+    max_exceeded: str
+    trace: dict[str, Any]
     # Blueprint-based automation: the blueprint supplies triggers and actions,
     # so those keys are absent entirely rather than empty.
     use_blueprint: dict[str, Any]

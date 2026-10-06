@@ -268,16 +268,23 @@ _STATE_KEYS = frozenset({"to", "from", "state"})
 _BOOL_KEYS = frozenset({"initial_state", "enabled", "hide_entity", "continue_on_error"})
 
 
-def _coerce_time_value(value: Any) -> str | None:
+def _coerce_time_value(value: Any) -> Any:
     """Coerce a value to ``HH:MM:SS`` time string.
 
     - Integers/floats in 0..86399 are treated as seconds since midnight.
     - Out-of-range numbers are stringified as a fallback.
     - Strings pass through unchanged.
+    - A list (several times) is coerced item by item; a mapping
+      (``{entity_id, offset}``) passes through — HA takes both, and turning
+      them into text saved a broken automation.
     - ``None`` is returned as ``None`` (caller should remove the key).
     """
     if value is None:
         return None
+    if isinstance(value, list):
+        return [c for c in (_coerce_time_value(v) for v in value) if c is not None]
+    if isinstance(value, dict):
+        return value
     if isinstance(value, str):
         return value
     if isinstance(value, bool):
@@ -302,15 +309,18 @@ def _coerce_duration_value(value: Any) -> Any:
     return value
 
 
-def _coerce_state_string(value: Any) -> str | None:
+def _coerce_state_string(value: Any) -> Any:
     """Coerce a value that HA expects to be a state string.
 
     - Booleans become ``"on"``/``"off"``.
+    - A list (any of several states) is coerced item by item, staying a list.
     - Other non-strings are stringified.
     - ``None`` is returned as ``None`` (caller should remove the key).
     """
     if value is None:
         return None
+    if isinstance(value, list):
+        return [c for c in (_coerce_state_string(v) for v in value) if c is not None]
     if isinstance(value, bool):
         return "on" if value else "off"
     if not isinstance(value, str):
