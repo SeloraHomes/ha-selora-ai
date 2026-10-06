@@ -9,11 +9,9 @@ Reachable in-process, unlike helpers or dashboard entries: ``hass.data["blueprin
 is a ``dict[domain, DomainBlueprints]`` published by the automation and script
 components, which is the same object the websocket API serves from.
 
-Reads only. Importing a blueprint means fetching YAML from a URL and writing it
-to the config directory, and a URL an LLM chose — possibly from a page it was
-asked to summarise — is a different risk class from the registry edits alongside
-this. That belongs behind a confirmation card showing the source, and is left
-out rather than done quietly.
+Reads only. Importing (fetching YAML from a URL and writing it to the config
+directory) and deleting live in ``blueprint_import``, behind a confirmation that
+names the source.
 """
 
 from __future__ import annotations

@@ -35,6 +35,7 @@ from .names import (
     TOOL_DELETE_AREA,
     TOOL_DELETE_ASSIST_PIPELINE,
     TOOL_DELETE_AUTOMATION,
+    TOOL_DELETE_BLUEPRINT,
     TOOL_DELETE_CALENDAR_EVENT,
     TOOL_DELETE_CATEGORY,
     TOOL_DELETE_DASHBOARD,
@@ -79,6 +80,7 @@ from .names import (
     TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
     TOOL_IGNORE_REPAIR,
+    TOOL_IMPORT_BLUEPRINT,
     TOOL_INSERT_DASHBOARD_CARD,
     TOOL_LIST_APPS,
     TOOL_LIST_AREAS,
@@ -2116,6 +2118,54 @@ _TOOL_DEFINITIONS.extend(
                 "properties": {
                     "slug": {"type": "string", "description": "From list_apps."},
                     "lines": {"type": "integer", "minimum": 1, "maximum": 500},
+                },
+            },
+        ),
+    ]
+)
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_IMPORT_BLUEPRINT,
+            description=(
+                "Import a blueprint from a URL — a Home Assistant community forum post, "
+                "GitHub, a gist or the HA website (other hosts are refused). Comes "
+                "back first with requires_confirmation: what the blueprint is, where it "
+                "would be saved, its inputs and a content_hash, saving nothing. Its "
+                "actions run as its author wrote them, so tell the user the source, and "
+                "only once they agree call again with confirmed=true and that "
+                "content_hash. An existing blueprint is never overwritten. Requires "
+                "admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                    "url": {"type": "string"},
+                    "confirmed": _CONFIRMED_PARAM,
+                    "content_hash": {
+                        "type": "string",
+                        "description": "With confirmed=true: the content_hash the first call returned.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_DELETE_BLUEPRINT,
+            description=(
+                "Delete a blueprint (domain and path from list_blueprints). One still "
+                "used by an automation or script is refused, naming what uses it. Comes "
+                "back first with requires_confirmation: tell the user, and only once "
+                "they agree call again with confirmed=true. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["domain", "path"],
+                "properties": {
+                    "domain": {"type": "string", "enum": ["automation", "script", "template"]},
+                    "path": {"type": "string"},
+                    "confirmed": _CONFIRMED_PARAM,
                 },
             },
         ),
