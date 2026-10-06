@@ -151,8 +151,8 @@ panel reports back.
 
 ## Resources (custom card JS)
 
-`dashboard_resources.py` backs `selora_list/add/remove_dashboard_resource` (MCP
-only). A resource is code every user's browser runs with their HA session, so
+`dashboard_resources.py` backs `selora_list/add/update/remove_dashboard_resource`
+(MCP only). A resource is code every user's browser runs with their HA session, so
 **origin decides the gate**: a same-origin path (`/hacsfiles/…`, `/local/…`) is
 added directly; an external `https://` URL needs `confirmed: true` (honouring the
 `approval_required` opt-out, as service calls do); `http:`, `data:`,
@@ -169,6 +169,10 @@ added directly; an external `https://` URL needs `confirmed: true` (honouring th
 - **`/selora_ai_resources/` belongs to recipes** (downloaded, verified, pruned by
   `recipes/resources.py`): listed with `managed_by_recipe`, never added or
   removed here.
+- **Changing one is in place** (`selora_update_dashboard_resource`, keeping the
+  id): remove-then-add leaves every card using it as "Custom element doesn't
+  exist" in between. A new URL passes the add gate — classified, an external one
+  confirmed, recipe paths refused, a duplicate by bare URL refused.
 - **YAML-mode resources are read-only** (`ResourceYAMLCollection`), reported as
   `editable: false` with where to edit them.
 - Read through `_registered_items`, which calls `async_get_info` first — an

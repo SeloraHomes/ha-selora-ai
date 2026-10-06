@@ -1,4 +1,4 @@
-"""List, add and remove Lovelace dashboard resources (the JS custom cards load).
+"""List, add, change and remove Lovelace dashboard resources (the JS custom cards load).
 
 A ``custom:`` card renders only once its JavaScript is registered as a
 resource, so building a dashboard on community cards needs this as much as it
@@ -12,6 +12,10 @@ their Home Assistant session, so where it comes from decides what it takes:
   install turned the approval requirement off;
 * anything else (``http:``, ``data:``, ``javascript:``, a protocol-relative
   ``//host``) is refused.
+
+Changing one (a card's new version at a new path, or a different type) goes
+through the same gate as adding — a new external URL is new code — and keeps
+the resource's id, so there is no window in which the cards using it break.
 
 Resources under ``/selora_ai_resources/`` belong to recipes, which download,
 verify and prune them (``recipes/resources.py``); they are listed but neither
@@ -239,4 +243,104 @@ async def async_remove_resource(hass: HomeAssistant, ref: str) -> dict[str, Any]
         "removed": True,
         **_describe(item),
         "note": "Cards that use it show 'Custom element doesn't exist' until it is re-added.",
+    }
+
+
+async def async_update_resource(
+    hass: HomeAssistant,
+    ref: str,
+    *,
+    url: str | None = None,
+    resource_type: str | None = None,
+    confirmed: bool = False,
+) -> dict[str, Any]:
+    """Point a resource at a new URL and/or type, in place.
+
+    In place rather than remove-then-add: between the two, every card using it
+    renders "Custom element doesn't exist". A new URL passes the gate an added
+    one does; an external one is new third-party code, so it is confirmed.
+    """
+    from homeassistant.exceptions import HomeAssistantError  # noqa: PLC0415
+    import voluptuous as vol  # noqa: PLC0415
+
+    from .command_policy_options import resolve_command_policy_options  # noqa: PLC0415
+
+    ref = str(ref or "").strip()
+    new_url = str(url or "").strip() or None
+    new_type = str(resource_type or "").strip().lower() or None
+    if not ref:
+        return {"error": "Pass the resource's id or URL, from list_dashboard_resources."}
+    if new_url is None and new_type is None:
+        return {"error": "Pass the new url and/or type."}
+    if new_type is not None and new_type not in _RESOURCE_TYPES:
+        return {"error": f"type must be one of {', '.join(_RESOURCE_TYPES)}."}
+    origin = None
+    if new_url is not None:
+        origin, refusal = _classify_url(new_url)
+        if refusal:
+            return {"error": refusal}
+        if _is_recipe_managed(new_url):
+            return {"error": f"{RESOURCE_URL_BASE}/ is managed by installing recipes."}
+
+    resources, error = await _storage_collection(hass)
+    if error:
+        return {"error": error}
+    async with _INSTALL_LOCK:
+        items = await _registered_items(resources)
+        item = next((i for i in items if str(i.get("id")) == ref), None) or next(
+            (i for i in items if _bare(str(i.get("url"))) == _bare(ref)), None
+        )
+        if item is None:
+            return {"error": "No such resource. Call list_dashboard_resources."}
+        if _is_recipe_managed(str(item.get("url"))):
+            return {
+                "error": "That resource belongs to an installed recipe; it changes with the recipe."
+            }
+        changes: dict[str, Any] = {}
+        if new_url is not None and new_url != item.get("url"):
+            clash = next(
+                (
+                    i
+                    for i in items
+                    if i.get("id") != item.get("id") and _bare(str(i.get("url"))) == _bare(new_url)
+                ),
+                None,
+            )
+            if clash is not None:
+                return {
+                    "error": (
+                        f"{sanitize_untrusted_text(new_url, 300)} is already registered (id "
+                        f"{clash.get('id')}). Loading it twice breaks the card."
+                    )
+                }
+            changes["url"] = new_url
+        if new_type is not None and new_type != item.get("type"):
+            changes["res_type"] = new_type
+        if not changes:
+            return {"updated": False, **_describe(item), "note": "Nothing to change."}
+        if (
+            "url" in changes
+            and origin == "external"
+            and not confirmed
+            and resolve_command_policy_options(hass).approval_required
+        ):
+            return {
+                "updated": False,
+                "requires_confirmation": True,
+                "url": sanitize_untrusted_text(new_url or "", 300),
+                "reason": (
+                    "This points the resource at third-party code that every user's "
+                    "browser runs with their Home Assistant session. Ask the user to "
+                    "confirm, then call again with confirmed=true."
+                ),
+            }
+        try:
+            updated = await resources.async_update_item(item["id"], changes)
+        except (vol.Invalid, HomeAssistantError, ValueError) as exc:
+            return {"error": f"Home Assistant refused the change: {exc}"}
+    return {
+        "updated": True,
+        **_describe(updated),
+        "previous_url": sanitize_untrusted_text(str(item.get("url") or ""), 300),
+        "note": "Browsers load resources at page load: reload the dashboard to use it.",
     }

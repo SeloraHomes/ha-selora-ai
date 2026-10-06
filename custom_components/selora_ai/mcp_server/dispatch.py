@@ -74,6 +74,7 @@ from .dashboards import (
     _tool_set_config_yaml,
     _tool_update_dashboard,
     _tool_update_dashboard_card,
+    _tool_update_dashboard_resource,
     _tool_update_dashboard_view,
 )
 from .definitions import _TOOL_DEFINITIONS, _dashboard_write_tools
@@ -234,6 +235,7 @@ from .names import (
     TOOL_UPDATE_AREA,
     TOOL_UPDATE_DASHBOARD,
     TOOL_UPDATE_DASHBOARD_CARD,
+    TOOL_UPDATE_DASHBOARD_RESOURCE,
     TOOL_UPDATE_DASHBOARD_VIEW,
     TOOL_UPDATE_DEVICE,
     TOOL_UPDATE_ENTITY,
@@ -523,6 +525,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_LIST_DASHBOARD_RESOURCES: _tool_list_dashboard_resources,
         TOOL_ADD_DASHBOARD_RESOURCE: _tool_add_dashboard_resource,
         TOOL_REMOVE_DASHBOARD_RESOURCE: _tool_remove_dashboard_resource,
+        TOOL_UPDATE_DASHBOARD_RESOURCE: _tool_update_dashboard_resource,
     }
 
 

@@ -134,6 +134,7 @@ from .names import (
     TOOL_UPDATE_AREA,
     TOOL_UPDATE_DASHBOARD,
     TOOL_UPDATE_DASHBOARD_CARD,
+    TOOL_UPDATE_DASHBOARD_RESOURCE,
     TOOL_UPDATE_DASHBOARD_VIEW,
     TOOL_UPDATE_DEVICE,
     TOOL_UPDATE_ENTITY,
@@ -1349,6 +1350,34 @@ _TOOL_DEFINITIONS.extend(
                     "resource": {
                         "type": "string",
                         "description": "The resource's id or URL, from list_dashboard_resources.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_UPDATE_DASHBOARD_RESOURCE,
+            description=(
+                "Point a dashboard resource at a new URL (a card's new version) and/or "
+                "type, keeping it registered throughout — removing and re-adding breaks "
+                "every card using it in between. A new external https:// URL needs "
+                "confirmed=true, as adding one does. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["resource"],
+                "properties": {
+                    "resource": {
+                        "type": "string",
+                        "description": "The resource's id or current URL.",
+                    },
+                    "url": {"type": "string", "description": "The new URL."},
+                    "type": {"type": "string", "enum": ["module", "js", "css"]},
+                    "confirmed": {
+                        "type": "boolean",
+                        "description": (
+                            "Set ONLY after the user agreed to an external URL that "
+                            "came back with requires_confirmation."
+                        ),
                     },
                 },
             },
