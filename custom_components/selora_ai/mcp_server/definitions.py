@@ -66,6 +66,7 @@ from .names import (
     TOOL_GET_DASHBOARD_CARD,
     TOOL_GET_DEVICE,
     TOOL_GET_DEVICE_TRIGGERS,
+    TOOL_GET_DIAGNOSTICS,
     TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
@@ -75,6 +76,7 @@ from .names import (
     TOOL_GET_RELEASE_NOTES,
     TOOL_GET_SCENE,
     TOOL_GET_SCRIPT,
+    TOOL_GET_SYSTEM_HEALTH,
     TOOL_GROUP_DASHBOARD_CARDS,
     TOOL_HACS_ADD_REPOSITORY,
     TOOL_HACS_INFO,
@@ -2287,6 +2289,46 @@ _TOOL_DEFINITIONS.extend(
                     "domain": {"type": "string", "enum": ["automation", "script", "template"]},
                     "path": {"type": "string"},
                     "confirmed": _CONFIRMED_PARAM,
+                },
+            },
+        ),
+    ]
+)
+
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_GET_SYSTEM_HEALTH,
+            description=(
+                "Home Assistant's system information, as Settings → System → Repairs → "
+                "System information shows it: the core version and install, and each "
+                "integration's health (recorder database, Supervisor, cloud …). For "
+                "'what is wrong' use check_system first. Requires admin access."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        MCPTool(
+            name=TOOL_GET_DIAGNOSTICS,
+            description=(
+                "An integration's diagnostics — what its 'Download diagnostics' gives, "
+                "redacted — for one entry (entry_id from list_integrations) or one of "
+                "its devices. A large dump comes back with its top-level fields and "
+                "their sizes: ask again with `fields`. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["entry_id"],
+                "properties": {
+                    "entry_id": {"type": "string"},
+                    "device_id": {
+                        "type": "string",
+                        "description": "One of the entry's devices, for its own dump.",
+                    },
+                    "fields": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Top-level parts to return.",
+                    },
                 },
             },
         ),

@@ -63,6 +63,7 @@ from .names import (
     TOOL_GET_DASHBOARD_CARD,
     TOOL_GET_DEVICE,
     TOOL_GET_DEVICE_TRIGGERS,
+    TOOL_GET_DIAGNOSTICS,
     TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
@@ -72,6 +73,7 @@ from .names import (
     TOOL_GET_RELEASE_NOTES,
     TOOL_GET_SCENE,
     TOOL_GET_SCRIPT,
+    TOOL_GET_SYSTEM_HEALTH,
     TOOL_GROUP_DASHBOARD_CARDS,
     TOOL_HACS_ADD_REPOSITORY,
     TOOL_HACS_INFO,
@@ -276,6 +278,8 @@ _ADMIN_TOOLS = frozenset(
         # Read-only, but it reads backups and integration titles, which Home
         # Assistant keeps admin-only.
         TOOL_CHECK_SYSTEM,
+        TOOL_GET_SYSTEM_HEALTH,
+        TOOL_GET_DIAGNOSTICS,
         TOOL_FIRE_EVENT,
         TOOL_RESTART_HOME_ASSISTANT,
     }
