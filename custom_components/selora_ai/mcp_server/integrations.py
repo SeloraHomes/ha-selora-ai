@@ -76,6 +76,19 @@ async def _tool_check_system(hass: HomeAssistant, _arguments: dict[str, Any]) ->
     return await async_check_system(hass)
 
 
+async def _tool_fire_event(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """See ``event_bus``."""
+    from ..event_bus import async_fire_event  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_options  # noqa: PLC0415
+
+    return await async_fire_event(
+        hass,
+        str(arguments.get("event_type") or ""),
+        _opt_options(arguments.get("data")),
+        confirmed=_opt_bool(arguments.get("confirmed")) is True,
+    )
+
+
 async def _tool_restart_home_assistant(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:

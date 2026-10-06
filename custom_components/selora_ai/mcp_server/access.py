@@ -49,6 +49,7 @@ from .names import (
     TOOL_EXECUTE_COMMAND,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
+    TOOL_FIRE_EVENT,
     TOOL_FIX_REPAIR,
     TOOL_GET_APP_LOGS,
     TOOL_GET_APP_OPTIONS,
@@ -275,6 +276,7 @@ _ADMIN_TOOLS = frozenset(
         # Read-only, but it reads backups and integration titles, which Home
         # Assistant keeps admin-only.
         TOOL_CHECK_SYSTEM,
+        TOOL_FIRE_EVENT,
         TOOL_RESTART_HOME_ASSISTANT,
     }
 )
