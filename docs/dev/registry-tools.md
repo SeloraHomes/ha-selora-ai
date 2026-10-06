@@ -233,3 +233,21 @@ callable over MCP and gated by risk there.
   cleaner rather than `sanitize_untrusted_text`, which collapses whitespace:
   control characters stripped, blank runs shrunk, length bounded. Admin-gated,
   as HA's `update/release_notes` is.
+
+## Backups (MCP)
+
+`backup_status.py` reads the backup manager as `backup/info` does: backups
+newest first, the last completed / attempted automatic backup, the next run,
+and a `warning` when the last attempt postdates the last success or none has
+completed for a week.
+
+- **Only the part common to every supported core is required.** 2025.1
+  introduced the manager; later cores added its `state` and the schedule's next
+  run, read when present. Sizes come from the per-location status (newer) or
+  the backup itself (older).
+- **No failure warning while `state` is `create_backup`**: HA records the
+  attempt when a backup starts, so a running one looks like a failed one.
+- `automatic` stays `null` when HA cannot tell (imported or older backups);
+  dates are compared as instants, not strings. Admin-gated, as `backup/info` is.
+- Creating is a service (`backup.create_automatic`, or `hassio.backup_full` on
+  a supervised install), already callable over MCP. Restoring is not offered.

@@ -28,6 +28,7 @@ from .automations import (
     _tool_trigger_automation,
     _tool_validate_automation,
 )
+from .backups import _tool_get_backups
 from .calendars import (
     _tool_delete_calendar_event,
     _tool_list_calendar_events,
@@ -140,6 +141,7 @@ from .names import (
     TOOL_FIND_REFERENCES,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
+    TOOL_GET_BACKUPS,
     TOOL_GET_BLUEPRINT,
     TOOL_GET_CAMERA_IMAGE,
     TOOL_GET_CONFIG_YAML,
@@ -473,6 +475,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_REMOVE_ENTITY: _tool_remove_entity,
         TOOL_LIST_UPDATES: _tool_list_updates,
         TOOL_GET_RELEASE_NOTES: _tool_get_release_notes,
+        TOOL_GET_BACKUPS: _tool_get_backups,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,
