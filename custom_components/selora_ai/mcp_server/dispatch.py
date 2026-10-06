@@ -72,6 +72,7 @@ from .dashboards import (
     _tool_remove_dashboard_resource,
     _tool_remove_dashboard_view,
     _tool_set_config_yaml,
+    _tool_set_dashboard_strategy,
     _tool_update_dashboard,
     _tool_update_dashboard_card,
     _tool_update_dashboard_resource,
@@ -226,6 +227,7 @@ from .names import (
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
+    TOOL_SET_DASHBOARD_STRATEGY,
     TOOL_SET_ENERGY_PREFS,
     TOOL_SET_INTEGRATION_ENABLED,
     TOOL_SET_INTEGRATION_OPTIONS,
@@ -526,6 +528,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_ADD_DASHBOARD_RESOURCE: _tool_add_dashboard_resource,
         TOOL_REMOVE_DASHBOARD_RESOURCE: _tool_remove_dashboard_resource,
         TOOL_UPDATE_DASHBOARD_RESOURCE: _tool_update_dashboard_resource,
+        TOOL_SET_DASHBOARD_STRATEGY: _tool_set_dashboard_strategy,
     }
 
 

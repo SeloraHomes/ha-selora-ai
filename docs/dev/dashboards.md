@@ -252,7 +252,25 @@ renders "Unknown type encountered: fan" on the wall. Three checks stand in:
   one-view `Home` on a genuinely blank dashboard). The probe fails **closed**.
 - **A stored `strategy` is not an empty dashboard.** The Map and friends store
   `{"strategy": {...}}` and `async_load` succeeds; saved views would be ignored.
-  `_load_config` refuses, reads included.
+  `_load_config` refuses every view/card write. A READ reports the strategy
+  (`_describe_strategy`: `generated: true` and its config) — refusing it told the
+  caller nothing about a dashboard the user can see.
+- **`selora_set_dashboard_strategy` sets or changes the strategy** (MCP only).
+  - **Types are read from the installed frontend** (`_installed_strategies`
+    scans its bundle for the strategy map, once per process): frontend 20250103
+    (HA 2025.1) has original-states, map, iframe; 20260826 (2026.9) adds areas,
+    home, energy. A fixed list would save a type an older frontend renders as
+    "unknown strategy". Unreadable bundle: the three every supported one has.
+    `custom:<name>` is always accepted.
+  - **A dashboard with views of its own loses them**, so that asks
+    (`requires_confirmation`, `loses` counts) with a `fingerprint` of the
+    document; a confirmed call whose dashboard changed since is asked again.
+  - **On a strategy dashboard only the strategy changes** — views saved beside
+    one are ignored by the frontend but kept.
+  - An empty stored document is the rollback snapshot too; only a dashboard with
+    nothing stored has none.
+  - The reverse — a strategy into stored cards — is the frontend's Take control
+    and is not offered: the strategy runs in the browser.
 - **A missing YAML file is a read error.** `LovelaceYAML.async_load` raises
   `ConfigNotFound` while its mode stays `yaml`, so the auto-gen probe says nothing;
   `async_get_info` returns an `error` key naming the path. YAML dashboards are

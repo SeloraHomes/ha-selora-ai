@@ -122,6 +122,7 @@ from .names import (
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
+    TOOL_SET_DASHBOARD_STRATEGY,
     TOOL_SET_ENERGY_PREFS,
     TOOL_SET_INTEGRATION_ENABLED,
     TOOL_SET_INTEGRATION_OPTIONS,
@@ -212,6 +213,7 @@ _ADMIN_TOOLS = frozenset(
         TOOL_ADD_DASHBOARD_RESOURCE,
         TOOL_REMOVE_DASHBOARD_RESOURCE,
         TOOL_UPDATE_DASHBOARD_RESOURCE,
+        TOOL_SET_DASHBOARD_STRATEGY,
         TOOL_SET_CONFIG_YAML,
         # Read-only, but admin-gated: configuration.yaml carries the home's
         # integration settings, and inline credentials are masked by pattern,
