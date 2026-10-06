@@ -830,6 +830,21 @@ async def async_place_card(
             # view with nothing to say why. Only a genuinely new card is
             # appended.
             if not replace_tagged_card(view_obj, tag, tagged):
+                # A panel page renders only its first card; a second would be
+                # stored and never shown.
+                if view_obj.get("type") == "panel" and view_obj.get("cards"):
+                    return DashboardInsertResult(
+                        ok=False,
+                        reason="panel_full",
+                        target=target,
+                        view=view,
+                        message=(
+                            "That page is a panel page: it shows only its first card, "
+                            "full width. Add the card inside that page's container "
+                            "card (a grid or stack) with update_dashboard_card, or "
+                            "change the page's layout."
+                        ),
+                    )
                 _insert_target_cards(view_obj).append(tagged)
 
             await dashboard.async_save(config)

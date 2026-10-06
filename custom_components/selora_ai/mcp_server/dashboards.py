@@ -90,6 +90,7 @@ async def _tool_update_dashboard_view(
         icon=_opt_str(arguments.get("icon")),
         clear=_opt_list(arguments.get("clear")),
         expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
+        layout=_opt_str(arguments.get("layout")),
     )
 
 

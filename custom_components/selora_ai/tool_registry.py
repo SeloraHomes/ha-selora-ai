@@ -2369,11 +2369,19 @@ TOOL_ADD_DASHBOARD_VIEW = ToolDef(
         ToolParam(name="path", type="string", description="URL slug for the view, e.g. 'garage'."),
         ToolParam(name="icon", type="string", description="Optional mdi icon for the tab."),
         ToolParam(
+            name="layout",
+            type="string",
+            description=(
+                "masonry (default), sections, panel (ONE card fills the whole page, "
+                "full width — for a full-screen page, put the tiles in one 'grid' "
+                "card) or sidebar."
+            ),
+            enum=("masonry", "sections", "panel", "sidebar"),
+        ),
+        ToolParam(
             name="sections",
             type="boolean",
-            description=(
-                "Use the newer sections layout instead of the classic masonry one. Off by default."
-            ),
+            description="Same as layout='sections'.",
         ),
         ToolParam(
             name="cards",
@@ -2396,7 +2404,8 @@ TOOL_ADD_DASHBOARD_VIEW = ToolDef(
 TOOL_UPDATE_DASHBOARD_VIEW = ToolDef(
     name="update_dashboard_view",
     description=(
-        "Rename a view or change its URL path or icon. Cards are untouched. Pass "
+        "Rename a view, change its URL path or icon, or switch its layout (cards "
+        "are carried over; a panel page holds one card). Pass "
         "the view's fingerprint from get_dashboard so the edit cannot land on a "
         "different page if the dashboard changed meanwhile."
     ),
@@ -2410,6 +2419,12 @@ TOOL_UPDATE_DASHBOARD_VIEW = ToolDef(
         ToolParam(name="title", type="string", description="New page title."),
         ToolParam(name="path", type="string", description="New URL slug."),
         ToolParam(name="icon", type="string", description="New mdi icon."),
+        ToolParam(
+            name="layout",
+            type="string",
+            description="New layout: masonry, sections, panel (one card, full width) or sidebar.",
+            enum=("masonry", "sections", "panel", "sidebar"),
+        ),
         ToolParam(
             name="clear",
             type="array",
