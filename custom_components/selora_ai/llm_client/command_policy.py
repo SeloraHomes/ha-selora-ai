@@ -2853,11 +2853,11 @@ def _pending_deletes_from_log(
 # ``requires_approval``, the loop short-circuits and discards the model's prose,
 # and the synthesizer then drops the descriptor — empty reply, no card.
 _DESTRUCTIVE_TOOLS = frozenset(
-    {"update_entity", "update_device", "set_script", "remove_dashboard_view"}
+    {"update_entity", "update_device", "set_script", "remove_dashboard_view", "fix_repair"}
 )
 
 # Verbs the confirm handler knows how to replay.
-_DESTRUCTIVE_VERBS = frozenset({"disable", "rename_id", "replace", "remove_view"})
+_DESTRUCTIVE_VERBS = frozenset({"disable", "rename_id", "replace", "remove_view", "fix"})
 
 
 def _pending_destructive_from_log(

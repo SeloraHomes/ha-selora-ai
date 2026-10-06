@@ -245,3 +245,146 @@ async def async_fix_repair(
         return {"status": "fixed", "domain": issue.domain, "issue_id": issue.issue_id}
     reason = result.get("reason") or kind
     return {"error": f"The fix did not complete ({sanitize_untrusted_text(str(reason))})."}
+
+
+# ── Chat: a fix behind a confirmation card ────────────────────────────────
+
+
+def _fingerprint(issue: ir.IssueEntry) -> str:
+    """The issue as the card showed it.
+
+    Not just its creation time: an integration can update an issue in place
+    (same id, same ``created``) with new data or placeholders — a different
+    description, a different thing for the fix to act on.
+    """
+    import hashlib  # noqa: PLC0415
+    import json  # noqa: PLC0415
+
+    payload = json.dumps(
+        [
+            issue.domain,
+            issue.issue_id,
+            issue.created.isoformat(),
+            issue.translation_key,
+            issue.translation_placeholders,
+            issue.data,
+            str(issue.severity),
+        ],
+        sort_keys=True,
+        default=str,
+    )
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
+async def _is_one_confirmation(manager: Any, issue: ir.IssueEntry) -> bool:
+    """Whether the fix is Home Assistant's own one-step confirmation.
+
+    The first step cannot say: an empty confirmation form may lead on to more
+    steps (HA's legacy subscription fix goes on to an external step). Only the
+    stock ``ConfirmRepairFlow`` is known to finish on that one confirmation. The
+    manager's ``async_create_flow`` builds the flow the integration answers
+    with WITHOUT running a step — running one could already do the fix's work —
+    so the class is read off that, and nothing is left registered.
+    """
+    from homeassistant.components.repairs import ConfirmRepairFlow  # noqa: PLC0415
+
+    flow = await manager.async_create_flow(issue.domain, data={"issue_id": issue.issue_id})
+    return type(flow) is ConfirmRepairFlow
+
+
+async def async_preview_fix(hass: HomeAssistant, domain: str, issue_id: str) -> dict[str, Any]:
+    """A confirmation card for a repair's fix, when it is a single confirmation.
+
+    A fix that asks for choices or input is not carded: walking it belongs to
+    the Repairs page (or the MCP tool, which goes step by step).
+    """
+    from homeassistant.components.repairs import repairs_flow_manager  # noqa: PLC0415
+
+    issue = _issue(hass, domain, issue_id)
+    if isinstance(issue, str):
+        return {"error": issue}
+    if not issue.is_fixable:
+        return {"error": "This repair has no automatic fix; its description says what to do."}
+    manager = repairs_flow_manager(hass)
+    if manager is None:
+        return {"error": "Repairs are not set up in this Home Assistant."}
+    try:
+        one_step = await _is_one_confirmation(manager, issue)
+    except _FLOW_ERRORS as exc:
+        return {"error": f"The fix could not start: {sanitize_untrusted_text(str(exc), 200)}"}
+    if not one_step:
+        return {
+            "error": (
+                "This fix asks for choices, so it cannot be run from here. Open "
+                "Settings → Repairs to go through it."
+            )
+        }
+    texts = await _texts(hass, [issue])
+    row = _row(issue, texts)
+    confirm = texts.get(
+        f"component.{issue.domain}.issues.{issue.translation_key}.fix_flow.step.confirm.description"
+    )
+    label = f"Fix: {row['title']}"
+    if detail := (
+        _fill(confirm, issue.translation_placeholders) if confirm else row.get("description")
+    ):
+        label = f"{label} — {sanitize_untrusted_text(detail, 200)}"
+    return {
+        "requires_approval": True,
+        "destructive": {
+            "kind": "repair",
+            "verb": "fix",
+            "target_id": f"{issue.domain}/{issue.issue_id}",
+            "entity_id": "",
+            "name": row["title"],
+            "label": label,
+            "fingerprint": _fingerprint(issue),
+        },
+    }
+
+
+async def async_run_confirmed_fix(
+    hass: HomeAssistant, domain: str, issue_id: str, expected_fingerprint: str
+) -> dict[str, Any]:
+    """Run a carded fix: still the issue shown, still a single confirmation."""
+    from homeassistant.components.repairs import repairs_flow_manager  # noqa: PLC0415
+
+    issue = _issue(hass, domain, issue_id)
+    if isinstance(issue, str):
+        return {"error": "That repair is no longer open."}
+    if _fingerprint(issue) != expected_fingerprint:
+        return {"error": "That repair was raised again since it was shown; ask again."}
+    manager = repairs_flow_manager(hass)
+    if manager is None:
+        return {"error": "Repairs are not set up in this Home Assistant."}
+    flow_id: str | None = None
+    try:
+        # Checked again: the integration decides the flow per call. Only the
+        # stock flow is started, and its first step only shows the confirmation.
+        if not await _is_one_confirmation(manager, issue):
+            return {
+                "error": "This fix now asks for more than a confirmation; use Settings → Repairs."
+            }
+        result = await manager.async_init(issue.domain, data={"issue_id": issue.issue_id})
+        flow_id = result.get("flow_id")
+        # Starting it awaited; the issue may have been replaced meanwhile, and
+        # submitting would delete the new one by the same id.
+        current = ir.async_get(hass).async_get_issue(issue.domain, issue.issue_id)
+        if current is None or _fingerprint(current) != expected_fingerprint:
+            return {"error": "That repair was raised again since it was shown; ask again."}
+        if result.get("type") != "form":
+            return {
+                "error": "This fix now asks for more than a confirmation; use Settings → Repairs."
+            }
+        result = await manager.async_configure(flow_id, {})
+        if result.get("type") == "create_entry":
+            flow_id = None
+            return {"status": "fixed", "domain": issue.domain, "issue_id": issue.issue_id}
+        reason = result.get("reason") or result.get("step_id") or result.get("type")
+        return {"error": f"The fix did not complete ({sanitize_untrusted_text(str(reason))})."}
+    except _FLOW_ERRORS as exc:
+        return {"error": f"The fix failed: {sanitize_untrusted_text(str(exc), 200)}"}
+    finally:
+        if flow_id:
+            with contextlib.suppress(UnknownFlow):
+                manager.async_abort(flow_id)

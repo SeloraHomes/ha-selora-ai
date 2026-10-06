@@ -1047,6 +1047,7 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
 _DASHBOARD_WRITE_TOOLS: frozenset[str] | None = None
 
 _DERIVED_MCP_TOOLS: dict[str, str] = {
+    TOOL_IGNORE_REPAIR: "ignore_repair",
     TOOL_CHECK_SYSTEM: "check_system",
     TOOL_RELOAD_INTEGRATION: "reload_integration",
     # Has had a handler since it was written but no definition, so it never
@@ -2042,18 +2043,6 @@ _TOOL_DEFINITIONS.extend(
             inputSchema={
                 "type": "object",
                 "properties": {"include_ignored": {"type": "boolean"}},
-            },
-        ),
-        MCPTool(
-            name=TOOL_IGNORE_REPAIR,
-            description=(
-                "Ignore a repair, as the Repairs page's Ignore does — or show it again "
-                "with ignore=false. Requires admin access."
-            ),
-            inputSchema={
-                "type": "object",
-                "required": ["domain", "issue_id"],
-                "properties": {**_REPAIR_PARAMS, "ignore": {"type": "boolean"}},
             },
         ),
         MCPTool(

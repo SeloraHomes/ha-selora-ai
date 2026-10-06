@@ -271,6 +271,19 @@ runs its fix flow.
 - Listing is read-only access, as `repairs/list_issues` is in Home Assistant;
   ignoring and fixing need admin. `repairs` is an `after_dependency` for
   hassfest, since the fix flow manager comes from it.
+- **In chat, a fix is a destructive card** (`fix_repair` in `_DESTRUCTIVE_TOOLS`,
+  verb `fix`, kind `repair` in `_apply_destructive_actions`), and only for HA's
+  STOCK `ConfirmRepairFlow` — the one fix known to finish on its single
+  confirmation. An empty first form proves nothing (HA's legacy subscription
+  fix confirms, then goes to an external step), so the flow's class is read
+  off `manager.async_create_flow`, which builds it WITHOUT running a step —
+  starting it (`async_init`) runs the first step, which can already do the fix's
+  work. Checked at preview and again on confirm, and the fingerprint is
+  re-checked after the flow starts (that awaits). Anything else is sent to
+  Settings → Repairs. The card's fingerprint hashes the issue's
+  creation time, data, placeholders and severity — an integration can update an
+  issue in place, keeping its id and `created`. `ignore_repair` runs
+  directly (it is undone the same way), and its MCP definition is derived.
 
 ## Apps (MCP)
 

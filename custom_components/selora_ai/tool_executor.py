@@ -155,6 +155,8 @@ class ToolExecutor:
             "get_logs": self._get_logs,
             "check_system": self._check_system,
             "reload_integration": self._reload_integration,
+            "fix_repair": self._fix_repair,
+            "ignore_repair": self._ignore_repair,
             "get_automation_traces": self._get_automation_traces,
             "get_automation": self._get_automation,
             "get_scene": self._get_scene,
@@ -648,6 +650,23 @@ class ToolExecutor:
         from .integration_manager import async_reload_integration
 
         return await async_reload_integration(self._hass, str(arguments.get("entry_id") or ""))
+
+    async def _fix_repair(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .repairs_manager import async_preview_fix
+
+        return await async_preview_fix(
+            self._hass, str(arguments.get("domain") or ""), str(arguments.get("issue_id") or "")
+        )
+
+    async def _ignore_repair(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .repairs_manager import async_ignore_repair
+
+        return async_ignore_repair(
+            self._hass,
+            str(arguments.get("domain") or ""),
+            str(arguments.get("issue_id") or ""),
+            ignore=_opt_bool(arguments.get("ignore")) is not False,
+        )
 
     async def _get_logs(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .diagnostics_tools import get_logs
