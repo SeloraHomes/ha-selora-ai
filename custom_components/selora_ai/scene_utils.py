@@ -334,6 +334,8 @@ async def async_create_scene(
             "name": f"[Selora AI] {name}",
             "entities": entities,
         }
+        if icon := str(scene_data.get("icon") or "").strip():
+            scene_entry["icon"] = icon
 
         # Replace existing entry if refining, otherwise append. Which of the
         # two happened is reported back: the caller confirms the write to the
@@ -481,65 +483,140 @@ def _rename_applied(hass: HomeAssistant, scene_id: str, stored_name: str) -> boo
     return entry.original_name == stored_name
 
 
+def _loaded_matches(hass: HomeAssistant, scene_id: str, entry: dict[str, Any]) -> bool:
+    """Whether the reloaded scene is serving *entry*'s icon and states.
+
+    The name and the member set can survive a reload that read nothing — an
+    icon-only change, or new states for the same members, would then pass —
+    so what was written is compared with the scene the platform loaded.
+    A registered scene the loaded platform no longer serves was NOT applied:
+    a configuration left without a ``scene:`` section reloads to no scenes at
+    all. Unverifiable (no platform, no registry entry) is not failure, as for
+    a rename.
+    """
+    try:
+        from homeassistant.components.homeassistant.scene import (  # noqa: PLC0415
+            DATA_PLATFORM,
+        )
+    except ImportError:
+        return True
+    platform = hass.data.get(DATA_PLATFORM)
+    entity_id = er.async_get(hass).async_get_entity_id("scene", "homeassistant", scene_id)
+    if platform is None or entity_id is None:
+        return True
+    config = getattr(platform.entities.get(entity_id), "scene_config", None)
+    if config is None:
+        return False
+    if (config.icon or None) != (entry.get("icon") or None):
+        return False
+    written = entry.get("entities") or {}
+    if set(config.states) != set(written):
+        return False
+    for member, value in written.items():
+        state = value.get("state") if isinstance(value, dict) else value
+        if state is not None and str(config.states[member].state) != str(state):
+            return False
+    return True
+
+
 async def async_rename_scene_yaml(
     hass: HomeAssistant,
     scene_id: str,
     new_name: str,
 ) -> dict[str, Any]:
-    """Rewrite one Selora scene's display name in scenes.yaml and reload.
-
-    Only the ``name`` key is touched. Rebuilding the entry through
-    ``async_create_scene`` is the obvious reuse and the wrong one: that path
-    re-validates every member against the state machine and raises when one
-    is missing, so a scene holding a bulb that has since been unpaired could
-    not be renamed at all — a name change refused over an entity nobody
-    mentioned. It would also rewrite the entities it was handed, which a
-    rename has no business doing.
-
-    The entity_id survives. HA registers a YAML scene under its ``id`` as the
-    unique_id, so the registry keeps the mapping and anything pointing at
-    ``scene.<slug>`` keeps working; the name-derived slug probe in
-    ``resolve_scene_entity_id`` is the only path that cares, and it is given
-    the new name.
-
-    A scene Home Assistant's own editor wrote is renamed here too, and the
-    display prefix is NOT applied to it: the id decides who manages a scene,
-    so prefixing someone else's would only claim it in the list. Which is also
-    why the entry is MUTATED rather than rebuilt — Home Assistant's editor
-    stores ``icon`` and ``metadata`` alongside the entities, and every entity
-    can carry extras of its own (``device_id``, ``zone_id``, ``friendly_name``
-    on a Lutron scene). A rebuilt entry, which is what ``async_create_scene``
-    writes, keeps only id/name/entities and drops the rest silently.
+    """Rewrite one scene's display name in scenes.yaml and reload — see
+    ``async_edit_scene_yaml``, which this is with only a name.
 
     Raises ``SceneRenameError`` when the name is unusable, the scene is absent
     from the file, or the reload rejects the result (rolled back in that case),
     and ``ScenesYamlError`` when the file cannot be parsed.
     """
+    return await async_edit_scene_yaml(hass, scene_id, name=new_name)
+
+
+async def async_edit_scene_yaml(
+    hass: HomeAssistant,
+    scene_id: str,
+    *,
+    name: str | None = None,
+    entities: dict[str, Any] | None = None,
+    icon: str | None = None,
+    clear_icon: bool = False,
+) -> dict[str, Any]:
+    """Change one scene in scenes.yaml in place — its name, the states it
+    sets, its icon — and reload.
+
+    Rebuilding the entry through ``async_create_scene`` is the obvious reuse
+    and the wrong one. A name change would re-validate every member against
+    the state machine and raise when one is missing, so a scene holding a bulb
+    that has since been unpaired could not be renamed — refused over an entity
+    nobody mentioned. And Home Assistant's editor stores ``icon`` and
+    ``metadata`` alongside the entities, while every entity can carry extras of
+    its own (``device_id``, ``zone_id``, ``friendly_name`` on a Lutron scene);
+    a rebuilt entry keeps only id/name/entities and drops the rest silently.
+    So the entry is MUTATED: only what is passed changes. ``entities``, when
+    given, replaces the scene's states and is validated as a new scene's are;
+    ``metadata`` for an entity no longer in it is dropped.
+
+    The entity_id survives. HA registers a YAML scene under its ``id`` as the
+    unique_id, so anything pointing at ``scene.<slug>`` keeps working.
+
+    A scene Home Assistant's own editor wrote is edited here too, and the
+    display prefix is NOT applied to it: the id decides who manages a scene,
+    so prefixing someone else's would only claim it in the list.
+
+    Raises ``SceneRenameError`` when the change is unusable, the scene is
+    absent from the file, or the reload rejects the result (rolled back in
+    that case), and ``ScenesYamlError`` when the file cannot be parsed.
+    """
     from .scene_store import scene_content_hash  # noqa: PLC0415
-    from .scene_validation import sanitize_scene_name  # noqa: PLC0415
+    from .scene_validation import (  # noqa: PLC0415
+        sanitize_scene_name,
+        validate_entities_exist,
+        validate_scene_security,
+    )
 
     selora_managed = scene_id.startswith(SCENE_ID_PREFIX)
 
-    # The panel shows a Selora name without the prefix the writer adds, so a
-    # user editing what they see hands back a bare name — but one who selects
-    # the whole field and retypes it hands back a prefixed one, and re-adding
-    # it below would double it. A Home Assistant scene never had the prefix,
-    # so nothing is stripped from it.
-    raw_name = new_name.strip()
-    if selora_managed:
-        raw_name = raw_name.removeprefix("[Selora AI] ")
-    name = sanitize_scene_name(raw_name)
-    if not name:
-        raise SceneRenameError("Scene name is empty after sanitization")
+    clean_name: str | None = None
+    if name is not None:
+        # The panel shows a Selora name without the prefix the writer adds, so
+        # a user editing what they see hands back a bare name — but one who
+        # selects the whole field and retypes it hands back a prefixed one, and
+        # re-adding it below would double it. A Home Assistant scene never had
+        # the prefix, so nothing is stripped from it.
+        raw_name = name.strip()
+        if selora_managed:
+            raw_name = raw_name.removeprefix("[Selora AI] ")
+        clean_name = sanitize_scene_name(raw_name)
+        if not clean_name:
+            raise SceneRenameError("Scene name is empty after sanitization")
+
+    new_entities: dict[str, Any] | None = None
+    if entities is not None:
+        ok, reason, normalized = validate_scene_payload(
+            {"name": clean_name or "scene", "entities": entities}, hass
+        )
+        if not ok or normalized is None:
+            raise SceneRenameError(f"Invalid scene: {reason}")
+        is_safe, warnings = validate_scene_security(normalized, hass)
+        if not is_safe:
+            raise SceneRenameError(f"Scene rejected by security validation: {warnings[0]}")
+        _, missing = await validate_entities_exist(hass, list(normalized["entities"]))
+        if missing:
+            raise SceneRenameError(f"Entities not found in Home Assistant: {', '.join(missing)}")
+        new_entities = dict(normalized["entities"])
 
     scenes_path = _get_scenes_path(hass)
 
     async with _SCENES_YAML_LOCK:
         existing = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
 
-        # Taken before the mutation below, so a rollback restores the name
-        # that was on the entry rather than the one being written.
-        previous = [dict(s) if isinstance(s, dict) else s for s in existing]
+        # Taken before the mutation below, so a rollback restores the entry as
+        # it was rather than as it is being written.
+        import copy  # noqa: PLC0415
+
+        previous = copy.deepcopy(existing)
 
         target = next(
             (s for s in existing if isinstance(s, dict) and s.get("id") == scene_id),
@@ -548,9 +625,21 @@ async def async_rename_scene_yaml(
         if target is None:
             raise SceneRenameError(f"Scene {scene_id!r} is not in scenes.yaml")
 
-        stored_name = f"[Selora AI] {name}" if selora_managed else name
-        target["name"] = stored_name
-        entities = target.get("entities") or {}
+        if clean_name is not None:
+            target["name"] = f"[Selora AI] {clean_name}" if selora_managed else clean_name
+        stored_name = str(target.get("name") or "")
+        display_name = stored_name.removeprefix("[Selora AI] ") if selora_managed else stored_name
+        if new_entities is not None:
+            target["entities"] = new_entities
+            if isinstance(target.get("metadata"), dict):
+                target["metadata"] = {
+                    k: v for k, v in target["metadata"].items() if k in new_entities
+                }
+        if icon:
+            target["icon"] = icon.strip()
+        elif clear_icon:
+            target.pop("icon", None)
+        entities_now = target.get("entities") or {}
 
         # Snapshotted before the writer runs: ``_write_scenes_yaml`` rewrites
         # YAML-unsafe strings in place as ruamel scalars, which the PyYAML dump
@@ -558,53 +647,101 @@ async def async_rename_scene_yaml(
         import json as _json  # noqa: PLC0415
 
         sanitized_scene: ScenePayload = _json.loads(
-            _json.dumps({"name": name, "entities": entities}, default=str)
+            _json.dumps({"name": display_name, "entities": entities_now}, default=str)
         )
 
         await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, existing)
-        _LOGGER.info("Renamed scene id=%s to '%s' in scenes.yaml", scene_id, name)
+        _LOGGER.info("Edited scene id=%s in scenes.yaml", scene_id)
 
         try:
             await hass.services.async_call("scene", "reload", blocking=True)
         except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
             await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
             _LOGGER.error(
-                "scene.reload failed after renaming scene %s — rolled back: %s",
-                scene_id,
-                exc,
+                "scene.reload failed after editing scene %s — rolled back: %s", scene_id, exc
             )
-            raise SceneRenameError(f"Scene reload failed after rename: {exc}") from exc
+            raise SceneRenameError(f"Scene reload failed after the change: {exc}") from exc
 
         # ``scene.reload`` swallows its own failures: ``reload_config`` logs and
         # RETURNS when configuration.yaml does not parse, and again when the
         # reloaded config carries no ``scene:`` section at all. So the call
         # above succeeds against a file Home Assistant never read, and the
-        # rename would be reported to the user — and written into the store and
+        # change would be reported to the user — and written into the store and
         # every session that mentions the scene — while HA goes on serving the
-        # old name until something else happens to reload it.
-        if not _rename_applied(hass, scene_id, stored_name):
+        # old scene until something else happens to reload it.
+        applied = _rename_applied(hass, scene_id, stored_name) and _loaded_matches(
+            hass, scene_id, target
+        )
+        if not applied:
             await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
             _LOGGER.error(
-                "scene.reload did not apply the rename of %s — rolled back scenes.yaml",
+                "scene.reload did not apply the change to %s — rolled back scenes.yaml",
                 scene_id,
             )
             raise SceneRenameError(
-                "Home Assistant did not reload the renamed scene. Check that "
+                "Home Assistant did not reload the changed scene. Check that "
                 "configuration.yaml is valid and still includes "
                 "'scene: !include scenes.yaml'."
             )
 
     import yaml  # noqa: PLC0415
 
-    renamed_entities = sanitized_scene["entities"]
+    edited_entities = sanitized_scene["entities"]
     return {
         "scene_id": scene_id,
-        "name": name,
-        "entity_count": len(renamed_entities),
-        "entity_id": resolve_scene_entity_id(hass, scene_id, name),
-        "content_hash": scene_content_hash(scene_id, stored_name, renamed_entities),
+        "name": display_name,
+        "entity_count": len(edited_entities),
+        "entity_id": resolve_scene_entity_id(hass, scene_id, display_name),
+        "content_hash": scene_content_hash(scene_id, stored_name, edited_entities),
         "scene_yaml": yaml.dump(sanitized_scene, default_flow_style=False, allow_unicode=True),
     }
+
+
+async def async_propagate_scene_edit(
+    hass: HomeAssistant, scene_id: str, result: dict[str, Any], *, tracked: bool
+) -> None:
+    """Carry an edited scene into the copies kept of it: the SceneStore record
+    (when Selora tracks it), every chat session that mentions it, and Assist.
+
+    Each is a cache of the file, so a failure is logged and the edit — which
+    landed — stands.
+    """
+    from homeassistant.helpers.dispatcher import async_dispatcher_send  # noqa: PLC0415
+
+    from .const import DOMAIN, SIGNAL_SCENE_REFRESHED  # noqa: PLC0415
+    from .conversation_store import ConversationStore  # noqa: PLC0415
+    from .helpers import get_scene_store  # noqa: PLC0415
+
+    if tracked:
+        try:
+            await get_scene_store(hass).async_add_scene(
+                scene_id,
+                result["name"],
+                result["entity_count"],
+                entity_id=result.get("entity_id"),
+                content_hash=result["content_hash"],
+            )
+        except Exception:  # noqa: BLE001 — the edit landed; a store refresh must not undo it
+            _LOGGER.warning("Failed to update scene %s in store after an edit", scene_id)
+
+    try:
+        store: ConversationStore = hass.data[DOMAIN].setdefault(
+            "_conv_store", ConversationStore(hass)
+        )
+        await store.update_scene_in_sessions(scene_id, result["name"], result["scene_yaml"])
+    except Exception:  # noqa: BLE001 — same: sessions are a cache of the file, not the record
+        _LOGGER.warning("Failed to propagate scene %s edit to sessions", scene_id)
+
+    # Assist holds its own in-memory copy of each conversation's scenes, and
+    # nothing repairs it afterwards: the store now carries the new content
+    # hash, so the next reconcile sees no drift and never fires this signal of
+    # its own accord. Left out, an open conversation goes on naming the scene
+    # as it was for the life of the process. Dispatched outside the try above
+    # because the two caches are independent — a failed session write is no
+    # reason to leave Assist stale as well.
+    async_dispatcher_send(
+        hass, SIGNAL_SCENE_REFRESHED, scene_id, result["name"], result["scene_yaml"]
+    )
 
 
 class SceneDeleteError(Exception):

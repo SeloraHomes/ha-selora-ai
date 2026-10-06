@@ -229,6 +229,7 @@ from .names import (
     TOOL_UPDATE_FLOOR,
     TOOL_UPDATE_GROUP,
     TOOL_UPDATE_HELPER,
+    TOOL_UPDATE_SCENE,
     TOOL_VALIDATE_ACTION,
     TOOL_VALIDATE_AUTOMATION,
     TOOL_VALIDATE_SCENE,
@@ -268,6 +269,7 @@ from .scenes import (
     _tool_delete_scene,
     _tool_get_scene,
     _tool_list_scenes,
+    _tool_update_scene,
     _tool_validate_scene,
 )
 from .scripts_helpers import (
@@ -410,6 +412,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_GET_SCENE: _tool_get_scene,
         TOOL_VALIDATE_SCENE: _tool_validate_scene,
         TOOL_CREATE_SCENE: _tool_create_scene,
+        TOOL_UPDATE_SCENE: _tool_update_scene,
         TOOL_DELETE_SCENE: _tool_delete_scene,
         TOOL_ACTIVATE_SCENE: _tool_activate_scene,
         TOOL_LIST_GROUPS: _tool_list_groups,

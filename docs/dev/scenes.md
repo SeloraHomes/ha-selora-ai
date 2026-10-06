@@ -22,3 +22,28 @@
   attribute those `reproduce_state`s use, so other keys (brightness on a
   switch) are dropped as noise. A domain without a schema of ours passes its
   `state` and attributes through, bounded (`_passthrough`).
+
+## Changing a scene
+
+`scene_utils.async_edit_scene_yaml` changes one scenes.yaml entry IN PLACE —
+name, states, icon — and is what the panel's rename and MCP
+`selora_update_scene` both run.
+
+- **Never rebuilt through `async_create_scene`.** Home Assistant's editor stores
+  `icon` and `metadata` beside the entities, and entities carry extras of their
+  own; a rebuilt entry keeps only id/name/entities. A rename also must not
+  re-validate members nobody mentioned (an unpaired bulb would block it).
+- **New states are checked as a new scene's are** — `validate_scene_payload`,
+  the security check, entities that exist — before the file is touched.
+  `metadata` for an entity no longer in the scene is dropped.
+- **The entity_id survives** (the YAML `id` is the registry unique_id), so an
+  edit does not break what activates the scene — the reason it is not a delete
+  and a create. A scene from an integration (registry platform not
+  `homeassistant`) is not in scenes.yaml and is refused.
+- **Applied, or rolled back.** `scene.reload` swallows a config that does not
+  parse, so what was written is compared with what the platform loaded: the
+  name (`_rename_applied`, from the registry) and the icon, members and each
+  state (`_loaded_matches`, from the scene entity's `scene_config`). Checking
+  the name and member set alone passed an icon-only change HA never read.
+- **The copies follow** (`async_propagate_scene_edit`): the SceneStore record,
+  chat sessions naming the scene, and Assist's in-memory copy.
