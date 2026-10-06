@@ -18,6 +18,7 @@ Selora AI's own hub device and entities are never removed this way.
 
 from __future__ import annotations
 
+import asyncio
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.exceptions import HomeAssistantError
@@ -134,11 +135,12 @@ async def async_remove_device_on_request(
         }
     # Removing a device takes its child devices (2026.9+) with it, and their
     # entities — all of which the confirmation has to name.
-    device_ids = [device.id] + [
-        child.id
+    parts = [
+        child
         for child in getattr(registry, "child_devices", ())
         if getattr(child, "parent_device_id", None) == device.id
     ]
+    device_ids = [device.id] + [part.id for part in parts]
     entities = [
         e.entity_id
         for one in device_ids
@@ -156,7 +158,21 @@ async def async_remove_device_on_request(
                 "integration": owners[0].domain if owners else None,
             },
             "entities": entities,
-            **({"parts": len(device_ids) - 1} if len(device_ids) > 1 else {}),
+            **(
+                {
+                    "parts": [
+                        {
+                            "id": part.id,
+                            "name": sanitize_untrusted_text(
+                                part.name_by_user or part.name or part.id, 80
+                            ),
+                        }
+                        for part in parts
+                    ]
+                }
+                if parts
+                else {}
+            ),
             "hint": (
                 f"This removes {name}"
                 + (f" with its {len(device_ids) - 1} part(s)" if len(device_ids) > 1 else "")
@@ -166,7 +182,12 @@ async def async_remove_device_on_request(
             ),
         }
     try:
-        await async_remove_device(hass, device.id)
+        # Shielded, as Home Assistant's own removal endpoints are: the request
+        # may be cancelled (the MCP call has a time limit) after the integration
+        # released the device but before it is detached from the registry.
+        await asyncio.shield(
+            hass.async_create_task(async_remove_device(hass, device.id), "selora_ai remove device")
+        )
     except HomeAssistantError as exc:
         return {"error": f"{name} was not removed: {sanitize_untrusted_text(str(exc), 200)}."}
     return {"status": "removed", "device_id": device.id, "name": name}
