@@ -49,6 +49,7 @@ from .names import (
     TOOL_FIND_REFERENCES,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
+    TOOL_GET_BACKUPS,
     TOOL_GET_BLUEPRINT,
     TOOL_GET_CAMERA_IMAGE,
     TOOL_GET_CONFIG_YAML,
@@ -237,6 +238,9 @@ _ADMIN_TOOLS = frozenset(
         TOOL_REMOVE_ENTITY,
         # Read-only, but admin-gated as Home Assistant's update/release_notes is.
         TOOL_GET_RELEASE_NOTES,
+        # Read-only, but admin-gated as Home Assistant's backup/info is: names,
+        # versions and storage locations of every backup.
+        TOOL_GET_BACKUPS,
     }
 )
 

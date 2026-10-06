@@ -52,6 +52,7 @@ from .names import (
     TOOL_FIND_REFERENCES,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
+    TOOL_GET_BACKUPS,
     TOOL_GET_BLUEPRINT,
     TOOL_GET_CAMERA_IMAGE,
     TOOL_GET_CONFIG_YAML,
@@ -2008,4 +2009,20 @@ _TOOL_DEFINITIONS.extend(
             },
         ),
     ]
+)
+
+_TOOL_DEFINITIONS.append(
+    MCPTool(
+        name=TOOL_GET_BACKUPS,
+        description=(
+            "The home's backups, newest first — date, size, where each is stored, "
+            "automatic or manual — and how automatic backups are doing: the last "
+            "completed and attempted, the next scheduled, and a warning when the "
+            "last one failed or none has completed for a week. To make one, call "
+            "execute_command with backup.create_automatic (hassio.backup_full on a "
+            "supervised install). Restoring is not available here. Requires admin "
+            "access."
+        ),
+        inputSchema={"type": "object", "properties": {}},
+    )
 )
