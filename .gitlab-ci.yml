@@ -134,11 +134,12 @@ soak:
   <<: *pip-cache
   before_script: *ha-test-deps
   script:
-    - pytest tests/ -m soak -v
-  # Soak tests sleep through rate-limiter windows and pump tens of
-  # thousands of records — wall time is dominated by sleeps, not CPU.
-  # Capping at 5 min stops a hang from blocking the pipeline forever.
-  timeout: 5 minutes
+    # The hang guard is per test: soak tests sleep through rate-limiter
+    # windows and pump tens of thousands of records, so wall time is sleeps,
+    # not CPU — but the job's own timeout also counts installing the test
+    # dependencies and uploading the pip cache, which vary by runner.
+    - pytest tests/ -m soak -v --timeout=240
+  timeout: 20 minutes
 
 frontend:
   stage: test
