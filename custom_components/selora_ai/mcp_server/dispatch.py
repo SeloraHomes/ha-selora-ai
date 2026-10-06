@@ -108,6 +108,7 @@ from .hacs import (
 )
 from .integrations import (
     _tool_check_system,
+    _tool_fire_event,
     _tool_list_integrations,
     _tool_reload_integration,
     _tool_remove_integration,
@@ -154,6 +155,7 @@ from .names import (
     TOOL_EXECUTE_COMMAND,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
+    TOOL_FIRE_EVENT,
     TOOL_FIX_REPAIR,
     TOOL_GET_APP_LOGS,
     TOOL_GET_APP_OPTIONS,
@@ -520,6 +522,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_IMPORT_BLUEPRINT: _tool_import_blueprint,
         TOOL_DELETE_BLUEPRINT: _tool_delete_blueprint,
         TOOL_CHECK_SYSTEM: _tool_check_system,
+        TOOL_FIRE_EVENT: _tool_fire_event,
         TOOL_RESTART_HOME_ASSISTANT: _tool_restart_home_assistant,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,

@@ -94,3 +94,25 @@ path, because YAML edits and new integrations only take effect after one:
 - **The denylist is for the irreversible**, per its own rationale. Refreshing a
   sensor (`homeassistant.update_entity`) and the read-only
   `homeassistant.check_config` are not, and are not on it.
+
+## Firing events
+
+`selora_fire_event` (`event_bus.py`, MCP only, admin) fires an event on the bus —
+for event-triggered automations, Node-RED, or simulating what triggers an
+automation to test it.
+
+- **Home Assistant's own events are refused**: core's `EVENT_*` constants (read
+  at runtime from `homeassistant.const`), `*_registry_updated`, `*_reloaded`
+  (a component announcing it re-read its config: scene, automation, store),
+  `homeassistant_*` and a few component system events (`automation_triggered`,
+  `user_*` …). Device events (`zha_event`, a button's own) stay allowed —
+  simulating one is how an automation is tested. They
+  are how the system tells its parts what happened; firing one by hand reports
+  something that did not.
+- **It asks first, naming the automations it starts** (event triggers matching
+  the type, read from each automation's config), honouring the `approval_required`
+  opt-out like a service call. A custom button event can start an unlock. Other
+  subscribers cannot be seen from here, and the confirmation says so.
+- The type is 1–64 characters (HA's own limit), no whitespace; `data` is a JSON
+  object under 16 000 characters, passed through `json` so only plain values
+  reach the bus.

@@ -52,6 +52,7 @@ from .names import (
     TOOL_EXECUTE_COMMAND,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
+    TOOL_FIRE_EVENT,
     TOOL_FIX_REPAIR,
     TOOL_GET_APP_LOGS,
     TOOL_GET_APP_OPTIONS,
@@ -2290,6 +2291,33 @@ _TOOL_DEFINITIONS.extend(
             },
         ),
     ]
+)
+
+_TOOL_DEFINITIONS.append(
+    MCPTool(
+        name=TOOL_FIRE_EVENT,
+        description=(
+            "Fire an event on Home Assistant's bus — for automations triggered by a "
+            "custom event, Node-RED flows, or testing an automation by simulating the "
+            "event that starts it. Home Assistant's own events (state_changed, "
+            "homeassistant_stop, registry updates …) are refused. Comes back first with "
+            "requires_confirmation and the automations it would start: tell the user, "
+            "and only once they agree call again with confirmed=true. Requires admin "
+            "access."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["event_type"],
+            "properties": {
+                "event_type": {"type": "string", "description": "e.g. 'doorbell_pressed'."},
+                "data": {
+                    "type": "object",
+                    "description": "The event's data (trigger.event.data in an automation).",
+                },
+                "confirmed": _CONFIRMED_PARAM,
+            },
+        },
+    )
 )
 
 _TOOL_DEFINITIONS.append(
