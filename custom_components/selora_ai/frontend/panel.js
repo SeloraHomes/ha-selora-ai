@@ -30040,6 +30040,17 @@ var HELPER_FIELDS = {
   counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
   timer: ["name", "icon", "duration", "restore"],
   zone: ["name", "icon", "latitude", "longitude", "radius", "passive"],
+  schedule: [
+    "name",
+    "icon",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ],
 };
 var HANDLERS = {
   create_helper: async (hass, action) => {
@@ -51436,7 +51447,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "84d1f1def05d" : "";
+var PANEL_BUILD = true ? "69d79e8ca392" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

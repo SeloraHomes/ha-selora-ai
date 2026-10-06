@@ -163,6 +163,15 @@ the model stops reciting Settings click-paths.
   move and delete them rather than a zone toolset of their own. `zone.home` is
   not stored — HA draws it from the home's location — and is refused with
   where to change it (Settings → System → General).
+- **Schedules are storage helpers too** (`schedule` in `_COLLECTIONS`, schema
+  `SCHEMA`). The tool takes one `schedule` object (`{day: [{from, to}]}`)
+  rather than seven parameters; `_expand_schedule` spreads it into the per-day
+  keys, and HA's schema checks the blocks (order, overlap). A day named wrongly,
+  or a `schedule` that is not an object, is refused, not dropped: dropped, the
+  schedule is created and never comes on. An update keeps the days not named.
+- **A creatable domain needs the panel's allowlist too** (`HELPER_FIELDS` in
+  `frontend/src/panel/client-actions.js`), or chat's Create button always fails.
+  `test_the_panel_creates_every_helper_the_backend_proposes` compares the two.
 - **Every other helper runs its own config flow, through the same tool**
   (`helper_flow.py`), the way `group_manager` drives `group`'s — config-entry
   helpers need no panel. One tool, not one per helper: template entities of

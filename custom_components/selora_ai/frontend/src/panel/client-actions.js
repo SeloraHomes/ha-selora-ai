@@ -71,6 +71,17 @@ const HELPER_FIELDS = {
   counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
   timer: ["name", "icon", "duration", "restore"],
   zone: ["name", "icon", "latitude", "longitude", "radius", "passive"],
+  schedule: [
+    "name",
+    "icon",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+  ],
 };
 
 /** Kinds this panel will execute. Checked again here, not just server-side. */
