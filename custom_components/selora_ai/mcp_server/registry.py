@@ -86,22 +86,34 @@ async def _tool_delete_area(hass: HomeAssistant, arguments: dict[str, Any]) -> d
     return await async_delete_area(hass, entry.id)
 
 
+def _update_entity_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``update_entity``'s arguments as ``async_update_entity`` takes them —
+    one reading for the direct call, the preview and the confirmed card."""
+    from ..entity_exposure import ASSISTANTS  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_list, _opt_str  # noqa: PLC0415
+
+    expose = {
+        name: flag
+        for name in ASSISTANTS
+        if (flag := _opt_bool(arguments.get(f"expose_to_{name}"))) is not None
+    }
+    return {
+        "entity_id": str(arguments.get("entity_id", "")),
+        "new_name": _opt_str(arguments.get("new_name")),
+        "aliases": _opt_list(arguments.get("aliases")),
+        "icon": _opt_str(arguments.get("icon")),
+        "hidden": _opt_bool(arguments.get("hidden")),
+        "disabled": _opt_bool(arguments.get("disabled")),
+        "expose": expose,
+        "new_entity_id": _opt_str(arguments.get("new_entity_id")),
+    }
+
+
 async def _tool_update_entity(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Change one entity's registry settings."""
     from ..registry_manager import async_update_entity  # noqa: PLC0415
-    from ..tool_executor import _opt_bool, _opt_list, _opt_str  # noqa: PLC0415
 
-    return await async_update_entity(
-        hass,
-        entity_id=str(arguments.get("entity_id", "")),
-        new_name=_opt_str(arguments.get("new_name")),
-        aliases=_opt_list(arguments.get("aliases")),
-        icon=_opt_str(arguments.get("icon")),
-        hidden=_opt_bool(arguments.get("hidden")),
-        disabled=_opt_bool(arguments.get("disabled")),
-        expose_to_assist=_opt_bool(arguments.get("expose_to_assist")),
-        new_entity_id=_opt_str(arguments.get("new_entity_id")),
-    )
+    return await async_update_entity(hass, **_update_entity_kwargs(arguments))
 
 
 async def _tool_update_device(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:

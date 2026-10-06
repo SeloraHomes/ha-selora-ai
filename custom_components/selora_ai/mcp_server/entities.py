@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant, State
@@ -381,49 +383,109 @@ async def _tool_get_device_triggers(
 # Domain-specific attribute whitelist for get_entity_state. Keeps the response
 # small and avoids leaking diagnostic noise into the LLM context. Mirrors the
 # selection used in _tool_get_device.
-def _json_safe_attr(value: Any) -> Any:
-    """Coerce an HA attribute value into a JSON-encodable primitive.
+# An attribute named like a credential is left out, and a URL keeps its path
+# but loses these parameters: a camera's ``entity_picture`` carries the token
+# that opens its stream, and this read is open to read-only credentials while
+# camera images are admin-only.
+_SECRET_ATTR = re.compile(r"token|password|passcode|secret|api_?key", re.IGNORECASE)
+# Looks behind for its separator rather than consuming it, so adjacent
+# parameters (``?token=a&access_token=b``) are each removed.
+_URL_SECRET_PARAM = re.compile(r"(?<=[?&])(?:token|authSig|access_token)=[^&#]*&?", re.IGNORECASE)
+_ATTR_TEXT_LIMIT = 300
+_ATTR_LIST_LIMIT = 50
+_ATTR_DEPTH = 3
+# Every attribute is returned until this budget, then the rest are named in
+# ``attributes_omitted``: some integrations put whole JSON payloads in one.
+# It is charged while converting, so an oversized one is abandoned early
+# rather than built in full and then dropped.
+_ATTRS_MAX_CHARS = 6000
 
-    HA exposes attributes like ``supported_color_modes`` as ``set[ColorMode]``
-    and ``hvac_modes`` as ``list[HVACMode]`` — the dispatcher's plain
-    ``json.dumps`` (no ``default=``) would raise on the set, and StrEnum
-    members would serialize as their class repr rather than the string the
-    LLM expects. Convert sets/tuples to sorted lists and enum members to
-    their string value before they reach the encoder.
+
+class _OverBudget(Exception):
+    """The attribute being converted does not fit what is left."""
+
+
+class _AttrConverter:
+    """Attribute values as bounded, JSON-encodable data, within a budget.
+
+    Sets become sorted lists and enum members their string value (the
+    dispatcher's ``json.dumps`` has no ``default=``); text is sanitized and
+    capped, lists and mappings cut at ``_ATTR_LIST_LIMIT`` entries before any
+    is converted, and nesting past ``_ATTR_DEPTH`` replaced, not stringified —
+    a stringified mapping would carry its credential keys along.
     """
-    if isinstance(value, (set, frozenset)):
-        return sorted(_json_safe_attr(v) for v in value)
-    if isinstance(value, tuple):
-        return [_json_safe_attr(v) for v in value]
-    if isinstance(value, list):
-        return [_json_safe_attr(v) for v in value]
-    if isinstance(value, (str, int, float, bool)) or value is None:
-        return value
-    return str(value)
+
+    def __init__(self, budget: int) -> None:
+        self.left = budget
+
+    def _charge(self, size: int) -> None:
+        self.left -= size
+        if self.left < 0:
+            raise _OverBudget
+
+    def convert(self, value: Any, depth: int = 0) -> Any:
+        if isinstance(value, bool | int | float) or value is None:
+            self._charge(8)
+            return value
+        if isinstance(value, str):
+            text = _URL_SECRET_PARAM.sub("", value[: _ATTR_TEXT_LIMIT * 4]).rstrip("?&")
+            text = _sanitize(text, _ATTR_TEXT_LIMIT)
+            self._charge(len(text) + 2)
+            return text
+        if isinstance(value, Mapping):
+            if depth >= _ATTR_DEPTH:
+                self._charge(5)
+                return "{…}"
+            out: dict[str, Any] = {}
+            for count, (key, item) in enumerate(value.items()):
+                if count >= _ATTR_LIST_LIMIT:
+                    out["…"] = f"{len(value) - _ATTR_LIST_LIMIT} more"
+                    break
+                name = str(key)[:64]
+                if _SECRET_ATTR.search(name):
+                    continue
+                self._charge(len(name) + 4)
+                out[name] = self.convert(item, depth + 1)
+            return out
+        if isinstance(value, set | frozenset | tuple | list):
+            if depth >= _ATTR_DEPTH:
+                self._charge(5)
+                return "[…]"
+            items = list(value)
+            if isinstance(value, set | frozenset):
+                items.sort(key=str)
+            extra = len(items) - _ATTR_LIST_LIMIT
+            out_list = [self.convert(v, depth + 1) for v in items[:_ATTR_LIST_LIMIT]]
+            if extra > 0:
+                out_list.append(f"… {extra} more")
+            return out_list
+        if hasattr(value, "isoformat"):
+            self._charge(32)
+            return value.isoformat()
+        return self.convert(str(value), depth)
 
 
-_ENTITY_STATE_ATTRS: dict[str, tuple[str, ...]] = {
-    "light": ("brightness", "color_temp", "color_mode", "rgb_color", "supported_color_modes"),
-    "climate": (
-        "temperature",
-        "current_temperature",
-        "target_temp_high",
-        "target_temp_low",
-        "hvac_action",
-        "hvac_modes",
-        "preset_mode",
-    ),
-    "cover": ("current_position", "current_tilt_position"),
-    "fan": ("percentage", "preset_mode", "oscillating"),
-    "media_player": ("volume_level", "is_volume_muted", "source", "media_title"),
-    "lock": ("code_format",),
-    "sensor": ("device_class", "unit_of_measurement"),
-    "binary_sensor": ("device_class",),
-}
+def _entity_attributes(attrs: Mapping[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    """Every attribute that fits the budget, and the names of those that did not."""
+    kept: dict[str, Any] = {}
+    omitted: list[str] = []
+    left = _ATTRS_MAX_CHARS
+    for key, raw in attrs.items():
+        name = str(key)
+        if _SECRET_ATTR.search(name):
+            continue
+        converter = _AttrConverter(left - len(name))
+        try:
+            kept[name] = converter.convert(raw)
+        except _OverBudget:
+            omitted.append(_sanitize(name, 64))
+            continue
+        left = converter.left
+    return kept, omitted
 
 
 async def _tool_get_entity_state(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Return current state and key attributes for a single entity."""
+    """Return current state, attributes and exposure for a single entity."""
     from homeassistant.helpers import area_registry as ar
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
@@ -461,18 +523,18 @@ async def _tool_get_entity_state(hass: HomeAssistant, arguments: dict[str, Any])
         if area:
             area_name = area.name
 
+    from ..entity_exposure import async_get_exposure  # noqa: PLC0415
+
     domain = entity_id.split(".", 1)[0]
     attrs = state.attributes or {}
-    filtered: dict[str, Any] = {}
-    if "friendly_name" in attrs:
-        filtered["friendly_name"] = _sanitize(attrs["friendly_name"])
-    if "device_class" in attrs:
-        filtered["device_class"] = str(attrs["device_class"])
-    if "unit_of_measurement" in attrs:
-        filtered["unit_of_measurement"] = str(attrs["unit_of_measurement"])
-    for key in _ENTITY_STATE_ATTRS.get(domain, ()):
-        if key in attrs:
-            filtered[key] = _json_safe_attr(attrs[key])
+    attributes, omitted = _entity_attributes(attrs)
+    extra: dict[str, Any] = {}
+    if omitted:
+        extra["attributes_omitted"] = omitted
+    if exposed := async_get_exposure(hass, entity_id):
+        extra["exposed_to"] = exposed
+    if entry is not None and (aliases := [a for a in entry.aliases if isinstance(a, str)]):
+        extra["aliases"] = [_sanitize(a, 60) for a in aliases]
 
     return {
         "entity_id": entity_id,
@@ -482,7 +544,9 @@ async def _tool_get_entity_state(hass: HomeAssistant, arguments: dict[str, Any])
         "area": _sanitize(area_name) if area_name else None,
         "device_id": ent_device_id,
         "last_changed": state.last_changed.isoformat() if state.last_changed else None,
-        "attributes": filtered,
+        "last_updated": state.last_updated.isoformat() if state.last_updated else None,
+        "attributes": attributes,
+        **extra,
     }
 
 

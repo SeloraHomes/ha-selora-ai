@@ -240,7 +240,8 @@ TOOL_GET_DEVICE_TRIGGERS = ToolDef(
 TOOL_GET_ENTITY_STATE = ToolDef(
     name="get_entity_state",
     description=(
-        "Return current state and key attributes for a single Home Assistant entity. "
+        "Return current state, all attributes, aliases and voice-assistant exposure "
+        "for a single Home Assistant entity. "
         "Prefer this over get_home_snapshot for targeted state questions "
         "('is the kitchen light on?', 'what's the thermostat set to?'). "
         "Requires the full entity_id (e.g. 'light.kitchen')."
@@ -1375,7 +1376,8 @@ TOOL_UPDATE_ENTITY = ToolDef(
     name="update_entity",
     description=(
         "Change one entity's registry settings: friendly name, Assist aliases, icon, "
-        "whether it is hidden or disabled, and whether Assist can see it. Use new_name "
+        "whether it is hidden or disabled, and which voice assistants (Assist, Alexa, "
+        "Google) can see it. Use new_name "
         "to rename what the user sees — that is what 'rename this to X' means. "
         "new_entity_id changes the underlying id and is refused when automations, "
         "scripts, scenes, or groups reference it."
@@ -1412,6 +1414,16 @@ TOOL_UPDATE_ENTITY = ToolDef(
             name="expose_to_assist",
             type="boolean",
             description="Whether Home Assistant's Assist voice agent can control this entity.",
+        ),
+        ToolParam(
+            name="expose_to_alexa",
+            type="boolean",
+            description="Whether Alexa can see it (needs a linked Alexa skill).",
+        ),
+        ToolParam(
+            name="expose_to_google",
+            type="boolean",
+            description="Whether Google Assistant can see it (needs Home Assistant Cloud).",
         ),
         ToolParam(
             name="new_entity_id",

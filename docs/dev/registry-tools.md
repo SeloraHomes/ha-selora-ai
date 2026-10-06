@@ -38,6 +38,16 @@ the model stops reciting Settings click-paths.
   `new_entity_id` while anything references the old id and names the referrers
   (via `group_dependents`, which is entity-generic). `new_name` (the friendly
   name — what "rename this" means) is always allowed.
+- **Exposure is changed only for an assistant the hub uses** (`entity_exposure.py`):
+  Assist always, Alexa when Selora's or Home Assistant Cloud's skill is linked
+  (both read `cloud.alexa`), Google only with Home Assistant Cloud. HA shows the
+  cloud columns only to a Cloud account, so a change elsewhere is a setting
+  nobody can see or undo. A refusal writes nothing else in the call either, and
+  exposure is written only after the registry update succeeds.
+- **Reading exposure must not write it.** Core's `async_should_expose` records the
+  default it computes into the entity's options, pinning it for good;
+  `async_get_exposure` reads the recorded setting or works the default out from
+  core's rule without recording it.
 - **Deleting an area unassigns, silently** — automations targeting
   `area_id: living_room` keep loading and match nothing. Hence the card, with
   counts in its label.

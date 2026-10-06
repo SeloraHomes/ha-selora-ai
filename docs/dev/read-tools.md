@@ -24,6 +24,15 @@ house.
   their value AS state. `_display_state` withholds the value of any entity HA
   marks `mode: password` — and only that; the entity stays listed.
   `execute_command`'s post-state is exempt (it reports a value the caller set).
+- **`get_entity_state` returns every attribute**, not a per-domain pick — a
+  vacuum's battery or an integration's extra readings were invisible. Bounded
+  instead: text capped, lists and mappings cut at 50 before converting, nesting
+  past 3 levels replaced (never stringified — a stringified mapping carries its
+  credential keys), and a total budget, charged while converting, past which
+  attributes are named in `attributes_omitted`. Attributes named like a
+  credential are left out and URL `token`/`authSig` parameters stripped: a
+  camera's `entity_picture` carries the token that opens its stream, and this
+  read is open to read-only credentials.
 - **An entity's area is its device's unless overridden** — `get_home_snapshot`
   resolves through the device registry, as `search_entities` does.
 

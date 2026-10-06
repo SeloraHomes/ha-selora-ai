@@ -59,13 +59,6 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-# HA's Assist pipeline registers itself under this assistant key in
-# ``exposed_entities``. The cloud assistants ("cloud.alexa",
-# "cloud.google_assistant") use the same store but are Nabu Casa features we
-# deliberately do not touch — a user without a subscription has no way to see
-# or undo a change there.
-ASSIST_ASSISTANT: Final = "conversation"
-
 # Cap on the entity/device lists echoed back per area. ``*_count`` stays exact.
 # Not cosmetic: ``ToolExecutor._find_longest_list`` only trims top-level lists
 # and lists inside top-level dicts — never a list nested in a list *of* dicts —
@@ -727,10 +720,12 @@ async def async_update_entity(
     icon: str | None = None,
     hidden: bool | None = None,
     disabled: bool | None = None,
-    expose_to_assist: bool | None = None,
+    expose: dict[str, bool] | None = None,
     new_entity_id: str | None = None,
 ) -> dict[str, Any]:
     """Rename, alias, hide, disable, or re-expose a single entity.
+
+    ``expose`` maps ``entity_exposure.ASSISTANTS`` names to on/off.
 
     ``new_name`` sets the *friendly name* and leaves the entity_id alone, which
     is what "call it the Reading Lamp" means — the id is plumbing the user
@@ -800,16 +795,14 @@ async def async_update_entity(
                 )
             }
 
-    exposed_change: bool | None = None
-    if expose_to_assist is not None:
-        from homeassistant.components.homeassistant.exposed_entities import (  # noqa: PLC0415
-            async_expose_entity,
-        )
+    expose = dict(expose or {})
+    if expose:
+        from .entity_exposure import unavailable  # noqa: PLC0415
 
-        async_expose_entity(hass, ASSIST_ASSISTANT, entity_id, bool(expose_to_assist))
-        exposed_change = bool(expose_to_assist)
+        if error := unavailable(hass, expose):
+            return {"error": error}
 
-    if not changes and exposed_change is None:
+    if not changes and not expose:
         return {
             "status": "unchanged",
             "entity_id": entity_id,
@@ -830,18 +823,21 @@ async def async_update_entity(
                 )
             }
 
+    if expose:
+        from .entity_exposure import async_set_exposure  # noqa: PLC0415
+
+        async_set_exposure(hass, renamed_to or entity_id, expose)
+
     result: dict[str, Any] = {
         "status": "updated",
         "entity_id": renamed_to or entity_id,
         "name": sanitize_untrusted_text(entry.name or entry.original_name, 60),
-        "changed": sorted(
-            [*changes, *(["expose_to_assist"] if exposed_change is not None else [])]
-        ),
+        "changed": sorted([*changes, *(f"expose_to_{name}" for name in expose)]),
     }
     if renamed_to:
         result["previous_entity_id"] = entity_id
-    if exposed_change is not None:
-        result["exposed_to_assist"] = exposed_change
+    if expose:
+        result["exposed"] = expose
     return result
 
 

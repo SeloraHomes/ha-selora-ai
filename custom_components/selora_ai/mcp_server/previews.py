@@ -75,28 +75,21 @@ async def _preview_update_entity(hass: HomeAssistant, arguments: dict[str, Any])
     """Hold a disable or an entity_id rename for confirmation.
 
     Every other field ``update_entity`` accepts — friendly name, aliases, icon,
-    hidden, Assist exposure — is a metadata edit the user can reverse by asking
+    hidden, voice-assistant exposure — is a metadata edit the user can reverse by asking
     for the opposite, so those still execute directly. Gating them would put a
     card in front of "call it the Reading Lamp", which teaches the user to tap
     through cards without reading them.
     """
     from ..registry_manager import async_update_entity  # noqa: PLC0415
-    from ..tool_executor import _opt_bool, _opt_list, _opt_str  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
+    from .registry import _update_entity_kwargs  # noqa: PLC0415
 
     entity_id = str(arguments.get("entity_id", "")).strip()
     disabling = _opt_bool(arguments.get("disabled")) is True
     new_entity_id = _opt_str(arguments.get("new_entity_id"))
     if not disabling and not (new_entity_id and new_entity_id != entity_id):
         return await async_update_entity(
-            hass,
-            entity_id=entity_id,
-            new_name=_opt_str(arguments.get("new_name")),
-            aliases=_opt_list(arguments.get("aliases")),
-            icon=_opt_str(arguments.get("icon")),
-            hidden=_opt_bool(arguments.get("hidden")),
-            disabled=_opt_bool(arguments.get("disabled")),
-            expose_to_assist=_opt_bool(arguments.get("expose_to_assist")),
-            new_entity_id=None,
+            hass, **{**_update_entity_kwargs(arguments), "new_entity_id": None}
         )
 
     from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
