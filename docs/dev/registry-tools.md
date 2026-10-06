@@ -354,3 +354,25 @@ logs. Start/stop/restart are services (`hassio.app_*` with `{app: slug}`;
   `HomeAssistantError`.
 - Both admin-gated, as HA's app pages are — app logs print credentials.
   `get_apps_list` is the newer alias of `get_addons_list` (2025.1).
+- **Store, install and options go through `get_supervisor_client`**
+  (`aiohasupervisor`; 0.2.2 on HA 2025.1 has the same methods, but
+  `install_addon` takes only the slug).
+- **Installing asks first** (`requires_confirmation`) and names every privilege
+  the store reports (`_reach`: host hardware, Docker, host network and
+  processes, the Supervisor API and its role, HA's API, user logins, AppArmor
+  off) with the Supervisor's `security_rating` — which also counts what the
+  store does not report before install (kernel capabilities, devices).
+- **The confirmation is bound to what was shown** (`fingerprint`: version,
+  privileges, rating). A custom repository can update between the two calls;
+  a changed app is shown again rather than installed.
+- **The slug is reserved before the first await** of a confirmed call, so a
+  second one meanwhile does not start another install.
+- **It installs in the background** (`async_create_background_task`): the
+  Supervisor's call returns only when the image is pulled or built, minutes
+  later. `_app_installs` holds installing / installed / failed per slug, shown
+  by `list_apps`; a second install of the same slug meanwhile is not started.
+- **Options are merged over the current ones**, then validated by the Supervisor
+  against the app's schema (`addon_config_validate`), then saved. The Supervisor
+  replaces the whole set, so a partial change would wipe the rest — passwords a
+  read never shows included. A password-type option (or a credential-like name)
+  reads back as `{is_set}`, and that shape sent back is not a new value.

@@ -54,6 +54,7 @@ from .names import (
     TOOL_FIND_REFERENCES,
     TOOL_FIX_REPAIR,
     TOOL_GET_APP_LOGS,
+    TOOL_GET_APP_OPTIONS,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BACKUPS,
@@ -83,6 +84,7 @@ from .names import (
     TOOL_IGNORE_REPAIR,
     TOOL_IMPORT_BLUEPRINT,
     TOOL_INSERT_DASHBOARD_CARD,
+    TOOL_INSTALL_APP,
     TOOL_LIST_APPS,
     TOOL_LIST_AREAS,
     TOOL_LIST_ASSIST_PIPELINES,
@@ -117,7 +119,9 @@ from .names import (
     TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
     TOOL_RESTART_HOME_ASSISTANT,
+    TOOL_SEARCH_APP_STORE,
     TOOL_SEARCH_ENTITIES,
+    TOOL_SET_APP_OPTIONS,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
@@ -2122,6 +2126,74 @@ _TOOL_DEFINITIONS.extend(
                 "properties": {
                     "slug": {"type": "string", "description": "From list_apps."},
                     "lines": {"type": "integer", "minimum": 1, "maximum": 500},
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_SEARCH_APP_STORE,
+            description=(
+                "Find apps (formerly add-ons) in the app store — official and added "
+                "repositories — by words in their name or description, with whether each "
+                "is installed. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string", "description": "e.g. 'mosquitto', 'file editor'."}
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_INSTALL_APP,
+            description=(
+                "Install an app from the store. The first call installs nothing: it "
+                "comes back with requires_confirmation, what the app is, what it may "
+                "reach and its security rating. Tell the user, and only once they agree "
+                "call again with confirmed=true and the fingerprint. It installs in the "
+                "background (minutes); list_apps says when it is done. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["slug"],
+                "properties": {
+                    "slug": {"type": "string", "description": "From search_app_store."},
+                    "confirmed": {"type": "boolean"},
+                    "fingerprint": {
+                        "type": "string",
+                        "description": "From the confirmation, with confirmed=true.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_GET_APP_OPTIONS,
+            description=(
+                "An installed app's options and the schema they follow. Passwords show "
+                "only whether they are set. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["slug"],
+                "properties": {"slug": {"type": "string", "description": "From list_apps."}},
+            },
+        ),
+        MCPTool(
+            name=TOOL_SET_APP_OPTIONS,
+            description=(
+                "Change an installed app's options: pass only what changes — the rest, "
+                "passwords included, are kept. Checked against the app's own schema "
+                "before saving; a running app needs a restart to read them. Requires "
+                "admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["slug", "options"],
+                "properties": {
+                    "slug": {"type": "string", "description": "From list_apps."},
+                    "options": {
+                        "type": "object",
+                        "description": "Options to change, by name from get_app_options.",
+                    },
                 },
             },
         ),

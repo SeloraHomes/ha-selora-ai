@@ -19,7 +19,14 @@ from ..const import (
 )
 from ..selora_auth import SeloraAuthContext
 from .access import _can_access_tool, _check_tool_access
-from .apps import _tool_get_app_logs, _tool_list_apps
+from .apps import (
+    _tool_get_app_logs,
+    _tool_get_app_options,
+    _tool_install_app,
+    _tool_list_apps,
+    _tool_search_app_store,
+    _tool_set_app_options,
+)
 from .automations import (
     _tool_accept_automation,
     _tool_create_automation,
@@ -147,6 +154,7 @@ from .names import (
     TOOL_FIND_REFERENCES,
     TOOL_FIX_REPAIR,
     TOOL_GET_APP_LOGS,
+    TOOL_GET_APP_OPTIONS,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BACKUPS,
@@ -176,6 +184,7 @@ from .names import (
     TOOL_IGNORE_REPAIR,
     TOOL_IMPORT_BLUEPRINT,
     TOOL_INSERT_DASHBOARD_CARD,
+    TOOL_INSTALL_APP,
     TOOL_LIST_APPS,
     TOOL_LIST_AREAS,
     TOOL_LIST_ASSIST_PIPELINES,
@@ -210,7 +219,9 @@ from .names import (
     TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
     TOOL_RESTART_HOME_ASSISTANT,
+    TOOL_SEARCH_APP_STORE,
     TOOL_SEARCH_ENTITIES,
+    TOOL_SET_APP_OPTIONS,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
     TOOL_SET_CONFIG_YAML,
@@ -498,6 +509,10 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_FIX_REPAIR: _tool_fix_repair,
         TOOL_LIST_APPS: _tool_list_apps,
         TOOL_GET_APP_LOGS: _tool_get_app_logs,
+        TOOL_SEARCH_APP_STORE: _tool_search_app_store,
+        TOOL_INSTALL_APP: _tool_install_app,
+        TOOL_GET_APP_OPTIONS: _tool_get_app_options,
+        TOOL_SET_APP_OPTIONS: _tool_set_app_options,
         TOOL_IMPORT_BLUEPRINT: _tool_import_blueprint,
         TOOL_DELETE_BLUEPRINT: _tool_delete_blueprint,
         TOOL_CHECK_SYSTEM: _tool_check_system,
