@@ -84,6 +84,30 @@ drift from behaviour, and defended the answer.
 - **`find_references` folds in the entity's device.** Device triggers and device
   targets name the device, not the entity the user sees.
 
+## History and statistics
+
+`get_entity_history` / `selora_get_entity_history` (`history_reader.py`; the MCP
+schema is derived from the chat one) read the recorder for up to 10 entities.
+
+- **Every bound is reachable past.** Ranges go to 31 days of states or 400 of
+  statistics; a page is the newest `limit` rows and `older` / `next_offset` lead
+  to the rest. A fixed window with a silent cut answered "when did it last…"
+  wrongly whenever the answer was just outside it.
+- **Statistics are the long answer.** States are purged after `purge_keep_days`;
+  statistics are not. Defaults follow the dashboards: `change` for a meter
+  (`has_sum`), mean/min/max for a measurement. An entity without a
+  `state_class` has none and is pointed at `source='history'`, not handed `[]`.
+- **A removed entity is read, not refused** — its past is often the question.
+  An id with no state, no registry entry and no rows gets a note pointing at
+  `search_entities`.
+- **Password-mode text entities read as `***`**: their history is the secret's
+  past values. Secrecy is read from the recorded rows too, not only the live
+  state — an entity removed or taken out of password mode still recorded its
+  secret while it was one.
+- **Bucket count is capped before the query** (`_MAX_BUCKETS`): the cost is the
+  query, not the page, so a year of 5-minute buckets is refused with a coarser
+  period suggested.
+
 ## Camera snapshots (MCP)
 
 `selora_get_camera_image` answers with an MCP **image** block beside a small

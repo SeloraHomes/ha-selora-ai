@@ -519,21 +519,64 @@ TOOL_SEARCH_ENTITIES = ToolDef(
 TOOL_GET_ENTITY_HISTORY = ToolDef(
     name="get_entity_history",
     description=(
-        "Return recent state changes for a single entity from the Home "
-        "Assistant recorder. Use for temporal questions ('when did the front "
-        "door last open?'). Bounded to 24h."
+        "Read the recorder for up to 10 entities. source='history' (default): "
+        "state changes in a range ('when did the door last open?'), newest "
+        "`limit` returned, `older` counts the rest. source='statistics': "
+        "long-term per-period mean/min/max or change (energy used per day, "
+        "monthly averages), for entities with a state_class."
     ),
     params=(
         ToolParam(
             name="entity_id",
             type="string",
             description="Full entity_id (e.g. 'binary_sensor.front_door').",
-            required=True,
+        ),
+        ToolParam(
+            name="entity_ids",
+            type="array",
+            items_type="string",
+            description="Several entity_ids, read in one call.",
         ),
         ToolParam(
             name="hours",
             type="number",
-            description="Hours of history (0.25-24, default 6).",
+            description="Hours back from now, when no start is given (default 6).",
+        ),
+        ToolParam(
+            name="start",
+            type="string",
+            description=(
+                "ISO date or datetime; local time if no offset. History reaches "
+                "31 days, statistics 400."
+            ),
+        ),
+        ToolParam(name="end", type="string", description="ISO date or datetime; default now."),
+        ToolParam(
+            name="source",
+            type="string",
+            description="history (default) or statistics.",
+            enum=("history", "statistics"),
+        ),
+        ToolParam(
+            name="period",
+            type="string",
+            description="Statistics bucket (default hour).",
+            enum=("5minute", "hour", "day", "week", "month"),
+        ),
+        ToolParam(
+            name="statistic_types",
+            type="array",
+            items_type="string",
+            description=(
+                "Statistics values: mean, min, max, change, state, sum. Default: "
+                "change for meters, mean/min/max for measurements."
+            ),
+        ),
+        ToolParam(
+            name="limit", type="integer", description="Rows per entity (default 50, max 200)."
+        ),
+        ToolParam(
+            name="offset", type="integer", description="Skip this many newest rows (paging)."
         ),
     ),
     large_context_only=True,

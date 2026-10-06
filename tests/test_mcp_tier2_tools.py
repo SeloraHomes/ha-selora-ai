@@ -21,7 +21,6 @@ import pytest
 from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
 from custom_components.selora_ai.mcp_server.entities import (
     _tool_eval_template,
-    _tool_get_entity_history,
     _tool_search_entities,
 )
 from custom_components.selora_ai.mcp_server.scenes import _tool_delete_scene
@@ -1789,75 +1788,6 @@ async def test_search_entities_a_device_never_costs_a_match(hass: HomeAssistant)
             m["entity_id"] for m in (await _tool_search_entities(hass, {"query": query}))["matches"]
         }
         assert ("light.study_lamp" in ids) == ("light.study_lamp_two" in ids), query
-
-
-# ── get_entity_history ───────────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_get_entity_history_returns_deduped_changes(hass: HomeAssistant, setup_world) -> None:
-    """The handler deduplicates consecutive identical states."""
-    from datetime import UTC, datetime, timedelta
-
-    class _FakeState:
-        def __init__(self, state: str, when: datetime) -> None:
-            self.state = state
-            self.last_changed = when
-
-    now = datetime.now(UTC)
-    fake_states = {
-        "light.kitchen_island": [
-            _FakeState("off", now - timedelta(hours=2)),
-            _FakeState("off", now - timedelta(hours=1, minutes=55)),  # dedup
-            _FakeState("on", now - timedelta(hours=1)),
-            _FakeState("off", now - timedelta(minutes=30)),
-        ]
-    }
-
-    fake_instance = AsyncMock()
-    fake_instance.async_add_executor_job = AsyncMock(return_value=fake_states)
-
-    with (
-        patch(
-            "homeassistant.components.recorder.get_instance",
-            return_value=fake_instance,
-        ),
-        patch(
-            "homeassistant.components.recorder.history.get_significant_states",
-            return_value=fake_states,
-        ),
-    ):
-        result = await _tool_get_entity_history(
-            hass,
-            {"entity_id": "light.kitchen_island", "hours": 3},
-        )
-
-    assert result["entity_id"] == "light.kitchen_island"
-    assert result["count"] == 3
-    assert [c["state"] for c in result["changes"]] == ["off", "on", "off"]
-
-
-@pytest.mark.asyncio
-async def test_get_entity_history_unknown_entity(hass: HomeAssistant) -> None:
-    result = await _tool_get_entity_history(hass, {"entity_id": "light.nope"})
-    assert "error" in result
-
-
-@pytest.mark.asyncio
-async def test_get_entity_history_clamps_hours(hass: HomeAssistant, setup_world) -> None:
-    """hours is clamped to [0.25, 24]."""
-    fake_instance = AsyncMock()
-    fake_instance.async_add_executor_job = AsyncMock(return_value={})
-
-    with patch(
-        "homeassistant.components.recorder.get_instance",
-        return_value=fake_instance,
-    ):
-        result = await _tool_get_entity_history(
-            hass,
-            {"entity_id": "light.kitchen_island", "hours": 9999},
-        )
-    assert result["hours"] == 24
 
 
 # ── eval_template ────────────────────────────────────────────────────────────
