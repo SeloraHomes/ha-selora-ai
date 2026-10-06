@@ -664,7 +664,7 @@ def _entity_term_count(query_terms: list[str], haystack: str) -> int:
     return sum(1 for term in query_terms if term in haystack)
 
 
-def _device_search_index(dev_reg: DeviceRegistry) -> dict[str, dict[str, str]]:
+def _device_search_index(dev_reg: DeviceRegistry) -> dict[str, dict[str, Any]]:
     """Per-device searchable text and area, from one registry walk.
 
     An entity's own names carry the product and never the brand: "IKEA" lives
@@ -680,7 +680,7 @@ def _device_search_index(dev_reg: DeviceRegistry) -> dict[str, dict[str, str]]:
     fewer devices than entities, and the same walk carries the area fallback
     the loop needs for an entity whose own ``area_id`` is unset.
     """
-    index: dict[str, dict[str, str]] = {}
+    index: dict[str, dict[str, Any]] = {}
     for device in device_entries(dev_reg):
         manufacturer = device.manufacturer or ""
         model = device.model or ""
@@ -700,6 +700,9 @@ def _device_search_index(dev_reg: DeviceRegistry) -> dict[str, dict[str, str]]:
             "area_id": device.area_id or "",
             "manufacturer": manufacturer,
             "model": model,
+            # A device's label applies to its entities when targeting, so the
+            # label filter honours it too.
+            "labels": set(device.labels or ()),
         }
     return index
 
@@ -731,19 +734,33 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
     query = normalize(str(arguments.get("query", "")))
     domain_filter = str(arguments.get("domain", "")).strip().lower()
     device_class_filter = str(arguments.get("device_class", "")).strip().lower()
+    area_ids, error = _area_filter(hass, str(arguments.get("area") or ""))
+    if error:
+        return {"error": error}
+    state_filter = _state_filter(arguments.get("state"))
+    label_id, error = _label_filter(hass, str(arguments.get("label") or ""))
+    if error:
+        return {"error": error}
 
     query_terms = [t for t in query.split() if t]
-    # Any filter may stand alone; only a call carrying none of the three is
-    # refused. "All my cameras" and "every battery entity" are real requests
-    # with no name to search for — the latter is where a low-battery
-    # automation starts — and refusing them sent the model back to the user
-    # saying it could not do it. What made a bare filter dangerous was an
-    # unbounded dump; the listing ceiling and `omitted` below bound it.
-    if not query_terms and not device_class_filter and not domain_filter:
+    # Any filter may stand alone; only a call carrying none is refused. "All
+    # my cameras", "every battery entity", "everything unavailable" are real
+    # requests with no name to search for — the battery one is where a
+    # low-battery automation starts — and refusing them sent the model back to
+    # the user saying it could not do it. What made a bare filter dangerous was
+    # an unbounded dump; the listing ceiling and `omitted` below bound it.
+    if not (
+        query_terms
+        or device_class_filter
+        or domain_filter
+        or area_ids is not None
+        or state_filter
+        or label_id
+    ):
         return {
             "error": (
-                "query is required, or filter alone by domain and/or device_class "
-                "(e.g. domain='camera', device_class='battery')"
+                "query is required, or filter alone by domain, device_class, area, "
+                "state or label (e.g. domain='camera', state='unavailable')"
             )
         }
 
@@ -766,6 +783,9 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
     area_reg = ar.async_get(hass)
     dev_reg = dr.async_get(hass)
     area_names: dict[str, str] = {a.id: a.name for a in area_reg.async_list_areas()}
+    area_labels: dict[str, set[str]] = {
+        a.id: set(a.labels or ()) for a in area_reg.async_list_areas()
+    }
     device_index = _device_search_index(dev_reg)
 
     scored: list[tuple[float, dict[str, Any]]] = []
@@ -807,6 +827,23 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
 
         device_class = _entity_device_class(state, entry)
         if device_class_filter and device_class != device_class_filter:
+            continue
+        if area_ids is not None and ent_area_id not in area_ids:
+            continue
+        # A password-mode value is the secret itself: matching it against a
+        # requested state would confirm a guess, so such an entity never does.
+        if state_filter and (
+            str(state.attributes.get("mode", "")).lower() == "password"
+            or state.state.casefold() not in state_filter
+        ):
+            continue
+        # What a `label_id` target reaches: the entity's labels, its device's,
+        # and its area's (the area resolved through the device too).
+        if label_id and not (
+            (entry is not None and label_id in entry.labels)
+            or label_id in device_info.get("labels", ())
+            or label_id in area_labels.get(ent_area_id or "", ())
+        ):
             continue
 
         area_name = area_names.get(ent_area_id or "", "")
@@ -880,6 +917,43 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
         result["searched"] = _SEARCH_FIELDS
         result["hint"] = _NO_MATCH_HINT
     return result
+
+
+def _area_filter(hass: HomeAssistant, ref: str) -> tuple[set[str] | None, str | None]:
+    """The area ids an ``area`` filter covers: one area, or every area on a
+    floor of that name. ``(None, None)`` when no filter was asked for."""
+    ref = ref.strip()
+    if not ref:
+        return None, None
+    from ..registry_manager import resolve_area, resolve_floor  # noqa: PLC0415
+
+    area, area_error = resolve_area(hass, ref)
+    if area is not None:
+        return {area.id}, None
+    floor, _floor_error = resolve_floor(hass, ref)
+    if floor is not None:
+        from homeassistant.helpers import area_registry as ar  # noqa: PLC0415
+
+        return {
+            a.id for a in ar.async_get(hass).async_list_areas() if a.floor_id == floor.floor_id
+        }, None
+    return None, area_error
+
+
+def _state_filter(raw: Any) -> set[str]:
+    """Requested states, casefolded: a list, or one or more comma-separated."""
+    values = raw if isinstance(raw, list) else str(raw or "").split(",")
+    return {str(v).strip().casefold() for v in values if str(v).strip()}
+
+
+def _label_filter(hass: HomeAssistant, ref: str) -> tuple[str | None, str | None]:
+    ref = ref.strip()
+    if not ref:
+        return None, None
+    from ..label_manager import resolve_label  # noqa: PLC0415
+
+    label, error = resolve_label(hass, ref)
+    return (label.label_id, None) if label is not None else (None, error)
 
 
 # ── Tool: selora_get_entity_history ────────────────────────────────────────────

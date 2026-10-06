@@ -464,8 +464,9 @@ TOOL_SEARCH_ENTITIES = ToolDef(
         "issuing a command or building an automation. To resolve a named scene "
         "('Stores at 50%'), search with domain='scene' and use the top match's "
         "entity_id verbatim; NEVER guess a scene.<slug> id — a wrong id fails "
-        "validation. `domain` and `device_class` may each be used ALONE, with "
-        "no query: domain='camera' lists every camera, device_class='battery' "
+        "validation. Every filter (domain, device_class, area, state, label) may "
+        "be used ALONE, with no query: domain='camera' lists every camera, "
+        "state='unavailable' every entity that dropped off, device_class='battery' "
         "every battery entity — which is how you find battery levels at all, "
         "since they are diagnostic and never appear in the home snapshot. "
         "EVERY domain the home "
@@ -512,6 +513,17 @@ TOOL_SEARCH_ENTITIES = ToolDef(
                 "that class."
             ),
         ),
+        ToolParam(
+            name="area",
+            type="string",
+            description="Area or floor (name or id): its entities, by their own or device's area.",
+        ),
+        ToolParam(
+            name="state",
+            type="string",
+            description="Current state(s), comma-separated: 'unavailable', 'on', 'open,unlocked'.",
+        ),
+        ToolParam(name="label", type="string", description="Label name or id."),
         ToolParam(
             name="limit",
             type="integer",

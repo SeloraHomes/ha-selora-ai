@@ -60,6 +60,16 @@ load-bearing.
   diagnostic entities; entity names carry no brand).
 - **Matches echo `manufacturer` / `model` / `device_class` when set**, so fuzzy
   near-misses can be told apart; omitted when empty.
+- **Filters: domain, device_class, area, state, label**, each usable alone.
+  `area` takes an area or a floor (every area on it), matched against the
+  entity's area or its device's; `label` reaches what a `label_id` target does:
+  the entity's labels, its device's, and its area's. An unknown
+  area or label is refused with what exists.
+- **A password-mode entity never matches `state`.** Its state is the secret, and
+  a match would confirm a guess, though the value itself is never returned.
+- **MCP's `selora_search_entities` is derived** from the chat ToolDef, with its
+  own description (`_MCP_DESCRIPTIONS`: the chat text assumes the in-prompt
+  entity list). A hand-written copy is how a filter reaches one surface only.
 - **A ranked search and a filter-only listing have different ceilings.** A query
   is a resolution — default 10, max 25. A `device_class`-only call is a listing —
   returns all, up to 50. Past the bound, `omitted` + `omitted_note` say the list
