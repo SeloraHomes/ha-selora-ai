@@ -26,7 +26,6 @@ from ..const import (
     DOMAIN,
     SCENE_ID_PREFIX,
     SIGNAL_SCENE_DELETED,
-    SIGNAL_SCENE_REFRESHED,
 )
 from ..conversation_store import ConversationStore
 
@@ -511,36 +510,9 @@ async def _handle_websocket_rename_scene(
         connection.send_error(msg["id"], "rename_failed", str(exc))
         return
 
-    if tracked:
-        try:
-            await scene_store.async_add_scene(
-                scene_id,
-                result["name"],
-                result["entity_count"],
-                entity_id=result.get("entity_id"),
-                content_hash=result["content_hash"],
-            )
-        except Exception:  # noqa: BLE001 — the rename landed; a store refresh must not undo it
-            _LOGGER.warning("Failed to update scene %s in store after rename", scene_id)
+    from ..scene_utils import async_propagate_scene_edit  # noqa: PLC0415
 
-    try:
-        store: ConversationStore = hass.data[DOMAIN].setdefault(
-            "_conv_store", ConversationStore(hass)
-        )
-        await store.update_scene_in_sessions(scene_id, result["name"], result["scene_yaml"])
-    except Exception:  # noqa: BLE001 — same: sessions are a cache of the file, not the record
-        _LOGGER.warning("Failed to propagate scene %s rename to sessions", scene_id)
-
-    # Assist holds its own in-memory copy of each conversation's scenes, and
-    # nothing repairs it afterwards: the store now carries the new content
-    # hash, so the next reconcile sees no drift and never fires this signal of
-    # its own accord. Left out, an open conversation goes on naming the scene
-    # as it was for the life of the process. Dispatched outside the try above
-    # because the two caches are independent — a failed session write is no
-    # reason to leave Assist stale as well.
-    async_dispatcher_send(
-        hass, SIGNAL_SCENE_REFRESHED, scene_id, result["name"], result["scene_yaml"]
-    )
+    await async_propagate_scene_edit(hass, scene_id, result, tracked=tracked)
 
     connection.send_result(
         msg["id"],

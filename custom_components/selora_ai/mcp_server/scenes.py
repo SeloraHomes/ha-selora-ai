@@ -376,6 +376,8 @@ async def _tool_create_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     is_valid, reason, normalized = validate_scene_payload(payload, hass)
     if not is_valid or normalized is None:
         return {"error": f"Invalid scene: {reason}"}
+    if icon := str(arguments.get("icon") or "").strip():
+        normalized = {**normalized, "icon": icon}
 
     try:
         result = await async_create_scene(hass, normalized)
@@ -693,10 +695,93 @@ async def _tool_activate_scene(hass: HomeAssistant, arguments: dict[str, Any]) -
             return {"error": "Scene entity not found in Home Assistant"}
         entity_id = resolved
 
+    data: dict[str, Any] = {"entity_id": entity_id}
+    transition = arguments.get("transition")
+    if transition not in (None, ""):
+        try:
+            data["transition"] = float(transition)
+        except (TypeError, ValueError):
+            return {"error": "transition is a number of seconds."}
+        if not 0 <= data["transition"] <= 300:
+            return {"error": "transition is 0 to 300 seconds."}
     try:
-        await hass.services.async_call("scene", "turn_on", {"entity_id": entity_id}, blocking=True)
+        await hass.services.async_call("scene", "turn_on", data, blocking=True)
     except Exception as exc:  # noqa: BLE001
         _LOGGER.error("Failed to activate scene %s: %s", entity_id, exc)
         return {"error": f"Activation failed: {exc}"}
 
-    return {"entity_id": entity_id, "status": "activated"}
+    return {
+        "entity_id": entity_id,
+        "status": "activated",
+        **({"transition": data["transition"]} if "transition" in data else {}),
+    }
+
+
+async def _tool_update_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Change a scenes.yaml scene in place — see ``scene_utils.async_edit_scene_yaml``."""
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    from ..helpers import get_scene_store  # noqa: PLC0415
+    from ..scene_utils import (  # noqa: PLC0415
+        SCENE_ID_PREFIX,
+        SceneRenameError,
+        ScenesYamlError,
+        async_edit_scene_yaml,
+        async_propagate_scene_edit,
+    )
+
+    scene_id = str(arguments.get("scene_id") or "").strip()
+    entity_id = str(arguments.get("entity_id") or "").strip()
+    if not scene_id and entity_id:
+        entry = er.async_get(hass).async_get(entity_id)
+        if entry is None or entry.domain != "scene" or entry.platform != "homeassistant":
+            return {
+                "error": (
+                    f"{_sanitize(entity_id)} is not a scene from scenes.yaml; scenes "
+                    "made by an integration cannot be edited here."
+                )
+            }
+        scene_id = entry.unique_id
+    if not scene_id:
+        return {"error": "scene_id or entity_id is required"}
+
+    name = arguments.get("name")
+    entities = arguments.get("entities")
+    icon = str(arguments.get("icon") or "").strip() or None
+    clear = arguments.get("clear") or []
+    if not isinstance(clear, list) or set(clear) - {"icon"}:
+        return {"error": "clear takes 'icon'."}
+    if entities is not None and not isinstance(entities, dict):
+        return {"error": "entities must be an entity_id → state object map."}
+    if icon and "icon" in clear:
+        return {"error": "icon: set and cleared in one call; do one or the other."}
+    if not (name or entities or icon or clear):
+        return {"error": "Pass what to change: name, entities, icon or clear."}
+
+    store = get_scene_store(hass)
+    record = await store.async_get_scene(scene_id)
+    tracked = record is not None and record.get("deleted_at") is None
+    if scene_id.startswith(SCENE_ID_PREFIX) and not tracked:
+        return {"error": f"Scene {_sanitize(scene_id)} has been deleted."}
+
+    try:
+        result = await async_edit_scene_yaml(
+            hass,
+            scene_id,
+            name=str(name) if name else None,
+            entities=entities,
+            icon=icon,
+            clear_icon="icon" in clear,
+        )
+    except (SceneRenameError, ScenesYamlError) as exc:
+        return {"error": f"The scene was not changed: {exc}"}
+
+    await async_propagate_scene_edit(hass, scene_id, result, tracked=tracked)
+    return {
+        "status": "updated",
+        "scene_id": scene_id,
+        "name": _sanitize(result["name"]),
+        "entity_id": result.get("entity_id"),
+        "entity_count": result["entity_count"],
+        **(_left_out({"entities": entities}, hass) if isinstance(entities, dict) else {}),
+    }

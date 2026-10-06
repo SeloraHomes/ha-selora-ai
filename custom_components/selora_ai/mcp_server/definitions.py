@@ -136,6 +136,7 @@ from .names import (
     TOOL_UPDATE_FLOOR,
     TOOL_UPDATE_GROUP,
     TOOL_UPDATE_HELPER,
+    TOOL_UPDATE_SCENE,
     TOOL_VALIDATE_ACTION,
     TOOL_VALIDATE_AUTOMATION,
     TOOL_VALIDATE_SCENE,
@@ -812,6 +813,41 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                         "properties": {"state": {}},
                     },
                 },
+                "icon": {"type": "string", "description": "Optional mdi icon."},
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_UPDATE_SCENE,
+        description=(
+            "Change an existing scene in scenes.yaml — Selora's or one made in Home "
+            "Assistant's editor: its name, the states it sets, or its icon. Only what "
+            "is passed changes; the scene keeps its entity_id and everything else "
+            "the editor stored. `entities` REPLACES the scene's states (read it with "
+            "selora_get_scene first) and is validated as a new scene's are. "
+            "Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "scene_id": {"type": "string", "description": "The scene's id in scenes.yaml."},
+                "entity_id": {"type": "string", "description": "Or its entity_id."},
+                "name": {"type": "string", "description": "New name."},
+                "entities": {
+                    "type": "object",
+                    "description": "Replacement entity_id → state object map.",
+                    "additionalProperties": {
+                        "type": "object",
+                        "required": ["state"],
+                        "properties": {"state": {}},
+                    },
+                },
+                "icon": {"type": "string", "description": "New mdi icon."},
+                "clear": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": ["icon"]},
+                    "description": "Settings to remove: 'icon'.",
+                },
             },
         },
     ),
@@ -836,7 +872,8 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
         description=(
             "Activate any Home Assistant scene by calling scene.turn_on. "
             "Pass entity_id (e.g. 'scene.movie_night') to target any HA scene, or "
-            "scene_id to target a Selora-managed scene by its store ID. "
+            "scene_id to target a Selora-managed scene by its store ID; transition "
+            "fades into it. "
             "Requires admin access."
         ),
         inputSchema={
@@ -849,6 +886,12 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                 "scene_id": {
                     "type": "string",
                     "description": "Selora scene store ID. Resolved to an entity_id via the SceneStore.",
+                },
+                "transition": {
+                    "type": "number",
+                    "description": "Seconds to fade into the scene (lights that support it).",
+                    "minimum": 0,
+                    "maximum": 300,
                 },
             },
         },
