@@ -1028,6 +1028,15 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                         "for the group to read 'on'."
                     ),
                 },
+                "hide_members": {
+                    "type": "boolean",
+                    "description": "Hide the members, so only the group shows; false shows them.",
+                },
+                "statistic": {
+                    "type": "string",
+                    "enum": list(_SENSOR_STATISTIC_ENUM),
+                    "description": "Sensor groups only: how the members are combined.",
+                },
             },
         },
     ),
