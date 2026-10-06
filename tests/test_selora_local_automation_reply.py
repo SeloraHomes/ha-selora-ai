@@ -18,9 +18,13 @@ import pytest
 from custom_components.selora_ai.const import (
     SELORA_LOCAL_BACKEND_LLAMA,
     SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
+    SELORA_LOCAL_MAX_TOKENS_BY_KIND,
 )
 from custom_components.selora_ai.llm_client.parsers import parse_architect_response
 from custom_components.selora_ai.providers.selora_local import SeloraLocalProvider
+from custom_components.selora_ai.providers.selora_local.runtime.request_build import (
+    _SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS,
+)
 from custom_components.selora_ai.providers.selora_local.runtime.slim_parser import (
     selora_local_blueprint_reply,
 )
@@ -193,3 +197,25 @@ async def test_a_blueprint_wins_over_a_sentence_driven_override(
         "intent": "answer",
         "response": raw,
     }
+
+
+# ── output cap ───────────────────────────────────────────────────────────────
+
+# Longest automation-specialist reply in the v0.5.0 training corpus, in Qwen3
+# tokens: a blueprint (p99 255). Concrete automations top out at 199.
+_LONGEST_TRAINED_AUTOMATION_REPLY_TOKENS = 257
+
+
+@pytest.mark.parametrize("kind", ["chat_automation", "suggestions"])
+def test_the_automation_cap_fits_the_longest_trained_reply(kind: str) -> None:
+    """A cap below what the model was trained to emit cuts a blueprint off
+    mid-YAML, and a truncated blueprint parses as nothing at all."""
+    assert SELORA_LOCAL_MAX_TOKENS_BY_KIND[kind] >= _LONGEST_TRAINED_AUTOMATION_REPLY_TOKENS
+
+
+def test_the_automation_reservation_covers_its_output_cap() -> None:
+    """The reply shares the window with the prompt, so raising the cap means
+    raising the reservation the entity block is sized against too."""
+    assert (
+        SELORA_LOCAL_MAX_TOKENS_BY_KIND["chat_automation"] < _SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS
+    )

@@ -35,7 +35,14 @@ in no number at all.
   `chat_template_kwargs.enable_thinking`; Ollama ignores that and takes
   `reasoning_effort: "none"` on its OpenAI-compatible endpoint, so the
   ollama-unified backend sends both.
-- **The automation token reservation follows the prompt.**
-  `_SELORA_LOCAL_AUTOMATION_RESERVED_TOKENS` is the prompt's Qwen3 token count
-  plus everything else the request carries. Re-measure it when the automation
-  prompt changes size.
+- **The token reservations follow the prompts.** Every reservation is a
+  prompt's Qwen3 token count from `_SELORA_LOCAL_PROMPT_TOKENS` plus a fixed
+  allowance for everything else the request carries. The ollama-unified
+  backend reserves for the unified prompt, because that is what it sends for
+  every intent. Sizing for the specialist prompt there overfills the window.
+  On a model release, re-measure the counts: encode each stripped file with
+  the Qwen3 tokenizer, no special tokens. The published-prompts test ties each
+  count to the hash of the file it was measured on.
+- **The automation output cap covers the longest trained reply** (a 257-token
+  blueprint in v0.5.0), and the automation allowance covers the cap. Raise
+  them together.
