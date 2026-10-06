@@ -153,6 +153,8 @@ class ToolExecutor:
             "delete_label": self._delete_label,
             "list_helpers": self._list_helpers,
             "get_logs": self._get_logs,
+            "check_system": self._check_system,
+            "reload_integration": self._reload_integration,
             "get_automation_traces": self._get_automation_traces,
             "get_automation": self._get_automation,
             "get_scene": self._get_scene,
@@ -636,6 +638,16 @@ class ToolExecutor:
         from .registry_manager import helper_overview
 
         return await helper_overview(self._hass, _opt_str(arguments.get("domain")))
+
+    async def _check_system(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+        from .system_check import async_check_system
+
+        return await async_check_system(self._hass)
+
+    async def _reload_integration(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .integration_manager import async_reload_integration
+
+        return await async_reload_integration(self._hass, str(arguments.get("entry_id") or ""))
 
     async def _get_logs(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .diagnostics_tools import get_logs

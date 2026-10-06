@@ -3,7 +3,7 @@
 ## Tool lanes
 
 **Lanes apply to LOW-CONTEXT providers only.** A cloud turn gets the whole schema
-(~9.7k tokens vs ~5.7k per lane). Lane regexes that guessed wrong made the model
+(~17.7k tokens with 72 tools, against a fraction of that per lane). Lane regexes that guessed wrong made the model
 report a capability as nonexistent ("I can't create areas directly"), and a schema
 that never varies caches, which a per-turn lane prevents.
 
@@ -133,3 +133,17 @@ one light went off.
   run in turn the waits add up. Anything else keeps the model's order.
 - **The confirmation has one sentence per action**, not per call
   (`build_executed_confirmation`).
+
+## Home health in chat: one tool, not one per page
+
+Every cloud turn carries every chat tool's schema, so a capability the MCP side
+splits across several tools comes to chat folded where the questions are the
+same. `check_system` (`system_check.py`) answers "is anything wrong / what
+needs updating?" in one call — integrations not working, open repairs, pending
+updates, backup health — from the managers the per-topic MCP tools use, each
+section capped. With `reload_integration` it costs ~240 tokens per turn;
+the four MCP tools it stands for would cost several times that.
+
+- **Adding a chat tool moves its MCP definition to `_DERIVED_MCP_TOOLS`** —
+  `reload_integration` was hand-written for MCP and is now derived, so the two
+  cannot drift (see "Adding a delete tool").

@@ -20,6 +20,7 @@ from .names import (
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
     TOOL_CHAT,
+    TOOL_CHECK_SYSTEM,
     TOOL_CREATE_AREA,
     TOOL_CREATE_AUTOMATION,
     TOOL_CREATE_CATEGORY,
@@ -256,6 +257,9 @@ _ADMIN_TOOLS = frozenset(
         TOOL_GET_APP_LOGS,
         TOOL_IMPORT_BLUEPRINT,
         TOOL_DELETE_BLUEPRINT,
+        # Read-only, but it reads backups and integration titles, which Home
+        # Assistant keeps admin-only.
+        TOOL_CHECK_SYSTEM,
     }
 )
 
