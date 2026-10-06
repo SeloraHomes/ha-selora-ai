@@ -243,6 +243,22 @@ async def _tool_update_dashboard_resource(
     )
 
 
+async def _tool_set_dashboard_strategy(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Generate a dashboard from a strategy — see ``dashboard_manager``."""
+    from ..dashboard_manager import async_set_dashboard_strategy  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_options, _opt_str  # noqa: PLC0415
+
+    return await async_set_dashboard_strategy(
+        hass,
+        target=_opt_str(arguments.get("dashboard_target")),
+        strategy=_opt_options(arguments.get("strategy")),
+        confirmed=_opt_bool(arguments.get("confirmed")) is True,
+        expected_fingerprint=_opt_str(arguments.get("fingerprint")),
+    )
+
+
 async def _tool_get_config_yaml(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Read configuration YAML — see ``config_yaml``."""
     from ..config_yaml import async_read  # noqa: PLC0415
