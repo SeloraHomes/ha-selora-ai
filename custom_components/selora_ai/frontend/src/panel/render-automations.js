@@ -28,6 +28,11 @@ import { interpolate } from "../shared/i18n.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
+import {
+  activeRefinement,
+  prefillComposer,
+  stepPrefill,
+} from "./refine-guide.js";
 
 // Click target for entities mentioned in a trigger/condition/action. Opens
 // HA's built-in more-info dialog via the standard `hass-more-info` event
@@ -226,16 +231,42 @@ function renderFlowNode(host, item, kind, ctx) {
   // `enabled: false` is valid on any trigger/condition/action. Rendering it as a
   // live node claimed the step runs when HA skips it entirely.
   const off = item?.enabled === false;
+  const tag = off
+    ? html`<span class="flow-off-tag"
+        >${host._t("automations_flow_disabled", "disabled")}</span
+      >`
+    : "";
+  // While refining, a step is a shortcut to describing a change to it. Entity
+  // links stop propagation, so they still open their own dialog.
+  const onEdit = ctx?.onEditStep;
+  if (onEdit) {
+    const edit = () => onEdit(describeFlowItem(host.hass, item, ctx));
+    return html`<div
+      class="flow-node ${kind}-node flow-node--editable ${
+        off ? "flow-node--off" : ""
+      }"
+      role="button"
+      tabindex="0"
+      title=${host._t("refine_edit_step_tooltip", "Change this step")}
+      @click=${edit}
+      @keydown=${(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        edit();
+      }}
+    >
+      ${renderFlowDescription(host, item, ctx)}${tag}<ha-icon
+        class="flow-node-edit"
+        icon="mdi:pencil-outline"
+        aria-hidden="true"
+      ></ha-icon>
+    </div>`;
+  }
   return html`<div
     class="flow-node ${kind}-node ${off ? "flow-node--off" : ""}"
   >
-    ${renderFlowDescription(host, item, ctx)}${
-      off
-        ? html`<span class="flow-off-tag"
-            >${host._t("automations_flow_disabled", "disabled")}</span
-          >`
-        : ""
-    }
+    ${renderFlowDescription(host, item, ctx)}${tag}
   </div>`;
 }
 
@@ -563,7 +594,8 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
 // Automation flowchart renderer
 // ---------------------------------------------------------------------------
 
-export function renderAutomationFlowchart(host, auto) {
+// `opts.onEditStep(description)` makes every leaf step clickable.
+export function renderAutomationFlowchart(host, auto, opts = {}) {
   if (!auto) return html``;
   const triggers = (() => {
     const t = auto.triggers ?? auto.trigger ?? [];
@@ -581,7 +613,7 @@ export function renderAutomationFlowchart(host, auto) {
   // Conditions inside the chart may reference triggers by id
   // (condition: trigger), so every node renders with the trigger list
   // in scope.
-  const ctx = { triggers };
+  const ctx = { triggers, onEditStep: opts.onEditStep };
   // Triggers whose only job is re-evaluating the conditions below, or that
   // a branch already quotes as "Triggered by …", add nothing — hide the
   // whole section when every trigger is such a duplicate.
@@ -725,7 +757,15 @@ export function renderProposalCard(host, msg, msgIndex) {
     `;
   }
 
+  // The existing automation loaded for an edit — still the live one until a
+  // proposal is accepted. While that edit is still waiting on its first
+  // description, steps are clickable (the heading above the bubble is
+  // `renderRefineHeading`).
   if (status === "refining") {
+    const editing = activeRefinement(host._messages)?.index === msgIndex;
+    const flowOpts = editing
+      ? { onEditStep: (step) => prefillComposer(host, stepPrefill(host, step)) }
+      : {};
     return html`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
@@ -734,14 +774,14 @@ export function renderProposalCard(host, msg, msgIndex) {
             msg.description || automation.description,
             {
               badge: host._t(
-                "automations_badge_being_refined",
-                "Being Refined",
+                "automations_badge_current_version",
+                "Current version",
               ),
             },
           )}
         </div>
         <div class="automation-subcard-body">
-          ${renderAutomationFlowchart(host, automation)}
+          ${renderAutomationFlowchart(host, automation, flowOpts)}
         </div>
       </div>
     `;
