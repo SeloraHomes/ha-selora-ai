@@ -897,7 +897,11 @@ async def _tool_get_entity_history(
 # ── Tool: selora_eval_template ─────────────────────────────────────────────────
 
 
-_TEMPLATE_MAX_CHARS = 1024
+# Room for a real template — a loop over a room's lights, a formatted summary.
+# Home Assistant sets no limit; this only bounds what one call can send.
+_TEMPLATE_MAX_CHARS = 8000
+# The rendered result is bounded on its way back like any other text.
+_TEMPLATE_RESULT_MAX_CHARS = 4000
 
 
 async def _tool_eval_template(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -920,7 +924,7 @@ async def _tool_eval_template(hass: HomeAssistant, arguments: dict[str, Any]) ->
         _LOGGER.exception("eval_template failed")
         return {"error": f"template evaluation failed: {exc}"}
 
-    return {"result": _sanitize(result, limit=_TEMPLATE_MAX_CHARS)}
+    return {"result": _sanitize(result, limit=_TEMPLATE_RESULT_MAX_CHARS)}
 
 
 # ── Tool: selora_home_analytics ──────────────────────────────────────────────

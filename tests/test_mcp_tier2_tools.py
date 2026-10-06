@@ -1819,7 +1819,7 @@ async def test_eval_template_missing(hass: HomeAssistant) -> None:
 
 @pytest.mark.asyncio
 async def test_eval_template_length_cap(hass: HomeAssistant) -> None:
-    payload = "{{ 'a' }}" + "x" * 2000
+    payload = "{{ 'a' }}" + "x" * 9000
     result = await _tool_eval_template(hass, {"template": payload})
     assert "error" in result
     assert "character limit" in result["error"]

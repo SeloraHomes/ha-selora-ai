@@ -84,3 +84,13 @@ path, because YAML edits and new integrations only take effect after one:
 - **Started, not awaited** — HA stops under the call, so the answer leaves first.
 - `set_config_yaml`'s `restart_required` and a HACS integration install name
   this tool in their hint.
+
+## What is not a target
+
+- **A `script.<name>` call's `data` is the script's own inputs** (fields), so a
+  field named `device_id` or `area_id` is not a hidden target
+  (`_data_is_script_input`). `script.turn_on`/`turn_off`/`toggle`/`reload` keep
+  the check: their data can carry real targets.
+- **The denylist is for the irreversible**, per its own rationale. Refreshing a
+  sensor (`homeassistant.update_entity`) and the read-only
+  `homeassistant.check_config` are not, and are not on it.
