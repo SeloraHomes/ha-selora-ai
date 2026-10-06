@@ -466,8 +466,6 @@ _BLOCKED_SERVICES: frozenset[str] = frozenset(
     {
         "homeassistant.restart",
         "homeassistant.stop",
-        "homeassistant.check_config",
-        "homeassistant.update_entity",
         "recorder.purge",
         "recorder.purge_entities",
         "hassio.host_reboot",

@@ -68,6 +68,16 @@ _RESPONSE_STRING_LIMIT: Final = 500
 # module never checks. Refused; entities are named in ``entity_id``.
 _TARGET_KEYS: Final = frozenset({"entity_id", "device_id", "area_id", "floor_id", "label_id"})
 
+# The script services that take a TARGET; any other `script.<name>` takes the
+# script's own fields as its data, and a field called `device_id` there is an
+# input to the script, not a way of targeting entities.
+_SCRIPT_TARGET_SERVICES: Final = frozenset({"turn_on", "turn_off", "toggle", "reload"})
+
+
+def _data_is_script_input(domain: str, verb: str) -> bool:
+    return domain == "script" and verb not in _SCRIPT_TARGET_SERVICES
+
+
 # Bound on the response once its strings are bounded, under the tool-result
 # cap so the states and the rest of the result still fit beside it.
 _RESPONSE_BUDGET: Final = 12000
@@ -204,7 +214,11 @@ def check_service_call(
         errors.append(f"'{service}' is not a service Home Assistant has. Call list_services.")
     if data is not None and not isinstance(data, dict):
         errors.append("data must be an object")
-    elif isinstance(data, dict) and (hidden := sorted(_TARGET_KEYS & set(data))):
+    elif (
+        isinstance(data, dict)
+        and not _data_is_script_input(domain, verb)
+        and (hidden := sorted(_TARGET_KEYS & set(data)))
+    ):
         errors.append(
             f"{', '.join(hidden)} cannot go in data: name the entities in entity_id, "
             "so the call is checked against what it will actually act on."

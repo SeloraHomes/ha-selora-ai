@@ -30,7 +30,9 @@ _LOGGER = logging.getLogger(__name__)
 _MAX_LOG_ENTRIES: Final = 25
 _MAX_TRACES: Final = 5
 
-_LEVELS: Final = ("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG")
+# Home Assistant's system log keeps WARNING and above only, so a lower level
+# could never match anything.
+_LEVELS: Final = ("CRITICAL", "ERROR", "WARNING")
 
 
 def get_logs(

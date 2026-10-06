@@ -2006,7 +2006,7 @@ TOOL_GET_LOGS = ToolDef(
             name="level",
             type="string",
             description="Only entries at this level.",
-            enum=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"),
+            enum=("CRITICAL", "ERROR", "WARNING"),
         ),
         ToolParam(
             name="contains",
