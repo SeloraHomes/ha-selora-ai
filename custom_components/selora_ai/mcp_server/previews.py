@@ -197,7 +197,7 @@ async def _preview_set_script(hass: HomeAssistant, arguments: dict[str, Any]) ->
         resolve_write_target,
         script_fingerprint,
     )
-    from ..tool_executor import _opt_str  # noqa: PLC0415
+    from ..tool_executor import _opt_list, _opt_str  # noqa: PLC0415
 
     alias = str(arguments.get("alias", "")).strip()
     try:
@@ -226,6 +226,13 @@ async def _preview_set_script(hass: HomeAssistant, arguments: dict[str, Any]) ->
     label = f"Replace the {friendly} script"
     if isinstance(steps, list) and steps:
         label = f"{label} — its {len(steps)} existing step{'s' if len(steps) != 1 else ''} are discarded"
+    # The inputs callers pass: changing them is what breaks those callers, and
+    # the card is the only place the user is told before it happens.
+    new_fields = arguments.get("fields")
+    if "fields" in (_opt_list(arguments.get("clear")) or []) and current.get("fields"):
+        label = f"{label}; its inputs ({', '.join(sorted(current['fields']))}) are removed"
+    elif isinstance(new_fields, dict) and new_fields and new_fields != current.get("fields"):
+        label = f"{label}; its inputs become {', '.join(sorted(new_fields))}"
 
     return _destructive_card(
         kind="script",

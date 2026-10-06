@@ -1528,8 +1528,9 @@ TOOL_SET_SCRIPT = ToolDef(
         "answer when several automations need the same steps, or the user wants a "
         "button they can press ('Movie Night', 'Leaving the House'). The sequence uses "
         "the same action syntax as an automation's actions. This REPLACES the script's "
-        "sequence — call get_script first when editing. Settings this tool has no "
-        "parameter for (fields, variables, max, trace) are carried over unchanged."
+        "sequence — call get_script first when editing. Settings not passed are "
+        "kept; remove one with `clear`. `fields` are the inputs callers pass (use "
+        "them as {{ name }} in the sequence); changing them names the callers to check."
     ),
     params=(
         ToolParam(
@@ -1558,6 +1559,38 @@ TOOL_SET_SCRIPT = ToolDef(
             enum=("single", "restart", "queued", "parallel"),
         ),
         ToolParam(name="icon", type="string", description="Optional mdi icon."),
+        ToolParam(
+            name="fields",
+            type="object",
+            description=(
+                "Inputs, replacing the script's own: {name: {name, description, "
+                "required, default, example, selector}}, e.g. {'minutes': "
+                "{'required': true, 'selector': {'number': {'min': 1, 'max': 60}}}}."
+            ),
+        ),
+        ToolParam(
+            name="variables",
+            type="object",
+            description="Variables set at the start of every run (templates allowed).",
+        ),
+        ToolParam(
+            name="max",
+            type="integer",
+            description="queued/parallel mode: most runs at once (default 10).",
+        ),
+        ToolParam(
+            name="max_exceeded",
+            type="string",
+            description="Log level when max is exceeded, or 'silent'.",
+        ),
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description=(
+                "Settings to REMOVE: description, icon, mode, fields, variables, max, max_exceeded."
+            ),
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
