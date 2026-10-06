@@ -59,8 +59,9 @@ async def _tool_create_group(hass: HomeAssistant, arguments: dict[str, Any]) -> 
 
 
 async def _tool_update_group(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Rename a group helper and/or change which entities belong to it."""
+    """Rename a group helper, change its members, or its options."""
     from ..group_manager import async_update_group, resolve_group  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
 
     entry, error = resolve_group(
         hass,
@@ -82,6 +83,8 @@ async def _tool_update_group(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         requires_all_members=(
             bool(arguments["requires_all_members"]) if "requires_all_members" in arguments else None
         ),
+        hide_members=_opt_bool(arguments.get("hide_members")),
+        statistic=_opt_str(arguments.get("statistic")),
     )
 
 

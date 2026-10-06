@@ -31,6 +31,9 @@ edits membership in Settings → Helpers.
   - `statistic` is **dropped** off `sensor` (debug log): "mean of two lights" is
     not a request anyone makes, and refusing dead-ended "group my two lights". Its
     value is validated *after* the drop.
+  - On **update**, `statistic` off a sensor group is **refused**, not dropped:
+    creation drops what a model volunteers alongside a real request, but an
+    update asking to change it has no other request to rescue.
   - **A new per-type option needs one of these two treatments.**
 - **`entities` and `add_entities`/`remove_entities` are mutually exclusive** —
   replacement and delta are different intents; applying one and dropping the
@@ -68,6 +71,9 @@ edits membership in Settings → Helpers.
   - *Delete* — `group.async_remove_entry` unhides unconditionally, so
     `_hides_to_restore_after_delete()` captures still-claimed members **before**
     removal and re-applies the hide, restricted to `hidden_by == INTEGRATION`.
+- **`hide_members` can be turned on or off after creation** (`update_group`).
+  Turning it off releases members through `_members_free_to_unhide`, as a
+  removal does: a member another hidden group still claims stays hidden.
 - **A `hidden_by == USER` entity is never touched, in either direction.**
   `_apply_member_visibility` skips it: unhiding undoes the user's choice, and
   re-hiding transfers ownership to the integration so a later removal releases it.

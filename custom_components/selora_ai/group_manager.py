@@ -751,8 +751,16 @@ async def async_update_group(
     add_entities: Any = None,
     remove_entities: Any = None,
     requires_all_members: bool | None = None,
+    hide_members: bool | None = None,
+    statistic: str | None = None,
 ) -> dict[str, Any]:
-    """Rename a group and/or change its membership.
+    """Rename a group, change its membership, or its options.
+
+    ``hide_members`` hides or shows the members (as at creation, never an
+    entity the user hid themselves). ``statistic`` is a sensor group's
+    combination — refused on any other group: unlike at creation, where a
+    model volunteering it on a light group is dropped, asking to change it is
+    asking for something the group cannot store.
 
     ``entities`` replaces the member list; ``add_entities`` /
     ``remove_entities`` apply a delta to it. Returns a result dict or
@@ -866,8 +874,40 @@ async def async_update_group(
     # still requires a name — there it is the one thing that cannot be omitted.
     clean_name = " ".join(str(name or "").split()) or None
 
-    if clean_name is None and new_members == current and requires_all_members is None:
-        return {"error": "Nothing to change: provide a new name, members, or all-members flag."}
+    statistic = str(statistic or "").strip().lower() or None
+    if statistic is not None:
+        if group_type != "sensor":
+            return {
+                "error": (
+                    f"Only a sensor group combines its members with a statistic; this is a "
+                    f"'{group_type}' group."
+                )
+            }
+        if statistic not in SENSOR_STATISTICS:
+            return {
+                "error": (
+                    f"statistic must be one of: {', '.join(SENSOR_STATISTICS)}; "
+                    f"got '{sanitize_untrusted_text(statistic)}'"
+                )
+            }
+        if statistic == options.get("type"):
+            statistic = None
+    if hide_members is not None and bool(hide_members) == bool(options.get("hide_members")):
+        hide_members = None
+
+    if (
+        clean_name is None
+        and new_members == current
+        and requires_all_members is None
+        and hide_members is None
+        and statistic is None
+    ):
+        return {
+            "error": (
+                "Nothing to change: provide a new name, members, all-members flag, "
+                "hide_members or statistic."
+            )
+        }
 
     # Checked BEFORE anything is written. The no-op guard above counts
     # requires_all_members as a requested change, but only the three supporting
@@ -968,6 +1008,11 @@ async def async_update_group(
     if requires_all_members is not None:
         # Type support was already validated above, so this can't be dropped.
         options["all"] = bool(requires_all_members)
+    if statistic is not None:
+        options["type"] = statistic
+    was_hidden = bool(options.get("hide_members"))
+    if hide_members is not None:
+        options["hide_members"] = bool(hide_members)
 
     title = str(options.get("name") or entry.title)
     hass.config_entries.async_update_entry(entry, options=options, title=title)
@@ -977,15 +1022,19 @@ async def async_update_group(
     # without it the live entity keeps tracking the OLD member list.
     await hass.config_entries.async_reload(entry.entry_id)
 
+    # Members this group stops hiding become visible again — the ones removed
+    # from a hidden group, and, when hiding is turned off, every one it had —
+    # or they vanish from the UI with no group left to explain why. Ones
+    # another hidden group still claims stay hidden (_members_free_to_unhide).
     if options.get("hide_members"):
         _apply_member_visibility(hass, new_members, True)
-    # Members dropped from a hidden group must become visible again, or they
-    # vanish from the UI with no group left to explain why. Ones another hidden
-    # group still claims stay hidden — see _members_free_to_unhide.
-    if (
-        removed_members
-        and options.get("hide_members")
-        and (releasable := _members_free_to_unhide(hass, removed_members, entry.entry_id))
+    no_longer_hidden = (
+        [*removed_members, *(new_members if not options.get("hide_members") else [])]
+        if was_hidden
+        else []
+    )
+    if no_longer_hidden and (
+        releasable := _members_free_to_unhide(hass, no_longer_hidden, entry.entry_id)
     ):
         _apply_member_visibility(hass, releasable, False)
 
@@ -1008,6 +1057,8 @@ async def async_update_group(
         "member_count": len(new_members),
         "added": [e for e in new_entity_ids if e not in set(current_entity_ids)],
         "removed": _resolve_members(hass, removed_members),
+        **({"statistic": statistic} if statistic is not None else {}),
+        **({"hide_members": bool(hide_members)} if hide_members is not None else {}),
     }
 
 

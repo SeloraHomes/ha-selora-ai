@@ -784,6 +784,21 @@ TOOL_LIST_GROUPS = ToolDef(
     ),
 )
 
+# How a sensor group combines its members — group_manager.SENSOR_STATISTICS,
+# kept literal here so the registry imports no manager.
+_GROUP_STATISTICS = (
+    "last",
+    "first_available",
+    "max",
+    "mean",
+    "median",
+    "min",
+    "product",
+    "range",
+    "stdev",
+    "sum",
+)
+
 TOOL_CREATE_GROUP = ToolDef(
     name="create_group",
     description=(
@@ -843,18 +858,7 @@ TOOL_CREATE_GROUP = ToolDef(
                 "light, switch, cover, lock, fan and every other type — those have no "
                 "numeric state. Omit to use the mean."
             ),
-            enum=(
-                "last",
-                "first_available",
-                "max",
-                "mean",
-                "median",
-                "min",
-                "product",
-                "range",
-                "stdev",
-                "sum",
-            ),
+            enum=_GROUP_STATISTICS,
         ),
     ),
     requires_admin=True,
@@ -863,7 +867,8 @@ TOOL_CREATE_GROUP = ToolDef(
 TOOL_UPDATE_GROUP = ToolDef(
     name="update_group",
     description=(
-        "Change which devices belong to an existing group, or rename it. Use "
+        "Change which devices belong to an existing group, rename it, hide its "
+        "members, or change how a sensor group combines them. Use "
         "this — not create_group — when the user wants to add or remove a device "
         "from a group they already have. Identify the group by entity_id "
         "(preferred), entry_id, or group_name. Use add_entities / "
@@ -921,6 +926,17 @@ TOOL_UPDATE_GROUP = ToolDef(
                 "Light/switch/binary_sensor groups only: require EVERY member to be on "
                 "for the group to read 'on'."
             ),
+        ),
+        ToolParam(
+            name="hide_members",
+            type="boolean",
+            description="Hide the members so only the group shows; false shows them again.",
+        ),
+        ToolParam(
+            name="statistic",
+            type="string",
+            description="Sensor groups only: how the members are combined.",
+            enum=_GROUP_STATISTICS,
         ),
     ),
     requires_admin=True,
