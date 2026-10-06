@@ -347,7 +347,7 @@ async def test_an_empty_icon_string_still_does_not_clear(home: HomeAssistant) ->
 
 async def test_clearing_an_unknown_floor_field_is_refused(home: HomeAssistant) -> None:
     result = await _executor(home).execute("update_floor", {"floor": "Ground", "clear": ["name"]})
-    assert "clear accepts" in result["error"]
+    assert "clear takes icon, level" in result["error"]
 
 
 async def test_a_name_matching_another_floors_alias_is_created(hass: HomeAssistant) -> None:

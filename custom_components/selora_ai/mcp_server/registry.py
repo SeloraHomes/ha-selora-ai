@@ -56,19 +56,25 @@ async def _tool_create_area(hass: HomeAssistant, arguments: dict[str, Any]) -> d
     )
 
 
+def _update_area_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``update_area``'s arguments, one reading for chat and MCP."""
+    from ..tool_executor import _opt_list, _opt_str  # noqa: PLC0415
+
+    return {
+        "area": str(arguments.get("area", "")),
+        "new_name": _opt_str(arguments.get("new_name")),
+        "floor": _opt_str(arguments.get("floor")),
+        "icon": _opt_str(arguments.get("icon")),
+        "aliases": _opt_list(arguments.get("aliases")),
+        "clear": _opt_list(arguments.get("clear")),
+    }
+
+
 async def _tool_update_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Rename an area or change its floor, icon, or aliases."""
     from ..registry_manager import async_update_area  # noqa: PLC0415
-    from ..tool_executor import _opt_list, _opt_str  # noqa: PLC0415
 
-    return async_update_area(
-        hass,
-        area=str(arguments.get("area", "")),
-        new_name=_opt_str(arguments.get("new_name")),
-        floor=_opt_str(arguments.get("floor")),
-        icon=_opt_str(arguments.get("icon")),
-        aliases=_opt_list(arguments.get("aliases")),
-    )
+    return async_update_area(hass, **_update_area_kwargs(arguments))
 
 
 async def _tool_delete_area(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -106,6 +112,7 @@ def _update_entity_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         "disabled": _opt_bool(arguments.get("disabled")),
         "expose": expose,
         "new_entity_id": _opt_str(arguments.get("new_entity_id")),
+        "clear": _opt_list(arguments.get("clear")),
     }
 
 
@@ -116,18 +123,25 @@ async def _tool_update_entity(hass: HomeAssistant, arguments: dict[str, Any]) ->
     return await async_update_entity(hass, **_update_entity_kwargs(arguments))
 
 
+def _update_device_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``update_device``'s arguments, one reading for the direct call, the
+    preview and the confirmed card."""
+    from ..tool_executor import _opt_bool, _opt_list, _opt_str  # noqa: PLC0415
+
+    return {
+        "device": str(arguments.get("device", "")),
+        "new_name": _opt_str(arguments.get("new_name")),
+        "area": _opt_str(arguments.get("area")),
+        "disabled": _opt_bool(arguments.get("disabled")),
+        "clear": _opt_list(arguments.get("clear")),
+    }
+
+
 async def _tool_update_device(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Rename a device, move it to an area, or disable it."""
     from ..registry_manager import async_update_device  # noqa: PLC0415
-    from ..tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
 
-    return await async_update_device(
-        hass,
-        device=str(arguments.get("device", "")),
-        new_name=_opt_str(arguments.get("new_name")),
-        area=_opt_str(arguments.get("area")),
-        disabled=_opt_bool(arguments.get("disabled")),
-    )
+    return await async_update_device(hass, **_update_device_kwargs(arguments))
 
 
 async def _tool_list_blueprints(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:

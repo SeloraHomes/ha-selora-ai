@@ -48,6 +48,13 @@ the model stops reciting Settings click-paths.
   default it computes into the entity's options, pinning it for good;
   `async_get_exposure` reads the recorded setting or works the default out from
   core's rule without recording it.
+- **Resetting is `clear`, on every update tool** (entity: name, icon, area;
+  device: name, area; area: icon, floor; floor: icon, level). A blank value is
+  "not set" (`_opt_str`), so without it a renamed device never got its vendor
+  name back and an entity moved to a room never followed its device again.
+  `_clear_error` refuses an unknown name and a field set and cleared in one
+  call. The argument readers (`mcp_server/registry.py` `_update_*_kwargs`) are
+  shared by chat, MCP, the preview and the confirmed card.
 - **Deleting an area unassigns, silently** — automations targeting
   `area_id: living_room` keep loading and match nothing. Hence the card, with
   counts in its label.

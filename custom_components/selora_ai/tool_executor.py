@@ -533,16 +533,10 @@ class ToolExecutor:
         )
 
     async def _update_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server.registry import _update_area_kwargs
         from .registry_manager import async_update_area
 
-        return async_update_area(
-            self._hass,
-            area=str(arguments.get("area", "")),
-            new_name=_opt_str(arguments.get("new_name")),
-            floor=_opt_str(arguments.get("floor")),
-            icon=_opt_str(arguments.get("icon")),
-            aliases=_opt_list(arguments.get("aliases")),
-        )
+        return async_update_area(self._hass, **_update_area_kwargs(arguments))
 
     async def _delete_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Resolve a delete target and surface a confirmation card.
