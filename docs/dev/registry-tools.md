@@ -218,3 +218,18 @@ entity counterpart.
 - Both answer `requires_confirmation` first with what uses them — HA rewrites no
   automation that referred to them. Selora AI's own device and entities are
   refused.
+
+## Updates (MCP)
+
+`update_manager.py` lists `update.*` entities waiting to be installed and reads
+one's release notes; it changes nothing. Installing, skipping and un-skipping
+are services (`update.install`, `update.skip`, `update.clear_skipped`), already
+callable over MCP and gated by risk there.
+
+- **Grouped as HA's "Update all" groups them**: `home_assistant` (the hassio
+  core/os/supervisor entities, by unique_id prefix), `app` (other hassio),
+  `hacs`, `device`, `other`.
+- **Release notes keep their lines** — they are markdown — so they get their own
+  cleaner rather than `sanitize_untrusted_text`, which collapses whitespace:
+  control characters stripped, blank runs shrunk, length bounded. Admin-gated,
+  as HA's `update/release_notes` is.
