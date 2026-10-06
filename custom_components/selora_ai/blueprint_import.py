@@ -16,7 +16,13 @@ the URL may have been chosen by a model from a page it was asked to read. So:
 * **The first call writes nothing**: it returns what the blueprint is, where it
   would go, and a hash of its text. The confirmed call fetches again and writes
   only if the text still has that hash — what the user agreed to is what lands.
-  An existing file is never overwritten.
+* **An existing blueprint is replaced only when asked** (``overwrite``) — the
+  way an author's new version reaches automations already built on it, since
+  deleting one in use is refused. The preview names what uses it, and which of
+  those the new version would break (a required input they do not set, by
+  Home Assistant's own check); a confirmed overwrite is refused while anything
+  would break, or if the file changed since it was shown. Home Assistant
+  reloads what uses it once it is replaced.
 
 Deleting goes through the blueprint store, which refuses a blueprint still in
 use; the first call names what uses it, or asks for the confirmation.
@@ -103,6 +109,8 @@ async def async_import_blueprint(
     *,
     confirmed: bool = False,
     content_hash: str | None = None,
+    overwrite: bool = False,
+    replaces_hash: str | None = None,
 ) -> dict[str, Any]:
     """Preview a blueprint from *url*, or save it once confirmed."""
     url = str(url or "").strip()
@@ -140,12 +148,22 @@ async def async_import_blueprint(
         exists = bool(await store.async_get_blueprint(path))
     except HomeAssistantError:
         exists = False
+    replaces: dict[str, Any] | None = None
     if exists:
-        return {
-            "error": (
-                f"A {domain} blueprint already exists at {sanitize_untrusted_text(path, 120)}. "
-                "Delete it first to replace it."
-            )
+        if not overwrite:
+            return {
+                "error": (
+                    f"A {domain} blueprint already exists at "
+                    f"{sanitize_untrusted_text(path, 120)}. Pass overwrite=true to "
+                    "replace it with this version."
+                )
+            }
+        current = await hass.async_add_executor_job(_file_digest, store.blueprint_folder, path)
+        users = _users(hass, domain, path)
+        replaces = {
+            "file_hash": current,
+            "used_by": users,
+            "would_break": _breaks(hass, domain, users, blueprint),
         }
     digest = _text_hash(imported.raw_data)
     summary = {
@@ -159,13 +177,21 @@ async def async_import_blueprint(
         "source_url": shown_url,
         "content_hash": digest,
     }
+    if replaces is not None:
+        summary["replaces"] = replaces
     if not confirmed:
         return {
             "requires_confirmation": True,
             **summary,
             "hint": (
                 f"This saves a {domain} blueprint from {shown_url}: its actions run as "
-                f"written by its author. {_CONFIRM} and this content_hash."
+                f"written by its author. {_CONFIRM} and this content_hash"
+                + (
+                    " (and replaces_hash = replaces.file_hash). It REPLACES the "
+                    "existing one, and what uses it is reloaded with the new version."
+                    if replaces
+                    else "."
+                )
             ),
         }
     if content_hash != digest:
@@ -175,11 +201,43 @@ async def async_import_blueprint(
                 "content_hash was passed). Ask again without confirmed to see it."
             )
         }
+    if replaces is not None and replaces["would_break"]:
+        names = ", ".join(row["entity_id"] for row in replaces["would_break"])
+        return {
+            "error": (
+                f"Not replaced: the new version needs inputs that {names} do not set "
+                "(or their inputs could not be read). Give them those inputs first, "
+                "then import again."
+            ),
+            "would_break": replaces["would_break"],
+        }
+    stale = {
+        "error": (
+            "The existing blueprint is not the one shown for confirmation (or no "
+            "replaces_hash was passed). Ask again without confirmed to see it."
+        )
+    }
     try:
-        await store.async_add_blueprint(blueprint, path, allow_override=False)
+        if replaces is None:
+            await store.async_add_blueprint(blueprint, path, allow_override=False)
+        else:
+            if replaces_hash != replaces["file_hash"]:
+                return stale
+            if not await hass.async_add_executor_job(
+                _replace_if_digest,
+                store.blueprint_folder,
+                path,
+                replaces_hash,
+                blueprint.yaml(),
+            ):
+                return stale
+            # What `async_add_blueprint` does after its write: serve the new
+            # version, and reload what is built on it.
+            store._blueprints[path] = blueprint  # noqa: SLF001
+            await store._reload_blueprint_consumers(hass, path)  # noqa: SLF001
     except (HomeAssistantError, OSError) as exc:
         return {"error": f"It was not saved: {sanitize_untrusted_text(str(exc), 200)}"}
-    return {"status": "imported", **summary}
+    return {"status": "replaced" if replaces is not None else "imported", **summary}
 
 
 def _domain_checked(blueprint: Any, store: Any) -> Any:
@@ -214,6 +272,64 @@ def _users(hass: HomeAssistant, domain: str, path: str) -> list[str]:
     except (ImportError, KeyError):
         return []
     return []
+
+
+def _user_inputs(hass: HomeAssistant, domain: str, entity_id: str) -> dict[str, Any] | None:
+    """A blueprint user's own ``use_blueprint`` config, as written.
+
+    Not ``raw_config``: for a blueprint automation or script that is the
+    EXPANDED config, with the inputs already substituted. Each keeps the
+    original in ``_blueprint_inputs`` — what its own ``referenced_blueprint``
+    reads. A template entity is reached through its platforms.
+    """
+    entity: Any = None
+    if domain in ("automation", "script"):
+        component = hass.data.get(domain)
+        entity = component.get_entity(entity_id) if hasattr(component, "get_entity") else None
+    elif domain == "template":
+        from homeassistant.helpers.entity_platform import async_get_platforms  # noqa: PLC0415
+
+        for platform in async_get_platforms(hass, "template"):
+            if (entity := platform.entities.get(entity_id)) is not None:
+                break
+    config = getattr(entity, "_blueprint_inputs", None)
+    return config if isinstance(config, dict) and "use_blueprint" in config else None
+
+
+def _breaks(
+    hass: HomeAssistant, domain: str, users: list[str], blueprint: Any
+) -> list[dict[str, Any]]:
+    """The *users* the new *blueprint* would fail to load: an input it requires
+    (no default) that a user's stored inputs do not set — the set Home
+    Assistant's own ``BlueprintInputs.validate`` refuses on. A user whose
+    inputs cannot be read is listed as unchecked, which blocks the overwrite
+    as a break would: unread is not safe."""
+    from homeassistant.components.blueprint.models import BlueprintInputs  # noqa: PLC0415
+
+    broken = []
+    for entity_id in users:
+        config = _user_inputs(hass, domain, entity_id)
+        if config is None:
+            broken.append({"entity_id": entity_id, "unchecked": True})
+            continue
+        given = BlueprintInputs(blueprint, config).inputs_with_default
+        if missing := sorted(set(blueprint.inputs) - set(given)):
+            broken.append({"entity_id": entity_id, "missing_inputs": missing})
+    return broken
+
+
+def _replace_if_digest(folder: Any, path: str, digest: str, text: str) -> bool:
+    """Write *text* over the file only if it still hashes to *digest* — checked
+    and written in one job, so an edit made since the preview is not lost."""
+    import os  # noqa: PLC0415
+
+    if not _file_exists(folder, path) or _file_digest(folder, path) != digest:
+        return False
+    target = folder / path
+    temporary = target.with_name(f".{target.name}.selora-tmp")
+    temporary.write_text(text, encoding="utf-8")
+    os.replace(temporary, target)
+    return True
 
 
 def _file_exists(folder: Any, path: str) -> bool:

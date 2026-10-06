@@ -17,6 +17,8 @@ async def _tool_import_blueprint(hass: HomeAssistant, arguments: dict[str, Any])
         str(arguments.get("url") or ""),
         confirmed=_opt_bool(arguments.get("confirmed")) is True,
         content_hash=_opt_str(arguments.get("content_hash")),
+        overwrite=_opt_bool(arguments.get("overwrite")) is True,
+        replaces_hash=_opt_str(arguments.get("replaces_hash")),
     )
 
 

@@ -2181,8 +2181,10 @@ _TOOL_DEFINITIONS.extend(
                 "would be saved, its inputs and a content_hash, saving nothing. Its "
                 "actions run as its author wrote them, so tell the user the source, and "
                 "only once they agree call again with confirmed=true and that "
-                "content_hash. An existing blueprint is never overwritten. Requires "
-                "admin access."
+                "content_hash. To update a blueprint already saved to a new version, "
+                "pass overwrite=true: the preview names what uses it and what the new "
+                "version would break, and a confirmed overwrite also needs "
+                "replaces_hash. Requires admin access."
             ),
             inputSchema={
                 "type": "object",
@@ -2193,6 +2195,14 @@ _TOOL_DEFINITIONS.extend(
                     "content_hash": {
                         "type": "string",
                         "description": "With confirmed=true: the content_hash the first call returned.",
+                    },
+                    "overwrite": {
+                        "type": "boolean",
+                        "description": "Replace a blueprint already saved at that path.",
+                    },
+                    "replaces_hash": {
+                        "type": "string",
+                        "description": "With overwrite and confirmed: replaces.file_hash from the preview.",
                     },
                 },
             },
