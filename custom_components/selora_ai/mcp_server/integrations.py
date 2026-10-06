@@ -76,6 +76,28 @@ async def _tool_check_system(hass: HomeAssistant, _arguments: dict[str, Any]) ->
     return await async_check_system(hass)
 
 
+async def _tool_get_system_health(
+    hass: HomeAssistant, _arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """See ``diagnostics_reader``."""
+    from ..diagnostics_reader import async_system_health  # noqa: PLC0415
+
+    return await async_system_health(hass)
+
+
+async def _tool_get_diagnostics(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """See ``diagnostics_reader``."""
+    from ..diagnostics_reader import async_integration_diagnostics  # noqa: PLC0415
+    from ..tool_executor import _opt_list, _opt_str  # noqa: PLC0415
+
+    return await async_integration_diagnostics(
+        hass,
+        str(arguments.get("entry_id") or ""),
+        device=_opt_str(arguments.get("device_id")),
+        fields=_opt_list(arguments.get("fields")),
+    )
+
+
 async def _tool_fire_event(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """See ``event_bus``."""
     from ..event_bus import async_fire_event  # noqa: PLC0415

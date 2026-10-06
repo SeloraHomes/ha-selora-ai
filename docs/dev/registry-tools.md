@@ -388,3 +388,26 @@ logs. Start/stop/restart are services (`hassio.app_*` with `{app: slug}`;
   replaces the whole set, so a partial change would wipe the rest — passwords a
   read never shows included. A password-type option (or a credential-like name)
   reads back as `{is_set}`, and that shape sent back is not a new value.
+
+## System health and diagnostics (MCP)
+
+`diagnostics_reader.py` — the next look after `check_system`, as Settings shows it.
+
+- **System health** is Home Assistant's `system_health` registrations
+  (`_registered_domain_data`, which bounds each callback; on 2025.1 each
+  registration via `get_integration_info`). The pending checks inside (a server
+  reachable …) are awaited all at once, each with its own limit — not
+  `get_info`, whose one-at-a-time awaiting lets a check that never answers cost
+  every other integration's section. `system_health` is an after_dependency for
+  hassfest.
+- **Diagnostics** call the integration's own diagnostics platform, as "Download
+  diagnostics" does — read from `hass.data["diagnostics"].platforms` (present
+  from 2025.1). A device's dump only for a device of that entry.
+- **Credential-like keys are redacted again**: integrations redact for sharing in
+  a bug report, but not all carefully, and this goes to a model.
+- **A large dump is narrowed, not cut**: past the limit the result lists the
+  largest top-level fields with their sizes (50, the rest counted), and `fields`
+  asks for some — a dump cut mid-structure reads as complete. Any `Mapping` is
+  walked as one (an integration may return a `MappingProxyType`); stringifying
+  it would carry its credentials past the key redaction.
+- Both admin-only, as HA's own are.
