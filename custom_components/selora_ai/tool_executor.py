@@ -800,17 +800,7 @@ class ToolExecutor:
     async def _update_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .dashboard_manager import async_update_view
 
-        return await async_update_view(
-            self._hass,
-            target=_opt_str(arguments.get("dashboard_target")),
-            view=arguments.get("view"),
-            title=_opt_str(arguments.get("title")),
-            path=_opt_str(arguments.get("path")),
-            icon=_opt_str(arguments.get("icon")),
-            clear=_opt_list(arguments.get("clear")),
-            expected_fingerprint=_opt_str(arguments.get("expected_fingerprint")),
-            layout=_opt_str(arguments.get("layout")),
-        )
+        return await async_update_view(self._hass, **update_view_kwargs(arguments))
 
     async def _remove_dashboard_view(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Resolve a removal target and surface a confirmation card.
@@ -934,7 +924,42 @@ def add_view_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
         # is absent here; ``[]`` and ``""`` are filtered as padding one layer
         # down, where "no cards" is a legitimate request.
         "cards": None if raw_cards is None else _as_card_list(raw_cards),
+        "options": _opt_options(arguments.get("options")),
     }
+
+
+def update_view_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``async_update_view`` keyword arguments, shared with MCP as
+    ``add_view_kwargs`` is."""
+    return {
+        "target": _opt_str(arguments.get("dashboard_target")),
+        "view": arguments.get("view"),
+        "title": _opt_str(arguments.get("title")),
+        "path": _opt_str(arguments.get("path")),
+        "icon": _opt_str(arguments.get("icon")),
+        "clear": _opt_list(arguments.get("clear")),
+        "expected_fingerprint": _opt_str(arguments.get("expected_fingerprint")),
+        "layout": _opt_str(arguments.get("layout")),
+        "options": _opt_options(arguments.get("options")),
+        "section": _opt_index(arguments.get("section")),
+    }
+
+
+def _opt_options(value: Any) -> Any:
+    """An options object; some providers send objects as JSON text.
+
+    Only absence and padding (``None``, ``""``, ``{}``) read as not given.
+    Anything else malformed is passed on for the manager to refuse by name:
+    dropped, it would create the page without the options and report success.
+    """
+    if value is None or value == "" or value == {}:
+        return None
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except ValueError:
+            return value
+    return value
 
 
 def move_card_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:

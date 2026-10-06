@@ -432,6 +432,14 @@ TOOL_INSERT_DASHBOARD_CARD = ToolDef(
             ),
         ),
         ToolParam(
+            name="section",
+            type="string",
+            description=(
+                "On a sections page: the section index to append to, or 'new' "
+                "for a new section at the end. Omit for the first section."
+            ),
+        ),
+        ToolParam(
             name="tag",
             type="string",
             description=(
@@ -2451,6 +2459,17 @@ TOOL_ADD_DASHBOARD_VIEW = ToolDef(
             ),
             items_type="object",
         ),
+        ToolParam(
+            name="options",
+            type="object",
+            description=(
+                "Page options: theme (installed theme name), background (CSS "
+                "background or {image, opacity, size}), subview (bool) + back_path, "
+                "visible (true/false or user names), badges (entity ids or badge "
+                "objects), and for a sections page max_columns (1-10) and "
+                "dense_section_placement (bool)."
+            ),
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
@@ -2459,8 +2478,10 @@ TOOL_ADD_DASHBOARD_VIEW = ToolDef(
 TOOL_UPDATE_DASHBOARD_VIEW = ToolDef(
     name="update_dashboard_view",
     description=(
-        "Rename a view, change its URL path or icon, or switch its layout (cards "
-        "are carried over; a panel page holds one card). Pass "
+        "Rename a view, change its URL path, icon or options, or switch its layout "
+        "(cards are carried over; a panel page holds one card). With `section`, "
+        "options and clear apply to that section of a sections page instead "
+        "(column_span 1-4, visibility conditions). Pass "
         "the view's fingerprint from get_dashboard so the edit cannot land on a "
         "different page if the dashboard changed meanwhile."
     ),
@@ -2484,9 +2505,25 @@ TOOL_UPDATE_DASHBOARD_VIEW = ToolDef(
             name="clear",
             type="array",
             description=(
-                "Fields to REMOVE from the view: 'icon' and/or 'path'. Use this "
+                "Fields to REMOVE: 'icon', 'path' or any option name. Use this "
                 "rather than passing an empty string, which is read as 'not set'."
             ),
+        ),
+        ToolParam(
+            name="options",
+            type="object",
+            description=(
+                "Page options: theme (installed theme name), background (CSS "
+                "background or {image, opacity, size}), subview (bool) + back_path, "
+                "visible (true/false or user names), badges (entity ids or badge "
+                "objects), and for a sections page max_columns (1-10) and "
+                "dense_section_placement (bool)."
+            ),
+        ),
+        ToolParam(
+            name="section",
+            type="integer",
+            description="Section index (from get_dashboard) whose options to change.",
         ),
         ToolParam(
             name="expected_fingerprint",
