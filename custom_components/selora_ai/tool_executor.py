@@ -478,12 +478,7 @@ class ToolExecutor:
     async def _create_category(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .category_manager import async_create_category
 
-        return async_create_category(
-            self._hass,
-            scope=str(arguments.get("scope", "")),
-            name=str(arguments.get("name", "")),
-            icon=_opt_str(arguments.get("icon")),
-        )
+        return async_create_category(self._hass, **category_kwargs(arguments))
 
     async def _assign_category(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .category_manager import async_assign_category
@@ -605,12 +600,7 @@ class ToolExecutor:
     async def _create_label(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .label_manager import async_create_label
 
-        return async_create_label(
-            self._hass,
-            name=str(arguments.get("name", "")),
-            icon=_opt_str(arguments.get("icon")),
-            color=_opt_str(arguments.get("color")),
-        )
+        return async_create_label(self._hass, **label_kwargs(arguments))
 
     async def _assign_labels(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .label_manager import async_assign_labels
@@ -928,6 +918,29 @@ def flow_helper_args(arguments: dict[str, Any]) -> tuple[str | None, Any, str | 
     if not isinstance(fields, dict) or (not fields and flow_id is None):
         fields = None
     return _opt_str(arguments.get("type")), fields, flow_id
+
+
+def label_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``create_label``'s arguments, one reading for chat and MCP."""
+    return {
+        "name": str(arguments.get("name", "")),
+        "icon": _opt_str(arguments.get("icon")),
+        "color": _opt_str(arguments.get("color")),
+        "description": _opt_str(arguments.get("description")),
+        "new_name": _opt_str(arguments.get("new_name")),
+        "clear": _opt_list(arguments.get("clear")),
+    }
+
+
+def category_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:
+    """``create_category``'s arguments, one reading for chat and MCP."""
+    return {
+        "scope": str(arguments.get("scope", "")),
+        "name": str(arguments.get("name", "")),
+        "icon": _opt_str(arguments.get("icon")),
+        "new_name": _opt_str(arguments.get("new_name")),
+        "clear": _opt_list(arguments.get("clear")),
+    }
 
 
 def update_view_kwargs(arguments: dict[str, Any]) -> dict[str, Any]:

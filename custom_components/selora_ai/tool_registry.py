@@ -1291,8 +1291,9 @@ TOOL_LIST_CATEGORIES = ToolDef(
 TOOL_CREATE_CATEGORY = ToolDef(
     name="create_category",
     description=(
-        "Create a category within one list. If one with the name already exists "
-        "there this reports it rather than making a second."
+        "Create a category within one list, or change one: a name already taken "
+        "there is that category — renamed with new_name, its icon set or removed "
+        "with clear=['icon']; what is in it stays."
     ),
     params=(
         ToolParam(
@@ -1307,6 +1308,13 @@ TOOL_CREATE_CATEGORY = ToolDef(
         ),
         ToolParam(name="name", type="string", description="Category name.", required=True),
         ToolParam(name="icon", type="string", description="mdi icon."),
+        ToolParam(name="new_name", type="string", description="Rename the existing one to this."),
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description="Remove from the existing one: icon.",
+        ),
     ),
     requires_admin=True,
     large_context_only=True,
@@ -1664,14 +1672,23 @@ TOOL_LIST_LABELS = ToolDef(
 TOOL_CREATE_LABEL = ToolDef(
     name="create_label",
     description=(
-        "Create a label. Reports the existing one if the name is taken rather than "
-        "making a duplicate. You do not need to call this before assign_labels — that "
-        "creates unknown labels itself."
+        "Create a label, or change one: a name already taken is that label — "
+        "renamed with new_name, its icon, colour or description set, or removed "
+        "with clear; assignments are kept. You do not need to call this before "
+        "assign_labels — that creates unknown labels itself."
     ),
     params=(
         ToolParam(name="name", type="string", description="Label name.", required=True),
         ToolParam(name="icon", type="string", description="Optional mdi icon."),
         ToolParam(name="color", type="string", description="Optional HA colour name, e.g. 'blue'."),
+        ToolParam(name="description", type="string", description="Optional description."),
+        ToolParam(name="new_name", type="string", description="Rename the existing label to this."),
+        ToolParam(
+            name="clear",
+            type="array",
+            items_type="string",
+            description="Remove from the existing label: icon, color, description.",
+        ),
     ),
     requires_admin=True,
     large_context_only=True,

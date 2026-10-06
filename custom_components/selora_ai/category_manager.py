@@ -203,9 +203,16 @@ def category_overview(hass: HomeAssistant, scope: str | None = None) -> dict[str
 
 
 def async_create_category(
-    hass: HomeAssistant, *, scope: str, name: str, icon: str | None = None
+    hass: HomeAssistant,
+    *,
+    scope: str,
+    name: str,
+    icon: str | None = None,
+    new_name: str | None = None,
+    clear: Iterable[str] | None = None,
 ) -> dict[str, Any]:
-    """Create a category, or report the existing one with the same name.
+    """Create a category, or change the one already called *name* in *scope*
+    (``new_name``, ``icon``, ``clear=['icon']``), keeping what is in it.
 
     Same choice as areas, floors and labels: HA's ``async_create`` raises on a
     duplicate name, and a raised error reads to the model as a failure worth
@@ -231,13 +238,53 @@ def async_create_category(
         ),
         None,
     )
+    clear = list(clear or ())
+    if clear and clear != ["icon"]:
+        return {"error": "clear takes icon."}
+    if clear and icon:
+        return {"error": "icon: set and cleared in one call; do one or the other."}
+    new_name = str(new_name or "").strip() or None
     if existing is not None:
+        changes: dict[str, Any] = {}
+        if icon and str(icon).strip() != existing.icon:
+            changes["icon"] = str(icon).strip()
+        if clear and existing.icon is not None:
+            changes["icon"] = None
+        if new_name and new_name != existing.name:
+            clash = next(
+                (
+                    c
+                    for c in cr.async_get(hass).async_list_categories(scope=scope)
+                    if c.name.casefold() == new_name.casefold()
+                    and c.category_id != existing.category_id
+                ),
+                None,
+            )
+            if clash is not None:
+                return {
+                    "error": f"A category named '{sanitize_untrusted_text(new_name, 40)}' "
+                    "already exists there."
+                }
+            changes["name"] = new_name
+        if not changes:
+            return {
+                "status": "exists",
+                "scope": scope,
+                "category_id": existing.category_id,
+                "name": sanitize_untrusted_text(existing.name, 40),
+            }
+        updated = cr.async_get(hass).async_update(
+            scope=scope, category_id=existing.category_id, **changes
+        )
         return {
-            "status": "exists",
+            "status": "updated",
             "scope": scope,
-            "category_id": existing.category_id,
-            "name": sanitize_untrusted_text(existing.name, 40),
+            "category_id": updated.category_id,
+            "name": sanitize_untrusted_text(updated.name, 40),
+            "changed": sorted(changes),
         }
+    if new_name:
+        return {"error": f"There is no category '{sanitize_untrusted_text(name, 40)}' to rename."}
 
     entry = cr.async_get(hass).async_create(
         scope=scope, name=name, icon=str(icon).strip() or None if icon else None

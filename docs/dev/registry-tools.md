@@ -85,6 +85,12 @@ the model stops reciting Settings click-paths.
 
 ## Labels and categories
 
+- **Changing a label or category is `create_label` / `create_category` on a
+  taken name** (`new_name`, icon/colour/description, `clear`) — folded in rather
+  than an `update_*` tool each, since every chat tool's schema rides every cloud
+  turn. The alternative the user had, delete and recreate, strips the label from
+  everything carrying it. A rename onto another's name is refused, as at
+  creation; a taken name with nothing to change still reports `exists`.
 - **Label assignment is deltas, never replacement.** Several unrelated concerns
   write labels; a replacement from a model that only knows `holiday` would drop
   `battery-powered`. `assign_labels` **creates** an unknown label (it has no
