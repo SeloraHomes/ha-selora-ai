@@ -19,6 +19,7 @@ from ..const import (
 )
 from ..selora_auth import SeloraAuthContext
 from .access import _can_access_tool, _check_tool_access
+from .apps import _tool_get_app_logs, _tool_list_apps
 from .automations import (
     _tool_accept_automation,
     _tool_create_automation,
@@ -139,6 +140,8 @@ from .names import (
     TOOL_EXECUTE_COMMAND,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
+    TOOL_FIX_REPAIR,
+    TOOL_GET_APP_LOGS,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BACKUPS,
@@ -165,7 +168,9 @@ from .names import (
     TOOL_HACS_REMOVE,
     TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
+    TOOL_IGNORE_REPAIR,
     TOOL_INSERT_DASHBOARD_CARD,
+    TOOL_LIST_APPS,
     TOOL_LIST_AREAS,
     TOOL_LIST_ASSIST_PIPELINES,
     TOOL_LIST_AUTOMATIONS,
@@ -182,6 +187,7 @@ from .names import (
     TOOL_LIST_INTEGRATIONS,
     TOOL_LIST_LABELS,
     TOOL_LIST_PATTERNS,
+    TOOL_LIST_REPAIRS,
     TOOL_LIST_SCENES,
     TOOL_LIST_SCRIPTS,
     TOOL_LIST_SERVICES,
@@ -248,6 +254,7 @@ from .registry import (
     _tool_update_floor,
 )
 from .removals import _tool_remove_device, _tool_remove_entity
+from .repairs import _tool_fix_repair, _tool_ignore_repair, _tool_list_repairs
 from .scenes import (
     _tool_activate_scene,
     _tool_create_scene,
@@ -476,6 +483,11 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_LIST_UPDATES: _tool_list_updates,
         TOOL_GET_RELEASE_NOTES: _tool_get_release_notes,
         TOOL_GET_BACKUPS: _tool_get_backups,
+        TOOL_LIST_REPAIRS: _tool_list_repairs,
+        TOOL_IGNORE_REPAIR: _tool_ignore_repair,
+        TOOL_FIX_REPAIR: _tool_fix_repair,
+        TOOL_LIST_APPS: _tool_list_apps,
+        TOOL_GET_APP_LOGS: _tool_get_app_logs,
         TOOL_HACS_INSTALL: _tool_hacs_install,
         TOOL_HACS_REMOVE: _tool_hacs_remove,
         TOOL_HACS_ADD_REPOSITORY: _tool_hacs_add_repository,

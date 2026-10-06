@@ -47,6 +47,8 @@ from .names import (
     TOOL_EXECUTE_COMMAND,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
+    TOOL_FIX_REPAIR,
+    TOOL_GET_APP_LOGS,
     TOOL_GET_AUTOMATION,
     TOOL_GET_AUTOMATION_TRACES,
     TOOL_GET_BACKUPS,
@@ -73,7 +75,9 @@ from .names import (
     TOOL_HACS_REMOVE,
     TOOL_HACS_SEARCH,
     TOOL_HOME_ANALYTICS,
+    TOOL_IGNORE_REPAIR,
     TOOL_INSERT_DASHBOARD_CARD,
+    TOOL_LIST_APPS,
     TOOL_LIST_AREAS,
     TOOL_LIST_ASSIST_PIPELINES,
     TOOL_LIST_AUTOMATIONS,
@@ -90,6 +94,7 @@ from .names import (
     TOOL_LIST_INTEGRATIONS,
     TOOL_LIST_LABELS,
     TOOL_LIST_PATTERNS,
+    TOOL_LIST_REPAIRS,
     TOOL_LIST_SCENES,
     TOOL_LIST_SCRIPTS,
     TOOL_LIST_SERVICES,
@@ -241,6 +246,12 @@ _ADMIN_TOOLS = frozenset(
         # Read-only, but admin-gated as Home Assistant's backup/info is: names,
         # versions and storage locations of every backup.
         TOOL_GET_BACKUPS,
+        TOOL_IGNORE_REPAIR,
+        TOOL_FIX_REPAIR,
+        # Read-only, but admin-gated as Home Assistant's app pages are; app
+        # logs carry whatever the app prints.
+        TOOL_LIST_APPS,
+        TOOL_GET_APP_LOGS,
     }
 )
 
@@ -286,6 +297,7 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_ASSIST_PIPELINES,
         TOOL_LIST_INTEGRATIONS,
         TOOL_LIST_UPDATES,
+        TOOL_LIST_REPAIRS,
     }
 )
 
