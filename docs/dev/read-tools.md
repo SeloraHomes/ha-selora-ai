@@ -143,6 +143,32 @@ schema is derived from the chat one) read the recorder for up to 10 entities.
 - **Bucket count is capped before the query** (`_MAX_BUCKETS`): the cost is the
   query, not the page, so a year of 5-minute buckets is refused with a coarser
   period suggested.
+- **`source='logbook'` is the cause, not the value** (`logbook_reader.py`). It
+  reads through core's own `EventProcessor`, so what counts as an entry and how
+  a change is attributed (automation, user, other entity) stay Home Assistant's.
+  The answer is ONE timeline merged across the entities — their order is the
+  point — with no entity meaning the whole home, capped at 2 days.
+- **The logbook is read in windows walking back from `end`, never as one
+  range.** Core's processor materializes every row of the range it is given
+  before anything could page it, so a page of two from a busy month loaded the
+  month. The first window is five minutes and doubles until a page is full;
+  that is also why it pages by time (`more` / `next_page`) and refuses
+  `offset` — counting what is older would mean reading it.
+- **A whole-home page is read again, chronologically, once its range is
+  known.** Core attaches a cause only if it has already seen it in the same
+  read, and windows read newest first meet the effect first, so a cause across
+  an internal window edge lost its `caused_by`; a fixed overlap only moved the
+  edge. An entity read is unaffected — core fetches its causes by context id.
+- **`next_page` carries the start as well as the end.** Re-derived from
+  `hours`, the start drifted with every page.
+- **A page never ends inside a timestamp.** `next_page.end` is a strict bound,
+  floored to the microsecond, so a tie split across pages lost its rest.
+- **A user is named by their person**, never by `hass.auth`: a user's name is
+  admin-only, a person's is a state any reader sees.
+- **Text entities always read as `***` in the logbook**: its rows carry no
+  attributes, so password mode can't be told; history reads the recorded mode.
+- **Continuous sensors are skipped by core, and the answer says so** (`skipped`),
+  pointing at `source='history'` rather than returning a bare `[]`.
 
 ## Camera snapshots (MCP)
 

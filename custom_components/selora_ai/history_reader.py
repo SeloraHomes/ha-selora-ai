@@ -1,6 +1,7 @@
 """Read the recorder: state changes over a time range, or long-term statistics.
 
-Two sources, one shape per entity:
+Two sources, one shape per entity (a third, ``logbook``, is one merged
+timeline and lives in ``logbook_reader``):
 
 * **history** — every state change between ``start`` and ``end``, consecutive
   repeats folded. A busy sensor can change thousands of times a day, so a call
@@ -87,7 +88,9 @@ def _parse_time(value: Any, name: str) -> datetime | None:
     return dt_util.as_utc(parsed)
 
 
-def _window(arguments: dict[str, Any], max_days: int) -> tuple[datetime, datetime]:
+def _window(
+    arguments: dict[str, Any], max_days: int, hint: str = "ask for fewer days"
+) -> tuple[datetime, datetime]:
     now = dt_util.utcnow()
     start = _parse_time(arguments.get("start"), "start")
     end = _parse_time(arguments.get("end"), "end") or now
@@ -102,19 +105,17 @@ def _window(arguments: dict[str, Any], max_days: int) -> tuple[datetime, datetim
     if start >= end:
         raise _BadRequest("start must be before end (and in the past)")
     if end - start > timedelta(days=max_days):
-        raise _BadRequest(
-            f"The range is over {max_days} days; narrow start/end or ask for fewer days."
-        )
+        raise _BadRequest(f"The range is over {max_days} days; narrow start/end or {hint}.")
     return start, end
 
 
-def _entity_ids(arguments: dict[str, Any]) -> list[str]:
+def _entity_ids(arguments: dict[str, Any], *, required: bool = True) -> list[str]:
     raw = arguments.get("entity_ids")
     ids = [str(e).strip() for e in raw] if isinstance(raw, list) else []
     if single := str(arguments.get("entity_id") or "").strip():
         ids.insert(0, single)
     ids = list(dict.fromkeys(i for i in ids if i))
-    if not ids:
+    if not ids and required:
         raise _BadRequest("entity_id (or entity_ids) is required, e.g. 'light.kitchen'")
     if len(ids) > MAX_ENTITIES:
         raise _BadRequest(f"At most {MAX_ENTITIES} entities per call; split the request.")
@@ -446,15 +447,37 @@ async def _statistics(
 async def async_read_history(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Answer a history or statistics read; one entity reads flat, several as a list."""
     source = str(arguments.get("source") or "history").strip().lower()
-    if source not in ("history", "statistics"):
-        return {"error": "source must be 'history' or 'statistics'"}
+    if source not in ("history", "statistics", "logbook"):
+        return {"error": "source must be 'history', 'statistics' or 'logbook'"}
     if "recorder" not in hass.config.components:
         return {"error": "The recorder is not running, so there is no history."}
+    if source == "logbook" and "logbook" not in hass.config.components:
+        return {"error": "The logbook (Activity) integration is not loaded."}
+    entries: list[dict[str, Any]] = []
+    logbook: dict[str, Any] = {}
     try:
-        ids = _entity_ids(arguments)
+        ids = _entity_ids(arguments, required=source != "logbook")
         offset = _int(arguments, "offset", 0, 0, 1_000_000)
         limit = _int(arguments, "limit", DEFAULT_LIMIT, 1, MAX_LIMIT)
-        if source == "history":
+        if source == "logbook":
+            from .logbook_reader import (  # noqa: PLC0415
+                LOGBOOK_HOME_MAX_DAYS,
+                LOGBOOK_MAX_DAYS,
+                async_read_logbook,
+            )
+
+            start, end = (
+                _window(arguments, LOGBOOK_MAX_DAYS)
+                if ids
+                else _window(arguments, LOGBOOK_HOME_MAX_DAYS, "name the entities to read")
+            )
+            if offset:
+                raise _BadRequest(
+                    "The logbook pages by time, not offset: ask again with the "
+                    "start and end in next_page from the previous answer."
+                )
+            logbook = await async_read_logbook(hass, ids, start, end, limit)
+        elif source == "history":
             start, end = _window(arguments, HISTORY_MAX_DAYS)
             entries = await _history(hass, ids, start, end, offset, limit)
         else:
@@ -484,7 +507,13 @@ async def async_read_history(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     }
     if source == "statistics":
         result["period"] = period
-    if len(entries) == 1:
+    if source == "logbook":
+        result.update(logbook)
+        if next_end := result.pop("next_end", None):
+            # The start too: re-derived from `hours`, it would drift with each
+            # page instead of holding the range the caller asked for.
+            result["next_page"] = {"start": result["start"], "end": next_end}
+    elif len(entries) == 1:
         result.update(entries[0])
     else:
         result["entities"] = entries

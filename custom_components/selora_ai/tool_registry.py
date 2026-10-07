@@ -544,7 +544,10 @@ TOOL_GET_ENTITY_HISTORY = ToolDef(
         "state changes in a range ('when did the door last open?'), newest "
         "`limit` returned, `older` counts the rest. source='statistics': "
         "long-term per-period mean/min/max or change (energy used per day, "
-        "monthly averages), for entities with a state_class."
+        "monthly averages), for entities with a state_class. source='logbook': "
+        "one timeline of what happened and what caused it (an automation, a "
+        "person, another entity) — 'why did the light turn on?'; with no "
+        "entity, the whole home over at most 2 days; pages with next_page's start and end."
     ),
     params=(
         ToolParam(
@@ -567,16 +570,16 @@ TOOL_GET_ENTITY_HISTORY = ToolDef(
             name="start",
             type="string",
             description=(
-                "ISO date or datetime; local time if no offset. History reaches "
-                "31 days, statistics 400."
+                "ISO date or datetime; local time if no offset. History and the "
+                "logbook reach 31 days, statistics 400."
             ),
         ),
         ToolParam(name="end", type="string", description="ISO date or datetime; default now."),
         ToolParam(
             name="source",
             type="string",
-            description="history (default) or statistics.",
-            enum=("history", "statistics"),
+            description="history (default), statistics or logbook.",
+            enum=("history", "statistics", "logbook"),
         ),
         ToolParam(
             name="period",
