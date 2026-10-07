@@ -9,8 +9,8 @@ components (the same object the websocket API serves).
   `use_blueprint: {path, input}` with NEITHER triggers nor actions, so every write
   path needs its own branch, and there are three:
   - `validate_automation_payload` accepts the shape (`path` present, `input` a
-    mapping). Whether the inputs satisfy the blueprint is the blueprint's own
-    schema question, answered by HA at reload — restating it here would go stale.
+    mapping). It is synchronous and cannot load the blueprint, so the inputs are
+    checked by `blueprint_inputs.async_blueprint_error` (below).
   - `prepare_write_payload` strips **both** trigger/action key spellings: HA
     merges a surviving `actions` OVER the substituted config (empty invalidates,
     populated silently replaces), and a payload with both shapes is ordinary
@@ -37,6 +37,26 @@ components (the same object the websocket API serves).
   malformed or wrong-domain file is the EXCEPTION in place of the blueprint, so
   the value is checked. Skipped when blueprints are not set up — a missing store
   is not evidence the path is wrong.
+- **Inputs are checked before writing, not at reload** (`blueprint_inputs.py`).
+  HA checks them only at reload, after the write reported success, and only
+  that required ones are present: a misspelled input was silently ignored and a
+  missing entity accepted. Refused now: an input the blueprint does not declare,
+  a value its selector rejects (HA's selector schemas, not a copy), an entity
+  named through an `entity`/`target` selector that does not exist or that the
+  selector's filters (domain, device class, integration, unit, device) rule
+  out — HA's schema checks only the shape, and those filters live in the
+  frontend; `supported_features` is left alone, its names resolve to bits only
+  inside HA's private selector code — a path
+  with surrounding spaces (it is written as given), a non-empty DEFAULT of
+  an omitted input that fails the same checks (the blueprint runs with it;
+  an empty default means "none"), and whatever
+  HA's own automation validator refuses in the substituted config. It runs in
+  `prepare_write_payload`, `async_create_automation`, MCP `validate_automation`
+  (admin callers only: a refusal names the blueprint's inputs, and reading a
+  blueprint is admin-only, as in HA), and on every chat proposal (`_reject_unusable_blueprint`), shaped as a parser
+  rejection so the correction loop hands it to the model instead of the user
+  meeting it at Accept. The unknown-entity message is the ordinary one, so the
+  loop names the closest real entities for blueprint inputs too.
 - **`get_blueprint` returns selectors and required-ness** ("required" = no
   `default`). Neither is in the listing, and composing without them is guessing.
 - **A blueprint that fails to parse is reported, not dropped** —

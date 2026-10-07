@@ -489,13 +489,13 @@ async def test_a_script_blueprint_path_is_refused_for_an_automation(
 async def test_an_automation_blueprint_path_is_accepted(hass: HomeAssistant) -> None:
     from custom_components.selora_ai.automation_utils import async_create_automation
 
-    store = MagicMock()
-    store.async_get_blueprints = AsyncMock(return_value={"ha/motion.yaml": _blueprint("M", {})})
-    hass.data["blueprint"] = {"automation": store}
+    from .test_blueprint_inputs import GOOD, PATH, _install
+
+    # A real store: the inputs are checked against the loaded blueprint now.
+    await _install(hass)
 
     result = await async_create_automation(
-        hass,
-        {"alias": "Yes", "use_blueprint": {"path": "ha/motion.yaml", "input": {}}},
+        hass, {"alias": "Yes", "use_blueprint": {"path": PATH, "input": GOOD}}
     )
     assert result["success"] is True
 
@@ -537,12 +537,12 @@ async def test_updating_onto_a_bad_blueprint_path_is_refused(hass: HomeAssistant
 async def test_updating_onto_a_good_blueprint_path_is_allowed(hass: HomeAssistant) -> None:
     from custom_components.selora_ai.automation_utils import prepare_write_payload
 
-    store = MagicMock()
-    store.async_get_blueprints = AsyncMock(return_value={"ha/motion.yaml": _blueprint("M", {})})
-    hass.data["blueprint"] = {"automation": store}
+    from .test_blueprint_inputs import GOOD, PATH, _install
+
+    await _install(hass)
 
     ok, error, _ = await prepare_write_payload(
-        hass, {"alias": "A", "use_blueprint": {"path": "ha/motion.yaml", "input": {}}}
+        hass, {"alias": "A", "use_blueprint": {"path": PATH, "input": GOOD}}
     )
     assert ok, error
 

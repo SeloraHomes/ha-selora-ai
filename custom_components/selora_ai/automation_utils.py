@@ -2651,9 +2651,11 @@ async def prepare_write_payload(
         # blueprint through the YAML editor reaches this and not the create
         # path, and a bad path is written, rejected at reload, and reported as
         # a success.
+        from .blueprint_inputs import async_blueprint_error  # noqa: PLC0415
+
         if hass is not None and (
-            error := await _blueprint_path_error(
-                hass, str(normalized["use_blueprint"].get("path", ""))
+            error := await async_blueprint_error(
+                hass, normalized["use_blueprint"], str(normalized.get("alias") or "")
             )
         ):
             return False, error, None
@@ -3079,7 +3081,9 @@ async def async_create_automation(
         "mode": normalized.get("mode", "single"),
     }
     if use_blueprint := normalized.get("use_blueprint"):
-        if error := await _blueprint_path_error(hass, str(use_blueprint.get("path", ""))):
+        from .blueprint_inputs import async_blueprint_error  # noqa: PLC0415
+
+        if error := await async_blueprint_error(hass, use_blueprint, clean_alias):
             _LOGGER.error("Invalid automation suggestion: %s", error)
             return {"success": False, "automation_id": None}
         # The blueprint IS the config. Writing triggers/actions here — even the

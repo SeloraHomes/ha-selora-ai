@@ -2715,6 +2715,7 @@ async def _handle_websocket_chat(
         language=msg.get("language"),
         attachments=attachments or None,
     )
+    await _reject_unusable_blueprint(hass, result, entities)
 
     if "error" in result and result.get("intent") != "answer":
         connection.send_error(msg["id"], "llm_error", result["error"])
@@ -2954,6 +2955,38 @@ def _automation_retry_budget(provider: Any) -> int:
     return 3
 
 
+async def _reject_unusable_blueprint(
+    hass: HomeAssistant, parsed: dict[str, Any], entities: list[Any] | None
+) -> None:
+    """Turn a blueprint proposal whose inputs would not work into a rejection.
+
+    The parser's validator is synchronous and cannot load the blueprint, so a
+    ``use_blueprint`` proposal reaches here with only its path checked. Shaped
+    exactly as the parser shapes any other rejection, so the correction loop
+    hands the reason back to the model rather than the user meeting it at
+    Accept.
+    """
+    from .blueprint_inputs import async_blueprint_error  # noqa: PLC0415
+    from .llm_client.parsers import _humanise_unknown_entity_error  # noqa: PLC0415
+
+    automation = parsed.get("automation")
+    if not isinstance(automation, dict) or not isinstance(
+        use_blueprint := automation.get("use_blueprint"), dict
+    ):
+        return
+    error = await async_blueprint_error(hass, use_blueprint, str(automation.get("alias") or ""))
+    if error is None:
+        return
+    parsed["rejected_automation"] = automation
+    parsed.pop("automation", None)
+    parsed.pop("automation_yaml", None)
+    parsed["validation_error"] = error
+    parsed["validation_target"] = "automation"
+    parsed["response"] = _humanise_unknown_entity_error(error, entities)
+    if parsed.get("intent") == "automation":
+        parsed["intent"] = "clarification" if "unknown entity_id" in error else "answer"
+
+
 async def _retry_invalid_automation(
     hass: HomeAssistant,
     llm: Any,
@@ -3066,6 +3099,7 @@ async def _retry_invalid_automation(
             if not client_alive:
                 break
             parsed = correction_task.result()
+            await _reject_unusable_blueprint(hass, parsed, entities)
             # Settled, so it REPLACES whatever this round emitted rather than
             # only filling a gap. An id a correction round volunteers is
             # ungrounded — it saw no reference context — and if it happens to
@@ -3813,6 +3847,8 @@ async def _handle_websocket_chat_stream(
             language=msg.get("language"),
             refining=refining is not None,
         )
+
+        await _reject_unusable_blueprint(hass, parsed, entities)
 
         # Surface the automation lifecycle on the activity timeline: drafted →
         # validated (→ corrected, if a service didn't exist).

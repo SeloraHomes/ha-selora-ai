@@ -238,6 +238,7 @@ async def _tool_validate_automation(
     import yaml as _yaml
 
     from ..automation_utils import assess_automation_risk, validate_automation_payload
+    from ..helpers import CALLER_IS_ADMIN
 
     yaml_text: str = str(arguments.get("yaml", ""))
     if not yaml_text.strip():
@@ -280,15 +281,37 @@ async def _tool_validate_automation(
             "risk_assessment": None,
         }
 
+    blueprint_note: str | None = None
+    if (use_blueprint := normalized.get("use_blueprint")) and not CALLER_IS_ADMIN.get():
+        # Reading a blueprint is admin-only, as in Home Assistant, and a
+        # refusal would name its inputs and selectors. Writing stays admin-only,
+        # so create_automation still checks them.
+        blueprint_note = "Blueprint inputs are checked for admin callers only."
+    elif use_blueprint:
+        from ..blueprint_inputs import async_blueprint_error  # noqa: PLC0415
+
+        if error := await async_blueprint_error(
+            hass, use_blueprint, str(normalized.get("alias") or "")
+        ):
+            return {
+                "valid": False,
+                "errors": [error],
+                "normalized_yaml": None,
+                "risk_assessment": None,
+            }
+
     normalized_yaml: str = _yaml.dump(normalized, allow_unicode=True, default_flow_style=False)
     risk: RiskAssessment = assess_automation_risk(normalized)
 
-    return {
+    result: dict[str, Any] = {
         "valid": True,
         "errors": [],
         "normalized_yaml": normalized_yaml,
         "risk_assessment": _sanitize_risk(risk),
     }
+    if blueprint_note:
+        result["note"] = blueprint_note
+    return result
 
 
 # ── Tool: selora_create_automation ────────────────────────────────────────────
