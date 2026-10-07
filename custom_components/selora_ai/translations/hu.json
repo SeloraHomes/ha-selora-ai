@@ -1045,6 +1045,12 @@
     "client_action_delete_dashboard": "A(z) {title} vezérlőpult törlése – {views} nézet, {cards} kártya",
     "client_action_confirm_mixed": "Összes megerősítése",
     "client_action_delete_dashboard_unknown": "A(z) {title} vezérlőpult törlése – ismeretlen tartalom",
-    "client_action_create_helper": "A(z) {name} segéd létrehozása ({domain})"
+    "client_action_create_helper": "A(z) {name} segéd létrehozása ({domain})",
+    "recipes_card_update_badge": "Frissítés elérhető",
+    "recipes_update_button": "Frissítés a v{version} verzióra",
+    "recipes_update_running": "Frissítés…",
+    "recipes_update_done": "Frissítve a v{version} verzióra.",
+    "recipes_update_needs_choice": "A v{version} olyan választást igényel, amelyet a jelenlegi telepítés nem tett meg. Konfiguráld újra a frissítés befejezéséhez.",
+    "recipes_update_failed": "A frissítés nem fejeződött be."
   }
 }

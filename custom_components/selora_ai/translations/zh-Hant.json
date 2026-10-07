@@ -1025,7 +1025,13 @@
     "client_action_delete_dashboard": "刪除 {title} 儀表板——{views} 個檢視，{cards} 張卡片",
     "client_action_confirm_mixed": "全部確認",
     "client_action_delete_dashboard_unknown": "刪除 {title} 儀表板——內容未知",
-    "client_action_create_helper": "建立輔助元素 {name}（{domain}）"
+    "client_action_create_helper": "建立輔助元素 {name}（{domain}）",
+    "recipes_card_update_badge": "有可用更新",
+    "recipes_update_button": "更新至 v{version}",
+    "recipes_update_running": "正在更新…",
+    "recipes_update_done": "已更新至 v{version}。",
+    "recipes_update_needs_choice": "v{version} 需要目前安裝未做過的選擇。請重新設定以完成更新。",
+    "recipes_update_failed": "更新未完成。"
   },
   "options": {
     "step": {

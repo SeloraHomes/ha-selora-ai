@@ -1025,7 +1025,13 @@
     "client_action_delete_dashboard": "Delete the {title} dashboard — {views} views, {cards} cards",
     "client_action_confirm_mixed": "Confirm all",
     "client_action_delete_dashboard_unknown": "Delete the {title} dashboard — contents unknown",
-    "client_action_create_helper": "Create the {name} helper ({domain})"
+    "client_action_create_helper": "Create the {name} helper ({domain})",
+    "recipes_card_update_badge": "Update available",
+    "recipes_update_button": "Update to v{version}",
+    "recipes_update_running": "Updating…",
+    "recipes_update_done": "Updated to v{version}.",
+    "recipes_update_needs_choice": "v{version} needs a choice the current install didn't make. Reconfigure to finish the update.",
+    "recipes_update_failed": "The update didn't complete."
   },
   "options": {
     "step": {

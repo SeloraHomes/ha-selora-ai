@@ -1025,7 +1025,13 @@
     "client_action_delete_dashboard": "Dashboard {title} löschen — {views} Ansichten, {cards} Karten",
     "client_action_confirm_mixed": "Alles bestätigen",
     "client_action_delete_dashboard_unknown": "Dashboard {title} löschen — Inhalt unbekannt",
-    "client_action_create_helper": "Helfer {name} erstellen ({domain})"
+    "client_action_create_helper": "Helfer {name} erstellen ({domain})",
+    "recipes_card_update_badge": "Update verfügbar",
+    "recipes_update_button": "Auf v{version} aktualisieren",
+    "recipes_update_running": "Wird aktualisiert…",
+    "recipes_update_done": "Auf v{version} aktualisiert.",
+    "recipes_update_needs_choice": "v{version} braucht eine Auswahl, die bei der aktuellen Installation nicht getroffen wurde. Neu konfigurieren, um das Update abzuschließen.",
+    "recipes_update_failed": "Das Update wurde nicht abgeschlossen."
   },
   "options": {
     "step": {

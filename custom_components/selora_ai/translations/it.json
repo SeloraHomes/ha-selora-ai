@@ -1025,7 +1025,13 @@
     "client_action_delete_dashboard": "Elimina la dashboard {title} — {views} viste, {cards} schede",
     "client_action_confirm_mixed": "Conferma tutto",
     "client_action_delete_dashboard_unknown": "Elimina la dashboard {title} — contenuto sconosciuto",
-    "client_action_create_helper": "Crea l'aiutante {name} ({domain})"
+    "client_action_create_helper": "Crea l'aiutante {name} ({domain})",
+    "recipes_card_update_badge": "Aggiornamento disponibile",
+    "recipes_update_button": "Aggiorna alla v{version}",
+    "recipes_update_running": "Aggiornamento in corso…",
+    "recipes_update_done": "Aggiornato alla v{version}.",
+    "recipes_update_needs_choice": "La v{version} richiede una scelta che l'installazione attuale non ha fatto. Riconfigura per completare l'aggiornamento.",
+    "recipes_update_failed": "L'aggiornamento non è stato completato."
   },
   "options": {
     "step": {

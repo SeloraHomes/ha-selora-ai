@@ -12,6 +12,7 @@
 
 import { html } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import { interpolate } from "../shared/i18n.js";
 
 const _ACCEPTED_SUFFIXES = [".tar.gz", ".tgz", ".zip"];
 
@@ -961,6 +962,17 @@ const _STYLE = html`
     }
     .catalog-installed-badge ha-icon {
       --mdc-icon-size: 12px;
+    }
+    /* An installed recipe the catalog has a newer version of: the info
+       colour, so it reads as "something to do" next to the green
+       Installed state it replaces. */
+    .catalog-installed-badge.is-update {
+      background: color-mix(
+        in srgb,
+        var(--info-color, #0288d1) 16%,
+        transparent
+      );
+      color: var(--info-color, #0288d1);
     }
     .recipe-installed-badge {
       display: inline-flex;
@@ -2135,6 +2147,25 @@ const _STYLE = html`
     .overview-actions-hint {
       font-size: var(--selora-fs-sm);
       color: var(--secondary-text-color);
+    }
+    .recipe-update-notice {
+      font-size: var(--selora-fs-sm);
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--error-color, #c62828);
+      background: color-mix(
+        in srgb,
+        var(--error-color, #c62828) 10%,
+        transparent
+      );
+    }
+    .recipe-update-notice.is-ok {
+      color: var(--success-color, #2e7d32);
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 10%,
+        transparent
+      );
     }
     /* Installation-details rendered as a standalone card (Overview),
        expanded by default rather than a bare disclosure. */
@@ -4234,12 +4265,17 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
             : ""
         }
         ${
-          installed
-            ? html`<span class="catalog-installed-badge">
-                <ha-icon icon="mdi:check"></ha-icon>
-                ${host._t("recipes_card_installed_badge", "Installed")}
+          installed && host._recipeUpdateVersion(slug)
+            ? html`<span class="catalog-installed-badge is-update">
+                <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
+                ${host._t("recipes_card_update_badge", "Update available")}
               </span>`
-            : ""
+            : installed
+              ? html`<span class="catalog-installed-badge">
+                  <ha-icon icon="mdi:check"></ha-icon>
+                  ${host._t("recipes_card_installed_badge", "Installed")}
+                </span>`
+              : ""
         }
       </div>
       <div class="catalog-card-title">${entry.title}</div>
@@ -5721,9 +5757,24 @@ function _renderStep1Overview(host) {
     (r) => r.slug === manifest.slug,
   );
   if (record) {
+    const updateVersion = host._recipeUpdateVersion(manifest.slug);
+    const notice =
+      host._recipeUpdateNotice?.slug === manifest.slug
+        ? host._recipeUpdateNotice
+        : null;
     return html`
       <div class="step-pane">
         ${_renderInstalledDetails(host, record, null, { asCard: true })}
+        ${
+          notice
+            ? html`<div
+                class="recipe-update-notice ${notice.ok ? "is-ok" : ""}"
+                role="status"
+              >
+                ${notice.message}
+              </div>`
+            : ""
+        }
         <div class="overview-actions">
           ${backLink}
           <div class="overview-actions-group">
@@ -5749,12 +5800,33 @@ function _renderStep1Overview(host) {
               ${host._t("recipes_card_uninstall_button", "Uninstall")}
             </button>
             <button
-              class="btn btn-primary"
+              class="btn ${updateVersion ? "btn-outline" : "btn-primary"}"
               @click=${() => host._advanceRecipeStep()}
               ?disabled=${host._recipesBusy}
             >
               ${host._t("recipes_card_reconfigure_button", "Reconfigure")}
             </button>
+            ${
+              updateVersion
+                ? html`<button
+                    class="btn btn-primary"
+                    @click=${() => host._runRecipeUpdate(manifest.slug)}
+                    ?disabled=${host._recipesBusy}
+                  >
+                    ${
+                      host._recipeUpdateSlug === manifest.slug
+                        ? host._t("recipes_update_running", "Updating…")
+                        : interpolate(
+                            host._t(
+                              "recipes_update_button",
+                              "Update to v{version}",
+                            ),
+                            { version: updateVersion },
+                          )
+                    }
+                  </button>`
+                : ""
+            }
           </div>
         </div>
       </div>

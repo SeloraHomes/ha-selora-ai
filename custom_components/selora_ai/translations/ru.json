@@ -1025,7 +1025,13 @@
     "client_action_delete_dashboard": "Удалить панель {title} — {views} видов, {cards} карточек",
     "client_action_confirm_mixed": "Подтвердить всё",
     "client_action_delete_dashboard_unknown": "Удалить панель {title} — содержимое неизвестно",
-    "client_action_create_helper": "Создать вспомогательный объект {name} ({domain})"
+    "client_action_create_helper": "Создать вспомогательный объект {name} ({domain})",
+    "recipes_card_update_badge": "Доступно обновление",
+    "recipes_update_button": "Обновить до v{version}",
+    "recipes_update_running": "Обновление…",
+    "recipes_update_done": "Обновлено до v{version}.",
+    "recipes_update_needs_choice": "Для v{version} нужен выбор, который не был сделан при текущей установке. Перенастройте, чтобы завершить обновление.",
+    "recipes_update_failed": "Обновление не завершено."
   },
   "options": {
     "step": {

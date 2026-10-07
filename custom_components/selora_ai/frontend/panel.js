@@ -10594,6 +10594,13 @@ var en_default = {
     client_action_delete_dashboard_unknown:
       "Delete the {title} dashboard \u2014 contents unknown",
     client_action_create_helper: "Create the {name} helper ({domain})",
+    recipes_card_update_badge: "Update available",
+    recipes_update_button: "Update to v{version}",
+    recipes_update_running: "Updating\u2026",
+    recipes_update_done: "Updated to v{version}.",
+    recipes_update_needs_choice:
+      "v{version} needs a choice the current install didn't make. Reconfigure to finish the update.",
+    recipes_update_failed: "The update didn't complete.",
   },
   options: {
     step: {
@@ -11866,6 +11873,13 @@ var fr_default = {
     client_action_delete_dashboard_unknown:
       "Supprimer le tableau de bord {title} \u2014 contenu inconnu",
     client_action_create_helper: "Cr\xE9er l'assistant {name} ({domain})",
+    recipes_card_update_badge: "Mise \xE0 jour disponible",
+    recipes_update_button: "Mettre \xE0 jour vers v{version}",
+    recipes_update_running: "Mise \xE0 jour\u2026",
+    recipes_update_done: "Mise \xE0 jour vers v{version} effectu\xE9e.",
+    recipes_update_needs_choice:
+      "La v{version} demande un choix que l'installation actuelle n'a pas fait. Reconfigurez pour terminer la mise \xE0 jour.",
+    recipes_update_failed: "La mise \xE0 jour n'a pas abouti.",
   },
   options: {
     step: {
@@ -13128,6 +13142,13 @@ var de_default = {
     client_action_delete_dashboard_unknown:
       "Dashboard {title} l\xF6schen \u2014 Inhalt unbekannt",
     client_action_create_helper: "Helfer {name} erstellen ({domain})",
+    recipes_card_update_badge: "Update verf\xFCgbar",
+    recipes_update_button: "Auf v{version} aktualisieren",
+    recipes_update_running: "Wird aktualisiert\u2026",
+    recipes_update_done: "Auf v{version} aktualisiert.",
+    recipes_update_needs_choice:
+      "v{version} braucht eine Auswahl, die bei der aktuellen Installation nicht getroffen wurde. Neu konfigurieren, um das Update abzuschlie\xDFen.",
+    recipes_update_failed: "Das Update wurde nicht abgeschlossen.",
   },
   options: {
     step: {
@@ -14372,6 +14393,13 @@ var es_default = {
     client_action_delete_dashboard_unknown:
       "Eliminar el panel {title}: contenido desconocido",
     client_action_create_helper: "Crear el ayudante {name} ({domain})",
+    recipes_card_update_badge: "Actualizaci\xF3n disponible",
+    recipes_update_button: "Actualizar a v{version}",
+    recipes_update_running: "Actualizando\u2026",
+    recipes_update_done: "Actualizado a v{version}.",
+    recipes_update_needs_choice:
+      "La v{version} necesita una elecci\xF3n que la instalaci\xF3n actual no hizo. Reconfigura para terminar la actualizaci\xF3n.",
+    recipes_update_failed: "La actualizaci\xF3n no se complet\xF3.",
   },
   options: {
     step: {
@@ -15615,6 +15643,13 @@ var it_default = {
     client_action_delete_dashboard_unknown:
       "Elimina la dashboard {title} \u2014 contenuto sconosciuto",
     client_action_create_helper: "Crea l'aiutante {name} ({domain})",
+    recipes_card_update_badge: "Aggiornamento disponibile",
+    recipes_update_button: "Aggiorna alla v{version}",
+    recipes_update_running: "Aggiornamento in corso\u2026",
+    recipes_update_done: "Aggiornato alla v{version}.",
+    recipes_update_needs_choice:
+      "La v{version} richiede una scelta che l'installazione attuale non ha fatto. Riconfigura per completare l'aggiornamento.",
+    recipes_update_failed: "L'aggiornamento non \xE8 stato completato.",
   },
   options: {
     step: {
@@ -16877,6 +16912,13 @@ var nl_default = {
     client_action_delete_dashboard_unknown:
       "Dashboard {title} verwijderen \u2014 inhoud onbekend",
     client_action_create_helper: "Helper {name} aanmaken ({domain})",
+    recipes_card_update_badge: "Update beschikbaar",
+    recipes_update_button: "Bijwerken naar v{version}",
+    recipes_update_running: "Bijwerken\u2026",
+    recipes_update_done: "Bijgewerkt naar v{version}.",
+    recipes_update_needs_choice:
+      "v{version} vraagt een keuze die de huidige installatie niet heeft gemaakt. Configureer opnieuw om de update af te ronden.",
+    recipes_update_failed: "De update is niet voltooid.",
   },
 };
 
@@ -18188,6 +18230,13 @@ var hu_default = {
       "A(z) {title} vez\xE9rl\u0151pult t\xF6rl\xE9se \u2013 ismeretlen tartalom",
     client_action_create_helper:
       "A(z) {name} seg\xE9d l\xE9trehoz\xE1sa ({domain})",
+    recipes_card_update_badge: "Friss\xEDt\xE9s el\xE9rhet\u0151",
+    recipes_update_button: "Friss\xEDt\xE9s a v{version} verzi\xF3ra",
+    recipes_update_running: "Friss\xEDt\xE9s\u2026",
+    recipes_update_done: "Friss\xEDtve a v{version} verzi\xF3ra.",
+    recipes_update_needs_choice:
+      "A v{version} olyan v\xE1laszt\xE1st ig\xE9nyel, amelyet a jelenlegi telep\xEDt\xE9s nem tett meg. Konfigur\xE1ld \xFAjra a friss\xEDt\xE9s befejez\xE9s\xE9hez.",
+    recipes_update_failed: "A friss\xEDt\xE9s nem fejez\u0151d\xF6tt be.",
   },
 };
 
@@ -19425,6 +19474,13 @@ var pt_default = {
     client_action_delete_dashboard_unknown:
       "Eliminar o painel {title} \u2014 conte\xFAdo desconhecido",
     client_action_create_helper: "Criar o auxiliar {name} ({domain})",
+    recipes_card_update_badge: "Atualiza\xE7\xE3o dispon\xEDvel",
+    recipes_update_button: "Atualizar para v{version}",
+    recipes_update_running: "A atualizar\u2026",
+    recipes_update_done: "Atualizado para v{version}.",
+    recipes_update_needs_choice:
+      "A v{version} precisa de uma escolha que a instala\xE7\xE3o atual n\xE3o fez. Reconfigure para concluir a atualiza\xE7\xE3o.",
+    recipes_update_failed: "A atualiza\xE7\xE3o n\xE3o foi conclu\xEDda.",
   },
   options: {
     step: {
@@ -21276,6 +21332,18 @@ var ru_default = {
       "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C {title} \u2014 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0435 \u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E",
     client_action_create_helper:
       "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0432\u0441\u043F\u043E\u043C\u043E\u0433\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u043E\u0431\u044A\u0435\u043A\u0442 {name} ({domain})",
+    recipes_card_update_badge:
+      "\u0414\u043E\u0441\u0442\u0443\u043F\u043D\u043E \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435",
+    recipes_update_button:
+      "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u0434\u043E v{version}",
+    recipes_update_running:
+      "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435\u2026",
+    recipes_update_done:
+      "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u043E \u0434\u043E v{version}.",
+    recipes_update_needs_choice:
+      "\u0414\u043B\u044F v{version} \u043D\u0443\u0436\u0435\u043D \u0432\u044B\u0431\u043E\u0440, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u043D\u0435 \u0431\u044B\u043B \u0441\u0434\u0435\u043B\u0430\u043D \u043F\u0440\u0438 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0435. \u041F\u0435\u0440\u0435\u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435.",
+    recipes_update_failed:
+      "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u043D\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E.",
   },
   options: {
     step: {
@@ -22811,6 +22879,16 @@ var ja_default = {
       "{title} \u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u3092\u524A\u9664 \u2014 \u5185\u5BB9\u306F\u4E0D\u660E",
     client_action_create_helper:
       "\u30D8\u30EB\u30D1\u30FC {name} \u3092\u4F5C\u6210 ({domain})",
+    recipes_card_update_badge:
+      "\u30A2\u30C3\u30D7\u30C7\u30FC\u30C8\u3042\u308A",
+    recipes_update_button: "v{version} \u306B\u66F4\u65B0",
+    recipes_update_running: "\u66F4\u65B0\u4E2D\u2026",
+    recipes_update_done:
+      "v{version} \u306B\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002",
+    recipes_update_needs_choice:
+      "v{version} \u306B\u306F\u3001\u73FE\u5728\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u9078\u629E\u3055\u308C\u3066\u3044\u306A\u3044\u9805\u76EE\u304C\u5FC5\u8981\u3067\u3059\u3002\u518D\u8A2D\u5B9A\u3057\u3066\u66F4\u65B0\u3092\u5B8C\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_update_failed:
+      "\u66F4\u65B0\u304C\u5B8C\u4E86\u3057\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
   },
   options: {
     step: {
@@ -24241,6 +24319,15 @@ var ko_default = {
       "{title} \uB300\uC2DC\uBCF4\uB4DC \uC0AD\uC81C \u2014 \uB0B4\uC6A9 \uC54C \uC218 \uC5C6\uC74C",
     client_action_create_helper:
       "\uB3C4\uC6B0\uBBF8 {name} \uB9CC\uB4E4\uAE30 ({domain})",
+    recipes_card_update_badge: "\uC5C5\uB370\uC774\uD2B8 \uAC00\uB2A5",
+    recipes_update_button: "v{version}(\uC73C)\uB85C \uC5C5\uB370\uC774\uD2B8",
+    recipes_update_running: "\uC5C5\uB370\uC774\uD2B8 \uC911\u2026",
+    recipes_update_done:
+      "v{version}(\uC73C)\uB85C \uC5C5\uB370\uC774\uD2B8\uD588\uC2B5\uB2C8\uB2E4.",
+    recipes_update_needs_choice:
+      "v{version}\uC5D0\uB294 \uD604\uC7AC \uC124\uCE58\uC5D0\uC11C \uC120\uD0DD\uD558\uC9C0 \uC54A\uC740 \uD56D\uBAA9\uC774 \uD544\uC694\uD569\uB2C8\uB2E4. \uB2E4\uC2DC \uAD6C\uC131\uD558\uC5EC \uC5C5\uB370\uC774\uD2B8\uB97C \uC644\uB8CC\uD558\uC138\uC694.",
+    recipes_update_failed:
+      "\uC5C5\uB370\uC774\uD2B8\uAC00 \uC644\uB8CC\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
   },
   options: {
     step: {
@@ -25591,6 +25678,13 @@ var zh_Hans_default = {
       "\u5220\u9664 {title} \u4EEA\u8868\u677F\u2014\u2014\u5185\u5BB9\u672A\u77E5",
     client_action_create_helper:
       "\u521B\u5EFA\u8F85\u52A9\u5143\u7D20 {name}\uFF08{domain}\uFF09",
+    recipes_card_update_badge: "\u6709\u53EF\u7528\u66F4\u65B0",
+    recipes_update_button: "\u66F4\u65B0\u5230 v{version}",
+    recipes_update_running: "\u6B63\u5728\u66F4\u65B0\u2026",
+    recipes_update_done: "\u5DF2\u66F4\u65B0\u5230 v{version}\u3002",
+    recipes_update_needs_choice:
+      "v{version} \u9700\u8981\u5F53\u524D\u5B89\u88C5\u672A\u505A\u8FC7\u7684\u9009\u62E9\u3002\u8BF7\u91CD\u65B0\u914D\u7F6E\u4EE5\u5B8C\u6210\u66F4\u65B0\u3002",
+    recipes_update_failed: "\u66F4\u65B0\u672A\u5B8C\u6210\u3002",
   },
   options: {
     step: {
@@ -26948,6 +27042,13 @@ var zh_Hant_default = {
       "\u522A\u9664 {title} \u5100\u8868\u677F\u2014\u2014\u5167\u5BB9\u672A\u77E5",
     client_action_create_helper:
       "\u5EFA\u7ACB\u8F14\u52A9\u5143\u7D20 {name}\uFF08{domain}\uFF09",
+    recipes_card_update_badge: "\u6709\u53EF\u7528\u66F4\u65B0",
+    recipes_update_button: "\u66F4\u65B0\u81F3 v{version}",
+    recipes_update_running: "\u6B63\u5728\u66F4\u65B0\u2026",
+    recipes_update_done: "\u5DF2\u66F4\u65B0\u81F3 v{version}\u3002",
+    recipes_update_needs_choice:
+      "v{version} \u9700\u8981\u76EE\u524D\u5B89\u88DD\u672A\u505A\u904E\u7684\u9078\u64C7\u3002\u8ACB\u91CD\u65B0\u8A2D\u5B9A\u4EE5\u5B8C\u6210\u66F4\u65B0\u3002",
+    recipes_update_failed: "\u66F4\u65B0\u672A\u5B8C\u6210\u3002",
   },
   options: {
     step: {
@@ -44845,6 +44946,17 @@ var _STYLE = b2`
     .catalog-installed-badge ha-icon {
       --mdc-icon-size: 12px;
     }
+    /* An installed recipe the catalog has a newer version of: the info
+       colour, so it reads as "something to do" next to the green
+       Installed state it replaces. */
+    .catalog-installed-badge.is-update {
+      background: color-mix(
+        in srgb,
+        var(--info-color, #0288d1) 16%,
+        transparent
+      );
+      color: var(--info-color, #0288d1);
+    }
     .recipe-installed-badge {
       display: inline-flex;
       align-items: center;
@@ -46018,6 +46130,25 @@ var _STYLE = b2`
     .overview-actions-hint {
       font-size: var(--selora-fs-sm);
       color: var(--secondary-text-color);
+    }
+    .recipe-update-notice {
+      font-size: var(--selora-fs-sm);
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--error-color, #c62828);
+      background: color-mix(
+        in srgb,
+        var(--error-color, #c62828) 10%,
+        transparent
+      );
+    }
+    .recipe-update-notice.is-ok {
+      color: var(--success-color, #2e7d32);
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 10%,
+        transparent
+      );
     }
     /* Installation-details rendered as a standalone card (Overview),
        expanded by default rather than a bare disclosure. */
@@ -48007,12 +48138,17 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
             : ""
         }
         ${
-          installed
-            ? b2`<span class="catalog-installed-badge">
-                <ha-icon icon="mdi:check"></ha-icon>
-                ${host._t("recipes_card_installed_badge", "Installed")}
+          installed && host._recipeUpdateVersion(slug)
+            ? b2`<span class="catalog-installed-badge is-update">
+                <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
+                ${host._t("recipes_card_update_badge", "Update available")}
               </span>`
-            : ""
+            : installed
+              ? b2`<span class="catalog-installed-badge">
+                  <ha-icon icon="mdi:check"></ha-icon>
+                  ${host._t("recipes_card_installed_badge", "Installed")}
+                </span>`
+              : ""
         }
       </div>
       <div class="catalog-card-title">${entry.title}</div>
@@ -49197,9 +49333,24 @@ function _renderStep1Overview(host) {
     (r4) => r4.slug === manifest.slug,
   );
   if (record) {
+    const updateVersion = host._recipeUpdateVersion(manifest.slug);
+    const notice =
+      host._recipeUpdateNotice?.slug === manifest.slug
+        ? host._recipeUpdateNotice
+        : null;
     return b2`
       <div class="step-pane">
         ${_renderInstalledDetails(host, record, null, { asCard: true })}
+        ${
+          notice
+            ? b2`<div
+                class="recipe-update-notice ${notice.ok ? "is-ok" : ""}"
+                role="status"
+              >
+                ${notice.message}
+              </div>`
+            : ""
+        }
         <div class="overview-actions">
           ${backLink}
           <div class="overview-actions-group">
@@ -49225,12 +49376,33 @@ function _renderStep1Overview(host) {
               ${host._t("recipes_card_uninstall_button", "Uninstall")}
             </button>
             <button
-              class="btn btn-primary"
+              class="btn ${updateVersion ? "btn-outline" : "btn-primary"}"
               @click=${() => host._advanceRecipeStep()}
               ?disabled=${host._recipesBusy}
             >
               ${host._t("recipes_card_reconfigure_button", "Reconfigure")}
             </button>
+            ${
+              updateVersion
+                ? b2`<button
+                    class="btn btn-primary"
+                    @click=${() => host._runRecipeUpdate(manifest.slug)}
+                    ?disabled=${host._recipesBusy}
+                  >
+                    ${
+                      host._recipeUpdateSlug === manifest.slug
+                        ? host._t("recipes_update_running", "Updating\u2026")
+                        : interpolate(
+                            host._t(
+                              "recipes_update_button",
+                              "Update to v{version}",
+                            ),
+                            { version: updateVersion },
+                          )
+                    }
+                  </button>`
+                : ""
+            }
           </div>
         </div>
       </div>
@@ -51447,7 +51619,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "69d79e8ca392" : "";
+var PANEL_BUILD = true ? "e332e70180e1" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -51461,6 +51633,104 @@ async function _loadVersionStatus() {
 }
 function _dismissStaleCodeNotice() {
   this._staleCodeDismissed = true;
+}
+
+// src/panel/recipe-update-actions.js
+var recipe_update_actions_exports = {};
+__export(recipe_update_actions_exports, {
+  _recipeUpdateVersion: () => _recipeUpdateVersion,
+  _runRecipeUpdate: () => _runRecipeUpdate,
+});
+var NEEDS_CHOICE_STAGES = /* @__PURE__ */ new Set(["resolve", "validate"]);
+function _recipeUpdateVersion(slug) {
+  return (
+    this._recipesList?.updates?.[slug] ||
+    this._recipesCatalog?.updates?.[slug] ||
+    null
+  );
+}
+async function _runRecipeUpdate(slug) {
+  if (!slug || this._recipesBusy) return;
+  const version = this._recipeUpdateVersion(slug);
+  this._recipesBusy = true;
+  this._recipeUpdateSlug = slug;
+  this._recipeUpdateNotice = null;
+  let result = null;
+  let unsub = null;
+  try {
+    await new Promise((resolve, reject) => {
+      this.hass.connection
+        .subscribeMessage(
+          (evt) => {
+            const payload = evt?.event;
+            if (payload?.type === "result") {
+              result = payload.result;
+              resolve();
+            }
+          },
+          { type: "selora_ai/recipes/update_stream", slug },
+        )
+        .then((u3) => {
+          unsub = u3;
+        })
+        .catch(reject);
+    });
+  } catch (err) {
+    result = {
+      ok: false,
+      stage_reached: "definition",
+      punch_list: [{ message: err?.message || String(err) }],
+    };
+  } finally {
+    if (unsub) {
+      try {
+        unsub();
+      } catch (e6) {
+        console.debug("update_stream unsub failed", e6);
+      }
+    }
+    this._recipesBusy = false;
+    this._recipeUpdateSlug = null;
+  }
+  if (result?.ok) {
+    this._recipeUpdateNotice = {
+      slug,
+      ok: true,
+      message: interpolate(
+        this._t("recipes_update_done", "Updated to v{version}."),
+        { version: version || "" },
+      ),
+    };
+  } else if (NEEDS_CHOICE_STAGES.has(result?.stage_reached)) {
+    this._recipeUpdateNotice = {
+      slug,
+      ok: false,
+      message: interpolate(
+        this._t(
+          "recipes_update_needs_choice",
+          "v{version} needs a choice the current install didn't make. Reconfigure to finish the update.",
+        ),
+        { version: version || "" },
+      ),
+    };
+  } else {
+    const reasons = (result?.punch_list || [])
+      .map((item) => item.message)
+      .filter(Boolean)
+      .join(" ");
+    this._recipeUpdateNotice = {
+      slug,
+      ok: false,
+      message:
+        `${this._t("recipes_update_failed", "The update didn't complete.")} ${reasons}`.trim(),
+    };
+  }
+  await this._loadRecipesList();
+  if (this._recipeWizardSlug === slug) {
+    const notice = this._recipeUpdateNotice;
+    await this._openRecipeWizard(slug);
+    this._recipeUpdateNotice = notice;
+  }
 }
 
 // src/panel/suggestion-actions.js
@@ -52985,6 +53255,10 @@ var SeloraAIPanel = class extends i4 {
       // Slug of the catalog recipe currently being staged (downloaded)
       // after a card click, so its card can show a loading spinner.
       _recipesStagingSlug: { type: String },
+      // Slug whose update is running, and the outcome of the last update
+      // ({slug, ok, message}) shown on that recipe's Overview.
+      _recipeUpdateSlug: { type: String },
+      _recipeUpdateNotice: { type: Object },
       _recipesUploadBusy: { type: Boolean },
       _recipesDragOver: { type: Boolean },
       _recipesInstallError: { type: String },
@@ -55380,6 +55654,7 @@ var SeloraAIPanel = class extends i4 {
       this._recipesList = {
         available: result.available || [],
         installed: result.installed || [],
+        updates: result.updates || {},
       };
     } catch (err) {
       console.error("Failed to load recipes list", err);
@@ -55437,6 +55712,10 @@ var SeloraAIPanel = class extends i4 {
         recipes: result.recipes || [],
         installed_slugs: new Set(result.installed_slugs || []),
         generated_at: result.generated_at || "",
+        // Installed recipes with a newer version. Kept from the live read
+        // only, never the localStorage copy: the list fetched before this
+        // catalog warmed the backend's checker may not know them yet.
+        updates: result.updates || {},
       };
       this._recipesCatalogFetched = true;
       try {
@@ -55584,6 +55863,20 @@ var SeloraAIPanel = class extends i4 {
         }
       }
       this._recipeWizardSelections = seededSelections;
+      const record = (this._recipesList?.installed || []).find(
+        (r4) => r4.slug === slug,
+      );
+      if (record) {
+        this._recipeWizardInputs = {
+          ...this._recipeWizardInputs,
+          ...(record.inputs || {}),
+        };
+        for (const roleId of Object.keys(seededSelections)) {
+          if (Array.isArray(record.bindings?.[roleId])) {
+            seededSelections[roleId] = [...record.bindings[roleId]];
+          }
+        }
+      }
       const persisted = this._restoreWizardState(slug);
       if (persisted) {
         if (persisted.inputs && typeof persisted.inputs === "object") {
@@ -57258,6 +57551,7 @@ var SeloraAIPanel = class extends i4 {
 };
 Object.assign(SeloraAIPanel.prototype, session_actions_exports);
 Object.assign(SeloraAIPanel.prototype, version_actions_exports);
+Object.assign(SeloraAIPanel.prototype, recipe_update_actions_exports);
 Object.assign(SeloraAIPanel.prototype, suggestion_actions_exports);
 Object.assign(SeloraAIPanel.prototype, insights_actions_exports);
 Object.assign(SeloraAIPanel.prototype, chat_actions_exports);
