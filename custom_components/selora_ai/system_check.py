@@ -1,7 +1,7 @@
 """One look at what in the home needs attention — for "is anything wrong?".
 
-Combines what Settings shows across four pages — integrations not working, open
-repairs, updates waiting, backups — from the managers the MCP tools use, so a
+Combines what Settings shows across five pages — integrations not working, open
+repairs, updates waiting, backups, radio devices offline — from the managers the MCP tools use, so a
 chat turn gets the answer in one call. One tool rather than four in the chat
 schema: every cloud turn carries every tool's schema, and the question that
 needs these is usually the same one.
@@ -33,6 +33,7 @@ async def async_check_system(hass: HomeAssistant) -> dict[str, Any]:
     """Integrations not working, open repairs, pending updates, backup health."""
     from .backup_status import async_backup_status  # noqa: PLC0415
     from .integration_manager import async_list_integrations  # noqa: PLC0415
+    from .network_health import network_health  # noqa: PLC0415
     from .repairs_manager import async_list_repairs  # noqa: PLC0415
     from .update_manager import async_list_updates  # noqa: PLC0415
 
@@ -68,8 +69,29 @@ async def async_check_system(hass: HomeAssistant) -> dict[str, Any]:
                 else {}
             ),
         }
+    # Only networks with something down: a healthy mesh is not news, and the
+    # weak-signal list is a diagnosis, not a fault (get_network_health has it).
+    radio_down = [
+        {
+            "protocol": n["protocol"],
+            "title": n["title"],
+            **({"controller": n["controller"]} if "controller" in n else {}),
+            "offline_count": n["offline_count"],
+            "offline": [
+                {k: d[k] for k in ("name", "area", "last_seen") if k in d}
+                for d in n["attention"]
+                if d["status"] == "offline"
+            ][:_MAX_PER_SECTION],
+        }
+        for n in network_health(hass).get("networks", [])
+        if n["offline_count"]
+        or n.get("controller", {}).get("status") not in (None, "online", "ready", "unknown")
+    ]
+    if radio_down:
+        result["radio_devices_offline"] = radio_down
     attention = (
         len(integrations)
+        + sum(max(n["offline_count"], 1) for n in radio_down)
         + len(repairs)
         + (1 if result["backups"].get("warning") else 0)
         + len(result["backups"].get("location_errors", {}))

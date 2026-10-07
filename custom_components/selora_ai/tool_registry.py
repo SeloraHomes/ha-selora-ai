@@ -2122,7 +2122,8 @@ TOOL_CHECK_SYSTEM = ToolDef(
     description=(
         "What in the home needs attention, in one call: integrations not working "
         "(with why), open repairs (title, description, whether it has a fix), updates "
-        "waiting, and whether automatic backups are working. Call it when the user "
+        "waiting, whether automatic backups are working, and Zigbee / Z-Wave / Matter "
+        "devices offline. Call it when the user "
         "asks if anything is wrong, why something stopped working, or what needs "
         "updating — before get_logs."
     ),

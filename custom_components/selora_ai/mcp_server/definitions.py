@@ -72,6 +72,7 @@ from .names import (
     TOOL_GET_ENTITY_STATE,
     TOOL_GET_HOME_SNAPSHOT,
     TOOL_GET_LOGS,
+    TOOL_GET_NETWORK_HEALTH,
     TOOL_GET_PATTERN,
     TOOL_GET_RELEASE_NOTES,
     TOOL_GET_SCENE,
@@ -2328,6 +2329,32 @@ _TOOL_DEFINITIONS.extend(
                         "type": "array",
                         "items": {"type": "string"},
                         "description": "Top-level parts to return.",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_GET_NETWORK_HEALTH,
+            description=(
+                "The home's Zigbee (ZHA or Zigbee2MQTT), Z-Wave and Matter networks: "
+                "each one's controller, how many devices it has, and which are offline "
+                "or have a weak signal (LQI, RSSI), with when they were last seen. "
+                "Asleep is normal for a battery Z-Wave device. For 'why is this device "
+                "flaky / unavailable'. Read-only; changing the mesh is not offered. "
+                "Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "protocol": {"type": "string", "enum": ["zigbee", "zwave", "matter"]},
+                    "all_devices": {
+                        "type": "boolean",
+                        "description": "List every device, not only those needing attention.",
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "With all_devices: a network's next_offset, for the rest.",
                     },
                 },
             },
