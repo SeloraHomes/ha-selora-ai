@@ -24,7 +24,7 @@ from __future__ import annotations
 import hmac
 import time
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
@@ -370,7 +370,12 @@ async def test_unlinking_connect_revokes_the_whole_alexa_credential(hass: Any) -
     # `async_response` wraps the handler in a sync scheduler, so the coroutine
     # is reached through __wrapped__ — the same way `chat_harness` drives the
     # chat handlers.
-    await linking._handle_websocket_unlink_connect.__wrapped__(hass, connection, {"id": 1})
+    # The handler schedules a reload it does not await; stubbed and waited on
+    # so the real setup cannot outlive the test.
+    with patch.object(hass.config_entries, "async_reload", AsyncMock()) as reload:
+        await linking._handle_websocket_unlink_connect.__wrapped__(hass, connection, {"id": 1})
+        await hass.async_block_till_done()
+    reload.assert_awaited_once_with(entry.entry_id)
 
     # Every member, not only the key: a stray audience or issuer beside a
     # cleared key is what a later partial relink builds a mismatched validator
