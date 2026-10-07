@@ -193,8 +193,8 @@ class _StreamingMixin:
         await self._ensure_specialist_prompts_loaded()
         await self._settle_discovery()
         async with self._request_lock:
-            # If activation fails, let _SeloraLocalActivationError (ConnectionError) propagate out of the generator before any chunks are yielded; LLMClient's streaming path already treats ConnectionError as a transport failure.
-            await self._activate_lora_for_kind(self._call_kind.get())
+            # If routing can't settle, let _SeloraLocalDiscoveryError (ConnectionError) propagate out of the generator before any chunks are yielded; LLMClient's streaming path already treats ConnectionError as a transport failure.
+            await self._ensure_routing()
 
             kind = self._call_kind.get() or ""
 

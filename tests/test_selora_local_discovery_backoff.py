@@ -26,7 +26,7 @@ from custom_components.selora_ai.providers.selora_local import (
     _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S,
     _SELORA_LOCAL_DISCOVERY_WAIT_S,
     SeloraLocalProvider,
-    _SeloraLocalActivationError,
+    _SeloraLocalDiscoveryError,
 )
 
 _MIN = _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S
@@ -220,11 +220,11 @@ async def test_a_hub_that_never_comes_back_reports_it() -> None:
     assert session.lora_gets == 2, "one bounded retry, then the honest error"
 
 
-async def test_activation_refuses_to_guess_when_discovery_never_succeeded() -> None:
+async def test_routing_refuses_to_guess_when_discovery_never_succeeded() -> None:
     """raw_request and the streaming path rely on this being a ConnectionError."""
     provider = make(_FakeSession(down_for=99))
-    with pytest.raises(_SeloraLocalActivationError):
-        await provider._activate_lora_for_kind("chat_command")
+    with pytest.raises(_SeloraLocalDiscoveryError):
+        await provider._ensure_routing()
 
 
 async def test_a_hub_without_the_endpoint_runs_on_the_base_model() -> None:
@@ -238,7 +238,7 @@ async def test_a_hub_without_the_endpoint_runs_on_the_base_model() -> None:
     assert err is None, "a hub with no LoRAs must still answer"
     assert text == "ok"
     assert provider._lora_slots == {}
-    assert provider._n_slots == 0
+    assert provider._lora_ids == []
 
     await take_a_turn(provider)
     assert session.lora_gets == 1, "the answer is settled, not re-asked every turn"

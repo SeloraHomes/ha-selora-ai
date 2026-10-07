@@ -1,4 +1,4 @@
-"""Selora AI Local — serving + LoRA-activation concern (HTTP request path)."""
+"""Selora AI Local — serving + LoRA-routing concern (HTTP request path)."""
 
 from __future__ import annotations
 
@@ -15,8 +15,6 @@ from ....const import (
     CONTEXT_WINDOW_PROBE_TTL_S,
     HEALTH_CHECK_TIMEOUT,
     SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED,
-    SELORA_LOCAL_DEFAULT_INTENT,
-    SELORA_LOCAL_KIND_TO_INTENT,
     SELORA_LOCAL_LORA_FILENAME_KEYWORDS,
     SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY,
 )
@@ -34,6 +32,8 @@ _SELORA_LOCAL_PREWARM_KINDS: tuple[str, ...] = (
     "chat_clarification",
     "chat_utilities",
 )
+# On llama-server each specialist's warm-up evicts the previous one, so warm one.
+_SELORA_LOCAL_LLAMA_PREWARM_KINDS: tuple[str, ...] = ("chat_command",)
 
 # Selora AI Local — retry schedule for GET /lora-adapters when the hub
 # is not serving yet (still booting, transient network blip). Without a
@@ -79,8 +79,8 @@ def _log_at(delay: float, escalated: Callable[..., None]) -> Callable[..., None]
     return _LOGGER.debug if delay < _SELORA_LOCAL_DISCOVERY_WAIT_S else escalated
 
 
-class _SeloraLocalActivationError(ConnectionError):
-    """Raised when /lora-adapters refuses to activate the target slot."""
+class _SeloraLocalDiscoveryError(ConnectionError):
+    """Raised when the hub's adapter ids are not known yet, so no request can route."""
 
 
 # Trailing UNCLOSED ``{domain.partial_slug`` placeholder — the answer specialist's reply was clipped by max_tokens mid-placeholder ("The kitchen plug is {switch.kitchen_appliance_pl").
@@ -88,9 +88,9 @@ _SELORA_LOCAL_TRUNC_PLACEHOLDER_RE = re.compile(r"\{([a-z_][a-z0-9_]*)\.([a-z0-9
 
 
 class _ServingMixin:
-    """Serving + LoRA-activation concern for SeloraLocalProvider."""
+    """Serving + LoRA-routing concern for SeloraLocalProvider."""
 
-    # LoRA-slot discovery + activation
+    # LoRA-slot discovery + routing
 
     def _schedule_discovery_retry(self) -> float:
         """Arm the next discovery attempt, escalate the delay, return it."""
@@ -117,7 +117,7 @@ class _ServingMixin:
         fail fast at any point in the window.
 
         Callers must run this BEFORE taking ``_request_lock``. The wait
-        settles discovery and touches no LoRA slot, so it does not need
+        settles discovery and sends no completion, so it does not need
         that lock — and holding it across the sleep would make
         concurrent requests queue up and pay the window one after
         another instead of all sharing the one window they are actually
@@ -256,7 +256,7 @@ class _ServingMixin:
     async def _ensure_lora_discovery(self) -> None:
         """GET /v1/models + GET /lora-adapters discovery, cached after success.
 
-        Populates ``self._base_model_id``, ``self._n_slots``, and
+        Populates ``self._base_model_id``, ``self._lora_ids``, and
         ``self._lora_slots`` (intent → slot id). Successful discovery is
         cached for the lifetime of the provider. A transient failure
         (hub still booting, network blip) leaves ``_lora_slots`` unset
@@ -314,9 +314,9 @@ class _ServingMixin:
                         # ``_lora_slots`` unset and every request
                         # raising for the life of the process. Record
                         # "no LoRAs" and let the turns run against the
-                        # base model, which activation already handles.
+                        # base model, which routing already handles.
                         self._lora_slots = {}
-                        self._n_slots = 0
+                        self._lora_ids = []
                         _LOGGER.info(
                             "Selora Local hub has no /lora-adapters endpoint — "
                             "serving the base model without specialist routing"
@@ -349,7 +349,7 @@ class _ServingMixin:
             # covers a truncated or non-JSON payload; a well-formed body of the
             # wrong SHAPE (a list of strings, a scalar, an object) reaches here
             # and would raise ``AttributeError`` on ``slot.get`` — outside the
-            # ``_SeloraLocalActivationError`` handling the callers wrap
+            # ``_SeloraLocalDiscoveryError`` handling the callers wrap
             # ``_settle_discovery`` in, so the user's turn dies unclassified
             # instead of arming the retry. Treat it as the transient failure it
             # is, exactly as the /v1/models probe above already does.
@@ -362,19 +362,15 @@ class _ServingMixin:
                 )
                 return
             mapping: dict[str, int] = {}
-            # Counted from the records that are actually addressable, not from
-            # the response length: a skipped record still occupied a position in
-            # ``len(slots)``, and ``_activate_lora_for_kind`` builds its payload
-            # from ``range(self._n_slots)`` -- so one bad record had it name a
-            # slot id no adapter answers to, which a strict hub rejects outright.
-            usable = 0
+            # The ids the hub answers to, which every request's ``lora`` vector names.
+            ids: list[int] = []
             for slot in slots:
                 if not isinstance(slot, dict):
                     continue
                 # A record's FIELDS are no more trustworthy than its shape:
                 # ``{"path": 17}`` raises AttributeError on rsplit and
                 # ``{"id": "bad"}`` raises ValueError on int, both outside the
-                # activation handling the callers wrap this in. Skip the record
+                # routing handling the callers wrap this in. Skip the record
                 # rather than lose the turn -- the other slots are still usable.
                 path = slot.get("path") or ""
                 if not isinstance(path, str):
@@ -382,122 +378,54 @@ class _ServingMixin:
                 name = path.rsplit("/", 1)[-1].lower()
                 slot_id = slot.get("id")
                 # A slot id indexes the hub's adapter list, so a negative one
-                # names no adapter -- and activation would send it on as a
-                # scale-0 payload that disables every adapter instead.
+                # names no adapter.
                 if not isinstance(slot_id, int) or isinstance(slot_id, bool):
                     continue
-                if slot_id < 0:
+                if slot_id < 0 or slot_id in ids:
                     continue
-                usable += 1
+                ids.append(slot_id)
                 for keyword in SELORA_LOCAL_LORA_FILENAME_KEYWORDS:
                     if keyword in name and keyword not in mapping:
                         mapping[keyword] = slot_id
                         break
             self._lora_slots = mapping
-            self._n_slots = usable
+            self._lora_ids = ids
             self._discovery_backoff_s = _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S
             _LOGGER.info(
                 "Selora Local discovered base=%s, %d LoRA slots: %s",
                 self._base_model_id or "?",
-                self._n_slots,
+                len(ids),
                 mapping or "(no recognized intents)",
             )
 
-    async def _activate_lora_for_kind(self, kind: str | None) -> None:
-        """POST /lora-adapters so the upcoming chat completion routes to the right specialist."""
+    async def _ensure_routing(self) -> None:
+        """Settle what the upcoming request needs to name its specialist."""
         if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
-            # Nothing to activate -- the specialist is baked into the model. What
-            # this backend needs settled before the request goes out is WHICH model
-            # to address.
+            # The specialist is baked into the model; what must be settled is WHICH
+            # model to address.
             await self._ensure_unified_model()
             return
         await self._ensure_lora_discovery()
         if self._lora_slots is None:
             # Discovery failed (transient hub unavailability, in backoff).
-            raise _SeloraLocalActivationError(
+            raise _SeloraLocalDiscoveryError(
                 "LoRA discovery has not completed — the hub may still be booting"
             )
-        if self._n_slots == 0:
-            # Discovery succeeded but the hub has no LoRAs loaded (single-model backend).
-            return
-        intent = SELORA_LOCAL_KIND_TO_INTENT.get(kind or "", SELORA_LOCAL_DEFAULT_INTENT)
-        target = self._lora_slots.get(intent)
-        if target is None:
-            # Hub has slots but none match the requested intent — the specialist isn't loaded.
-            if self._active_slot is not None:
-                await self._deactivate_all_loras(intent)
-            return
-        if target == self._active_slot:
-            return
-        body = [{"id": i, "scale": 1.0 if i == target else 0.0} for i in range(self._n_slots)]
-        try:
-            session = self._get_session()
-            async with session.post(
-                f"{self._host}/lora-adapters",
-                headers=self._get_headers(),
-                json=body,
-                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
-            ) as resp:
-                if resp.status == 200:
-                    self._active_slot = target
-                    return
-                _LOGGER.warning(
-                    "Selora Local POST /lora-adapters returned %s for slot %d (%s)",
-                    resp.status,
-                    target,
-                    intent,
-                )
-                self._active_slot = None
-                raise _SeloraLocalActivationError(
-                    f"LoRA activation failed: /lora-adapters returned HTTP {resp.status}"
-                )
-        except (aiohttp.ClientError, TimeoutError) as exc:
-            _LOGGER.warning(
-                "Selora Local LoRA activation for slot %d (%s) failed: %s",
-                target,
-                intent,
-                exc,
-            )
-            self._active_slot = None
-            raise _SeloraLocalActivationError(f"LoRA activation failed: {exc}") from exc
 
-    async def _deactivate_all_loras(self, intent: str) -> None:
-        """POST /lora-adapters with every slot scaled to 0.0 so the base model serves the next request."""
-        body = [{"id": i, "scale": 0.0} for i in range(self._n_slots)]
-        try:
-            session = self._get_session()
-            async with session.post(
-                f"{self._host}/lora-adapters",
-                headers=self._get_headers(),
-                json=body,
-                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
-            ) as resp:
-                if resp.status == 200:
-                    self._active_slot = None
-                    _LOGGER.debug(
-                        "Selora Local deactivated all LoRAs (intent %r has no matching slot)",
-                        intent,
-                    )
-                    return
-                _LOGGER.warning(
-                    "Selora Local POST /lora-adapters (deactivate) returned %s for intent %r",
-                    resp.status,
-                    intent,
-                )
-                self._active_slot = None
-                raise _SeloraLocalActivationError(
-                    f"LoRA deactivation failed: /lora-adapters returned HTTP {resp.status}"
-                )
-        except (aiohttp.ClientError, TimeoutError) as exc:
-            _LOGGER.warning(
-                "Selora Local LoRA deactivation for intent %r failed: %s",
-                intent,
-                exc,
-            )
-            self._active_slot = None
-            raise _SeloraLocalActivationError(f"LoRA deactivation failed: {exc}") from exc
+    def _lora_vector(self, intent: str) -> list[dict[str, Any]] | None:
+        """The per-request ``lora`` field: the intent's adapter at 1.0, every other at 0.0.
 
-    # Override the request methods to slip in slot activation.
+        Per request, not a global POST /lora-adapters: llama-server drops a slot's
+        cached prompt on an adapter change only when the adapters come in the request.
+        Every id is named, since one left out keeps its server default scale.
+        An intent with no adapter gets them all at 0.0, so the base model answers.
+        """
+        if self._backend == SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED or not self._lora_ids:
+            return None
+        target = (self._lora_slots or {}).get(intent)
+        return [{"id": i, "scale": 1.0 if i == target else 0.0} for i in self._lora_ids]
+
+    # Override the request methods to settle routing first.
 
     async def send_request(  # type: ignore[override]
         self,
@@ -511,12 +439,12 @@ class _ServingMixin:
         await self._ensure_specialist_prompts_loaded()
         # Outside the request lock deliberately — see _settle_discovery.
         await self._settle_discovery()
-        # Hold the request lock from activation through completion so an overlapping call can't swap the LoRA mid-flight.
+        # Single-flight: the hub serves one request at a time, and build_payload sets the instance-wide ``_model`` the usage callback reads.
         async with self._request_lock:
             try:
-                await self._activate_lora_for_kind(self._call_kind.get())
-            except _SeloraLocalActivationError as exc:
-                # Don't fall through to the chat completion — the hub is still on whatever slot the previous call activated, so the prompt would be answered by the wrong LoRA.
+                await self._ensure_routing()
+            except _SeloraLocalDiscoveryError as exc:
+                # Without the adapter ids the request can't name its specialist.
                 return None, str(exc)
             return await super().send_request(
                 system,
@@ -537,8 +465,8 @@ class _ServingMixin:
         # Outside the request lock deliberately — see _settle_discovery.
         await self._settle_discovery()
         async with self._request_lock:
-            # SeloraLocalActivationError is a ConnectionError, which the tool-calling loop in LLMClient already handles — so we let it propagate rather than fabricating a dict result.
-            await self._activate_lora_for_kind(self._call_kind.get())
+            # _SeloraLocalDiscoveryError is a ConnectionError, which the tool-calling loop in LLMClient already handles — so we let it propagate rather than fabricating a dict result.
+            await self._ensure_routing()
             return await super().raw_request(system, messages, tools=tools)
 
     # Pre-warm
@@ -546,8 +474,12 @@ class _ServingMixin:
     def _prewarm_kinds(self, entities: list[Any]) -> tuple[str, ...]:
         """Which call kinds still need a warm-up request of their own.
 
-        On llama-server each kind has its own LoRA and its own trained
-        system prompt, so each one has a prefix to fill: all of them.
+        On llama-server, only ``chat_command``. Each kind's adapter clears
+        the slot's cached prompt, so with one slot only the last warm-up
+        survives, and each costs a full prefill (~35-75 s on a hub) under
+        the request lock, ahead of the user's first request. One warms the
+        GPU and page cache and keeps the likeliest first request's system
+        prompt.
 
         The Ollama runtime serves ONE self-routing model behind ONE
         trained prompt, so most of that collapses. What is still allowed
@@ -561,7 +493,7 @@ class _ServingMixin:
         differ, so a future divergence adds itself back automatically.
         """
         if self._backend != SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED:
-            return _SELORA_LOCAL_PREWARM_KINDS
+            return _SELORA_LOCAL_LLAMA_PREWARM_KINDS
         distinct: dict[str, str] = {}
         try:
             for kind in _SELORA_LOCAL_PREWARM_KINDS:
@@ -580,17 +512,14 @@ class _ServingMixin:
         return tuple(distinct.values())
 
     async def prewarm(self, entities: list[Any] | None = None) -> None:
-        """Send one tiny request per chat specialist so the hub's prefix
-        cache fills and each LoRA loads. Without this, the first real
-        user request per specialist pays a ~16s cold prefill on Vega 8.
+        """Send a tiny request in the shape a real one has, per kind from
+        ``_prewarm_kinds``, so the hub's GPU and page cache are warm before
+        the first user request.
 
-        ``entities`` should be the real HA entity list (from
-        ``_collect_entity_states``). Pre-warming with the actual entity
-        list is what makes the cache HIT on the user's first chat —
-        priming with no entities builds a different prefix and forces
-        a re-prefill anyway. Mirrors what model-tester's
-        ``_prewarm_llamacpp_specialists`` does (sends the full
-        training-format body with synthetic ENTITIES).
+        It does not prime a reusable prompt. The trained layout puts USER
+        REQUEST before the entity block, and llama.cpp cannot reuse text
+        after a replaced span, so a different sentence reuses only the
+        system prompt (measured: 274 of 3,430 tokens).
 
         Safe to call multiple times — discovery is cached. Failures are
         swallowed (logged) so a hub hiccup at HA startup never blocks
@@ -617,11 +546,7 @@ class _ServingMixin:
         kinds = self._prewarm_kinds(entities or [])
         for kind in kinds:
             self.set_call_kind(kind)
-            # Same chat context the first real user request will use —
-            # this makes build_payload generate the EXACT same prefix
-            # (system + USER REQUEST + EXISTING AUTOMATIONS + AVAILABLE
-            # ENTITIES blocks) as the real call, so llama-server's
-            # cache_prompt actually hits.
+            # The real entity list, so the warm-up costs what a real request does.
             self.set_chat_context(
                 user_message="warmup",
                 entities=entities or [],

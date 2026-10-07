@@ -6203,14 +6203,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
     # Selora AI Local pre-warm: discover the hub's loaded LoRAs + send
-    # one tiny request per chat specialist with the REAL HA entity list
-    # in the body. llama-server's cache_prompt only hits when the
-    # incoming prefix matches what's cached, so we have to prime with
-    # the exact entity block the user's first chat will send.
+    # a tiny request with the REAL HA entity list
+    # in the body, to warm the hub's GPU and page cache. It primes no
+    # reusable prompt beyond the system prompt — see SeloraLocalProvider.prewarm.
     # Fire-and-forget — pre-warm failures are logged but never block setup.
     # A BACKGROUND task, which is what makes that true: ``async_create_task``
     # registers the task with HA, so bootstrap, a reload and every test's
-    # ``async_block_till_done()`` would each wait out its five LoRA priming
+    # ``async_block_till_done()`` would each wait out its priming
     # round-trips before continuing. Nobody needs pre-warm's answer — the
     # first real request is what it is for — and ``_bg`` still cancels it on
     # unload.

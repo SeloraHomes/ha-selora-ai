@@ -316,8 +316,10 @@ class _RequestBuildMixin:
         payload.pop("stream_options", None)
         # Stop on ChatML markers + Qwen3's specific tokens.
         payload["stop"] = list(_SELORA_LOCAL_STOP_MARKERS)
-        # Tell llama-server to keep the (system + entities) prefix cached across calls.
+        # Lets llama-server reuse the cached prefix; across different sentences that is the system prompt only.
         payload["cache_prompt"] = True
+        if (lora := self._lora_vector(intent)) is not None:
+            payload["lora"] = lora
         # Must match the LoRA's trained prompt format byte-for-byte or it goes OOD.
         payload.setdefault("temperature", 0.0)
         payload.setdefault("repeat_penalty", 1.0)

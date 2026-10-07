@@ -143,7 +143,7 @@ async def test_the_ollama_backend_never_probes_for_lora_slots() -> None:
     then arms the discovery retry schedule, which refuses real requests."""
     provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED)
     await provider._ensure_lora_discovery()
-    await provider._activate_lora_for_kind("chat_command")
+    await provider._ensure_routing()
     assert not any("lora-adapters" in url for url in provider._fake_session.gets)
     assert not provider._fake_session.posts
 
@@ -157,7 +157,7 @@ async def test_the_llama_backend_still_discovers_and_activates() -> None:
             "/lora-adapters": [{"id": 0, "path": "/m/selora-command.gguf"}],
         },
     )
-    await provider._activate_lora_for_kind("chat_command")
+    await provider._ensure_routing()
     assert any("lora-adapters" in url for url in provider._fake_session.gets)
     assert provider._lora_slots == {"command": 0}
 
@@ -196,7 +196,7 @@ async def test_the_model_is_resolved_from_the_host() -> None:
         }
     }
     provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED, routes=routes)
-    await provider._activate_lora_for_kind("chat_command")
+    await provider._ensure_routing()
     assert provider._unified_model == f"{FAM}:9.9.9"
     assert payload_for(provider)[0] == f"{FAM}:9.9.9"
 
@@ -206,7 +206,7 @@ async def test_the_configured_model_wins_over_the_host() -> None:
     republishing over the one everyone else is served."""
     routes = {"/api/tags": {"models": [{"name": f"{FAM}:9.9.9"}]}}
     provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED, model="candidate:tag", routes=routes)
-    await provider._activate_lora_for_kind("chat_command")
+    await provider._ensure_routing()
     assert provider._unified_model == "candidate:tag"
     assert provider._fake_session.gets == []
 
@@ -216,12 +216,12 @@ async def test_an_unreachable_host_falls_back_but_keeps_looking() -> None:
     answer. If it latched, a host that booted five seconds late would be
     served :latest for the rest of the process."""
     provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED)  # no /api/tags route -> 404
-    await provider._activate_lora_for_kind("chat_command")
+    await provider._ensure_routing()
     assert provider._unified_model == FAM
     assert provider._unified_model_settled is False
     provider._fake_session.routes["/api/tags"] = {"models": [{"name": f"{FAM}:9.9.9"}]}
     provider._discovery_retry_after = 0.0  # step past the backoff window
-    await provider._activate_lora_for_kind("chat_command")
+    await provider._ensure_routing()
     assert provider._unified_model == f"{FAM}:9.9.9"
     assert provider._unified_model_settled is True
 
@@ -232,7 +232,7 @@ async def test_an_unreachable_host_is_not_re_probed_on_every_request() -> None:
     call can start. The user pays that on every single turn."""
     provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED)  # no /api/tags route -> 404
     for _ in range(3):
-        await provider._activate_lora_for_kind("chat_command")
+        await provider._ensure_routing()
     assert provider._fake_session.gets.count(f"{HOST}/api/tags") == 1
     assert provider._discovery_retry_after > 0.0
 
@@ -244,7 +244,7 @@ async def test_the_model_is_the_same_for_every_intent() -> None:
     seen = set()
     for kind in ("chat_command", "chat_automation", "chat_answer", "chat_clarification"):
         provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED, routes=routes)
-        await provider._activate_lora_for_kind(kind)
+        await provider._ensure_routing()
         seen.add(payload_for(provider, kind)[0])
     assert seen == {f"{FAM}:9.9.9"}
 
@@ -291,7 +291,7 @@ async def test_the_ollama_backend_sends_the_router_prompt_for_every_intent() -> 
     routes = {"/api/tags": {"models": [{"name": f"{FAM}:9.9.9"}]}}
     for kind in ("chat_command", "chat_automation", "chat_answer"):
         provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED, routes=routes)
-        await provider._activate_lora_for_kind(kind)
+        await provider._ensure_routing()
         assert payload_for(provider, kind)[1].startswith("ROUTER PROMPT")
 
 
@@ -476,11 +476,11 @@ def _entities(count: int) -> list[dict[str, str]]:
     ]
 
 
-def test_the_llama_backend_warms_every_specialist() -> None:
-    """Each one has its own LoRA and its own trained prompt, so each has
-    a prefix of its own to fill."""
+def test_the_llama_backend_warms_only_the_command_specialist() -> None:
+    """Each specialist's warm-up clears the one before it, and each holds the
+    request lock for a full prefill, so warming all five buys nothing."""
     provider = make(SELORA_LOCAL_BACKEND_LLAMA)
-    assert provider._prewarm_kinds(_entities(80)) == _SELORA_LOCAL_PREWARM_KINDS
+    assert provider._prewarm_kinds(_entities(80)) == ("chat_command",)
 
 
 @pytest.mark.parametrize("home_size", [2, 80])
