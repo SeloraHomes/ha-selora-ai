@@ -118,8 +118,37 @@ export const sharedAnimations = css`
       stroke-dashoffset: 24;
     }
   }
+  /* Springy arrival for something that just changed state: the Enabled
+     badge of an accepted proposal, the chips that replace Accept & Save.
+     Overshoots, then settles. .pop-in-children staggers its direct children
+     after the badge. */
+  .pop-in,
+  .pop-in-children > * {
+    animation: pop-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .pop-in-children > :nth-child(1) {
+    animation-delay: 200ms;
+  }
+  .pop-in-children > :nth-child(2) {
+    animation-delay: 300ms;
+  }
+  .pop-in-children > :nth-child(n + 3) {
+    animation-delay: 400ms;
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    45% {
+      opacity: 1;
+      transform: scale(1.18);
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .created-check.drawing path {
+    .created-check.drawing path,
+    .pop-in,
+    .pop-in-children > * {
       animation: none;
     }
   }

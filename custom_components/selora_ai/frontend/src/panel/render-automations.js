@@ -565,6 +565,7 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
                 ${
                   badge
                     ? html`<span
+                        class=${badgeCheckAnimate ? "pop-in" : ""}
                         style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
                         >${
                           badgeCheck
@@ -818,7 +819,10 @@ export function renderProposalCard(host, msg, msgIndex) {
   // a first-time proposal has nothing to compare against.
   const diff = proposalDiff(host, msgIndex);
   return html`
-    <div class="automation-subcard${revealing ? " revealing" : ""}">
+    <div
+      class="automation-subcard${revealing ? " revealing" : ""}"
+      data-reveal=${msgIndex}
+    >
       ${revealing ? renderRevealParticles(host) : ""}
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -947,7 +951,13 @@ export function renderProposalActions(host, msg, msgIndex) {
     const elevated = risk?.level === "elevated";
 
     if (isEnabled) {
-      return html`<div class="qa-group automation-card-actions">
+      // Just accepted: the chips pop in after the card's Enabled badge.
+      const justCreated = host._justCreatedId === savedAutomationId;
+      return html`<div
+        class="qa-group automation-card-actions${
+          justCreated ? " pop-in-children" : ""
+        }"
+      >
         <button
           class="qa-suggestion"
           ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
