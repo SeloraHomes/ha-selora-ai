@@ -248,7 +248,14 @@ def _atomic_bytes(tmp: Path, dest: Path, data: bytes) -> None:
         with suppress(OSError):
             tmp.unlink()
         raise
-    os.replace(tmp, dest)
+    try:
+        os.replace(tmp, dest)
+    except OSError:
+        # The poll retries every 30 s with a fresh temp name: left behind, a
+        # rename that keeps failing would leave one file per attempt.
+        with suppress(OSError):
+            tmp.unlink()
+        raise
 
 
 __all__ = [

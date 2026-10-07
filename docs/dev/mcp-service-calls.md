@@ -6,6 +6,10 @@ allowlist and the approval cards in `llm_client/command_policy.py`. The two shar
 only the classification tables and `_call_service_and_settle` (dispatch + state
 read-back), so they cannot disagree about what a call DID.
 
+- **Service names are lowercased first** (`check_service_call`, chat's
+  `_classify_call` and tool validator), as Home Assistant does before running
+  one: compared as typed, `Recorder.Purge` missed the denylist and the risk
+  tables and still reached `recorder.purge`.
 - **The denylist wins** (`_BLOCKED_SERVICES`: restart, recorder purge, host
   reboot …), confirmed or not. Those belong to dedicated admin tools.
 - **LOW risk runs at once, decided BY VERB**: chat's curated services

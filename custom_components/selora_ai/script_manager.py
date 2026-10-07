@@ -533,6 +533,16 @@ async def async_set_script(
         if variables is not None:
             config["variables"] = variables
         if max_runs is not None:
+            # Home Assistant accepts it in any mode and enforces it only when
+            # runs can overlap — saved on a single/restart script it does nothing.
+            final_mode = None if "mode" in (clear or ()) else config.get("mode")
+            if str(final_mode or "single") not in ("queued", "parallel"):
+                return {
+                    "error": (
+                        "max limits how many runs overlap, which only a queued or "
+                        "parallel script does; set mode to one of those too."
+                    )
+                }
             config["max"] = max_runs
         if max_exceeded:
             config["max_exceeded"] = str(max_exceeded).strip()

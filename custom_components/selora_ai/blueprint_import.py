@@ -144,6 +144,13 @@ async def async_import_blueprint(
             "error": f"That is not a usable {domain} blueprint: {sanitize_untrusted_text(str(exc), 200)}"
         }
     path = f"{imported.suggested_filename}.yaml"
+    if not _inside(store.blueprint_folder, path):
+        # The importer builds the name from the URL's last segment AFTER
+        # percent-decoding it, so `..%2F..%2F` arrives as `../../`. Home
+        # Assistant's own save command refuses that; so does this, before the
+        # preview, since a file written outside the blueprints folder (a package
+        # with a shell_command) is far more than a blueprint.
+        return {"error": "That URL names a file outside the blueprints folder; it is not imported."}
     try:
         exists = bool(await store.async_get_blueprint(path))
     except HomeAssistantError:
@@ -330,6 +337,18 @@ def _replace_if_digest(folder: Any, path: str, digest: str, text: str) -> bool:
     temporary.write_text(text, encoding="utf-8")
     os.replace(temporary, target)
     return True
+
+
+def _inside(folder: Any, path: str) -> bool:
+    """Whether *path* is a plain relative path that stays inside *folder*."""
+    from homeassistant.util import raise_if_invalid_path  # noqa: PLC0415
+
+    try:
+        raise_if_invalid_path(path)
+    except ValueError:
+        return False
+    root = folder.resolve()
+    return (folder / path).resolve().is_relative_to(root) and not path.startswith("/")
 
 
 def _file_exists(folder: Any, path: str) -> bool:

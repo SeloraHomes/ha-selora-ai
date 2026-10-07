@@ -24,6 +24,9 @@ ha-mcp's file tools. All four are admin-only.
   tool writes was put there by the agent, so writing, then registering, would
   skip the confirmation an external URL needs. The `approval_required` opt-out
   is honoured.
+  - **Decided by extension AND by the type the web server would serve**
+    (`_is_browser_code`): `.xht`, `.xml`, `.xsl` render as documents that run
+    script in Home Assistant's origin, and a hand-kept list missed them.
 - **Text only, 1 MB per write.** Reads go by BYTE offset and read only the
   chunk (decoding the whole file per page made paging quadratic); an
   incremental decoder stops short of a split character, so `next_offset` is

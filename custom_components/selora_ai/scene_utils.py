@@ -501,8 +501,13 @@ def _loaded_matches(hass: HomeAssistant, scene_id: str, entry: dict[str, Any]) -
     except ImportError:
         return True
     platform = hass.data.get(DATA_PLATFORM)
-    entity_id = er.async_get(hass).async_get_entity_id("scene", "homeassistant", scene_id)
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("scene", "homeassistant", scene_id)
     if platform is None or entity_id is None:
+        return True
+    if (registry_entry := registry.async_get(entity_id)) and registry_entry.disabled_by:
+        # A disabled scene is never loaded, so there is nothing to compare —
+        # unverifiable, not refused.
         return True
     config = getattr(platform.entities.get(entity_id), "scene_config", None)
     if config is None:
@@ -514,6 +519,9 @@ def _loaded_matches(hass: HomeAssistant, scene_id: str, entry: dict[str, Any]) -
         return False
     for member, value in written.items():
         state = value.get("state") if isinstance(value, dict) else value
+        if isinstance(state, bool):
+            # YAML `state: true` loads as a bool; Home Assistant's scene keeps it as on/off.
+            state = "on" if state else "off"
         if state is not None and str(config.states[member].state) != str(state):
             return False
     return True

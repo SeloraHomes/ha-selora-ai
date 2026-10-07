@@ -241,3 +241,20 @@ def test_mcp_and_chat_share_one_schema() -> None:
 
     assert mcp.inputSchema == chat
     assert {"entity_ids", "start", "end", "source", "period", "offset"} <= set(chat["properties"])
+
+
+async def test_a_busy_entity_is_read_from_its_newest_end(
+    recorder: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """At most _ROW_CAP rows are read per entity, whatever the range holds; the
+    range narrows toward the newest so what comes back is still the newest."""
+    from custom_components.selora_ai import history_reader
+
+    monkeypatch.setattr(history_reader, "_ROW_CAP", 3)
+    await _record(recorder, "sensor.power", *[str(n) for n in range(12)])
+
+    result = await _read(recorder, entity_id="sensor.power", hours=1)
+
+    # The newest three — not one or two left by over-narrowing.
+    assert [c["state"] for c in result["changes"]] == ["9", "10", "11"]
+    assert "range_start" in result

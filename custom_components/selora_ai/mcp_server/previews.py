@@ -98,6 +98,25 @@ async def _preview_update_entity(hass: HomeAssistant, arguments: dict[str, Any])
     if entry is None:
         return {"error": f"'{_sanitize(entity_id, 60)}' is not in the entity registry."}
 
+    # The update's own checks, before the card: a card for a call the update
+    # then refuses leaves the user approving something that cannot happen.
+    from ..registry_manager import preflight_entity_update  # noqa: PLC0415
+    from .registry import _update_entity_kwargs  # noqa: PLC0415
+
+    kwargs = _update_entity_kwargs(arguments)
+    checked = preflight_entity_update(
+        hass,
+        entry,
+        clear=list(kwargs["clear"] or ()),
+        new_name=kwargs["new_name"],
+        icon=kwargs["icon"],
+        show_as=kwargs["show_as"],
+        settings=kwargs["settings"],
+        expose=kwargs["expose"],
+    )
+    if isinstance(checked, str):
+        return {"error": checked}
+
     # Validate BEFORE offering the card. Asking the user to confirm a rename
     # that cannot happen — wrong domain, taken id, live references — spends
     # their attention on a decision with no outcome, and teaches them the card
@@ -158,6 +177,10 @@ async def _preview_update_device(hass: HomeAssistant, arguments: dict[str, Any])
     device, error = resolve_device(hass, str(arguments.get("device", "")))
     if error or device is None:
         return {"error": error or "Device not found"}
+    from ..registry_manager import _part_of  # noqa: PLC0415
+
+    if part_of := _part_of(hass, device):
+        return {"error": part_of}
 
     from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
 

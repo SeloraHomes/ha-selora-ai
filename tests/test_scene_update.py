@@ -176,3 +176,17 @@ async def test_a_change_home_assistant_never_loaded_is_rolled_back(
 
     assert "did not reload" in result["error"]
     assert _stored(scenes) == [_EDITOR_SCENE]
+
+
+async def test_a_disabled_scene_is_still_edited(scenes: HomeAssistant) -> None:
+    """A disabled scene is never loaded, so there is nothing to compare against:
+    unverifiable, not a failed reload to roll back."""
+    er.async_get(scenes).async_update_entity(
+        _entity_id(scenes), disabled_by=er.RegistryEntryDisabler.USER
+    )
+    await scenes.async_block_till_done()
+
+    result = await _mcp(scenes, TOOL_UPDATE_SCENE, scene_id="1712345678901", name="Dusk")
+
+    assert result["status"] == "updated", result
+    assert _stored(scenes)[0]["name"] == "Dusk"

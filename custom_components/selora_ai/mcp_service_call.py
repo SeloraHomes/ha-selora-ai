@@ -188,7 +188,10 @@ def check_service_call(
         _remote_media_content_error,
     )
 
-    service = str(service or "").strip()
+    # Lowercased as Home Assistant does before it runs anything: compared as
+    # typed, `Recorder.Purge` would miss the denylist and the risk tables and
+    # still reach `recorder.purge`.
+    service = str(service or "").strip().lower()
     verdict: ServiceVerdict = {"valid": False, "errors": [], "service": service, "domain": None}
     if "." not in service:
         verdict["errors"] = ["service must be in '<domain>.<verb>' form"]

@@ -42,7 +42,49 @@ WRITE_DIRS: Final = ("www", "themes", "custom_templates", "dashboards")
 # Served from www/ and executed, rendered as a document, or applied as a
 # stylesheet by the browser. CSS counts: registered as a `css` resource it
 # styles every page, and `url()` lookups can carry what it reads off the page.
-_BROWSER_CODE: Final = frozenset({".js", ".mjs", ".cjs", ".html", ".htm", ".xhtml", ".svg", ".css"})
+_BROWSER_CODE: Final = frozenset(
+    {
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".html",
+        ".htm",
+        ".shtml",
+        ".xhtml",
+        ".xht",
+        ".xml",
+        ".xsl",
+        ".xslt",
+        ".svg",
+        ".svgz",
+        ".css",
+    }
+)
+# And whatever else the web server would serve as a type browsers render or
+# run — it picks the type from the extension, as `mimetypes` does.
+_BROWSER_TYPES: Final = frozenset(
+    {
+        "text/html",
+        "application/xhtml+xml",
+        "application/xml",
+        "text/xml",
+        "image/svg+xml",
+        "text/javascript",
+        "application/javascript",
+        "text/css",
+        "application/xslt+xml",
+        "text/xsl",
+    }
+)
+
+
+def _is_browser_code(name: str) -> bool:
+    import mimetypes  # noqa: PLC0415
+
+    suffix = name[name.rfind(".") :].lower() if "." in name else ""
+    guessed, _ = mimetypes.guess_type(name)
+    return suffix in _BROWSER_CODE or (guessed or "") in _BROWSER_TYPES
+
 
 _SEGMENT_RE: Final = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 _MAX_DEPTH: Final = 8
@@ -202,7 +244,7 @@ async def async_read(hass: HomeAssistant, file: str, offset: int = 0) -> dict[st
 
 
 def _needs_confirmation(rel: str) -> bool:
-    return rel.startswith("www/") and Path(rel).suffix.lower() in _BROWSER_CODE
+    return rel.startswith("www/") and _is_browser_code(rel)
 
 
 async def async_write(

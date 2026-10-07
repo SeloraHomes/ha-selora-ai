@@ -74,6 +74,27 @@ _AREA_SENSORS: Final = {
 }
 
 
+def _part_of(hass: HomeAssistant, device: Any) -> str | None:
+    """Why a child device (Home Assistant 2026.9+) cannot be changed on its own,
+    or None. It is part of its parent — its area and name follow the parent's —
+    and the registry refuses the ordinary update, mid-way through a call that
+    has already moved others."""
+    if not (parent_id := getattr(device, "parent_device_id", None)):
+        return None
+    parent = dr.async_get(hass).async_get(parent_id)
+    name = (parent.name_by_user or parent.name) if parent is not None else parent_id
+    return (
+        f"That device is part of {sanitize_untrusted_text(str(name), 80)} "
+        f"(device_id {parent_id}); change that device instead."
+    )
+
+
+def _display_state(state: Any) -> str:
+    from .mcp_server.entities import _display_state as display  # noqa: PLC0415
+
+    return display(state)
+
+
 def _clear_error(
     clear: Iterable[str] | None, allowed: tuple[str, ...], given: dict[str, Any]
 ) -> str | None:
@@ -631,6 +652,9 @@ async def async_assign_area(
         if device is None:
             failed.append({"device_id": device_id, "reason": dev_error or "Not found."})
             continue
+        if part_of := _part_of(hass, device):
+            failed.append({"device_id": device.id, "reason": part_of})
+            continue
         if device.area_id == area_entry.id:
             unchanged.append(device.id)
             continue
@@ -778,6 +802,43 @@ async def validate_entity_id_rename(
     )
 
 
+def preflight_entity_update(
+    hass: HomeAssistant,
+    entry: er.RegistryEntry,
+    *,
+    clear: list[str],
+    new_name: str | None,
+    icon: str | None,
+    show_as: str | None,
+    settings: Any,
+    expose: dict[str, bool] | None,
+) -> str | tuple[str | None, dict[str, Any] | None]:
+    """Every check ``async_update_entity`` makes before writing anything: an
+    error, or ``(show_as, new domain options)``. Shared with the confirmation
+    card's preview, so a card is never offered for a call the update refuses."""
+    from .entity_settings import SettingError, check_settings, check_show_as  # noqa: PLC0415
+
+    if error := _clear_error(
+        clear,
+        ("name", "icon", "area", "show_as"),
+        {"name": new_name, "icon": icon, "show_as": show_as},
+    ):
+        return error
+    if settings is not None and not isinstance(settings, dict):
+        return "settings is an object, e.g. {'display_precision': 1}."
+    try:
+        shown_as = check_show_as(entry, show_as) if show_as else None
+        new_options = check_settings(hass, entry, settings) if settings else None
+    except SettingError as exc:
+        return str(exc)
+    if expose:
+        from .entity_exposure import unavailable  # noqa: PLC0415
+
+        if error := unavailable(hass, dict(expose)):
+            return error
+    return shown_as, new_options
+
+
 async def async_update_entity(
     hass: HomeAssistant,
     *,
@@ -821,22 +882,19 @@ async def async_update_entity(
         }
 
     clear = list(clear or ())  # read twice: checked, then applied
-    if error := _clear_error(
-        clear,
-        ("name", "icon", "area", "show_as"),
-        {"name": new_name, "icon": icon, "show_as": show_as},
-    ):
-        return {"error": error}
-    from .entity_settings import SettingError, check_settings, check_show_as  # noqa: PLC0415
-
-    if settings is not None and not isinstance(settings, dict):
-        return {"error": "settings is an object, e.g. {'display_precision': 1}."}
-
-    try:
-        shown_as = check_show_as(entry, show_as) if show_as else None
-        new_options = check_settings(hass, entry, settings) if settings else None
-    except SettingError as exc:
-        return {"error": str(exc)}
+    checked = preflight_entity_update(
+        hass,
+        entry,
+        clear=clear,
+        new_name=new_name,
+        icon=icon,
+        show_as=show_as,
+        settings=settings,
+        expose=expose,
+    )
+    if isinstance(checked, str):
+        return {"error": checked}
+    shown_as, new_options = checked
 
     changes: dict[str, Any] = {}
     for field in clear or ():
@@ -895,11 +953,6 @@ async def async_update_entity(
             }
 
     expose = dict(expose or {})
-    if expose:
-        from .entity_exposure import unavailable  # noqa: PLC0415
-
-        if error := unavailable(hass, expose):
-            return {"error": error}
 
     if not changes and not expose and new_options is None:
         return {
@@ -971,6 +1024,8 @@ async def async_update_device(
     entry, error = resolve_device(hass, device)
     if error or entry is None:
         return {"error": error or "Device not found."}
+    if part_of := _part_of(hass, entry):
+        return {"error": part_of}
     clear = list(clear or ())  # read twice: checked, then applied
     if error := _clear_error(clear, ("name", "area"), {"name": new_name, "area": area}):
         return {"error": error}
@@ -1109,7 +1164,9 @@ async def helper_overview(hass: HomeAssistant, domain: str | None = None) -> dic
                 "name": sanitize_untrusted_text(
                     entry.name or entry.original_name or entry.entity_id, 80
                 ),
-                "state": state.state if state else "unavailable",
+                # The inventory reads' redaction: a password-mode text helper's
+                # state IS the secret, and this listing is open to read-only use.
+                "state": _display_state(state) if state else "unavailable",
                 "area_id": _entity_display_area(hass, entry),
             }
         )

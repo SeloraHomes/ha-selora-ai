@@ -122,6 +122,13 @@ schema is derived from the chat one) read the recorder for up to 10 entities.
   statistics; a page is the newest `limit` rows and `older` / `next_offset` lead
   to the rest. A fixed window with a silent cut answered "when did it last…"
   wrongly whenever the answer was just outside it.
+- **A history read holds at most `_ROW_CAP` rows per entity, off the event
+  loop** (`_fetch_changes`, in the recorder's executor). The recorder's `limit`
+  keeps the OLDEST rows, so a range holding more is narrowed toward its end
+  only while the newer half alone still overflows, then walked forward in capped
+  chunks, keeping the newest; the answer carries
+  `range_start` / `range_note`. Fetching every row of a month before paging put
+  hundreds of thousands of `State` objects in memory on a busy sensor.
 - **Statistics are the long answer.** States are purged after `purge_keep_days`;
   statistics are not. Defaults follow the dashboards: `change` for a meter
   (`has_sum`), mean/min/max for a measurement. An entity without a

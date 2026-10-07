@@ -114,9 +114,11 @@ async def _visible(hass: HomeAssistant, value: Any) -> bool | list[dict[str, str
             u for u in users if key in (u.id, u.name) or key.lower() == (u.name or "").lower()
         ]
         if len(matches) != 1:
-            names = ", ".join(sorted(u.name or u.id for u in users))
+            # The home's users are not listed here: view options can be set by a
+            # credential that is not a Home Assistant admin.
             raise OptionError(
-                f"No single user matches '{sanitize_untrusted_text(key, 40)}'. Users: {names}."
+                f"No single user matches '{sanitize_untrusted_text(key, 40)}'. Pass a "
+                "user's exact name or id."
             )
         if {"user": matches[0].id} not in chosen:
             chosen.append({"user": matches[0].id})

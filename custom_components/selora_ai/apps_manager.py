@@ -151,7 +151,7 @@ async def async_app_logs(hass: HomeAssistant, slug: str, lines: Any = None) -> d
 # ── Finding, installing and configuring ─────────────────────────────────────
 
 _MAX_RESULTS: Final = 25
-_CREDENTIAL: Final = re.compile(r"pass|secret|token|api_?key|private", re.IGNORECASE)
+_CREDENTIAL: Final = re.compile(r"pass|secret|token|api_?key|private|psk|credential", re.IGNORECASE)
 _REDACTED: Final = "***"
 
 
@@ -345,19 +345,94 @@ async def async_install_app(
     }
 
 
-def _password_keys(schema: list[dict[str, Any]] | None, options: dict[str, Any]) -> set[str]:
-    secret = {
-        str(row.get("name"))
-        for row in schema or []
-        if isinstance(row, dict) and str(row.get("type")) == "password"
-    }
-    return secret | {k for k in options if _CREDENTIAL.search(k)}
+def _secret_fields(schema: Any) -> tuple[set[str], dict[str, Any]]:
+    """``(password field names, nested schema by field)`` at one level of the
+    Supervisor's option schema — which nests: Mosquitto's ``logins`` is a list
+    of ``{username, password}`` with the password typed ``password`` inside."""
+    secret: set[str] = set()
+    nested: dict[str, Any] = {}
+    for row in schema or []:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("name"))
+        if str(row.get("type")) == "password":
+            secret.add(name)
+        if isinstance(row.get("schema"), list):
+            nested[name] = row["schema"]
+    return secret, nested
 
 
-def _shown(options: dict[str, Any], secret: set[str]) -> dict[str, Any]:
+def _is_secret_key(key: str, secret: set[str]) -> bool:
+    return key in secret or bool(_CREDENTIAL.search(key))
+
+
+def _shown(value: Any, schema: Any = None) -> Any:
+    """*value* with every password — at any depth — as ``{"is_set": …}``."""
+    if isinstance(value, list):
+        return [_shown(item, schema) for item in value]
+    if not isinstance(value, dict):
+        return value
+    secret, nested = _secret_fields(schema)
     return {
-        key: ({"is_set": bool(value)} if key in secret else value) for key, value in options.items()
+        key: (
+            {"is_set": bool(item)} if _is_secret_key(key, secret) else _shown(item, nested.get(key))
+        )
+        for key, item in value.items()
     }
+
+
+class _Unmatched(ValueError):
+    """A hidden password whose stored item cannot be told apart."""
+
+
+def _placeholder(value: Any) -> bool:
+    return isinstance(value, dict) and set(value) == {"is_set"}
+
+
+def _restored(new: Any, old: Any) -> Any:
+    """*new* with each ``{"is_set": …}`` it carries — a password read back and
+    sent again unchanged — replaced by the stored value it stands for.
+
+    In a list, an item is matched to the stored one by its other fields (a
+    login by its username), never by position: a list edited by removing or
+    reordering entries would otherwise hand one entry another's password. An
+    item that matches no single stored one raises ``_Unmatched``.
+    """
+    if _placeholder(new):
+        return old
+    if isinstance(new, dict):
+        base = old if isinstance(old, dict) else {}
+        return {key: _restored(item, base.get(key)) for key, item in new.items()}
+    if isinstance(new, list):
+        stored = old if isinstance(old, list) else []
+        return [_restored_item(item, stored) for item in new]
+    return new
+
+
+def _restored_item(item: Any, stored: list[Any]) -> Any:
+    if not _holds_placeholder(item):
+        return item
+    if not isinstance(item, dict):
+        raise _Unmatched
+    known = {k: v for k, v in item.items() if not _holds_placeholder(v)}
+    matches = [
+        old
+        for old in stored
+        if isinstance(old, dict) and known and all(old.get(k) == v for k, v in known.items())
+    ]
+    if len(matches) != 1:
+        raise _Unmatched
+    return _restored(item, matches[0])
+
+
+def _holds_placeholder(value: Any) -> bool:
+    if _placeholder(value):
+        return True
+    if isinstance(value, dict):
+        return any(_holds_placeholder(v) for v in value.values())
+    if isinstance(value, list):
+        return any(_holds_placeholder(v) for v in value)
+    return False
 
 
 async def _installed_info(hass: HomeAssistant, slug: str) -> Any:
@@ -378,12 +453,11 @@ async def async_get_app_options(hass: HomeAssistant, slug: str) -> dict[str, Any
     if isinstance(info, dict):
         return info
     options = dict(info.options or {})
-    secret = _password_keys(info.schema, options)
     return {
         "slug": info.slug,
         "name": sanitize_untrusted_text(info.name, 80),
         "state": str(info.state),
-        "options": _shown(options, secret),
+        "options": _shown(options, info.schema),
         "schema": info.schema or [],
         "hint": (
             "Change them with set_app_options, passing only what changes. A password "
@@ -404,13 +478,20 @@ async def async_set_app_options(hass: HomeAssistant, slug: str, options: Any) ->
     if isinstance(info, dict):
         return info
     current = dict(info.options or {})
-    secret = _password_keys(info.schema, current)
-    # A password read back as {"is_set": …} and sent again is not a new password.
-    changes = {
-        k: v
-        for k, v in options.items()
-        if not (k in secret and isinstance(v, dict) and set(v) == {"is_set"})
-    }
+    # A password read back as {"is_set": …} and sent again — at any depth —
+    # is not a new password: the stored one stays.
+    try:
+        changes = {
+            k: _restored(v, current.get(k)) for k, v in options.items() if not _placeholder(v)
+        }
+    except _Unmatched:
+        return {
+            "error": (
+                "A hidden password could not be matched to the entry it belongs to "
+                "(an entry changed besides its password). Send that entry's password "
+                "itself."
+            )
+        }
     merged = {**current, **changes}
     client = _client(hass)
     try:

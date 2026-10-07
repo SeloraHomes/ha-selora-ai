@@ -246,3 +246,32 @@ async def test_a_confirmation_step_is_answered_with_empty_fields(hass: HomeAssis
     assert "{} to confirm" in asked["hint"]
     assert done["status"] == "created", done
     assert hass.config_entries.async_entries("confirm_plus")[0].title == "Porch"
+
+
+class _BrokenMenuFlow(ConfigFlow):
+    """A setup whose menu choice raises — before the flow is held open."""
+
+    VERSION = 1
+
+    async def async_step_user(self, _user_input: dict[str, Any] | None = None) -> Any:
+        return self.async_show_menu(step_id="user", menu_options=["broken"])
+
+    async def async_step_broken(self, _user_input: dict[str, Any] | None = None) -> Any:
+        raise ValueError("no such option")
+
+
+async def test_a_flow_that_fails_on_its_first_menu_step_is_aborted(hass: HomeAssistant) -> None:
+    mock_integration(
+        hass,
+        MockModule(
+            "broken_plus",
+            async_setup_entry=AsyncMock(return_value=True),
+            partial_manifest={"integration_type": "helper", "config_flow": True},
+        ),
+    )
+    mock_platform(hass, "broken_plus.config_flow", None)
+    with mock_config_flow("broken_plus", _BrokenMenuFlow):
+        result = await async_create_flow_helper(hass, "broken_plus", "broken", None)
+
+    assert "error" in result
+    assert not hass.config_entries.flow.async_progress()

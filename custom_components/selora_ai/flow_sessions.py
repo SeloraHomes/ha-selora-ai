@@ -195,6 +195,12 @@ async def async_drive(
     except errors as exc:
         _LOGGER.warning("%s flow failed: %s", owner[0], exc)
         release(hass, flow_id, abort=True)
+        # A flow that failed before it was held — on the first call's menu
+        # step — is not released above, and Home Assistant leaves a flow whose
+        # step raised in progress: aborted directly, or it lingers.
+        if flow_id:
+            with contextlib.suppress(UnknownFlow):
+                manager.async_abort(flow_id)
         return {"error": f"Home Assistant refused it: {sanitize_untrusted_text(str(exc), 200)}"}
 
     kind = result.get("type")
