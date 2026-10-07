@@ -20,7 +20,12 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from .recipes.const import SIGNAL_RECIPE_INSTALLS_CHANGED, SIGNAL_RECIPE_UPDATES_CHANGED
 from .recipes.store import get_install_store
-from .recipes.updates import async_update_recipe, get_update_checker, release_summary
+from .recipes.updates import (
+    async_update_recipe,
+    changelog_since,
+    get_update_checker,
+    release_summary,
+)
 from .sensor import _hub_device_info
 
 if TYPE_CHECKING:
@@ -175,7 +180,10 @@ class RecipeUpdateEntity(UpdateEntity):
         entry = self._catalog_entry()
         if entry is None:
             return None
-        return str(entry.get("changelog") or "") or None
+        changelog = str(entry.get("changelog") or "")
+        if not changelog:
+            return None
+        return changelog_since(changelog, self._record.version, str(entry.get("version") or ""))
 
     async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
         result = await async_update_recipe(self.hass, self._record.slug)
