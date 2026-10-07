@@ -71,6 +71,7 @@ const HELPER_FIELDS = {
   counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
   timer: ["name", "icon", "duration", "restore"],
   zone: ["name", "icon", "latitude", "longitude", "radius", "passive"],
+  person: ["name", "device_trackers"],
   schedule: [
     "name",
     "icon",
@@ -104,7 +105,11 @@ const HANDLERS = {
     // appeared since; it is our own earlier attempt only if every field agrees,
     // which a retry does by construction since these are the values it sent.
     const existing = await hass.callWS({ type: `${domain}/list` });
-    const already = (existing || []).find((item) => item?.name === name);
+    // `person/list` answers `{storage, config}`; the rest a plain list.
+    const items = Array.isArray(existing)
+      ? existing
+      : [...(existing?.storage || []), ...(existing?.config || [])];
+    const already = items.find((item) => item?.name === name);
     if (already) {
       const same = Object.keys(payload).every(
         (key) => JSON.stringify(already[key]) === JSON.stringify(payload[key]),

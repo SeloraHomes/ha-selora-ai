@@ -35,9 +35,9 @@ _LOGGER = logging.getLogger(__name__)
 
 # domain → (collection class, attribute holding its create schema). Named
 # rather than discovered: the attribute is ``SCHEMA`` on input_number,
-# ``CREATE_SCHEMA`` on zone and ``CREATE_UPDATE_SCHEMA`` everywhere else, and a
-# domain added here is one the panel also has to allowlist. A zone is not a
-# helper to the user, but it is the same kind of storage collection.
+# ``CREATE_SCHEMA`` on zone and person, and ``CREATE_UPDATE_SCHEMA`` everywhere else, and a
+# domain added here is one the panel also has to allowlist. A zone or a person
+# is not a helper to the user, but it is the same kind of storage collection.
 _COLLECTIONS: Final[dict[str, tuple[str, str]]] = {
     "input_boolean": ("InputBooleanStorageCollection", "CREATE_UPDATE_SCHEMA"),
     "input_button": ("InputButtonStorageCollection", "CREATE_UPDATE_SCHEMA"),
@@ -49,7 +49,13 @@ _COLLECTIONS: Final[dict[str, tuple[str, str]]] = {
     "timer": ("TimerStorageCollection", "CREATE_UPDATE_SCHEMA"),
     "zone": ("ZoneStorageCollection", "CREATE_SCHEMA"),
     "schedule": ("ScheduleStorageCollection", "SCHEMA"),
+    "person": ("PersonStorageCollection", "CREATE_SCHEMA"),
 }
+
+# Fields of a collection this module never sets. A person's ``user_id`` links a
+# login account: the ids are admin-only, and a wrong link hands one person's
+# presence to another's account, so it stays in Settings → People.
+_NOT_SET_HERE: Final[dict[str, frozenset[str]]] = {"person": frozenset({"user_id"})}
 
 CREATABLE_HELPER_DOMAINS: Final = tuple(_COLLECTIONS)
 
@@ -97,6 +103,31 @@ def _schema_keys(schema: vol.Schema) -> set[str]:
     if isinstance(inner, vol.Schema):
         inner = inner.schema
     return {str(key) for key in inner} if isinstance(inner, dict) else set()
+
+
+def _noun(domain: str) -> str:
+    """What the user calls one: a zone and a person are not helpers to them."""
+    return domain if domain in ("zone", "person") else f"{domain} helper"
+
+
+def _unknown_trackers(hass: HomeAssistant, fields: dict[str, Any]) -> str | None:
+    """A person's device trackers that do not exist, as an error, or None.
+
+    The schema checks only the domain, so a mistyped tracker is stored and the
+    person never shows as home.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+
+    registry = er.async_get(hass)
+    missing = [
+        str(tracker)
+        for tracker in fields.get("device_trackers") or ()
+        if hass.states.get(str(tracker)) is None and registry.async_get(str(tracker)) is None
+    ]
+    if not missing:
+        return None
+    shown = ", ".join(sanitize_untrusted_text(m, 80) for m in missing[:5])
+    return f"No device tracker {shown} exists. search_entities(domain='device_tracker') lists them."
 
 
 def _format_duration(delta: timedelta) -> str:
@@ -170,7 +201,7 @@ async def async_propose_helper(
     fields = dict(fields)
     if error := _expand_schedule(fields):
         return {"error": error}
-    accepted = _schema_keys(schema)
+    accepted = _schema_keys(schema) - _NOT_SET_HERE.get(domain, frozenset())
     supplied = {k: v for k, v in fields.items() if v is not None}
     dropped = sorted(set(supplied) - accepted)
     if dropped:
@@ -187,6 +218,8 @@ async def async_propose_helper(
             )
         }
 
+    if error := _unknown_trackers(hass, validated):
+        return {"error": error}
     name = str(validated.get("name") or "").strip()
     if not name:
         return {"error": "A helper name is required."}
@@ -211,11 +244,7 @@ async def async_propose_helper(
             "domain": domain,
             "name": name,
             "fields": _jsonable(dict(validated)),
-            "label": (
-                f"Create the {sanitize_untrusted_text(name, 60)} zone"
-                if domain == "zone"
-                else f"Create the {sanitize_untrusted_text(name, 60)} {domain} helper"
-            ),
+            "label": f"Create the {sanitize_untrusted_text(name, 60)} {_noun(domain)}",
         },
     }
 
@@ -403,6 +432,15 @@ async def async_update_helper(
         return {"error": error}
 
     to_clear = sorted(set(clear or ()))
+    if reserved := sorted(
+        (set(to_clear) | {k for k, v in fields.items() if v is not None})
+        & _NOT_SET_HERE.get(domain, frozenset())
+    ):
+        return {
+            "error": (
+                f"A {domain}'s {', '.join(reserved)} is changed under Settings → People, not here."
+            )
+        }
     unknown = [key for key in to_clear if key not in accepted]
     if unknown:
         return {"error": f"A {domain} has no {', '.join(unknown)} setting to clear."}
@@ -436,6 +474,8 @@ async def async_update_helper(
                 f"{sanitize_untrusted_text(str(exc), 200)}"
             )
         }
+    if "device_trackers" in supplied and (error := _unknown_trackers(hass, supplied)):
+        return {"error": error}
     try:
         updated = await collection.async_update_item(item["id"], _jsonable(dict(validated)))
     except (vol.Invalid, HomeAssistantError, ValueError) as exc:
@@ -460,7 +500,7 @@ async def async_preview_helper_delete(hass: HomeAssistant, entity_id: str) -> di
     domain, _, item = resolved
     entity_id = entity_id.strip().lower()
     name = sanitize_untrusted_text(str(item.get("name") or entity_id), 60)
-    label = f"Delete the {name} {'zone' if domain == 'zone' else 'helper'}"
+    label = f"Delete the {name} {domain if domain in ('zone', 'person') else 'helper'}"
     if dependents := await async_helper_dependents(hass, entity_id):
         label = f"{label} — used by {', '.join(dependents)}"
     return {

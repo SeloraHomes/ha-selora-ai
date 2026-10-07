@@ -30141,6 +30141,7 @@ var HELPER_FIELDS = {
   counter: ["name", "icon", "initial", "minimum", "maximum", "step", "restore"],
   timer: ["name", "icon", "duration", "restore"],
   zone: ["name", "icon", "latitude", "longitude", "radius", "passive"],
+  person: ["name", "device_trackers"],
   schedule: [
     "name",
     "icon",
@@ -30165,7 +30166,10 @@ var HANDLERS = {
     }
     const name = String(payload.name || "");
     const existing = await hass.callWS({ type: `${domain}/list` });
-    const already = (existing || []).find((item) => item?.name === name);
+    const items = Array.isArray(existing)
+      ? existing
+      : [...(existing?.storage || []), ...(existing?.config || [])];
+    const already = items.find((item) => item?.name === name);
     if (already) {
       const same = Object.keys(payload).every(
         (key) => JSON.stringify(already[key]) === JSON.stringify(payload[key]),
@@ -51619,7 +51623,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "e332e70180e1" : "";
+var PANEL_BUILD = true ? "e5cc23f2b4c0" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

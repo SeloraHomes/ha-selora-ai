@@ -1826,7 +1826,7 @@ TOOL_LIST_HELPERS = ToolDef(
     name="list_helpers",
     description=(
         "List the home's helper entities — input_boolean, input_number, timer, "
-        "counter, schedule, zone, and the config-entry helpers. Use this to find an existing "
+        "counter, schedule, zone, person, and the config-entry helpers. Use this to find an existing "
         "toggle or counter to wire an automation to — and check here before "
         "create_helper, so you reuse one that already does the job."
     ),
@@ -1849,8 +1849,9 @@ TOOL_CREATE_HELPER = ToolDef(
         "Create any Home Assistant helper. Two kinds, one tool:\n"
         "- A storage helper — domain input_boolean (toggle), input_select "
         "(dropdown), input_number, input_text, input_datetime, input_button, "
-        "counter, timer, schedule (weekly on/off time blocks), or zone (a place "
-        "people are tracked in: work, school) "
+        "counter, timer, schedule (weekly on/off time blocks), zone (a place "
+        "people are tracked in: work, school), or person (someone tracked by "
+        "device_trackers; linking a login is done in Settings → People) "
         "— with the flat parameters below. CALL IT rather than "
         "telling the user to make the helper in Settings: it returns a card with "
         "a Create button and the user's browser creates it, so do NOT say it "
@@ -1875,7 +1876,7 @@ TOOL_CREATE_HELPER = ToolDef(
             type="string",
             description=(
                 "A storage helper domain (input_boolean, input_select, input_number, "
-                "input_text, input_datetime, input_button, counter, timer, schedule, zone) "
+                "input_text, input_datetime, input_button, counter, timer, schedule, zone, person) "
                 "or a helper "
                 "integration (template, utility_meter, threshold, derivative, …)."
             ),
@@ -1961,6 +1962,12 @@ TOOL_CREATE_HELPER = ToolDef(
             description="zone: only for automations — nobody is shown as in it.",
         ),
         ToolParam(
+            name="device_trackers",
+            type="array",
+            items_type="string",
+            description="person: the device_tracker entities that say where they are.",
+        ),
+        ToolParam(
             name="schedule",
             type="object",
             description=(
@@ -1995,8 +2002,9 @@ TOOL_CREATE_HELPER_DIRECT = ToolDef(
         "kinds, one tool:\n"
         "- A storage helper — domain input_boolean (toggle), input_select "
         "(dropdown), input_number, input_text, input_datetime, input_button, "
-        "counter, timer, schedule (weekly on/off time blocks), or zone (a place "
-        "people are tracked in: work, school) "
+        "counter, timer, schedule (weekly on/off time blocks), zone (a place "
+        "people are tracked in: work, school), or person (someone tracked by "
+        "device_trackers; linking a login is done in Settings → People) "
         "— with the flat parameters below. The result gives its "
         "entity_id.\n"
         "- A config-entry helper — domain template (a template sensor, "
@@ -2027,8 +2035,9 @@ TOOL_UPDATE_HELPER = ToolDef(
     description=(
         "Change a helper created in the Home Assistant UI — input_boolean, "
         "input_select, input_number, input_text, input_datetime, input_button, "
-        "counter, timer, schedule or zone: its name, icon, a dropdown's options, a number's "
-        "range, a timer's duration, a zone's place and radius and so on. Pass only what changes; every other setting "
+        "counter, timer, schedule, zone or person: its name, icon, a dropdown's "
+        "options, a number's range, a timer's duration, a zone's place and radius, a "
+        "person's device_trackers and so on. Pass only what changes; every other setting "
         "is kept. Takes effect immediately. Template and other integration-backed "
         "helpers are changed in Settings. Call list_helpers for the entity_id."
     ),
@@ -2059,7 +2068,7 @@ TOOL_DELETE_HELPER = ToolDef(
     description=(
         "Delete a helper created in the Home Assistant UI — input_boolean, "
         "input_select, input_number, input_text, input_datetime, input_button, "
-        "counter, timer, schedule or zone. Automations, scripts and dashboard cards using it stop "
+        "counter, timer, schedule, zone or person. Automations, scripts and dashboard cards using it stop "
         "working, and the confirmation card names how many do. The user gets a "
         "confirmation card. Call list_helpers for the entity_id."
     ),

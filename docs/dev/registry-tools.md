@@ -190,6 +190,14 @@ the model stops reciting Settings click-paths.
   move and delete them rather than a zone toolset of their own. `zone.home` is
   not stored — HA draws it from the home's location — and is refused with
   where to change it (Settings → System → General).
+- **People are too** (`person`, `CREATE_SCHEMA`): name and `device_trackers`.
+  - A tracker must exist — core's schema checks only the domain, so a typo is
+    stored and the person never shows as home.
+  - `user_id` is never set or cleared here (`_NOT_SET_HERE`): user ids are
+    admin-only, and a wrong link hands one person's presence to another's
+    login. Settings → People does it.
+  - `person/list` answers `{storage, config}`, not a list; the panel's retry
+    check reads both.
 - **Schedules are storage helpers too** (`schedule` in `_COLLECTIONS`, schema
   `SCHEMA`). The tool takes one `schedule` object (`{day: [{from, to}]}`)
   rather than seven parameters; `_expand_schedule` spreads it into the per-day
