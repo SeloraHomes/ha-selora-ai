@@ -14,6 +14,7 @@ from typing import Any
 
 from ..lexical import normalize
 from ..types import EntitySnapshot
+from .schedule_context import is_schedule_question
 
 # Aggressive caps used when the provider has a tight context window
 # (provider.is_low_context). Small enough to fit the system prompt + a
@@ -1406,6 +1407,10 @@ def _classify_chat_intent(
     # of getting a fake confirmation. See _DESTRUCTIVE_SYSTEM_REQUEST.
     if _DESTRUCTIVE_SYSTEM_REQUEST.search(msg):
         return "clarification"
+    # Calendar and to-do questions: their data is attached for the answer
+    # specialist, while command would invent a service ("calendar.is_visiting").
+    if is_schedule_question(msg):
+        return "answer"
     # Bare "help" / "what can you do?" — see ``_META_HELP``. Checked
     # before _META_QUESTION because the message is matched whole, not
     # by an internal keyword.

@@ -131,7 +131,7 @@ def _rendered(
     return [
         ln.split("entity_id=", 1)[1].split(";", 1)[0]
         for ln in block.splitlines()
-        if ln.startswith("- entity_id=")
+        if ln.startswith("  - entity_id=")
     ]
 
 

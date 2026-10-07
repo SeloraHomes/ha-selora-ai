@@ -750,9 +750,9 @@ def test_selora_local_block_emits_exactly_sixty_lines(hass: HomeAssistant) -> No
     provider = _local_provider(hass)
     provider.set_call_kind("chat_command")
     block = provider._format_entities_block(_big_home(1700))
-    lines = [ln for ln in block.splitlines() if ln.startswith("- entity_id=")]
+    lines = [ln for ln in block.splitlines() if ln.startswith("  - entity_id=")]
     assert len(lines) == 60
-    assert "- ... (1640 more entities not listed)" in block
+    assert "  - ... (1640 more entities not listed)" in block
 
 
 def test_selora_local_block_emits_exactly_twentyfive_lines_for_automation(
@@ -761,9 +761,9 @@ def test_selora_local_block_emits_exactly_twentyfive_lines_for_automation(
     provider = _local_provider(hass)
     provider.set_call_kind("chat_automation")
     block = provider._format_entities_block(_big_home(1700))
-    lines = [ln for ln in block.splitlines() if ln.startswith("- entity_id=")]
+    lines = [ln for ln in block.splitlines() if ln.startswith("  - entity_id=")]
     assert len(lines) == 25
-    assert "- ... (1675 more entities not listed)" in block
+    assert "  - ... (1675 more entities not listed)" in block
 
 
 def test_selora_local_derived_cap_only_tightens(
@@ -788,6 +788,6 @@ def test_selora_local_line_cost_matches_its_render_format(hass: HomeAssistant) -
     provider = _local_provider(hass)
     provider.set_call_kind("chat_command")
     block = provider._format_entities_block(_big_home(60))
-    lines = [ln for ln in block.splitlines() if ln.startswith("- entity_id=")]
+    lines = [ln for ln in block.splitlines() if ln.startswith("  - entity_id=")]
     measured = max(estimate_entity_line_tokens(ln) for ln in lines)
     assert measured <= LOCAL_ENTITY_LINE_TOKENS * 1.5

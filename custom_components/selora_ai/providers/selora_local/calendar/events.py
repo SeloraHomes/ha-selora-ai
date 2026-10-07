@@ -6,6 +6,8 @@ import logging
 import re
 from typing import Any
 
+from ....const import SCHEDULE_ENTITIES_OMITTED
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -38,6 +40,12 @@ _CALENDAR_INTERROGATIVE_RE = re.compile(
     r"|^\s*(?:what|what's|whats|who|who's|whos|when|where|which|how|is|are|"
     r"am|do|does|did|can|could|will|would|should|according\s+to|"
     r"tell\s+me|any(?:one|body)?)\b",
+    re.IGNORECASE,
+)
+
+# Another named day: answered by the model, since the handler only scopes today or the week.
+_CALENDAR_OTHER_DAY_RE = re.compile(
+    r"\b(?:tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
     re.IGNORECASE,
 )
 
@@ -157,22 +165,32 @@ _CALENDAR_VISIT_ROUTINE_WORDS: frozenset[str] = frozenset(
 )
 
 
+def _partial(attrs: dict[str, Any], total_key: str) -> bool:
+    """Whether a fetched calendar or list holds only part of the data."""
+    return bool(attrs.get(total_key) or attrs.get(SCHEDULE_ENTITIES_OMITTED))
+
+
 class _CalendarMixin:
     """Selora AI Local — calendar / schedule question and helper handlers."""
 
-    def _format_calendar_entity_lines(self, eid: str, attrs: dict[str, Any]) -> str:
-        """Render a calendar entity with its injected upcoming-event list."""
+    def _format_calendar_entity_lines(self, entity: dict[str, Any]) -> str:
+        """A calendar's entity line plus its injected upcoming events, one per detail line."""
         from ....helpers import sanitize_untrusted_text
+        from ..runtime.user_turn import DETAIL_INDENT, format_entity_line
 
-        fname = sanitize_untrusted_text(attrs.get("friendly_name") or eid).replace('"', "")
+        attrs = entity.get("attributes") or {}
         today = sanitize_untrusted_text(str(attrs.get("today") or "")).strip()
-        head = f'- entity_id={eid}; friendly_name="{fname}"'
+        head = format_entity_line(entity)
         if today:
             head += f"; today={today}"
         events = attrs.get("events")
-        if not isinstance(events, list) or not events:
-            return head + "; events=none scheduled in the next week"
-        out = [head + "; events:"]
+        # Not fetched: the plain trained line.
+        if not isinstance(events, list):
+            return head
+        if not events:
+            return head + "; events=none"
+        total = attrs.get("events_total")
+        out = [head + (f"; events ({total}, first {len(events)}):" if total else "; events:")]
         for ev in events:
             if not isinstance(ev, dict):
                 continue
@@ -180,7 +198,7 @@ class _CalendarMixin:
             start = sanitize_untrusted_text(str(ev.get("start") or "")).strip()
             end = sanitize_untrusted_text(str(ev.get("end") or "")).strip()
             location = sanitize_untrusted_text(str(ev.get("location") or "")).strip()
-            piece = f"    - {summary}"
+            piece = f"{DETAIL_INDENT}- {summary}"
             if start:
                 piece += f" (start={start}"
                 if end:
@@ -311,6 +329,16 @@ class _CalendarMixin:
         """Answer a calendar / schedule question deterministically from the injected event list."""
         prompt = (self._current_user_message() or "").strip()
         if not prompt or not _CALENDAR_QUESTION_RE.search(prompt):
+            return None
+        if _CALENDAR_OTHER_DAY_RE.search(prompt):
+            return None
+        # A capped list, or calendars left out, would be counted short.
+        if any(
+            isinstance(ent, dict)
+            and str(ent.get("entity_id") or "").startswith("calendar.")
+            and _partial(ent.get("attributes") or {}, "events_total")
+            for ent in self._current_entities()
+        ):
             return None
         # The override normally only runs on chat_answer turns.
         if self._current_chat_kind() != "chat_answer" and not _CALENDAR_INTERROGATIVE_RE.search(

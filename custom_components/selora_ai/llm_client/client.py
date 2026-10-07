@@ -113,6 +113,7 @@ from .prompts import (
     build_suggestions_system_prompt,
 )
 from .sanitize import _format_entity_line, _format_untrusted_text, _sanitize_untrusted_text
+from .schedule_context import async_attach_schedule_data
 from .state_filter import ground_truth_block
 from .usage import UsageTracker
 
@@ -1119,6 +1120,9 @@ class LLMClient:
                     cap=60,
                     message=user_message,
                 )
+                relevant_entities = await async_attach_schedule_data(
+                    self._hass, user_message, relevant_entities, entities
+                )
                 # Pass the filtered chat context so providers like
                 # Selora AI Local can rebuild the outgoing payload to
                 # match their training-time format (per-specialist
@@ -1432,6 +1436,9 @@ class LLMClient:
                     _low_context_keywords(user_message),
                     cap=60,
                     message=user_message,
+                )
+                relevant_entities = await async_attach_schedule_data(
+                    self._hass, user_message, relevant_entities, entities
                 )
                 # Pass the filtered chat context so providers like
                 # Selora AI Local can rebuild the outgoing payload to

@@ -219,7 +219,7 @@ class SeloraLocalProvider(
         self._discovery_retry_after: float = 0.0
         # Single-flight gate around (settle routing, run completion).
         self._request_lock: asyncio.Lock = asyncio.Lock()
-        # Must match the LoRA's trained prompt format byte-for-byte or it goes OOD.
+        # The user's sentence, verbatim, for the USER REQUEST line.
         self._user_message_raw: ContextVar[str] = ContextVar(
             "selora_ai_local_user_message", default=""
         )
@@ -482,7 +482,7 @@ class SeloraLocalProvider(
         relevant_docs: list[dict[str, str]] | None = None,
         turn_token: str | None = None,
     ) -> None:
-        """Capture the raw chat context from LLMClient so build_payload can reconstruct the v0.4.2 training-format request body."""
+        """Capture the raw chat context from LLMClient so build_payload can render the trained user turn."""
         # Snapshot baseline entity states before this turn's command (if any) mutates them.
         self._capture_baseline_states()
         self._user_message_raw.set(user_message or "")
