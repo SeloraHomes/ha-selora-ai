@@ -1232,11 +1232,7 @@ class SeloraAIPanel extends LitElement {
       clearTimeout(this._sceneHighlightTimer);
       this._sceneHighlightTimer = null;
     }
-    for (const timer of Object.values(this._revealTimers || {})) {
-      clearTimeout(timer);
-    }
-    this._revealTimers = {};
-    this._revealingProposals = {};
+    this._clearProposalReveals();
     clearTimeout(this._nativeSelectTimer);
     this._nativeSelectOpen = false;
     if (this._aigatewayPollTimer) {

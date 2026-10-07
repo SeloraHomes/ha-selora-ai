@@ -206,7 +206,13 @@ export function renderSceneCard(host, msg, msgIndex) {
             })}</span
           >
           <span class="scene-saved-name">${scene.name}</span>
-          <span class="scene-saved-tag">
+          <span
+            class="scene-saved-tag${
+              !!msg.scene_id && host._justCreatedId === msg.scene_id
+                ? " pop-in"
+                : ""
+            }"
+          >
             ${host._t("scenes_card_saved_status", "Saved to Home Assistant")}
           </span>
         </div>

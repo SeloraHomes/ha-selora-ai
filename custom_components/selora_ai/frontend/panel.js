@@ -1051,8 +1051,37 @@ var sharedAnimations = i`
       stroke-dashoffset: 24;
     }
   }
+  /* Springy arrival for something that just changed state: the Enabled
+     badge of an accepted proposal, the chips that replace Accept & Save.
+     Overshoots, then settles. .pop-in-children staggers its direct children
+     after the badge. */
+  .pop-in,
+  .pop-in-children > * {
+    animation: pop-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .pop-in-children > :nth-child(1) {
+    animation-delay: 200ms;
+  }
+  .pop-in-children > :nth-child(2) {
+    animation-delay: 300ms;
+  }
+  .pop-in-children > :nth-child(n + 3) {
+    animation-delay: 400ms;
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    45% {
+      opacity: 1;
+      transform: scale(1.18);
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
-    .created-check.drawing path {
+    .created-check.drawing path,
+    .pop-in,
+    .pop-in-children > * {
       animation: none;
     }
   }
@@ -5095,7 +5124,7 @@ var proposalStyles = i`
   /* ---- Proposal arrival reveal ---- */
   /* Plays once, when a proposal streams in (see _markProposalRevealing).
      Reopening a session renders the same pending card without .revealing, so
-     history never replays. Timings are mirrored by REVEAL_TOTAL_MS in
+     history never replays. Timings are mirrored by the BUILD_* constants in
      panel/proposal-reveal.js — keep them in sync. */
   .automation-subcard.revealing {
     position: relative;
@@ -5141,7 +5170,7 @@ var proposalStyles = i`
     pointer-events: none;
     border-radius: 12px;
     opacity: 0;
-    animation: proposal-particles-out 1200ms ease-out both;
+    animation: proposal-particles-out 1800ms ease-out both;
   }
   .automation-subcard.revealing > .automation-subcard-header,
   .automation-subcard.revealing > .automation-subcard-body {
@@ -5159,31 +5188,18 @@ var proposalStyles = i`
       opacity: 0;
     }
   }
-  /* Assemble the flow in reading order: trigger, arrow, conditions, actions.
-     .flow-chart's direct children are exactly those sections and arrows, so
-     nth-child staggering needs no template changes. */
-  .automation-subcard.revealing .flow-chart > * {
-    animation: proposal-node-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Build the card one piece at a time, in reading order. stageProposalBuild
+     tags each piece with [data-build] and its own --build-delay, and untags
+     it once the reveal is over. Pieces keep their space while hidden, so
+     nothing reflows as they land. */
+  [data-build] {
+    animation: proposal-piece-in 450ms cubic-bezier(0.16, 1, 0.3, 1)
+      var(--build-delay, 0ms) both;
   }
-  .automation-subcard.revealing .flow-chart > *:nth-child(1) {
-    animation-delay: 180ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(2) {
-    animation-delay: 250ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(3) {
-    animation-delay: 320ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(4) {
-    animation-delay: 390ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(n + 5) {
-    animation-delay: 460ms;
-  }
-  @keyframes proposal-node-in {
+  @keyframes proposal-piece-in {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(10px);
     }
   }
   /* Reduced motion: keep the card and every flow node, drop all movement and
@@ -5193,7 +5209,7 @@ var proposalStyles = i`
      render at full strength, louder than the animation ever gets. */
   @media (prefers-reduced-motion: reduce) {
     .automation-subcard.revealing,
-    .automation-subcard.revealing .flow-chart > * {
+    [data-build] {
       animation: none;
     }
     .automation-subcard.revealing::after {
@@ -34088,25 +34104,101 @@ function renderCreatedCheck({ animate = false, size = 14 } = {}) {
 // src/panel/proposal-reveal.js
 var proposal_reveal_exports = {};
 __export(proposal_reveal_exports, {
+  BUILD_PIECE_MS: () => BUILD_PIECE_MS,
+  BUILD_SPAN_MS: () => BUILD_SPAN_MS,
+  BUILD_START_MS: () => BUILD_START_MS,
+  BUILD_STEP_MS: () => BUILD_STEP_MS,
   REVEAL_TOTAL_MS: () => REVEAL_TOTAL_MS,
+  _clearProposalReveals: () => _clearProposalReveals,
   _markProposalRevealing: () => _markProposalRevealing,
+  buildDelays: () => buildDelays,
+  clearProposalBuild: () => clearProposalBuild,
   renderRevealParticles: () => renderRevealParticles,
+  stageProposalBuild: () => stageProposalBuild,
 });
-var REVEAL_TOTAL_MS = 1400;
+var FLOW_PIECES = [
+  ".proposal-status",
+  ".flow-label",
+  ".flow-node",
+  ".flow-arrow",
+  ".flow-arrow-sm",
+  ".flow-branch",
+  ".flow-branch-label",
+  ".flow-off-wrap",
+  ".flow-off-wrap-label",
+].join(",");
+var BUILD_START_MS = 220;
+var BUILD_STEP_MS = 140;
+var BUILD_SPAN_MS = 1500;
+var BUILD_PIECE_MS = 450;
+var REVEAL_TOTAL_MS = BUILD_START_MS + BUILD_SPAN_MS + BUILD_PIECE_MS + 250;
+function buildDelays(count) {
+  if (count <= 0) return [];
+  const step =
+    count > 1 ? Math.min(BUILD_STEP_MS, BUILD_SPAN_MS / (count - 1)) : 0;
+  return Array.from({ length: count }, (_2, i7) =>
+    Math.round(BUILD_START_MS + i7 * step),
+  );
+}
+function stageProposalBuild(card) {
+  if (!card) return [];
+  const pieces = [
+    card.querySelector(":scope > .automation-subcard-header"),
+    ...card.querySelectorAll(FLOW_PIECES),
+    card.querySelector(":scope > .automation-subcard-footer"),
+    // Accept & Save sits outside the card, in the bubble's action row; it
+    // lands last, once there is something to accept.
+    card.closest(".assistant-wrap")?.querySelector(":scope > .bubble-meta"),
+  ].filter(Boolean);
+  buildDelays(pieces.length).forEach((delay, i7) => {
+    pieces[i7].setAttribute("data-build", "");
+    pieces[i7].style.setProperty("--build-delay", `${delay}ms`);
+  });
+  return pieces;
+}
+function clearProposalBuild(pieces) {
+  for (const el of pieces || []) {
+    el.removeAttribute("data-build");
+    el.style.removeProperty("--build-delay");
+  }
+}
 function _markProposalRevealing(msgIndex) {
   if (msgIndex == null || msgIndex < 0) return;
   this._revealTimers = this._revealTimers || {};
+  this._revealPieces = this._revealPieces || {};
   if (this._revealTimers[msgIndex]) clearTimeout(this._revealTimers[msgIndex]);
+  clearProposalBuild(this._revealPieces[msgIndex]);
   this._revealingProposals = {
     ...this._revealingProposals,
     [msgIndex]: true,
   };
+  Promise.resolve(this.updateComplete).then(() => {
+    if (!this._revealingProposals?.[msgIndex]) return;
+    this._revealPieces[msgIndex] = stageProposalBuild(
+      this.shadowRoot?.querySelector(
+        `.automation-subcard[data-reveal="${msgIndex}"]`,
+      ),
+    );
+  });
   this._revealTimers[msgIndex] = setTimeout(() => {
     const { [msgIndex]: _done, ...rest } = this._revealingProposals;
     this._revealingProposals = rest;
+    clearProposalBuild(this._revealPieces[msgIndex]);
+    delete this._revealPieces[msgIndex];
     delete this._revealTimers[msgIndex];
     this.requestUpdate();
   }, REVEAL_TOTAL_MS);
+}
+function _clearProposalReveals() {
+  for (const timer of Object.values(this._revealTimers || {})) {
+    clearTimeout(timer);
+  }
+  for (const pieces of Object.values(this._revealPieces || {})) {
+    clearProposalBuild(pieces);
+  }
+  this._revealTimers = {};
+  this._revealPieces = {};
+  this._revealingProposals = {};
 }
 function renderRevealParticles(host) {
   return b2`
@@ -36387,6 +36479,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
                 ${
                   badge
                     ? b2`<span
+                        class=${badgeCheckAnimate ? "pop-in" : ""}
                         style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
                         >${
                           badgeCheck
@@ -36591,7 +36684,10 @@ function renderProposalCard(host, msg, msgIndex) {
   const revealing = !!(host._revealingProposals || {})[msgIndex];
   const diff = proposalDiff(host, msgIndex);
   return b2`
-    <div class="automation-subcard${revealing ? " revealing" : ""}">
+    <div
+      class="automation-subcard${revealing ? " revealing" : ""}"
+      data-reveal=${msgIndex}
+    >
       ${revealing ? renderRevealParticles(host) : ""}
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -36690,7 +36786,10 @@ function renderProposalActions(host, msg, msgIndex) {
     const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
     const elevated = risk?.level === "elevated";
     if (isEnabled) {
-      return b2`<div class="qa-group automation-card-actions">
+      const justCreated = host._justCreatedId === savedAutomationId;
+      return b2`<div
+        class="qa-group automation-card-actions${justCreated ? " pop-in-children" : ""}"
+      >
         <button
           class="qa-suggestion"
           ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
@@ -38778,7 +38877,9 @@ function renderSceneCard(host, msg, msgIndex) {
             })}</span
           >
           <span class="scene-saved-name">${scene.name}</span>
-          <span class="scene-saved-tag">
+          <span
+            class="scene-saved-tag${!!msg.scene_id && host._justCreatedId === msg.scene_id ? " pop-in" : ""}"
+          >
             ${host._t("scenes_card_saved_status", "Saved to Home Assistant")}
           </span>
         </div>
@@ -51623,7 +51724,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "e5cc23f2b4c0" : "";
+var PANEL_BUILD = true ? "a1b90a836d38" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -54053,11 +54154,7 @@ var SeloraAIPanel = class extends i4 {
       clearTimeout(this._sceneHighlightTimer);
       this._sceneHighlightTimer = null;
     }
-    for (const timer of Object.values(this._revealTimers || {})) {
-      clearTimeout(timer);
-    }
-    this._revealTimers = {};
-    this._revealingProposals = {};
+    this._clearProposalReveals();
     clearTimeout(this._nativeSelectTimer);
     this._nativeSelectOpen = false;
     if (this._aigatewayPollTimer) {

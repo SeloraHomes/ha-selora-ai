@@ -920,7 +920,7 @@ export const proposalStyles = css`
   /* ---- Proposal arrival reveal ---- */
   /* Plays once, when a proposal streams in (see _markProposalRevealing).
      Reopening a session renders the same pending card without .revealing, so
-     history never replays. Timings are mirrored by REVEAL_TOTAL_MS in
+     history never replays. Timings are mirrored by the BUILD_* constants in
      panel/proposal-reveal.js — keep them in sync. */
   .automation-subcard.revealing {
     position: relative;
@@ -966,7 +966,7 @@ export const proposalStyles = css`
     pointer-events: none;
     border-radius: 12px;
     opacity: 0;
-    animation: proposal-particles-out 1200ms ease-out both;
+    animation: proposal-particles-out 1800ms ease-out both;
   }
   .automation-subcard.revealing > .automation-subcard-header,
   .automation-subcard.revealing > .automation-subcard-body {
@@ -984,31 +984,18 @@ export const proposalStyles = css`
       opacity: 0;
     }
   }
-  /* Assemble the flow in reading order: trigger, arrow, conditions, actions.
-     .flow-chart's direct children are exactly those sections and arrows, so
-     nth-child staggering needs no template changes. */
-  .automation-subcard.revealing .flow-chart > * {
-    animation: proposal-node-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Build the card one piece at a time, in reading order. stageProposalBuild
+     tags each piece with [data-build] and its own --build-delay, and untags
+     it once the reveal is over. Pieces keep their space while hidden, so
+     nothing reflows as they land. */
+  [data-build] {
+    animation: proposal-piece-in 450ms cubic-bezier(0.16, 1, 0.3, 1)
+      var(--build-delay, 0ms) both;
   }
-  .automation-subcard.revealing .flow-chart > *:nth-child(1) {
-    animation-delay: 180ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(2) {
-    animation-delay: 250ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(3) {
-    animation-delay: 320ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(4) {
-    animation-delay: 390ms;
-  }
-  .automation-subcard.revealing .flow-chart > *:nth-child(n + 5) {
-    animation-delay: 460ms;
-  }
-  @keyframes proposal-node-in {
+  @keyframes proposal-piece-in {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(10px);
     }
   }
   /* Reduced motion: keep the card and every flow node, drop all movement and
@@ -1018,7 +1005,7 @@ export const proposalStyles = css`
      render at full strength, louder than the animation ever gets. */
   @media (prefers-reduced-motion: reduce) {
     .automation-subcard.revealing,
-    .automation-subcard.revealing .flow-chart > * {
+    [data-build] {
       animation: none;
     }
     .automation-subcard.revealing::after {
