@@ -198,6 +198,21 @@ def changelog_section(changelog: str, version: str) -> str:
     return ""
 
 
+def changelog_since(changelog: str, installed: str, latest: str) -> str:
+    """The sections of a recipe CHANGELOG.md for versions after
+    ``installed`` up to ``latest``: what the update brings, as core shows
+    an add-on's. Versions compare like :func:`is_newer`, so ``v2.0`` and
+    ``2.0.0`` are one release. The whole changelog when no section fits."""
+    headings = list(_CHANGELOG_HEADING_RE.finditer(changelog or ""))
+    starts = [heading.start() for heading in headings] + [len(changelog)]
+    sections = [
+        changelog[start:end].strip()
+        for heading, start, end in zip(headings, starts, starts[1:], strict=False)
+        if is_newer(heading.group(1), installed) and not is_newer(heading.group(1), latest)
+    ]
+    return "\n\n".join(sections) or changelog
+
+
 def release_summary(changelog: str, version: str) -> str | None:
     """``version``'s changelog section flattened to one line that fits
     HA's release summary, or ``None`` when the changelog has nothing.

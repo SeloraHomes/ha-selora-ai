@@ -46,6 +46,7 @@ from custom_components.selora_ai.recipes.pipeline import async_install
 from custom_components.selora_ai.recipes.store import InstallRecord, get_install_store
 from custom_components.selora_ai.recipes.updates import (
     async_update_recipe,
+    changelog_since,
     get_update_checker,
     release_summary,
 )
@@ -196,6 +197,37 @@ def test_release_summary_is_the_versions_own_section() -> None:
     assert release_summary(_CHANGELOG, "2.0.0") == "Initial release."
     assert release_summary(_CHANGELOG, "9.9.9") is None
     assert release_summary("", "2.1.0") is None
+
+
+def test_release_notes_cover_only_the_versions_since_installed() -> None:
+    changelog = "# Changelog\n\n## v2.2.0 - 2026-10-07\n\n- Third.\n\n" + _CHANGELOG.removeprefix(
+        "# Changelog\n\n"
+    )
+    notes = changelog_since(changelog, "2.0.0", "2.2.0")
+    assert notes.startswith("## v2.2.0")
+    assert "## v2.1.0" in notes
+    assert "2.0.0" not in notes
+    assert "Initial release." not in notes
+    assert changelog_since(changelog, "2.1.0", "2.2.0") == "## v2.2.0 - 2026-10-07\n\n- Third."
+
+
+def test_release_notes_compare_versions_not_spellings() -> None:
+    expected = changelog_since(_CHANGELOG, "2.0.0", "2.1.0")
+    assert expected.startswith("## v2.1.0")
+    assert changelog_since(_CHANGELOG, "v2.0", "v2.1.0") == expected
+    # An installed version without a heading of its own still cuts.
+    assert changelog_since(_CHANGELOG, "2.0.5", "2.1") == expected
+    # A catalog behind its own changelog shows nothing beyond latest.
+    assert "Third." not in changelog_since(
+        "## v2.2.0\n\n- Third.\n\n" + _CHANGELOG, "2.0.0", "2.1.0"
+    )
+
+
+def test_release_notes_fall_back_to_the_whole_changelog() -> None:
+    # Nothing between installed and latest, or nothing parseable.
+    assert changelog_since(_CHANGELOG, "2.1.0", "2.1.0") == _CHANGELOG
+    assert changelog_since(_CHANGELOG, "", "2.1.0") == _CHANGELOG
+    assert changelog_since("No headings here.", "2.0.0", "2.1.0") == "No headings here."
 
 
 def test_release_summary_drops_list_markers() -> None:
@@ -427,6 +459,10 @@ async def test_entity_shows_and_installs_an_update(
     assert state.attributes["latest_version"] == "2.1.0"
     assert state.attributes["release_summary"].startswith("Flashes the alarm lights")
     assert state.attributes["release_url"].endswith("/leak-lockdown/")
+    entity = hass.data["entity_components"]["update"].get_entity(ENTITY_ID)
+    notes = await entity.async_release_notes()
+    assert notes.startswith("## v2.1.0")
+    assert "Initial release." not in notes
 
     download, _urls = _fake_download(tmp_path, version="2.1.0")
     with patch(FETCH, download):

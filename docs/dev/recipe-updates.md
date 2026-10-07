@@ -28,4 +28,7 @@ then the ordinary install with the record's bindings and inputs.
 - **No catalog reads without an installed recipe**, and the first read is a
   timer, never a sleeping task (see the startup rule in `CLAUDE.md`).
 - Release notes come from the catalog entry's optional `changelog` (the recipe's
-  CHANGELOG.md); the summary is that version's section, cut to HA's 255 chars.
+  CHANGELOG.md), cut like core cuts an add-on's to the sections after the
+  installed version up to the latest (compared like `is_newer`, so `v2.0` is
+  `2.0.0`), whole when no section fits.
+  The summary is the latest version's section, cut to HA's 255 chars.
