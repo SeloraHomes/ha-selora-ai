@@ -26,7 +26,9 @@ class TestValidateAcceptsValid:
         }
         ok, _, norm = validate_entity_states(entities)
         assert ok
-        assert norm["light.living_room"]["color_temp"] == 400
+        # Mireds become kelvin — what current cores' light reproduce_state reads.
+        assert norm["light.living_room"]["color_temp_kelvin"] == 2500
+        assert "color_temp" not in norm["light.living_room"]
         assert norm["media_player.tv"]["volume_level"] == 0.5
         assert norm["cover.blinds"]["current_position"] == 0
 
@@ -181,10 +183,15 @@ class TestValidateClamping:
                 "current_position",
                 100,
             ),
-            # color_temp (only enforces minimum)
-            ({"light.x": {"state": "on", "color_temp": 0}}, "light.x", "color_temp", 1),
-            # high color_temp preserved (per-entity max varies)
-            ({"light.x": {"state": "on", "color_temp": 588}}, "light.x", "color_temp", 588),
+            # color_temp (only enforces minimum), then converted to kelvin
+            (
+                {"light.x": {"state": "on", "color_temp": 0}},
+                "light.x",
+                "color_temp_kelvin",
+                1_000_000,
+            ),
+            # high color_temp preserved (per-entity max varies), as kelvin
+            ({"light.x": {"state": "on", "color_temp": 588}}, "light.x", "color_temp_kelvin", 1701),
             # color arrays
             (
                 {"light.x": {"state": "on", "rgb_color": [999, -1, 0]}},

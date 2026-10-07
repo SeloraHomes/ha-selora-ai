@@ -179,3 +179,18 @@ async def test_deleting_a_script_counts_its_direct_callers(scripts: HomeAssistan
     )
 
     assert "called by 1 automation" in result["delete"]["label"]
+
+
+async def test_max_on_a_script_whose_runs_never_overlap_is_refused(scripts: HomeAssistant) -> None:
+    """Home Assistant saves it in any mode and enforces it only for queued/parallel."""
+    result = await _greeter(scripts, max=3)
+
+    assert "queued or parallel" in result["error"]
+
+
+async def test_max_with_the_mode_cleared_is_refused(scripts: HomeAssistant) -> None:
+    await _greeter(scripts, mode="queued", max=3)
+
+    result = await _greeter(scripts, max=4, clear=["mode"])
+
+    assert "queued or parallel" in result["error"]

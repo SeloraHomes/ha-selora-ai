@@ -24,7 +24,7 @@ from .protocol import (
     _MCP_URL,
     _OAUTH_TOKEN_PROXY_URL,
     _PROTECTED_RESOURCE_URL,
-    _TIMEOUT_SECS,
+    request_timeout,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -561,12 +561,23 @@ class SeloraAIMCPView(HomeAssistantView):
             _LOGGER.debug("MCP notification received (%s), returning 202", method)
             return web.Response(status=HTTPStatus.ACCEPTED)
 
+        if params is not None and not isinstance(params, dict):
+            return web.json_response(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32602, "message": "params must be an object"},
+                },
+                status=HTTPStatus.BAD_REQUEST,
+            )
+
         # Dispatch
+        timeout = request_timeout(method, params)
         try:
-            async with asyncio.timeout(_TIMEOUT_SECS):
+            async with asyncio.timeout(timeout):
                 result = await _jsonrpc_dispatch(hass, method, params, auth_ctx)
         except TimeoutError:
-            _LOGGER.warning("MCP request timed out after %ss", _TIMEOUT_SECS)
+            _LOGGER.warning("MCP request timed out after %ss", timeout)
             return web.json_response(
                 {
                     "jsonrpc": "2.0",

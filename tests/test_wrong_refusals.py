@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.selora_ai.diagnostics_tools import get_logs
 from custom_components.selora_ai.llm_client.command_policy import _BLOCKED_SERVICES
@@ -71,3 +72,20 @@ def test_get_logs_offers_only_levels_that_can_match(hass: HomeAssistant) -> None
     result = get_logs(hass, level="DEBUG")
 
     assert "WARNING" in result["error"]
+
+
+@pytest.mark.parametrize(
+    "service", ["Recorder.Purge", "HOMEASSISTANT.restart", "Python_Script.Exec"]
+)
+async def test_a_capitalised_denylisted_service_is_still_refused(
+    hass: HomeAssistant, service: str
+) -> None:
+    """Home Assistant lowercases a service name before running it."""
+    from custom_components.selora_ai.llm_client.command_policy import _classify_call
+    from custom_components.selora_ai.mcp_service_call import check_service_call
+
+    verdict = check_service_call(hass, service, None, {}, confirmed=True)
+
+    assert not verdict["valid"]
+    assert "never run from Selora" in verdict["errors"][0]
+    assert _classify_call(service, allowlist_enabled=False)[0] == "blocked"

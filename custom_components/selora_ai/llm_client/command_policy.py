@@ -557,6 +557,9 @@ def _classify_call(
     ``_BLOCKED_SERVICES`` still wins outright, being a denylist rather
     than the allowlist this relaxes.
     """
+    # Lowercased as Home Assistant does before running it, or a capitalised
+    # name would miss every table here and still reach the service.
+    service = str(service or "").strip().lower()
     if not service or "." not in service:
         return ("blocked", None)
     if service in _BLOCKED_SERVICES:
@@ -656,7 +659,8 @@ def validate_command_action(
     policy = resolve_command_policy_options(hass)
     approval_store = _resolve_approval_store(hass, approval_store)
     errors: list[str] = []
-    service = (service or "").strip()
+    # Lowercased as Home Assistant does before running it — see _classify_call.
+    service = (service or "").strip().lower()
     if "." not in service:
         return {
             "valid": False,

@@ -149,3 +149,22 @@ async def test_chat_clears_through_the_same_reading(
 
     assert result["status"] == "updated", result
     assert dr.async_get(hass).async_get(device.id).name_by_user is None
+
+
+async def test_a_part_of_another_device_is_refused_whole(
+    hass: HomeAssistant, home: dict[str, Any]
+) -> None:
+    """A child device (Home Assistant 2026.9+) follows its parent; the registry
+    refuses the ordinary update mid-way through a call."""
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from custom_components.selora_ai import registry_manager
+
+    child = SimpleNamespace(id="child-1", parent_device_id=home["device"].id, area_id=None)
+    with patch.object(registry_manager, "resolve_device", return_value=(child, None)):
+        update = await _mcp(hass, TOOL_UPDATE_DEVICE, device="child-1", new_name="Part")
+        moved = await _mcp(hass, "selora_assign_area", area="Kitchen", device_ids=["child-1"])
+
+    assert "part of Hue bulb" in update["error"]
+    assert moved["failed"][0]["device_id"] == "child-1"

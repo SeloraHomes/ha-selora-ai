@@ -133,6 +133,9 @@ async def test_other_domains_settings(hass: HomeAssistant) -> None:
     assert (await _update(hass, phone, settings={"associated_zone": "zone.work"}))["settings"]
     assert (await _update(hass, agenda, settings={"color": "#ff8800"}))["settings"]
     assert (await _update(hass, forecast, settings={"wind_speed_unit": "km/h"}))["settings"]
+    # A GPS tracker places itself and never reads an associated zone.
+    gps_zone = await _update(hass, gps, settings={"associated_zone": "zone.work"})
+    assert "GPS" in gps_zone["error"]
     assert (
         "zone that exists"
         in (await _update(hass, phone, settings={"associated_zone": "zone.nowhere"}))["error"]
@@ -154,3 +157,20 @@ async def test_a_light_has_no_display_settings(hass: HomeAssistant) -> None:
     result = await _update(hass, lamp, settings={"color": "red"})
 
     assert "no display settings" in result["error"]
+
+
+async def test_a_disable_card_is_not_offered_for_a_call_that_would_be_refused(
+    hass: HomeAssistant,
+) -> None:
+    from unittest.mock import MagicMock
+
+    from custom_components.selora_ai.tool_executor import ToolExecutor
+
+    door = _entity(hass, "binary_sensor", "front", original_device_class="door")
+
+    result = await ToolExecutor(hass, MagicMock(), is_admin=True).execute(
+        "update_entity", {"entity_id": door, "disabled": True, "show_as": "motion"}
+    )
+
+    assert "window, door" in result["error"]
+    assert not result.get("requires_approval")

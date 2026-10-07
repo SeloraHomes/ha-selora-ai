@@ -5,7 +5,9 @@ Two sources, one shape per entity:
 * **history** — every state change between ``start`` and ``end``, consecutive
   repeats folded. A busy sensor can change thousands of times a day, so a call
   returns at most ``limit`` changes, the newest; ``offset`` steps back past
-  them and ``older`` says how many are left.
+  them and ``older`` says how many are left. At most ``_ROW_CAP`` rows are read
+  per entity, off the event loop — a range holding more is narrowed to its
+  newest part, and the answer says so.
 * **statistics** — what the Energy and History dashboards plot: hourly (or
   daily, monthly…) mean/min/max or change, kept long after the recorder purges
   the states. Only entities with a ``state_class`` have them, and an entity
@@ -19,7 +21,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.core import valid_entity_id
 from homeassistant.exceptions import HomeAssistantError
@@ -55,6 +57,13 @@ _MAX_BUCKETS = 2000
 # HA's own signal that a value is a secret (`input_text`/`text` in password
 # mode); its history is the secret's past values.
 _REDACTED = "***"
+# Rows read per entity per call, and how many times a range that holds more is
+# halved toward its newest end before giving up on fitting it.
+_ROW_CAP: Final = 5000
+_MAX_NARROWING: Final = 16
+# Chunks of _ROW_CAP walked forward from the narrowed start: bounds the queries
+# a pathological entity (thousands of changes a second) can cost.
+_MAX_CHUNKS: Final = 40
 _TEXT_DOMAINS = frozenset({"input_text", "text"})
 
 
@@ -182,6 +191,66 @@ def _empty_note(hass: HomeAssistant, entity_id: str) -> str:
 # ── history ─────────────────────────────────────────────────────────────────
 
 
+def _fetch_changes(
+    hass: HomeAssistant, entity_id: str, start: datetime, end: datetime
+) -> tuple[list[Any], datetime | None]:
+    """An entity's newest state changes in [start, end], at most ``_ROW_CAP`` —
+    run in the recorder's executor, never holding more than that many rows.
+
+    The recorder's ``limit`` keeps the OLDEST rows, so a range holding more
+    than the cap is first narrowed — its start halved toward the end while the
+    newer half still has changes — then walked forward in chunks of the cap,
+    each starting after the last row read, keeping the newest. The second value
+    says where the range had to start, when it was narrowed. Attributes are
+    read only for a text entity, whose password mode decides what is shown.
+    """
+    from homeassistant.components.recorder.history import (  # noqa: PLC0415
+        state_changes_during_period,
+    )
+
+    keep_attributes = entity_id.split(".", 1)[0] in _TEXT_DOMAINS
+
+    def _rows(since: datetime, opening_state: bool) -> list[Any]:
+        return state_changes_during_period(
+            hass,
+            since,
+            end,
+            entity_id,
+            no_attributes=not keep_attributes,
+            limit=_ROW_CAP + 1,
+            include_start_time_state=opening_state,
+        ).get(entity_id.lower(), [])
+
+    rows = _rows(start, True)
+    if len(rows) <= _ROW_CAP:
+        return rows, None
+    window_start = start
+    for _ in range(_MAX_NARROWING):
+        middle = window_start + (end - window_start) / 2
+        # Only while the newer half alone still overflows: once it fits, the
+        # newest changes reach back into the older half, and the walk below
+        # collects them — narrowing further would throw recent changes away.
+        if len(_rows(middle, False)) <= _ROW_CAP:
+            break
+        window_start = middle
+    newest: list[Any] = []
+    since = window_start
+    for _ in range(_MAX_CHUNKS):
+        chunk = _rows(since, False)
+        for row in chunk:
+            # The recorder compares float timestamps, so a chunk can begin with
+            # the row the previous one ended on: kept twice, it would read as a
+            # repeat and be folded away with a real change.
+            if newest and row.last_updated <= newest[-1].last_updated:
+                continue
+            newest.append(row)
+        newest = newest[-_ROW_CAP:]
+        if len(chunk) <= _ROW_CAP:
+            break
+        since = chunk[-1].last_updated
+    return newest, window_start
+
+
 async def _history(
     hass: HomeAssistant,
     ids: list[str],
@@ -190,37 +259,68 @@ async def _history(
     offset: int,
     limit: int,
 ) -> list[dict[str, Any]]:
+    """Each entity's newest changes, paged — fetched and folded off the event
+    loop, at most ``_ROW_CAP`` rows per entity whatever the range holds."""
     from homeassistant.components.recorder import get_instance  # noqa: PLC0415
-    from homeassistant.components.recorder.history import (  # noqa: PLC0415
-        get_significant_states,
-    )
 
-    found = await get_instance(hass).async_add_executor_job(
-        get_significant_states, hass, start, end, ids
+    secret_now = {
+        entity_id: str(
+            (state.attributes.get("mode") if (state := hass.states.get(entity_id)) else "") or ""
+        ).lower()
+        == "password"
+        for entity_id in ids
+    }
+    present = {entity_id: hass.states.get(entity_id) is not None for entity_id in ids}
+
+    def _job() -> list[dict[str, Any]]:
+        results = []
+        for entity_id in ids:
+            rows, narrowed = _fetch_changes(hass, entity_id, start, end)
+            secret = secret_now[entity_id] or _rows_secret(entity_id, rows, present[entity_id])
+            changes: list[dict[str, Any]] = []
+            prev: str | None = None
+            for row in rows:
+                value = _REDACTED if secret else _state_value(row.state)
+                if value == prev:
+                    continue
+                prev = value
+                changes.append({"state": value, "at": _iso(_as_datetime(row.last_changed))})
+            page, older = _page(changes, offset, limit)
+            entry: dict[str, Any] = {"entity_id": entity_id, "changes": page, "count": len(page)}
+            if older:
+                entry["older"] = older
+                entry["next_offset"] = offset + len(page)
+            if narrowed is not None:
+                entry["range_start"] = _iso(narrowed)
+                entry["range_note"] = (
+                    f"This entity changed more than {_ROW_CAP} times in the range asked "
+                    "for, so only the newest part is read, from range_start. For earlier "
+                    "changes ask again with an earlier end, or use source='statistics'."
+                )
+            results.append(entry)
+        return results
+
+    entries = await get_instance(hass).async_add_executor_job(_job)
+    for entry in entries:
+        if not entry["changes"] and "range_start" not in entry:
+            entry["note"] = _empty_note(hass, entry["entity_id"])
+    return entries
+
+
+def _rows_secret(entity_id: str, rows: list[Any], present: bool) -> bool:
+    """Password mode recorded in any row — an entity since removed or switched
+    out of password mode still recorded its secret while it was one. A text
+    entity with no current state and no attributes to go by counts as one."""
+    if any(
+        str((getattr(row, "attributes", None) or {}).get("mode", "")).lower() == "password"
+        for row in rows
+    ):
+        return True
+    return (
+        not present
+        and entity_id.split(".", 1)[0] in _TEXT_DOMAINS
+        and not any(getattr(row, "attributes", None) for row in rows)
     )
-    results: list[dict[str, Any]] = []
-    for entity_id in ids:
-        rows = found.get(entity_id) or []
-        secret = _is_secret(hass, entity_id, rows)
-        changes: list[dict[str, Any]] = []
-        prev: str | None = None
-        for row in rows:
-            raw = row.get("state") if isinstance(row, dict) else row.state
-            when = row.get("last_changed") if isinstance(row, dict) else row.last_changed
-            value = _REDACTED if secret else _state_value(raw)
-            if value == prev:
-                continue
-            prev = value
-            changes.append({"state": value, "at": _iso(_as_datetime(when))})
-        page, older = _page(changes, offset, limit)
-        entry: dict[str, Any] = {"entity_id": entity_id, "changes": page, "count": len(page)}
-        if older:
-            entry["older"] = older
-            entry["next_offset"] = offset + len(page)
-        if not changes:
-            entry["note"] = _empty_note(hass, entity_id)
-        results.append(entry)
-    return results
 
 
 def _state_value(raw: Any) -> str:

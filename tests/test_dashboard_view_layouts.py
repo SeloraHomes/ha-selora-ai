@@ -162,3 +162,20 @@ async def test_the_button_card_is_a_card_in_a_home_with_buttons(board: HomeAssis
     )
 
     assert result["ok"] is True, result
+
+
+async def test_two_cards_added_by_chat_both_stay(board: HomeAssistant) -> None:
+    """An untagged insert gets a tag of its own: with a shared default, the
+    second replaced the first in place and both reported success."""
+    first = await _run(
+        board, "insert_dashboard_card", card={"type": "tile", "entity": "light.lamp"}
+    )
+    second = await _run(
+        board, "insert_dashboard_card", card={"type": "tile", "entity": "switch.door"}
+    )
+
+    assert first["ok"] and second["ok"]
+    assert [c["entity"] for c in (await _views(board))[0]["cards"]] == [
+        "light.lamp",
+        "switch.door",
+    ]

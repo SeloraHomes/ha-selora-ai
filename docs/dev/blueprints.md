@@ -76,6 +76,10 @@ components (the same object the websocket API serves).
     `os.replace`), then the store's cache is set and its users reloaded as
     `async_add_blueprint` would — through its private `_blueprints` /
     `_reload_blueprint_consumers` (present from 2025.1).
+  - **The save path must stay inside the blueprints folder** (`_inside`, plus
+    HA's `raise_if_invalid_path`): the GitHub importer builds the name from the
+    URL's last segment AFTER percent-decoding, so `..%2F` arrives as `../` — a
+    file landing in `packages/` is configuration, not a blueprint.
   - Delete names what uses the blueprint (HA refuses one in use) or asks first.
     It checks the FILE exists rather than loading it — a blueprint that fails to
     parse is listed, and is exactly the kind worth deleting.

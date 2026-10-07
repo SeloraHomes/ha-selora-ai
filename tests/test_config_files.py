@@ -66,7 +66,10 @@ async def test_replacing_needs_overwrite_and_keeps_a_backup(
     assert (config_dir / "custom_templates" / "pool.jinja").read_text() == "v2\n"
 
 
-@pytest.mark.parametrize("file", ["www/card.js", "www/x/page.html", "www/icon.svg", "www/m.mjs"])
+@pytest.mark.parametrize(
+    "file",
+    ["www/card.js", "www/x/page.html", "www/icon.svg", "www/m.mjs", "www/x.xht", "www/feed.xml"],
+)
 async def test_browser_code_in_www_waits_for_confirmation(
     hass: HomeAssistant, config_dir: Path, file: str
 ) -> None:

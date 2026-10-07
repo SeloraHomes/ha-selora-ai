@@ -103,3 +103,14 @@ async def test_a_category_rename_onto_a_taken_name_is_refused(hass: HomeAssistan
     )
 
     assert "already exists" in result["error"]
+
+
+async def test_a_label_is_found_by_its_name_not_its_id(hass: HomeAssistant) -> None:
+    """A label renamed away from "Kitchen" keeps the id `kitchen`."""
+    kitchen = lr.async_get(hass).async_create("Kitchen")
+    lr.async_get(hass).async_update(kitchen.label_id, name="Cooking")
+
+    result = await _mcp(hass, TOOL_CREATE_LABEL, name="kitchen", color="red")
+
+    assert result["status"] == "created"
+    assert lr.async_get(hass).async_get_label(kitchen.label_id).color is None

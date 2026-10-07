@@ -283,3 +283,19 @@ def test_what_uses_a_blueprint_is_asked_of_its_domain(
     would silently report the blueprint unused."""
     with patch(finder, return_value=[f"{domain}.user"]):
         assert blueprint_import._users(hass, domain, "x.yaml") == [f"{domain}.user"]
+
+
+async def test_a_url_naming_a_file_outside_the_folder_is_refused(
+    hass: HomeAssistant, store: Any, tmp_path: pathlib.Path
+) -> None:
+    """GitHub's importer decodes `%2F` in the last segment, so `..%2F` arrives
+    as `../`: the file would land outside the blueprints folder."""
+    imported = _imported()
+    imported = ImportedBlueprint(
+        "someone/../../../../packages/evil", imported.raw_data, imported.blueprint
+    )
+    with patch.object(blueprint_import, "_fetch", AsyncMock(return_value=imported)):
+        result = await _mcp(hass, TOOL_IMPORT_BLUEPRINT, url=URL)
+
+    assert "outside the blueprints folder" in result["error"]
+    assert not (tmp_path / "packages").exists()

@@ -101,3 +101,13 @@ async def test_an_unrecognised_layout_reports_the_limitation(
 
     assert "Settings → Devices & services → Helpers" in result["error"]
     assert hass.states.async_all("input_boolean") == []
+
+
+async def test_a_password_text_helper_is_listed_without_its_value(hass: HomeAssistant) -> None:
+    from custom_components.selora_ai.registry_manager import helper_overview
+
+    hass.states.async_set("input_text.wifi", "hunter2-secret", {"mode": "password"})
+
+    listed = await helper_overview(hass)
+
+    assert "hunter2-secret" not in str(listed)

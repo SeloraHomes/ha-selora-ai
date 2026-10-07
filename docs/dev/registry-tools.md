@@ -73,6 +73,9 @@ the model stops reciting Settings click-paths.
   one places itself and never reads it). A lock's or alarm's `default_code` is refused: it is
   the code itself. A switch shown as a light is the `switch_as_x` helper, which
   the refusal names.
+- **A child device (2026.9+) is refused by the write paths** (`_part_of`):
+  it follows its parent, and the registry refuses the ordinary update mid-way
+  through a call that has already moved other devices. Reads still show it.
 - **Deleting an area unassigns, silently** — automations targeting
   `area_id: living_room` keep loading and match nothing. Hence the card, with
   counts in its label.
@@ -395,6 +398,12 @@ logs. Start/stop/restart are services (`hassio.app_*` with `{app: slug}`;
   Supervisor's call returns only when the image is pulled or built, minutes
   later. `_app_installs` holds installing / installed / failed per slug, shown
   by `list_apps`; a second install of the same slug meanwhile is not started.
+- **A password is hidden at any depth** (`_shown` walks the option schema,
+  which nests — Mosquitto's `logins` list), and one read back as `{is_set}` and
+  sent again is restored from the stored value it stands for (`_restored`). In
+  a list the item is matched by its other fields (a login by its username),
+  never by position — removing an entry would hand the next one its password —
+  and an item matching no single stored one is refused.
 - **Options are merged over the current ones**, then validated by the Supervisor
   against the app's schema (`addon_config_validate`), then saved. The Supervisor
   replaces the whole set, so a partial change would wipe the rest — passwords a

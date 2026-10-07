@@ -181,7 +181,10 @@ def async_create_label(
         return {"error": f"{', '.join(both)}: set and cleared in one call; do one or the other."}
 
     registry = lr.async_get(hass)
-    existing, _error = resolve_label(hass, name)
+    # The registry's own NAME lookup, not resolve_label: that one tries label
+    # ids first, so a label renamed away from "Kitchen" (id still `kitchen`)
+    # would be the one "create kitchen" recolours or renames.
+    existing = registry.async_get_label_by_name(name)
     new_name = str(new_name or "").strip() or None
     if existing is None:
         if new_name:

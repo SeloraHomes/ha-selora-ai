@@ -575,6 +575,11 @@ def validate_entity_states(
             clean["brightness"] = int(clamp(clean["brightness"], *BRIGHTNESS_RANGE))
         if "color_temp" in clean:
             clean["color_temp"] = max(_COLOR_TEMP_MIN, int(clean["color_temp"]))
+            if domain == "light" and "color_temp_kelvin" not in clean:
+                # Mireds, which current cores' light reproduce_state no longer
+                # reads: kept as is, the scene would save and never set the
+                # warmth. Converted, as Home Assistant converts them.
+                clean["color_temp_kelvin"] = round(1_000_000 / clean.pop("color_temp"))
         if "color_temp_kelvin" in clean:
             clean["color_temp_kelvin"] = max(_COLOR_TEMP_MIN, int(clean["color_temp_kelvin"]))
         if "percentage" in clean:

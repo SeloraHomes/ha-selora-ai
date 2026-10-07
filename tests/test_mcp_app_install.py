@@ -291,3 +291,83 @@ def test_every_new_app_tool_needs_admin() -> None:
         TOOL_SET_APP_OPTIONS,
     ):
         assert tool in mcp_access._ADMIN_TOOLS, tool
+
+
+async def test_nested_passwords_are_hidden_and_kept(hass: HomeAssistant, supervisor: Any) -> None:
+    """Mosquitto's logins list nests a password-typed field."""
+    supervisor.addons.addon_info.return_value = SimpleNamespace(
+        slug="core_mosquitto",
+        name="Mosquitto broker",
+        state="stopped",
+        options={"logins": [{"username": "bob", "password": "hunter2"}], "wifi": {"psk": "abc"}},
+        schema=[
+            {
+                "name": "logins",
+                "type": "schema",
+                "multiple": True,
+                "schema": [
+                    {"name": "username", "type": "string"},
+                    {"name": "password", "type": "password"},
+                ],
+            },
+        ],
+    )
+
+    shown = await _mcp(hass, TOOL_GET_APP_OPTIONS, slug="core_mosquitto")
+    assert "hunter2" not in str(shown) and "abc" not in str(shown)
+    assert shown["options"]["logins"][0] == {"username": "bob", "password": {"is_set": True}}
+
+    # The listing sent back with a new user beside it keeps bob's password.
+    logins = [*shown["options"]["logins"], {"username": "amy", "password": "s3"}]
+    await _mcp(hass, TOOL_SET_APP_OPTIONS, slug="core_mosquitto", options={"logins": logins})
+    sent = supervisor.addons.set_addon_options.call_args.args[1].config
+    assert sent["logins"] == [
+        {"username": "bob", "password": "hunter2"},
+        {"username": "amy", "password": "s3"},
+    ]
+
+
+async def test_a_hidden_password_follows_its_own_entry_not_its_position(
+    hass: HomeAssistant, supervisor: Any
+) -> None:
+    """Removing the first login must not hand its password to the second."""
+    schema = [
+        {
+            "name": "logins",
+            "type": "schema",
+            "multiple": True,
+            "schema": [
+                {"name": "username", "type": "string"},
+                {"name": "password", "type": "password"},
+            ],
+        }
+    ]
+    supervisor.addons.addon_info.return_value = SimpleNamespace(
+        slug="core_mosquitto",
+        name="Mosquitto broker",
+        state="stopped",
+        options={
+            "logins": [
+                {"username": "bob", "password": "bob-pw"},
+                {"username": "amy", "password": "amy-pw"},
+            ]
+        },
+        schema=schema,
+    )
+
+    await _mcp(
+        hass,
+        TOOL_SET_APP_OPTIONS,
+        slug="core_mosquitto",
+        options={"logins": [{"username": "amy", "password": {"is_set": True}}]},
+    )
+    sent = supervisor.addons.set_addon_options.call_args.args[1].config
+    assert sent["logins"] == [{"username": "amy", "password": "amy-pw"}]
+
+    renamed = await _mcp(
+        hass,
+        TOOL_SET_APP_OPTIONS,
+        slug="core_mosquitto",
+        options={"logins": [{"username": "zoe", "password": {"is_set": True}}]},
+    )
+    assert "could not be matched" in renamed["error"]

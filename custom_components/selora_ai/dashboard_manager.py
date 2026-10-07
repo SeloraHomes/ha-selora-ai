@@ -45,6 +45,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Final
 from urllib.parse import quote
+import uuid
 
 from .const import MAX_TOOL_RESULT_CHARS
 from .dashboard_cards import with_card_reference
@@ -1057,7 +1058,10 @@ async def async_insert_card(hass: HomeAssistant, arguments: dict[str, Any]) -> d
     result = await async_place_card(
         hass,
         card=card,
-        tag=str(arguments.get("tag") or "selora_chat"),
+        # A tag of its own when none is given: a shared default made every
+        # untagged insert REPLACE the previous one on the view (a tag names the
+        # card a later call updates in place — recipes pass their slug for that).
+        tag=str(arguments.get("tag") or f"selora_chat_{uuid.uuid4().hex[:12]}"),
         target=arguments.get("dashboard_target") or None,
         view=view,
         section=section,
