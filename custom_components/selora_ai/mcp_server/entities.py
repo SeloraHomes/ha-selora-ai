@@ -301,7 +301,8 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
     # truncation limit, so it survives _sanitize unchanged and still feeds a
     # working zha_event trigger.
     connections = [[_sanitize(ctype), _sanitize(cval)] for ctype, cval in device.connections]
-    identifiers = [[_sanitize(domain), _sanitize(ident)] for domain, ident in device.identifiers]
+    # Some integrations register 3-tuple identifiers; keep every part.
+    identifiers = [[_sanitize(str(part)) for part in ident] for ident in device.identifiers]
     zha_ieee = next(
         (_sanitize(cval) for ctype, cval in device.connections if ctype == dr.CONNECTION_ZIGBEE),
         None,
