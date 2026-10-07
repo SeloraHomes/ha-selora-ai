@@ -336,6 +336,21 @@ async def test_get_device_no_zha_ieee_for_non_zigbee(hass: HomeAssistant, setup_
     assert "identifiers" in result
 
 
+@pytest.mark.asyncio
+async def test_get_device_three_part_identifiers(hass: HomeAssistant, setup_home) -> None:
+    """A 3-tuple identifier, which some integrations register, keeps every part."""
+    devices = (await _tool_list_devices(hass, {"domain": "light"}))["devices"]
+    device_id = devices[0]["device_id"]
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get(device_id)
+    dev_reg.async_update_device(
+        device_id, new_identifiers={*device.identifiers, ("legacy", "hub", "42")}
+    )
+
+    result = await _tool_get_device(hass, {"device_id": device_id})
+    assert ["legacy", "hub", "42"] in result["identifiers"]
+
+
 # ── selora_get_device_triggers tests ─────────────────────────────────────────
 
 

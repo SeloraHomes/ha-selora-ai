@@ -843,3 +843,21 @@ async def test_roster_matter_null_without_adapter(
     hass.data["matter"] = object()
     rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
     assert rows[device.id]["matter"] is None
+
+
+@pytest.mark.asyncio
+async def test_roster_tolerates_three_part_identifiers(
+    hass: HomeAssistant, matter_entry: MockConfigEntry
+) -> None:
+    """Some integrations register 3-tuple identifiers; the roster must still build."""
+    matter_entry.runtime_data = _adapter_data(
+        _matter_client([_Node(1, SimpleNamespace(vendorID=1, productID=2))])
+    )
+    odd = dr.async_get(hass).async_get_or_create(
+        config_entry_id="m1", identifiers={("legacy", "hub", "42")}, name="Legacy"
+    )
+    node = _matter_device(hass, _NODE_DEVICE, "Plug")
+
+    rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
+    assert rows[odd.id]["matter"] is None
+    assert rows[node.id]["matter"] == {"vendor_id": 1, "product_id": 2}

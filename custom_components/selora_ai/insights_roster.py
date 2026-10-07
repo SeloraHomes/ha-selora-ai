@@ -227,9 +227,11 @@ def _matter_client(hass: HomeAssistant) -> Any:
 def _device_matter_ids(
     identifiers: set[tuple[str, str]], matter_ids: dict[str, RosterMatterIds]
 ) -> RosterMatterIds | None:
-    for domain, value in identifiers:
-        if domain == _MATTER_DOMAIN and value in matter_ids:
-            return matter_ids[value]
+    # Indexed, not unpacked: some integrations register 3-tuple identifiers,
+    # which the registry stores as-is despite its 2-tuple annotation.
+    for ident in identifiers:
+        if ident[0] == _MATTER_DOMAIN and ident[1] in matter_ids:
+            return matter_ids[ident[1]]
     return None
 
 
