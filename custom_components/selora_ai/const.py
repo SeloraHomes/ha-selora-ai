@@ -822,8 +822,8 @@ DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 # v0.4.2+ deployment: the SeloraHub runs llama-server with one base
 # model (Qwen3-1.7B Q4_K_M) plus four LoRA adapters loaded as slots
 # 0-3 (command, automation, answer, clarification). The integration
-# routes per request by (a) activating the right LoRA slot via
-# POST /lora-adapters and (b) capping output tokens per intent so a
+# routes per request by (a) naming the right LoRA slot in the request's
+# ``lora`` field and (b) capping output tokens per intent so a
 # 50-token answer doesn't consume the model's whole 1024-token window.
 CONF_SELORA_LOCAL_HOST = "selora_local_host"
 
@@ -831,7 +831,7 @@ DEFAULT_SELORA_LOCAL_HOST = "http://localhost:8080"
 
 # Selora AI Local: which runtime is serving the model. ``llama``
 # (default) is the SeloraHub llama-server path — one base model, a
-# per-request LoRA swap over POST /lora-adapters. ``ollama-unified``
+# per-request LoRA choice in the request's ``lora`` field. ``ollama-unified``
 # is an Ollama daemon serving ONE self-routing model (base plus a
 # single merged multi-task adapter) for every intent: the model infers
 # the intent from the request, so there is no slot to toggle and no

@@ -364,9 +364,8 @@ class TestAMalformedSlotRecordDoesNotKillTheTurn:
             [{"path": "answer-model", "id": "bad"}],
             [{"path": None, "id": None}],
             ["answer-model"],
-            # A slot id indexes the hub's adapter list; a negative one is sent
-            # on to activation, which turns it into a scale-0 payload that
-            # disables every adapter.
+            # A slot id indexes the hub's adapter list; a negative one names
+            # no adapter.
             [{"path": "command-lora", "id": -1}],
         ],
     )
@@ -396,18 +395,6 @@ class TestAMalformedSlotRecordDoesNotKillTheTurn:
                     break
         assert mapping == {}
         assert provider is not None
-
-    def test_a_skipped_record_does_not_inflate_the_slot_count(self) -> None:
-        """``_activate_lora_for_kind`` builds its payload from
-        ``range(self._n_slots)``, so counting the response length names a slot
-        id no adapter answers to."""
-        import inspect
-
-        from custom_components.selora_ai.providers.selora_local.runtime import serving
-
-        source = inspect.getsource(serving)
-        assert "self._n_slots = usable" in source
-        assert "self._n_slots = len(slots)" not in source
 
     def test_the_shipped_loop_guards_both_fields(self) -> None:
         import inspect

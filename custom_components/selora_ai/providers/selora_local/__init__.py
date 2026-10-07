@@ -46,7 +46,7 @@ from .runtime.serving import (
     _SELORA_LOCAL_DISCOVERY_BACKOFF_MIN_S,
     _SELORA_LOCAL_DISCOVERY_WAIT_S,
     _SELORA_LOCAL_PREWARM_KINDS,
-    _SeloraLocalActivationError,
+    _SeloraLocalDiscoveryError,
     _ServingMixin,
 )
 from .runtime.slim_parser import (
@@ -187,9 +187,8 @@ class SeloraLocalProvider(
         )
         # v0.4.2 hub: LoRA slot routing state
         self._lora_slots: dict[str, int] | None = None
-        self._n_slots: int = 0
-        # The last slot we POSTed an activation for.
-        self._active_slot: int | None = None
+        # Every adapter id the hub reported, named in each request's ``lora`` field.
+        self._lora_ids: list[int] = []
         # The model id reported by GET /v1/models.
         self._base_model_id: str | None = None
         # Context window llama-server is actually serving, read from the same GET /v1/models
@@ -218,7 +217,7 @@ class SeloraLocalProvider(
         self._prewarming: ContextVar[bool] = ContextVar("selora_ai_local_prewarming", default=False)
         # Monotonic deadline before we'll retry discovery after a transient failure.
         self._discovery_retry_after: float = 0.0
-        # Single-flight gate around (activate slot, run completion).
+        # Single-flight gate around (settle routing, run completion).
         self._request_lock: asyncio.Lock = asyncio.Lock()
         # Must match the LoRA's trained prompt format byte-for-byte or it goes OOD.
         self._user_message_raw: ContextVar[str] = ContextVar(
@@ -515,5 +514,5 @@ __all__ = [
     "_SELORA_LOCAL_MAX_ENTITY_LINES",
     "_SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION",
     "_SELORA_LOCAL_PREWARM_KINDS",
-    "_SeloraLocalActivationError",
+    "_SeloraLocalDiscoveryError",
 ]
