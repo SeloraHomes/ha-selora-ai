@@ -98,6 +98,21 @@ async def _tool_get_diagnostics(hass: HomeAssistant, arguments: dict[str, Any]) 
     )
 
 
+async def _tool_get_network_health(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """See ``network_health``."""
+    from ..network_health import network_health  # noqa: PLC0415
+    from ..tool_executor import _as_index, _opt_bool, _opt_str  # noqa: PLC0415
+
+    return network_health(
+        hass,
+        _opt_str(arguments.get("protocol")),
+        all_devices=_opt_bool(arguments.get("all_devices")) is True,
+        offset=_as_index(arguments.get("offset") or 0),
+    )
+
+
 async def _tool_fire_event(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """See ``event_bus``."""
     from ..event_bus import async_fire_event  # noqa: PLC0415

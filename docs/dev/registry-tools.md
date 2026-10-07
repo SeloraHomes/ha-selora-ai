@@ -440,3 +440,37 @@ logs. Start/stop/restart are services (`hassio.app_*` with `{app: slug}`;
   walked as one (an integration may return a `MappingProxyType`); stringifying
   it would carry its credentials past the key redaction.
 - Both admin-only, as HA's own are.
+
+## Radio networks (MCP)
+
+`network_health.py` — `selora_get_network_health`, and the
+`radio_devices_offline` part of `check_system`. "Why is this device flaky" is a
+mesh answer that diagnostics give only as a page of raw radio state.
+
+- **No radio library is imported.** They are installed only with their
+  integration and reshape between releases, so ZHA is read through the gateway
+  proxy's `device_info` in `hass.data["zha"]` (what its device page shows),
+  Z-Wave JS through the per-node sensors it registers (`.node_status`,
+  `.controller_status`, `.statistics_rssi`, `.statistics_last_seen` unique-id
+  suffixes; the statistics are disabled by default), Matter through
+  availability only.
+- **Zigbee2MQTT counts as Zigbee.** It reaches HA through MQTT, so it is found
+  by its bridge device (manufacturer `Zigbee2MQTT`) and the devices it
+  introduced, with `linkquality` from their `_linkquality_zigbee2mqtt` entity.
+- **Offline also means every entity unavailable**, whatever the integration
+  reports, so a network with no runtime details still answers.
+- **Asleep is not offline**: a battery Z-Wave node sleeps by design. A weak
+  link is reported even on an asleep node.
+- **Weak is LQI under 80 or RSSI under -80 dBm**, the ranges HA's own network
+  pages draw as poor; the answer states the thresholds.
+- **A stopped integration or MQTT broker is one fault, not one per device.** Its
+  entities are all unavailable because IT is down, so its devices get no
+  verdict; `check_system` reports the integration. A Zigbee2MQTT bridge that
+  lost its coordinator stays available and turns its connectivity sensor
+  `off` — that is read explicitly.
+- **Only devices needing attention are listed by default**; `all_devices` pages
+  50 per network by `offset` / `next_offset`.
+- **`check_system` lists only networks with something down** — a healthy mesh
+  is not news, and a weak link is a diagnosis, not a fault.
+- Read-only and admin-only, as `zha/devices` and `zwave_js/network_status` are.
+  Changing the mesh (pairing, heal, reconfigure) is not offered.

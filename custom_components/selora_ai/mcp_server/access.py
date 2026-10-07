@@ -69,6 +69,7 @@ from .names import (
     TOOL_GET_ENTITY_STATE,
     TOOL_GET_HOME_SNAPSHOT,
     TOOL_GET_LOGS,
+    TOOL_GET_NETWORK_HEALTH,
     TOOL_GET_PATTERN,
     TOOL_GET_RELEASE_NOTES,
     TOOL_GET_SCENE,
@@ -280,6 +281,8 @@ _ADMIN_TOOLS = frozenset(
         TOOL_CHECK_SYSTEM,
         TOOL_GET_SYSTEM_HEALTH,
         TOOL_GET_DIAGNOSTICS,
+        # Read-only, but admin-gated as zha/devices and zwave_js/network_status are.
+        TOOL_GET_NETWORK_HEALTH,
         TOOL_FIRE_EVENT,
         TOOL_RESTART_HOME_ASSISTANT,
     }
