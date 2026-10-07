@@ -46,6 +46,7 @@ import {
 } from "./panel/render-version-history.js";
 import * as sessionActions from "./panel/session-actions.js";
 import * as versionActions from "./panel/version-actions.js";
+import * as recipeUpdateActions from "./panel/recipe-update-actions.js";
 import * as suggestionActions from "./panel/suggestion-actions.js";
 import * as insightsActions from "./panel/insights-actions.js";
 import * as chatActions from "./panel/chat-actions.js";
@@ -295,6 +296,10 @@ class SeloraAIPanel extends LitElement {
       // Slug of the catalog recipe currently being staged (downloaded)
       // after a card click, so its card can show a loading spinner.
       _recipesStagingSlug: { type: String },
+      // Slug whose update is running, and the outcome of the last update
+      // ({slug, ok, message}) shown on that recipe's Overview.
+      _recipeUpdateSlug: { type: String },
+      _recipeUpdateNotice: { type: Object },
       _recipesUploadBusy: { type: Boolean },
       _recipesDragOver: { type: Boolean },
       _recipesInstallError: { type: String },
@@ -3144,6 +3149,7 @@ class SeloraAIPanel extends LitElement {
       this._recipesList = {
         available: result.available || [],
         installed: result.installed || [],
+        updates: result.updates || {},
       };
     } catch (err) {
       console.error("Failed to load recipes list", err);
@@ -3229,6 +3235,10 @@ class SeloraAIPanel extends LitElement {
         recipes: result.recipes || [],
         installed_slugs: new Set(result.installed_slugs || []),
         generated_at: result.generated_at || "",
+        // Installed recipes with a newer version. Kept from the live read
+        // only, never the localStorage copy: the list fetched before this
+        // catalog warmed the backend's checker may not know them yet.
+        updates: result.updates || {},
       };
       // Server fetch succeeded and the gate has run — later opens this
       // session can trust the in-memory catalog without re-fetching.
@@ -3423,6 +3433,23 @@ class SeloraAIPanel extends LitElement {
         }
       }
       this._recipeWizardSelections = seededSelections;
+      // An installed recipe reopens on the choices it was installed with,
+      // so Reconfigure (and finishing an update that needs one more
+      // choice) starts from the running setup rather than from scratch.
+      const record = (this._recipesList?.installed || []).find(
+        (r) => r.slug === slug,
+      );
+      if (record) {
+        this._recipeWizardInputs = {
+          ...this._recipeWizardInputs,
+          ...(record.inputs || {}),
+        };
+        for (const roleId of Object.keys(seededSelections)) {
+          if (Array.isArray(record.bindings?.[roleId])) {
+            seededSelections[roleId] = [...record.bindings[roleId]];
+          }
+        }
+      }
       // Restore any persisted state for this slug — picks the user
       // made before navigating away (e.g. to pair a device in HA
       // settings) come back exactly where they left off. Seeded
@@ -5363,6 +5390,7 @@ class SeloraAIPanel extends LitElement {
 // Attach extracted business logic to prototype
 Object.assign(SeloraAIPanel.prototype, sessionActions);
 Object.assign(SeloraAIPanel.prototype, versionActions);
+Object.assign(SeloraAIPanel.prototype, recipeUpdateActions);
 Object.assign(SeloraAIPanel.prototype, suggestionActions);
 Object.assign(SeloraAIPanel.prototype, insightsActions);
 Object.assign(SeloraAIPanel.prototype, chatActions);

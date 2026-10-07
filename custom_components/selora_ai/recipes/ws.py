@@ -8,6 +8,8 @@ Five commands, all admin-gated:
 - ``selora_ai/recipes/install``   — full pipeline including disk write
 - ``selora_ai/recipes/package``   — read an installed package's YAML + counts
 - ``selora_ai/recipes/uninstall`` — remove package + record
+- ``selora_ai/recipes/update_stream`` — install the catalog's newer version
+  with the choices already on the install record
 
 The handlers are thin: they validate WS args, dispatch to the
 pipeline, then serialise the result. No business logic lives here.
@@ -48,7 +50,8 @@ from .pipeline_items import derive_items
 from .renderer import _group_object_id
 from .resolver import resolve
 from .resolvers import RESOLVERS, ResolverContext, ResolverError
-from .store import get_install_store
+from .store import InstallRecord, get_install_store
+from .updates import async_update_recipe, get_update_checker
 from .version_gate import integration_version, meets_minimum
 
 if TYPE_CHECKING:
@@ -258,8 +261,25 @@ async def _ws_recipes_list(
         return
     bundles = await async_list_bundles(hass)
     available = [_manifest_summary(b.manifest) for b in bundles]
-    installed = [asdict(r) for r in await get_install_store(hass).async_list()]
-    connection.send_result(msg["id"], {"available": available, "installed": installed})
+    records = await get_install_store(hass).async_list()
+    installed = [asdict(r) for r in records]
+    connection.send_result(
+        msg["id"],
+        {"available": available, "installed": installed, "updates": _updates(hass, records)},
+    )
+
+
+def _updates(hass: HomeAssistant, records: list[InstallRecord]) -> dict[str, str]:
+    """``{slug: newer_version}`` for every installed recipe the last
+    catalog read lists at a later version. Same source as the update
+    entities, so the panel and Settings → Updates agree."""
+    checker = get_update_checker(hass)
+    updates: dict[str, str] = {}
+    for record in records:
+        version = checker.available_version(record.slug, record.version)
+        if version:
+            updates[record.slug] = version
+    return updates
 
 
 @websocket_api.async_response
@@ -743,6 +763,11 @@ async def _ws_recipes_catalog(
     # would silently misbehave. The read is blocking + cached; run once
     # off the event loop. See ``version_gate``.
     current_version = await hass.async_add_executor_job(integration_version)
+    # The default catalog is the one the update entities read; a dev
+    # override is a different catalog, and must not tell Settings →
+    # Updates that production has versions it doesn't.
+    if not msg.get("url"):
+        get_update_checker(hass).ingest(catalog, base_url=base_url, current_version=current_version)
     hidden = 0
     # Enrich each entry with {domain, title} brands for the card logo
     # strip, resolved from the integration hints in its required/optional
@@ -782,7 +807,44 @@ async def _ws_recipes_catalog(
             # so the panel can show "N recipes need a newer Selora AI".
             "hidden_incompatible": hidden,
             "integration_version": current_version,
+            "updates": _updates(hass, installed),
         },
+    )
+
+
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/recipes/update_stream",
+        vol.Required("slug"): str,
+    }
+)
+@websocket_api.async_response
+async def _ws_recipes_update_stream(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Update an installed recipe to the catalog's newer version.
+
+    Same event stream as ``install_stream``: ``apply/<step>`` events,
+    then a final ``result``. A result that halted at resolve or validate
+    means the new version needs a choice the old install never made; the
+    panel opens the wizard on it.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    def _emit(payload: dict[str, Any]) -> None:
+        connection.send_message(websocket_api.event_message(msg["id"], {"event": payload}))
+
+    connection.send_result(msg["id"])
+    result = await async_update_recipe(hass, msg["slug"], on_event=_emit)
+    manifest = await _load_manifest_quietly(hass, msg["slug"])
+    connection.send_message(
+        websocket_api.event_message(
+            msg["id"],
+            {"event": {"type": "result", "result": _result_payload(hass, result, manifest)}},
+        )
     )
 
 
@@ -920,6 +982,7 @@ def async_register_recipe_websocket_commands(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _ws_recipes_preview)
     websocket_api.async_register_command(hass, _ws_recipes_install)
     websocket_api.async_register_command(hass, _ws_recipes_install_stream)
+    websocket_api.async_register_command(hass, _ws_recipes_update_stream)
     websocket_api.async_register_command(hass, _ws_recipes_rebind)
     websocket_api.async_register_command(hass, _ws_recipes_auto_setup_integration)
     websocket_api.async_register_command(hass, _ws_recipes_package)

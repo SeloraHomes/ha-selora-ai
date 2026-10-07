@@ -86,3 +86,16 @@ PACKAGE_RESOURCE_KINDS: frozenset[str] = frozenset(
         "alert",
     }
 )
+
+# Dispatcher signals for the recipe update entities. INSTALLS_CHANGED
+# fires on every install-record write or removal (the slug is the only
+# argument); UPDATES_CHANGED fires when a catalog read changes what the
+# newest version of any recipe is.
+SIGNAL_RECIPE_INSTALLS_CHANGED = "selora_ai_recipe_installs_changed"
+SIGNAL_RECIPE_UPDATES_CHANGED = "selora_ai_recipe_updates_changed"
+
+# How often the catalog is read to look for newer recipe versions, and
+# how long after setup the first read waits (the network is often not
+# up yet at boot, and nothing about an update is urgent).
+RECIPE_UPDATE_CHECK_INTERVAL_HOURS = 6
+RECIPE_UPDATE_CHECK_INITIAL_DELAY_SECONDS = 300

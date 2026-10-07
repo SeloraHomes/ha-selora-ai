@@ -65,6 +65,24 @@ def meets_minimum(current: str, minimum: str) -> bool:
     return cur_padded >= min_padded
 
 
+def is_newer(candidate: str, installed: str) -> bool:
+    """Return ``True`` when ``candidate`` is a later release than ``installed``.
+
+    Same parsing as :func:`meets_minimum`, but strict and the other way
+    round on bad input: an unparseable version on either side is never an
+    update, because offering one that may be a downgrade rewrites a
+    working install for nothing.
+    """
+    cand_tuple = _release_tuple(candidate)
+    inst_tuple = _release_tuple(installed)
+    if cand_tuple is None or inst_tuple is None:
+        return False
+    width = max(len(cand_tuple), len(inst_tuple))
+    return cand_tuple + (0,) * (width - len(cand_tuple)) > inst_tuple + (0,) * (
+        width - len(inst_tuple)
+    )
+
+
 @lru_cache(maxsize=1)
 def integration_version() -> str:
     """Read the integration version from ``manifest.json`` (cached).

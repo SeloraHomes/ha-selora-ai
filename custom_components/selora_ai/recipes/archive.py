@@ -44,7 +44,11 @@ from .loader import bundles_dir
 from .manifest import ManifestError, load_manifest
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from homeassistant.core import HomeAssistant
+
+    from .manifest import Manifest
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -343,7 +347,11 @@ def _find_bundle_root(extracted_dir: Path) -> Path:
 # ── Stage a downloaded/uploaded archive into the bundle dir ────────
 
 
-def _stage_archive(hass: HomeAssistant, archive_path: Path) -> StagedBundle:
+def _stage_archive(
+    hass: HomeAssistant,
+    archive_path: Path,
+    check: Callable[[Manifest], None] | None = None,
+) -> StagedBundle:
     """Sync helper: extract → validate manifest → move into place.
 
     Runs entirely inside an executor hop (the caller wraps this whole
@@ -355,7 +363,9 @@ def _stage_archive(hass: HomeAssistant, archive_path: Path) -> StagedBundle:
     1. Extract to a sibling ``_extract_<stem>/`` directory.
     2. Find the bundle root (where manifest.yaml lives).
     3. Parse the manifest — this is the gate. A bad manifest aborts
-       before the user-facing directory is touched.
+       before the user-facing directory is touched, and so does one
+       ``check`` rejects (it raises :class:`ArchiveError`): an update
+       must not let the wrong archive replace any bundle on disk.
     4. ``shutil.move`` the validated bundle to its final
        ``selora_ai_recipes/<slug>/`` location (replacing any prior
        version).
@@ -369,6 +379,8 @@ def _stage_archive(hass: HomeAssistant, archive_path: Path) -> StagedBundle:
         try:
             root = _find_bundle_root(staging)
             manifest = load_manifest(root)
+            if check is not None:
+                check(manifest)
         except (ManifestError, ArchiveError) as exc:
             raise ArchiveError(str(exc)) from exc
 
@@ -387,24 +399,33 @@ def _stage_archive(hass: HomeAssistant, archive_path: Path) -> StagedBundle:
         shutil.rmtree(staging, ignore_errors=True)
 
 
-async def async_stage_archive_file(hass: HomeAssistant, archive_path: Path) -> StagedBundle:
+async def async_stage_archive_file(
+    hass: HomeAssistant,
+    archive_path: Path,
+    check: Callable[[Manifest], None] | None = None,
+) -> StagedBundle:
     """Async wrapper around :func:`_stage_archive` for the HTTP upload
     view + the URL install WS command.
     """
-    return await hass.async_add_executor_job(_stage_archive, hass, archive_path)
+    return await hass.async_add_executor_job(_stage_archive, hass, archive_path, check)
 
 
 # ── URL → staged bundle ─────────────────────────────────────────────
 
 
-async def async_install_from_url(hass: HomeAssistant, url: str) -> StagedBundle:
+async def async_install_from_url(
+    hass: HomeAssistant,
+    url: str,
+    *,
+    check: Callable[[Manifest], None] | None = None,
+) -> StagedBundle:
     """Fetch + stage in one call. The downloaded archive is deleted
     after staging — only the extracted bundle directory stays on disk.
     """
     download_dir = bundles_dir(hass) / "_downloads"
     archive_path = await async_fetch_archive(hass, url, dest_dir=download_dir)
     try:
-        return await async_stage_archive_file(hass, archive_path)
+        return await async_stage_archive_file(hass, archive_path, check)
     finally:
         try:
             archive_path.unlink(missing_ok=True)

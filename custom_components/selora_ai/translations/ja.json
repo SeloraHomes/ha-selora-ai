@@ -1025,7 +1025,13 @@
     "client_action_delete_dashboard": "{title} ダッシュボードを削除 — {views} ビュー、{cards} カード",
     "client_action_confirm_mixed": "すべて確認",
     "client_action_delete_dashboard_unknown": "{title} ダッシュボードを削除 — 内容は不明",
-    "client_action_create_helper": "ヘルパー {name} を作成 ({domain})"
+    "client_action_create_helper": "ヘルパー {name} を作成 ({domain})",
+    "recipes_card_update_badge": "アップデートあり",
+    "recipes_update_button": "v{version} に更新",
+    "recipes_update_running": "更新中…",
+    "recipes_update_done": "v{version} に更新しました。",
+    "recipes_update_needs_choice": "v{version} には、現在のインストールで選択されていない項目が必要です。再設定して更新を完了してください。",
+    "recipes_update_failed": "更新が完了しませんでした。"
   },
   "options": {
     "step": {

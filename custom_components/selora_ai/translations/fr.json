@@ -1025,7 +1025,13 @@
     "client_action_delete_dashboard": "Supprimer le tableau de bord {title} — {views} vues, {cards} cartes",
     "client_action_confirm_mixed": "Tout confirmer",
     "client_action_delete_dashboard_unknown": "Supprimer le tableau de bord {title} — contenu inconnu",
-    "client_action_create_helper": "Créer l'assistant {name} ({domain})"
+    "client_action_create_helper": "Créer l'assistant {name} ({domain})",
+    "recipes_card_update_badge": "Mise à jour disponible",
+    "recipes_update_button": "Mettre à jour vers v{version}",
+    "recipes_update_running": "Mise à jour…",
+    "recipes_update_done": "Mise à jour vers v{version} effectuée.",
+    "recipes_update_needs_choice": "La v{version} demande un choix que l'installation actuelle n'a pas fait. Reconfigurez pour terminer la mise à jour.",
+    "recipes_update_failed": "La mise à jour n'a pas abouti."
   },
   "options": {
     "step": {

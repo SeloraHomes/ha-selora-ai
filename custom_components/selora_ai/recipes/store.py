@@ -18,9 +18,10 @@ from datetime import UTC, datetime
 import logging
 from typing import TYPE_CHECKING, Any
 
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
 
-from .const import INSTALL_STORE_KEY, INSTALL_STORE_VERSION
+from .const import INSTALL_STORE_KEY, INSTALL_STORE_VERSION, SIGNAL_RECIPE_INSTALLS_CHANGED
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -168,7 +169,8 @@ class InstallStore:
             data[slug] = asdict(record)
             await self._save()
             _LOGGER.info("Recorded recipe install: %s v%s", slug, version)
-            return record
+        async_dispatcher_send(self._hass, SIGNAL_RECIPE_INSTALLS_CHANGED, slug)
+        return record
 
     async def async_update_dashboard_card(
         self, slug: str, dashboard_card: dict[str, Any]
@@ -206,7 +208,8 @@ class InstallStore:
                 return None
             await self._save()
             _LOGGER.info("Removed recipe install record: %s", slug)
-            return _from_dict(raw)
+        async_dispatcher_send(self._hass, SIGNAL_RECIPE_INSTALLS_CHANGED, slug)
+        return _from_dict(raw)
 
 
 _HASS_DATA_KEY = "_selora_ai_install_store_v2"

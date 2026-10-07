@@ -688,15 +688,25 @@ async def _run(
     owned_map: dict[str, dict[str, str]] = hass.data.get("selora_ai", {}).get(
         "_auto_setup_owned", {}
     )
-    integrations_installed = dict(owned_map.pop(slug, {}))
     store = get_install_store(hass)
+    prior = await store.async_get(slug)
+    # A reinstall or an update usually sets nothing up, since the
+    # integration is already there, so the previous record's claims carry
+    # forward: dropping them would stop uninstall offering to remove an
+    # entry this recipe created. Only claims on entries that still exist
+    # survive; one the homeowner deleted since is nothing to offer.
+    integrations_installed = {
+        domain: entry_id
+        for domain, entry_id in (prior.integrations_installed if prior else {}).items()
+        if hass.config_entries.async_get_entry(entry_id) is not None
+    }
+    integrations_installed.update(owned_map.pop(slug, {}))
     if not dashboard_card:
         # No insertion this run — the homeowner skipped the dashboard step,
         # or the recipe has no card. Whatever the previous install placed
         # is still on the dashboard, and its resource is still registered,
         # so carry the record forward. Dropping it would strand a resource
         # nobody can attribute to a recipe any more.
-        prior = await store.async_get(slug)
         dashboard_card = dict(prior.dashboard_card or {}) if prior else {}
     record = await store.async_record(
         slug=slug,
