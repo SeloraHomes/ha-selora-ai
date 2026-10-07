@@ -483,16 +483,18 @@ def test_the_llama_backend_warms_only_the_command_specialist() -> None:
     assert provider._prewarm_kinds(_entities(80)) == ("chat_command",)
 
 
-@pytest.mark.parametrize("home_size", [2, 80])
-def test_the_ollama_backend_warms_each_prefix_once(home_size: int) -> None:
-    """One model behind one trained prompt, so three of the four kinds
-    render the same body — warming each would re-send what the previous
-    request just cached. Automation is the one that really differs: it
-    carries the EXISTING AUTOMATIONS block and a tighter entity cap."""
+@pytest.mark.parametrize(("home_size", "automation_differs"), [(2, False), (80, True)])
+def test_the_ollama_backend_warms_each_prefix_once(
+    home_size: int, automation_differs: bool
+) -> None:
+    """One model behind one trained prompt and one user-turn layout, so the
+    kinds render the same body — warming each would re-send what the previous
+    request just cached. Automation differs only once its tighter entity cap
+    bites."""
     provider = make(SELORA_LOCAL_BACKEND_OLLAMA_UNIFIED)
     kinds = provider._prewarm_kinds(_entities(home_size))
     assert len(kinds) < len(_SELORA_LOCAL_PREWARM_KINDS)
-    assert "chat_automation" in kinds
+    assert ("chat_automation" in kinds) is automation_differs
 
 
 def test_the_ollama_backend_drops_only_repeats() -> None:

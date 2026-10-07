@@ -590,7 +590,7 @@ class _ServingMixin:
                 )
                 break
         _LOGGER.info(
-            "Selora Local pre-warm complete: %d/%d prefixes primed (%d entities in prefix)",
+            "Selora Local pre-warm complete: %d/%d requests answered (%d entities)",
             ok,
             len(kinds),
             len(entities or []),

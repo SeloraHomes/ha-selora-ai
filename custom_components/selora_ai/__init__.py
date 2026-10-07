@@ -138,6 +138,7 @@ from .const import (
     DEFAULT_SELORA_LOCAL_HOST,
     DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
+    ENTITY_SNAPSHOT_LOCAL_ATTRS,
     ENTRY_TYPE_DEVICE,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
@@ -544,7 +545,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
         attrs: dict[str, Any] = {
             "friendly_name": state.attributes.get("friendly_name", ""),
         }
-        for attr_key in ENTITY_SNAPSHOT_ATTRS:
+        for attr_key in ENTITY_SNAPSHOT_ATTRS | ENTITY_SNAPSHOT_LOCAL_ATTRS:
             val = state.attributes.get(attr_key)
             if val is not None:
                 attrs[attr_key] = val

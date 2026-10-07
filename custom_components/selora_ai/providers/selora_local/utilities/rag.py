@@ -1,7 +1,7 @@
 """Selora AI Local — utilities/RAG help specialist.
 
-Doc-corpus retrieval, citation grounding, and the RELEVANT DOCS block for the
-v0.4.8 utilities specialist. Mixed into SeloraLocalProvider via `_UtilitiesRagMixin`.
+Doc-corpus retrieval and citation grounding for the utilities specialist; the
+RELEVANT DOCS block itself is rendered by ``runtime.user_turn``. Mixed into SeloraLocalProvider via `_UtilitiesRagMixin`.
 """
 
 from __future__ import annotations
@@ -144,7 +144,7 @@ def _selora_local_retrieve_doc_citations(advice: str, *, k: int = 3) -> list[str
     return [cid for overlap, cid in scored[:k] if overlap > 0]
 
 
-def _selora_local_retrieve_doc_chunks(query: str, *, k: int = 4) -> list[dict[str, str]]:
+def _selora_local_retrieve_doc_chunks(query: str, *, k: int = 3) -> list[dict[str, str]]:
     """Top ``k`` chunks whose text best overlaps ``query``, as ``[{"id", "text"}]`` in descending overlap order."""
     chunks = _selora_local_load_doc_chunks()
     if not chunks:
@@ -178,21 +178,6 @@ def _selora_local_ground_citations(src: list[str], advice: str, *, k: int = 3) -
 
 class _UtilitiesRagMixin:
     """Utilities/RAG methods mixed into SeloraLocalProvider."""
-
-    def _format_relevant_docs_block(self, docs: list[dict[str, str]]) -> str:
-        """Render retrieved doc chunks as the RELEVANT DOCS block the v0.4.8 utilities specialist was trained on."""
-        from ....helpers import sanitize_untrusted_text
-
-        rendered: list[str] = []
-        for d in docs:
-            cid = str(d.get("id") or "").strip()
-            if not cid:
-                continue
-            text = sanitize_untrusted_text(str(d.get("text") or "")).strip()
-            rendered.append(f"  - [{cid}] {text}" if text else f"  - [{cid}]")
-        if not rendered:
-            return ""
-        return "RELEVANT DOCS:\n" + "\n".join(rendered)
 
     def _utilities_fallback_envelope(self, visible: str) -> str | None:
         """Re-wrap salvaged prose as a GROUNDED utilities envelope."""

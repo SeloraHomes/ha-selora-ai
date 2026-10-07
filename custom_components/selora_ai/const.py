@@ -1185,6 +1185,12 @@ ENTITY_SNAPSHOT_ATTRS = frozenset(
     }
 )
 
+# Also in snapshots, for Selora AI Local's entity lines, which were trained on
+# them; cloud prompts render only ENTITY_SNAPSHOT_ATTRS.
+ENTITY_SNAPSHOT_LOCAL_ATTRS = frozenset({"device_class", "unit_of_measurement"})
+# Snapshot attribute: calendars or to-do lists a schedule question did not fetch.
+SCHEDULE_ENTITIES_OMITTED = "schedule_entities_omitted"
+
 # ── Relevance Scoring ────────────────────────────────────────────────
 MIN_RELEVANCE_SCORE = 0.3  # Suggestions below this are filtered out
 RELEVANCE_WEIGHT_CROSS_DEVICE = 0.30  # Connects multiple devices/domains

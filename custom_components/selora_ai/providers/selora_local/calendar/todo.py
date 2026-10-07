@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from ..answers.state import _COMMAND_VERB_RE, _CONJUNCTION_RE, _safe_fname_for_prose
+from .events import _partial
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -132,21 +133,27 @@ class _CalendarTodoMixin:
         """Serialise a deterministic answer envelope (the shared scaffold for calendar/to-do replies)."""
         return json.dumps({"intent": "answer", "response": r_text, "r": r_text})
 
-    def _format_todo_entity_lines(self, eid: str, attrs: dict[str, Any]) -> str:
-        """Render a todo entity with its injected open-item list."""
+    def _format_todo_entity_lines(self, entity: dict[str, Any]) -> str:
+        """A todo list's entity line plus its injected open items, one per detail line."""
         from ....helpers import sanitize_untrusted_text
+        from ..runtime.user_turn import DETAIL_INDENT, format_entity_line
 
-        fname = sanitize_untrusted_text(attrs.get("friendly_name") or eid).replace('"', "")
+        attrs = entity.get("attributes") or {}
         items = attrs.get("todo_items")
-        head = f'- entity_id={eid}; friendly_name="{fname}"'
-        if not isinstance(items, list) or not items:
+        head = format_entity_line(entity)
+        # Not fetched: the plain trained line.
+        if not isinstance(items, list):
+            return head
+        if not items:
             return head + "; open_items=none (the list is empty)"
-        out = [head + f"; open_items ({len(items)}):"]
+        total = attrs.get("todo_items_total")
+        count = f"{total}, first {len(items)}" if total else str(len(items))
+        out = [head + f"; open_items ({count}):"]
         for item in items:
             summary = sanitize_untrusted_text(str(item or "")).strip()
             if not summary:
                 continue
-            out.append(f"    - {summary}")
+            out.append(f"{DETAIL_INDENT}- {summary}")
         return "\n".join(out)
 
     def _open_todo_items_from_snapshot(self) -> list[str] | None:
@@ -207,6 +214,14 @@ class _CalendarTodoMixin:
         # Gate on the per-turn classifier kind.
         if self._chat_kind.get() != "chat_answer" and (
             _COMMAND_VERB_RE.search(raw_msg) or _CONJUNCTION_RE.search(raw_msg)
+        ):
+            return None
+        # A capped list, or lists left out, would be counted short.
+        if any(
+            isinstance(e, dict)
+            and str(e.get("entity_id") or "").startswith("todo.")
+            and _partial(e.get("attributes") or {}, "todo_items_total")
+            for e in self._entities_for_lora.get() or []
         ):
             return None
         open_items = self._collect_open_todo_items()

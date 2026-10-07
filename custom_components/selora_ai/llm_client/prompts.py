@@ -633,9 +633,8 @@ def build_minimal_chat_messages(
         if entity_lines
         else "AVAILABLE ENTITIES: none relevant."
     )
-    # Training-time shape: entity block precedes user request, `/no_think`
-    # prefix skips Qwen3 reasoning block. Slim-schema specialists go OOD
-    # if either is changed.
+    # Not the trained layout: the low-context provider (Selora AI Local)
+    # renders its own user turn and sends this only when there is no message.
     context_prompt = f"/no_think {entity_section}\n\n{user_message}"
 
     # Keep only the last turn of history — anything more risks
