@@ -272,6 +272,20 @@ def _every_argument(domain: str) -> dict[str, Any]:
     return arguments
 
 
+_HELPER_LEFT_OUT: dict[str, dict[str, str]] = {
+    "person": {
+        "user_id": (
+            "Links a login: user ids are admin-only, and a wrong link hands one "
+            "person's presence to another's account. Settings → People."
+        ),
+        "picture": (
+            "An image uploaded on the People page; a URL set from here would be "
+            "fetched by every viewer's browser."
+        ),
+    },
+}
+
+
 @pytest.mark.parametrize("domain", CREATABLE_HELPER_DOMAINS)
 def test_every_helper_option_can_be_given(domain: str) -> None:
     schema = _create_schema(domain)
@@ -280,7 +294,7 @@ def test_every_helper_option_can_be_given(domain: str) -> None:
     if "schedule" in produced:
         produced |= set(_DAYS)
 
-    missing = _schema_keys(schema) - produced
+    missing = _schema_keys(schema) - produced - set(_HELPER_LEFT_OUT.get(domain, {}))
     assert not missing, _NEW_OPTION.format(
-        kind=domain, names=sorted(missing), table="create_helper's parameters"
+        kind=domain, names=sorted(missing), table="create_helper's parameters / _HELPER_LEFT_OUT"
     )

@@ -1088,7 +1088,8 @@ async def async_update_device(
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
-# The helper domains HA backs with a storage collection (zones included), listed
+# The helper domains HA backs with a storage collection (zones and people
+# included), listed
 # so the model can find and USE an existing one. Creating, changing and deleting
 # them is ``helper_manager``'s.
 _STORAGE_HELPER_DOMAINS: Final = (
@@ -1102,6 +1103,7 @@ _STORAGE_HELPER_DOMAINS: Final = (
     "timer",
     "schedule",
     "zone",
+    "person",
 )
 
 

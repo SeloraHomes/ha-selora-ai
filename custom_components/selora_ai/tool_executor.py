@@ -1162,6 +1162,10 @@ def create_helper_fields(arguments: dict[str, Any]) -> dict[str, Any]:
     options = _opt_list(arguments.get("options"))
     if options:
         fields["options"] = options
+    trackers = _opt_list(arguments.get("device_trackers"))
+    if trackers is not None:
+        # An empty list is a real setting: a person tracked by nothing.
+        fields["device_trackers"] = trackers
     # Passed on even when malformed, for `_expand_schedule` to refuse by name:
     # dropped, the schedule would be created with no time on any day.
     if (schedule := _opt_options(arguments.get("schedule"))) is not None:

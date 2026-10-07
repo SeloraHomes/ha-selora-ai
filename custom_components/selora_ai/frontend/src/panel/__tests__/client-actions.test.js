@@ -978,4 +978,52 @@ describe("runClientAction create_helper", () => {
     expect(result.ok).toBe(false);
     expect(result.detail).toContain("already exists");
   });
+
+  it("creates a person, never linking a login", async () => {
+    // `person/list` answers {storage, config}, not a list.
+    const hass = helperHass(
+      { storage: [], config: [] },
+      { id: "alex", name: "Alex" },
+    );
+
+    const result = await runClientAction(hass, {
+      kind: "create_helper",
+      domain: "person",
+      name: "Alex",
+      fields: {
+        name: "Alex",
+        device_trackers: ["device_tracker.alex_phone"],
+        user_id: "someone",
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(hass.callWS).toHaveBeenCalledWith({
+      type: "person/create",
+      name: "Alex",
+      device_trackers: ["device_tracker.alex_phone"],
+    });
+  });
+
+  it("reconciles a person retry from the storage list", async () => {
+    const hass = helperHass(
+      {
+        storage: [{ id: "alex", name: "Alex", device_trackers: [] }],
+        config: [],
+      },
+      {},
+    );
+
+    const result = await runClientAction(hass, {
+      kind: "create_helper",
+      domain: "person",
+      name: "Alex",
+      fields: { name: "Alex", device_trackers: [] },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(
+      hass.callWS.mock.calls.some((c) => c[0].type === "person/create"),
+    ).toBe(false);
+  });
 });
