@@ -768,7 +768,10 @@ class TestAtomicIdlessBackend:
         hass.services.async_register("automation", "reload", AsyncMock())
 
         result = await _delete_idless_automation_by_alias(hass, "Evening")
-        assert result == {"status": "deleted"}
+        assert result == {
+            "status": "deleted",
+            "previous": {"alias": "Evening", "trigger": [], "action": []},
+        }
         assert await hass.async_add_executor_job(_read_automations_yaml, path) == []
 
     @pytest.mark.asyncio
@@ -892,7 +895,9 @@ class TestAtomicIdlessBackend:
                 hass, {"entity_id": "scene.night", "expected_name": "Old Native"}
             )
         assert result == {"entity_id": "scene.night", "status": "deleted"}
-        mock_remove.assert_awaited_once_with(hass, "scene.night", expected_name="Old Native")
+        mock_remove.assert_awaited_once_with(
+            hass, "scene.night", expected_name="Old Native", report={}
+        )
         # The SceneStore was never consulted — no chance to match/delete a new
         # record that reused this entity_id.
         mock_getter.assert_not_called()

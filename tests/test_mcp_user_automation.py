@@ -7,6 +7,7 @@ enabled state and the risk gate every replacement gets.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,10 @@ from homeassistant.core import HomeAssistant
 import pytest
 import yaml
 
-from custom_components.selora_ai.mcp_server.automations import _tool_create_automation
+from custom_components.selora_ai.mcp_server.automations import (
+    _tool_create_automation,
+    _tool_delete_automation,
+)
 
 USER_ENTRY = {
     "id": "morning_routine",
@@ -141,3 +145,31 @@ async def test_no_version_record_is_made(hass: HomeAssistant) -> None:
 
     store = _get_automation_store(hass)
     assert await store.get_record("morning_routine") is None
+
+
+async def test_a_replacement_hands_back_the_automation_it_replaced(
+    hass: HomeAssistant,
+) -> None:
+    """Fed back as the yaml (JSON is YAML), it puts the old one back."""
+    _write(hass, [USER_ENTRY])
+
+    result = await _replace(
+        hass,
+        "alias: Morning Routine\n"
+        "trigger:\n- platform: time\n  at: '07:15:00'\n"
+        "action:\n- service: light.turn_on\n  target:\n    entity_id: light.kitchen\n",
+    )
+    assert result["previous"] == USER_ENTRY
+
+    await _replace(hass, json.dumps(result["previous"]))
+    assert _read(hass) == [USER_ENTRY]
+
+
+async def test_a_delete_hands_back_the_automation_it_removed(hass: HomeAssistant) -> None:
+    _write(hass, [USER_ENTRY])
+
+    result = await _tool_delete_automation(hass, {"automation_id": "morning_routine"})
+
+    assert result.get("status") == "deleted", result
+    assert result["previous"] == USER_ENTRY
+    assert _read(hass) == []

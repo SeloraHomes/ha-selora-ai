@@ -17,7 +17,10 @@ from homeassistant.setup import async_setup_component
 import pytest
 import yaml
 
-from custom_components.selora_ai.mcp_server.scripts_helpers import _tool_set_script
+from custom_components.selora_ai.mcp_server.scripts_helpers import (
+    _tool_delete_script,
+    _tool_set_script,
+)
 from custom_components.selora_ai.tool_executor import ToolExecutor
 
 _GREET = [{"event": "greeted", "event_data": {"who": "{{ who }}", "greeting": "{{ greeting }}"}}]
@@ -194,3 +197,64 @@ async def test_max_with_the_mode_cleared_is_refused(scripts: HomeAssistant) -> N
     result = await _greeter(scripts, max=4, clear=["mode"])
 
     assert "queued or parallel" in result["error"]
+
+
+async def test_a_replaced_script_comes_back_in_the_result(scripts: HomeAssistant) -> None:
+    """Fed back to set_script, the old script is what the file holds again."""
+    await _greeter(scripts, mode="queued", max=4)
+    before = _stored(scripts)["greeter"]
+
+    result = await _tool_set_script(
+        scripts, {"object_id": "greeter", "alias": "Greeter", "sequence": _GREET[:1]}
+    )
+    assert result["previous"] == {"object_id": "greeter", **before}
+
+    await _tool_set_script(scripts, result["previous"])
+    assert _stored(scripts)["greeter"] == before
+
+
+async def test_a_deleted_script_comes_back_in_the_result(scripts: HomeAssistant) -> None:
+    await _greeter(scripts)
+    before = _stored(scripts)["greeter"]
+
+    result = await _tool_delete_script(scripts, {"script": "script.greeter"})
+
+    assert result["status"] == "deleted", result
+    assert "greeter" not in _stored(scripts)
+
+    # Under its own object_id, so what called script.greeter finds it again.
+    await _tool_set_script(scripts, result["previous"])
+    assert _stored(scripts)["greeter"] == before
+
+
+async def test_a_script_without_an_alias_comes_back_named_by_its_id(
+    scripts: HomeAssistant,
+) -> None:
+    """set_script requires an alias; a hand-written script may have none."""
+    Path(scripts.config.path("scripts.yaml")).write_text(
+        yaml.safe_dump({"bare": {"sequence": _GREET, "trace": {"stored_traces": 3}}})
+    )
+
+    result = await _tool_delete_script(scripts, {"script": "bare"})
+
+    assert result["previous"]["alias"] == "bare"
+    assert "trace" not in result["previous"]
+    assert "trace" in result["note"]
+
+
+async def test_a_setting_the_replacement_added_is_cleared_on_the_way_back(
+    scripts: HomeAssistant,
+) -> None:
+    await _tool_set_script(
+        scripts, {"object_id": "greeter", "alias": "Greeter", "sequence": _GREET}
+    )
+    before = _stored(scripts)["greeter"]
+
+    result = await _tool_set_script(
+        scripts,
+        {"object_id": "greeter", "alias": "Greeter", "sequence": _GREET, "icon": "mdi:hand-wave"},
+    )
+    assert result["previous"]["clear"] == ["icon"]
+
+    await _tool_set_script(scripts, result["previous"])
+    assert _stored(scripts)["greeter"] == before

@@ -1027,6 +1027,29 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
 # module scope here would be circular.
 _DASHBOARD_WRITE_TOOLS: frozenset[str] | None = None
 
+# Tools whose result carries ``previous`` (``helpers.attach_previous``).
+_RETURNS_PREVIOUS: frozenset[str] = frozenset(
+    {
+        TOOL_CREATE_AUTOMATION,
+        TOOL_DELETE_AUTOMATION,
+        TOOL_SET_SCRIPT,
+        TOOL_DELETE_SCRIPT,
+        TOOL_UPDATE_SCENE,
+        TOOL_DELETE_SCENE,
+        TOOL_UPDATE_HELPER,
+        TOOL_DELETE_HELPER,
+        TOOL_UPDATE_GROUP,
+        TOOL_DELETE_GROUP,
+        TOOL_UPDATE_DASHBOARD_CARD,
+        TOOL_UPDATE_DASHBOARD_VIEW,
+        TOOL_SET_DASHBOARD_STRATEGY,
+    }
+)
+
+# Tools whose ``previous`` is the stored Lovelace configuration: a page with its
+# sections, or a whole dashboard, which no tool writes back whole.
+_RETURNS_STORED: frozenset[str] = frozenset({TOOL_REMOVE_DASHBOARD_VIEW, TOOL_DELETE_DASHBOARD})
+
 _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_SEARCH_ENTITIES: "search_entities",
     TOOL_GET_ENTITY_HISTORY: "get_entity_history",
@@ -1119,9 +1142,9 @@ _MCP_DESCRIPTIONS: dict[str, str] = {
         "exists."
     ),
     "delete_dashboard": (
-        "Delete a whole dashboard and everything on it. This runs IMMEDIATELY and "
-        "cannot be undone, and the result names how many views and cards went with "
-        "it — confirm with the user yourself before calling it. The default "
+        "Delete a whole dashboard and everything on it. This runs IMMEDIATELY, and "
+        "the result names how many views and cards went with it — confirm with the "
+        "user yourself before calling it. The default "
         "dashboard cannot be deleted and a YAML dashboard has to be removed from "
         "configuration.yaml. To remove one PAGE rather than the whole dashboard, use "
         "selora_remove_dashboard_view."
@@ -1163,9 +1186,10 @@ def _mcp_tool_from_chat_tool(mcp_name: str, chat_name: str) -> MCPTool:
     if chat_name in _MCP_DESCRIPTIONS:
         description = _MCP_DESCRIPTIONS[chat_name]
     elif chat_name in _DELETE_TOOLS or chat_name in _DESTRUCTIVE_TOOLS:
+        undo = "" if mcp_name in _RETURNS_PREVIOUS | _RETURNS_STORED else " and cannot be undone"
         description = (
             f"{description} NOTE: any confirmation card described above is the "
-            f"chat surface. Over MCP this runs IMMEDIATELY and cannot be undone — "
+            f"chat surface. Over MCP this runs IMMEDIATELY{undo} — "
             f"confirm with the user yourself before calling it."
         )
     if mcp_name in _ADMIN_TOOLS:
@@ -1369,7 +1393,10 @@ _TOOL_DEFINITIONS.extend(
                 "strategy dashboard's current strategy. A dashboard with its own pages "
                 "loses them: that comes back with requires_confirmation, what is lost "
                 "and a fingerprint — tell the user, and only once they agree call again "
-                "with confirmed=true and that fingerprint. Which strategies exist "
+                "with confirmed=true and that fingerprint. The result's previous is "
+                "then the only copy of those pages: keep it, though no tool puts them "
+                "back — the user can paste it into the raw configuration editor. "
+                "Which strategies exist "
                 "depends on the Home Assistant version; an unavailable one is refused "
                 "with the list. Requires admin access."
             ),
@@ -2407,3 +2434,35 @@ _TOOL_DEFINITIONS.append(
         },
     )
 )
+
+
+# The result's ``previous`` is the only undo these have — nothing else keeps the
+# old content — so a caller has to know to hold on to it before it moves on.
+_PREVIOUS_NOTE = (
+    " The result's previous holds what this replaced or removed, in the terms "
+    "these tools take back; keep it to undo the change — unless the result's note "
+    "says no tool can put it back, when it is a record for the user. Something "
+    "deleted and made again from it gets a new id, so what referred to the old one "
+    "has to be pointed at it again. previous_omitted means it was too large to "
+    "return."
+)
+_STORED_NOTE = (
+    " The result's previous is the stored configuration this removed, and the only "
+    "copy of it: keep it. No tool writes it back whole; the user can paste it into "
+    "the dashboard's raw configuration editor. previous_omitted means it was too "
+    "large to return."
+)
+for _index, _tool in enumerate(_TOOL_DEFINITIONS):
+    _note = (
+        _PREVIOUS_NOTE
+        if _tool.name in _RETURNS_PREVIOUS
+        else _STORED_NOTE
+        if _tool.name in _RETURNS_STORED
+        else ""
+    )
+    if _note:
+        _TOOL_DEFINITIONS[_index] = MCPTool(
+            name=_tool.name,
+            description=f"{_tool.description}{_note}",
+            inputSchema=_tool.inputSchema,
+        )

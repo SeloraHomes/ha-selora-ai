@@ -53,6 +53,7 @@ from .helpers import (
     CALLER_CAN_WRITE,
     CALLER_IS_ADMIN,
     DASHBOARD_LOCK,
+    attach_previous,
     dashboard_info,
     default_dashboard_key,
     is_auto_generated_dashboard,
@@ -77,11 +78,6 @@ __all__ = ["DASHBOARD_LOCK"]
 # a whole VIEW record popped rather than being trimmed. Counts stay exact.
 _MAX_VIEWS: Final = 30
 _MAX_CARDS_PER_VIEW: Final = 40
-
-# Ceiling on the removed-card config echoed back for restoration. Below
-# ``MAX_TOOL_RESULT_CHARS`` so ``_truncate_result`` never gets to trim the card
-# on its way out — a silently shortened restore payload is the hazard.
-_MAX_RESTORE_CHARS: Final = MAX_TOOL_RESULT_CHARS - 2000
 
 # Ceiling on a single card fetched for editing, for the same reason and with the
 # same margin — the executor trims the assembled result, not the card alone.
@@ -476,13 +472,28 @@ async def async_set_dashboard_strategy(
         previous = copy.deepcopy(loaded) if stored else None
         if error := await _save(config, document, previous):
             return {"error": error}
-    return {
+    result: dict[str, Any] = {
         "status": "updated",
         "dashboard": target or "lovelace",
         "strategy": _json_safe_strategy(strategy),
         **({"replaced": {"views": len(views), "cards": cards}} if views else {}),
         "note": "Reload the dashboard to see the generated layout.",
     }
+    if views:
+        # A record of the pages, not something to replay: no tool writes a
+        # whole document, and a strategy dashboard takes no page edits.
+        result["note"] = (
+            "previous holds the dashboard as it was, but no tool puts its pages "
+            "back; the user can, by pasting it into the dashboard's raw "
+            "configuration editor."
+        )
+    elif previous is not None and is_strategy_document(previous):
+        # One strategy for another: the old one, as this tool takes it.
+        previous = {"strategy": previous["strategy"]}
+    else:
+        # A generated or empty dashboard: nothing stored was replaced.
+        previous = None
+    return attach_previous(result, previous, what="old dashboard")
 
 
 async def _load_config(config: Any) -> tuple[dict[str, Any], str | None]:
@@ -1289,6 +1300,35 @@ async def async_update_view(
                     "a different page. Read the dashboard again and retry."
                 )
             }
+        relayout = bool(layout) and str(layout).strip().lower() != _layout_of(target_view)
+        settings_before = target_view if section is None else _section_at(target_view, section)
+        from .dashboard_view_options import (  # noqa: PLC0415
+            SECTION_OPTIONS as _SECTION_CLEARABLE,
+        )
+        from .dashboard_view_options import (
+            VIEW_OPTIONS as _VIEW_OPTIONS,
+        )
+
+        clearable = ("icon", "path", *_VIEW_OPTIONS) if section is None else _SECTION_CLEARABLE
+        absent_before = (
+            {k for k in clearable if settings_before.get(k) is None}
+            if isinstance(settings_before, dict)
+            else set()
+        )
+        # A layout change carries the cards over, so its settings undo it —
+        # unless it drops sections no tool rebuilds (several, or one with
+        # settings of its own): then the whole page comes back as a record.
+        sections_now = _views_sections(target_view)
+        lossy = relayout and (
+            # A custom layout's own settings, which no layout argument restores.
+            _layout_of(target_view) not in VIEW_LAYOUTS
+            or len(sections_now) > 1
+            or any(isinstance(sec, dict) and set(sec) - {"type", "cards"} for sec in sections_now)
+        )
+        if lossy:
+            previous: dict[str, Any] | None = copy.deepcopy(target_view)
+        else:
+            previous = _settings_of(settings_before, page=section is None)
 
         changes: list[str] = []
         if title and str(title).strip():
@@ -1375,12 +1415,57 @@ async def async_update_view(
         if error := await _save(config, document, before):
             return {"error": error}
 
-    return {
+    # Settings this update added, which only clear takes away again.
+    added = sorted(k for k in absent_before if (settings_before or {}).get(k) is not None)
+    if previous is not None and not lossy and added:
+        previous["clear"] = added
+    result: dict[str, Any] = {
         "status": "updated",
         "dashboard": target or "lovelace",
         "view_index": index,
         "changed": changes,
     }
+    if lossy:
+        # Switching back makes one section; no tool rebuilds several, so the
+        # copy is the record of how the page was, not something to replay.
+        result["note"] = (
+            "The layout change dropped what the old layout held (its sections, or "
+            "a custom layout's settings). previous holds the page as it was, but "
+            "no tool rebuilds that; the user can, in the dashboard editor."
+        )
+    return attach_previous(result, previous, what="old page")
+
+
+def _views_sections(view: Any) -> list[Any]:
+    sections = view.get("sections") if isinstance(view, dict) else None
+    return sections if isinstance(sections, list) else []
+
+
+def _section_at(view: dict[str, Any], section: int) -> Any:
+    sections = view.get("sections")
+    return (
+        sections[section] if isinstance(sections, list) and 0 <= section < len(sections) else None
+    )
+
+
+def _settings_of(container: Any, *, page: bool) -> dict[str, Any] | None:
+    """A page's or section's settings in ``update_dashboard_view``'s terms:
+    a page's title, path, icon and ``layout`` (its ``type``) at the top, every
+    option — badges included — under ``options``."""
+    from .dashboard_view_options import SECTION_OPTIONS, VIEW_OPTIONS  # noqa: PLC0415
+
+    if not isinstance(container, dict):
+        return None
+    settings: dict[str, Any] = {}
+    if page:
+        settings = {
+            k: container[k] for k in ("title", "path", "icon") if container.get(k) is not None
+        }
+        settings["layout"] = _layout_of(container)
+    names = VIEW_OPTIONS if page else SECTION_OPTIONS
+    if options := {k: container[k] for k in names if container.get(k) is not None}:
+        settings["options"] = options
+    return copy.deepcopy(settings)
 
 
 async def async_remove_view(
@@ -1430,13 +1515,17 @@ async def async_remove_view(
         if error := await _save(config, document, before):
             return {"error": error}
 
-    return {
-        "status": "deleted",
-        "dashboard": target or "lovelace",
-        "view_index": index,
-        "title": sanitize_untrusted_text(removed.get("title") or "", 60),
-        "cards_removed": card_count,
-    }
+    return attach_previous(
+        {
+            "status": "deleted",
+            "dashboard": target or "lovelace",
+            "view_index": index,
+            "title": sanitize_untrusted_text(removed.get("title") or "", 60),
+            "cards_removed": card_count,
+        },
+        removed,
+        what="removed page",
+    )
 
 
 async def async_update_card(
@@ -1487,16 +1576,20 @@ async def async_update_card(
         if error := await _save(config, document, before):
             return {"error": error}
 
-    return {
-        "status": "updated",
-        # Where the change landed, encoded, so the reply can link it instead of
-        # naming a page the user then has to go and find.
-        "url": _view_url(target, str(_views(document)[index].get("path") or "") or None, index),
-        "dashboard": target or "lovelace",
-        "view_index": index,
-        "card_index": card_index,
-        "fingerprint": card_fingerprint(card),
-    }
+    return attach_previous(
+        {
+            "status": "updated",
+            # Where the change landed, encoded, so the reply can link it instead
+            # of naming a page the user then has to go and find.
+            "url": _view_url(target, str(_views(document)[index].get("path") or "") or None, index),
+            "dashboard": target or "lovelace",
+            "view_index": index,
+            "card_index": card_index,
+            "fingerprint": card_fingerprint(card),
+        },
+        existing,
+        what="old card",
+    )
 
 
 async def async_remove_card(
@@ -1541,23 +1634,9 @@ async def async_remove_card(
         "card_index": card_index,
         "card_type": str(existing.get("type") or "") if isinstance(existing, dict) else "",
     }
-    # The whole card comes back, which is what makes removal reversible: the
-    # tool promises the caller can put it straight back, and a type alone
-    # restores none of a card's entities, actions, or styling.
-    #
-    # Withheld rather than truncated if it will not fit — ``_truncate_result``
-    # would trim the card's own lists silently, and a partial card handed back
-    # as a restore payload is worse than none, because only one of them looks
-    # usable.
-    if len(json.dumps(existing, ensure_ascii=False, default=str)) <= _MAX_RESTORE_CHARS:
-        result["card"] = existing
-    else:
-        result["card_omitted"] = True
-        result["message"] = (
-            "The removed card was too large to return, so it cannot be restored from "
-            "this result — undo it in the dashboard editor if that was a mistake."
-        )
-    return result
+    # The whole card comes back, which is what makes removal reversible: a type
+    # alone restores none of a card's entities, actions, or styling.
+    return attach_previous(result, existing, key="card", what="removed card")
 
 
 def _fingerprint_error(card: Any, expected: str | None) -> str | None:
@@ -2680,16 +2759,35 @@ async def async_delete_dashboard(hass: HomeAssistant, target: str) -> dict[str, 
                     "list_dashboards and retry."
                 )
             }
+        # Read under the same lock as the delete, so what comes back is what
+        # went. A dashboard that cannot be loaded is still deleted — the
+        # restore copy is a convenience, not a precondition.
+        document: dict[str, Any] | None = None
+        lovelace, _ = _writable_dashboard(hass, intent["url_path"])
+        if lovelace is not None:
+            loaded, load_error = await _load_config(lovelace)
+            # An unreadable document is not an empty one: handing back {} would
+            # look like a restore copy and bring the dashboard back blank.
+            document = None if load_error else loaded
         # Gone between the read and the delete: what was asked for is true.
         with contextlib.suppress(ItemNotFound):
             await collection.async_delete_item(dashboard_id)
 
-    return {
-        "status": "deleted",
-        "title": intent["title"],
-        "url_path": intent["url_path"],
-        **{k: intent[k] for k in ("view_count", "card_count") if k in intent},
-    }
+    previous = (
+        {"settings": intent["expected"], "config": document}
+        if item is not None and document is not None
+        else None
+    )
+    return attach_previous(
+        {
+            "status": "deleted",
+            "title": intent["title"],
+            "url_path": intent["url_path"],
+            **{k: intent[k] for k in ("view_count", "card_count") if k in intent},
+        },
+        previous,
+        what="deleted dashboard",
+    )
 
 
 _UPDATABLE_CLEAR: Final = frozenset({"icon"})

@@ -21,9 +21,14 @@ if TYPE_CHECKING:
     from .automation_store import AutomationStore
     from .scene_store import SceneStore
 
-from .const import AUTOMATION_ID_PREFIX, DOMAIN
+from .const import AUTOMATION_ID_PREFIX, DOMAIN, MAX_TOOL_RESULT_CHARS
 
 _LOGGER = logging.getLogger(__name__)
+
+# Ceiling on old content echoed back for restoration. Below
+# ``MAX_TOOL_RESULT_CHARS`` so ``_truncate_result`` never gets to trim it on its
+# way out — a silently shortened restore payload is the hazard.
+MAX_RESTORE_CHARS: Final = MAX_TOOL_RESULT_CHARS - 2000
 
 # Serialises every in-integration writer of a Lovelace document.
 #
@@ -226,6 +231,36 @@ def sanitize_untrusted_text(value: object, limit: int = 200) -> str:
     if len(text) > limit:
         text = text[: limit - 3] + "..."
     return text
+
+
+def attach_previous(
+    result: dict[str, Any], previous: Any, *, key: str = "previous", what: str = "old version"
+) -> dict[str, Any]:
+    """Hand back what a replace or delete overwrote, whole or not at all.
+
+    Tool results are the only undo a caller has: nothing else keeps the old
+    content. Withheld rather than truncated if it will not fit —
+    ``_truncate_result`` would trim its lists silently, and a partial copy handed
+    back as a restore payload is worse than none, because only one of them
+    looks usable.
+    """
+    if previous is None or "error" in result:
+        return result
+    # A detached copy in plain JSON types, measured with the rest of the
+    # result: the cap applies to the whole thing, so a small copy beside a
+    # large result would still be trimmed.
+    plain = json.loads(json.dumps(previous, ensure_ascii=False, default=str))
+    if (
+        len(json.dumps({**result, key: plain}, ensure_ascii=False, default=str))
+        <= MAX_RESTORE_CHARS
+    ):
+        result[key] = plain
+    else:
+        result[f"{key}_omitted"] = True
+        result["message"] = (
+            f"The {what} was too large to return, so it cannot be restored from this result."
+        )
+    return result
 
 
 def resolve_domain_ref(

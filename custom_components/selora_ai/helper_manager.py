@@ -20,13 +20,18 @@ from __future__ import annotations
 
 from datetime import timedelta
 import importlib
+import json
 import logging
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.exceptions import HomeAssistantError
 import voluptuous as vol
 
-from .helpers import registered_storage_collection, sanitize_untrusted_text
+from .helpers import (
+    attach_previous,
+    registered_storage_collection,
+    sanitize_untrusted_text,
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -484,12 +489,20 @@ async def async_update_helper(
                 f"Home Assistant refused that {domain}: {sanitize_untrusted_text(str(exc), 200)}"
             )
         }
-    return {
-        "status": "updated",
-        "entity_id": entity_id.strip().lower(),
-        "name": sanitize_untrusted_text(str(updated.get("name") or ""), 60),
-        "changed": sorted({*supplied, *to_clear}),
-    }
+    return attach_previous(
+        {
+            "status": "updated",
+            "entity_id": entity_id.strip().lower(),
+            "name": sanitize_untrusted_text(str(updated.get("name") or ""), 60),
+            "changed": sorted({*supplied, *to_clear}),
+        },
+        _changed_settings(
+            _settings(domain, item, added=[k for k in supplied if item.get(k) is None]),
+            domain,
+            {*supplied, *to_clear},
+        ),
+        what="old settings",
+    )
 
 
 async def async_preview_helper_delete(hass: HomeAssistant, entity_id: str) -> dict[str, Any]:
@@ -536,7 +549,7 @@ async def async_delete_helper(
     resolved = _resolve_storage_helper(hass, entity_id)
     if isinstance(resolved, str):
         return {"error": resolved}
-    _, collection, item = resolved
+    domain, collection, item = resolved
     if expected_fingerprint and helper_fingerprint(item) != expected_fingerprint:
         return {
             "error": (
@@ -548,10 +561,70 @@ async def async_delete_helper(
         await collection.async_delete_item(item["id"])
     except ItemNotFound:
         return {"error": "That helper no longer exists."}
-    return {
-        "status": "deleted",
-        "entity_id": entity_id,
-        "name": sanitize_untrusted_text(str(item.get("name") or ""), 60),
-        # Home Assistant rewrites no references; these now point at nothing.
-        **({"was_used_by": dependents} if dependents else {}),
+    return attach_previous(
+        {
+            "status": "deleted",
+            "entity_id": entity_id,
+            "name": sanitize_untrusted_text(str(item.get("name") or ""), 60),
+            # Home Assistant rewrites no references; these now point at nothing.
+            **({"was_used_by": dependents} if dependents else {}),
+            **(
+                {
+                    "note": (
+                        "Made again from previous, this person has no login link "
+                        "or picture: set those under Settings → People."
+                    )
+                }
+                if item.get("user_id") or item.get("picture")
+                else {}
+            ),
+        },
+        _settings(domain, item),
+        what="deleted helper",
+    )
+
+
+def _changed_settings(settings: dict[str, Any], domain: str, changed: set[str]) -> dict[str, Any]:
+    """Only the settings an update changed (plus its ``clear``): the rest passed
+    back would be re-checked, and a tracker since removed would refuse the undo."""
+    from .tool_executor import _COUNTER_SPELLING  # noqa: PLC0415
+
+    spelled = {stored: alias for alias, stored in _COUNTER_SPELLING.items()}
+    names = {
+        "schedule" if key in _DAYS else spelled.get(key, key) if domain == "counter" else key
+        for key in changed
     }
+    return {k: v for k, v in settings.items() if k in names or k == "clear"}
+
+
+def _settings(
+    domain: str, item: dict[str, Any], *, added: list[str] | None = None
+) -> dict[str, Any]:
+    """A stored helper as the arguments ``create_helper``/``update_helper``
+    take, in plain JSON types: a counter's bounds as ``min``/``max``, a
+    schedule's days under ``schedule``. *added* are settings an update
+    introduced, which only ``clear`` takes away again."""
+    from .tool_executor import _COUNTER_SPELLING  # noqa: PLC0415
+
+    settings: dict[str, Any] = json.loads(
+        json.dumps(_jsonable({k: v for k, v in item.items() if k != "id"}), default=str)
+    )
+    if domain == "counter":
+        for alias, stored in _COUNTER_SPELLING.items():
+            if stored in settings:
+                settings[alias] = settings.pop(stored)
+    # A person's login link and picture are set only under Settings → People,
+    # so no tool takes them back.
+    settings.pop("user_id", None)
+    settings.pop("picture", None)
+    if domain == "schedule":
+        # Empty days kept: one a later edit fills is set back by its [].
+        week = {day: settings.pop(day) for day in _DAYS if day in settings}
+        if week:
+            settings["schedule"] = week
+    if added:
+        spelled = {stored: alias for alias, stored in _COUNTER_SPELLING.items()}
+        settings["clear"] = sorted(
+            spelled.get(key, key) if domain == "counter" else key for key in added
+        )
+    return settings

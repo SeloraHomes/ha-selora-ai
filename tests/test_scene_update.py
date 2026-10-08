@@ -93,6 +93,26 @@ async def test_an_editor_scene_is_changed_in_place(scenes: HomeAssistant) -> Non
     }
 
 
+async def test_the_scene_as_it_was_comes_back_in_the_result(scenes: HomeAssistant) -> None:
+    """Its states put back through the same tool restore it."""
+    entity_id = _entity_id(scenes)
+
+    result = await _mcp(
+        scenes,
+        TOOL_UPDATE_SCENE,
+        entity_id=entity_id,
+        entities={"input_boolean.garden": {"state": "on"}},
+    )
+    # Only what the edit changed: the states.
+    assert result["previous"] == {"entities": _EDITOR_SCENE["entities"]}
+    assert "per-entity settings" in result["note"]
+
+    await _mcp(
+        scenes, TOOL_UPDATE_SCENE, entity_id=entity_id, entities=result["previous"]["entities"]
+    )
+    assert _stored(scenes)[0]["entities"] == _EDITOR_SCENE["entities"]
+
+
 async def test_name_and_icon_alone_leave_the_states_alone(scenes: HomeAssistant) -> None:
     renamed = await _mcp(
         scenes, TOOL_UPDATE_SCENE, scene_id="1712345678901", name="Dusk", icon="mdi:moon"
@@ -190,3 +210,16 @@ async def test_a_disabled_scene_is_still_edited(scenes: HomeAssistant) -> None:
 
     assert result["status"] == "updated", result
     assert _stored(scenes)[0]["name"] == "Dusk"
+
+
+async def test_an_icon_the_update_added_is_cleared_on_the_way_back(
+    scenes: HomeAssistant,
+) -> None:
+    entity_id = _entity_id(scenes)
+    await _mcp(scenes, TOOL_UPDATE_SCENE, entity_id=entity_id, clear=["icon"])
+
+    result = await _mcp(scenes, TOOL_UPDATE_SCENE, entity_id=entity_id, icon="mdi:sofa")
+    assert result["previous"]["clear"] == ["icon"]
+
+    await _mcp(scenes, TOOL_UPDATE_SCENE, entity_id=entity_id, **result["previous"])
+    assert "icon" not in _stored(scenes)[0]
