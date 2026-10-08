@@ -37,6 +37,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from .const import (
     AUTOMATION_ID_PREFIX,
     DOMAIN,
+    HOME_HEALTH_UNIQUE_ID,
     KNOWN_INTEGRATIONS,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
@@ -632,7 +633,7 @@ class HomeHealthSensor(SensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_unique_id = "selora_ai_hub_home_health"
+    _attr_unique_id = HOME_HEALTH_UNIQUE_ID
     _attr_name = "Home Health"
     _attr_icon = "mdi:heart-pulse"
     _attr_native_unit_of_measurement = PERCENTAGE

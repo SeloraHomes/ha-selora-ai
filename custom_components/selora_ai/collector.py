@@ -579,7 +579,10 @@ class DataCollector:
         for s in unique_suggestions:
             is_valid, reason, automation_preview = validate_automation_payload(s, self._hass)
             if not is_valid or automation_preview is None:
-                _LOGGER.warning(
+                # The model's output, not a fault in the home or the
+                # integration: HA would refuse this automation, so it is
+                # dropped before anyone sees it.
+                _LOGGER.info(
                     "Skipping invalid collector suggestion '%s': %s",
                     s.get("alias", "<missing alias>"),
                     reason,
@@ -595,10 +598,6 @@ class DataCollector:
             suggestion["automation_data"] = automation_preview
             suggestion["risk_assessment"] = assess_automation_risk(automation_preview)
             enriched.append(suggestion)
-
-        filtered_out = len(unique_suggestions) - len(enriched)
-        if filtered_out:
-            _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
 
         # Build entity coverage set for scoring, from every automation HA
         # loaded — automations.yaml alone misses recipe packages and YAML files.

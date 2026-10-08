@@ -10,8 +10,11 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 import pytest
 
+from custom_components.selora_ai.const import DOMAIN, HOME_HEALTH_UNIQUE_ID
 from custom_components.selora_ai.recipes.manifest import InputSpec, ManifestError
 from custom_components.selora_ai.recipes.resolvers import (
     RESOLVERS,
@@ -19,6 +22,7 @@ from custom_components.selora_ai.recipes.resolvers import (
     ResolverError,
     _resolve_samsung_tv_mac,
     _resolve_samsung_tv_macs,
+    _resolve_selora_home_health,
     _resolve_tts_engine,
     async_apply_auto_inputs,
 )
@@ -106,6 +110,47 @@ class TestTtsEngineResolver:
         # rest of the recipe still installs and the template omits the
         # announcement block.
         assert await _resolve_tts_engine(_hass([]), _CTX) == ""
+
+
+class TestSeloraHomeHealthResolver:
+    """The sensor's entity id depends on the hub device's name when it first
+    registered, so a recipe must get it from the registry by unique id."""
+
+    @pytest.mark.asyncio
+    async def test_registered_under_its_name(self) -> None:
+        assert RESOLVERS.get("selora_home_health_sensor") is _resolve_selora_home_health
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "object_id",
+        ["selora_ai_hub_home_health", "selora_ai_home_health", "renamed_by_homeowner"],
+    )
+    async def test_returns_the_registered_entity_id(
+        self, hass: HomeAssistant, object_id: str
+    ) -> None:
+        er.async_get(hass).async_get_or_create(
+            "sensor", DOMAIN, HOME_HEALTH_UNIQUE_ID, suggested_object_id=object_id
+        )
+        assert await _resolve_selora_home_health(hass, _CTX) == f"sensor.{object_id}"
+
+    @pytest.mark.asyncio
+    async def test_refuses_a_disabled_sensor(self, hass: HomeAssistant) -> None:
+        er.async_get(hass).async_get_or_create(
+            "sensor",
+            DOMAIN,
+            HOME_HEALTH_UNIQUE_ID,
+            disabled_by=er.RegistryEntryDisabler.USER,
+        )
+        with pytest.raises(ResolverError, match="disabled"):
+            await _resolve_selora_home_health(hass, _CTX)
+
+    @pytest.mark.asyncio
+    async def test_ignores_another_integrations_sensor(self, hass: HomeAssistant) -> None:
+        er.async_get(hass).async_get_or_create(
+            "sensor", "other", HOME_HEALTH_UNIQUE_ID, suggested_object_id="selora_ai_home_health"
+        )
+        with pytest.raises(ResolverError, match="Home Health sensor"):
+            await _resolve_selora_home_health(hass, _CTX)
 
 
 class TestSamsungTvMacResolver:
