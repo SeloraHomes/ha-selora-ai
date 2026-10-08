@@ -35764,6 +35764,36 @@ function applyFilters(host, qualified) {
   }
   return filtered;
 }
+var isSuggestionKey = (key) =>
+  key.startsWith("sug_") || key.startsWith("proactive_");
+function setCardTab(host, cardKey, tab) {
+  if (tab) {
+    for (const [key, open] of Object.entries(host._cardActiveTab)) {
+      if (open && key !== cardKey && isSuggestionKey(key)) {
+        setCardTab(host, key, null);
+      }
+    }
+  }
+  host._cardPanelSettled = {
+    ...(host._cardPanelSettled || {}),
+    [cardKey]: false,
+  };
+  host._cardActiveTab = { ...host._cardActiveTab, [cardKey]: tab };
+  if (tab) {
+    host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: tab };
+  }
+  const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
+  clearTimeout(timers[cardKey]);
+  timers[cardKey] = setTimeout(() => {
+    host._cardPanelSettled = {
+      ...(host._cardPanelSettled || {}),
+      [cardKey]: true,
+    };
+    if (!host._cardActiveTab[cardKey]) {
+      host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
+    }
+  }, PANEL_SETTLE_MS);
+}
 function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
   const { cardKey, automationData } = item;
   const editedYaml = host._editedYaml[cardKey];
@@ -35788,27 +35818,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
   const lastTab = (host._cardLastTab || {})[cardKey] || null;
   const panelTab = activeTab || lastTab;
   const settled = !!(host._cardPanelSettled || {})[cardKey];
-  const setTab = (tab) => {
-    host._cardPanelSettled = {
-      ...(host._cardPanelSettled || {}),
-      [cardKey]: false,
-    };
-    host._cardActiveTab = { ...host._cardActiveTab, [cardKey]: tab };
-    if (tab) {
-      host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: tab };
-    }
-    const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
-    clearTimeout(timers[cardKey]);
-    timers[cardKey] = setTimeout(() => {
-      host._cardPanelSettled = {
-        ...(host._cardPanelSettled || {}),
-        [cardKey]: true,
-      };
-      if (!host._cardActiveTab[cardKey]) {
-        host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
-      }
-    }, PANEL_SETTLE_MS);
-  };
+  const setTab = (tab) => setCardTab(host, cardKey, tab);
   const toggleExpand = () =>
     setTab(expanded ? null : hasFlow ? "flow" : "yaml");
   const expandedClass = expanded ? "expanded" : "";
@@ -52035,7 +52045,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "fb3df8c5070f" : "";
+var PANEL_BUILD = true ? "fd5ada0c5c7c" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

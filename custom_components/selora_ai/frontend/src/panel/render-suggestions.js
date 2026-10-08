@@ -133,6 +133,51 @@ function applyFilters(host, qualified) {
   return filtered;
 }
 
+// _cardActiveTab is shared with the Automations tab's cards (keyed by entity id),
+// which opening a suggestion must leave alone.
+const isSuggestionKey = (key) =>
+  key.startsWith("sug_") || key.startsWith("proactive_");
+
+// Opens (tab) or collapses (null) one card's detail row. Only one card is open
+// at a time: each open card adds its own detail row, so opening a second one
+// without closing the first stacks unrelated editors down the page.
+function setCardTab(host, cardKey, tab) {
+  if (tab) {
+    for (const [key, open] of Object.entries(host._cardActiveTab)) {
+      if (open && key !== cardKey && isSuggestionKey(key)) {
+        setCardTab(host, key, null);
+      }
+    }
+  }
+  host._cardPanelSettled = {
+    ...(host._cardPanelSettled || {}),
+    [cardKey]: false,
+  };
+  host._cardActiveTab = { ...host._cardActiveTab, [cardKey]: tab };
+  if (tab) {
+    host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: tab };
+  }
+  // The pending timer belongs to the transition being replaced: toggling
+  // again inside PANEL_SETTLE_MS would otherwise have it settle the NEW
+  // transition early, unmounting the detail row mid-shrink.
+  const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
+  clearTimeout(timers[cardKey]);
+  timers[cardKey] = setTimeout(() => {
+    host._cardPanelSettled = {
+      ...(host._cardPanelSettled || {}),
+      [cardKey]: true,
+    };
+    // Read the tab as it is NOW, not as it was when the timer was armed.
+    // A card that finished closing drops its content: keeping every card
+    // ever opened mounted holds a CodeMirror instance per card for the
+    // panel's lifetime, and at 0fr there is nothing left for the unmount to
+    // disturb.
+    if (!host._cardActiveTab[cardKey]) {
+      host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
+    }
+  }, PANEL_SETTLE_MS);
+}
+
 function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
   const { cardKey, automationData } = item;
   const editedYaml = host._editedYaml[cardKey];
@@ -166,35 +211,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
   const panelTab = activeTab || lastTab;
   const settled = !!(host._cardPanelSettled || {})[cardKey];
 
-  const setTab = (tab) => {
-    host._cardPanelSettled = {
-      ...(host._cardPanelSettled || {}),
-      [cardKey]: false,
-    };
-    host._cardActiveTab = { ...host._cardActiveTab, [cardKey]: tab };
-    if (tab) {
-      host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: tab };
-    }
-    // The pending timer belongs to the transition being replaced: toggling
-    // again inside PANEL_SETTLE_MS would otherwise have it settle the NEW
-    // transition early, unmounting the detail row mid-shrink.
-    const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
-    clearTimeout(timers[cardKey]);
-    timers[cardKey] = setTimeout(() => {
-      host._cardPanelSettled = {
-        ...(host._cardPanelSettled || {}),
-        [cardKey]: true,
-      };
-      // Read the tab as it is NOW, not as it was when the timer was armed.
-      // A card that finished closing drops its content: keeping every card
-      // ever opened mounted holds a CodeMirror instance per card for the
-      // panel's lifetime, and at 0fr there is nothing left for the unmount to
-      // disturb.
-      if (!host._cardActiveTab[cardKey]) {
-        host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
-      }
-    }, PANEL_SETTLE_MS);
-  };
+  const setTab = (tab) => setCardTab(host, cardKey, tab);
   const toggleExpand = () =>
     setTab(expanded ? null : hasFlow ? "flow" : "yaml");
   const expandedClass = expanded ? "expanded" : "";
