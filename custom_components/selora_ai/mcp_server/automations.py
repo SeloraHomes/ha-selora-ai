@@ -748,6 +748,20 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
         success: bool = await async_delete_automation(
             hass, yaml_id, report=report, keep_history=True
         )
+        if not success and report.get("removed"):
+            return attach_previous(
+                {
+                    "automation_id": yaml_id,
+                    "entity_id": entity_id,
+                    "status": "deleted",
+                    "warning": (
+                        "Removed from automations.yaml, but reloading automations "
+                        "failed: it may keep running until the next reload or restart."
+                    ),
+                },
+                report.get("previous"),
+                what="deleted automation",
+            )
         if not success:
             return {"error": "Failed to delete automation"}
         return attach_previous(

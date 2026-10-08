@@ -44,7 +44,7 @@ from .const import (
 from .dashboard import SKIP_TARGET
 from .pipeline import PipelineResult, PunchItem, async_install
 from .store import get_install_store
-from .version_gate import integration_version, is_newer, meets_minimum
+from .version_gate import integration_version, is_newer, is_same_release, meets_minimum
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -282,10 +282,14 @@ async def async_update_recipe(
             raise ArchiveError(
                 f"The catalog's package for {slug!r} contains recipe {manifest.slug!r}."
             )
-        if not is_newer(manifest.version, record.version):
+        # Exactly the advertised version: the panel and the update entity
+        # report the catalog's, and a package URL can serve another release.
+        # Compared as versions ("v2.1" is 2.1), and the advertised one is
+        # already newer than the installed one.
+        if not is_same_release(manifest.version, target_version):
             raise ArchiveError(
                 f"The catalog's package for {slug!r} is v{manifest.version}, "
-                f"not newer than the installed v{record.version}."
+                f"not the v{target_version} the catalog lists."
             )
 
     try:

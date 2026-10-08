@@ -153,6 +153,12 @@ _AUTOMATION_PATTERNS = (
     ),
     re.compile(r"\b(when|whenever|if)\b.{0,40}\b(then|do|turn|start|stop|set|send|notify|alert)\b"),
     re.compile(r"\b(at|after|before)\s+\d"),
+    # Calendar triggers: "before each calendar event", "when a meeting starts".
+    re.compile(r"\b(?:before|after)\s+(?:each|every)\b"),
+    re.compile(
+        r"\b(?:when|whenever)\b.{0,40}\b(?:event|meeting|appointment|class)\s+"
+        r"(?:starts?|begins?|ends?)\b"
+    ),
     # Solar-event phrasing ("at sunset", "at sundown", "at sunrise") is
     # by definition automation, not a one-shot command. The automation
     # specialist's training corpus includes
@@ -833,6 +839,10 @@ _DEFINITE_AUTOMATION = re.compile(
     r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekday|weekend)\b"
     r"|\b(when|whenever|if)\b.{0,40}\b(then|do|turn|start|stop|set|send|notify|alert)\b"
     r"|\bcreate (an?|the)?\s*automation\b"
+    # Calendar triggers — kept in sync with ``_AUTOMATION_PATTERNS``.
+    r"|\b(?:before|after)\s+(?:each|every)\b"
+    r"|\b(?:when|whenever)\b.{0,40}\b(?:event|meeting|appointment|class)\s+"
+    r"(?:starts?|begins?|ends?)\b"
     # Recurring solar-event phrasing — see _AUTOMATION_PATTERNS for the
     # rationale. Cloud providers also need this so the panel's spinner
     # sentinel fires for "turn on the kitchen light at sunset".
@@ -1409,7 +1419,12 @@ def _classify_chat_intent(
         return "clarification"
     # Calendar and to-do questions: their data is attached for the answer
     # specialist, while command would invent a service ("calendar.is_visiting").
-    if is_schedule_question(msg):
+    # Not one shaped like an automation ("can you notify me before each
+    # event?") unless it asks what/which: a verb list misses phrasings both ways.
+    if is_schedule_question(msg) and (
+        _WH_INTERROGATIVE_OPENER.match(msg)
+        or not any(pat.search(msg) for pat in _AUTOMATION_PATTERNS)
+    ):
         return "answer"
     # Bare "help" / "what can you do?" — see ``_META_HELP``. Checked
     # before _META_QUESTION because the message is matched whole, not

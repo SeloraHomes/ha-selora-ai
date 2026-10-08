@@ -79,6 +79,13 @@ Admin-only, always on, MCP only.
   back through the caller would not work, because a masked read can't put the
   credentials back. A restore reloads what it changed when every changed key
   has a reload service, and otherwise reports `restart_required`.
+- **A restore is held to the same allowlist** (`_restored_paths`): every
+  top-level key it changes goes through `_check_target`, and `frontend` only
+  when the themes include is all that differs. Backups also capture the
+  user's own hand edits, so without this check, putting one back could undo
+  a deliberate change to `http` or `homeassistant` that no edit could make.
+  If the file or the backup doesn't parse, the restore is refused rather than
+  previewed, since its change could not be shown.
 - **Parse errors give position and a redacted problem, never `str(exc)`**:
   ruamel quotes the failing source line, and its problem text can quote values
   (a duplicate key names both), so quoted parts are dropped.

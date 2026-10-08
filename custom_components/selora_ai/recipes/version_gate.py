@@ -83,6 +83,22 @@ def is_newer(candidate: str, installed: str) -> bool:
     )
 
 
+def is_same_release(version: str, other: str) -> bool:
+    """Return ``True`` when both name the same release: ``v2.1`` is ``2.1.0``.
+
+    Strict like :func:`is_newer`: an unparseable version matches nothing, and
+    a suffix (``-rc1``) must be the same on both.
+    """
+    parsed = [(_RELEASE_RE.match(v or ""), v or "") for v in (version, other)]
+    if any(match is None for match, _ in parsed):
+        return False
+    tuples = [tuple(int(p) for p in match.group(1).split(".")) for match, _ in parsed if match]
+    width = max(len(t) for t in tuples)
+    padded = {t + (0,) * (width - len(t)) for t in tuples}
+    suffixes = {text[match.end() :].strip() for match, text in parsed if match}
+    return len(padded) == 1 and len(suffixes) == 1
+
+
 @lru_cache(maxsize=1)
 def integration_version() -> str:
     """Read the integration version from ``manifest.json`` (cached).

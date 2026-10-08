@@ -200,3 +200,62 @@ async def test_history_expires_while_the_hub_runs(hass: HomeAssistant) -> None:
         clock.now.return_value = later
         assert not await store.is_retired("old")
         assert not await store.revive_record("old")
+
+
+async def test_a_restore_keeps_variables_and_run_limits(hass: HomeAssistant) -> None:
+    """Every top-level setting the proposal validator keeps, the create writes."""
+    created = await _tool_create_automation(
+        hass,
+        {
+            "yaml": (
+                f"{_PROPOSAL}mode: queued\nmax: 3\nvariables:\n  level: 40\n"
+                "trace:\n  stored_traces: 20\n"
+            )
+        },
+    )
+    automation_id = created["automation_id"]
+    deleted = await _deleted(hass, automation_id)
+
+    await _tool_create_automation(hass, {"yaml": json.dumps(deleted["previous"])})
+
+    (entry,) = _read(hass)
+    assert entry["mode"] == "queued"
+    assert entry["max"] == 3
+    assert entry["variables"] == {"level": 40}
+    assert entry["trace"] == {"stored_traces": 20}
+
+
+async def test_a_delete_whose_reload_fails_still_hands_back_the_copy(
+    hass: HomeAssistant,
+) -> None:
+    """The entry is already gone from the file; the copy is the only way back."""
+    automation_id = await _created(hass)
+
+    async def _broken_reload(call: Any) -> None:
+        raise RuntimeError("reload failed")
+
+    hass.services.async_register("automation", "reload", _broken_reload)
+    result = await _tool_delete_automation(hass, {"automation_id": automation_id})
+
+    assert result["status"] == "deleted"
+    assert "reload" in result["warning"]
+    assert result["previous"]["id"] == automation_id
+    assert await _get_automation_store(hass).is_retired(automation_id)
+
+
+async def test_a_history_that_cannot_be_saved_does_not_skip_the_reload(
+    hass: HomeAssistant,
+) -> None:
+    """The reload is what stops the deleted automation running."""
+    from homeassistant.exceptions import HomeAssistantError
+
+    automation_id = await _created(hass)
+    reloads: list[str] = []
+    hass.services.async_register("automation", "reload", lambda call: reloads.append("x"))
+    store = _get_automation_store(hass)
+
+    with patch.object(store, "retire_record", side_effect=HomeAssistantError("disk full")):
+        result = await _tool_delete_automation(hass, {"automation_id": automation_id})
+
+    assert result["status"] == "deleted"
+    assert reloads == ["x"]

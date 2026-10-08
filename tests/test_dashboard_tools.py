@@ -438,12 +438,38 @@ async def test_a_page_update_hands_back_its_old_settings_without_cards(
     """Its settings are what changed; the cards stay where they are."""
     result = await dm.async_update_view(board, view="living", title="Lounge", icon="mdi:sofa")
 
-    assert result["previous"] == {
-        "title": "Living",
-        "path": "living",
-        "layout": "masonry",
-        "clear": ["icon"],
-    }
+    assert result["previous"] == {"title": "Living", "clear": ["icon"]}
+
+
+async def test_a_page_undo_leaves_settings_the_edit_never_touched(board: HomeAssistant) -> None:
+    """A badge whose entity has since gone would refuse the whole undo."""
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    dashboard = board.data[LOVELACE_DATA].dashboards[None]
+    document = await dashboard.async_load(False)
+    document["views"][0]["badges"] = [{"type": "entity", "entity": "sensor.gone"}]
+    await dashboard.async_save(document)
+
+    result = await dm.async_update_view(board, view="living", title="Lounge")
+    undone = await dm.async_update_view(board, view="living", **result["previous"])
+
+    assert result["previous"] == {"title": "Living"}
+    assert undone["status"] == "updated", undone
+
+
+async def test_a_title_the_update_added_is_cleared_on_the_way_back(board: HomeAssistant) -> None:
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    dashboard = board.data[LOVELACE_DATA].dashboards[None]
+    document = await dashboard.async_load(False)
+    document["views"][0].pop("title")
+    await dashboard.async_save(document)
+
+    result = await dm.async_update_view(board, view="living", title="Lounge")
+    await dm.async_update_view(board, view="living", **result["previous"])
+
+    assert result["previous"] == {"clear": ["title"]}
+    assert "title" not in (await dashboard.async_load(False))["views"][0]
 
 
 async def test_page_options_come_back_as_the_update_takes_them(board: HomeAssistant) -> None:

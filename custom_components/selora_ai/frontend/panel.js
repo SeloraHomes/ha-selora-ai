@@ -51724,7 +51724,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "a1b90a836d38" : "";
+var PANEL_BUILD = true ? "7ed34546d3ae" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -51830,7 +51830,7 @@ async function _runRecipeUpdate(slug) {
         `${this._t("recipes_update_failed", "The update didn't complete.")} ${reasons}`.trim(),
     };
   }
-  await this._loadRecipesList();
+  await Promise.all([this._loadRecipesList(), this._loadRecipesCatalog(true)]);
   if (this._recipeWizardSlug === slug) {
     const notice = this._recipeUpdateNotice;
     await this._openRecipeWizard(slug);

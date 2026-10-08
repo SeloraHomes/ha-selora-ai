@@ -72,6 +72,9 @@ withheld as `previous_omitted` when the whole result would not fit, never cut by
   `min`/`max`, a schedule's `schedule`, a group update's `new_name`, a page's
   `layout` and `options`, plus `clear` for settings the edit added — passing
   the old values back leaves an added one in place.
+- **An edit's copy holds only what it changed.** Replaying an untouched
+  setting can be refused on its own, for example a page badge whose entity
+  has since been removed, and that fails the whole undo.
 - **Tools go in `_RETURNS_PREVIOUS`** (`mcp_server/definitions.py`), which tells
   MCP callers to keep it and drops "cannot be undone" from the delete note. A
   removed page or deleted dashboard goes in `_RETURNS_STORED`: its copy is the
@@ -79,8 +82,9 @@ withheld as `previous_omitted` when the whole result would not fit, never cut by
   description says so. So does a result whose copy no tool can replay (sections
   a layout change dropped, pages a strategy replaced).
 - **Content, not identity**: something deleted and made again gets a new id. A
-  scene's editor metadata and a person's login link and picture are left out,
-  since no tool sets them.
+  scene's editor metadata, a person's login link and picture, and a sensor
+  group's `ignore_non_numeric` are left out, since no tool sets them, and the
+  result's `note` names them.
 - **An automation Selora made keeps its history through a tool delete.** Its
   version record is retired, not purged (`AutomationStore.retire_record`),
   hidden from every read and pruned after `RETIRED_AUTOMATION_DAYS` or beyond

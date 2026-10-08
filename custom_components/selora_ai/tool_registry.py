@@ -2672,7 +2672,7 @@ TOOL_UPDATE_DASHBOARD_VIEW = ToolDef(
             name="clear",
             type="array",
             description=(
-                "Fields to REMOVE: 'icon', 'path' or any option name. Use this "
+                "Fields to REMOVE: 'title', 'icon', 'path' or any option name. Use this "
                 "rather than passing an empty string, which is read as 'not set'."
             ),
         ),
