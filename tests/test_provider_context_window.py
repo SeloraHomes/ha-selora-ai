@@ -27,7 +27,7 @@ from custom_components.selora_ai.providers.selora_cloud import SeloraCloudProvid
 from custom_components.selora_ai.providers.selora_local import SeloraLocalProvider
 
 # GET /v1/models as llama-server answers it (trimmed to the fields the
-# provider reads); see the README's Selora AI Local section.
+# provider reads).
 LLAMA_SERVER_MODELS = {
     "object": "list",
     "data": [

@@ -1,148 +1,88 @@
-# Selora AI — Home Assistant Integration
+# Selora AI
 
-Selora AI is a smart-home AI butler for Home Assistant. It connects to an LLM backend — **Selora AI Local** (our own on-device model), Anthropic Claude, OpenAI, Google Gemini, or Ollama — learns your home's patterns, and proactively generates automations, all while keeping you in full control.
+An AI assistant for Home Assistant that knows your home. Ask it to do things, ask it how things are, or have it build the automations, scenes and dashboards you'd otherwise write by hand. It runs on a model of your choice, including our own model that runs entirely on your network.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=Integration&repository=ha-selora-ai&owner=SeloraHomes)
+[![Release](https://img.shields.io/github/v/release/SeloraHomes/ha-selora-ai?label=release)](https://github.com/SeloraHomes/ha-selora-ai/releases)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.1%2B-41BDF5?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**[Documentation](https://selorahomes.com/docs/selora-ai/)**
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=Integration&repository=ha-selora-ai&owner=SeloraHomes)
+
+[Documentation](https://selorahomes.com/docs/selora-ai/) · [Installation](https://selorahomes.com/docs/selora-ai/installation/) · [Releases](https://github.com/SeloraHomes/ha-selora-ai/releases) · [Report an issue](https://github.com/SeloraHomes/ha-selora-ai/issues)
 
 ![Selora AI in action](docs/assets/selora-ai.gif)
 
----
 
-## Features
+## What it does
 
-| Feature | Description |
-|---|---|
-| **AI Automation Suggestions** | Analyzes device states and history, then writes draft automations (disabled, prefixed `[Selora AI]`) for your review. |
-| **Pattern Detection** | Detects time-based routines, device correlations, and usage sequences — then converts them into automation suggestions with confidence scoring. |
-| **Natural Language Commands** | Send plain-English commands via the Selora AI panel or Home Assistant Assist. |
-| **Automation Versioning** | Full version history for every Selora AI automation, with diff viewer in the panel. |
-| **Stale Automation Detection** | Flags automations referencing unavailable entities or that haven't triggered in a while. |
-| **MCP Server** | Exposes a [Model Context Protocol](https://modelcontextprotocol.io/) endpoint so external AI agents can interact with your home through Selora AI. |
-| **Selora AI Local** (new in [v0.10.0](https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v0.10.0)) | Our own 1.7B-parameter on-device model with four task-specific LoRA adapters (command, automation, answer, clarification). Runs entirely on your network — no API key, no cloud calls. See [Selora AI Local](#selora-ai-local) below. |
-| **Multiple LLM Backends** | Supports **Selora AI Local** (on-device), **Anthropic Claude**, **OpenAI**, **Google Gemini**, and **Ollama**. |
+- **Chat with your home** — in its panel or through Assist: "turn off every light downstairs".
+- **Automations without YAML** — describe it, review the card, accept. Every version is kept.
+- **Suggestions** — automations for the routines it spots in your home's history.
+- **Scenes, dashboards and helpers** — created and edited by asking.
+- **Insights** — a health score for your home and what needs fixing.
+- **Recipes** — ready-made setups from the [Selora catalog](https://selorahomes.com/docs/selora-ai/recipes/), installed in a few clicks.
+- **MCP server** — let Claude Desktop, Cursor, n8n and other agents work with your home ([guide](https://selorahomes.com/docs/selora-ai/mcp-onboarding/)).
 
----
+New automations and scenes wait for your accept, and anything destructive asks first.
 
-## Requirements
+## Getting started
 
-- Home Assistant **2025.1** or later
-- For **Selora AI Local**: a self-hosted [llama-server](https://github.com/ggml-org/llama.cpp) serving the [Selora AI model](https://huggingface.co/selorahomes/Selora-AI), reachable from your HA host. No API key.
-- For **Anthropic Claude**: an [Anthropic API key](https://console.anthropic.com/)
-- For **OpenAI**: an [OpenAI API key](https://platform.openai.com/)
-- For **Google Gemini**: a [Google AI Studio API key](https://aistudio.google.com/)
-- For **Ollama**: a running [Ollama](https://ollama.com/) server reachable from your HA host
+1. **Install** through HACS with the button above, or unzip `selora_ai.zip` from the [latest release](https://github.com/SeloraHomes/ha-selora-ai/releases/latest) into `config/custom_components/selora_ai/`. Restart Home Assistant.
+2. **Add the integration:** [![Add Selora AI to Home Assistant.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=selora_ai)
+3. **Pick a model provider** (below), then open **Selora AI** in the sidebar.
 
----
+Requires Home Assistant 2025.1 or later. The [installation guide](https://selorahomes.com/docs/selora-ai/installation/) covers each step in detail.
 
-## Installation
+## Choose your model
 
-See the [installation guide](https://selorahomes.com/docs/selora-ai/installation/) for detailed instructions.
+| Provider | What you need | Your data |
+|---|---|---|
+| **Selora AI Cloud** | A Selora account. No API key. | Sent to Selora |
+| **Selora AI Local** | A [llama-server](https://github.com/ggml-org/llama.cpp) on your network running our model | Stays on your network |
+| **Anthropic Claude** | An [Anthropic API key](https://console.anthropic.com/) | Sent to Anthropic |
+| **OpenAI** | An [OpenAI API key](https://platform.openai.com/) | Sent to OpenAI |
+| **Google Gemini** | A [Google AI Studio key](https://aistudio.google.com/) | Sent to Google |
+| **OpenRouter** | An [OpenRouter key](https://openrouter.ai/keys) | Sent to OpenRouter and the model's provider |
+| **Ollama** | An [Ollama](https://ollama.com/) server on your network | Stays on your network |
 
----
+You can switch providers at any time from the panel's settings. Details per provider are in the [configuration guide](https://selorahomes.com/docs/selora-ai/configuration/) and the [privacy page](https://selorahomes.com/docs/selora-ai/privacy/).
 
 ## Selora AI Local
 
-Selora AI Local is our own task-tuned model that runs entirely on your network — **nothing leaves your home**. Released in **[v0.10.0](https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v0.10.0)**, it's the recommended way to use Selora AI when privacy or offline operation matters.
+Our own model, trained for Home Assistant, that runs entirely on your hardware: nothing leaves your network and no API key is needed. It is a Qwen3 1.7B base with five specialist adapters (commands, automations, answers, clarifying questions, and how-to help), and the integration picks the right one for each request.
 
-### What it is
-
-- **Base model**: Qwen3 1.7B.
-- **Four LoRA adapters**, each fine-tuned on a specific Home Assistant task and hot-swapped per request:
-  - `command` — execute natural-language commands ("turn off the kitchen light").
-  - `automation` — generate `automations.yaml` blocks from a prompt.
-  - `answer` — answer questions about your home state.
-  - `clarification` — ask the user to disambiguate when intent is unclear.
-- Weights, adapters, and trained system prompts are published at **[huggingface.co/selorahomes/Selora-AI](https://huggingface.co/selorahomes/Selora-AI)**.
-
-### Where the model runs
-
-Selora AI Local talks to a `llama-server` instance (from [llama.cpp](https://github.com/ggml-org/llama.cpp)) over its OpenAI-compatible HTTP API. You run llama-server yourself — with the base model loaded and the four LoRAs registered as slots — see [Running with `llama.cpp`](#running-with-llamacpp) below.
-
-During setup, the integration probes common locations (localhost and the Home Assistant Supervisor bridge network) for a reachable server and pre-fills the host URL. If none is found, point the integration at `http://<host>:8080` during the *Selora AI Local* config step.
-
-The integration handles LoRA-slot activation (`POST /lora-adapters`) per request, so the right specialist answers each call.
-
-### Running with `llama.cpp`
-
-Install `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) (build from source, or `brew install llama.cpp` / `winget install llama.cpp`).
-
-Download the files from [huggingface.co/selorahomes/Selora-AI](https://huggingface.co/selorahomes/Selora-AI):
-
-- **Base model**: `qwen3_17b_base.Q6_K.gguf`.
-- **LoRA adapters** (one per specialist):
-  - `selora-v047-command.f16.gguf`
-  - `selora-v047-automation.f16.gguf`
-  - `selora-v047-answer.f16.gguf`
-  - `selora-v047-clarification.f16.gguf`
-
-Start the server with all four adapters registered but not applied — the integration activates the right one per request:
+The weights, adapters and trained prompts are on Hugging Face at [selorahomes/Selora-AI-LLM-1.7B](https://huggingface.co/selorahomes/Selora-AI-LLM-1.7B). Download the base model and the five adapters, then start `llama-server` from [llama.cpp](https://github.com/ggml-org/llama.cpp) (`brew install llama.cpp`, `winget install llama.cpp`, or build it):
 
 ```bash
 llama-server \
   --model qwen3_17b_base.Q6_K.gguf \
-  --ctx-size 8192 \
-  --ubatch-size 1024 \
-  --n-gpu-layers 999 \
-  --cache-reuse 256 \
-  --mlock \
-  --jinja \
-  --reasoning off \
+  --ctx-size 8192 --ubatch-size 1024 --n-gpu-layers 999 \
+  --parallel 1 --cache-reuse 256 --cache-ram 0 --mlock \
+  --jinja --reasoning off \
   --lora-init-without-apply \
-  --lora selora-v047-command.f16.gguf,selora-v047-automation.f16.gguf,selora-v047-answer.f16.gguf,selora-v047-clarification.f16.gguf
+  --lora selora-command.f16.gguf,selora-automation.f16.gguf,selora-answer.f16.gguf,selora-clarification.f16.gguf,selora-utilities.f16.gguf
 ```
 
-Verify it's up:
+Keep `--cache-ram 0`: llama-server's host-memory prompt cache does not track which adapter computed an entry, so it can hand one specialist another's cached state.
 
-```bash
-curl http://localhost:8080/v1/models
-```
-
-Expected response:
-
-```json
-{"models":[{"name":"selorahomes/Selora-AI","model":"selorahomes/Selora-AI","modified_at":"","size":"","digest":"","type":"model","description":"","tags":[""],"capabilities":["completion"],"parameters":"","details":{"parent_model":"","format":"gguf","family":"","families":[""],"parameter_size":"","quantization_level":""}}],"object":"list","data":[{"id":"selorahomes/Selora-AI","aliases":["selorahomes/Selora-AI"],"tags":[],"object":"model","created":1781658061,"owned_by":"llamacpp","meta":{"vocab_type":2,"n_vocab":151936,"n_ctx":8192,"n_ctx_train":40960,"n_embd":2048,"n_params":2031739904,"size":1667055616}}]}
-```
-
-Point the integration at `http://<host>:8080` via **Settings → LLM Provider → Selora AI Local → Show Advanced Options → Host**. Generation parameters (`temperature=0.0`, stop tokens, per-intent `max_tokens` caps, LoRA hot-swap) are managed by the integration — no tuning required on the server side.
-
-### Privacy
-
-| | Selora AI Local | Cloud providers |
-|---|---|---|
-| Data egress | **None** — stays on your LAN | Sent to Anthropic / OpenAI / Google |
-| API key required | No | Yes |
-| Offline | Yes | No |
-| Quality on complex prompts | Good (task-tuned) | Best |
-
----
+When you set it up, Selora AI looks for a server on the usual addresses and fills it in; otherwise enter `http://<host>:8080`. Temperature, stop tokens, output limits and adapter choice are all handled by the integration.
 
 ## Languages
 
-Selora AI is localized on two levels:
+The interface is translated into English, French, German, Spanish, Italian, Dutch, Hungarian, Portuguese, Russian, Japanese, Korean, and Simplified and Traditional Chinese.
 
-- **Interface** — the config flow, entity names, and error messages ship translations for **English, French, German, Spanish, Italian, Dutch, Hungarian, Portuguese, Russian, Japanese, Korean, Simplified Chinese, and Traditional Chinese**. Home Assistant picks the one matching your configured language and falls back to English otherwise.
-- **Conversational replies** — chat and Assist responses follow your Home Assistant language. Selora AI instructs the model to answer in that language; the following are recognized explicitly:
+Replies come in the language you write in, or your Home Assistant language. Reply languages: English, French, German, Spanish, Italian, Portuguese, Dutch, Polish, Swedish, Danish, Norwegian, Finnish, Czech, Russian, Ukrainian, Turkish, Hungarian, Japanese, Korean and Chinese. Any other language gets English replies.
 
-  English, French, German, Spanish, Italian, Portuguese, Dutch, Polish, Swedish, Danish, Norwegian, Finnish, Czech, Russian, Ukrainian, Turkish, Hungarian, Japanese, Korean, Chinese.
+## Privacy
 
-  Any other language code falls back to English replies. Entity IDs, service names, and code blocks are always left untouched regardless of language.
+- Your home's data goes only to the model provider you choose. With Selora AI Local or Ollama, it never leaves your network.
+- Token usage and cost are tracked locally, in the panel's Usage view.
+- Anonymous usage statistics are **off by default** and only sent if you opt in. They hold counts and versions, never entity names, messages or replies.
 
----
+## Contributing
 
-## Learn More
-
-| Topic | Link |
-|---|---|
-| **Configuration** | [Setting up LLM providers and options](https://selorahomes.com/docs/selora-ai/configuration/) |
-| **Chat Panel & Assist** | [Natural language commands and voice control](https://selorahomes.com/docs/selora-ai/chat-and-assist/) |
-| **AI-Generated Automations** | [How Selora AI suggests and manages automations](https://selorahomes.com/docs/selora-ai/automations/) |
-| **MCP Server** | [Connecting external AI agents to your home](https://selorahomes.com/docs/selora-ai/mcp-onboarding/) |
-| **Privacy & Support** | [Data privacy per provider and issue reporting](https://selorahomes.com/docs/selora-ai/privacy/) |
-
----
+Development happens on [GitLab](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/); this GitHub repository is a read-only mirror that HACS installs from. Issues are welcome here; merge requests go to GitLab. See [CONTRIBUTING.md](CONTRIBUTING.md) to get a development setup running.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+[MIT](LICENSE) © Selora Homes
