@@ -14,8 +14,8 @@ var e =
 var s = /* @__PURE__ */ Symbol();
 var o = /* @__PURE__ */ new WeakMap();
 var n = class {
-  constructor(t5, e6, o6) {
-    if (((this._$cssResult$ = true), o6 !== s))
+  constructor(t5, e6, o8) {
+    if (((this._$cssResult$ = true), o8 !== s))
       throw Error(
         "CSSResult is not constructable. Use `unsafeCSS` or `css` instead.",
       );
@@ -23,13 +23,13 @@ var n = class {
   }
   get styleSheet() {
     let t5 = this.o;
-    const s4 = this.t;
+    const s6 = this.t;
     if (e && void 0 === t5) {
-      const e6 = void 0 !== s4 && 1 === s4.length;
-      (e6 && (t5 = o.get(s4)),
+      const e6 = void 0 !== s6 && 1 === s6.length;
+      (e6 && (t5 = o.get(s6)),
         void 0 === t5 &&
           ((this.o = t5 = new CSSStyleSheet()).replaceSync(this.cssText),
-          e6 && o.set(s4, t5)));
+          e6 && o.set(s6, t5)));
     }
     return t5;
   }
@@ -39,11 +39,11 @@ var n = class {
 };
 var r = (t5) => new n("string" == typeof t5 ? t5 : t5 + "", void 0, s);
 var i = (t5, ...e6) => {
-  const o6 =
+  const o8 =
     1 === t5.length
       ? t5[0]
       : e6.reduce(
-          (e7, s4, o7) =>
+          (e7, s6, o9) =>
             e7 +
             ((t6) => {
               if (true === t6._$cssResult$) return t6.cssText;
@@ -53,24 +53,24 @@ var i = (t5, ...e6) => {
                   t6 +
                   ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.",
               );
-            })(s4) +
-            t5[o7 + 1],
+            })(s6) +
+            t5[o9 + 1],
           t5[0],
         );
-  return new n(o6, t5, s);
+  return new n(o8, t5, s);
 };
-var S = (s4, o6) => {
+var S = (s6, o8) => {
   if (e)
-    s4.adoptedStyleSheets = o6.map((t5) =>
+    s6.adoptedStyleSheets = o8.map((t5) =>
       t5 instanceof CSSStyleSheet ? t5 : t5.styleSheet,
     );
   else
-    for (const e6 of o6) {
-      const o7 = document.createElement("style"),
-        n4 = t.litNonce;
-      (void 0 !== n4 && o7.setAttribute("nonce", n4),
-        (o7.textContent = e6.cssText),
-        s4.appendChild(o7));
+    for (const e6 of o8) {
+      const o9 = document.createElement("style"),
+        n6 = t.litNonce;
+      (void 0 !== n6 && o9.setAttribute("nonce", n6),
+        (o9.textContent = e6.cssText),
+        s6.appendChild(o9));
     }
 };
 var c = e
@@ -79,7 +79,7 @@ var c = e
       t5 instanceof CSSStyleSheet
         ? ((t6) => {
             let e6 = "";
-            for (const s4 of t6.cssRules) e6 += s4.cssText;
+            for (const s6 of t6.cssRules) e6 += s6.cssText;
             return r(e6);
           })(t5)
         : t5;
@@ -97,10 +97,10 @@ var a = globalThis;
 var c2 = a.trustedTypes;
 var l = c2 ? c2.emptyScript : "";
 var p = a.reactiveElementPolyfillSupport;
-var d = (t5, s4) => t5;
+var d = (t5, s6) => t5;
 var u = {
-  toAttribute(t5, s4) {
-    switch (s4) {
+  toAttribute(t5, s6) {
+    switch (s6) {
       case Boolean:
         t5 = t5 ? l : null;
         break;
@@ -110,27 +110,27 @@ var u = {
     }
     return t5;
   },
-  fromAttribute(t5, s4) {
-    let i7 = t5;
-    switch (s4) {
+  fromAttribute(t5, s6) {
+    let i8 = t5;
+    switch (s6) {
       case Boolean:
-        i7 = null !== t5;
+        i8 = null !== t5;
         break;
       case Number:
-        i7 = null === t5 ? null : Number(t5);
+        i8 = null === t5 ? null : Number(t5);
         break;
       case Object:
       case Array:
         try {
-          i7 = JSON.parse(t5);
+          i8 = JSON.parse(t5);
         } catch (t6) {
-          i7 = null;
+          i8 = null;
         }
     }
-    return i7;
+    return i8;
   },
 };
-var f = (t5, s4) => !i2(t5, s4);
+var f = (t5, s6) => !i2(t5, s6);
 var b = {
   attribute: true,
   type: String,
@@ -148,34 +148,34 @@ var y = class extends HTMLElement {
   static get observedAttributes() {
     return (this.finalize(), this._$Eh && [...this._$Eh.keys()]);
   }
-  static createProperty(t5, s4 = b) {
+  static createProperty(t5, s6 = b) {
     if (
-      (s4.state && (s4.attribute = false),
+      (s6.state && (s6.attribute = false),
       this._$Ei(),
       this.prototype.hasOwnProperty(t5) &&
-        ((s4 = Object.create(s4)).wrapped = true),
-      this.elementProperties.set(t5, s4),
-      !s4.noAccessor)
+        ((s6 = Object.create(s6)).wrapped = true),
+      this.elementProperties.set(t5, s6),
+      !s6.noAccessor)
     ) {
-      const i7 = /* @__PURE__ */ Symbol(),
-        h3 = this.getPropertyDescriptor(t5, i7, s4);
-      void 0 !== h3 && e2(this.prototype, t5, h3);
+      const i8 = /* @__PURE__ */ Symbol(),
+        h5 = this.getPropertyDescriptor(t5, i8, s6);
+      void 0 !== h5 && e2(this.prototype, t5, h5);
     }
   }
-  static getPropertyDescriptor(t5, s4, i7) {
-    const { get: e6, set: r4 } = h(this.prototype, t5) ?? {
+  static getPropertyDescriptor(t5, s6, i8) {
+    const { get: e6, set: r6 } = h(this.prototype, t5) ?? {
       get() {
-        return this[s4];
+        return this[s6];
       },
       set(t6) {
-        this[s4] = t6;
+        this[s6] = t6;
       },
     };
     return {
       get: e6,
-      set(s5) {
-        const h3 = e6?.call(this);
-        (r4?.call(this, s5), this.requestUpdate(t5, h3, i7));
+      set(s7) {
+        const h5 = e6?.call(this);
+        (r6?.call(this, s7), this.requestUpdate(t5, h5, i8));
       },
       configurable: true,
       enumerable: true,
@@ -199,36 +199,36 @@ var y = class extends HTMLElement {
       this.hasOwnProperty(d("properties")))
     ) {
       const t6 = this.properties,
-        s4 = [...r2(t6), ...o2(t6)];
-      for (const i7 of s4) this.createProperty(i7, t6[i7]);
+        s6 = [...r2(t6), ...o2(t6)];
+      for (const i8 of s6) this.createProperty(i8, t6[i8]);
     }
     const t5 = this[Symbol.metadata];
     if (null !== t5) {
-      const s4 = litPropertyMetadata.get(t5);
-      if (void 0 !== s4)
-        for (const [t6, i7] of s4) this.elementProperties.set(t6, i7);
+      const s6 = litPropertyMetadata.get(t5);
+      if (void 0 !== s6)
+        for (const [t6, i8] of s6) this.elementProperties.set(t6, i8);
     }
     this._$Eh = /* @__PURE__ */ new Map();
-    for (const [t6, s4] of this.elementProperties) {
-      const i7 = this._$Eu(t6, s4);
-      void 0 !== i7 && this._$Eh.set(i7, t6);
+    for (const [t6, s6] of this.elementProperties) {
+      const i8 = this._$Eu(t6, s6);
+      void 0 !== i8 && this._$Eh.set(i8, t6);
     }
     this.elementStyles = this.finalizeStyles(this.styles);
   }
-  static finalizeStyles(s4) {
-    const i7 = [];
-    if (Array.isArray(s4)) {
-      const e6 = new Set(s4.flat(1 / 0).reverse());
-      for (const s5 of e6) i7.unshift(c(s5));
-    } else void 0 !== s4 && i7.push(c(s4));
-    return i7;
+  static finalizeStyles(s6) {
+    const i8 = [];
+    if (Array.isArray(s6)) {
+      const e6 = new Set(s6.flat(1 / 0).reverse());
+      for (const s7 of e6) i8.unshift(c(s7));
+    } else void 0 !== s6 && i8.push(c(s6));
+    return i8;
   }
-  static _$Eu(t5, s4) {
-    const i7 = s4.attribute;
-    return false === i7
+  static _$Eu(t5, s6) {
+    const i8 = s6.attribute;
+    return false === i8
       ? void 0
-      : "string" == typeof i7
-        ? i7
+      : "string" == typeof i8
+        ? i8
         : "string" == typeof t5
           ? t5.toLowerCase()
           : void 0;
@@ -257,9 +257,9 @@ var y = class extends HTMLElement {
   }
   _$E_() {
     const t5 = /* @__PURE__ */ new Map(),
-      s4 = this.constructor.elementProperties;
-    for (const i7 of s4.keys())
-      this.hasOwnProperty(i7) && (t5.set(i7, this[i7]), delete this[i7]);
+      s6 = this.constructor.elementProperties;
+    for (const i8 of s6.keys())
+      this.hasOwnProperty(i8) && (t5.set(i8, this[i8]), delete this[i8]);
     t5.size > 0 && (this._$Ep = t5);
   }
   createRenderRoot() {
@@ -276,63 +276,63 @@ var y = class extends HTMLElement {
   disconnectedCallback() {
     this._$EO?.forEach((t5) => t5.hostDisconnected?.());
   }
-  attributeChangedCallback(t5, s4, i7) {
-    this._$AK(t5, i7);
+  attributeChangedCallback(t5, s6, i8) {
+    this._$AK(t5, i8);
   }
-  _$ET(t5, s4) {
-    const i7 = this.constructor.elementProperties.get(t5),
-      e6 = this.constructor._$Eu(t5, i7);
-    if (void 0 !== e6 && true === i7.reflect) {
-      const h3 = (
-        void 0 !== i7.converter?.toAttribute ? i7.converter : u
-      ).toAttribute(s4, i7.type);
+  _$ET(t5, s6) {
+    const i8 = this.constructor.elementProperties.get(t5),
+      e6 = this.constructor._$Eu(t5, i8);
+    if (void 0 !== e6 && true === i8.reflect) {
+      const h5 = (
+        void 0 !== i8.converter?.toAttribute ? i8.converter : u
+      ).toAttribute(s6, i8.type);
       ((this._$Em = t5),
-        null == h3 ? this.removeAttribute(e6) : this.setAttribute(e6, h3),
+        null == h5 ? this.removeAttribute(e6) : this.setAttribute(e6, h5),
         (this._$Em = null));
     }
   }
-  _$AK(t5, s4) {
-    const i7 = this.constructor,
-      e6 = i7._$Eh.get(t5);
+  _$AK(t5, s6) {
+    const i8 = this.constructor,
+      e6 = i8._$Eh.get(t5);
     if (void 0 !== e6 && this._$Em !== e6) {
-      const t6 = i7.getPropertyOptions(e6),
-        h3 =
+      const t6 = i8.getPropertyOptions(e6),
+        h5 =
           "function" == typeof t6.converter
             ? { fromAttribute: t6.converter }
             : void 0 !== t6.converter?.fromAttribute
               ? t6.converter
               : u;
       this._$Em = e6;
-      const r4 = h3.fromAttribute(s4, t6.type);
-      ((this[e6] = r4 ?? this._$Ej?.get(e6) ?? r4), (this._$Em = null));
+      const r6 = h5.fromAttribute(s6, t6.type);
+      ((this[e6] = r6 ?? this._$Ej?.get(e6) ?? r6), (this._$Em = null));
     }
   }
-  requestUpdate(t5, s4, i7, e6 = false, h3) {
+  requestUpdate(t5, s6, i8, e6 = false, h5) {
     if (void 0 !== t5) {
-      const r4 = this.constructor;
+      const r6 = this.constructor;
       if (
-        (false === e6 && (h3 = this[t5]),
-        (i7 ??= r4.getPropertyOptions(t5)),
+        (false === e6 && (h5 = this[t5]),
+        (i8 ??= r6.getPropertyOptions(t5)),
         !(
-          (i7.hasChanged ?? f)(h3, s4) ||
-          (i7.useDefault &&
-            i7.reflect &&
-            h3 === this._$Ej?.get(t5) &&
-            !this.hasAttribute(r4._$Eu(t5, i7)))
+          (i8.hasChanged ?? f)(h5, s6) ||
+          (i8.useDefault &&
+            i8.reflect &&
+            h5 === this._$Ej?.get(t5) &&
+            !this.hasAttribute(r6._$Eu(t5, i8)))
         ))
       )
         return;
-      this.C(t5, s4, i7);
+      this.C(t5, s6, i8);
     }
     false === this.isUpdatePending && (this._$ES = this._$EP());
   }
-  C(t5, s4, { useDefault: i7, reflect: e6, wrapped: h3 }, r4) {
-    (i7 &&
+  C(t5, s6, { useDefault: i8, reflect: e6, wrapped: h5 }, r6) {
+    (i8 &&
       !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t5) &&
-      (this._$Ej.set(t5, r4 ?? s4 ?? this[t5]),
-      true !== h3 || void 0 !== r4)) ||
+      (this._$Ej.set(t5, r6 ?? s6 ?? this[t5]),
+      true !== h5 || void 0 !== r6)) ||
       (this._$AL.has(t5) ||
-        (this.hasUpdated || i7 || (s4 = void 0), this._$AL.set(t5, s4)),
+        (this.hasUpdated || i8 || (s6 = void 0), this._$AL.set(t5, s6)),
       true === e6 &&
         this._$Em !== t5 &&
         (this._$Eq ??= /* @__PURE__ */ new Set()).add(t5));
@@ -354,33 +354,33 @@ var y = class extends HTMLElement {
     if (!this.isUpdatePending) return;
     if (!this.hasUpdated) {
       if (((this.renderRoot ??= this.createRenderRoot()), this._$Ep)) {
-        for (const [t7, s5] of this._$Ep) this[t7] = s5;
+        for (const [t7, s7] of this._$Ep) this[t7] = s7;
         this._$Ep = void 0;
       }
       const t6 = this.constructor.elementProperties;
       if (t6.size > 0)
-        for (const [s5, i7] of t6) {
-          const { wrapped: t7 } = i7,
-            e6 = this[s5];
+        for (const [s7, i8] of t6) {
+          const { wrapped: t7 } = i8,
+            e6 = this[s7];
           true !== t7 ||
-            this._$AL.has(s5) ||
+            this._$AL.has(s7) ||
             void 0 === e6 ||
-            this.C(s5, void 0, i7, e6);
+            this.C(s7, void 0, i8, e6);
         }
     }
     let t5 = false;
-    const s4 = this._$AL;
+    const s6 = this._$AL;
     try {
-      ((t5 = this.shouldUpdate(s4)),
+      ((t5 = this.shouldUpdate(s6)),
         t5
-          ? (this.willUpdate(s4),
+          ? (this.willUpdate(s6),
             this._$EO?.forEach((t6) => t6.hostUpdate?.()),
-            this.update(s4))
+            this.update(s6))
           : this._$EM());
-    } catch (s5) {
-      throw ((t5 = false), this._$EM(), s5);
+    } catch (s7) {
+      throw ((t5 = false), this._$EM(), s7);
     }
-    t5 && this._$AE(s4);
+    t5 && this._$AE(s6);
   }
   willUpdate(t5) {}
   _$AE(t5) {
@@ -443,7 +443,7 @@ var $ = /"/g;
 var y2 = /^(?:script|style|textarea|title)$/i;
 var x =
   (t5) =>
-  (i7, ...s4) => ({ _$litType$: t5, strings: i7, values: s4 });
+  (i8, ...s6) => ({ _$litType$: t5, strings: i8, values: s6 });
 var b2 = x(1);
 var w = x(2);
 var T = x(3);
@@ -451,151 +451,151 @@ var E = /* @__PURE__ */ Symbol.for("lit-noChange");
 var A = /* @__PURE__ */ Symbol.for("lit-nothing");
 var C = /* @__PURE__ */ new WeakMap();
 var P = l2.createTreeWalker(l2, 129);
-function V(t5, i7) {
+function V(t5, i8) {
   if (!u2(t5) || !t5.hasOwnProperty("raw"))
     throw Error("invalid template strings array");
-  return void 0 !== e3 ? e3.createHTML(i7) : i7;
+  return void 0 !== e3 ? e3.createHTML(i8) : i8;
 }
-var N = (t5, i7) => {
-  const s4 = t5.length - 1,
+var N = (t5, i8) => {
+  const s6 = t5.length - 1,
     e6 = [];
-  let n4,
-    l3 = 2 === i7 ? "<svg>" : 3 === i7 ? "<math>" : "",
-    c4 = v;
-  for (let i8 = 0; i8 < s4; i8++) {
-    const s5 = t5[i8];
+  let n6,
+    l3 = 2 === i8 ? "<svg>" : 3 === i8 ? "<math>" : "",
+    c6 = v;
+  for (let i9 = 0; i9 < s6; i9++) {
+    const s7 = t5[i9];
     let a3,
-      u3,
+      u5,
       d3 = -1,
-      f3 = 0;
+      f4 = 0;
     for (
       ;
-      f3 < s5.length && ((c4.lastIndex = f3), (u3 = c4.exec(s5)), null !== u3);
+      f4 < s7.length && ((c6.lastIndex = f4), (u5 = c6.exec(s7)), null !== u5);
     )
-      ((f3 = c4.lastIndex),
-        c4 === v
-          ? "!--" === u3[1]
-            ? (c4 = _)
-            : void 0 !== u3[1]
-              ? (c4 = m)
-              : void 0 !== u3[2]
-                ? (y2.test(u3[2]) && (n4 = RegExp("</" + u3[2], "g")),
-                  (c4 = p2))
-                : void 0 !== u3[3] && (c4 = p2)
-          : c4 === p2
-            ? ">" === u3[0]
-              ? ((c4 = n4 ?? v), (d3 = -1))
-              : void 0 === u3[1]
+      ((f4 = c6.lastIndex),
+        c6 === v
+          ? "!--" === u5[1]
+            ? (c6 = _)
+            : void 0 !== u5[1]
+              ? (c6 = m)
+              : void 0 !== u5[2]
+                ? (y2.test(u5[2]) && (n6 = RegExp("</" + u5[2], "g")),
+                  (c6 = p2))
+                : void 0 !== u5[3] && (c6 = p2)
+          : c6 === p2
+            ? ">" === u5[0]
+              ? ((c6 = n6 ?? v), (d3 = -1))
+              : void 0 === u5[1]
                 ? (d3 = -2)
-                : ((d3 = c4.lastIndex - u3[2].length),
-                  (a3 = u3[1]),
-                  (c4 = void 0 === u3[3] ? p2 : '"' === u3[3] ? $ : g))
-            : c4 === $ || c4 === g
-              ? (c4 = p2)
-              : c4 === _ || c4 === m
-                ? (c4 = v)
-                : ((c4 = p2), (n4 = void 0))); // nosemgrep
-    const x2 = c4 === p2 && t5[i8 + 1].startsWith("/>") ? " " : "";
+                : ((d3 = c6.lastIndex - u5[2].length),
+                  (a3 = u5[1]),
+                  (c6 = void 0 === u5[3] ? p2 : '"' === u5[3] ? $ : g))
+            : c6 === $ || c6 === g
+              ? (c6 = p2)
+              : c6 === _ || c6 === m
+                ? (c6 = v)
+                : ((c6 = p2), (n6 = void 0))); // nosemgrep
+    const x2 = c6 === p2 && t5[i9 + 1].startsWith("/>") ? " " : "";
     l3 +=
-      c4 === v
-        ? s5 + r3
+      c6 === v
+        ? s7 + r3
         : d3 >= 0
-          ? (e6.push(a3), s5.slice(0, d3) + h2 + s5.slice(d3) + o3 + x2)
-          : s5 + o3 + (-2 === d3 ? i8 : x2);
+          ? (e6.push(a3), s7.slice(0, d3) + h2 + s7.slice(d3) + o3 + x2)
+          : s7 + o3 + (-2 === d3 ? i9 : x2);
   }
   return [
     V(
       t5,
       l3 +
-        (t5[s4] || "<?>") +
-        (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : ""),
+        (t5[s6] || "<?>") +
+        (2 === i8 ? "</svg>" : 3 === i8 ? "</math>" : ""),
     ),
     e6,
   ];
 };
 var S2 = class _S {
-  constructor({ strings: t5, _$litType$: i7 }, e6) {
-    let r4;
+  constructor({ strings: t5, _$litType$: i8 }, e6) {
+    let r6;
     this.parts = [];
     let l3 = 0,
       a3 = 0;
-    const u3 = t5.length - 1,
+    const u5 = t5.length - 1,
       d3 = this.parts,
-      [f3, v2] = N(t5, i7);
+      [f4, v3] = N(t5, i8);
     if (
-      ((this.el = _S.createElement(f3, e6)),
+      ((this.el = _S.createElement(f4, e6)),
       (P.currentNode = this.el.content),
-      2 === i7 || 3 === i7)
+      2 === i8 || 3 === i8)
     ) {
       const t6 = this.el.content.firstChild;
       t6.replaceWith(...t6.childNodes);
     }
-    for (; null !== (r4 = P.nextNode()) && d3.length < u3;) {
-      if (1 === r4.nodeType) {
-        if (r4.hasAttributes())
-          for (const t6 of r4.getAttributeNames())
+    for (; null !== (r6 = P.nextNode()) && d3.length < u5;) {
+      if (1 === r6.nodeType) {
+        if (r6.hasAttributes())
+          for (const t6 of r6.getAttributeNames())
             if (t6.endsWith(h2)) {
-              const i8 = v2[a3++],
-                s4 = r4.getAttribute(t6).split(o3),
-                e7 = /([.?@])?(.*)/.exec(i8);
+              const i9 = v3[a3++],
+                s6 = r6.getAttribute(t6).split(o3),
+                e7 = /([.?@])?(.*)/.exec(i9);
               (d3.push({
                 type: 1,
                 index: l3,
                 name: e7[2],
-                strings: s4,
+                strings: s6,
                 ctor:
                   "." === e7[1] ? I : "?" === e7[1] ? L : "@" === e7[1] ? z : H,
               }),
-                r4.removeAttribute(t6));
+                r6.removeAttribute(t6));
             } else
               t6.startsWith(o3) &&
-                (d3.push({ type: 6, index: l3 }), r4.removeAttribute(t6));
-        if (y2.test(r4.tagName)) {
-          const t6 = r4.textContent.split(o3),
-            i8 = t6.length - 1;
-          if (i8 > 0) {
-            r4.textContent = s2 ? s2.emptyScript : "";
-            for (let s4 = 0; s4 < i8; s4++)
-              (r4.append(t6[s4], c3()),
+                (d3.push({ type: 6, index: l3 }), r6.removeAttribute(t6));
+        if (y2.test(r6.tagName)) {
+          const t6 = r6.textContent.split(o3),
+            i9 = t6.length - 1;
+          if (i9 > 0) {
+            r6.textContent = s2 ? s2.emptyScript : "";
+            for (let s6 = 0; s6 < i9; s6++)
+              (r6.append(t6[s6], c3()),
                 P.nextNode(),
                 d3.push({ type: 2, index: ++l3 }));
-            r4.append(t6[i8], c3());
+            r6.append(t6[i9], c3());
           }
         }
-      } else if (8 === r4.nodeType)
-        if (r4.data === n3) d3.push({ type: 2, index: l3 });
+      } else if (8 === r6.nodeType)
+        if (r6.data === n3) d3.push({ type: 2, index: l3 });
         else {
           let t6 = -1;
-          for (; -1 !== (t6 = r4.data.indexOf(o3, t6 + 1));)
+          for (; -1 !== (t6 = r6.data.indexOf(o3, t6 + 1));)
             (d3.push({ type: 7, index: l3 }), (t6 += o3.length - 1));
         }
       l3++;
     }
   }
-  static createElement(t5, i7) {
-    const s4 = l2.createElement("template");
-    return ((s4.innerHTML = t5), s4);
+  static createElement(t5, i8) {
+    const s6 = l2.createElement("template");
+    return ((s6.innerHTML = t5), s6);
   }
 };
-function M(t5, i7, s4 = t5, e6) {
-  if (i7 === E) return i7;
-  let h3 = void 0 !== e6 ? s4._$Co?.[e6] : s4._$Cl;
-  const o6 = a2(i7) ? void 0 : i7._$litDirective$;
+function M(t5, i8, s6 = t5, e6) {
+  if (i8 === E) return i8;
+  let h5 = void 0 !== e6 ? s6._$Co?.[e6] : s6._$Cl;
+  const o8 = a2(i8) ? void 0 : i8._$litDirective$;
   return (
-    h3?.constructor !== o6 &&
-      (h3?._$AO?.(false),
-      void 0 === o6 ? (h3 = void 0) : ((h3 = new o6(t5)), h3._$AT(t5, s4, e6)),
-      void 0 !== e6 ? ((s4._$Co ??= [])[e6] = h3) : (s4._$Cl = h3)),
-    void 0 !== h3 && (i7 = M(t5, h3._$AS(t5, i7.values), h3, e6)),
-    i7
+    h5?.constructor !== o8 &&
+      (h5?._$AO?.(false),
+      void 0 === o8 ? (h5 = void 0) : ((h5 = new o8(t5)), h5._$AT(t5, s6, e6)),
+      void 0 !== e6 ? ((s6._$Co ??= [])[e6] = h5) : (s6._$Cl = h5)),
+    void 0 !== h5 && (i8 = M(t5, h5._$AS(t5, i8.values), h5, e6)),
+    i8
   );
 }
 var R = class {
-  constructor(t5, i7) {
+  constructor(t5, i8) {
     ((this._$AV = []),
       (this._$AN = void 0),
       (this._$AD = t5),
-      (this._$AM = i7));
+      (this._$AM = i8));
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -605,58 +605,58 @@ var R = class {
   }
   u(t5) {
     const {
-        el: { content: i7 },
-        parts: s4,
+        el: { content: i8 },
+        parts: s6,
       } = this._$AD,
-      e6 = (t5?.creationScope ?? l2).importNode(i7, true);
+      e6 = (t5?.creationScope ?? l2).importNode(i8, true);
     P.currentNode = e6;
-    let h3 = P.nextNode(),
-      o6 = 0,
-      n4 = 0,
-      r4 = s4[0];
-    for (; void 0 !== r4;) {
-      if (o6 === r4.index) {
-        let i8;
-        (2 === r4.type
-          ? (i8 = new k(h3, h3.nextSibling, this, t5))
-          : 1 === r4.type
-            ? (i8 = new r4.ctor(h3, r4.name, r4.strings, this, t5))
-            : 6 === r4.type && (i8 = new Z(h3, this, t5)),
-          this._$AV.push(i8),
-          (r4 = s4[++n4]));
+    let h5 = P.nextNode(),
+      o8 = 0,
+      n6 = 0,
+      r6 = s6[0];
+    for (; void 0 !== r6;) {
+      if (o8 === r6.index) {
+        let i9;
+        (2 === r6.type
+          ? (i9 = new k(h5, h5.nextSibling, this, t5))
+          : 1 === r6.type
+            ? (i9 = new r6.ctor(h5, r6.name, r6.strings, this, t5))
+            : 6 === r6.type && (i9 = new Z(h5, this, t5)),
+          this._$AV.push(i9),
+          (r6 = s6[++n6]));
       }
-      o6 !== r4?.index && ((h3 = P.nextNode()), o6++);
+      o8 !== r6?.index && ((h5 = P.nextNode()), o8++);
     }
     return ((P.currentNode = l2), e6);
   }
   p(t5) {
-    let i7 = 0;
-    for (const s4 of this._$AV)
-      (void 0 !== s4 &&
-        (void 0 !== s4.strings
-          ? (s4._$AI(t5, s4, i7), (i7 += s4.strings.length - 2))
-          : s4._$AI(t5[i7])),
-        i7++);
+    let i8 = 0;
+    for (const s6 of this._$AV)
+      (void 0 !== s6 &&
+        (void 0 !== s6.strings
+          ? (s6._$AI(t5, s6, i8), (i8 += s6.strings.length - 2))
+          : s6._$AI(t5[i8])),
+        i8++);
   }
 };
 var k = class _k {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
-  constructor(t5, i7, s4, e6) {
+  constructor(t5, i8, s6, e6) {
     ((this.type = 2),
       (this._$AH = A),
       (this._$AN = void 0),
       (this._$AA = t5),
-      (this._$AB = i7),
-      (this._$AM = s4),
+      (this._$AB = i8),
+      (this._$AM = s6),
       (this.options = e6),
       (this._$Cv = e6?.isConnected ?? true));
   }
   get parentNode() {
     let t5 = this._$AA.parentNode;
-    const i7 = this._$AM;
-    return (void 0 !== i7 && 11 === t5?.nodeType && (t5 = i7.parentNode), t5);
+    const i8 = this._$AM;
+    return (void 0 !== i8 && 11 === t5?.nodeType && (t5 = i8.parentNode), t5);
   }
   get startNode() {
     return this._$AA;
@@ -664,8 +664,8 @@ var k = class _k {
   get endNode() {
     return this._$AB;
   }
-  _$AI(t5, i7 = this) {
-    ((t5 = M(this, t5, i7)),
+  _$AI(t5, i8 = this) {
+    ((t5 = M(this, t5, i8)),
       a2(t5)
         ? t5 === A || null == t5 || "" === t5
           ? (this._$AH !== A && this._$AR(), (this._$AH = A))
@@ -691,42 +691,42 @@ var k = class _k {
       (this._$AH = t5));
   }
   $(t5) {
-    const { values: i7, _$litType$: s4 } = t5,
+    const { values: i8, _$litType$: s6 } = t5,
       e6 =
-        "number" == typeof s4
+        "number" == typeof s6
           ? this._$AC(t5)
-          : (void 0 === s4.el &&
-              (s4.el = S2.createElement(V(s4.h, s4.h[0]), this.options)),
-            s4);
-    if (this._$AH?._$AD === e6) this._$AH.p(i7);
+          : (void 0 === s6.el &&
+              (s6.el = S2.createElement(V(s6.h, s6.h[0]), this.options)),
+            s6);
+    if (this._$AH?._$AD === e6) this._$AH.p(i8);
     else {
       const t6 = new R(e6, this),
-        s5 = t6.u(this.options);
-      (t6.p(i7), this.T(s5), (this._$AH = t6));
+        s7 = t6.u(this.options);
+      (t6.p(i8), this.T(s7), (this._$AH = t6));
     }
   }
   _$AC(t5) {
-    let i7 = C.get(t5.strings);
-    return (void 0 === i7 && C.set(t5.strings, (i7 = new S2(t5))), i7);
+    let i8 = C.get(t5.strings);
+    return (void 0 === i8 && C.set(t5.strings, (i8 = new S2(t5))), i8);
   }
   k(t5) {
     u2(this._$AH) || ((this._$AH = []), this._$AR());
-    const i7 = this._$AH;
-    let s4,
+    const i8 = this._$AH;
+    let s6,
       e6 = 0;
-    for (const h3 of t5)
-      (e6 === i7.length
-        ? i7.push((s4 = new _k(this.O(c3()), this.O(c3()), this, this.options)))
-        : (s4 = i7[e6]),
-        s4._$AI(h3),
+    for (const h5 of t5)
+      (e6 === i8.length
+        ? i8.push((s6 = new _k(this.O(c3()), this.O(c3()), this, this.options)))
+        : (s6 = i8[e6]),
+        s6._$AI(h5),
         e6++);
-    e6 < i7.length &&
-      (this._$AR(s4 && s4._$AB.nextSibling, e6), (i7.length = e6));
+    e6 < i8.length &&
+      (this._$AR(s6 && s6._$AB.nextSibling, e6), (i8.length = e6));
   }
-  _$AR(t5 = this._$AA.nextSibling, s4) {
-    for (this._$AP?.(false, true, s4); t5 !== this._$AB;) {
-      const s5 = i3(t5).nextSibling;
-      (i3(t5).remove(), (t5 = s5));
+  _$AR(t5 = this._$AA.nextSibling, s6) {
+    for (this._$AP?.(false, true, s6); t5 !== this._$AB;) {
+      const s7 = i3(t5).nextSibling;
+      (i3(t5).remove(), (t5 = s7));
     }
   }
   setConnected(t5) {
@@ -740,37 +740,37 @@ var H = class {
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(t5, i7, s4, e6, h3) {
+  constructor(t5, i8, s6, e6, h5) {
     ((this.type = 1),
       (this._$AH = A),
       (this._$AN = void 0),
       (this.element = t5),
-      (this.name = i7),
+      (this.name = i8),
       (this._$AM = e6),
-      (this.options = h3),
-      s4.length > 2 || "" !== s4[0] || "" !== s4[1]
-        ? ((this._$AH = Array(s4.length - 1).fill(new String())),
-          (this.strings = s4))
+      (this.options = h5),
+      s6.length > 2 || "" !== s6[0] || "" !== s6[1]
+        ? ((this._$AH = Array(s6.length - 1).fill(new String())),
+          (this.strings = s6))
         : (this._$AH = A));
   }
-  _$AI(t5, i7 = this, s4, e6) {
-    const h3 = this.strings;
-    let o6 = false;
-    if (void 0 === h3)
-      ((t5 = M(this, t5, i7, 0)),
-        (o6 = !a2(t5) || (t5 !== this._$AH && t5 !== E)),
-        o6 && (this._$AH = t5));
+  _$AI(t5, i8 = this, s6, e6) {
+    const h5 = this.strings;
+    let o8 = false;
+    if (void 0 === h5)
+      ((t5 = M(this, t5, i8, 0)),
+        (o8 = !a2(t5) || (t5 !== this._$AH && t5 !== E)),
+        o8 && (this._$AH = t5));
     else {
       const e7 = t5;
-      let n4, r4;
-      for (t5 = h3[0], n4 = 0; n4 < h3.length - 1; n4++)
-        ((r4 = M(this, e7[s4 + n4], i7, n4)),
-          r4 === E && (r4 = this._$AH[n4]),
-          (o6 ||= !a2(r4) || r4 !== this._$AH[n4]),
-          r4 === A ? (t5 = A) : t5 !== A && (t5 += (r4 ?? "") + h3[n4 + 1]),
-          (this._$AH[n4] = r4));
+      let n6, r6;
+      for (t5 = h5[0], n6 = 0; n6 < h5.length - 1; n6++)
+        ((r6 = M(this, e7[s6 + n6], i8, n6)),
+          r6 === E && (r6 = this._$AH[n6]),
+          (o8 ||= !a2(r6) || r6 !== this._$AH[n6]),
+          r6 === A ? (t5 = A) : t5 !== A && (t5 += (r6 ?? "") + h5[n6 + 1]),
+          (this._$AH[n6] = r6));
     }
-    o6 && !e6 && this.j(t5);
+    o8 && !e6 && this.j(t5);
   }
   j(t5) {
     t5 === A
@@ -795,20 +795,20 @@ var L = class extends H {
   }
 };
 var z = class extends H {
-  constructor(t5, i7, s4, e6, h3) {
-    (super(t5, i7, s4, e6, h3), (this.type = 5));
+  constructor(t5, i8, s6, e6, h5) {
+    (super(t5, i8, s6, e6, h5), (this.type = 5));
   }
-  _$AI(t5, i7 = this) {
-    if ((t5 = M(this, t5, i7, 0) ?? A) === E) return;
-    const s4 = this._$AH,
+  _$AI(t5, i8 = this) {
+    if ((t5 = M(this, t5, i8, 0) ?? A) === E) return;
+    const s6 = this._$AH,
       e6 =
-        (t5 === A && s4 !== A) ||
-        t5.capture !== s4.capture ||
-        t5.once !== s4.once ||
-        t5.passive !== s4.passive,
-      h3 = t5 !== A && (s4 === A || e6);
-    (e6 && this.element.removeEventListener(this.name, this, s4),
-      h3 && this.element.addEventListener(this.name, this, t5),
+        (t5 === A && s6 !== A) ||
+        t5.capture !== s6.capture ||
+        t5.once !== s6.once ||
+        t5.passive !== s6.passive,
+      h5 = t5 !== A && (s6 === A || e6);
+    (e6 && this.element.removeEventListener(this.name, this, s6),
+      h5 && this.element.addEventListener(this.name, this, t5),
       (this._$AH = t5));
   }
   handleEvent(t5) {
@@ -818,12 +818,12 @@ var z = class extends H {
   }
 };
 var Z = class {
-  constructor(t5, i7, s4) {
+  constructor(t5, i8, s6) {
     ((this.element = t5),
       (this.type = 6),
       (this._$AN = void 0),
-      (this._$AM = i7),
-      (this.options = s4));
+      (this._$AM = i8),
+      (this.options = s6));
   }
   get _$AU() {
     return this._$AM._$AU;
@@ -850,14 +850,14 @@ var j = {
 };
 var B = t2.litHtmlPolyfillSupport;
 (B?.(S2, k), (t2.litHtmlVersions ??= []).push("3.3.3"));
-var D = (t5, i7, s4) => {
-  const e6 = s4?.renderBefore ?? i7;
-  let h3 = e6._$litPart$;
-  if (void 0 === h3) {
-    const t6 = s4?.renderBefore ?? null;
-    e6._$litPart$ = h3 = new k(i7.insertBefore(c3(), t6), t6, void 0, s4 ?? {});
+var D = (t5, i8, s6) => {
+  const e6 = s6?.renderBefore ?? i8;
+  let h5 = e6._$litPart$;
+  if (void 0 === h5) {
+    const t6 = s6?.renderBefore ?? null;
+    e6._$litPart$ = h5 = new k(i8.insertBefore(c3(), t6), t6, void 0, s6 ?? {});
   }
-  return (h3._$AI(t5), h3);
+  return (h5._$AI(t5), h5);
 };
 
 // node_modules/lit-element/lit-element.js
@@ -873,10 +873,10 @@ var i4 = class extends y {
     return ((this.renderOptions.renderBefore ??= t5.firstChild), t5);
   }
   update(t5) {
-    const r4 = this.render();
+    const r6 = this.render();
     (this.hasUpdated || (this.renderOptions.isConnected = this.isConnected),
       super.update(t5),
-      (this._$Do = D(r4, this.renderRoot, this.renderOptions)));
+      (this._$Do = D(r6, this.renderRoot, this.renderOptions)));
   }
   connectedCallback() {
     (super.connectedCallback(), this._$Do?.setConnected(true));
@@ -6678,12 +6678,40 @@ var automationsStyles = i`
     flex-direction: column;
     min-width: 0;
   }
-  /* A card whose Flow/YAML panel is open spans the whole grid row. A 280px
-     column shows roughly thirty characters, so every entity_id is cut and the
-     YAML is only readable through a horizontal scrollbar; the collapsed cards
-     keep the multi-column list. */
-  .automations-grid .card.card-expanded {
+  /* A suggestion's Flow/YAML opens in a detail row under the card's row, not
+     inside the card: a 280px column cuts every entity_id and leaves the YAML
+     readable only through a horizontal scrollbar, and a card that spans the
+     row itself drops below its neighbours and strands them in half-empty
+     rows. The detail follows the last card of its row in the DOM, so focus
+     order matches what is on screen; dense placement keeps the rows whole
+     when a resize changes the column count that order was built for.
+     Rows are spaced by card margins rather than row-gap, so a detail at
+     0fr adds no gap of its own while it opens and closes. */
+  .automations-grid.suggestions-grid {
+    grid-auto-flow: row dense;
+    row-gap: 0;
+    margin-bottom: 0;
+  }
+  .automations-grid.suggestions-grid > .card {
+    margin-bottom: 20px;
+  }
+  .automations-grid .card.card-open {
+    border-color: var(--selora-accent);
+  }
+  .automations-grid .card-detail {
     grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .automations-grid .card-detail.fading-out {
+    animation: fadeOutCard 0.6s ease forwards;
+    pointer-events: none;
+  }
+  .automations-grid .card-detail-body {
+    margin-bottom: 20px;
+    padding: 12px 18px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--selora-accent-border, rgba(245, 184, 64, 0.3));
+    background: var(--selora-zinc-800);
   }
   /* Grow/shrink on open and close. A grid row animated between 0fr and 1fr is
      how an auto-height panel gets a transition at all: an auto height has
@@ -6696,6 +6724,12 @@ var automationsStyles = i`
   }
   .automations-grid .card-panel.open {
     grid-template-rows: 1fr;
+  }
+  /* The detail row is mounted already open, so the grow starts from here. */
+  @starting-style {
+    .automations-grid .card-panel.open {
+      grid-template-rows: 0fr;
+    }
   }
   .automations-grid .card-panel-inner {
     min-height: 0;
@@ -8932,8 +8966,8 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 function parseHexColor(hex) {
-  const n4 = parseInt(hex.slice(1), 16);
-  return [(n4 >> 16) & 255, (n4 >> 8) & 255, n4 & 255];
+  const n6 = parseInt(hex.slice(1), 16);
+  return [(n6 >> 16) & 255, (n6 >> 8) & 255, n6 & 255];
 }
 var SparkleEngine = class {
   constructor(canvas, opts) {
@@ -8962,7 +8996,7 @@ var SparkleEngine = class {
   }
   init() {
     this.particles = [];
-    for (let i7 = 0; i7 < this.count; i7++) {
+    for (let i8 = 0; i8 < this.count; i8++) {
       const yBias = Math.random();
       this.particles.push({
         x: rand(0, this.w),
@@ -8993,23 +9027,23 @@ var SparkleEngine = class {
     this._draw();
   };
   _update() {
-    const { w: w2, h: h3, maxOpacity, particles } = this;
+    const { w: w2, h: h5, maxOpacity, particles } = this;
     this._currentSpeed +=
       (this._targetSpeed - this._currentSpeed) * this._speedEase;
-    const s4 = this._currentSpeed;
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
-      p4.x += p4.vx * s4;
-      p4.y += p4.vy * s4;
+    const s6 = this._currentSpeed;
+    for (let i8 = 0, len = particles.length; i8 < len; i8++) {
+      const p4 = particles[i8];
+      p4.x += p4.vx * s6;
+      p4.y += p4.vy * s6;
       if (p4.x < 0) p4.x = w2;
       else if (p4.x > w2) p4.x = 0;
       if (p4.y < 0) {
-        p4.y = h3;
-      } else if (p4.y > h3) {
-        const r4 = Math.random();
-        p4.y = r4 * r4 * h3 * 0.5;
+        p4.y = h5;
+      } else if (p4.y > h5) {
+        const r6 = Math.random();
+        p4.y = r6 * r6 * h5 * 0.5;
       }
-      p4.opacity += p4.opacitySpeed * p4.opacityDir * s4;
+      p4.opacity += p4.opacitySpeed * p4.opacityDir * s6;
       if (p4.opacity >= maxOpacity) {
         p4.opacity = maxOpacity;
         p4.opacityDir = -1;
@@ -9020,13 +9054,13 @@ var SparkleEngine = class {
     }
   }
   _draw() {
-    const { ctx, w: w2, h: h3, particles, _rgb } = this;
-    const [r4, g2, b3] = _rgb;
-    ctx.clearRect(0, 0, w2, h3);
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
+    const { ctx, w: w2, h: h5, particles, _rgb } = this;
+    const [r6, g2, b3] = _rgb;
+    ctx.clearRect(0, 0, w2, h5);
+    for (let i8 = 0, len = particles.length; i8 < len; i8++) {
+      const p4 = particles[i8];
       ctx.globalAlpha = p4.opacity;
-      ctx.fillStyle = `rgb(${r4},${g2},${b3})`;
+      ctx.fillStyle = `rgb(${r6},${g2},${b3})`;
       ctx.beginPath();
       ctx.arc(p4.x, p4.y, p4.size, 0, TAU);
       ctx.fill();
@@ -9240,9 +9274,9 @@ function buildSearchRegistry(hass, full = null) {
   };
   const entity = (entityId) => {
     if (!entityId) return null;
-    const h3 = hassOf();
-    const state = h3?.states?.[entityId];
-    const live = h3?.entities?.[entityId];
+    const h5 = hassOf();
+    const state = h5?.states?.[entityId];
+    const live = h5?.entities?.[entityId];
     const stored = full?.entities?.[entityId];
     if (!state && !live && !stored) return null;
     const name =
@@ -9274,9 +9308,9 @@ function _idParts(value) {
   const raw =
     typeof value === "string" ? [value] : Array.isArray(value) ? value : [];
   const out = [];
-  for (const v2 of raw) {
-    if (typeof v2 !== "string") continue;
-    for (const part of v2.split(",")) {
+  for (const v3 of raw) {
+    if (typeof v3 !== "string") continue;
+    for (const part of v3.split(",")) {
       const trimmed = part.trim();
       if (trimmed) out.push(trimmed);
     }
@@ -9299,11 +9333,11 @@ function collectConfigRefs(node, acc = null) {
   if (typeof node !== "object") return out;
   for (const [key, value] of Object.entries(node)) {
     if (key === "entity_id" || key.endsWith("_entity_id")) {
-      for (const v2 of _idParts(value)) {
-        if (ENTITY_ID_RE.test(v2)) out.entities.add(v2);
+      for (const v3 of _idParts(value)) {
+        if (ENTITY_ID_RE.test(v3)) out.entities.add(v3);
       }
     } else if (_ID_BUCKET[key]) {
-      for (const v2 of _idParts(value)) out[_ID_BUCKET[key]].add(v2);
+      for (const v3 of _idParts(value)) out[_ID_BUCKET[key]].add(v3);
     }
     if (value && typeof value === "object") collectConfigRefs(value, out);
   }
@@ -27153,8 +27187,8 @@ var i5 = class {
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AT(t5, e6, i7) {
-    ((this._$Ct = t5), (this._$AM = e6), (this._$Ci = i7));
+  _$AT(t5, e6, i8) {
+    ((this._$Ct = t5), (this._$AM = e6), (this._$Ci = i8));
   }
   _$AS(t5, e6) {
     return this.update(t5, e6);
@@ -27166,20 +27200,55 @@ var i5 = class {
 
 // node_modules/lit-html/directive-helpers.js
 var { I: t4 } = j;
+var i6 = (o8) => o8;
+var r4 = (o8) => void 0 === o8.strings;
+var s4 = () => document.createComment("");
+var v2 = (o8, n6, e6) => {
+  const l3 = o8._$AA.parentNode,
+    d3 = void 0 === n6 ? o8._$AB : n6._$AA;
+  if (void 0 === e6) {
+    const i8 = l3.insertBefore(s4(), d3),
+      n7 = l3.insertBefore(s4(), d3);
+    e6 = new t4(i8, n7, o8, o8.options);
+  } else {
+    const t5 = e6._$AB.nextSibling,
+      n7 = e6._$AM,
+      c6 = n7 !== o8;
+    if (c6) {
+      let t6;
+      (e6._$AQ?.(o8),
+        (e6._$AM = o8),
+        void 0 !== e6._$AP && (t6 = o8._$AU) !== n7._$AU && e6._$AP(t6));
+    }
+    if (t5 !== d3 || c6) {
+      let o9 = e6._$AA;
+      for (; o9 !== t5;) {
+        const t6 = i6(o9).nextSibling;
+        (i6(l3).insertBefore(o9, d3), (o9 = t6));
+      }
+    }
+  }
+  return e6;
+};
+var u3 = (o8, t5, i8 = o8) => (o8._$AI(t5, i8), o8);
 var m2 = {};
-var p3 = (o6, t5 = m2) => (o6._$AH = t5);
+var p3 = (o8, t5 = m2) => (o8._$AH = t5);
+var M2 = (o8) => o8._$AH;
+var h3 = (o8) => {
+  (o8._$AR(), o8._$AA.remove());
+};
 
 // node_modules/lit-html/directives/keyed.js
-var i6 = e4(
+var i7 = e4(
   class extends i5 {
     constructor() {
       (super(...arguments), (this.key = A));
     }
-    render(r4, t5) {
-      return ((this.key = r4), t5);
+    render(r6, t5) {
+      return ((this.key = r6), t5);
     }
-    update(r4, [t5, e6]) {
-      return (t5 !== this.key && (p3(r4), (this.key = t5)), e6);
+    update(r6, [t5, e6]) {
+      return (t5 !== this.key && (p3(r6), (this.key = t5)), e6);
     }
   },
 );
@@ -27247,7 +27316,7 @@ function _coalesceEntityListings(text) {
   const BLANK = /^\s*$/;
   const lines = text.split("\n");
   const out = [];
-  let i7 = 0;
+  let i8 = 0;
   const skipBlanks = (j2) => {
     while (j2 < lines.length && BLANK.test(lines[j2])) j2++;
     return j2;
@@ -27267,18 +27336,18 @@ function _coalesceEntityListings(text) {
     if (multi) {
       return multi[1]
         .split(",")
-        .map((s4) => s4.trim())
-        .filter((s4) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s4));
+        .map((s6) => s6.trim())
+        .filter((s6) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s6));
     }
     return [];
   };
   const BARE_MARKER =
     /^\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
-  while (i7 < lines.length) {
+  while (i8 < lines.length) {
     const tryCoalesce = (firstLineRe) => {
-      if (!firstLineRe.test(lines[i7])) return false;
+      if (!firstLineRe.test(lines[i8])) return false;
       const runIds = [];
-      let j3 = i7;
+      let j3 = i8;
       while (j3 < lines.length) {
         const m3 = lines[j3].match(firstLineRe);
         if (!m3) break;
@@ -27289,21 +27358,21 @@ function _coalesceEntityListings(text) {
       }
       if (runIds.length === 0) return false;
       out.push(`[[entities:${runIds.join(",")}]]`);
-      i7 = j3;
+      i8 = j3;
       return true;
     };
     if (tryCoalesce(MARKER_BULLET)) continue;
     if (tryCoalesce(BARE_MARKER)) continue;
-    const tailMatch = lines[i7].match(MARKER_TAIL_STATE);
+    const tailMatch = lines[i8].match(MARKER_TAIL_STATE);
     if (tailMatch) {
       out.push(tailMatch[1]);
-      let j3 = i7 + 1;
+      let j3 = i8 + 1;
       j3 = skipStateLines(j3);
-      i7 = j3;
+      i8 = j3;
       continue;
     }
     const ids = [];
-    let j2 = i7;
+    let j2 = i8;
     while (j2 < lines.length) {
       const m3 = lines[j2].match(ID_LINE);
       if (!m3) break;
@@ -27314,63 +27383,63 @@ function _coalesceEntityListings(text) {
     }
     if (ids.length >= 1) {
       out.push(`[[entities:${ids.join(",")}]]`);
-      i7 = j2;
+      i8 = j2;
       continue;
     }
-    out.push(lines[i7]);
-    i7++;
+    out.push(lines[i8]);
+    i8++;
   }
   return out.join("\n");
 }
 function _tableCells(line) {
-  let s4 = line.trim();
-  if (s4.startsWith("|")) s4 = s4.slice(1);
-  if (s4.endsWith("|")) s4 = s4.slice(0, -1);
-  return s4.split("|").map((c4) => c4.trim());
+  let s6 = line.trim();
+  if (s6.startsWith("|")) s6 = s6.slice(1);
+  if (s6.endsWith("|")) s6 = s6.slice(0, -1);
+  return s6.split("|").map((c6) => c6.trim());
 }
 function _isTableDelimiter(line) {
   if (!line.includes("|")) return false;
   const cells = _tableCells(line);
-  return cells.length >= 1 && cells.every((c4) => /^:?-{1,}:?$/.test(c4));
+  return cells.length >= 1 && cells.every((c6) => /^:?-{1,}:?$/.test(c6));
 }
 function _renderTables(src) {
   const lines = src.split("\n");
   const out = [];
-  let i7 = 0;
+  let i8 = 0;
   const th =
     "text-align:left;padding:6px 10px;font-weight:700;border-bottom:2px solid var(--divider-color,rgba(255,255,255,0.18));";
   const td =
     "padding:6px 10px;vertical-align:top;border-bottom:1px solid var(--divider-color,rgba(255,255,255,0.08));";
-  while (i7 < lines.length) {
+  while (i8 < lines.length) {
     if (
-      lines[i7].includes("|") &&
-      i7 + 1 < lines.length &&
-      _isTableDelimiter(lines[i7 + 1])
+      lines[i8].includes("|") &&
+      i8 + 1 < lines.length &&
+      _isTableDelimiter(lines[i8 + 1])
     ) {
-      const header = _tableCells(lines[i7]);
-      const align = _tableCells(lines[i7 + 1]).map((c4) => {
-        const l3 = c4.startsWith(":");
-        const r4 = c4.endsWith(":");
-        return l3 && r4 ? "center" : r4 ? "right" : l3 ? "left" : "";
+      const header = _tableCells(lines[i8]);
+      const align = _tableCells(lines[i8 + 1]).map((c6) => {
+        const l3 = c6.startsWith(":");
+        const r6 = c6.endsWith(":");
+        return l3 && r6 ? "center" : r6 ? "right" : l3 ? "left" : "";
       });
-      const alignStyle = (c4) => (align[c4] ? `text-align:${align[c4]};` : "");
-      i7 += 2;
+      const alignStyle = (c6) => (align[c6] ? `text-align:${align[c6]};` : "");
+      i8 += 2;
       const body = [];
       while (
-        i7 < lines.length &&
-        lines[i7].includes("|") &&
-        !_isTableDelimiter(lines[i7])
+        i8 < lines.length &&
+        lines[i8].includes("|") &&
+        !_isTableDelimiter(lines[i8])
       ) {
-        body.push(_tableCells(lines[i7]));
-        i7++;
+        body.push(_tableCells(lines[i8]));
+        i8++;
       }
       const headHtml = header
-        .map((c4, idx) => `<th style="${th}${alignStyle(idx)}">${c4}</th>`)
+        .map((c6, idx) => `<th style="${th}${alignStyle(idx)}">${c6}</th>`)
         .join("");
       const bodyHtml = body
         .map(
           (row) =>
-            `<tr>${row.map((c4, idx) => `<td style="${td}${alignStyle(idx)}">${c4}</td>`).join("")}</tr>`,
+            `<tr>${row.map((c6, idx) => `<td style="${td}${alignStyle(idx)}">${c6}</td>`).join("")}</tr>`,
         )
         .join("");
       out.push(
@@ -27378,8 +27447,8 @@ function _renderTables(src) {
       );
       continue;
     }
-    out.push(lines[i7]);
-    i7++;
+    out.push(lines[i8]);
+    i8++;
   }
   return out.join("\n");
 }
@@ -27431,8 +27500,8 @@ function renderMarkdown(text) {
     (_m, id) =>
       `<div class="selora-entity-grid" data-entity-ids="${id}"></div>`,
   );
-  const escapeUrlAttr = (s4) =>
-    s4.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  const escapeUrlAttr = (s6) =>
+    s6.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   escaped = escaped.replace(
     /\[\[dashboard:(\/(?!\/)[^\]|\s"'<>]*)(?:\|([^\]]*))?\]\]/g,
     (_m, rawUrl, label) => {
@@ -27473,10 +27542,10 @@ function renderMarkdown(text) {
   );
   escaped = escaped.replace(/(<br>)+(<a class="selora-dashboard-link")/g, "$2");
   escaped = escaped.replace(/(<\/span><\/span><\/a>)(<br>)+/g, "$1");
-  const escapeCode = (s4) =>
-    s4.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const escapeAttr = (s4) =>
-    s4
+  const escapeCode = (s6) =>
+    s6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escapeAttr = (s6) =>
+    s6
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
@@ -27503,12 +27572,12 @@ function _formatTimestamp(iso) {
 }
 function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";
-  const s4 = String(state).toLowerCase();
-  if (["on", "open", "home", "playing", "active"].includes(s4))
+  const s6 = String(state).toLowerCase();
+  if (["on", "open", "home", "playing", "active"].includes(s6))
     return "var(--selora-accent, #fbbf24)";
-  if (["off", "closed", "not_home", "idle", "standby"].includes(s4))
+  if (["off", "closed", "not_home", "idle", "standby"].includes(s6))
     return "var(--selora-zinc-400)";
-  if (["unavailable", "unknown"].includes(s4)) return "#ef4444";
+  if (["unavailable", "unknown"].includes(s6)) return "#ef4444";
   return "var(--selora-zinc-200)";
 }
 function _deviceIcon(domains) {
@@ -27641,18 +27710,18 @@ function renderDeviceDetail(host) {
                         </div>
                         <div style="max-height:150px;overflow-y:auto;">
                           ${detail.state_history.slice(0, 30).map(
-                            (h3) => b2`
+                            (h5) => b2`
                               <div
                                 style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"
                               >
                                 <span style="color:var(--selora-zinc-400);"
-                                  >${h3.entity_id.split(".")[1]}</span
+                                  >${h5.entity_id.split(".")[1]}</span
                                 >
-                                <span style="color:${_stateColor(h3.state)};"
-                                  >${h3.state}</span
+                                <span style="color:${_stateColor(h5.state)};"
+                                  >${h5.state}</span
                                 >
                                 <span style="color:var(--selora-zinc-400);"
-                                  >${_formatTimestamp(h3.last_changed)}</span
+                                  >${_formatTimestamp(h5.last_changed)}</span
                                 >
                               </div>
                             `,
@@ -27899,7 +27968,7 @@ function _toneStyle(tone) {
   const vars = _TONE_OVERRIDES[tone];
   if (!vars) return "";
   return Object.entries(vars)
-    .map(([k2, v2]) => `${k2}:${v2};`)
+    .map(([k2, v3]) => `${k2}:${v3};`)
     .join("");
 }
 function _renderChoice(host, action) {
@@ -27974,7 +28043,7 @@ function humanizeToken(value) {
   if (value == null || value === "") return "";
   return String(value)
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (c4) => c4.toUpperCase());
+    .replace(/\b\w/g, (c6) => c6.toUpperCase());
 }
 function fmtEntity(hass, id) {
   if (!id) return "";
@@ -27987,7 +28056,7 @@ function fmtEntity(hass, id) {
     /_/g,
     " ",
   );
-  return raw.replace(/\b\w/g, (c4) => c4.toUpperCase());
+  return raw.replace(/\b\w/g, (c6) => c6.toUpperCase());
 }
 var _LIST_CONNECTORS = {
   en: { last: " and ", oxford: ", and " },
@@ -28008,15 +28077,15 @@ function fmtEntities(hass, val, language) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
   if (arr.length === 1) return fmtEntity(hass, arr[0]);
-  const c4 = _LIST_CONNECTORS[_langKey(language, _LIST_CONNECTORS)];
+  const c6 = _LIST_CONNECTORS[_langKey(language, _LIST_CONNECTORS)];
   if (arr.length === 2)
-    return `${fmtEntity(hass, arr[0])}${c4.last}${fmtEntity(hass, arr[1])}`;
+    return `${fmtEntity(hass, arr[0])}${c6.last}${fmtEntity(hass, arr[1])}`;
   return (
     arr
       .slice(0, -1)
       .map((e6) => fmtEntity(hass, e6))
       .join(", ") +
-    c4.oxford +
+    c6.oxford +
     fmtEntity(hass, arr[arr.length - 1])
   );
 }
@@ -28129,9 +28198,9 @@ var _STATE_NAMES = {
 };
 function fmtState(state, language) {
   if (state == null) return null;
-  const s4 = String(state);
+  const s6 = String(state);
   const table = _STATE_NAMES[_langKey(language, _STATE_NAMES)];
-  return table[s4] || s4.replace(/_/g, " ");
+  return table[s6] || s6.replace(/_/g, " ");
 }
 function fmtDuration(value) {
   if (!value) return "";
@@ -28229,36 +28298,36 @@ function fmtNumericValue(entityId, value) {
 }
 function fmtTime(hass, val) {
   if (val == null) return String(val);
-  const s4 = String(val).trim();
-  if (s4.includes("{{") || s4.includes("{%")) {
-    const m3 = s4.match(/states\(['"]([^'"]+)['"]\)/);
+  const s6 = String(val).trim();
+  if (s6.includes("{{") || s6.includes("{%")) {
+    const m3 = s6.match(/states\(['"]([^'"]+)['"]\)/);
     if (m3) return fmtEntity(hass, m3[1]);
-    const m22 = s4.match(/state_attr\(['"]([^'"]+)['"]/);
+    const m22 = s6.match(/state_attr\(['"]([^'"]+)['"]/);
     if (m22) return fmtEntity(hass, m22[1]);
     return "a calculated time";
   }
-  const num = Number(s4);
-  if (!isNaN(num) && num >= 0 && num <= 86400 && !s4.includes(":")) {
-    const h3 = Math.floor(num / 3600);
+  const num = Number(s6);
+  if (!isNaN(num) && num >= 0 && num <= 86400 && !s6.includes(":")) {
+    const h5 = Math.floor(num / 3600);
     const m3 = Math.floor((num % 3600) / 60);
-    return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    return `${String(h5).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
   }
-  const parts = s4.split(":");
+  const parts = s6.split(":");
   if (parts.length >= 2) {
-    const h3 = parseInt(parts[0], 10);
+    const h5 = parseInt(parts[0], 10);
     const m3 = parseInt(parts[1], 10);
-    if (!isNaN(h3) && !isNaN(m3)) {
-      return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    if (!isNaN(h5) && !isNaN(m3)) {
+      return `${String(h5).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
     }
   }
-  if (s4.startsWith("input_datetime.") || s4.startsWith("sensor."))
-    return fmtEntity(hass, s4);
-  return s4;
+  if (s6.startsWith("input_datetime.") || s6.startsWith("sensor."))
+    return fmtEntity(hass, s6);
+  return s6;
 }
 
 // src/shared/flow-description.js
-function asArray(v2) {
-  return Array.isArray(v2) ? v2 : v2 == null || v2 === false ? [] : [v2];
+function asArray(v3) {
+  return Array.isArray(v3) ? v3 : v3 == null || v3 === false ? [] : [v3];
 }
 var PHRASES = {
   en: {
@@ -28289,20 +28358,20 @@ var PHRASES = {
     when_changes_state: (eid, dur) => `When ${eid} changes state${dur}`,
     for_duration: (d3) => ` for ${d3}`,
     when_between: (eid, a3, b3) => `When ${eid} is between ${a3} and ${b3}`,
-    when_rises_above: (eid, v2) => `When ${eid} rises above ${v2}`,
-    when_drops_below: (eid, v2) => `When ${eid} drops below ${v2}`,
+    when_rises_above: (eid, v3) => `When ${eid} rises above ${v3}`,
+    when_drops_below: (eid, v3) => `When ${eid} drops below ${v3}`,
     when_value_changes: (eid) => `When ${eid} value changes`,
     when_ha: (ev) => `When Home Assistant ${ev}`,
     ha_starts: "starts",
     ha_shuts_down: "shuts down",
     ha_changes_state: "changes state",
-    every_seconds: (n4) => `Every ${n4} second${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) => `Every ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Every ${n4} hour${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n6) => `Every ${n6} second${Number(n6) === 1 ? "" : "s"}`,
+    every_minutes: (n6) => `Every ${n6} minute${Number(n6) === 1 ? "" : "s"}`,
+    every_hours: (n6) => `Every ${n6} hour${Number(n6) === 1 ? "" : "s"}`,
     on_time_pattern: "On a time pattern",
     when_template_entity: (e6) => `When ${e6} condition is met`,
     when_template_met: "When a template condition is met",
-    when_event: (n4) => `When ${n4} happens`,
+    when_event: (n6) => `When ${n6} happens`,
     when_event_generic: "When an event happens",
     when_device_triggered: (t5) => `When a device ${t5}`,
     when_named_device: (name, ty) => `When ${name} ${ty}`,
@@ -28322,22 +28391,22 @@ var PHRASES = {
     when_trigger_happens: "When this trigger happens",
     cond_is: (eid, st) => `${eid} is ${st}`,
     cond_between: (eid, a3, b3) => `${eid} between ${a3} and ${b3}`,
-    cond_above: (eid, v2) => `${eid} above ${v2}`,
-    cond_below: (eid, v2) => `${eid} below ${v2}`,
-    cond_at_least: (eid, v2) => `${eid} at least ${v2}`,
-    cond_at_most: (eid, v2) => `${eid} at most ${v2}`,
+    cond_above: (eid, v3) => `${eid} above ${v3}`,
+    cond_below: (eid, v3) => `${eid} below ${v3}`,
+    cond_at_least: (eid, v3) => `${eid} at least ${v3}`,
+    cond_at_most: (eid, v3) => `${eid} at most ${v3}`,
     cond_numeric: (eid) => `${eid} numeric check`,
     cond_after_time: (t5) => `after ${t5}`,
     cond_before_time: (t5) => `before ${t5}`,
     cond_on_weekday: (d3) => `on ${d3}`,
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
-    cond_after_sun: (s4) => `after ${s4}`,
+    cond_after_sun: (s6) => `after ${s6}`,
     cond_sun_window: (a3, b3) => `between ${a3} and ${b3}`,
-    cond_before_sun: (s4) => `before ${s4}`,
+    cond_before_sun: (s6) => `before ${s6}`,
     cond_sun_position: "Sun position",
-    cond_all: (n4) => `All ${n4} conditions must be true`,
-    cond_any: (n4) => `Any of ${n4} conditions is true`,
+    cond_all: (n6) => `All ${n6} conditions must be true`,
+    cond_any: (n6) => `Any of ${n6} conditions is true`,
     cond_none: "None of the conditions are true",
     cond_triggered_by: (label) => `Triggered by \u201C${label}\u201D`,
     cond_at_time: (x2) => `at ${x2}`,
@@ -28362,28 +28431,28 @@ var PHRASES = {
     action_set_value: "Set value for",
     action_send_command: "Send command to",
     action_reload: "Reload",
-    extra_brightness: (v2) => `at ${v2}%`,
-    extra_temp: (v2) => `to ${v2}\xB0`,
-    extra_color_temp: (v2) => `color temp ${v2}`,
+    extra_brightness: (v3) => `at ${v3}%`,
+    extra_temp: (v3) => `to ${v3}\xB0`,
+    extra_color_temp: (v3) => `color temp ${v3}`,
     wait_str: (d3) => `Wait ${d3}`,
     wait_parts: (p4) => `Wait ${p4}`,
     wait_plain: "Wait",
     wait_until: "Wait until condition is met",
     wait_for_trigger: "Wait for a trigger",
     activate_scene: (e6) => `Activate scene: ${e6}`,
-    choose_between: (n4) => `Choose between ${n4} option${n4 !== 1 ? "s" : ""}`,
-    if_then: (n4) =>
-      `If conditions are met, run ${n4} action${n4 !== 1 ? "s" : ""}`,
-    if_then_else: (n4, m3) =>
-      `If conditions are met, run ${n4} action${n4 !== 1 ? "s" : ""}, otherwise ${m3}`,
-    repeat_count: (n4) => `Repeat ${n4} time${n4 !== 1 ? "s" : ""}`,
+    choose_between: (n6) => `Choose between ${n6} option${n6 !== 1 ? "s" : ""}`,
+    if_then: (n6) =>
+      `If conditions are met, run ${n6} action${n6 !== 1 ? "s" : ""}`,
+    if_then_else: (n6, m3) =>
+      `If conditions are met, run ${n6} action${n6 !== 1 ? "s" : ""}, otherwise ${m3}`,
+    repeat_count: (n6) => `Repeat ${n6} time${n6 !== 1 ? "s" : ""}`,
     repeat_while: "Repeat while condition holds",
     repeat_until: "Repeat until condition is met",
     repeat: "Repeat",
-    parallel: (n4) => `Run ${n4} actions in parallel`,
-    sequence: (n4) => `Run a sequence of ${n4} steps`,
+    parallel: (n6) => `Run ${n6} actions in parallel`,
+    sequence: (n6) => `Run a sequence of ${n6} steps`,
     set_variables: "Set variables",
-    stop_label: (s4) => `Stop: ${s4}`,
+    stop_label: (s6) => `Stop: ${s6}`,
     fire_event: (e6) => `Fire event: ${e6}`,
     automation_step: "Automation step",
     joiner_dot: " \xB7 ",
@@ -28416,22 +28485,22 @@ var PHRASES = {
     when_changes_state: (eid, dur) => `Quand ${eid} change d'\xE9tat${dur}`,
     for_duration: (d3) => ` pendant ${d3}`,
     when_between: (eid, a3, b3) => `Quand ${eid} est entre ${a3} et ${b3}`,
-    when_rises_above: (eid, v2) => `Quand ${eid} d\xE9passe ${v2}`,
-    when_drops_below: (eid, v2) => `Quand ${eid} descend sous ${v2}`,
+    when_rises_above: (eid, v3) => `Quand ${eid} d\xE9passe ${v3}`,
+    when_drops_below: (eid, v3) => `Quand ${eid} descend sous ${v3}`,
     when_value_changes: (eid) => `Quand la valeur de ${eid} change`,
     when_ha: (ev) => `Quand Home Assistant ${ev}`,
     ha_starts: "d\xE9marre",
     ha_shuts_down: "s'arr\xEAte",
     ha_changes_state: "change d'\xE9tat",
-    every_seconds: (n4) =>
-      `Toutes les ${n4} seconde${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) =>
-      `Toutes les ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Toutes les ${n4} heure${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n6) =>
+      `Toutes les ${n6} seconde${Number(n6) === 1 ? "" : "s"}`,
+    every_minutes: (n6) =>
+      `Toutes les ${n6} minute${Number(n6) === 1 ? "" : "s"}`,
+    every_hours: (n6) => `Toutes les ${n6} heure${Number(n6) === 1 ? "" : "s"}`,
     on_time_pattern: "Selon un sch\xE9ma temporel",
     when_template_entity: (e6) => `Quand la condition sur ${e6} est vraie`,
     when_template_met: "Quand une condition mod\xE8le est vraie",
-    when_event: (n4) => `Quand ${n4} se produit`,
+    when_event: (n6) => `Quand ${n6} se produit`,
     when_event_generic: "Quand un \xE9v\xE9nement se produit",
     when_device_triggered: (t5) => `Quand un appareil ${t5}`,
     when_named_device: (name, ty) => `Quand ${name} ${ty}`,
@@ -28452,22 +28521,22 @@ var PHRASES = {
     when_trigger_happens: "Quand ce d\xE9clencheur se produit",
     cond_is: (eid, st) => `${eid} est ${st}`,
     cond_between: (eid, a3, b3) => `${eid} entre ${a3} et ${b3}`,
-    cond_above: (eid, v2) => `${eid} au-dessus de ${v2}`,
-    cond_below: (eid, v2) => `${eid} en dessous de ${v2}`,
-    cond_at_least: (eid, v2) => `${eid} d'au moins ${v2}`,
-    cond_at_most: (eid, v2) => `${eid} d'au plus ${v2}`,
+    cond_above: (eid, v3) => `${eid} au-dessus de ${v3}`,
+    cond_below: (eid, v3) => `${eid} en dessous de ${v3}`,
+    cond_at_least: (eid, v3) => `${eid} d'au moins ${v3}`,
+    cond_at_most: (eid, v3) => `${eid} d'au plus ${v3}`,
     cond_numeric: (eid) => `v\xE9rification num\xE9rique de ${eid}`,
     cond_after_time: (t5) => `apr\xE8s ${t5}`,
     cond_before_time: (t5) => `avant ${t5}`,
     cond_on_weekday: (d3) => `le ${d3}`,
     cond_time_window: "Fen\xEAtre temporelle",
     cond_template_true: "Le mod\xE8le est \xE9valu\xE9 \xE0 vrai",
-    cond_after_sun: (s4) => `apr\xE8s ${s4}`,
+    cond_after_sun: (s6) => `apr\xE8s ${s6}`,
     cond_sun_window: (a3, b3) => `entre ${a3} et ${b3}`,
-    cond_before_sun: (s4) => `avant ${s4}`,
+    cond_before_sun: (s6) => `avant ${s6}`,
     cond_sun_position: "Position du soleil",
-    cond_all: (n4) => `Les ${n4} conditions doivent \xEAtre vraies`,
-    cond_any: (n4) => `L'une des ${n4} conditions est vraie`,
+    cond_all: (n6) => `Les ${n6} conditions doivent \xEAtre vraies`,
+    cond_any: (n6) => `L'une des ${n6} conditions est vraie`,
     cond_none: "Aucune des conditions n'est vraie",
     cond_triggered_by: (label) => `D\xE9clench\xE9 par \xAB ${label} \xBB`,
     cond_at_time: (x2) => `\xE0 ${x2}`,
@@ -28492,28 +28561,28 @@ var PHRASES = {
     action_set_value: "D\xE9finir la valeur de",
     action_send_command: "Envoyer la commande \xE0",
     action_reload: "Recharger",
-    extra_brightness: (v2) => `\xE0 ${v2}%`,
-    extra_temp: (v2) => `\xE0 ${v2}\xB0`,
-    extra_color_temp: (v2) => `temp. de couleur ${v2}`,
+    extra_brightness: (v3) => `\xE0 ${v3}%`,
+    extra_temp: (v3) => `\xE0 ${v3}\xB0`,
+    extra_color_temp: (v3) => `temp. de couleur ${v3}`,
     wait_str: (d3) => `Attendre ${d3}`,
     wait_parts: (p4) => `Attendre ${p4}`,
     wait_plain: "Attendre",
     wait_until: "Attendre que la condition soit vraie",
     wait_for_trigger: "Attendre un d\xE9clencheur",
     activate_scene: (e6) => `Activer la sc\xE8ne : ${e6}`,
-    choose_between: (n4) => `Choisir parmi ${n4} option${n4 !== 1 ? "s" : ""}`,
-    if_then: (n4) =>
-      `Si les conditions sont remplies, ex\xE9cuter ${n4} action${n4 !== 1 ? "s" : ""}`,
-    if_then_else: (n4, m3) =>
-      `Si les conditions sont remplies, ex\xE9cuter ${n4} action${n4 !== 1 ? "s" : ""}, sinon ${m3}`,
-    repeat_count: (n4) => `R\xE9p\xE9ter ${n4} fois`,
+    choose_between: (n6) => `Choisir parmi ${n6} option${n6 !== 1 ? "s" : ""}`,
+    if_then: (n6) =>
+      `Si les conditions sont remplies, ex\xE9cuter ${n6} action${n6 !== 1 ? "s" : ""}`,
+    if_then_else: (n6, m3) =>
+      `Si les conditions sont remplies, ex\xE9cuter ${n6} action${n6 !== 1 ? "s" : ""}, sinon ${m3}`,
+    repeat_count: (n6) => `R\xE9p\xE9ter ${n6} fois`,
     repeat_while: "R\xE9p\xE9ter tant que la condition est vraie",
     repeat_until: "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit vraie",
     repeat: "R\xE9p\xE9ter",
-    parallel: (n4) => `Ex\xE9cuter ${n4} actions en parall\xE8le`,
-    sequence: (n4) => `Ex\xE9cuter une s\xE9quence de ${n4} \xE9tapes`,
+    parallel: (n6) => `Ex\xE9cuter ${n6} actions en parall\xE8le`,
+    sequence: (n6) => `Ex\xE9cuter une s\xE9quence de ${n6} \xE9tapes`,
     set_variables: "D\xE9finir des variables",
-    stop_label: (s4) => `Arr\xEAter : ${s4}`,
+    stop_label: (s6) => `Arr\xEAter : ${s6}`,
     fire_event: (e6) => `D\xE9clencher l'\xE9v\xE9nement : ${e6}`,
     automation_step: "\xC9tape d'automatisation",
     joiner_dot: " \xB7 ",
@@ -28545,20 +28614,20 @@ var PHRASES = {
     when_changes_state: (eid, dur) => `Wenn ${eid} den Zustand \xE4ndert${dur}`,
     for_duration: (d3) => ` f\xFCr ${d3}`,
     when_between: (eid, a3, b3) => `Wenn ${eid} zwischen ${a3} und ${b3} liegt`,
-    when_rises_above: (eid, v2) => `Wenn ${eid} \xFCber ${v2} steigt`,
-    when_drops_below: (eid, v2) => `Wenn ${eid} unter ${v2} f\xE4llt`,
+    when_rises_above: (eid, v3) => `Wenn ${eid} \xFCber ${v3} steigt`,
+    when_drops_below: (eid, v3) => `Wenn ${eid} unter ${v3} f\xE4llt`,
     when_value_changes: (eid) => `Wenn sich der Wert von ${eid} \xE4ndert`,
     when_ha: (ev) => `Wenn Home Assistant ${ev}`,
     ha_starts: "startet",
     ha_shuts_down: "herunterf\xE4hrt",
     ha_changes_state: "den Zustand \xE4ndert",
-    every_seconds: (n4) => `Alle ${n4} Sekunde${Number(n4) === 1 ? "" : "n"}`,
-    every_minutes: (n4) => `Alle ${n4} Minute${Number(n4) === 1 ? "" : "n"}`,
-    every_hours: (n4) => `Alle ${n4} Stunde${Number(n4) === 1 ? "" : "n"}`,
+    every_seconds: (n6) => `Alle ${n6} Sekunde${Number(n6) === 1 ? "" : "n"}`,
+    every_minutes: (n6) => `Alle ${n6} Minute${Number(n6) === 1 ? "" : "n"}`,
+    every_hours: (n6) => `Alle ${n6} Stunde${Number(n6) === 1 ? "" : "n"}`,
     on_time_pattern: "Nach einem Zeitmuster",
     when_template_entity: (e6) => `Wenn Bedingung f\xFCr ${e6} erf\xFCllt ist`,
     when_template_met: "Wenn eine Template-Bedingung erf\xFCllt ist",
-    when_event: (n4) => `Wenn ${n4} eintritt`,
+    when_event: (n6) => `Wenn ${n6} eintritt`,
     when_event_generic: "Wenn ein Ereignis eintritt",
     when_device_triggered: (t5) => `Wenn ein Ger\xE4t ${t5}`,
     when_named_device: (name, ty) => `Wenn ${name} ${ty}`,
@@ -28578,22 +28647,22 @@ var PHRASES = {
     when_trigger_happens: "Wenn dieser Ausl\xF6ser eintritt",
     cond_is: (eid, st) => `${eid} ist ${st}`,
     cond_between: (eid, a3, b3) => `${eid} zwischen ${a3} und ${b3}`,
-    cond_above: (eid, v2) => `${eid} \xFCber ${v2}`,
-    cond_below: (eid, v2) => `${eid} unter ${v2}`,
-    cond_at_least: (eid, v2) => `${eid} mindestens ${v2}`,
-    cond_at_most: (eid, v2) => `${eid} h\xF6chstens ${v2}`,
+    cond_above: (eid, v3) => `${eid} \xFCber ${v3}`,
+    cond_below: (eid, v3) => `${eid} unter ${v3}`,
+    cond_at_least: (eid, v3) => `${eid} mindestens ${v3}`,
+    cond_at_most: (eid, v3) => `${eid} h\xF6chstens ${v3}`,
     cond_numeric: (eid) => `${eid} numerische Pr\xFCfung`,
     cond_after_time: (t5) => `nach ${t5}`,
     cond_before_time: (t5) => `vor ${t5}`,
     cond_on_weekday: (d3) => `am ${d3}`,
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
-    cond_after_sun: (s4) => `nach ${s4}`,
+    cond_after_sun: (s6) => `nach ${s6}`,
     cond_sun_window: (a3, b3) => `zwischen ${a3} und ${b3}`,
-    cond_before_sun: (s4) => `vor ${s4}`,
+    cond_before_sun: (s6) => `vor ${s6}`,
     cond_sun_position: "Sonnenposition",
-    cond_all: (n4) => `Alle ${n4} Bedingungen m\xFCssen erf\xFCllt sein`,
-    cond_any: (n4) => `Eine der ${n4} Bedingungen ist erf\xFCllt`,
+    cond_all: (n6) => `Alle ${n6} Bedingungen m\xFCssen erf\xFCllt sein`,
+    cond_any: (n6) => `Eine der ${n6} Bedingungen ist erf\xFCllt`,
     cond_none: "Keine der Bedingungen ist erf\xFCllt",
     cond_triggered_by: (label) => `Ausgel\xF6st durch \u201E${label}\u201C`,
     cond_at_time: (x2) => `um ${x2}`,
@@ -28618,28 +28687,28 @@ var PHRASES = {
     action_set_value: "Wert setzen f\xFCr",
     action_send_command: "Befehl senden an",
     action_reload: "Neu laden",
-    extra_brightness: (v2) => `auf ${v2}%`,
-    extra_temp: (v2) => `auf ${v2}\xB0`,
-    extra_color_temp: (v2) => `Farbtemp. ${v2}`,
+    extra_brightness: (v3) => `auf ${v3}%`,
+    extra_temp: (v3) => `auf ${v3}\xB0`,
+    extra_color_temp: (v3) => `Farbtemp. ${v3}`,
     wait_str: (d3) => `${d3} warten`,
     wait_parts: (p4) => `${p4} warten`,
     wait_plain: "Warten",
     wait_until: "Warten bis Bedingung erf\xFCllt ist",
     wait_for_trigger: "Auf Ausl\xF6ser warten",
     activate_scene: (e6) => `Szene aktivieren: ${e6}`,
-    choose_between: (n4) => `Aus ${n4} Optionen w\xE4hlen`,
-    if_then: (n4) =>
-      `Wenn die Bedingungen erf\xFCllt sind, ${n4} Aktion${n4 !== 1 ? "en" : ""} ausf\xFChren`,
-    if_then_else: (n4, m3) =>
-      `Wenn die Bedingungen erf\xFCllt sind, ${n4} Aktion${n4 !== 1 ? "en" : ""} ausf\xFChren, sonst ${m3}`,
-    repeat_count: (n4) => `${n4}-mal wiederholen`,
+    choose_between: (n6) => `Aus ${n6} Optionen w\xE4hlen`,
+    if_then: (n6) =>
+      `Wenn die Bedingungen erf\xFCllt sind, ${n6} Aktion${n6 !== 1 ? "en" : ""} ausf\xFChren`,
+    if_then_else: (n6, m3) =>
+      `Wenn die Bedingungen erf\xFCllt sind, ${n6} Aktion${n6 !== 1 ? "en" : ""} ausf\xFChren, sonst ${m3}`,
+    repeat_count: (n6) => `${n6}-mal wiederholen`,
     repeat_while: "Wiederholen solange Bedingung erf\xFCllt ist",
     repeat_until: "Wiederholen bis Bedingung erf\xFCllt ist",
     repeat: "Wiederholen",
-    parallel: (n4) => `${n4} Aktionen parallel ausf\xFChren`,
-    sequence: (n4) => `Eine Sequenz von ${n4} Schritten ausf\xFChren`,
+    parallel: (n6) => `${n6} Aktionen parallel ausf\xFChren`,
+    sequence: (n6) => `Eine Sequenz von ${n6} Schritten ausf\xFChren`,
     set_variables: "Variablen setzen",
-    stop_label: (s4) => `Stoppen: ${s4}`,
+    stop_label: (s6) => `Stoppen: ${s6}`,
     fire_event: (e6) => `Ereignis ausl\xF6sen: ${e6}`,
     automation_step: "Automatisierungsschritt",
     joiner_dot: " \xB7 ",
@@ -28672,20 +28741,20 @@ var PHRASES = {
     when_changes_state: (eid, dur) => `Cuando ${eid} cambie de estado${dur}`,
     for_duration: (d3) => ` durante ${d3}`,
     when_between: (eid, a3, b3) => `Cuando ${eid} est\xE9 entre ${a3} y ${b3}`,
-    when_rises_above: (eid, v2) => `Cuando ${eid} supere ${v2}`,
-    when_drops_below: (eid, v2) => `Cuando ${eid} baje de ${v2}`,
+    when_rises_above: (eid, v3) => `Cuando ${eid} supere ${v3}`,
+    when_drops_below: (eid, v3) => `Cuando ${eid} baje de ${v3}`,
     when_value_changes: (eid) => `Cuando cambie el valor de ${eid}`,
     when_ha: (ev) => `Cuando Home Assistant ${ev}`,
     ha_starts: "se inicie",
     ha_shuts_down: "se apague",
     ha_changes_state: "cambie de estado",
-    every_seconds: (n4) => `Cada ${n4} segundo${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) => `Cada ${n4} minuto${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Cada ${n4} hora${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n6) => `Cada ${n6} segundo${Number(n6) === 1 ? "" : "s"}`,
+    every_minutes: (n6) => `Cada ${n6} minuto${Number(n6) === 1 ? "" : "s"}`,
+    every_hours: (n6) => `Cada ${n6} hora${Number(n6) === 1 ? "" : "s"}`,
     on_time_pattern: "En un patr\xF3n temporal",
     when_template_entity: (e6) => `Cuando se cumpla la condici\xF3n de ${e6}`,
     when_template_met: "Cuando se cumpla una condici\xF3n de plantilla",
-    when_event: (n4) => `Cuando ocurra ${n4}`,
+    when_event: (n6) => `Cuando ocurra ${n6}`,
     when_event_generic: "Cuando ocurra un evento",
     when_device_triggered: (t5) => `Cuando un dispositivo ${t5}`,
     when_named_device: (name, ty) => `Cuando ${name} ${ty}`,
@@ -28706,22 +28775,22 @@ var PHRASES = {
     when_trigger_happens: "Cuando ocurra este disparador",
     cond_is: (eid, st) => `${eid} es ${st}`,
     cond_between: (eid, a3, b3) => `${eid} entre ${a3} y ${b3}`,
-    cond_above: (eid, v2) => `${eid} por encima de ${v2}`,
-    cond_below: (eid, v2) => `${eid} por debajo de ${v2}`,
-    cond_at_least: (eid, v2) => `${eid} al menos ${v2}`,
-    cond_at_most: (eid, v2) => `${eid} como m\xE1ximo ${v2}`,
+    cond_above: (eid, v3) => `${eid} por encima de ${v3}`,
+    cond_below: (eid, v3) => `${eid} por debajo de ${v3}`,
+    cond_at_least: (eid, v3) => `${eid} al menos ${v3}`,
+    cond_at_most: (eid, v3) => `${eid} como m\xE1ximo ${v3}`,
     cond_numeric: (eid) => `verificaci\xF3n num\xE9rica de ${eid}`,
     cond_after_time: (t5) => `despu\xE9s de ${t5}`,
     cond_before_time: (t5) => `antes de ${t5}`,
     cond_on_weekday: (d3) => `el ${d3}`,
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se eval\xFAa como verdadera",
-    cond_after_sun: (s4) => `despu\xE9s de ${s4}`,
+    cond_after_sun: (s6) => `despu\xE9s de ${s6}`,
     cond_sun_window: (a3, b3) => `entre ${a3} y ${b3}`,
-    cond_before_sun: (s4) => `antes de ${s4}`,
+    cond_before_sun: (s6) => `antes de ${s6}`,
     cond_sun_position: "Posici\xF3n del sol",
-    cond_all: (n4) => `Las ${n4} condiciones deben ser verdaderas`,
-    cond_any: (n4) => `Cualquiera de las ${n4} condiciones es verdadera`,
+    cond_all: (n6) => `Las ${n6} condiciones deben ser verdaderas`,
+    cond_any: (n6) => `Cualquiera de las ${n6} condiciones es verdadera`,
     cond_none: "Ninguna de las condiciones es verdadera",
     cond_triggered_by: (label) => `Activado por \xAB${label}\xBB`,
     cond_at_time: (x2) => `a las ${x2}`,
@@ -28746,29 +28815,29 @@ var PHRASES = {
     action_set_value: "Establecer valor para",
     action_send_command: "Enviar comando a",
     action_reload: "Recargar",
-    extra_brightness: (v2) => `al ${v2}%`,
-    extra_temp: (v2) => `a ${v2}\xB0`,
-    extra_color_temp: (v2) => `temp. de color ${v2}`,
+    extra_brightness: (v3) => `al ${v3}%`,
+    extra_temp: (v3) => `a ${v3}\xB0`,
+    extra_color_temp: (v3) => `temp. de color ${v3}`,
     wait_str: (d3) => `Esperar ${d3}`,
     wait_parts: (p4) => `Esperar ${p4}`,
     wait_plain: "Esperar",
     wait_until: "Esperar hasta que se cumpla la condici\xF3n",
     wait_for_trigger: "Esperar un disparador",
     activate_scene: (e6) => `Activar escena: ${e6}`,
-    choose_between: (n4) =>
-      `Elegir entre ${n4} opci${n4 !== 1 ? "ones" : "\xF3n"}`,
-    if_then: (n4) =>
-      `Si se cumplen las condiciones, ejecutar ${n4} acci${n4 !== 1 ? "ones" : "\xF3n"}`,
-    if_then_else: (n4, m3) =>
-      `Si se cumplen las condiciones, ejecutar ${n4} acci${n4 !== 1 ? "ones" : "\xF3n"}; si no, ${m3}`,
-    repeat_count: (n4) => `Repetir ${n4} ve${n4 !== 1 ? "ces" : "z"}`,
+    choose_between: (n6) =>
+      `Elegir entre ${n6} opci${n6 !== 1 ? "ones" : "\xF3n"}`,
+    if_then: (n6) =>
+      `Si se cumplen las condiciones, ejecutar ${n6} acci${n6 !== 1 ? "ones" : "\xF3n"}`,
+    if_then_else: (n6, m3) =>
+      `Si se cumplen las condiciones, ejecutar ${n6} acci${n6 !== 1 ? "ones" : "\xF3n"}; si no, ${m3}`,
+    repeat_count: (n6) => `Repetir ${n6} ve${n6 !== 1 ? "ces" : "z"}`,
     repeat_while: "Repetir mientras la condici\xF3n sea verdadera",
     repeat_until: "Repetir hasta que la condici\xF3n sea verdadera",
     repeat: "Repetir",
-    parallel: (n4) => `Ejecutar ${n4} acciones en paralelo`,
-    sequence: (n4) => `Ejecutar una secuencia de ${n4} pasos`,
+    parallel: (n6) => `Ejecutar ${n6} acciones en paralelo`,
+    sequence: (n6) => `Ejecutar una secuencia de ${n6} pasos`,
     set_variables: "Establecer variables",
-    stop_label: (s4) => `Detener: ${s4}`,
+    stop_label: (s6) => `Detener: ${s6}`,
     fire_event: (e6) => `Disparar evento: ${e6}`,
     automation_step: "Paso de automatizaci\xF3n",
     joiner_dot: " \xB7 ",
@@ -28800,21 +28869,21 @@ var PHRASES = {
     when_changes_state: (eid, dur) => `Quando ${eid} cambia stato${dur}`,
     for_duration: (d3) => ` per ${d3}`,
     when_between: (eid, a3, b3) => `Quando ${eid} \xE8 tra ${a3} e ${b3}`,
-    when_rises_above: (eid, v2) => `Quando ${eid} supera ${v2}`,
-    when_drops_below: (eid, v2) => `Quando ${eid} scende sotto ${v2}`,
+    when_rises_above: (eid, v3) => `Quando ${eid} supera ${v3}`,
+    when_drops_below: (eid, v3) => `Quando ${eid} scende sotto ${v3}`,
     when_value_changes: (eid) => `Quando il valore di ${eid} cambia`,
     when_ha: (ev) => `Quando Home Assistant ${ev}`,
     ha_starts: "si avvia",
     ha_shuts_down: "si arresta",
     ha_changes_state: "cambia stato",
-    every_seconds: (n4) => `Ogni ${n4} second${Number(n4) === 1 ? "o" : "i"}`,
-    every_minutes: (n4) => `Ogni ${n4} minut${Number(n4) === 1 ? "o" : "i"}`,
-    every_hours: (n4) => `Ogni ${n4} or${Number(n4) === 1 ? "a" : "e"}`,
+    every_seconds: (n6) => `Ogni ${n6} second${Number(n6) === 1 ? "o" : "i"}`,
+    every_minutes: (n6) => `Ogni ${n6} minut${Number(n6) === 1 ? "o" : "i"}`,
+    every_hours: (n6) => `Ogni ${n6} or${Number(n6) === 1 ? "a" : "e"}`,
     on_time_pattern: "Su uno schema temporale",
     when_template_entity: (e6) =>
       `Quando la condizione su ${e6} \xE8 soddisfatta`,
     when_template_met: "Quando una condizione del modello \xE8 soddisfatta",
-    when_event: (n4) => `Quando ${n4} si verifica`,
+    when_event: (n6) => `Quando ${n6} si verifica`,
     when_event_generic: "Quando si verifica un evento",
     when_device_triggered: (t5) => `Quando un dispositivo ${t5}`,
     when_named_device: (name, ty) => `Quando ${name} ${ty}`,
@@ -28836,22 +28905,22 @@ var PHRASES = {
     when_trigger_happens: "Quando si verifica questo trigger",
     cond_is: (eid, st) => `${eid} \xE8 ${st}`,
     cond_between: (eid, a3, b3) => `${eid} tra ${a3} e ${b3}`,
-    cond_above: (eid, v2) => `${eid} sopra ${v2}`,
-    cond_below: (eid, v2) => `${eid} sotto ${v2}`,
-    cond_at_least: (eid, v2) => `${eid} almeno ${v2}`,
-    cond_at_most: (eid, v2) => `${eid} al massimo ${v2}`,
+    cond_above: (eid, v3) => `${eid} sopra ${v3}`,
+    cond_below: (eid, v3) => `${eid} sotto ${v3}`,
+    cond_at_least: (eid, v3) => `${eid} almeno ${v3}`,
+    cond_at_most: (eid, v3) => `${eid} al massimo ${v3}`,
     cond_numeric: (eid) => `verifica numerica di ${eid}`,
     cond_after_time: (t5) => `dopo ${t5}`,
     cond_before_time: (t5) => `prima di ${t5}`,
     cond_on_weekday: (d3) => `il ${d3}`,
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello \xE8 valutato vero",
-    cond_after_sun: (s4) => `dopo ${s4}`,
+    cond_after_sun: (s6) => `dopo ${s6}`,
     cond_sun_window: (a3, b3) => `tra ${a3} e ${b3}`,
-    cond_before_sun: (s4) => `prima di ${s4}`,
+    cond_before_sun: (s6) => `prima di ${s6}`,
     cond_sun_position: "Posizione del sole",
-    cond_all: (n4) => `Tutte le ${n4} condizioni devono essere vere`,
-    cond_any: (n4) => `Una delle ${n4} condizioni \xE8 vera`,
+    cond_all: (n6) => `Tutte le ${n6} condizioni devono essere vere`,
+    cond_any: (n6) => `Una delle ${n6} condizioni \xE8 vera`,
     cond_none: "Nessuna delle condizioni \xE8 vera",
     cond_triggered_by: (label) => `Attivato da \xAB${label}\xBB`,
     cond_at_time: (x2) => `alle ${x2}`,
@@ -28876,28 +28945,28 @@ var PHRASES = {
     action_set_value: "Imposta valore per",
     action_send_command: "Invia comando a",
     action_reload: "Ricarica",
-    extra_brightness: (v2) => `al ${v2}%`,
-    extra_temp: (v2) => `a ${v2}\xB0`,
-    extra_color_temp: (v2) => `temp. colore ${v2}`,
+    extra_brightness: (v3) => `al ${v3}%`,
+    extra_temp: (v3) => `a ${v3}\xB0`,
+    extra_color_temp: (v3) => `temp. colore ${v3}`,
     wait_str: (d3) => `Attendi ${d3}`,
     wait_parts: (p4) => `Attendi ${p4}`,
     wait_plain: "Attendi",
     wait_until: "Attendi finch\xE9 la condizione non \xE8 soddisfatta",
     wait_for_trigger: "Attendi un trigger",
     activate_scene: (e6) => `Attiva scena: ${e6}`,
-    choose_between: (n4) => `Scegli tra ${n4} opzion${n4 !== 1 ? "i" : "e"}`,
-    if_then: (n4) =>
-      `Se le condizioni sono soddisfatte, esegui ${n4} azion${n4 !== 1 ? "i" : "e"}`,
-    if_then_else: (n4, m3) =>
-      `Se le condizioni sono soddisfatte, esegui ${n4} azion${n4 !== 1 ? "i" : "e"}, altrimenti ${m3}`,
-    repeat_count: (n4) => `Ripeti ${n4} volt${n4 !== 1 ? "e" : "a"}`,
+    choose_between: (n6) => `Scegli tra ${n6} opzion${n6 !== 1 ? "i" : "e"}`,
+    if_then: (n6) =>
+      `Se le condizioni sono soddisfatte, esegui ${n6} azion${n6 !== 1 ? "i" : "e"}`,
+    if_then_else: (n6, m3) =>
+      `Se le condizioni sono soddisfatte, esegui ${n6} azion${n6 !== 1 ? "i" : "e"}, altrimenti ${m3}`,
+    repeat_count: (n6) => `Ripeti ${n6} volt${n6 !== 1 ? "e" : "a"}`,
     repeat_while: "Ripeti finch\xE9 la condizione \xE8 vera",
     repeat_until: "Ripeti finch\xE9 la condizione non \xE8 vera",
     repeat: "Ripeti",
-    parallel: (n4) => `Esegui ${n4} azioni in parallelo`,
-    sequence: (n4) => `Esegui una sequenza di ${n4} passaggi`,
+    parallel: (n6) => `Esegui ${n6} azioni in parallelo`,
+    sequence: (n6) => `Esegui una sequenza di ${n6} passaggi`,
     set_variables: "Imposta variabili",
-    stop_label: (s4) => `Ferma: ${s4}`,
+    stop_label: (s6) => `Ferma: ${s6}`,
     fire_event: (e6) => `Lancia evento: ${e6}`,
     automation_step: "Passo di automazione",
     joiner_dot: " \xB7 ",
@@ -28932,22 +29001,22 @@ var PHRASES = {
       `Wanneer ${eid} van status verandert${dur}`,
     for_duration: (d3) => ` gedurende ${d3}`,
     when_between: (eid, a3, b3) => `Wanneer ${eid} tussen ${a3} en ${b3} is`,
-    when_rises_above: (eid, v2) => `Wanneer ${eid} boven ${v2} stijgt`,
-    when_drops_below: (eid, v2) => `Wanneer ${eid} onder ${v2} zakt`,
+    when_rises_above: (eid, v3) => `Wanneer ${eid} boven ${v3} stijgt`,
+    when_drops_below: (eid, v3) => `Wanneer ${eid} onder ${v3} zakt`,
     when_value_changes: (eid) => `Wanneer de waarde van ${eid} verandert`,
     when_ha: (ev) => `Wanneer Home Assistant ${ev}`,
     ha_starts: "start",
     ha_shuts_down: "afsluit",
     ha_changes_state: "van status verandert",
-    every_seconds: (n4) =>
-      `Elke ${n4} ${Number(n4) === 1 ? "seconde" : "seconden"}`,
-    every_minutes: (n4) =>
-      `Elke ${n4} ${Number(n4) === 1 ? "minuut" : "minuten"}`,
-    every_hours: (n4) => `Elke ${n4} uur`,
+    every_seconds: (n6) =>
+      `Elke ${n6} ${Number(n6) === 1 ? "seconde" : "seconden"}`,
+    every_minutes: (n6) =>
+      `Elke ${n6} ${Number(n6) === 1 ? "minuut" : "minuten"}`,
+    every_hours: (n6) => `Elke ${n6} uur`,
     on_time_pattern: "Op een tijdpatroon",
     when_template_entity: (e6) => `Wanneer de voorwaarde op ${e6} klopt`,
     when_template_met: "Wanneer aan een sjabloonvoorwaarde wordt voldaan",
-    when_event: (n4) => `Wanneer ${n4} gebeurt`,
+    when_event: (n6) => `Wanneer ${n6} gebeurt`,
     when_event_generic: "Wanneer een gebeurtenis plaatsvindt",
     when_device_triggered: (t5) => `Wanneer een apparaat ${t5}`,
     when_named_device: (name, ty) => `Wanneer ${name} ${ty}`,
@@ -28968,22 +29037,22 @@ var PHRASES = {
     when_trigger_happens: "Wanneer deze trigger optreedt",
     cond_is: (eid, st) => `${eid} is ${st}`,
     cond_between: (eid, a3, b3) => `${eid} tussen ${a3} en ${b3}`,
-    cond_above: (eid, v2) => `${eid} boven ${v2}`,
-    cond_below: (eid, v2) => `${eid} onder ${v2}`,
-    cond_at_least: (eid, v2) => `${eid} minstens ${v2}`,
-    cond_at_most: (eid, v2) => `${eid} hoogstens ${v2}`,
+    cond_above: (eid, v3) => `${eid} boven ${v3}`,
+    cond_below: (eid, v3) => `${eid} onder ${v3}`,
+    cond_at_least: (eid, v3) => `${eid} minstens ${v3}`,
+    cond_at_most: (eid, v3) => `${eid} hoogstens ${v3}`,
     cond_numeric: (eid) => `${eid} numerieke controle`,
     cond_after_time: (t5) => `na ${t5}`,
     cond_before_time: (t5) => `v\xF3\xF3r ${t5}`,
     cond_on_weekday: (d3) => `op ${d3}`,
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
-    cond_after_sun: (s4) => `na ${s4}`,
+    cond_after_sun: (s6) => `na ${s6}`,
     cond_sun_window: (a3, b3) => `tussen ${a3} en ${b3}`,
-    cond_before_sun: (s4) => `v\xF3\xF3r ${s4}`,
+    cond_before_sun: (s6) => `v\xF3\xF3r ${s6}`,
     cond_sun_position: "Zonpositie",
-    cond_all: (n4) => `Alle ${n4} voorwaarden moeten waar zijn`,
-    cond_any: (n4) => `E\xE9n van de ${n4} voorwaarden is waar`,
+    cond_all: (n6) => `Alle ${n6} voorwaarden moeten waar zijn`,
+    cond_any: (n6) => `E\xE9n van de ${n6} voorwaarden is waar`,
     cond_none: "Geen van de voorwaarden is waar",
     cond_triggered_by: (label) => `Geactiveerd door \u201E${label}\u201D`,
     cond_at_time: (x2) => `om ${x2}`,
@@ -29008,29 +29077,29 @@ var PHRASES = {
     action_set_value: "Waarde instellen voor",
     action_send_command: "Commando sturen naar",
     action_reload: "Opnieuw laden",
-    extra_brightness: (v2) => `op ${v2}%`,
-    extra_temp: (v2) => `naar ${v2}\xB0`,
-    extra_color_temp: (v2) => `kleurtemp. ${v2}`,
+    extra_brightness: (v3) => `op ${v3}%`,
+    extra_temp: (v3) => `naar ${v3}\xB0`,
+    extra_color_temp: (v3) => `kleurtemp. ${v3}`,
     wait_str: (d3) => `Wacht ${d3}`,
     wait_parts: (p4) => `Wacht ${p4}`,
     wait_plain: "Wacht",
     wait_until: "Wacht tot aan de voorwaarde is voldaan",
     wait_for_trigger: "Wacht op een trigger",
     activate_scene: (e6) => `Sc\xE8ne activeren: ${e6}`,
-    choose_between: (n4) =>
-      `Kies tussen ${n4} ${n4 !== 1 ? "opties" : "optie"}`,
-    if_then: (n4) =>
-      `Als aan de voorwaarden is voldaan, voer ${n4} ${n4 !== 1 ? "acties" : "actie"} uit`,
-    if_then_else: (n4, m3) =>
-      `Als aan de voorwaarden is voldaan, voer ${n4} ${n4 !== 1 ? "acties" : "actie"} uit, anders ${m3}`,
-    repeat_count: (n4) => `Herhaal ${n4} ${n4 !== 1 ? "keer" : "keer"}`,
+    choose_between: (n6) =>
+      `Kies tussen ${n6} ${n6 !== 1 ? "opties" : "optie"}`,
+    if_then: (n6) =>
+      `Als aan de voorwaarden is voldaan, voer ${n6} ${n6 !== 1 ? "acties" : "actie"} uit`,
+    if_then_else: (n6, m3) =>
+      `Als aan de voorwaarden is voldaan, voer ${n6} ${n6 !== 1 ? "acties" : "actie"} uit, anders ${m3}`,
+    repeat_count: (n6) => `Herhaal ${n6} ${n6 !== 1 ? "keer" : "keer"}`,
     repeat_while: "Herhaal zolang de voorwaarde geldt",
     repeat_until: "Herhaal totdat de voorwaarde wordt voldaan",
     repeat: "Herhalen",
-    parallel: (n4) => `Voer ${n4} acties parallel uit`,
-    sequence: (n4) => `Voer een reeks van ${n4} stappen uit`,
+    parallel: (n6) => `Voer ${n6} acties parallel uit`,
+    sequence: (n6) => `Voer een reeks van ${n6} stappen uit`,
     set_variables: "Variabelen instellen",
-    stop_label: (s4) => `Stop: ${s4}`,
+    stop_label: (s6) => `Stop: ${s6}`,
     fire_event: (e6) => `Gebeurtenis afvuren: ${e6}`,
     automation_step: "Automatiseringsstap",
     joiner_dot: " \xB7 ",
@@ -29066,20 +29135,20 @@ var PHRASES = {
     for_duration: (d3) => ` ${d3}-ig`,
     when_between: (eid, a3, b3) =>
       `Amikor ${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt van`,
-    when_rises_above: (eid, v2) => `Amikor ${eid} ${v2} f\xF6l\xE9 emelkedik`,
-    when_drops_below: (eid, v2) => `Amikor ${eid} ${v2} al\xE1 esik`,
+    when_rises_above: (eid, v3) => `Amikor ${eid} ${v3} f\xF6l\xE9 emelkedik`,
+    when_drops_below: (eid, v3) => `Amikor ${eid} ${v3} al\xE1 esik`,
     when_value_changes: (eid) => `Amikor ${eid} \xE9rt\xE9ke v\xE1ltozik`,
     when_ha: (ev) => `Amikor a Home Assistant ${ev}`,
     ha_starts: "elindul",
     ha_shuts_down: "le\xE1ll",
     ha_changes_state: "\xE1llapotot v\xE1lt",
-    every_seconds: (n4) => `Minden ${n4} m\xE1sodperc`,
-    every_minutes: (n4) => `Minden ${n4} perc`,
-    every_hours: (n4) => `Minden ${n4} \xF3ra`,
+    every_seconds: (n6) => `Minden ${n6} m\xE1sodperc`,
+    every_minutes: (n6) => `Minden ${n6} perc`,
+    every_hours: (n6) => `Minden ${n6} \xF3ra`,
     on_time_pattern: "Id\u0151minta szerint",
     when_template_entity: (e6) => `Amikor a ${e6} felt\xE9tel teljes\xFCl`,
     when_template_met: "Amikor egy sablonfelt\xE9tel teljes\xFCl",
-    when_event: (n4) => `Amikor ${n4} t\xF6rt\xE9nik`,
+    when_event: (n6) => `Amikor ${n6} t\xF6rt\xE9nik`,
     when_event_generic: "Amikor egy esem\xE9ny t\xF6rt\xE9nik",
     when_device_triggered: (t5) => `Amikor egy eszk\xF6z ${t5}`,
     when_named_device: (name, ty) => `Amikor ${name} ${ty}`,
@@ -29102,22 +29171,22 @@ var PHRASES = {
     when_trigger_happens: "Amikor ez a trigger bek\xF6vetkezik",
     cond_is: (eid, st) => `${eid} \xE9rt\xE9ke ${st}`,
     cond_between: (eid, a3, b3) => `${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt`,
-    cond_above: (eid, v2) => `${eid} ${v2} f\xF6l\xF6tt`,
-    cond_below: (eid, v2) => `${eid} ${v2} alatt`,
-    cond_at_least: (eid, v2) => `${eid} legal\xE1bb ${v2}`,
-    cond_at_most: (eid, v2) => `${eid} legfeljebb ${v2}`,
+    cond_above: (eid, v3) => `${eid} ${v3} f\xF6l\xF6tt`,
+    cond_below: (eid, v3) => `${eid} ${v3} alatt`,
+    cond_at_least: (eid, v3) => `${eid} legal\xE1bb ${v3}`,
+    cond_at_most: (eid, v3) => `${eid} legfeljebb ${v3}`,
     cond_numeric: (eid) => `${eid} numerikus ellen\u0151rz\xE9s`,
     cond_after_time: (t5) => `${t5} ut\xE1n`,
     cond_before_time: (t5) => `${t5} el\u0151tt`,
     cond_on_weekday: (d3) => `${d3} napokon`,
     cond_time_window: "Id\u0151ablak",
     cond_template_true: "A sablon igaznak \xE9rt\xE9kel\u0151dik",
-    cond_after_sun: (s4) => `${s4} ut\xE1n`,
+    cond_after_sun: (s6) => `${s6} ut\xE1n`,
     cond_sun_window: (a3, b3) => `${a3} \xE9s ${b3} k\xF6z\xF6tt`,
-    cond_before_sun: (s4) => `${s4} el\u0151tt`,
+    cond_before_sun: (s6) => `${s6} el\u0151tt`,
     cond_sun_position: "Nappoz\xEDci\xF3",
-    cond_all: (n4) => `Mind a ${n4} felt\xE9telnek igaznak kell lennie`,
-    cond_any: (n4) => `A ${n4} felt\xE9tel egyike igaz`,
+    cond_all: (n6) => `Mind a ${n6} felt\xE9telnek igaznak kell lennie`,
+    cond_any: (n6) => `A ${n6} felt\xE9tel egyike igaz`,
     cond_none: "Egyik felt\xE9tel sem igaz",
     cond_triggered_by: (label) => `Kiv\xE1ltotta: \u201E${label}\u201D`,
     cond_at_time: (x2) => `${x2}-kor`,
@@ -29142,28 +29211,28 @@ var PHRASES = {
     action_set_value: "\xC9rt\xE9k be\xE1ll\xEDt\xE1sa:",
     action_send_command: "Parancs k\xFCld\xE9se:",
     action_reload: "\xDAjrat\xF6lt\xE9s",
-    extra_brightness: (v2) => `${v2}%-on`,
-    extra_temp: (v2) => `${v2}\xB0-ra`,
-    extra_color_temp: (v2) => `sz\xEDnh\u0151m\xE9rs\xE9klet ${v2}`,
+    extra_brightness: (v3) => `${v3}%-on`,
+    extra_temp: (v3) => `${v3}\xB0-ra`,
+    extra_color_temp: (v3) => `sz\xEDnh\u0151m\xE9rs\xE9klet ${v3}`,
     wait_str: (d3) => `V\xE1rakoz\xE1s: ${d3}`,
     wait_parts: (p4) => `V\xE1rakoz\xE1s: ${p4}`,
     wait_plain: "V\xE1rakoz\xE1s",
     wait_until: "V\xE1rakoz\xE1s, am\xEDg a felt\xE9tel teljes\xFCl",
     wait_for_trigger: "V\xE1rakoz\xE1s triggerre",
     activate_scene: (e6) => `Jelenet aktiv\xE1l\xE1sa: ${e6}`,
-    choose_between: (n4) => `V\xE1laszt\xE1s ${n4} opci\xF3 k\xF6z\xFCl`,
-    if_then: (n4) =>
-      `Ha a felt\xE9telek teljes\xFClnek, ${n4} m\u0171velet futtat\xE1sa`,
-    if_then_else: (n4, m3) =>
-      `Ha a felt\xE9telek teljes\xFClnek, ${n4} m\u0171velet futtat\xE1sa, egy\xE9bk\xE9nt ${m3}`,
-    repeat_count: (n4) => `Ism\xE9tl\xE9s ${n4}-szor`,
+    choose_between: (n6) => `V\xE1laszt\xE1s ${n6} opci\xF3 k\xF6z\xFCl`,
+    if_then: (n6) =>
+      `Ha a felt\xE9telek teljes\xFClnek, ${n6} m\u0171velet futtat\xE1sa`,
+    if_then_else: (n6, m3) =>
+      `Ha a felt\xE9telek teljes\xFClnek, ${n6} m\u0171velet futtat\xE1sa, egy\xE9bk\xE9nt ${m3}`,
+    repeat_count: (n6) => `Ism\xE9tl\xE9s ${n6}-szor`,
     repeat_while: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel fenn\xE1ll",
     repeat_until: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel teljes\xFCl",
     repeat: "Ism\xE9tl\xE9s",
-    parallel: (n4) => `${n4} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
-    sequence: (n4) => `${n4} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
+    parallel: (n6) => `${n6} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
+    sequence: (n6) => `${n6} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
     set_variables: "V\xE1ltoz\xF3k be\xE1ll\xEDt\xE1sa",
-    stop_label: (s4) => `Meg\xE1ll\xEDt\xE1s: ${s4}`,
+    stop_label: (s6) => `Meg\xE1ll\xEDt\xE1s: ${s6}`,
     fire_event: (e6) => `Esem\xE9ny kiv\xE1lt\xE1sa: ${e6}`,
     automation_step: "Automatizmus l\xE9p\xE9se",
     joiner_dot: " \xB7 ",
@@ -29176,9 +29245,9 @@ function _phrases(hass) {
   return PHRASES[lang] || PHRASES.en;
 }
 function _val(phrases, key, ...args) {
-  const v2 = phrases[key];
-  if (v2 === void 0) return PHRASES.en[key];
-  return typeof v2 === "function" ? v2(...args) : v2;
+  const v3 = phrases[key];
+  if (v3 === void 0) return PHRASES.en[key];
+  return typeof v3 === "function" ? v3(...args) : v3;
 }
 function _deviceName(hass, deviceId) {
   if (!deviceId) return null;
@@ -29187,22 +29256,22 @@ function _deviceName(hass, deviceId) {
 }
 function _ttsMediaPlayers(item) {
   const out = [];
-  for (const v2 of [
+  for (const v3 of [
     item.data?.media_player_entity_id,
     item.target?.entity_id,
     item.data?.entity_id,
   ].flatMap((x2) => (x2 == null ? [] : Array.isArray(x2) ? x2 : [x2]))) {
     if (
-      typeof v2 === "string" &&
-      v2.startsWith("media_player.") &&
-      !out.includes(v2)
+      typeof v3 === "string" &&
+      v3.startsWith("media_player.") &&
+      !out.includes(v3)
     )
-      out.push(v2);
+      out.push(v3);
   }
   return out;
 }
-function _slug(s4) {
-  return String(s4)
+function _slug(s6) {
+  return String(s6)
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
@@ -29211,7 +29280,7 @@ function _slug(s4) {
 }
 function _isMobileAppDevice(dev) {
   return (dev.identifiers || []).some(
-    (i7) => Array.isArray(i7) && i7[0] === "mobile_app",
+    (i8) => Array.isArray(i8) && i8[0] === "mobile_app",
   );
 }
 function _mobileAppDevice(hass, svcName) {
@@ -29250,7 +29319,7 @@ function _statesOr(val, lang, t5) {
   if (val == null) return null;
   const arr = asArray(val);
   if (!arr.length) return null;
-  const names = arr.map((s4) => fmtState(s4, lang)).filter(Boolean);
+  const names = arr.map((s6) => fmtState(s6, lang)).filter(Boolean);
   if (!names.length) return null;
   if (names.length === 1) return names[0];
   return names.slice(0, -1).join(", ") + t5("or") + names[names.length - 1];
@@ -29328,11 +29397,11 @@ function normalizeCondition(cond) {
 }
 function _secondsOffset(total) {
   const abs = Math.abs(total);
-  const h3 = Math.floor(abs / 3600);
+  const h5 = Math.floor(abs / 3600);
   const m3 = Math.floor((abs % 3600) / 60);
   const sec = Math.round(abs % 60);
   const parts = [];
-  if (h3) parts.push(`${h3}h`);
+  if (h5) parts.push(`${h5}h`);
   if (m3) parts.push(`${m3}min`);
   if (sec) parts.push(`${sec}s`);
   return { label: parts.join(" ") || `${abs}s`, neg: total < 0 };
@@ -29357,9 +29426,9 @@ function _sunOffset(offset) {
   if (typeof offset !== "string") return null;
   const neg = offset.startsWith("-");
   const raw = neg ? offset.slice(1) : offset;
-  const [h3, m3, sec] = raw.split(":").map(Number);
+  const [h5, m3, sec] = raw.split(":").map(Number);
   const parts = [];
-  if (h3) parts.push(`${h3}h`);
+  if (h5) parts.push(`${h5}h`);
   if (m3) parts.push(`${m3}min`);
   if (sec) parts.push(`${sec}s`);
   const label = parts.join(" ");
@@ -29547,8 +29616,8 @@ function describeFlowItem(hass, item, ctx) {
   }
   if (cond === "trigger") {
     const ids = asArray(item.id).map(String);
-    const matched = asArray(ctx?.triggers).filter((tr, i7) =>
-      ids.includes(_triggerEffectiveId(tr, i7)),
+    const matched = asArray(ctx?.triggers).filter((tr, i8) =>
+      ids.includes(_triggerEffectiveId(tr, i8)),
     );
     if (
       matched.length &&
@@ -29660,7 +29729,7 @@ function describeFlowItem(hass, item, ctx) {
     const actionKey = ACTION_KEYS[svcName];
     const name = actionKey
       ? t5(actionKey)
-      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c4) => c4.toUpperCase());
+      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c6) => c6.toUpperCase());
     const targets = item.target?.entity_id ?? item.data?.entity_id;
     const tgt = fmtEntities(hass, targets, lang);
     const extras = [];
@@ -29703,10 +29772,10 @@ function describeFlowItem(hass, item, ctx) {
       : t5("if_then", thenCount);
   }
   if (item.repeat) {
-    const r4 = item.repeat;
-    if (r4.count != null) return t5("repeat_count", r4.count);
-    if (r4.while) return t5("repeat_while");
-    if (r4.until) return t5("repeat_until");
+    const r6 = item.repeat;
+    if (r6.count != null) return t5("repeat_count", r6.count);
+    if (r6.while) return t5("repeat_while");
+    if (r6.until) return t5("repeat_until");
     return t5("repeat");
   }
   if (item.parallel) return t5("parallel", asArray(item.parallel).length);
@@ -29723,17 +29792,17 @@ function describeFlowItem(hass, item, ctx) {
     "description",
   ]);
   const readable = Object.entries(item)
-    .filter(([k2, v2]) => !SKIP.has(k2) && v2 != null && v2 !== "")
-    .map(([k2, v2]) => {
+    .filter(([k2, v3]) => !SKIP.has(k2) && v3 != null && v3 !== "")
+    .map(([k2, v3]) => {
       const label = k2.replace(/_/g, " ");
       const strVal =
-        typeof v2 === "string"
-          ? v2
-          : Array.isArray(v2)
-            ? v2
+        typeof v3 === "string"
+          ? v3
+          : Array.isArray(v3)
+            ? v3
                 .map((x2) => (typeof x2 === "object" ? "\u2026" : x2))
                 .join(", ")
-            : String(v2);
+            : String(v3);
       if (strVal.includes("{{") || strVal.includes("{%")) return null;
       return `${label}: ${strVal}`;
     })
@@ -29750,12 +29819,12 @@ function collectFlowEntityIds(item) {
   const push = (val) => {
     if (val == null) return;
     const arr = Array.isArray(val) ? val : [val];
-    for (const v2 of arr) {
-      if (typeof v2 !== "string" || !v2) continue;
-      if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(v2)) continue;
-      if (seen.has(v2)) continue;
-      seen.add(v2);
-      out.push(v2);
+    for (const v3 of arr) {
+      if (typeof v3 !== "string" || !v3) continue;
+      if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(v3)) continue;
+      if (seen.has(v3)) continue;
+      seen.add(v3);
+      out.push(v3);
     }
   };
   push(item.entity_id);
@@ -29841,41 +29910,41 @@ function displayTriggers(triggers, conditions, actions) {
   const refIds = /* @__PURE__ */ new Set();
   const condEntities = /* @__PURE__ */ new Set();
   const visitCondition = (raw, negated = false) => {
-    const c4 = normalizeCondition(raw);
-    if (!c4 || typeof c4 !== "object") return;
-    if (c4.enabled === false) return;
-    if (c4.condition === "trigger" && !negated)
-      for (const id of asArray(c4.id)) refIds.add(String(id));
+    const c6 = normalizeCondition(raw);
+    if (!c6 || typeof c6 !== "object") return;
+    if (c6.enabled === false) return;
+    if (c6.condition === "trigger" && !negated)
+      for (const id of asArray(c6.id)) refIds.add(String(id));
     if (
-      c4.condition !== "template" ||
-      _templateHasConcreteDescription(c4.value_template)
+      c6.condition !== "template" ||
+      _templateHasConcreteDescription(c6.value_template)
     ) {
-      for (const eid of collectFlowEntityIds(c4)) condEntities.add(eid);
+      for (const eid of collectFlowEntityIds(c6)) condEntities.add(eid);
     }
-    for (const sub of asArray(c4.conditions))
-      visitCondition(sub, negated || c4.condition === "not");
+    for (const sub of asArray(c6.conditions))
+      visitCondition(sub, negated || c6.condition === "not");
   };
   const visitAction = (a3) => {
     if (!a3 || typeof a3 !== "object") return;
     if (a3.enabled === false) return;
     for (const branch of asArray(a3.choose)) {
-      for (const c4 of asArray(branch?.conditions)) visitCondition(c4);
-      for (const s4 of asArray(branch?.sequence)) visitAction(s4);
+      for (const c6 of asArray(branch?.conditions)) visitCondition(c6);
+      for (const s6 of asArray(branch?.sequence)) visitAction(s6);
     }
-    for (const c4 of asArray(a3.if)) visitCondition(c4);
+    for (const c6 of asArray(a3.if)) visitCondition(c6);
     for (const key of ["then", "else", "default", "sequence", "parallel"]) {
-      for (const s4 of asArray(a3[key])) visitAction(s4);
+      for (const s6 of asArray(a3[key])) visitAction(s6);
     }
-    for (const s4 of asArray(a3.repeat?.sequence)) visitAction(s4);
+    for (const s6 of asArray(a3.repeat?.sequence)) visitAction(s6);
   };
-  asArray(conditions).forEach((c4) => visitCondition(c4));
+  asArray(conditions).forEach((c6) => visitCondition(c6));
   asArray(actions).forEach(visitAction);
   const hasUnconditional = _hasUnconditionalActionPath(actions);
-  const isRedundant = (tr, i7) => {
+  const isRedundant = (tr, i8) => {
     if (!tr || typeof tr !== "object") return false;
     if (tr.enabled === false) return false;
     if (hasUnconditional) return false;
-    if (refIds.has(_triggerEffectiveId(tr, i7))) return true;
+    if (refIds.has(_triggerEffectiveId(tr, i8))) return true;
     if (!_isBareStateTrigger(tr)) return false;
     const ids = asArray(tr.entity_id).filter((e6) => typeof e6 === "string");
     return ids.length > 0 && ids.every((e6) => condEntities.has(e6));
@@ -29893,11 +29962,11 @@ var REFINEMENT_TERMINATORS = /* @__PURE__ */ new Set([
 var MAX_SUGGESTIONS = 4;
 function activeRefinement(messages) {
   const list = messages || [];
-  for (let i7 = list.length - 1; i7 >= 0; i7--) {
-    const m3 = list[i7] || {};
+  for (let i8 = list.length - 1; i8 >= 0; i8--) {
+    const m3 = list[i8] || {};
     const status = m3.automation_status;
     if (REFINEMENT_TERMINATORS.has(status)) return null;
-    if (status === "refining" && m3.automation_yaml) return { index: i7 };
+    if (status === "refining" && m3.automation_yaml) return { index: i8 };
   }
   return null;
 }
@@ -29905,13 +29974,13 @@ var _disabled = (node) => node?.enabled === false;
 function _leaves(automation) {
   const out = [];
   const visitCondition = (raw) => {
-    const c4 = normalizeCondition(raw);
-    if (!c4 || typeof c4 !== "object" || _disabled(c4)) return;
-    if (["and", "or", "not"].includes(c4.condition)) {
-      asArray(c4.conditions).forEach(visitCondition);
+    const c6 = normalizeCondition(raw);
+    if (!c6 || typeof c6 !== "object" || _disabled(c6)) return;
+    if (["and", "or", "not"].includes(c6.condition)) {
+      asArray(c6.conditions).forEach(visitCondition);
       return;
     }
-    out.push({ kind: "condition", item: c4 });
+    out.push({ kind: "condition", item: c6 });
   };
   const visitAction = (a3) => {
     if (!a3 || typeof a3 !== "object" || _disabled(a3)) return;
@@ -29946,7 +30015,7 @@ function _leaves(automation) {
 }
 var _triggerType = (t5) => t5.trigger ?? t5.platform;
 var _service = (a3) => String(a3.action ?? a3.service ?? "");
-var _isNumber = (v2) => typeof v2 === "number" || /^-?\d+(\.\d+)?$/.test(v2);
+var _isNumber = (v3) => typeof v3 === "number" || /^-?\d+(\.\d+)?$/.test(v3);
 function refineSuggestions(host, automation) {
   const leaves = _leaves(automation);
   const t5 = (key, fallback, values) =>
@@ -30102,16 +30171,16 @@ function renderRefineSuggestions(host) {
     <div class="chat-quick-actions refine-suggestions">
       <div class="qa-group">
         ${suggestions.map(
-          (s4) => b2`
+          (s6) => b2`
             <button
               class="qa-suggestion"
-              @click=${() => prefillComposer(host, s4.prefill)}
+              @click=${() => prefillComposer(host, s6.prefill)}
             >
               <span class="qa-glow-track" aria-hidden="true">
                 <span class="qa-glow-spot"></span>
               </span>
-              <ha-icon class="qa-suggestion-lead" icon=${s4.icon}></ha-icon>
-              <span class="qa-suggestion-label">${s4.label}</span>
+              <ha-icon class="qa-suggestion-lead" icon=${s6.icon}></ha-icon>
+              <span class="qa-suggestion-label">${s6.label}</span>
             </button>
           `,
         )}
@@ -30293,7 +30362,7 @@ async function resolveClientActions(host, msg, approval) {
     for (const action of actions) {
       results.push(await runClientAction(host.hass, action));
     }
-    ok = results.length > 0 && results.every((r4) => r4.ok);
+    ok = results.length > 0 && results.every((r6) => r6.ok);
     try {
       await host.hass.callWS({
         type: "selora_ai/client_action_result",
@@ -30416,11 +30485,11 @@ var DOMAIN_FORMS = {
     past: "Ran shell command",
   },
 };
-function _domainOf(s4) {
-  return (s4 || "").split(".", 1)[0];
+function _domainOf(s6) {
+  return (s6 || "").split(".", 1)[0];
 }
-function _serviceSuffix(s4) {
-  const parts = (s4 || "").split(".");
+function _serviceSuffix(s6) {
+  const parts = (s6 || "").split(".");
   return parts.length > 1 ? parts.slice(1).join(".") : "";
 }
 function _friendlyName(host, entityId) {
@@ -30953,7 +31022,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       </div>
     `;
   }
-  const reasonFor = (i7) => reasons[i7] || "";
+  const reasonFor = (i8) => reasons[i8] || "";
   return b2`
     <div
       style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
@@ -30973,7 +31042,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${calls.map((c4, i7) => _renderCallRow(host, c4, reasonFor(i7)))}
+        ${calls.map((c6, i8) => _renderCallRow(host, c6, reasonFor(i8)))}
       </div>
       ${
         entityIds.length
@@ -31068,11 +31137,11 @@ function renderAgentSteps(host, steps) {
       class="agent-steps"
       style="display:flex;flex-direction:column;gap:7px;margin:2px 2px 10px;"
     >
-      ${items.map((step, i7) => {
+      ${items.map((step, i8) => {
         const color = _stepColor(step.status);
         const spinning = step.status === "active";
         const emphasised = step.status === "warn" || step.status === "error";
-        const showRail = i7 !== lastIndex;
+        const showRail = i8 !== lastIndex;
         return b2`
           <div
             class="agent-step"
@@ -31952,11 +32021,11 @@ var GHOST_MIN_PREFIX = 3;
 var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
 function _partialWordAt(text, caret) {
   if (caret <= 0) return null;
-  let i7 = caret;
-  while (i7 > 0 && _WORD_CHAR_RE.test(text[i7 - 1])) i7--;
-  const word = text.slice(i7, caret);
+  let i8 = caret;
+  while (i8 > 0 && _WORD_CHAR_RE.test(text[i8 - 1])) i8--;
+  const word = text.slice(i8, caret);
   if (!word) return null;
-  return { word, start: i7 };
+  return { word, start: i8 };
 }
 function findGhostSuggestion(text, caret, lang) {
   if (typeof text !== "string") return null;
@@ -32019,15 +32088,15 @@ function _articleWordsFor(lang) {
   return new Set(ARTICLE_WORDS_BY_LANG[key]);
 }
 var _INTRA_WORD_RE = /['’-]/;
-function _isNameChar(text, i7) {
-  if (i7 < 0 || i7 >= text.length) return false;
-  if (_WORD_CHAR_RE.test(text[i7])) return true;
-  if (!_INTRA_WORD_RE.test(text[i7])) return false;
+function _isNameChar(text, i8) {
+  if (i8 < 0 || i8 >= text.length) return false;
+  if (_WORD_CHAR_RE.test(text[i8])) return true;
+  if (!_INTRA_WORD_RE.test(text[i8])) return false;
   return (
-    i7 > 0 &&
-    i7 + 1 < text.length &&
-    _WORD_CHAR_RE.test(text[i7 - 1]) &&
-    _WORD_CHAR_RE.test(text[i7 + 1])
+    i8 > 0 &&
+    i8 + 1 < text.length &&
+    _WORD_CHAR_RE.test(text[i8 - 1]) &&
+    _WORD_CHAR_RE.test(text[i8 + 1])
   );
 }
 function _completionSpan(text, caret, labels) {
@@ -32188,8 +32257,8 @@ function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
   return dedupeDeviceItems(items);
 }
 var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
-function normLabel(s4) {
-  return s4.toLowerCase().replace(/\s+/g, " ").trim();
+function normLabel(s6) {
+  return s6.toLowerCase().replace(/\s+/g, " ").trim();
 }
 function baseLabel(normalized) {
   return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
@@ -32201,13 +32270,13 @@ function isParenPrefix(shorter, longer) {
 }
 function labelsForked(labels) {
   const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
-  for (let i7 = 0; i7 + 1 < sorted.length; i7++) {
-    if (!isParenPrefix(sorted[i7], sorted[i7 + 1])) return true;
+  for (let i8 = 0; i8 + 1 < sorted.length; i8++) {
+    if (!isParenPrefix(sorted[i8], sorted[i8 + 1])) return true;
   }
   return false;
 }
 function dedupeDeviceItems(items) {
-  const devices = items.filter((i7) => i7.kind === "device");
+  const devices = items.filter((i8) => i8.kind === "device");
   const domainsByDevice = /* @__PURE__ */ new Map();
   for (const it of devices) {
     if (!it.device_id) continue;
@@ -32253,15 +32322,15 @@ function dedupeDeviceItems(items) {
     buckets.get(key).push(it);
   }
   for (const rows of buckets.values()) {
-    const labels = new Set(rows.map((r4) => normLabel(r4.label)));
+    const labels = new Set(rows.map((r6) => normLabel(r6.label)));
     if (labels.size < 2) continue;
-    if (!rows.some((r4) => r4.area_id)) continue;
+    if (!rows.some((r6) => r6.area_id)) continue;
     if (labelsForked(labels)) continue;
     for (const it of rows) {
       if (!it.area_id && it.device_id) kept.delete(it);
     }
   }
-  return items.filter((i7) => i7.kind !== "device" || kept.has(i7));
+  return items.filter((i8) => i8.kind !== "device" || kept.has(i8));
 }
 var SCORE_WORD_EXACT = 1500;
 var SCORE_LABEL_PREFIX = 1e3;
@@ -32282,8 +32351,8 @@ function _scoreItem(item, lowerQuery) {
   }
   if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
   let qi = 0;
-  for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
-    if (label[i7] === lowerQuery[qi]) qi += 1;
+  for (let i8 = 0; i8 < label.length && qi < lowerQuery.length; i8++) {
+    if (label[i8] === lowerQuery[qi]) qi += 1;
   }
   if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
   return 0;
@@ -32339,7 +32408,7 @@ function rankSuggestions(
     }
     return a3.item.label.localeCompare(b3.item.label);
   });
-  return scored.slice(0, max).map((s4) => s4.item);
+  return scored.slice(0, max).map((s6) => s6.item);
 }
 function applySelection(text, trigger, item) {
   const before = text.slice(0, trigger.start);
@@ -32389,8 +32458,8 @@ function stripEntityMarkers(text) {
     .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
     .trimEnd();
 }
-function _escapeRegex(s4) {
-  return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function _escapeRegex(s6) {
+  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function _labelSpans(text, label) {
   const startsWord = _WORD_CHAR_RE.test(label[0]);
@@ -32415,9 +32484,9 @@ function pruneStaleSelections(text, selections, ignoreRange) {
     typeof skipFrom === "number" &&
     typeof skipTo === "number" &&
     skipTo > skipFrom;
-  return selections.filter((s4) => {
-    if (!s4.label) return false;
-    const spans = _labelSpans(text, s4.label);
+  return selections.filter((s6) => {
+    if (!s6.label) return false;
+    const spans = _labelSpans(text, s6.label);
     if (!skipping) return spans.length > 0;
     return spans.some(([start, end]) => start < skipFrom || end > skipTo);
   });
@@ -32492,8 +32561,8 @@ async function _processImageFile(file) {
   };
 }
 async function addImageAttachments(host, files) {
-  const images = Array.from(files || []).filter((f3) =>
-    ACCEPTED_MIME.has(f3.type),
+  const images = Array.from(files || []).filter((f4) =>
+    ACCEPTED_MIME.has(f4.type),
   );
   if (!images.length) return;
   if (!supportsImageAttachments(host)) {
@@ -32564,7 +32633,7 @@ async function addImageAttachments(host, files) {
 }
 function removeChatAttachment(host, idx) {
   host._chatAttachments = (host._chatAttachments || []).filter(
-    (_2, i7) => i7 !== idx,
+    (_2, i8) => i8 !== idx,
   );
   host._attachmentNotice = "";
 }
@@ -32686,20 +32755,20 @@ function _formatReplyMs(ms) {
 function _formatToolArgs(args) {
   if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
   const parts = [];
-  for (const [k2, v2] of Object.entries(args)) {
+  for (const [k2, v3] of Object.entries(args)) {
     let val;
-    if (v2 === null || v2 === void 0) {
+    if (v3 === null || v3 === void 0) {
       val = "null";
-    } else if (typeof v2 === "string") {
+    } else if (typeof v3 === "string") {
       val =
-        v2.length > 60
-          ? JSON.stringify(v2.slice(0, 60) + "\u2026")
-          : JSON.stringify(v2);
-    } else if (typeof v2 === "object") {
-      const json = JSON.stringify(v2);
+        v3.length > 60
+          ? JSON.stringify(v3.slice(0, 60) + "\u2026")
+          : JSON.stringify(v3);
+    } else if (typeof v3 === "object") {
+      const json = JSON.stringify(v3);
       val = json.length > 60 ? json.slice(0, 60) + "\u2026" : json;
     } else {
-      val = String(v2);
+      val = String(v3);
     }
     parts.push(`${k2}=${val}`);
   }
@@ -32727,9 +32796,9 @@ function renderToolCalls(host, toolCalls) {
         style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
       >
         ${toolCalls.map(
-          (tc, i7) => b2`
+          (tc, i8) => b2`
             <div
-              style="padding:2px 0;${i7 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+              style="padding:2px 0;${i8 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
             >
               <span style="color:var(--primary-text-color);font-weight:600;"
                 >${tc.tool}</span
@@ -32807,7 +32876,7 @@ function renderChat(host) {
       <div class="chat-pane">
         ${renderDropOverlay(host)}
         <div class="chat-welcome-center" id="chat-messages">
-          ${i6(
+          ${i7(
             host._welcomeKey || 0,
             b2`
               <div class="welcome-center-content">
@@ -33011,8 +33080,8 @@ function _maybeDecodePercentEncoded(text) {
 function _handlePaste(host, e6) {
   const clip2 = e6.clipboardData;
   if (!clip2) return;
-  const imageFiles = Array.from(clip2.files || []).filter((f3) =>
-    f3.type.startsWith("image/"),
+  const imageFiles = Array.from(clip2.files || []).filter((f4) =>
+    f4.type.startsWith("image/"),
   );
   if (imageFiles.length) {
     e6.preventDefault();
@@ -33108,7 +33177,7 @@ function _updateAutocomplete(host, textarea) {
     value,
     caret,
     host.hass?.language,
-    (host._autocompleteSelections || []).map((s4) => s4.label),
+    (host._autocompleteSelections || []).map((s6) => s6.label),
   );
   const closeIfOpen = () => {
     if (host._autocomplete?.open) {
@@ -33284,7 +33353,7 @@ function _selectAutocompleteItem(host, textarea, item) {
 }
 function _removeSelection(host, idx) {
   const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i7) => i7 !== idx);
+  host._autocompleteSelections = sels.filter((_2, i8) => i8 !== idx);
 }
 function _renderAutocomplete(host) {
   const ac = host._autocomplete;
@@ -33363,13 +33432,13 @@ function _renderSelectionChips(host) {
   return b2`
     <div class="composer-selections-inline">
       ${sels.map(
-        (s4, idx) => b2`
+        (s6, idx) => b2`
           <span
             class="composer-selection-chip"
-            title=${s4.entity_id || s4.area_id || ""}
+            title=${s6.entity_id || s6.area_id || ""}
           >
-            <ha-icon icon=${s4.icon}></ha-icon>
-            ${s4.label}
+            <ha-icon icon=${s6.icon}></ha-icon>
+            ${s6.label}
             <button
               type="button"
               title=${host._t("chat_selection_remove", "Remove")}
@@ -34136,8 +34205,8 @@ function buildDelays(count) {
   if (count <= 0) return [];
   const step =
     count > 1 ? Math.min(BUILD_STEP_MS, BUILD_SPAN_MS / (count - 1)) : 0;
-  return Array.from({ length: count }, (_2, i7) =>
-    Math.round(BUILD_START_MS + i7 * step),
+  return Array.from({ length: count }, (_2, i8) =>
+    Math.round(BUILD_START_MS + i8 * step),
   );
 }
 function stageProposalBuild(card) {
@@ -34150,9 +34219,9 @@ function stageProposalBuild(card) {
     // lands last, once there is something to accept.
     card.closest(".assistant-wrap")?.querySelector(":scope > .bubble-meta"),
   ].filter(Boolean);
-  buildDelays(pieces.length).forEach((delay, i7) => {
-    pieces[i7].setAttribute("data-build", "");
-    pieces[i7].style.setProperty("--build-delay", `${delay}ms`);
+  buildDelays(pieces.length).forEach((delay, i8) => {
+    pieces[i8].setAttribute("data-build", "");
+    pieces[i8].style.setProperty("--build-delay", `${delay}ms`);
   });
   return pieces;
 }
@@ -34253,16 +34322,16 @@ function lineShape(text) {
   return { key: null, start: indentOf(text) };
 }
 function lcsTable(a3, b3) {
-  const n4 = a3.length;
+  const n6 = a3.length;
   const m3 = b3.length;
   const width = m3 + 1;
-  const dp = new Uint32Array((n4 + 1) * width);
-  for (let i7 = n4 - 1; i7 >= 0; i7--) {
+  const dp = new Uint32Array((n6 + 1) * width);
+  for (let i8 = n6 - 1; i8 >= 0; i8--) {
     for (let j2 = m3 - 1; j2 >= 0; j2--) {
-      dp[i7 * width + j2] =
-        a3[i7] === b3[j2]
-          ? dp[(i7 + 1) * width + (j2 + 1)] + 1
-          : Math.max(dp[(i7 + 1) * width + j2], dp[i7 * width + (j2 + 1)]);
+      dp[i8 * width + j2] =
+        a3[i8] === b3[j2]
+          ? dp[(i8 + 1) * width + (j2 + 1)] + 1
+          : Math.max(dp[(i8 + 1) * width + j2], dp[i8 * width + (j2 + 1)]);
     }
   }
   return dp;
@@ -34276,25 +34345,25 @@ function diffLines(before, after) {
   const lines = [];
   let added = 0;
   let removed = 0;
-  let i7 = 0;
+  let i8 = 0;
   let j2 = 0;
-  while (i7 < a3.length && j2 < b3.length) {
-    if (a3[i7] === b3[j2]) {
-      lines.push({ type: "ctx", text: a3[i7] });
-      i7++;
+  while (i8 < a3.length && j2 < b3.length) {
+    if (a3[i8] === b3[j2]) {
+      lines.push({ type: "ctx", text: a3[i8] });
+      i8++;
       j2++;
-    } else if (dp[(i7 + 1) * width + j2] >= dp[i7 * width + (j2 + 1)]) {
-      lines.push({ type: "del", text: a3[i7] });
+    } else if (dp[(i8 + 1) * width + j2] >= dp[i8 * width + (j2 + 1)]) {
+      lines.push({ type: "del", text: a3[i8] });
       removed++;
-      i7++;
+      i8++;
     } else {
       lines.push({ type: "add", text: b3[j2] });
       added++;
       j2++;
     }
   }
-  for (; i7 < a3.length; i7++) {
-    lines.push({ type: "del", text: a3[i7] });
+  for (; i8 < a3.length; i8++) {
+    lines.push({ type: "del", text: a3[i8] });
     removed++;
   }
   for (; j2 < b3.length; j2++) {
@@ -34307,8 +34376,8 @@ function yamlContextPath(lines, index) {
   if (index < 0 || index >= lines.length) return [];
   const path = [];
   let depth = lineShape(lines[index].text).start;
-  for (let i7 = index - 1; i7 >= 0 && depth > 0; i7--) {
-    const shape = lineShape(lines[i7].text);
+  for (let i8 = index - 1; i8 >= 0 && depth > 0; i8--) {
+    const shape = lineShape(lines[i8].text);
     if (shape.key === null || shape.start >= depth) continue;
     path.push(shape.key);
     depth = shape.start;
@@ -34390,14 +34459,14 @@ function _topLevelFlowEntries(text) {
   let depth = 0;
   let quote = null;
   let start = 0;
-  for (let i7 = 0; i7 < inner.length; i7++) {
-    const ch = inner[i7];
+  for (let i8 = 0; i8 < inner.length; i8++) {
+    const ch = inner[i8];
     if (quote) {
       if (quote === '"' && ch === "\\") {
-        i7++;
+        i8++;
       } else if (ch === quote) {
-        if (quote === "'" && inner[i7 + 1] === "'") {
-          i7++;
+        if (quote === "'" && inner[i8 + 1] === "'") {
+          i8++;
         } else {
           quote = null;
         }
@@ -34411,8 +34480,8 @@ function _topLevelFlowEntries(text) {
     } else if (ch === "}" || ch === "]") {
       depth--;
     } else if (ch === "," && depth === 0) {
-      entries.push(inner.slice(start, i7));
-      start = i7 + 1;
+      entries.push(inner.slice(start, i8));
+      start = i8 + 1;
     }
   }
   entries.push(inner.slice(start));
@@ -34434,24 +34503,24 @@ function _extractInitialState(yamlText) {
     return _flowInitialState(trimmed);
   }
   const lines = yamlText.split(/\r?\n/);
-  const isSkippable = (c4) =>
-    !c4 || c4.startsWith("#") || c4 === "---" || c4 === "...";
+  const isSkippable = (c6) =>
+    !c6 || c6.startsWith("#") || c6 === "---" || c6 === "...";
   let baseIndent = null;
-  for (let i7 = 0; i7 < lines.length; i7++) {
-    const content = lines[i7].trim();
+  for (let i8 = 0; i8 < lines.length; i8++) {
+    const content = lines[i8].trim();
     if (isSkippable(content)) continue;
-    const indent = lines[i7].length - lines[i7].trimStart().length;
+    const indent = lines[i8].length - lines[i8].trimStart().length;
     if (baseIndent === null) baseIndent = indent;
     if (indent !== baseIndent) continue;
     const m3 = content.match(new RegExp("^" + _INITIAL_STATE_KEY.source)); // nosemgrep
     if (!m3) continue;
     let rawValue = m3[2];
     if (rawValue.replace(/(?:^|\s+)#.*$/, "").trim() === "") {
-      for (let j2 = i7 + 1; j2 < lines.length; j2++) {
-        const c4 = lines[j2].trim();
-        if (!c4 || c4.startsWith("#")) continue;
+      for (let j2 = i8 + 1; j2 < lines.length; j2++) {
+        const c6 = lines[j2].trim();
+        if (!c6 || c6.startsWith("#")) continue;
         const jIndent = lines[j2].length - lines[j2].trimStart().length;
-        if (jIndent > baseIndent) rawValue = c4;
+        if (jIndent > baseIndent) rawValue = c6;
         break;
       }
     }
@@ -34482,8 +34551,8 @@ function _getRefiningAutomationId(msgIndex = null) {
   if (msg?.automation_id) return msg.automation_id;
   if (msg?.automation?.id) return msg.automation.id;
   const start = msgIndex == null ? this._messages.length - 1 : msgIndex - 1;
-  for (let i7 = start; i7 >= 0; i7--) {
-    const m3 = this._messages[i7] || {};
+  for (let i8 = start; i8 >= 0; i8--) {
+    const m3 = this._messages[i8] || {};
     const status = m3.automation_status;
     if (REFINEMENT_TERMINATORS.has(status)) return null;
     if (status === "refining") {
@@ -34587,7 +34656,7 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     (a3) => a3.automation_id === automationId,
   );
   if (!created?.entity_id) {
-    await new Promise((r4) => setTimeout(r4, 250));
+    await new Promise((r6) => setTimeout(r6, 250));
     await this._loadAutomations();
   }
   const target = (this._automations || []).find(
@@ -34675,13 +34744,13 @@ async function _createAutomationFromSuggestion(automation) {
   }
 }
 function _discardSuggestion(suggestion) {
-  this._suggestions = this._suggestions.filter((s4) => s4 !== suggestion);
+  this._suggestions = this._suggestions.filter((s6) => s6 !== suggestion);
 }
 var ACCEPT_ANIM_MS = 240;
 async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
   this._acceptAnimating = { ...this._acceptAnimating, [msgIndex]: true };
   this.requestUpdate();
-  await new Promise((r4) => setTimeout(r4, ACCEPT_ANIM_MS));
+  await new Promise((r6) => setTimeout(r6, ACCEPT_ANIM_MS));
   const edited = this._editedYaml[yamlKey];
   const msg = this._messages[msgIndex] || {};
   const originalYaml = msg.automation_yaml || "";
@@ -34786,9 +34855,9 @@ async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     await this._loadAutomations();
     const toast = _createdToast(auto.alias, createResult);
     this._showToast(toast.message, toast.type);
-    await new Promise((r4) => setTimeout(r4, 650));
-    this._suggestions = this._suggestions.filter((s4) => {
-      const a3 = s4.automation || s4.automation_data;
+    await new Promise((r6) => setTimeout(r6, 650));
+    this._suggestions = this._suggestions.filter((s6) => {
+      const a3 = s6.automation || s6.automation_data;
       return `sug_${a3?.alias}` !== yamlKey;
     });
     this._fadingOutSuggestions = {
@@ -35408,6 +35477,191 @@ function renderSearchMatchReason(host, reasons) {
   </span>`;
 }
 
+// node_modules/lit-html/async-directive.js
+var s5 = (i8, t5) => {
+  const e6 = i8._$AN;
+  if (void 0 === e6) return false;
+  for (const i9 of e6) (i9._$AO?.(t5, false), s5(i9, t5));
+  return true;
+};
+var o5 = (i8) => {
+  let t5, e6;
+  do {
+    if (void 0 === (t5 = i8._$AM)) break;
+    ((e6 = t5._$AN), e6.delete(i8), (i8 = t5));
+  } while (0 === e6?.size);
+};
+var r5 = (i8) => {
+  for (let t5; (t5 = i8._$AM); i8 = t5) {
+    let e6 = t5._$AN;
+    if (void 0 === e6) t5._$AN = e6 = /* @__PURE__ */ new Set();
+    else if (e6.has(i8)) break;
+    (e6.add(i8), c4(t5));
+  }
+};
+function h4(i8) {
+  void 0 !== this._$AN
+    ? (o5(this), (this._$AM = i8), r5(this))
+    : (this._$AM = i8);
+}
+function n4(i8, t5 = false, e6 = 0) {
+  const r6 = this._$AH,
+    h5 = this._$AN;
+  if (void 0 !== h5 && 0 !== h5.size)
+    if (t5)
+      if (Array.isArray(r6))
+        for (let i9 = e6; i9 < r6.length; i9++) (s5(r6[i9], false), o5(r6[i9]));
+      else null != r6 && (s5(r6, false), o5(r6));
+    else s5(this, i8);
+}
+var c4 = (i8) => {
+  i8.type == t3.CHILD && ((i8._$AP ??= n4), (i8._$AQ ??= h4));
+};
+var f3 = class extends i5 {
+  constructor() {
+    (super(...arguments), (this._$AN = void 0));
+  }
+  _$AT(i8, t5, e6) {
+    (super._$AT(i8, t5, e6), r5(this), (this.isConnected = i8._$AU));
+  }
+  _$AO(i8, t5 = true) {
+    (i8 !== this.isConnected &&
+      ((this.isConnected = i8),
+      i8 ? this.reconnected?.() : this.disconnected?.()),
+      t5 && (s5(this, i8), o5(this)));
+  }
+  setValue(t5) {
+    if (r4(this._$Ct)) this._$Ct._$AI(t5, this);
+    else {
+      const i8 = [...this._$Ct._$AH];
+      ((i8[this._$Ci] = t5), this._$Ct._$AI(i8, this, 0));
+    }
+  }
+  disconnected() {}
+  reconnected() {}
+};
+
+// node_modules/lit-html/directives/ref.js
+var o6 = /* @__PURE__ */ new WeakMap();
+var n5 = e4(
+  class extends f3 {
+    render(i8) {
+      return A;
+    }
+    update(i8, [s6]) {
+      const e6 = s6 !== this.G;
+      return (
+        e6 && this.rt(void 0),
+        (e6 || this.lt !== this.ct) &&
+          ((this.G = s6),
+          (this.ht = i8.options?.host),
+          this.rt((this.ct = i8.element))),
+        A
+      );
+    }
+    rt(t5) {
+      if (void 0 !== this.G)
+        if ((this.isConnected || (t5 = void 0), "function" == typeof this.G)) {
+          const i8 = this.ht ?? globalThis;
+          let s6 = o6.get(i8);
+          (void 0 === s6 &&
+            ((s6 = /* @__PURE__ */ new WeakMap()), o6.set(i8, s6)),
+            void 0 !== s6.get(this.G) && this.G.call(this.ht, void 0),
+            s6.set(this.G, t5),
+            void 0 !== t5 && this.G.call(this.ht, t5));
+        } else this.G.value = t5;
+    }
+    get lt() {
+      return "function" == typeof this.G
+        ? o6.get(this.ht ?? globalThis)?.get(this.G)
+        : this.G?.value;
+    }
+    disconnected() {
+      this.lt === this.ct && this.rt(void 0);
+    }
+    reconnected() {
+      this.rt(this.ct);
+    }
+  },
+);
+
+// node_modules/lit-html/directives/repeat.js
+var u4 = (e6, s6, t5) => {
+  const r6 = /* @__PURE__ */ new Map();
+  for (let l3 = s6; l3 <= t5; l3++) r6.set(e6[l3], l3);
+  return r6;
+};
+var c5 = e4(
+  class extends i5 {
+    constructor(e6) {
+      if ((super(e6), e6.type !== t3.CHILD))
+        throw Error("repeat() can only be used in text expressions");
+    }
+    dt(e6, s6, t5) {
+      let r6;
+      void 0 === t5 ? (t5 = s6) : void 0 !== s6 && (r6 = s6);
+      const l3 = [],
+        o8 = [];
+      let i8 = 0;
+      for (const s7 of e6)
+        ((l3[i8] = r6 ? r6(s7, i8) : i8), (o8[i8] = t5(s7, i8)), i8++);
+      return { values: o8, keys: l3 };
+    }
+    render(e6, s6, t5) {
+      return this.dt(e6, s6, t5).values;
+    }
+    update(s6, [t5, r6, c6]) {
+      const d3 = M2(s6),
+        { values: p4, keys: a3 } = this.dt(t5, r6, c6);
+      if (!Array.isArray(d3)) return ((this.ut = a3), p4);
+      const h5 = (this.ut ??= []),
+        v3 = [];
+      let m3,
+        y3,
+        x2 = 0,
+        j2 = d3.length - 1,
+        k2 = 0,
+        w2 = p4.length - 1;
+      for (; x2 <= j2 && k2 <= w2;)
+        if (null === d3[x2]) x2++;
+        else if (null === d3[j2]) j2--;
+        else if (h5[x2] === a3[k2]) ((v3[k2] = u3(d3[x2], p4[k2])), x2++, k2++);
+        else if (h5[j2] === a3[w2]) ((v3[w2] = u3(d3[j2], p4[w2])), j2--, w2--);
+        else if (h5[x2] === a3[w2])
+          ((v3[w2] = u3(d3[x2], p4[w2])),
+            v2(s6, v3[w2 + 1], d3[x2]),
+            x2++,
+            w2--);
+        else if (h5[j2] === a3[k2])
+          ((v3[k2] = u3(d3[j2], p4[k2])), v2(s6, d3[x2], d3[j2]), j2--, k2++);
+        else if (
+          (void 0 === m3 && ((m3 = u4(a3, k2, w2)), (y3 = u4(h5, x2, j2))),
+          m3.has(h5[x2]))
+        )
+          if (m3.has(h5[j2])) {
+            const e6 = y3.get(a3[k2]),
+              t6 = void 0 !== e6 ? d3[e6] : null;
+            if (null === t6) {
+              const e7 = v2(s6, d3[x2]);
+              (u3(e7, p4[k2]), (v3[k2] = e7));
+            } else
+              ((v3[k2] = u3(t6, p4[k2])), v2(s6, d3[x2], t6), (d3[e6] = null));
+            k2++;
+          } else (h3(d3[j2]), j2--);
+        else (h3(d3[x2]), x2++);
+      for (; k2 <= w2;) {
+        const e6 = v2(s6, v3[w2 + 1]);
+        (u3(e6, p4[k2]), (v3[k2++] = e6));
+      }
+      for (; x2 <= j2;) {
+        const e6 = d3[x2++];
+        null !== e6 && h3(e6);
+      }
+      return ((this.ut = a3), p3(s6, v3), E);
+    }
+  },
+);
+
 // src/panel/render-suggestions.js
 var PANEL_ANIM_MS = 260;
 var PANEL_SETTLE_MS = PANEL_ANIM_MS + 60;
@@ -35417,17 +35671,38 @@ function collapsedSuggestionCount() {
   const w2 = window.innerWidth;
   return w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : COLLAPSED_COUNT;
 }
-function normalizeProactive(s4) {
+function gridColumnsRef(host) {
+  if (!host._suggestionGridRef) {
+    host._suggestionGridRef = (grid) => {
+      host._suggestionGridObserver?.disconnect();
+      host._suggestionGridObserver = null;
+      if (!grid || typeof ResizeObserver === "undefined") return;
+      const observer = new ResizeObserver(() => {
+        const cols = getComputedStyle(grid)
+          .gridTemplateColumns.split(" ")
+          .filter(Boolean).length;
+        if (cols && cols !== host._suggestionGridCols) {
+          host._suggestionGridCols = cols;
+          host.requestUpdate?.();
+        }
+      });
+      observer.observe(grid);
+      host._suggestionGridObserver = observer;
+    };
+  }
+  return n5(host._suggestionGridRef);
+}
+function normalizeProactive(s6) {
   return {
     type: "proactive",
-    cardKey: `proactive_${s4.suggestion_id}`,
-    title: s4.description,
-    subtitle: s4.evidence_summary || null,
+    cardKey: `proactive_${s6.suggestion_id}`,
+    title: s6.description,
+    subtitle: s6.evidence_summary || null,
     risk: null,
-    automationYaml: s4.automation_yaml || "",
-    automationData: s4.automation_data || null,
-    _original: s4,
-    _suggestionId: s4.suggestion_id,
+    automationYaml: s6.automation_yaml || "",
+    automationData: s6.automation_data || null,
+    _original: s6,
+    _suggestionId: s6.suggestion_id,
   };
 }
 function normalizeLLM(item) {
@@ -35447,12 +35722,12 @@ function normalizeLLM(item) {
 function buildQualified(host) {
   const seenKeys = /* @__PURE__ */ new Set();
   const qualified = [];
-  for (const s4 of host._proactiveSuggestions || []) {
-    if ((s4.confidence || 0) < MIN_CONF) continue;
-    const key = (s4.description || "").toLowerCase().trim();
+  for (const s6 of host._proactiveSuggestions || []) {
+    if ((s6.confidence || 0) < MIN_CONF) continue;
+    const key = (s6.description || "").toLowerCase().trim();
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
-    qualified.push(normalizeProactive(s4));
+    qualified.push(normalizeProactive(s6));
   }
   for (const item of host._suggestions || []) {
     const auto = item.automation || item.automation_data;
@@ -35537,9 +35812,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
   const toggleExpand = () =>
     setTab(expanded ? null : hasFlow ? "flow" : "yaml");
   const expandedClass = expanded ? "expanded" : "";
-  return b2`
+  const card = b2`
     <div
-      class="card${fadingOut ? " fading-out" : ""}${expanded || (panelTab && !settled) ? " card-expanded" : ""}"
+      class="card${fadingOut ? " fading-out" : ""}${expanded ? " card-open" : ""}"
       style="padding:16px 18px;display:flex;flex-direction:column;"
     >
       <div
@@ -35648,35 +35923,6 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       </div>
 
       <div
-        class="card-panel${expanded ? " open" : ""}${expanded && settled ? " settled" : ""}"
-      >
-        <div class="card-panel-inner">
-          ${panelTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
-          ${
-            panelTab === "yaml"
-              ? b2`
-                  <div class="card-yaml" style="padding-top:6px;">
-                    <ha-code-editor
-                      mode="yaml"
-                      .value=${displayYaml}
-                      @value-changed=${(e6) => {
-                        host._editedYaml = {
-                          ...host._editedYaml,
-                          [cardKey]: e6.detail.value,
-                        };
-                      }}
-                      autocomplete-entities
-                      linewrap
-                      style="--code-mirror-font-size:12px;--code-mirror-max-height:min(60vh,520px);"
-                    ></ha-code-editor>
-                  </div>
-                `
-              : ""
-          }
-        </div>
-      </div>
-
-      <div
         style="display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:12px;"
       >
         <button
@@ -35707,6 +35953,70 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       </div>
     </div>
   `;
+  const detail = panelTab
+    ? b2`
+        <div class="card-detail${fadingOut ? " fading-out" : ""}">
+          <div
+            class="card-panel${expanded ? " open" : ""}${expanded && settled ? " settled" : ""}"
+          >
+            <div class="card-panel-inner">
+              <div class="card-detail-body">
+                ${panelTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
+                ${
+                  panelTab === "yaml"
+                    ? b2`
+                        <div class="card-yaml" style="padding-top:6px;">
+                          <ha-code-editor
+                            mode="yaml"
+                            .value=${displayYaml}
+                            @value-changed=${(e6) => {
+                              host._editedYaml = {
+                                ...host._editedYaml,
+                                [cardKey]: e6.detail.value,
+                              };
+                            }}
+                            autocomplete-entities
+                            linewrap
+                            style="--code-mirror-font-size:12px;--code-mirror-max-height:min(60vh,520px);"
+                          ></ha-code-editor>
+                        </div>
+                      `
+                    : ""
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    : null;
+  return [card, detail];
+}
+function renderSuggestionCards(host, items, bulkMode, selectedKeys) {
+  const cols = Math.max(
+    1,
+    host._suggestionGridCols || collapsedSuggestionCount(),
+  );
+  const out = [];
+  let details = [];
+  items.forEach((item, i8) => {
+    const [card, detail] = renderSuggestionCard(
+      host,
+      item,
+      bulkMode,
+      selectedKeys,
+    );
+    out.push({ key: `card:${item.cardKey}`, tpl: card });
+    if (detail) details.push({ key: `detail:${item.cardKey}`, tpl: detail });
+    if ((i8 + 1) % cols === 0 || i8 === items.length - 1) {
+      out.push(...details);
+      details = [];
+    }
+  });
+  return c5(
+    out,
+    (part) => part.key,
+    (part) => part.tpl,
+  );
 }
 function renderSuggestionsSection(host) {
   const qualified = buildQualified(host);
@@ -35988,10 +36298,11 @@ function renderSuggestionsSection(host) {
                   : ""
               }
 
-              <div class="automations-grid">
-                ${visibleItems.map((item) =>
-                  renderSuggestionCard(host, item, bulkMode, selectedKeys),
-                )}
+              <div
+                class="automations-grid suggestions-grid"
+                ${gridColumnsRef(host)}
+              >
+                ${renderSuggestionCards(host, visibleItems, bulkMode, selectedKeys)}
               </div>
 
               ${
@@ -36108,8 +36419,8 @@ function renderFlowDeviceLink(host, deviceId, name, domain) {
 }
 var DURATION_RE =
   /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
-function expandDurationAbbrev(s4) {
-  return s4
+function expandDurationAbbrev(s6) {
+  return s6
     .replace(/(\d+)\s*h\b/g, "$1 hr")
     .replace(/(\d+)\s*m\b/g, "$1 min")
     .replace(/(\d+)\s*s\b/g, "$1 sec");
@@ -36155,9 +36466,9 @@ function renderFlowDescription(host, item, ctx) {
   const nameCursor = /* @__PURE__ */ new Map();
   const nextLinkFor = (name) => {
     const queue = targetsByName.get(name) || [];
-    const i7 = nameCursor.get(name) ?? 0;
-    nameCursor.set(name, i7 + 1);
-    return queue[Math.min(i7, queue.length - 1)];
+    const i8 = nameCursor.get(name) ?? 0;
+    nameCursor.set(name, i8 + 1);
+    return queue[Math.min(i8, queue.length - 1)];
   };
   const segments = [];
   let remaining = description;
@@ -36191,14 +36502,14 @@ function renderFlowDescription(host, item, ctx) {
       final.push(piece);
     }
   }
-  return b2`${final.map((s4) => {
-    if (typeof s4 === "string") return s4;
-    if (s4.link?.entity) return renderFlowEntityLink(host, s4.link.entity);
-    if (s4.link?.device) {
-      const d3 = s4.link.device;
+  return b2`${final.map((s6) => {
+    if (typeof s6 === "string") return s6;
+    if (s6.link?.entity) return renderFlowEntityLink(host, s6.link.entity);
+    if (s6.link?.device) {
+      const d3 = s6.link.device;
       return renderFlowDeviceLink(host, d3.deviceId, d3.name, d3.domain);
     }
-    if (s4.duration) return renderFlowDuration(s4.duration);
+    if (s6.duration) return renderFlowDuration(s6.duration);
     return "";
   })}`;
 }
@@ -36257,8 +36568,8 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
   if (cond && typeof cond === "object") {
     const type = cond.condition;
     if (type === "and") {
-      const children = asArray(cond.conditions).map((c4) =>
-        renderConditionItem(host, c4, ctx, true),
+      const children = asArray(cond.conditions).map((c6) =>
+        renderConditionItem(host, c6, ctx, true),
       );
       if (implicitAll) return b2`${children}`;
       return b2`<div class="flow-branch">
@@ -36275,8 +36586,8 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
           : host._t("automations_flow_group_none_of", "None of the following:");
       return b2`<div class="flow-branch">
         <div class="flow-branch-label">${label}</div>
-        ${asArray(cond.conditions).map((c4) =>
-          renderConditionItem(host, c4, ctx, false),
+        ${asArray(cond.conditions).map((c6) =>
+          renderConditionItem(host, c6, ctx, false),
         )}
       </div>`;
     }
@@ -36322,7 +36633,7 @@ function renderActionItemBody(host, action, ctx) {
         <div class="flow-branch-label">
           ${host._t("automations_flow_branch_if", "If")}
         </div>
-        ${ifConds.map((c4) => renderConditionItem(host, c4, ctx))}
+        ${ifConds.map((c6) => renderConditionItem(host, c6, ctx))}
         ${
           // An arrow only means something with a step on each side; an empty
           // `then` otherwise left it dangling into nothing.
@@ -36330,7 +36641,7 @@ function renderActionItemBody(host, action, ctx) {
             ? b2`<div class="flow-arrow-sm">↓</div>`
             : ""
         }
-        ${thenSteps.map((s4) => renderActionItem(host, s4, ctx))}
+        ${thenSteps.map((s6) => renderActionItem(host, s6, ctx))}
       </div>
       ${
         elseSteps.length
@@ -36338,7 +36649,7 @@ function renderActionItemBody(host, action, ctx) {
               <div class="flow-branch-label">
                 ${host._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${elseSteps.map((s4) => renderActionItem(host, s4, ctx))}
+              ${elseSteps.map((s6) => renderActionItem(host, s6, ctx))}
             </div>`
           : ""
       }
@@ -36347,17 +36658,17 @@ function renderActionItemBody(host, action, ctx) {
   if (action && typeof action === "object" && action.choose != null) {
     return b2`<div class="flow-choose">
       ${asArray(action.choose).map(
-        (branch, i7) => b2`
+        (branch, i8) => b2`
           <div class="flow-branch">
             <div class="flow-branch-label">
-              ${i7 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
+              ${i8 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
-            ${asArray(branch?.conditions).map((c4) =>
-              renderConditionItem(host, c4, ctx),
+            ${asArray(branch?.conditions).map((c6) =>
+              renderConditionItem(host, c6, ctx),
             )}
             ${asArray(branch?.conditions).length && asArray(branch?.sequence).length ? b2`<div class="flow-arrow-sm">↓</div>` : ""}
-            ${asArray(branch?.sequence).map((s4) =>
-              renderActionItem(host, s4, ctx),
+            ${asArray(branch?.sequence).map((s6) =>
+              renderActionItem(host, s6, ctx),
             )}
           </div>
         `,
@@ -36368,7 +36679,7 @@ function renderActionItemBody(host, action, ctx) {
               <div class="flow-branch-label">
                 ${host._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${asArray(action.default).map((s4) => renderActionItem(host, s4, ctx))}
+              ${asArray(action.default).map((s6) => renderActionItem(host, s6, ctx))}
             </div>`
           : ""
       }
@@ -36379,7 +36690,7 @@ function renderActionItemBody(host, action, ctx) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${asArray(action.parallel).map((s4) => renderActionItem(host, s4, ctx))}
+      ${asArray(action.parallel).map((s6) => renderActionItem(host, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.sequence != null) {
@@ -36387,19 +36698,19 @@ function renderActionItemBody(host, action, ctx) {
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${asArray(action.sequence).map((s4) => renderActionItem(host, s4, ctx))}
+      ${asArray(action.sequence).map((s6) => renderActionItem(host, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
     const inner = asArray(action.repeat.sequence ?? action.repeat.actions);
     const repeatLabel = (() => {
-      const r4 = action.repeat;
-      if (r4.count != null) {
+      const r6 = action.repeat;
+      if (r6.count != null) {
         const literal =
-          typeof r4.count === "number"
-            ? r4.count
-            : /^\d+$/.test(String(r4.count).trim())
-              ? Number(String(r4.count).trim())
+          typeof r6.count === "number"
+            ? r6.count
+            : /^\d+$/.test(String(r6.count).trim())
+              ? Number(String(r6.count).trim())
               : null;
         return literal == null
           ? host._t("automations_flow_repeat", "Repeat")
@@ -36407,24 +36718,24 @@ function renderActionItemBody(host, action, ctx) {
               ._t("automations_flow_repeat_count", "Repeat {count}\xD7")
               .replace("{count}", String(literal));
       }
-      if (r4.for_each != null)
-        return Array.isArray(r4.for_each)
+      if (r6.for_each != null)
+        return Array.isArray(r6.for_each)
           ? host
               ._t(
                 "automations_flow_repeat_for_each",
                 "Repeat for each item ({count})",
               )
-              .replace("{count}", String(r4.for_each.length))
+              .replace("{count}", String(r6.for_each.length))
           : host._t(
               "automations_flow_repeat_for_each_dynamic",
               "Repeat for each item",
             );
-      if (r4.while)
+      if (r6.while)
         return host._t(
           "automations_flow_repeat_while",
           "Repeat while condition holds",
         );
-      if (r4.until)
+      if (r6.until)
         return host._t(
           "automations_flow_repeat_until",
           "Repeat until condition is met",
@@ -36433,7 +36744,7 @@ function renderActionItemBody(host, action, ctx) {
     })();
     return b2`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${inner.map((s4) => renderActionItem(host, s4, ctx))}
+      ${inner.map((s6) => renderActionItem(host, s6, ctx))}
     </div>`;
   }
   return renderFlowNode(host, action, "action", ctx);
@@ -36507,8 +36818,8 @@ function renderAutomationFlowchart(host, auto, opts = {}) {
     return Array.isArray(t5) ? t5 : [t5];
   })();
   const conditions = (() => {
-    const c4 = auto.conditions ?? auto.condition ?? [];
-    return Array.isArray(c4) ? c4 : [c4];
+    const c6 = auto.conditions ?? auto.condition ?? [];
+    return Array.isArray(c6) ? c6 : [c6];
   })().filter(Boolean);
   const actions = (() => {
     const a3 = auto.actions ?? auto.action ?? [];
@@ -36544,7 +36855,7 @@ function renderAutomationFlowchart(host, auto, opts = {}) {
                 <div class="flow-label">
                   ${host._t("automations_flow_label_condition", "Condition")}
                 </div>
-                ${conditions.map((c4) => renderConditionItem(host, c4, ctx))}
+                ${conditions.map((c6) => renderConditionItem(host, c6, ctx))}
               </div>
             `
           : ""
@@ -36924,10 +37235,10 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
   const w2 = window.innerWidth;
   const numCols = w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : cols;
   const buckets = Array.from({ length: numCols }, () => []);
-  cards.forEach((c4, i7) => buckets[i7 % numCols].push(c4));
+  cards.forEach((c6, i8) => buckets[i8 % numCols].push(c6));
   return buckets.map(
-    (col, i7) => b2`<div class="masonry-col">
-        ${col}${i7 === 0 && firstColFooter ? firstColFooter : ""}
+    (col, i8) => b2`<div class="masonry-col">
+        ${col}${i8 === 0 && firstColFooter ? firstColFooter : ""}
       </div>`,
   );
 }
@@ -37060,19 +37371,19 @@ function renderAutomations(host) {
                 <div class="filter-tabs-row" style="margin-top:12px;">
                   <div class="filter-tabs" role="tablist">
                     ${["all", "enabled", "disabled"].map(
-                      (s4) => b2`
+                      (s6) => b2`
                         <button
                           role="tab"
-                          aria-selected=${host._statusFilter === s4}
-                          class="filter-tab ${host._statusFilter === s4 ? "active" : ""}"
+                          aria-selected=${host._statusFilter === s6}
+                          class="filter-tab ${host._statusFilter === s6 ? "active" : ""}"
                           @click=${() => {
-                            host._statusFilter = s4;
+                            host._statusFilter = s6;
                             host._automationsPage = 1;
                           }}
                         >
                           ${host._t(
-                            `automations_status_tab_${s4}`,
-                            s4.charAt(0).toUpperCase() + s4.slice(1),
+                            `automations_status_tab_${s6}`,
+                            s6.charAt(0).toUpperCase() + s6.slice(1),
                           )}
                         </button>
                       `,
@@ -38576,8 +38887,8 @@ async function _openDiffViewer(automationId) {
   const versions = this._versions[automationId];
   if (!versions || versions.length < 2)
     await this._loadVersionHistory(automationId);
-  const v2 = this._versions[automationId] || [];
-  if (v2.length < 2) {
+  const v3 = this._versions[automationId] || [];
+  if (v3.length < 2) {
     this._showToast(
       this._t(
         "version_history_nothing_to_compare",
@@ -38589,8 +38900,8 @@ async function _openDiffViewer(automationId) {
     return;
   }
   this._diffAutomationId = automationId;
-  this._diffVersionA = v2[0]?.version_id || null;
-  this._diffVersionB = v2[1]?.version_id || null;
+  this._diffVersionA = v3[0]?.version_id || null;
+  this._diffVersionB = v3[1]?.version_id || null;
   this._diffResult = [];
   this._diffOpen = true;
   if (this._diffVersionA && this._diffVersionB) {
@@ -39061,23 +39372,23 @@ function renderScenes(host) {
   const sortDir = host._sceneSortDir || "desc";
   const statusFilter = host._sceneStatusFilter || "all";
   const allScenes = host._scenes || [];
-  const seloraCount = allScenes.filter((s4) => s4.source === "selora").length;
+  const seloraCount = allScenes.filter((s6) => s6.source === "selora").length;
   const manualCount = allScenes.length - seloraCount;
   let filtered = [...allScenes];
   if (statusFilter === "selora") {
-    filtered = filtered.filter((s4) => s4.source === "selora");
+    filtered = filtered.filter((s6) => s6.source === "selora");
   } else if (statusFilter === "manual") {
-    filtered = filtered.filter((s4) => s4.source !== "selora");
+    filtered = filtered.filter((s6) => s6.source !== "selora");
   }
   const matchReasons = /* @__PURE__ */ new Map();
   if (terms.length) {
     const reg = host._searchRegistry();
-    filtered = filtered.filter((s4) => {
+    filtered = filtered.filter((s6) => {
       const { match, reasons } = matchesSearchFields(
-        sceneSearchFields(s4, reg),
+        sceneSearchFields(s6, reg),
         terms,
       );
-      if (match && reasons.length) matchReasons.set(s4, reasons);
+      if (match && reasons.length) matchReasons.set(s6, reasons);
       return match;
     });
   }
@@ -39239,21 +39550,21 @@ function renderScenes(host) {
                   </div>
                 </div>
                 <div class="automations-list">
-                  ${filtered.map((s4) => {
-                    const sceneId = s4.scene_id;
-                    const sceneEntityId = s4.entity_id;
-                    const entities = s4.entities || {};
-                    const entityCount = _sceneEntityCount(s4);
+                  ${filtered.map((s6) => {
+                    const sceneId = s6.scene_id;
+                    const sceneEntityId = s6.entity_id;
+                    const entities = s6.entities || {};
+                    const entityCount = _sceneEntityCount(s6);
                     const isExpanded = !!host._expandedScenes?.[sceneId];
                     const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
                     const burgerOpen = host._openSceneBurger === sceneId;
                     const deleting = !!host._deletingScene?.[sceneId];
                     const loadingChat = !!host._loadingToChat?.[sceneId];
-                    const updated = formatTimeAgo(s4.updated_at);
+                    const updated = formatTimeAgo(s6.updated_at);
                     const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
-                    const isSelora = s4.source === "selora";
+                    const isSelora = s6.source === "selora";
                     const renamable =
-                      s4.renamable === void 0 ? isSelora : !!s4.renamable;
+                      s6.renamable === void 0 ? isSelora : !!s6.renamable;
                     const renameBlockedReason = {
                       no_yaml_id: host._t(
                         "scenes_rename_blocked_no_yaml_id",
@@ -39263,10 +39574,10 @@ function renderScenes(host) {
                         "scenes_rename_blocked_integration",
                         "This scene comes from another integration, so its name lives there. Rename it in that integration, or override the name in Home Assistant's entity settings.",
                       ),
-                    }[s4.rename_blocked || ""];
-                    const deletable = s4.deletable !== false;
-                    const recipeTitle = s4.recipe_title || "";
-                    const recipeSlug = s4.recipe_slug || "";
+                    }[s6.rename_blocked || ""];
+                    const deletable = s6.deletable !== false;
+                    const recipeTitle = s6.recipe_title || "";
+                    const recipeSlug = s6.recipe_slug || "";
                     return b2`
                       <div
                         class="auto-row${isExpanded ? " expanded" : ""}${host._highlightedScene === sceneId ? " highlighted" : ""}"
@@ -39332,7 +39643,7 @@ function renderScenes(host) {
                                         </button>
                                       `
                                     : b2`<span class="auto-row-title"
-                                        >${s4.name}</span
+                                        >${s6.name}</span
                                       >`
                                 }
                                 ${
@@ -39399,7 +39710,7 @@ function renderScenes(host) {
                               >
                               ${renderSearchMatchReason(
                                 host,
-                                matchReasons.get(s4),
+                                matchReasons.get(s6),
                               )}
                               <span class="auto-row-mobile-meta">
                                 <span>${meta}</span>
@@ -39422,7 +39733,7 @@ function renderScenes(host) {
                                 const id = sceneEntityId
                                   ? sceneEntityId.replace(/^scene\./, "")
                                   : sceneId;
-                                host._activateScene(id, s4.name);
+                                host._activateScene(id, s6.name);
                               }}
                               title=${host._t(
                                 "scenes_activate_button",
@@ -39499,7 +39810,7 @@ function renderScenes(host) {
                                             if (!renamable) return;
                                             host._startRenameScene(
                                               sceneId,
-                                              s4.name,
+                                              s6.name,
                                             );
                                           }}
                                         >
@@ -39562,7 +39873,7 @@ function renderScenes(host) {
                                                   host._deleteSceneConfirmId =
                                                     sceneId;
                                                   host._deleteSceneConfirmName =
-                                                    s4.name;
+                                                    s6.name;
                                                 }}
                                               >
                                                 <ha-icon
@@ -39646,9 +39957,9 @@ function renderScenes(host) {
                                               host._sceneIsDirty(sceneId)
                                                 ? host._sceneEditYaml(
                                                     sceneId,
-                                                    s4.name,
+                                                    s6.name,
                                                   )
-                                                : s4.yaml ||
+                                                : s6.yaml ||
                                                   host._t(
                                                     "scenes_yaml_unavailable_comment",
                                                     "# YAML not available \u2014 open the scene in Home Assistant to view it.",
@@ -39957,17 +40268,17 @@ function _buildDeviceIndex(devicesMap, areasMap) {
 }
 function _interleave(lists, max) {
   const out = [];
-  let i7 = 0;
+  let i8 = 0;
   while (out.length < max) {
     let added = false;
     for (const list of lists) {
-      if (i7 < list.length && out.length < max) {
-        out.push(list[i7]);
+      if (i8 < list.length && out.length < max) {
+        out.push(list[i8]);
         added = true;
       }
     }
     if (!added) break;
-    i7++;
+    i8++;
   }
   return out;
 }
@@ -40364,9 +40675,9 @@ function _todayCostHint(host) {
       entityId.includes("selora") &&
       entityId.endsWith("llm_cost")
     ) {
-      const v2 = Number(state?.state);
-      if (Number.isFinite(v2) && v2 > 0) {
-        return v2;
+      const v3 = Number(state?.state);
+      if (Number.isFinite(v3) && v3 > 0) {
+        return v3;
       }
       return 0;
     }
@@ -42364,20 +42675,20 @@ function _findUsageSensors(hass) {
   }
   return result;
 }
-function _fmtTokens(n4) {
-  const v2 = Number(n4) || 0;
-  if (v2 >= 1e6) return (v2 / 1e6).toFixed(2) + "M";
-  if (v2 >= 1e3) return (v2 / 1e3).toFixed(1) + "k";
-  return Math.round(v2).toLocaleString();
+function _fmtTokens(n6) {
+  const v3 = Number(n6) || 0;
+  if (v3 >= 1e6) return (v3 / 1e6).toFixed(2) + "M";
+  if (v3 >= 1e3) return (v3 / 1e3).toFixed(1) + "k";
+  return Math.round(v3).toLocaleString();
 }
-function _fmtUsd(n4) {
-  const v2 = Number(n4) || 0;
-  if (v2 === 0) return "$0.00";
-  if (v2 < 0.01) return "<$0.01";
-  return "$" + v2.toFixed(2);
+function _fmtUsd(n6) {
+  const v3 = Number(n6) || 0;
+  if (v3 === 0) return "$0.00";
+  if (v3 < 0.01) return "<$0.01";
+  return "$" + v3.toFixed(2);
 }
-function _fmtInt(n4) {
-  return (Number(n4) || 0).toLocaleString();
+function _fmtInt(n6) {
+  return (Number(n6) || 0).toLocaleString();
 }
 async function _fetchPeriodStats(hass, statisticIds, periodStart) {
   if (!hass) return {};
@@ -42399,8 +42710,8 @@ function _sumChange(buckets) {
   if (!Array.isArray(buckets)) return 0;
   let total = 0;
   for (const b3 of buckets) {
-    const v2 = Number(b3?.change ?? 0);
-    if (Number.isFinite(v2)) total += v2;
+    const v3 = Number(b3?.change ?? 0);
+    if (Number.isFinite(v3)) total += v3;
   }
   return total;
 }
@@ -42427,21 +42738,21 @@ async function loadUsageStats(host) {
         ]);
   const recentPromise = host.hass
     .callWS({ type: "selora_ai/usage/recent" })
-    .then((r4) => (Array.isArray(r4?.events) ? r4.events : []))
+    .then((r6) => (Array.isArray(r6?.events) ? r6.events : []))
     .catch((err) => {
       console.warn("Selora AI: failed to fetch recent usage events", err);
       return [];
     });
   const pricingPromise = host.hass
     .callWS({ type: "selora_ai/usage/pricing_defaults" })
-    .then((r4) => r4?.pricing || {})
+    .then((r6) => r6?.pricing || {})
     .catch((err) => {
       console.warn("Selora AI: failed to fetch pricing defaults", err);
       return {};
     });
   const breakdownPromise = host.hass
     .callWS({ type: "selora_ai/usage/breakdown", range: "30d" })
-    .then((r4) => r4?.breakdown || {})
+    .then((r6) => r6?.breakdown || {})
     .catch((err) => {
       console.warn("Selora AI: failed to fetch usage breakdown", err);
       return {};
@@ -42476,7 +42787,7 @@ async function loadUsageStats(host) {
           // Empty string means "the no-model bucket"; null means "any model".
           ...(filter.model != null ? { model: filter.model } : {}),
         })
-        .then((r4) => r4 || null)
+        .then((r6) => r6 || null)
         .catch((err) => {
           console.warn("Selora AI: failed to fetch filtered totals", err);
           return null;
@@ -42632,10 +42943,10 @@ function _highlightYaml(yamlStr) {
 }
 function _renderDashboardSnippet(host, sensors) {
   const selected = host._dashboardSnippetKey || _USAGE_KEYS[0];
-  const s4 = sensors[selected];
-  const entityId = s4?.entityId || `sensor.${selected}`;
+  const s6 = sensors[selected];
+  const entityId = s6?.entityId || `sensor.${selected}`;
   const label =
-    s4?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
+    s6?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
   const yaml = _yamlForSensor(entityId, label);
   return b2`
     <div class="usage-snippet-pills">
@@ -42859,10 +43170,10 @@ function _overridePriceFor(host, provider, model) {
   const overrides = host?._config?.llm_pricing_overrides || {};
   return overrides[provider]?.[model] || null;
 }
-function _formatPrice(n4) {
-  const v2 = Number(n4);
-  if (!Number.isFinite(v2)) return "\u2014";
-  return "$" + v2.toFixed(v2 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
+function _formatPrice(n6) {
+  const v3 = Number(n6);
+  if (!Number.isFinite(v3)) return "\u2014";
+  return "$" + v3.toFixed(v3 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
 }
 async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
   if (!host?._config) return;
@@ -43242,13 +43553,13 @@ function renderUsage(host) {
     ? breakdown.reduce((sum, g2) => sum + g2.cost_usd, 0)
     : 0;
   const bufTokensIn = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.input_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.input_tokens, 0)
     : 0;
   const bufTokensOut = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.output_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.output_tokens, 0)
     : 0;
   const bufCalls = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.calls, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.calls, 0)
     : 0;
   let dispTokensIn;
   let dispTokensOut;
@@ -43263,12 +43574,12 @@ function renderUsage(host) {
     dispCost = t5.cost_usd || 0;
     const p4 = filteredTotals.periods || {};
     const pick = (k2) => {
-      const v2 = p4[k2] || {};
+      const v3 = p4[k2] || {};
       return {
-        llm_tokens_in: v2.input || 0,
-        llm_tokens_out: v2.output || 0,
-        llm_calls: v2.calls || 0,
-        llm_cost: v2.cost_usd || 0,
+        llm_tokens_in: v3.input || 0,
+        llm_tokens_out: v3.output || 0,
+        llm_calls: v3.calls || 0,
+        llm_cost: v3.cost_usd || 0,
       };
     };
     periodStats = {
@@ -43662,8 +43973,8 @@ function _barColor(points) {
   if (points >= 5) return "#f97316";
   return "#f59e0b";
 }
-function _round(n4) {
-  return Math.round(n4);
+function _round(n6) {
+  return Math.round(n6);
 }
 function _jumpToCheck(host, checkId) {
   const root = host.renderRoot || host.shadowRoot;
@@ -43713,11 +44024,11 @@ function renderScoreBreakdown(host) {
   const score = host._auditScore;
   if (!bd || typeof score !== "number") return "";
   const sections = Array.isArray(bd.sections)
-    ? bd.sections.filter((s4) => s4 && s4.points > 0)
+    ? bd.sections.filter((s6) => s6 && s6.points > 0)
     : [];
   if (!sections.length) return "";
   const checkIds = new Set(
-    (host._auditChecks || []).map((c4) => c4.check_id).filter(Boolean),
+    (host._auditChecks || []).map((c6) => c6.check_id).filter(Boolean),
   );
   const maxPoints = sections[0].points || 1;
   return b2`
@@ -43728,8 +44039,8 @@ function renderScoreBreakdown(host) {
         </span>
       </div>
       <div class="sb-rows">
-        ${sections.map((s4, i7) =>
-          _sectionRow(host, s4, maxPoints, checkIds.has(s4.check_id), i7),
+        ${sections.map((s6, i8) =>
+          _sectionRow(host, s6, maxPoints, checkIds.has(s6.check_id), i8),
         )}
       </div>
     </div>
@@ -43946,7 +44257,7 @@ function _checkRow(host, check) {
       ${
         issues
           ? b2`<div class="audit-cards check-findings">
-              ${findings.map((f3) => _recCard(host, f3))}
+              ${findings.map((f4) => _recCard(host, f4))}
             </div>`
           : ""
       }
@@ -43968,7 +44279,7 @@ function _auditBody(host) {
   const checks = host._auditChecks || [];
   if (checks.length) {
     return b2`<div class="check-list">
-      ${checks.map((c4) => _checkRow(host, c4))}
+      ${checks.map((c6) => _checkRow(host, c6))}
     </div>`;
   }
   if (status === "no_llm") {
@@ -44002,7 +44313,7 @@ function _auditBody(host) {
   const recs = host._auditRecommendations || [];
   if (status === "ok" && recs.length) {
     return b2`<div class="audit-cards">
-      ${recs.map((r4) => _recCard(host, r4))}
+      ${recs.map((r6) => _recCard(host, r6))}
     </div>`;
   }
   if (status === "ok" && host._auditResponse) {
@@ -44117,35 +44428,35 @@ function renderInsights(host) {
 
 // node_modules/lit-html/directives/unsafe-html.js
 var e5 = class extends i5 {
-  constructor(i7) {
-    if ((super(i7), (this.it = A), i7.type !== t3.CHILD))
+  constructor(i8) {
+    if ((super(i8), (this.it = A), i8.type !== t3.CHILD))
       throw Error(
         this.constructor.directiveName +
           "() can only be used in child bindings",
       );
   }
-  render(r4) {
-    if (r4 === A || null == r4) return ((this._t = void 0), (this.it = r4));
-    if (r4 === E) return r4;
-    if ("string" != typeof r4)
+  render(r6) {
+    if (r6 === A || null == r6) return ((this._t = void 0), (this.it = r6));
+    if (r6 === E) return r6;
+    if ("string" != typeof r6)
       throw Error(
         this.constructor.directiveName + "() called with a non-string value",
       );
-    if (r4 === this.it) return this._t;
-    this.it = r4;
-    const s4 = [r4];
+    if (r6 === this.it) return this._t;
+    this.it = r6;
+    const s6 = [r6];
     return (
-      (s4.raw = s4),
+      (s6.raw = s6),
       (this._t = {
         _$litType$: this.constructor.resultType,
-        strings: s4,
+        strings: s6,
         values: [],
       })
     );
   }
 };
 ((e5.directiveName = "unsafeHTML"), (e5.resultType = 1));
-var o5 = e4(e5);
+var o7 = e4(e5);
 
 // src/panel/render-recipes.js
 var _ACCEPTED_SUFFIXES = [".tar.gz", ".tgz", ".zip"];
@@ -44203,31 +44514,31 @@ function _entityFriendlyName(hass, entityId) {
 }
 var _YAML_ESCAPE_RE = /[&<>]/g;
 var _YAML_ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
-function _escape(s4) {
-  return s4.replace(_YAML_ESCAPE_RE, (c4) => _YAML_ESC[c4]);
+function _escape(s6) {
+  return s6.replace(_YAML_ESCAPE_RE, (c6) => _YAML_ESC[c6]);
 }
 function _highlightYamlValue(rest) {
   const out = [];
-  let i7 = 0;
-  while (i7 < rest.length) {
-    if (rest[i7] === "{" && rest[i7 + 1] === "{") {
-      const end = rest.indexOf("}}", i7 + 2);
+  let i8 = 0;
+  while (i8 < rest.length) {
+    if (rest[i8] === "{" && rest[i8 + 1] === "{") {
+      const end = rest.indexOf("}}", i8 + 2);
       if (end !== -1) {
-        out.push(`<span class="yp">${_escape(rest.slice(i7, end + 2))}</span>`);
-        i7 = end + 2;
+        out.push(`<span class="yp">${_escape(rest.slice(i8, end + 2))}</span>`);
+        i8 = end + 2;
         continue;
       }
     }
-    if (rest[i7] === '"' || rest[i7] === "'") {
-      const quote = rest[i7];
-      let end = i7 + 1;
+    if (rest[i8] === '"' || rest[i8] === "'") {
+      const quote = rest[i8];
+      let end = i8 + 1;
       while (end < rest.length && rest[end] !== quote) end++;
-      out.push(`<span class="ys">${_escape(rest.slice(i7, end + 1))}</span>`);
-      i7 = end + 1;
+      out.push(`<span class="ys">${_escape(rest.slice(i8, end + 1))}</span>`);
+      i8 = end + 1;
       continue;
     }
-    out.push(_escape(rest[i7]));
-    i7++;
+    out.push(_escape(rest[i8]));
+    i8++;
   }
   let joined = out.join("");
   const bareValue = rest.trim();
@@ -44291,7 +44602,7 @@ function _highlightYaml2(text) {
 }
 function _hasAcceptedSuffix(name) {
   const lower = (name || "").toLowerCase();
-  return _ACCEPTED_SUFFIXES.some((s4) => lower.endsWith(s4));
+  return _ACCEPTED_SUFFIXES.some((s6) => lower.endsWith(s6));
 }
 var _STYLE = b2`
   <style>
@@ -47672,7 +47983,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
                       "View package file",
                     )}
                   </summary>
-                  ${o5(
+                  ${o7(
                     '<div class="yaml-preview">' +
                       _highlightYaml2(pkg.yaml) +
                       "</div>",
@@ -47805,10 +48116,10 @@ var _PACKAGE_SECTION_LABELS = {
 };
 function _formatPackageCounts(host, counts) {
   const parts = Object.entries(counts || {})
-    .filter(([, n4]) => n4 > 0)
-    .map(([key, n4]) => {
+    .filter(([, n6]) => n6 > 0)
+    .map(([key, n6]) => {
       const labels = _PACKAGE_SECTION_LABELS[key] || [key, `${key}s`];
-      return `${n4} ${n4 === 1 ? labels[0] : labels[1]}`;
+      return `${n6} ${n6 === 1 ? labels[0] : labels[1]}`;
     });
   if (!parts.length)
     return b2`<span class="recipe-details-empty"
@@ -47816,9 +48127,9 @@ function _formatPackageCounts(host, counts) {
     >`;
   return parts.join(" \xB7 ");
 }
-function _humanizeRole(s4) {
-  if (!s4) return "";
-  const spaced = s4.replace(/_/g, " ");
+function _humanizeRole(s6) {
+  if (!s6) return "";
+  const spaced = s6.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 function _renderListView(host) {
@@ -47827,13 +48138,13 @@ function _renderListView(host) {
   const availableBySlug = Object.fromEntries(
     available.map((m3) => [m3.slug, m3]),
   );
-  const installedSlugs = new Set(installed.map((r4) => r4.slug));
-  const onlyInstalled = installed.filter((r4) => !availableBySlug[r4.slug]);
+  const installedSlugs = new Set(installed.map((r6) => r6.slug));
+  const onlyInstalled = installed.filter((r6) => !availableBySlug[r6.slug]);
   const installedAvailable = available.filter((m3) =>
     installedSlugs.has(m3.slug),
   );
   const catalogBySlug = new Map(
-    (host._recipesCatalog?.recipes || []).map((r4) => [r4.slug, r4]),
+    (host._recipesCatalog?.recipes || []).map((r6) => [r6.slug, r6]),
   );
   const catalogSlugs = new Set(catalogBySlug.keys());
   const stagedLocal = available.filter(
@@ -47964,7 +48275,7 @@ function _renderListView(host) {
 function _renderCatalogSection(host) {
   const cat = host._recipesCatalog;
   const installedSlugs = new Set(
-    (host._recipesList?.installed || []).map((r4) => r4.slug),
+    (host._recipesList?.installed || []).map((r6) => r6.slug),
   );
   const filtered = host._filteredCatalog
     ? host._filteredCatalog()
@@ -48166,11 +48477,11 @@ function _recipeIntegrationBrands(entry) {
   for (const item of [...(entry.required || []), ...(entry.optional || [])]) {
     if (item && item.integration) domains.add(item.integration);
   }
-  for (const i7 of entry.integrations || []) {
-    if (i7 && i7.domain) domains.add(i7.domain);
+  for (const i8 of entry.integrations || []) {
+    if (i8 && i8.domain) domains.add(i8.domain);
   }
-  for (const r4 of entry.roles || []) {
-    if (r4 && r4.integration) domains.add(r4.integration);
+  for (const r6 of entry.roles || []) {
+    if (r6 && r6.integration) domains.add(r6.integration);
   }
   return [...domains].map((d3) => ({ domain: d3, title: d3 }));
 }
@@ -48198,7 +48509,7 @@ function _renderRecipeBrandStrip(brands) {
 function _renderCatalogCard(host, entry, installed, featured = false) {
   const slug = entry.slug;
   const staged = (host._recipesList?.available || []).some(
-    (r4) => r4.slug === slug,
+    (r6) => r6.slug === slug,
   );
   const open = () => {
     if (host._recipesBusy || host._recipesUrlBusy) return;
@@ -48287,10 +48598,10 @@ function _renderInputField(host, input) {
       : input.default;
   const onInput = (e6) => {
     const raw = e6.target.value;
-    let v2 = raw;
-    if (input.type === "number") v2 = raw === "" ? "" : Number(raw);
-    if (input.type === "boolean") v2 = e6.target.checked;
-    host._updateRecipeInput(input.id, v2);
+    let v3 = raw;
+    if (input.type === "number") v3 = raw === "" ? "" : Number(raw);
+    if (input.type === "boolean") v3 = e6.target.checked;
+    host._updateRecipeInput(input.id, v3);
   };
   if (input.type === "boolean") {
     return b2`
@@ -48425,13 +48736,13 @@ function _statusLabel(host, status) {
 function _activeItem(host, items) {
   if (!items?.length) return null;
   if (host._recipeActiveItemId) {
-    const found = items.find((i7) => i7.id === host._recipeActiveItemId);
+    const found = items.find((i8) => i8.id === host._recipeActiveItemId);
     if (found) return found;
   }
   return (
-    items.find((i7) => i7.status === "needs_input" || i7.status === "failed") ||
-    items.find((i7) => i7.status === "running") ||
-    items.find((i7) => i7.status === "pending") ||
+    items.find((i8) => i8.status === "needs_input" || i8.status === "failed") ||
+    items.find((i8) => i8.status === "running") ||
+    items.find((i8) => i8.status === "pending") ||
     items[items.length - 1]
   );
 }
@@ -48934,14 +49245,14 @@ function _renderFlowForm(host, item, flow) {
       ${flow.step?.description ? b2`<p class="panel-prose">${flow.step.description}</p>` : ""}
       ${errors.base ? b2`<div class="panel-error">${errors.base}</div>` : ""}
       <div class="panel-fields">
-        ${fields.map((f3) =>
+        ${fields.map((f4) =>
           _renderFlowField(
             host,
             item,
             flow,
-            f3,
-            values[f3.name],
-            errors[f3.name],
+            f4,
+            values[f4.name],
+            errors[f4.name],
           ),
         )}
       </div>
@@ -48966,8 +49277,8 @@ function _renderFlowForm(host, item, flow) {
   );
 }
 function _renderFlowField(host, item, flow, field, value, error) {
-  const update = (v2) => {
-    const next = { ...(flow.values || {}), [field.name]: v2 };
+  const update = (v3) => {
+    const next = { ...(flow.values || {}), [field.name]: v3 };
     host._recipeFlows = {
       ...(host._recipeFlows || {}),
       [item.payload.domain]: { ...flow, values: next },
@@ -49031,7 +49342,7 @@ function _stepLabels(host) {
     host._t("recipes_step_activate", "Activate"),
   ];
 }
-function _humaniseSection(host, key, n4) {
+function _humaniseSection(host, key, n6) {
   const map = {
     automation: [
       host._t("recipes_section_automation_singular", "automation"),
@@ -49127,7 +49438,7 @@ function _humaniseSection(host, key, n4) {
     ],
   };
   const [singular, plural] = map[key] || [key, key];
-  return `${n4} ${n4 === 1 ? singular : plural}`;
+  return `${n6} ${n6 === 1 ? singular : plural}`;
 }
 function _roleIconForKind(role) {
   const k2 = role.kind || "";
@@ -49169,16 +49480,16 @@ function _roleIconForKind(role) {
 function _renderWhatYouNeedRail(host, manifest) {
   const integrations = manifest.integrations || [];
   const roles = manifest.roles || [];
-  const required = roles.filter((r4) => (r4.min_count || 0) > 0);
-  const optional = roles.filter((r4) => (r4.min_count || 0) === 0);
+  const required = roles.filter((r6) => (r6.min_count || 0) > 0);
+  const optional = roles.filter((r6) => (r6.min_count || 0) === 0);
   const hasPin = (role) => Boolean((manifest.bindings || {})[role.id]?.length);
   const brandMap = /* @__PURE__ */ new Map();
-  for (const i7 of integrations) {
-    if (i7.domain) brandMap.set(i7.domain, i7.title || i7.domain);
+  for (const i8 of integrations) {
+    if (i8.domain) brandMap.set(i8.domain, i8.title || i8.domain);
   }
-  for (const r4 of roles) {
-    if (r4.integration && !brandMap.has(r4.integration)) {
-      brandMap.set(r4.integration, r4.integration_title || r4.integration);
+  for (const r6 of roles) {
+    if (r6.integration && !brandMap.has(r6.integration)) {
+      brandMap.set(r6.integration, r6.integration_title || r6.integration);
     }
   }
   const brands = [...brandMap].map(([domain, title]) => ({ domain, title }));
@@ -49195,14 +49506,14 @@ function _renderWhatYouNeedRail(host, manifest) {
           : ""
       }
       <div class="need-rail-list">
-        ${required.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
+        ${required.map((r6) => _renderNeedRoleCard(r6, hasPin(r6)))}
         ${
           optional.length
             ? b2`
                 <div class="need-rail-eyebrow">
                   ${host._t("recipes_optional_eyebrow", "Optional")}
                 </div>
-                ${optional.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
+                ${optional.map((r6) => _renderNeedRoleCard(r6, hasPin(r6)))}
               `
             : ""
         }
@@ -49435,7 +49746,7 @@ function _renderStep1Overview(host) {
     ${host._t("recipes_back_to_recipes", "Back to recipes")}
   </button>`;
   const record = (host._recipesList?.installed || []).find(
-    (r4) => r4.slug === manifest.slug,
+    (r6) => r6.slug === manifest.slug,
   );
   if (record) {
     const updateVersion = host._recipeUpdateVersion(manifest.slug);
@@ -49516,8 +49827,8 @@ function _renderStep1Overview(host) {
   const preview = host._recipeWizardPreview;
   const counts = preview?.preview?.created_counts || {};
   const bullets = Object.entries(counts)
-    .filter(([, n4]) => n4 > 0)
-    .map(([k2, n4]) => _humaniseSection(host, k2, n4));
+    .filter(([, n6]) => n6 > 0)
+    .map(([k2, n6]) => _humaniseSection(host, k2, n6));
   return b2`
     <div class="step-pane">
       ${
@@ -49590,8 +49901,8 @@ function _renderStepHeading(host, stepNum, label, subline, required) {
 }
 function _renderStep2Settings(host) {
   const { manifest } = host._recipeWizardDetail;
-  const inputs = (manifest.inputs || []).filter((i7) => !i7.resolver);
-  const required = inputs.some((i7) => i7.required !== false);
+  const inputs = (manifest.inputs || []).filter((i8) => !i8.resolver);
+  const required = inputs.some((i8) => i8.required !== false);
   return b2`
     <div class="step-pane">
       ${_renderStepHeading(
@@ -49827,8 +50138,8 @@ function _matchRowSelected(host, item) {
     return b2`<span class="panel-muted">—</span>`;
   }
   if (item.kind === "inputs") {
-    const n4 = item.payload?.inputs?.length || 0;
-    return `${n4} ${n4 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
+    const n6 = item.payload?.inputs?.length || 0;
+    return `${n6} ${n6 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
   }
   return "";
 }
@@ -50127,8 +50438,8 @@ function _renderStep5Activate(host) {
     },
   ];
   const summaryBullets = Object.entries(counts)
-    .filter(([, n4]) => n4 > 0)
-    .map(([k2, n4]) => _humaniseSection(host, k2, n4));
+    .filter(([, n6]) => n6 > 0)
+    .map(([k2, n6]) => _humaniseSection(host, k2, n6));
   return b2`
     <div class="step-pane">
       ${_renderStepHeading(
@@ -50203,12 +50514,12 @@ function _renderStep5Activate(host) {
           </h3>
           <ul class="overview-list compact">
             ${safety.map(
-              (s4) => b2`<li>
+              (s6) => b2`<li>
                   <ha-icon
-                    icon=${s4.ok ? "mdi:check-circle" : "mdi:alert-circle"}
-                    class=${s4.ok ? "safety-ok" : "safety-fail"}
+                    icon=${s6.ok ? "mdi:check-circle" : "mdi:alert-circle"}
+                    class=${s6.ok ? "safety-ok" : "safety-fail"}
                   ></ha-icon>
-                  ${s4.label}
+                  ${s6.label}
                 </li>`,
             )}
           </ul>
@@ -50334,7 +50645,7 @@ function _renderResultView(host) {
                             >${host._t("recipes_result_advanced", "advanced")}</span
                           >
                         </summary>
-                        ${o5(
+                        ${o7(
                           '<div class="yaml-preview">' +
                             _highlightYaml2(result.preview.yaml) +
                             "</div>",
@@ -50372,7 +50683,7 @@ function _renderUninstallModal(host) {
   const slug = host._recipeUninstallPending;
   if (!slug) return "";
   const record = (host._recipesList?.installed || []).find(
-    (r4) => r4.slug === slug,
+    (r6) => r6.slug === slug,
   );
   const title = record?.title || slug;
   const installedIntegrations = record?.integrations_installed || {};
@@ -50650,8 +50961,8 @@ var TIME_UNITS = /* @__PURE__ */ new Set([
 ]);
 var ENTITY_ID_RE2 = /^[a-z_]+\.[a-z0-9_]+$/;
 function clip(text, max) {
-  const s4 = String(text ?? "").trim();
-  return s4.length > max ? `${s4.slice(0, max - 1).trimEnd()}\u2026` : s4;
+  const s6 = String(text ?? "").trim();
+  return s6.length > max ? `${s6.slice(0, max - 1).trimEnd()}\u2026` : s6;
 }
 function humanize(key) {
   return String(key).replace(/_/g, " ");
@@ -50666,22 +50977,22 @@ function joinList(hass, parts) {
     return parts.join(", ");
   }
 }
-function capitalize(s4) {
-  return s4 ? s4.charAt(0).toUpperCase() + s4.slice(1) : s4;
+function capitalize(s6) {
+  return s6 ? s6.charAt(0).toUpperCase() + s6.slice(1) : s6;
 }
 function fmtValue(hass, value) {
   if (Array.isArray(value)) {
     return clip(
-      value.map((v2) => fmtValue(hass, v2)).join(", "),
+      value.map((v3) => fmtValue(hass, v3)).join(", "),
       MAX_VALUE_CHARS,
     );
   }
   if (value && typeof value === "object") {
     return clip(JSON.stringify(value), MAX_VALUE_CHARS);
   }
-  const s4 = String(value ?? "");
-  if (ENTITY_ID_RE2.test(s4) && hass?.states?.[s4]) return fmtEntity(hass, s4);
-  return clip(s4, MAX_VALUE_CHARS);
+  const s6 = String(value ?? "");
+  if (ENTITY_ID_RE2.test(s6) && hass?.states?.[s6]) return fmtEntity(hass, s6);
+  return clip(s6, MAX_VALUE_CHARS);
 }
 function leafLabel(path) {
   const keys = (path || []).filter((p4) => typeof p4 === "string");
@@ -50927,8 +51238,8 @@ function renderVersionHistoryDrawer(host, a3) {
               </div>`
             : b2`
                 <ol class="version-list">
-                  ${versions.map((v2, i7) =>
-                    renderVersionEntry(host, automationId, versions, i7),
+                  ${versions.map((v3, i8) =>
+                    renderVersionEntry(host, automationId, versions, i8),
                   )}
                 </ol>
               `
@@ -50936,9 +51247,9 @@ function renderVersionHistoryDrawer(host, a3) {
     </div>
   `;
 }
-function versionDiff(host, automationId, versions, i7) {
-  const newer = versions[i7];
-  const older = versions[i7 + 1];
+function versionDiff(host, automationId, versions, i8) {
+  const newer = versions[i8];
+  const older = versions[i8 + 1];
   if (!newer || !older) return null;
   const after = newer.yaml || newer.yaml_content || "";
   const before = older.yaml || older.yaml_content || "";
@@ -50954,19 +51265,19 @@ function versionDiff(host, automationId, versions, i7) {
   host._versionDiffCache.set(cacheKey, { before, after, diff });
   return diff;
 }
-function renderVersionEntry(host, automationId, versions, i7) {
-  const v2 = versions[i7];
+function renderVersionEntry(host, automationId, versions, i8) {
+  const v3 = versions[i8];
   const total = versions.length;
-  const key = `${automationId}_${v2.version_id}`;
+  const key = `${automationId}_${v3.version_id}`;
   const restoring = host._restoringVersion[key];
-  const date = new Date(v2.created_at);
+  const date = new Date(v3.created_at);
   const timeAgo = relativeTime(date);
-  const isCurrent = i7 === 0;
-  const message = v2.message || v2.version_message;
-  const summary = versionSummary(host, automationId, v2);
+  const isCurrent = i8 === 0;
+  const message = v3.message || v3.version_message;
+  const summary = versionSummary(host, automationId, v3);
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
-  const versionNumber = total - i7;
-  const diff = versionDiff(host, automationId, versions, i7);
+  const versionNumber = total - i8;
+  const diff = versionDiff(host, automationId, versions, i8);
   const diffKey = `verdiff_${key}`;
   const diffOpen = !!(host._proposalDiffOpen || {})[diffKey];
   return b2`
@@ -51048,12 +51359,12 @@ function renderVersionEntry(host, automationId, versions, i7) {
               ? b2`
                   <button
                     class="btn btn-outline version-entry-btn"
-                    ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
+                    ?disabled=${restoring || !(v3.yaml || v3.yaml_content)}
                     @click=${() =>
                       host._restoreVersion(
                         automationId,
-                        v2.version_id,
-                        v2.yaml || v2.yaml_content || "",
+                        v3.version_id,
+                        v3.yaml || v3.yaml_content || "",
                       )}
                   >
                     <ha-icon
@@ -51082,8 +51393,8 @@ function renderVersionEntry(host, automationId, versions, i7) {
                 <ha-code-editor
                   mode="yaml"
                   .value=${
-                    v2.yaml ||
-                    v2.yaml_content ||
+                    v3.yaml ||
+                    v3.yaml_content ||
                     host._t(
                       "version_history_no_yaml_stored",
                       "(no YAML stored)",
@@ -51162,9 +51473,9 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
-                    ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
+                (v3, i8) => b2`<option value=${v3.version_id}>
+                    v${versions.length - i8} —
+                    ${v3.message || v3.version_message || new Date(v3.created_at).toLocaleDateString()}
                   </option>`,
               )}
             </select>
@@ -51189,9 +51500,9 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
-                    ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
+                (v3, i8) => b2`<option value=${v3.version_id}>
+                    v${versions.length - i8} —
+                    ${v3.message || v3.version_message || new Date(v3.created_at).toLocaleDateString()}
                   </option>`,
               )}
             </select>
@@ -51674,14 +51985,14 @@ function _toggleSessionSelection(sessionId) {
 }
 function _toggleSelectAllSessions() {
   const allSelected = this._sessions.every(
-    (s4) => this._selectedSessionIds[s4.id],
+    (s6) => this._selectedSessionIds[s6.id],
   );
   if (allSelected) {
     this._selectedSessionIds = {};
   } else {
     const selected = {};
-    this._sessions.forEach((s4) => {
-      selected[s4.id] = true;
+    this._sessions.forEach((s6) => {
+      selected[s6.id] = true;
     });
     this._selectedSessionIds = selected;
   }
@@ -51694,7 +52005,7 @@ function _requestBulkDeleteSessions() {
 async function _confirmBulkDeleteSessions() {
   this._deleteConfirmSessionId = null;
   const ids = Object.entries(this._selectedSessionIds)
-    .filter(([, v2]) => v2)
+    .filter(([, v3]) => v3)
     .map(([id]) => id);
   for (const id of ids) {
     try {
@@ -51724,7 +52035,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "7ed34546d3ae" : "";
+var PANEL_BUILD = true ? "fb3df8c5070f" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -51775,8 +52086,8 @@ async function _runRecipeUpdate(slug) {
           },
           { type: "selora_ai/recipes/update_stream", slug },
         )
-        .then((u3) => {
-          unsub = u3;
+        .then((u5) => {
+          unsub = u5;
         })
         .catch(reject);
     });
@@ -51867,17 +52178,17 @@ async function _triggerGenerateSuggestions() {
       type: "selora_ai/generate_suggestions",
     });
     const existingAliases = new Set(
-      (this._suggestions || []).map((s4) => {
-        const a3 = s4.automation || s4.automation_data || {};
+      (this._suggestions || []).map((s6) => {
+        const a3 = s6.automation || s6.automation_data || {};
         return (a3.alias || "").toLowerCase();
       }),
     );
     const added = [];
-    for (const s4 of newSuggestions || []) {
-      const a3 = s4.automation || s4.automation_data || {};
+    for (const s6 of newSuggestions || []) {
+      const a3 = s6.automation || s6.automation_data || {};
       const alias = (a3.alias || "").toLowerCase();
       if (!existingAliases.has(alias)) {
-        added.push(s4);
+        added.push(s6);
         existingAliases.add(alias);
       }
     }
@@ -51936,8 +52247,8 @@ async function _loadProactiveSuggestions() {
       status: "pending",
     });
     const seen = /* @__PURE__ */ new Set();
-    this._proactiveSuggestions = (suggestions || []).filter((s4) => {
-      const key = (s4.description || "").toLowerCase().trim();
+    this._proactiveSuggestions = (suggestions || []).filter((s6) => {
+      const key = (s6.description || "").toLowerCase().trim();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -51979,9 +52290,9 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
       [`proactive_${suggestionId}`]: true,
     };
     await this._loadAutomations();
-    await new Promise((r4) => setTimeout(r4, 650));
+    await new Promise((r6) => setTimeout(r6, 650));
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -52012,7 +52323,7 @@ async function _dismissProactiveSuggestion(suggestionId) {
       action: "dismissed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_dismissed_toast", "Suggestion dismissed"),
@@ -52034,7 +52345,7 @@ async function _snoozeProactiveSuggestion(suggestionId) {
       action: "snoozed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_snoozed_toast", "Suggestion snoozed for 24h"),
@@ -52494,13 +52805,13 @@ async function _sendMessage(options = {}) {
   this._streamTeardown = teardown;
   let localUnsub = null;
   const cancelSubscription = () => {
-    const u3 = localUnsub;
-    if (!u3) return;
+    const u5 = localUnsub;
+    if (!u5) return;
     localUnsub = null;
     try {
-      u3();
+      u5();
     } catch (_2) {}
-    if (this._streamUnsub === u3) this._streamUnsub = null;
+    if (this._streamUnsub === u5) this._streamUnsub = null;
   };
   try {
     const subscribePayload = {
@@ -52581,7 +52892,7 @@ async function _sendMessage(options = {}) {
       } else if (event.type === "step" && event.step && event.step.id) {
         lastActivityAt = Date.now();
         const steps = assistantMsg.steps ? [...assistantMsg.steps] : [];
-        const at = steps.findIndex((s4) => s4.id === event.step.id);
+        const at = steps.findIndex((s6) => s6.id === event.step.id);
         if (at >= 0) steps[at] = event.step;
         else steps.push(event.step);
         assistantMsg.steps = steps;
@@ -52979,8 +53290,8 @@ function _cleanSceneEntities(entities) {
   const out = {};
   for (const [id, st] of Object.entries(entities || {})) {
     const clean = {};
-    for (const [k2, v2] of Object.entries(st || {})) {
-      if (k2 === "state" || v2 != null) clean[k2] = v2;
+    for (const [k2, v3] of Object.entries(st || {})) {
+      if (k2 === "state" || v3 != null) clean[k2] = v3;
     }
     out[id] = clean;
   }
@@ -52989,7 +53300,7 @@ function _cleanSceneEntities(entities) {
 function _sceneEditedEntities(sceneId) {
   const edited = this._sceneEdits?.[sceneId];
   if (edited) return edited;
-  const scene = (this._scenes || []).find((s4) => s4.scene_id === sceneId);
+  const scene = (this._scenes || []).find((s6) => s6.scene_id === sceneId);
   return scene?.entities || {};
 }
 function _applySceneTileEdit(sceneId, entityId, domain, service, data) {
@@ -53008,11 +53319,11 @@ function _applySceneTileEdit(sceneId, entityId, domain, service, data) {
 function _sceneIsDirty(sceneId) {
   return !!this._sceneEdits?.[sceneId];
 }
-function _yamlScalar(v2) {
-  if (typeof v2 === "number") return String(v2);
-  if (typeof v2 === "boolean") return v2 ? "true" : "false";
-  if (Array.isArray(v2)) return `[${v2.map(_yamlScalar).join(", ")}]`;
-  return `'${String(v2).replace(/'/g, "''")}'`;
+function _yamlScalar(v3) {
+  if (typeof v3 === "number") return String(v3);
+  if (typeof v3 === "boolean") return v3 ? "true" : "false";
+  if (Array.isArray(v3)) return `[${v3.map(_yamlScalar).join(", ")}]`;
+  return `'${String(v3).replace(/'/g, "''")}'`;
 }
 function _sceneEditYaml(sceneId, displayName) {
   const entities = this._sceneEditedEntities(sceneId);
@@ -53098,8 +53409,8 @@ function scoreText(hayLower, queryLower, allowSubsequence = true) {
   if (hayLower.includes(queryLower)) return 100;
   if (!allowSubsequence) return 0;
   let qi = 0;
-  for (let i7 = 0; i7 < hayLower.length && qi < queryLower.length; i7++) {
-    if (hayLower[i7] === queryLower[qi]) qi += 1;
+  for (let i8 = 0; i8 < hayLower.length && qi < queryLower.length; i8++) {
+    if (hayLower[i8] === queryLower[qi]) qi += 1;
   }
   return qi === queryLower.length ? 10 : 0;
 }
@@ -53111,9 +53422,9 @@ function extractSnippet(text, queryLower) {
   if (idx < 0) {
     matchLen = 0;
     let qi = 0;
-    for (let i7 = 0; i7 < lower.length && qi < queryLower.length; i7++) {
-      if (lower[i7] === queryLower[qi]) {
-        if (qi === 0) idx = i7;
+    for (let i8 = 0; i8 < lower.length && qi < queryLower.length; i8++) {
+      if (lower[i8] === queryLower[qi]) {
+        if (qi === 0) idx = i8;
         qi += 1;
       }
     }
@@ -53197,7 +53508,7 @@ function filterSessions(sessions, query) {
     for (const pc of resolver.querySelectorAll("ha-panel-custom")) fix(pc);
     new MutationObserver((muts) => {
       for (const m3 of muts) {
-        for (const n4 of m3.addedNodes) if (n4.nodeType === 1) fix(n4);
+        for (const n6 of m3.addedNodes) if (n6.nodeType === 1) fix(n6);
       }
     }).observe(resolver, { childList: true });
   };
@@ -53217,7 +53528,7 @@ var _SHA256_K = new Uint32Array([
   2756734187, 3204031479, 3329325298,
 ]);
 function _sha256(msgBytes) {
-  const rotr = (x2, n4) => (x2 >>> n4) | (x2 << (32 - n4));
+  const rotr = (x2, n6) => (x2 >>> n6) | (x2 << (32 - n6));
   const len = msgBytes.length;
   const bitLen = len * 8;
   const blocks = Math.ceil((len + 9) / 64);
@@ -53226,13 +53537,13 @@ function _sha256(msgBytes) {
   padded[len] = 128;
   const dv = new DataView(padded.buffer);
   dv.setUint32(padded.length - 4, bitLen, false);
-  let [h0, h1, h22, h3, h4, h5, h6, h7] = [
+  let [h0, h1, h22, h32, h42, h5, h6, h7] = [
     1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924,
     528734635, 1541459225,
   ];
   const w2 = new Uint32Array(64);
-  for (let i7 = 0; i7 < padded.length; i7 += 64) {
-    for (let t5 = 0; t5 < 16; t5++) w2[t5] = dv.getUint32(i7 + t5 * 4, false);
+  for (let i8 = 0; i8 < padded.length; i8 += 64) {
+    for (let t5 = 0; t5 < 16; t5++) w2[t5] = dv.getUint32(i8 + t5 * 4, false);
     for (let t5 = 16; t5 < 64; t5++) {
       const s0 =
         rotr(w2[t5 - 15], 7) ^ rotr(w2[t5 - 15], 18) ^ (w2[t5 - 15] >>> 3);
@@ -53240,36 +53551,36 @@ function _sha256(msgBytes) {
         rotr(w2[t5 - 2], 17) ^ rotr(w2[t5 - 2], 19) ^ (w2[t5 - 2] >>> 10);
       w2[t5] = (w2[t5 - 16] + s0 + w2[t5 - 7] + s1) | 0;
     }
-    let [a3, b3, c4, d3, e6, f3, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
+    let [a3, b3, c6, d3, e6, f4, g2, h8] = [h0, h1, h22, h32, h42, h5, h6, h7];
     for (let t5 = 0; t5 < 64; t5++) {
       const S1 = rotr(e6, 6) ^ rotr(e6, 11) ^ rotr(e6, 25);
-      const ch = (e6 & f3) ^ (~e6 & g2);
+      const ch = (e6 & f4) ^ (~e6 & g2);
       const t1 = (h8 + S1 + ch + _SHA256_K[t5] + w2[t5]) | 0;
       const S0 = rotr(a3, 2) ^ rotr(a3, 13) ^ rotr(a3, 22);
-      const maj = (a3 & b3) ^ (a3 & c4) ^ (b3 & c4);
+      const maj = (a3 & b3) ^ (a3 & c6) ^ (b3 & c6);
       const t22 = (S0 + maj) | 0;
       h8 = g2;
-      g2 = f3;
-      f3 = e6;
+      g2 = f4;
+      f4 = e6;
       e6 = (d3 + t1) | 0;
-      d3 = c4;
-      c4 = b3;
+      d3 = c6;
+      c6 = b3;
       b3 = a3;
       a3 = (t1 + t22) | 0;
     }
     h0 = (h0 + a3) | 0;
     h1 = (h1 + b3) | 0;
-    h22 = (h22 + c4) | 0;
-    h3 = (h3 + d3) | 0;
-    h4 = (h4 + e6) | 0;
-    h5 = (h5 + f3) | 0;
+    h22 = (h22 + c6) | 0;
+    h32 = (h32 + d3) | 0;
+    h42 = (h42 + e6) | 0;
+    h5 = (h5 + f4) | 0;
     h6 = (h6 + g2) | 0;
     h7 = (h7 + h8) | 0;
   }
   const out = new Uint8Array(32);
   const ov = new DataView(out.buffer);
-  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i7) =>
-    ov.setUint32(i7 * 4, v2, false),
+  [h0, h1, h22, h32, h42, h5, h6, h7].forEach((v3, i8) =>
+    ov.setUint32(i8 * 4, v3, false),
   );
   return out;
 }
@@ -54373,8 +54684,8 @@ var SeloraAIPanel = class extends i4 {
         // Guard against a cleared/zero/negative interval reaching the backend
         // (would crash timer creation); fall back to the 15-min default.
         insights_interval: (() => {
-          const v2 = parseInt(this._config.insights_interval, 10);
-          return Number.isFinite(v2) && v2 >= 60 ? v2 : 900;
+          const v3 = parseInt(this._config.insights_interval, 10);
+          return Number.isFinite(v3) && v3 >= 60 ? v3 : 900;
         })(),
         auto_purge_stale: this._config.auto_purge_stale || false,
         // Carry the Memory + pricing cards' current text through this save. Both
@@ -55013,7 +55324,7 @@ var SeloraAIPanel = class extends i4 {
         this._primaryColor =
           "#" +
           [m3[0], m3[1], m3[2]]
-            .map((v2) => parseInt(v2, 10).toString(16).padStart(2, "0"))
+            .map((v3) => parseInt(v3, 10).toString(16).padStart(2, "0"))
             .join("");
       }
     }
@@ -55089,21 +55400,21 @@ var SeloraAIPanel = class extends i4 {
     let lastTop = container ? container.scrollTop : 0;
     const tick = () => {
       if (!this._chatPinDeadline) return;
-      const c4 = this.shadowRoot?.getElementById("chat-messages");
-      if (!c4) {
+      const c6 = this.shadowRoot?.getElementById("chat-messages");
+      if (!c6) {
         this._chatPinDeadline = 0;
         return;
       }
       const userScrolled =
-        c4.scrollTop < lastTop - 2 && c4.scrollHeight === lastHeight;
+        c6.scrollTop < lastTop - 2 && c6.scrollHeight === lastHeight;
       if (userScrolled) {
         this._chatScrolledAway = true;
         this._chatPinDeadline = 0;
         return;
       }
-      c4.scrollTop = c4.scrollHeight;
-      lastHeight = c4.scrollHeight;
-      lastTop = c4.scrollTop;
+      c6.scrollTop = c6.scrollHeight;
+      lastHeight = c6.scrollHeight;
+      lastTop = c6.scrollTop;
       if (Date.now() >= this._chatPinDeadline) {
         this._chatPinDeadline = 0;
         return;
@@ -55196,7 +55507,7 @@ var SeloraAIPanel = class extends i4 {
       if (!wired) {
         const ids = (grid.dataset.entityIds || "")
           .split(",")
-          .map((s4) => s4.trim())
+          .map((s6) => s6.trim())
           .filter(Boolean);
         const noFeatures = grid.dataset.noFeatures === "true";
         grid.replaceChildren();
@@ -55308,9 +55619,9 @@ var SeloraAIPanel = class extends i4 {
       const live = this.hass.states?.[id];
       if (!live) continue;
       const attrs = { ...(live.attributes || {}) };
-      for (const [k2, v2] of Object.entries(target)) {
+      for (const [k2, v3] of Object.entries(target)) {
         if (k2 === "state") continue;
-        attrs[k2] = v2;
+        attrs[k2] = v3;
       }
       if (target.brightness_pct != null && target.brightness == null) {
         attrs.brightness = Math.round(
@@ -55635,7 +55946,7 @@ var SeloraAIPanel = class extends i4 {
     if (!scene) return;
     const sessionId = scene.session_id;
     const known = sessionId
-      ? this._sessions.find((s4) => s4.id === sessionId)
+      ? this._sessions.find((s6) => s6.id === sessionId)
       : null;
     try {
       if (known) {
@@ -55661,7 +55972,7 @@ var SeloraAIPanel = class extends i4 {
     const sceneId = this._deleteSceneConfirmId;
     const name = this._deleteSceneConfirmName;
     if (!sceneId) return;
-    const scene = (this._scenes || []).find((s4) => s4.scene_id === sceneId);
+    const scene = (this._scenes || []).find((s6) => s6.scene_id === sceneId);
     const entityId = scene?.entity_id;
     this._deleteSceneConfirmId = null;
     this._deleteSceneConfirmName = null;
@@ -55862,13 +56173,13 @@ var SeloraAIPanel = class extends i4 {
     if (!cat) return [];
     const q = (this._recipesCatalogSearch || "").trim().toLowerCase();
     if (!q) return cat.recipes;
-    return cat.recipes.filter((r4) => {
+    return cat.recipes.filter((r6) => {
       const hay = [
-        r4.title,
-        r4.description,
-        r4.category,
-        r4.category_title,
-        ...(r4.tags || []),
+        r6.title,
+        r6.description,
+        r6.category,
+        r6.category_title,
+        ...(r6.tags || []),
       ]
         .filter(Boolean)
         .join(" ")
@@ -55880,8 +56191,8 @@ var SeloraAIPanel = class extends i4 {
     this._recipesCatalogSearch = value || "";
     this._catalogPage = 1;
   }
-  _setCatalogPage(n4) {
-    this._catalogPage = Math.max(1, n4);
+  _setCatalogPage(n6) {
+    this._catalogPage = Math.max(1, n6);
   }
   // Install a recipe from a catalog entry — same backend path as
   // the "paste a URL" install card, just pre-filled.
@@ -55901,7 +56212,7 @@ var SeloraAIPanel = class extends i4 {
   // the Overview instead of failing to load the manifest.
   async _openRecipeFromDeepLink(slug) {
     const staged = (this._recipesList?.available || []).some(
-      (r4) => r4.slug === slug,
+      (r6) => r6.slug === slug,
     );
     if (staged) {
       this._openRecipeWizard(slug);
@@ -55909,7 +56220,7 @@ var SeloraAIPanel = class extends i4 {
     }
     await this._loadRecipesCatalog();
     const find = () =>
-      (this._recipesCatalog?.recipes || []).find((r4) => r4.slug === slug);
+      (this._recipesCatalog?.recipes || []).find((r6) => r6.slug === slug);
     let entry = find();
     if (!entry) {
       await this._loadRecipesCatalog(true);
@@ -55947,7 +56258,7 @@ var SeloraAIPanel = class extends i4 {
       if (detail.manifest?.dashboard) {
         this._fetchRecipeDashboards();
       }
-      if ((this._recipesList?.installed || []).some((r4) => r4.slug === slug)) {
+      if ((this._recipesList?.installed || []).some((r6) => r6.slug === slug)) {
         this._loadRecipePackage(slug);
       }
       const seeded = {};
@@ -55965,7 +56276,7 @@ var SeloraAIPanel = class extends i4 {
       }
       this._recipeWizardSelections = seededSelections;
       const record = (this._recipesList?.installed || []).find(
-        (r4) => r4.slug === slug,
+        (r6) => r6.slug === slug,
       );
       if (record) {
         this._recipeWizardInputs = {
@@ -56273,7 +56584,7 @@ var SeloraAIPanel = class extends i4 {
   }
   _toggleManageEntity(roleId, entityId) {
     const role = (this._recipeManageDetail?.manifest?.roles || []).find(
-      (r4) => r4.id === roleId,
+      (r6) => r6.id === roleId,
     );
     const current = this._recipeManageSelections[roleId] || [];
     const idx = current.indexOf(entityId);
@@ -56640,8 +56951,8 @@ var SeloraAIPanel = class extends i4 {
               dashboard_target: "__skip__",
             },
           )
-          .then((u3) => {
-            unsub = u3;
+          .then((u5) => {
+            unsub = u5;
           })
           .catch(reject);
       });
@@ -56758,10 +57069,10 @@ var SeloraAIPanel = class extends i4 {
     const installed = this._recipesList?.installed || [];
     const available = this._recipesList?.available || [];
     const titleBySlug = Object.fromEntries(
-      available.map((r4) => [r4.slug, r4.title || r4.slug]),
+      available.map((r6) => [r6.slug, r6.title || r6.slug]),
     );
     const usingDomain = (manifest) =>
-      (manifest?.integrations || []).some((i7) => i7.domain === domain);
+      (manifest?.integrations || []).some((i8) => i8.domain === domain);
     return installed
       .filter((rec) => rec.slug !== exceptSlug)
       .filter((rec) => {
@@ -57351,7 +57662,7 @@ var SeloraAIPanel = class extends i4 {
                         .checked=${
                           this._sessions.length > 0 &&
                           this._sessions.every(
-                            (s4) => this._selectedSessionIds[s4.id],
+                            (s6) => this._selectedSessionIds[s6.id],
                           )
                         }
                       />
@@ -57440,18 +57751,18 @@ var SeloraAIPanel = class extends i4 {
                       </div>`;
                     }
                     return visible.map(
-                      ({ session: s4, snippet }) => b2`
+                      ({ session: s6, snippet }) => b2`
                         <div
-                          class="session-item-wrapper ${this._swipedSessionId === s4.id ? "reveal-delete" : ""}"
+                          class="session-item-wrapper ${this._swipedSessionId === s6.id ? "reveal-delete" : ""}"
                         >
                           <div
                             class="session-item-delete-bg"
-                            @click=${(e6) => this._deleteSession(s4.id, e6)}
+                            @click=${(e6) => this._deleteSession(s6.id, e6)}
                           >
                             <ha-icon icon="mdi:delete-outline"></ha-icon>
                           </div>
                           ${
-                            this._deleteConfirmSessionId === s4.id
+                            this._deleteConfirmSessionId === s6.id
                               ? b2`
                                   <div
                                     class="session-item session-delete-confirm"
@@ -57490,19 +57801,19 @@ var SeloraAIPanel = class extends i4 {
                                 `
                               : b2`
                                   <div
-                                    class="session-item ${s4.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s4.id ? "swiped" : ""}"
+                                    class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
                                     @click=${() => {
-                                      if (this._swipedSessionId === s4.id) {
+                                      if (this._swipedSessionId === s6.id) {
                                         this._swipedSessionId = null;
                                         return;
                                       }
                                       this._selectChatsMode
-                                        ? this._toggleSessionSelection(s4.id)
-                                        : this._openSession(s4.id);
+                                        ? this._toggleSessionSelection(s6.id)
+                                        : this._openSession(s6.id);
                                     }}
-                                    @touchstart=${(e6) => this._onSessionTouchStart(e6, s4.id)}
-                                    @touchmove=${(e6) => this._onSessionTouchMove(e6, s4.id)}
-                                    @touchend=${(e6) => this._onSessionTouchEnd(e6, s4.id)}
+                                    @touchstart=${(e6) => this._onSessionTouchStart(e6, s6.id)}
+                                    @touchmove=${(e6) => this._onSessionTouchMove(e6, s6.id)}
+                                    @touchend=${(e6) => this._onSessionTouchEnd(e6, s6.id)}
                                   >
                                     ${
                                       this._selectChatsMode
@@ -57510,11 +57821,11 @@ var SeloraAIPanel = class extends i4 {
                                             <input
                                               type="checkbox"
                                               class="session-checkbox"
-                                              .checked=${!!this._selectedSessionIds[s4.id]}
+                                              .checked=${!!this._selectedSessionIds[s6.id]}
                                               @click=${(e6) => {
                                                 e6.stopPropagation();
                                                 this._toggleSessionSelection(
-                                                  s4.id,
+                                                  s6.id,
                                                 );
                                               }}
                                             />
@@ -57523,7 +57834,7 @@ var SeloraAIPanel = class extends i4 {
                                     }
                                     <div style="flex:1; min-width:0;">
                                       <div class="session-title">
-                                        ${s4.title}
+                                        ${s6.title}
                                       </div>
                                       ${
                                         snippet
@@ -57533,7 +57844,7 @@ var SeloraAIPanel = class extends i4 {
                                           : ""
                                       }
                                       <div class="session-meta">
-                                        ${formatDate(s4.updated_at)}
+                                        ${formatDate(s6.updated_at)}
                                       </div>
                                     </div>
                                     ${
@@ -57542,7 +57853,7 @@ var SeloraAIPanel = class extends i4 {
                                             <ha-icon
                                               class="session-delete"
                                               icon="mdi:delete-outline"
-                                              @click=${(e6) => this._deleteSession(s4.id, e6)}
+                                              @click=${(e6) => this._deleteSession(s6.id, e6)}
                                               title=${this._t(
                                                 "panel_session_delete_title",
                                                 "Delete",
@@ -57677,6 +57988,8 @@ if (!customElements.get("selora-ai")) {
 lit-html/lit-html.js:
 lit-element/lit-element.js:
 lit-html/directive.js:
+lit-html/async-directive.js:
+lit-html/directives/repeat.js:
 lit-html/directives/unsafe-html.js:
   (**
    * @license
@@ -57692,6 +58005,7 @@ lit-html/is-server.js:
    *)
 
 lit-html/directive-helpers.js:
+lit-html/directives/ref.js:
   (**
    * @license
    * Copyright 2020 Google LLC

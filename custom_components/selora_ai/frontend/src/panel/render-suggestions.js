@@ -1,4 +1,6 @@
 import { html } from "lit";
+import { ref } from "lit/directives/ref.js";
+import { repeat } from "lit/directives/repeat.js";
 import { renderAutomationFlowchart } from "./render-automations.js";
 
 // Matches the .card-panel grid-template-rows transition in automations.css.js.
@@ -18,6 +20,34 @@ const COLLAPSED_COUNT = 3;
 function collapsedSuggestionCount() {
   const w = window.innerWidth;
   return w <= 600 ? 1 : w <= 1000 ? 2 : COLLAPSED_COUNT;
+}
+
+// Tracks the suggestion grid's rendered column count, which places each detail
+// row in the DOM (renderSuggestionCards). auto-fill sizes columns to the panel,
+// not the window, so collapsedSuggestionCount() is off by the sidebar's width,
+// and the count changes with no click when the sidebar or window resizes. One
+// callback per host: a new one each render would make ref() re-observe. ref()
+// calls it with undefined when the panel disconnects, which drops the observer.
+function gridColumnsRef(host) {
+  if (!host._suggestionGridRef) {
+    host._suggestionGridRef = (grid) => {
+      host._suggestionGridObserver?.disconnect();
+      host._suggestionGridObserver = null;
+      if (!grid || typeof ResizeObserver === "undefined") return;
+      const observer = new ResizeObserver(() => {
+        const cols = getComputedStyle(grid)
+          .gridTemplateColumns.split(" ")
+          .filter(Boolean).length;
+        if (cols && cols !== host._suggestionGridCols) {
+          host._suggestionGridCols = cols;
+          host.requestUpdate?.();
+        }
+      });
+      observer.observe(grid);
+      host._suggestionGridObserver = observer;
+    };
+  }
+  return ref(host._suggestionGridRef);
 }
 
 function normalizeProactive(s) {
@@ -129,8 +159,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
   const expanded = !!activeTab;
   // The panel keeps rendering the last tab it showed after a collapse, so the
   // shrink has something to shrink. `settled` is false for the length of the
-  // transition: the card stays full-width until the collapse finishes (a
-  // snap-back mid-shrink re-wraps the YAML while it is still visible), and
+  // transition: the detail row stays mounted until the collapse finishes, and
   // the panel only stops clipping once it is fully open, so the editor's
   // entity autocomplete is not cut off by the animation's overflow.
   const lastTab = (host._cardLastTab || {})[cardKey] || null;
@@ -148,7 +177,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     }
     // The pending timer belongs to the transition being replaced: toggling
     // again inside PANEL_SETTLE_MS would otherwise have it settle the NEW
-    // transition early, snapping the width mid-shrink.
+    // transition early, unmounting the detail row mid-shrink.
     const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
     clearTimeout(timers[cardKey]);
     timers[cardKey] = setTimeout(() => {
@@ -159,8 +188,8 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       // Read the tab as it is NOW, not as it was when the timer was armed.
       // A card that finished closing drops its content: keeping every card
       // ever opened mounted holds a CodeMirror instance per card for the
-      // panel's lifetime, and at 0fr with the width already back there is
-      // nothing left for the unmount to disturb.
+      // panel's lifetime, and at 0fr there is nothing left for the unmount to
+      // disturb.
       if (!host._cardActiveTab[cardKey]) {
         host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
       }
@@ -170,11 +199,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     setTab(expanded ? null : hasFlow ? "flow" : "yaml");
   const expandedClass = expanded ? "expanded" : "";
 
-  return html`
+  const card = html`
     <div
-      class="card${fadingOut ? " fading-out" : ""}${
-        expanded || (panelTab && !settled) ? " card-expanded" : ""
-      }"
+      class="card${fadingOut ? " fading-out" : ""}${expanded ? " card-open" : ""}"
       style="padding:16px 18px;display:flex;flex-direction:column;"
     >
       <div
@@ -283,41 +310,6 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       </div>
 
       <div
-        class="card-panel${expanded ? " open" : ""}${
-          expanded && settled ? " settled" : ""
-        }"
-      >
-        <div class="card-panel-inner">
-          ${
-            panelTab === "flow" && hasFlow
-              ? renderAutomationFlowchart(host, automationData)
-              : ""
-          }
-          ${
-            panelTab === "yaml"
-              ? html`
-                  <div class="card-yaml" style="padding-top:6px;">
-                    <ha-code-editor
-                      mode="yaml"
-                      .value=${displayYaml}
-                      @value-changed=${(e) => {
-                        host._editedYaml = {
-                          ...host._editedYaml,
-                          [cardKey]: e.detail.value,
-                        };
-                      }}
-                      autocomplete-entities
-                      linewrap
-                      style="--code-mirror-font-size:12px;--code-mirror-max-height:min(60vh,520px);"
-                    ></ha-code-editor>
-                  </div>
-                `
-              : ""
-          }
-        </div>
-      </div>
-
-      <div
         style="display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:12px;"
       >
         <button
@@ -359,6 +351,85 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       </div>
     </div>
   `;
+  const detail = panelTab
+    ? html`
+        <div class="card-detail${fadingOut ? " fading-out" : ""}">
+          <div
+            class="card-panel${expanded ? " open" : ""}${
+              expanded && settled ? " settled" : ""
+            }"
+          >
+            <div class="card-panel-inner">
+              <div class="card-detail-body">
+                ${
+                  panelTab === "flow" && hasFlow
+                    ? renderAutomationFlowchart(host, automationData)
+                    : ""
+                }
+                ${
+                  panelTab === "yaml"
+                    ? html`
+                        <div class="card-yaml" style="padding-top:6px;">
+                          <ha-code-editor
+                            mode="yaml"
+                            .value=${displayYaml}
+                            @value-changed=${(e) => {
+                              host._editedYaml = {
+                                ...host._editedYaml,
+                                [cardKey]: e.detail.value,
+                              };
+                            }}
+                            autocomplete-entities
+                            linewrap
+                            style="--code-mirror-font-size:12px;--code-mirror-max-height:min(60vh,520px);"
+                          ></ha-code-editor>
+                        </div>
+                      `
+                    : ""
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      `
+    : null;
+  return [card, detail];
+}
+
+// Cards, each open card's detail row following the LAST card of its row. In
+// DOM order right after its own card, the detail would be placed (by dense
+// flow) below cards that keyboard focus only reaches after the detail's
+// editor. Until the grid has been measured, dense flow keeps the rows whole.
+// Keyed, so opening a detail in an earlier row moves the later parts instead
+// of handing an open editor to a different card.
+function renderSuggestionCards(host, items, bulkMode, selectedKeys) {
+  const cols = Math.max(
+    1,
+    host._suggestionGridCols || collapsedSuggestionCount(),
+  );
+  const out = [];
+  let details = [];
+  items.forEach((item, i) => {
+    const [card, detail] = renderSuggestionCard(
+      host,
+      item,
+      bulkMode,
+      selectedKeys,
+    );
+    // Separate prefixes: a suffix on the card's key could equal another
+    // suggestion's alias.
+    out.push({ key: `card:${item.cardKey}`, tpl: card });
+    if (detail) details.push({ key: `detail:${item.cardKey}`, tpl: detail });
+    if ((i + 1) % cols === 0 || i === items.length - 1) {
+      out.push(...details);
+      details = [];
+    }
+  });
+  return repeat(
+    out,
+    (part) => part.key,
+    (part) => part.tpl,
+  );
 }
 
 export function renderSuggestionsSection(host) {
@@ -657,10 +728,11 @@ export function renderSuggestionsSection(host) {
                   : ""
               }
 
-              <div class="automations-grid">
-                ${visibleItems.map((item) =>
-                  renderSuggestionCard(host, item, bulkMode, selectedKeys),
-                )}
+              <div
+                class="automations-grid suggestions-grid"
+                ${gridColumnsRef(host)}
+              >
+                ${renderSuggestionCards(host, visibleItems, bulkMode, selectedKeys)}
               </div>
 
               ${

@@ -984,12 +984,40 @@ export const automationsStyles = css`
     flex-direction: column;
     min-width: 0;
   }
-  /* A card whose Flow/YAML panel is open spans the whole grid row. A 280px
-     column shows roughly thirty characters, so every entity_id is cut and the
-     YAML is only readable through a horizontal scrollbar; the collapsed cards
-     keep the multi-column list. */
-  .automations-grid .card.card-expanded {
+  /* A suggestion's Flow/YAML opens in a detail row under the card's row, not
+     inside the card: a 280px column cuts every entity_id and leaves the YAML
+     readable only through a horizontal scrollbar, and a card that spans the
+     row itself drops below its neighbours and strands them in half-empty
+     rows. The detail follows the last card of its row in the DOM, so focus
+     order matches what is on screen; dense placement keeps the rows whole
+     when a resize changes the column count that order was built for.
+     Rows are spaced by card margins rather than row-gap, so a detail at
+     0fr adds no gap of its own while it opens and closes. */
+  .automations-grid.suggestions-grid {
+    grid-auto-flow: row dense;
+    row-gap: 0;
+    margin-bottom: 0;
+  }
+  .automations-grid.suggestions-grid > .card {
+    margin-bottom: 20px;
+  }
+  .automations-grid .card.card-open {
+    border-color: var(--selora-accent);
+  }
+  .automations-grid .card-detail {
     grid-column: 1 / -1;
+    min-width: 0;
+  }
+  .automations-grid .card-detail.fading-out {
+    animation: fadeOutCard 0.6s ease forwards;
+    pointer-events: none;
+  }
+  .automations-grid .card-detail-body {
+    margin-bottom: 20px;
+    padding: 12px 18px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--selora-accent-border, rgba(245, 184, 64, 0.3));
+    background: var(--selora-zinc-800);
   }
   /* Grow/shrink on open and close. A grid row animated between 0fr and 1fr is
      how an auto-height panel gets a transition at all: an auto height has
@@ -1002,6 +1030,12 @@ export const automationsStyles = css`
   }
   .automations-grid .card-panel.open {
     grid-template-rows: 1fr;
+  }
+  /* The detail row is mounted already open, so the grow starts from here. */
+  @starting-style {
+    .automations-grid .card-panel.open {
+      grid-template-rows: 0fr;
+    }
   }
   .automations-grid .card-panel-inner {
     min-height: 0;

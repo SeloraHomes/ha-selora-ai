@@ -17,7 +17,16 @@ beforeAll(() => {
   globalThis.window = { innerWidth: 1400 };
 });
 
+// A repeat() directive, unrolled into the templates it would render.
+const unrepeat = (value) =>
+  value?._$litDirective$ && Array.isArray(value.values?.[0])
+    ? value.values[0].map((item, i) =>
+        (value.values[2] ?? value.values[1])(item, i),
+      )
+    : value;
+
 function ser(value) {
+  value = unrepeat(value);
   if (value == null || typeof value === "boolean") return "";
   if (typeof value === "string" || typeof value === "number")
     return String(value);
@@ -37,6 +46,7 @@ function ser(value) {
 // Event listeners, paired with the markup chunk they sit in, so a test can say
 // which element it is clicking without a DOM.
 function listeners(value, out = []) {
+  value = unrepeat(value);
   if (value == null || typeof value !== "object") return out;
   if (Array.isArray(value)) {
     for (const v of value) listeners(v, out);
@@ -163,7 +173,7 @@ describe("the grow/shrink animation", () => {
 
   it("keeps the closed panel's content mounted so the shrink has something to shrink", () => {
     // Unmounting on close collapses the height in one frame and the transition
-    // never runs; the content goes once the card is back to its own width.
+    // never runs; the content goes once the collapse has finished.
     const closing = render(
       makeHost({
         _cardActiveTab: { [KEY]: null },
@@ -174,20 +184,70 @@ describe("the grow/shrink animation", () => {
     expect(closing).not.toMatch(/class="card-panel open/);
   });
 
-  it("holds the card at full width until the collapse has finished", () => {
+  it("opens the panel in a detail row after the card, not inside it", () => {
+    // A card that spans the row itself drops below its neighbours and leaves
+    // them stranded in half-empty rows; the detail row under the card's row
+    // leaves the clicked card where it was.
+    const open = render(
+      makeHost({
+        _cardActiveTab: { [KEY]: "yaml" },
+        _cardLastTab: { [KEY]: "yaml" },
+      }),
+    );
+    expect(open).toContain("suggestions-grid");
+    expect(open).toContain("card-open");
+    expect(open.indexOf("Accept")).toBeLessThan(open.indexOf("card-detail"));
+    expect(open).not.toContain("card-expanded");
+  });
+
+  it("places the detail after the last card of its row, in focus order", () => {
+    // Right after its own card, dense flow draws the row's later cards above
+    // the detail while Tab reaches them only after the detail's editor.
+    const alias = (n) => ({ ...AUTOMATION, alias: `Card ${n}` });
+    const host = makeHost({
+      _suggestions: [1, 2, 3, 4].map((n) => ({
+        automation: alias(n),
+        automation_yaml: "alias: x\n",
+      })),
+      _suggestionsVisibleCount: 4,
+      _suggestionGridCols: 3,
+      _cardActiveTab: { "sug_Card 2": "yaml" },
+      _cardLastTab: { "sug_Card 2": "yaml" },
+    });
+    const out = render(host);
+    const at = (needle) => out.indexOf(needle);
+    expect(at("Card 3")).toBeLessThan(at("card-detail"));
+    expect(at("card-detail")).toBeLessThan(at("Card 4"));
+  });
+
+  it("keys every card and detail so an open editor stays with its card", () => {
+    const host = makeHost({
+      _cardActiveTab: { [KEY]: "yaml" },
+      _cardLastTab: { [KEY]: "yaml" },
+    });
+    const section = renderSuggestionsSection(host);
+    const find = (value) => {
+      if (value?._$litDirective$ && Array.isArray(value.values?.[0]))
+        return value;
+      if (Array.isArray(value)) return value.map(find).find(Boolean);
+      return value?.values ? find(value.values) : null;
+    };
+    const parts = find(section).values[0];
+    expect(parts.map((part) => find(section).values[1](part))).toEqual([
+      `card:${KEY}`,
+      `detail:${KEY}`,
+    ]);
+  });
+
+  it("keeps the detail row until the collapse has finished", () => {
     const mid = makeHost({
       _cardActiveTab: { [KEY]: null },
       _cardLastTab: { [KEY]: "yaml" },
       _cardPanelSettled: { [KEY]: false },
     });
-    expect(render(mid)).toContain("card-expanded");
-    // Settled: the animation is over, so the card returns to its column.
-    const done = makeHost({
-      _cardActiveTab: { [KEY]: null },
-      _cardLastTab: { [KEY]: "yaml" },
-      _cardPanelSettled: { [KEY]: true },
-    });
-    expect(render(done)).not.toContain("card-expanded");
+    expect(render(mid)).toContain("card-detail");
+    expect(render(mid)).not.toContain("card-open");
+    expect(render(makeHost())).not.toContain("card-detail");
   });
 
   it("clips the panel only while it moves", () => {
@@ -248,7 +308,7 @@ describe("the settle timer", () => {
 
   it("does not let a superseded timer settle the next transition", () => {
     // Toggling again mid-animation left the first timer running, so it
-    // settled the second transition early and snapped the width mid-shrink.
+    // settled the second transition early and unmounted the detail row mid-shrink.
     const host = makeHost();
     clickHeader(host);
     vi.advanceTimersByTime(100);
@@ -289,7 +349,8 @@ describe("the card's classes exist", () => {
     for (const name of [
       "card-panel",
       "card-panel-inner",
-      "card-expanded",
+      "card-open",
+      "card-detail",
       "card-disclosure",
     ]) {
       used.add(name);
@@ -301,7 +362,7 @@ describe("the card's classes exist", () => {
   });
 
   it("animates over the same duration the stylesheet uses", () => {
-    // The settle timer is what returns the card to its column and stops the
+    // The settle timer is what unmounts the detail row and stops the
     // clipping; a stylesheet that outlasts it snaps mid-animation.
     const source = readFileSync(
       new URL("../render-suggestions.js", import.meta.url),
