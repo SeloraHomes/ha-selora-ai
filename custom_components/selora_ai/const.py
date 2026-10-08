@@ -1370,6 +1370,10 @@ AUTOMATION_STORE_KEY = "selora_ai_automations"
 # the audit trail (who/when/why) is not lost even when the YAML body is
 # evicted.
 MAX_VERSIONS_PER_AUTOMATION = 20
+# How long, and how many, deleted automations' records are kept so a restore
+# from a delete's returned copy picks its history back up.
+RETIRED_AUTOMATION_DAYS = 30
+MAX_RETIRED_AUTOMATIONS = 50
 
 # ── Scene Lifecycle ─────────────────────────────────────────────────
 SCENE_STORE_KEY = "selora_ai_scenes"

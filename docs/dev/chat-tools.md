@@ -81,6 +81,13 @@ withheld as `previous_omitted` when the whole result would not fit, never cut by
 - **Content, not identity**: something deleted and made again gets a new id. A
   scene's editor metadata and a person's login link and picture are left out,
   since no tool sets them.
+- **An automation Selora made keeps its history through a tool delete.** Its
+  version record is retired, not purged (`AutomationStore.retire_record`),
+  hidden from every read and pruned after `RETIRED_AUTOMATION_DAYS` or beyond
+  `MAX_RETIRED_AUTOMATIONS`. `selora_create_automation` given that copy, `id`
+  included, makes it again under the same id with its versions
+  (`history_restored`). Only a retired id is taken, never one a caller picks.
+  A panel delete hands nothing back, so it still purges.
 - `remove_dashboard_card` returns its card as `card` (`card_omitted`), as its
   description says.
 

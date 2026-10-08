@@ -3005,8 +3005,13 @@ async def async_create_automation(
     version_message: str = "Created",
     enabled: bool = False,
     bypass_risk_gate: bool = False,
+    restore_id: str | None = None,
 ) -> AutomationCreateResult:
     """Write a single automation suggestion to automations.yaml and reload.
+
+    ``restore_id`` is the id of a deleted automation whose history is still
+    kept: it is made again under that id with its history, unless the id is in
+    use again, when it gets a new one like any other.
 
     New automations are written **disabled** by default. Callers that need an
     automation to be active immediately (UI quick-create, scheduled one-shots,
@@ -3104,6 +3109,14 @@ async def async_create_automation(
 
     async with AUTOMATIONS_YAML_LOCK:
         existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        restoring = bool(
+            restore_id
+            and not any(a.get("id") == restore_id for a in existing)
+            and await _get_automation_store(hass).is_retired(restore_id)
+        )
+        if restoring and restore_id:
+            automation_id = restore_id
+            automation["id"] = restore_id
         existing.append(automation)
 
         # Capture the version YAML before writing — _write_automations_yaml's
@@ -3124,10 +3137,16 @@ async def async_create_automation(
             # above is what makes the automation functional.
             await _attach_selora_label_to_entity(hass, automation_id)
 
-            # Record first version
+            # Record first version, or the next one of a restored history
             store = _get_automation_store(hass)
+            restored = restoring and await store.revive_record(automation_id)
             await store.add_version(
-                automation_id, yaml_text, automation, version_message, session_id
+                automation_id,
+                yaml_text,
+                automation,
+                version_message,
+                session_id,
+                action="restored" if restored else None,
             )
 
             return {
@@ -3135,6 +3154,7 @@ async def async_create_automation(
                 "automation_id": automation_id,
                 "risk_level": risk.get("level", "normal"),
                 "forced_disabled": forced_disabled,
+                "history_restored": restored,
             }
         except Exception as exc:
             _LOGGER.exception("Failed to create automation: %s", exc)
@@ -3185,13 +3205,19 @@ async def async_toggle_automation(
 
 
 async def async_delete_automation(
-    hass: HomeAssistant, automation_id: str, *, report: dict[str, Any] | None = None
+    hass: HomeAssistant,
+    automation_id: str,
+    *,
+    report: dict[str, Any] | None = None,
+    keep_history: bool = False,
 ) -> bool:
     """Permanently delete an automation from automations.yaml and the store.
 
     Records the automation's trigger/action content hash in PatternStore so the
     collector will not re-suggest a similar automation. ``report`` gets
-    ``previous``: the entry removed, as read under the lock.
+    ``previous``: the entry removed, as read under the lock. ``keep_history``
+    retires its version record instead of purging it, for a caller handed that
+    entry to restore from: made again under its id, it gets its history back.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
@@ -3213,7 +3239,10 @@ async def async_delete_automation(
             await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
             await hass.services.async_call("automation", "reload", blocking=True)
             store = _get_automation_store(hass)
-            await store.purge_record(automation_id)
+            if keep_history:
+                await store.retire_record(automation_id)
+            else:
+                await store.purge_record(automation_id)
 
             from homeassistant.helpers import entity_registry as er
 

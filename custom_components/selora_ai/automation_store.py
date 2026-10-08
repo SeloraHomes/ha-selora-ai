@@ -17,6 +17,12 @@ Data layout in storage:
         },
         "session_index": {
             "<session_id>": [automation_id, ...]  # reverse index
+        },
+        "retired": {
+            # A deleted automation's record, with "retired_at", kept so a
+            # restore under its old id picks the history back up. Readers
+            # never see it; pruned by age and count.
+            "<automation_id>": AutomationRecord,
         }
     }
 
@@ -32,7 +38,7 @@ LineageEntry shape:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import difflib
 import logging
 from typing import TYPE_CHECKING, Any
@@ -42,7 +48,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .automation_changes import CHANGES_FORMAT, compute_version_changes
-from .const import AUTOMATION_STORE_KEY, MAX_VERSIONS_PER_AUTOMATION
+from .const import (
+    AUTOMATION_STORE_KEY,
+    MAX_RETIRED_AUTOMATIONS,
+    MAX_VERSIONS_PER_AUTOMATION,
+    RETIRED_AUTOMATION_DAYS,
+)
 from .telemetry import record_activity
 from .version_summaries import schedule_version_summary
 
@@ -80,6 +91,26 @@ def _backfill_changes(data: AutomationStoreData) -> bool:
     return filled
 
 
+def _prune_retired(data: AutomationStoreData) -> bool:
+    """Drop retired records past their age or beyond the count. True if any went."""
+    retired = data.get("retired")
+    if not retired:
+        return False
+    cutoff = (datetime.now(UTC) - timedelta(days=RETIRED_AUTOMATION_DAYS)).isoformat()
+    newest_first = sorted(
+        retired.items(), key=lambda item: item[1].get("retired_at", ""), reverse=True
+    )
+    keep = {
+        automation_id: record
+        for automation_id, record in newest_first[:MAX_RETIRED_AUTOMATIONS]
+        if record.get("retired_at", "") >= cutoff
+    }
+    if len(keep) == len(retired):
+        return False
+    data["retired"] = keep
+    return True
+
+
 class AutomationStore:
     """Version and lifecycle store for Selora-managed automations."""
 
@@ -102,7 +133,8 @@ class AutomationStore:
                 for record in self._data.get("records", {}).values():
                     if "lineage" not in record:
                         record["lineage"] = []
-                if _backfill_changes(self._data):
+                backfilled = _backfill_changes(self._data)
+                if _prune_retired(self._data) or backfilled:
                     await self._store.async_save(self._data)
             else:
                 self._data = {"records": {}, "session_index": {}}
@@ -279,6 +311,48 @@ class AutomationStore:
         del records[automation_id]
         await self._store.async_save(data_store)
         record_activity(self._hass, "automations_deleted")
+        return True
+
+    async def retire_record(self, automation_id: str) -> bool:
+        """Take a deleted automation's record out of view, keeping its history.
+
+        ``revive_record`` puts it back when the automation is made again under
+        the same id; otherwise it is pruned with the other retired records.
+        """
+        data_store = await self._get_loaded_data()
+        record = data_store["records"].pop(automation_id, None)
+        if record is None:
+            return False
+        record["retired_at"] = datetime.now(UTC).isoformat()
+        data_store.setdefault("retired", {})[automation_id] = record
+        _prune_retired(data_store)
+        await self._store.async_save(data_store)
+        record_activity(self._hass, "automations_deleted")
+        return True
+
+    async def _unexpired_retired(self) -> dict[str, AutomationRecord]:
+        """Retired records, pruned first: a running hub outlives the deadline."""
+        data_store = await self._get_loaded_data()
+        if _prune_retired(data_store):
+            await self._store.async_save(data_store)
+        return data_store.get("retired", {})
+
+    async def is_retired(self, automation_id: str) -> bool:
+        """Return whether a deleted automation's history is still kept."""
+        return automation_id in await self._unexpired_retired()
+
+    async def revive_record(self, automation_id: str) -> bool:
+        """Bring a retired record back, unless the id is in use again.
+
+        Not saved here: the caller's next ``add_version`` saves it.
+        """
+        retired = await self._unexpired_retired()
+        data_store = await self._get_loaded_data()
+        if automation_id not in retired or automation_id in data_store["records"]:
+            return False
+        record = retired.pop(automation_id)
+        record.pop("retired_at", None)
+        data_store["records"][automation_id] = record
         return True
 
     # ── Metadata helpers ─────────────────────────────────────────────────

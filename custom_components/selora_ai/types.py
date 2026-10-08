@@ -98,6 +98,7 @@ class AutomationCreateResult(TypedDict, total=False):
     automation_id: str | None
     risk_level: str
     forced_disabled: bool
+    history_restored: bool
 
 
 # ── Scene structures ─────────────────────────────────────────────────
@@ -221,6 +222,7 @@ class AutomationRecord(TypedDict):
     current_version_id: str
     versions: list[AutomationVersion]
     lineage: list[LineageEntry]
+    retired_at: NotRequired[str]
 
 
 class AutomationMetadata(TypedDict):
@@ -774,6 +776,7 @@ class AutomationStoreData(TypedDict):
 
     records: dict[str, AutomationRecord]
     session_index: dict[str, list[str]]
+    retired: NotRequired[dict[str, AutomationRecord]]
 
 
 # ── History summary ────────────────────────────────────────────────────
