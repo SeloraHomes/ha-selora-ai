@@ -415,6 +415,99 @@ async def test_removed_card_comes_back_for_restoration(board: HomeAssistant) -> 
     assert any(c.get("entity") == "climate.main" for c in listing["view"]["cards"])
 
 
+async def test_a_replaced_card_comes_back_in_the_result(board: HomeAssistant) -> None:
+    executor = _make_executor(board)
+
+    result = await executor.execute(
+        "update_dashboard_card",
+        {"view": "living", "card_index": 0, "card": {"type": "light", "entity": "light.other"}},
+    )
+
+    assert result["previous"] == {"type": "light", "entity": "light.lamp"}
+
+
+async def test_a_removed_page_comes_back_whole(board: HomeAssistant) -> None:
+    result = await dm.async_remove_view(board, view="Garage")
+
+    assert result["previous"] == _document()["views"][1]
+
+
+async def test_a_page_update_hands_back_its_old_settings_without_cards(
+    board: HomeAssistant,
+) -> None:
+    """Its settings are what changed; the cards stay where they are."""
+    result = await dm.async_update_view(board, view="living", title="Lounge", icon="mdi:sofa")
+
+    assert result["previous"] == {
+        "title": "Living",
+        "path": "living",
+        "layout": "masonry",
+        "clear": ["icon"],
+    }
+
+
+async def test_page_options_come_back_as_the_update_takes_them(board: HomeAssistant) -> None:
+    await dm.async_update_view(board, view="living", options={"theme": "dark"})
+
+    result = await dm.async_update_view(board, view="living", options={"theme": "light"})
+
+    assert result["previous"]["options"] == {"theme": "dark"}
+    await dm.async_update_view(board, view="living", **result["previous"])
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    after = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert after["views"][0]["theme"] == "dark"
+
+
+async def test_a_setting_the_page_update_added_is_cleared_on_the_way_back(
+    board: HomeAssistant,
+) -> None:
+    result = await dm.async_update_view(board, view="living", icon="mdi:sofa")
+    assert result["previous"]["clear"] == ["icon"]
+
+    await dm.async_update_view(board, view="living", **result["previous"])
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    after = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert "icon" not in after["views"][0]
+
+
+async def test_a_layout_change_is_undone_by_its_settings(board: HomeAssistant) -> None:
+    result = await dm.async_update_view(board, view="living", layout="sidebar")
+
+    await dm.async_update_view(board, view="living", **result["previous"])
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+
+    after = await board.data[LOVELACE_DATA].dashboards[None].async_load(False)
+    assert after["views"][0].get("type", "masonry") == "masonry"
+    assert len(after["views"][0]["cards"]) == 2
+
+
+async def test_merging_sections_hands_back_the_whole_page(board: HomeAssistant) -> None:
+    """Re-laying a page out rebuilds its sections, so settings alone would lose
+    where each card sat."""
+    result = await dm.async_update_view(board, view="garage", layout="masonry")
+
+    assert result["previous"] == _document()["views"][1]
+    # And says plainly that no tool splits the sections out again.
+    assert "no tool rebuilds that" in result["note"]
+
+
+async def test_an_oversized_restore_copy_is_withheld_not_cut(board: HomeAssistant) -> None:
+    """A trimmed copy would look restorable and not be."""
+    from custom_components.selora_ai.helpers import MAX_RESTORE_CHARS
+
+    big = {"type": "markdown", "content": "x" * MAX_RESTORE_CHARS}
+    executor = _make_executor(board)
+    await executor.execute("insert_dashboard_card", {"card": big, "view": "living"})
+
+    result = await executor.execute("remove_dashboard_card", {"view": "living", "card_index": 2})
+
+    assert result["status"] == "deleted"
+    assert "card" not in result
+    assert result["card_omitted"] is True
+
+
 # ── YAML dashboards ─────────────────────────────────────────────────────────
 
 

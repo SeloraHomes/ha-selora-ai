@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 
+from ..helpers import attach_previous
 from .common import (
     _get_automation_store,
     _is_pending_automation,
@@ -132,9 +133,13 @@ async def _tool_get_automation(hass: HomeAssistant, arguments: dict[str, Any]) -
     if not automation_id and not entity_id_arg:
         return {"error": "automation_id or entity_id is required"}
 
-    state, automation_id, entity_id = _resolve_automation(
+    state, resolved_id, resolved_entity = _resolve_automation(
         hass, automation_id=automation_id, entity_id=entity_id_arg
     )
+    # An unloaded YAML entry resolves to empty ids; the id asked for is then
+    # the only handle on it (as in ``_preview_delete_automation``).
+    automation_id = resolved_id or automation_id
+    entity_id = resolved_entity or entity_id_arg
 
     yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
     # Fall back to a yaml-only lookup when the automation isn't in the state
@@ -423,7 +428,7 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
                 "primitives (shell_command, python_script, webhook, etc.). Review "
                 "it and enable manually if intended."
             )
-        return response
+        return attach_previous(response, update_report.get("previous"), what="old automation")
 
     create_result = await async_create_automation(
         hass, normalized, version_message=version_message, enabled=enabled
@@ -488,7 +493,7 @@ async def _replace_user_automation(
             "primitives (shell_command, python_script, webhook, etc.). Review it "
             "and enable manually if intended."
         )
-    return response
+    return attach_previous(response, report.get("previous"), what="old automation")
 
 
 # ── Tool: selora_accept_automation ────────────────────────────────────────────
@@ -654,7 +659,7 @@ async def _delete_idless_automation_by_alias(
             await hass.async_add_executor_job(_write_automations_yaml, automations_path, previous)
             return {"error": f"Automation reload failed: {exc}"}
 
-    return {"status": "deleted"}
+    return attach_previous({"status": "deleted"}, matches[0], what="deleted automation")
 
 
 async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -679,9 +684,13 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
     if not automation_id and not entity_id_arg:
         return {"error": "automation_id or entity_id is required"}
 
-    state, automation_id, entity_id = _resolve_automation(
+    state, resolved_id, resolved_entity = _resolve_automation(
         hass, automation_id=automation_id, entity_id=entity_id_arg
     )
+    # An unloaded YAML entry resolves to empty ids; the id asked for is then
+    # the only handle on it (as in ``_preview_delete_automation``).
+    automation_id = resolved_id or automation_id
+    entity_id = resolved_entity or entity_id_arg
 
     yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
     # Yaml-only fallback so broken/un-loaded yaml entries can still be cleaned
@@ -726,10 +735,15 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
 
     yaml_id = auto.get("id")
     if isinstance(yaml_id, str) and yaml_id:
-        success: bool = await async_delete_automation(hass, yaml_id)
+        report: dict[str, Any] = {}
+        success: bool = await async_delete_automation(hass, yaml_id, report=report)
         if not success:
             return {"error": "Failed to delete automation"}
-        return {"automation_id": yaml_id, "entity_id": entity_id, "status": "deleted"}
+        return attach_previous(
+            {"automation_id": yaml_id, "entity_id": entity_id, "status": "deleted"},
+            report.get("previous"),
+            what="deleted automation",
+        )
 
     # Id-less yaml entry — delete by alias match. Refuse if the alias is missing
     # or duplicated so we never remove the wrong entry.
@@ -777,6 +791,7 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
                 and not (isinstance(a.get("id"), str) and a["id"])
             )
         ]
+        removed = [a for a in existing if not any(a is kept for kept in remaining)]
         if len(remaining) == len(existing):
             return {"error": f"Automation {_sanitize(entity_id)} not found in automations.yaml"}
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
@@ -786,7 +801,11 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
             await hass.async_add_executor_job(_write_automations_yaml, automations_path, previous)
             return {"error": f"Automation reload failed: {exc}"}
 
-    return {"entity_id": entity_id, "status": "deleted"}
+    return attach_previous(
+        {"entity_id": entity_id, "status": "deleted"},
+        removed[0] if len(removed) == 1 else None,
+        what="deleted automation",
+    )
 
 
 async def _preview_delete_automation(

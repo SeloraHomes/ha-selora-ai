@@ -30,7 +30,7 @@ import uuid
 from homeassistant.util import slugify
 
 from .const import MAX_TOOL_RESULT_CHARS
-from .helpers import sanitize_untrusted_text
+from .helpers import attach_previous, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -587,6 +587,12 @@ async def async_set_script(
             }
         if existed and (error := _fingerprint_mismatch(scripts, target, expected_fingerprint)):
             return {"error": f"'{sanitize_untrusted_text(alias, 80)}' {error}"}
+        previous = _restorable(target, scripts[target]) if existed else None
+        if previous is not None and (
+            # Settings this write adds, which only clear takes away again.
+            added := [k for k in CLEARABLE if k in config and k not in scripts[target]]
+        ):
+            previous["clear"] = added
         scripts[target] = config
         await hass.async_add_executor_job(_write_scripts, path, scripts)
 
@@ -611,7 +617,8 @@ async def async_set_script(
             )
     if reload_error:
         result["reload_error"] = reload_error
-    return result
+    _note_left_out(result, previous)
+    return attach_previous(result, previous, what="old script")
 
 
 async def _async_reload(hass: HomeAssistant) -> str | None:
@@ -686,7 +693,7 @@ async def async_delete_script(
             return {"error": f"'{sanitize_untrusted_text(ref, 60)}' {error}"}
 
         alias = str((scripts[object_id] or {}).get("alias") or object_id)
-        del scripts[object_id]
+        previous = _restorable(object_id, scripts.pop(object_id))
         await hass.async_add_executor_job(_write_scripts, path, scripts)
 
     reload_error = await _async_reload(hass)
@@ -699,4 +706,45 @@ async def async_delete_script(
     }
     if reload_error:
         result["reload_error"] = reload_error
-    return result
+    _note_left_out(result, previous)
+    return attach_previous(result, previous, what="deleted script")
+
+
+# A script's stored keys that set_script writes, under the same names.
+_RESTORABLE: Final = frozenset(
+    {
+        "alias",
+        "sequence",
+        "description",
+        "mode",
+        "icon",
+        "fields",
+        "variables",
+        "max",
+        "max_exceeded",
+    }
+)
+
+
+def _restorable(object_id: str, config: Any) -> dict[str, Any] | None:
+    """A stored script as ``set_script``'s arguments, its object_id included so
+    it comes back under the same entity_id. An alias-less script takes its
+    object_id as the alias the tool requires. Settings no argument writes are
+    named under ``_left_out`` for the caller to report, then dropped."""
+    if not isinstance(config, dict):
+        return None
+    args: dict[str, Any] = {"object_id": object_id}
+    args.update({key: config[key] for key in _RESTORABLE if key in config})
+    args.setdefault("alias", object_id)
+    if left_out := sorted(set(config) - _RESTORABLE):
+        args["_left_out"] = left_out
+    return args
+
+
+def _note_left_out(result: dict[str, Any], previous: dict[str, Any] | None) -> None:
+    if previous and (left_out := previous.pop("_left_out", None)):
+        note = (
+            f"previous leaves out {', '.join(left_out)}, which set_script does not "
+            "write; the user can put it back in scripts.yaml."
+        )
+        result["note"] = f"{result['note']} {note}" if result.get("note") else note

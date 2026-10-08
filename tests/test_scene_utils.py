@@ -1089,3 +1089,25 @@ def test_scenes_are_activated_through_execute_command() -> None:
 
     assert "activate_scene" not in TOOL_MAP
     assert "scene.turn_on" in TOOL_MAP["execute_command"].description
+
+
+def test_a_restore_copy_takes_the_scene_tools_terms() -> None:
+    """The display prefix comes off, or create_scene would add it twice; id and
+    editor metadata go, since no tool takes them."""
+    from custom_components.selora_ai.scene_utils import _restorable
+
+    entry = {
+        "id": "selora_ai_scene_1",
+        "name": "[Selora AI] Evening",
+        "icon": "mdi:sofa",
+        "entities": {"light.lamp": {"state": "on"}},
+        "metadata": {"light.lamp": {"entity_only": True}},
+    }
+
+    assert _restorable(entry, selora=True) == {
+        "name": "Evening",
+        "icon": "mdi:sofa",
+        "entities": {"light.lamp": {"state": "on"}},
+        # Flagged for the tool to say so, rather than dropped silently.
+        "_left_out": ["metadata"],
+    }

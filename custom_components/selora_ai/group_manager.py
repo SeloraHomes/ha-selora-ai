@@ -34,7 +34,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 import voluptuous as vol
 
-from .helpers import sanitize_untrusted_text
+from .helpers import attach_previous, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -768,6 +768,29 @@ async def async_update_group(
     """
     options = dict(entry.options)
     group_type = str(options.get("group_type", ""))
+    # In update_group's own terms (a rename back is new_name), and only what
+    # this update changes: unchanged members passed back would be re-checked,
+    # and one since deleted would refuse the undo.
+    settings = _settings(hass, entry)
+    asked = {
+        "name": name,
+        "entities": (
+            True
+            if entities is not None
+            or any(
+                d is not None and not _is_empty_delta(d) for d in (add_entities, remove_entities)
+            )
+            else None
+        ),
+        "hide_members": hide_members,
+        "requires_all_members": requires_all_members,
+        "statistic": statistic,
+    }
+    before = {
+        ("new_name" if key == "name" else key): settings[key]
+        for key, value in asked.items()
+        if value is not None and key in settings
+    }
 
     # Normalised before any gate below, all of which test ``is not None``.
     if _is_empty_delta(add_entities):
@@ -1047,19 +1070,47 @@ async def async_update_group(
     )
     # Reported resolved: the caller is an LLM that will quote these back to the
     # user, and a stored registry id means nothing to either of them.
-    return {
-        "status": "updated",
-        "entry_id": entry.entry_id,
-        "entity_id": entity_id,
-        "name": title,
-        "group_type": group_type,
-        "members": new_entity_ids,
-        "member_count": len(new_members),
-        "added": [e for e in new_entity_ids if e not in set(current_entity_ids)],
-        "removed": _resolve_members(hass, removed_members),
-        **({"statistic": statistic} if statistic is not None else {}),
-        **({"hide_members": bool(hide_members)} if hide_members is not None else {}),
+    return attach_previous(
+        {
+            "status": "updated",
+            "entry_id": entry.entry_id,
+            "entity_id": entity_id,
+            "name": title,
+            "group_type": group_type,
+            "members": new_entity_ids,
+            "member_count": len(new_members),
+            "added": [e for e in new_entity_ids if e not in set(current_entity_ids)],
+            "removed": _resolve_members(hass, removed_members),
+            **({"statistic": statistic} if statistic is not None else {}),
+            **({"hide_members": bool(hide_members)} if hide_members is not None else {}),
+        },
+        before,
+        what="old settings",
+    )
+
+
+def _settings(hass: HomeAssistant, entry: ConfigEntry) -> dict[str, Any]:
+    """A group as the arguments ``create_group`` takes to make it again.
+
+    Not the stored options: those name things differently (``all``, ``type``)
+    and may hold registry ids, which no tool takes back.
+    """
+    info = describe_group(hass, entry)
+    settings: dict[str, Any] = {
+        "name": str(entry.options.get("name") or entry.title),
+        "group_type": info["group_type"],
+        "entities": _resolve_members(
+            hass, [str(e) for e in entry.options.get("entities", []) or []]
+        ),
     }
+    # Off is stated, not left out: left out, passing these back would not turn
+    # off what an update turned on.
+    settings["hide_members"] = bool(entry.options.get("hide_members", False))
+    if info["group_type"] in _SUPPORTS_ALL:
+        settings["requires_all_members"] = bool(entry.options.get("all", False))
+    if "statistic" in info:
+        settings["statistic"] = info["statistic"]
+    return settings
 
 
 def parent_groups(hass: HomeAssistant, entity_id: str | None) -> list[str]:
@@ -1211,16 +1262,21 @@ async def async_delete_group(hass: HomeAssistant, entry_id: str) -> dict[str, An
 
     name = str(entry.options.get("name") or entry.title or "")
     entity_id = group_entity_id(hass, entry)
+    before = _settings(hass, entry)
     restore = _hides_to_restore_after_delete(hass, entry)
     unloaded = await hass.config_entries.async_remove(entry_id)
     if restore:
         # Re-applied after removal, since that is what cleared them.
         _apply_member_visibility(hass, restore, True)
     _LOGGER.info("Deleted group '%s' (%s)", name, entity_id or entry_id)
-    return {
-        "status": "deleted",
-        "entry_id": entry_id,
-        "entity_id": entity_id,
-        "name": sanitize_untrusted_text(name),
-        "require_restart": bool(unloaded.get("require_restart")),
-    }
+    return attach_previous(
+        {
+            "status": "deleted",
+            "entry_id": entry_id,
+            "entity_id": entity_id,
+            "name": sanitize_untrusted_text(name),
+            "require_restart": bool(unloaded.get("require_restart")),
+        },
+        before,
+        what="deleted group",
+    )

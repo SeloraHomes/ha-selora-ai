@@ -63,6 +63,8 @@ async def test_its_options_change_directly(lovelace: HomeAssistant) -> None:
     result = await _set(lovelace, strategy=options)
 
     assert result["status"] == "updated"
+    # The old strategy, as this tool takes it back.
+    assert result["previous"] == {"strategy": {"type": "areas"}}
     assert (await _store(lovelace).async_load(False))["strategy"] == options
 
 
@@ -80,6 +82,8 @@ async def test_pages_of_its_own_are_lost_only_once_confirmed(lovelace: HomeAssis
     )
     assert done["replaced"] == {"views": 1, "cards": 1}
     assert await _store(lovelace).async_load(False) == {"strategy": {"type": "home"}}
+    # The pages it replaced come back, so they can be saved again.
+    assert done["previous"] == pages
 
 
 @pytest.mark.parametrize(

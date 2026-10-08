@@ -63,6 +63,27 @@ allowlists: add a new delete tool to **both** plus a branch in `_resolve_approva
 `requires_approval`, the loop short-circuits and discards the prose, the
 synthesizer drops the descriptor, and the user gets an empty reply and no card.
 
+**A replace or delete hands back what it overwrote.** The result is the only
+undo a caller has, so it carries `previous`, through `helpers.attach_previous`:
+withheld as `previous_omitted` when the whole result would not fit, never cut by
+`_truncate_result` into something that only looks restorable.
+
+- **In the terms the tool that undoes it takes**, not as stored: a counter's
+  `min`/`max`, a schedule's `schedule`, a group update's `new_name`, a page's
+  `layout` and `options`, plus `clear` for settings the edit added — passing
+  the old values back leaves an added one in place.
+- **Tools go in `_RETURNS_PREVIOUS`** (`mcp_server/definitions.py`), which tells
+  MCP callers to keep it and drops "cannot be undone" from the delete note. A
+  removed page or deleted dashboard goes in `_RETURNS_STORED`: its copy is the
+  stored Lovelace configuration, which no tool writes back whole, and the
+  description says so. So does a result whose copy no tool can replay (sections
+  a layout change dropped, pages a strategy replaced).
+- **Content, not identity**: something deleted and made again gets a new id. A
+  scene's editor metadata and a person's login link and picture are left out,
+  since no tool sets them.
+- `remove_dashboard_card` returns its card as `card` (`card_omitted`), as its
+  description says.
+
 **MCP definitions are derived** from the chat `ToolDef`s (`_DERIVED_MCP_TOOLS` /
 `_mcp_tool_from_chat_tool` in `mcp_server/definitions.py`), never restated — a second copy
 drifts quietly, with the MCP client rejecting an argument chat accepts. The

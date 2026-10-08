@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from ..const import (
     DOMAIN,
 )
+from ..helpers import attach_previous
 from .common import _sanitize
 
 if TYPE_CHECKING:
@@ -445,15 +446,16 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     # Selora scene has since claimed this entity_id, the store lookup below
     # would find and delete THAT record — a scene the user never saw. Keying
     # on the confirmed name (and refusing when it's gone) avoids that.
+    report: dict[str, Any] = {}
     if expected_name and not scene_id:
         if not entity_id_arg:
             return {"error": "entity_id is required with expected_name"}
         _removed, code, detail = await async_remove_yaml_scene_by_entity(
-            hass, entity_id_arg, expected_name=expected_name
+            hass, entity_id_arg, expected_name=expected_name, report=report
         )
         if code is not None:
             return {"error": _yaml_delete_error_message(code, detail, entity_id_arg)}
-        return {"entity_id": entity_id_arg, "status": "deleted"}
+        return _with_removed({"entity_id": entity_id_arg, "status": "deleted"}, report)
 
     store = get_scene_store(hass)
     await store.async_reconcile_yaml(force=True)
@@ -482,15 +484,17 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
             # so both paths classify and delete id-less entries identically.
             # (The chat confirm path with a captured fingerprint is handled by
             # the expected_name short-circuit above, before this resolution.)
-            _removed, code, detail = await async_remove_yaml_scene_by_entity(hass, entity_id_arg)
+            _removed, code, detail = await async_remove_yaml_scene_by_entity(
+                hass, entity_id_arg, report=report
+            )
             if code is not None:
                 return {"error": _yaml_delete_error_message(code, detail, entity_id_arg)}
-            return {"entity_id": entity_id_arg, "status": "deleted"}
+            return _with_removed({"entity_id": entity_id_arg, "status": "deleted"}, report)
 
     try:
         found, removed = await store.async_delete_with_yaml(
             scene_id,
-            lambda sid: async_remove_scene_yaml(hass, sid),
+            lambda sid: async_remove_scene_yaml(hass, sid, report=report),
         )
     except SceneDeleteError as exc:
         await store.async_restore(scene_id)
@@ -517,7 +521,14 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     await conv_store.remove_scene_from_sessions(scene_id)
     async_dispatcher_send(hass, SIGNAL_SCENE_DELETED, scene_id)
 
-    return {"scene_id": scene_id, "status": "deleted"}
+    return _with_removed({"scene_id": scene_id, "status": "deleted"}, report)
+
+
+def _with_removed(result: dict[str, Any], report: dict[str, Any]) -> dict[str, Any]:
+    from ..scene_utils import scene_left_out_note  # noqa: PLC0415
+
+    scene_left_out_note(result, report.get("previous"))
+    return attach_previous(result, report.get("previous"), what="deleted scene")
 
 
 async def _preview_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -728,6 +739,7 @@ async def _tool_update_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         ScenesYamlError,
         async_edit_scene_yaml,
         async_propagate_scene_edit,
+        scene_left_out_note,
     )
 
     scene_id = str(arguments.get("scene_id") or "").strip()
@@ -777,7 +789,7 @@ async def _tool_update_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         return {"error": f"The scene was not changed: {exc}"}
 
     await async_propagate_scene_edit(hass, scene_id, result, tracked=tracked)
-    return {
+    response: dict[str, Any] = {
         "status": "updated",
         "scene_id": scene_id,
         "name": _sanitize(result["name"]),
@@ -785,3 +797,5 @@ async def _tool_update_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         "entity_count": result["entity_count"],
         **(_left_out({"entities": entities}, hass) if isinstance(entities, dict) else {}),
     }
+    scene_left_out_note(response, result.get("previous"))
+    return attach_previous(response, result.get("previous"), what="old scene")

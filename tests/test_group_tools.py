@@ -2001,3 +2001,65 @@ class TestResolveDeleteApproval:
         connection.send_error.assert_not_called()
         assert gm.group_entries(group_home) == []
         assert group_home.states.get(created["entity_id"]) is None
+
+
+async def test_a_deleted_group_comes_back_from_the_result(group_home: HomeAssistant) -> None:
+    """The result is in create_group's own terms, so it makes the group again."""
+    created = await _create(group_home, requires_all_members=True, hide_members=True)
+
+    result = await _tool_delete_group(group_home, {"entity_id": created["entity_id"]})
+    await group_home.async_block_till_done()
+    assert result["previous"] == {
+        "name": "Evening Lights",
+        "group_type": "light",
+        "entities": ["light.lamp", "light.ceiling"],
+        "hide_members": True,
+        "requires_all_members": True,
+    }
+
+    again = await _tool_create_group(group_home, result["previous"])
+    await group_home.async_block_till_done()
+    assert again["members"] == ["light.lamp", "light.ceiling"], again
+
+
+async def test_an_update_hands_back_the_settings_it_replaced(group_home: HomeAssistant) -> None:
+    created = await _create(group_home)
+
+    result = await _tool_update_group(
+        group_home, {"entity_id": created["entity_id"], "new_name": "Night", "hide_members": True}
+    )
+
+    # In update_group's own terms, so passing it back renames the group back.
+    assert result["previous"]["new_name"] == "Evening Lights", result
+    assert "group_type" not in result["previous"]
+    # Off is stated, so passing it back turns hiding off again.
+    assert result["previous"]["hide_members"] is False
+
+
+async def test_a_rename_is_undone_without_rechecking_members(group_home: HomeAssistant) -> None:
+    """A member deleted since would refuse an undo that passed the members back."""
+    created = await _create(group_home)
+
+    result = await _tool_update_group(
+        group_home, {"entity_id": created["entity_id"], "new_name": "Night"}
+    )
+
+    assert result["previous"] == {"new_name": "Evening Lights"}
+
+
+async def test_padded_empty_deltas_are_not_a_membership_change(
+    group_home: HomeAssistant,
+) -> None:
+    created = await _create(group_home)
+
+    result = await _tool_update_group(
+        group_home,
+        {
+            "entity_id": created["entity_id"],
+            "new_name": "Night",
+            "add_entities": [],
+            "remove_entities": [],
+        },
+    )
+
+    assert result["previous"] == {"new_name": "Evening Lights"}

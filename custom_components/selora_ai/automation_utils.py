@@ -2799,7 +2799,8 @@ async def async_update_automation(
     so the risk gate can't be sidestepped by refining a benign automation into a
     dangerous one.
 
-    ``report``, when given, is filled with ``forced_disabled``: True when that
+    ``report``, when given, gets ``previous`` (the entry replaced) and
+    ``forced_disabled``: True when that
     gate acted, so a caller can tell the user the automation is off awaiting
     review. Only this function knows — the on-disk ``initial_state`` is not
     enough to infer it, since an automation whose boot override was ALREADY
@@ -2869,6 +2870,10 @@ async def async_update_automation(
             found = False
             for i, a in enumerate(existing):
                 if a.get("id") == automation_id:
+                    if report is not None:
+                        # Read under the lock, so it is exactly what this
+                        # write replaces, not the caller's earlier read.
+                        report["previous"] = json.loads(json.dumps(a, default=str))
                     escalating_risk, risk_forced_disabled = apply_managed_fields(
                         a,
                         updated,
@@ -3179,11 +3184,14 @@ async def async_toggle_automation(
             return False
 
 
-async def async_delete_automation(hass: HomeAssistant, automation_id: str) -> bool:
+async def async_delete_automation(
+    hass: HomeAssistant, automation_id: str, *, report: dict[str, Any] | None = None
+) -> bool:
     """Permanently delete an automation from automations.yaml and the store.
 
     Records the automation's trigger/action content hash in PatternStore so the
-    collector will not re-suggest a similar automation.
+    collector will not re-suggest a similar automation. ``report`` gets
+    ``previous``: the entry removed, as read under the lock.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
@@ -3193,6 +3201,8 @@ async def async_delete_automation(hass: HomeAssistant, automation_id: str) -> bo
         if target is None:
             _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
             return False
+        if report is not None:
+            report["previous"] = json.loads(json.dumps(target, default=str))
 
         remaining = [a for a in existing if a.get("id") != automation_id]
 

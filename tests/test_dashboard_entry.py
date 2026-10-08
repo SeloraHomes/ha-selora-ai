@@ -97,6 +97,26 @@ async def test_mcp_creates_a_dashboard_it_can_then_fill(lovelace: HomeAssistant)
     assert stored["views"][0]["cards"] == [{"type": "tile", "entity": "switch.aqua_rite"}]
 
 
+async def test_a_deleted_dashboard_comes_back_in_the_result(lovelace: HomeAssistant) -> None:
+    """Its entry settings and its pages: enough to make it again."""
+    await _create(lovelace, title="Pool", icon="mdi:pool")
+    pages = {"views": [{"title": "Pool", "cards": [{"type": "markdown", "content": "hi"}]}]}
+    await lovelace.data[LOVELACE_DATA].dashboards["pool"].async_save(pages)
+
+    result = await _delete(lovelace, "pool")
+
+    assert result["status"] == "deleted", result
+    assert result["previous"] == {
+        "settings": {
+            "title": "Pool",
+            "icon": "mdi:pool",
+            "require_admin": False,
+            "show_in_sidebar": True,
+        },
+        "config": pages,
+    }
+
+
 async def test_create_stores_what_was_asked(lovelace: HomeAssistant) -> None:
     """String booleans from loose providers must not invert visibility."""
     await _create(

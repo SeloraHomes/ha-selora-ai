@@ -234,7 +234,11 @@ async def test_delete_scene_by_id_untracked_yaml_scene(hass: HomeAssistant) -> N
 
     result = await _tool_delete_scene(hass, {"scene_id": "ha_native_1"})
 
-    assert result == {"scene_id": "ha_native_1", "status": "deleted"}
+    assert result == {
+        "scene_id": "ha_native_1",
+        "status": "deleted",
+        "previous": {"name": "External lights", "entities": {}},
+    }
     assert reloaded == [("scene", "reload")]
     remaining = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
     assert all(e.get("id") != "ha_native_1" for e in remaining)
@@ -262,7 +266,11 @@ async def test_delete_scene_idless_by_entity_id(hass: HomeAssistant) -> None:
 
     result = await _tool_delete_scene(hass, {"entity_id": "scene.hand_authored"})
 
-    assert result == {"entity_id": "scene.hand_authored", "status": "deleted"}
+    assert result == {
+        "entity_id": "scene.hand_authored",
+        "status": "deleted",
+        "previous": {"name": "Hand Authored", "entities": {"light.x": {"state": "on"}}},
+    }
     remaining = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
     assert remaining == []
 

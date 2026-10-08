@@ -239,6 +239,36 @@ async def test_mcp_deletes_and_names_what_used_it(
     assert hass.states.get(created["entity_id"]) is None
 
 
+async def test_an_update_hands_back_the_settings_it_replaced(
+    hass: HomeAssistant, helpers_loaded: None
+) -> None:
+    """The result is the only undo: the old settings put the helper back."""
+    entity_id = await _house_mode(hass)
+
+    result = await _mcp(hass, "update_helper", entity_id=entity_id, options=["Night"])
+    # Only what the update changed.
+    assert result["previous"] == {"options": ["Home", "Away"]}
+
+    await _mcp(hass, "update_helper", entity_id=entity_id, **result["previous"])
+    assert hass.states.get(entity_id).attributes["options"] == ["Home", "Away"]
+
+
+async def test_a_deleted_helper_can_be_created_again_from_the_result(
+    hass: HomeAssistant, helpers_loaded: None
+) -> None:
+    entity_id = await _house_mode(hass)
+
+    result = await _mcp(hass, "delete_helper", entity_id=entity_id)
+    await hass.async_block_till_done()
+    assert hass.states.get(entity_id) is None
+
+    again = await _mcp(hass, "create_helper", domain="input_select", **result["previous"])
+    await hass.async_block_till_done()
+    attributes = hass.states.get(again["entity_id"]).attributes
+    assert attributes["options"] == ["Home", "Away"]
+    assert attributes["icon"] == "mdi:home"
+
+
 async def test_chat_proposes_a_card_and_deletes_nothing(
     hass: HomeAssistant, helpers_loaded: None
 ) -> None:
@@ -308,3 +338,49 @@ async def test_a_helper_changed_since_the_card_is_not_deleted(
     assert code == "delete_failed"
     assert "changed since it was shown" in detail
     assert hass.states.get(entity_id) is not None
+
+
+async def test_a_setting_the_update_added_is_cleared_on_the_way_back(
+    hass: HomeAssistant, helpers_loaded: None
+) -> None:
+    created = await _mcp(hass, "create_helper", domain="input_boolean", name="Guest mode")
+    entity_id = created["entity_id"]
+
+    result = await _mcp(hass, "update_helper", entity_id=entity_id, icon="mdi:account")
+    assert result["previous"]["clear"] == ["icon"]
+
+    await _mcp(hass, "update_helper", entity_id=entity_id, **result["previous"])
+    assert "icon" not in hass.states.get(entity_id).attributes
+
+
+async def test_a_counter_comes_back_in_the_tools_own_spelling(
+    hass: HomeAssistant, helpers_loaded: None
+) -> None:
+    """Stored as minimum/maximum, taken as min/max: the stored names would be
+    ignored on the way back."""
+    created = await _mcp(hass, "create_helper", domain="counter", name="Visits", max=10)
+
+    result = await _mcp(hass, "update_helper", entity_id=created["entity_id"], min=2, max=20)
+    assert result["previous"]["max"] == 10
+    assert result["previous"]["clear"] == ["min"]
+
+    await _mcp(hass, "update_helper", entity_id=created["entity_id"], **result["previous"])
+    attributes = hass.states.get(created["entity_id"]).attributes
+    assert attributes["maximum"] == 10
+    assert attributes.get("minimum") is None
+
+
+async def test_a_deleted_schedule_comes_back_with_its_week(
+    hass: HomeAssistant, helpers_loaded: None
+) -> None:
+    week = {"monday": [{"from": "07:00", "to": "09:00"}]}
+    created = await _mcp(hass, "create_helper", domain="schedule", name="School", schedule=week)
+
+    result = await _mcp(hass, "delete_helper", entity_id=created["entity_id"])
+    assert result["previous"]["schedule"]["monday"][0]["from"].startswith("07:00")
+
+    again = await _mcp(hass, "create_helper", domain="schedule", **result["previous"])
+    assert "error" not in again, again
+    # A live schedule keeps a timer for its next block.
+    await _mcp(hass, "delete_helper", entity_id=again["entity_id"])
+    await hass.async_block_till_done()
