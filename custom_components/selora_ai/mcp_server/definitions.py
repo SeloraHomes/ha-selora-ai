@@ -1246,6 +1246,14 @@ _CONFIG_FILE_PARAM: dict[str, Any] = {
     ),
 }
 
+_CONFIG_BACKUP_PARAM: dict[str, Any] = {
+    "type": "string",
+    "description": (
+        "One of this file's backups, as an edit's result or backups=true names it "
+        "(.selora_ai/config_backups/…)."
+    ),
+}
+
 _TOOL_DEFINITIONS.extend(
     [
         MCPTool(
@@ -1255,7 +1263,9 @@ _TOOL_DEFINITIONS.extend(
                 "(and, for configuration.yaml, the package and theme files there are), "
                 "or one key's YAML with yaml_path. Credentials are masked; !secret and "
                 "!include references are shown as written. Read before editing with "
-                "selora_set_config_yaml. Requires admin access."
+                "selora_set_config_yaml. backups=true lists the file's backups (one is "
+                "kept before each edit); backup reads one of them the same way. "
+                "Requires admin access."
             ),
             inputSchema={
                 "type": "object",
@@ -1265,6 +1275,11 @@ _TOOL_DEFINITIONS.extend(
                         "type": "string",
                         "description": "A top-level key to show. Omit to list the keys.",
                     },
+                    "backups": {
+                        "type": "boolean",
+                        "description": "List the file's backups, newest first, instead.",
+                    },
+                    "backup": _CONFIG_BACKUP_PARAM,
                 },
             },
         ),
@@ -1284,26 +1299,34 @@ _TOOL_DEFINITIONS.extend(
                 "repeat the exact call with the token. The file is backed up first, and "
                 "an edit that makes Home Assistant's configuration check fail is rolled "
                 "back. The result says whether a reload made it live or a restart is "
-                "needed. Requires admin access."
+                "needed. action restore puts one of the file's backups back whole "
+                "(list them with selora_get_config_yaml backups=true), through the same "
+                "two steps; credentials the reads masked come back as they were. "
+                "Requires admin access."
             ),
             inputSchema={
                 "type": "object",
-                "required": ["yaml_path", "action"],
+                "required": ["action"],
                 "properties": {
                     "file": _CONFIG_FILE_PARAM,
                     "yaml_path": {
                         "type": "string",
-                        "description": "The top-level key, theme name, or 'frontend.themes'.",
+                        "description": (
+                            "The top-level key, theme name, or 'frontend.themes'. Not "
+                            "used by restore."
+                        ),
                     },
                     "action": {
                         "type": "string",
-                        "enum": ["add", "replace", "remove"],
+                        "enum": ["add", "replace", "remove", "restore"],
                         "description": (
                             "add: create the key, or append to its list / add new "
                             "entries to its mapping. replace: overwrite the key. "
-                            "remove: delete it."
+                            "remove: delete it. restore: put backup back as the whole "
+                            "file."
                         ),
                     },
+                    "backup": _CONFIG_BACKUP_PARAM,
                     "content": {
                         "type": "string",
                         "description": (
@@ -1497,6 +1520,14 @@ _FILE_PARAM: dict[str, Any] = {
     ),
 }
 
+_FILE_BACKUP_PARAM: dict[str, Any] = {
+    "type": "string",
+    "description": (
+        "One of this file's backups, as a write or delete result or backups=true "
+        "names it (.selora_ai/file_backups/…)."
+    ),
+}
+
 _TOOL_DEFINITIONS.extend(
     [
         MCPTool(
@@ -1519,6 +1550,8 @@ _TOOL_DEFINITIONS.extend(
             description=(
                 "Read a text file under www/, themes/, custom_templates/, dashboards/ or "
                 "blueprints/. Long files come in chunks: pass next_offset back as offset. "
+                "backups=true lists the file's backups (one is kept before each "
+                "replace or delete, also of a deleted file); backup reads one of them. "
                 "configuration.yaml and packages are read with selora_get_config_yaml. "
                 "Requires admin access."
             ),
@@ -1531,6 +1564,11 @@ _TOOL_DEFINITIONS.extend(
                         "type": "integer",
                         "description": "Byte offset to continue from: the next_offset a read returned.",
                     },
+                    "backups": {
+                        "type": "boolean",
+                        "description": "List the file's backups, newest first, instead.",
+                    },
+                    "backup": _FILE_BACKUP_PARAM,
                 },
             },
         ),
@@ -1542,16 +1580,22 @@ _TOOL_DEFINITIONS.extend(
                 "existing file needs overwrite=true, and the old version is backed up. "
                 "A file a browser runs (www/ .js, .html, .svg …) comes back with "
                 "requires_confirmation and writes nothing: show the user what it does, and "
-                "only once they agree call again with confirmed=true. Edit "
+                "only once they agree call again with confirmed=true. from_backup "
+                "instead of content writes one of the file's backups back (list them "
+                "with selora_read_file backups=true), which also undoes a delete. Edit "
                 "configuration.yaml and packages with selora_set_config_yaml. Requires "
                 "admin access."
             ),
             inputSchema={
                 "type": "object",
-                "required": ["file", "content"],
+                "required": ["file"],
                 "properties": {
                     "file": _FILE_PARAM,
-                    "content": {"type": "string", "description": "The file's full text."},
+                    "content": {
+                        "type": "string",
+                        "description": "The file's full text. Required unless from_backup.",
+                    },
+                    "from_backup": _FILE_BACKUP_PARAM,
                     "overwrite": {
                         "type": "boolean",
                         "description": "Replace the file if it exists. Off by default.",
@@ -1570,7 +1614,8 @@ _TOOL_DEFINITIONS.extend(
             name=TOOL_DELETE_FILE,
             description=(
                 "Delete a text file under www/, themes/, custom_templates/ or dashboards/. "
-                "Runs IMMEDIATELY (a backup is kept) — confirm with the user first. "
+                "Runs IMMEDIATELY (a backup is kept: selora_write_file from_backup puts it "
+                "back) — confirm with the user first. "
                 "Requires admin access."
             ),
             inputSchema={

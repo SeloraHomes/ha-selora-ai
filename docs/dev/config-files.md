@@ -41,4 +41,11 @@ ha-mcp's file tools. All four are admin-only.
   "missing" kept distinct from "empty", symlink-free backup folders (created
   tolerating a concurrent creator, then checked to be real directories), and backup
   names percent-encoded from the path (`a__b` and `a/b` must not share a
-  history — pruning one deleted the other's backups).
+  history — pruning one deleted the other's backups). A file's backups are
+  matched by EXACT name, never by glob: `a.*.bak` also matches `a.txt`'s.
+- **Backups are reached only through the file they belong to.** `backups=true`
+  lists them, `backup` reads one, and `from_backup` writes one back. That
+  write is an ordinary write: browser code waits for confirmation, and
+  replacing a file needs `overwrite`. A reference that is not one of that
+  file's own listed backups is refused (`fs_safety.backup_path`), so a
+  backup reference reaches nothing else.

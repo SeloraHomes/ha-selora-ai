@@ -13,6 +13,7 @@ should not, or lost someone else's save:
 * "No file" is ``None``, never ``""``: an empty file is a file, and undoing an
   edit must restore it rather than delete it.
 * A backup folder must be real directories at every level.
+* A backup is read back only by a name listed among that file's own backups.
 """
 
 from __future__ import annotations
@@ -21,12 +22,19 @@ import contextlib
 from datetime import UTC, datetime
 import os
 from pathlib import Path
+import re
 import tempfile
-from typing import Final
+from typing import Any, Final
 from urllib.parse import quote
+
+from .helpers import sanitize_untrusted_text
 
 PRIVATE_FILE: Final = 0o600
 PRIVATE_DIR: Final = 0o700
+
+
+# A write keeps only a file's newest backups, and may prune one while it is read.
+PRUNED: Final = "That backup of {rel} was just pruned by a newer one; list its backups again."
 
 
 class UnsafePathError(Exception):
@@ -84,12 +92,11 @@ def replace_if_unchanged(
     return True
 
 
-def backup(config_dir: Path, backup_dir: str, rel: str, text: str, kept: int) -> str:
-    """Copy ``text`` into ``backup_dir`` owner-only; return its relative path.
+def _backup_folder(config_dir: Path, backup_dir: str, *, create: bool) -> Path | None:
+    """The backup folder, real directories at every level; None if not there.
 
-    Every level of the backup folder is created here or must be a real
-    directory: a planted symlink would take the copy (and the chmod) wherever
-    it points. Only the newest ``kept`` backups of ``rel`` are kept.
+    A planted symlink would take a copy (and the chmod) wherever it points, or
+    serve a read from there.
     """
     folder = config_dir
     for part in Path(backup_dir).parts:
@@ -98,20 +105,97 @@ def backup(config_dir: Path, backup_dir: str, rel: str, text: str, kept: int) ->
         # same moment — and THEN checked, so whoever made it, it is a real
         # directory before anything is written into it.
         if not folder.exists() and not folder.is_symlink():
+            if not create:
+                return None
             with contextlib.suppress(FileExistsError):
                 folder.mkdir(mode=PRIVATE_DIR)
         if folder.is_symlink() or not folder.is_dir():
             raise UnsafePathError(
                 f"{backup_dir} is not a real folder (a symlink or a file); no backup "
-                "is written through it, so the change was not made."
+                "is written or read through it."
             )
-        os.chmod(folder, PRIVATE_DIR)
+        if create:
+            os.chmod(folder, PRIVATE_DIR)
+    return folder
+
+
+def _backups_of(folder: Path, rel: str) -> list[tuple[str, Path]]:
+    """``(stamp, path)`` for each backup of ``rel``, oldest first.
+
+    Matched exactly, not by glob: ``x.*.bak`` also matches ``x.css``'s backups,
+    and pruning one file's history would delete the other's.
+    """
+    pattern = re.compile(re.escape(quote(rel, safe="")) + r"\.(\d{8}T\d{12}Z)\.bak")
+    found = [
+        (match.group(1), child)
+        for child in folder.iterdir()
+        if (match := pattern.fullmatch(child.name)) and not child.is_symlink()
+    ]
+    return sorted(found)
+
+
+def backup(config_dir: Path, backup_dir: str, rel: str, text: str, kept: int) -> str:
+    """Copy ``text`` into ``backup_dir`` owner-only; return its relative path.
+
+    Every level of the backup folder is created here or must be a real
+    directory. Only the newest ``kept`` backups of ``rel`` are kept.
+    """
+    folder = _backup_folder(config_dir, backup_dir, create=True)
+    if folder is None:  # create=True makes it or raises
+        raise UnsafePathError(f"{backup_dir} could not be made.")
     # Percent-encoding is injective; replacing "/" was not ("a__b" and "a/b"
     # shared one history, and pruning one deleted the other's backups).
     stem = quote(rel, safe="")
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     target = folder / f"{stem}.{stamp}.bak"
     create_exclusive(target, text)
-    for old in sorted(folder.glob(f"{stem}.*.bak"))[:-kept]:
+    for _, old in _backups_of(folder, rel)[:-kept]:
         old.unlink(missing_ok=True)
     return f"{backup_dir}/{target.name}"
+
+
+def list_backups(config_dir: Path, backup_dir: str, rel: str) -> list[dict[str, Any]]:
+    """The backups of ``rel``, newest first: what ``read_backup`` takes, and when."""
+    folder = _backup_folder(config_dir, backup_dir, create=False)
+    if folder is None:
+        return []
+    listed = []
+    for stamp, path in reversed(_backups_of(folder, rel)):
+        try:
+            size = path.stat().st_size
+        except FileNotFoundError:  # pruned by a write since the folder was read
+            continue
+        saved_at = datetime.strptime(stamp, "%Y%m%dT%H%M%S%fZ").replace(tzinfo=UTC)
+        listed.append(
+            {"backup": f"{backup_dir}/{path.name}", "saved_at": saved_at.isoformat(), "size": size}
+        )
+    return listed
+
+
+def backup_path(config_dir: Path, backup_dir: str, rel: str, backup_ref: str) -> Path:
+    """The file ``backup_ref`` names, if it is one of ``rel``'s own backups.
+
+    Only a name ``list_backups`` would return: another file's backup, or any
+    other path, is refused, so a backup reference reaches nothing else.
+    """
+    folder = _backup_folder(config_dir, backup_dir, create=False)
+    name = str(backup_ref or "").strip().removeprefix(f"{backup_dir}/")
+    found = _backups_of(folder, rel) if folder is not None else []
+    match = next((path for _, path in found if path.name == name), None)
+    if match is None:
+        raise UnsafePathError(
+            f"{sanitize_untrusted_text(backup_ref, 120)} is not a backup of {rel}; list its backups for the names."
+        )
+    return match
+
+
+def read_backup(config_dir: Path, backup_dir: str, rel: str, backup_ref: str) -> str:
+    """The text of one of ``rel``'s backups, exactly as stored."""
+    path = backup_path(config_dir, backup_dir, rel, backup_ref)
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError as exc:
+        raise UnsafePathError(PRUNED.format(rel=rel)) from exc
+    with os.fdopen(fd, encoding="utf-8", newline="") as handle:
+        return handle.read()

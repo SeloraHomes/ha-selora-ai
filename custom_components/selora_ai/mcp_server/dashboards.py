@@ -262,12 +262,14 @@ async def _tool_set_dashboard_strategy(
 async def _tool_get_config_yaml(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Read configuration YAML — see ``config_yaml``."""
     from ..config_yaml import async_read  # noqa: PLC0415
-    from ..tool_executor import _opt_str  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
 
     return await async_read(
         hass,
         str(arguments.get("file") or "configuration.yaml"),
         _opt_str(arguments.get("yaml_path")),
+        backups=_opt_bool(arguments.get("backups")) is True,
+        backup=_opt_str(arguments.get("backup")),
     )
 
 
@@ -284,6 +286,7 @@ async def _tool_set_config_yaml(hass: HomeAssistant, arguments: dict[str, Any]) 
         action=str(arguments.get("action", "")),
         content=content if isinstance(content, str) else None,
         confirm_token=_opt_str(arguments.get("confirm_token")),
+        restore_from=_opt_str(arguments.get("backup")),
     )
 
 

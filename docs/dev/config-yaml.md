@@ -71,6 +71,14 @@ Admin-only, always on, MCP only.
 - **Owner-only.** Backups (and their folder, 0700) and new files are created
   0600 with `os.open`, never wider first; a rewrite keeps the file's mode — a
   0600 `configuration.yaml` must not come back 0644.
+- **Backups are read masked and restored without leaving the hub.**
+  `backups=true` lists a file's backups and `backup` reads one, masked like the
+  file. `action: restore` writes one back WHOLE, through the same preview,
+  token, check and rollback: the token binds the backup's bytes (its name
+  stands in for the key), and the caller never handles the text. Handing it
+  back through the caller would not work, because a masked read can't put the
+  credentials back. A restore reloads what it changed when every changed key
+  has a reload service, and otherwise reports `restart_required`.
 - **Parse errors give position and a redacted problem, never `str(exc)`**:
   ruamel quotes the failing source line, and its problem text can quote values
   (a duplicate key names both), so quoted parts are dropped.
