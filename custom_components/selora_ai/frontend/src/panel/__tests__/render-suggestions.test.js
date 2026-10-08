@@ -319,6 +319,32 @@ describe("the settle timer", () => {
     vi.advanceTimersByTime(200);
     expect(host._cardPanelSettled[KEY]).toBe(true);
   });
+  it("collapses the open card when another one opens", () => {
+    // Every open card adds a detail row, so leaving the first open stacked
+    // unrelated editors down the page.
+    const other = { ...AUTOMATION, alias: "Other" };
+    const host = makeHost({
+      _suggestions: [AUTOMATION, other].map((automation) => ({
+        automation,
+        automation_yaml: "alias: x\n",
+      })),
+      _cardActiveTab: { [KEY]: "yaml", "automation.kept": "flow" },
+      _cardLastTab: { [KEY]: "yaml" },
+      _cardPanelSettled: { [KEY]: true },
+    });
+    const headers = listeners(renderSuggestionsSection(host)).filter(
+      (l) => l.type === "click" && l.markup.includes("card-header"),
+    );
+    headers.at(-1).fn({ stopPropagation: () => {} });
+    expect(host._cardActiveTab["sug_Other"]).toBe("flow");
+    expect(host._cardActiveTab[KEY]).toBeNull();
+    // An Automations-tab card shares the map and stays as it was.
+    expect(host._cardActiveTab["automation.kept"]).toBe("flow");
+    // The closed card shrinks like any other collapse, then unmounts.
+    expect(host._cardLastTab[KEY]).toBe("yaml");
+    vi.advanceTimersByTime(1000);
+    expect(host._cardLastTab[KEY]).toBeNull();
+  });
 });
 
 describe("the card's classes exist", () => {
