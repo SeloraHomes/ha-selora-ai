@@ -7,6 +7,12 @@ from enum import Enum
 
 DOMAIN = "selora_ai"
 
+# The Home Health sensor's unique id. Its entity id is NOT fixed: it follows the
+# hub device's name when the entity was first registered ("Selora AI Hub" on
+# older homes, "Selora AI" since), and the homeowner can rename it. Anything
+# that needs the sensor looks it up by this.
+HOME_HEALTH_UNIQUE_ID = "selora_ai_hub_home_health"
+
 # ── Dispatcher Signals ───────────────────────────────────────────────
 SIGNAL_DEVICES_UPDATED = f"{DOMAIN}_devices_updated"
 SIGNAL_ACTIVITY_LOG = f"{DOMAIN}_activity_log"

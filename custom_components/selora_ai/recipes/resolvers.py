@@ -25,6 +25,8 @@ from homeassistant.const import CONF_MAC
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers import entity_registry as er
 
+from ..const import DOMAIN, HOME_HEALTH_UNIQUE_ID
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -227,6 +229,34 @@ async def _resolve_tts_engine(hass: HomeAssistant, ctx: ResolverContext) -> str:
     return usable[0]
 
 
+# ── Selora AI entity resolvers ─────────────────────────────────────
+
+
+async def _resolve_selora_home_health(hass: HomeAssistant, ctx: ResolverContext) -> str:
+    """The entity id of Selora AI's own Home Health sensor.
+
+    Its entity id differs between homes (``sensor.selora_ai_hub_home_health``
+    where the hub device registered under its old name, ``sensor.selora_ai_home_health``
+    since, or whatever the homeowner renamed it to), so a recipe that hard-codes
+    one installs triggers that never set up. The unique id is the one fixed thing.
+    """
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("sensor", DOMAIN, HOME_HEALTH_UNIQUE_ID)
+    entry = registry.async_get(entity_id) if entity_id else None
+    if entry is None:
+        raise ResolverError(
+            "Selora AI's Home Health sensor isn't set up in this home yet. "
+            "Reload the Selora AI integration, then retry."
+        )
+    # A disabled entity has no state, so its triggers could never fire.
+    if entry.disabled_by is not None:
+        raise ResolverError(
+            "Selora AI's Home Health sensor is disabled. Enable it under "
+            "Settings → Devices & services → Entities, then retry."
+        )
+    return entry.entity_id
+
+
 # ── Samsung TV MAC resolver ────────────────────────────────────────
 
 
@@ -364,6 +394,7 @@ RESOLVERS: dict[str, Resolver] = {
     "hass_config_latitude": _resolve_hass_latitude,
     "hass_config_longitude": _resolve_hass_longitude,
     "tts_engine": _resolve_tts_engine,
+    "selora_home_health_sensor": _resolve_selora_home_health,
     "samsung_tv_mac": _resolve_samsung_tv_mac,
     "samsung_tv_macs": _resolve_samsung_tv_macs,
 }
