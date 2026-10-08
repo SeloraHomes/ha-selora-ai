@@ -42196,12 +42196,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.17.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"1.0.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.17.0"}
+            Selora AI v${"1.0.0"}
           </a>
         </div>
       </div>
@@ -52045,7 +52045,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "fd5ada0c5c7c" : "";
+var PANEL_BUILD = true ? "5a7157125efe" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -55219,7 +55219,7 @@ var SeloraAIPanel = class extends i4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.17.0" : "unknown",
+        integration_version: true ? "1.0.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
