@@ -20,17 +20,21 @@ async def _tool_list_files(hass: HomeAssistant, arguments: dict[str, Any]) -> di
 async def _tool_read_file(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """A text file, a chunk at a time."""
     from ..config_files import async_read  # noqa: PLC0415
-    from ..tool_executor import _as_index  # noqa: PLC0415
+    from ..tool_executor import _as_index, _opt_bool, _opt_str  # noqa: PLC0415
 
     return await async_read(
-        hass, str(arguments.get("file", "")), _as_index(arguments.get("offset"))
+        hass,
+        str(arguments.get("file", "")),
+        _as_index(arguments.get("offset")),
+        backups=_opt_bool(arguments.get("backups")) is True,
+        backup=_opt_str(arguments.get("backup")),
     )
 
 
 async def _tool_write_file(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Create or (with overwrite) replace a text file."""
     from ..config_files import async_write  # noqa: PLC0415
-    from ..tool_executor import _opt_bool  # noqa: PLC0415
+    from ..tool_executor import _opt_bool, _opt_str  # noqa: PLC0415
 
     content = arguments.get("content")
     return await async_write(
@@ -39,6 +43,7 @@ async def _tool_write_file(hass: HomeAssistant, arguments: dict[str, Any]) -> di
         content if isinstance(content, str) else None,
         overwrite=_opt_bool(arguments.get("overwrite")) is True,
         confirmed=_opt_bool(arguments.get("confirmed")) is True,
+        from_backup=_opt_str(arguments.get("from_backup")),
     )
 
 

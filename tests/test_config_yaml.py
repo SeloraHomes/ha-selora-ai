@@ -943,3 +943,124 @@ async def test_a_line_ending_only_change_invalidates_the_token(
 
     assert result["written"] is False
     assert result["confirm_token_mismatch"] is True
+
+
+# ── Backups ─────────────────────────────────────────────────────────────────
+
+
+async def _edit_password(hass: HomeAssistant) -> dict[str, Any]:
+    return await _apply(
+        hass,
+        yaml_path="rest",
+        action="replace",
+        content="- resource: https://example.com/api\n  password: changed\n",
+    )
+
+
+async def test_backups_are_listed_and_read_masked(hass: HomeAssistant, config_dir: Path) -> None:
+    edited = await _edit_password(hass)
+
+    listed = await _get(hass, backups=True)
+    read = await _get(hass, backup=edited["backup"], yaml_path="rest")
+
+    assert [b["backup"] for b in listed["backups"]] == [edited["backup"]]
+    assert "hunter2" not in read["yaml"]
+    assert "password: '***'" in read["yaml"]
+    assert "Authorization: !secret api_auth" in read["yaml"]
+    assert read["backup"] == edited["backup"]
+
+
+async def test_a_restore_puts_the_file_back_byte_for_byte(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    """Including the credential no read showed: the text never leaves the hub."""
+    edited = await _edit_password(hass)
+
+    preview = await _set(hass, action="restore", backup=edited["backup"])
+    assert preview["written"] is False
+    assert "hunter2" not in preview["diff"]
+    assert "*** (changed)" in preview["diff"]
+    restored = await _set(
+        hass, action="restore", backup=edited["backup"], confirm_token=preview["confirm_token"]
+    )
+
+    assert restored["written"] is True
+    assert (config_dir / "configuration.yaml").read_text() == CONFIG
+    assert "password: changed" in (config_dir / restored["backup"]).read_text()
+
+
+async def test_a_restore_reloads_what_it_changed(hass: HomeAssistant, config_dir: Path) -> None:
+    calls: list[str] = []
+    hass.services.async_register("rest", "reload", lambda call: calls.append("rest"))
+    edited = await _edit_password(hass)
+
+    restored = await _apply(hass, action="restore", backup=edited["backup"])
+
+    assert restored["post_action"] == "reload_performed"
+    assert restored["reload_services"] == ["rest.reload"]
+    assert calls == ["rest", "rest"]
+
+
+async def test_a_restore_that_fails_the_check_is_rolled_back(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    edited = await _edit_password(hass)
+    current = (config_dir / "configuration.yaml").read_text()
+    preview = await _set(hass, action="restore", backup=edited["backup"])
+
+    with patch.object(
+        config_yaml, "_config_errors", side_effect=[Counter(), Counter({"broken": 1})]
+    ):
+        result = await _set(
+            hass, action="restore", backup=edited["backup"], confirm_token=preview["confirm_token"]
+        )
+
+    assert result["written"] is False
+    assert "rolled back" in result["error"]
+    assert (config_dir / "configuration.yaml").read_text() == current
+
+
+async def test_a_restore_reaches_only_the_files_own_backups(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    (config_dir / "secrets.yaml").write_text("api_auth: Bearer x\n", encoding="utf-8")
+    theme = await _apply(
+        hass, file="themes/russo.yaml", yaml_path="Russo", action="add", content="{}\n"
+    )
+    await _apply(
+        hass, file="themes/russo.yaml", yaml_path="Russo", action="replace", content="a: b\n"
+    )
+    other = (await _get(hass, file="themes/russo.yaml", backups=True))["backups"][0]["backup"]
+    assert theme["written"] is True
+
+    for ref in (other, "secrets.yaml", "../secrets.yaml", ".selora_ai/config_backups/x.bak"):
+        restore = await _set(hass, action="restore", backup=ref)
+        read = await _get(hass, backup=ref)
+        assert "is not a backup of configuration.yaml" in restore["error"], ref
+        assert "is not a backup of configuration.yaml" in read["error"], ref
+
+
+async def test_an_edit_still_needs_its_key(hass: HomeAssistant, config_dir: Path) -> None:
+    result = await _set(hass, action="remove")
+
+    assert "error" in result
+    assert (config_dir / "configuration.yaml").read_text() == CONFIG
+
+
+async def test_an_empty_backup_makes_a_deleted_file_again(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    """Missing and empty are different files: the restore is not 'unchanged'."""
+    theme = config_dir / "themes" / "russo.yaml"
+    theme.write_text("", encoding="utf-8")
+    edited = await _apply(
+        hass, file="themes/russo.yaml", yaml_path="Russo", action="add", content="{}\n"
+    )
+    theme.unlink()
+
+    restored = await _apply(
+        hass, file="themes/russo.yaml", action="restore", backup=edited["backup"]
+    )
+
+    assert restored["written"] is True
+    assert theme.read_text() == ""

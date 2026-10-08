@@ -23,7 +23,10 @@ Every write is guarded, in this order:
   confirmation card, so this is the confirmation.
 * **Backup, then check.** The file is backed up before it is written, and Home
   Assistant's own configuration check runs before and after: an edit that
-  introduces a NEW error is rolled back from the backup.
+  introduces a NEW error is rolled back from the backup. A file's backups are
+  listed and read (masked) by the file's path, and ``restore`` writes one back
+  through the same preview, check and rollback — the text never passes through
+  the caller, so masked credentials are put back as they were.
 
 ruamel's round-trip mode keeps comments, key order and HA's tags (``!secret``,
 ``!include``, ``!include_dir_named`` …) exactly as they were. Values under
@@ -372,11 +375,44 @@ def _bounded(text: str) -> tuple[str, bool]:
     return text[:_MAX_RETURNED_CHARS], True
 
 
-async def async_read(hass: HomeAssistant, file: str, yaml_path: str | None) -> dict[str, Any]:
-    """A config file's top-level keys, or one key's YAML, credentials masked."""
+async def _read_backup(hass: HomeAssistant, rel: str, backup: str) -> str:
+    """One of ``rel``'s own backups, exactly as stored."""
+    try:
+        return await hass.async_add_executor_job(
+            fs_safety.read_backup, Path(hass.config.config_dir), _BACKUP_DIR, rel, backup
+        )
+    except fs_safety.UnsafePathError as exc:
+        raise ConfigYamlError(str(exc)) from exc
+
+
+async def async_read(
+    hass: HomeAssistant,
+    file: str,
+    yaml_path: str | None,
+    *,
+    backups: bool = False,
+    backup: str | None = None,
+) -> dict[str, Any]:
+    """A config file's top-level keys, or one key's YAML, credentials masked.
+
+    ``backups`` lists the file's backups instead; ``backup`` reads one of them
+    the same way.
+    """
     try:
         path, rel, kind = await resolve_file(hass, file)
-        raw = await _read_text(hass, path)
+        if backups:
+            try:
+                listed = await hass.async_add_executor_job(
+                    fs_safety.list_backups, Path(hass.config.config_dir), _BACKUP_DIR, rel
+                )
+            except fs_safety.UnsafePathError as exc:
+                raise ConfigYamlError(str(exc)) from exc
+            return {"file": rel, "backups": listed}
+        raw = (
+            await _read_backup(hass, rel, backup)
+            if backup is not None
+            else await _read_text(hass, path)
+        )
         text = raw or ""
         data = _load(text)
     except ConfigYamlError as exc:
@@ -389,7 +425,9 @@ async def async_read(hass: HomeAssistant, file: str, yaml_path: str | None) -> d
         return {"error": f"{rel} is not a mapping of keys."}
 
     result: dict[str, Any] = {"file": rel, "kind": kind, "keys": [str(k) for k in data]}
-    if kind == "config":
+    if backup is not None:
+        result["backup"] = sanitize_untrusted_text(backup, 200)
+    elif kind == "config":
         config_dir = Path(hass.config.config_dir)
         packages = _packages_dir(text)
 
@@ -660,6 +698,38 @@ async def _activate(hass: HomeAssistant, kind: str, yaml_path: str) -> dict[str,
     return {"post_action": "reload_performed", "reload_service": service}
 
 
+async def _activate_restore(hass: HomeAssistant, kind: str, old: str, new: str) -> dict[str, Any]:
+    """Make a restored file live: reload what changed, if each part can be."""
+    if kind == "theme":
+        return await _activate(hass, kind, "")
+    try:
+        before, after = _load(old), _load(new)
+    except ConfigYamlError:
+        return dict(_RESTART_REQUIRED)
+    if not isinstance(before or {}, dict) or not isinstance(after or {}, dict):
+        return dict(_RESTART_REQUIRED)
+    before, after = before or {}, after or {}
+
+    def _as_text(data: dict[Any, Any], key: Any) -> str | None:
+        # Compared as written: a tagged value (!include …) has no value equality.
+        return _dump({key: data[key]}) if key in data else None
+
+    changed = sorted(
+        {str(k) for k in (*before, *after) if _as_text(before, k) != _as_text(after, k)}
+    )
+    if not changed:
+        return {"post_action": "none_needed"}
+    if any(key not in _RELOAD_SERVICES for key in changed):
+        return dict(_RESTART_REQUIRED)
+    outcomes = [await _activate(hass, kind, key) for key in changed]
+    if failed := [o for o in outcomes if o.get("post_action") != "reload_performed"]:
+        return failed[0]
+    return {
+        "post_action": "reload_performed",
+        "reload_services": [o["reload_service"] for o in outcomes],
+    }
+
+
 async def async_edit(
     hass: HomeAssistant,
     *,
@@ -668,18 +738,26 @@ async def async_edit(
     action: str,
     content: str | None,
     confirm_token: str | None,
+    restore_from: str | None = None,
 ) -> dict[str, Any]:
-    """Preview an edit, or apply it when the preview's token comes back."""
+    """Preview an edit, or apply it when the preview's token comes back.
+
+    ``restore`` puts ``restore_from``, one of the file's own backups, back whole.
+    """
     action = str(action or "").strip()
     yaml_path = str(yaml_path or "").strip()
-    if action not in ("add", "replace", "remove"):
-        return {"error": "action must be add, replace or remove."}
-    if action != "remove" and not (content or "").strip():
+    if action not in ("add", "replace", "remove", "restore"):
+        return {"error": "action must be add, replace, remove or restore."}
+    if action == "restore":
+        if not (restore_from or "").strip():
+            return {"error": "'restore' needs backup: one of the file's backups."}
+    elif action != "remove" and not (content or "").strip():
         return {"error": f"'{action}' needs content."}
     try:
         path, rel, kind = await resolve_file(hass, file)
-        _check_target(kind, yaml_path)
-        value = _load(content or "") if action != "remove" else None
+        if action != "restore":
+            _check_target(kind, yaml_path)
+        value = _load(content or "") if action in ("add", "replace") else None
     except ConfigYamlError as exc:
         return {"error": str(exc)}
 
@@ -689,17 +767,29 @@ async def async_edit(
         old_text = old_raw or ""
         eol = "\r\n" if "\r\n" in old_text else "\n"
         old_lf = old_text.replace("\r\n", "\n")
-        try:
-            new_data = _apply(_load(old_lf), kind, yaml_path, action, value)
-        except ConfigYamlError as exc:
-            return {"error": str(exc)}
         style = _style_of(old_lf)
-        # Written back in the file's own line endings: an edit to one key must
-        # not convert a CRLF file to LF throughout.
-        new_text = _dump(new_data, style).replace("\n", eol)
-        if new_text == old_text:
+        if action == "restore":
+            try:
+                new_text = await _read_backup(hass, rel, str(restore_from))
+            except ConfigYamlError as exc:
+                return {"error": str(exc)}
+            # The backup's own bytes are what is written, so they are what the
+            # token binds; its name stands in for the key.
+            yaml_path, content = str(restore_from).strip(), new_text
+        else:
+            try:
+                new_data = _apply(_load(old_lf), kind, yaml_path, action, value)
+            except ConfigYamlError as exc:
+                return {"error": str(exc)}
+            # Written back in the file's own line endings: an edit to one key
+            # must not convert a CRLF file to LF throughout.
+            new_text = _dump(new_data, style).replace("\n", eol)
+        # Against the raw read: a missing file is not an empty one, and an empty
+        # backup restored over a deleted file still makes it again.
+        if new_text == old_raw:
             return {"status": "unchanged", "file": rel}
-        diff, diff_truncated = _bounded(_diff(rel, old_lf, new_text.replace("\r\n", "\n"), style))
+        new_lf = new_text.replace("\r\n", "\n")
+        diff, diff_truncated = _bounded(_diff(rel, old_lf, new_lf, style))
         expected = _token(rel, old_text, action, yaml_path, content)
         if confirm_token != expected:
             preview: dict[str, Any] = {
@@ -781,7 +871,11 @@ async def async_edit(
         "diff": diff,
         **({"diff_truncated": True} if diff_truncated else {}),
         "backup": backup,
-        **await _activate(hass, kind, yaml_path),
+        **(
+            await _activate_restore(hass, kind, old_lf, new_lf)
+            if action == "restore"
+            else await _activate(hass, kind, yaml_path)
+        ),
     }
     if after is None or baseline is None:
         result["warning"] = (

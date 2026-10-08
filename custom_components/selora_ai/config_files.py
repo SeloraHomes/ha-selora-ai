@@ -11,7 +11,9 @@ one is ``blueprint/save``'s job). Modelled on ha-mcp's file tools.
   stay in its folder; ``secrets.yaml`` and ``.storage`` never resolve.
 * **Text only.** A file that is not UTF-8 is refused on read; writes are text.
 * **A replacement needs ``overwrite: true``**, and the previous bytes go to a
-  backup first. A delete backs up too.
+  backup first. A delete backs up too. A file's backups are listed and read
+  with the file's own path, and written back with ``from_backup`` — the same
+  write, so the same confirmation.
 * **Code a browser runs (and CSS it applies) needs ``confirmed: true``.** A ``/local/`` path can be
   registered as a dashboard resource without confirmation, because the file
   was put there by HACS or the user. A file this tool writes was put there by
@@ -191,7 +193,9 @@ async def async_list(hass: HomeAssistant, folder: str, pattern: str | None) -> d
     return result
 
 
-def _read_chunk(config_dir: Path, path: Path, rel: str, offset: int) -> tuple[str, int, int]:
+def _read_chunk(
+    config_dir: Path, path: Path, rel: str, offset: int, backup: str | None = None
+) -> tuple[str, int, int]:
     """``(text, bytes consumed, file size)`` for one chunk from byte ``offset``.
 
     Reads only the chunk: decoding the whole file to slice 12 KB made paging
@@ -202,6 +206,10 @@ def _read_chunk(config_dir: Path, path: Path, rel: str, offset: int) -> tuple[st
     import codecs  # noqa: PLC0415
 
     _check_no_symlinks(config_dir, rel)
+    if backup is not None:
+        path = fs_safety.backup_path(config_dir, _BACKUP_DIR, rel, backup)
+        if not path.exists():
+            raise FileToolError(fs_safety.PRUNED.format(rel=rel))
     if path.is_dir():
         raise FileToolError(f"{rel} is a folder; list it instead.")
     if not path.exists():
@@ -220,15 +228,33 @@ def _read_chunk(config_dir: Path, path: Path, rel: str, offset: int) -> tuple[st
     return text, len(raw) - pending, size
 
 
-async def async_read(hass: HomeAssistant, file: str, offset: int = 0) -> dict[str, Any]:
-    """A text file's content, one chunk at a time, by byte offset."""
+async def async_read(
+    hass: HomeAssistant,
+    file: str,
+    offset: int = 0,
+    *,
+    backups: bool = False,
+    backup: str | None = None,
+) -> dict[str, Any]:
+    """A text file's content, one chunk at a time, by byte offset.
+
+    ``backups`` lists the file's backups instead; ``backup`` reads one of them.
+    """
+    config_dir = Path(hass.config.config_dir)
     try:
         path, rel = _resolve(hass, file, write=False)
+        if backups:
+            listed = await hass.async_add_executor_job(
+                fs_safety.list_backups, config_dir, _BACKUP_DIR, rel
+            )
+            return {"file": rel, "backups": listed}
         text, consumed, size = await hass.async_add_executor_job(
-            _read_chunk, Path(hass.config.config_dir), path, rel, max(0, int(offset or 0))
+            _read_chunk, config_dir, path, rel, max(0, int(offset or 0)), backup
         )
-    except FileToolError as exc:
+    except (FileToolError, fs_safety.UnsafePathError) as exc:
         return {"error": str(exc)}
+    except FileNotFoundError:  # removed, or a backup pruned, between check and open
+        return {"error": f"{rel} is gone; list it again."}
     except UnicodeDecodeError:
         return {
             "error": (
@@ -238,6 +264,8 @@ async def async_read(hass: HomeAssistant, file: str, offset: int = 0) -> dict[st
         }
     start = max(0, int(offset or 0))
     result: dict[str, Any] = {"file": rel, "size": size, "content": text}
+    if backup is not None:
+        result["backup"] = sanitize_untrusted_text(backup, 200)
     if start + consumed < size:
         result["next_offset"] = start + consumed
     return result
@@ -250,17 +278,26 @@ def _needs_confirmation(rel: str) -> bool:
 async def async_write(
     hass: HomeAssistant,
     file: str,
-    content: str,
+    content: str | None,
     *,
     overwrite: bool = False,
     confirmed: bool = False,
+    from_backup: str | None = None,
 ) -> dict[str, Any]:
-    """Create a text file, or replace one with ``overwrite``, backing it up."""
+    """Create a text file, or replace one with ``overwrite``, backing it up.
+
+    ``from_backup`` writes one of the file's own backups back instead of
+    ``content``: a deleted file is made again, a replaced one needs
+    ``overwrite`` like any other replacement.
+    """
     from .command_policy_options import resolve_command_policy_options  # noqa: PLC0415
 
-    if not isinstance(content, str):
+    if from_backup is not None:
+        if content is not None:
+            return {"error": "Pass content or from_backup, not both."}
+    elif not isinstance(content, str):
         return {"error": "content must be text."}
-    if len(content.encode("utf-8")) > _MAX_WRITE_BYTES:
+    elif len(content.encode("utf-8")) > _MAX_WRITE_BYTES:
         return {"error": f"content is over {_MAX_WRITE_BYTES // 1_000_000} MB."}
     try:
         path, rel = _resolve(hass, file, write=True)
@@ -287,6 +324,11 @@ async def async_write(
         _check_no_symlinks(config_dir, rel)
         if path.is_dir():
             raise FileToolError(f"{rel} is a folder.")
+        text = (
+            fs_safety.read_backup(config_dir, _BACKUP_DIR, rel, from_backup)
+            if from_backup is not None
+            else content or ""
+        )
         old = fs_safety.read_exact(path)
         if old is not None and not overwrite:
             raise FileToolError(f"{rel} exists. Pass overwrite=true to replace it.")
@@ -295,9 +337,9 @@ async def async_write(
             if old is not None
             else None
         )
-        if not fs_safety.replace_if_unchanged(path, old, content, new_mode=_PUBLIC_FILE):
+        if not fs_safety.replace_if_unchanged(path, old, text, new_mode=_PUBLIC_FILE):
             raise FileToolError(f"{rel} changed while it was being written; nothing was written.")
-        return {"created": old is None, "backup": saved}
+        return {"created": old is None, "backup": saved, "size": len(text.encode("utf-8"))}
 
     try:
         outcome = await hass.async_add_executor_job(_write)
@@ -308,7 +350,7 @@ async def async_write(
     result: dict[str, Any] = {
         "written": True,
         "file": rel,
-        "size": len(content.encode("utf-8")),
+        "size": outcome["size"],
         "created": outcome["created"],
     }
     if outcome["backup"]:

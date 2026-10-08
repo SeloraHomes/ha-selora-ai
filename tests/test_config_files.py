@@ -328,3 +328,107 @@ async def test_backups_started_at_the_same_moment_both_land(
     )
 
     assert all(r["written"] is True for r in results), results
+
+
+# ── Backups ─────────────────────────────────────────────────────────────────
+
+
+async def test_backups_are_listed_newest_first_and_read(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    for version in ("v1\n", "v2\n", "v3\n"):
+        await _call(
+            hass, "write_file", file="custom_templates/pool.jinja", content=version, overwrite=True
+        )
+
+    listed = await _call(hass, "read_file", file="custom_templates/pool.jinja", backups=True)
+    read = await _call(
+        hass, "read_file", file="custom_templates/pool.jinja", backup=listed["backups"][0]["backup"]
+    )
+
+    assert len(listed["backups"]) == 2
+    assert read["content"] == "v2\n"
+    assert read["backup"] == listed["backups"][0]["backup"]
+    assert listed["backups"][0]["saved_at"] >= listed["backups"][1]["saved_at"]
+
+
+async def test_a_deleted_file_is_put_back_from_its_backup(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    await _call(hass, "write_file", file="themes/old.yaml", content="Old: {}\n")
+    deleted = await _call(hass, "delete_file", file="themes/old.yaml")
+
+    restored = await _call(
+        hass, "write_file", file="themes/old.yaml", from_backup=deleted["backup"]
+    )
+
+    assert restored["written"] is True
+    assert restored["created"] is True
+    assert (config_dir / "themes" / "old.yaml").read_text() == "Old: {}\n"
+
+
+async def test_a_restore_over_a_file_needs_overwrite(hass: HomeAssistant, config_dir: Path) -> None:
+    await _call(hass, "write_file", file="www/notes.txt", content="v1\n")
+    replaced = await _call(hass, "write_file", file="www/notes.txt", content="v2\n", overwrite=True)
+
+    refused = await _call(hass, "write_file", file="www/notes.txt", from_backup=replaced["backup"])
+    restored = await _call(
+        hass, "write_file", file="www/notes.txt", from_backup=replaced["backup"], overwrite=True
+    )
+
+    assert "overwrite=true" in refused["error"]
+    assert restored["written"] is True
+    assert (config_dir / "www" / "notes.txt").read_text() == "v1\n"
+    # The restore is itself undoable.
+    assert (config_dir / restored["backup"]).read_text() == "v2\n"
+
+
+async def test_restored_browser_code_waits_for_confirmation(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    await _call(hass, "write_file", file="www/card.js", content="1", confirmed=True)
+    deleted = await _call(hass, "delete_file", file="www/card.js")
+
+    result = await _call(hass, "write_file", file="www/card.js", from_backup=deleted["backup"])
+
+    assert result.get("requires_confirmation") is True
+    assert not (config_dir / "www" / "card.js").exists()
+
+
+async def test_only_the_files_own_backups_are_reachable(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    await _call(hass, "write_file", file="www/a.txt", content="a\n")
+    other = await _call(hass, "delete_file", file="www/a.txt")
+    await _call(hass, "write_file", file="www/b.txt", content="b\n")
+
+    for ref in (other["backup"], "../../secrets.yaml", "secrets.yaml", ".selora_ai/x.bak"):
+        read = await _call(hass, "read_file", file="www/b.txt", backup=ref)
+        restore = await _call(hass, "write_file", file="www/b.txt", from_backup=ref, overwrite=True)
+        assert "is not a backup of www/b.txt" in read["error"], ref
+        assert "is not a backup of www/b.txt" in restore["error"], ref
+    assert (config_dir / "www" / "b.txt").read_text() == "b\n"
+
+
+async def test_content_and_a_backup_together_are_refused(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    result = await _call(hass, "write_file", file="www/a.txt", content="x", from_backup="y")
+
+    assert "not both" in result["error"]
+
+
+async def test_a_name_that_extends_another_keeps_its_own_backups(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    """www/a's backups start like www/a.txt's; pruning one must not take the other's."""
+    await _call(hass, "write_file", file="www/a.txt", content="t1", overwrite=True)
+    await _call(hass, "write_file", file="www/a.txt", content="t2", overwrite=True)
+    for i in range(7):
+        await _call(hass, "write_file", file="www/a", content=f"a{i}", overwrite=True)
+
+    extended = await _call(hass, "read_file", file="www/a.txt", backups=True)
+    short = await _call(hass, "read_file", file="www/a", backups=True)
+
+    assert len(extended["backups"]) == 1
+    assert len(short["backups"]) == 5
