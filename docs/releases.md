@@ -19,13 +19,20 @@ Both flows produce the same artifacts:
 
 Config: `release.config.js`. Plugins run in order:
 
-1. **commit-analyzer** — picks bump (`feat:` → minor, `fix:`/`perf:`/`revert:` → patch, `BREAKING CHANGE` → major).
+1. **commit-analyzer** — picks bump (`feat:` → minor, `fix:`/`perf:`/`revert:` → patch, `BREAKING CHANGE` footer or `!` after the type → major).
 2. **release-notes-generator** — renders the CHANGELOG section.
 3. **changelog** — prepends to `CHANGELOG.md`.
 4. **exec (prepareCmd)** — bumps `manifest.json`, rebuilds the frontend bundle.
 5. **git** — commits `chore(release): X.Y.Z [skip ci]` back to `main`.
 6. **gitlab** — creates the GitLab tag + release page.
 7. **exec (publishCmd)** — runs `scripts/github-release.mjs` to mirror to GitHub and upload the HACS zip.
+
+### Major versions
+
+From 1.0, MCP tool names and arguments are a contract: renaming or removing
+one, or changing what an argument means, is a breaking change and needs a
+major release. Mark it with `!` in the MR title (`feat(mcp)!: …`), which
+survives the squash; a `BREAKING CHANGE:` footer in the body may not.
 
 ### Trigger
 
