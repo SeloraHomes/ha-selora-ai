@@ -698,30 +698,94 @@ async def _activate(hass: HomeAssistant, kind: str, yaml_path: str) -> dict[str,
     return {"post_action": "reload_performed", "reload_service": service}
 
 
-async def _activate_restore(hass: HomeAssistant, kind: str, old: str, new: str) -> dict[str, Any]:
+def _restored_paths(kind: str, old: str, new: str) -> list[str]:
+    """What a restore changes, as the paths an edit names — each one checked.
+
+    A restore writes a whole file, and backups also hold the user's own edits:
+    putting back a key they removed by hand (a ``shell_command``, ``http``
+    settings) is an edit this tool may not make, so the allowlist every edit
+    goes through holds for a restore too. Both sides must parse, or the change
+    could be neither shown nor checked.
+    """
+    try:
+        before, after = _load(old), _load(new)
+    except ConfigYamlError as exc:
+        raise ConfigYamlError(
+            "The file or the backup does not parse, so the restore's change cannot be "
+            "shown or checked; it is not made."
+        ) from exc
+    if not isinstance(before or {}, dict) or not isinstance(after or {}, dict):
+        raise ConfigYamlError("The file or the backup is not a mapping of keys.")
+    before, after = before or {}, after or {}
+
+    def _plain(node: Any) -> Any:
+        # Compared as data, not as written: ruamel hangs the comments and blank
+        # lines around a key on its value, so text would see a neighbour's
+        # removal as a change. A tagged value (!include …) is its tag and text.
+        if tag := _tag_of(node):
+            return (tag, str(getattr(node, "value", node)))
+        if isinstance(node, dict):
+            return {str(k): _plain(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [_plain(v) for v in node]
+        return node
+
+    def _value_of(data: Any, key: Any) -> Any:
+        return _plain(data[key]) if isinstance(data, dict) and key in data else _ABSENT
+
+    def _without_themes(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {k: v for k, v in value.items() if k != "themes"}
+        return value
+
+    paths = []
+    # The keys as parsed: one that is not a string (`1:`) is still a key the
+    # restore changes, and looked up as its text it would read as absent.
+    for key in [*before, *(k for k in after if k not in before)]:
+        if _value_of(before, key) == _value_of(after, key):
+            continue
+        path = str(key)
+        if key == "frontend" and kind == "config":
+            # Only the themes include is reachable under `frontend`.
+            old_rest = _without_themes(before.get(key) or {})
+            new_rest = _without_themes(after.get(key) or {})
+            if (
+                isinstance(old_rest, dict)
+                and isinstance(new_rest, dict)
+                and _plain(old_rest) == _plain(new_rest)
+            ):
+                path = _FRONTEND_THEMES
+        _check_target(kind, path)
+        # And the values an edit is held to (`_apply`): the themes include
+        # only in its one form, and nothing that lives in an included file.
+        if path == _FRONTEND_THEMES:
+            themes = (after.get(key) or {}).get("themes")
+            if themes is not None and (
+                _tag_of(themes) != _THEMES_INCLUDE_TAG
+                or str(getattr(themes, "value", "")).strip() != THEMES_DIR
+            ):
+                raise ConfigYamlError(
+                    "The backup's frontend.themes is not '!include_dir_merge_named "
+                    "themes', the only value this tool writes there."
+                )
+        elif (tag := _tag_of(before.get(key))) and tag.startswith("!include"):
+            raise ConfigYamlError(
+                f"'{path}' is included from another file ({tag}); the restore would "
+                "replace the include. Restore that file instead."
+            )
+        paths.append(path)
+    return paths
+
+
+async def _activate_restore(hass: HomeAssistant, kind: str, paths: list[str]) -> dict[str, Any]:
     """Make a restored file live: reload what changed, if each part can be."""
     if kind == "theme":
         return await _activate(hass, kind, "")
-    try:
-        before, after = _load(old), _load(new)
-    except ConfigYamlError:
-        return dict(_RESTART_REQUIRED)
-    if not isinstance(before or {}, dict) or not isinstance(after or {}, dict):
-        return dict(_RESTART_REQUIRED)
-    before, after = before or {}, after or {}
-
-    def _as_text(data: dict[Any, Any], key: Any) -> str | None:
-        # Compared as written: a tagged value (!include …) has no value equality.
-        return _dump({key: data[key]}) if key in data else None
-
-    changed = sorted(
-        {str(k) for k in (*before, *after) if _as_text(before, k) != _as_text(after, k)}
-    )
-    if not changed:
+    if not paths:
         return {"post_action": "none_needed"}
-    if any(key not in _RELOAD_SERVICES for key in changed):
+    if any(p not in _RELOAD_SERVICES and p != _FRONTEND_THEMES for p in paths):
         return dict(_RESTART_REQUIRED)
-    outcomes = [await _activate(hass, kind, key) for key in changed]
+    outcomes = [await _activate(hass, kind, path) for path in paths]
     if failed := [o for o in outcomes if o.get("post_action") != "reload_performed"]:
         return failed[0]
     return {
@@ -768,9 +832,14 @@ async def async_edit(
         eol = "\r\n" if "\r\n" in old_text else "\n"
         old_lf = old_text.replace("\r\n", "\n")
         style = _style_of(old_lf)
+        restored_paths: list[str] = []
         if action == "restore":
             try:
                 new_text = await _read_backup(hass, rel, str(restore_from))
+            except ConfigYamlError as exc:
+                return {"error": str(exc)}
+            try:
+                restored_paths = _restored_paths(kind, old_lf, new_text.replace("\r\n", "\n"))
             except ConfigYamlError as exc:
                 return {"error": str(exc)}
             # The backup's own bytes are what is written, so they are what the
@@ -872,7 +941,7 @@ async def async_edit(
         **({"diff_truncated": True} if diff_truncated else {}),
         "backup": backup,
         **(
-            await _activate_restore(hass, kind, old_lf, new_lf)
+            await _activate_restore(hass, kind, restored_paths)
             if action == "restore"
             else await _activate(hass, kind, yaml_path)
         ),

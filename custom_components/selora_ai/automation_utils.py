@@ -3106,6 +3106,11 @@ async def async_create_automation(
         automation["triggers"] = triggers
         automation["conditions"] = conditions or []
         automation["actions"] = actions
+    # Validated and kept like the update path keeps them; left out, variables
+    # the actions template on render empty and `max` falls back to HA's 10.
+    for key in _PASSTHROUGH_FIELDS:
+        if key in normalized:
+            automation[key] = normalized[key]
 
     async with AUTOMATIONS_YAML_LOCK:
         existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
@@ -3237,12 +3242,20 @@ async def async_delete_automation(
             await _record_deletion_hash(hass, target)
 
             await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
-            await hass.services.async_call("automation", "reload", blocking=True)
+            # From here it is gone from the file whatever fails next, and the
+            # caller must still get the removed entry and its kept history.
+            if report is not None:
+                report["removed"] = True
             store = _get_automation_store(hass)
-            if keep_history:
-                await store.retire_record(automation_id)
-            else:
-                await store.purge_record(automation_id)
+            try:
+                if keep_history:
+                    await store.retire_record(automation_id)
+                else:
+                    await store.purge_record(automation_id)
+            except (HomeAssistantError, OSError) as exc:
+                # Bookkeeping: the reload below is what stops it running.
+                _LOGGER.warning("Could not update the history of %s: %s", automation_id, exc)
+            await hass.services.async_call("automation", "reload", blocking=True)
 
             from homeassistant.helpers import entity_registry as er
 

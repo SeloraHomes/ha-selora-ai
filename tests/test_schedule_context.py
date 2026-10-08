@@ -426,3 +426,61 @@ async def test_the_calendar_handler_leaves_another_day_to_the_model(
         )
         assert (provider._maybe_calendar_question_envelope() is not None) is answered, message
         provider.set_call_kind(None)
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Can you notify me 10 minutes before each calendar event?",
+        "Could you send me my agenda every morning at 7?",
+        "Can you announce my schedule every morning at 8?",
+        "Can you make the lights flash when a meeting starts?",
+        "Notify me 10 minutes before each calendar event",
+    ],
+)
+def test_automations_about_a_calendar_are_built(message: str) -> None:
+    """Polite or not, an automation that mentions a calendar is not a question about it."""
+    entities: list[Any] = [{"entity_id": "calendar.personal", "state": "off", "attributes": {}}]
+    assert _classify_chat_intent(message, entities) == "automation"
+
+
+async def test_a_calendar_that_hangs_leaves_the_line_plain(hass: HomeAssistant) -> None:
+    """A stalled cloud calendar must not hold the chat turn."""
+    import asyncio
+
+    from homeassistant.core import SupportsResponse
+
+    from custom_components.selora_ai.llm_client import schedule_context
+
+    async def _hang(call: Any) -> dict[str, Any]:
+        await asyncio.sleep(3600)
+        return {}
+
+    hass.services.async_register(
+        "calendar", "get_events", _hang, supports_response=SupportsResponse.ONLY
+    )
+    entities: list[Any] = [{"entity_id": "calendar.work", "state": "off", "attributes": {}}]
+
+    with patch.object(schedule_context, "_FETCH_TIMEOUT_S", 0.05):
+        (calendar,) = await async_attach_schedule_data(
+            hass, "What's on my calendar today?", [], entities
+        )
+
+    assert "events" not in calendar["attributes"]
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Can you make a list of my calendar events?",
+        "Can you make sense of my calendar?",
+        "Can you make my calendar events into a list?",
+        "Let me know what's on my calendar today?",
+        "Please let me know what's on my calendar today?",
+        "What do I have before each meeting tomorrow?",
+    ],
+)
+def test_reads_that_sound_like_requests_still_get_the_calendar(message: str) -> None:
+    entities: list[Any] = [{"entity_id": "calendar.personal", "state": "off", "attributes": {}}]
+    assert is_schedule_question(message)
+    assert _classify_chat_intent(message, entities) == "answer"

@@ -101,8 +101,9 @@ export async function _runRecipeUpdate(slug) {
     };
   }
   // Either way the bundle on disk may now be the new version, and on success
-  // the record is: reload both so the Overview reads the current state.
-  await this._loadRecipesList();
+  // the record is: reload both so the Overview reads the current state. The
+  // catalog is forced — its cached `updates` would keep offering this one.
+  await Promise.all([this._loadRecipesList(), this._loadRecipesCatalog(true)]);
   if (this._recipeWizardSlug === slug) {
     const notice = this._recipeUpdateNotice;
     await this._openRecipeWizard(slug);

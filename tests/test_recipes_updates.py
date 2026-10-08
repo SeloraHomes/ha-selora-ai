@@ -405,8 +405,22 @@ async def test_update_refuses_a_stale_package(
         result = await async_update_recipe(hass, SLUG)
 
     assert result.punch_list[0].code == "download_failed"
-    assert "not newer" in result.punch_list[0].message
+    assert "not the v2.1.0 the catalog lists" in result.punch_list[0].message
     assert (bundle_manifest.parent / "marker").is_file()
+
+
+async def test_update_refuses_a_version_the_catalog_does_not_list(
+    hass: HomeAssistant, installed: InstallRecord, tmp_path: Path
+) -> None:
+    """Newer is not enough: the panel reports the catalog's version as installed."""
+    _ingest(hass, "2.1.0")
+    download, _urls = _fake_download(tmp_path, version="3.0.0")
+
+    with patch(FETCH, download):
+        result = await async_update_recipe(hass, SLUG)
+
+    assert result.punch_list[0].code == "download_failed"
+    assert (await get_install_store(hass).async_get(SLUG)).version == "2.0.0"
 
 
 # ── Update entity ───────────────────────────────────────────────────
@@ -530,3 +544,32 @@ async def test_first_check_waits_for_its_timer(
     fetch.assert_awaited()
     assert hass.states.get(ENTITY_ID).state == STATE_ON
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.parametrize(
+    ("version", "other", "expected"),
+    [
+        ("v2.1", "2.1.0", True),
+        ("2.1.0", "2.1.0", True),
+        ("2.1.0-rc1", "2.1.0", False),
+        ("banana", "banana", False),
+        ("3.0.0", "2.1.0", False),
+    ],
+)
+def test_is_same_release(version: str, other: str, expected: bool) -> None:
+    from custom_components.selora_ai.recipes.version_gate import is_same_release
+
+    assert is_same_release(version, other) is expected
+
+
+async def test_update_refuses_a_package_whose_version_cannot_be_read(
+    hass: HomeAssistant, installed: InstallRecord, tmp_path: Path
+) -> None:
+    _ingest(hass, "2.1.0")
+    download, _urls = _fake_download(tmp_path, version="banana")
+
+    with patch(FETCH, download):
+        result = await async_update_recipe(hass, SLUG)
+
+    assert result.punch_list[0].code == "download_failed"
+    assert (await get_install_store(hass).async_get(SLUG)).version == "2.0.0"

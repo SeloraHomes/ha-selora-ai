@@ -2063,3 +2063,20 @@ async def test_padded_empty_deltas_are_not_a_membership_change(
     )
 
     assert result["previous"] == {"new_name": "Evening Lights"}
+
+
+async def test_a_deleted_group_says_what_its_copy_cannot_set(group_home: HomeAssistant) -> None:
+    """ignore_non_numeric is set in HA's own editor; no tool puts it back."""
+    created = await _create(
+        group_home, name="Temps", entities=["sensor.temp_a"], group_type="sensor", statistic="mean"
+    )
+    entry = gm.group_entries(group_home)[0]
+    group_home.config_entries.async_update_entry(
+        entry, options={**entry.options, "ignore_non_numeric": True}
+    )
+
+    result = await _tool_delete_group(group_home, {"entity_id": created["entity_id"]})
+    await group_home.async_block_till_done()
+
+    assert "not numbers" in result["note"]
+    assert "ignore_non_numeric" not in result["previous"]

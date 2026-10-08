@@ -1309,7 +1309,9 @@ async def async_update_view(
             VIEW_OPTIONS as _VIEW_OPTIONS,
         )
 
-        clearable = ("icon", "path", *_VIEW_OPTIONS) if section is None else _SECTION_CLEARABLE
+        clearable = (
+            ("title", "icon", "path", *_VIEW_OPTIONS) if section is None else _SECTION_CLEARABLE
+        )
         absent_before = (
             {k for k in clearable if settings_before.get(k) is None}
             if isinstance(settings_before, dict)
@@ -1389,10 +1391,10 @@ async def async_update_view(
                     changes.append(f"section {section} cleared {name}")
         else:
             for field in clear or ():
-                if field not in ("icon", "path", *VIEW_OPTIONS):
+                if field not in ("title", "icon", "path", *VIEW_OPTIONS):
                     return {
                         "error": (
-                            f"clear accepts icon, path or a view option "
+                            f"clear accepts title, icon, path or a view option "
                             f"({', '.join(VIEW_OPTIONS)}), not '{field}'."
                         )
                     }
@@ -1417,8 +1419,14 @@ async def async_update_view(
 
     # Settings this update added, which only clear takes away again.
     added = sorted(k for k in absent_before if (settings_before or {}).get(k) is not None)
-    if previous is not None and not lossy and added:
-        previous["clear"] = added
+    if previous is not None and not lossy:
+        # Only what changed: replaying a setting the edit never touched can be
+        # refused (a badge whose entity has since gone) and fail the undo.
+        previous = _changed_settings(
+            previous, _settings_of(settings_before, page=section is None) or {}
+        )
+        if added:
+            previous["clear"] = added
     result: dict[str, Any] = {
         "status": "updated",
         "dashboard": target or "lovelace",
@@ -1434,6 +1442,15 @@ async def async_update_view(
             "no tool rebuilds that; the user can, in the dashboard editor."
         )
     return attach_previous(result, previous, what="old page")
+
+
+def _changed_settings(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """The part of ``before`` that differs from ``after``, in the same shape."""
+    changed = {k: v for k, v in before.items() if k != "options" and after.get(k) != v}
+    old_options, new_options = before.get("options") or {}, after.get("options") or {}
+    if options := {k: v for k, v in old_options.items() if new_options.get(k) != v}:
+        changed["options"] = options
+    return changed
 
 
 def _views_sections(view: Any) -> list[Any]:

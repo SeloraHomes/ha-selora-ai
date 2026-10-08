@@ -248,7 +248,8 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
             f"selora_delete_automation removed in the last {RETIRED_AUTOMATION_DAYS} "
             "days — as that tool's "
             "previous does — is made again under that id with its version history "
-            "(history_restored). "
+            "(history_restored). Like any creation it comes back disabled: pass "
+            "enabled=true if previous had it running (initial_state true). "
             "Requires admin access."
         ),
         inputSchema={

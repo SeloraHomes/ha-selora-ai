@@ -33,8 +33,11 @@ LOGBOOK_MAX_DAYS: Final = 31
 # of the range at once.
 LOGBOOK_HOME_MAX_DAYS: Final = 2
 
-# The walk back from the newest end starts this wide and doubles.
+# The walk back from the newest end starts this wide and doubles, up to the
+# cap: grown over a quiet stretch, an unbounded window swallows the burst
+# before it whole — a week of a busy motion sensor in one read for a page of 200.
 _FIRST_WINDOW: Final = timedelta(minutes=5)
+_MAX_WINDOW: Final = timedelta(hours=6)
 _EPSILON: Final = timedelta(microseconds=1)
 
 # A text entity's states may be a password's past values, and a logbook row
@@ -140,7 +143,7 @@ def _walk_back(
         rows = processor.get_events(lower, top)
         collected = rows + collected
         upper, first = lower, False
-        window = window * 2
+        window = min(window * 2, _MAX_WINDOW)
     if reread is not None and collected:
         collected = reread.get_events(upper, end)
     cut = max(len(collected) - limit, 0)

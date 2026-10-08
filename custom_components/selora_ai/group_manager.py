@@ -1269,14 +1269,19 @@ async def async_delete_group(hass: HomeAssistant, entry_id: str) -> dict[str, An
         # Re-applied after removal, since that is what cleared them.
         _apply_member_visibility(hass, restore, True)
     _LOGGER.info("Deleted group '%s' (%s)", name, entity_id or entry_id)
-    return attach_previous(
-        {
-            "status": "deleted",
-            "entry_id": entry_id,
-            "entity_id": entity_id,
-            "name": sanitize_untrusted_text(name),
-            "require_restart": bool(unloaded.get("require_restart")),
-        },
-        before,
-        what="deleted group",
-    )
+    result: dict[str, Any] = {
+        "status": "deleted",
+        "entry_id": entry_id,
+        "entity_id": entity_id,
+        "name": sanitize_untrusted_text(name),
+        "require_restart": bool(unloaded.get("require_restart")),
+    }
+    if entry.options.get("ignore_non_numeric"):
+        # Set in Home Assistant's own editor; no tool sets it, so a group made
+        # again from previous counts text members as it would not have.
+        result["note"] = (
+            "This sensor group ignored members that are not numbers; no tool sets "
+            "that, so a group made again from previous does not, until the user "
+            "turns it on in the group's settings."
+        )
+    return attach_previous(result, before, what="deleted group")

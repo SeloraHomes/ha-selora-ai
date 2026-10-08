@@ -10,6 +10,7 @@ which Selora AI Local renders in the layout pinned in
 
 from __future__ import annotations
 
+import asyncio
 import datetime
 import logging
 import re
@@ -66,6 +67,9 @@ _YESTERDAY = re.compile(r"\byesterday\b", re.IGNORECASE)
 _NEXT = re.compile(r"\b(?:next|upcoming|coming\s+up)\b", re.IGNORECASE)
 
 _WEEK_DAYS = 7
+# A cloud calendar that hangs must not hold the chat turn: past this the
+# question is answered from the plain entity line.
+_FETCH_TIMEOUT_S = 8
 # The window the entity-line cap already bounds; every detail line counts against it.
 MAX_EVENTS = 10
 MAX_TODO_ITEMS = 15
@@ -124,15 +128,16 @@ async def _service(
     if not ids or not hass.services.has_service(domain, service):
         return {}
     try:
-        response = await hass.services.async_call(
-            domain,
-            service,
-            data,
-            target={"entity_id": ids},
-            blocking=True,
-            return_response=True,
-        )
-    except (HomeAssistantError, vol.Invalid) as exc:
+        async with asyncio.timeout(_FETCH_TIMEOUT_S):
+            response = await hass.services.async_call(
+                domain,
+                service,
+                data,
+                target={"entity_id": ids},
+                blocking=True,
+                return_response=True,
+            )
+    except (HomeAssistantError, vol.Invalid, TimeoutError) as exc:
         _LOGGER.debug("%s.%s failed for %s: %s", domain, service, ids, exc)
         return {}
     return response if isinstance(response, dict) else {}

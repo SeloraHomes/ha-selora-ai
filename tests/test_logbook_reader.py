@@ -273,3 +273,16 @@ def test_an_entity_page_is_not_reread() -> None:
     _walk(processor, limit=3)
 
     assert len(processor.ranges) == 2
+
+
+def test_a_quiet_stretch_never_grows_one_read_past_the_cap() -> None:
+    """A burst before a quiet week is read a few hours at a time, not whole."""
+    from custom_components.selora_ai.logbook_reader import _MAX_WINDOW
+
+    week = 7 * 86_400.0
+    processor = _FakeProcessor(1_000.0)
+    _walk(processor, limit=200, end=week)
+
+    assert max(end - start for start, end in processor.ranges) <= (
+        _MAX_WINDOW.total_seconds() + 0.001
+    )

@@ -1064,3 +1064,96 @@ async def test_an_empty_backup_makes_a_deleted_file_again(
 
     assert restored["written"] is True
     assert theme.read_text() == ""
+
+
+async def test_a_restore_cannot_undo_a_hand_edit_outside_the_allowlist(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    """A backup holds the user's own edits too; this tool may not touch http."""
+    edited = await _edit_password(hass)
+    path = config_dir / "configuration.yaml"
+    path.write_text(
+        path.read_text().replace("server_port: 8123", "server_port: 8124"), encoding="utf-8"
+    )
+    current = path.read_text()
+
+    result = await _set(hass, action="restore", backup=edited["backup"])
+
+    assert "'http' is not a key this tool edits" in result["error"]
+    assert path.read_text() == current
+
+
+async def test_a_restore_of_the_themes_include_is_allowed(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    calls: list[str] = []
+    hass.services.async_register("frontend", "reload_themes", lambda call: calls.append("x"))
+    added = await _apply(
+        hass, yaml_path="frontend.themes", action="add", content="!include_dir_merge_named themes\n"
+    )
+
+    restored = await _apply(hass, action="restore", backup=added["backup"])
+
+    assert restored["written"] is True
+    assert (config_dir / "configuration.yaml").read_text() == CONFIG
+    assert restored["reload_services"] == ["frontend.reload_themes"]
+
+
+async def test_a_restore_that_cannot_be_shown_is_not_offered(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    edited = await _edit_password(hass)
+    (config_dir / "configuration.yaml").write_text("rest: [unclosed\n", encoding="utf-8")
+
+    result = await _set(hass, action="restore", backup=edited["backup"])
+
+    assert "does not parse" in result["error"]
+    assert "confirm_token" not in result
+
+
+async def test_a_restore_checks_keys_that_are_not_text(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    """`1:` is a key like any other, and not one this tool edits."""
+    edited = await _edit_password(hass)
+    path = config_dir / "configuration.yaml"
+    backup = config_dir / edited["backup"]
+    backup.write_text(backup.read_text() + "1: old\n", encoding="utf-8")
+    path.write_text(path.read_text() + "1: new\n", encoding="utf-8")
+
+    result = await _set(hass, action="restore", backup=edited["backup"])
+
+    assert "'1' is not a key this tool edits" in result["error"]
+
+
+async def test_a_restore_over_a_frontend_that_is_not_a_mapping_is_refused(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    edited = await _edit_password(hass)
+    path = config_dir / "configuration.yaml"
+    path.write_text(path.read_text() + "frontend: odd\n", encoding="utf-8")
+
+    result = await _set(hass, action="restore", backup=edited["backup"])
+
+    assert "'frontend' is not a key this tool edits" in result["error"]
+
+
+async def test_a_restore_keeps_the_rules_an_edit_has_for_values(
+    hass: HomeAssistant, config_dir: Path
+) -> None:
+    edited = await _edit_password(hass)
+    path = config_dir / "configuration.yaml"
+    backup = config_dir / edited["backup"]
+
+    included = path.read_text().replace("http:\n  server_port: 8123\n", "") + (
+        "template: !include templates.yaml\n"
+    )
+    path.write_text(included, encoding="utf-8")
+    refused_include = await _set(hass, action="restore", backup=edited["backup"])
+
+    path.write_text(CONFIG, encoding="utf-8")
+    backup.write_text(CONFIG + "frontend:\n  themes: !include_dir_named elsewhere\n", "utf-8")
+    refused_themes = await _set(hass, action="restore", backup=edited["backup"])
+
+    assert "included from another file" in refused_include["error"]
+    assert "the only value this tool writes there" in refused_themes["error"]
