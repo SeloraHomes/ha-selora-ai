@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from ..const import RETIRED_AUTOMATION_DAYS
 from ..group_manager import (
     SENSOR_STATISTICS as _SENSOR_STATISTIC_ENUM,
 )
@@ -243,6 +244,11 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
             "by an earlier create) when the YAML is a revision of an automation that "
             "already exists — creating it again writes a second automation under the "
             "same name, which Home Assistant will load and run alongside the first. "
+            "YAML carrying the id of an automation Selora made and "
+            f"selora_delete_automation removed in the last {RETIRED_AUTOMATION_DAYS} "
+            "days — as that tool's "
+            "previous does — is made again under that id with its version history "
+            "(history_restored). "
             "Requires admin access."
         ),
         inputSchema={
@@ -2443,8 +2449,10 @@ _PREVIOUS_NOTE = (
     "these tools take back; keep it to undo the change — unless the result's note "
     "says no tool can put it back, when it is a record for the user. Something "
     "deleted and made again from it gets a new id, so what referred to the old one "
-    "has to be pointed at it again. previous_omitted means it was too large to "
-    "return."
+    "has to be pointed at it again — except an automation Selora made, which gets "
+    f"its id and version history back within {RETIRED_AUTOMATION_DAYS} days. "
+    "previous_omitted means it was "
+    "too large to return."
 )
 _STORED_NOTE = (
     " The result's previous is the stored configuration this removed, and the only "

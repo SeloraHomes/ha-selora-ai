@@ -430,8 +430,15 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
             )
         return attach_previous(response, update_report.get("previous"), what="old automation")
 
+    # A deleted automation's returned copy carries its id: passed back, it is
+    # made again under that id with its history while the history is kept.
+    restore_id = parsed.get("id")
     create_result = await async_create_automation(
-        hass, normalized, version_message=version_message, enabled=enabled
+        hass,
+        normalized,
+        version_message=version_message,
+        enabled=enabled,
+        restore_id=restore_id if isinstance(restore_id, str) and restore_id else None,
     )
     if not create_result.get("success"):
         return {"error": "Failed to write automation to automations.yaml"}
@@ -444,6 +451,8 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
         "status": "created",
         "risk_assessment": _sanitize_risk(risk),
     }
+    if create_result.get("history_restored"):
+        response["history_restored"] = True
     if forced_disabled:
         response["forced_disabled"] = True
         response["note"] = (
@@ -736,7 +745,9 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
     yaml_id = auto.get("id")
     if isinstance(yaml_id, str) and yaml_id:
         report: dict[str, Any] = {}
-        success: bool = await async_delete_automation(hass, yaml_id, report=report)
+        success: bool = await async_delete_automation(
+            hass, yaml_id, report=report, keep_history=True
+        )
         if not success:
             return {"error": "Failed to delete automation"}
         return attach_previous(
