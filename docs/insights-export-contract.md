@@ -87,6 +87,7 @@ nothing). See the envelope schema for the exact shape. Top level:
 | `signals` | active Layer-1 health signals (deduped per `kind`+`target`) |
 | `insights` | deterministic advisor items (issue/fix/improvement) |
 | `health` | deterministic 0-100 health score + `band` + the per-check roll-up explaining it |
+| `battery_forecast` | when each replaceable battery is expected to run out (optional, see below) |
 | `roster` | full device-plane inventory — integrations, devices, entities, automations, scripts, scenes, each with state/availability |
 | `inventory` | aggregate counts |
 | `collection` | `{ status, partial_reason, roster_truncated? }` |
@@ -114,6 +115,54 @@ health by polling `manifest.json` alone** — no artifact copy, no gunzip.
   (thousands of rows on a large home) and carry no detail the host lacks — the
   per-target view is already in `signals` and `roster`.
 
+### The battery forecast
+
+`battery_forecast` gives the lead time `battery_low` lacks: for each battery
+whose cells get **replaced**, an estimate of when it reaches 0%, so an installer
+can swap several in one visit before any dies.
+
+```json
+"battery_forecast": {
+  "generated_at": "2026-10-09T06:00:00+00:00",
+  "items": [{
+    "entity_id": "sensor.front_door_battery",
+    "device_id": "<roster.devices[].id>",
+    "level": 34,
+    "drain_per_day": 0.21,
+    "depleted_at": "2027-03-20T04:00:00+00:00",
+    "depleted_range": { "earliest": "2027-02-01T…", "latest": "2027-06-11T…" },
+    "confidence": "medium",
+    "since": "2026-06-01T00:00:00+00:00",
+    "points": 9
+  }]
+}
+```
+
+- **Only forecastable batteries appear**, sorted by `depleted_at`, soonest
+  first. A battery that is skipped leaves no row (no nulls, no placeholders).
+  `items: []` means none could be forecast; an **absent** `battery_forecast`
+  means the forecast couldn't be computed (no recorder), which is not the same.
+- **Rechargeable devices never appear**: phones, tablets, watches and laptops
+  (the companion app), robot vacuums and mowers, EVs, home batteries, and any
+  device with a charging-state entity or a history of repeated recharges.
+- **Honest uncertainty.** `depleted_range` is the window between the steepest
+  and shallowest plausible drain; on a short series it is wide, and `latest`
+  is capped at 3 years. `confidence` is `high` (≥6 distinct levels over ≥60
+  days, following the fitted line closely), `medium` (≥4 levels over ≥28 days)
+  or `low` (the bare minimum: 3 levels over 14 days). A forecast past 3 years
+  is left out rather than dated.
+- **`depleted_at` can be in the past**: a battery overdue on its estimate is
+  still listed, soonest first.
+- **`since`** is the first reading after the last battery replacement; the fit
+  never spans a swap.
+- **`generated_at` is the computation's clock.** The forecast is recomputed at
+  most every 6 hours and repeated unchanged in the publishes in between.
+- A battery at ≤10% due within 14 days also carries the existing `battery_low`
+  signal — there is no separate signal kind for it.
+- Only battery entities are named, with no raw history. The forecast is built
+  from the registries, not the roster, so a truncated roster still forecasts
+  every eligible battery.
+
 **Privacy note:** unlike the anonymous PostHog telemetry (counts only), this
 export carries **real identities and state** (entity_ids, names, states). That's
 intentional — it's the user's own home going to their own account, keyed by
@@ -137,6 +186,8 @@ Additive within v2 (nullable/optional, no version bump):
 - `health` — the deterministic score + band + per-check roll-up (see above), and
   `manifest.summary.health_score` mirroring the number. Absent on older
   producers → treat the score as unknown.
+- `battery_forecast` — battery depletion forecasts (see above). Absent on older
+  producers and when the forecast can't be computed.
 - `signals[].device_id` — device the target belongs to when `target_kind`
   is `entity`; `null` for device/integration targets or unassigned entities.
 - `roster.entities[].device_id` — device the entity belongs to, or `null`.

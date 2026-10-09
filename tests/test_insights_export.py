@@ -468,3 +468,68 @@ def test_the_export_module_never_opens_the_manifest_itself() -> None:
     # comments that explain why it does not are prose.
     assert '"manifest.json"' not in source
     assert "'manifest.json'" not in source
+
+
+# ── Battery forecast ─────────────────────────────────────────────────────────
+
+_FORECAST = {
+    "generated_at": "2026-10-09T06:00:00+00:00",
+    "items": [
+        {
+            "entity_id": "sensor.front_door_battery",
+            "device_id": "dev1",
+            "level": 34,
+            "drain_per_day": 0.21,
+            "depleted_at": "2027-03-20T00:00:00+00:00",
+            "depleted_range": {
+                "earliest": "2027-02-01T00:00:00+00:00",
+                "latest": "2027-06-01T00:00:00+00:00",
+            },
+            "confidence": "medium",
+            "since": "2026-06-01T00:00:00+00:00",
+            "points": 9,
+        }
+    ],
+}
+
+
+@pytest.mark.asyncio
+async def test_publish_sends_the_battery_forecast_next_to_health(hass: HomeAssistant) -> None:
+    with patch(
+        "custom_components.selora_ai.insights_export.BatteryForecaster.async_get",
+        return_value=_FORECAST,
+    ):
+        envelope = (await _publish_capturing(hass, _FakeStore(_AUDIT)))["envelope"]
+
+    assert envelope["battery_forecast"] == _FORECAST
+    keys = list(envelope)
+    assert keys.index("battery_forecast") == keys.index("health") + 1
+    assert envelope["schema_version"] == 2  # additive: no version bump
+
+
+@pytest.mark.asyncio
+async def test_an_unknown_battery_forecast_is_omitted_not_empty(hass: HomeAssistant) -> None:
+    """An empty ``items`` means "nothing to replace"; a forecast that couldn't
+    be computed must not claim that."""
+    with patch(
+        "custom_components.selora_ai.insights_export.BatteryForecaster.async_get",
+        return_value=None,
+    ):
+        envelope = (await _publish_capturing(hass, _FakeStore(_AUDIT)))["envelope"]
+
+    assert "battery_forecast" not in envelope
+
+
+@pytest.mark.asyncio
+async def test_a_truncated_roster_keeps_the_whole_battery_forecast(hass: HomeAssistant) -> None:
+    with (
+        patch(
+            "custom_components.selora_ai.insights_export.BatteryForecaster.async_get",
+            return_value=_FORECAST,
+        ),
+        patch.dict(_ROSTER, {"truncated": True}),
+    ):
+        envelope = (await _publish_capturing(hass, _FakeStore(_AUDIT)))["envelope"]
+
+    assert envelope["collection"]["roster_truncated"] is True
+    assert envelope["battery_forecast"] == _FORECAST

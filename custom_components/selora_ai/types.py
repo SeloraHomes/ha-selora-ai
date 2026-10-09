@@ -1090,6 +1090,36 @@ class InsightsEnvelope(TypedDict):
     inventory: dict[str, int]
     roster: HomeRoster
     collection: dict[str, Any]
+    battery_forecast: NotRequired[BatteryForecast]
+
+
+class BatteryDepletionRange(TypedDict):
+    """The window the battery is expected to reach 0% in."""
+
+    earliest: str  # UTC ISO-8601, from the steepest plausible drain
+    latest: str  # UTC ISO-8601, from the shallowest; capped at the forecast horizon
+
+
+class BatteryForecastItem(TypedDict):
+    """When one replaceable battery is expected to run out."""
+
+    entity_id: str
+    device_id: str  # matches RosterDevice.id
+    level: int  # current %
+    drain_per_day: float  # % per day, always positive
+    depleted_at: str  # UTC ISO-8601 estimate of reaching 0%
+    depleted_range: BatteryDepletionRange
+    confidence: str  # low | medium | high
+    since: str  # UTC ISO-8601 start of the fitted series (last replacement)
+    points: int  # distinct readings fitted
+
+
+class BatteryForecast(TypedDict):
+    """Battery depletion forecasts, soonest first. Only forecastable batteries
+    appear; an empty ``items`` means none could be forecast."""
+
+    generated_at: str  # UTC ISO-8601 of the computation (cached up to 6h)
+    items: list[BatteryForecastItem]
 
 
 # ── Insights: the full home roster (schema v2) ────────────────────────
