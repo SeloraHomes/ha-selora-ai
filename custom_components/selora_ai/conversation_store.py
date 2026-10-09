@@ -7,6 +7,7 @@ Re-exported from the package root for backwards compatibility.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -17,6 +18,8 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from .types import (
         AutomationDict,
         ChatMessage,
@@ -49,6 +52,14 @@ _SESSION_MAX_SAVED_AUTOMATIONS = 50
 # payload bounded across all sessions.
 _SESSION_SEARCH_TEXT_MAX = 4000
 
+# How long a session with no messages survives once another one is created.
+# A conversation exists the moment the panel opens a fresh chat, before
+# anything is sent; one abandoned that way is pruned rather than kept as a
+# "New conversation" row that counts against _SESSION_MAX_COUNT. The grace
+# period spares a chat just opened in another tab or browser — and
+# append_message recreates a pruned session under its id regardless.
+_EMPTY_SESSION_GRACE = timedelta(hours=1)
+
 
 def _bounded_search_text(messages: list[ChatMessage]) -> str:
     """Build the capped searchable blob for a session.
@@ -64,6 +75,12 @@ def _bounded_search_text(messages: list[ChatMessage]) -> str:
         return text
     half = _SESSION_SEARCH_TEXT_MAX // 2
     return f"{text[:half]} … {text[-half:]}"
+
+
+def _created_before(session: SessionData, cutoff: datetime) -> bool:
+    """Whether a session was created before ``cutoff`` (unparseable counts)."""
+    created = dt_util.parse_datetime(session.get("created_at") or "")
+    return created is None or dt_util.as_utc(created) < cutoff
 
 
 class ConversationStore:
@@ -83,13 +100,18 @@ class ConversationStore:
             self._data = raw if isinstance(raw, dict) else {"sessions": {}}
 
     async def list_sessions(self) -> list[SessionSummary]:
-        """Return session summaries (no messages) sorted by updated_at descending."""
+        """Return summaries of sessions that hold messages, newest first.
+
+        An empty session is a chat opened and never used, so it is not listed.
+        """
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Session store failed to load")
         summaries = []
         for sid, session in self._data["sessions"].items():
             messages = session.get("messages", [])
+            if not messages:
+                continue
             search_text = _bounded_search_text(messages)
             summaries.append(
                 {
@@ -126,6 +148,19 @@ class ConversationStore:
         for sid in sorted_ids[:to_remove]:
             del sessions[sid]
 
+    def _prune_empty_sessions(self) -> None:
+        """Remove sessions left without messages past the grace period."""
+        if self._data is None:
+            return
+        cutoff = dt_util.now() - _EMPTY_SESSION_GRACE
+        sessions = self._data["sessions"]
+        for sid in [
+            sid
+            for sid, session in sessions.items()
+            if not session.get("messages") and _created_before(session, cutoff)
+        ]:
+            del sessions[sid]
+
     async def create_session(self) -> SessionData:
         """Create a new empty session and persist it."""
         await self._ensure_loaded()
@@ -139,6 +174,7 @@ class ConversationStore:
             "updated_at": now,
             "messages": [],
         }
+        self._prune_empty_sessions()
         self._data["sessions"][session["id"]] = session
         self._evict_oldest_sessions()
         await self._store.async_save(self._data)
