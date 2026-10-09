@@ -392,7 +392,17 @@ export function renderChat(host) {
               `
             : ""
         }
-        ${renderRefineSuggestions(host)} ${_renderComposer(host)}
+        ${renderRefineSuggestions(host)}
+        <div class="dock-composer-area">
+          <selora-particles
+            class="dock-composer-particles"
+            .count=${120}
+            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
+            .maxOpacity=${host._isDark ? 0.55 : 0.5}
+            .speed=${host._streaming || host._loading ? 2.2 : 1}
+          ></selora-particles>
+          ${_renderComposer(host)}
+        </div>
       </div>
     </div>
   `;
