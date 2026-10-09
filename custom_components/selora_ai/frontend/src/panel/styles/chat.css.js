@@ -433,20 +433,43 @@ export const chatStyles = css`
        (layout.css.js), in this same background colour. */
     background: var(--primary-background-color);
   }
-  .composer-dock-particles {
+  /* The docked composer keeps the welcome screen's glow. flow-root keeps
+     the composer's vertical margin inside this box, so the halos below can
+     be placed against the composer's edges from the box's own edges. */
+  .dock-composer-area {
+    --dock-composer-gap: 10px;
+    /* Room under the composer for the lower halo to show. */
+    --dock-composer-gap-bottom: 24px;
+    position: relative;
+    display: flow-root;
+  }
+  .dock-composer-particles {
     position: absolute;
-    top: -20px;
+    top: -16px;
+    bottom: 0;
     left: 0;
     right: 0;
-    height: 20px;
-    z-index: 0;
+    pointer-events: none;
     opacity: 0;
-    transition: opacity 1s ease;
-    mask-image: linear-gradient(to top, black, transparent);
-    -webkit-mask-image: linear-gradient(to top, black, transparent);
+    transition: opacity 1.2s ease;
+    mask-image: radial-gradient(
+      ellipse 60% 80% at center,
+      black 20%,
+      rgba(0, 0, 0, 0.5) 50%,
+      transparent 80%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 60% 80% at center,
+      black 20%,
+      rgba(0, 0, 0, 0.5) 50%,
+      transparent 80%
+    );
   }
-  .composer-dock-particles.visible {
+  .dock-composer-particles.visible {
     opacity: 1;
+  }
+  .dock-composer-area .composer-wrap {
+    z-index: 1;
   }
 
   @media (max-width: 600px) {
@@ -960,7 +983,7 @@ export const chatStyles = css`
       0 10px 30px rgba(0, 0, 0, 0.18),
       inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
-  /* Welcome variant: contained input with top and bottom glow lines. */
+  /* Welcome variant: a contained, centred input. */
   .composer-welcome {
     position: relative;
     z-index: 1;
@@ -968,7 +991,7 @@ export const chatStyles = css`
     max-width: 640px;
   }
   /* Top edge: 1px gradient line, brightest in the middle */
-  .composer-welcome::before {
+  .composer-styled::before {
     content: "";
     position: absolute;
     top: 0;
@@ -985,7 +1008,7 @@ export const chatStyles = css`
     z-index: 0;
   }
   /* Bottom edge: matching 1px gradient line */
-  .composer-welcome::after {
+  .composer-styled::after {
     content: "";
     position: absolute;
     bottom: 0;
@@ -1028,11 +1051,35 @@ export const chatStyles = css`
   .welcome-composer-area::after {
     top: calc(50% + 27px - 16px);
   }
-  .composer-welcome:focus-within {
-    border-color: rgba(251, 191, 36, 0.55);
+  /* Docked halos are shorter: the quick actions sit right above. */
+  .dock-composer-area::before,
+  .dock-composer-area::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    max-width: 520px;
+    height: 24px;
+    background: radial-gradient(
+      ellipse 50% 100% at center,
+      rgba(251, 191, 36, 0.5) 0%,
+      rgba(245, 158, 11, 0.2) 35%,
+      rgba(245, 158, 11, 0.05) 65%,
+      transparent 100%
+    );
+    filter: blur(5px);
+    pointer-events: none;
+    z-index: 0;
   }
-  .composer-welcome:focus-within::before,
-  .composer-welcome:focus-within::after {
+  .dock-composer-area::before {
+    top: calc(var(--dock-composer-gap) - 12px);
+  }
+  .dock-composer-area::after {
+    bottom: calc(var(--dock-composer-gap-bottom) - 12px);
+  }
+  .composer-styled:focus-within::before,
+  .composer-styled:focus-within::after {
     background: linear-gradient(
       90deg,
       transparent 0%,
@@ -1044,7 +1091,8 @@ export const chatStyles = css`
     margin: 0;
   }
   .chat-input-wrapper .composer-styled {
-    margin: 10px auto;
+    margin: var(--dock-composer-gap, 10px) auto
+      var(--dock-composer-gap-bottom, 10px);
     max-width: calc(1200px - 48px);
     width: calc(100% - 48px);
   }
@@ -1058,8 +1106,13 @@ export const chatStyles = css`
     margin-top: 0;
   }
   @media (max-width: 600px) {
+    .dock-composer-area {
+      --dock-composer-gap: 8px;
+      --dock-composer-gap-bottom: 18px;
+    }
     .chat-input-wrapper .composer-styled {
-      margin: 8px auto;
+      margin: var(--dock-composer-gap, 8px) auto
+        var(--dock-composer-gap-bottom, 8px);
       width: calc(100% - 24px);
     }
     .chat-quick-actions {
