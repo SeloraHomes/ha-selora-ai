@@ -208,6 +208,8 @@ because the obvious implementation shipped and broke something quietly.
 - `config-files.md` — reading and writing www/, themes/, templates and dashboard files over MCP.
 - `hacs.md` — searching, installing and removing HACS cards, themes and integrations over MCP.
 - `telemetry.md` — anonymous telemetry, adding a counter.
+- `battery-forecast.md` — battery depletion forecasts in the insights export,
+  excluding rechargeables, and the recorder APIs behind them.
 - `alexa-credential.md` — the OS-delivered Alexa voice credential.
 - `recipe-updates.md` — updating an installed recipe to a newer catalog version.
 - `selora-local-prompts.md` — the bundled Selora AI Local prompts are pinned

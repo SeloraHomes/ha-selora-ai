@@ -42,6 +42,7 @@ from homeassistant.helpers import (
 )
 from homeassistant.helpers.event import async_call_later, async_track_time_interval
 
+from .battery_forecast import BatteryForecaster
 from .const import (
     DEFAULT_INSIGHTS_EXPORT_CADENCE,
     DEFAULT_INSIGHTS_EXPORT_RETENTION,
@@ -89,6 +90,9 @@ class InsightsExporter:
         self._health_store = health_store
         self._insights = insights_engine
         self._installation_id = installation_id
+        # Cached for hours between publishes: its recorder queries are far too
+        # heavy for the export cadence.
+        self._battery_forecaster = BatteryForecaster(hass)
         self._unsub_timer: CALLBACK_TYPE | None = None
         self._unsub_initial: CALLBACK_TYPE | None = None
         # Every in-flight publish task — the delayed initial publish AND each
@@ -236,6 +240,10 @@ class InsightsExporter:
             collection = {"status": "partial", "partial_reason": "insight_build_failed"}
 
         health = await self._gather_health()
+        # Optional and additive within schema v2: omitted (not empty) when the
+        # forecast is unknown, since an empty one reads as "nothing to replace".
+        # Built from the registries, so a truncated roster loses none of it.
+        battery_forecast = await self._battery_forecaster.async_get()
         inventory = self._gather_inventory()
         # Resolve custom-component domains + human integration names here
         # (async) and thread them into the synchronous roster builder: it flags
@@ -295,6 +303,7 @@ class InsightsExporter:
             "signals": signals,
             "insights": insights,
             "health": health,
+            **({"battery_forecast": battery_forecast} if battery_forecast is not None else {}),
             "inventory": inventory,
             "roster": roster,
             "collection": collection,

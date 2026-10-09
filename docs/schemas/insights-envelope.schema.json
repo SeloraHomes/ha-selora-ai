@@ -31,6 +31,7 @@
       "items": { "$ref": "#/$defs/insight" }
     },
     "health": { "$ref": "#/$defs/health" },
+    "battery_forecast": { "$ref": "#/$defs/batteryForecast" },
     "inventory": {
       "type": "object",
       "description": "Aggregate counts.",
@@ -49,6 +50,81 @@
   },
 
   "$defs": {
+    "batteryForecast": {
+      "type": "object",
+      "description": "Optional (additive within v2). When each replaceable battery is expected to reach 0%. Rechargeable devices (phones, vacuums, vehicles, home batteries) never appear. Absent when the forecast could not be computed (no recorder); an empty items array means no battery could be forecast. Recomputed at most every 6 hours.",
+      "required": ["generated_at", "items"],
+      "additionalProperties": true,
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC time of the computation, not of the publish."
+        },
+        "items": {
+          "type": "array",
+          "description": "Only forecastable batteries, sorted by depleted_at, soonest first.",
+          "items": { "$ref": "#/$defs/batteryForecastItem" }
+        }
+      }
+    },
+    "batteryForecastItem": {
+      "type": "object",
+      "required": [
+        "entity_id",
+        "device_id",
+        "level",
+        "drain_per_day",
+        "depleted_at",
+        "depleted_range",
+        "confidence",
+        "since",
+        "points"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "entity_id": { "type": "string", "description": "The battery sensor." },
+        "device_id": { "type": "string", "description": "Matches roster.devices[].id." },
+        "level": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Current %." },
+        "drain_per_day": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Fitted drain, % per day."
+        },
+        "depleted_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Estimated time of reaching 0%. Never more than 3 years out; in the past for an overdue battery."
+        },
+        "depleted_range": {
+          "type": "object",
+          "required": ["earliest", "latest"],
+          "properties": {
+            "earliest": {
+              "type": "string",
+              "format": "date-time",
+              "description": "From the steepest plausible drain."
+            },
+            "latest": {
+              "type": "string",
+              "format": "date-time",
+              "description": "From the shallowest plausible drain; capped at 3 years from generated_at."
+            }
+          }
+        },
+        "confidence": { "type": "string", "enum": ["low", "medium", "high"] },
+        "since": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of the fitted series: the first reading after the last battery replacement."
+        },
+        "points": {
+          "type": "integer",
+          "minimum": 3,
+          "description": "Distinct readings fitted (one per level change)."
+        }
+      }
+    },
     "health": {
       "type": "object",
       "description": "The deterministic 0-100 health score and the per-check roll-up explaining it. Optional (additive to v2); absent on older producers, treat as an unknown score. The per-finding contribution rows behind the score are intentionally NOT exported — that detail is available per-target in 'signals' and 'roster'.",
