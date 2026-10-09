@@ -172,6 +172,7 @@ async def test_an_unresolvable_target_leaves_no_empty_session(
     )
     assert "not found" in result["error"]
     assert await _get_conv_store(hass).list_sessions() == []
+    assert _get_conv_store(hass)._data in (None, {"sessions": {}})
 
 
 @pytest.mark.asyncio
