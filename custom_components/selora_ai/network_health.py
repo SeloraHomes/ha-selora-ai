@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any, Final
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.util import dt as dt_util
 
-from .helpers import device_entries, sanitize_untrusted_text
+from .helpers import device_config_entry_ids, device_entries, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -314,7 +314,7 @@ def _z2m_networks(regs: _Registries) -> list[dict[str, Any]]:
         mqtt_down = any(
             (cfg := regs.hass.config_entries.async_get_entry(entry_id)) is not None
             and cfg.state.value != "loaded"
-            for entry_id in bridge.config_entries
+            for entry_id in device_config_entry_ids(bridge)
         )
         bridge_down = (
             None

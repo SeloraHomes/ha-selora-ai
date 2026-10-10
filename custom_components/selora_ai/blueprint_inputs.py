@@ -29,6 +29,8 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import entity_sources
 import voluptuous as vol
 
+from .helpers import device_config_entry_ids
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -142,7 +144,7 @@ def _device_matches(hass: HomeAssistant, entry: Any, device_filter: Any) -> bool
         return False
     domains = {
         config_entry.domain
-        for entry_id in device.config_entries
+        for entry_id in device_config_entry_ids(device)
         if (config_entry := hass.config_entries.async_get_entry(entry_id)) is not None
     }
     filters = device_filter if isinstance(device_filter, list) else [device_filter]

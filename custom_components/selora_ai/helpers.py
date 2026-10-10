@@ -139,6 +139,46 @@ def device_entries(registry: DeviceRegistry) -> list[DeviceEntry]:
     return list(devices)
 
 
+# Stands in for "this core's DeviceEntry has no such field" in getattr.
+_NO_FIELD: Final = object()
+
+
+def device_config_entry_ids(device: DeviceEntry) -> tuple[str, ...]:
+    """The config entries a device belongs to, on either side of HA's change.
+
+    From 2026.9 a device belongs to ONE config entry, ``config_entry_id``, and
+    ``config_entries`` / ``primary_config_entry`` are shims that log a
+    deprecation on every read and go in 2027.10. Older cores have only those.
+
+    The entry's own fields decide, as in ``device_entries``: ``config_entry_id``
+    is a real attribute on the new core and absent on the old one.
+
+    One new-core entry still has several owners: the read-only composite that
+    ``async_get`` synthesizes for a pre-migration device id, whose
+    ``config_entry_id`` is only the former primary. Answering with that alone
+    would let device removal skip its several-owners guard. Core keeps the union
+    only in ``_composite_subentries`` (gone in 2027.8, along with composites).
+    """
+    entry_id = getattr(device, "config_entry_id", _NO_FIELD)
+    if entry_id is not _NO_FIELD:
+        if composite := getattr(device, "_composite_subentries", None):
+            return tuple(composite)
+        return (entry_id,) if entry_id else ()
+    return tuple(device.config_entries)
+
+
+def device_primary_config_entry(device: DeviceEntry) -> str | None:
+    """The config entry that owns a device, on either side of HA's change.
+
+    See ``device_config_entry_ids``. On the old core a device with no recorded
+    primary falls back to any of its entries.
+    """
+    entry_id = getattr(device, "config_entry_id", _NO_FIELD)
+    if entry_id is not _NO_FIELD:
+        return entry_id or None
+    return getattr(device, "primary_config_entry", None) or next(iter(device.config_entries), None)
+
+
 async def dashboard_info(config: Any) -> dict[str, Any]:
     """``async_get_info()``, or ``{}`` when it fails.
 

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.core import HomeAssistant, State
 
 from ..entity_capabilities import is_inspectable_entity
-from ..helpers import device_entries
+from ..helpers import device_entries, device_primary_config_entry
 from ..lexical import (
     SEARCH_FUZZY_FLOOR,
     SEARCH_W_FUZZY,
@@ -184,7 +184,7 @@ async def _tool_list_devices(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         if domain_filter and domain_filter not in device_domains:
             continue
 
-        integration = _sanitize(entry_domains.get(device.primary_config_entry or "", ""))
+        integration = _sanitize(entry_domains.get(device_primary_config_entry(device) or "", ""))
 
         devices.append(
             {
@@ -237,8 +237,8 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
 
     # Resolve integration domain
     integration = ""
-    if device.primary_config_entry:
-        ce = hass.config_entries.async_get_entry(device.primary_config_entry)
+    if primary_entry := device_primary_config_entry(device):
+        ce = hass.config_entries.async_get_entry(primary_entry)
         if ce is not None:
             integration = ce.domain
 
