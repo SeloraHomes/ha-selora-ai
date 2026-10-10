@@ -23,6 +23,8 @@ from homeassistant import loader
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 
+from .helpers import device_config_entry_ids
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -52,7 +54,7 @@ def device_is_removable(hass: HomeAssistant, device_id: str) -> bool:
     device = dr.async_get(hass).async_get(device_id)
     if device is None:
         return False
-    entry_ids = device.config_entries
+    entry_ids = device_config_entry_ids(device)
     if not entry_ids:
         # No owner to re-create it — a registry-only entry can just be dropped.
         return True
@@ -125,7 +127,7 @@ async def async_remove_device(
         raise HomeAssistantError("Unknown device")
 
     name = device.name_by_user or device.name or device_id
-    entry_ids = list(device.config_entries)
+    entry_ids = list(device_config_entry_ids(device))
     if not entry_ids:
         dev_reg.async_remove_device(device_id)
         _LOGGER.info("Deleted registry-only device %s (%s)", name, device_id)

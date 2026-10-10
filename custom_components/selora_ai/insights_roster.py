@@ -45,7 +45,7 @@ from .const import (
     INSIGHTS_ROSTER_MAX_ENTITIES,
     TRANSIENT_INTEGRATIONS,
 )
-from .helpers import device_entries
+from .helpers import device_config_entry_ids, device_entries, device_primary_config_entry
 
 if TYPE_CHECKING:
     from .types import (
@@ -414,15 +414,16 @@ def build_home_roster(
     dev_count_by_entry: dict[str, int] = defaultdict(int)
     matter_ids = _matter_ids_by_identifier(hass)
     for dev in device_entries(dev_reg):
-        primary_entry = dev.primary_config_entry or next(iter(dev.config_entries), None)
+        entry_ids = device_config_entry_ids(dev)
+        primary_entry = device_primary_config_entry(dev)
         integration = entry_meta.get(primary_entry, ("", "", ""))[0] if primary_entry else ""
-        for entry_id in dev.config_entries:
+        for entry_id in entry_ids:
             dev_count_by_entry[entry_id] += 1
         # Transient only when EVERY associated integration is transient — a real
         # device merged with a BLE integration (shared entry) must not be hidden.
         # Derived from all config entries, not just the primary/arbitrary one, so
         # the flag is deterministic regardless of registry iteration order.
-        entry_domains = {entry_meta[e][0] for e in dev.config_entries if e in entry_meta}
+        entry_domains = {entry_meta[e][0] for e in entry_ids if e in entry_meta}
         transient = bool(entry_domains) and entry_domains <= TRANSIENT_INTEGRATIONS
         devices.append(
             {

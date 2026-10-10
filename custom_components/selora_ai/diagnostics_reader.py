@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.exceptions import HomeAssistantError
 
-from .helpers import sanitize_untrusted_text
+from .helpers import device_config_entry_ids, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -131,7 +131,7 @@ async def async_integration_diagnostics(
     try:
         if device:
             found = dr.async_get(hass).async_get(str(device).strip())
-            if found is None or entry.entry_id not in found.config_entries:
+            if found is None or entry.entry_id not in device_config_entry_ids(found):
                 return {"error": "That device does not belong to this integration entry."}
             if platform.device_diagnostics is None:
                 return {"error": f"{entry.domain} has no device diagnostics."}

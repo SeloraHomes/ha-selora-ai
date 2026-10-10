@@ -26,7 +26,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
-from .helpers import sanitize_untrusted_text
+from .helpers import device_config_entry_ids, sanitize_untrusted_text
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -119,7 +119,7 @@ async def async_remove_device_on_request(
         }
     owners = [
         entry
-        for entry_id in device.config_entries
+        for entry_id in device_config_entry_ids(device)
         if (entry := hass.config_entries.async_get_entry(entry_id)) is not None
     ]
     if any(entry.domain == DOMAIN for entry in owners):
