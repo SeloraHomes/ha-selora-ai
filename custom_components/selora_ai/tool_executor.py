@@ -120,6 +120,7 @@ class ToolExecutor:
             "accept_suggestion": self._accept_suggestion,
             "dismiss_suggestion": self._dismiss_suggestion,
             "delete_automation": self._delete_automation,
+            "rename_automation": self._rename_automation,
             "delete_scene": self._delete_scene,
             "list_groups": self._list_groups,
             "create_group": self._create_group,
@@ -370,6 +371,12 @@ class ToolExecutor:
             "status": "dismissed",
             "reason": reason,
         }
+
+    async def _rename_automation(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Change an automation's name/description in place — no card, no proposal."""
+        from .mcp_server.automations import _tool_rename_automation
+
+        return await _tool_rename_automation(self._hass, arguments, session_id=self._session_id)
 
     async def _delete_automation(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Resolve a delete target and surface a confirmation card.

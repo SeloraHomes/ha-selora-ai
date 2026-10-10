@@ -100,6 +100,7 @@ class ChatTurn:
     session_id: str
     connection: FakeConnection
     architect_calls: list[dict[str, Any]] = field(default_factory=list)
+    tool_results: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def asked(self) -> dict[str, Any]:
@@ -221,21 +222,50 @@ class ChatHarness:
         reply: dict[str, Any] | list[dict[str, Any]],
         session_id: str | None = None,
         is_admin: bool = True,
+        run_tools: list[tuple[str, dict[str, Any]]] | None = None,
         **extra: Any,
     ) -> ChatTurn:
         """Drive ``selora_ai/chat``. ``reply`` is what `architect_chat` returns.
 
         A list scripts consecutive calls, which is how the validation-retry
         loop is exercised: first an invalid proposal, then the correction.
+
+        ``run_tools`` are tool calls the scripted model makes before replying.
+        Unlike :meth:`stream`'s ``tool_calls`` they really run, through the
+        executor the handler built, so a test sees the tool's effect on the
+        home and on what the turn persists. Their results are on
+        ``turn.tool_results``.
         """
         replies = list(reply) if isinstance(reply, list) else [reply]
         turn = self._new_turn(session_id, is_admin)
 
         async def _architect(_self: Any, *args: Any, **kwargs: Any) -> dict[str, Any]:
             turn.architect_calls.append(self._recorded(args, kwargs))
+            executor = kwargs.get("tool_executor")
+            if run_tools and len(turn.architect_calls) == 1:
+                assert executor is not None, "the handler offered no tools"
+                for name, arguments in run_tools:
+                    turn.tool_results.append(await executor.execute(name, arguments))
             return replies[min(len(turn.architect_calls) - 1, len(replies) - 1)]
 
-        with patch.object(LLMClient, "architect_chat", autospec=True, side_effect=_architect):
+        from custom_components.selora_ai import _create_tool_executor
+        from custom_components.selora_ai.tool_executor import ToolExecutor
+
+        # Without a DeviceManager the handler builds no executor; the tools
+        # scripted here need none.
+        def _executor(
+            hass: HomeAssistant, connection: Any, *, session_id: str | None = None
+        ) -> Any:
+            if not run_tools:
+                return _create_tool_executor(hass, connection, session_id=session_id)
+            return ToolExecutor(
+                hass, None, is_admin=connection.user.is_admin, session_id=session_id
+            )
+
+        with (
+            patch.object(LLMClient, "architect_chat", autospec=True, side_effect=_architect),
+            patch("custom_components.selora_ai._create_tool_executor", side_effect=_executor),
+        ):
             await self._invoke(_CHAT, message, turn, extra)
         return turn
 

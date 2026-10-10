@@ -33,6 +33,7 @@ from .automations import (
     _tool_delete_automation,
     _tool_get_automation,
     _tool_list_automations,
+    _tool_rename_automation,
     _tool_trigger_automation,
     _tool_validate_automation,
 )
@@ -228,6 +229,7 @@ from .names import (
     TOOL_REMOVE_DEVICE,
     TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
+    TOOL_RENAME_AUTOMATION,
     TOOL_RESTART_HOME_ASSISTANT,
     TOOL_SEARCH_APP_STORE,
     TOOL_SEARCH_ENTITIES,
@@ -410,6 +412,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_CREATE_AUTOMATION: _tool_create_automation,
         TOOL_ACCEPT_AUTOMATION: _tool_accept_automation,
         TOOL_DELETE_AUTOMATION: _tool_delete_automation,
+        TOOL_RENAME_AUTOMATION: _tool_rename_automation,
         TOOL_TRIGGER_AUTOMATION: _tool_trigger_automation,
         TOOL_GET_HOME_SNAPSHOT: _tool_get_home_snapshot,
         TOOL_CHAT: _tool_chat,

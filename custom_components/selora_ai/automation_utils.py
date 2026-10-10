@@ -2768,6 +2768,8 @@ async def async_update_automation(
     preserve_enabled_state: bool = True,
     report: dict[str, Any] | None = None,
     validate_with: Literal["proposal", "home_assistant"] = "proposal",
+    record_version: bool | None = None,
+    expected_entry: dict[str, Any] | None = None,
 ) -> bool:
     """Replace an existing automation (by id) in automations.yaml and reload.
 
@@ -2776,9 +2778,20 @@ async def async_update_automation(
     moved to plural, trigger values coerced) and holds hand-written YAML to
     rules it need not meet, so such an automation is validated by Home
     Assistant's own ``async_validate_config_item`` — what its automation editor
-    calls — and written exactly as given. No version is recorded: the version
-    history belongs to Selora's automations. A refusal's reason goes into
+    calls — and written exactly as given. A refusal's reason goes into
     ``report["error"]``.
+
+    ``record_version`` says whether the write gets a version record; unset, it
+    follows ``validate_with``, since the version history belongs to Selora's
+    automations. A rename of a Selora automation passes True with
+    ``"home_assistant"``: it must write the rest of the entry as it is, and
+    still belongs in that automation's history.
+
+    ``expected_entry`` makes the write conditional: when the entry on disk,
+    read under the lock, is no longer that one, nothing is written and
+    ``report["conflict"]`` is set. A caller that built ``updated`` from its own
+    earlier read passes what it read, so an edit landing in between is not
+    overwritten with the stale rest of the entry.
 
     ``preserve_enabled_state`` (default) keeps the automation's active/inactive
     status identical across the forced ``automation.reload`` *without* altering its
@@ -2870,6 +2883,15 @@ async def async_update_automation(
             found = False
             for i, a in enumerate(existing):
                 if a.get("id") == automation_id:
+                    if expected_entry is not None and a != expected_entry:
+                        _LOGGER.info(
+                            "Automation %s changed since it was read; not updating",
+                            automation_id,
+                        )
+                        if report is not None:
+                            report["conflict"] = True
+                            report["error"] = "The automation changed while being updated."
+                        return False
                     if report is not None:
                         # Read under the lock, so it is exactly what this
                         # write replaces, not the caller's earlier read.
@@ -2958,7 +2980,7 @@ async def async_update_automation(
                         ):
                             break
 
-                if validate_with == "proposal":
+                if validate_with == "proposal" if record_version is None else record_version:
                     store = _get_automation_store(hass)
                     await store.add_version(
                         automation_id, yaml_text, updated, version_message, session_id

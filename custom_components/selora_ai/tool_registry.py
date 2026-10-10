@@ -725,6 +725,43 @@ TOOL_DELETE_AUTOMATION = ToolDef(
     requires_admin=True,
 )
 
+# A name or description is the one change to an automation that cannot alter
+# what it does, so it needs neither a regenerated proposal nor a review card.
+TOOL_RENAME_AUTOMATION = ToolDef(
+    name="rename_automation",
+    description=(
+        "Change ONLY an automation's name and/or description, immediately — no "
+        "proposal, no card. Use it whenever the user asks to rename an automation or "
+        "reword its description, including while refining one; any change to what it "
+        "does (triggers, conditions, actions, mode) is still a proposal. Identify it "
+        "by automation_id or entity_id. Only automations in automations.yaml can be "
+        "changed, and a name another automation already has is refused. The result's "
+        "previous holds the old values, in this tool's terms."
+    ),
+    params=(
+        ToolParam(
+            name="automation_id",
+            type="string",
+            description="The automation id from automations.yaml, if known.",
+        ),
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Automation entity_id (e.g. 'automation.evening_lights').",
+        ),
+        ToolParam(name="new_name", type="string", description="The new name (alias)."),
+        ToolParam(name="description", type="string", description="The new description."),
+        ToolParam(
+            name="clear",
+            type="array",
+            description="['description'] removes the description.",
+            items_type="string",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_DELETE_SCENE = ToolDef(
     name="delete_scene",
     description=(
@@ -2959,6 +2996,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_ACCEPT_SUGGESTION,
     TOOL_DISMISS_SUGGESTION,
     TOOL_DELETE_AUTOMATION,
+    TOOL_RENAME_AUTOMATION,
     TOOL_DELETE_SCENE,
     TOOL_LIST_GROUPS,
     TOOL_CREATE_GROUP,
@@ -3042,6 +3080,9 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "get_entity_state",
         "validate_action",
         "delete_automation",
+        # "Call it Kitchen and Office Lights" after a save is command-shaped;
+        # without this the trimmed schema leaves only a regenerated proposal.
+        "rename_automation",
         "delete_scene",
         "list_groups",
         "create_group",
@@ -3146,6 +3187,8 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "delete_area",
         "update_entity",
         "update_device",
+        # "Rename the porch automation" reads as a registry rename.
+        "rename_automation",
         "list_services",
         "list_labels",
         "create_label",

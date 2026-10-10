@@ -338,6 +338,9 @@ _AUTOMATION_REFINE_RULES = (
     "- Start from that YAML and change ONLY what the user asked for. Every other trigger, "
     "condition, action, and the description stay as they are.\n"
     "- Keep the alias identical unless the user asked to rename it.\n"
+    "- A change to ONLY the name or description, here or in an ACTIVE REFINEMENT, alters no "
+    "behaviour: if you have the rename_automation tool, call it with that automation_id instead "
+    "of returning an automation.\n"
     "- A request for an ADDITIONAL, different automation ('now make one for the porch') is a new "
     "automation — omit refine_automation_id there.\n\n"
 )

@@ -505,6 +505,297 @@ async def _replace_user_automation(
     return attach_previous(response, report.get("previous"), what="old automation")
 
 
+# ── Tool: selora_rename_automation ────────────────────────────────────────────
+
+# Bounds on what a rename writes. A name is a list row and a card title, so it
+# is one line; a description is a sentence or two.
+RENAME_MAX_NAME_CHARS = 100
+RENAME_MAX_DESCRIPTION_CHARS = 1000
+RENAME_VERSION_MESSAGE = "Renamed via chat"
+_RENAME_ATTEMPTS = 2
+# How automations made before the selora_ai label are recognised
+# (helpers.is_selora_automation).
+LEGACY_SELORA_MARKER = "[Selora AI]"
+
+
+def _name_key(name: str) -> str:
+    """How a name reads to the user: case- and whitespace-insensitive."""
+    return " ".join(name.split()).casefold()
+
+
+def _rename_arguments(
+    arguments: dict[str, Any],
+) -> tuple[str | None, str | None, bool, str | None]:
+    """Read ``(new_name, description, clear_description, error)`` off the call."""
+    raw_name = arguments.get("new_name")
+    raw_description = arguments.get("description")
+    clear = arguments.get("clear") or []
+    if not isinstance(clear, list) or any(item != "description" for item in clear):
+        return None, None, False, "clear takes only 'description'."
+    clear_description = "description" in clear
+
+    new_name: str | None = None
+    if raw_name is not None:
+        if not isinstance(raw_name, str):
+            return None, None, False, "new_name must be text."
+        new_name = " ".join(raw_name.split())
+        if not new_name:
+            return None, None, False, "new_name cannot be blank."
+        if len(new_name) > RENAME_MAX_NAME_CHARS:
+            return (
+                None,
+                None,
+                False,
+                f"new_name is longer than {RENAME_MAX_NAME_CHARS} characters.",
+            )
+
+    description: str | None = None
+    if raw_description is not None:
+        if not isinstance(raw_description, str):
+            return None, None, False, "description must be text."
+        description = raw_description.strip()
+        if not description:
+            return (
+                None,
+                None,
+                False,
+                "description cannot be blank; pass clear=['description'] to remove it.",
+            )
+        if len(description) > RENAME_MAX_DESCRIPTION_CHARS:
+            return (
+                None,
+                None,
+                False,
+                f"description is longer than {RENAME_MAX_DESCRIPTION_CHARS} characters.",
+            )
+        if clear_description:
+            return None, None, False, "Pass either a new description or clear it, not both."
+
+    if new_name is None and description is None and not clear_description:
+        return None, None, False, "Pass new_name, description, or clear=['description']."
+    return new_name, description, clear_description, None
+
+
+def _automation_named(
+    hass: HomeAssistant,
+    entries: list[dict[str, Any]],
+    name: str,
+    *,
+    target_id: str,
+    target_entity_id: str,
+) -> str | None:
+    """Another automation already called *name*, as the user would read it.
+
+    Home Assistant does not refuse two automations of one name, but the user
+    tells them apart by name alone, and a proposal is matched to the automation
+    it edits by its alias — a duplicate makes both ambiguous. Checked against
+    automations.yaml and every loaded automation, since one defined in a
+    package shows in the same list.
+    """
+    wanted = _name_key(name)
+    for entry in entries:
+        if not isinstance(entry, dict) or str(entry.get("id") or "") == target_id:
+            continue
+        alias = entry.get("alias")
+        if isinstance(alias, str) and _name_key(alias) == wanted:
+            return alias
+    for state in hass.states.async_all("automation"):
+        if state.entity_id == target_entity_id:
+            continue
+        if str(state.attributes.get("id", "")) == target_id:
+            continue
+        if _name_key(state.name) == wanted:
+            return state.name
+    return None
+
+
+async def _tool_rename_automation(
+    hass: HomeAssistant, arguments: dict[str, Any], *, session_id: str | None = None
+) -> dict[str, Any]:
+    """Change only an automation's name (alias) and/or description, in place.
+
+    Nothing that decides behaviour is regenerated or revalidated by Selora:
+    the entry is read from automations.yaml, the two fields are set, and every
+    other key is written back as it was — through ``async_update_automation``,
+    which keeps the enabled state and the boot override and reloads.
+    A Selora automation gets a version record; Home Assistant validates the
+    entry either way, as its own editor would.
+    """
+    automation_id: str = str(arguments.get("automation_id", "") or "").strip()
+    entity_id_arg: str = str(arguments.get("entity_id", "") or "").strip()
+    if not automation_id and not entity_id_arg:
+        return {"error": "automation_id or entity_id is required"}
+
+    new_name, description, clear_description, error = _rename_arguments(arguments)
+    if error:
+        return {"error": error}
+
+    state, resolved_id, resolved_entity = _resolve_automation(
+        hass, automation_id=automation_id, entity_id=entity_id_arg
+    )
+    automation_id = resolved_id or automation_id
+    entity_id = resolved_entity or entity_id_arg
+
+    # The entry is read, checked and rebuilt before the write takes the file
+    # lock; the write only lands if the entry is still the one read, and an
+    # edit in between is retried from a fresh read.
+    for _attempt in range(_RENAME_ATTEMPTS):
+        result = await _rename_attempt(
+            hass,
+            automation_id=automation_id,
+            entity_id=entity_id,
+            entity_id_arg=entity_id_arg,
+            state=state,
+            new_name=new_name,
+            description=description,
+            clear_description=clear_description,
+            session_id=session_id,
+        )
+        if not result.get("conflict"):
+            return result
+    return {"error": "The automation kept changing while being renamed; try again."}
+
+
+async def _rename_attempt(
+    hass: HomeAssistant,
+    *,
+    automation_id: str,
+    entity_id: str,
+    entity_id_arg: str,
+    state: Any,
+    new_name: str | None,
+    description: str | None,
+    clear_description: bool,
+    session_id: str | None,
+) -> dict[str, Any]:
+    """One read, check and conditional write; ``{"conflict": True}`` to retry."""
+    from ..automation_utils import async_update_automation  # noqa: PLC0415
+    from ..llm_client.parsers import _humanize_description_entity_ids  # noqa: PLC0415
+
+    entries = await _read_yaml_automations(hass)
+    entry: dict[str, Any] | None = None
+    if automation_id:
+        entry = next(
+            (a for a in entries if isinstance(a, dict) and str(a.get("id")) == automation_id),
+            None,
+        )
+    if entry is None and entity_id:
+        entry = next(
+            (
+                a
+                for a in entries
+                if isinstance(a, dict) and _resolve_yaml_automation_entity_id(hass, a) == entity_id
+            ),
+            None,
+        )
+    if entry is None:
+        if state is None:
+            return {"error": f"Automation {_sanitize(entity_id_arg or automation_id)} not found"}
+        return {
+            "error": (
+                f"Automation {_sanitize(entity_id)} is not in automations.yaml, so it "
+                "cannot be renamed here; it is defined in a package or another file "
+                "and has to be renamed there."
+            )
+        }
+    entry_id = entry.get("id")
+    if not isinstance(entry_id, str) or not entry_id:
+        return {
+            "error": (
+                f"Automation {_sanitize(entity_id or entry.get('alias'))} has no 'id' in "
+                "automations.yaml, so it cannot be changed safely; add an 'id' to its "
+                "entry first."
+            )
+        }
+
+    old_alias = entry.get("alias")
+    old_description = entry.get("description")
+    updated: dict[str, Any] = {k: v for k, v in entry.items() if k != "id"}
+    changed: list[str] = []
+
+    if new_name is not None and new_name != old_alias:
+        other = _automation_named(
+            hass, entries, new_name, target_id=entry_id, target_entity_id=entity_id
+        )
+        if other is not None:
+            return {
+                "error": (
+                    f"Another automation is already called '{_sanitize(other, 100)}'. "
+                    "Pick a different name."
+                )
+            }
+        updated["alias"] = new_name
+        changed.append("name")
+    if description is not None:
+        holder: dict[str, Any] = {"description": description}
+        _humanize_description_entity_ids(holder, hass)
+        if holder["description"] != old_description:
+            updated["description"] = holder["description"]
+            changed.append("description")
+    elif clear_description and "description" in updated:
+        del updated["description"]
+        changed.append("description")
+
+    result: dict[str, Any] = {
+        "automation_id": entry_id,
+        "entity_id": entity_id or None,
+        "name": _sanitize(updated.get("alias") or "", RENAME_MAX_NAME_CHARS),
+    }
+    if not changed:
+        return {**result, "status": "unchanged"}
+
+    if _is_selora(entry) and not _is_selora({**updated, "id": entry_id}):
+        _keep_legacy_selora_marker(entry, updated)
+
+    report: dict[str, Any] = {}
+    if not await async_update_automation(
+        hass,
+        entry_id,
+        updated,
+        session_id=session_id,
+        version_message=RENAME_VERSION_MESSAGE,
+        report=report,
+        validate_with="home_assistant",
+        record_version=_is_selora(entry),
+        expected_entry=entry,
+    ):
+        if report.get("conflict"):
+            return {"conflict": True}
+        return {
+            "error": _sanitize(
+                report.get("error") or f"Failed to update automation {entry_id}", limit=500
+            )
+        }
+
+    previous: dict[str, Any] = {}
+    if "name" in changed and isinstance(old_alias, str):
+        previous["new_name"] = old_alias
+    if "description" in changed:
+        if isinstance(old_description, str) and old_description:
+            previous["description"] = old_description
+        else:
+            previous["clear"] = ["description"]
+    result.update(status="updated", changed=changed)
+    if "description" in updated:
+        result["description"] = _sanitize(updated["description"], RENAME_MAX_DESCRIPTION_CHARS)
+    return attach_previous(result, previous or None, what="old name and description")
+
+
+def _keep_legacy_selora_marker(entry: dict[str, Any], updated: dict[str, Any]) -> None:
+    """Put back the ``[Selora AI]`` marker the rename removed.
+
+    An automation from before the label is recognised by that marker alone, so
+    renaming it away would turn it into a user automation: gone from Selora's
+    views and its version history. It goes back where it was.
+    """
+    alias = str(entry.get("alias", ""))
+    if alias.startswith(LEGACY_SELORA_MARKER):
+        updated["alias"] = f"{LEGACY_SELORA_MARKER} {updated.get('alias', '')}".strip()
+        return
+    current = str(updated.get("description", "") or "")
+    updated["description"] = f"{current} {LEGACY_SELORA_MARKER}".strip()
+
+
 # ── Tool: selora_accept_automation ────────────────────────────────────────────
 
 
