@@ -4101,6 +4101,28 @@ var chatStyles = i`
     color: var(--secondary-text-color);
     opacity: 0.5;
   }
+  /* Accepts the predicted next message shown as the placeholder; doubles as
+     the hint that Tab does the same. */
+  .composer-next-accept {
+    flex: 0 0 auto;
+    align-self: center;
+    margin-left: 6px;
+    padding: 1px 6px;
+    font: inherit;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--secondary-text-color);
+    background: transparent;
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+  }
+  .composer-next-accept:hover {
+    color: var(--primary-text-color);
+    border-color: var(--secondary-text-color);
+  }
   /* Inline chips showing resolved entity selections, rendered just above
      the typed text inside the composer box. */
   .composer-selections-inline {
@@ -10704,6 +10726,12 @@ var en_default = {
     recipes_update_needs_choice:
       "v{version} needs a choice the current install didn't make. Reconfigure to finish the update.",
     recipes_update_failed: "The update didn't complete.",
+    composer_next_prompt_accept: "Use this suggestion",
+    settings_next_prompt_label: "Suggest my next message",
+    settings_next_prompt_desc:
+      "After a reply, shows the message you are likely to send next in the empty message box. Press Tab to use it. Makes one extra short request to your AI provider per reply.",
+    settings_next_prompt_save_failed_toast:
+      "Failed to save the next-message setting.",
   },
   options: {
     step: {
@@ -11983,6 +12011,12 @@ var fr_default = {
     recipes_update_needs_choice:
       "La v{version} demande un choix que l'installation actuelle n'a pas fait. Reconfigurez pour terminer la mise \xE0 jour.",
     recipes_update_failed: "La mise \xE0 jour n'a pas abouti.",
+    composer_next_prompt_accept: "Utiliser cette suggestion",
+    settings_next_prompt_label: "Sugg\xE9rer mon prochain message",
+    settings_next_prompt_desc:
+      "Apr\xE8s une r\xE9ponse, affiche dans la zone de saisie vide le message que vous allez probablement envoyer ensuite. Appuyez sur Tab pour l\u2019utiliser. Envoie une courte requ\xEAte suppl\xE9mentaire \xE0 votre fournisseur d\u2019IA par r\xE9ponse.",
+    settings_next_prompt_save_failed_toast:
+      "Impossible d\u2019enregistrer le r\xE9glage du prochain message.",
   },
   options: {
     step: {
@@ -13252,6 +13286,12 @@ var de_default = {
     recipes_update_needs_choice:
       "v{version} braucht eine Auswahl, die bei der aktuellen Installation nicht getroffen wurde. Neu konfigurieren, um das Update abzuschlie\xDFen.",
     recipes_update_failed: "Das Update wurde nicht abgeschlossen.",
+    composer_next_prompt_accept: "Diesen Vorschlag verwenden",
+    settings_next_prompt_label: "Meine n\xE4chste Nachricht vorschlagen",
+    settings_next_prompt_desc:
+      "Zeigt nach einer Antwort im leeren Eingabefeld die Nachricht an, die du wahrscheinlich als N\xE4chstes sendest. Dr\xFCcke Tab, um sie zu \xFCbernehmen. Sendet pro Antwort eine zus\xE4tzliche kurze Anfrage an deinen KI-Anbieter.",
+    settings_next_prompt_save_failed_toast:
+      "Einstellung f\xFCr die n\xE4chste Nachricht konnte nicht gespeichert werden.",
   },
   options: {
     step: {
@@ -14503,6 +14543,12 @@ var es_default = {
     recipes_update_needs_choice:
       "La v{version} necesita una elecci\xF3n que la instalaci\xF3n actual no hizo. Reconfigura para terminar la actualizaci\xF3n.",
     recipes_update_failed: "La actualizaci\xF3n no se complet\xF3.",
+    composer_next_prompt_accept: "Usar esta sugerencia",
+    settings_next_prompt_label: "Sugerir mi pr\xF3ximo mensaje",
+    settings_next_prompt_desc:
+      "Despu\xE9s de una respuesta, muestra en el cuadro de mensaje vac\xEDo el mensaje que probablemente enviar\xE1s a continuaci\xF3n. Pulsa Tab para usarlo. Hace una solicitud breve adicional a tu proveedor de IA por respuesta.",
+    settings_next_prompt_save_failed_toast:
+      "No se pudo guardar el ajuste del pr\xF3ximo mensaje.",
   },
   options: {
     step: {
@@ -15753,6 +15799,12 @@ var it_default = {
     recipes_update_needs_choice:
       "La v{version} richiede una scelta che l'installazione attuale non ha fatto. Riconfigura per completare l'aggiornamento.",
     recipes_update_failed: "L'aggiornamento non \xE8 stato completato.",
+    composer_next_prompt_accept: "Usa questo suggerimento",
+    settings_next_prompt_label: "Suggerisci il mio prossimo messaggio",
+    settings_next_prompt_desc:
+      "Dopo una risposta, mostra nella casella vuota il messaggio che probabilmente invierai dopo. Premi Tab per usarlo. Invia una breve richiesta aggiuntiva al tuo fornitore di IA per ogni risposta.",
+    settings_next_prompt_save_failed_toast:
+      "Impossibile salvare l\u2019impostazione del prossimo messaggio.",
   },
   options: {
     step: {
@@ -17022,6 +17074,12 @@ var nl_default = {
     recipes_update_needs_choice:
       "v{version} vraagt een keuze die de huidige installatie niet heeft gemaakt. Configureer opnieuw om de update af te ronden.",
     recipes_update_failed: "De update is niet voltooid.",
+    composer_next_prompt_accept: "Deze suggestie gebruiken",
+    settings_next_prompt_label: "Mijn volgende bericht voorstellen",
+    settings_next_prompt_desc:
+      "Toont na een antwoord in het lege berichtvak het bericht dat je waarschijnlijk als volgende stuurt. Druk op Tab om het te gebruiken. Doet per antwoord \xE9\xE9n extra korte aanvraag bij je AI-provider.",
+    settings_next_prompt_save_failed_toast:
+      "Instelling voor het volgende bericht kon niet worden opgeslagen.",
   },
 };
 
@@ -18340,6 +18398,12 @@ var hu_default = {
     recipes_update_needs_choice:
       "A v{version} olyan v\xE1laszt\xE1st ig\xE9nyel, amelyet a jelenlegi telep\xEDt\xE9s nem tett meg. Konfigur\xE1ld \xFAjra a friss\xEDt\xE9s befejez\xE9s\xE9hez.",
     recipes_update_failed: "A friss\xEDt\xE9s nem fejez\u0151d\xF6tt be.",
+    composer_next_prompt_accept: "Javaslat haszn\xE1lata",
+    settings_next_prompt_label: "K\xF6vetkez\u0151 \xFCzenetem javaslata",
+    settings_next_prompt_desc:
+      "V\xE1lasz ut\xE1n az \xFCres \xFCzenetmez\u0151ben megjelen\xEDti azt az \xFCzenetet, amelyet val\xF3sz\xEDn\u0171leg k\xF6vetkez\u0151k\xE9nt k\xFClden\xE9l. Nyomd meg a Tab billenty\u0171t a haszn\xE1lat\xE1hoz. V\xE1laszonk\xE9nt egy tov\xE1bbi r\xF6vid k\xE9r\xE9st k\xFCld az AI-szolg\xE1ltat\xF3dnak.",
+    settings_next_prompt_save_failed_toast:
+      "Nem siker\xFClt menteni a k\xF6vetkez\u0151 \xFCzenet be\xE1ll\xEDt\xE1s\xE1t.",
   },
 };
 
@@ -19584,6 +19648,12 @@ var pt_default = {
     recipes_update_needs_choice:
       "A v{version} precisa de uma escolha que a instala\xE7\xE3o atual n\xE3o fez. Reconfigure para concluir a atualiza\xE7\xE3o.",
     recipes_update_failed: "A atualiza\xE7\xE3o n\xE3o foi conclu\xEDda.",
+    composer_next_prompt_accept: "Usar esta sugest\xE3o",
+    settings_next_prompt_label: "Sugerir a minha pr\xF3xima mensagem",
+    settings_next_prompt_desc:
+      "Depois de uma resposta, mostra na caixa de mensagem vazia a mensagem que provavelmente vai enviar a seguir. Prima Tab para a usar. Faz um pedido curto adicional ao seu fornecedor de IA por resposta.",
+    settings_next_prompt_save_failed_toast:
+      "N\xE3o foi poss\xEDvel guardar a defini\xE7\xE3o da pr\xF3xima mensagem.",
   },
   options: {
     step: {
@@ -21447,6 +21517,14 @@ var ru_default = {
       "\u0414\u043B\u044F v{version} \u043D\u0443\u0436\u0435\u043D \u0432\u044B\u0431\u043E\u0440, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u043D\u0435 \u0431\u044B\u043B \u0441\u0434\u0435\u043B\u0430\u043D \u043F\u0440\u0438 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0435. \u041F\u0435\u0440\u0435\u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435.",
     recipes_update_failed:
       "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u043D\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E.",
+    composer_next_prompt_accept:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u044D\u0442\u0443 \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0443",
+    settings_next_prompt_label:
+      "\u041F\u043E\u0434\u0441\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435",
+    settings_next_prompt_desc:
+      "\u041F\u043E\u0441\u043B\u0435 \u043E\u0442\u0432\u0435\u0442\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0432 \u043F\u0443\u0441\u0442\u043E\u043C \u043F\u043E\u043B\u0435 \u0432\u0432\u043E\u0434\u0430 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435, \u043A\u043E\u0442\u043E\u0440\u043E\u0435 \u0432\u044B, \u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E, \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u043C. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 Tab, \u0447\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0435\u0433\u043E. \u0414\u0435\u043B\u0430\u0435\u0442 \u043E\u0434\u0438\u043D \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u043A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u0437\u0430\u043F\u0440\u043E\u0441 \u043A \u0432\u0430\u0448\u0435\u043C\u0443 \u0418\u0418-\u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443 \u043D\u0430 \u043A\u0430\u0436\u0434\u044B\u0439 \u043E\u0442\u0432\u0435\u0442.",
+    settings_next_prompt_save_failed_toast:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443 \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0433\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F.",
   },
   options: {
     step: {
@@ -22992,6 +23070,13 @@ var ja_default = {
       "v{version} \u306B\u306F\u3001\u73FE\u5728\u306E\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u9078\u629E\u3055\u308C\u3066\u3044\u306A\u3044\u9805\u76EE\u304C\u5FC5\u8981\u3067\u3059\u3002\u518D\u8A2D\u5B9A\u3057\u3066\u66F4\u65B0\u3092\u5B8C\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
     recipes_update_failed:
       "\u66F4\u65B0\u304C\u5B8C\u4E86\u3057\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    composer_next_prompt_accept: "\u3053\u306E\u5019\u88DC\u3092\u4F7F\u3046",
+    settings_next_prompt_label:
+      "\u6B21\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u63D0\u6848",
+    settings_next_prompt_desc:
+      "\u8FD4\u4FE1\u306E\u5F8C\u3001\u7A7A\u306E\u5165\u529B\u6B04\u306B\u6B21\u306B\u9001\u308A\u305D\u3046\u306A\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u8868\u793A\u3057\u307E\u3059\u3002Tab \u30AD\u30FC\u3067\u4F7F\u7528\u3067\u304D\u307E\u3059\u3002\u8FD4\u4FE1\u3054\u3068\u306B AI \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3078\u77ED\u3044\u30EA\u30AF\u30A8\u30B9\u30C8\u3092 1 \u56DE\u8FFD\u52A0\u3067\u9001\u4FE1\u3057\u307E\u3059\u3002",
+    settings_next_prompt_save_failed_toast:
+      "\u6B21\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
   },
   options: {
     step: {
@@ -24431,6 +24516,12 @@ var ko_default = {
       "v{version}\uC5D0\uB294 \uD604\uC7AC \uC124\uCE58\uC5D0\uC11C \uC120\uD0DD\uD558\uC9C0 \uC54A\uC740 \uD56D\uBAA9\uC774 \uD544\uC694\uD569\uB2C8\uB2E4. \uB2E4\uC2DC \uAD6C\uC131\uD558\uC5EC \uC5C5\uB370\uC774\uD2B8\uB97C \uC644\uB8CC\uD558\uC138\uC694.",
     recipes_update_failed:
       "\uC5C5\uB370\uC774\uD2B8\uAC00 \uC644\uB8CC\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
+    composer_next_prompt_accept: "\uC774 \uC81C\uC548 \uC0AC\uC6A9",
+    settings_next_prompt_label: "\uB2E4\uC74C \uBA54\uC2DC\uC9C0 \uC81C\uC548",
+    settings_next_prompt_desc:
+      "\uB2F5\uBCC0 \uD6C4 \uBE48 \uC785\uB825\uB780\uC5D0 \uB2E4\uC74C\uC5D0 \uBCF4\uB0BC \uAC00\uB2A5\uC131\uC774 \uB192\uC740 \uBA54\uC2DC\uC9C0\uB97C \uD45C\uC2DC\uD569\uB2C8\uB2E4. Tab \uD0A4\uB97C \uB20C\uB7EC \uC0AC\uC6A9\uD558\uC138\uC694. \uB2F5\uBCC0\uB9C8\uB2E4 AI \uC81C\uACF5\uC5C5\uCCB4\uC5D0 \uC9E7\uC740 \uC694\uCCAD\uC744 \uD55C \uBC88 \uB354 \uBCF4\uB0C5\uB2C8\uB2E4.",
+    settings_next_prompt_save_failed_toast:
+      "\uB2E4\uC74C \uBA54\uC2DC\uC9C0 \uC124\uC815\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
   },
   options: {
     step: {
@@ -25788,6 +25879,13 @@ var zh_Hans_default = {
     recipes_update_needs_choice:
       "v{version} \u9700\u8981\u5F53\u524D\u5B89\u88C5\u672A\u505A\u8FC7\u7684\u9009\u62E9\u3002\u8BF7\u91CD\u65B0\u914D\u7F6E\u4EE5\u5B8C\u6210\u66F4\u65B0\u3002",
     recipes_update_failed: "\u66F4\u65B0\u672A\u5B8C\u6210\u3002",
+    composer_next_prompt_accept: "\u4F7F\u7528\u6B64\u5EFA\u8BAE",
+    settings_next_prompt_label:
+      "\u5EFA\u8BAE\u6211\u7684\u4E0B\u4E00\u6761\u6D88\u606F",
+    settings_next_prompt_desc:
+      "\u56DE\u590D\u540E\uFF0C\u5728\u7A7A\u767D\u8F93\u5165\u6846\u4E2D\u663E\u793A\u4F60\u63A5\u4E0B\u6765\u53EF\u80FD\u53D1\u9001\u7684\u6D88\u606F\u3002\u6309 Tab \u952E\u5373\u53EF\u4F7F\u7528\u3002\u6BCF\u6B21\u56DE\u590D\u4F1A\u5411\u4F60\u7684 AI \u63D0\u4F9B\u5546\u989D\u5916\u53D1\u9001\u4E00\u4E2A\u7B80\u77ED\u8BF7\u6C42\u3002",
+    settings_next_prompt_save_failed_toast:
+      "\u65E0\u6CD5\u4FDD\u5B58\u4E0B\u4E00\u6761\u6D88\u606F\u8BBE\u7F6E\u3002",
   },
   options: {
     step: {
@@ -27152,6 +27250,13 @@ var zh_Hant_default = {
     recipes_update_needs_choice:
       "v{version} \u9700\u8981\u76EE\u524D\u5B89\u88DD\u672A\u505A\u904E\u7684\u9078\u64C7\u3002\u8ACB\u91CD\u65B0\u8A2D\u5B9A\u4EE5\u5B8C\u6210\u66F4\u65B0\u3002",
     recipes_update_failed: "\u66F4\u65B0\u672A\u5B8C\u6210\u3002",
+    composer_next_prompt_accept: "\u4F7F\u7528\u6B64\u5EFA\u8B70",
+    settings_next_prompt_label:
+      "\u5EFA\u8B70\u6211\u7684\u4E0B\u4E00\u5247\u8A0A\u606F",
+    settings_next_prompt_desc:
+      "\u56DE\u8986\u5F8C\uFF0C\u5728\u7A7A\u767D\u8F38\u5165\u6846\u4E2D\u986F\u793A\u4F60\u63A5\u4E0B\u4F86\u53EF\u80FD\u50B3\u9001\u7684\u8A0A\u606F\u3002\u6309 Tab \u9375\u5373\u53EF\u4F7F\u7528\u3002\u6BCF\u6B21\u56DE\u8986\u6703\u5411\u4F60\u7684 AI \u4F9B\u61C9\u5546\u984D\u5916\u50B3\u9001\u4E00\u500B\u7C21\u77ED\u8ACB\u6C42\u3002",
+    settings_next_prompt_save_failed_toast:
+      "\u7121\u6CD5\u5132\u5B58\u4E0B\u4E00\u5247\u8A0A\u606F\u8A2D\u5B9A\u3002",
   },
   options: {
     step: {
@@ -31228,6 +31333,88 @@ function renderAgentSteps(host, steps) {
   `;
 }
 
+// src/panel/next-prompt.js
+var PREDICT_TIMEOUT_MS = 1e4;
+async function requestNextPrompt(
+  host,
+  assistantMsg,
+  sessionId,
+  { refocus = false } = {},
+) {
+  host._nextPrompt = null;
+  if (!sessionId || !host._config?.next_prompt_enabled) return;
+  const token = (host._predictToken = (host._predictToken || 0) + 1);
+  host._predictingSession = sessionId;
+  let result = null;
+  try {
+    result = await Promise.race([
+      host.hass.callWS({
+        type: "selora_ai/predict_next_prompt",
+        session_id: sessionId,
+        ...(host.hass?.language ? { language: host.hass.language } : {}),
+      }),
+      new Promise((resolve) => setTimeout(resolve, PREDICT_TIMEOUT_MS, null)),
+    ]);
+  } catch (err) {
+    result = null;
+  }
+  if (host._predictToken !== token) return;
+  host._predictingSession = null;
+  const text = typeof result?.prompt === "string" ? result.prompt.trim() : "";
+  if (text) host._nextPrompt = { message: assistantMsg, sessionId, text };
+  if (refocus || text) _focusComposer(host, refocus);
+}
+function _focusComposer(host, hadFocus) {
+  if (!hadFocus && !globalThis.matchMedia?.("(pointer: fine)").matches) {
+    return;
+  }
+  host.updateComplete?.then(() => {
+    const active = host.shadowRoot?.activeElement;
+    if (
+      active &&
+      (active.isContentEditable ||
+        /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))
+    ) {
+      return;
+    }
+    const ta = host.shadowRoot?.querySelector(".composer-textarea");
+    if (ta && !ta.disabled) ta.focus();
+  });
+}
+function refreshNextPrompt(host) {
+  const messages = host._messages || [];
+  const last = messages[messages.length - 1];
+  if (last?.role !== "assistant") return;
+  requestNextPrompt(host, last, host._activeSessionId);
+}
+function isPredicting(host) {
+  return (
+    !!host._predictingSession &&
+    host._predictingSession === host._activeSessionId
+  );
+}
+function activeNextPrompt(host) {
+  const np = host._nextPrompt;
+  if (!np || host._input || host._loading || host._streaming) return "";
+  if (np.sessionId !== host._activeSessionId) return "";
+  const messages = host._messages || [];
+  return messages[messages.length - 1] === np.message ? np.text : "";
+}
+function acceptNextPrompt(host, textarea) {
+  const text = activeNextPrompt(host);
+  if (!text) return false;
+  host._input = text;
+  host._nextPrompt = null;
+  requestAnimationFrame(() => {
+    if (!textarea) return;
+    textarea.value = text;
+    textarea.setSelectionRange(text.length, text.length);
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  return true;
+}
+
 // src/panel/chat-autocomplete.js
 var AUTOCOMPLETE_MIN_CHARS = 3;
 var AUTOCOMPLETE_MAX_RESULTS = 6;
@@ -33356,7 +33543,7 @@ function _acceptGhost(host, textarea) {
 }
 function _renderGhostOverlay(host) {
   const suffix = host._ghost?.suffix;
-  if (!suffix) return "";
+  if (!suffix || !host._input) return "";
   const anchor = host._ghost.anchor;
   if (!anchor) return "";
   return b2`
@@ -33534,6 +33721,7 @@ function _renderComposer(host, opts = {}) {
     addImageAttachments(host, e6.dataTransfer.files);
   };
   const refining = !welcome && !!activeRefinement(host._messages);
+  const nextPrompt = activeNextPrompt(host);
   return b2`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
@@ -33624,7 +33812,17 @@ function _renderComposer(host, opts = {}) {
                 }
                 if (e6.key === "Tab" && !e6.shiftKey) {
                   e6.preventDefault();
-                  _acceptGhost(host, e6.target);
+                  if (!_acceptGhost(host, e6.target)) {
+                    acceptNextPrompt(host, e6.target);
+                  }
+                  return;
+                }
+                if (
+                  e6.key === "ArrowRight" &&
+                  !e6.target.value &&
+                  acceptNextPrompt(host, e6.target)
+                ) {
+                  e6.preventDefault();
                   return;
                 }
                 if (
@@ -33696,7 +33894,8 @@ function _renderComposer(host, opts = {}) {
                 }
               }}
               placeholder=${
-                host._newAutomationMode
+                nextPrompt ||
+                (host._newAutomationMode
                   ? host._t(
                       "composer_placeholder_automation",
                       "Describe the automation you\u2019d like to create\u2026",
@@ -33709,11 +33908,30 @@ function _renderComposer(host, opts = {}) {
                     : host._t(
                         "composer_placeholder_ask",
                         "Ask Selora AI anything\u2026",
-                      )
+                      ))
               }
-              ?disabled=${host._loading || host._streaming}
+              ?disabled=${host._loading || host._streaming || isPredicting(host)}
               rows="1"
             ></textarea>
+            ${
+              nextPrompt
+                ? b2`<button
+                    type="button"
+                    class="composer-next-accept"
+                    title=${host._t(
+                      "composer_next_prompt_accept",
+                      "Use this suggestion",
+                    )}
+                    @click=${() =>
+                      acceptNextPrompt(
+                        host,
+                        host.shadowRoot?.querySelector(".composer-textarea"),
+                      )}
+                  >
+                    Tab
+                  </button>`
+                : ""
+            }
           </div>
           ${_renderSelectionChips(host)}
         </div>
@@ -33735,7 +33953,7 @@ function _renderComposer(host, opts = {}) {
                     "chat_attach_image",
                     "Attach an image \u2014 drag & drop or paste works too",
                   )}
-                  ?disabled=${host._loading || host._streaming}
+                  ?disabled=${host._loading || host._streaming || isPredicting(host)}
                   @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
                 >
                   <ha-icon icon="mdi:image-plus-outline"></ha-icon>
@@ -33754,7 +33972,7 @@ function _renderComposer(host, opts = {}) {
             : b2`<button
                 class="composer-send"
                 @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
+                ?disabled=${host._loading || isPredicting(host) || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
                 title=${host._t("chat_send", "Send")}
               >
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
@@ -34692,6 +34910,7 @@ async function _acceptAutomation(msgIndex, automation) {
     });
     if (createResult) this._markJustCreated(resolvedAutomationId);
     this._messages = session.messages || [];
+    refreshNextPrompt(this);
     await this._loadAutomations();
     if (createResult) {
       await this._autoEnableAfterAccept(
@@ -34859,6 +35078,7 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
       });
       if (createResult) this._markJustCreated(resolvedAutomationId);
       this._messages = session.messages || [];
+      refreshNextPrompt(this);
       await this._loadAutomations();
       if (createResult) {
         await this._autoEnableAfterAccept(
@@ -35017,6 +35237,7 @@ async function _acceptScene(msgIndex) {
     msg.entity_id = result.entity_id;
     this._markJustCreated(result.scene_id);
     this._messages = [...this._messages];
+    refreshNextPrompt(this);
     await this._loadScenes();
     this._markSceneCreated(result.scene_id);
     this._showToast(
@@ -42181,6 +42402,52 @@ function renderSettings(host) {
             </div>
           </div>
 
+          ${
+            host._config.next_prompt_available
+              ? b2`<div class="service-group">
+                  <div class="service-row">
+                    <div class="service-label-group">
+                      <label
+                        >${host._t(
+                          "settings_next_prompt_label",
+                          "Suggest my next message",
+                        )}</label
+                      >
+                      <span class="service-desc"
+                        >${host._t(
+                          "settings_next_prompt_desc",
+                          "After a reply, shows the message you are likely to send next in the empty message box. Press Tab to use it. Makes one extra short request to your AI provider per reply.",
+                        )}</span
+                      >
+                    </div>
+                    <ha-switch
+                      .checked=${host._config.next_prompt_enabled === true}
+                      @change=${async (e6) => {
+                        const val = e6.target.checked;
+                        host._updateConfig("next_prompt_enabled", val);
+                        try {
+                          await host.hass.callWS({
+                            type: "selora_ai/update_config",
+                            config: { next_prompt_enabled: val },
+                          });
+                        } catch (err) {
+                          host._updateConfig("next_prompt_enabled", !val);
+                          e6.target.checked = !val;
+                          host._showToast(
+                            host._t(
+                              "settings_next_prompt_save_failed_toast",
+                              "Failed to save the next-message setting.",
+                            ),
+                            "error",
+                          );
+                        }
+                      }}
+                    ></ha-switch>
+                  </div>
+                </div>`
+              : ""
+          }
+
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
@@ -42892,6 +43159,7 @@ var _KIND_LABELS = {
   suggestions: "Suggestion engine",
   command: "One-shot commands",
   session_title: "Session titles",
+  next_prompt: "Next-message suggestions",
   health_check: "Health checks",
   raw: "Other",
 };
@@ -52108,7 +52376,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "caf47f8d5251" : "";
+var PANEL_BUILD = true ? "ca1b07627de8" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -52798,7 +53066,9 @@ async function _sendMessage(options = {}) {
   const resumeProposalId = options.resumeProposalId || null;
   const hasPendingAttachments = (this._chatAttachments || []).length > 0;
   if (
-    (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) ||
+    (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) || // A resumption (accepting a card) is not the user typing, so a pending
+    // prediction does not hold it.
+    (!resumeProposalId && isPredicting(this)) ||
     this._loading ||
     this._attachmentsBusy
   ) {
@@ -52836,6 +53106,7 @@ async function _sendMessage(options = {}) {
   this._historyIndex = null;
   this._historyDraft = "";
   this._autocompleteSelections = [];
+  this._ghost = null;
   this._newAutomationMode = false;
   this._autocomplete = {
     open: false,
@@ -53086,6 +53357,14 @@ async function _sendMessage(options = {}) {
             this._activeSessionId = event.session_id;
           }
           this._loadSessions();
+        }
+        if (this._activeTurn === myTurn) {
+          requestNextPrompt(
+            this,
+            assistantMsg,
+            event.session_id || this._activeSessionId,
+            { refocus: true },
+          );
         }
       } else if (event.type === "error") {
         teardown();
@@ -53696,6 +53975,10 @@ var SeloraAIPanel = class extends i4 {
       _autocompleteSelections: { type: Array },
       // Ghost-text completion of common chat vocabulary
       _ghost: { type: Object },
+      // Predicted next message, shown in the empty composer (next-prompt.js)
+      _nextPrompt: { type: Object },
+      // Composer held while the next-message prediction is requested
+      _predictingSession: { type: String },
       // Pending image attachments (dropped/pasted screenshots) + transient
       // error notice shown in the composer strip
       _chatAttachments: { type: Array },
@@ -54019,6 +54302,8 @@ var SeloraAIPanel = class extends i4 {
     };
     this._autocompleteSelections = [];
     this._ghost = null;
+    this._nextPrompt = null;
+    this._predictingSession = null;
     this._chatAttachments = [];
     this._attachmentNotice = "";
     this._attachmentsBusy = 0;

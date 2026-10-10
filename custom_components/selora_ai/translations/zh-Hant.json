@@ -1031,7 +1031,11 @@
     "recipes_update_running": "正在更新…",
     "recipes_update_done": "已更新至 v{version}。",
     "recipes_update_needs_choice": "v{version} 需要目前安裝未做過的選擇。請重新設定以完成更新。",
-    "recipes_update_failed": "更新未完成。"
+    "recipes_update_failed": "更新未完成。",
+    "composer_next_prompt_accept": "使用此建議",
+    "settings_next_prompt_label": "建議我的下一則訊息",
+    "settings_next_prompt_desc": "回覆後，在空白輸入框中顯示你接下來可能傳送的訊息。按 Tab 鍵即可使用。每次回覆會向你的 AI 供應商額外傳送一個簡短請求。",
+    "settings_next_prompt_save_failed_toast": "無法儲存下一則訊息設定。"
   },
   "options": {
     "step": {

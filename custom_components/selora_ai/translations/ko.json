@@ -1031,7 +1031,11 @@
     "recipes_update_running": "업데이트 중…",
     "recipes_update_done": "v{version}(으)로 업데이트했습니다.",
     "recipes_update_needs_choice": "v{version}에는 현재 설치에서 선택하지 않은 항목이 필요합니다. 다시 구성하여 업데이트를 완료하세요.",
-    "recipes_update_failed": "업데이트가 완료되지 않았습니다."
+    "recipes_update_failed": "업데이트가 완료되지 않았습니다.",
+    "composer_next_prompt_accept": "이 제안 사용",
+    "settings_next_prompt_label": "다음 메시지 제안",
+    "settings_next_prompt_desc": "답변 후 빈 입력란에 다음에 보낼 가능성이 높은 메시지를 표시합니다. Tab 키를 눌러 사용하세요. 답변마다 AI 제공업체에 짧은 요청을 한 번 더 보냅니다.",
+    "settings_next_prompt_save_failed_toast": "다음 메시지 설정을 저장하지 못했습니다."
   },
   "options": {
     "step": {

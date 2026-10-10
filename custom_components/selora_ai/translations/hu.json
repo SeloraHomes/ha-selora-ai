@@ -1051,6 +1051,10 @@
     "recipes_update_running": "Frissítés…",
     "recipes_update_done": "Frissítve a v{version} verzióra.",
     "recipes_update_needs_choice": "A v{version} olyan választást igényel, amelyet a jelenlegi telepítés nem tett meg. Konfiguráld újra a frissítés befejezéséhez.",
-    "recipes_update_failed": "A frissítés nem fejeződött be."
+    "recipes_update_failed": "A frissítés nem fejeződött be.",
+    "composer_next_prompt_accept": "Javaslat használata",
+    "settings_next_prompt_label": "Következő üzenetem javaslata",
+    "settings_next_prompt_desc": "Válasz után az üres üzenetmezőben megjeleníti azt az üzenetet, amelyet valószínűleg következőként küldenél. Nyomd meg a Tab billentyűt a használatához. Válaszonként egy további rövid kérést küld az AI-szolgáltatódnak.",
+    "settings_next_prompt_save_failed_toast": "Nem sikerült menteni a következő üzenet beállítását."
   }
 }

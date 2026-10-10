@@ -1,4 +1,5 @@
 import { interpolate } from "../shared/i18n.js";
+import { refreshNextPrompt } from "./next-prompt.js";
 
 // Scene proposal actions (prototype-assigned to SeloraAIArchitectPanel)
 
@@ -36,6 +37,7 @@ export async function _acceptScene(msgIndex) {
     msg.entity_id = result.entity_id;
     this._markJustCreated(result.scene_id);
     this._messages = [...this._messages];
+    refreshNextPrompt(this);
     await this._loadScenes();
     this._markSceneCreated(result.scene_id);
 

@@ -1051,6 +1051,10 @@
     "recipes_update_running": "Bijwerken…",
     "recipes_update_done": "Bijgewerkt naar v{version}.",
     "recipes_update_needs_choice": "v{version} vraagt een keuze die de huidige installatie niet heeft gemaakt. Configureer opnieuw om de update af te ronden.",
-    "recipes_update_failed": "De update is niet voltooid."
+    "recipes_update_failed": "De update is niet voltooid.",
+    "composer_next_prompt_accept": "Deze suggestie gebruiken",
+    "settings_next_prompt_label": "Mijn volgende bericht voorstellen",
+    "settings_next_prompt_desc": "Toont na een antwoord in het lege berichtvak het bericht dat je waarschijnlijk als volgende stuurt. Druk op Tab om het te gebruiken. Doet per antwoord één extra korte aanvraag bij je AI-provider.",
+    "settings_next_prompt_save_failed_toast": "Instelling voor het volgende bericht kon niet worden opgeslagen."
   }
 }

@@ -1031,7 +1031,11 @@
     "recipes_update_running": "Updating…",
     "recipes_update_done": "Updated to v{version}.",
     "recipes_update_needs_choice": "v{version} needs a choice the current install didn't make. Reconfigure to finish the update.",
-    "recipes_update_failed": "The update didn't complete."
+    "recipes_update_failed": "The update didn't complete.",
+    "composer_next_prompt_accept": "Use this suggestion",
+    "settings_next_prompt_label": "Suggest my next message",
+    "settings_next_prompt_desc": "After a reply, shows the message you are likely to send next in the empty message box. Press Tab to use it. Makes one extra short request to your AI provider per reply.",
+    "settings_next_prompt_save_failed_toast": "Failed to save the next-message setting."
   },
   "options": {
     "step": {

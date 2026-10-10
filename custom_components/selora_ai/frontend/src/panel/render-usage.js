@@ -241,6 +241,7 @@ const _KIND_LABELS = {
   suggestions: "Suggestion engine",
   command: "One-shot commands",
   session_title: "Session titles",
+  next_prompt: "Next-message suggestions",
   health_check: "Health checks",
   raw: "Other",
 };

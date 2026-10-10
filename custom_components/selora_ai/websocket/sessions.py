@@ -16,12 +16,17 @@ from homeassistant.core import HomeAssistant
 import voluptuous as vol
 
 from .. import (
+    _find_llm,
     _require_admin,
+    _resolve_llm_entry,
+    _resolve_llm_provider,
 )
 from ..const import (
     DOMAIN,
 )
 from ..conversation_store import ConversationStore
+from ..llm_client.lang_detect import resolve_reply_language
+from ..next_prompt import build_transcript, next_prompt_enabled
 from ..telemetry import record_activity
 
 _LOGGER = logging.getLogger(__name__)
@@ -173,6 +178,60 @@ async def _handle_websocket_record_chat_feedback(
     connection.send_result(msg["id"], {"status": "ok"})
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/predict_next_prompt",
+        vol.Required("session_id"): str,
+        vol.Optional("language"): vol.Any(str, None),
+    }
+)
+async def _handle_websocket_predict_next_prompt(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Predict the user's next message in a session (see ``next_prompt``).
+
+    Answers ``{"prompt": None}`` whenever there is nothing worth showing,
+    including when the feature is off: the panel treats every reason alike.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    entry = _resolve_llm_entry(hass)
+    llm = _find_llm(hass)
+    if entry is None or llm is None:
+        _LOGGER.debug("Next prompt skipped: no LLM entry")
+        connection.send_result(msg["id"], {"prompt": None})
+        return
+    config_data = {**entry.data, **entry.options}
+    provider = _resolve_llm_provider(config_data)
+    if not next_prompt_enabled(config_data, provider):
+        _LOGGER.debug("Next prompt skipped: off for provider %s", provider)
+        connection.send_result(msg["id"], {"prompt": None})
+        return
+
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    session = await store.get_session(msg["session_id"])
+    messages = (session or {}).get("messages", [])
+    transcript = build_transcript(messages)
+    if transcript is None:
+        _LOGGER.debug(
+            "Next prompt skipped: session %s does not end on a reply awaiting a message",
+            msg["session_id"],
+        )
+        connection.send_result(msg["id"], {"prompt": None})
+        return
+
+    last_user = next(
+        (m.get("content") or "" for m in reversed(messages) if m.get("role") == "user"), ""
+    )
+    language = resolve_reply_language(last_user, msg.get("language"), hass.config.language)
+    prompt = await llm.predict_next_prompt(transcript, language)
+    connection.send_result(msg["id"], {"prompt": prompt})
+
+
 def async_register(hass: HomeAssistant) -> None:
     """Register the sessions websocket commands."""
     from homeassistant.components import websocket_api
@@ -183,3 +242,4 @@ def async_register(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, _handle_websocket_rename_session)
     websocket_api.async_register_command(hass, _handle_websocket_delete_session)
     websocket_api.async_register_command(hass, _handle_websocket_record_chat_feedback)
+    websocket_api.async_register_command(hass, _handle_websocket_predict_next_prompt)

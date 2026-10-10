@@ -26,6 +26,11 @@ import {
 import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
 import {
+  acceptNextPrompt,
+  activeNextPrompt,
+  isPredicting,
+} from "./next-prompt.js";
+import {
   AUTOCOMPLETE_MIN_CHARS,
   buildSuggestionIndex,
   detectTrigger,
@@ -743,7 +748,9 @@ function _acceptGhost(host, textarea) {
 // the overlay collapsing to zero size.
 function _renderGhostOverlay(host) {
   const suffix = host._ghost?.suffix;
-  if (!suffix) return "";
+  // An empty composer has nothing to complete; a suffix left from the last
+  // message would sit on top of the placeholder.
+  if (!suffix || !host._input) return "";
   const anchor = host._ghost.anchor;
   if (!anchor) return "";
   // anchor.top is already measured from the mirror's outer padding edge
@@ -980,6 +987,7 @@ function _renderComposer(host, opts = {}) {
     addImageAttachments(host, e.dataTransfer.files);
   };
   const refining = !welcome && !!activeRefinement(host._messages);
+  const nextPrompt = activeNextPrompt(host);
   return html`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
@@ -1075,13 +1083,24 @@ function _renderComposer(host, opts = {}) {
                   host._sendMessage();
                   return;
                 }
-                // Tab accepts a ghost suggestion if one is pending; otherwise
-                // we just swallow it so focus stays in the textarea (Google's
-                // address-bar behavior). Shift+Tab is preserved for
-                // accessibility (moving back to the previous focusable element).
+                // Tab accepts a ghost suggestion, or in an empty composer the
+                // predicted next message; otherwise we just swallow it so
+                // focus stays in the textarea (Google's address-bar behavior).
+                // Shift+Tab is preserved for accessibility (moving back to the
+                // previous focusable element).
                 if (e.key === "Tab" && !e.shiftKey) {
                   e.preventDefault();
-                  _acceptGhost(host, e.target);
+                  if (!_acceptGhost(host, e.target)) {
+                    acceptNextPrompt(host, e.target);
+                  }
+                  return;
+                }
+                if (
+                  e.key === "ArrowRight" &&
+                  !e.target.value &&
+                  acceptNextPrompt(host, e.target)
+                ) {
+                  e.preventDefault();
                   return;
                 }
                 // ArrowRight at the end of the input accepts a ghost
@@ -1170,7 +1189,8 @@ function _renderComposer(host, opts = {}) {
                 }
               }}
               placeholder=${
-                host._newAutomationMode
+                nextPrompt ||
+                (host._newAutomationMode
                   ? host._t(
                       "composer_placeholder_automation",
                       "Describe the automation you’d like to create…",
@@ -1183,11 +1203,30 @@ function _renderComposer(host, opts = {}) {
                     : host._t(
                         "composer_placeholder_ask",
                         "Ask Selora AI anything…",
-                      )
+                      ))
               }
-              ?disabled=${host._loading || host._streaming}
+              ?disabled=${host._loading || host._streaming || isPredicting(host)}
               rows="1"
             ></textarea>
+            ${
+              nextPrompt
+                ? html`<button
+                    type="button"
+                    class="composer-next-accept"
+                    title=${host._t(
+                      "composer_next_prompt_accept",
+                      "Use this suggestion",
+                    )}
+                    @click=${() =>
+                      acceptNextPrompt(
+                        host,
+                        host.shadowRoot?.querySelector(".composer-textarea"),
+                      )}
+                  >
+                    Tab
+                  </button>`
+                : ""
+            }
           </div>
           ${_renderSelectionChips(host)}
         </div>
@@ -1209,7 +1248,9 @@ function _renderComposer(host, opts = {}) {
                     "chat_attach_image",
                     "Attach an image — drag & drop or paste works too",
                   )}
-                  ?disabled=${host._loading || host._streaming}
+                  ?disabled=${
+                    host._loading || host._streaming || isPredicting(host)
+                  }
                   @click=${() =>
                     host.renderRoot
                       ?.querySelector("#selora-chat-image-input")
@@ -1233,6 +1274,7 @@ function _renderComposer(host, opts = {}) {
                 @click=${() => host._sendMessage()}
                 ?disabled=${
                   host._loading ||
+                  isPredicting(host) ||
                   !!host._attachmentsBusy ||
                   (!host._input.trim() && !(host._chatAttachments || []).length)
                 }

@@ -5,6 +5,7 @@ import {
   pruneStaleSelections,
 } from "./chat-autocomplete.js";
 import { attachmentsForSend } from "./chat-attachments.js";
+import { isPredicting, requestNextPrompt } from "./next-prompt.js";
 
 export function _quickStart(message) {
   this._input = message;
@@ -249,6 +250,9 @@ export async function _sendMessage(options = {}) {
   const hasPendingAttachments = (this._chatAttachments || []).length > 0;
   if (
     (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) ||
+    // A resumption (accepting a card) is not the user typing, so a pending
+    // prediction does not hold it.
+    (!resumeProposalId && isPredicting(this)) ||
     this._loading ||
     this._attachmentsBusy
   ) {
@@ -303,6 +307,7 @@ export async function _sendMessage(options = {}) {
   this._historyIndex = null;
   this._historyDraft = "";
   this._autocompleteSelections = [];
+  this._ghost = null;
   // The "new automation" entry point shapes the welcome copy and
   // composer placeholder. Once the user actually sends their first
   // message the chat behaves normally — clear the flag so an empty
@@ -681,6 +686,14 @@ export async function _sendMessage(options = {}) {
             this._activeSessionId = event.session_id;
           }
           this._loadSessions();
+        }
+        if (this._activeTurn === myTurn) {
+          requestNextPrompt(
+            this,
+            assistantMsg,
+            event.session_id || this._activeSessionId,
+            { refocus: true },
+          );
         }
       } else if (event.type === "error") {
         teardown();

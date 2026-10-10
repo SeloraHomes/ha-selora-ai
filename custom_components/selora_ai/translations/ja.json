@@ -1031,7 +1031,11 @@
     "recipes_update_running": "更新中…",
     "recipes_update_done": "v{version} に更新しました。",
     "recipes_update_needs_choice": "v{version} には、現在のインストールで選択されていない項目が必要です。再設定して更新を完了してください。",
-    "recipes_update_failed": "更新が完了しませんでした。"
+    "recipes_update_failed": "更新が完了しませんでした。",
+    "composer_next_prompt_accept": "この候補を使う",
+    "settings_next_prompt_label": "次のメッセージを提案",
+    "settings_next_prompt_desc": "返信の後、空の入力欄に次に送りそうなメッセージを表示します。Tab キーで使用できます。返信ごとに AI プロバイダーへ短いリクエストを 1 回追加で送信します。",
+    "settings_next_prompt_save_failed_toast": "次のメッセージの設定を保存できませんでした。"
   },
   "options": {
     "step": {
