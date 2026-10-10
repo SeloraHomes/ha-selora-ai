@@ -51,7 +51,9 @@ entity-resolution tools are in both.
 - `delete_area` / `delete_script` / `delete_label` are in **both** lanes, like
   `delete_automation`, since "get rid of the Movie Night script" classifies as
   `command`.
-- **Every registry tool is `large_context_only=True`.** The low-context path sets
+- `rename_automation` is in **both** lanes: "call it Evening Kitchen" after a
+  save classifies as `command`, "rename the porch automation" as `config`.
+- **Every registry tool is `large_context_only=True`**, `rename_automation` too. The low-context path sets
   `tool_executor = None`, but `_get_tools_for_provider` is also reachable from
   Assist, and a 1.7B model handed a registry-editing schema will call it.
 

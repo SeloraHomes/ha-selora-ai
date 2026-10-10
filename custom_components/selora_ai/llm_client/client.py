@@ -2674,6 +2674,8 @@ class LLMClient:
                 "If the user's message above is an actual change request, apply it to the\n"
                 "YAML below, preserve all other fields, and return the updated automation.\n"
                 "Do NOT create a different automation.\n"
+                "A change to ONLY its name or description is not a returned automation:\n"
+                "use the rename_automation tool when you have it.\n"
                 "If the user's message is a greeting, thanks, or other small talk with no\n"
                 "actionable change (e.g. 'hey', 'thanks', 'cool'), respond conversationally\n"
                 "with a short reply and DO NOT modify or mention this automation at all —\n"

@@ -123,6 +123,7 @@ from .names import (
     TOOL_REMOVE_DEVICE,
     TOOL_REMOVE_ENTITY,
     TOOL_REMOVE_INTEGRATION,
+    TOOL_RENAME_AUTOMATION,
     TOOL_RESTART_HOME_ASSISTANT,
     TOOL_SEARCH_APP_STORE,
     TOOL_SEARCH_ENTITIES,
@@ -1039,6 +1040,7 @@ _RETURNS_PREVIOUS: frozenset[str] = frozenset(
     {
         TOOL_CREATE_AUTOMATION,
         TOOL_DELETE_AUTOMATION,
+        TOOL_RENAME_AUTOMATION,
         TOOL_SET_SCRIPT,
         TOOL_DELETE_SCRIPT,
         TOOL_UPDATE_SCENE,
@@ -1067,6 +1069,7 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     # appeared in tools/list and no MCP client could reach it. Deriving it here
     # is the whole fix; see ``test_every_mcp_handler_is_declared``.
     TOOL_GET_DEVICE_TRIGGERS: "get_device_triggers",
+    TOOL_RENAME_AUTOMATION: "rename_automation",
     TOOL_LIST_AREAS: "list_areas",
     TOOL_ASSIGN_AREA: "assign_area",
     TOOL_CREATE_AREA: "create_area",

@@ -1231,6 +1231,30 @@ def _find_refining_automation_id(stored_messages: list[dict[str, Any]]) -> str |
     return None
 
 
+async def _current_refining_yaml(
+    hass: HomeAssistant,
+    refining: tuple[str, str] | None,
+    automation_id: str | None,
+) -> tuple[str, str] | None:
+    """The automation under refinement as automations.yaml holds it now.
+
+    The ``refining`` marker records the YAML the automation had when the user
+    opened it, and a refinement can change the automation without ending:
+    ``rename_automation`` writes in place and leaves no card. Shown the marker's
+    copy, the next proposal would carry the old name and put it back on accept.
+    Falls back to the marker when the file no longer has the automation.
+    """
+    if refining is None or not automation_id:
+        return refining
+    from .automation_utils import async_yaml_automation_snapshots  # noqa: PLC0415
+
+    snapshots = await async_yaml_automation_snapshots(hass, [automation_id])
+    if not snapshots:
+        return refining
+    _, alias, yaml_text = snapshots[0]
+    return _sanitize_history_text(alias, max_length=100), yaml_text
+
+
 def _find_session_saved_automation_ids(
     session: dict[str, Any] | None,
     stored_messages: list[dict[str, Any]],
@@ -2655,6 +2679,7 @@ async def _handle_websocket_chat(
         hass, session, stored_messages
     )
     active_refining_id = _find_refining_automation_id(stored_messages)
+    refining = await _current_refining_yaml(hass, refining, active_refining_id)
     # Honour caller-supplied history when present (parity with
     # selora_ai/chat_stream — see schema comment there).
     history: list[dict[str, str]]
@@ -3426,6 +3451,7 @@ async def _handle_websocket_chat_stream(
         hass, session, stored_messages
     )
     active_refining_id = _find_refining_automation_id(stored_messages)
+    refining = await _current_refining_yaml(hass, refining, active_refining_id)
     # Honour caller-supplied history when present (e.g. behavioural
     # benchmark simulating a follow-up turn over a fresh WS connection).
     # Sanitised via _sanitize_history_override — coerce content to str, drop

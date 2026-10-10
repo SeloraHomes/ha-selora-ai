@@ -113,6 +113,43 @@ from the sidebar) would otherwise take the create path and write a duplicate.
   `states('sensor.temperature')` resolves like prose would. Each opener also
   matches to end-of-string, so an unterminated template shields what follows.
 
+## A rename is not a proposal
+
+`rename_automation` (`_tool_rename_automation`, `mcp_server/automations.py`)
+changes only an automation's `alias` and/or `description`, written at once — no
+regenerated YAML, no card, no Accept. Neither field changes what the automation
+does, so a review step buys nothing and a full regeneration risks the rest.
+`_AUTOMATION_REFINE_RULES` and the ACTIVE REFINEMENT section send a name- or
+description-only change there, including mid-refinement (refinement suppresses
+command intents, not tools); any behaviour change is still a proposal.
+
+- **Everything else is written back as read.** The entry comes off
+  automations.yaml and goes through `async_update_automation` with
+  `validate_with="home_assistant"`, so the proposal validator never reshapes it
+  (a hand-written entry keeps its singular keys) and the enabled state and
+  `initial_state` are kept as on any content edit. `record_version=True` for a
+  Selora automation records "Renamed via chat"; a user's gets none.
+- **Only automations.yaml, only with an `id`**, the same refusals as other
+  automation edits: `async_update_automation` matches on the id.
+- **A name another automation has is refused**, compared case- and
+  whitespace-insensitively against automations.yaml and every loaded
+  automation. HA allows duplicates, but the user tells automations apart by
+  name and a proposal finds its target by alias, so a duplicate makes both
+  ambiguous. Re-casing its own name is allowed.
+- **`previous` is in the tool's terms**: `new_name`, `description`, or
+  `clear: ["description"]` when the rename added one.
+- **The refinement context is re-read from disk** (`_current_refining_yaml`).
+  The `refining` marker holds the YAML the automation had when it was opened,
+  and a rename does not end the refinement; a proposal built from the marker's
+  copy would put the old name back on accept.
+- **The write is conditional on the read.** The entry is rebuilt before
+  `async_update_automation` takes `AUTOMATIONS_YAML_LOCK`, so it passes
+  `expected_entry`: an entry changed in between is not overwritten with the
+  stale rest, and the rename is retried from a fresh read.
+- **A legacy Selora automation keeps its `[Selora AI]` marker.** Before the
+  label, the marker alone made it Selora's; renamed away, it would leave
+  Selora's views and its version history.
+
 ## A rejected proposal is corrected, not guessed at
 
 - **A model that gets a correction round is told what was wrong, with the real
