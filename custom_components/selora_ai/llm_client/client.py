@@ -43,6 +43,8 @@ from ..const import (
     STREAM_TOOL_KEEPALIVE_S,
 )
 from ..entity_capabilities import is_actionable_entity
+from ..next_prompt import SYSTEM_PROMPT as _NEXT_PROMPT_SYSTEM
+from ..next_prompt import parse_prediction
 from ..telemetry import record_repair
 from ..tool_executor import commands_run_together
 from ..types import (
@@ -1727,6 +1729,31 @@ class LLMClient:
             return None
         sentence = " ".join(result.split()).strip().strip('"').strip("'").strip()
         return sentence[:240] or None
+
+    async def predict_next_prompt(self, transcript: str, language: str | None) -> str | None:
+        """The message the user will most likely send next, or None.
+
+        ``transcript`` is ``next_prompt.build_transcript``'s rendering of the
+        session's end. None when the model is not confident enough, on any
+        failure, and on a low-context provider (no free prose).
+        """
+        if self._provider.is_low_context:
+            return None
+        with self._usage.scope("next_prompt"):
+            try:
+                result, _error = await self._provider.send_request(
+                    system=_language_directive(language) + _NEXT_PROMPT_SYSTEM,
+                    messages=[{"role": "user", "content": transcript}],
+                    max_tokens=120,
+                    log_errors=False,
+                )
+            finally:
+                self._usage.flush("next_prompt")
+        prompt = parse_prediction(result)
+        _LOGGER.debug(
+            "Next prompt: model replied %r (error %r), showing %r", result, _error, prompt
+        )
+        return prompt
 
     async def health_check(self) -> bool:
         """Verify the LLM backend is reachable."""

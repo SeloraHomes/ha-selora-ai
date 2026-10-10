@@ -1547,6 +1547,52 @@ export function renderSettings(host) {
             </div>
           </div>
 
+          ${
+            host._config.next_prompt_available
+              ? html`<div class="service-group">
+                  <div class="service-row">
+                    <div class="service-label-group">
+                      <label
+                        >${host._t(
+                          "settings_next_prompt_label",
+                          "Suggest my next message",
+                        )}</label
+                      >
+                      <span class="service-desc"
+                        >${host._t(
+                          "settings_next_prompt_desc",
+                          "After a reply, shows the message you are likely to send next in the empty message box. Press Tab to use it. Makes one extra short request to your AI provider per reply.",
+                        )}</span
+                      >
+                    </div>
+                    <ha-switch
+                      .checked=${host._config.next_prompt_enabled === true}
+                      @change=${async (e) => {
+                        const val = e.target.checked;
+                        host._updateConfig("next_prompt_enabled", val);
+                        try {
+                          await host.hass.callWS({
+                            type: "selora_ai/update_config",
+                            config: { next_prompt_enabled: val },
+                          });
+                        } catch (err) {
+                          host._updateConfig("next_prompt_enabled", !val);
+                          e.target.checked = !val;
+                          host._showToast(
+                            host._t(
+                              "settings_next_prompt_save_failed_toast",
+                              "Failed to save the next-message setting.",
+                            ),
+                            "error",
+                          );
+                        }
+                      }}
+                    ></ha-switch>
+                  </div>
+                </div>`
+              : ""
+          }
+
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">

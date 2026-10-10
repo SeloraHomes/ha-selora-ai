@@ -1,6 +1,7 @@
 // Automation CRUD actions (prototype-assigned to SeloraAIArchitectPanel)
 
 import { REFINEMENT_TERMINATORS } from "./refine-guide.js";
+import { refreshNextPrompt } from "./next-prompt.js";
 
 // Match the key `initial_state`, optionally quoted, with a value we capture.
 // The backreference \1 makes the closing quote match the opening one (or none).
@@ -249,6 +250,7 @@ export async function _acceptAutomation(msgIndex, automation) {
     // automation that already existed.
     if (createResult) this._markJustCreated(resolvedAutomationId);
     this._messages = session.messages || [];
+    refreshNextPrompt(this);
     await this._loadAutomations();
 
     // Refinements preserve the existing automation's enabled state;
@@ -477,6 +479,7 @@ export async function _acceptAutomationWithEdits(
       });
       if (createResult) this._markJustCreated(resolvedAutomationId);
       this._messages = session.messages || [];
+      refreshNextPrompt(this);
       await this._loadAutomations();
       if (createResult) {
         await this._autoEnableAfterAccept(

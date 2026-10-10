@@ -1031,7 +1031,11 @@
     "recipes_update_running": "Wird aktualisiert…",
     "recipes_update_done": "Auf v{version} aktualisiert.",
     "recipes_update_needs_choice": "v{version} braucht eine Auswahl, die bei der aktuellen Installation nicht getroffen wurde. Neu konfigurieren, um das Update abzuschließen.",
-    "recipes_update_failed": "Das Update wurde nicht abgeschlossen."
+    "recipes_update_failed": "Das Update wurde nicht abgeschlossen.",
+    "composer_next_prompt_accept": "Diesen Vorschlag verwenden",
+    "settings_next_prompt_label": "Meine nächste Nachricht vorschlagen",
+    "settings_next_prompt_desc": "Zeigt nach einer Antwort im leeren Eingabefeld die Nachricht an, die du wahrscheinlich als Nächstes sendest. Drücke Tab, um sie zu übernehmen. Sendet pro Antwort eine zusätzliche kurze Anfrage an deinen KI-Anbieter.",
+    "settings_next_prompt_save_failed_toast": "Einstellung für die nächste Nachricht konnte nicht gespeichert werden."
   },
   "options": {
     "step": {

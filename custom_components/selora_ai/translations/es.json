@@ -1031,7 +1031,11 @@
     "recipes_update_running": "Actualizando…",
     "recipes_update_done": "Actualizado a v{version}.",
     "recipes_update_needs_choice": "La v{version} necesita una elección que la instalación actual no hizo. Reconfigura para terminar la actualización.",
-    "recipes_update_failed": "La actualización no se completó."
+    "recipes_update_failed": "La actualización no se completó.",
+    "composer_next_prompt_accept": "Usar esta sugerencia",
+    "settings_next_prompt_label": "Sugerir mi próximo mensaje",
+    "settings_next_prompt_desc": "Después de una respuesta, muestra en el cuadro de mensaje vacío el mensaje que probablemente enviarás a continuación. Pulsa Tab para usarlo. Hace una solicitud breve adicional a tu proveedor de IA por respuesta.",
+    "settings_next_prompt_save_failed_toast": "No se pudo guardar el ajuste del próximo mensaje."
   },
   "options": {
     "step": {

@@ -739,6 +739,11 @@ DEFAULT_TELEMETRY_ENABLED = False
 # the user accepts or declines so the banner never re-nags.
 CONF_TELEMETRY_PROMPT_SEEN = "telemetry_prompt_seen"
 DEFAULT_TELEMETRY_PROMPT_SEEN = False
+# Predicting the user's next chat message after a turn (shown as the empty
+# composer's placeholder). Unset means the provider decides: on for hosted
+# models, off for Ollama, whose every extra call is local compute. Selora AI
+# Local cannot write free prose, so it never predicts.
+CONF_NEXT_PROMPT_ENABLED = "next_prompt_enabled"
 # Optional endpoint override (epic #56 wants configurable endpoints).
 CONF_TELEMETRY_ENDPOINT = "telemetry_endpoint"
 TELEMETRY_STORE_VERSION = 1

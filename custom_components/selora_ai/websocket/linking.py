@@ -53,6 +53,7 @@ from ..const import (
     CONF_INSIGHTS_INTERVAL,
     CONF_LLM_PRICING_OVERRIDES,
     CONF_LLM_PROVIDER,
+    CONF_NEXT_PROMPT_ENABLED,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
     CONF_OPENAI_API_KEY,
@@ -112,6 +113,7 @@ from ..const import (
     SELORA_EXCLUDE_LABEL_NAME,
 )
 from ..helpers import sanitize_household_profile
+from ..next_prompt import next_prompt_available, next_prompt_enabled
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -225,6 +227,11 @@ async def _handle_websocket_get_config(
             "telemetry_prompt_seen": config_data.get(
                 CONF_TELEMETRY_PROMPT_SEEN, DEFAULT_TELEMETRY_PROMPT_SEEN
             ),
+            # Predicted next message in the composer (see next_prompt.py)
+            "next_prompt_available": next_prompt_available(_resolve_llm_provider(config_data)),
+            "next_prompt_enabled": next_prompt_enabled(
+                config_data, _resolve_llm_provider(config_data)
+            ),
             # Developer settings
             "developer_mode": config_data.get("developer_mode", False),
             # Selora Connect
@@ -333,6 +340,7 @@ async def _handle_websocket_update_config(
         CONF_HOUSEHOLD_PROFILE,
         "pattern_detection_enabled",  # frontend key (see get_config)
         "developer_mode",
+        CONF_NEXT_PROMPT_ENABLED,
     }
     unknown_keys = [k for k in new_options if k not in allowed_option_keys]
     if unknown_keys:
@@ -341,6 +349,10 @@ async def _handle_websocket_update_config(
         )
         for k in unknown_keys:
             new_options.pop(k, None)
+
+    # A bool or nothing: an absent key is what lets the provider decide.
+    if not isinstance(new_options.get(CONF_NEXT_PROMPT_ENABLED, False), bool):
+        new_options.pop(CONF_NEXT_PROMPT_ENABLED)
 
     # Sanitize + hard-cap the household profile before it is stored. It is
     # user-authored free text that flows into the LLM system prompt, so we
@@ -378,7 +390,13 @@ async def _handle_websocket_update_config(
     # it needs no reload either.
     # The household profile is pushed to the running client below, so editing
     # it applies live without an integration reload.
-    hot_option_keys = {CONF_LLM_PRICING_OVERRIDES, CONF_TELEMETRY_ENABLED, CONF_HOUSEHOLD_PROFILE}
+    # The next-prompt toggle is read from the entry on every prediction.
+    hot_option_keys = {
+        CONF_LLM_PRICING_OVERRIDES,
+        CONF_TELEMETRY_ENABLED,
+        CONF_HOUSEHOLD_PROFILE,
+        CONF_NEXT_PROMPT_ENABLED,
+    }
 
     # Check if any backend-relevant keys actually changed
     old_data = {**entry.data}

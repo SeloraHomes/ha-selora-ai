@@ -1383,6 +1383,28 @@ export const chatStyles = css`
     color: var(--secondary-text-color);
     opacity: 0.5;
   }
+  /* Accepts the predicted next message shown as the placeholder; doubles as
+     the hint that Tab does the same. */
+  .composer-next-accept {
+    flex: 0 0 auto;
+    align-self: center;
+    margin-left: 6px;
+    padding: 1px 6px;
+    font: inherit;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--secondary-text-color);
+    background: transparent;
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+  }
+  .composer-next-accept:hover {
+    color: var(--primary-text-color);
+    border-color: var(--secondary-text-color);
+  }
   /* Inline chips showing resolved entity selections, rendered just above
      the typed text inside the composer box. */
   .composer-selections-inline {
