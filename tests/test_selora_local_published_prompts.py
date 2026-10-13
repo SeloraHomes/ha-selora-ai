@@ -82,7 +82,7 @@ _TOKENS_MEASURED_ON: dict[str, str] = {
     "clarification": "c6833a17147574946a7176447a88d65e687bc393e62db1aaa89c57d1fdf9a3ac",
     "utilities": "ae1155b644b529ba63d9441b2abc347fd6f4e4b3d4bbb25b323509707df90d36",
     _SELORA_LOCAL_UNIFIED_PROMPT_KEY: (
-        "cdbd03ed54d0243652bd11871aa055a14ef29f18825f7a4b5207ca461b7b3be0"
+        "e2ff52cf244dcfce55e52b9579953ff55e01f9a217b5c3172d4f1675984cc95a"
     ),
 }
 

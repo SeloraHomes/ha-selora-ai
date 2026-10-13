@@ -56,7 +56,7 @@ _SELORA_LOCAL_PROMPT_TOKENS: dict[str, int] = {
     "answer": 195,
     "clarification": 154,
     "utilities": 348,
-    _SELORA_LOCAL_UNIFIED_PROMPT_KEY: 694,
+    _SELORA_LOCAL_UNIFIED_PROMPT_KEY: 780,
 }
 
 # Everything a request carries besides its system prompt and entity block:
