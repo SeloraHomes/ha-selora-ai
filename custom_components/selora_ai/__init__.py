@@ -6115,10 +6115,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     register_mcp_server(hass)
 
+    # Support sessions Connect has revoked. Loaded BEFORE the validator below is
+    # published: until it exists no Connect token authenticates, so a revoke
+    # made before a restart or reload is in force from the first request.
+    from .mcp_session_revocation import MCPSessionRevocations, ensure_ack, revocation_dir
+
+    revocations = MCPSessionRevocations(revocation_dir(hass))
+    await hass.async_add_executor_job(revocations.refresh)
+    hass.data[DOMAIN]["mcp_session_revocations"] = revocations
+    if ack_error := await hass.async_add_executor_job(ensure_ack, revocation_dir(hass)):
+        _LOGGER.warning("Could not declare MCP session revocation to Selora OS: %s", ack_error)
+
     # Selora Connect JWT validator (enables OAuth 2.0 auth for MCP)
     jwt_key_b64 = entry.data.get(CONF_SELORA_JWT_KEY)
     installation_id = entry.data.get(CONF_SELORA_INSTALLATION_ID)
-    connect_url = entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL)
+    connect_url = entry.data.get(CONF_SELORA_CONNECT_URL) or DEFAULT_SELORA_CONNECT_URL
     hass.data[DOMAIN]["selora_connect_url"] = connect_url
     if jwt_key_b64 and installation_id:
         from .selora_auth import SeloraJWTValidator, decode_jwt_key
@@ -6788,6 +6799,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # popping afterwards would throw that answer away — taking voice down for
     # an entry that is still loaded and owns a perfectly good credential.
     hass.data[DOMAIN].pop("selora_jwt_validator", None)
+    hass.data[DOMAIN].pop("mcp_session_revocations", None)
     hass.data[DOMAIN].pop("mcp_token_store", None)
 
     # Cancel pending scheduled tasks so stale timers don't fire after teardown

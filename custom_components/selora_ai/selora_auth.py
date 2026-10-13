@@ -24,6 +24,7 @@ from aiohttp import web
 from homeassistant.core import HomeAssistant
 
 if TYPE_CHECKING:
+    from .mcp_session_revocation import MCPSessionRevocations
     from .mcp_token_store import MCPTokenStore
 
 from .const import (
@@ -74,6 +75,7 @@ class SeloraAuthContext:
     allowed_tools: frozenset[str] | None = None  # None → use is_admin logic
     token_id: str | None = None  # set only for mcp_token
     scopes: frozenset[str] = frozenset()  # OAuth scopes (selora_jwt only)
+    session_id: int | None = None  # Connect support session (installer tokens only)
 
 
 # ── JWT Validator ─────────────────────────────────────────────────────────────
@@ -151,6 +153,15 @@ class SeloraJWTValidator:
                 f"Selora token carries no {self._scope_prefix.rstrip(':')} scope"
             )
 
+        # An installer's token names the support session it was minted for.
+        # Anything but an integer is refused: a sid the revoke list cannot
+        # match would be a token no revoke can reach.
+        # Presence, not value, decides: `"sid": null` is a malformed installer
+        # token, not a homeowner one.
+        session_id = payload.get("sid")
+        if "sid" in payload and (isinstance(session_id, bool) or not isinstance(session_id, int)):
+            raise AuthenticationError("Selora token has a malformed session id")
+
         # Map role to admin status
         role = payload.get("role", "viewer")
         is_admin = role in SELORA_ADMIN_ROLES
@@ -161,6 +172,7 @@ class SeloraJWTValidator:
             is_admin=is_admin,
             auth_type="selora_jwt",
             scopes=frozenset(scopes),
+            session_id=session_id,
         )
 
 
@@ -211,6 +223,7 @@ async def authenticate_request(
     request: web.Request,
     jwt_validator: SeloraJWTValidator | None,
     mcp_token_store: MCPTokenStore | None = None,
+    revocations: MCPSessionRevocations | None = None,
 ) -> SeloraAuthContext:
     """Authenticate an MCP request.
 
@@ -262,6 +275,14 @@ async def authenticate_request(
     # Path 3: Try Selora JWT
     if jwt_validator is not None and token is not None:
         ctx = jwt_validator.validate(token)
+        # Refused exactly like an expired token, so a revoked agent learns
+        # nothing a lapsed one would not.
+        if (
+            ctx.session_id is not None
+            and revocations is not None
+            and await revocations.async_is_revoked(hass, ctx.session_id)
+        ):
+            raise AuthenticationError("Selora token's support session was revoked")
         _LOGGER.debug("Selora Connect auth succeeded for user %s", ctx.user_id)
         return ctx
 
