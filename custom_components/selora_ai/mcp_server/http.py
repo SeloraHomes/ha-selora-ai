@@ -17,7 +17,7 @@ from ..const import (
     DOMAIN,
     SELORA_JWT_ISSUER,
 )
-from ..selora_auth import AuthenticationError, authenticate_request
+from ..selora_auth import AuthenticationError, SeloraAuthContext, authenticate_request
 from .dispatch import _jsonrpc_dispatch
 from .protocol import (
     _CONTENT_TYPE_JSON,
@@ -435,6 +435,22 @@ class OAuthTokenProxyView(HomeAssistantView):
             )
 
 
+def _log_support_session(auth_ctx: SeloraAuthContext, what: str) -> None:
+    """Record every request an installer makes inside a support session.
+
+    Installer tokens are the only ones carrying a session id, and a support
+    session is the homeowner lending their hub out: what was done under it,
+    and by whom, has to be answerable afterwards.
+    """
+    if auth_ctx.session_id is not None:
+        _LOGGER.info(
+            "MCP %s by user %s in support session %s",
+            what,
+            auth_ctx.user_id,
+            auth_ctx.session_id,
+        )
+
+
 # ── HTTP view ──────────────────────────────────────────────────────────────────
 
 
@@ -482,9 +498,16 @@ class SeloraAIMCPView(HomeAssistantView):
         jwt_validator = domain_data.get("selora_jwt_validator")
         mcp_token_store = domain_data.get("mcp_token_store")
         try:
-            await authenticate_request(hass, request, jwt_validator, mcp_token_store)
+            auth_ctx = await authenticate_request(
+                hass,
+                request,
+                jwt_validator,
+                mcp_token_store,
+                domain_data.get("mcp_session_revocations"),
+            )
         except AuthenticationError:
             return self._build_unauthorized_response(hass, request)
+        _log_support_session(auth_ctx, request.method)
         return _add_cors(request, web.Response(status=HTTPStatus.OK, text="Selora AI MCP endpoint"))
 
     async def post(self, request: web.Request) -> web.Response:
@@ -510,7 +533,13 @@ class SeloraAIMCPView(HomeAssistantView):
         jwt_validator = domain_data.get("selora_jwt_validator")
         mcp_token_store = domain_data.get("mcp_token_store")
         try:
-            auth_ctx = await authenticate_request(hass, request, jwt_validator, mcp_token_store)
+            auth_ctx = await authenticate_request(
+                hass,
+                request,
+                jwt_validator,
+                mcp_token_store,
+                domain_data.get("mcp_session_revocations"),
+            )
         except AuthenticationError:
             if not _auth_fail_limiter.is_allowed(client_ip):
                 return web.Response(
@@ -549,6 +578,7 @@ class SeloraAIMCPView(HomeAssistantView):
         method = json_data.get("method")
         req_id = json_data.get("id")
         params = json_data.get("params")
+        _log_support_session(auth_ctx, method if isinstance(method, str) else request.method)
 
         if json_data.get("jsonrpc") != "2.0" or not isinstance(method, str):
             return web.Response(
