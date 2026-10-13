@@ -43,8 +43,8 @@ in no number at all.
   On a model release, re-measure the counts: encode each stripped file with
   the Qwen3 tokenizer, no special tokens. The published-prompts test ties each
   count to the hash of the file it was measured on.
-- **The automation output cap covers the longest trained reply** (a 257-token
-  blueprint in v0.5.0), and the automation allowance covers the cap. Raise
+- **The automation output cap covers the longest trained reply** (a 259-token
+  blueprint in v0.6.1), and the automation allowance covers the cap. Raise
   them together.
 
 ## The user turn

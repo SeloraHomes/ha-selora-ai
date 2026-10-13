@@ -908,14 +908,14 @@ SELORA_LOCAL_DEFAULT_INTENT = "command"
 # routinely exceeded the old 50 / 40 token caps and got truncated
 # mid-sentence. A full automation YAML payload still needs ~400.
 SELORA_LOCAL_MAX_TOKENS_BY_KIND: dict[str, int] = {
-    "chat_command": 80,
+    "chat_command": 128,
     "chat_automation": 400,
     "chat_answer": 192,
     "chat_clarification": 128,
     "chat_utilities": 320,
     "chat": 192,
-    "chat_tool_round": 80,
-    "command": 80,
+    "chat_tool_round": 128,
+    "command": 128,
     "suggestions": 400,
     "session_title": 32,
     "health_check": 8,

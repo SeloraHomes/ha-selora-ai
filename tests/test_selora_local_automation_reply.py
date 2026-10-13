@@ -201,9 +201,9 @@ async def test_a_blueprint_wins_over_a_sentence_driven_override(
 
 # ── output cap ───────────────────────────────────────────────────────────────
 
-# Longest automation-specialist reply in the v0.5.0 training corpus, in Qwen3
-# tokens: a blueprint (p99 255). Concrete automations top out at 199.
-_LONGEST_TRAINED_AUTOMATION_REPLY_TOKENS = 257
+# Longest automation-specialist reply in the v0.6.1 training corpus, in Qwen3
+# tokens: a blueprint (p99 257). Concrete automations top out at 226.
+_LONGEST_TRAINED_AUTOMATION_REPLY_TOKENS = 259
 
 
 @pytest.mark.parametrize("kind", ["chat_automation", "suggestions"])
