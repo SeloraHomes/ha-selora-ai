@@ -1836,6 +1836,29 @@ _DOMAIN_NEED_TOKENS: dict[str, tuple[str, ...]] = {
     "fans": ("fan",),
     "weather": ("weather",),
     "forecast": ("weather",),
+    # Conditions are asked about without saying "weather".
+    "sunny": ("weather",),
+    "cloudy": ("weather",),
+    "overcast": ("weather",),
+    "rain": ("weather",),
+    "rainy": ("weather",),
+    "raining": ("weather",),
+    "snow": ("weather",),
+    "snowing": ("weather",),
+    "windy": ("weather",),
+    "foggy": ("weather",),
+    "snowy": ("weather",),
+    "storm": ("weather",),
+    "stormy": ("weather",),
+    "sunshine": ("weather",),
+    "fog": ("weather",),
+    "hail": ("weather",),
+    "drizzle": ("weather",),
+    "pouring": ("weather",),
+    "sleet": ("weather",),
+    "lightning": ("weather",),
+    "thunder": ("weather",),
+    "thunderstorm": ("weather",),
     "thermostat": ("climate",),
     "thermostats": ("climate",),
     "climate": ("climate",),
@@ -1865,6 +1888,16 @@ _DOMAIN_NEED_TOKENS: dict[str, tuple[str, ...]] = {
 # matches before the following space/end. ``(?!\w)`` accepts that position.
 _AC_NEED_RE = re.compile(
     r"\b(?:a/?c|a\.c\.?|air[\s-]?con(?:ditioner|ditioning|ditioned|s)?)(?!\w)",
+    re.IGNORECASE,
+)
+
+# "Outside" also names devices ("the lights outside"), so it implies the
+# weather entity only beside a temperature word. On an install without an
+# outdoor sensor, that entity is the only outdoor reading.
+_OUTDOOR_RE = re.compile(r"\b(?:outside|outdoors?)\b", re.IGNORECASE)
+_OUTDOOR_TEMPERATURE_RE = re.compile(
+    r"\b(?:temperature|temp|hot|cold|warm|chilly|freezing|degrees|"
+    r"warmer|cooler|hotter|colder)\b",
     re.IGNORECASE,
 )
 
@@ -1989,6 +2022,8 @@ def _pinned_needs(keywords: set[str], message: str = "") -> tuple[frozenset[str]
     # and would otherwise pin nothing, omitting an AC entity past the cap.
     if message and _AC_NEED_RE.search(message):
         domains.add("climate")
+    if message and _OUTDOOR_RE.search(message) and _OUTDOOR_TEMPERATURE_RE.search(message):
+        domains.add("weather")
     return frozenset(device_classes), frozenset(domains)
 
 
@@ -3150,8 +3185,9 @@ def _filter_cloud_entities(
     1. Resolve the request into device_class / domain NEEDS
        (``_pinned_needs``): "pressure" → a pressure sensor,
        "windows"/"open" → opening/door/window binary_sensors, "fan" → the
-       fan domain, "weather" → the weather domain, "inside"/"outside"/
-       "temperature" → temperature sensors, "thermostat"/"ac" → climate.
+       fan domain, "weather"/"sunny"/"cold outside" → the weather domain,
+       "inside"/"outside"/"temperature" → temperature sensors,
+       "thermostat"/"ac" → climate.
     2. For each need, PIN up to ``_PER_NEED_KEEP`` entities, ranked by
        ``_need_relevance`` (request qualifier/area match, with diagnostic
        sensors demoted) — NOT by the keyword score, so the room sensor wins

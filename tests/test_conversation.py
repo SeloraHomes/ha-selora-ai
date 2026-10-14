@@ -320,9 +320,9 @@ class TestSeloraConversationEntity:
         )
         # Entity in a non-collector domain (should be excluded)
         hass.states.async_set(
-            "weather.home",
-            "sunny",
-            {"friendly_name": "Home Weather"},
+            "todo.shopping_list",
+            "0",
+            {"friendly_name": "Shopping List"},
         )
 
         states = _collect_entity_states(hass)
@@ -339,7 +339,7 @@ class TestSeloraConversationEntity:
         assert "light.driveway_camera_light" not in entity_ids
 
         # Non-collector domain is excluded
-        assert "weather.home" not in entity_ids
+        assert "todo.shopping_list" not in entity_ids
 
     def test_collect_entity_states_includes_domain_attrs(self, hass: HomeAssistant) -> None:
         """Snapshot should include useful domain-specific attributes (#68)."""
