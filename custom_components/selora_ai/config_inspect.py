@@ -88,25 +88,35 @@ async def get_scene_config(hass: HomeAssistant, ref: str) -> dict[str, Any]:
     return result
 
 
-def _loaded_automation_yaml(hass: HomeAssistant, entity_id: str) -> str:
-    """Return the config a loaded automation entity was built from, as YAML.
+def loaded_automation_config(hass: HomeAssistant, entity_id: str) -> dict[str, Any]:
+    """Return the config a loaded automation entity was built from.
 
     automations.yaml is one source among several (packages, ``!include_dir``);
     the loaded entity holds the config whichever it was. That config has
-    ``!secret`` values resolved, so it is read only behind ``get_automation``'s
-    admin gate — core's ``automation/config`` is admin-only for the same reason.
-    The loader's line-number ``str``/``dict`` subclasses would dump as
+    ``!secret`` values resolved, so it is read only behind an admin gate —
+    core's ``automation/config`` is admin-only for the same reason. The
+    loader's line-number ``str``/``dict`` subclasses would dump as
     ``!!python/object`` tags; a JSON round trip reduces them to plain values.
+    ``{}`` when the entity isn't loaded.
     """
     from homeassistant.components.automation import DATA_COMPONENT  # noqa: PLC0415
-    import yaml  # noqa: PLC0415
 
     component = hass.data.get(DATA_COMPONENT)
     entity = component.get_entity(entity_id) if component else None
     raw = getattr(entity, "raw_config", None)
     if not isinstance(raw, dict):
+        return {}
+    plain: dict[str, Any] = json.loads(json.dumps(raw, default=str))
+    return plain
+
+
+def _loaded_automation_yaml(hass: HomeAssistant, entity_id: str) -> str:
+    """Return :func:`loaded_automation_config` as YAML, ``""`` when not loaded."""
+    import yaml  # noqa: PLC0415
+
+    plain = loaded_automation_config(hass, entity_id)
+    if not plain:
         return ""
-    plain = json.loads(json.dumps(raw, default=str))
     return str(yaml.safe_dump(plain, allow_unicode=True, default_flow_style=False, sort_keys=False))
 
 

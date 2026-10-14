@@ -562,6 +562,7 @@ async def _handle_websocket_get_automations(
         from homeassistant.helpers import entity_registry as er
 
         from ..automation_utils import _read_automations_yaml
+        from ..config_inspect import loaded_automation_config
 
         registry = er.async_get(hass)
 
@@ -644,6 +645,12 @@ async def _handle_websocket_get_automations(
                     yaml_text = yaml.dump(full_config, allow_unicode=True, default_flow_style=False)
                 except Exception:
                     yaml_text = ""
+            else:
+                # Defined elsewhere (a recipe's package, ``!include_dir``):
+                # the loaded entity still says what it does, so the row can
+                # show its description and flow. No ``yaml_text`` — the YAML
+                # editor saves to automations.yaml, which doesn't own it.
+                full_config = loaded_automation_config(hass, entity_id)
 
             # Merge lifecycle metadata from the store
             meta = await store.get_metadata(automation_id) if automation_id else None
