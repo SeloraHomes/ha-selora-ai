@@ -745,6 +745,10 @@ class TestSnapshotWidening:
         assert "light.kitchen" in ids
         assert "todo.shopping_list" not in ids
 
+    def test_weather_visible_by_default(self, hass) -> None:
+        hass.states.async_set("weather.home", "sunny", {"friendly_name": "Home"})
+        assert "weather.home" in self._ids(hass)
+
     def test_unlisted_domain_visible_under_the_opt_out(self, hass) -> None:
         _llm_entry(hass, **{CONF_COMMAND_ALLOWLIST_ENABLED: False})
         hass.states.async_set("todo.shopping_list", "0", {"friendly_name": "Shopping List"})

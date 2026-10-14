@@ -507,7 +507,9 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     # meaningful state to collect for pattern detection), but the architect
     # needs scenes in AVAILABLE ENTITIES so it can reference their real
     # entity_ids when building automations/commands that activate them.
-    _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation", "scene"}
+    # ``weather`` is read-only, so showing it widens nothing the allowlist
+    # guards, and it is the only outdoor reading on most installs.
+    _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation", "scene", "weather"}
     # The domain filter is the second half of the safe-command allowlist,
     # not a separate restriction: a ``todo`` list is absent here for the
     # same reason ``todo.add_item`` is absent from the service tables.
