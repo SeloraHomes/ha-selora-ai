@@ -15,6 +15,13 @@
         "conventional-changelog-conventionalcommits"
       ],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "npm 12 defaults allow-remote to none, and its --package-lock-only path rejects the registry tarball of any package with bundleDependencies (npm/cli#9800); the root lock pulls one in, the npm package, via @semantic-release/npm, so every lock refresh failed with EALLOWREMOTE. A full install takes the code path that resolves registry tarballs correctly, so the allow-remote=none guard stays on. Drop this once an npm release fixing npm/cli#9800 is what Renovate runs.",
+      "matchManagers": [
+        "npm"
+      ],
+      "skipInstalls": false
     }
   ],
   "postUpgradeTasks": {
