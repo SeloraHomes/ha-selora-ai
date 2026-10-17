@@ -31,6 +31,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
 from .health_monitor import _is_transient
+from .helpers import device_config_entry_ids
 
 if TYPE_CHECKING:
     from .types import BatteryForecast, BatteryForecastItem
@@ -421,7 +422,7 @@ class BatteryForecaster:
             if not level:
                 continue
             integrations = {entry.platform}
-            for entry_id in device.config_entries:
+            for entry_id in device_config_entry_ids(device):
                 if config_entry := self._hass.config_entries.async_get_entry(entry_id):
                     integrations.add(config_entry.domain)
             companions = []

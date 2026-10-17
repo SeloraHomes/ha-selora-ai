@@ -1486,9 +1486,12 @@ HEALTH_UNAVAILABLE_GRACE_SECS = 300
 HEALTH_OFFLINE_REMOVABLE_SECS = 7 * 24 * 3600
 # "Silent": an entity whose observed update cadence has lapsed. Flag when the
 # age since last update exceeds baseline_cadence * multiplier, never under the
-# floor (avoids false positives on naturally slow sensors).
+# floor. Most integrations only write a measurement when its value changes, so a
+# steady reading looks exactly like a dead sensor: the floor has to outlast a
+# night (illuminance at its minimum, a plug drawing 0 W) or every such sensor
+# goes silent each evening and recovers each morning, swinging the score daily.
 HEALTH_SILENT_MULTIPLIER = 6.0
-HEALTH_SILENT_MIN_SECS = 3600
+HEALTH_SILENT_MIN_SECS = 24 * 3600
 # Battery level (%) at or below this raises a battery_low signal.
 HEALTH_BATTERY_LOW_PCT = 15
 
