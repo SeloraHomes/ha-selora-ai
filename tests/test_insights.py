@@ -871,6 +871,65 @@ async def test_silent_flags_only_periodic_reporters(health_store, hass, monkeypa
 
 
 @pytest.mark.asyncio
+async def test_silent_judges_the_device_not_the_entity(health_store, hass, monkeypatch):
+    """Integrations write a measurement only when it changes, so a plug at a
+    steady 0 W looks dead on its own updates. A sibling that still updates
+    proves the device reports; only a device gone quiet as a whole is silent."""
+    from homeassistant.helpers import device_registry as dr
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    monkeypatch.setattr("custom_components.selora_ai.health_monitor.HEALTH_SILENT_MIN_SECS", 10)
+    entry = MockConfigEntry(domain="zha", entry_id="zha_e1")
+    entry.add_to_hass(hass)
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    monitor = HealthMonitor(hass, health_store)
+    start = datetime.now(UTC) - timedelta(seconds=60)
+
+    def entity(device: str, key: str) -> str:
+        dev = dev_reg.async_get_or_create(
+            config_entry_id="zha_e1", identifiers={("zha", device)}, name=device
+        )
+        return ent_reg.async_get_or_create(
+            "sensor", "zha", f"{device}_{key}", device_id=dev.id, config_entry=entry
+        ).entity_id
+
+    steady = entity("plug", "power")
+    sibling = entity("plug", "energy")
+    dead = entity("dead_plug", "power")
+    for eid in (steady, sibling, dead):
+        for i in range(6):
+            ns = SimpleNamespace(state="0", last_updated=start + timedelta(seconds=i))
+            monitor.handle_state_change(eid, ns, None)
+        hass.states.async_set(eid, "0", {"state_class": "measurement"})
+    monitor.handle_state_change(
+        sibling, SimpleNamespace(state="1", last_updated=datetime.now(UTC)), None
+    )
+
+    await monitor.async_scan()
+    silent = {s["target"] for s in await health_store.get_signals(status="active", kind="silent")}
+    assert steady not in silent  # its device still reports through the sibling
+    assert sibling not in silent
+    assert dead in silent  # nothing on the device has reported
+
+
+@pytest.mark.asyncio
+async def test_silent_outlasts_a_steady_night(health_store, hass):
+    """Illuminance pinned at its minimum all night writes nothing for ~12h. The
+    default floor must not call that silent, or every such sensor goes silent
+    each evening and recovers each morning."""
+    monitor = HealthMonitor(hass, health_store)
+    start = datetime.now(UTC) - timedelta(hours=12)
+    for i in range(6):
+        ns = SimpleNamespace(state="1.0", last_updated=start + timedelta(minutes=5 * i))
+        monitor.handle_state_change("sensor.stairs_illuminance", ns, None)
+    hass.states.async_set("sensor.stairs_illuminance", "1.0", {"state_class": "measurement"})
+
+    await monitor.async_scan()
+    assert not await health_store.get_signals(status="active", kind="silent")
+
+
+@pytest.mark.asyncio
 async def test_get_audit_scans_health_before_building(hass):
     """The on-load audit handler reconciles health signals (monitor scan) BEFORE
     building the audit, so the live page reflects current state, not a stale

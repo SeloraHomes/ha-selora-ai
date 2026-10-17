@@ -605,6 +605,23 @@ class HealthMonitor:
         return offenders
 
     async def _detect_silent(self, now_ts: float, area_of: Any) -> None:
+        # A sensor that only writes on change can't be told apart from a dead
+        # one by its own updates, but any entity of the same device updating
+        # proves the device still reports — so silence is judged per device:
+        # a plug's power at a steady 0 W stays quiet while its energy counter
+        # or link quality keeps moving.
+        ent_reg = er.async_get(self._hass)
+        device_of: dict[str, str] = {}
+        device_heard: dict[str, float] = {}
+        for entity_id, track in self._tracks.items():
+            entry = ent_reg.async_get(entity_id)
+            if entry is None or entry.device_id is None or track.last_update_ts is None:
+                continue
+            device_of[entity_id] = entry.device_id
+            device_heard[entry.device_id] = max(
+                device_heard.get(entry.device_id, 0.0), track.last_update_ts
+            )
+
         offenders: dict[str, dict[str, Any]] = {}
         for entity_id, track in self._tracks.items():
             if entity_id in self._excluded:
@@ -625,11 +642,15 @@ class HealthMonitor:
                 continue
             age = now_ts - track.last_update_ts
             threshold = max(track.ema_interval * HEALTH_SILENT_MULTIPLIER, HEALTH_SILENT_MIN_SECS)
-            if age >= threshold:
-                offenders[entity_id] = {
-                    "silent_seconds": int(age),
-                    "expected_interval_seconds": int(track.ema_interval),
-                }
+            if age < threshold:
+                continue
+            device_id = device_of.get(entity_id)
+            if device_id is not None and now_ts - device_heard[device_id] < threshold:
+                continue
+            offenders[entity_id] = {
+                "silent_seconds": int(age),
+                "expected_interval_seconds": int(track.ema_interval),
+            }
         await self._reconcile(
             HEALTH_KIND_SILENT,
             "entity",
