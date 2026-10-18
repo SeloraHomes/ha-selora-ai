@@ -200,6 +200,7 @@ because the obvious implementation shipped and broke something quietly.
 - `dashboards.md` — Lovelace reads and edits, panel-executed create/delete.
 - `groups.md` — group helpers.
 - `scenes.md` — which entities a scene may hold, and saying what it left out.
+- `trash.md` — Recently deleted: which deletes are kept, restoring automations and scenes.
 - `blueprints.md` — blueprint reads and blueprint-backed automations.
 - `registry-tools.md` — areas, floors, entities, scripts, labels, categories,
   diagnostics.

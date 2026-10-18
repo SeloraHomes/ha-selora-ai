@@ -10,6 +10,7 @@ HA domain, e.g. all lights or all media players).
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from pathlib import Path
 import re
@@ -776,6 +777,7 @@ async def async_remove_scene_yaml(
     scene_id: str,
     *,
     report: dict[str, Any] | None = None,
+    trash: bool = False,
 ) -> bool:
     """Remove a scene from scenes.yaml and reload.
 
@@ -783,7 +785,8 @@ async def async_remove_scene_yaml(
     present in the YAML file.  Raises ``ScenesYamlError`` if the file
     cannot be parsed, or ``SceneDeleteError`` if the reload fails (the
     file is rolled back in that case). The removed entry goes into
-    ``report["previous"]``.
+    ``report["previous"]``. ``trash`` is a delete the user asked for: the
+    entry, as written, goes to Recently deleted (trash.py).
     """
     scenes_path = _get_scenes_path(hass)
 
@@ -798,10 +801,10 @@ async def async_remove_scene_yaml(
 
         # Keep the pre-write state so we can roll back on reload failure
         previous = list(existing)
-        removed_entry = _restorable(
-            next(s for s in existing if isinstance(s, dict) and s.get("id") == scene_id),
-            selora=scene_id.startswith(SCENE_ID_PREFIX),
-        )
+        raw_entry = next(s for s in existing if isinstance(s, dict) and s.get("id") == scene_id)
+        removed_entry = _restorable(raw_entry, selora=scene_id.startswith(SCENE_ID_PREFIX))
+        # Copied before the write, which quotes strings in place.
+        trashed = json.loads(json.dumps(raw_entry, default=str)) if trash else None
 
         await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, filtered)
         _LOGGER.info("Removed scene id=%s from scenes.yaml", scene_id)
@@ -817,6 +820,10 @@ async def async_remove_scene_yaml(
             )
             raise SceneDeleteError(f"Scene reload failed after removal: {exc}") from exc
 
+    if trashed is not None:
+        from .trash import KIND_SCENE, async_trash  # noqa: PLC0415
+
+        await async_trash(hass, KIND_SCENE, trashed)
     if report is not None:
         report["previous"] = removed_entry
     return True
@@ -875,6 +882,8 @@ async def _remove_idless_scene_by_name(
     hass: HomeAssistant,
     expected_name: str,
     report: dict[str, Any] | None = None,
+    *,
+    trash: bool = False,
 ) -> tuple[bool, str | None, str | None]:
     """Atomically remove the id-less ``scenes.yaml`` entry whose name equals
     *expected_name*, holding ``_SCENES_YAML_LOCK`` across the find, ambiguity
@@ -926,6 +935,7 @@ async def _remove_idless_scene_by_name(
             return False, "ambiguous_name", None
         previous = list(yaml_entries)
         removed_entry = _restorable(matches[0], selora=False)
+        trashed = json.loads(json.dumps(matches[0], default=str)) if trash else None
         remaining = [e for e in yaml_entries if not _is_idless_match(e)]
         await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, remaining)
         try:
@@ -933,6 +943,10 @@ async def _remove_idless_scene_by_name(
         except Exception as exc:  # noqa: BLE001 — restore yaml on reload failure
             await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
             return False, "reload_failed", str(exc)
+    if trashed is not None:
+        from .trash import KIND_SCENE, async_trash  # noqa: PLC0415
+
+        await async_trash(hass, KIND_SCENE, trashed)
     if report is not None:
         report["previous"] = removed_entry
     return True, None, None
@@ -976,6 +990,7 @@ async def async_remove_yaml_scene_by_entity(
     *,
     expected_name: str | None = None,
     report: dict[str, Any] | None = None,
+    trash: bool = False,
 ) -> tuple[bool, str | None, str | None]:
     """Remove a non-Selora, yaml-managed scene identified by its HA entity_id.
 
@@ -998,7 +1013,8 @@ async def async_remove_yaml_scene_by_entity(
     ``yaml_read_failed`` / ``not_yaml_managed`` / ``not_found_in_yaml`` /
     ``no_identifier`` / ``ambiguous_name`` / ``reload_failed``; ``detail``
     carries the underlying exception text for the failures that have one.
-    The removed entry goes into ``report["previous"]``.
+    The removed entry goes into ``report["previous"]``; ``trash`` as in
+    :func:`async_remove_scene_yaml`.
     """
     # Confirmed-fingerprint path: enforce the captured name atomically instead
     # of trusting the (mutable) entity → yaml mapping at delete time. This runs
@@ -1006,7 +1022,7 @@ async def async_remove_yaml_scene_by_entity(
     # entity mapping, so a scene whose entity became unloaded or remapped after
     # the card was shown must still be deletable by its confirmed yaml name.
     if expected_name is not None:
-        return await _remove_idless_scene_by_name(hass, expected_name, report)
+        return await _remove_idless_scene_by_name(hass, expected_name, report, trash=trash)
 
     if hass.states.get(entity_id) is None:
         return False, "not_found", None
@@ -1031,7 +1047,7 @@ async def async_remove_yaml_scene_by_entity(
     yaml_id = yaml_match.get("id")
     if isinstance(yaml_id, str) and yaml_id:
         try:
-            removed = await async_remove_scene_yaml(hass, yaml_id, report=report)
+            removed = await async_remove_scene_yaml(hass, yaml_id, report=report, trash=trash)
         except SceneDeleteError as exc:
             return False, "reload_failed", str(exc)
         if not removed:
@@ -1046,7 +1062,7 @@ async def async_remove_yaml_scene_by_entity(
     target_name = yaml_match.get("name")
     if not isinstance(target_name, str) or not target_name.strip():
         return False, "no_identifier", None
-    return await _remove_idless_scene_by_name(hass, target_name, report)
+    return await _remove_idless_scene_by_name(hass, target_name, report, trash=trash)
 
 
 async def get_area_names(hass: HomeAssistant) -> list[str]:

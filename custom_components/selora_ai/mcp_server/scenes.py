@@ -451,7 +451,7 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
         if not entity_id_arg:
             return {"error": "entity_id is required with expected_name"}
         _removed, code, detail = await async_remove_yaml_scene_by_entity(
-            hass, entity_id_arg, expected_name=expected_name, report=report
+            hass, entity_id_arg, expected_name=expected_name, report=report, trash=True
         )
         if code is not None:
             return {"error": _yaml_delete_error_message(code, detail, entity_id_arg)}
@@ -485,7 +485,7 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
             # (The chat confirm path with a captured fingerprint is handled by
             # the expected_name short-circuit above, before this resolution.)
             _removed, code, detail = await async_remove_yaml_scene_by_entity(
-                hass, entity_id_arg, report=report
+                hass, entity_id_arg, report=report, trash=True
             )
             if code is not None:
                 return {"error": _yaml_delete_error_message(code, detail, entity_id_arg)}
@@ -494,7 +494,7 @@ async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     try:
         found, removed = await store.async_delete_with_yaml(
             scene_id,
-            lambda sid: async_remove_scene_yaml(hass, sid, report=report),
+            lambda sid: async_remove_scene_yaml(hass, sid, report=report, trash=True),
         )
     except SceneDeleteError as exc:
         await store.async_restore(scene_id)

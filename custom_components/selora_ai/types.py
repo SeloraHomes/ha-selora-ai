@@ -130,6 +130,17 @@ class SceneStoreData(TypedDict):
     scenes: dict[str, SceneRecord]
 
 
+class TrashItem(TypedDict):
+    """A deleted automation or scene, kept for a restore (trash.py)."""
+
+    trash_id: str
+    kind: str  # "automation" | "scene"
+    name: str
+    # The automations.yaml / scenes.yaml entry exactly as it was removed.
+    entry: dict[str, Any]
+    deleted_at: str
+
+
 class GroupInfo(TypedDict):
     """A Home Assistant group helper, as reported to the LLM.
 

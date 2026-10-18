@@ -86,9 +86,34 @@ _DELETE_PENDING_HINT_BY_LANG: dict[str, str] = {
 }
 
 
-def delete_pending_hint(language: str | None = None) -> str:
-    """Localized hint shown when a delete-confirmation card is pending."""
+# Automations and scenes go to Recently deleted (trash.py) instead.
+_DELETE_RESTORABLE_HINT_BY_LANG: dict[str, str] = {
+    "en": "Confirm below to delete it — you can restore it from Recently deleted.",
+    "fr": "Confirmez ci-dessous pour le supprimer — vous pourrez le restaurer depuis Récemment supprimés.",
+    "de": "Bestätigen Sie unten, um es zu löschen — Sie können es unter „Zuletzt gelöscht“ wiederherstellen.",
+    "es": "Confirma abajo para eliminarlo — podrás restaurarlo desde Eliminados recientemente.",
+    "it": "Conferma qui sotto per eliminarlo — potrai ripristinarlo da Eliminati di recente.",
+    "nl": "Bevestig hieronder om het te verwijderen — je kunt het herstellen via Recent verwijderd.",
+    "hu": "Erősítse meg lent a törléshez – a Nemrég törölt elemek közül visszaállíthatja.",
+    "zh": "在下方确认以删除——之后可从“最近删除”中恢复。",
+    "pt": "Confirme abaixo para eliminar — pode restaurá-lo a partir de Eliminados recentemente.",
+    "ja": "削除するには下で確認してください。「最近削除した項目」から復元できます。",
+    "ko": "삭제하려면 아래에서 확인하세요. 최근 삭제됨에서 복원할 수 있습니다.",
+    "ru": "Подтвердите ниже, чтобы удалить — его можно будет восстановить из «Недавно удалённых».",
+}
+
+# The kinds a delete keeps in Recently deleted.
+_RESTORABLE_DELETE_KINDS = frozenset({"automation", "scene"})
+
+
+def delete_pending_hint(language: str | None = None, *, restorable: bool = False) -> str:
+    """Localized hint shown when a delete-confirmation card is pending.
+
+    ``restorable`` when every target goes to Recently deleted.
+    """
     base = (language or "en").lower().split("-")[0]
+    if restorable:
+        return _DELETE_RESTORABLE_HINT_BY_LANG.get(base, _DELETE_RESTORABLE_HINT_BY_LANG["en"])
     return _DELETE_PENDING_HINT_BY_LANG.get(base, DELETE_PENDING_HINT)
 
 
@@ -3282,7 +3307,12 @@ def _build_delete_approval_response(
         else _destructive_approval_quick_actions(proposal["proposal_id"])
     )
     effective_language = language or (hass.config.language if hass is not None else None)
-    hint = delete_pending_hint(effective_language)
+    hint = delete_pending_hint(
+        effective_language,
+        restorable=bool(deletes)
+        and not actions
+        and all(d.get("kind") in _RESTORABLE_DELETE_KINDS for d in deletes),
+    )
     # A single tool round can mix a safe write that ALREADY executed (e.g.
     # "turn off the kitchen light and delete the movie scene" — the light
     # fires, the delete holds for confirmation) with the delete preview.

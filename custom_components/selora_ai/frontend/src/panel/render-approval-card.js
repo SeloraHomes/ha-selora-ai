@@ -103,6 +103,10 @@ const _CONFIRM_VARIANTS = {
     titlePluralFallback: "Delete these?",
     warningKey: "delete_approval_warning",
     warningFallback: "This permanently removes it and can't be undone.",
+    // Automations and scenes go to Recently deleted (panel/trash.js).
+    restorableKinds: ["automation", "scene"],
+    restorableWarningKey: "delete_approval_warning_restorable",
+    restorableWarningFallback: "You can restore it from Recently deleted.",
   },
   destructive: {
     accent: "#ef4444",
@@ -270,7 +274,15 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
           ? html`<div
               style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
             >
-              ${host._t(copy.warningKey, copy.warningFallback)}
+              ${
+                copy.restorableKinds &&
+                rows.every((r) => copy.restorableKinds.includes(r.kind))
+                  ? host._t(
+                      copy.restorableWarningKey,
+                      copy.restorableWarningFallback,
+                    )
+                  : host._t(copy.warningKey, copy.warningFallback)
+              }
             </div>`
           : ""
       }

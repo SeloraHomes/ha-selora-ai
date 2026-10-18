@@ -2,7 +2,7 @@
 
 The MCP and chat delete return the removed automation as ``previous``; made
 again from it, a Selora automation is back under its id with its versions. A
-panel delete, which hands nothing back, still purges.
+clean-up delete, which hands nothing back, still purges.
 """
 
 from __future__ import annotations
@@ -108,8 +108,9 @@ async def test_an_id_with_no_kept_history_is_not_taken(hass: HomeAssistant) -> N
     assert "history_restored" not in result
 
 
-async def test_a_panel_delete_still_purges(hass: HomeAssistant) -> None:
-    """The panel says it deletes the history, and hands back nothing to restore."""
+async def test_a_clean_up_delete_still_purges(hass: HomeAssistant) -> None:
+    """A delete the user did not ask for (a scheduled action removing its own
+    automation) hands back nothing to restore, so keeps no history."""
     automation_id = await _created(hass)
 
     assert await async_delete_automation(hass, automation_id)

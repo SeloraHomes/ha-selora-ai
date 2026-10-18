@@ -1,6 +1,7 @@
 // Suggestion and data-loading actions (prototype-assigned to SeloraAIArchitectPanel)
 
 import { invalidateProposalPreviews } from "./render-proposal-diff.js";
+import { loadTrash } from "./trash.js";
 
 export async function _loadSuggestions() {
   try {
@@ -64,6 +65,8 @@ export async function _triggerGenerateSuggestions() {
 }
 
 export async function _loadAutomations() {
+  // Refreshed with the list, which reloads after every delete and restore.
+  loadTrash(this);
   try {
     const automations = await this.hass.callWS({
       type: "selora_ai/get_automations",

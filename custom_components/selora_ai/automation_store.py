@@ -330,6 +330,14 @@ class AutomationStore:
         record_activity(self._hass, "automations_deleted")
         return True
 
+    async def purge_retired(self, automation_id: str) -> bool:
+        """Drop a deleted automation's kept history: it is gone for good."""
+        data_store = await self._get_loaded_data()
+        if data_store.get("retired", {}).pop(automation_id, None) is None:
+            return False
+        await self._store.async_save(data_store)
+        return True
+
     async def _unexpired_retired(self) -> dict[str, AutomationRecord]:
         """Retired records, pruned first: a running hub outlives the deadline."""
         data_store = await self._get_loaded_data()

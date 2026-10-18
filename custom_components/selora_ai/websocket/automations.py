@@ -827,7 +827,7 @@ async def _handle_websocket_delete_automation(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Permanently delete a Selora-managed automation and all version history."""
+    """Delete a Selora-managed automation, into Recently deleted (trash.py)."""
     if not _require_admin(connection, msg):
         return
 
@@ -858,7 +858,7 @@ async def _handle_websocket_delete_automation(
 
         from ..automation_utils import async_delete_automation
 
-        success = await async_delete_automation(hass, automation_id)
+        success = await async_delete_automation(hass, automation_id, trash=True)
         if success:
             connection.send_result(msg["id"], {"status": "deleted"})
         else:

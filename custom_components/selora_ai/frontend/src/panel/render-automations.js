@@ -27,6 +27,7 @@ import { renderSearchMatchReason } from "./search-match.js";
 import { interpolate } from "../shared/i18n.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
+import { renderTrashList, renderTrashTab, trashItems } from "./trash.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
 import {
   activeRefinement,
@@ -1136,7 +1137,13 @@ export function masonryColumns(cards, cols = 3, firstColFooter = null) {
 
 export function renderAutomations(host) {
   const terms = searchTerms(host._automationFilter || "");
-  const statusFilter = host._statusFilter || "all";
+  const deletedCount = trashItems(host, "automation").length;
+  // The tab disappears with its last item; with no live automations left it is
+  // the only list there is.
+  let statusFilter = host._statusFilter || "all";
+  if (statusFilter === "deleted" && !deletedCount) statusFilter = "all";
+  if (!host._automations.length && deletedCount) statusFilter = "deleted";
+  const showDeleted = statusFilter === "deleted";
   const sortBy = host._sortBy || "recent";
   const sortDir = host._sortDir || "desc";
 
@@ -1158,6 +1165,8 @@ export function renderAutomations(host) {
     filteredAutomations = filteredAutomations.filter((a) =>
       staleSet.has(a.automation_id),
     );
+  } else if (showDeleted) {
+    filteredAutomations = [];
   }
 
   // Text search — over the automation's own words AND everything it targets,
@@ -1269,7 +1278,7 @@ export function renderAutomations(host) {
           ${host._t("automations_section_title", "Your Automations")}
         </div>
         ${
-          host._automations.length > 0
+          host._automations.length > 0 || deletedCount > 0
             ? html`
                 <div class="filter-tabs-row" style="margin-top:12px;">
                   <div class="filter-tabs" role="tablist">
@@ -1277,9 +1286,9 @@ export function renderAutomations(host) {
                       (s) => html`
                         <button
                           role="tab"
-                          aria-selected=${host._statusFilter === s}
+                          aria-selected=${statusFilter === s}
                           class="filter-tab ${
-                            host._statusFilter === s ? "active" : ""
+                            statusFilter === s ? "active" : ""
                           }"
                           @click=${() => {
                             host._statusFilter = s;
@@ -1297,9 +1306,9 @@ export function renderAutomations(host) {
                       staleSet.size > 0
                         ? html`<button
                             role="tab"
-                            aria-selected=${host._statusFilter === "stale"}
+                            aria-selected=${statusFilter === "stale"}
                             class="filter-tab ${
-                              host._statusFilter === "stale" ? "active" : ""
+                              statusFilter === "stale" ? "active" : ""
                             }"
                             title=${staleTooltip(host)}
                             @click=${() => {
@@ -1318,6 +1327,10 @@ export function renderAutomations(host) {
                           </button>`
                         : ""
                     }
+                    ${renderTrashTab(host, "automation", showDeleted, () => {
+                      host._statusFilter = "deleted";
+                      host._automationsPage = 1;
+                    })}
                   </div>
                   <div class="filter-tabs-actions">
                     ${
@@ -1533,7 +1546,8 @@ export function renderAutomations(host) {
                       `
                     : ""
                 }
-                <div class="automations-list">
+                ${showDeleted ? renderTrashList(host, "automation") : ""}
+                <div class="automations-list" ?hidden=${showDeleted}>
                   ${pagedAutomations.map((a) => {
                     const isOn = host._automationIsEnabled(a);
                     const isUnavailable = a.state === "unavailable";
@@ -2317,7 +2331,8 @@ export function renderAutomations(host) {
                 }
                 ${
                   filteredAutomations.length === 0 &&
-                  host._automations.length > 0
+                  host._automations.length > 0 &&
+                  !showDeleted
                     ? html`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >

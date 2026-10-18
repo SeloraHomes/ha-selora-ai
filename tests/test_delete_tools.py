@@ -688,11 +688,37 @@ class TestDeleteCardMixedRound:
             {"intent": "answer", "response": "x"}, tool_log, hass=hass, language="en"
         )
         assert out["intent"] == "command_approval"
-        hint = delete_pending_hint("en")
+        hint = delete_pending_hint("en", restorable=True)
         # The hint is present AND something precedes it (the executed-write ack).
         assert hint in out["response"]
         assert out["response"] != hint
         assert "\n\n" in out["response"]
+
+
+class TestDeleteHintSaysWhatCanBeRestored:
+    """Automations and scenes go to Recently deleted; nothing else does."""
+
+    @pytest.mark.parametrize(
+        ("kind", "entity_id", "restorable"),
+        [
+            ("automation", "automation.porch", True),
+            ("scene", "scene.movie", True),
+            ("group", "group.downstairs", False),
+        ],
+    )
+    def test_hint(self, hass: HomeAssistant, kind: str, entity_id: str, restorable: bool) -> None:
+        from custom_components.selora_ai.llm_client.command_policy import (
+            delete_pending_hint,
+        )
+
+        out = synthesize_approval_from_tool_log(
+            {"intent": "answer", "response": "x"},
+            _delete_log(kind, entity_id, "Target"),
+            hass=hass,
+            language="en",
+        )
+        assert out["response"] == delete_pending_hint("en", restorable=restorable)
+        assert ("Recently deleted" in out["response"]) is restorable
 
 
 class TestPreviewDeleteSceneStaleId:
@@ -896,7 +922,7 @@ class TestAtomicIdlessBackend:
             )
         assert result == {"entity_id": "scene.night", "status": "deleted"}
         mock_remove.assert_awaited_once_with(
-            hass, "scene.night", expected_name="Old Native", report={}
+            hass, "scene.night", expected_name="Old Native", report={}, trash=True
         )
         # The SceneStore was never consulted — no chance to match/delete a new
         # record that reused this entity_id.
