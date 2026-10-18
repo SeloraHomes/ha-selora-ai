@@ -1134,4 +1134,48 @@ export const automationsStyles = css`
     margin: 0;
     font-size: 16px;
   }
+
+  /* Rows of the "Recently deleted" filter tab (panel/trash.js). */
+  .trash-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--selora-zinc-700);
+  }
+  .trash-row:last-child {
+    border-bottom: none;
+  }
+  .trash-row-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .trash-name {
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .trash-meta {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .trash-forever {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    --mdc-icon-size: 18px;
+  }
+  .trash-forever:hover:not([disabled]) {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
 `;

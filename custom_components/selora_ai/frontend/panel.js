@@ -6926,6 +6926,50 @@ var automationsStyles = i`
     margin: 0;
     font-size: 16px;
   }
+
+  /* Rows of the "Recently deleted" filter tab (panel/trash.js). */
+  .trash-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--selora-zinc-700);
+  }
+  .trash-row:last-child {
+    border-bottom: none;
+  }
+  .trash-row-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .trash-name {
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .trash-meta {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .trash-forever {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    --mdc-icon-size: 18px;
+  }
+  .trash-forever:hover:not([disabled]) {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+  }
 `;
 
 // src/panel/styles/settings.css.js
@@ -10123,8 +10167,7 @@ var en_default = {
     scenes_delete_modal_fallback_name: "this scene",
     scenes_delete_modal_title: "Delete Scene",
     scenes_delete_modal_prefix: "Delete",
-    scenes_delete_modal_suffix:
-      "? This removes the scene from Home Assistant and cannot be undone.",
+    scenes_delete_modal_suffix: "? You can restore it from Recently deleted.",
     scenes_delete_modal_cancel_button: "Cancel",
     scenes_delete_modal_confirm_button: "Delete",
     usage_pricing_invalid_error: "Pricing must be non-negative numbers.",
@@ -10325,14 +10368,16 @@ var en_default = {
     stale_state_label: "State:",
     stale_state_unknown: "unknown",
     stale_back_button: "Back",
-    stale_remove_confirm: "Remove this automation permanently?",
+    stale_remove_confirm:
+      "Remove this automation? You can restore it from Recently deleted.",
     stale_remove_success: "Automation removed.",
     stale_remove_failed_prefix: "Failed to remove:",
     stale_remove_button: "Remove",
     automation_management_triggered: "Automation triggered.",
     automation_management_renamed: "Automation renamed",
     automation_management_version_restored: "Version restored.",
-    automation_management_delete_confirm: "Delete this automation permanently?",
+    automation_management_delete_confirm:
+      "Delete this automation? You can restore it from Recently deleted.",
     automation_management_deleted: "Automation deleted.",
     automation_management_cannot_refine_no_id:
       "This automation cannot be refined because it has no automation ID.",
@@ -10755,6 +10800,19 @@ var en_default = {
       "After a reply, shows the message you are likely to send next in the empty message box. Press Tab to use it. Makes one extra short request to your AI provider per reply.",
     settings_next_prompt_save_failed_toast:
       "Failed to save the next-message setting.",
+    trash_heading: "Recently deleted",
+    trash_kept_until: "Kept until {date}",
+    trash_restore: "Restore",
+    trash_delete_forever: "Delete forever",
+    trash_delete_forever_confirm:
+      "Delete \u201C{name}\u201D for good? This can't be undone.",
+    trash_restored: "Restored \u201C{name}\u201D.",
+    trash_restore_failed: "Couldn't restore \u201C{name}\u201D: {error}",
+    trash_restore_in_use:
+      "Couldn't restore \u201C{name}\u201D: another one now uses its id.",
+    trash_delete_failed: "Couldn't delete \u201C{name}\u201D: {error}",
+    delete_approval_warning_restorable:
+      "You can restore it from Recently deleted.",
   },
   options: {
     step: {
@@ -11372,7 +11430,7 @@ var fr_default = {
     scenes_delete_modal_title: "Supprimer la sc\xE8ne",
     scenes_delete_modal_prefix: "Supprimer",
     scenes_delete_modal_suffix:
-      "? Cela retire la sc\xE8ne de Home Assistant et ne peut pas \xEAtre annul\xE9.",
+      "? Vous pourrez la restaurer depuis R\xE9cemment supprim\xE9s.",
     scenes_delete_modal_cancel_button: "Annuler",
     scenes_delete_modal_confirm_button: "Supprimer",
     usage_pricing_invalid_error:
@@ -11581,7 +11639,8 @@ var fr_default = {
     stale_state_label: "\xC9tat :",
     stale_state_unknown: "inconnu",
     stale_back_button: "Retour",
-    stale_remove_confirm: "Supprimer cette automatisation d\xE9finitivement ?",
+    stale_remove_confirm:
+      "Retirer cette automatisation ? Vous pourrez la restaurer depuis R\xE9cemment supprim\xE9s.",
     stale_remove_success: "Automatisation supprim\xE9e.",
     stale_remove_failed_prefix: "\xC9chec de la suppression :",
     stale_remove_button: "Supprimer",
@@ -11589,7 +11648,7 @@ var fr_default = {
     automation_management_renamed: "Automatisation renomm\xE9e",
     automation_management_version_restored: "Version restaur\xE9e.",
     automation_management_delete_confirm:
-      "Supprimer cette automatisation d\xE9finitivement ?",
+      "Supprimer cette automatisation ? Vous pourrez la restaurer depuis R\xE9cemment supprim\xE9s.",
     automation_management_deleted: "Automatisation supprim\xE9e.",
     automation_management_cannot_refine_no_id:
       "Cette automatisation ne peut pas \xEAtre affin\xE9e car elle n'a pas d'ID d'automatisation.",
@@ -12040,6 +12099,19 @@ var fr_default = {
       "Apr\xE8s une r\xE9ponse, affiche dans la zone de saisie vide le message que vous allez probablement envoyer ensuite. Appuyez sur Tab pour l\u2019utiliser. Envoie une courte requ\xEAte suppl\xE9mentaire \xE0 votre fournisseur d\u2019IA par r\xE9ponse.",
     settings_next_prompt_save_failed_toast:
       "Impossible d\u2019enregistrer le r\xE9glage du prochain message.",
+    trash_heading: "R\xE9cemment supprim\xE9s",
+    trash_kept_until: "Conserv\xE9 jusqu\u2019au {date}",
+    trash_restore: "Restaurer",
+    trash_delete_forever: "Supprimer d\xE9finitivement",
+    trash_delete_forever_confirm:
+      "Supprimer \xAB {name} \xBB d\xE9finitivement ? Cette action est irr\xE9versible.",
+    trash_restored: "\xAB {name} \xBB restaur\xE9.",
+    trash_restore_failed: "Impossible de restaurer \xAB {name} \xBB : {error}",
+    trash_restore_in_use:
+      "Impossible de restaurer \xAB {name} \xBB : un autre \xE9l\xE9ment utilise d\xE9sormais son identifiant.",
+    trash_delete_failed: "Impossible de supprimer \xAB {name} \xBB : {error}",
+    delete_approval_warning_restorable:
+      "Vous pourrez le restaurer depuis R\xE9cemment supprim\xE9s.",
   },
   options: {
     step: {
@@ -12656,7 +12728,7 @@ var de_default = {
     scenes_delete_modal_title: "Szene l\xF6schen",
     scenes_delete_modal_prefix: "L\xF6schen",
     scenes_delete_modal_suffix:
-      "? Dies entfernt die Szene aus Home Assistant und kann nicht r\xFCckg\xE4ngig gemacht werden.",
+      "? Sie k\xF6nnen sie unter \u201EZuletzt gel\xF6scht\u201C wiederherstellen.",
     scenes_delete_modal_cancel_button: "Abbrechen",
     scenes_delete_modal_confirm_button: "L\xF6schen",
     usage_pricing_invalid_error: "Preise m\xFCssen nicht-negative Zahlen sein.",
@@ -12861,7 +12933,8 @@ var de_default = {
     stale_state_label: "Zustand:",
     stale_state_unknown: "unbekannt",
     stale_back_button: "Zur\xFCck",
-    stale_remove_confirm: "Diese Automatisierung dauerhaft entfernen?",
+    stale_remove_confirm:
+      "Diese Automatisierung entfernen? Sie k\xF6nnen sie unter \u201EZuletzt gel\xF6scht\u201C wiederherstellen.",
     stale_remove_success: "Automatisierung entfernt.",
     stale_remove_failed_prefix: "Entfernen fehlgeschlagen:",
     stale_remove_button: "Entfernen",
@@ -12869,7 +12942,7 @@ var de_default = {
     automation_management_renamed: "Automatisierung umbenannt",
     automation_management_version_restored: "Version wiederhergestellt.",
     automation_management_delete_confirm:
-      "Diese Automatisierung dauerhaft l\xF6schen?",
+      "Diese Automatisierung l\xF6schen? Sie k\xF6nnen sie unter \u201EZuletzt gel\xF6scht\u201C wiederherstellen.",
     automation_management_deleted: "Automatisierung gel\xF6scht.",
     automation_management_cannot_refine_no_id:
       "Diese Automatisierung kann nicht verfeinert werden, da sie keine Automatisierungs-ID hat.",
@@ -13315,6 +13388,21 @@ var de_default = {
       "Zeigt nach einer Antwort im leeren Eingabefeld die Nachricht an, die du wahrscheinlich als N\xE4chstes sendest. Dr\xFCcke Tab, um sie zu \xFCbernehmen. Sendet pro Antwort eine zus\xE4tzliche kurze Anfrage an deinen KI-Anbieter.",
     settings_next_prompt_save_failed_toast:
       "Einstellung f\xFCr die n\xE4chste Nachricht konnte nicht gespeichert werden.",
+    trash_heading: "Zuletzt gel\xF6scht",
+    trash_kept_until: "Aufbewahrt bis {date}",
+    trash_restore: "Wiederherstellen",
+    trash_delete_forever: "Endg\xFCltig l\xF6schen",
+    trash_delete_forever_confirm:
+      "\u201E{name}\u201C endg\xFCltig l\xF6schen? Dies kann nicht r\xFCckg\xE4ngig gemacht werden.",
+    trash_restored: "\u201E{name}\u201C wiederhergestellt.",
+    trash_restore_failed:
+      "\u201E{name}\u201C konnte nicht wiederhergestellt werden: {error}",
+    trash_restore_in_use:
+      "\u201E{name}\u201C konnte nicht wiederhergestellt werden: Ein anderes Element verwendet jetzt seine ID.",
+    trash_delete_failed:
+      "\u201E{name}\u201C konnte nicht gel\xF6scht werden: {error}",
+    delete_approval_warning_restorable:
+      "Sie k\xF6nnen es unter \u201EZuletzt gel\xF6scht\u201C wiederherstellen.",
   },
   options: {
     step: {
@@ -13925,7 +14013,7 @@ var es_default = {
     scenes_delete_modal_title: "Eliminar escena",
     scenes_delete_modal_prefix: "\xBFEliminar",
     scenes_delete_modal_suffix:
-      "? Esto elimina la escena de Home Assistant y no se puede deshacer.",
+      "? Podr\xE1s restaurarla desde Eliminados recientemente.",
     scenes_delete_modal_cancel_button: "Cancelar",
     scenes_delete_modal_confirm_button: "Eliminar",
     usage_pricing_invalid_error:
@@ -14130,7 +14218,7 @@ var es_default = {
     stale_state_unknown: "desconocido",
     stale_back_button: "Atr\xE1s",
     stale_remove_confirm:
-      "\xBFEliminar esta automatizaci\xF3n permanentemente?",
+      "\xBFQuitar esta automatizaci\xF3n? Podr\xE1s restaurarla desde Eliminados recientemente.",
     stale_remove_success: "Automatizaci\xF3n eliminada.",
     stale_remove_failed_prefix: "No se pudo eliminar:",
     stale_remove_button: "Eliminar",
@@ -14138,7 +14226,7 @@ var es_default = {
     automation_management_renamed: "Automatizaci\xF3n renombrada",
     automation_management_version_restored: "Versi\xF3n restaurada.",
     automation_management_delete_confirm:
-      "\xBFEliminar esta automatizaci\xF3n permanentemente?",
+      "\xBFEliminar esta automatizaci\xF3n? Podr\xE1s restaurarla desde Eliminados recientemente.",
     automation_management_deleted: "Automatizaci\xF3n eliminada.",
     automation_management_cannot_refine_no_id:
       "Esta automatizaci\xF3n no se puede refinar porque no tiene ID de automatizaci\xF3n.",
@@ -14572,6 +14660,19 @@ var es_default = {
       "Despu\xE9s de una respuesta, muestra en el cuadro de mensaje vac\xEDo el mensaje que probablemente enviar\xE1s a continuaci\xF3n. Pulsa Tab para usarlo. Hace una solicitud breve adicional a tu proveedor de IA por respuesta.",
     settings_next_prompt_save_failed_toast:
       "No se pudo guardar el ajuste del pr\xF3ximo mensaje.",
+    trash_heading: "Eliminados recientemente",
+    trash_kept_until: "Se conserva hasta el {date}",
+    trash_restore: "Restaurar",
+    trash_delete_forever: "Eliminar para siempre",
+    trash_delete_forever_confirm:
+      "\xBFEliminar \xAB{name}\xBB para siempre? Esta acci\xF3n no se puede deshacer.",
+    trash_restored: "\xAB{name}\xBB restaurado.",
+    trash_restore_failed: "No se pudo restaurar \xAB{name}\xBB: {error}",
+    trash_restore_in_use:
+      "No se pudo restaurar \xAB{name}\xBB: otro elemento usa ahora su id.",
+    trash_delete_failed: "No se pudo eliminar \xAB{name}\xBB: {error}",
+    delete_approval_warning_restorable:
+      "Podr\xE1s restaurarlo desde Eliminados recientemente.",
   },
   options: {
     step: {
@@ -15178,7 +15279,7 @@ var it_default = {
     scenes_delete_modal_title: "Elimina scena",
     scenes_delete_modal_prefix: "Eliminare",
     scenes_delete_modal_suffix:
-      "? Questo rimuove la scena da Home Assistant e non pu\xF2 essere annullato.",
+      "? Potrai ripristinarla da Eliminati di recente.",
     scenes_delete_modal_cancel_button: "Annulla",
     scenes_delete_modal_confirm_button: "Elimina",
     usage_pricing_invalid_error: "I prezzi devono essere numeri non negativi.",
@@ -15382,7 +15483,8 @@ var it_default = {
     stale_state_label: "Stato:",
     stale_state_unknown: "sconosciuto",
     stale_back_button: "Indietro",
-    stale_remove_confirm: "Rimuovere questa automazione in modo permanente?",
+    stale_remove_confirm:
+      "Rimuovere questa automazione? Potrai ripristinarla da Eliminati di recente.",
     stale_remove_success: "Automazione rimossa.",
     stale_remove_failed_prefix: "Impossibile rimuovere:",
     stale_remove_button: "Rimuovi",
@@ -15390,7 +15492,7 @@ var it_default = {
     automation_management_renamed: "Automazione rinominata",
     automation_management_version_restored: "Versione ripristinata.",
     automation_management_delete_confirm:
-      "Eliminare questa automazione in modo permanente?",
+      "Eliminare questa automazione? Potrai ripristinarla da Eliminati di recente.",
     automation_management_deleted: "Automazione eliminata.",
     automation_management_cannot_refine_no_id:
       "Questa automazione non pu\xF2 essere perfezionata perch\xE9 non ha un ID automazione.",
@@ -15828,6 +15930,19 @@ var it_default = {
       "Dopo una risposta, mostra nella casella vuota il messaggio che probabilmente invierai dopo. Premi Tab per usarlo. Invia una breve richiesta aggiuntiva al tuo fornitore di IA per ogni risposta.",
     settings_next_prompt_save_failed_toast:
       "Impossibile salvare l\u2019impostazione del prossimo messaggio.",
+    trash_heading: "Eliminati di recente",
+    trash_kept_until: "Conservato fino al {date}",
+    trash_restore: "Ripristina",
+    trash_delete_forever: "Elimina definitivamente",
+    trash_delete_forever_confirm:
+      "Eliminare definitivamente \xAB{name}\xBB? L'azione \xE8 irreversibile.",
+    trash_restored: "\xAB{name}\xBB ripristinato.",
+    trash_restore_failed: "Impossibile ripristinare \xAB{name}\xBB: {error}",
+    trash_restore_in_use:
+      "Impossibile ripristinare \xAB{name}\xBB: un altro elemento ora usa il suo id.",
+    trash_delete_failed: "Impossibile eliminare \xAB{name}\xBB: {error}",
+    delete_approval_warning_restorable:
+      "Potrai ripristinarlo da Eliminati di recente.",
   },
   options: {
     step: {
@@ -16454,7 +16569,7 @@ var nl_default = {
     scenes_delete_modal_title: "Sc\xE8ne verwijderen",
     scenes_delete_modal_prefix: "Verwijder",
     scenes_delete_modal_suffix:
-      "? Hiermee wordt de sc\xE8ne uit Home Assistant verwijderd en dit kan niet ongedaan worden gemaakt.",
+      "? Je kunt hem herstellen via Recent verwijderd.",
     scenes_delete_modal_cancel_button: "Annuleren",
     scenes_delete_modal_confirm_button: "Verwijderen",
     usage_pricing_invalid_error: "Prijzen moeten niet-negatieve getallen zijn.",
@@ -16657,7 +16772,8 @@ var nl_default = {
     stale_state_label: "Status:",
     stale_state_unknown: "onbekend",
     stale_back_button: "Terug",
-    stale_remove_confirm: "Deze automatisering definitief verwijderen?",
+    stale_remove_confirm:
+      "Deze automatisering verwijderen? Je kunt hem herstellen via Recent verwijderd.",
     stale_remove_success: "Automatisering verwijderd.",
     stale_remove_failed_prefix: "Verwijderen mislukt:",
     stale_remove_button: "Verwijderen",
@@ -16665,7 +16781,7 @@ var nl_default = {
     automation_management_renamed: "Naam van automatisering gewijzigd",
     automation_management_version_restored: "Versie hersteld.",
     automation_management_delete_confirm:
-      "Deze automatisering definitief verwijderen?",
+      "Deze automatisering verwijderen? Je kunt hem herstellen via Recent verwijderd.",
     automation_management_deleted: "Automatisering verwijderd.",
     automation_management_cannot_refine_no_id:
       "Deze automatisering kan niet worden verfijnd omdat ze geen automatisering-ID heeft.",
@@ -17103,6 +17219,19 @@ var nl_default = {
       "Toont na een antwoord in het lege berichtvak het bericht dat je waarschijnlijk als volgende stuurt. Druk op Tab om het te gebruiken. Doet per antwoord \xE9\xE9n extra korte aanvraag bij je AI-provider.",
     settings_next_prompt_save_failed_toast:
       "Instelling voor het volgende bericht kon niet worden opgeslagen.",
+    trash_heading: "Recent verwijderd",
+    trash_kept_until: "Bewaard tot {date}",
+    trash_restore: "Herstellen",
+    trash_delete_forever: "Definitief verwijderen",
+    trash_delete_forever_confirm:
+      "\u201C{name}\u201D definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    trash_restored: "\u201C{name}\u201D hersteld.",
+    trash_restore_failed: "Kon \u201C{name}\u201D niet herstellen: {error}",
+    trash_restore_in_use:
+      "Kon \u201C{name}\u201D niet herstellen: een ander item gebruikt nu zijn id.",
+    trash_delete_failed: "Kon \u201C{name}\u201D niet verwijderen: {error}",
+    delete_approval_warning_restorable:
+      "Je kunt het herstellen via Recent verwijderd.",
   },
 };
 
@@ -17740,7 +17869,7 @@ var hu_default = {
     scenes_delete_modal_title: "Jelenet t\xF6rl\xE9se",
     scenes_delete_modal_prefix: "T\xF6rli a k\xF6vetkez\u0151t:",
     scenes_delete_modal_suffix:
-      "? Ez elt\xE1vol\xEDtja a jelenetet a Home Assistantb\xF3l, \xE9s nem vonhat\xF3 vissza.",
+      "? A Nemr\xE9g t\xF6r\xF6lt elemek k\xF6z\xFCl vissza\xE1ll\xEDthatja.",
     scenes_delete_modal_cancel_button: "M\xE9gse",
     scenes_delete_modal_confirm_button: "T\xF6rl\xE9s",
     usage_pricing_invalid_error:
@@ -17958,7 +18087,7 @@ var hu_default = {
     stale_state_unknown: "ismeretlen",
     stale_back_button: "Vissza",
     stale_remove_confirm:
-      "V\xE9glegesen elt\xE1vol\xEDtja ezt az automatizmust?",
+      "Elt\xE1vol\xEDtja ezt az automatiz\xE1l\xE1st? A Nemr\xE9g t\xF6r\xF6lt elemek k\xF6z\xFCl vissza\xE1ll\xEDthatja.",
     stale_remove_success: "Automatizmus elt\xE1vol\xEDtva.",
     stale_remove_failed_prefix: "Az elt\xE1vol\xEDt\xE1s nem siker\xFClt:",
     stale_remove_button: "Elt\xE1vol\xEDt\xE1s",
@@ -17966,7 +18095,7 @@ var hu_default = {
     automation_management_renamed: "Automatizmus \xE1tnevezve",
     automation_management_version_restored: "Verzi\xF3 vissza\xE1ll\xEDtva.",
     automation_management_delete_confirm:
-      "V\xE9glegesen t\xF6rli ezt az automatizmust?",
+      "T\xF6rli ezt az automatiz\xE1l\xE1st? A Nemr\xE9g t\xF6r\xF6lt elemek k\xF6z\xFCl vissza\xE1ll\xEDthatja.",
     automation_management_deleted: "Automatizmus t\xF6r\xF6lve.",
     automation_management_cannot_refine_no_id:
       "Ez az automatizmus nem finom\xEDthat\xF3, mert nincs automatizmusazonos\xEDt\xF3ja.",
@@ -18427,6 +18556,21 @@ var hu_default = {
       "V\xE1lasz ut\xE1n az \xFCres \xFCzenetmez\u0151ben megjelen\xEDti azt az \xFCzenetet, amelyet val\xF3sz\xEDn\u0171leg k\xF6vetkez\u0151k\xE9nt k\xFClden\xE9l. Nyomd meg a Tab billenty\u0171t a haszn\xE1lat\xE1hoz. V\xE1laszonk\xE9nt egy tov\xE1bbi r\xF6vid k\xE9r\xE9st k\xFCld az AI-szolg\xE1ltat\xF3dnak.",
     settings_next_prompt_save_failed_toast:
       "Nem siker\xFClt menteni a k\xF6vetkez\u0151 \xFCzenet be\xE1ll\xEDt\xE1s\xE1t.",
+    trash_heading: "Nemr\xE9g t\xF6r\xF6lt",
+    trash_kept_until: "Meg\u0151rizve eddig: {date}",
+    trash_restore: "Vissza\xE1ll\xEDt\xE1s",
+    trash_delete_forever: "V\xE9gleges t\xF6rl\xE9s",
+    trash_delete_forever_confirm:
+      "V\xE9glegesen t\xF6rli: \u201E{name}\u201D? Ez nem vonhat\xF3 vissza.",
+    trash_restored: "Vissza\xE1ll\xEDtva: \u201E{name}\u201D.",
+    trash_restore_failed:
+      "Nem siker\xFClt vissza\xE1ll\xEDtani: \u201E{name}\u201D: {error}",
+    trash_restore_in_use:
+      "Nem siker\xFClt vissza\xE1ll\xEDtani: \u201E{name}\u201D: az azonos\xEDt\xF3j\xE1t m\xE1r m\xE1s haszn\xE1lja.",
+    trash_delete_failed:
+      "Nem siker\xFClt t\xF6r\xF6lni: \u201E{name}\u201D: {error}",
+    delete_approval_warning_restorable:
+      "A Nemr\xE9g t\xF6r\xF6lt elemek k\xF6z\xFCl vissza\xE1ll\xEDthatja.",
   },
 };
 
@@ -19023,7 +19167,7 @@ var pt_default = {
     scenes_delete_modal_title: "Eliminar cena",
     scenes_delete_modal_prefix: "Eliminar",
     scenes_delete_modal_suffix:
-      "? Isto remove a cena do Home Assistant e n\xE3o pode ser anulado.",
+      "? Pode restaur\xE1-la a partir de Eliminados recentemente.",
     scenes_delete_modal_cancel_button: "Cancelar",
     scenes_delete_modal_confirm_button: "Eliminar",
     usage_pricing_invalid_error:
@@ -19228,7 +19372,8 @@ var pt_default = {
     stale_state_label: "Estado:",
     stale_state_unknown: "desconhecido",
     stale_back_button: "Voltar",
-    stale_remove_confirm: "Remover esta automa\xE7\xE3o permanentemente?",
+    stale_remove_confirm:
+      "Remover esta automa\xE7\xE3o? Pode restaur\xE1-la a partir de Eliminados recentemente.",
     stale_remove_success: "Automa\xE7\xE3o removida.",
     stale_remove_failed_prefix: "N\xE3o foi poss\xEDvel remover:",
     stale_remove_button: "Remover",
@@ -19236,7 +19381,7 @@ var pt_default = {
     automation_management_renamed: "Automa\xE7\xE3o renomeada",
     automation_management_version_restored: "Vers\xE3o restaurada.",
     automation_management_delete_confirm:
-      "Eliminar esta automa\xE7\xE3o permanentemente?",
+      "Eliminar esta automa\xE7\xE3o? Pode restaur\xE1-la a partir de Eliminados recentemente.",
     automation_management_deleted: "Automa\xE7\xE3o eliminada.",
     automation_management_cannot_refine_no_id:
       "Esta automa\xE7\xE3o n\xE3o pode ser aperfei\xE7oada porque n\xE3o tem ID de automa\xE7\xE3o.",
@@ -19677,6 +19822,21 @@ var pt_default = {
       "Depois de uma resposta, mostra na caixa de mensagem vazia a mensagem que provavelmente vai enviar a seguir. Prima Tab para a usar. Faz um pedido curto adicional ao seu fornecedor de IA por resposta.",
     settings_next_prompt_save_failed_toast:
       "N\xE3o foi poss\xEDvel guardar a defini\xE7\xE3o da pr\xF3xima mensagem.",
+    trash_heading: "Eliminados recentemente",
+    trash_kept_until: "Mantido at\xE9 {date}",
+    trash_restore: "Restaurar",
+    trash_delete_forever: "Eliminar para sempre",
+    trash_delete_forever_confirm:
+      "Eliminar \xAB{name}\xBB para sempre? Esta a\xE7\xE3o n\xE3o pode ser anulada.",
+    trash_restored: "\xAB{name}\xBB restaurado.",
+    trash_restore_failed:
+      "N\xE3o foi poss\xEDvel restaurar \xAB{name}\xBB: {error}",
+    trash_restore_in_use:
+      "N\xE3o foi poss\xEDvel restaurar \xAB{name}\xBB: outro item usa agora o seu id.",
+    trash_delete_failed:
+      "N\xE3o foi poss\xEDvel eliminar \xAB{name}\xBB: {error}",
+    delete_approval_warning_restorable:
+      "Pode restaur\xE1-lo a partir de Eliminados recentemente.",
   },
   options: {
     step: {
@@ -20561,7 +20721,7 @@ var ru_default = {
       "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0441\u0446\u0435\u043D\u0443",
     scenes_delete_modal_prefix: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
     scenes_delete_modal_suffix:
-      "? \u042D\u0442\u043E \u0443\u0434\u0430\u043B\u0438\u0442 \u0441\u0446\u0435\u043D\u0443 \u0438\u0437 Home Assistant \u0431\u0435\u0437 \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F.",
+      "? \u0415\u0451 \u043C\u043E\u0436\u043D\u043E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0438\u0437 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0445\xBB.",
     scenes_delete_modal_cancel_button: "\u041E\u0442\u043C\u0435\u043D\u0430",
     scenes_delete_modal_confirm_button:
       "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
@@ -20879,7 +21039,7 @@ var ru_default = {
       "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E",
     stale_back_button: "\u041D\u0430\u0437\u0430\u0434",
     stale_remove_confirm:
-      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430?",
+      "\u0423\u0431\u0440\u0430\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E? \u0415\u0451 \u043C\u043E\u0436\u043D\u043E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0438\u0437 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0445\xBB.",
     stale_remove_success:
       "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0430.",
     stale_remove_failed_prefix:
@@ -20892,7 +21052,7 @@ var ru_default = {
     automation_management_version_restored:
       "\u0412\u0435\u0440\u0441\u0438\u044F \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0430.",
     automation_management_delete_confirm:
-      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430?",
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E? \u0415\u0451 \u043C\u043E\u0436\u043D\u043E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0438\u0437 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0445\xBB.",
     automation_management_deleted:
       "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0430.",
     automation_management_cannot_refine_no_id:
@@ -21548,6 +21708,26 @@ var ru_default = {
       "\u041F\u043E\u0441\u043B\u0435 \u043E\u0442\u0432\u0435\u0442\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0432 \u043F\u0443\u0441\u0442\u043E\u043C \u043F\u043E\u043B\u0435 \u0432\u0432\u043E\u0434\u0430 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435, \u043A\u043E\u0442\u043E\u0440\u043E\u0435 \u0432\u044B, \u0432\u0435\u0440\u043E\u044F\u0442\u043D\u043E, \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u0435 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u043C. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 Tab, \u0447\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0435\u0433\u043E. \u0414\u0435\u043B\u0430\u0435\u0442 \u043E\u0434\u0438\u043D \u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439 \u043A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u0437\u0430\u043F\u0440\u043E\u0441 \u043A \u0432\u0430\u0448\u0435\u043C\u0443 \u0418\u0418-\u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443 \u043D\u0430 \u043A\u0430\u0436\u0434\u044B\u0439 \u043E\u0442\u0432\u0435\u0442.",
     settings_next_prompt_save_failed_toast:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443 \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0433\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F.",
+    trash_heading:
+      "\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0435",
+    trash_kept_until:
+      "\u0425\u0440\u0430\u043D\u0438\u0442\u0441\u044F \u0434\u043E {date}",
+    trash_restore:
+      "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C",
+    trash_delete_forever:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430",
+    trash_delete_forever_confirm:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430? \u042D\u0442\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043D\u0435\u043E\u0431\u0440\u0430\u0442\u0438\u043C\u043E.",
+    trash_restored:
+      "\xAB{name}\xBB \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E.",
+    trash_restore_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \xAB{name}\xBB: {error}",
+    trash_restore_in_use:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \xAB{name}\xBB: \u0435\u0433\u043E \u0438\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440 \u0443\u0436\u0435 \u0437\u0430\u043D\u044F\u0442.",
+    trash_delete_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB: {error}",
+    delete_approval_warning_restorable:
+      "\u0415\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0438\u0437 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0445\xBB.",
   },
   options: {
     step: {
@@ -22284,7 +22464,7 @@ var ja_default = {
     scenes_delete_modal_title: "\u30B7\u30FC\u30F3\u3092\u524A\u9664",
     scenes_delete_modal_prefix: "\u524A\u9664",
     scenes_delete_modal_suffix:
-      "\uFF1F\u3053\u308C\u306B\u3088\u308A Home Assistant \u304B\u3089\u30B7\u30FC\u30F3\u304C\u524A\u9664\u3055\u308C\u3001\u5143\u306B\u623B\u3059\u3053\u3068\u306F\u3067\u304D\u307E\u305B\u3093\u3002",
+      "\uFF1F\u300C\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE\u300D\u304B\u3089\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002",
     scenes_delete_modal_cancel_button: "\u30AD\u30E3\u30F3\u30BB\u30EB",
     scenes_delete_modal_confirm_button: "\u524A\u9664",
     usage_pricing_invalid_error:
@@ -22540,7 +22720,7 @@ var ja_default = {
     stale_state_unknown: "\u4E0D\u660E",
     stale_back_button: "\u623B\u308B",
     stale_remove_confirm:
-      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u5B8C\u5168\u306B\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
+      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F\u300C\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE\u300D\u304B\u3089\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002",
     stale_remove_success:
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3057\u307E\u3057\u305F\u3002",
     stale_remove_failed_prefix:
@@ -22553,7 +22733,7 @@ var ja_default = {
     automation_management_version_restored:
       "\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u5FA9\u5143\u3057\u307E\u3057\u305F\u3002",
     automation_management_delete_confirm:
-      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u5B8C\u5168\u306B\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
+      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F\u300C\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE\u300D\u304B\u3089\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002",
     automation_management_deleted:
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3057\u307E\u3057\u305F\u3002",
     automation_management_cannot_refine_no_id:
@@ -23100,6 +23280,22 @@ var ja_default = {
       "\u8FD4\u4FE1\u306E\u5F8C\u3001\u7A7A\u306E\u5165\u529B\u6B04\u306B\u6B21\u306B\u9001\u308A\u305D\u3046\u306A\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u8868\u793A\u3057\u307E\u3059\u3002Tab \u30AD\u30FC\u3067\u4F7F\u7528\u3067\u304D\u307E\u3059\u3002\u8FD4\u4FE1\u3054\u3068\u306B AI \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3078\u77ED\u3044\u30EA\u30AF\u30A8\u30B9\u30C8\u3092 1 \u56DE\u8FFD\u52A0\u3067\u9001\u4FE1\u3057\u307E\u3059\u3002",
     settings_next_prompt_save_failed_toast:
       "\u6B21\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    trash_heading: "\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE",
+    trash_kept_until: "{date} \u307E\u3067\u4FDD\u6301",
+    trash_restore: "\u5FA9\u5143",
+    trash_delete_forever: "\u5B8C\u5168\u306B\u524A\u9664",
+    trash_delete_forever_confirm:
+      "\u300C{name}\u300D\u3092\u5B8C\u5168\u306B\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F\u3053\u306E\u64CD\u4F5C\u306F\u53D6\u308A\u6D88\u305B\u307E\u305B\u3093\u3002",
+    trash_restored:
+      "\u300C{name}\u300D\u3092\u5FA9\u5143\u3057\u307E\u3057\u305F\u3002",
+    trash_restore_failed:
+      "\u300C{name}\u300D\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F: {error}",
+    trash_restore_in_use:
+      "\u300C{name}\u300D\u3092\u5FA9\u5143\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F: \u305D\u306E ID \u306F\u5225\u306E\u9805\u76EE\u3067\u4F7F\u308F\u308C\u3066\u3044\u307E\u3059\u3002",
+    trash_delete_failed:
+      "\u300C{name}\u300D\u3092\u524A\u9664\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F: {error}",
+    delete_approval_warning_restorable:
+      "\u300C\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE\u300D\u304B\u3089\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002",
   },
   options: {
     step: {
@@ -23797,7 +23993,7 @@ var ko_default = {
     scenes_delete_modal_title: "\uC7A5\uBA74 \uC0AD\uC81C",
     scenes_delete_modal_prefix: "\uC0AD\uC81C",
     scenes_delete_modal_suffix:
-      "\uC744(\uB97C) \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C? \uC774 \uC791\uC5C5\uC740 Home Assistant\uC5D0\uC11C \uC7A5\uBA74\uC744 \uC81C\uAC70\uD558\uBA70 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      "? \uCD5C\uADFC \uC0AD\uC81C\uB428\uC5D0\uC11C \uBCF5\uC6D0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
     scenes_delete_modal_cancel_button: "\uCDE8\uC18C",
     scenes_delete_modal_confirm_button: "\uC0AD\uC81C",
     usage_pricing_invalid_error:
@@ -24029,7 +24225,7 @@ var ko_default = {
     stale_state_unknown: "\uC54C \uC218 \uC5C6\uC74C",
     stale_back_button: "\uB4A4\uB85C",
     stale_remove_confirm:
-      "\uC774 \uC790\uB3D9\uD654\uB97C \uC601\uAD6C\uC801\uC73C\uB85C \uC81C\uAC70\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?",
+      "\uC774 \uC790\uB3D9\uD654\uB97C \uC81C\uAC70\uD560\uAE4C\uC694? \uCD5C\uADFC \uC0AD\uC81C\uB428\uC5D0\uC11C \uBCF5\uC6D0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
     stale_remove_success:
       "\uC790\uB3D9\uD654\uAC00 \uC81C\uAC70\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
     stale_remove_failed_prefix:
@@ -24042,7 +24238,7 @@ var ko_default = {
     automation_management_version_restored:
       "\uBC84\uC804\uC774 \uBCF5\uC6D0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
     automation_management_delete_confirm:
-      "\uC774 \uC790\uB3D9\uD654\uB97C \uC601\uAD6C\uC801\uC73C\uB85C \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?",
+      "\uC774 \uC790\uB3D9\uD654\uB97C \uC0AD\uC81C\uD560\uAE4C\uC694? \uCD5C\uADFC \uC0AD\uC81C\uB428\uC5D0\uC11C \uBCF5\uC6D0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
     automation_management_deleted:
       "\uC790\uB3D9\uD654\uAC00 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
     automation_management_cannot_refine_no_id:
@@ -24545,6 +24741,22 @@ var ko_default = {
       "\uB2F5\uBCC0 \uD6C4 \uBE48 \uC785\uB825\uB780\uC5D0 \uB2E4\uC74C\uC5D0 \uBCF4\uB0BC \uAC00\uB2A5\uC131\uC774 \uB192\uC740 \uBA54\uC2DC\uC9C0\uB97C \uD45C\uC2DC\uD569\uB2C8\uB2E4. Tab \uD0A4\uB97C \uB20C\uB7EC \uC0AC\uC6A9\uD558\uC138\uC694. \uB2F5\uBCC0\uB9C8\uB2E4 AI \uC81C\uACF5\uC5C5\uCCB4\uC5D0 \uC9E7\uC740 \uC694\uCCAD\uC744 \uD55C \uBC88 \uB354 \uBCF4\uB0C5\uB2C8\uB2E4.",
     settings_next_prompt_save_failed_toast:
       "\uB2E4\uC74C \uBA54\uC2DC\uC9C0 \uC124\uC815\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+    trash_heading: "\uCD5C\uADFC \uC0AD\uC81C\uB428",
+    trash_kept_until: "{date}\uAE4C\uC9C0 \uBCF4\uAD00",
+    trash_restore: "\uBCF5\uC6D0",
+    trash_delete_forever: "\uC601\uAD6C \uC0AD\uC81C",
+    trash_delete_forever_confirm:
+      "\u201C{name}\u201D\uC744(\uB97C) \uC601\uAD6C \uC0AD\uC81C\uD560\uAE4C\uC694? \uC774 \uC791\uC5C5\uC740 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    trash_restored:
+      "\u201C{name}\u201D\uC744(\uB97C) \uBCF5\uC6D0\uD588\uC2B5\uB2C8\uB2E4.",
+    trash_restore_failed:
+      "\u201C{name}\u201D\uC744(\uB97C) \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: {error}",
+    trash_restore_in_use:
+      "\u201C{name}\u201D\uC744(\uB97C) \uBCF5\uC6D0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: \uB2E4\uB978 \uD56D\uBAA9\uC774 \uD574\uB2F9 ID\uB97C \uC0AC\uC6A9 \uC911\uC785\uB2C8\uB2E4.",
+    trash_delete_failed:
+      "\u201C{name}\u201D\uC744(\uB97C) \uC0AD\uC81C\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: {error}",
+    delete_approval_warning_restorable:
+      "\uCD5C\uADFC \uC0AD\uC81C\uB428\uC5D0\uC11C \uBCF5\uC6D0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
   },
   options: {
     step: {
@@ -25199,7 +25411,7 @@ var zh_Hans_default = {
     scenes_delete_modal_title: "\u5220\u9664\u573A\u666F",
     scenes_delete_modal_prefix: "\u5220\u9664",
     scenes_delete_modal_suffix:
-      "\uFF1F\u6B64\u64CD\u4F5C\u4F1A\u5C06\u8BE5\u573A\u666F\u4ECE Home Assistant \u4E2D\u79FB\u9664\u4E14\u65E0\u6CD5\u64A4\u9500\u3002",
+      "\uFF1F\u4E4B\u540E\u53EF\u4ECE\u201C\u6700\u8FD1\u5220\u9664\u201D\u4E2D\u6062\u590D\u3002",
     scenes_delete_modal_cancel_button: "\u53D6\u6D88",
     scenes_delete_modal_confirm_button: "\u5220\u9664",
     usage_pricing_invalid_error:
@@ -25423,7 +25635,7 @@ var zh_Hans_default = {
     stale_state_unknown: "\u672A\u77E5",
     stale_back_button: "\u8FD4\u56DE",
     stale_remove_confirm:
-      "\u6C38\u4E45\u79FB\u9664\u6B64\u81EA\u52A8\u5316\uFF1F",
+      "\u79FB\u9664\u6B64\u81EA\u52A8\u5316\uFF1F\u4E4B\u540E\u53EF\u4ECE\u201C\u6700\u8FD1\u5220\u9664\u201D\u4E2D\u6062\u590D\u3002",
     stale_remove_success: "\u81EA\u52A8\u5316\u5DF2\u79FB\u9664\u3002",
     stale_remove_failed_prefix: "\u79FB\u9664\u5931\u8D25\uFF1A",
     stale_remove_button: "\u79FB\u9664",
@@ -25433,7 +25645,7 @@ var zh_Hans_default = {
     automation_management_version_restored:
       "\u7248\u672C\u5DF2\u6062\u590D\u3002",
     automation_management_delete_confirm:
-      "\u6C38\u4E45\u5220\u9664\u6B64\u81EA\u52A8\u5316\uFF1F",
+      "\u5220\u9664\u6B64\u81EA\u52A8\u5316\uFF1F\u4E4B\u540E\u53EF\u4ECE\u201C\u6700\u8FD1\u5220\u9664\u201D\u4E2D\u6062\u590D\u3002",
     automation_management_deleted: "\u81EA\u52A8\u5316\u5DF2\u5220\u9664\u3002",
     automation_management_cannot_refine_no_id:
       "\u65E0\u6CD5\u5B8C\u5584\u6B64\u81EA\u52A8\u5316\uFF0C\u56E0\u4E3A\u5B83\u6CA1\u6709\u81EA\u52A8\u5316 ID\u3002",
@@ -25909,6 +26121,21 @@ var zh_Hans_default = {
       "\u56DE\u590D\u540E\uFF0C\u5728\u7A7A\u767D\u8F93\u5165\u6846\u4E2D\u663E\u793A\u4F60\u63A5\u4E0B\u6765\u53EF\u80FD\u53D1\u9001\u7684\u6D88\u606F\u3002\u6309 Tab \u952E\u5373\u53EF\u4F7F\u7528\u3002\u6BCF\u6B21\u56DE\u590D\u4F1A\u5411\u4F60\u7684 AI \u63D0\u4F9B\u5546\u989D\u5916\u53D1\u9001\u4E00\u4E2A\u7B80\u77ED\u8BF7\u6C42\u3002",
     settings_next_prompt_save_failed_toast:
       "\u65E0\u6CD5\u4FDD\u5B58\u4E0B\u4E00\u6761\u6D88\u606F\u8BBE\u7F6E\u3002",
+    trash_heading: "\u6700\u8FD1\u5220\u9664",
+    trash_kept_until: "\u4FDD\u7559\u81F3 {date}",
+    trash_restore: "\u6062\u590D",
+    trash_delete_forever: "\u6C38\u4E45\u5220\u9664",
+    trash_delete_forever_confirm:
+      "\u8981\u6C38\u4E45\u5220\u9664\u201C{name}\u201D\u5417\uFF1F\u6B64\u64CD\u4F5C\u65E0\u6CD5\u64A4\u9500\u3002",
+    trash_restored: "\u5DF2\u6062\u590D\u201C{name}\u201D\u3002",
+    trash_restore_failed:
+      "\u65E0\u6CD5\u6062\u590D\u201C{name}\u201D\uFF1A{error}",
+    trash_restore_in_use:
+      "\u65E0\u6CD5\u6062\u590D\u201C{name}\u201D\uFF1A\u5176 ID \u5DF2\u88AB\u5176\u4ED6\u9879\u76EE\u4F7F\u7528\u3002",
+    trash_delete_failed:
+      "\u65E0\u6CD5\u5220\u9664\u201C{name}\u201D\uFF1A{error}",
+    delete_approval_warning_restorable:
+      "\u4E4B\u540E\u53EF\u4ECE\u201C\u6700\u8FD1\u5220\u9664\u201D\u4E2D\u6062\u590D\u3002",
   },
   options: {
     step: {
@@ -26565,7 +26792,7 @@ var zh_Hant_default = {
     scenes_delete_modal_title: "\u522A\u9664\u60C5\u5883",
     scenes_delete_modal_prefix: "\u522A\u9664",
     scenes_delete_modal_suffix:
-      "\u55CE\uFF1F\u9019\u6703\u5C07\u8A72\u60C5\u5883\u5F9E Home Assistant \u4E2D\u79FB\u9664\uFF0C\u4E14\u7121\u6CD5\u5FA9\u539F\u3002",
+      "\u55CE\uFF1F\u4E4B\u5F8C\u53EF\u5F9E\u300C\u6700\u8FD1\u522A\u9664\u300D\u4E2D\u5FA9\u539F\u3002",
     scenes_delete_modal_cancel_button: "\u53D6\u6D88",
     scenes_delete_modal_confirm_button: "\u522A\u9664",
     usage_pricing_invalid_error:
@@ -26790,7 +27017,7 @@ var zh_Hant_default = {
     stale_state_unknown: "\u672A\u77E5",
     stale_back_button: "\u8FD4\u56DE",
     stale_remove_confirm:
-      "\u8981\u6C38\u4E45\u79FB\u9664\u6B64\u81EA\u52D5\u5316\u55CE\uFF1F",
+      "\u8981\u79FB\u9664\u6B64\u81EA\u52D5\u5316\u55CE\uFF1F\u4E4B\u5F8C\u53EF\u5F9E\u300C\u6700\u8FD1\u522A\u9664\u300D\u4E2D\u5FA9\u539F\u3002",
     stale_remove_success: "\u81EA\u52D5\u5316\u5DF2\u79FB\u9664\u3002",
     stale_remove_failed_prefix: "\u7121\u6CD5\u79FB\u9664\uFF1A",
     stale_remove_button: "\u79FB\u9664",
@@ -26801,7 +27028,7 @@ var zh_Hant_default = {
     automation_management_version_restored:
       "\u7248\u672C\u5DF2\u9084\u539F\u3002",
     automation_management_delete_confirm:
-      "\u8981\u6C38\u4E45\u522A\u9664\u6B64\u81EA\u52D5\u5316\u55CE\uFF1F",
+      "\u8981\u522A\u9664\u6B64\u81EA\u52D5\u5316\u55CE\uFF1F\u4E4B\u5F8C\u53EF\u5F9E\u300C\u6700\u8FD1\u522A\u9664\u300D\u4E2D\u5FA9\u539F\u3002",
     automation_management_deleted: "\u81EA\u52D5\u5316\u5DF2\u522A\u9664\u3002",
     automation_management_cannot_refine_no_id:
       "\u6B64\u81EA\u52D5\u5316\u56E0\u70BA\u6C92\u6709\u81EA\u52D5\u5316 ID \u800C\u7121\u6CD5\u8ABF\u6574\u3002",
@@ -27280,6 +27507,21 @@ var zh_Hant_default = {
       "\u56DE\u8986\u5F8C\uFF0C\u5728\u7A7A\u767D\u8F38\u5165\u6846\u4E2D\u986F\u793A\u4F60\u63A5\u4E0B\u4F86\u53EF\u80FD\u50B3\u9001\u7684\u8A0A\u606F\u3002\u6309 Tab \u9375\u5373\u53EF\u4F7F\u7528\u3002\u6BCF\u6B21\u56DE\u8986\u6703\u5411\u4F60\u7684 AI \u4F9B\u61C9\u5546\u984D\u5916\u50B3\u9001\u4E00\u500B\u7C21\u77ED\u8ACB\u6C42\u3002",
     settings_next_prompt_save_failed_toast:
       "\u7121\u6CD5\u5132\u5B58\u4E0B\u4E00\u5247\u8A0A\u606F\u8A2D\u5B9A\u3002",
+    trash_heading: "\u6700\u8FD1\u522A\u9664",
+    trash_kept_until: "\u4FDD\u7559\u81F3 {date}",
+    trash_restore: "\u5FA9\u539F",
+    trash_delete_forever: "\u6C38\u4E45\u522A\u9664",
+    trash_delete_forever_confirm:
+      "\u8981\u6C38\u4E45\u522A\u9664\u300C{name}\u300D\u55CE\uFF1F\u6B64\u64CD\u4F5C\u7121\u6CD5\u5FA9\u539F\u3002",
+    trash_restored: "\u5DF2\u5FA9\u539F\u300C{name}\u300D\u3002",
+    trash_restore_failed:
+      "\u7121\u6CD5\u5FA9\u539F\u300C{name}\u300D\uFF1A{error}",
+    trash_restore_in_use:
+      "\u7121\u6CD5\u5FA9\u539F\u300C{name}\u300D\uFF1A\u5176 ID \u5DF2\u88AB\u5176\u4ED6\u9805\u76EE\u4F7F\u7528\u3002",
+    trash_delete_failed:
+      "\u7121\u6CD5\u522A\u9664\u300C{name}\u300D\uFF1A{error}",
+    delete_approval_warning_restorable:
+      "\u4E4B\u5F8C\u53EF\u5F9E\u300C\u6700\u8FD1\u522A\u9664\u300D\u4E2D\u5FA9\u539F\u3002",
   },
   options: {
     step: {
@@ -30779,6 +31021,10 @@ var _CONFIRM_VARIANTS = {
     titlePluralFallback: "Delete these?",
     warningKey: "delete_approval_warning",
     warningFallback: "This permanently removes it and can't be undone.",
+    // Automations and scenes go to Recently deleted (panel/trash.js).
+    restorableKinds: ["automation", "scene"],
+    restorableWarningKey: "delete_approval_warning_restorable",
+    restorableWarningFallback: "You can restore it from Recently deleted.",
   },
   destructive: {
     accent: "#ef4444",
@@ -30929,7 +31175,15 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
           ? b2`<div
               style="margin-top:8px;font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
             >
-              ${host._t(copy.warningKey, copy.warningFallback)}
+              ${
+                copy.restorableKinds &&
+                rows.every((r6) => copy.restorableKinds.includes(r6.kind))
+                  ? host._t(
+                      copy.restorableWarningKey,
+                      copy.restorableWarningFallback,
+                    )
+                  : host._t(copy.warningKey, copy.warningFallback)
+              }
             </div>`
           : ""
       }
@@ -36709,6 +36963,168 @@ function getStaleAutomations(host) {
   });
 }
 
+// src/panel/trash.js
+async function loadTrash(host) {
+  try {
+    host._trash =
+      (await host.hass.callWS({ type: "selora_ai/trash/list" })) || [];
+  } catch (err) {
+    host._trash = [];
+  }
+}
+function reloadTab(host, kind) {
+  return kind === "scene" ? host._loadScenes() : host._loadAutomations();
+}
+async function withBusy(host, item, work) {
+  host._trashBusy = { ...(host._trashBusy || {}), [item.trash_id]: true };
+  try {
+    await work();
+  } finally {
+    host._trashBusy = { ...host._trashBusy, [item.trash_id]: false };
+  }
+}
+async function restore(host, item) {
+  const values = { name: item.name };
+  await withBusy(host, item, async () => {
+    try {
+      await host.hass.callWS({
+        type: "selora_ai/trash/restore",
+        trash_id: item.trash_id,
+      });
+      host._showToast(
+        interpolate(
+          host._t("trash_restored", "Restored \u201C{name}\u201D."),
+          values,
+        ),
+        "success",
+      );
+    } catch (err) {
+      host._showToast(
+        err?.code === "in_use"
+          ? interpolate(
+              host._t(
+                "trash_restore_in_use",
+                "Couldn't restore \u201C{name}\u201D: another one now uses its id.",
+              ),
+              values,
+            )
+          : interpolate(
+              host._t(
+                "trash_restore_failed",
+                "Couldn't restore \u201C{name}\u201D: {error}",
+              ),
+              { ...values, error: err?.message || "" },
+            ),
+        "error",
+      );
+    }
+    await reloadTab(host, item.kind);
+  });
+}
+async function deleteForever(host, item) {
+  const values = { name: item.name };
+  if (
+    !confirm(
+      interpolate(
+        host._t(
+          "trash_delete_forever_confirm",
+          "Delete \u201C{name}\u201D for good? This can't be undone.",
+        ),
+        values,
+      ),
+    )
+  )
+    return;
+  await withBusy(host, item, async () => {
+    try {
+      await host.hass.callWS({
+        type: "selora_ai/trash/delete",
+        trash_id: item.trash_id,
+      });
+    } catch (err) {
+      host._showToast(
+        interpolate(
+          host._t(
+            "trash_delete_failed",
+            "Couldn't delete \u201C{name}\u201D: {error}",
+          ),
+          { ...values, error: err?.message || "" },
+        ),
+        "error",
+      );
+    }
+    await loadTrash(host);
+  });
+}
+function formatDate2(host, iso) {
+  try {
+    return new Date(iso).toLocaleDateString(
+      host.hass?.locale?.language || host.hass?.language || void 0,
+      { day: "numeric", month: "short" },
+    );
+  } catch {
+    return iso.slice(0, 10);
+  }
+}
+function trashItems(host, kind) {
+  return (host._trash || []).filter((i8) => i8.kind === kind);
+}
+function renderTrashTab(host, kind, active, onSelect) {
+  const count = trashItems(host, kind).length;
+  if (!count) return "";
+  return b2`<button
+    role="tab"
+    aria-selected=${active}
+    class="filter-tab ${active ? "active" : ""}"
+    @click=${onSelect}
+  >
+    <ha-icon
+      icon="mdi:delete-clock-outline"
+      style="--mdc-icon-size:14px;display:block;"
+    ></ha-icon>
+    <span>${host._t("trash_heading", "Recently deleted")} (${count})</span>
+  </button>`;
+}
+function renderTrashList(host, kind) {
+  const busy = host._trashBusy || {};
+  return b2`
+    <div class="automations-list">
+      ${trashItems(host, kind).map(
+        (item) => b2`
+          <div class="trash-row">
+            <div class="trash-row-text">
+              <div class="trash-name">${item.name}</div>
+              <div class="trash-meta">
+                ${interpolate(
+                  host._t("trash_kept_until", "Kept until {date}"),
+                  { date: formatDate2(host, item.expires_at) },
+                )}
+              </div>
+            </div>
+            <button
+              class="btn btn-outline btn-sm"
+              ?disabled=${busy[item.trash_id]}
+              @click=${() => restore(host, item)}
+            >
+              <ha-icon icon="mdi:restore"></ha-icon>
+              ${host._t("trash_restore", "Restore")}
+            </button>
+            <button
+              class="trash-forever"
+              title=${host._t("trash_delete_forever", "Delete forever")}
+              aria-label=${host._t("trash_delete_forever", "Delete forever")}
+              ?disabled=${busy[item.trash_id]}
+              @click=${() => deleteForever(host, item)}
+            >
+              <ha-icon icon="mdi:delete-forever-outline"></ha-icon>
+            </button>
+          </div>
+        `,
+      )}
+    </div>
+  `;
+}
+
 // src/panel/render-automations.js
 function renderFlowEntityLink(host, entityId) {
   const stateObj = host.hass?.states?.[entityId];
@@ -37577,7 +37993,11 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
 }
 function renderAutomations(host) {
   const terms = searchTerms(host._automationFilter || "");
-  const statusFilter = host._statusFilter || "all";
+  const deletedCount = trashItems(host, "automation").length;
+  let statusFilter = host._statusFilter || "all";
+  if (statusFilter === "deleted" && !deletedCount) statusFilter = "all";
+  if (!host._automations.length && deletedCount) statusFilter = "deleted";
+  const showDeleted = statusFilter === "deleted";
   const sortBy = host._sortBy || "recent";
   const sortDir = host._sortDir || "desc";
   let filteredAutomations = [...host._automations];
@@ -37595,6 +38015,8 @@ function renderAutomations(host) {
     filteredAutomations = filteredAutomations.filter((a3) =>
       staleSet.has(a3.automation_id),
     );
+  } else if (showDeleted) {
+    filteredAutomations = [];
   }
   const matchReasons = /* @__PURE__ */ new Map();
   if (terms.length) {
@@ -37699,7 +38121,7 @@ function renderAutomations(host) {
           ${host._t("automations_section_title", "Your Automations")}
         </div>
         ${
-          host._automations.length > 0
+          host._automations.length > 0 || deletedCount > 0
             ? b2`
                 <div class="filter-tabs-row" style="margin-top:12px;">
                   <div class="filter-tabs" role="tablist">
@@ -37707,8 +38129,8 @@ function renderAutomations(host) {
                       (s6) => b2`
                         <button
                           role="tab"
-                          aria-selected=${host._statusFilter === s6}
-                          class="filter-tab ${host._statusFilter === s6 ? "active" : ""}"
+                          aria-selected=${statusFilter === s6}
+                          class="filter-tab ${statusFilter === s6 ? "active" : ""}"
                           @click=${() => {
                             host._statusFilter = s6;
                             host._automationsPage = 1;
@@ -37725,8 +38147,8 @@ function renderAutomations(host) {
                       staleSet.size > 0
                         ? b2`<button
                             role="tab"
-                            aria-selected=${host._statusFilter === "stale"}
-                            class="filter-tab ${host._statusFilter === "stale" ? "active" : ""}"
+                            aria-selected=${statusFilter === "stale"}
+                            class="filter-tab ${statusFilter === "stale" ? "active" : ""}"
                             title=${staleTooltip(host)}
                             @click=${() => {
                               host._statusFilter = "stale";
@@ -37744,6 +38166,10 @@ function renderAutomations(host) {
                           </button>`
                         : ""
                     }
+                    ${renderTrashTab(host, "automation", showDeleted, () => {
+                      host._statusFilter = "deleted";
+                      host._automationsPage = 1;
+                    })}
                   </div>
                   <div class="filter-tabs-actions">
                     ${
@@ -37948,7 +38374,8 @@ function renderAutomations(host) {
                       `
                     : ""
                 }
-                <div class="automations-list">
+                ${showDeleted ? renderTrashList(host, "automation") : ""}
+                <div class="automations-list" ?hidden=${showDeleted}>
                   ${pagedAutomations.map((a3) => {
                     const isOn = host._automationIsEnabled(a3);
                     const isUnavailable = a3.state === "unavailable";
@@ -38678,7 +39105,8 @@ function renderAutomations(host) {
                 }
                 ${
                   filteredAutomations.length === 0 &&
-                  host._automations.length > 0
+                  host._automations.length > 0 &&
+                  !showDeleted
                     ? b2`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
@@ -39703,8 +40131,12 @@ function renderScenes(host) {
   const terms = searchTerms(host._sceneFilter || "");
   const sortBy = host._sceneSortBy || "recent";
   const sortDir = host._sceneSortDir || "desc";
-  const statusFilter = host._sceneStatusFilter || "all";
   const allScenes = host._scenes || [];
+  const deletedCount = trashItems(host, "scene").length;
+  let statusFilter = host._sceneStatusFilter || "all";
+  if (statusFilter === "deleted" && !deletedCount) statusFilter = "all";
+  if (!allScenes.length && deletedCount) statusFilter = "deleted";
+  const showDeleted = statusFilter === "deleted";
   const seloraCount = allScenes.filter((s6) => s6.source === "selora").length;
   const manualCount = allScenes.length - seloraCount;
   let filtered = [...allScenes];
@@ -39712,6 +40144,8 @@ function renderScenes(host) {
     filtered = filtered.filter((s6) => s6.source === "selora");
   } else if (statusFilter === "manual") {
     filtered = filtered.filter((s6) => s6.source !== "selora");
+  } else if (showDeleted) {
+    filtered = [];
   }
   const matchReasons = /* @__PURE__ */ new Map();
   if (terms.length) {
@@ -39772,7 +40206,7 @@ function renderScenes(host) {
           }
         </div>
         ${
-          (host._scenes || []).length > 0
+          allScenes.length > 0 || deletedCount > 0
             ? b2`
                 <div class="filter-tabs-row" style="margin-top:12px;">
                   <div class="filter-tabs" role="tablist">
@@ -39820,6 +40254,9 @@ function renderScenes(host) {
                           `
                         : ""
                     }
+                    ${renderTrashTab(host, "scene", showDeleted, () => {
+                      host._sceneStatusFilter = "deleted";
+                    })}
                   </div>
                 </div>
                 <div class="filter-row">
@@ -39882,7 +40319,8 @@ function renderScenes(host) {
                     </button>
                   </div>
                 </div>
-                <div class="automations-list">
+                ${showDeleted ? renderTrashList(host, "scene") : ""}
+                <div class="automations-list" ?hidden=${showDeleted}>
                   ${filtered.map((s6) => {
                     const sceneId = s6.scene_id;
                     const sceneEntityId = s6.entity_id;
@@ -40313,7 +40751,7 @@ function renderScenes(host) {
                   })}
                 </div>
                 ${
-                  filtered.length === 0 && (host._scenes || []).length > 0
+                  filtered.length === 0 && allScenes.length > 0 && !showDeleted
                     ? b2`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
@@ -52415,7 +52853,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "462554329f02" : "";
+var PANEL_BUILD = true ? "9a62ad3a4cf6" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -52599,6 +53037,7 @@ async function _triggerGenerateSuggestions() {
   }
 }
 async function _loadAutomations() {
+  loadTrash(this);
   try {
     const automations = await this.hass.callWS({
       type: "selora_ai/get_automations",
@@ -54134,6 +54573,9 @@ var SeloraAIPanel = class extends i4 {
       // Automations tab
       _suggestions: { type: Array },
       _automations: { type: Array },
+      // Recently deleted automations and scenes (panel/trash.js)
+      _trash: { type: Array },
+      _trashBusy: { type: Object },
       _expandedAutomations: { type: Object },
       // Settings tab
       _config: { type: Object },
@@ -56330,6 +56772,7 @@ var SeloraAIPanel = class extends i4 {
     return renderScenes(this);
   }
   async _loadScenes() {
+    loadTrash(this);
     try {
       const result = await this.hass.callWS({
         type: "selora_ai/get_scenes",

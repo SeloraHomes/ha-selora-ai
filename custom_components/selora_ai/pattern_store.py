@@ -976,6 +976,12 @@ class PatternStore:
         )
         await self._save()
 
+    async def forget_deleted_automation(self, content_hash: str) -> None:
+        """Drop a deletion record: the automation was restored."""
+        data = await self._get_loaded_data()
+        if data["deleted_hashes"].pop(content_hash, None) is not None:
+            await self._save()
+
     async def get_deleted_hashes(self) -> set[str]:
         """Return all content hashes of previously deleted automations."""
         data = await self._get_loaded_data()

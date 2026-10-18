@@ -44,7 +44,17 @@ describe("the shared confirmation card", () => {
     expect(out).toContain("Delete this?");
     expect(out).toContain("Movie Night");
     expect(out).toContain("#ef4444");
+    // A scene goes to Recently deleted.
+    expect(out).toContain("You can restore it from Recently deleted.");
+  });
+
+  it("warns that a delete is permanent when it does not go to the trash", () => {
+    const out = render({
+      ...DELETE,
+      deletes: [...DELETE.deletes, { kind: "group", label: "Downstairs" }],
+    });
     expect(out).toContain("This permanently removes it and can't be undone.");
+    expect(out).not.toContain("Recently deleted");
   });
 
   it("switches to neutral copy when the card is not purely deletions", () => {

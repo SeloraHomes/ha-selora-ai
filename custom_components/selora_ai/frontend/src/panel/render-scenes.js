@@ -16,6 +16,7 @@ import {
 } from "../shared/entity-search.js";
 import { renderSearchMatchReason } from "./search-match.js";
 import { interpolate } from "../shared/i18n.js";
+import { renderTrashList, renderTrashTab, trashItems } from "./trash.js";
 
 // ---------------------------------------------------------------------------
 // Scene card (chat scene confirmations)
@@ -421,9 +422,14 @@ export function renderScenes(host) {
   const terms = searchTerms(host._sceneFilter || "");
   const sortBy = host._sceneSortBy || "recent";
   const sortDir = host._sceneSortDir || "desc";
-  const statusFilter = host._sceneStatusFilter || "all";
-
   const allScenes = host._scenes || [];
+  const deletedCount = trashItems(host, "scene").length;
+  // As on the Automations tab: gone with its last item, the only list once
+  // every live scene is deleted.
+  let statusFilter = host._sceneStatusFilter || "all";
+  if (statusFilter === "deleted" && !deletedCount) statusFilter = "all";
+  if (!allScenes.length && deletedCount) statusFilter = "deleted";
+  const showDeleted = statusFilter === "deleted";
   const seloraCount = allScenes.filter((s) => s.source === "selora").length;
   const manualCount = allScenes.length - seloraCount;
 
@@ -432,6 +438,8 @@ export function renderScenes(host) {
     filtered = filtered.filter((s) => s.source === "selora");
   } else if (statusFilter === "manual") {
     filtered = filtered.filter((s) => s.source !== "selora");
+  } else if (showDeleted) {
+    filtered = [];
   }
   // Text search — over the scene's name AND its members, so a scene is
   // findable by any device it sets or the area those devices sit in.
@@ -496,7 +504,7 @@ export function renderScenes(host) {
           }
         </div>
         ${
-          (host._scenes || []).length > 0
+          allScenes.length > 0 || deletedCount > 0
             ? html`
                 <div class="filter-tabs-row" style="margin-top:12px;">
                   <div class="filter-tabs" role="tablist">
@@ -548,6 +556,9 @@ export function renderScenes(host) {
                           `
                         : ""
                     }
+                    ${renderTrashTab(host, "scene", showDeleted, () => {
+                      host._sceneStatusFilter = "deleted";
+                    })}
                   </div>
                 </div>
                 <div class="filter-row">
@@ -618,7 +629,8 @@ export function renderScenes(host) {
                     </button>
                   </div>
                 </div>
-                <div class="automations-list">
+                ${showDeleted ? renderTrashList(host, "scene") : ""}
+                <div class="automations-list" ?hidden=${showDeleted}>
                   ${filtered.map((s) => {
                     const sceneId = s.scene_id;
                     const sceneEntityId = s.entity_id;
@@ -1064,7 +1076,7 @@ export function renderScenes(host) {
                   })}
                 </div>
                 ${
-                  filtered.length === 0 && (host._scenes || []).length > 0
+                  filtered.length === 0 && allScenes.length > 0 && !showDeleted
                     ? html`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >

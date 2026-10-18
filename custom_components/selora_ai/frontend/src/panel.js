@@ -41,6 +41,7 @@ import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
 import { renderInsights } from "./panel/render-insights.js";
 import { renderRecipesV2 } from "./panel/render-recipes.js";
 import { fitComposerToPrediction } from "./panel/next-prompt.js";
+import { loadTrash } from "./panel/trash.js";
 import {
   renderVersionHistoryDrawer,
   renderDiffViewer,
@@ -371,6 +372,9 @@ class SeloraAIPanel extends LitElement {
       // Automations tab
       _suggestions: { type: Array },
       _automations: { type: Array },
+      // Recently deleted automations and scenes (panel/trash.js)
+      _trash: { type: Array },
+      _trashBusy: { type: Object },
       _expandedAutomations: { type: Object },
 
       // Settings tab
@@ -3004,6 +3008,7 @@ class SeloraAIPanel extends LitElement {
   }
 
   async _loadScenes() {
+    loadTrash(this);
     try {
       const result = await this.hass.callWS({
         type: "selora_ai/get_scenes",

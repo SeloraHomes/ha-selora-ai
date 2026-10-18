@@ -3237,14 +3237,17 @@ async def async_delete_automation(
     *,
     report: dict[str, Any] | None = None,
     keep_history: bool = False,
+    trash: bool = False,
 ) -> bool:
-    """Permanently delete an automation from automations.yaml and the store.
+    """Delete an automation from automations.yaml and the store.
 
     Records the automation's trigger/action content hash in PatternStore so the
     collector will not re-suggest a similar automation. ``report`` gets
     ``previous``: the entry removed, as read under the lock. ``keep_history``
     retires its version record instead of purging it, for a caller handed that
     entry to restore from: made again under its id, it gets its history back.
+    ``trash`` is a delete the user asked for: the entry goes to Recently
+    deleted (trash.py), and its history is kept for the restore from there.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     async with AUTOMATIONS_YAML_LOCK:
@@ -3268,9 +3271,13 @@ async def async_delete_automation(
             # caller must still get the removed entry and its kept history.
             if report is not None:
                 report["removed"] = True
+            if trash:
+                from .trash import KIND_AUTOMATION, async_trash  # noqa: PLC0415
+
+                await async_trash(hass, KIND_AUTOMATION, target)
             store = _get_automation_store(hass)
             try:
-                if keep_history:
+                if keep_history or trash:
                     await store.retire_record(automation_id)
                 else:
                     await store.purge_record(automation_id)
@@ -3298,11 +3305,12 @@ async def async_delete_automation(
 
 
 async def async_delete_automations_batch(
-    hass: HomeAssistant, automation_ids: list[str]
+    hass: HomeAssistant, automation_ids: list[str], *, trash: bool = False
 ) -> list[str]:
     """Delete multiple automations in a single read/write/reload cycle.
 
-    Returns the list of aliases that were successfully removed.
+    Returns the list of aliases that were successfully removed. ``trash`` as in
+    :func:`async_delete_automation`.
     """
     if not automation_ids:
         return []
@@ -3339,8 +3347,15 @@ async def async_delete_automations_batch(
 
         for target in targets:
             aid = target.get("id", "")
+            if trash:
+                from .trash import KIND_AUTOMATION, async_trash  # noqa: PLC0415
+
+                await async_trash(hass, KIND_AUTOMATION, target)
             try:
-                await store.purge_record(aid)
+                if trash:
+                    await store.retire_record(aid)
+                else:
+                    await store.purge_record(aid)
             except Exception:
                 _LOGGER.warning("Failed to purge store record for %s", aid)
             for entity in list(entity_reg.entities.values()):
@@ -3353,8 +3368,8 @@ async def async_delete_automations_batch(
         return removed_aliases
 
 
-async def _record_deletion_hash(hass: HomeAssistant, automation: dict[str, Any]) -> None:
-    """Store the trigger+action content hash of a deleted automation in PatternStore."""
+def _deletion_hash(automation: dict[str, Any]) -> str:
+    """The trigger+action content hash a deletion is remembered by."""
     import hashlib
     import json
 
@@ -3362,13 +3377,31 @@ async def _record_deletion_hash(hass: HomeAssistant, automation: dict[str, Any])
     action = automation.get("action") or automation.get("actions")
     key = {"trigger": trigger, "action": action}
     raw = json.dumps(key, sort_keys=True, default=str)
-    content_hash = hashlib.sha256(raw.encode()).hexdigest()
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+async def async_forget_deletion(hass: HomeAssistant, automation: dict[str, Any]) -> None:
+    """Undo :func:`_record_deletion_hash` for an automation restored from the trash."""
+    from .pattern_store import PatternStore, get_pattern_store
+
+    # The running store, not a second copy: its next save would write the
+    # forgotten hash straight back.
+    store = get_pattern_store(hass) or PatternStore(hass)
+    try:
+        await store.forget_deleted_automation(_deletion_hash(automation))
+    except (HomeAssistantError, OSError) as exc:
+        _LOGGER.warning("Failed to forget the deletion of '%s': %s", automation.get("alias"), exc)
+
+
+async def _record_deletion_hash(hass: HomeAssistant, automation: dict[str, Any]) -> None:
+    """Store the trigger+action content hash of a deleted automation in PatternStore."""
+    content_hash = _deletion_hash(automation)
     alias = str(automation.get("alias", ""))
 
     try:
-        from .pattern_store import PatternStore
+        from .pattern_store import PatternStore, get_pattern_store
 
-        store = PatternStore(hass)
+        store = get_pattern_store(hass) or PatternStore(hass)
         await store.record_deleted_automation(content_hash, alias)
         _LOGGER.debug("Recorded deletion hash for '%s': %s", alias, content_hash[:12])
     except Exception:

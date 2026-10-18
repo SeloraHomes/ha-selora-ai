@@ -959,6 +959,9 @@ async def _delete_idless_automation_by_alias(
             await hass.async_add_executor_job(_write_automations_yaml, automations_path, previous)
             return {"error": f"Automation reload failed: {exc}"}
 
+    from ..trash import KIND_AUTOMATION, async_trash  # noqa: PLC0415
+
+    await async_trash(hass, KIND_AUTOMATION, matches[0])
     return attach_previous({"status": "deleted"}, matches[0], what="deleted automation")
 
 
@@ -1036,9 +1039,7 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
     yaml_id = auto.get("id")
     if isinstance(yaml_id, str) and yaml_id:
         report: dict[str, Any] = {}
-        success: bool = await async_delete_automation(
-            hass, yaml_id, report=report, keep_history=True
-        )
+        success: bool = await async_delete_automation(hass, yaml_id, report=report, trash=True)
         if not success and report.get("removed"):
             return attach_previous(
                 {

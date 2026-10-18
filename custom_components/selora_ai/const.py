@@ -1386,6 +1386,14 @@ MAX_VERSIONS_PER_AUTOMATION = 20
 RETIRED_AUTOMATION_DAYS = 30
 MAX_RETIRED_AUTOMATIONS = 50
 
+# ── Recently deleted (trash.py) ─────────────────────────────────────
+TRASH_STORE_KEY = f"{DOMAIN}.trash"
+TRASH_STORE_VERSION = 1
+# The same window as the retired history above, so a restore within it always
+# gets the automation's versions back.
+TRASH_DAYS = RETIRED_AUTOMATION_DAYS
+TRASH_MAX_PER_KIND = MAX_RETIRED_AUTOMATIONS
+
 # ── Scene Lifecycle ─────────────────────────────────────────────────
 SCENE_STORE_KEY = "selora_ai_scenes"
 

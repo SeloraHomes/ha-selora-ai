@@ -905,7 +905,7 @@ async def _handle_websocket_delete_scene(
 
             found, removed = await store.async_delete_with_yaml(
                 scene_id,
-                lambda sid: async_remove_scene_yaml(hass, sid),
+                lambda sid: async_remove_scene_yaml(hass, sid, trash=True),
             )
         except Exception as exc:  # noqa: BLE001 — propagate failure and undo soft-delete
             _LOGGER.warning("Failed to delete scene %s: %s", scene_id, exc)
@@ -923,7 +923,7 @@ async def _handle_websocket_delete_scene(
             return
         from ..scene_utils import async_remove_yaml_scene_by_entity  # noqa: PLC0415
 
-        ok, code, detail = await async_remove_yaml_scene_by_entity(hass, entity_id)
+        ok, code, detail = await async_remove_yaml_scene_by_entity(hass, entity_id, trash=True)
         if not ok:
             connection.send_error(
                 msg["id"], code or "delete_failed", _delete_scene_error(code, detail)
