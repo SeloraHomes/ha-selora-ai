@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "Impossibile ripristinare «{name}»: {error}",
     "trash_restore_in_use": "Impossibile ripristinare «{name}»: un altro elemento ora usa il suo id.",
     "trash_delete_failed": "Impossibile eliminare «{name}»: {error}",
-    "delete_approval_warning_restorable": "Potrai ripristinarlo da Eliminati di recente."
+    "delete_approval_warning_restorable": "Potrai ripristinarlo da Eliminati di recente.",
+    "restore_card_deleted_on": "Eliminato il {date}",
+    "restore_card_restored": "Ripristinato",
+    "restore_card_gone": "Non è più in Eliminati di recente"
   },
   "options": {
     "step": {

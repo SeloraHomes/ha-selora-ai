@@ -231,6 +231,7 @@ from .names import (
     TOOL_REMOVE_INTEGRATION,
     TOOL_RENAME_AUTOMATION,
     TOOL_RESTART_HOME_ASSISTANT,
+    TOOL_RESTORE_DELETED,
     TOOL_SEARCH_APP_STORE,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_APP_OPTIONS,
@@ -314,6 +315,7 @@ from .scripts_helpers import (
     _tool_set_script,
     _tool_update_helper,
 )
+from .trash import _tool_restore_deleted
 from .updates import _tool_get_release_notes, _tool_list_updates
 
 _LOGGER = logging.getLogger(__name__)
@@ -413,6 +415,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_ACCEPT_AUTOMATION: _tool_accept_automation,
         TOOL_DELETE_AUTOMATION: _tool_delete_automation,
         TOOL_RENAME_AUTOMATION: _tool_rename_automation,
+        TOOL_RESTORE_DELETED: _tool_restore_deleted,
         TOOL_TRIGGER_AUTOMATION: _tool_trigger_automation,
         TOOL_GET_HOME_SNAPSHOT: _tool_get_home_snapshot,
         TOOL_CHAT: _tool_chat,

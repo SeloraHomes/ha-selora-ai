@@ -28,7 +28,9 @@ async function withBusy(host, item, work) {
   }
 }
 
-async function restore(host, item) {
+// Also the restore card's button (panel/restore-card.js). A restore records
+// itself so a card in chat can say so without asking the backend.
+export async function restore(host, item) {
   const values = { name: item.name };
   await withBusy(host, item, async () => {
     try {
@@ -36,6 +38,10 @@ async function restore(host, item) {
         type: "selora_ai/trash/restore",
         trash_id: item.trash_id,
       });
+      host._restoredTrash = new Set([
+        ...(host._restoredTrash || []),
+        item.trash_id,
+      ]);
       host._showToast(
         interpolate(host._t("trash_restored", "Restored “{name}”."), values),
         "success",

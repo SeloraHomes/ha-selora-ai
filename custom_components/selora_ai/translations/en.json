@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "Couldn't restore “{name}”: {error}",
     "trash_restore_in_use": "Couldn't restore “{name}”: another one now uses its id.",
     "trash_delete_failed": "Couldn't delete “{name}”: {error}",
-    "delete_approval_warning_restorable": "You can restore it from Recently deleted."
+    "delete_approval_warning_restorable": "You can restore it from Recently deleted.",
+    "restore_card_deleted_on": "Deleted {date}",
+    "restore_card_restored": "Restored",
+    "restore_card_gone": "No longer in Recently deleted"
   },
   "options": {
     "step": {

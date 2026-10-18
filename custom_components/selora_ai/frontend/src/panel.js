@@ -375,6 +375,8 @@ class SeloraAIPanel extends LitElement {
       // Recently deleted automations and scenes (panel/trash.js)
       _trash: { type: Array },
       _trashBusy: { type: Object },
+      // Restored from a chat restore card this session (panel/restore-card.js)
+      _restoredTrash: { type: Object },
       _expandedAutomations: { type: Object },
 
       // Settings tab

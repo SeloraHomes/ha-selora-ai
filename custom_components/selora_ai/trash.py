@@ -155,6 +155,96 @@ async def async_trash(hass: HomeAssistant, kind: str, entry: dict[str, Any]) -> 
         _LOGGER.warning("Could not keep deleted %s %r for restore: %s", kind, name, exc)
 
 
+# A chat card shows each match's flow and YAML, so a handful is all it can
+# usefully hold; more means the request named nothing in particular.
+MAX_CANDIDATES = 5
+
+
+async def async_find(
+    hass: HomeAssistant,
+    *,
+    query: str = "",
+    kind: str | None = None,
+    trash_id: str | None = None,
+) -> list[TrashItem]:
+    """Items matching a request, best match first, then newest.
+
+    A query matches on any of its words in the name or description, so
+    "garage night" finds "Garage Night Spots"; the more of the words an item
+    has, the higher it ranks. No query is every item, newest first.
+    """
+    from .lexical import normalize  # noqa: PLC0415
+
+    items = await get_trash_store(hass).async_list()
+    if trash_id:
+        return [i for i in items if i["trash_id"] == trash_id]
+    if kind:
+        items = [i for i in items if i["kind"] == kind]
+    # Every word counts, short ones too: "TV" and "AC" are whole names.
+    words = normalize(query).split()
+    if not words:
+        return items
+    scored = []
+    for index, item in enumerate(items):
+        text = set(normalize(f"{item['name']} {item['entry'].get('description') or ''}").split())
+        hits = sum(1 for w in words if w in text)
+        if hits:
+            scored.append((-hits, index, item))
+    return [item for _, _, item in sorted(scored, key=lambda s: s[:2])]
+
+
+def candidate(item: TrashItem, *, full: bool = True) -> dict[str, Any]:
+    """An item as a restore card shows it: what it does, and its YAML.
+
+    ``full=False`` is what tells matches apart in a sentence, for the chat
+    model; the card fetches the rest itself (``selora_ai/trash/get``), since a
+    tool result over the size limit is trimmed by dropping list entries — a
+    long automation would take its Restore button with it.
+    """
+    out: dict[str, Any] = {
+        "trash_id": item["trash_id"],
+        "kind": item["kind"],
+        "name": item["name"],
+        "description": item["entry"].get("description") or "",
+        "deleted_at": item["deleted_at"],
+        "expires_at": expires_at(item),
+    }
+    if full:
+        out["config"] = item["entry"]
+        out["yaml"] = yaml.dump(item["entry"], allow_unicode=True, default_flow_style=False)
+    return out
+
+
+async def async_restore_candidates(
+    hass: HomeAssistant, arguments: dict[str, Any], *, full: bool = False
+) -> dict[str, Any]:
+    """The matches for a restore request, restoring nothing.
+
+    Shared by the chat tool, whose result the panel renders as a card with a
+    Restore button per match, and the MCP tool, which restores only once
+    given the ``trash_id`` the user chose and so needs each match ``full``.
+    """
+    kind = arguments.get("kind")
+    matches = await async_find(
+        hass,
+        query=str(arguments.get("query") or ""),
+        kind=kind if kind in (KIND_AUTOMATION, KIND_SCENE) else None,
+        trash_id=str(arguments.get("trash_id") or "") or None,
+    )
+    if matches:
+        return {
+            "candidates": [candidate(i, full=full) for i in matches[:MAX_CANDIDATES]],
+            "total_matches": len(matches),
+        }
+    kept = await get_trash_store(hass).async_list()
+    return {
+        "candidates": [],
+        "recently_deleted": [
+            {"kind": i["kind"], "name": i["name"], "deleted_at": i["deleted_at"]} for i in kept[:20]
+        ],
+    }
+
+
 async def async_restore(hass: HomeAssistant, trash_id: str) -> TrashItem:
     """Put an item back where it was deleted from, and out of the trash."""
     store = get_trash_store(hass)

@@ -121,6 +121,7 @@ class ToolExecutor:
             "dismiss_suggestion": self._dismiss_suggestion,
             "delete_automation": self._delete_automation,
             "rename_automation": self._rename_automation,
+            "restore_deleted": self._restore_deleted,
             "delete_scene": self._delete_scene,
             "list_groups": self._list_groups,
             "create_group": self._create_group,
@@ -371,6 +372,18 @@ class ToolExecutor:
             "status": "dismissed",
             "reason": reason,
         }
+
+    async def _restore_deleted(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """The matches, as a card the user restores from — never a restore itself."""
+        from .trash import async_restore_candidates
+
+        result = await async_restore_candidates(self._hass, arguments)
+        if result["candidates"]:
+            result["note"] = (
+                "Shown to the user as a card: each match's flow, its YAML and a "
+                "Restore button. Nothing is restored until they press it."
+            )
+        return result
 
     async def _rename_automation(self, arguments: dict[str, Any]) -> dict[str, Any]:
         """Change an automation's name/description in place — no card, no proposal."""

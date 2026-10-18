@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "„{name}“ konnte nicht wiederhergestellt werden: {error}",
     "trash_restore_in_use": "„{name}“ konnte nicht wiederhergestellt werden: Ein anderes Element verwendet jetzt seine ID.",
     "trash_delete_failed": "„{name}“ konnte nicht gelöscht werden: {error}",
-    "delete_approval_warning_restorable": "Sie können es unter „Zuletzt gelöscht“ wiederherstellen."
+    "delete_approval_warning_restorable": "Sie können es unter „Zuletzt gelöscht“ wiederherstellen.",
+    "restore_card_deleted_on": "Gelöscht am {date}",
+    "restore_card_restored": "Wiederhergestellt",
+    "restore_card_gone": "Nicht mehr unter „Zuletzt gelöscht“"
   },
   "options": {
     "step": {

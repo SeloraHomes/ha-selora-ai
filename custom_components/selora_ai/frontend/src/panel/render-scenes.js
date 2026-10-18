@@ -80,6 +80,11 @@ function _renderTargetTile(host, entityId, stateData, editSceneId) {
   `;
 }
 
+// Also the read-only device list of a deleted scene on a restore card.
+export function renderSceneEntityList(host, entities) {
+  return _renderEntityList(host, entities);
+}
+
 function _renderEntityList(host, entities, editSceneId = null) {
   const ids = Object.keys(entities || {});
   if (!ids.length) return "";

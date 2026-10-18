@@ -125,6 +125,7 @@ from .names import (
     TOOL_REMOVE_INTEGRATION,
     TOOL_RENAME_AUTOMATION,
     TOOL_RESTART_HOME_ASSISTANT,
+    TOOL_RESTORE_DELETED,
     TOOL_SEARCH_APP_STORE,
     TOOL_SEARCH_ENTITIES,
     TOOL_SET_APP_OPTIONS,
@@ -1070,6 +1071,7 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     # is the whole fix; see ``test_every_mcp_handler_is_declared``.
     TOOL_GET_DEVICE_TRIGGERS: "get_device_triggers",
     TOOL_RENAME_AUTOMATION: "rename_automation",
+    TOOL_RESTORE_DELETED: "restore_deleted",
     TOOL_LIST_AREAS: "list_areas",
     TOOL_ASSIGN_AREA: "assign_area",
     TOOL_CREATE_AREA: "create_area",
@@ -1126,6 +1128,15 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
 # half winning, so these replace the chat text outright. Parameters are still
 # derived.
 _MCP_DESCRIPTIONS: dict[str, str] = {
+    # The chat text describes the panel's pick-from-a-card flow.
+    "restore_deleted": (
+        "Restore an automation or scene from Recently deleted, where Selora keeps "
+        "what it deleted for 30 days. Without trash_id this restores nothing: it "
+        "lists the matches (name, when deleted, YAML), best first, for the user to "
+        "choose from — confirm the right one with them, since names repeat. With "
+        "trash_id it puts that one back exactly as it was. Pass words from its name "
+        "as query; leave it out for the most recent."
+    ),
     # The chat text leans on the in-prompt entity list, which MCP has none of.
     "search_entities": (
         "Fuzzy-search entities by free-text query across entity_id, friendly "

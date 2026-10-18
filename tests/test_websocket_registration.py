@@ -66,6 +66,7 @@ EXPECTED_COMMANDS = frozenset(
         "selora_ai/set_scene_status",
         "selora_ai/toggle_automation",
         "selora_ai/trash/delete",
+        "selora_ai/trash/get",
         "selora_ai/trash/list",
         "selora_ai/trash/restore",
         "selora_ai/trigger_pattern_scan",
