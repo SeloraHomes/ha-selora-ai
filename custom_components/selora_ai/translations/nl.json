@@ -1065,6 +1065,9 @@
     "trash_restore_failed": "Kon “{name}” niet herstellen: {error}",
     "trash_restore_in_use": "Kon “{name}” niet herstellen: een ander item gebruikt nu zijn id.",
     "trash_delete_failed": "Kon “{name}” niet verwijderen: {error}",
-    "delete_approval_warning_restorable": "Je kunt het herstellen via Recent verwijderd."
+    "delete_approval_warning_restorable": "Je kunt het herstellen via Recent verwijderd.",
+    "restore_card_deleted_on": "Verwijderd op {date}",
+    "restore_card_restored": "Hersteld",
+    "restore_card_gone": "Niet meer in Recent verwijderd"
   }
 }

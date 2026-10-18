@@ -2866,6 +2866,29 @@ var chatStyles = i`
   .bubble > .automation-subcard:first-child {
     margin-top: 0;
   }
+  /* Matches from Recently deleted, one subcard each (panel/restore-card.js). */
+  .restore-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .restore-card .automation-subcard {
+    margin-top: 0;
+  }
+  .restore-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+  .restore-card-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    --mdc-icon-size: 16px;
+  }
   :host(:not([dark])) .automation-subcard {
     border-color: var(--divider-color);
     box-shadow:
@@ -10813,6 +10836,9 @@ var en_default = {
     trash_delete_failed: "Couldn't delete \u201C{name}\u201D: {error}",
     delete_approval_warning_restorable:
       "You can restore it from Recently deleted.",
+    restore_card_deleted_on: "Deleted {date}",
+    restore_card_restored: "Restored",
+    restore_card_gone: "No longer in Recently deleted",
   },
   options: {
     step: {
@@ -12112,6 +12138,9 @@ var fr_default = {
     trash_delete_failed: "Impossible de supprimer \xAB {name} \xBB : {error}",
     delete_approval_warning_restorable:
       "Vous pourrez le restaurer depuis R\xE9cemment supprim\xE9s.",
+    restore_card_deleted_on: "Supprim\xE9 le {date}",
+    restore_card_restored: "Restaur\xE9",
+    restore_card_gone: "N\u2019est plus dans R\xE9cemment supprim\xE9s",
   },
   options: {
     step: {
@@ -13403,6 +13432,9 @@ var de_default = {
       "\u201E{name}\u201C konnte nicht gel\xF6scht werden: {error}",
     delete_approval_warning_restorable:
       "Sie k\xF6nnen es unter \u201EZuletzt gel\xF6scht\u201C wiederherstellen.",
+    restore_card_deleted_on: "Gel\xF6scht am {date}",
+    restore_card_restored: "Wiederhergestellt",
+    restore_card_gone: "Nicht mehr unter \u201EZuletzt gel\xF6scht\u201C",
   },
   options: {
     step: {
@@ -14673,6 +14705,9 @@ var es_default = {
     trash_delete_failed: "No se pudo eliminar \xAB{name}\xBB: {error}",
     delete_approval_warning_restorable:
       "Podr\xE1s restaurarlo desde Eliminados recientemente.",
+    restore_card_deleted_on: "Eliminado el {date}",
+    restore_card_restored: "Restaurado",
+    restore_card_gone: "Ya no est\xE1 en Eliminados recientemente",
   },
   options: {
     step: {
@@ -15943,6 +15978,9 @@ var it_default = {
     trash_delete_failed: "Impossibile eliminare \xAB{name}\xBB: {error}",
     delete_approval_warning_restorable:
       "Potrai ripristinarlo da Eliminati di recente.",
+    restore_card_deleted_on: "Eliminato il {date}",
+    restore_card_restored: "Ripristinato",
+    restore_card_gone: "Non \xE8 pi\xF9 in Eliminati di recente",
   },
   options: {
     step: {
@@ -17232,6 +17270,9 @@ var nl_default = {
     trash_delete_failed: "Kon \u201C{name}\u201D niet verwijderen: {error}",
     delete_approval_warning_restorable:
       "Je kunt het herstellen via Recent verwijderd.",
+    restore_card_deleted_on: "Verwijderd op {date}",
+    restore_card_restored: "Hersteld",
+    restore_card_gone: "Niet meer in Recent verwijderd",
   },
 };
 
@@ -18571,6 +18612,10 @@ var hu_default = {
       "Nem siker\xFClt t\xF6r\xF6lni: \u201E{name}\u201D: {error}",
     delete_approval_warning_restorable:
       "A Nemr\xE9g t\xF6r\xF6lt elemek k\xF6z\xFCl vissza\xE1ll\xEDthatja.",
+    restore_card_deleted_on: "T\xF6r\xF6lve: {date}",
+    restore_card_restored: "Vissza\xE1ll\xEDtva",
+    restore_card_gone:
+      "M\xE1r nincs a Nemr\xE9g t\xF6r\xF6lt elemek k\xF6z\xF6tt",
   },
 };
 
@@ -19837,6 +19882,9 @@ var pt_default = {
       "N\xE3o foi poss\xEDvel eliminar \xAB{name}\xBB: {error}",
     delete_approval_warning_restorable:
       "Pode restaur\xE1-lo a partir de Eliminados recentemente.",
+    restore_card_deleted_on: "Eliminado a {date}",
+    restore_card_restored: "Restaurado",
+    restore_card_gone: "J\xE1 n\xE3o est\xE1 em Eliminados recentemente",
   },
   options: {
     step: {
@@ -21728,6 +21776,12 @@ var ru_default = {
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB: {error}",
     delete_approval_warning_restorable:
       "\u0415\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0438\u0437 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0445\xBB.",
+    restore_card_deleted_on:
+      "\u0423\u0434\u0430\u043B\u0435\u043D\u043E {date}",
+    restore_card_restored:
+      "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E",
+    restore_card_gone:
+      "\u0411\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0442 \u0432 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0445\xBB",
   },
   options: {
     step: {
@@ -23296,6 +23350,10 @@ var ja_default = {
       "\u300C{name}\u300D\u3092\u524A\u9664\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F: {error}",
     delete_approval_warning_restorable:
       "\u300C\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE\u300D\u304B\u3089\u5FA9\u5143\u3067\u304D\u307E\u3059\u3002",
+    restore_card_deleted_on: "{date} \u306B\u524A\u9664",
+    restore_card_restored: "\u5FA9\u5143\u6E08\u307F",
+    restore_card_gone:
+      "\u300C\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE\u300D\u306B\u306F\u3082\u3046\u3042\u308A\u307E\u305B\u3093",
   },
   options: {
     step: {
@@ -24757,6 +24815,10 @@ var ko_default = {
       "\u201C{name}\u201D\uC744(\uB97C) \uC0AD\uC81C\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4: {error}",
     delete_approval_warning_restorable:
       "\uCD5C\uADFC \uC0AD\uC81C\uB428\uC5D0\uC11C \uBCF5\uC6D0\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    restore_card_deleted_on: "{date}\uC5D0 \uC0AD\uC81C\uB428",
+    restore_card_restored: "\uBCF5\uC6D0\uB428",
+    restore_card_gone:
+      "\uB354 \uC774\uC0C1 \uCD5C\uADFC \uC0AD\uC81C\uB428\uC5D0 \uC5C6\uC2B5\uB2C8\uB2E4",
   },
   options: {
     step: {
@@ -26136,6 +26198,10 @@ var zh_Hans_default = {
       "\u65E0\u6CD5\u5220\u9664\u201C{name}\u201D\uFF1A{error}",
     delete_approval_warning_restorable:
       "\u4E4B\u540E\u53EF\u4ECE\u201C\u6700\u8FD1\u5220\u9664\u201D\u4E2D\u6062\u590D\u3002",
+    restore_card_deleted_on: "\u5220\u9664\u4E8E {date}",
+    restore_card_restored: "\u5DF2\u6062\u590D",
+    restore_card_gone:
+      "\u5DF2\u4E0D\u5728\u201C\u6700\u8FD1\u5220\u9664\u201D\u4E2D",
   },
   options: {
     step: {
@@ -27522,6 +27588,10 @@ var zh_Hant_default = {
       "\u7121\u6CD5\u522A\u9664\u300C{name}\u300D\uFF1A{error}",
     delete_approval_warning_restorable:
       "\u4E4B\u5F8C\u53EF\u5F9E\u300C\u6700\u8FD1\u522A\u9664\u300D\u4E2D\u5FA9\u539F\u3002",
+    restore_card_deleted_on: "\u522A\u9664\u65BC {date}",
+    restore_card_restored: "\u5DF2\u5FA9\u539F",
+    restore_card_gone:
+      "\u5DF2\u4E0D\u5728\u300C\u6700\u8FD1\u522A\u9664\u300D\u4E2D",
   },
   options: {
     step: {
@@ -31610,3124 +31680,6 @@ function renderAgentSteps(host, steps) {
   `;
 }
 
-// src/panel/next-prompt.js
-var PREDICT_TIMEOUT_MS = 1e4;
-async function requestNextPrompt(
-  host,
-  assistantMsg,
-  sessionId,
-  { refocus = false } = {},
-) {
-  host._nextPrompt = null;
-  if (!sessionId || !host._config?.next_prompt_enabled) return;
-  const token = (host._predictToken = (host._predictToken || 0) + 1);
-  host._predictingSession = sessionId;
-  let result = null;
-  try {
-    result = await Promise.race([
-      host.hass.callWS({
-        type: "selora_ai/predict_next_prompt",
-        session_id: sessionId,
-        ...(host.hass?.language ? { language: host.hass.language } : {}),
-      }),
-      new Promise((resolve) => setTimeout(resolve, PREDICT_TIMEOUT_MS, null)),
-    ]);
-  } catch (err) {
-    result = null;
-  }
-  if (host._predictToken !== token) return;
-  host._predictingSession = null;
-  const text = typeof result?.prompt === "string" ? result.prompt.trim() : "";
-  if (text) host._nextPrompt = { message: assistantMsg, sessionId, text };
-  if (refocus || text) _focusComposer(host, refocus);
-}
-function _focusComposer(host, hadFocus) {
-  if (!hadFocus && !globalThis.matchMedia?.("(pointer: fine)").matches) {
-    return;
-  }
-  host.updateComplete?.then(() => {
-    const active = host.shadowRoot?.activeElement;
-    if (
-      active &&
-      (active.isContentEditable ||
-        /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))
-    ) {
-      return;
-    }
-    const ta = host.shadowRoot?.querySelector(".composer-textarea");
-    if (ta && !ta.disabled) ta.focus();
-  });
-}
-function refreshNextPrompt(host) {
-  const messages = host._messages || [];
-  const last = messages[messages.length - 1];
-  if (last?.role !== "assistant") return;
-  requestNextPrompt(host, last, host._activeSessionId);
-}
-function isPredicting(host) {
-  return (
-    !!host._predictingSession &&
-    host._predictingSession === host._activeSessionId
-  );
-}
-function activeNextPrompt(host) {
-  const np = host._nextPrompt;
-  if (!np || host._input || host._loading || host._streaming) return "";
-  if (np.sessionId !== host._activeSessionId) return "";
-  const messages = host._messages || [];
-  return messages[messages.length - 1] === np.message ? np.text : "";
-}
-function fitComposerToPrediction(host) {
-  const ta = host.shadowRoot?.querySelector(".composer-textarea");
-  if (!ta) return;
-  const text = activeNextPrompt(host);
-  if (text === (ta._fittedPrediction ?? "")) return;
-  ta._fittedPrediction = text;
-  if (ta.value) return;
-  ta.value = text;
-  ta.style.height = "auto";
-  ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
-  ta.value = "";
-}
-function acceptNextPrompt(host, textarea) {
-  const text = activeNextPrompt(host);
-  if (!text) return false;
-  host._input = text;
-  host._nextPrompt = null;
-  requestAnimationFrame(() => {
-    if (!textarea) return;
-    textarea.value = text;
-    textarea.setSelectionRange(text.length, text.length);
-    textarea.focus();
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-  return true;
-}
-
-// src/panel/chat-autocomplete.js
-var AUTOCOMPLETE_MIN_CHARS = 3;
-var AUTOCOMPLETE_MAX_RESULTS = 6;
-var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
-  "light",
-  "switch",
-  "lock",
-  "cover",
-  "fan",
-  "media_player",
-  "climate",
-  "vacuum",
-  "camera",
-  "humidifier",
-  "water_heater",
-  "input_boolean",
-  "input_select",
-  "input_number",
-  "input_button",
-  "remote",
-  "lawn_mower",
-]);
-var SENSOR_DOMAINS = /* @__PURE__ */ new Set(["sensor", "binary_sensor"]);
-var SENSOR_DEVICE_CLASS_ICONS = {
-  motion: "mdi:motion-sensor",
-  occupancy: "mdi:motion-sensor",
-  presence: "mdi:home-account",
-  door: "mdi:door",
-  garage_door: "mdi:garage",
-  window: "mdi:window-closed-variant",
-  opening: "mdi:square-outline",
-  moisture: "mdi:water-alert",
-  smoke: "mdi:smoke-detector",
-  gas: "mdi:gas-cylinder",
-  carbon_monoxide: "mdi:molecule-co",
-  carbon_dioxide: "mdi:molecule-co2",
-  vibration: "mdi:vibrate",
-  sound: "mdi:volume-high",
-  tamper: "mdi:shield-alert",
-  temperature: "mdi:thermometer",
-  humidity: "mdi:water-percent",
-  illuminance: "mdi:brightness-5",
-  pressure: "mdi:gauge",
-  power: "mdi:flash",
-  energy: "mdi:lightning-bolt",
-  pm25: "mdi:air-filter",
-};
-var DOMAIN_ICONS2 = {
-  light: "mdi:lightbulb",
-  switch: "mdi:toggle-switch",
-  lock: "mdi:lock",
-  cover: "mdi:window-shutter",
-  fan: "mdi:fan",
-  media_player: "mdi:speaker",
-  climate: "mdi:thermostat",
-  vacuum: "mdi:robot-vacuum",
-  camera: "mdi:cctv",
-  humidifier: "mdi:air-humidifier",
-  water_heater: "mdi:water-boiler",
-  remote: "mdi:remote",
-  lawn_mower: "mdi:mower",
-  input_boolean: "mdi:toggle-switch-outline",
-  input_select: "mdi:form-dropdown",
-  input_number: "mdi:numeric",
-  input_button: "mdi:gesture-tap-button",
-  sensor: "mdi:gauge",
-  binary_sensor: "mdi:checkbox-marked-circle-outline",
-  scene: "mdi:palette",
-  automation: "mdi:robot",
-  script: "mdi:script-text",
-  area: "mdi:floor-plan",
-};
-var sensorCapable = (pattern) => ({
-  kind: "device",
-  pattern,
-  includeAreas: true,
-  includeSensors: true,
-});
-var BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
-var LOCALE_TRIGGERS = {
-  en: [
-    { kind: "area", pattern: /\bin (?:the |a )?$/i },
-    { kind: "area", pattern: /\bof (?:the |a )?$/i },
-    { kind: "scene", pattern: /\bactivate $/i },
-    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
-    { kind: "scene", pattern: /\bscene $/i },
-    { kind: "automation", pattern: /\brun $/i },
-    { kind: "automation", pattern: /\btrigger $/i },
-    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:open|close) (?:the |my )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:start|stop) (?:the |my )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
-    sensorCapable(/\bthe $/i),
-    sensorCapable(/\bmy $/i),
-  ],
-  fr: [
-    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
-    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
-    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
-    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
-    { kind: "scene", pattern: /\bscène $/i },
-    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
-    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
-    {
-      kind: "automation",
-      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
-    ),
-    sensorCapable(/\ble $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\bles $/i),
-    sensorCapable(/\bl['’]$/i),
-    sensorCapable(/\bmon $/i),
-    sensorCapable(/\bma $/i),
-    sensorCapable(/\bmes $/i),
-  ],
-  de: [
-    { kind: "area", pattern: /\bim $/i },
-    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
-    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
-    { kind: "scene", pattern: /\bSzene $/i },
-    {
-      kind: "automation",
-      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
-    },
-    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\bdimme (?:die |das |meine )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
-    ),
-    sensorCapable(/\bdie $/i),
-    sensorCapable(/\bder $/i),
-    sensorCapable(/\bdas $/i),
-    sensorCapable(/\bden $/i),
-    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
-  ],
-  es: [
-    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
-    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
-    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
-    { kind: "scene", pattern: /\bescena $/i },
-    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
-    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
-    ),
-    sensorCapable(/\bel $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\blos $/i),
-    sensorCapable(/\blas $/i),
-    sensorCapable(/\bmi $/i),
-    sensorCapable(/\bmis $/i),
-  ],
-  it: [
-    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
-    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
-    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
-    { kind: "scene", pattern: /\bscena $/i },
-    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
-    {
-      kind: "automation",
-      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
-    sensorCapable(/\bil $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\bi $/i),
-    sensorCapable(/\ble $/i),
-    sensorCapable(/\bgli $/i),
-    sensorCapable(/\blo $/i),
-    sensorCapable(/\bmio $/i),
-    sensorCapable(/\bmia $/i),
-    sensorCapable(/\bmiei $/i),
-  ],
-  nl: [
-    { kind: "area", pattern: /\bin (?:de |het )?$/i },
-    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
-    { kind: "scene", pattern: /\bscène $/i },
-    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
-    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
-    {
-      kind: "device",
-      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\bdim (?:de |het |mijn )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
-    sensorCapable(/\bde $/i),
-    sensorCapable(/\bhet $/i),
-    sensorCapable(/\bmijn $/i),
-  ],
-  hu: [
-    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
-    { kind: "scene", pattern: /\bjelenet $/i },
-    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
-    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
-    {
-      kind: "device",
-      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
-    sensorCapable(/\ba $/i),
-    sensorCapable(/\baz $/i),
-  ],
-};
-function _toUnicodeBoundary(re) {
-  let src = re.source;
-  if (src.startsWith("\\b")) {
-    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
-  }
-  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
-  return new RegExp(src, flags); // nosemgrep
-}
-for (const t5 of BASE_TRIGGERS) {
-  t5.pattern = _toUnicodeBoundary(t5.pattern);
-}
-for (const list of Object.values(LOCALE_TRIGGERS)) {
-  for (const t5 of list) {
-    t5.pattern = _toUnicodeBoundary(t5.pattern);
-  }
-}
-function _langKey2(lang) {
-  const base = String(lang || "en")
-    .toLowerCase()
-    .split("-")[0];
-  return LOCALE_TRIGGERS[base] ? base : "en";
-}
-function _triggersFor(lang) {
-  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey2(lang)]];
-}
-var QUERY_STOP_RE = /[\n.?!]/;
-var MAX_QUERY_LEN = 40;
-var GHOST_VOCABULARY_BY_LANG = {
-  en: [
-    "automation",
-    "automations",
-    "trigger",
-    "triggers",
-    "condition",
-    "conditions",
-    "action",
-    "actions",
-    "scene",
-    "scenes",
-    "script",
-    "scripts",
-    "device",
-    "devices",
-    "entity",
-    "entities",
-    "schedule",
-    "weekday",
-    "weekdays",
-    "weekend",
-    "weekends",
-    "midnight",
-    "morning",
-    "afternoon",
-    "evening",
-    "sunrise",
-    "sunset",
-    "minutes",
-    "hours",
-    "seconds",
-    "temperature",
-    "brightness",
-    "thermostat",
-    "lights",
-    "lighting",
-    "bedroom",
-    "bathroom",
-    "kitchen",
-    "living",
-    "garage",
-    "office",
-    "hallway",
-    "basement",
-    "downstairs",
-    "upstairs",
-    "outside",
-    "create",
-    "suggest",
-    "notify",
-    "notification",
-    "between",
-    "before",
-    "after",
-    "during",
-    "while",
-    "everyone",
-    "nobody",
-  ],
-  fr: [
-    "automatisation",
-    "automatisations",
-    "d\xE9clencheur",
-    "d\xE9clencheurs",
-    "condition",
-    "conditions",
-    "action",
-    "actions",
-    "sc\xE8ne",
-    "sc\xE8nes",
-    "script",
-    "scripts",
-    "appareil",
-    "appareils",
-    "entit\xE9",
-    "entit\xE9s",
-    "planification",
-    "semaine",
-    "week-end",
-    "minuit",
-    "matin",
-    "apr\xE8s-midi",
-    "soir",
-    "lever",
-    "coucher",
-    "minutes",
-    "heures",
-    "secondes",
-    "temp\xE9rature",
-    "luminosit\xE9",
-    "thermostat",
-    "lumi\xE8re",
-    "lumi\xE8res",
-    "\xE9clairage",
-    "chambre",
-    "salle de bains",
-    "cuisine",
-    "salon",
-    "garage",
-    "bureau",
-    "couloir",
-    "sous-sol",
-    "\xE9tage",
-    "rez-de-chauss\xE9e",
-    "ext\xE9rieur",
-    "cr\xE9er",
-    "sugg\xE9rer",
-    "notifier",
-    "notification",
-    "entre",
-    "avant",
-    "apr\xE8s",
-    "pendant",
-    "tout le monde",
-    "personne",
-  ],
-  de: [
-    "Automatisierung",
-    "Automatisierungen",
-    "Ausl\xF6ser",
-    "Bedingung",
-    "Bedingungen",
-    "Aktion",
-    "Aktionen",
-    "Szene",
-    "Szenen",
-    "Skript",
-    "Skripte",
-    "Ger\xE4t",
-    "Ger\xE4te",
-    "Entit\xE4t",
-    "Entit\xE4ten",
-    "Zeitplan",
-    "Wochentag",
-    "Wochenende",
-    "Mitternacht",
-    "Morgen",
-    "Nachmittag",
-    "Abend",
-    "Sonnenaufgang",
-    "Sonnenuntergang",
-    "Minuten",
-    "Stunden",
-    "Sekunden",
-    "Temperatur",
-    "Helligkeit",
-    "Thermostat",
-    "Licht",
-    "Lichter",
-    "Beleuchtung",
-    "Schlafzimmer",
-    "Badezimmer",
-    "K\xFCche",
-    "Wohnzimmer",
-    "Garage",
-    "B\xFCro",
-    "Flur",
-    "Keller",
-    "drau\xDFen",
-    "erstelle",
-    "vorschlagen",
-    "benachrichtigen",
-    "Benachrichtigung",
-    "zwischen",
-    "vor",
-    "nach",
-    "w\xE4hrend",
-    "jeder",
-    "niemand",
-  ],
-  es: [
-    "automatizaci\xF3n",
-    "automatizaciones",
-    "disparador",
-    "disparadores",
-    "condici\xF3n",
-    "condiciones",
-    "acci\xF3n",
-    "acciones",
-    "escena",
-    "escenas",
-    "script",
-    "scripts",
-    "dispositivo",
-    "dispositivos",
-    "entidad",
-    "entidades",
-    "programaci\xF3n",
-    "semana",
-    "fin de semana",
-    "medianoche",
-    "ma\xF1ana",
-    "tarde",
-    "noche",
-    "amanecer",
-    "atardecer",
-    "minutos",
-    "horas",
-    "segundos",
-    "temperatura",
-    "brillo",
-    "termostato",
-    "luz",
-    "luces",
-    "iluminaci\xF3n",
-    "dormitorio",
-    "ba\xF1o",
-    "cocina",
-    "sal\xF3n",
-    "garaje",
-    "oficina",
-    "pasillo",
-    "s\xF3tano",
-    "exterior",
-    "crear",
-    "sugerir",
-    "notificar",
-    "notificaci\xF3n",
-    "entre",
-    "antes",
-    "despu\xE9s",
-    "durante",
-    "mientras",
-    "todos",
-    "nadie",
-  ],
-  it: [
-    "automazione",
-    "automazioni",
-    "trigger",
-    "condizione",
-    "condizioni",
-    "azione",
-    "azioni",
-    "scena",
-    "scene",
-    "script",
-    "dispositivo",
-    "dispositivi",
-    "entit\xE0",
-    "pianificazione",
-    "settimana",
-    "fine settimana",
-    "mezzanotte",
-    "mattina",
-    "pomeriggio",
-    "sera",
-    "alba",
-    "tramonto",
-    "minuti",
-    "ore",
-    "secondi",
-    "temperatura",
-    "luminosit\xE0",
-    "termostato",
-    "luce",
-    "luci",
-    "illuminazione",
-    "camera",
-    "bagno",
-    "cucina",
-    "soggiorno",
-    "garage",
-    "ufficio",
-    "corridoio",
-    "cantina",
-    "esterno",
-    "crea",
-    "suggerisci",
-    "notifica",
-    "tra",
-    "prima",
-    "dopo",
-    "durante",
-    "mentre",
-    "tutti",
-    "nessuno",
-  ],
-  nl: [
-    "automatisering",
-    "automatiseringen",
-    "trigger",
-    "triggers",
-    "voorwaarde",
-    "voorwaarden",
-    "actie",
-    "acties",
-    "sc\xE8ne",
-    "sc\xE8nes",
-    "script",
-    "scripts",
-    "apparaat",
-    "apparaten",
-    "entiteit",
-    "entiteiten",
-    "planning",
-    "weekdag",
-    "weekend",
-    "middernacht",
-    "ochtend",
-    "middag",
-    "avond",
-    "zonsopgang",
-    "zonsondergang",
-    "minuten",
-    "uren",
-    "seconden",
-    "temperatuur",
-    "helderheid",
-    "thermostaat",
-    "licht",
-    "lichten",
-    "verlichting",
-    "slaapkamer",
-    "badkamer",
-    "keuken",
-    "woonkamer",
-    "garage",
-    "kantoor",
-    "gang",
-    "kelder",
-    "buiten",
-    "maak",
-    "suggereer",
-    "meld",
-    "melding",
-    "tussen",
-    "voor",
-    "na",
-    "tijdens",
-    "terwijl",
-    "iedereen",
-    "niemand",
-  ],
-  hu: [
-    "automatizmus",
-    "automatizmusok",
-    "trigger",
-    "triggerek",
-    "felt\xE9tel",
-    "felt\xE9telek",
-    "m\u0171velet",
-    "m\u0171veletek",
-    "jelenet",
-    "jelenetek",
-    "szkript",
-    "szkriptek",
-    "eszk\xF6z",
-    "eszk\xF6z\xF6k",
-    "entit\xE1s",
-    "entit\xE1sok",
-    "\xFCtemez\xE9s",
-    "h\xE9tk\xF6znap",
-    "h\xE9tv\xE9ge",
-    "\xE9jf\xE9l",
-    "reggel",
-    "d\xE9lut\xE1n",
-    "este",
-    "napkelte",
-    "napnyugta",
-    "percek",
-    "\xF3r\xE1k",
-    "m\xE1sodpercek",
-    "h\u0151m\xE9rs\xE9klet",
-    "f\xE9nyer\u0151",
-    "termoszt\xE1t",
-    "f\xE9ny",
-    "f\xE9nyek",
-    "vil\xE1g\xEDt\xE1s",
-    "h\xE1l\xF3szoba",
-    "f\xFCrd\u0151szoba",
-    "konyha",
-    "nappali",
-    "gar\xE1zs",
-    "iroda",
-    "folyos\xF3",
-    "pince",
-    "kint",
-    "l\xE9trehoz",
-    "javasol",
-    "\xE9rtes\xEDt",
-    "\xE9rtes\xEDt\xE9s",
-    "k\xF6z\xF6tt",
-    "el\u0151tt",
-    "ut\xE1n",
-    "alatt",
-    "k\xF6zben",
-    "mindenki",
-    "senki",
-  ],
-};
-var _ghostSorted = {};
-function _ghostVocabFor(lang) {
-  const key = GHOST_VOCABULARY_BY_LANG[_langKey2(lang)]
-    ? _langKey2(lang)
-    : "en";
-  if (!_ghostSorted[key]) {
-    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
-      (a3, b3) => a3.length - b3.length,
-    );
-  }
-  return _ghostSorted[key];
-}
-var GHOST_MIN_PREFIX = 3;
-var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
-function _partialWordAt(text, caret) {
-  if (caret <= 0) return null;
-  let i8 = caret;
-  while (i8 > 0 && _WORD_CHAR_RE.test(text[i8 - 1])) i8--;
-  const word = text.slice(i8, caret);
-  if (!word) return null;
-  return { word, start: i8 };
-}
-function findGhostSuggestion(text, caret, lang) {
-  if (typeof text !== "string") return null;
-  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
-  const part = _partialWordAt(text, caret);
-  if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
-  const lower = part.word.toLowerCase();
-  for (const w2 of _ghostVocabFor(lang)) {
-    const wLower = w2.toLowerCase();
-    if (wLower === lower) return null;
-    if (wLower.startsWith(lower)) {
-      return {
-        suffix: w2.slice(part.word.length),
-        word: w2,
-        start: part.start,
-      };
-    }
-  }
-  return null;
-}
-var ARTICLE_WORDS_BY_LANG = {
-  en: ["the", "my", "a", "an"],
-  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
-  de: [
-    "die",
-    "der",
-    "das",
-    "den",
-    "dem",
-    "mein",
-    "meine",
-    "meinen",
-    "meiner",
-    "meinem",
-    "ein",
-    "eine",
-    "einen",
-  ],
-  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
-  it: [
-    "il",
-    "la",
-    "lo",
-    "i",
-    "le",
-    "gli",
-    "mio",
-    "mia",
-    "miei",
-    "mie",
-    "un",
-    "una",
-    "uno",
-  ],
-  nl: ["de", "het", "een", "mijn"],
-  hu: ["a", "az", "egy"],
-};
-function _articleWordsFor(lang) {
-  const key = ARTICLE_WORDS_BY_LANG[_langKey2(lang)] ? _langKey2(lang) : "en";
-  return new Set(ARTICLE_WORDS_BY_LANG[key]);
-}
-var _INTRA_WORD_RE = /['’-]/;
-function _isNameChar(text, i8) {
-  if (i8 < 0 || i8 >= text.length) return false;
-  if (_WORD_CHAR_RE.test(text[i8])) return true;
-  if (!_INTRA_WORD_RE.test(text[i8])) return false;
-  return (
-    i8 > 0 &&
-    i8 + 1 < text.length &&
-    _WORD_CHAR_RE.test(text[i8 - 1]) &&
-    _WORD_CHAR_RE.test(text[i8 + 1])
-  );
-}
-function _completionSpan(text, caret, labels) {
-  let start = -1;
-  let end = caret;
-  for (const label of labels || []) {
-    if (!label) continue;
-    for (const [from, to] of _labelSpans(text, label)) {
-      if (caret <= from || caret >= to) continue;
-      if (to < end) continue;
-      if (to === end && start >= 0 && from >= start) continue;
-      start = from;
-      end = to;
-    }
-  }
-  if (end > caret) return { start, end };
-  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
-    return { start: -1, end };
-  }
-  while (_isNameChar(text, end)) end += 1;
-  return { start: -1, end };
-}
-function detectTrigger(text, caret, lang, labels) {
-  if (typeof text !== "string" || caret == null || caret < 0) return null;
-  const before = text.slice(0, caret);
-  const completion = _completionSpan(text, caret, labels);
-  const triggers = _triggersFor(lang);
-  const articleWords = _articleWordsFor(lang);
-  let queryStart = caret;
-  while (queryStart > 0) {
-    const ch = before[queryStart - 1];
-    if (QUERY_STOP_RE.test(ch)) break;
-    queryStart -= 1;
-    if (caret - queryStart > MAX_QUERY_LEN) break;
-  }
-  let best = null;
-  for (let qs = queryStart; qs <= caret; qs++) {
-    const prefix = before.slice(0, qs);
-    for (const trig of triggers) {
-      if (trig.pattern.test(prefix)) {
-        best = {
-          kind: trig.kind,
-          query: before.slice(qs, caret),
-          start: qs,
-          end: completion.end,
-          domains: trig.domains || null,
-          includeAreas: !!trig.includeAreas,
-          includeSensors: !!trig.includeSensors,
-        };
-        break;
-      }
-    }
-  }
-  if (!best) return null;
-  if (!best.query.trim() && !best.domains) return null;
-  if (articleWords.has(best.query.trim().toLowerCase())) return null;
-  if (completion.start >= 0 && completion.start < best.start) {
-    best.start = completion.start;
-  }
-  return best;
-}
-function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
-  const items = [];
-  if (!hass?.states) return items;
-  const areaById = {};
-  if (areas && typeof areas === "object") {
-    for (const [id, a3] of Object.entries(areas)) {
-      areaById[id] = a3?.name || a3?.area_id || id;
-    }
-  }
-  const fullEntReg = entities || {};
-  const displayEntReg = hass.entities || {};
-  for (const [entityId, state] of Object.entries(hass.states)) {
-    const domain = entityId.split(".")[0];
-    const friendly = state?.attributes?.friendly_name;
-    if (!friendly) continue;
-    const entry = fullEntReg[entityId] || displayEntReg[entityId];
-    let areaId = entry?.area_id || null;
-    if (!areaId && entry?.device_id && devices) {
-      areaId = devices[entry.device_id]?.area_id || null;
-    }
-    const areaName = areaId ? areaById[areaId] || null : null;
-    if (SENSOR_DOMAINS.has(domain)) {
-      if (entry?.entity_category) continue;
-      if (entry?.hidden_by || entry?.hidden) continue;
-      items.push({
-        kind: "sensor",
-        domain,
-        entity_id: entityId,
-        device_id: entry?.device_id || null,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon:
-          state?.attributes?.icon ||
-          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
-          DOMAIN_ICONS2[domain],
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (DEVICE_DOMAINS.has(domain)) {
-      items.push({
-        kind: "device",
-        domain,
-        entity_id: entityId,
-        device_id: entry?.device_id || null,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon: DOMAIN_ICONS2[domain] || "mdi:devices",
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "scene") {
-      items.push({
-        kind: "scene",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon: DOMAIN_ICONS2.scene,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "automation") {
-      items.push({
-        kind: "automation",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: null,
-        area: null,
-        icon: DOMAIN_ICONS2.automation,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "script") {
-      items.push({
-        kind: "automation",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: null,
-        area: null,
-        icon: DOMAIN_ICONS2.script,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    }
-  }
-  for (const [areaId, name] of Object.entries(areaById)) {
-    items.push({
-      kind: "area",
-      entity_id: null,
-      area_id: areaId,
-      label: name,
-      area: null,
-      icon: DOMAIN_ICONS2.area,
-      _lowerLabel: name.toLowerCase(),
-    });
-  }
-  return dedupeDeviceItems(items);
-}
-var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
-function normLabel(s6) {
-  return s6.toLowerCase().replace(/\s+/g, " ").trim();
-}
-function baseLabel(normalized) {
-  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
-}
-function isParenPrefix(shorter, longer) {
-  if (shorter === longer) return true;
-  if (!longer.startsWith(shorter)) return false;
-  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
-}
-function labelsForked(labels) {
-  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
-  for (let i8 = 0; i8 + 1 < sorted.length; i8++) {
-    if (!isParenPrefix(sorted[i8], sorted[i8 + 1])) return true;
-  }
-  return false;
-}
-function dedupeDeviceItems(items) {
-  const devices = items.filter((i8) => i8.kind === "device");
-  const domainsByDevice = /* @__PURE__ */ new Map();
-  for (const it of devices) {
-    if (!it.device_id) continue;
-    if (!domainsByDevice.has(it.device_id)) {
-      domainsByDevice.set(it.device_id, /* @__PURE__ */ new Set());
-    }
-    domainsByDevice.get(it.device_id).add(it.domain);
-  }
-  const kept = /* @__PURE__ */ new Set();
-  const seenIdentity = /* @__PURE__ */ new Set();
-  for (const it of devices) {
-    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
-    if (
-      parent &&
-      it.device_id &&
-      domainsByDevice.get(it.device_id)?.has(parent)
-    ) {
-      continue;
-    }
-    const disambig = it.device_id || it.entity_id;
-    const identity = `${disambig}\0${it._lowerLabel}\0${it.area_id || ""}\0${it.domain}`;
-    if (seenIdentity.has(identity)) continue;
-    seenIdentity.add(identity);
-    kept.add(it);
-  }
-  const sameDeviceAreaTagged = /* @__PURE__ */ new Set();
-  for (const it of kept) {
-    if (it.area_id && it.device_id) {
-      sameDeviceAreaTagged.add(
-        `${it.device_id}\0${it._lowerLabel}\0${it.domain}`,
-      );
-    }
-  }
-  for (const it of [...kept]) {
-    if (it.area_id || !it.device_id) continue;
-    const key = `${it.device_id}\0${it._lowerLabel}\0${it.domain}`;
-    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
-  }
-  const buckets = /* @__PURE__ */ new Map();
-  for (const it of kept) {
-    const key = `${baseLabel(normLabel(it.label))}\0${it.domain}`;
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key).push(it);
-  }
-  for (const rows of buckets.values()) {
-    const labels = new Set(rows.map((r6) => normLabel(r6.label)));
-    if (labels.size < 2) continue;
-    if (!rows.some((r6) => r6.area_id)) continue;
-    if (labelsForked(labels)) continue;
-    for (const it of rows) {
-      if (!it.area_id && it.device_id) kept.delete(it);
-    }
-  }
-  return items.filter((i8) => i8.kind !== "device" || kept.has(i8));
-}
-var SCORE_WORD_EXACT = 1500;
-var SCORE_LABEL_PREFIX = 1e3;
-var SCORE_WORD_PREFIX = 500;
-var SCORE_SUBSTRING = 100;
-var SCORE_SUBSEQUENCE = 10;
-var KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
-function _scoreItem(item, lowerQuery) {
-  const label = item._lowerLabel;
-  if (!label) return 0;
-  const words = label.split(/\s+/);
-  for (const w2 of words) {
-    if (w2 === lowerQuery) return SCORE_WORD_EXACT;
-  }
-  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
-  for (const w2 of words) {
-    if (w2.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
-  }
-  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
-  let qi = 0;
-  for (let i8 = 0; i8 < label.length && qi < lowerQuery.length; i8++) {
-    if (label[i8] === lowerQuery[qi]) qi += 1;
-  }
-  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
-  return 0;
-}
-function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
-  if (!items?.length || !domains?.length) return [];
-  const domainSet = new Set(domains);
-  const out = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (!domainSet.has(it.domain)) continue;
-    out.push(it);
-  }
-  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
-  return out.slice(0, max);
-}
-function findExactMatches(items, kind, query, domains = null) {
-  if (!items?.length || !query) return [];
-  const lowerQuery = query.trim().toLowerCase();
-  if (!lowerQuery) return [];
-  const domainSet = domains ? new Set(domains) : null;
-  const out = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (domainSet && !domainSet.has(it.domain)) continue;
-    if (it._lowerLabel === lowerQuery) out.push(it);
-  }
-  return out;
-}
-function rankSuggestions(
-  items,
-  kind,
-  query,
-  max = AUTOCOMPLETE_MAX_RESULTS,
-  domains = null,
-) {
-  if (!items?.length || !query) return [];
-  const lowerQuery = query.trim().toLowerCase();
-  if (!lowerQuery) return [];
-  const domainSet = domains ? new Set(domains) : null;
-  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
-  const scored = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (domainSet && !domainSet.has(it.domain)) continue;
-    const score = _scoreItem(it, lowerQuery);
-    if (score >= minScore) scored.push({ item: it, score });
-  }
-  scored.sort((a3, b3) => {
-    if (b3.score !== a3.score) return b3.score - a3.score;
-    if (a3.item.label.length !== b3.item.label.length) {
-      return a3.item.label.length - b3.item.label.length;
-    }
-    return a3.item.label.localeCompare(b3.item.label);
-  });
-  return scored.slice(0, max).map((s6) => s6.item);
-}
-function applySelection(text, trigger, item) {
-  const before = text.slice(0, trigger.start);
-  const after = text.slice(trigger.end);
-  const insert = item.label;
-  const needsSpace = !after.startsWith(" ");
-  const inserted = needsSpace ? insert + " " : insert;
-  const newText = before + inserted + after;
-  const newCaret = trigger.start + inserted.length;
-  return {
-    text: newText,
-    caret: newCaret,
-    range: [trigger.start, trigger.start + insert.length],
-  };
-}
-function buildEntityMarker(selections) {
-  if (!selections?.length) return "";
-  const seenEntities = /* @__PURE__ */ new Set();
-  const seenAreas = /* @__PURE__ */ new Set();
-  const entityIds = [];
-  const areaNames = [];
-  for (const sel of selections) {
-    if (sel.entity_id) {
-      if (seenEntities.has(sel.entity_id)) continue;
-      seenEntities.add(sel.entity_id);
-      entityIds.push(sel.entity_id);
-    } else if (sel.kind === "area" && sel.area_id) {
-      if (seenAreas.has(sel.area_id)) continue;
-      seenAreas.add(sel.area_id);
-      areaNames.push(sel.label);
-    }
-  }
-  const parts = [];
-  if (entityIds.length === 1) {
-    parts.push(`[[entity:${entityIds[0]}]]`);
-  } else if (entityIds.length > 1) {
-    parts.push(`[[entities:${entityIds.join(",")}]]`);
-  }
-  if (areaNames.length) {
-    parts.push(`[[areas:${areaNames.join(",")}]]`);
-  }
-  return parts.length ? "\n\n" + parts.join(" ") : "";
-}
-function stripEntityMarkers(text) {
-  if (typeof text !== "string" || !text) return text;
-  return text
-    .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
-    .trimEnd();
-}
-function _escapeRegex(s6) {
-  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-function _labelSpans(text, label) {
-  const startsWord = _WORD_CHAR_RE.test(label[0]);
-  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
-  const re = new RegExp(_escapeRegex(label), "gi"); // nosemgrep
-  const spans = [];
-  for (let m3 = re.exec(text); m3; m3 = re.exec(text)) {
-    const start = m3.index;
-    const end = start + m3[0].length;
-    const before = start > 0 ? text[start - 1] : "";
-    const after = end < text.length ? text[end] : "";
-    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
-    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
-    spans.push([start, end]);
-  }
-  return spans;
-}
-function pruneStaleSelections(text, selections, ignoreRange) {
-  if (!selections?.length) return selections;
-  const [skipFrom, skipTo] = ignoreRange || [];
-  const skipping =
-    typeof skipFrom === "number" &&
-    typeof skipTo === "number" &&
-    skipTo > skipFrom;
-  return selections.filter((s6) => {
-    if (!s6.label) return false;
-    const spans = _labelSpans(text, s6.label);
-    if (!skipping) return spans.length > 0;
-    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
-  });
-}
-
-// src/panel/chat-attachments.js
-var MAX_CHAT_ATTACHMENTS = 4;
-var MAX_B64_PER_IMAGE = 2 * 1024 * 1024;
-var MAX_B64_TOTAL = 3 * 1024 * 1024;
-var MAX_EDGE_PX = 1568;
-var JPEG_QUALITY = 0.85;
-var KEEP_ORIGINAL_MAX_BYTES = 300 * 1024;
-var ACCEPTED_MIME = /* @__PURE__ */ new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-function supportsImageAttachments(host) {
-  return !!host._config?.supports_vision;
-}
-function _b64Length(attachment) {
-  return Math.max(
-    0,
-    attachment.dataUrl.length - attachment.dataUrl.indexOf(",") - 1,
-  );
-}
-function _readAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-function _loadImage(dataUrl) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("decode failed"));
-    img.src = dataUrl;
-  });
-}
-async function _processImageFile(file) {
-  const originalDataUrl = await _readAsDataUrl(file);
-  const img = await _loadImage(originalDataUrl);
-  const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
-  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
-  const fitsAsIs =
-    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
-  if (file.type === "image/gif" && fitsAsIs) {
-    return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
-  }
-  const lossless = file.type === "image/png" || file.type === "image/gif";
-  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-  const ctx = canvas.getContext("2d");
-  if (outMime === "image/jpeg") {
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  return {
-    name: file.name,
-    mimeType: outMime,
-    dataUrl:
-      outMime === "image/png"
-        ? canvas.toDataURL("image/png")
-        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
-  };
-}
-async function addImageAttachments(host, files) {
-  const images = Array.from(files || []).filter((f4) =>
-    ACCEPTED_MIME.has(f4.type),
-  );
-  if (!images.length) return;
-  if (!supportsImageAttachments(host)) {
-    host._attachmentNotice = host._t(
-      "chat_attachment_unsupported",
-      "Your current AI model can't analyze images.",
-    );
-    return;
-  }
-  const reserved = host._attachmentSlotsReserved || 0;
-  const room =
-    MAX_CHAT_ATTACHMENTS - (host._chatAttachments || []).length - reserved;
-  if (room <= 0) {
-    host._attachmentNotice = host._t(
-      "chat_attachment_limit",
-      "You can attach up to 4 images per message.",
-    );
-    return;
-  }
-  const accepted = images.slice(0, room);
-  const results = [];
-  host._attachmentsBusy = (host._attachmentsBusy || 0) + 1;
-  host._attachmentSlotsReserved = reserved + accepted.length;
-  let totalB64 = (host._chatAttachments || []).reduce(
-    (sum, a3) => sum + _b64Length(a3),
-    0,
-  );
-  try {
-    for (const file of accepted) {
-      try {
-        const processed = await _processImageFile(file);
-        const size = _b64Length(processed);
-        if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
-          host._attachmentNotice = host._t(
-            "chat_attachment_too_large",
-            "That image is too large to send.",
-          );
-          continue;
-        }
-        totalB64 += size;
-        results.push(processed);
-      } catch (_2) {
-        host._attachmentNotice = host._t(
-          "chat_attachment_read_error",
-          "Couldn't read that image.",
-        );
-      }
-    }
-  } finally {
-    host._attachmentsBusy = Math.max(0, (host._attachmentsBusy || 1) - 1);
-    host._attachmentSlotsReserved = Math.max(
-      0,
-      (host._attachmentSlotsReserved || accepted.length) - accepted.length,
-    );
-  }
-  if (!results.length) return;
-  host._chatAttachments = [...(host._chatAttachments || []), ...results].slice(
-    0,
-    MAX_CHAT_ATTACHMENTS,
-  );
-  host._attachmentNotice =
-    images.length > room
-      ? host._t(
-          "chat_attachment_limit",
-          "You can attach up to 4 images per message.",
-        )
-      : "";
-}
-function removeChatAttachment(host, idx) {
-  host._chatAttachments = (host._chatAttachments || []).filter(
-    (_2, i8) => i8 !== idx,
-  );
-  host._attachmentNotice = "";
-}
-function attachmentsForSend(host) {
-  return (host._chatAttachments || [])
-    .map((a3) => {
-      const comma = a3.dataUrl.indexOf(",");
-      if (comma < 0) return null;
-      return { mime_type: a3.mimeType, data: a3.dataUrl.slice(comma + 1) };
-    })
-    .filter(Boolean);
-}
-function createGlobalDropGuard(host) {
-  const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
-  let depth = 0;
-  const setDropActive = (value) => {
-    if (host._chatDropActive !== value) host._chatDropActive = value;
-  };
-  const onDragEnter = (e6) => {
-    if (!isFileDrag(e6)) return;
-    depth += 1;
-    if (host._activeTab === "chat" && supportsImageAttachments(host)) {
-      setDropActive(true);
-    }
-  };
-  const onDragLeave = (e6) => {
-    if (!isFileDrag(e6)) return;
-    depth = Math.max(0, depth - 1);
-    if (depth === 0) setDropActive(false);
-  };
-  const onDragOver = (e6) => {
-    if (isFileDrag(e6)) e6.preventDefault();
-  };
-  const onDrop = (e6) => {
-    depth = 0;
-    setDropActive(false);
-    if (!isFileDrag(e6) || e6.defaultPrevented) return;
-    e6.preventDefault();
-    if (host._activeTab === "chat" && e6.dataTransfer.files?.length) {
-      addImageAttachments(host, e6.dataTransfer.files);
-    }
-  };
-  window.addEventListener("dragenter", onDragEnter);
-  window.addEventListener("dragleave", onDragLeave);
-  window.addEventListener("dragover", onDragOver);
-  window.addEventListener("drop", onDrop);
-  return () => {
-    window.removeEventListener("dragenter", onDragEnter);
-    window.removeEventListener("dragleave", onDragLeave);
-    window.removeEventListener("dragover", onDragOver);
-    window.removeEventListener("drop", onDrop);
-  };
-}
-function renderDropOverlay(host) {
-  if (!host._chatDropActive) return b2``;
-  return b2`
-    <div class="chat-drop-overlay">
-      <div class="chat-drop-overlay-inner">
-        <ha-icon icon="mdi:image-plus-outline"></ha-icon>
-        <span
-          >${host._t("chat_attachment_drop_here", "Drop images to attach")}</span
-        >
-      </div>
-    </div>
-  `;
-}
-function renderAttachmentStrip(host) {
-  const attachments = host._chatAttachments || [];
-  if (!attachments.length && !host._attachmentNotice) return b2``;
-  return b2`
-    <div class="composer-attachments">
-      ${attachments.map(
-        (a3, idx) => b2`
-          <span class="composer-attachment">
-            <img src=${a3.dataUrl} alt=${a3.name || "image"} />
-            <button
-              type="button"
-              class="composer-attachment-remove"
-              title=${host._t("chat_attachment_remove", "Remove image")}
-              @click=${() => removeChatAttachment(host, idx)}
-            >
-              ×
-            </button>
-          </span>
-        `,
-      )}
-      ${
-        host._attachmentNotice
-          ? b2`<span class="composer-attachment-notice"
-              >${host._attachmentNotice}</span
-            >`
-          : b2``
-      }
-    </div>
-  `;
-}
-
-// src/panel/render-chat.js
-var AUTOMATION_LABEL_KEYS = [
-  ["chat_automation_label_building", "Building automation..."],
-  ["chat_automation_label_triggers", "Drafting triggers..."],
-  ["chat_automation_label_conditions", "Wiring conditions..."],
-  ["chat_automation_label_actions", "Composing actions..."],
-  ["chat_automation_label_almost", "Almost ready..."],
-];
-var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
-var AUTOCOMPLETE_KIND_LABEL_KEYS = {
-  device: ["chat_autocomplete_kind_devices", "Devices"],
-  sensor: ["chat_autocomplete_kind_sensors", "Sensors"],
-  area: ["chat_autocomplete_kind_areas", "Areas"],
-  scene: ["chat_autocomplete_kind_scenes", "Scenes"],
-  automation: ["chat_autocomplete_kind_automations", "Automations"],
-};
-function _formatReplyMs(ms) {
-  if (ms < 1e3) return `${ms} ms`;
-  const seconds = ms / 1e3;
-  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
-}
-function _formatToolArgs(args) {
-  if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
-  const parts = [];
-  for (const [k2, v3] of Object.entries(args)) {
-    let val;
-    if (v3 === null || v3 === void 0) {
-      val = "null";
-    } else if (typeof v3 === "string") {
-      val =
-        v3.length > 60
-          ? JSON.stringify(v3.slice(0, 60) + "\u2026")
-          : JSON.stringify(v3);
-    } else if (typeof v3 === "object") {
-      const json = JSON.stringify(v3);
-      val = json.length > 60 ? json.slice(0, 60) + "\u2026" : json;
-    } else {
-      val = String(v3);
-    }
-    parts.push(`${k2}=${val}`);
-  }
-  return parts.join(", ");
-}
-function renderToolCalls(host, toolCalls) {
-  return b2`
-    <details
-      class="dev-tool-calls"
-      style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
-    >
-      <summary
-        style="cursor:pointer;padding:6px 10px;color:var(--secondary-text-color);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;"
-      >
-        <ha-icon
-          icon="mdi:wrench-outline"
-          style="--mdc-icon-size:14px;"
-        ></ha-icon>
-        <span
-          >${host._t("chat_tools_used", "Tools used")}
-          (${toolCalls.length})</span
-        >
-      </summary>
-      <div
-        style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
-      >
-        ${toolCalls.map(
-          (tc, i8) => b2`
-            <div
-              style="padding:2px 0;${i8 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
-            >
-              <span style="color:var(--primary-text-color);font-weight:600;"
-                >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
-            </div>
-          `,
-        )}
-      </div>
-    </details>
-  `;
-}
-function _welcomeSuggestions(host) {
-  return [
-    {
-      label: host._t(
-        "chat_welcome_suggestion_lights_label",
-        "Turn off all lights at midnight",
-      ),
-      value: host._t(
-        "chat_welcome_suggestion_lights_value",
-        "Create an automation that turns off all lights at midnight",
-      ),
-      icon: "mdi:lightbulb-off-outline",
-    },
-    {
-      label: host._t(
-        "chat_welcome_suggestion_devices_label",
-        "What devices do I have?",
-      ),
-      value: host._t(
-        "chat_welcome_suggestion_devices_value",
-        "What devices do I have and which ones are currently on?",
-      ),
-      icon: "mdi:devices",
-    },
-    {
-      label: host._t(
-        "chat_welcome_suggestion_suggest_label",
-        "Suggest automations for my home",
-      ),
-      value: host._t(
-        "chat_welcome_suggestion_suggest_value",
-        "Suggest useful automations based on my devices and usage patterns",
-      ),
-      icon: "mdi:auto-fix",
-    },
-  ];
-}
-function renderAutomationSuggestButton(host) {
-  const busy = !!host._suggestingAutomation;
-  return b2`
-    <button
-      class="welcome-suggest-btn"
-      ?disabled=${busy || host._loading || host._streaming}
-      @click=${() => host._suggestAutomationIdea()}
-    >
-      ${
-        busy
-          ? b2`<span class="spinner green"></span>`
-          : b2`<ha-icon
-              icon="mdi:auto-fix"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>`
-      }
-      <span
-        >${busy ? host._t("chat_suggest_thinking", "Thinking\u2026") : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
-      >
-    </button>
-  `;
-}
-function renderChat(host) {
-  const isEmpty = host._messages.length === 0;
-  if (isEmpty) {
-    return b2`
-      <div class="chat-pane">
-        ${renderDropOverlay(host)}
-        <div class="chat-welcome-center" id="chat-messages">
-          ${i7(
-            host._welcomeKey || 0,
-            b2`
-              <div class="welcome-center-content">
-                <img
-                  src="/api/selora_ai/logo.png"
-                  alt="Selora AI"
-                  style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
-                />
-                <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
-                  ${
-                    host._newAutomationMode
-                      ? b2`${host._t("new_automation_title_prefix", "New")}
-                          <span class="gold-text"
-                            >${host._t("new_automation_gold", "Automation")}</span
-                          >`
-                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
-                          <span class="gold-text">Selora AI</span>`
-                  }
-                </div>
-                <div
-                  style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
-                >
-                  ${
-                    host._newAutomationMode
-                      ? host._t(
-                          "new_automation_subtitle",
-                          "Describe what you want to automate \u2014 mention the devices, times, or conditions involved.",
-                        )
-                      : host._t(
-                          "welcome_subtitle",
-                          "Your intelligent home automation architect",
-                        )
-                  }
-                </div>
-
-                ${
-                  host._llmNeedsSetup
-                    ? b2`
-                        <div
-                          style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
-                          @click=${() => host._goToSettings()}
-                        >
-                          <ha-icon
-                            icon="mdi:rocket-launch-outline"
-                            style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
-                          ></ha-icon>
-                          <div
-                            style="font-size:16px;font-weight:700;margin-bottom:6px;"
-                          >
-                            ${host._t("get_started", "Get started")}
-                          </div>
-                          <div
-                            style="font-size:13px;opacity:0.6;margin-bottom:16px;"
-                          >
-                            ${host._t(
-                              "get_started_body",
-                              "Configure your LLM provider in the Settings tab to start chatting with your home.",
-                            )}
-                          </div>
-                          <span
-                            style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
-                          >
-                            ${host._t("open_settings", "Open Settings")}
-                            <ha-icon
-                              icon="mdi:arrow-right"
-                              style="--mdc-icon-size:16px;"
-                            ></ha-icon>
-                          </span>
-                        </div>
-                      `
-                    : b2`
-                        <div class="welcome-composer-area">
-                          <selora-particles
-                            class="welcome-composer-particles"
-                            .count=${260}
-                            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
-                            .maxOpacity=${host._isDark ? 0.55 : 0.5}
-                            .speed=${host._streaming || host._loading ? 2.2 : 1}
-                          ></selora-particles>
-                          ${_renderComposer(host, { welcome: true })}
-                        </div>
-
-                        ${
-                          host._newAutomationMode
-                            ? renderAutomationSuggestButton(host)
-                            : b2`
-                                <details class="welcome-quickstart">
-                                  <summary class="welcome-quickstart-summary">
-                                    <span
-                                      >${host._t(
-                                        "quick_start",
-                                        "Quick start",
-                                      )}</span
-                                    >
-                                    <ha-icon
-                                      icon="mdi:chevron-down"
-                                      class="welcome-quickstart-chevron"
-                                    ></ha-icon>
-                                  </summary>
-                                  ${renderQuickActions(
-                                    host,
-                                    _welcomeSuggestions(host),
-                                  )}
-                                </details>
-                              `
-                        }
-                      `
-                }
-              </div>
-            `,
-          )}
-        </div>
-      </div>
-    `;
-  }
-  const lastMsg = host._messages[host._messages.length - 1];
-  const lastQuickActions =
-    lastMsg &&
-    lastMsg.role !== "user" &&
-    lastMsg.quick_actions &&
-    lastMsg.quick_actions.length && // Approval cards render their Allow/Deny row INLINE inside the
-    // bubble so the user sees the buttons next to the proposal
-    // they're approving. Without this guard the sticky composer row
-    // below would render the same four buttons again — 8 buttons
-    // on screen with no obvious link back to the card.
-    !lastMsg.command_approval
-      ? lastMsg
-      : null;
-  return b2`
-    <div class="chat-pane">
-      ${renderDropOverlay(host)}
-      <div
-        class="chat-messages"
-        id="chat-messages"
-        @scroll=${host._onChatScroll}
-      >
-        ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
-        ${host._deviceDetail ? renderDeviceDetail(host) : ""}
-        ${
-          host._loading
-            ? b2`
-                <div class="typing-bubble">
-                  <div class="typing-dot"></div>
-                  <div class="typing-dot"></div>
-                  <div class="typing-dot"></div>
-                </div>
-              `
-            : ""
-        }
-      </div>
-
-      <div class="chat-input-wrapper">
-        ${
-          host._chatScrolledAway && host._messages.length > 0
-            ? b2`
-                <button
-                  class="chat-jump-bottom"
-                  @click=${() => host._scrollChatToBottom()}
-                  title=${host._t("chat_jump_to_latest", "Go to latest message")}
-                  aria-label=${host._t(
-                    "chat_jump_to_latest",
-                    "Go to latest message",
-                  )}
-                >
-                  <ha-icon icon="mdi:chevron-down"></ha-icon>
-                </button>
-              `
-            : ""
-        }
-        ${
-          lastQuickActions
-            ? b2`
-                <div class="chat-quick-actions">
-                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
-                    used: !!lastQuickActions._qa_used,
-                  })}
-                </div>
-              `
-            : ""
-        }
-        ${renderRefineSuggestions(host)}
-        <div class="dock-composer-area">
-          <selora-particles
-            class="dock-composer-particles"
-            .count=${120}
-            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
-            .maxOpacity=${host._isDark ? 0.55 : 0.5}
-            .speed=${host._streaming || host._loading ? 2.2 : 1}
-          ></selora-particles>
-          ${_renderComposer(host)}
-        </div>
-      </div>
-    </div>
-  `;
-}
-function _autoResize(textarea) {
-  textarea.style.height = "auto";
-  textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
-}
-var _ENCODED_BLOB_RE = /^[A-Za-z0-9\-_.!~*'()%+]+$/;
-function _maybeDecodePercentEncoded(text) {
-  if (typeof text !== "string" || !text) return null;
-  if (!_ENCODED_BLOB_RE.test(text)) return null;
-  if (!/%0A/i.test(text)) return null;
-  try {
-    const decoded = decodeURIComponent(text.replace(/\+/g, " "));
-    if (decoded !== text && /\s/.test(decoded)) return decoded;
-  } catch (_2) {}
-  return null;
-}
-function _handlePaste(host, e6) {
-  const clip2 = e6.clipboardData;
-  if (!clip2) return;
-  const imageFiles = Array.from(clip2.files || []).filter((f4) =>
-    f4.type.startsWith("image/"),
-  );
-  if (imageFiles.length) {
-    e6.preventDefault();
-    addImageAttachments(host, imageFiles);
-    return;
-  }
-  const decoded = _maybeDecodePercentEncoded(clip2.getData("text"));
-  if (decoded === null) return;
-  e6.preventDefault();
-  const ta = e6.target;
-  const start = ta.selectionStart ?? ta.value.length;
-  const end = ta.selectionEnd ?? ta.value.length;
-  const next = ta.value.slice(0, start) + decoded + ta.value.slice(end);
-  ta.value = next;
-  const caret = start + decoded.length;
-  ta.setSelectionRange(caret, caret);
-  host._input = next;
-  host._autocompleteSelections = pruneStaleSelections(
-    next,
-    host._autocompleteSelections || [],
-  );
-  _autoResize(ta);
-  _updateAutocomplete(host, ta);
-  _updateGhost(host, ta);
-}
-var _MIRROR_COPY_PROPS = [
-  "boxSizing",
-  "width",
-  "height",
-  "overflowX",
-  "overflowY",
-  "borderTopWidth",
-  "borderRightWidth",
-  "borderBottomWidth",
-  "borderLeftWidth",
-  "borderStyle",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "fontStyle",
-  "fontVariant",
-  "fontWeight",
-  "fontStretch",
-  "fontSize",
-  "fontSizeAdjust",
-  "lineHeight",
-  "fontFamily",
-  "textAlign",
-  "textTransform",
-  "textIndent",
-  "textDecoration",
-  "letterSpacing",
-  "wordSpacing",
-  "tabSize",
-  "MozTabSize",
-  "whiteSpace",
-  "wordWrap",
-];
-function _measureCaretInTextarea(textarea) {
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const mirror = document.createElement("div");
-  const style = mirror.style;
-  const cs = window.getComputedStyle(textarea);
-  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
-  style.position = "absolute";
-  style.visibility = "hidden";
-  style.top = "0";
-  style.left = "0";
-  style.whiteSpace = "pre-wrap";
-  style.wordWrap = "break-word";
-  const textNode = document.createTextNode(value.slice(0, caret) || " ");
-  mirror.appendChild(textNode);
-  textarea.parentNode.insertBefore(mirror, textarea);
-  const range = document.createRange();
-  const len = caret === 0 ? 0 : (value.slice(0, caret) || " ").length;
-  range.setStart(textNode, len);
-  range.setEnd(textNode, len);
-  const rect = range.getBoundingClientRect();
-  const taRect = textarea.getBoundingClientRect();
-  const left = rect.left - taRect.left - textarea.scrollLeft;
-  const top = rect.top - taRect.top - textarea.scrollTop;
-  const height =
-    rect.height || parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
-  mirror.remove();
-  return { left, top, height };
-}
-function _updateAutocomplete(host, textarea) {
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const trigger = detectTrigger(
-    value,
-    caret,
-    host.hass?.language,
-    (host._autocompleteSelections || []).map((s6) => s6.label),
-  );
-  const closeIfOpen = () => {
-    if (host._autocomplete?.open) {
-      host._autocomplete = {
-        open: false,
-        items: [],
-        activeIndex: 0,
-        trigger: null,
-        anchor: null,
-      };
-    }
-  };
-  if (!trigger) {
-    closeIfOpen();
-    return;
-  }
-  const qLen = trigger.query.trim().length;
-  if (!host._autocompleteRegCache && host._ensureFullRegistries) {
-    host._autocompleteRegCache = "pending";
-    host._ensureFullRegistries().then((reg) => {
-      host._autocompleteRegCache = reg || null;
-    });
-  }
-  const cache =
-    host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
-      ? host._autocompleteRegCache
-      : null;
-  const index = buildSuggestionIndex(
-    host.hass,
-    cache?.areas || host.hass?.areas,
-    cache?.devices || null,
-    cache?.entities || null,
-  );
-  let items;
-  if (trigger.domains) {
-    items = qLen
-      ? rankSuggestions(
-          index,
-          trigger.kind,
-          trigger.query,
-          void 0,
-          trigger.domains,
-        )
-      : listByDomain(index, trigger.kind, trigger.domains);
-  } else if (qLen >= AUTOCOMPLETE_MIN_CHARS) {
-    items = rankSuggestions(index, trigger.kind, trigger.query);
-  } else {
-    items = findExactMatches(index, trigger.kind, trigger.query);
-  }
-  if (trigger.includeSensors) {
-    const sensorMatches =
-      qLen >= AUTOCOMPLETE_MIN_CHARS
-        ? rankSuggestions(
-            index,
-            "sensor",
-            trigger.query,
-            3,
-            // same cap as areas: the primary kind stays on top
-          )
-        : findExactMatches(index, "sensor", trigger.query);
-    if (sensorMatches.length) items = [...items, ...sensorMatches];
-  }
-  if (trigger.includeAreas) {
-    const areaMatches =
-      qLen >= AUTOCOMPLETE_MIN_CHARS
-        ? rankSuggestions(
-            index,
-            "area",
-            trigger.query,
-            3,
-            // cap area rows so devices still dominate the list
-          )
-        : findExactMatches(index, "area", trigger.query);
-    if (areaMatches.length) items = [...items, ...areaMatches];
-  }
-  if (!items.length) {
-    closeIfOpen();
-    return;
-  }
-  const savedCaret = textarea.selectionStart;
-  textarea.selectionStart = textarea.selectionEnd = trigger.start;
-  const anchor = _measureCaretInTextarea(textarea);
-  textarea.selectionStart = textarea.selectionEnd = savedCaret;
-  host._autocomplete = { open: true, items, activeIndex: 0, trigger, anchor };
-}
-function _updateGhost(host, textarea) {
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const hit = findGhostSuggestion(value, caret, host.hass?.language);
-  if (!hit) {
-    host._ghost = null;
-    return;
-  }
-  const anchor = _measureCaretInTextarea(textarea);
-  host._ghost = { suffix: hit.suffix, anchor };
-}
-function _acceptGhost(host, textarea) {
-  if (!host._ghost?.suffix) return false;
-  const value = textarea.value;
-  const caret = textarea.selectionStart ?? value.length;
-  const newText =
-    value.slice(0, caret) + host._ghost.suffix + value.slice(caret);
-  const newCaret = caret + host._ghost.suffix.length;
-  host._input = newText;
-  host._ghost = null;
-  requestAnimationFrame(() => {
-    textarea.value = newText;
-    textarea.setSelectionRange(newCaret, newCaret);
-    textarea.focus();
-    _autoResize(textarea);
-  });
-  return true;
-}
-function _renderGhostOverlay(host) {
-  const suffix = host._ghost?.suffix;
-  if (!suffix || !host._input) return "";
-  const anchor = host._ghost.anchor;
-  if (!anchor) return "";
-  return b2`
-    <span
-      class="composer-ghost-suffix"
-      aria-hidden="true"
-      style="left:${anchor.left}px;top:${anchor.top}px;line-height:${anchor.height}px;"
-      >${suffix}</span
-    >
-  `;
-}
-function _scrollActiveItemIntoView(host) {
-  const scroll = () => {
-    const list = host.shadowRoot?.querySelector(".composer-autocomplete");
-    const active = list?.querySelector(".composer-autocomplete-item.active");
-    if (!list || !active) return;
-    const listRect = list.getBoundingClientRect();
-    const itemRect = active.getBoundingClientRect();
-    if (itemRect.bottom > listRect.bottom) {
-      list.scrollTop += itemRect.bottom - listRect.bottom;
-    } else if (itemRect.top < listRect.top) {
-      list.scrollTop -= listRect.top - itemRect.top;
-    }
-  };
-  if (host.updateComplete?.then) {
-    host.updateComplete.then(scroll);
-  } else {
-    requestAnimationFrame(scroll);
-  }
-}
-function _closeAutocomplete(host) {
-  if (host._autocomplete?.open) {
-    host._autocomplete = {
-      open: false,
-      items: [],
-      activeIndex: 0,
-      trigger: null,
-    };
-  }
-}
-function _selectAutocompleteItem(host, textarea, item) {
-  const trigger = host._autocomplete?.trigger;
-  if (!trigger || !item) return;
-  const { text, caret, range } = applySelection(textarea.value, trigger, item);
-  host._input = text;
-  host._autocompleteSelections = [
-    ...pruneStaleSelections(text, host._autocompleteSelections || [], range),
-    item,
-  ];
-  _closeAutocomplete(host);
-  requestAnimationFrame(() => {
-    textarea.value = text;
-    textarea.setSelectionRange(caret, caret);
-    textarea.focus();
-    _autoResize(textarea);
-  });
-}
-function _removeSelection(host, idx) {
-  const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i8) => i8 !== idx);
-}
-function _renderAutocomplete(host) {
-  const ac = host._autocomplete;
-  if (!ac?.open || !ac.items?.length) return "";
-  const ta = host.shadowRoot?.querySelector(".composer-textarea");
-  const wrap = host.shadowRoot?.querySelector(".composer-wrap");
-  let positionStyle = "";
-  if (wrap) {
-    const wrapRect = wrap.getBoundingClientRect();
-    const maxH = Math.max(0, Math.min(320, wrapRect.top - 12));
-    let horizontal = "";
-    if (ac.anchor && ta) {
-      const taRect = ta.getBoundingClientRect();
-      let leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
-      const maxLeft = Math.max(0, wrapRect.width - 320);
-      leftPx = Math.min(Math.max(0, leftPx), maxLeft);
-      horizontal = `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`;
-    }
-    positionStyle = `bottom:calc(100% + 6px);top:auto;max-height:${maxH}px;${horizontal}`;
-  }
-  const groupOrder = [];
-  const groups = /* @__PURE__ */ new Map();
-  for (const item of ac.items) {
-    if (!groups.has(item.kind)) {
-      groups.set(item.kind, []);
-      groupOrder.push(item.kind);
-    }
-    groups.get(item.kind).push(item);
-  }
-  return b2`
-    <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
-      ${groupOrder.map((kind) => {
-        const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
-        const header = headerKV
-          ? host._t(headerKV[0], headerKV[1])
-          : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
-        return b2`
-          <div class="composer-autocomplete-header">
-            <span>${header}</span>
-          </div>
-          ${groups.get(kind).map((item) => _renderAutocompleteRow(host, ac, item))}
-        `;
-      })}
-      <div class="composer-autocomplete-hint">
-        ${host._t(
-          "chat_autocomplete_hint",
-          "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
-        )}
-      </div>
-    </div>
-  `;
-}
-function _renderAutocompleteRow(host, ac, item) {
-  const idx = ac.items.indexOf(item);
-  return b2`<button
-    type="button"
-    class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
-    role="option"
-    @mousedown=${(e6) => {
-      e6.preventDefault();
-      const ta = host.shadowRoot?.querySelector(".composer-textarea");
-      if (ta) _selectAutocompleteItem(host, ta, item);
-    }}
-    @mouseenter=${() => {
-      host._autocomplete = { ...ac, activeIndex: idx };
-    }}
-  >
-    <ha-icon icon=${item.icon}></ha-icon>
-    <span class="composer-autocomplete-label">${item.label}</span>
-    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
-  </button>`;
-}
-function _renderSelectionChips(host) {
-  const sels = host._autocompleteSelections || [];
-  if (!sels.length) return "";
-  return b2`
-    <div class="composer-selections-inline">
-      ${sels.map(
-        (s6, idx) => b2`
-          <span
-            class="composer-selection-chip"
-            title=${s6.entity_id || s6.area_id || ""}
-          >
-            <ha-icon icon=${s6.icon}></ha-icon>
-            ${s6.label}
-            <button
-              type="button"
-              title=${host._t("chat_selection_remove", "Remove")}
-              @click=${() => _removeSelection(host, idx)}
-            >
-              ×
-            </button>
-          </span>
-        `,
-      )}
-    </div>
-  `;
-}
-function _renderComposer(host, opts = {}) {
-  const welcome = !!opts.welcome;
-  const onDragOver = (e6) => {
-    if (!e6.dataTransfer?.types?.includes?.("Files")) return;
-    e6.preventDefault();
-    if (!supportsImageAttachments(host)) return;
-    if (!host._composerDragOver) host._composerDragOver = true;
-  };
-  const onDragLeave = (e6) => {
-    if (e6.currentTarget.contains(e6.relatedTarget)) return;
-    if (host._composerDragOver) host._composerDragOver = false;
-  };
-  const onDrop = (e6) => {
-    if (!e6.dataTransfer?.files?.length) return;
-    e6.preventDefault();
-    host._composerDragOver = false;
-    addImageAttachments(host, e6.dataTransfer.files);
-  };
-  const refining = !welcome && !!activeRefinement(host._messages);
-  const nextPrompt = activeNextPrompt(host);
-  return b2`
-    <div class="composer-wrap">
-      ${_renderAutocomplete(host)}
-      <div
-        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${host._composerDragOver ? " composer-dragover" : ""}"
-        @dragover=${onDragOver}
-        @dragleave=${onDragLeave}
-        @drop=${onDrop}
-      >
-        <div class="composer-input-col">
-          ${renderAttachmentStrip(host)}
-          <div class="composer-textarea-wrap">
-            ${_renderGhostOverlay(host)}
-            <textarea
-              class="composer-textarea"
-              .value=${host._input}
-              @paste=${(e6) => _handlePaste(host, e6)}
-              @input=${(e6) => {
-                host._input = e6.target.value;
-                host._autocompleteSelections = pruneStaleSelections(
-                  e6.target.value,
-                  host._autocompleteSelections || [],
-                );
-                _autoResize(e6.target);
-                _updateAutocomplete(host, e6.target);
-                _updateGhost(host, e6.target);
-              }}
-              @click=${(e6) => {
-                _updateAutocomplete(host, e6.target);
-                _updateGhost(host, e6.target);
-              }}
-              @keyup=${(e6) => {
-                if (
-                  e6.key === "ArrowLeft" ||
-                  e6.key === "ArrowRight" ||
-                  e6.key === "Home" ||
-                  e6.key === "End"
-                ) {
-                  _updateAutocomplete(host, e6.target);
-                  _updateGhost(host, e6.target);
-                }
-              }}
-              @blur=${() => {
-                setTimeout(() => _closeAutocomplete(host), 150);
-              }}
-              @keydown=${(e6) => {
-                const ac = host._autocomplete;
-                if (ac?.open && ac.items.length) {
-                  if (e6.key === "ArrowDown") {
-                    e6.preventDefault();
-                    host._autocomplete = {
-                      ...ac,
-                      activeIndex: (ac.activeIndex + 1) % ac.items.length,
-                    };
-                    _scrollActiveItemIntoView(host);
-                    return;
-                  }
-                  if (e6.key === "ArrowUp") {
-                    e6.preventDefault();
-                    host._autocomplete = {
-                      ...ac,
-                      activeIndex:
-                        (ac.activeIndex - 1 + ac.items.length) %
-                        ac.items.length,
-                    };
-                    _scrollActiveItemIntoView(host);
-                    return;
-                  }
-                  if (e6.key === "Enter" || e6.key === "Tab") {
-                    e6.preventDefault();
-                    _selectAutocompleteItem(
-                      host,
-                      e6.target,
-                      ac.items[ac.activeIndex],
-                    );
-                    return;
-                  }
-                  if (e6.key === "Escape") {
-                    e6.preventDefault();
-                    _closeAutocomplete(host);
-                    return;
-                  }
-                }
-                if (e6.key === "Enter" && !e6.shiftKey) {
-                  e6.preventDefault();
-                  host._sendMessage();
-                  return;
-                }
-                if (e6.key === "Tab" && !e6.shiftKey) {
-                  e6.preventDefault();
-                  if (!_acceptGhost(host, e6.target)) {
-                    acceptNextPrompt(host, e6.target);
-                  }
-                  return;
-                }
-                if (
-                  e6.key === "ArrowRight" &&
-                  !e6.target.value &&
-                  acceptNextPrompt(host, e6.target)
-                ) {
-                  e6.preventDefault();
-                  return;
-                }
-                if (
-                  e6.key === "ArrowRight" &&
-                  host._ghost?.suffix &&
-                  e6.target.selectionStart === e6.target.value.length &&
-                  e6.target.selectionEnd === e6.target.value.length
-                ) {
-                  e6.preventDefault();
-                  _acceptGhost(host, e6.target);
-                  return;
-                }
-                const userHistory = host._messages
-                  .filter((m3) => m3.role === "user" && m3.content)
-                  .map((m3) => stripEntityMarkers(m3.content));
-                const ta = e6.target;
-                const atStart =
-                  ta.selectionStart === 0 && ta.selectionEnd === 0;
-                const atEnd =
-                  ta.selectionStart === ta.value.length &&
-                  ta.selectionEnd === ta.value.length;
-                const inHistory =
-                  host._historyIndex !== null && host._historyIndex !== void 0;
-                const applyHistory = (idx) => {
-                  const recalled = userHistory[userHistory.length - 1 - idx];
-                  host._historyIndex = idx;
-                  host._input = recalled;
-                  requestAnimationFrame(() => {
-                    ta.value = recalled;
-                    ta.setSelectionRange(ta.value.length, ta.value.length);
-                    _autoResize(ta);
-                  });
-                };
-                if (
-                  e6.key === "ArrowUp" &&
-                  userHistory.length > 0 &&
-                  (inHistory || atStart || !host._input)
-                ) {
-                  if (!inHistory) {
-                    host._historyDraft = host._input || "";
-                    e6.preventDefault();
-                    applyHistory(0);
-                    return;
-                  }
-                  if (host._historyIndex < userHistory.length - 1) {
-                    e6.preventDefault();
-                    applyHistory(host._historyIndex + 1);
-                    return;
-                  }
-                  e6.preventDefault();
-                  return;
-                }
-                if (e6.key === "ArrowDown" && inHistory && atEnd) {
-                  e6.preventDefault();
-                  if (host._historyIndex > 0) {
-                    applyHistory(host._historyIndex - 1);
-                    return;
-                  }
-                  const draft = host._historyDraft || "";
-                  host._historyIndex = null;
-                  host._historyDraft = "";
-                  host._input = draft;
-                  requestAnimationFrame(() => {
-                    ta.value = draft;
-                    ta.setSelectionRange(ta.value.length, ta.value.length);
-                    _autoResize(ta);
-                  });
-                  return;
-                }
-              }}
-              placeholder=${
-                nextPrompt ||
-                (host._newAutomationMode
-                  ? host._t(
-                      "composer_placeholder_automation",
-                      "Describe the automation you\u2019d like to create\u2026",
-                    )
-                  : refining
-                    ? host._t(
-                        "composer_placeholder_refine",
-                        "Describe the changes\u2026",
-                      )
-                    : host._t(
-                        "composer_placeholder_ask",
-                        "Ask Selora AI anything\u2026",
-                      ))
-              }
-              ?disabled=${host._loading || host._streaming || isPredicting(host)}
-              rows="1"
-            ></textarea>
-            ${
-              nextPrompt
-                ? b2`<button
-                    type="button"
-                    class="composer-next-accept"
-                    title=${host._t(
-                      "composer_next_prompt_accept",
-                      "Use this suggestion",
-                    )}
-                    @click=${() =>
-                      acceptNextPrompt(
-                        host,
-                        host.shadowRoot?.querySelector(".composer-textarea"),
-                      )}
-                  >
-                    <span class="composer-next-key">Tab</span
-                    ><ha-icon
-                      class="composer-next-icon"
-                      icon="mdi:pencil-outline"
-                    ></ha-icon>
-                  </button>`
-                : ""
-            }
-          </div>
-          ${_renderSelectionChips(host)}
-        </div>
-        ${
-          supportsImageAttachments(host)
-            ? b2`<input
-                  type="file"
-                  id="selora-chat-image-input"
-                  accept="image/png,image/jpeg,image/webp,image/gif"
-                  multiple
-                  hidden
-                  @change=${(e6) => {
-                    addImageAttachments(host, e6.target.files);
-                    e6.target.value = "";
-                  }}
-                /><button
-                  class="composer-attach"
-                  title=${host._t(
-                    "chat_attach_image",
-                    "Attach an image \u2014 drag & drop or paste works too",
-                  )}
-                  ?disabled=${host._loading || host._streaming || isPredicting(host)}
-                  @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
-                >
-                  <ha-icon icon="mdi:image-plus-outline"></ha-icon>
-                </button>`
-            : b2``
-        }
-        ${
-          host._streaming
-            ? b2`<button
-                class="composer-send"
-                @click=${() => host._stopStreaming()}
-                title=${host._t("chat_stop_generating", "Stop generating")}
-              >
-                <ha-icon icon="mdi:stop"></ha-icon>
-              </button>`
-            : b2`<button
-                class="composer-send"
-                @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || isPredicting(host) || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
-                title=${host._t("chat_send", "Send")}
-              >
-                <ha-icon icon="mdi:arrow-up"></ha-icon>
-              </button>`
-        }
-      </div>
-    </div>
-  `;
-}
-function renderMessage(host, msg, idx) {
-  const isUser = msg.role === "user";
-  if (msg._streaming && !msg.content) return b2``;
-  let displayContent = msg.content;
-  let showAutomationSpinner = false;
-  let showSceneSpinner = false;
-  if (!isUser) {
-    const { text, isPartialBlock, partialBlockType } = stripAutomationBlock(
-      msg.content,
-    );
-    displayContent = text;
-    showAutomationSpinner =
-      isPartialBlock && msg._streaming && partialBlockType === "automation";
-    showSceneSpinner =
-      isPartialBlock && msg._streaming && partialBlockType === "scene";
-    if (msg.command_approval) {
-      displayContent = displayContent
-        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*\.?$/i, "")
-        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*/gi, " ")
-        .trim();
-    }
-  }
-  const isLoadedAutomation = msg.automation_status === "refining";
-  const isRefineSource = isLoadedAutomation || msg.scene_status === "refining";
-  const isProposal =
-    !isUser && !isRefineSource && !!(msg.automation || msg.scene);
-  const isActionCard = !!(msg.automation || msg.scene || msg.command_approval);
-  const copyText = isProposal
-    ? (msg.automation ? msg.automation_yaml : msg.scene_yaml || "").trim()
-    : isActionCard
-      ? ""
-      : (displayContent || "").trim();
-  const canCopy = !isUser && !msg._streaming && !!copyText;
-  const canFeedback =
-    !isUser &&
-    !msg._streaming &&
-    !msg.command_approval &&
-    !isRefineSource &&
-    !!displayContent?.trim();
-  const canRetry = !isUser && !!(msg._interrupted && msg._retryWith);
-  const hasProposalActions = !isUser && !!msg.automation;
-  const showQuickActions =
-    !isUser &&
-    !!(msg.quick_actions && msg.quick_actions.length) && // Only approval cards render their action row inline in the bubble, so
-    // the Allow/Deny buttons sit next to the proposal they resolve. Standard
-    // quick_actions render exclusively in the sticky composer row (see
-    // lastQuickActions in renderChat); rendering them here too would show the
-    // same chips twice (in-card AND above the input).
-    msg.command_approval && // Hide approval action cards once the proposal has been resolved (or
-    // is mid-resolve). Re-clicking after the status flipped would 404
-    // server-side, and the approved/denied chip already says what happened.
-    msg.approval_status !== "approved" &&
-    msg.approval_status !== "denied" &&
-    msg.approval_status !== "resolving";
-  const sceneIsSingleTile =
-    !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
-  return b2`
-    ${isLoadedAutomation ? renderRefineHeading(host, idx) : ""}
-    <div class="message-row">
-      ${
-        isUser
-          ? b2`
-              <div class="bubble user">
-                ${
-                  msg.attachments?.length
-                    ? b2`
-                        <div class="bubble-attachments">
-                          ${msg.attachments.map(
-                            (a3) => b2`
-                              <img
-                                src=${a3.dataUrl}
-                                alt=${a3.name || "image"}
-                                loading="lazy"
-                              />
-                            `,
-                          )}
-                        </div>
-                      `
-                    : b2``
-                }
-                <span
-                  class="msg-content"
-                  .textContent=${stripEntityMarkers(msg.content)}
-                ></span>
-              </div>
-            `
-          : b2`
-              <div
-                class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}${msg.scene ? " assistant-wrap--scene" : ""}${sceneIsSingleTile ? " assistant-wrap--scene-single" : ""}"
-              >
-                ${renderAgentSteps(host, msg.steps)}
-                <div
-                  class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
-                  style="max-width:100%;align-self:auto;"
-                >
-                  ${
-                    // A loaded automation's stored prose ("Describe the
-                    // changes") is context for the model; the composer's
-                    // placeholder and chip say it to the user.
-                    msg.command_approval || isLoadedAutomation
-                      ? ""
-                      : b2`<span
-                          class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
-                          @click=${host._onCodeCopyClick}
-                          .innerHTML=${renderMarkdown(displayContent)}
-                        ></span>`
-                  }
-                  ${
-                    showAutomationSpinner
-                      ? (() => {
-                          const startedAt = msg._sentAt || Date.now();
-                          const labelIdx =
-                            Math.floor(
-                              (Date.now() - startedAt) /
-                                AUTOMATION_LABEL_INTERVAL_MS,
-                            ) % AUTOMATION_LABEL_KEYS.length;
-                          const [labelKey, labelFallback] =
-                            AUTOMATION_LABEL_KEYS[labelIdx];
-                          return b2`
-                            <div
-                              style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                            >
-                              <div
-                                class="typing-dot"
-                                style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                              ></div>
-                              <span
-                                style="font-size:13px;font-weight:500;color:#fbbf24;"
-                                >${host._t(labelKey, labelFallback)}</span
-                              >
-                            </div>
-                          `;
-                        })()
-                      : ""
-                  }
-                  ${
-                    showSceneSpinner
-                      ? b2`
-                          <div
-                            style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                          >
-                            <div
-                              class="typing-dot"
-                              style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                            ></div>
-                            <span
-                              style="font-size:13px;font-weight:500;color:#fbbf24;"
-                              >${host._t(
-                                "chat_building_scene",
-                                "Building scene...",
-                              )}</span
-                            >
-                          </div>
-                        `
-                      : ""
-                  }
-                  ${
-                    msg.config_issue
-                      ? b2`
-                          <div style="margin-top: 10px;">
-                            <mwc-button
-                              dense
-                              raised
-                              @click=${host._goToSettings}
-                              >${host._t(
-                                "chat_go_to_settings",
-                                "Go to Settings",
-                              )}</mwc-button
-                            >
-                          </div>
-                        `
-                      : ""
-                  }
-                  ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
-                  ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
-                  ${
-                    msg.command_approval
-                      ? renderApprovalCard(
-                          host,
-                          msg,
-                          msg.command_approval,
-                          msg.approval_status,
-                        )
-                      : ""
-                  }
-                  ${
-                    msg._interrupted
-                      ? b2`
-                          <div class="stream-interrupt">
-                            <ha-icon
-                              icon="mdi:alert-circle-outline"
-                              style="--mdc-icon-size:16px;flex-shrink:0;"
-                            ></ha-icon>
-                            <span class="stream-interrupt-text"
-                              >${
-                                msg._interruptReason ||
-                                host._t(
-                                  "chat_response_cut_short",
-                                  "Response was cut short.",
-                                )
-                              }</span
-                            >
-                          </div>
-                        `
-                      : ""
-                  }
-                  ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
-                </div>
-                ${
-                  msg._streaming ||
-                  canCopy ||
-                  canFeedback ||
-                  canRetry ||
-                  showQuickActions ||
-                  hasProposalActions
-                    ? b2`<div
-                        class="bubble-meta"
-                        style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
-                      >
-                        ${
-                          msg._streaming
-                            ? b2`<span style="opacity:0.5;">
-                                Selora AI ·
-                                ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
-                              </span>`
-                            : canCopy || canFeedback || canRetry
-                              ? b2`<div class="msg-actions">
-                                  ${
-                                    canCopy
-                                      ? b2`<button
-                                          class="msg-action-btn"
-                                          title=${host._t(
-                                            isProposal
-                                              ? "chat_copy_yaml"
-                                              : "chat_copy_message",
-                                            isProposal
-                                              ? "Copy YAML"
-                                              : "Copy message",
-                                          )}
-                                          aria-label=${host._t(
-                                            isProposal
-                                              ? "chat_copy_yaml"
-                                              : "chat_copy_message",
-                                            isProposal
-                                              ? "Copy YAML"
-                                              : "Copy message",
-                                          )}
-                                          @click=${(e6) =>
-                                            host._copyMessageText(
-                                              msg,
-                                              e6.currentTarget,
-                                              copyText,
-                                            )}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:content-copy"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                        </button>`
-                                      : ""
-                                  }
-                                  ${
-                                    canFeedback &&
-                                    host._config?.telemetry_enabled
-                                      ? b2`<button
-                                            class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
-                                            title=${host._t(
-                                              "chat_feedback_helpful",
-                                              "Good response",
-                                            )}
-                                            aria-label=${host._t(
-                                              "chat_feedback_helpful",
-                                              "Good response",
-                                            )}
-                                            @click=${(e6) =>
-                                              host._recordChatFeedback(
-                                                msg,
-                                                "positive",
-                                                e6.currentTarget,
-                                              )}
-                                          >
-                                            <ha-icon
-                                              icon=${msg._feedback === "positive" ? "mdi:thumb-up" : "mdi:thumb-up-outline"}
-                                              style="--mdc-icon-size:14px;"
-                                            ></ha-icon>
-                                          </button>
-                                          <button
-                                            class="msg-action-btn${msg._feedback === "negative" ? " active" : ""}"
-                                            title=${host._t(
-                                              "chat_feedback_not_helpful",
-                                              "Bad response",
-                                            )}
-                                            aria-label=${host._t(
-                                              "chat_feedback_not_helpful",
-                                              "Bad response",
-                                            )}
-                                            @click=${(e6) =>
-                                              host._recordChatFeedback(
-                                                msg,
-                                                "negative",
-                                                e6.currentTarget,
-                                              )}
-                                          >
-                                            <ha-icon
-                                              icon=${msg._feedback === "negative" ? "mdi:thumb-down" : "mdi:thumb-down-outline"}
-                                              style="--mdc-icon-size:14px;"
-                                            ></ha-icon>
-                                          </button>`
-                                      : ""
-                                  }
-                                  ${
-                                    msg._interrupted && msg._retryWith
-                                      ? b2`<button
-                                          class="msg-action-btn"
-                                          title=${host._t("chat_retry", "Retry")}
-                                          aria-label=${host._t("chat_retry", "Retry")}
-                                          @click=${() => host._retryMessage(msg._retryWith)}
-                                        >
-                                          <ha-icon
-                                            icon="mdi:refresh"
-                                            style="--mdc-icon-size:14px;"
-                                          ></ha-icon>
-                                        </button>`
-                                      : ""
-                                  }
-                                </div>`
-                              : ""
-                        }
-                        ${
-                          hasProposalActions || showQuickActions
-                            ? b2`<div class="msg-quick">
-                                ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
-                                ${
-                                  showQuickActions
-                                    ? renderQuickActions(
-                                        host,
-                                        msg.quick_actions,
-                                        {
-                                          used: !!msg._qa_used,
-                                        },
-                                      )
-                                    : ""
-                                }
-                              </div>`
-                            : ""
-                        }
-                      </div>`
-                    : ""
-                }
-              </div>
-            `
-      }
-    </div>
-  `;
-}
-var DOMAIN_ICONS3 = {
-  light: "mdi:lightbulb",
-  switch: "mdi:toggle-switch",
-  climate: "mdi:thermostat",
-  lock: "mdi:lock",
-  cover: "mdi:window-shutter",
-  fan: "mdi:fan",
-  media_player: "mdi:speaker",
-  vacuum: "mdi:robot-vacuum",
-  sensor: "mdi:eye",
-  binary_sensor: "mdi:motion-sensor",
-  water_heater: "mdi:water-boiler",
-  humidifier: "mdi:air-humidifier",
-  camera: "mdi:cctv",
-  device_tracker: "mdi:map-marker",
-  person: "mdi:account",
-  zone: "mdi:map-marker-radius",
-  sun: "mdi:weather-sunny",
-  weather: "mdi:weather-partly-cloudy",
-  automation: "mdi:robot",
-  scene: "mdi:palette",
-  script: "mdi:script-text",
-  input_boolean: "mdi:toggle-switch-variant",
-  input_number: "mdi:numeric",
-  input_select: "mdi:form-dropdown",
-  input_text: "mdi:form-textbox",
-  input_datetime: "mdi:calendar-clock",
-  input_button: "mdi:gesture-tap-button",
-  timer: "mdi:timer-outline",
-  counter: "mdi:counter",
-  group: "mdi:google-circles-communities",
-  notify: "mdi:bell",
-  mobile_app: "mdi:cellphone",
-  alarm_control_panel: "mdi:shield-home",
-  air_quality: "mdi:air-filter",
-  remote: "mdi:remote",
-};
-function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
-  const readOnly = !!opts.readOnly;
-  host._initYamlEdit(key, originalYaml);
-  const current = readOnly
-    ? originalYaml
-    : (host._editedYaml[key] ?? originalYaml);
-  const isDirty = !readOnly && current !== originalYaml;
-  const saving = !!host._savingYaml[key];
-  return b2`
-    <ha-code-editor
-      mode="yaml"
-      .value=${current}
-      ?read-only=${readOnly}
-      @value-changed=${(e6) => {
-        if (readOnly) return;
-        host._onYamlInput(key, e6.detail.value);
-      }}
-      autocomplete-entities
-      style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
-    ></ha-code-editor>
-    ${
-      isDirty || (onSave && !readOnly)
-        ? b2`
-            <div class="yaml-edit-bar">
-              ${
-                isDirty
-                  ? b2`
-                      <span class="yaml-unsaved">
-                        <ha-icon
-                          icon="mdi:circle-edit-outline"
-                          style="--mdc-icon-size:13px;"
-                        ></ha-icon>
-                        ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
-                      </span>
-                    `
-                  : b2`<span style="flex:1;"></span>`
-              }
-              ${
-                onSave
-                  ? b2`
-                      <button
-                        class="btn btn-primary"
-                        ?disabled=${saving || !isDirty}
-                        @click=${() => onSave(key)}
-                      >
-                        <ha-icon
-                          icon="mdi:content-save"
-                          style="--mdc-icon-size:13px;"
-                        ></ha-icon>
-                        ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
-                      </button>
-                    `
-                  : ""
-              }
-            </div>
-          `
-        : ""
-    }
-  `;
-}
-
 // src/shared/created-check.js
 function renderCreatedCheck({ animate = false, size = 14 } = {}) {
   return b2`
@@ -35019,6 +31971,102 @@ __export(automation_crud_exports, {
   _onYamlInput: () => _onYamlInput,
   _saveActiveAutomationYaml: () => _saveActiveAutomationYaml,
 });
+
+// src/panel/next-prompt.js
+var PREDICT_TIMEOUT_MS = 1e4;
+async function requestNextPrompt(
+  host,
+  assistantMsg,
+  sessionId,
+  { refocus = false } = {},
+) {
+  host._nextPrompt = null;
+  if (!sessionId || !host._config?.next_prompt_enabled) return;
+  const token = (host._predictToken = (host._predictToken || 0) + 1);
+  host._predictingSession = sessionId;
+  let result = null;
+  try {
+    result = await Promise.race([
+      host.hass.callWS({
+        type: "selora_ai/predict_next_prompt",
+        session_id: sessionId,
+        ...(host.hass?.language ? { language: host.hass.language } : {}),
+      }),
+      new Promise((resolve) => setTimeout(resolve, PREDICT_TIMEOUT_MS, null)),
+    ]);
+  } catch (err) {
+    result = null;
+  }
+  if (host._predictToken !== token) return;
+  host._predictingSession = null;
+  const text = typeof result?.prompt === "string" ? result.prompt.trim() : "";
+  if (text) host._nextPrompt = { message: assistantMsg, sessionId, text };
+  if (refocus || text) _focusComposer(host, refocus);
+}
+function _focusComposer(host, hadFocus) {
+  if (!hadFocus && !globalThis.matchMedia?.("(pointer: fine)").matches) {
+    return;
+  }
+  host.updateComplete?.then(() => {
+    const active = host.shadowRoot?.activeElement;
+    if (
+      active &&
+      (active.isContentEditable ||
+        /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))
+    ) {
+      return;
+    }
+    const ta = host.shadowRoot?.querySelector(".composer-textarea");
+    if (ta && !ta.disabled) ta.focus();
+  });
+}
+function refreshNextPrompt(host) {
+  const messages = host._messages || [];
+  const last = messages[messages.length - 1];
+  if (last?.role !== "assistant") return;
+  requestNextPrompt(host, last, host._activeSessionId);
+}
+function isPredicting(host) {
+  return (
+    !!host._predictingSession &&
+    host._predictingSession === host._activeSessionId
+  );
+}
+function activeNextPrompt(host) {
+  const np = host._nextPrompt;
+  if (!np || host._input || host._loading || host._streaming) return "";
+  if (np.sessionId !== host._activeSessionId) return "";
+  const messages = host._messages || [];
+  return messages[messages.length - 1] === np.message ? np.text : "";
+}
+function fitComposerToPrediction(host) {
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  if (!ta) return;
+  const text = activeNextPrompt(host);
+  if (text === (ta._fittedPrediction ?? "")) return;
+  ta._fittedPrediction = text;
+  if (ta.value) return;
+  ta.value = text;
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+  ta.value = "";
+}
+function acceptNextPrompt(host, textarea) {
+  const text = activeNextPrompt(host);
+  if (!text) return false;
+  host._input = text;
+  host._nextPrompt = null;
+  requestAnimationFrame(() => {
+    if (!textarea) return;
+    textarea.value = text;
+    textarea.setSelectionRange(text.length, text.length);
+    textarea.focus();
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  return true;
+}
+
+// src/panel/automation-crud.js
 var _INITIAL_STATE_KEY = /(['"]?)initial_state\1[ \t]*:[ \t]*(.*)$/;
 function _normalizeStateToken(token) {
   return token
@@ -36991,6 +34039,10 @@ async function restore(host, item) {
         type: "selora_ai/trash/restore",
         trash_id: item.trash_id,
       });
+      host._restoredTrash = /* @__PURE__ */ new Set([
+        ...(host._restoredTrash || []),
+        item.trash_id,
+      ]);
       host._showToast(
         interpolate(
           host._t("trash_restored", "Restored \u201C{name}\u201D."),
@@ -37131,7 +34183,7 @@ function renderFlowEntityLink(host, entityId) {
   const friendly = stateObj?.attributes?.friendly_name || entityId;
   const icon =
     stateObj?.attributes?.icon ||
-    DOMAIN_ICONS3[entityId.split(".")[0]] ||
+    DOMAIN_ICONS2[entityId.split(".")[0]] ||
     "mdi:circle-medium";
   return b2`<button
     type="button"
@@ -37152,7 +34204,7 @@ function renderFlowEntityLink(host, entityId) {
   </button>`;
 }
 function renderFlowDeviceLink(host, deviceId, name, domain) {
-  const icon = (domain && DOMAIN_ICONS3[domain]) || "mdi:devices";
+  const icon = (domain && DOMAIN_ICONS2[domain]) || "mdi:devices";
   return b2`<button
     type="button"
     class="flow-entity-link"
@@ -39839,6 +36891,9 @@ function _renderTargetTile(host, entityId, stateData, editSceneId) {
     ></div>
   `;
 }
+function renderSceneEntityList(host, entities) {
+  return _renderEntityList(host, entities);
+}
 function _renderEntityList(host, entities, editSceneId = null) {
   const ids = Object.keys(entities || {});
   if (!ids.length) return "";
@@ -40849,6 +37904,3158 @@ function renderDeleteSceneModal(host) {
         </div>
       </div>
     </div>
+  `;
+}
+
+// src/panel/restore-card.js
+function candidatesOf(msg) {
+  const seen = /* @__PURE__ */ new Map();
+  for (const call of msg.tool_calls || []) {
+    if (call?.tool !== "restore_deleted") continue;
+    for (const c6 of call.result?.candidates || []) seen.set(c6.trash_id, c6);
+  }
+  return [...seen.values()];
+}
+function formatDate3(host, iso) {
+  try {
+    return new Date(iso).toLocaleString(
+      host.hass?.locale?.language || host.hass?.language || void 0,
+      { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" },
+    );
+  } catch {
+    return iso;
+  }
+}
+async function fetchDetails(host, ids) {
+  let items = [];
+  try {
+    ({ items } = await host.hass.callWS({
+      type: "selora_ai/trash/get",
+      trash_ids: ids,
+    }));
+  } catch (err) {
+    console.error("Failed to load deleted items", err);
+    return;
+  }
+  const found = Object.fromEntries(
+    (items || []).map((i8) => [i8.trash_id, i8]),
+  );
+  host._restoreDetails = {
+    ...(host._restoreDetails || {}),
+    ...Object.fromEntries(ids.map((id) => [id, found[id] || null])),
+  };
+  host.requestUpdate();
+}
+function renderAction(host, c6, detail) {
+  if (host._restoredTrash?.has(c6.trash_id)) {
+    return b2`<span class="restore-card-state">
+      <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+      ${host._t("restore_card_restored", "Restored")}
+    </span>`;
+  }
+  if (detail === null) {
+    return b2`<span class="restore-card-state">
+      ${host._t("restore_card_gone", "No longer in Recently deleted")}
+    </span>`;
+  }
+  if (!detail) return "";
+  return b2`<button
+    class="btn btn-outline btn-sm"
+    ?disabled=${host._trashBusy?.[c6.trash_id]}
+    @click=${() => restore(host, c6)}
+  >
+    <ha-icon icon="mdi:restore"></ha-icon>
+    ${host._t("trash_restore", "Restore")}
+  </button>`;
+}
+function renderCandidate(host, c6) {
+  const detail = host._restoreDetails?.[c6.trash_id];
+  const yamlKey = `restore_${c6.trash_id}`;
+  const yamlOpen = host._yamlOpen?.[yamlKey];
+  return b2`
+    <div class="automation-subcard restore-candidate">
+      <div class="automation-subcard-header">
+        ${renderAutomationIdentity(c6.name, c6.description, {
+          badge: interpolate(
+            host._t("restore_card_deleted_on", "Deleted {date}"),
+            { date: formatDate3(host, c6.deleted_at) },
+          ),
+        })}
+      </div>
+      <div class="automation-subcard-body">
+        ${!detail ? "" : c6.kind === "scene" ? renderSceneEntityList(host, detail.config?.entities) : renderAutomationFlowchart(host, detail.config)}
+        ${detail ? renderYaml(host, detail, yamlKey, yamlOpen) : ""}
+        <div class="restore-card-actions">${renderAction(host, c6, detail)}</div>
+      </div>
+    </div>
+  `;
+}
+function renderYaml(host, detail, yamlKey, yamlOpen) {
+  return b2`
+    <div
+      class="yaml-toggle"
+      style="margin-top:12px;"
+      @click=${() => {
+        host._yamlOpen = {
+          ...(host._yamlOpen || {}),
+          [yamlKey]: !yamlOpen,
+        };
+        host.requestUpdate();
+      }}
+    >
+      <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon>
+      ${yamlOpen ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_view", "View YAML")}
+    </div>
+    ${
+      yamlOpen
+        ? b2`<div style="margin-top:6px;">
+            ${host._renderYamlEditor(yamlKey, detail.yaml, null, {
+              readOnly: true,
+            })}
+          </div>`
+        : ""
+    }
+  `;
+}
+function renderRestoreCard(host, msg) {
+  const candidates = candidatesOf(msg);
+  if (!candidates.length) return "";
+  const missing = candidates
+    .map((c6) => c6.trash_id)
+    .filter((id) => !(id in (host._restoreDetails || {})));
+  host._restoreFetching = host._restoreFetching || /* @__PURE__ */ new Set();
+  const toFetch = missing.filter((id) => !host._restoreFetching.has(id));
+  if (toFetch.length) {
+    toFetch.forEach((id) => host._restoreFetching.add(id));
+    fetchDetails(host, toFetch);
+  }
+  return b2`<div class="restore-card">
+    ${candidates.map((c6) => renderCandidate(host, c6))}
+  </div>`;
+}
+
+// src/panel/chat-autocomplete.js
+var AUTOCOMPLETE_MIN_CHARS = 3;
+var AUTOCOMPLETE_MAX_RESULTS = 6;
+var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
+  "light",
+  "switch",
+  "lock",
+  "cover",
+  "fan",
+  "media_player",
+  "climate",
+  "vacuum",
+  "camera",
+  "humidifier",
+  "water_heater",
+  "input_boolean",
+  "input_select",
+  "input_number",
+  "input_button",
+  "remote",
+  "lawn_mower",
+]);
+var SENSOR_DOMAINS = /* @__PURE__ */ new Set(["sensor", "binary_sensor"]);
+var SENSOR_DEVICE_CLASS_ICONS = {
+  motion: "mdi:motion-sensor",
+  occupancy: "mdi:motion-sensor",
+  presence: "mdi:home-account",
+  door: "mdi:door",
+  garage_door: "mdi:garage",
+  window: "mdi:window-closed-variant",
+  opening: "mdi:square-outline",
+  moisture: "mdi:water-alert",
+  smoke: "mdi:smoke-detector",
+  gas: "mdi:gas-cylinder",
+  carbon_monoxide: "mdi:molecule-co",
+  carbon_dioxide: "mdi:molecule-co2",
+  vibration: "mdi:vibrate",
+  sound: "mdi:volume-high",
+  tamper: "mdi:shield-alert",
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  illuminance: "mdi:brightness-5",
+  pressure: "mdi:gauge",
+  power: "mdi:flash",
+  energy: "mdi:lightning-bolt",
+  pm25: "mdi:air-filter",
+};
+var DOMAIN_ICONS3 = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  climate: "mdi:thermostat",
+  vacuum: "mdi:robot-vacuum",
+  camera: "mdi:cctv",
+  humidifier: "mdi:air-humidifier",
+  water_heater: "mdi:water-boiler",
+  remote: "mdi:remote",
+  lawn_mower: "mdi:mower",
+  input_boolean: "mdi:toggle-switch-outline",
+  input_select: "mdi:form-dropdown",
+  input_number: "mdi:numeric",
+  input_button: "mdi:gesture-tap-button",
+  sensor: "mdi:gauge",
+  binary_sensor: "mdi:checkbox-marked-circle-outline",
+  scene: "mdi:palette",
+  automation: "mdi:robot",
+  script: "mdi:script-text",
+  area: "mdi:floor-plan",
+};
+var sensorCapable = (pattern) => ({
+  kind: "device",
+  pattern,
+  includeAreas: true,
+  includeSensors: true,
+});
+var BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
+var LOCALE_TRIGGERS = {
+  en: [
+    { kind: "area", pattern: /\bin (?:the |a )?$/i },
+    { kind: "area", pattern: /\bof (?:the |a )?$/i },
+    { kind: "scene", pattern: /\bactivate $/i },
+    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
+    { kind: "scene", pattern: /\bscene $/i },
+    { kind: "automation", pattern: /\brun $/i },
+    { kind: "automation", pattern: /\btrigger $/i },
+    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|close) (?:the |my )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:the |my )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
+    sensorCapable(/\bthe $/i),
+    sensorCapable(/\bmy $/i),
+  ],
+  fr: [
+    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
+    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
+    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
+    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
+    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
+    {
+      kind: "automation",
+      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
+    ),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bles $/i),
+    sensorCapable(/\bl['’]$/i),
+    sensorCapable(/\bmon $/i),
+    sensorCapable(/\bma $/i),
+    sensorCapable(/\bmes $/i),
+  ],
+  de: [
+    { kind: "area", pattern: /\bim $/i },
+    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
+    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
+    { kind: "scene", pattern: /\bSzene $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
+    },
+    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdimme (?:die |das |meine )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
+    ),
+    sensorCapable(/\bdie $/i),
+    sensorCapable(/\bder $/i),
+    sensorCapable(/\bdas $/i),
+    sensorCapable(/\bden $/i),
+    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
+  ],
+  es: [
+    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
+    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
+    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
+    { kind: "scene", pattern: /\bescena $/i },
+    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
+    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
+    ),
+    sensorCapable(/\bel $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\blos $/i),
+    sensorCapable(/\blas $/i),
+    sensorCapable(/\bmi $/i),
+    sensorCapable(/\bmis $/i),
+  ],
+  it: [
+    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
+    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
+    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
+    { kind: "scene", pattern: /\bscena $/i },
+    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
+    sensorCapable(/\bil $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bi $/i),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bgli $/i),
+    sensorCapable(/\blo $/i),
+    sensorCapable(/\bmio $/i),
+    sensorCapable(/\bmia $/i),
+    sensorCapable(/\bmiei $/i),
+  ],
+  nl: [
+    { kind: "area", pattern: /\bin (?:de |het )?$/i },
+    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
+    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdim (?:de |het |mijn )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
+    sensorCapable(/\bde $/i),
+    sensorCapable(/\bhet $/i),
+    sensorCapable(/\bmijn $/i),
+  ],
+  hu: [
+    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
+    { kind: "scene", pattern: /\bjelenet $/i },
+    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
+    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
+    sensorCapable(/\ba $/i),
+    sensorCapable(/\baz $/i),
+  ],
+};
+function _toUnicodeBoundary(re) {
+  let src = re.source;
+  if (src.startsWith("\\b")) {
+    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
+  }
+  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
+  return new RegExp(src, flags); // nosemgrep
+}
+for (const t5 of BASE_TRIGGERS) {
+  t5.pattern = _toUnicodeBoundary(t5.pattern);
+}
+for (const list of Object.values(LOCALE_TRIGGERS)) {
+  for (const t5 of list) {
+    t5.pattern = _toUnicodeBoundary(t5.pattern);
+  }
+}
+function _langKey2(lang) {
+  const base = String(lang || "en")
+    .toLowerCase()
+    .split("-")[0];
+  return LOCALE_TRIGGERS[base] ? base : "en";
+}
+function _triggersFor(lang) {
+  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey2(lang)]];
+}
+var QUERY_STOP_RE = /[\n.?!]/;
+var MAX_QUERY_LEN = 40;
+var GHOST_VOCABULARY_BY_LANG = {
+  en: [
+    "automation",
+    "automations",
+    "trigger",
+    "triggers",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "scene",
+    "scenes",
+    "script",
+    "scripts",
+    "device",
+    "devices",
+    "entity",
+    "entities",
+    "schedule",
+    "weekday",
+    "weekdays",
+    "weekend",
+    "weekends",
+    "midnight",
+    "morning",
+    "afternoon",
+    "evening",
+    "sunrise",
+    "sunset",
+    "minutes",
+    "hours",
+    "seconds",
+    "temperature",
+    "brightness",
+    "thermostat",
+    "lights",
+    "lighting",
+    "bedroom",
+    "bathroom",
+    "kitchen",
+    "living",
+    "garage",
+    "office",
+    "hallway",
+    "basement",
+    "downstairs",
+    "upstairs",
+    "outside",
+    "create",
+    "suggest",
+    "notify",
+    "notification",
+    "between",
+    "before",
+    "after",
+    "during",
+    "while",
+    "everyone",
+    "nobody",
+  ],
+  fr: [
+    "automatisation",
+    "automatisations",
+    "d\xE9clencheur",
+    "d\xE9clencheurs",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "appareil",
+    "appareils",
+    "entit\xE9",
+    "entit\xE9s",
+    "planification",
+    "semaine",
+    "week-end",
+    "minuit",
+    "matin",
+    "apr\xE8s-midi",
+    "soir",
+    "lever",
+    "coucher",
+    "minutes",
+    "heures",
+    "secondes",
+    "temp\xE9rature",
+    "luminosit\xE9",
+    "thermostat",
+    "lumi\xE8re",
+    "lumi\xE8res",
+    "\xE9clairage",
+    "chambre",
+    "salle de bains",
+    "cuisine",
+    "salon",
+    "garage",
+    "bureau",
+    "couloir",
+    "sous-sol",
+    "\xE9tage",
+    "rez-de-chauss\xE9e",
+    "ext\xE9rieur",
+    "cr\xE9er",
+    "sugg\xE9rer",
+    "notifier",
+    "notification",
+    "entre",
+    "avant",
+    "apr\xE8s",
+    "pendant",
+    "tout le monde",
+    "personne",
+  ],
+  de: [
+    "Automatisierung",
+    "Automatisierungen",
+    "Ausl\xF6ser",
+    "Bedingung",
+    "Bedingungen",
+    "Aktion",
+    "Aktionen",
+    "Szene",
+    "Szenen",
+    "Skript",
+    "Skripte",
+    "Ger\xE4t",
+    "Ger\xE4te",
+    "Entit\xE4t",
+    "Entit\xE4ten",
+    "Zeitplan",
+    "Wochentag",
+    "Wochenende",
+    "Mitternacht",
+    "Morgen",
+    "Nachmittag",
+    "Abend",
+    "Sonnenaufgang",
+    "Sonnenuntergang",
+    "Minuten",
+    "Stunden",
+    "Sekunden",
+    "Temperatur",
+    "Helligkeit",
+    "Thermostat",
+    "Licht",
+    "Lichter",
+    "Beleuchtung",
+    "Schlafzimmer",
+    "Badezimmer",
+    "K\xFCche",
+    "Wohnzimmer",
+    "Garage",
+    "B\xFCro",
+    "Flur",
+    "Keller",
+    "drau\xDFen",
+    "erstelle",
+    "vorschlagen",
+    "benachrichtigen",
+    "Benachrichtigung",
+    "zwischen",
+    "vor",
+    "nach",
+    "w\xE4hrend",
+    "jeder",
+    "niemand",
+  ],
+  es: [
+    "automatizaci\xF3n",
+    "automatizaciones",
+    "disparador",
+    "disparadores",
+    "condici\xF3n",
+    "condiciones",
+    "acci\xF3n",
+    "acciones",
+    "escena",
+    "escenas",
+    "script",
+    "scripts",
+    "dispositivo",
+    "dispositivos",
+    "entidad",
+    "entidades",
+    "programaci\xF3n",
+    "semana",
+    "fin de semana",
+    "medianoche",
+    "ma\xF1ana",
+    "tarde",
+    "noche",
+    "amanecer",
+    "atardecer",
+    "minutos",
+    "horas",
+    "segundos",
+    "temperatura",
+    "brillo",
+    "termostato",
+    "luz",
+    "luces",
+    "iluminaci\xF3n",
+    "dormitorio",
+    "ba\xF1o",
+    "cocina",
+    "sal\xF3n",
+    "garaje",
+    "oficina",
+    "pasillo",
+    "s\xF3tano",
+    "exterior",
+    "crear",
+    "sugerir",
+    "notificar",
+    "notificaci\xF3n",
+    "entre",
+    "antes",
+    "despu\xE9s",
+    "durante",
+    "mientras",
+    "todos",
+    "nadie",
+  ],
+  it: [
+    "automazione",
+    "automazioni",
+    "trigger",
+    "condizione",
+    "condizioni",
+    "azione",
+    "azioni",
+    "scena",
+    "scene",
+    "script",
+    "dispositivo",
+    "dispositivi",
+    "entit\xE0",
+    "pianificazione",
+    "settimana",
+    "fine settimana",
+    "mezzanotte",
+    "mattina",
+    "pomeriggio",
+    "sera",
+    "alba",
+    "tramonto",
+    "minuti",
+    "ore",
+    "secondi",
+    "temperatura",
+    "luminosit\xE0",
+    "termostato",
+    "luce",
+    "luci",
+    "illuminazione",
+    "camera",
+    "bagno",
+    "cucina",
+    "soggiorno",
+    "garage",
+    "ufficio",
+    "corridoio",
+    "cantina",
+    "esterno",
+    "crea",
+    "suggerisci",
+    "notifica",
+    "tra",
+    "prima",
+    "dopo",
+    "durante",
+    "mentre",
+    "tutti",
+    "nessuno",
+  ],
+  nl: [
+    "automatisering",
+    "automatiseringen",
+    "trigger",
+    "triggers",
+    "voorwaarde",
+    "voorwaarden",
+    "actie",
+    "acties",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "apparaat",
+    "apparaten",
+    "entiteit",
+    "entiteiten",
+    "planning",
+    "weekdag",
+    "weekend",
+    "middernacht",
+    "ochtend",
+    "middag",
+    "avond",
+    "zonsopgang",
+    "zonsondergang",
+    "minuten",
+    "uren",
+    "seconden",
+    "temperatuur",
+    "helderheid",
+    "thermostaat",
+    "licht",
+    "lichten",
+    "verlichting",
+    "slaapkamer",
+    "badkamer",
+    "keuken",
+    "woonkamer",
+    "garage",
+    "kantoor",
+    "gang",
+    "kelder",
+    "buiten",
+    "maak",
+    "suggereer",
+    "meld",
+    "melding",
+    "tussen",
+    "voor",
+    "na",
+    "tijdens",
+    "terwijl",
+    "iedereen",
+    "niemand",
+  ],
+  hu: [
+    "automatizmus",
+    "automatizmusok",
+    "trigger",
+    "triggerek",
+    "felt\xE9tel",
+    "felt\xE9telek",
+    "m\u0171velet",
+    "m\u0171veletek",
+    "jelenet",
+    "jelenetek",
+    "szkript",
+    "szkriptek",
+    "eszk\xF6z",
+    "eszk\xF6z\xF6k",
+    "entit\xE1s",
+    "entit\xE1sok",
+    "\xFCtemez\xE9s",
+    "h\xE9tk\xF6znap",
+    "h\xE9tv\xE9ge",
+    "\xE9jf\xE9l",
+    "reggel",
+    "d\xE9lut\xE1n",
+    "este",
+    "napkelte",
+    "napnyugta",
+    "percek",
+    "\xF3r\xE1k",
+    "m\xE1sodpercek",
+    "h\u0151m\xE9rs\xE9klet",
+    "f\xE9nyer\u0151",
+    "termoszt\xE1t",
+    "f\xE9ny",
+    "f\xE9nyek",
+    "vil\xE1g\xEDt\xE1s",
+    "h\xE1l\xF3szoba",
+    "f\xFCrd\u0151szoba",
+    "konyha",
+    "nappali",
+    "gar\xE1zs",
+    "iroda",
+    "folyos\xF3",
+    "pince",
+    "kint",
+    "l\xE9trehoz",
+    "javasol",
+    "\xE9rtes\xEDt",
+    "\xE9rtes\xEDt\xE9s",
+    "k\xF6z\xF6tt",
+    "el\u0151tt",
+    "ut\xE1n",
+    "alatt",
+    "k\xF6zben",
+    "mindenki",
+    "senki",
+  ],
+};
+var _ghostSorted = {};
+function _ghostVocabFor(lang) {
+  const key = GHOST_VOCABULARY_BY_LANG[_langKey2(lang)]
+    ? _langKey2(lang)
+    : "en";
+  if (!_ghostSorted[key]) {
+    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
+      (a3, b3) => a3.length - b3.length,
+    );
+  }
+  return _ghostSorted[key];
+}
+var GHOST_MIN_PREFIX = 3;
+var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
+function _partialWordAt(text, caret) {
+  if (caret <= 0) return null;
+  let i8 = caret;
+  while (i8 > 0 && _WORD_CHAR_RE.test(text[i8 - 1])) i8--;
+  const word = text.slice(i8, caret);
+  if (!word) return null;
+  return { word, start: i8 };
+}
+function findGhostSuggestion(text, caret, lang) {
+  if (typeof text !== "string") return null;
+  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
+  const part = _partialWordAt(text, caret);
+  if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
+  const lower = part.word.toLowerCase();
+  for (const w2 of _ghostVocabFor(lang)) {
+    const wLower = w2.toLowerCase();
+    if (wLower === lower) return null;
+    if (wLower.startsWith(lower)) {
+      return {
+        suffix: w2.slice(part.word.length),
+        word: w2,
+        start: part.start,
+      };
+    }
+  }
+  return null;
+}
+var ARTICLE_WORDS_BY_LANG = {
+  en: ["the", "my", "a", "an"],
+  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
+  de: [
+    "die",
+    "der",
+    "das",
+    "den",
+    "dem",
+    "mein",
+    "meine",
+    "meinen",
+    "meiner",
+    "meinem",
+    "ein",
+    "eine",
+    "einen",
+  ],
+  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
+  it: [
+    "il",
+    "la",
+    "lo",
+    "i",
+    "le",
+    "gli",
+    "mio",
+    "mia",
+    "miei",
+    "mie",
+    "un",
+    "una",
+    "uno",
+  ],
+  nl: ["de", "het", "een", "mijn"],
+  hu: ["a", "az", "egy"],
+};
+function _articleWordsFor(lang) {
+  const key = ARTICLE_WORDS_BY_LANG[_langKey2(lang)] ? _langKey2(lang) : "en";
+  return new Set(ARTICLE_WORDS_BY_LANG[key]);
+}
+var _INTRA_WORD_RE = /['’-]/;
+function _isNameChar(text, i8) {
+  if (i8 < 0 || i8 >= text.length) return false;
+  if (_WORD_CHAR_RE.test(text[i8])) return true;
+  if (!_INTRA_WORD_RE.test(text[i8])) return false;
+  return (
+    i8 > 0 &&
+    i8 + 1 < text.length &&
+    _WORD_CHAR_RE.test(text[i8 - 1]) &&
+    _WORD_CHAR_RE.test(text[i8 + 1])
+  );
+}
+function _completionSpan(text, caret, labels) {
+  let start = -1;
+  let end = caret;
+  for (const label of labels || []) {
+    if (!label) continue;
+    for (const [from, to] of _labelSpans(text, label)) {
+      if (caret <= from || caret >= to) continue;
+      if (to < end) continue;
+      if (to === end && start >= 0 && from >= start) continue;
+      start = from;
+      end = to;
+    }
+  }
+  if (end > caret) return { start, end };
+  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
+    return { start: -1, end };
+  }
+  while (_isNameChar(text, end)) end += 1;
+  return { start: -1, end };
+}
+function detectTrigger(text, caret, lang, labels) {
+  if (typeof text !== "string" || caret == null || caret < 0) return null;
+  const before = text.slice(0, caret);
+  const completion = _completionSpan(text, caret, labels);
+  const triggers = _triggersFor(lang);
+  const articleWords = _articleWordsFor(lang);
+  let queryStart = caret;
+  while (queryStart > 0) {
+    const ch = before[queryStart - 1];
+    if (QUERY_STOP_RE.test(ch)) break;
+    queryStart -= 1;
+    if (caret - queryStart > MAX_QUERY_LEN) break;
+  }
+  let best = null;
+  for (let qs = queryStart; qs <= caret; qs++) {
+    const prefix = before.slice(0, qs);
+    for (const trig of triggers) {
+      if (trig.pattern.test(prefix)) {
+        best = {
+          kind: trig.kind,
+          query: before.slice(qs, caret),
+          start: qs,
+          end: completion.end,
+          domains: trig.domains || null,
+          includeAreas: !!trig.includeAreas,
+          includeSensors: !!trig.includeSensors,
+        };
+        break;
+      }
+    }
+  }
+  if (!best) return null;
+  if (!best.query.trim() && !best.domains) return null;
+  if (articleWords.has(best.query.trim().toLowerCase())) return null;
+  if (completion.start >= 0 && completion.start < best.start) {
+    best.start = completion.start;
+  }
+  return best;
+}
+function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
+  const items = [];
+  if (!hass?.states) return items;
+  const areaById = {};
+  if (areas && typeof areas === "object") {
+    for (const [id, a3] of Object.entries(areas)) {
+      areaById[id] = a3?.name || a3?.area_id || id;
+    }
+  }
+  const fullEntReg = entities || {};
+  const displayEntReg = hass.entities || {};
+  for (const [entityId, state] of Object.entries(hass.states)) {
+    const domain = entityId.split(".")[0];
+    const friendly = state?.attributes?.friendly_name;
+    if (!friendly) continue;
+    const entry = fullEntReg[entityId] || displayEntReg[entityId];
+    let areaId = entry?.area_id || null;
+    if (!areaId && entry?.device_id && devices) {
+      areaId = devices[entry.device_id]?.area_id || null;
+    }
+    const areaName = areaId ? areaById[areaId] || null : null;
+    if (SENSOR_DOMAINS.has(domain)) {
+      if (entry?.entity_category) continue;
+      if (entry?.hidden_by || entry?.hidden) continue;
+      items.push({
+        kind: "sensor",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon:
+          state?.attributes?.icon ||
+          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
+          DOMAIN_ICONS3[domain],
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (DEVICE_DOMAINS.has(domain)) {
+      items.push({
+        kind: "device",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS3[domain] || "mdi:devices",
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "scene") {
+      items.push({
+        kind: "scene",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS3.scene,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "automation") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS3.automation,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "script") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS3.script,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    }
+  }
+  for (const [areaId, name] of Object.entries(areaById)) {
+    items.push({
+      kind: "area",
+      entity_id: null,
+      area_id: areaId,
+      label: name,
+      area: null,
+      icon: DOMAIN_ICONS3.area,
+      _lowerLabel: name.toLowerCase(),
+    });
+  }
+  return dedupeDeviceItems(items);
+}
+var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
+function normLabel(s6) {
+  return s6.toLowerCase().replace(/\s+/g, " ").trim();
+}
+function baseLabel(normalized) {
+  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
+}
+function isParenPrefix(shorter, longer) {
+  if (shorter === longer) return true;
+  if (!longer.startsWith(shorter)) return false;
+  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
+}
+function labelsForked(labels) {
+  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
+  for (let i8 = 0; i8 + 1 < sorted.length; i8++) {
+    if (!isParenPrefix(sorted[i8], sorted[i8 + 1])) return true;
+  }
+  return false;
+}
+function dedupeDeviceItems(items) {
+  const devices = items.filter((i8) => i8.kind === "device");
+  const domainsByDevice = /* @__PURE__ */ new Map();
+  for (const it of devices) {
+    if (!it.device_id) continue;
+    if (!domainsByDevice.has(it.device_id)) {
+      domainsByDevice.set(it.device_id, /* @__PURE__ */ new Set());
+    }
+    domainsByDevice.get(it.device_id).add(it.domain);
+  }
+  const kept = /* @__PURE__ */ new Set();
+  const seenIdentity = /* @__PURE__ */ new Set();
+  for (const it of devices) {
+    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
+    if (
+      parent &&
+      it.device_id &&
+      domainsByDevice.get(it.device_id)?.has(parent)
+    ) {
+      continue;
+    }
+    const disambig = it.device_id || it.entity_id;
+    const identity = `${disambig}\0${it._lowerLabel}\0${it.area_id || ""}\0${it.domain}`;
+    if (seenIdentity.has(identity)) continue;
+    seenIdentity.add(identity);
+    kept.add(it);
+  }
+  const sameDeviceAreaTagged = /* @__PURE__ */ new Set();
+  for (const it of kept) {
+    if (it.area_id && it.device_id) {
+      sameDeviceAreaTagged.add(
+        `${it.device_id}\0${it._lowerLabel}\0${it.domain}`,
+      );
+    }
+  }
+  for (const it of [...kept]) {
+    if (it.area_id || !it.device_id) continue;
+    const key = `${it.device_id}\0${it._lowerLabel}\0${it.domain}`;
+    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
+  }
+  const buckets = /* @__PURE__ */ new Map();
+  for (const it of kept) {
+    const key = `${baseLabel(normLabel(it.label))}\0${it.domain}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(it);
+  }
+  for (const rows of buckets.values()) {
+    const labels = new Set(rows.map((r6) => normLabel(r6.label)));
+    if (labels.size < 2) continue;
+    if (!rows.some((r6) => r6.area_id)) continue;
+    if (labelsForked(labels)) continue;
+    for (const it of rows) {
+      if (!it.area_id && it.device_id) kept.delete(it);
+    }
+  }
+  return items.filter((i8) => i8.kind !== "device" || kept.has(i8));
+}
+var SCORE_WORD_EXACT = 1500;
+var SCORE_LABEL_PREFIX = 1e3;
+var SCORE_WORD_PREFIX = 500;
+var SCORE_SUBSTRING = 100;
+var SCORE_SUBSEQUENCE = 10;
+var KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
+function _scoreItem(item, lowerQuery) {
+  const label = item._lowerLabel;
+  if (!label) return 0;
+  const words = label.split(/\s+/);
+  for (const w2 of words) {
+    if (w2 === lowerQuery) return SCORE_WORD_EXACT;
+  }
+  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
+  for (const w2 of words) {
+    if (w2.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
+  }
+  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
+  let qi = 0;
+  for (let i8 = 0; i8 < label.length && qi < lowerQuery.length; i8++) {
+    if (label[i8] === lowerQuery[qi]) qi += 1;
+  }
+  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
+  return 0;
+}
+function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
+  if (!items?.length || !domains?.length) return [];
+  const domainSet = new Set(domains);
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (!domainSet.has(it.domain)) continue;
+    out.push(it);
+  }
+  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
+  return out.slice(0, max);
+}
+function findExactMatches(items, kind, query, domains = null) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    if (it._lowerLabel === lowerQuery) out.push(it);
+  }
+  return out;
+}
+function rankSuggestions(
+  items,
+  kind,
+  query,
+  max = AUTOCOMPLETE_MAX_RESULTS,
+  domains = null,
+) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
+  const scored = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    const score = _scoreItem(it, lowerQuery);
+    if (score >= minScore) scored.push({ item: it, score });
+  }
+  scored.sort((a3, b3) => {
+    if (b3.score !== a3.score) return b3.score - a3.score;
+    if (a3.item.label.length !== b3.item.label.length) {
+      return a3.item.label.length - b3.item.label.length;
+    }
+    return a3.item.label.localeCompare(b3.item.label);
+  });
+  return scored.slice(0, max).map((s6) => s6.item);
+}
+function applySelection(text, trigger, item) {
+  const before = text.slice(0, trigger.start);
+  const after = text.slice(trigger.end);
+  const insert = item.label;
+  const needsSpace = !after.startsWith(" ");
+  const inserted = needsSpace ? insert + " " : insert;
+  const newText = before + inserted + after;
+  const newCaret = trigger.start + inserted.length;
+  return {
+    text: newText,
+    caret: newCaret,
+    range: [trigger.start, trigger.start + insert.length],
+  };
+}
+function buildEntityMarker(selections) {
+  if (!selections?.length) return "";
+  const seenEntities = /* @__PURE__ */ new Set();
+  const seenAreas = /* @__PURE__ */ new Set();
+  const entityIds = [];
+  const areaNames = [];
+  for (const sel of selections) {
+    if (sel.entity_id) {
+      if (seenEntities.has(sel.entity_id)) continue;
+      seenEntities.add(sel.entity_id);
+      entityIds.push(sel.entity_id);
+    } else if (sel.kind === "area" && sel.area_id) {
+      if (seenAreas.has(sel.area_id)) continue;
+      seenAreas.add(sel.area_id);
+      areaNames.push(sel.label);
+    }
+  }
+  const parts = [];
+  if (entityIds.length === 1) {
+    parts.push(`[[entity:${entityIds[0]}]]`);
+  } else if (entityIds.length > 1) {
+    parts.push(`[[entities:${entityIds.join(",")}]]`);
+  }
+  if (areaNames.length) {
+    parts.push(`[[areas:${areaNames.join(",")}]]`);
+  }
+  return parts.length ? "\n\n" + parts.join(" ") : "";
+}
+function stripEntityMarkers(text) {
+  if (typeof text !== "string" || !text) return text;
+  return text
+    .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
+    .trimEnd();
+}
+function _escapeRegex(s6) {
+  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function _labelSpans(text, label) {
+  const startsWord = _WORD_CHAR_RE.test(label[0]);
+  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
+  const re = new RegExp(_escapeRegex(label), "gi"); // nosemgrep
+  const spans = [];
+  for (let m3 = re.exec(text); m3; m3 = re.exec(text)) {
+    const start = m3.index;
+    const end = start + m3[0].length;
+    const before = start > 0 ? text[start - 1] : "";
+    const after = end < text.length ? text[end] : "";
+    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
+    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
+    spans.push([start, end]);
+  }
+  return spans;
+}
+function pruneStaleSelections(text, selections, ignoreRange) {
+  if (!selections?.length) return selections;
+  const [skipFrom, skipTo] = ignoreRange || [];
+  const skipping =
+    typeof skipFrom === "number" &&
+    typeof skipTo === "number" &&
+    skipTo > skipFrom;
+  return selections.filter((s6) => {
+    if (!s6.label) return false;
+    const spans = _labelSpans(text, s6.label);
+    if (!skipping) return spans.length > 0;
+    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
+  });
+}
+
+// src/panel/chat-attachments.js
+var MAX_CHAT_ATTACHMENTS = 4;
+var MAX_B64_PER_IMAGE = 2 * 1024 * 1024;
+var MAX_B64_TOTAL = 3 * 1024 * 1024;
+var MAX_EDGE_PX = 1568;
+var JPEG_QUALITY = 0.85;
+var KEEP_ORIGINAL_MAX_BYTES = 300 * 1024;
+var ACCEPTED_MIME = /* @__PURE__ */ new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+function supportsImageAttachments(host) {
+  return !!host._config?.supports_vision;
+}
+function _b64Length(attachment) {
+  return Math.max(
+    0,
+    attachment.dataUrl.length - attachment.dataUrl.indexOf(",") - 1,
+  );
+}
+function _readAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+function _loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("decode failed"));
+    img.src = dataUrl;
+  });
+}
+async function _processImageFile(file) {
+  const originalDataUrl = await _readAsDataUrl(file);
+  const img = await _loadImage(originalDataUrl);
+  const maxEdge = Math.max(img.naturalWidth, img.naturalHeight);
+  const scale = Math.min(1, MAX_EDGE_PX / maxEdge);
+  const fitsAsIs =
+    maxEdge <= MAX_EDGE_PX && file.size <= KEEP_ORIGINAL_MAX_BYTES;
+  if (file.type === "image/gif" && fitsAsIs) {
+    return { name: file.name, mimeType: file.type, dataUrl: originalDataUrl };
+  }
+  const lossless = file.type === "image/png" || file.type === "image/gif";
+  const outMime = fitsAsIs && lossless ? "image/png" : "image/jpeg";
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+  canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const ctx = canvas.getContext("2d");
+  if (outMime === "image/jpeg") {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return {
+    name: file.name,
+    mimeType: outMime,
+    dataUrl:
+      outMime === "image/png"
+        ? canvas.toDataURL("image/png")
+        : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
+  };
+}
+async function addImageAttachments(host, files) {
+  const images = Array.from(files || []).filter((f4) =>
+    ACCEPTED_MIME.has(f4.type),
+  );
+  if (!images.length) return;
+  if (!supportsImageAttachments(host)) {
+    host._attachmentNotice = host._t(
+      "chat_attachment_unsupported",
+      "Your current AI model can't analyze images.",
+    );
+    return;
+  }
+  const reserved = host._attachmentSlotsReserved || 0;
+  const room =
+    MAX_CHAT_ATTACHMENTS - (host._chatAttachments || []).length - reserved;
+  if (room <= 0) {
+    host._attachmentNotice = host._t(
+      "chat_attachment_limit",
+      "You can attach up to 4 images per message.",
+    );
+    return;
+  }
+  const accepted = images.slice(0, room);
+  const results = [];
+  host._attachmentsBusy = (host._attachmentsBusy || 0) + 1;
+  host._attachmentSlotsReserved = reserved + accepted.length;
+  let totalB64 = (host._chatAttachments || []).reduce(
+    (sum, a3) => sum + _b64Length(a3),
+    0,
+  );
+  try {
+    for (const file of accepted) {
+      try {
+        const processed = await _processImageFile(file);
+        const size = _b64Length(processed);
+        if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
+          host._attachmentNotice = host._t(
+            "chat_attachment_too_large",
+            "That image is too large to send.",
+          );
+          continue;
+        }
+        totalB64 += size;
+        results.push(processed);
+      } catch (_2) {
+        host._attachmentNotice = host._t(
+          "chat_attachment_read_error",
+          "Couldn't read that image.",
+        );
+      }
+    }
+  } finally {
+    host._attachmentsBusy = Math.max(0, (host._attachmentsBusy || 1) - 1);
+    host._attachmentSlotsReserved = Math.max(
+      0,
+      (host._attachmentSlotsReserved || accepted.length) - accepted.length,
+    );
+  }
+  if (!results.length) return;
+  host._chatAttachments = [...(host._chatAttachments || []), ...results].slice(
+    0,
+    MAX_CHAT_ATTACHMENTS,
+  );
+  host._attachmentNotice =
+    images.length > room
+      ? host._t(
+          "chat_attachment_limit",
+          "You can attach up to 4 images per message.",
+        )
+      : "";
+}
+function removeChatAttachment(host, idx) {
+  host._chatAttachments = (host._chatAttachments || []).filter(
+    (_2, i8) => i8 !== idx,
+  );
+  host._attachmentNotice = "";
+}
+function attachmentsForSend(host) {
+  return (host._chatAttachments || [])
+    .map((a3) => {
+      const comma = a3.dataUrl.indexOf(",");
+      if (comma < 0) return null;
+      return { mime_type: a3.mimeType, data: a3.dataUrl.slice(comma + 1) };
+    })
+    .filter(Boolean);
+}
+function createGlobalDropGuard(host) {
+  const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
+  let depth = 0;
+  const setDropActive = (value) => {
+    if (host._chatDropActive !== value) host._chatDropActive = value;
+  };
+  const onDragEnter = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth += 1;
+    if (host._activeTab === "chat" && supportsImageAttachments(host)) {
+      setDropActive(true);
+    }
+  };
+  const onDragLeave = (e6) => {
+    if (!isFileDrag(e6)) return;
+    depth = Math.max(0, depth - 1);
+    if (depth === 0) setDropActive(false);
+  };
+  const onDragOver = (e6) => {
+    if (isFileDrag(e6)) e6.preventDefault();
+  };
+  const onDrop = (e6) => {
+    depth = 0;
+    setDropActive(false);
+    if (!isFileDrag(e6) || e6.defaultPrevented) return;
+    e6.preventDefault();
+    if (host._activeTab === "chat" && e6.dataTransfer.files?.length) {
+      addImageAttachments(host, e6.dataTransfer.files);
+    }
+  };
+  window.addEventListener("dragenter", onDragEnter);
+  window.addEventListener("dragleave", onDragLeave);
+  window.addEventListener("dragover", onDragOver);
+  window.addEventListener("drop", onDrop);
+  return () => {
+    window.removeEventListener("dragenter", onDragEnter);
+    window.removeEventListener("dragleave", onDragLeave);
+    window.removeEventListener("dragover", onDragOver);
+    window.removeEventListener("drop", onDrop);
+  };
+}
+function renderDropOverlay(host) {
+  if (!host._chatDropActive) return b2``;
+  return b2`
+    <div class="chat-drop-overlay">
+      <div class="chat-drop-overlay-inner">
+        <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+        <span
+          >${host._t("chat_attachment_drop_here", "Drop images to attach")}</span
+        >
+      </div>
+    </div>
+  `;
+}
+function renderAttachmentStrip(host) {
+  const attachments = host._chatAttachments || [];
+  if (!attachments.length && !host._attachmentNotice) return b2``;
+  return b2`
+    <div class="composer-attachments">
+      ${attachments.map(
+        (a3, idx) => b2`
+          <span class="composer-attachment">
+            <img src=${a3.dataUrl} alt=${a3.name || "image"} />
+            <button
+              type="button"
+              class="composer-attachment-remove"
+              title=${host._t("chat_attachment_remove", "Remove image")}
+              @click=${() => removeChatAttachment(host, idx)}
+            >
+              ×
+            </button>
+          </span>
+        `,
+      )}
+      ${
+        host._attachmentNotice
+          ? b2`<span class="composer-attachment-notice"
+              >${host._attachmentNotice}</span
+            >`
+          : b2``
+      }
+    </div>
+  `;
+}
+
+// src/panel/render-chat.js
+var AUTOMATION_LABEL_KEYS = [
+  ["chat_automation_label_building", "Building automation..."],
+  ["chat_automation_label_triggers", "Drafting triggers..."],
+  ["chat_automation_label_conditions", "Wiring conditions..."],
+  ["chat_automation_label_actions", "Composing actions..."],
+  ["chat_automation_label_almost", "Almost ready..."],
+];
+var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
+var AUTOCOMPLETE_KIND_LABEL_KEYS = {
+  device: ["chat_autocomplete_kind_devices", "Devices"],
+  sensor: ["chat_autocomplete_kind_sensors", "Sensors"],
+  area: ["chat_autocomplete_kind_areas", "Areas"],
+  scene: ["chat_autocomplete_kind_scenes", "Scenes"],
+  automation: ["chat_autocomplete_kind_automations", "Automations"],
+};
+function _formatReplyMs(ms) {
+  if (ms < 1e3) return `${ms} ms`;
+  const seconds = ms / 1e3;
+  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
+}
+function _formatToolArgs(args) {
+  if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
+  const parts = [];
+  for (const [k2, v3] of Object.entries(args)) {
+    let val;
+    if (v3 === null || v3 === void 0) {
+      val = "null";
+    } else if (typeof v3 === "string") {
+      val =
+        v3.length > 60
+          ? JSON.stringify(v3.slice(0, 60) + "\u2026")
+          : JSON.stringify(v3);
+    } else if (typeof v3 === "object") {
+      const json = JSON.stringify(v3);
+      val = json.length > 60 ? json.slice(0, 60) + "\u2026" : json;
+    } else {
+      val = String(v3);
+    }
+    parts.push(`${k2}=${val}`);
+  }
+  return parts.join(", ");
+}
+function renderToolCalls(host, toolCalls) {
+  return b2`
+    <details
+      class="dev-tool-calls"
+      style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
+    >
+      <summary
+        style="cursor:pointer;padding:6px 10px;color:var(--secondary-text-color);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;"
+      >
+        <ha-icon
+          icon="mdi:wrench-outline"
+          style="--mdc-icon-size:14px;"
+        ></ha-icon>
+        <span
+          >${host._t("chat_tools_used", "Tools used")}
+          (${toolCalls.length})</span
+        >
+      </summary>
+      <div
+        style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
+      >
+        ${toolCalls.map(
+          (tc, i8) => b2`
+            <div
+              style="padding:2px 0;${i8 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+            >
+              <span style="color:var(--primary-text-color);font-weight:600;"
+                >${tc.tool}</span
+              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
+            </div>
+          `,
+        )}
+      </div>
+    </details>
+  `;
+}
+function _welcomeSuggestions(host) {
+  return [
+    {
+      label: host._t(
+        "chat_welcome_suggestion_lights_label",
+        "Turn off all lights at midnight",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_lights_value",
+        "Create an automation that turns off all lights at midnight",
+      ),
+      icon: "mdi:lightbulb-off-outline",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_devices_label",
+        "What devices do I have?",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_devices_value",
+        "What devices do I have and which ones are currently on?",
+      ),
+      icon: "mdi:devices",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_suggest_label",
+        "Suggest automations for my home",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_suggest_value",
+        "Suggest useful automations based on my devices and usage patterns",
+      ),
+      icon: "mdi:auto-fix",
+    },
+  ];
+}
+function renderAutomationSuggestButton(host) {
+  const busy = !!host._suggestingAutomation;
+  return b2`
+    <button
+      class="welcome-suggest-btn"
+      ?disabled=${busy || host._loading || host._streaming}
+      @click=${() => host._suggestAutomationIdea()}
+    >
+      ${
+        busy
+          ? b2`<span class="spinner green"></span>`
+          : b2`<ha-icon
+              icon="mdi:auto-fix"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>`
+      }
+      <span
+        >${busy ? host._t("chat_suggest_thinking", "Thinking\u2026") : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
+      >
+    </button>
+  `;
+}
+function renderChat(host) {
+  const isEmpty = host._messages.length === 0;
+  if (isEmpty) {
+    return b2`
+      <div class="chat-pane">
+        ${renderDropOverlay(host)}
+        <div class="chat-welcome-center" id="chat-messages">
+          ${i7(
+            host._welcomeKey || 0,
+            b2`
+              <div class="welcome-center-content">
+                <img
+                  src="/api/selora_ai/logo.png"
+                  alt="Selora AI"
+                  style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
+                />
+                <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
+                  ${
+                    host._newAutomationMode
+                      ? b2`${host._t("new_automation_title_prefix", "New")}
+                          <span class="gold-text"
+                            >${host._t("new_automation_gold", "Automation")}</span
+                          >`
+                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
+                          <span class="gold-text">Selora AI</span>`
+                  }
+                </div>
+                <div
+                  style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
+                >
+                  ${
+                    host._newAutomationMode
+                      ? host._t(
+                          "new_automation_subtitle",
+                          "Describe what you want to automate \u2014 mention the devices, times, or conditions involved.",
+                        )
+                      : host._t(
+                          "welcome_subtitle",
+                          "Your intelligent home automation architect",
+                        )
+                  }
+                </div>
+
+                ${
+                  host._llmNeedsSetup
+                    ? b2`
+                        <div
+                          style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
+                          @click=${() => host._goToSettings()}
+                        >
+                          <ha-icon
+                            icon="mdi:rocket-launch-outline"
+                            style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
+                          ></ha-icon>
+                          <div
+                            style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                          >
+                            ${host._t("get_started", "Get started")}
+                          </div>
+                          <div
+                            style="font-size:13px;opacity:0.6;margin-bottom:16px;"
+                          >
+                            ${host._t(
+                              "get_started_body",
+                              "Configure your LLM provider in the Settings tab to start chatting with your home.",
+                            )}
+                          </div>
+                          <span
+                            style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
+                          >
+                            ${host._t("open_settings", "Open Settings")}
+                            <ha-icon
+                              icon="mdi:arrow-right"
+                              style="--mdc-icon-size:16px;"
+                            ></ha-icon>
+                          </span>
+                        </div>
+                      `
+                    : b2`
+                        <div class="welcome-composer-area">
+                          <selora-particles
+                            class="welcome-composer-particles"
+                            .count=${260}
+                            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
+                            .maxOpacity=${host._isDark ? 0.55 : 0.5}
+                            .speed=${host._streaming || host._loading ? 2.2 : 1}
+                          ></selora-particles>
+                          ${_renderComposer(host, { welcome: true })}
+                        </div>
+
+                        ${
+                          host._newAutomationMode
+                            ? renderAutomationSuggestButton(host)
+                            : b2`
+                                <details class="welcome-quickstart">
+                                  <summary class="welcome-quickstart-summary">
+                                    <span
+                                      >${host._t(
+                                        "quick_start",
+                                        "Quick start",
+                                      )}</span
+                                    >
+                                    <ha-icon
+                                      icon="mdi:chevron-down"
+                                      class="welcome-quickstart-chevron"
+                                    ></ha-icon>
+                                  </summary>
+                                  ${renderQuickActions(
+                                    host,
+                                    _welcomeSuggestions(host),
+                                  )}
+                                </details>
+                              `
+                        }
+                      `
+                }
+              </div>
+            `,
+          )}
+        </div>
+      </div>
+    `;
+  }
+  const lastMsg = host._messages[host._messages.length - 1];
+  const lastQuickActions =
+    lastMsg &&
+    lastMsg.role !== "user" &&
+    lastMsg.quick_actions &&
+    lastMsg.quick_actions.length && // Approval cards render their Allow/Deny row INLINE inside the
+    // bubble so the user sees the buttons next to the proposal
+    // they're approving. Without this guard the sticky composer row
+    // below would render the same four buttons again — 8 buttons
+    // on screen with no obvious link back to the card.
+    !lastMsg.command_approval
+      ? lastMsg
+      : null;
+  return b2`
+    <div class="chat-pane">
+      ${renderDropOverlay(host)}
+      <div
+        class="chat-messages"
+        id="chat-messages"
+        @scroll=${host._onChatScroll}
+      >
+        ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
+        ${host._deviceDetail ? renderDeviceDetail(host) : ""}
+        ${
+          host._loading
+            ? b2`
+                <div class="typing-bubble">
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                </div>
+              `
+            : ""
+        }
+      </div>
+
+      <div class="chat-input-wrapper">
+        ${
+          host._chatScrolledAway && host._messages.length > 0
+            ? b2`
+                <button
+                  class="chat-jump-bottom"
+                  @click=${() => host._scrollChatToBottom()}
+                  title=${host._t("chat_jump_to_latest", "Go to latest message")}
+                  aria-label=${host._t(
+                    "chat_jump_to_latest",
+                    "Go to latest message",
+                  )}
+                >
+                  <ha-icon icon="mdi:chevron-down"></ha-icon>
+                </button>
+              `
+            : ""
+        }
+        ${
+          lastQuickActions
+            ? b2`
+                <div class="chat-quick-actions">
+                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
+                    used: !!lastQuickActions._qa_used,
+                  })}
+                </div>
+              `
+            : ""
+        }
+        ${renderRefineSuggestions(host)}
+        <div class="dock-composer-area">
+          <selora-particles
+            class="dock-composer-particles"
+            .count=${120}
+            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
+            .maxOpacity=${host._isDark ? 0.55 : 0.5}
+            .speed=${host._streaming || host._loading ? 2.2 : 1}
+          ></selora-particles>
+          ${_renderComposer(host)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+function _autoResize(textarea) {
+  textarea.style.height = "auto";
+  textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+}
+var _ENCODED_BLOB_RE = /^[A-Za-z0-9\-_.!~*'()%+]+$/;
+function _maybeDecodePercentEncoded(text) {
+  if (typeof text !== "string" || !text) return null;
+  if (!_ENCODED_BLOB_RE.test(text)) return null;
+  if (!/%0A/i.test(text)) return null;
+  try {
+    const decoded = decodeURIComponent(text.replace(/\+/g, " "));
+    if (decoded !== text && /\s/.test(decoded)) return decoded;
+  } catch (_2) {}
+  return null;
+}
+function _handlePaste(host, e6) {
+  const clip2 = e6.clipboardData;
+  if (!clip2) return;
+  const imageFiles = Array.from(clip2.files || []).filter((f4) =>
+    f4.type.startsWith("image/"),
+  );
+  if (imageFiles.length) {
+    e6.preventDefault();
+    addImageAttachments(host, imageFiles);
+    return;
+  }
+  const decoded = _maybeDecodePercentEncoded(clip2.getData("text"));
+  if (decoded === null) return;
+  e6.preventDefault();
+  const ta = e6.target;
+  const start = ta.selectionStart ?? ta.value.length;
+  const end = ta.selectionEnd ?? ta.value.length;
+  const next = ta.value.slice(0, start) + decoded + ta.value.slice(end);
+  ta.value = next;
+  const caret = start + decoded.length;
+  ta.setSelectionRange(caret, caret);
+  host._input = next;
+  host._autocompleteSelections = pruneStaleSelections(
+    next,
+    host._autocompleteSelections || [],
+  );
+  _autoResize(ta);
+  _updateAutocomplete(host, ta);
+  _updateGhost(host, ta);
+}
+var _MIRROR_COPY_PROPS = [
+  "boxSizing",
+  "width",
+  "height",
+  "overflowX",
+  "overflowY",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "borderStyle",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "fontStyle",
+  "fontVariant",
+  "fontWeight",
+  "fontStretch",
+  "fontSize",
+  "fontSizeAdjust",
+  "lineHeight",
+  "fontFamily",
+  "textAlign",
+  "textTransform",
+  "textIndent",
+  "textDecoration",
+  "letterSpacing",
+  "wordSpacing",
+  "tabSize",
+  "MozTabSize",
+  "whiteSpace",
+  "wordWrap",
+];
+function _measureCaretInTextarea(textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const mirror = document.createElement("div");
+  const style = mirror.style;
+  const cs = window.getComputedStyle(textarea);
+  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
+  style.position = "absolute";
+  style.visibility = "hidden";
+  style.top = "0";
+  style.left = "0";
+  style.whiteSpace = "pre-wrap";
+  style.wordWrap = "break-word";
+  const textNode = document.createTextNode(value.slice(0, caret) || " ");
+  mirror.appendChild(textNode);
+  textarea.parentNode.insertBefore(mirror, textarea);
+  const range = document.createRange();
+  const len = caret === 0 ? 0 : (value.slice(0, caret) || " ").length;
+  range.setStart(textNode, len);
+  range.setEnd(textNode, len);
+  const rect = range.getBoundingClientRect();
+  const taRect = textarea.getBoundingClientRect();
+  const left = rect.left - taRect.left - textarea.scrollLeft;
+  const top = rect.top - taRect.top - textarea.scrollTop;
+  const height =
+    rect.height || parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+  mirror.remove();
+  return { left, top, height };
+}
+function _updateAutocomplete(host, textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const trigger = detectTrigger(
+    value,
+    caret,
+    host.hass?.language,
+    (host._autocompleteSelections || []).map((s6) => s6.label),
+  );
+  const closeIfOpen = () => {
+    if (host._autocomplete?.open) {
+      host._autocomplete = {
+        open: false,
+        items: [],
+        activeIndex: 0,
+        trigger: null,
+        anchor: null,
+      };
+    }
+  };
+  if (!trigger) {
+    closeIfOpen();
+    return;
+  }
+  const qLen = trigger.query.trim().length;
+  if (!host._autocompleteRegCache && host._ensureFullRegistries) {
+    host._autocompleteRegCache = "pending";
+    host._ensureFullRegistries().then((reg) => {
+      host._autocompleteRegCache = reg || null;
+    });
+  }
+  const cache =
+    host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
+      ? host._autocompleteRegCache
+      : null;
+  const index = buildSuggestionIndex(
+    host.hass,
+    cache?.areas || host.hass?.areas,
+    cache?.devices || null,
+    cache?.entities || null,
+  );
+  let items;
+  if (trigger.domains) {
+    items = qLen
+      ? rankSuggestions(
+          index,
+          trigger.kind,
+          trigger.query,
+          void 0,
+          trigger.domains,
+        )
+      : listByDomain(index, trigger.kind, trigger.domains);
+  } else if (qLen >= AUTOCOMPLETE_MIN_CHARS) {
+    items = rankSuggestions(index, trigger.kind, trigger.query);
+  } else {
+    items = findExactMatches(index, trigger.kind, trigger.query);
+  }
+  if (trigger.includeSensors) {
+    const sensorMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "sensor",
+            trigger.query,
+            3,
+            // same cap as areas: the primary kind stays on top
+          )
+        : findExactMatches(index, "sensor", trigger.query);
+    if (sensorMatches.length) items = [...items, ...sensorMatches];
+  }
+  if (trigger.includeAreas) {
+    const areaMatches =
+      qLen >= AUTOCOMPLETE_MIN_CHARS
+        ? rankSuggestions(
+            index,
+            "area",
+            trigger.query,
+            3,
+            // cap area rows so devices still dominate the list
+          )
+        : findExactMatches(index, "area", trigger.query);
+    if (areaMatches.length) items = [...items, ...areaMatches];
+  }
+  if (!items.length) {
+    closeIfOpen();
+    return;
+  }
+  const savedCaret = textarea.selectionStart;
+  textarea.selectionStart = textarea.selectionEnd = trigger.start;
+  const anchor = _measureCaretInTextarea(textarea);
+  textarea.selectionStart = textarea.selectionEnd = savedCaret;
+  host._autocomplete = { open: true, items, activeIndex: 0, trigger, anchor };
+}
+function _updateGhost(host, textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const hit = findGhostSuggestion(value, caret, host.hass?.language);
+  if (!hit) {
+    host._ghost = null;
+    return;
+  }
+  const anchor = _measureCaretInTextarea(textarea);
+  host._ghost = { suffix: hit.suffix, anchor };
+}
+function _acceptGhost(host, textarea) {
+  if (!host._ghost?.suffix) return false;
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const newText =
+    value.slice(0, caret) + host._ghost.suffix + value.slice(caret);
+  const newCaret = caret + host._ghost.suffix.length;
+  host._input = newText;
+  host._ghost = null;
+  requestAnimationFrame(() => {
+    textarea.value = newText;
+    textarea.setSelectionRange(newCaret, newCaret);
+    textarea.focus();
+    _autoResize(textarea);
+  });
+  return true;
+}
+function _renderGhostOverlay(host) {
+  const suffix = host._ghost?.suffix;
+  if (!suffix || !host._input) return "";
+  const anchor = host._ghost.anchor;
+  if (!anchor) return "";
+  return b2`
+    <span
+      class="composer-ghost-suffix"
+      aria-hidden="true"
+      style="left:${anchor.left}px;top:${anchor.top}px;line-height:${anchor.height}px;"
+      >${suffix}</span
+    >
+  `;
+}
+function _scrollActiveItemIntoView(host) {
+  const scroll = () => {
+    const list = host.shadowRoot?.querySelector(".composer-autocomplete");
+    const active = list?.querySelector(".composer-autocomplete-item.active");
+    if (!list || !active) return;
+    const listRect = list.getBoundingClientRect();
+    const itemRect = active.getBoundingClientRect();
+    if (itemRect.bottom > listRect.bottom) {
+      list.scrollTop += itemRect.bottom - listRect.bottom;
+    } else if (itemRect.top < listRect.top) {
+      list.scrollTop -= listRect.top - itemRect.top;
+    }
+  };
+  if (host.updateComplete?.then) {
+    host.updateComplete.then(scroll);
+  } else {
+    requestAnimationFrame(scroll);
+  }
+}
+function _closeAutocomplete(host) {
+  if (host._autocomplete?.open) {
+    host._autocomplete = {
+      open: false,
+      items: [],
+      activeIndex: 0,
+      trigger: null,
+    };
+  }
+}
+function _selectAutocompleteItem(host, textarea, item) {
+  const trigger = host._autocomplete?.trigger;
+  if (!trigger || !item) return;
+  const { text, caret, range } = applySelection(textarea.value, trigger, item);
+  host._input = text;
+  host._autocompleteSelections = [
+    ...pruneStaleSelections(text, host._autocompleteSelections || [], range),
+    item,
+  ];
+  _closeAutocomplete(host);
+  requestAnimationFrame(() => {
+    textarea.value = text;
+    textarea.setSelectionRange(caret, caret);
+    textarea.focus();
+    _autoResize(textarea);
+  });
+}
+function _removeSelection(host, idx) {
+  const sels = host._autocompleteSelections || [];
+  host._autocompleteSelections = sels.filter((_2, i8) => i8 !== idx);
+}
+function _renderAutocomplete(host) {
+  const ac = host._autocomplete;
+  if (!ac?.open || !ac.items?.length) return "";
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  const wrap = host.shadowRoot?.querySelector(".composer-wrap");
+  let positionStyle = "";
+  if (wrap) {
+    const wrapRect = wrap.getBoundingClientRect();
+    const maxH = Math.max(0, Math.min(320, wrapRect.top - 12));
+    let horizontal = "";
+    if (ac.anchor && ta) {
+      const taRect = ta.getBoundingClientRect();
+      let leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
+      const maxLeft = Math.max(0, wrapRect.width - 320);
+      leftPx = Math.min(Math.max(0, leftPx), maxLeft);
+      horizontal = `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`;
+    }
+    positionStyle = `bottom:calc(100% + 6px);top:auto;max-height:${maxH}px;${horizontal}`;
+  }
+  const groupOrder = [];
+  const groups = /* @__PURE__ */ new Map();
+  for (const item of ac.items) {
+    if (!groups.has(item.kind)) {
+      groups.set(item.kind, []);
+      groupOrder.push(item.kind);
+    }
+    groups.get(item.kind).push(item);
+  }
+  return b2`
+    <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
+      ${groupOrder.map((kind) => {
+        const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
+        const header = headerKV
+          ? host._t(headerKV[0], headerKV[1])
+          : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
+        return b2`
+          <div class="composer-autocomplete-header">
+            <span>${header}</span>
+          </div>
+          ${groups.get(kind).map((item) => _renderAutocompleteRow(host, ac, item))}
+        `;
+      })}
+      <div class="composer-autocomplete-hint">
+        ${host._t(
+          "chat_autocomplete_hint",
+          "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
+        )}
+      </div>
+    </div>
+  `;
+}
+function _renderAutocompleteRow(host, ac, item) {
+  const idx = ac.items.indexOf(item);
+  return b2`<button
+    type="button"
+    class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
+    role="option"
+    @mousedown=${(e6) => {
+      e6.preventDefault();
+      const ta = host.shadowRoot?.querySelector(".composer-textarea");
+      if (ta) _selectAutocompleteItem(host, ta, item);
+    }}
+    @mouseenter=${() => {
+      host._autocomplete = { ...ac, activeIndex: idx };
+    }}
+  >
+    <ha-icon icon=${item.icon}></ha-icon>
+    <span class="composer-autocomplete-label">${item.label}</span>
+    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
+  </button>`;
+}
+function _renderSelectionChips(host) {
+  const sels = host._autocompleteSelections || [];
+  if (!sels.length) return "";
+  return b2`
+    <div class="composer-selections-inline">
+      ${sels.map(
+        (s6, idx) => b2`
+          <span
+            class="composer-selection-chip"
+            title=${s6.entity_id || s6.area_id || ""}
+          >
+            <ha-icon icon=${s6.icon}></ha-icon>
+            ${s6.label}
+            <button
+              type="button"
+              title=${host._t("chat_selection_remove", "Remove")}
+              @click=${() => _removeSelection(host, idx)}
+            >
+              ×
+            </button>
+          </span>
+        `,
+      )}
+    </div>
+  `;
+}
+function _renderComposer(host, opts = {}) {
+  const welcome = !!opts.welcome;
+  const onDragOver = (e6) => {
+    if (!e6.dataTransfer?.types?.includes?.("Files")) return;
+    e6.preventDefault();
+    if (!supportsImageAttachments(host)) return;
+    if (!host._composerDragOver) host._composerDragOver = true;
+  };
+  const onDragLeave = (e6) => {
+    if (e6.currentTarget.contains(e6.relatedTarget)) return;
+    if (host._composerDragOver) host._composerDragOver = false;
+  };
+  const onDrop = (e6) => {
+    if (!e6.dataTransfer?.files?.length) return;
+    e6.preventDefault();
+    host._composerDragOver = false;
+    addImageAttachments(host, e6.dataTransfer.files);
+  };
+  const refining = !welcome && !!activeRefinement(host._messages);
+  const nextPrompt = activeNextPrompt(host);
+  return b2`
+    <div class="composer-wrap">
+      ${_renderAutocomplete(host)}
+      <div
+        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${host._composerDragOver ? " composer-dragover" : ""}"
+        @dragover=${onDragOver}
+        @dragleave=${onDragLeave}
+        @drop=${onDrop}
+      >
+        <div class="composer-input-col">
+          ${renderAttachmentStrip(host)}
+          <div class="composer-textarea-wrap">
+            ${_renderGhostOverlay(host)}
+            <textarea
+              class="composer-textarea"
+              .value=${host._input}
+              @paste=${(e6) => _handlePaste(host, e6)}
+              @input=${(e6) => {
+                host._input = e6.target.value;
+                host._autocompleteSelections = pruneStaleSelections(
+                  e6.target.value,
+                  host._autocompleteSelections || [],
+                );
+                _autoResize(e6.target);
+                _updateAutocomplete(host, e6.target);
+                _updateGhost(host, e6.target);
+              }}
+              @click=${(e6) => {
+                _updateAutocomplete(host, e6.target);
+                _updateGhost(host, e6.target);
+              }}
+              @keyup=${(e6) => {
+                if (
+                  e6.key === "ArrowLeft" ||
+                  e6.key === "ArrowRight" ||
+                  e6.key === "Home" ||
+                  e6.key === "End"
+                ) {
+                  _updateAutocomplete(host, e6.target);
+                  _updateGhost(host, e6.target);
+                }
+              }}
+              @blur=${() => {
+                setTimeout(() => _closeAutocomplete(host), 150);
+              }}
+              @keydown=${(e6) => {
+                const ac = host._autocomplete;
+                if (ac?.open && ac.items.length) {
+                  if (e6.key === "ArrowDown") {
+                    e6.preventDefault();
+                    host._autocomplete = {
+                      ...ac,
+                      activeIndex: (ac.activeIndex + 1) % ac.items.length,
+                    };
+                    _scrollActiveItemIntoView(host);
+                    return;
+                  }
+                  if (e6.key === "ArrowUp") {
+                    e6.preventDefault();
+                    host._autocomplete = {
+                      ...ac,
+                      activeIndex:
+                        (ac.activeIndex - 1 + ac.items.length) %
+                        ac.items.length,
+                    };
+                    _scrollActiveItemIntoView(host);
+                    return;
+                  }
+                  if (e6.key === "Enter" || e6.key === "Tab") {
+                    e6.preventDefault();
+                    _selectAutocompleteItem(
+                      host,
+                      e6.target,
+                      ac.items[ac.activeIndex],
+                    );
+                    return;
+                  }
+                  if (e6.key === "Escape") {
+                    e6.preventDefault();
+                    _closeAutocomplete(host);
+                    return;
+                  }
+                }
+                if (e6.key === "Enter" && !e6.shiftKey) {
+                  e6.preventDefault();
+                  host._sendMessage();
+                  return;
+                }
+                if (e6.key === "Tab" && !e6.shiftKey) {
+                  e6.preventDefault();
+                  if (!_acceptGhost(host, e6.target)) {
+                    acceptNextPrompt(host, e6.target);
+                  }
+                  return;
+                }
+                if (
+                  e6.key === "ArrowRight" &&
+                  !e6.target.value &&
+                  acceptNextPrompt(host, e6.target)
+                ) {
+                  e6.preventDefault();
+                  return;
+                }
+                if (
+                  e6.key === "ArrowRight" &&
+                  host._ghost?.suffix &&
+                  e6.target.selectionStart === e6.target.value.length &&
+                  e6.target.selectionEnd === e6.target.value.length
+                ) {
+                  e6.preventDefault();
+                  _acceptGhost(host, e6.target);
+                  return;
+                }
+                const userHistory = host._messages
+                  .filter((m3) => m3.role === "user" && m3.content)
+                  .map((m3) => stripEntityMarkers(m3.content));
+                const ta = e6.target;
+                const atStart =
+                  ta.selectionStart === 0 && ta.selectionEnd === 0;
+                const atEnd =
+                  ta.selectionStart === ta.value.length &&
+                  ta.selectionEnd === ta.value.length;
+                const inHistory =
+                  host._historyIndex !== null && host._historyIndex !== void 0;
+                const applyHistory = (idx) => {
+                  const recalled = userHistory[userHistory.length - 1 - idx];
+                  host._historyIndex = idx;
+                  host._input = recalled;
+                  requestAnimationFrame(() => {
+                    ta.value = recalled;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                };
+                if (
+                  e6.key === "ArrowUp" &&
+                  userHistory.length > 0 &&
+                  (inHistory || atStart || !host._input)
+                ) {
+                  if (!inHistory) {
+                    host._historyDraft = host._input || "";
+                    e6.preventDefault();
+                    applyHistory(0);
+                    return;
+                  }
+                  if (host._historyIndex < userHistory.length - 1) {
+                    e6.preventDefault();
+                    applyHistory(host._historyIndex + 1);
+                    return;
+                  }
+                  e6.preventDefault();
+                  return;
+                }
+                if (e6.key === "ArrowDown" && inHistory && atEnd) {
+                  e6.preventDefault();
+                  if (host._historyIndex > 0) {
+                    applyHistory(host._historyIndex - 1);
+                    return;
+                  }
+                  const draft = host._historyDraft || "";
+                  host._historyIndex = null;
+                  host._historyDraft = "";
+                  host._input = draft;
+                  requestAnimationFrame(() => {
+                    ta.value = draft;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                  return;
+                }
+              }}
+              placeholder=${
+                nextPrompt ||
+                (host._newAutomationMode
+                  ? host._t(
+                      "composer_placeholder_automation",
+                      "Describe the automation you\u2019d like to create\u2026",
+                    )
+                  : refining
+                    ? host._t(
+                        "composer_placeholder_refine",
+                        "Describe the changes\u2026",
+                      )
+                    : host._t(
+                        "composer_placeholder_ask",
+                        "Ask Selora AI anything\u2026",
+                      ))
+              }
+              ?disabled=${host._loading || host._streaming || isPredicting(host)}
+              rows="1"
+            ></textarea>
+            ${
+              nextPrompt
+                ? b2`<button
+                    type="button"
+                    class="composer-next-accept"
+                    title=${host._t(
+                      "composer_next_prompt_accept",
+                      "Use this suggestion",
+                    )}
+                    @click=${() =>
+                      acceptNextPrompt(
+                        host,
+                        host.shadowRoot?.querySelector(".composer-textarea"),
+                      )}
+                  >
+                    <span class="composer-next-key">Tab</span
+                    ><ha-icon
+                      class="composer-next-icon"
+                      icon="mdi:pencil-outline"
+                    ></ha-icon>
+                  </button>`
+                : ""
+            }
+          </div>
+          ${_renderSelectionChips(host)}
+        </div>
+        ${
+          supportsImageAttachments(host)
+            ? b2`<input
+                  type="file"
+                  id="selora-chat-image-input"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  multiple
+                  hidden
+                  @change=${(e6) => {
+                    addImageAttachments(host, e6.target.files);
+                    e6.target.value = "";
+                  }}
+                /><button
+                  class="composer-attach"
+                  title=${host._t(
+                    "chat_attach_image",
+                    "Attach an image \u2014 drag & drop or paste works too",
+                  )}
+                  ?disabled=${host._loading || host._streaming || isPredicting(host)}
+                  @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
+                >
+                  <ha-icon icon="mdi:image-plus-outline"></ha-icon>
+                </button>`
+            : b2``
+        }
+        ${
+          host._streaming
+            ? b2`<button
+                class="composer-send"
+                @click=${() => host._stopStreaming()}
+                title=${host._t("chat_stop_generating", "Stop generating")}
+              >
+                <ha-icon icon="mdi:stop"></ha-icon>
+              </button>`
+            : b2`<button
+                class="composer-send"
+                @click=${() => host._sendMessage()}
+                ?disabled=${host._loading || isPredicting(host) || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
+                title=${host._t("chat_send", "Send")}
+              >
+                <ha-icon icon="mdi:arrow-up"></ha-icon>
+              </button>`
+        }
+      </div>
+    </div>
+  `;
+}
+function renderMessage(host, msg, idx) {
+  const isUser = msg.role === "user";
+  if (msg._streaming && !msg.content) return b2``;
+  let displayContent = msg.content;
+  let showAutomationSpinner = false;
+  let showSceneSpinner = false;
+  if (!isUser) {
+    const { text, isPartialBlock, partialBlockType } = stripAutomationBlock(
+      msg.content,
+    );
+    displayContent = text;
+    showAutomationSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "automation";
+    showSceneSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "scene";
+    if (msg.command_approval) {
+      displayContent = displayContent
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*\.?$/i, "")
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*/gi, " ")
+        .trim();
+    }
+  }
+  const isLoadedAutomation = msg.automation_status === "refining";
+  const isRefineSource = isLoadedAutomation || msg.scene_status === "refining";
+  const isProposal =
+    !isUser && !isRefineSource && !!(msg.automation || msg.scene);
+  const isActionCard = !!(msg.automation || msg.scene || msg.command_approval);
+  const copyText = isProposal
+    ? (msg.automation ? msg.automation_yaml : msg.scene_yaml || "").trim()
+    : isActionCard
+      ? ""
+      : (displayContent || "").trim();
+  const canCopy = !isUser && !msg._streaming && !!copyText;
+  const canFeedback =
+    !isUser &&
+    !msg._streaming &&
+    !msg.command_approval &&
+    !isRefineSource &&
+    !!displayContent?.trim();
+  const canRetry = !isUser && !!(msg._interrupted && msg._retryWith);
+  const hasProposalActions = !isUser && !!msg.automation;
+  const showQuickActions =
+    !isUser &&
+    !!(msg.quick_actions && msg.quick_actions.length) && // Only approval cards render their action row inline in the bubble, so
+    // the Allow/Deny buttons sit next to the proposal they resolve. Standard
+    // quick_actions render exclusively in the sticky composer row (see
+    // lastQuickActions in renderChat); rendering them here too would show the
+    // same chips twice (in-card AND above the input).
+    msg.command_approval && // Hide approval action cards once the proposal has been resolved (or
+    // is mid-resolve). Re-clicking after the status flipped would 404
+    // server-side, and the approved/denied chip already says what happened.
+    msg.approval_status !== "approved" &&
+    msg.approval_status !== "denied" &&
+    msg.approval_status !== "resolving";
+  const sceneIsSingleTile =
+    !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
+  return b2`
+    ${isLoadedAutomation ? renderRefineHeading(host, idx) : ""}
+    <div class="message-row">
+      ${
+        isUser
+          ? b2`
+              <div class="bubble user">
+                ${
+                  msg.attachments?.length
+                    ? b2`
+                        <div class="bubble-attachments">
+                          ${msg.attachments.map(
+                            (a3) => b2`
+                              <img
+                                src=${a3.dataUrl}
+                                alt=${a3.name || "image"}
+                                loading="lazy"
+                              />
+                            `,
+                          )}
+                        </div>
+                      `
+                    : b2``
+                }
+                <span
+                  class="msg-content"
+                  .textContent=${stripEntityMarkers(msg.content)}
+                ></span>
+              </div>
+            `
+          : b2`
+              <div
+                class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}${msg.scene ? " assistant-wrap--scene" : ""}${sceneIsSingleTile ? " assistant-wrap--scene-single" : ""}"
+              >
+                ${renderAgentSteps(host, msg.steps)}
+                <div
+                  class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
+                  style="max-width:100%;align-self:auto;"
+                >
+                  ${
+                    // A loaded automation's stored prose ("Describe the
+                    // changes") is context for the model; the composer's
+                    // placeholder and chip say it to the user.
+                    msg.command_approval || isLoadedAutomation
+                      ? ""
+                      : b2`<span
+                          class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
+                          @click=${host._onCodeCopyClick}
+                          .innerHTML=${renderMarkdown(displayContent)}
+                        ></span>`
+                  }
+                  ${
+                    showAutomationSpinner
+                      ? (() => {
+                          const startedAt = msg._sentAt || Date.now();
+                          const labelIdx =
+                            Math.floor(
+                              (Date.now() - startedAt) /
+                                AUTOMATION_LABEL_INTERVAL_MS,
+                            ) % AUTOMATION_LABEL_KEYS.length;
+                          const [labelKey, labelFallback] =
+                            AUTOMATION_LABEL_KEYS[labelIdx];
+                          return b2`
+                            <div
+                              style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                            >
+                              <div
+                                class="typing-dot"
+                                style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                              ></div>
+                              <span
+                                style="font-size:13px;font-weight:500;color:#fbbf24;"
+                                >${host._t(labelKey, labelFallback)}</span
+                              >
+                            </div>
+                          `;
+                        })()
+                      : ""
+                  }
+                  ${
+                    showSceneSpinner
+                      ? b2`
+                          <div
+                            style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                          >
+                            <div
+                              class="typing-dot"
+                              style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                            ></div>
+                            <span
+                              style="font-size:13px;font-weight:500;color:#fbbf24;"
+                              >${host._t(
+                                "chat_building_scene",
+                                "Building scene...",
+                              )}</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${
+                    msg.config_issue
+                      ? b2`
+                          <div style="margin-top: 10px;">
+                            <mwc-button
+                              dense
+                              raised
+                              @click=${host._goToSettings}
+                              >${host._t(
+                                "chat_go_to_settings",
+                                "Go to Settings",
+                              )}</mwc-button
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
+                  ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
+                  ${
+                    msg.command_approval
+                      ? renderApprovalCard(
+                          host,
+                          msg,
+                          msg.command_approval,
+                          msg.approval_status,
+                        )
+                      : ""
+                  }
+                  ${renderRestoreCard(host, msg)}
+                  ${
+                    msg._interrupted
+                      ? b2`
+                          <div class="stream-interrupt">
+                            <ha-icon
+                              icon="mdi:alert-circle-outline"
+                              style="--mdc-icon-size:16px;flex-shrink:0;"
+                            ></ha-icon>
+                            <span class="stream-interrupt-text"
+                              >${
+                                msg._interruptReason ||
+                                host._t(
+                                  "chat_response_cut_short",
+                                  "Response was cut short.",
+                                )
+                              }</span
+                            >
+                          </div>
+                        `
+                      : ""
+                  }
+                  ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
+                </div>
+                ${
+                  msg._streaming ||
+                  canCopy ||
+                  canFeedback ||
+                  canRetry ||
+                  showQuickActions ||
+                  hasProposalActions
+                    ? b2`<div
+                        class="bubble-meta"
+                        style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
+                      >
+                        ${
+                          msg._streaming
+                            ? b2`<span style="opacity:0.5;">
+                                Selora AI ·
+                                ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
+                              </span>`
+                            : canCopy || canFeedback || canRetry
+                              ? b2`<div class="msg-actions">
+                                  ${
+                                    canCopy
+                                      ? b2`<button
+                                          class="msg-action-btn"
+                                          title=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          aria-label=${host._t(
+                                            isProposal
+                                              ? "chat_copy_yaml"
+                                              : "chat_copy_message",
+                                            isProposal
+                                              ? "Copy YAML"
+                                              : "Copy message",
+                                          )}
+                                          @click=${(e6) =>
+                                            host._copyMessageText(
+                                              msg,
+                                              e6.currentTarget,
+                                              copyText,
+                                            )}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:content-copy"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    canFeedback &&
+                                    host._config?.telemetry_enabled
+                                      ? b2`<button
+                                            class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
+                                            title=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_helpful",
+                                              "Good response",
+                                            )}
+                                            @click=${(e6) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "positive",
+                                                e6.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${msg._feedback === "positive" ? "mdi:thumb-up" : "mdi:thumb-up-outline"}
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>
+                                          <button
+                                            class="msg-action-btn${msg._feedback === "negative" ? " active" : ""}"
+                                            title=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            aria-label=${host._t(
+                                              "chat_feedback_not_helpful",
+                                              "Bad response",
+                                            )}
+                                            @click=${(e6) =>
+                                              host._recordChatFeedback(
+                                                msg,
+                                                "negative",
+                                                e6.currentTarget,
+                                              )}
+                                          >
+                                            <ha-icon
+                                              icon=${msg._feedback === "negative" ? "mdi:thumb-down" : "mdi:thumb-down-outline"}
+                                              style="--mdc-icon-size:14px;"
+                                            ></ha-icon>
+                                          </button>`
+                                      : ""
+                                  }
+                                  ${
+                                    msg._interrupted && msg._retryWith
+                                      ? b2`<button
+                                          class="msg-action-btn"
+                                          title=${host._t("chat_retry", "Retry")}
+                                          aria-label=${host._t("chat_retry", "Retry")}
+                                          @click=${() => host._retryMessage(msg._retryWith)}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:refresh"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                        </button>`
+                                      : ""
+                                  }
+                                </div>`
+                              : ""
+                        }
+                        ${
+                          hasProposalActions || showQuickActions
+                            ? b2`<div class="msg-quick">
+                                ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
+                                ${
+                                  showQuickActions
+                                    ? renderQuickActions(
+                                        host,
+                                        msg.quick_actions,
+                                        {
+                                          used: !!msg._qa_used,
+                                        },
+                                      )
+                                    : ""
+                                }
+                              </div>`
+                            : ""
+                        }
+                      </div>`
+                    : ""
+                }
+              </div>
+            `
+      }
+    </div>
+  `;
+}
+var DOMAIN_ICONS2 = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  climate: "mdi:thermostat",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  vacuum: "mdi:robot-vacuum",
+  sensor: "mdi:eye",
+  binary_sensor: "mdi:motion-sensor",
+  water_heater: "mdi:water-boiler",
+  humidifier: "mdi:air-humidifier",
+  camera: "mdi:cctv",
+  device_tracker: "mdi:map-marker",
+  person: "mdi:account",
+  zone: "mdi:map-marker-radius",
+  sun: "mdi:weather-sunny",
+  weather: "mdi:weather-partly-cloudy",
+  automation: "mdi:robot",
+  scene: "mdi:palette",
+  script: "mdi:script-text",
+  input_boolean: "mdi:toggle-switch-variant",
+  input_number: "mdi:numeric",
+  input_select: "mdi:form-dropdown",
+  input_text: "mdi:form-textbox",
+  input_datetime: "mdi:calendar-clock",
+  input_button: "mdi:gesture-tap-button",
+  timer: "mdi:timer-outline",
+  counter: "mdi:counter",
+  group: "mdi:google-circles-communities",
+  notify: "mdi:bell",
+  mobile_app: "mdi:cellphone",
+  alarm_control_panel: "mdi:shield-home",
+  air_quality: "mdi:air-filter",
+  remote: "mdi:remote",
+};
+function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
+  const readOnly = !!opts.readOnly;
+  host._initYamlEdit(key, originalYaml);
+  const current = readOnly
+    ? originalYaml
+    : (host._editedYaml[key] ?? originalYaml);
+  const isDirty = !readOnly && current !== originalYaml;
+  const saving = !!host._savingYaml[key];
+  return b2`
+    <ha-code-editor
+      mode="yaml"
+      .value=${current}
+      ?read-only=${readOnly}
+      @value-changed=${(e6) => {
+        if (readOnly) return;
+        host._onYamlInput(key, e6.detail.value);
+      }}
+      autocomplete-entities
+      style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
+    ></ha-code-editor>
+    ${
+      isDirty || (onSave && !readOnly)
+        ? b2`
+            <div class="yaml-edit-bar">
+              ${
+                isDirty
+                  ? b2`
+                      <span class="yaml-unsaved">
+                        <ha-icon
+                          icon="mdi:circle-edit-outline"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
+                      </span>
+                    `
+                  : b2`<span style="flex:1;"></span>`
+              }
+              ${
+                onSave
+                  ? b2`
+                      <button
+                        class="btn btn-primary"
+                        ?disabled=${saving || !isDirty}
+                        @click=${() => onSave(key)}
+                      >
+                        <ha-icon
+                          icon="mdi:content-save"
+                          style="--mdc-icon-size:13px;"
+                        ></ha-icon>
+                        ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
+                      </button>
+                    `
+                  : ""
+              }
+            </div>
+          `
+        : ""
+    }
   `;
 }
 
@@ -52853,7 +53060,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "9a62ad3a4cf6" : "";
+var PANEL_BUILD = true ? "deaff7137571" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -54576,6 +54783,8 @@ var SeloraAIPanel = class extends i4 {
       // Recently deleted automations and scenes (panel/trash.js)
       _trash: { type: Array },
       _trashBusy: { type: Object },
+      // Restored from a chat restore card this session (panel/restore-card.js)
+      _restoredTrash: { type: Object },
       _expandedAutomations: { type: Object },
       // Settings tab
       _config: { type: Object },

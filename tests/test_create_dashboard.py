@@ -666,6 +666,7 @@ def test_a_panel_only_tool_needs_the_caller_to_declare_the_panel() -> None:
         "create_dashboard",
         "delete_dashboard",
         "create_helper",
+        "restore_deleted",
     }
 
 

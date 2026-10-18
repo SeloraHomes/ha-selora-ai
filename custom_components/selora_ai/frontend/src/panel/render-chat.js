@@ -25,6 +25,7 @@ import {
 } from "./refine-guide.js";
 import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
+import { renderRestoreCard } from "./restore-card.js";
 import {
   acceptNextPrompt,
   activeNextPrompt,
@@ -1535,6 +1536,7 @@ export function renderMessage(host, msg, idx) {
                         )
                       : ""
                   }
+                  ${renderRestoreCard(host, msg)}
                   ${
                     msg._interrupted
                       ? html`

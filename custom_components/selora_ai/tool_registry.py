@@ -725,6 +725,41 @@ TOOL_DELETE_AUTOMATION = ToolDef(
     requires_admin=True,
 )
 
+# Picking the wrong one of two same-named automations is how the trash fills in
+# the first place, so chat never restores on its own: the user picks from a card
+# that shows what each match does (trash.py, panel/restore-card.js).
+TOOL_RESTORE_DELETED = ToolDef(
+    name="restore_deleted",
+    description=(
+        "Find automations or scenes in Recently deleted so the user can restore one. "
+        "Nothing is restored by this call: each match is shown to the user as a card "
+        "with what it does, its YAML and a Restore button, and they pick. Pass the "
+        "words the user used for its name as query; leave it out for the most "
+        "recently deleted. Then tell them to pick from the card — when there are "
+        "several, say what tells them apart (when each was deleted, what it does). "
+        "Never say it was restored. Deletes made in Home Assistant itself are not "
+        "in Recently deleted."
+    ),
+    params=(
+        ToolParam(name="query", type="string", description="Words from its name."),
+        ToolParam(
+            name="kind",
+            type="string",
+            description="Only automations or only scenes.",
+            enum=("automation", "scene"),
+        ),
+        ToolParam(
+            name="trash_id",
+            type="string",
+            description="One item's trash_id, from an earlier result.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+    # The card is the restore; Assist has none to show.
+    panel_only=True,
+)
+
 # A name or description is the one change to an automation that cannot alter
 # what it does, so it needs neither a regenerated proposal nor a review card.
 TOOL_RENAME_AUTOMATION = ToolDef(
@@ -2997,6 +3032,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_DISMISS_SUGGESTION,
     TOOL_DELETE_AUTOMATION,
     TOOL_RENAME_AUTOMATION,
+    TOOL_RESTORE_DELETED,
     TOOL_DELETE_SCENE,
     TOOL_LIST_GROUPS,
     TOOL_CREATE_GROUP,
@@ -3083,6 +3119,8 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         # "Call it Kitchen and Office Lights" after a save is command-shaped;
         # without this the trimmed schema leaves only a regenerated proposal.
         "rename_automation",
+        # "Bring back the garage automation" is command-shaped too.
+        "restore_deleted",
         "delete_scene",
         "list_groups",
         "create_group",
@@ -3189,6 +3227,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "update_device",
         # "Rename the porch automation" reads as a registry rename.
         "rename_automation",
+        "restore_deleted",
         "list_services",
         "list_labels",
         "create_label",

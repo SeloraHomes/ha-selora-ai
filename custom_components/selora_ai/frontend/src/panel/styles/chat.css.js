@@ -148,6 +148,29 @@ export const chatStyles = css`
   .bubble > .automation-subcard:first-child {
     margin-top: 0;
   }
+  /* Matches from Recently deleted, one subcard each (panel/restore-card.js). */
+  .restore-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .restore-card .automation-subcard {
+    margin-top: 0;
+  }
+  .restore-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+  .restore-card-state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    --mdc-icon-size: 16px;
+  }
   :host(:not([dark])) .automation-subcard {
     border-color: var(--divider-color);
     box-shadow:

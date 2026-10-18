@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "「{name}」を復元できませんでした: {error}",
     "trash_restore_in_use": "「{name}」を復元できませんでした: その ID は別の項目で使われています。",
     "trash_delete_failed": "「{name}」を削除できませんでした: {error}",
-    "delete_approval_warning_restorable": "「最近削除した項目」から復元できます。"
+    "delete_approval_warning_restorable": "「最近削除した項目」から復元できます。",
+    "restore_card_deleted_on": "{date} に削除",
+    "restore_card_restored": "復元済み",
+    "restore_card_gone": "「最近削除した項目」にはもうありません"
   },
   "options": {
     "step": {

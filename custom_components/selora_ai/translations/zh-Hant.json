@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "無法復原「{name}」：{error}",
     "trash_restore_in_use": "無法復原「{name}」：其 ID 已被其他項目使用。",
     "trash_delete_failed": "無法刪除「{name}」：{error}",
-    "delete_approval_warning_restorable": "之後可從「最近刪除」中復原。"
+    "delete_approval_warning_restorable": "之後可從「最近刪除」中復原。",
+    "restore_card_deleted_on": "刪除於 {date}",
+    "restore_card_restored": "已復原",
+    "restore_card_gone": "已不在「最近刪除」中"
   },
   "options": {
     "step": {

@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "Не удалось восстановить «{name}»: {error}",
     "trash_restore_in_use": "Не удалось восстановить «{name}»: его идентификатор уже занят.",
     "trash_delete_failed": "Не удалось удалить «{name}»: {error}",
-    "delete_approval_warning_restorable": "Его можно восстановить из «Недавно удалённых»."
+    "delete_approval_warning_restorable": "Его можно восстановить из «Недавно удалённых».",
+    "restore_card_deleted_on": "Удалено {date}",
+    "restore_card_restored": "Восстановлено",
+    "restore_card_gone": "Больше нет в «Недавно удалённых»"
   },
   "options": {
     "step": {

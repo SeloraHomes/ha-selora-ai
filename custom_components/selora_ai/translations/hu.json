@@ -1065,6 +1065,9 @@
     "trash_restore_failed": "Nem sikerült visszaállítani: „{name}”: {error}",
     "trash_restore_in_use": "Nem sikerült visszaállítani: „{name}”: az azonosítóját már más használja.",
     "trash_delete_failed": "Nem sikerült törölni: „{name}”: {error}",
-    "delete_approval_warning_restorable": "A Nemrég törölt elemek közül visszaállíthatja."
+    "delete_approval_warning_restorable": "A Nemrég törölt elemek közül visszaállíthatja.",
+    "restore_card_deleted_on": "Törölve: {date}",
+    "restore_card_restored": "Visszaállítva",
+    "restore_card_gone": "Már nincs a Nemrég törölt elemek között"
   }
 }

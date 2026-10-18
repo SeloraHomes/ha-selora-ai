@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "No se pudo restaurar «{name}»: {error}",
     "trash_restore_in_use": "No se pudo restaurar «{name}»: otro elemento usa ahora su id.",
     "trash_delete_failed": "No se pudo eliminar «{name}»: {error}",
-    "delete_approval_warning_restorable": "Podrás restaurarlo desde Eliminados recientemente."
+    "delete_approval_warning_restorable": "Podrás restaurarlo desde Eliminados recientemente.",
+    "restore_card_deleted_on": "Eliminado el {date}",
+    "restore_card_restored": "Restaurado",
+    "restore_card_gone": "Ya no está en Eliminados recientemente"
   },
   "options": {
     "step": {

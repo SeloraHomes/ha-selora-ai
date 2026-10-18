@@ -28,3 +28,16 @@ is in it, and is the whole list once every live automation or scene is gone.
   they can restore (`delete_pending_hint(restorable=True)`, the card's
   `delete_approval_warning_restorable`, the tab confirms); every other delete
   kind is still permanent and still says it.
+- **Asking to restore never restores.** `restore_deleted` (chat and MCP, one
+  `ToolDef`) finds matches (`trash.async_find`: any name or description word,
+  short ones included, best match then newest). Chat turns them into a card
+  with each match's flow or scene devices, its YAML, when it was deleted, and a
+  Restore button (`panel/restore-card.js`), so the user picks: same-named
+  automations are what fill the trash. MCP lists the same matches in full and
+  restores only the `trash_id` the caller comes back with.
+- **The chat result carries names and dates only.** A tool result over the
+  size limit is trimmed by dropping list entries, which would take a long
+  automation's Restore button with it; the card fetches each match itself
+  (`selora_ai/trash/get`), which also tells it what is still kept.
+- **The chat tool is `panel_only`**: the card is the restore, and Assist has
+  no card to show.

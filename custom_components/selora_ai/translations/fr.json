@@ -1045,7 +1045,10 @@
     "trash_restore_failed": "Impossible de restaurer « {name} » : {error}",
     "trash_restore_in_use": "Impossible de restaurer « {name} » : un autre élément utilise désormais son identifiant.",
     "trash_delete_failed": "Impossible de supprimer « {name} » : {error}",
-    "delete_approval_warning_restorable": "Vous pourrez le restaurer depuis Récemment supprimés."
+    "delete_approval_warning_restorable": "Vous pourrez le restaurer depuis Récemment supprimés.",
+    "restore_card_deleted_on": "Supprimé le {date}",
+    "restore_card_restored": "Restauré",
+    "restore_card_gone": "N’est plus dans Récemment supprimés"
   },
   "options": {
     "step": {

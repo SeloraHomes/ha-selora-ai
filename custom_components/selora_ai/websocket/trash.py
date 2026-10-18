@@ -16,6 +16,7 @@ from ..trash import (
     TrashRestoreError,
     async_delete_forever,
     async_restore,
+    candidate,
     expires_at,
     get_trash_store,
 )
@@ -54,6 +55,29 @@ async def _handle_trash_list(
             for item in items
             if kind is None or item["kind"] == kind
         ],
+    )
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/trash/get",
+        vol.Required("trash_ids"): [str],
+    }
+)
+async def _handle_trash_get(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Items in full, for a chat restore card; one no longer kept is left out."""
+    if not _require_admin(connection, msg):
+        return
+    wanted = set(msg["trash_ids"])
+    items = await get_trash_store(hass).async_list()
+    connection.send_result(
+        msg["id"],
+        {"items": [candidate(i) for i in items if i["trash_id"] in wanted]},
     )
 
 
@@ -108,5 +132,6 @@ async def _handle_trash_delete(
 def async_register(hass: HomeAssistant) -> None:
     """Register the trash websocket commands."""
     websocket_api.async_register_command(hass, _handle_trash_list)
+    websocket_api.async_register_command(hass, _handle_trash_get)
     websocket_api.async_register_command(hass, _handle_trash_restore)
     websocket_api.async_register_command(hass, _handle_trash_delete)
