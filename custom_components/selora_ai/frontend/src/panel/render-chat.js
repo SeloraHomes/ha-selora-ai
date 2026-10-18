@@ -1223,7 +1223,11 @@ function _renderComposer(host, opts = {}) {
                         host.shadowRoot?.querySelector(".composer-textarea"),
                       )}
                   >
-                    Tab
+                    <span class="composer-next-key">Tab</span
+                    ><ha-icon
+                      class="composer-next-icon"
+                      icon="mdi:pencil-outline"
+                    ></ha-icon>
                   </button>`
                 : ""
             }

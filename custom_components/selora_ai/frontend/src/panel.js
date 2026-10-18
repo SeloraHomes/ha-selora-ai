@@ -40,6 +40,7 @@ import { renderStaleCodeNotice } from "./panel/render-stale-code-notice.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
 import { renderInsights } from "./panel/render-insights.js";
 import { renderRecipesV2 } from "./panel/render-recipes.js";
+import { fitComposerToPrediction } from "./panel/next-prompt.js";
 import {
   renderVersionHistoryDrawer,
   renderDiffViewer,
@@ -2188,6 +2189,7 @@ class SeloraAIPanel extends LitElement {
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     // Reflect active LLM activity so CSS can pulse the header glow line.
     this.toggleAttribute("processing", !!(this._streaming || this._loading));
+    fitComposerToPrediction(this);
     // A scene created from chat highlights when the user reaches the Scenes
     // tab, however much later that is. Start the expiry timer only once the
     // row is actually on screen, so the flash isn't spent off-view.

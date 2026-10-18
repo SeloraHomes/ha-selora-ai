@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   acceptNextPrompt,
   activeNextPrompt,
+  fitComposerToPrediction,
   isPredicting,
   refreshNextPrompt,
   requestNextPrompt,
@@ -126,5 +127,28 @@ describe("next-message prediction", () => {
     expect(host._nextPrompt).toBe(null);
     expect(acceptNextPrompt(host, null)).toBe(false);
     vi.unstubAllGlobals();
+  });
+
+  it("sizes the empty composer to the prediction, not one row", async () => {
+    const host = makeHost("Delete the two old Garage Night Spots automations");
+    await requestNextPrompt(host, reply, "s1");
+    const measured = [];
+    const ta = { value: "", style: {} };
+    Object.defineProperty(ta, "scrollHeight", {
+      get: () => (measured.push(ta.value), ta.value ? 48 : 24),
+    });
+    host.shadowRoot = { querySelector: () => ta };
+
+    fitComposerToPrediction(host);
+    expect(ta.style.height).toBe("48px");
+    expect(ta.value).toBe("");
+
+    // Nothing to do until the prediction changes.
+    fitComposerToPrediction(host);
+    expect(measured).toHaveLength(1);
+
+    host._messages = [...host._messages, { role: "user", content: "next" }];
+    fitComposerToPrediction(host);
+    expect(ta.style.height).toBe("24px");
   });
 });

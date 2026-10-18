@@ -204,6 +204,27 @@ async def test_the_follow_up_turn_carries_the_saved_automation_as_context(
 
 
 @pytest.mark.asyncio
+async def test_the_history_says_which_cards_the_user_accepted(
+    harness: ChatHarness,
+) -> None:
+    """The proposal's reply predates the accept ("I haven't changed anything
+    yet"). Without the outcome the model took the automation the accept created
+    for one of the originals it replaced, and deleted it."""
+    first = await harness.chat("merge the two plug automations", reply=_proposal())
+    await harness.save_proposal(first.done["automation_message_index"], "selora_ai_aaa")
+    declined = await harness.chat("and one for the porch", reply=_proposal(alias="Porch"))
+    await harness.store.set_automation_status(
+        harness.session_id, declined.done["automation_message_index"], "declined"
+    )
+
+    turn = await harness.chat("delete the two old ones", reply={"intent": "answer"})
+
+    replies = [m["content"] for m in turn.asked["history"] if m["role"] == "assistant"]
+    assert "saved and live as automation_id: selora_ai_aaa" in replies[0]
+    assert "declined this proposal" in replies[1]
+
+
+@pytest.mark.asyncio
 async def test_an_unrelated_proposal_in_the_same_session_still_creates(
     harness: ChatHarness,
 ) -> None:

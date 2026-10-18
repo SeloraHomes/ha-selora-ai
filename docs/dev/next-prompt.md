@@ -2,8 +2,14 @@
 
 After a panel turn ends, the panel asks `selora_ai/predict_next_prompt` for the
 message the user will most likely send next and shows it as the empty
-composer's placeholder; Tab, → or the small "Tab" button fills it in. It never
-sends on its own.
+composer's placeholder; Tab, → or the small button beside it fills it in (it
+reads "Tab", or shows a pencil on touch screens, which have no Tab key). It
+never sends on its own.
+
+- **The composer grows to the prediction.** A placeholder is left out of the
+  textarea's scrollHeight (Safari), so the auto-grow never saw it and a long
+  prediction was clipped to one row. `fitComposerToPrediction` (run from the
+  host's `updated()`) measures it as the value instead.
 
 - **The prediction is the end of the turn.** The composer stays disabled
   (`isPredicting`, scoped to the session it was asked for) until it is in, so
