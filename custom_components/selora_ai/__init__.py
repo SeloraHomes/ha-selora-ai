@@ -1659,6 +1659,34 @@ def _validate_chat_attachments(
     return attachments, None
 
 
+# What the user did with an automation card, appended to the reply that showed
+# it. The reply was written before the user answered, and says so ("I haven't
+# changed anything yet") — read without the outcome, an accepted merge looks
+# unsaved, and the automation it created looks like one of the originals it
+# replaced: asked to "delete the two old ones", the model deleted the new one.
+_CARD_OUTCOME_NOTES = {
+    "saved": (
+        "[The user accepted this proposal after this reply: it is saved and "
+        "live{as_id}. Anything above about not having changed anything "
+        "predates that.]"
+    ),
+    "declined": "[The user declined this proposal; nothing was saved.]",
+}
+
+
+def _card_outcome_note(message: dict[str, Any]) -> str:
+    """The outcome note for an automation card the user answered.
+
+    The id only when the accept recorded one: a placeholder would read as an id
+    the model could target.
+    """
+    automation_id = message.get("automation_id")
+    as_id = (
+        f" as automation_id: {_sanitize_history_text(str(automation_id))}" if automation_id else ""
+    )
+    return _CARD_OUTCOME_NOTES[message["automation_status"]].format(as_id=as_id)
+
+
 def _build_history_from_session(
     stored_messages: list[dict[str, Any]],
     *,
@@ -1721,6 +1749,8 @@ def _build_history_from_session(
                 header += f" — {description}"
             header += f"]\n{m['automation_yaml']}"
             content = f"{content}\n\n{header}"
+        elif m.get("automation") and m.get("automation_status") in _CARD_OUTCOME_NOTES:
+            content = f"{content}\n\n{_card_outcome_note(m)}"
         elif i in latest_scene_indices and not (
             skip_refining_scene_yaml and m.get("scene_status") in ("pending", "refining")
         ):

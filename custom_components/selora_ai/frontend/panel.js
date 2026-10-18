@@ -4123,6 +4123,29 @@ var chatStyles = i`
     color: var(--primary-text-color);
     border-color: var(--secondary-text-color);
   }
+  /* Touch screens have no Tab key: the button shows what it does instead,
+     sized for a finger. */
+  .composer-next-icon {
+    display: none;
+    --mdc-icon-size: 18px;
+  }
+  @media (hover: none) {
+    .composer-next-accept {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+    }
+    .composer-next-key {
+      display: none;
+    }
+    .composer-next-icon {
+      display: inline-flex;
+    }
+  }
   /* Inline chips showing resolved entity selections, rendered just above
      the typed text inside the composer box. */
   .composer-selections-inline {
@@ -31400,6 +31423,18 @@ function activeNextPrompt(host) {
   const messages = host._messages || [];
   return messages[messages.length - 1] === np.message ? np.text : "";
 }
+function fitComposerToPrediction(host) {
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  if (!ta) return;
+  const text = activeNextPrompt(host);
+  if (text === (ta._fittedPrediction ?? "")) return;
+  ta._fittedPrediction = text;
+  if (ta.value) return;
+  ta.value = text;
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+  ta.value = "";
+}
 function acceptNextPrompt(host, textarea) {
   const text = activeNextPrompt(host);
   if (!text) return false;
@@ -33928,7 +33963,11 @@ function _renderComposer(host, opts = {}) {
                         host.shadowRoot?.querySelector(".composer-textarea"),
                       )}
                   >
-                    Tab
+                    <span class="composer-next-key">Tab</span
+                    ><ha-icon
+                      class="composer-next-icon"
+                      icon="mdi:pencil-outline"
+                    ></ha-icon>
                   </button>`
                 : ""
             }
@@ -52376,7 +52415,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "ca1b07627de8" : "";
+var PANEL_BUILD = true ? "462554329f02" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -55644,6 +55683,7 @@ var SeloraAIPanel = class extends i4 {
     }
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     this.toggleAttribute("processing", !!(this._streaming || this._loading));
+    fitComposerToPrediction(this);
     if (this._highlightedScene && !this._sceneHighlightTimer) {
       const row = this.shadowRoot?.querySelector(
         `.auto-row[data-scene-id="${this._highlightedScene}"]`,

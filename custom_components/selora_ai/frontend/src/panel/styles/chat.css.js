@@ -1405,6 +1405,29 @@ export const chatStyles = css`
     color: var(--primary-text-color);
     border-color: var(--secondary-text-color);
   }
+  /* Touch screens have no Tab key: the button shows what it does instead,
+     sized for a finger. */
+  .composer-next-icon {
+    display: none;
+    --mdc-icon-size: 18px;
+  }
+  @media (hover: none) {
+    .composer-next-accept {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+    }
+    .composer-next-key {
+      display: none;
+    }
+    .composer-next-icon {
+      display: inline-flex;
+    }
+  }
   /* Inline chips showing resolved entity selections, rendered just above
      the typed text inside the composer box. */
   .composer-selections-inline {

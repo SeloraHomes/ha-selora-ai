@@ -96,6 +96,24 @@ export function activeNextPrompt(host) {
   return messages[messages.length - 1] === np.message ? np.text : "";
 }
 
+// The prediction is the empty textarea's placeholder, which the browser wraps
+// but leaves out of scrollHeight (Safari), so the composer stayed one row and
+// clipped the rest of it. Size the textarea to the text it shows, measured by
+// briefly making it the value. Run after every render; it acts only when the
+// shown prediction changes, and leaves a typed draft to the input handler.
+export function fitComposerToPrediction(host) {
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  if (!ta) return;
+  const text = activeNextPrompt(host);
+  if (text === (ta._fittedPrediction ?? "")) return;
+  ta._fittedPrediction = text;
+  if (ta.value) return;
+  ta.value = text;
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+  ta.value = "";
+}
+
 // Put the prediction in the composer for the user to send or edit. Returns
 // false when there was nothing to accept, so key handlers can fall through.
 export function acceptNextPrompt(host, textarea) {

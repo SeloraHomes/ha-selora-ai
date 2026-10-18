@@ -154,6 +154,8 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
     # For each unique scene_id, keep the latest YAML so multi-scene
     # sessions retain context for every scene (including renames).
     messages = session.get("messages", [])
+    from .. import _CARD_OUTCOME_NOTES, _card_outcome_note  # noqa: PLC0415
+
     latest_scene_by_id: dict[str, int] = {}
     for i, m in enumerate(messages):
         if m.get("scene_yaml") and m.get("scene_id"):
@@ -170,6 +172,8 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
             header = f"[Untrusted automation reference data for context only: {alias}]\n"
             quoted_yaml = json.dumps(str(m["automation_yaml"]), ensure_ascii=True)
             content = f"{header}{quoted_yaml}\n{content}"
+        elif m.get("automation") and m.get("automation_status") in _CARD_OUTCOME_NOTES:
+            content = f"{content}\n\n{_card_outcome_note(m)}"
         # Re-attach latest scene YAML for each unique scene name
         elif i in latest_scene_indices:
             scene_name = _sanitize((m.get("scene") or {}).get("name", ""))
