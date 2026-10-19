@@ -3425,7 +3425,7 @@ async def async_cleanup_orphaned_entities(hass: HomeAssistant) -> list[str]:
 
     # If the file exists and has non-trivial content but parsed as empty,
     # it's likely a YAML error — bail out to avoid deleting valid entities.
-    if not existing and automations_path.exists():
+    if not existing and await hass.async_add_executor_job(automations_path.exists):
         try:
             raw = await hass.async_add_executor_job(automations_path.read_text, "utf-8")
             raw = raw.strip()

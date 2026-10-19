@@ -8,12 +8,15 @@ accepting any attribute access.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
 import pytest
 import yaml
+
+from tests.loop_io_guard import guard_loop_file_io
 
 # Register HA's test plugin — this provides the ``hass`` fixture, storage
 # mocks, ``enable_custom_integrations``, and many other helpers.
@@ -24,6 +27,13 @@ pytest_plugins = "pytest_homeassistant_custom_component"
 def _enable_custom_component(enable_custom_integrations) -> None:
     """Auto-enable custom integrations so our domain is discoverable."""
     return
+
+
+@pytest.fixture(autouse=True)
+def _no_loop_file_io() -> Iterator[list[str]]:
+    """Fail any test whose integration code does file I/O on the event loop."""
+    with guard_loop_file_io() as violations:
+        yield violations
 
 
 # ── Automations YAML helper ──────────────────────────────────────────

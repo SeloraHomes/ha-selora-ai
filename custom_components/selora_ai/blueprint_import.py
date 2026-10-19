@@ -144,7 +144,7 @@ async def async_import_blueprint(
             "error": f"That is not a usable {domain} blueprint: {sanitize_untrusted_text(str(exc), 200)}"
         }
     path = f"{imported.suggested_filename}.yaml"
-    if not _inside(store.blueprint_folder, path):
+    if not await hass.async_add_executor_job(_inside, store.blueprint_folder, path):
         # The importer builds the name from the URL's last segment AFTER
         # percent-decoding it, so `..%2F..%2F` arrives as `../../`. Home
         # Assistant's own save command refuses that; so does this, before the

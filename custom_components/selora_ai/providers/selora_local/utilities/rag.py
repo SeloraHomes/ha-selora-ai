@@ -10,6 +10,10 @@ import json
 import logging
 from pathlib import Path
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -119,6 +123,17 @@ def _selora_local_load_doc_chunks() -> list[tuple[str, frozenset[str], str]]:
     if _selora_local_doc_chunks is None:
         _selora_local_doc_chunks = _selora_local_read_doc_records()
     return _selora_local_doc_chunks
+
+
+async def async_preload_doc_chunks(hass: HomeAssistant) -> None:
+    """Read the corpus via the executor so retrieval never opens the file on the event loop.
+
+    ``build_payload`` is synchronous and reached from the async request path, so
+    the first utilities question would otherwise read the bundle on the loop.
+    """
+    global _selora_local_doc_chunks
+    if _selora_local_doc_chunks is None:
+        _selora_local_doc_chunks = await hass.async_add_executor_job(_selora_local_read_doc_records)
 
 
 def _selora_local_load_docs() -> list[tuple[str, frozenset[str]]]:

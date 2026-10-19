@@ -41,6 +41,14 @@ _LOGGER = logging.getLogger(__name__)
 UPLOAD_PATH = "/api/selora_ai/recipes/upload"
 
 
+def _discard(path: Path) -> None:
+    """Remove the temporary upload; a leftover file is only logged."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        _LOGGER.debug("Could not remove recipe upload %s", path)
+
+
 class RecipeUploadView(HomeAssistantView):
     """Accept a multipart upload of a recipe archive and stage it under
     ``<config>/selora_ai_recipes/<slug>/``.
@@ -102,30 +110,33 @@ class RecipeUploadView(HomeAssistantView):
                 f"Could not prepare upload destination: {exc}", status_code=500
             )
 
+        # Buffer the body (bounded by the cap) and write it in one executor
+        # call: file I/O on the event loop stalls the whole hub on slow
+        # storage (SD cards, network-mounted config).
         target = download_dir / filename
-        total = 0
+        body = bytearray()
         try:
-            with target.open("wb") as fh:
-                while True:
-                    chunk = await field.read_chunk()
-                    if not chunk:
-                        break
-                    total += len(chunk)
-                    if total > RECIPE_ARCHIVE_MAX_BYTES:
-                        fh.close()
-                        target.unlink(missing_ok=True)
-                        return self.json_message(
-                            f"Recipe archive exceeded {RECIPE_ARCHIVE_MAX_BYTES} "
-                            "bytes during upload",
-                            status_code=413,
-                        )
-                    fh.write(chunk)
-        except (OSError, web.HTTPException, aiohttp.ClientError) as exc:
-            # OSError: disk write failed. ClientError/ClientPayloadError: a
-            # truncated or malformed multipart body — without this the read
-            # loop would 500 and leave the partial temp file behind.
-            target.unlink(missing_ok=True)
-            _LOGGER.exception("Failed reading/writing recipe upload")
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                body += chunk
+                if len(body) > RECIPE_ARCHIVE_MAX_BYTES:
+                    return self.json_message(
+                        f"Recipe archive exceeded {RECIPE_ARCHIVE_MAX_BYTES} bytes during upload",
+                        status_code=413,
+                    )
+        except (web.HTTPException, aiohttp.ClientError) as exc:
+            # ClientError/ClientPayloadError: a truncated or malformed
+            # multipart body — without this the read loop would 500.
+            _LOGGER.exception("Failed reading recipe upload")
+            return self.json_message(f"Failed to read upload: {exc}", status_code=400)
+
+        try:
+            await self._hass.async_add_executor_job(target.write_bytes, bytes(body))
+        except OSError as exc:
+            await self._hass.async_add_executor_job(_discard, target)
+            _LOGGER.exception("Failed writing recipe upload")
             return self.json_message(f"Failed to save upload: {exc}", status_code=400)
 
         try:
@@ -133,7 +144,7 @@ class RecipeUploadView(HomeAssistantView):
         except ArchiveError as exc:
             return self.json_message(str(exc), status_code=400)
         finally:
-            target.unlink(missing_ok=True)
+            await self._hass.async_add_executor_job(_discard, target)
 
         return self.json(
             {
