@@ -15,7 +15,11 @@ edits membership in Settings → Helpers.
 - **Per-domain by construction.** A helper group holds one domain, so
   `infer_group_type()` refuses mixed light+switch membership with guidance.
   `sensor`/`number`/`input_number` combine into a numeric `sensor` group, which
-  *requires* a `type` statistic (default `mean`).
+  *requires* a `type` statistic (default `mean`). **The default is wrong for the
+  commonest reason to group sensors**: replacing "when any of these rises above
+  X" triggers with one trigger on the group. A mean group crosses X only when
+  the average does, so one room spiking stops firing. The `statistic` param says
+  to pick `max` (`min` for "below"); an omitted statistic shipped exactly this.
 - **Inapplicable per-type options are policed in code** — `_build_create_payload`
   can forward an option only to schemas that accept it (others are
   `vol.PREVENT_EXTRA`). Ask whether a user could have meant it for a type that

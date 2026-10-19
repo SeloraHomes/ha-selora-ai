@@ -229,6 +229,8 @@ class SeloraAIPanel extends LitElement {
 
       // Session list
       _sessions: { type: Array },
+      _homeSuggestions: { type: Array },
+      _expandedHomeSuggestion: { type: String },
       _activeSessionId: { type: String },
 
       // Message view
@@ -2247,6 +2249,10 @@ class SeloraAIPanel extends LitElement {
       }
     }
     // Process deferred "Create in Chat" once hass becomes available
+    if (this.hass && this._pendingChatHome) {
+      this._pendingChatHome = false;
+      this._openChatHome();
+    }
     if (this.hass && this._pendingNewAutomation) {
       const name = this._pendingNewAutomation;
       this._pendingNewAutomation = null;

@@ -48,6 +48,8 @@ EXPECTED_COMMANDS = frozenset(
         "selora_ai/get_state_history_summary",
         "selora_ai/get_suggestion_detail",
         "selora_ai/get_suggestions",
+        "selora_ai/home_suggestions",
+        "selora_ai/home_suggestions/dismiss",
         "selora_ai/list_approvals",
         "selora_ai/list_mcp_tokens",
         "selora_ai/load_automation_to_session",

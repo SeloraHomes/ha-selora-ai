@@ -1664,16 +1664,33 @@ export function buildEntityMarker(selections) {
   return parts.length ? "\n\n" + parts.join(" ") : "";
 }
 
-// Strip [[entity:…]] / [[entities:…]] / [[areas:…]] markers from a user
-// message before it's rendered into a bubble. The markers are only meant
+// Strip [[entity:…]] / [[entities:…]] / [[areas:…]] / [[details:…]] markers
+// from a user message before it's rendered into a bubble. The markers are only meant
 // for the LLM payload — when a chat session is reloaded from the backend
 // the stored content includes them, and without this scrub they'd leak
 // into the visible message.
 export function stripEntityMarkers(text) {
   if (typeof text !== "string" || !text) return text;
   return text
-    .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
+    .replace(/\s*\[\[(?:entity|entities|areas|details):[^\]]+\]\]/g, "")
     .trimEnd();
+}
+
+// A message the panel writes for the user (a home suggestion acted on) shows
+// a short summary and carries the full request in a [[details:…]] marker: the
+// model reads all of it, the bubble shows the summary and offers the rest.
+export function buildDetailsMarker(details) {
+  // The marker ends at the first "]", so the text cannot hold one.
+  const text = String(details || "")
+    .replace(/\]/g, ")")
+    .trim();
+  return text ? `\n\n[[details:${text}]]` : "";
+}
+
+export function messageDetails(text) {
+  if (typeof text !== "string") return "";
+  const match = text.match(/\[\[details:([^\]]+)\]\]/);
+  return match ? match[1].trim() : "";
 }
 
 // Drop selections whose friendly label no longer appears as a whole word

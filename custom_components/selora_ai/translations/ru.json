@@ -1048,7 +1048,23 @@
     "delete_approval_warning_restorable": "Его можно восстановить из «Недавно удалённых».",
     "restore_card_deleted_on": "Удалено {date}",
     "restore_card_restored": "Восстановлено",
-    "restore_card_gone": "Больше нет в «Недавно удалённых»"
+    "restore_card_gone": "Больше нет в «Недавно удалённых»",
+    "home_suggestions_heading": "Я заметил кое-что, с чем могу помочь",
+    "home_suggestion_add_group": "Добавить {entity} в {collection}",
+    "home_suggestion_add_group_prompt": "Добавь {entity} ({entity_id}) в группу {collection} ({ref}).",
+    "home_suggestion_add_automation": "Включить {entity} в {collection}",
+    "home_suggestion_add_automation_prompt": "Обнови автоматизацию {collection} ({ref}), чтобы она также охватывала {entity} ({entity_id}) так же, как другие подобные. Если в Home Assistant уже есть сущность, которая отслеживает их все вместе (группа или зона, считающая людей в ней), предложи её как альтернативу: тогда новые будут охвачены без повторного изменения автоматизации.",
+    "home_suggestion_group": "Сгруппировать устройства, запускающие {collection} ({count})",
+    "home_suggestion_group_prompt": "Объедини {entity} ({entity_id}) в одну группу и обнови автоматизацию {collection} ({ref}), чтобы она использовала группу вместо перечисления. Используй существующую группу, если она уже содержит именно их.",
+    "home_suggestion_dismiss": "Скрыть",
+    "home_suggestion_more": "ещё {count}",
+    "home_suggestion_why_home": "{collection} уже охватывает {members}: все такого типа в вашем доме.",
+    "home_suggestion_why_area": "{collection} уже охватывает {members}: все такого типа в {area}.",
+    "home_suggestion_why_newer": "{entity} добавлен(а) позже, поэтому, скорее всего, не был(а) исключен(а) намеренно.",
+    "home_suggestion_group_why": "{collection} перечисляет {members} по одному. С группой новое устройство достаточно добавить в группу, и автоматизация подхватит его.",
+    "home_suggestion_group_caveat": "Тогда она срабатывает при изменении группы в целом, а не снова для каждого устройства, пока другое ещё активно.",
+    "home_suggestion_do_it": "Попросить Selora сделать это",
+    "chat_message_details": "Подробнее"
   },
   "options": {
     "step": {

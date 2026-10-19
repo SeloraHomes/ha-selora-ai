@@ -1068,6 +1068,22 @@
     "delete_approval_warning_restorable": "Je kunt het herstellen via Recent verwijderd.",
     "restore_card_deleted_on": "Verwijderd op {date}",
     "restore_card_restored": "Hersteld",
-    "restore_card_gone": "Niet meer in Recent verwijderd"
+    "restore_card_gone": "Niet meer in Recent verwijderd",
+    "home_suggestions_heading": "Ik zag een paar dingen waarmee ik kan helpen",
+    "home_suggestion_add_group": "{entity} toevoegen aan {collection}",
+    "home_suggestion_add_group_prompt": "Voeg {entity} ({entity_id}) toe aan de groep {collection} ({ref}).",
+    "home_suggestion_add_automation": "{entity} opnemen in {collection}",
+    "home_suggestion_add_automation_prompt": "Werk de automatisering {collection} ({ref}) bij zodat die ook {entity} ({entity_id}) dekt, net zoals de andere van die soort. Als Home Assistant al één entiteit heeft die ze allemaal samen volgt (een groep, of een zone die de personen erin telt), bied die dan als alternatief aan: nieuwe worden dan gedekt zonder de automatisering opnieuw te bewerken.",
+    "home_suggestion_group": "De {count} apparaten groeperen die {collection} activeren",
+    "home_suggestion_group_prompt": "Groepeer {entity} ({entity_id}) in één groep en werk de automatisering {collection} ({ref}) bij zodat die de groep gebruikt in plaats van ze op te sommen. Hergebruik een bestaande groep als die precies deze bevat.",
+    "home_suggestion_dismiss": "Negeren",
+    "home_suggestion_more": "nog {count}",
+    "home_suggestion_why_home": "{collection} dekt al {members}: alle van dit soort in je huis.",
+    "home_suggestion_why_area": "{collection} dekt al {members}: alle van dit soort in {area}.",
+    "home_suggestion_why_newer": "{entity} is daarna toegevoegd en is dus waarschijnlijk niet bewust weggelaten.",
+    "home_suggestion_group_why": "{collection} somt {members} één voor één op. Met een groep hoeft een nieuw apparaat alleen aan de groep te worden toegevoegd en volgt de automatisering vanzelf.",
+    "home_suggestion_group_caveat": "Ze draait dan wanneer de groep als geheel verandert, niet opnieuw voor elk apparaat zolang een ander nog actief is.",
+    "home_suggestion_do_it": "Vraag Selora het te doen",
+    "chat_message_details": "Details"
   }
 }

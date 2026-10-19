@@ -943,7 +943,10 @@ TOOL_CREATE_GROUP = ToolDef(
                 "ONLY for numeric groups whose members are sensor/number/input_number "
                 "entities: how their values combine into one number. Omit entirely for "
                 "light, switch, cover, lock, fan and every other type — those have no "
-                "numeric state. Omit to use the mean."
+                "numeric state. Omit to use the mean. A group replacing several members "
+                "in a threshold trigger needs max for 'any above' and min for 'any "
+                "below': the mean crosses only when the average does, so one room "
+                "spiking no longer fires."
             ),
             enum=_GROUP_STATISTICS,
         ),
@@ -1022,7 +1025,10 @@ TOOL_UPDATE_GROUP = ToolDef(
         ToolParam(
             name="statistic",
             type="string",
-            description="Sensor groups only: how the members are combined.",
+            description=(
+                "Sensor groups only: how the members are combined. A group standing in "
+                "for its members in an 'any above' trigger needs max ('any below': min)."
+            ),
             enum=_GROUP_STATISTICS,
         ),
     ),

@@ -1048,7 +1048,23 @@
     "delete_approval_warning_restorable": "You can restore it from Recently deleted.",
     "restore_card_deleted_on": "Deleted {date}",
     "restore_card_restored": "Restored",
-    "restore_card_gone": "No longer in Recently deleted"
+    "restore_card_gone": "No longer in Recently deleted",
+    "home_suggestions_heading": "I noticed a few things I can help with",
+    "home_suggestion_add_group": "Add {entity} to {collection}",
+    "home_suggestion_add_group_prompt": "Add {entity} ({entity_id}) to the group {collection} ({ref}).",
+    "home_suggestion_add_automation": "Include {entity} in {collection}",
+    "home_suggestion_add_automation_prompt": "Update the automation {collection} ({ref}) so it also covers {entity} ({entity_id}), the same way it covers the others like it. If Home Assistant already has one entity that follows all of them together (a group, or a zone counting the people in it), offer that as an alternative: new ones are then covered without editing the automation again.",
+    "home_suggestion_group": "Group the {count} devices that trigger {collection}",
+    "home_suggestion_group_prompt": "Group {entity} ({entity_id}) into one group helper, and update the automation {collection} ({ref}) to use the group instead of listing them. Reuse an existing group if one already holds exactly these.",
+    "home_suggestion_dismiss": "Dismiss",
+    "home_suggestion_more": "{count} more",
+    "home_suggestion_why_home": "{collection} already covers {members}: every one of this kind in your home.",
+    "home_suggestion_why_area": "{collection} already covers {members}: every one of this kind in {area}.",
+    "home_suggestion_why_newer": "{entity} was added after them, so it was probably not left out on purpose.",
+    "home_suggestion_group_why": "{collection} lists {members} one by one. With a group, a new device only needs adding to the group and the automation follows.",
+    "home_suggestion_group_caveat": "It then runs when the group as a whole changes, not again for each device while another one is still active.",
+    "home_suggestion_do_it": "Ask Selora to do it",
+    "chat_message_details": "Details"
   },
   "options": {
     "step": {
