@@ -46932,14 +46932,14 @@ var _STYLE = b2`
     }
     .catalog-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
       gap: 16px;
       align-items: stretch;
     }
     /* Featured strip: the prominent "highlighted" cards. With 2 items this
        lays out 2-across on a wide panel and stacks on narrow. */
     .catalog-grid-featured {
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
     }
     .catalog-card-featured {
       border-color: color-mix(
@@ -47398,6 +47398,11 @@ var _STYLE = b2`
     .wizard-root-overview {
       grid-template-columns: minmax(0, 1fr) 340px;
     }
+    @media (max-width: 900px) {
+      .wizard-root-overview {
+        grid-template-columns: 1fr;
+      }
+    }
     /* On Step 1 the hero is the page itself — no card chrome around
        it. The only card on this screen is the "What you need" rail
        on the right. Matches the selorahomes.com detail-page layout
@@ -47694,10 +47699,66 @@ var _STYLE = b2`
       position: sticky;
       top: 12px;
     }
+    .step-rail-compact {
+      display: none;
+    }
     @media (max-width: 900px) {
       .step-rail {
-        position: static;
+        display: none;
       }
+      .step-rail-compact {
+        display: block;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 4px 6px;
+        border: 1px solid var(--divider-color);
+        border-radius: 12px;
+        background: var(--card-background-color);
+      }
+      .step-rail-compact .step-rail-list {
+        padding: 4px 0 2px;
+      }
+    }
+    .step-rail-compact-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 8px;
+      list-style: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .step-rail-compact-summary::-webkit-details-marker {
+      display: none;
+    }
+    .step-rail-compact-summary .step-rail-icon {
+      color: var(--selora-accent);
+    }
+    .step-rail-compact-count {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+      white-space: nowrap;
+    }
+    .step-rail-compact-label {
+      flex: 1;
+      min-width: 0;
+      color: var(--selora-accent);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .step-rail-compact-chevron {
+      --mdc-icon-size: 20px;
+      color: var(--secondary-text-color);
+      transition: transform 150ms ease;
+    }
+    .step-rail-compact[open] .step-rail-compact-chevron {
+      transform: rotate(180deg);
     }
     .step-rail-title {
       font-size: 11px;
@@ -51344,45 +51405,78 @@ function _renderNeedRoleCard(role, pinned) {
   `;
 }
 function _renderWizardStepper(host) {
-  const current = host._recipeWizardStep || 1;
-  const labels = _stepLabels(host).slice(1);
   return b2`
     <aside class="step-rail">
       <div class="step-rail-title">
         ${host._t("recipes_progress_title", "Progress")}
       </div>
-      <div class="step-rail-list">
-        ${labels.map((label, idx) => {
-          const internalStep = idx + 2;
-          const step = idx + 1;
-          const state =
-            internalStep < current
-              ? "done"
-              : internalStep === current
-                ? "current"
-                : "future";
-          const clickable = internalStep < current;
-          const icon =
-            state === "done"
-              ? "mdi:check-circle"
-              : state === "current"
-                ? "mdi:circle-slice-8"
-                : "mdi:circle-outline";
-          return b2`
-            <button
-              class="step-rail-row step-${state}"
-              type="button"
-              ?disabled=${!clickable}
-              @click=${() => clickable && host._jumpToRecipeStep(internalStep)}
-            >
-              <ha-icon class="step-rail-icon" icon=${icon}></ha-icon>
-              <span class="step-rail-num">${step}</span>
-              <span class="step-rail-label">${label}</span>
-            </button>
-          `;
-        })}
-      </div>
+      ${_renderStepRailList(host)}
     </aside>
+  `;
+}
+function _renderStepRailList(host, onJump) {
+  const current = host._recipeWizardStep || 1;
+  const labels = _stepLabels(host).slice(1);
+  return b2`
+    <div class="step-rail-list">
+      ${labels.map((label, idx) => {
+        const internalStep = idx + 2;
+        const step = idx + 1;
+        const state =
+          internalStep < current
+            ? "done"
+            : internalStep === current
+              ? "current"
+              : "future";
+        const clickable = internalStep < current;
+        const icon =
+          state === "done"
+            ? "mdi:check-circle"
+            : state === "current"
+              ? "mdi:circle-slice-8"
+              : "mdi:circle-outline";
+        return b2`
+          <button
+            class="step-rail-row step-${state}"
+            type="button"
+            ?disabled=${!clickable}
+            @click=${(e6) => {
+              if (!clickable) return;
+              onJump?.(e6);
+              host._jumpToRecipeStep(internalStep);
+            }}
+          >
+            <ha-icon class="step-rail-icon" icon=${icon}></ha-icon>
+            <span class="step-rail-num">${step}</span>
+            <span class="step-rail-label">${label}</span>
+          </button>
+        `;
+      })}
+    </div>
+  `;
+}
+function _renderWizardStepperCompact(host) {
+  const current = host._recipeWizardStep || 1;
+  const labels = _stepLabels(host).slice(1);
+  const step = current - 1;
+  return b2`
+    <details class="step-rail-compact">
+      <summary class="step-rail-compact-summary">
+        <ha-icon class="step-rail-icon" icon="mdi:circle-slice-8"></ha-icon>
+        <span class="step-rail-compact-count"
+          >${host._t("recipes_step_label", "Step")} ${step}
+          ${host._t("recipes_step_of_4", "of 4")}</span
+        >
+        <span class="step-rail-compact-label">${labels[step - 1] || ""}</span>
+        <ha-icon
+          class="step-rail-compact-chevron"
+          icon="mdi:chevron-down"
+        ></ha-icon>
+      </summary>
+      ${_renderStepRailList(host, (e6) => {
+        e6.currentTarget.closest("details").open = false;
+      })}
+    </details>
   `;
 }
 function _renderWizardFooter(host, opts) {
@@ -52347,6 +52441,7 @@ function _renderWizardView(host) {
       : _renderWizardStepper(host);
   return b2`
     <div class="wizard-root ${step === 1 ? "wizard-root-overview" : ""}">
+      ${step === 1 ? "" : _renderWizardStepperCompact(host)}
       <div class="wizard-main">
         ${_renderWizardHero(host, detail.manifest, { compact: step !== 1 })}
         ${body}
@@ -53832,7 +53927,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "c6c9ac7a9064" : "";
+var PANEL_BUILD = true ? "f6f6b5d2190c" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
