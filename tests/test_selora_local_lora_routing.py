@@ -19,6 +19,9 @@ from custom_components.selora_ai.const import (
     SELORA_LOCAL_OLLAMA_UNIFIED_MODEL_FAMILY,
 )
 from custom_components.selora_ai.providers.selora_local import SeloraLocalProvider
+from custom_components.selora_ai.providers.selora_local.utilities.rag import (
+    _selora_local_load_doc_chunks,
+)
 
 # Out of order and not 0..n-1, so the vector must come from discovery.
 _ADAPTERS = [
@@ -83,8 +86,11 @@ def make(hub: _FakeHub, **kwargs: Any) -> SeloraLocalProvider:
     provider = SeloraLocalProvider(hass, host="http://hub.invalid:8080", **kwargs)
     provider._get_session = lambda: hub  # type: ignore[method-assign]
     provider._get_headers = lambda: {}  # type: ignore[method-assign]
+    # Skips the first-use load, so do its docs half here: off a coroutine,
+    # where reading the bundle is not loop I/O.
     provider._specialist_prompts_loaded = True
     provider._specialist_prompts = {}
+    _selora_local_load_doc_chunks()
     return provider
 
 

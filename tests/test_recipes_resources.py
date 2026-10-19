@@ -8,6 +8,7 @@ aiohttp session, so no network and no full ``hass``.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 from pathlib import Path
 from types import SimpleNamespace
@@ -123,10 +124,10 @@ class FakeSession:
 
 def _hass(tmp_path: Path, resources: Any) -> Any:
     """Minimal hass: a config dir, the lovelace data slot, and an executor
-    that just runs the job inline."""
+    that runs the job on a worker thread, as HA's does."""
 
     async def async_add_executor_job(func: Any, *args: Any) -> Any:
-        return func(*args)
+        return await asyncio.to_thread(func, *args)
 
     return SimpleNamespace(
         config=SimpleNamespace(path=lambda *p: str(tmp_path.joinpath(*p))),

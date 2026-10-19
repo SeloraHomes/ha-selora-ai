@@ -74,9 +74,9 @@ async def async_remove_bundle(hass: HomeAssistant, slug: str) -> bool:
     of the bundles dir (no path traversal via a crafted slug).
     """
     base = bundles_dir(hass)
-    target = (base / slug).resolve()
 
     def _remove() -> bool:
+        target = (base / slug).resolve()
         if target.parent != base.resolve() or not target.is_dir():
             return False
         shutil.rmtree(target)

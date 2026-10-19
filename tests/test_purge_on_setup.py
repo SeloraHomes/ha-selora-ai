@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -29,7 +30,7 @@ def _make_hass(tmp_path: Path) -> MagicMock:
     hass = MagicMock()
     hass.config.config_dir = str(tmp_path)
     hass.services.async_call = AsyncMock()
-    hass.async_add_executor_job = AsyncMock(side_effect=lambda fn, *a: fn(*a))
+    hass.async_add_executor_job = AsyncMock(side_effect=asyncio.to_thread)
     return hass
 
 

@@ -427,7 +427,12 @@ async def async_install_from_url(
     try:
         return await async_stage_archive_file(hass, archive_path, check)
     finally:
-        try:
-            archive_path.unlink(missing_ok=True)
-        except OSError:
-            _LOGGER.debug("Could not remove downloaded archive %s", archive_path)
+        await hass.async_add_executor_job(_discard_download, archive_path)
+
+
+def _discard_download(archive_path: Path) -> None:
+    """Remove a downloaded archive; a leftover file is only logged."""
+    try:
+        archive_path.unlink(missing_ok=True)
+    except OSError:
+        _LOGGER.debug("Could not remove downloaded archive %s", archive_path)

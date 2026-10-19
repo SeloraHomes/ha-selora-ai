@@ -27,6 +27,7 @@ one is ``blueprint/save``'s job). Modelled on ha-mcp's file tools.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import functools
 import os
 from pathlib import Path
 import re
@@ -122,6 +123,15 @@ def _check_no_symlinks(config_dir: Path, rel: str) -> None:
             raise FileToolError(f"{rel} goes through a symlink; use the real path.")
 
 
+async def _async_resolve(
+    hass: HomeAssistant, raw: str, *, write: bool, folder_ok: bool = False
+) -> tuple[Path, str]:
+    """:func:`_resolve` on the executor: the symlink and realpath checks hit the disk."""
+    return await hass.async_add_executor_job(
+        functools.partial(_resolve, hass, raw, write=write, folder_ok=folder_ok)
+    )
+
+
 def _resolve(
     hass: HomeAssistant, raw: str, *, write: bool, folder_ok: bool = False
 ) -> tuple[Path, str]:
@@ -183,7 +193,7 @@ async def async_list(hass: HomeAssistant, folder: str, pattern: str | None) -> d
         return entries
 
     try:
-        path, rel = _resolve(hass, folder, write=False, folder_ok=True)
+        path, rel = await _async_resolve(hass, folder, write=False, folder_ok=True)
         entries = await hass.async_add_executor_job(_list, path)
     except FileToolError as exc:
         return {"error": str(exc)}
@@ -242,7 +252,7 @@ async def async_read(
     """
     config_dir = Path(hass.config.config_dir)
     try:
-        path, rel = _resolve(hass, file, write=False)
+        path, rel = await _async_resolve(hass, file, write=False)
         if backups:
             listed = await hass.async_add_executor_job(
                 fs_safety.list_backups, config_dir, _BACKUP_DIR, rel
@@ -300,7 +310,7 @@ async def async_write(
     elif len(content.encode("utf-8")) > _MAX_WRITE_BYTES:
         return {"error": f"content is over {_MAX_WRITE_BYTES // 1_000_000} MB."}
     try:
-        path, rel = _resolve(hass, file, write=True)
+        path, rel = await _async_resolve(hass, file, write=True)
     except FileToolError as exc:
         return {"error": str(exc)}
     if (
@@ -363,7 +373,7 @@ async def async_write(
 async def async_delete(hass: HomeAssistant, file: str) -> dict[str, Any]:
     """Delete a text file, backing it up first."""
     try:
-        path, rel = _resolve(hass, file, write=True)
+        path, rel = await _async_resolve(hass, file, write=True)
     except FileToolError as exc:
         return {"error": str(exc)}
     config_dir = Path(hass.config.config_dir)

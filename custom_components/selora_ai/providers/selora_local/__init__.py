@@ -55,6 +55,7 @@ from .runtime.slim_parser import (
 from .runtime.streaming import _StreamingMixin
 from .utilities.rag import (
     _UtilitiesRagMixin,
+    async_preload_doc_chunks,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -288,7 +289,7 @@ class SeloraLocalProvider(
         self._baseline_captured = True
 
     async def _ensure_specialist_prompts_loaded(self) -> None:
-        """Lazily load trained prompts off the event loop on first use."""
+        """Lazily load trained prompts and the utilities docs off the event loop on first use."""
         if self._specialist_prompts_loaded:
             return
         async with self._specialist_prompts_lock:
@@ -297,6 +298,7 @@ class SeloraLocalProvider(
             self._specialist_prompts = await self._hass.async_add_executor_job(
                 self._load_specialist_prompts
             )
+            await async_preload_doc_chunks(self._hass)
             self._specialist_prompts_loaded = True
 
     @staticmethod

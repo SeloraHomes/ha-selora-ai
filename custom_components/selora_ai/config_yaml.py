@@ -147,7 +147,14 @@ _DEFAULT_STYLE: Final = _STYLES[0]
 def _yaml(style: tuple[int, int, int] = _DEFAULT_STYLE) -> Any:
     from ruamel.yaml import YAML  # noqa: PLC0415
 
-    yaml = YAML(typ="rt")
+    class _NoPlugInsYAML(YAML):
+        # ruamel globs its package directory for plug-ins on every
+        # construction — a scandir on the event loop. Plug-ins only add
+        # ``typ`` variants, and round-trip needs none.
+        def official_plug_ins(self) -> list[str]:
+            return []
+
+    yaml = _NoPlugInsYAML(typ="rt")
     yaml.preserve_quotes = True
     yaml.width = 4096
     mapping, sequence, offset = style
@@ -352,6 +359,13 @@ async def resolve_file(hass: HomeAssistant, file: str) -> tuple[Path, str, str]:
                 f"the packages folder configuration.yaml includes ({packages})."
             )
     path = config_dir / rel
+    await hass.async_add_executor_job(_check_real_file, config_dir, rel, kind)
+    return path, rel, kind
+
+
+def _check_real_file(config_dir: Path, rel: str, kind: str) -> None:
+    """Refuse a symlinked path, one outside the config folder, or a secret store."""
+    path = config_dir / rel
     # No symlinks at all, file or folder: one inside the config folder still
     # passes the boundary check below while aliasing secrets.yaml or .storage
     # (`themes` linked to the config folder makes themes/secrets.yaml the real
@@ -363,7 +377,6 @@ async def resolve_file(hass: HomeAssistant, file: str) -> tuple[Path, str, str]:
         raise ConfigYamlError("That file resolves outside the configuration folder.")
     if resolved.name == "secrets.yaml" or ".storage" in resolved.parts:
         raise ConfigYamlError("That file is not one this tool reads or writes.")
-    return path, rel, kind
 
 
 # ── Read ────────────────────────────────────────────────────────────────────

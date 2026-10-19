@@ -322,7 +322,7 @@ async def async_create_scene(
     # a concurrent request cannot interleave its write between ours and the
     # rollback, which would cause stale-snapshot data loss.
     async with _SCENES_YAML_LOCK:
-        file_existed = scenes_path.exists()
+        file_existed = await hass.async_add_executor_job(scenes_path.exists)
 
         existing = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
 
