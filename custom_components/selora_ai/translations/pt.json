@@ -1048,7 +1048,23 @@
     "delete_approval_warning_restorable": "Pode restaurá-lo a partir de Eliminados recentemente.",
     "restore_card_deleted_on": "Eliminado a {date}",
     "restore_card_restored": "Restaurado",
-    "restore_card_gone": "Já não está em Eliminados recentemente"
+    "restore_card_gone": "Já não está em Eliminados recentemente",
+    "home_suggestions_heading": "Reparei em algumas coisas em que posso ajudar",
+    "home_suggestion_add_group": "Adicionar {entity} a {collection}",
+    "home_suggestion_add_group_prompt": "Adiciona {entity} ({entity_id}) ao grupo {collection} ({ref}).",
+    "home_suggestion_add_automation": "Incluir {entity} em {collection}",
+    "home_suggestion_add_automation_prompt": "Atualiza a automação {collection} ({ref}) para que também abranja {entity} ({entity_id}), tal como abrange os outros do mesmo tipo. Se o Home Assistant já tiver uma entidade que os acompanha todos em conjunto (um grupo, ou uma zona que conta as pessoas nela), ofereça-a como alternativa: assim os novos ficam cobertos sem editar a automação novamente.",
+    "home_suggestion_group": "Agrupar os {count} dispositivos que acionam {collection}",
+    "home_suggestion_group_prompt": "Agrupa {entity} ({entity_id}) num único grupo e atualiza a automação {collection} ({ref}) para usar o grupo em vez de os listar. Reutiliza um grupo existente se já contiver exatamente estes.",
+    "home_suggestion_dismiss": "Ignorar",
+    "home_suggestion_more": "mais {count}",
+    "home_suggestion_why_home": "{collection} já abrange {members}: todos os deste tipo na sua casa.",
+    "home_suggestion_why_area": "{collection} já abrange {members}: todos os deste tipo em {area}.",
+    "home_suggestion_why_newer": "{entity} foi adicionado depois deles, por isso provavelmente não foi deixado de fora de propósito.",
+    "home_suggestion_group_why": "{collection} lista {members} um a um. Com um grupo, basta adicionar um novo dispositivo ao grupo e a automação acompanha.",
+    "home_suggestion_group_caveat": "Passa então a ser executada quando o grupo como um todo muda, e não novamente para cada dispositivo enquanto outro ainda estiver ativo.",
+    "home_suggestion_do_it": "Pedir ao Selora para o fazer",
+    "chat_message_details": "Detalhes"
   },
   "options": {
     "step": {

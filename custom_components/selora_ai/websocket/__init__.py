@@ -16,6 +16,7 @@ from homeassistant.components import websocket_api
 from . import (
     automations,
     devices,
+    home_suggestions,
     insights,
     linking,
     scenes,
@@ -50,6 +51,7 @@ def async_register_websocket_commands(hass: HomeAssistant) -> None:
     linking.async_register(hass)
     tokens.async_register(hass)
     devices.async_register(hass)
+    home_suggestions.async_register(hass)
     version.async_register(hass)
     trash.async_register(hass)
 

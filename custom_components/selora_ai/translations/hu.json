@@ -1068,6 +1068,22 @@
     "delete_approval_warning_restorable": "A Nemrég törölt elemek közül visszaállíthatja.",
     "restore_card_deleted_on": "Törölve: {date}",
     "restore_card_restored": "Visszaállítva",
-    "restore_card_gone": "Már nincs a Nemrég törölt elemek között"
+    "restore_card_gone": "Már nincs a Nemrég törölt elemek között",
+    "home_suggestions_heading": "Észrevettem néhány dolgot, amiben segíthetek",
+    "home_suggestion_add_group": "{entity} hozzáadása ehhez: {collection}",
+    "home_suggestion_add_group_prompt": "Add hozzá a(z) {entity} ({entity_id}) eszközt a(z) {collection} ({ref}) csoporthoz.",
+    "home_suggestion_add_automation": "{entity} felvétele ebbe: {collection}",
+    "home_suggestion_add_automation_prompt": "Frissítsd a(z) {collection} ({ref}) automatizálást, hogy a(z) {entity} ({entity_id}) eszközt is lefedje, ugyanúgy, mint a többi hasonlót. Ha a Home Assistantban már van olyan entitás, amely mindet együtt követi (egy csoport, vagy egy zóna, amely megszámolja a benne lévő személyeket), ajánld fel alternatívaként: így az újak is lefedve lesznek az automatizálás újbóli szerkesztése nélkül.",
+    "home_suggestion_group": "A(z) {collection} automatizálást indító {count} eszköz csoportosítása",
+    "home_suggestion_group_prompt": "Csoportosítsd a(z) {entity} ({entity_id}) eszközöket egyetlen csoportba, és frissítsd a(z) {collection} ({ref}) automatizálást, hogy a csoportot használja a felsorolás helyett. Használj meglévő csoportot, ha az pontosan ezeket tartalmazza.",
+    "home_suggestion_dismiss": "Elvetés",
+    "home_suggestion_more": "még {count}",
+    "home_suggestion_why_home": "A(z) {collection} már lefedi ezeket: {members} – az összes ilyen típusút az otthonodban.",
+    "home_suggestion_why_area": "A(z) {collection} már lefedi ezeket: {members} – az összes ilyen típusút itt: {area}.",
+    "home_suggestion_why_newer": "A(z) {entity} ezek után került hozzáadásra, így valószínűleg nem szándékosan maradt ki.",
+    "home_suggestion_group_why": "A(z) {collection} egyenként sorolja fel ezeket: {members}. Csoporttal egy új eszközt csak a csoporthoz kell hozzáadni, és az automatizálás követi.",
+    "home_suggestion_group_caveat": "Ekkor akkor fut, amikor a csoport egésze megváltozik, és nem újra minden eszköznél, amíg egy másik még aktív.",
+    "home_suggestion_do_it": "Kérd meg a Selorát",
+    "chat_message_details": "Részletek"
   }
 }

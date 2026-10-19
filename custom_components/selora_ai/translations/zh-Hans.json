@@ -1048,7 +1048,23 @@
     "delete_approval_warning_restorable": "之后可从“最近删除”中恢复。",
     "restore_card_deleted_on": "删除于 {date}",
     "restore_card_restored": "已恢复",
-    "restore_card_gone": "已不在“最近删除”中"
+    "restore_card_gone": "已不在“最近删除”中",
+    "home_suggestions_heading": "我注意到几件可以帮你处理的事",
+    "home_suggestion_add_group": "将 {entity} 添加到 {collection}",
+    "home_suggestion_add_group_prompt": "将 {entity}（{entity_id}）添加到组 {collection}（{ref}）。",
+    "home_suggestion_add_automation": "将 {entity} 纳入 {collection}",
+    "home_suggestion_add_automation_prompt": "更新自动化 {collection}（{ref}），让它像覆盖其他同类设备一样也覆盖 {entity}（{entity_id}）。 如果 Home Assistant 已有一个统一跟踪它们的实体（一个群组，或统计其中人数的区域），请将其作为替代方案提出：这样新的设备无需再次编辑自动化即可被覆盖。",
+    "home_suggestion_group": "将触发 {collection} 的 {count} 个设备分组",
+    "home_suggestion_group_prompt": "将 {entity}（{entity_id}）合并到一个组中，并更新自动化 {collection}（{ref}），改用该组而不是逐个列出。如果已有组恰好包含这些设备，请复用它。",
+    "home_suggestion_dismiss": "忽略",
+    "home_suggestion_more": "另外 {count} 个",
+    "home_suggestion_why_home": "{collection} 已涵盖 {members}：你家中所有此类设备。",
+    "home_suggestion_why_area": "{collection} 已涵盖 {members}：{area} 中所有此类设备。",
+    "home_suggestion_why_newer": "{entity} 是在它们之后添加的，因此很可能不是有意遗漏的。",
+    "home_suggestion_group_why": "{collection} 逐一列出了 {members}。使用群组后，新设备只需加入群组，自动化就会随之生效。",
+    "home_suggestion_group_caveat": "之后它会在整个群组变化时运行，而不会在另一个设备仍处于活动状态时为每个设备再次运行。",
+    "home_suggestion_do_it": "让 Selora 来做",
+    "chat_message_details": "详情"
   },
   "options": {
     "step": {

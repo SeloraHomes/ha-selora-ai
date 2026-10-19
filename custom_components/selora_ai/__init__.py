@@ -6481,6 +6481,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     cache_invalidator.async_start()
     hass.data[DOMAIN][entry.entry_id]["cache_invalidator"] = cache_invalidator
 
+    # Tell the user when a newly added entity fits a group or automation that
+    # already covers every one of its kind.
+    from .home_suggestions import HomeSuggestionNotifier
+
+    home_suggestion_notifier = HomeSuggestionNotifier(hass)
+    home_suggestion_notifier.async_start()
+    hass.data[DOMAIN][entry.entry_id]["home_suggestion_notifier"] = home_suggestion_notifier
+
     # ── Insights: Layer 1 health monitoring + Layer 2 advisor + export ──
     if insights_enabled:
         from .health_monitor import HealthMonitor
@@ -6807,6 +6815,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     cache_invalidator = data.get("cache_invalidator")
     if cache_invalidator:
         cache_invalidator.async_stop()
+    home_suggestion_notifier = data.get("home_suggestion_notifier")
+    if home_suggestion_notifier:
+        home_suggestion_notifier.async_stop()
     pattern_engine = data.get("pattern_engine")
     if pattern_engine:
         await pattern_engine.async_stop()

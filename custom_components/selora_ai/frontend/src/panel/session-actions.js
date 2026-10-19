@@ -2,6 +2,7 @@
 
 import { stripEntityMarkers } from "./chat-autocomplete.js";
 import { resetProposalDiffState } from "./render-proposal-diff.js";
+import { loadHomeSuggestions } from "./home-suggestions.js";
 
 const PANEL_PREFIX = "/selora-ai";
 const VALID_TABS = [
@@ -203,13 +204,36 @@ export function _checkTabParam() {
     url.searchParams.delete("new_automation");
     window.history.replaceState({}, "", url);
   }
+
+  // The home-suggestions notification links here: open the chat home, where
+  // the suggestions are, rather than the last conversation. Auto-opening the
+  // latest session stays off until then, or it could land after the new one.
+  if (params.has("home_suggestions")) {
+    this._openingChatHome = true;
+    if (this.hass) this._openChatHome();
+    else this._pendingChatHome = true;
+    const url = new URL(window.location);
+    url.searchParams.delete("home_suggestions");
+    window.history.replaceState({}, "", url);
+  }
 }
 
 // -------------------------------------------------------------------------
 // Data loaders
 // -------------------------------------------------------------------------
 
+export async function _openChatHome() {
+  try {
+    await this._newSession();
+  } finally {
+    this._openingChatHome = false;
+  }
+}
+
 export async function _loadSessions() {
+  // Refreshed alongside the sessions, which reload after every turn: a
+  // suggestion acted on in chat drops out once the change is saved.
+  loadHomeSuggestions(this);
   try {
     const sessions = await this.hass.callWS({
       type: "selora_ai/get_sessions",
@@ -218,6 +242,7 @@ export async function _loadSessions() {
     // Auto-open most recent session if no active session and on chat tab
     if (
       !this._activeSessionId &&
+      !this._openingChatHome &&
       this._sessions.length > 0 &&
       this._activeTab === "chat"
     ) {

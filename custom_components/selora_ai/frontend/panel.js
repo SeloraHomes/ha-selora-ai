@@ -2772,12 +2772,16 @@ var chatStyles = i`
   .chat-welcome-center {
     flex: 1;
     display: flex;
-    align-items: center;
+    /* Centred by the child's auto margins rather than align-items: centre
+       alignment pushes content taller than the pane above its scroll origin,
+       out of reach. */
+    align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
     padding: 24px;
   }
   .welcome-center-content {
+    margin-block: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2795,6 +2799,165 @@ var chatStyles = i`
   .welcome-center-content .qa-group {
     width: 100%;
     justify-content: center;
+  }
+
+  /* "I noticed a few things I can help with" on the welcome screen */
+  .home-suggestions {
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+  .home-suggestions-heading {
+    padding: 0 4px;
+    margin-bottom: 4px;
+    font-size: 15px;
+    color: var(--secondary-text-color);
+  }
+  .home-suggestion {
+    border: 1px solid var(--divider-color);
+    border-radius: 14px;
+    background: var(--card-background-color);
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+  }
+  .home-suggestion-row {
+    display: flex;
+    align-items: center;
+  }
+  .home-suggestion:hover,
+  .home-suggestion.open {
+    border-color: rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.04);
+  }
+  .home-suggestion-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--primary-text-color);
+    text-align: left;
+    cursor: pointer;
+  }
+  .home-suggestion-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--selora-accent-text, #f59e0b);
+    --mdc-icon-size: 18px;
+  }
+  :host(:not([dark])) .home-suggestion-icon {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+  }
+  .home-suggestion-title {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .home-suggestion-chevron {
+    flex-shrink: 0;
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+    transition: transform 0.2s;
+  }
+  .home-suggestion.open .home-suggestion-chevron {
+    transform: rotate(180deg);
+  }
+  .home-suggestion-detail {
+    padding: 0 14px 14px 56px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--primary-text-color);
+  }
+  .home-suggestion-detail p {
+    margin: 0 0 8px;
+    opacity: 0.8;
+  }
+  .home-suggestion-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+  /* A small composer: the same gold edge and send button, so acting on a
+     suggestion reads as sending it to Selora. */
+  .home-suggestion-act {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 5px 5px 5px 20px;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 999px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 0 18px -6px rgba(251, 191, 36, 0.5);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.2s;
+  }
+  .home-suggestion-act:hover {
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 22px -4px rgba(251, 191, 36, 0.6);
+  }
+  .home-suggestion-act:hover .composer-send {
+    transform: scale(1.06);
+  }
+  .home-suggestion-dismiss {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 6px;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    opacity: 0.6;
+    --mdc-icon-size: 16px;
+  }
+  .home-suggestion-dismiss:hover {
+    opacity: 1;
+    background: rgba(127, 127, 127, 0.12);
+  }
+
+  /* The full request behind a summary the panel sent for the user. */
+  .msg-details {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+  .msg-details summary {
+    cursor: pointer;
+    opacity: 0.6;
+    user-select: none;
+  }
+  .msg-details summary:hover {
+    opacity: 0.9;
+  }
+  .msg-details-body {
+    margin-top: 6px;
+    opacity: 0.75;
+    white-space: pre-wrap;
   }
 
   /* Quick-start disclosure on the welcome screen */
@@ -10839,6 +11002,31 @@ var en_default = {
     restore_card_deleted_on: "Deleted {date}",
     restore_card_restored: "Restored",
     restore_card_gone: "No longer in Recently deleted",
+    home_suggestions_heading: "I noticed a few things I can help with",
+    home_suggestion_add_group: "Add {entity} to {collection}",
+    home_suggestion_add_group_prompt:
+      "Add {entity} ({entity_id}) to the group {collection} ({ref}).",
+    home_suggestion_add_automation: "Include {entity} in {collection}",
+    home_suggestion_add_automation_prompt:
+      "Update the automation {collection} ({ref}) so it also covers {entity} ({entity_id}), the same way it covers the others like it. If Home Assistant already has one entity that follows all of them together (a group, or a zone counting the people in it), offer that as an alternative: new ones are then covered without editing the automation again.",
+    home_suggestion_group:
+      "Group the {count} devices that trigger {collection}",
+    home_suggestion_group_prompt:
+      "Group {entity} ({entity_id}) into one group helper, and update the automation {collection} ({ref}) to use the group instead of listing them. Reuse an existing group if one already holds exactly these.",
+    home_suggestion_dismiss: "Dismiss",
+    home_suggestion_more: "{count} more",
+    home_suggestion_why_home:
+      "{collection} already covers {members}: every one of this kind in your home.",
+    home_suggestion_why_area:
+      "{collection} already covers {members}: every one of this kind in {area}.",
+    home_suggestion_why_newer:
+      "{entity} was added after them, so it was probably not left out on purpose.",
+    home_suggestion_group_why:
+      "{collection} lists {members} one by one. With a group, a new device only needs adding to the group and the automation follows.",
+    home_suggestion_group_caveat:
+      "It then runs when the group as a whole changes, not again for each device while another one is still active.",
+    home_suggestion_do_it: "Ask Selora to do it",
+    chat_message_details: "Details",
   },
   options: {
     step: {
@@ -12141,6 +12329,32 @@ var fr_default = {
     restore_card_deleted_on: "Supprim\xE9 le {date}",
     restore_card_restored: "Restaur\xE9",
     restore_card_gone: "N\u2019est plus dans R\xE9cemment supprim\xE9s",
+    home_suggestions_heading:
+      "J'ai remarqu\xE9 quelques points sur lesquels je peux vous aider",
+    home_suggestion_add_group: "Ajouter {entity} \xE0 {collection}",
+    home_suggestion_add_group_prompt:
+      "Ajoute {entity} ({entity_id}) au groupe {collection} ({ref}).",
+    home_suggestion_add_automation: "Inclure {entity} dans {collection}",
+    home_suggestion_add_automation_prompt:
+      "Mets \xE0 jour l'automatisation {collection} ({ref}) pour qu'elle couvre aussi {entity} ({entity_id}), de la m\xEAme fa\xE7on que les autres du m\xEAme type. Si Home Assistant a d\xE9j\xE0 une entit\xE9 qui les suit tous ensemble (un groupe, ou une zone qui compte les personnes pr\xE9sentes), propose-la comme alternative : les nouveaux seront alors couverts sans modifier \xE0 nouveau l'automatisation.",
+    home_suggestion_group:
+      "Regrouper les {count} appareils qui d\xE9clenchent {collection}",
+    home_suggestion_group_prompt:
+      "Regroupe {entity} ({entity_id}) dans un seul groupe, et mets \xE0 jour l'automatisation {collection} ({ref}) pour qu'elle utilise le groupe au lieu de les lister. R\xE9utilise un groupe existant s'il contient exactement ceux-ci.",
+    home_suggestion_dismiss: "Ignorer",
+    home_suggestion_more: "{count} autres",
+    home_suggestion_why_home:
+      "{collection} couvre d\xE9j\xE0 {members} : tous ceux de ce type dans votre maison.",
+    home_suggestion_why_area:
+      "{collection} couvre d\xE9j\xE0 {members} : tous ceux de ce type dans {area}.",
+    home_suggestion_why_newer:
+      "{entity} a \xE9t\xE9 ajout\xE9 apr\xE8s eux, il n'a donc probablement pas \xE9t\xE9 laiss\xE9 de c\xF4t\xE9 volontairement.",
+    home_suggestion_group_why:
+      "{collection} liste {members} un par un. Avec un groupe, il suffit d'ajouter un nouvel appareil au groupe et l'automatisation suit.",
+    home_suggestion_group_caveat:
+      "Elle se d\xE9clenche alors quand le groupe dans son ensemble change, et plus pour chaque appareil tant qu'un autre est encore actif.",
+    home_suggestion_do_it: "Demander \xE0 Selora de le faire",
+    chat_message_details: "D\xE9tails",
   },
   options: {
     step: {
@@ -13435,6 +13649,32 @@ var de_default = {
     restore_card_deleted_on: "Gel\xF6scht am {date}",
     restore_card_restored: "Wiederhergestellt",
     restore_card_gone: "Nicht mehr unter \u201EZuletzt gel\xF6scht\u201C",
+    home_suggestions_heading:
+      "Mir sind ein paar Dinge aufgefallen, bei denen ich helfen kann",
+    home_suggestion_add_group: "{entity} zu {collection} hinzuf\xFCgen",
+    home_suggestion_add_group_prompt:
+      "F\xFCge {entity} ({entity_id}) zur Gruppe {collection} ({ref}) hinzu.",
+    home_suggestion_add_automation: "{entity} in {collection} aufnehmen",
+    home_suggestion_add_automation_prompt:
+      "Aktualisiere die Automatisierung {collection} ({ref}), damit sie auch {entity} ({entity_id}) abdeckt, genauso wie die anderen dieser Art. Wenn Home Assistant bereits eine Entit\xE4t hat, die alle zusammen erfasst (eine Gruppe oder eine Zone, die die Personen darin z\xE4hlt), biete sie als Alternative an: Neue werden dann abgedeckt, ohne die Automatisierung erneut zu \xE4ndern.",
+    home_suggestion_group:
+      "Die {count} Ger\xE4te gruppieren, die {collection} ausl\xF6sen",
+    home_suggestion_group_prompt:
+      "Fasse {entity} ({entity_id}) in einer Gruppe zusammen und aktualisiere die Automatisierung {collection} ({ref}), damit sie die Gruppe statt der einzelnen Ger\xE4te nutzt. Verwende eine bestehende Gruppe, falls eine genau diese enth\xE4lt.",
+    home_suggestion_dismiss: "Verwerfen",
+    home_suggestion_more: "{count} weitere",
+    home_suggestion_why_home:
+      "{collection} deckt bereits {members} ab: alle dieser Art in deinem Zuhause.",
+    home_suggestion_why_area:
+      "{collection} deckt bereits {members} ab: alle dieser Art in {area}.",
+    home_suggestion_why_newer:
+      "{entity} wurde danach hinzugef\xFCgt und wurde daher wahrscheinlich nicht absichtlich ausgelassen.",
+    home_suggestion_group_why:
+      "{collection} listet {members} einzeln auf. Mit einer Gruppe muss ein neues Ger\xE4t nur zur Gruppe hinzugef\xFCgt werden, und die Automatisierung folgt.",
+    home_suggestion_group_caveat:
+      "Sie l\xE4uft dann, wenn sich die Gruppe als Ganzes \xE4ndert, nicht erneut f\xFCr jedes Ger\xE4t, solange ein anderes noch aktiv ist.",
+    home_suggestion_do_it: "Selora darum bitten",
+    chat_message_details: "Details",
   },
   options: {
     step: {
@@ -14708,6 +14948,32 @@ var es_default = {
     restore_card_deleted_on: "Eliminado el {date}",
     restore_card_restored: "Restaurado",
     restore_card_gone: "Ya no est\xE1 en Eliminados recientemente",
+    home_suggestions_heading:
+      "He notado algunas cosas en las que puedo ayudarte",
+    home_suggestion_add_group: "A\xF1adir {entity} a {collection}",
+    home_suggestion_add_group_prompt:
+      "A\xF1ade {entity} ({entity_id}) al grupo {collection} ({ref}).",
+    home_suggestion_add_automation: "Incluir {entity} en {collection}",
+    home_suggestion_add_automation_prompt:
+      "Actualiza la automatizaci\xF3n {collection} ({ref}) para que tambi\xE9n cubra {entity} ({entity_id}), igual que cubre los dem\xE1s de su tipo. Si Home Assistant ya tiene una entidad que los sigue a todos juntos (un grupo, o una zona que cuenta las personas que hay en ella), ofr\xE9cela como alternativa: as\xED los nuevos quedar\xE1n cubiertos sin volver a editar la automatizaci\xF3n.",
+    home_suggestion_group:
+      "Agrupar los {count} dispositivos que activan {collection}",
+    home_suggestion_group_prompt:
+      "Agrupa {entity} ({entity_id}) en un \xFAnico grupo y actualiza la automatizaci\xF3n {collection} ({ref}) para que use el grupo en lugar de enumerarlos. Reutiliza un grupo existente si ya contiene exactamente estos.",
+    home_suggestion_dismiss: "Descartar",
+    home_suggestion_more: "{count} m\xE1s",
+    home_suggestion_why_home:
+      "{collection} ya cubre {members}: todos los de este tipo en tu casa.",
+    home_suggestion_why_area:
+      "{collection} ya cubre {members}: todos los de este tipo en {area}.",
+    home_suggestion_why_newer:
+      "{entity} se a\xF1adi\xF3 despu\xE9s, as\xED que probablemente no se dej\xF3 fuera a prop\xF3sito.",
+    home_suggestion_group_why:
+      "{collection} enumera {members} uno por uno. Con un grupo, basta con a\xF1adir un nuevo dispositivo al grupo y la automatizaci\xF3n lo sigue.",
+    home_suggestion_group_caveat:
+      "Entonces se ejecuta cuando cambia el grupo en conjunto, no otra vez por cada dispositivo mientras otro siga activo.",
+    home_suggestion_do_it: "Pedir a Selora que lo haga",
+    chat_message_details: "Detalles",
   },
   options: {
     step: {
@@ -15981,6 +16247,31 @@ var it_default = {
     restore_card_deleted_on: "Eliminato il {date}",
     restore_card_restored: "Ripristinato",
     restore_card_gone: "Non \xE8 pi\xF9 in Eliminati di recente",
+    home_suggestions_heading: "Ho notato alcune cose in cui posso aiutarti",
+    home_suggestion_add_group: "Aggiungi {entity} a {collection}",
+    home_suggestion_add_group_prompt:
+      "Aggiungi {entity} ({entity_id}) al gruppo {collection} ({ref}).",
+    home_suggestion_add_automation: "Includi {entity} in {collection}",
+    home_suggestion_add_automation_prompt:
+      "Aggiorna l'automazione {collection} ({ref}) in modo che copra anche {entity} ({entity_id}), come fa con gli altri dello stesso tipo. Se Home Assistant ha gi\xE0 un'entit\xE0 che li segue tutti insieme (un gruppo, o una zona che conta le persone al suo interno), proponila come alternativa: cos\xEC i nuovi saranno coperti senza modificare di nuovo l'automazione.",
+    home_suggestion_group:
+      "Raggruppa i {count} dispositivi che attivano {collection}",
+    home_suggestion_group_prompt:
+      "Raggruppa {entity} ({entity_id}) in un unico gruppo e aggiorna l'automazione {collection} ({ref}) perch\xE9 usi il gruppo invece di elencarli. Riusa un gruppo esistente se contiene gi\xE0 esattamente questi.",
+    home_suggestion_dismiss: "Ignora",
+    home_suggestion_more: "altri {count}",
+    home_suggestion_why_home:
+      "{collection} copre gi\xE0 {members}: tutti quelli di questo tipo in casa tua.",
+    home_suggestion_why_area:
+      "{collection} copre gi\xE0 {members}: tutti quelli di questo tipo in {area}.",
+    home_suggestion_why_newer:
+      "{entity} \xE8 stato aggiunto dopo, quindi probabilmente non \xE8 stato escluso di proposito.",
+    home_suggestion_group_why:
+      "{collection} elenca {members} uno per uno. Con un gruppo basta aggiungere un nuovo dispositivo al gruppo e l'automazione lo segue.",
+    home_suggestion_group_caveat:
+      "Si attiva quindi quando cambia il gruppo nel suo insieme, non di nuovo per ogni dispositivo finch\xE9 un altro \xE8 ancora attivo.",
+    home_suggestion_do_it: "Chiedi a Selora di farlo",
+    chat_message_details: "Dettagli",
   },
   options: {
     step: {
@@ -17273,6 +17564,31 @@ var nl_default = {
     restore_card_deleted_on: "Verwijderd op {date}",
     restore_card_restored: "Hersteld",
     restore_card_gone: "Niet meer in Recent verwijderd",
+    home_suggestions_heading: "Ik zag een paar dingen waarmee ik kan helpen",
+    home_suggestion_add_group: "{entity} toevoegen aan {collection}",
+    home_suggestion_add_group_prompt:
+      "Voeg {entity} ({entity_id}) toe aan de groep {collection} ({ref}).",
+    home_suggestion_add_automation: "{entity} opnemen in {collection}",
+    home_suggestion_add_automation_prompt:
+      "Werk de automatisering {collection} ({ref}) bij zodat die ook {entity} ({entity_id}) dekt, net zoals de andere van die soort. Als Home Assistant al \xE9\xE9n entiteit heeft die ze allemaal samen volgt (een groep, of een zone die de personen erin telt), bied die dan als alternatief aan: nieuwe worden dan gedekt zonder de automatisering opnieuw te bewerken.",
+    home_suggestion_group:
+      "De {count} apparaten groeperen die {collection} activeren",
+    home_suggestion_group_prompt:
+      "Groepeer {entity} ({entity_id}) in \xE9\xE9n groep en werk de automatisering {collection} ({ref}) bij zodat die de groep gebruikt in plaats van ze op te sommen. Hergebruik een bestaande groep als die precies deze bevat.",
+    home_suggestion_dismiss: "Negeren",
+    home_suggestion_more: "nog {count}",
+    home_suggestion_why_home:
+      "{collection} dekt al {members}: alle van dit soort in je huis.",
+    home_suggestion_why_area:
+      "{collection} dekt al {members}: alle van dit soort in {area}.",
+    home_suggestion_why_newer:
+      "{entity} is daarna toegevoegd en is dus waarschijnlijk niet bewust weggelaten.",
+    home_suggestion_group_why:
+      "{collection} somt {members} \xE9\xE9n voor \xE9\xE9n op. Met een groep hoeft een nieuw apparaat alleen aan de groep te worden toegevoegd en volgt de automatisering vanzelf.",
+    home_suggestion_group_caveat:
+      "Ze draait dan wanneer de groep als geheel verandert, niet opnieuw voor elk apparaat zolang een ander nog actief is.",
+    home_suggestion_do_it: "Vraag Selora het te doen",
+    chat_message_details: "Details",
   },
 };
 
@@ -18616,6 +18932,32 @@ var hu_default = {
     restore_card_restored: "Vissza\xE1ll\xEDtva",
     restore_card_gone:
       "M\xE1r nincs a Nemr\xE9g t\xF6r\xF6lt elemek k\xF6z\xF6tt",
+    home_suggestions_heading:
+      "\xC9szrevettem n\xE9h\xE1ny dolgot, amiben seg\xEDthetek",
+    home_suggestion_add_group: "{entity} hozz\xE1ad\xE1sa ehhez: {collection}",
+    home_suggestion_add_group_prompt:
+      "Add hozz\xE1 a(z) {entity} ({entity_id}) eszk\xF6zt a(z) {collection} ({ref}) csoporthoz.",
+    home_suggestion_add_automation: "{entity} felv\xE9tele ebbe: {collection}",
+    home_suggestion_add_automation_prompt:
+      "Friss\xEDtsd a(z) {collection} ({ref}) automatiz\xE1l\xE1st, hogy a(z) {entity} ({entity_id}) eszk\xF6zt is lefedje, ugyan\xFAgy, mint a t\xF6bbi hasonl\xF3t. Ha a Home Assistantban m\xE1r van olyan entit\xE1s, amely mindet egy\xFCtt k\xF6veti (egy csoport, vagy egy z\xF3na, amely megsz\xE1molja a benne l\xE9v\u0151 szem\xE9lyeket), aj\xE1nld fel alternat\xEDvak\xE9nt: \xEDgy az \xFAjak is lefedve lesznek az automatiz\xE1l\xE1s \xFAjb\xF3li szerkeszt\xE9se n\xE9lk\xFCl.",
+    home_suggestion_group:
+      "A(z) {collection} automatiz\xE1l\xE1st ind\xEDt\xF3 {count} eszk\xF6z csoportos\xEDt\xE1sa",
+    home_suggestion_group_prompt:
+      "Csoportos\xEDtsd a(z) {entity} ({entity_id}) eszk\xF6z\xF6ket egyetlen csoportba, \xE9s friss\xEDtsd a(z) {collection} ({ref}) automatiz\xE1l\xE1st, hogy a csoportot haszn\xE1lja a felsorol\xE1s helyett. Haszn\xE1lj megl\xE9v\u0151 csoportot, ha az pontosan ezeket tartalmazza.",
+    home_suggestion_dismiss: "Elvet\xE9s",
+    home_suggestion_more: "m\xE9g {count}",
+    home_suggestion_why_home:
+      "A(z) {collection} m\xE1r lefedi ezeket: {members} \u2013 az \xF6sszes ilyen t\xEDpus\xFAt az otthonodban.",
+    home_suggestion_why_area:
+      "A(z) {collection} m\xE1r lefedi ezeket: {members} \u2013 az \xF6sszes ilyen t\xEDpus\xFAt itt: {area}.",
+    home_suggestion_why_newer:
+      "A(z) {entity} ezek ut\xE1n ker\xFClt hozz\xE1ad\xE1sra, \xEDgy val\xF3sz\xEDn\u0171leg nem sz\xE1nd\xE9kosan maradt ki.",
+    home_suggestion_group_why:
+      "A(z) {collection} egyenk\xE9nt sorolja fel ezeket: {members}. Csoporttal egy \xFAj eszk\xF6zt csak a csoporthoz kell hozz\xE1adni, \xE9s az automatiz\xE1l\xE1s k\xF6veti.",
+    home_suggestion_group_caveat:
+      "Ekkor akkor fut, amikor a csoport eg\xE9sze megv\xE1ltozik, \xE9s nem \xFAjra minden eszk\xF6zn\xE9l, am\xEDg egy m\xE1sik m\xE9g akt\xEDv.",
+    home_suggestion_do_it: "K\xE9rd meg a Selor\xE1t",
+    chat_message_details: "R\xE9szletek",
   },
 };
 
@@ -19885,6 +20227,31 @@ var pt_default = {
     restore_card_deleted_on: "Eliminado a {date}",
     restore_card_restored: "Restaurado",
     restore_card_gone: "J\xE1 n\xE3o est\xE1 em Eliminados recentemente",
+    home_suggestions_heading: "Reparei em algumas coisas em que posso ajudar",
+    home_suggestion_add_group: "Adicionar {entity} a {collection}",
+    home_suggestion_add_group_prompt:
+      "Adiciona {entity} ({entity_id}) ao grupo {collection} ({ref}).",
+    home_suggestion_add_automation: "Incluir {entity} em {collection}",
+    home_suggestion_add_automation_prompt:
+      "Atualiza a automa\xE7\xE3o {collection} ({ref}) para que tamb\xE9m abranja {entity} ({entity_id}), tal como abrange os outros do mesmo tipo. Se o Home Assistant j\xE1 tiver uma entidade que os acompanha todos em conjunto (um grupo, ou uma zona que conta as pessoas nela), ofere\xE7a-a como alternativa: assim os novos ficam cobertos sem editar a automa\xE7\xE3o novamente.",
+    home_suggestion_group:
+      "Agrupar os {count} dispositivos que acionam {collection}",
+    home_suggestion_group_prompt:
+      "Agrupa {entity} ({entity_id}) num \xFAnico grupo e atualiza a automa\xE7\xE3o {collection} ({ref}) para usar o grupo em vez de os listar. Reutiliza um grupo existente se j\xE1 contiver exatamente estes.",
+    home_suggestion_dismiss: "Ignorar",
+    home_suggestion_more: "mais {count}",
+    home_suggestion_why_home:
+      "{collection} j\xE1 abrange {members}: todos os deste tipo na sua casa.",
+    home_suggestion_why_area:
+      "{collection} j\xE1 abrange {members}: todos os deste tipo em {area}.",
+    home_suggestion_why_newer:
+      "{entity} foi adicionado depois deles, por isso provavelmente n\xE3o foi deixado de fora de prop\xF3sito.",
+    home_suggestion_group_why:
+      "{collection} lista {members} um a um. Com um grupo, basta adicionar um novo dispositivo ao grupo e a automa\xE7\xE3o acompanha.",
+    home_suggestion_group_caveat:
+      "Passa ent\xE3o a ser executada quando o grupo como um todo muda, e n\xE3o novamente para cada dispositivo enquanto outro ainda estiver ativo.",
+    home_suggestion_do_it: "Pedir ao Selora para o fazer",
+    chat_message_details: "Detalhes",
   },
   options: {
     step: {
@@ -21782,6 +22149,36 @@ var ru_default = {
       "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E",
     restore_card_gone:
       "\u0411\u043E\u043B\u044C\u0448\u0435 \u043D\u0435\u0442 \u0432 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0445\xBB",
+    home_suggestions_heading:
+      "\u042F \u0437\u0430\u043C\u0435\u0442\u0438\u043B \u043A\u043E\u0435-\u0447\u0442\u043E, \u0441 \u0447\u0435\u043C \u043C\u043E\u0433\u0443 \u043F\u043E\u043C\u043E\u0447\u044C",
+    home_suggestion_add_group:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C {entity} \u0432 {collection}",
+    home_suggestion_add_group_prompt:
+      "\u0414\u043E\u0431\u0430\u0432\u044C {entity} ({entity_id}) \u0432 \u0433\u0440\u0443\u043F\u043F\u0443 {collection} ({ref}).",
+    home_suggestion_add_automation:
+      "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C {entity} \u0432 {collection}",
+    home_suggestion_add_automation_prompt:
+      "\u041E\u0431\u043D\u043E\u0432\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E {collection} ({ref}), \u0447\u0442\u043E\u0431\u044B \u043E\u043D\u0430 \u0442\u0430\u043A\u0436\u0435 \u043E\u0445\u0432\u0430\u0442\u044B\u0432\u0430\u043B\u0430 {entity} ({entity_id}) \u0442\u0430\u043A \u0436\u0435, \u043A\u0430\u043A \u0434\u0440\u0443\u0433\u0438\u0435 \u043F\u043E\u0434\u043E\u0431\u043D\u044B\u0435. \u0415\u0441\u043B\u0438 \u0432 Home Assistant \u0443\u0436\u0435 \u0435\u0441\u0442\u044C \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C, \u043A\u043E\u0442\u043E\u0440\u0430\u044F \u043E\u0442\u0441\u043B\u0435\u0436\u0438\u0432\u0430\u0435\u0442 \u0438\u0445 \u0432\u0441\u0435 \u0432\u043C\u0435\u0441\u0442\u0435 (\u0433\u0440\u0443\u043F\u043F\u0430 \u0438\u043B\u0438 \u0437\u043E\u043D\u0430, \u0441\u0447\u0438\u0442\u0430\u044E\u0449\u0430\u044F \u043B\u044E\u0434\u0435\u0439 \u0432 \u043D\u0435\u0439), \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0435\u0451 \u043A\u0430\u043A \u0430\u043B\u044C\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0443: \u0442\u043E\u0433\u0434\u0430 \u043D\u043E\u0432\u044B\u0435 \u0431\u0443\u0434\u0443\u0442 \u043E\u0445\u0432\u0430\u0447\u0435\u043D\u044B \u0431\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E\u0433\u043E \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438.",
+    home_suggestion_group:
+      "\u0421\u0433\u0440\u0443\u043F\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u0437\u0430\u043F\u0443\u0441\u043A\u0430\u044E\u0449\u0438\u0435 {collection} ({count})",
+    home_suggestion_group_prompt:
+      "\u041E\u0431\u044A\u0435\u0434\u0438\u043D\u0438 {entity} ({entity_id}) \u0432 \u043E\u0434\u043D\u0443 \u0433\u0440\u0443\u043F\u043F\u0443 \u0438 \u043E\u0431\u043D\u043E\u0432\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E {collection} ({ref}), \u0447\u0442\u043E\u0431\u044B \u043E\u043D\u0430 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B\u0430 \u0433\u0440\u0443\u043F\u043F\u0443 \u0432\u043C\u0435\u0441\u0442\u043E \u043F\u0435\u0440\u0435\u0447\u0438\u0441\u043B\u0435\u043D\u0438\u044F. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u044E\u0449\u0443\u044E \u0433\u0440\u0443\u043F\u043F\u0443, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0443\u0436\u0435 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 \u0438\u043C\u0435\u043D\u043D\u043E \u0438\u0445.",
+    home_suggestion_dismiss: "\u0421\u043A\u0440\u044B\u0442\u044C",
+    home_suggestion_more: "\u0435\u0449\u0451 {count}",
+    home_suggestion_why_home:
+      "{collection} \u0443\u0436\u0435 \u043E\u0445\u0432\u0430\u0442\u044B\u0432\u0430\u0435\u0442 {members}: \u0432\u0441\u0435 \u0442\u0430\u043A\u043E\u0433\u043E \u0442\u0438\u043F\u0430 \u0432 \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435.",
+    home_suggestion_why_area:
+      "{collection} \u0443\u0436\u0435 \u043E\u0445\u0432\u0430\u0442\u044B\u0432\u0430\u0435\u0442 {members}: \u0432\u0441\u0435 \u0442\u0430\u043A\u043E\u0433\u043E \u0442\u0438\u043F\u0430 \u0432 {area}.",
+    home_suggestion_why_newer:
+      "{entity} \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D(\u0430) \u043F\u043E\u0437\u0436\u0435, \u043F\u043E\u044D\u0442\u043E\u043C\u0443, \u0441\u043A\u043E\u0440\u0435\u0435 \u0432\u0441\u0435\u0433\u043E, \u043D\u0435 \u0431\u044B\u043B(\u0430) \u0438\u0441\u043A\u043B\u044E\u0447\u0435\u043D(\u0430) \u043D\u0430\u043C\u0435\u0440\u0435\u043D\u043D\u043E.",
+    home_suggestion_group_why:
+      "{collection} \u043F\u0435\u0440\u0435\u0447\u0438\u0441\u043B\u044F\u0435\u0442 {members} \u043F\u043E \u043E\u0434\u043D\u043E\u043C\u0443. \u0421 \u0433\u0440\u0443\u043F\u043F\u043E\u0439 \u043D\u043E\u0432\u043E\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0434\u043E\u0441\u0442\u0430\u0442\u043E\u0447\u043D\u043E \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432 \u0433\u0440\u0443\u043F\u043F\u0443, \u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u043F\u043E\u0434\u0445\u0432\u0430\u0442\u0438\u0442 \u0435\u0433\u043E.",
+    home_suggestion_group_caveat:
+      "\u0422\u043E\u0433\u0434\u0430 \u043E\u043D\u0430 \u0441\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442 \u043F\u0440\u0438 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0438 \u0433\u0440\u0443\u043F\u043F\u044B \u0432 \u0446\u0435\u043B\u043E\u043C, \u0430 \u043D\u0435 \u0441\u043D\u043E\u0432\u0430 \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u043F\u043E\u043A\u0430 \u0434\u0440\u0443\u0433\u043E\u0435 \u0435\u0449\u0451 \u0430\u043A\u0442\u0438\u0432\u043D\u043E.",
+    home_suggestion_do_it:
+      "\u041F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u044C Selora \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u044D\u0442\u043E",
+    chat_message_details:
+      "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435",
   },
   options: {
     step: {
@@ -23354,6 +23751,34 @@ var ja_default = {
     restore_card_restored: "\u5FA9\u5143\u6E08\u307F",
     restore_card_gone:
       "\u300C\u6700\u8FD1\u524A\u9664\u3057\u305F\u9805\u76EE\u300D\u306B\u306F\u3082\u3046\u3042\u308A\u307E\u305B\u3093",
+    home_suggestions_heading:
+      "\u304A\u624B\u4F1D\u3044\u3067\u304D\u305D\u3046\u306A\u3053\u3068\u304C\u3044\u304F\u3064\u304B\u3042\u308A\u307E\u3059",
+    home_suggestion_add_group:
+      "{entity} \u3092 {collection} \u306B\u8FFD\u52A0",
+    home_suggestion_add_group_prompt:
+      "{entity}\uFF08{entity_id}\uFF09\u3092\u30B0\u30EB\u30FC\u30D7 {collection}\uFF08{ref}\uFF09\u306B\u8FFD\u52A0\u3057\u3066\u3002",
+    home_suggestion_add_automation:
+      "{entity} \u3092 {collection} \u306B\u542B\u3081\u308B",
+    home_suggestion_add_automation_prompt:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3 {collection}\uFF08{ref}\uFF09\u3092\u66F4\u65B0\u3057\u3066\u3001\u540C\u3058\u7A2E\u985E\u306E\u4ED6\u306E\u3082\u306E\u3068\u540C\u69D8\u306B {entity}\uFF08{entity_id}\uFF09\u3082\u5BFE\u8C61\u306B\u3057\u3066\u3002 Home Assistant \u306B\u305D\u308C\u3089\u3092\u307E\u3068\u3081\u3066\u8FFD\u8DE1\u3059\u308B\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\uFF08\u30B0\u30EB\u30FC\u30D7\u3001\u307E\u305F\u306F\u30BE\u30FC\u30F3\u5185\u306E\u4EBA\u6570\u3092\u6570\u3048\u308B\u30BE\u30FC\u30F3\uFF09\u304C\u65E2\u306B\u3042\u308B\u5834\u5408\u306F\u3001\u4EE3\u66FF\u6848\u3068\u3057\u3066\u63D0\u6848\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u305D\u3046\u3059\u308C\u3070\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u518D\u5EA6\u7DE8\u96C6\u3057\u306A\u304F\u3066\u3082\u65B0\u3057\u3044\u3082\u306E\u304C\u5BFE\u8C61\u306B\u306A\u308A\u307E\u3059\u3002",
+    home_suggestion_group:
+      "{collection} \u3092\u30C8\u30EA\u30AC\u30FC\u3059\u308B {count} \u53F0\u306E\u30C7\u30D0\u30A4\u30B9\u3092\u30B0\u30EB\u30FC\u30D7\u5316",
+    home_suggestion_group_prompt:
+      "{entity}\uFF08{entity_id}\uFF09\u30921\u3064\u306E\u30B0\u30EB\u30FC\u30D7\u306B\u307E\u3068\u3081\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3 {collection}\uFF08{ref}\uFF09\u3092\u500B\u5225\u306B\u5217\u6319\u3059\u308B\u4EE3\u308F\u308A\u306B\u305D\u306E\u30B0\u30EB\u30FC\u30D7\u3092\u4F7F\u3046\u3088\u3046\u66F4\u65B0\u3057\u3066\u3002\u3053\u308C\u3089\u3068\u307E\u3063\u305F\u304F\u540C\u3058\u30E1\u30F3\u30D0\u30FC\u306E\u65E2\u5B58\u30B0\u30EB\u30FC\u30D7\u304C\u3042\u308C\u3070\u305D\u308C\u3092\u4F7F\u3063\u3066\u3002",
+    home_suggestion_dismiss: "\u9589\u3058\u308B",
+    home_suggestion_more: "\u4ED6 {count} \u4EF6",
+    home_suggestion_why_home:
+      "{collection} \u306F\u65E2\u306B {members} \u3092\u5BFE\u8C61\u306B\u3057\u3066\u3044\u307E\u3059\uFF08\u30DB\u30FC\u30E0\u5185\u306E\u3053\u306E\u7A2E\u985E\u3059\u3079\u3066\uFF09\u3002",
+    home_suggestion_why_area:
+      "{collection} \u306F\u65E2\u306B {members} \u3092\u5BFE\u8C61\u306B\u3057\u3066\u3044\u307E\u3059\uFF08{area} \u5185\u306E\u3053\u306E\u7A2E\u985E\u3059\u3079\u3066\uFF09\u3002",
+    home_suggestion_why_newer:
+      "{entity} \u306F\u305D\u308C\u3089\u306E\u5F8C\u306B\u8FFD\u52A0\u3055\u308C\u305F\u305F\u3081\u3001\u610F\u56F3\u7684\u306B\u5916\u3055\u308C\u305F\u308F\u3051\u3067\u306F\u306A\u3055\u305D\u3046\u3067\u3059\u3002",
+    home_suggestion_group_why:
+      "{collection} \u306F {members} \u3092\u500B\u5225\u306B\u5217\u6319\u3057\u3066\u3044\u307E\u3059\u3002\u30B0\u30EB\u30FC\u30D7\u306B\u3059\u308C\u3070\u3001\u65B0\u3057\u3044\u30C7\u30D0\u30A4\u30B9\u306F\u30B0\u30EB\u30FC\u30D7\u306B\u8FFD\u52A0\u3059\u308B\u3060\u3051\u3067\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306B\u53CD\u6620\u3055\u308C\u307E\u3059\u3002",
+    home_suggestion_group_caveat:
+      "\u305D\u306E\u5834\u5408\u3001\u30B0\u30EB\u30FC\u30D7\u5168\u4F53\u304C\u5909\u5316\u3057\u305F\u3068\u304D\u306B\u5B9F\u884C\u3055\u308C\u3001\u5225\u306E\u30C7\u30D0\u30A4\u30B9\u304C\u307E\u3060\u4F5C\u52D5\u4E2D\u306E\u9593\u306F\u5404\u30C7\u30D0\u30A4\u30B9\u3054\u3068\u306B\u518D\u5B9F\u884C\u3055\u308C\u307E\u305B\u3093\u3002",
+    home_suggestion_do_it: "Selora \u306B\u4F9D\u983C\u3059\u308B",
+    chat_message_details: "\u8A73\u7D30",
   },
   options: {
     step: {
@@ -24819,6 +25244,34 @@ var ko_default = {
     restore_card_restored: "\uBCF5\uC6D0\uB428",
     restore_card_gone:
       "\uB354 \uC774\uC0C1 \uCD5C\uADFC \uC0AD\uC81C\uB428\uC5D0 \uC5C6\uC2B5\uB2C8\uB2E4",
+    home_suggestions_heading:
+      "\uB3C4\uC640\uB4DC\uB9B4 \uC218 \uC788\uB294 \uBA87 \uAC00\uC9C0\uB97C \uBC1C\uACAC\uD588\uC5B4\uC694",
+    home_suggestion_add_group:
+      "{entity}\uC744(\uB97C) {collection}\uC5D0 \uCD94\uAC00",
+    home_suggestion_add_group_prompt:
+      "{entity}({entity_id})\uC744(\uB97C) {collection}({ref}) \uADF8\uB8F9\uC5D0 \uCD94\uAC00\uD574 \uC918.",
+    home_suggestion_add_automation:
+      "{entity}\uC744(\uB97C) {collection}\uC5D0 \uD3EC\uD568",
+    home_suggestion_add_automation_prompt:
+      "{collection}({ref}) \uC790\uB3D9\uD654\uB97C \uC5C5\uB370\uC774\uD2B8\uD574\uC11C \uAC19\uC740 \uC885\uB958\uC758 \uB2E4\uB978 \uAE30\uAE30\uCC98\uB7FC {entity}({entity_id})\uB3C4 \uD3EC\uD568\uD558\uAC8C \uD574 \uC918. Home Assistant\uC5D0 \uC774\uB4E4\uC744 \uBAA8\uB450 \uD568\uAED8 \uCD94\uC801\uD558\uB294 \uC5D4\uD130\uD2F0(\uADF8\uB8F9, \uB610\uB294 \uADF8 \uC548\uC5D0 \uC788\uB294 \uC0AC\uB78C \uC218\uB97C \uC138\uB294 \uAD6C\uC5ED)\uAC00 \uC774\uBBF8 \uC788\uB2E4\uBA74 \uB300\uC548\uC73C\uB85C \uC81C\uC548\uD558\uC138\uC694. \uADF8\uB7EC\uBA74 \uC790\uB3D9\uD654\uB97C \uB2E4\uC2DC \uC218\uC815\uD558\uC9C0 \uC54A\uC544\uB3C4 \uC0C8 \uD56D\uBAA9\uC774 \uD3EC\uD568\uB429\uB2C8\uB2E4.",
+    home_suggestion_group:
+      "{collection}\uC744(\uB97C) \uD2B8\uB9AC\uAC70\uD558\uB294 \uAE30\uAE30 {count}\uAC1C \uADF8\uB8F9\uD654",
+    home_suggestion_group_prompt:
+      "{entity}({entity_id})\uC744(\uB97C) \uD558\uB098\uC758 \uADF8\uB8F9\uC73C\uB85C \uBB36\uACE0, {collection}({ref}) \uC790\uB3D9\uD654\uAC00 \uAE30\uAE30\uB97C \uB098\uC5F4\uD558\uB294 \uB300\uC2E0 \uADF8 \uADF8\uB8F9\uC744 \uC0AC\uC6A9\uD558\uB3C4\uB85D \uC5C5\uB370\uC774\uD2B8\uD574 \uC918. \uC815\uD655\uD788 \uC774 \uAE30\uAE30\uB4E4\uC744 \uAC00\uC9C4 \uADF8\uB8F9\uC774 \uC774\uBBF8 \uC788\uC73C\uBA74 \uADF8\uAC83\uC744 \uC7AC\uC0AC\uC6A9\uD574 \uC918.",
+    home_suggestion_dismiss: "\uB2EB\uAE30",
+    home_suggestion_more: "{count}\uAC1C \uB354",
+    home_suggestion_why_home:
+      "{collection}\uC740(\uB294) \uC774\uBBF8 {members}\uC744(\uB97C) \uD3EC\uD568\uD569\uB2C8\uB2E4: \uC9D1\uC5D0 \uC788\uB294 \uC774 \uC885\uB958 \uC804\uBD80\uC785\uB2C8\uB2E4.",
+    home_suggestion_why_area:
+      "{collection}\uC740(\uB294) \uC774\uBBF8 {members}\uC744(\uB97C) \uD3EC\uD568\uD569\uB2C8\uB2E4: {area}\uC5D0 \uC788\uB294 \uC774 \uC885\uB958 \uC804\uBD80\uC785\uB2C8\uB2E4.",
+    home_suggestion_why_newer:
+      "{entity}\uC740(\uB294) \uADF8 \uC774\uD6C4\uC5D0 \uCD94\uAC00\uB418\uC5C8\uC73C\uBBC0\uB85C \uC77C\uBD80\uB7EC \uC81C\uC678\uB41C \uAC83\uC740 \uC544\uB2CC \uAC83 \uAC19\uC2B5\uB2C8\uB2E4.",
+    home_suggestion_group_why:
+      "{collection}\uC740(\uB294) {members}\uC744(\uB97C) \uD558\uB098\uC529 \uB098\uC5F4\uD569\uB2C8\uB2E4. \uADF8\uB8F9\uC744 \uC0AC\uC6A9\uD558\uBA74 \uC0C8 \uAE30\uAE30\uB97C \uADF8\uB8F9\uC5D0 \uCD94\uAC00\uD558\uAE30\uB9CC \uD558\uBA74 \uC790\uB3D9\uD654\uAC00 \uB530\uB77C\uAC11\uB2C8\uB2E4.",
+    home_suggestion_group_caveat:
+      "\uADF8\uB7EC\uBA74 \uADF8\uB8F9 \uC804\uCCB4\uAC00 \uBC14\uB014 \uB54C \uC2E4\uD589\uB418\uBA70, \uB2E4\uB978 \uAE30\uAE30\uAC00 \uC544\uC9C1 \uD65C\uC131 \uC0C1\uD0DC\uC778 \uB3D9\uC548\uC5D0\uB294 \uAE30\uAE30\uB9C8\uB2E4 \uB2E4\uC2DC \uC2E4\uD589\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    home_suggestion_do_it: "Selora\uC5D0\uAC8C \uB9E1\uAE30\uAE30",
+    chat_message_details: "\uC790\uC138\uD788",
   },
   options: {
     step: {
@@ -26202,6 +26655,33 @@ var zh_Hans_default = {
     restore_card_restored: "\u5DF2\u6062\u590D",
     restore_card_gone:
       "\u5DF2\u4E0D\u5728\u201C\u6700\u8FD1\u5220\u9664\u201D\u4E2D",
+    home_suggestions_heading:
+      "\u6211\u6CE8\u610F\u5230\u51E0\u4EF6\u53EF\u4EE5\u5E2E\u4F60\u5904\u7406\u7684\u4E8B",
+    home_suggestion_add_group:
+      "\u5C06 {entity} \u6DFB\u52A0\u5230 {collection}",
+    home_suggestion_add_group_prompt:
+      "\u5C06 {entity}\uFF08{entity_id}\uFF09\u6DFB\u52A0\u5230\u7EC4 {collection}\uFF08{ref}\uFF09\u3002",
+    home_suggestion_add_automation: "\u5C06 {entity} \u7EB3\u5165 {collection}",
+    home_suggestion_add_automation_prompt:
+      "\u66F4\u65B0\u81EA\u52A8\u5316 {collection}\uFF08{ref}\uFF09\uFF0C\u8BA9\u5B83\u50CF\u8986\u76D6\u5176\u4ED6\u540C\u7C7B\u8BBE\u5907\u4E00\u6837\u4E5F\u8986\u76D6 {entity}\uFF08{entity_id}\uFF09\u3002 \u5982\u679C Home Assistant \u5DF2\u6709\u4E00\u4E2A\u7EDF\u4E00\u8DDF\u8E2A\u5B83\u4EEC\u7684\u5B9E\u4F53\uFF08\u4E00\u4E2A\u7FA4\u7EC4\uFF0C\u6216\u7EDF\u8BA1\u5176\u4E2D\u4EBA\u6570\u7684\u533A\u57DF\uFF09\uFF0C\u8BF7\u5C06\u5176\u4F5C\u4E3A\u66FF\u4EE3\u65B9\u6848\u63D0\u51FA\uFF1A\u8FD9\u6837\u65B0\u7684\u8BBE\u5907\u65E0\u9700\u518D\u6B21\u7F16\u8F91\u81EA\u52A8\u5316\u5373\u53EF\u88AB\u8986\u76D6\u3002",
+    home_suggestion_group:
+      "\u5C06\u89E6\u53D1 {collection} \u7684 {count} \u4E2A\u8BBE\u5907\u5206\u7EC4",
+    home_suggestion_group_prompt:
+      "\u5C06 {entity}\uFF08{entity_id}\uFF09\u5408\u5E76\u5230\u4E00\u4E2A\u7EC4\u4E2D\uFF0C\u5E76\u66F4\u65B0\u81EA\u52A8\u5316 {collection}\uFF08{ref}\uFF09\uFF0C\u6539\u7528\u8BE5\u7EC4\u800C\u4E0D\u662F\u9010\u4E2A\u5217\u51FA\u3002\u5982\u679C\u5DF2\u6709\u7EC4\u6070\u597D\u5305\u542B\u8FD9\u4E9B\u8BBE\u5907\uFF0C\u8BF7\u590D\u7528\u5B83\u3002",
+    home_suggestion_dismiss: "\u5FFD\u7565",
+    home_suggestion_more: "\u53E6\u5916 {count} \u4E2A",
+    home_suggestion_why_home:
+      "{collection} \u5DF2\u6DB5\u76D6 {members}\uFF1A\u4F60\u5BB6\u4E2D\u6240\u6709\u6B64\u7C7B\u8BBE\u5907\u3002",
+    home_suggestion_why_area:
+      "{collection} \u5DF2\u6DB5\u76D6 {members}\uFF1A{area} \u4E2D\u6240\u6709\u6B64\u7C7B\u8BBE\u5907\u3002",
+    home_suggestion_why_newer:
+      "{entity} \u662F\u5728\u5B83\u4EEC\u4E4B\u540E\u6DFB\u52A0\u7684\uFF0C\u56E0\u6B64\u5F88\u53EF\u80FD\u4E0D\u662F\u6709\u610F\u9057\u6F0F\u7684\u3002",
+    home_suggestion_group_why:
+      "{collection} \u9010\u4E00\u5217\u51FA\u4E86 {members}\u3002\u4F7F\u7528\u7FA4\u7EC4\u540E\uFF0C\u65B0\u8BBE\u5907\u53EA\u9700\u52A0\u5165\u7FA4\u7EC4\uFF0C\u81EA\u52A8\u5316\u5C31\u4F1A\u968F\u4E4B\u751F\u6548\u3002",
+    home_suggestion_group_caveat:
+      "\u4E4B\u540E\u5B83\u4F1A\u5728\u6574\u4E2A\u7FA4\u7EC4\u53D8\u5316\u65F6\u8FD0\u884C\uFF0C\u800C\u4E0D\u4F1A\u5728\u53E6\u4E00\u4E2A\u8BBE\u5907\u4ECD\u5904\u4E8E\u6D3B\u52A8\u72B6\u6001\u65F6\u4E3A\u6BCF\u4E2A\u8BBE\u5907\u518D\u6B21\u8FD0\u884C\u3002",
+    home_suggestion_do_it: "\u8BA9 Selora \u6765\u505A",
+    chat_message_details: "\u8BE6\u60C5",
   },
   options: {
     step: {
@@ -27592,6 +28072,32 @@ var zh_Hant_default = {
     restore_card_restored: "\u5DF2\u5FA9\u539F",
     restore_card_gone:
       "\u5DF2\u4E0D\u5728\u300C\u6700\u8FD1\u522A\u9664\u300D\u4E2D",
+    home_suggestions_heading:
+      "\u6211\u6CE8\u610F\u5230\u5E7E\u4EF6\u53EF\u4EE5\u5E6B\u4F60\u8655\u7406\u7684\u4E8B",
+    home_suggestion_add_group: "\u5C07 {entity} \u52A0\u5165 {collection}",
+    home_suggestion_add_group_prompt:
+      "\u5C07 {entity}\uFF08{entity_id}\uFF09\u52A0\u5165\u7FA4\u7D44 {collection}\uFF08{ref}\uFF09\u3002",
+    home_suggestion_add_automation: "\u5C07 {entity} \u7D0D\u5165 {collection}",
+    home_suggestion_add_automation_prompt:
+      "\u66F4\u65B0\u81EA\u52D5\u5316 {collection}\uFF08{ref}\uFF09\uFF0C\u8B93\u5B83\u50CF\u6DB5\u84CB\u5176\u4ED6\u540C\u985E\u88DD\u7F6E\u4E00\u6A23\u4E5F\u6DB5\u84CB {entity}\uFF08{entity_id}\uFF09\u3002 \u5982\u679C Home Assistant \u5DF2\u6709\u4E00\u500B\u7D71\u4E00\u8FFD\u8E64\u5B83\u5011\u7684\u5BE6\u9AD4\uFF08\u4E00\u500B\u7FA4\u7D44\uFF0C\u6216\u7D71\u8A08\u5176\u4E2D\u4EBA\u6578\u7684\u5340\u57DF\uFF09\uFF0C\u8ACB\u5C07\u5176\u4F5C\u70BA\u66FF\u4EE3\u65B9\u6848\u63D0\u51FA\uFF1A\u9019\u6A23\u65B0\u7684\u88DD\u7F6E\u7121\u9700\u518D\u6B21\u7DE8\u8F2F\u81EA\u52D5\u5316\u5373\u53EF\u88AB\u6DB5\u84CB\u3002",
+    home_suggestion_group:
+      "\u5C07\u89F8\u767C {collection} \u7684 {count} \u500B\u88DD\u7F6E\u5206\u7D44",
+    home_suggestion_group_prompt:
+      "\u5C07 {entity}\uFF08{entity_id}\uFF09\u5408\u4F75\u5230\u4E00\u500B\u7FA4\u7D44\u4E2D\uFF0C\u4E26\u66F4\u65B0\u81EA\u52D5\u5316 {collection}\uFF08{ref}\uFF09\uFF0C\u6539\u7528\u8A72\u7FA4\u7D44\u800C\u4E0D\u662F\u9010\u4E00\u5217\u51FA\u3002\u5982\u679C\u5DF2\u6709\u7FA4\u7D44\u6070\u597D\u5305\u542B\u9019\u4E9B\u88DD\u7F6E\uFF0C\u8ACB\u91CD\u8907\u4F7F\u7528\u5B83\u3002",
+    home_suggestion_dismiss: "\u5FFD\u7565",
+    home_suggestion_more: "\u53E6\u5916 {count} \u500B",
+    home_suggestion_why_home:
+      "{collection} \u5DF2\u6DB5\u84CB {members}\uFF1A\u4F60\u5BB6\u4E2D\u6240\u6709\u6B64\u985E\u88DD\u7F6E\u3002",
+    home_suggestion_why_area:
+      "{collection} \u5DF2\u6DB5\u84CB {members}\uFF1A{area} \u4E2D\u6240\u6709\u6B64\u985E\u88DD\u7F6E\u3002",
+    home_suggestion_why_newer:
+      "{entity} \u662F\u5728\u5B83\u5011\u4E4B\u5F8C\u65B0\u589E\u7684\uFF0C\u56E0\u6B64\u5F88\u53EF\u80FD\u4E0D\u662F\u523B\u610F\u907A\u6F0F\u7684\u3002",
+    home_suggestion_group_why:
+      "{collection} \u9010\u4E00\u5217\u51FA\u4E86 {members}\u3002\u4F7F\u7528\u7FA4\u7D44\u5F8C\uFF0C\u65B0\u88DD\u7F6E\u53EA\u9700\u52A0\u5165\u7FA4\u7D44\uFF0C\u81EA\u52D5\u5316\u5C31\u6703\u96A8\u4E4B\u751F\u6548\u3002",
+    home_suggestion_group_caveat:
+      "\u4E4B\u5F8C\u5B83\u6703\u5728\u6574\u500B\u7FA4\u7D44\u8B8A\u5316\u6642\u57F7\u884C\uFF0C\u800C\u4E0D\u6703\u5728\u53E6\u4E00\u500B\u88DD\u7F6E\u4ECD\u8655\u65BC\u4F5C\u7528\u4E2D\u6642\u70BA\u6BCF\u500B\u88DD\u7F6E\u518D\u6B21\u57F7\u884C\u3002",
+    home_suggestion_do_it: "\u8ACB Selora \u4F86\u505A",
+    chat_message_details: "\u8A73\u60C5",
   },
   options: {
     step: {
@@ -27864,18 +28370,18 @@ function _coalesceEntityListings(text) {
       i8 = j3;
       continue;
     }
-    const ids = [];
+    const ids2 = [];
     let j2 = i8;
     while (j2 < lines.length) {
       const m3 = lines[j2].match(ID_LINE);
       if (!m3) break;
-      ids.push(m3[1]);
+      ids2.push(m3[1]);
       j2++;
       j2 = skipStateLines(j2);
       j2 = skipBlanks(j2);
     }
-    if (ids.length >= 1) {
-      out.push(`[[entities:${ids.join(",")}]]`);
+    if (ids2.length >= 1) {
+      out.push(`[[entities:${ids2.join(",")}]]`);
       i8 = j2;
       continue;
     }
@@ -28004,8 +28510,8 @@ function renderMarkdown(text) {
   );
   escaped = escaped.replace(
     /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
-    (_m, ids) =>
-      `<div class="selora-entity-grid" data-entity-ids="${ids}"></div>`,
+    (_m, ids2) =>
+      `<div class="selora-entity-grid" data-entity-ids="${ids2}"></div>`,
   );
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   escaped = escaped.replace(
@@ -29792,8 +30298,8 @@ function _mobileAppDevice(hass, svcName) {
 function _notifyTargetName(hass, item, svcName, lang) {
   if (svcName === "notify") return null;
   if (svcName === "send_message") {
-    const ids = item.target?.entity_id ?? item.data?.entity_id;
-    return ids ? fmtEntities(hass, ids, lang) : null;
+    const ids2 = item.target?.entity_id ?? item.data?.entity_id;
+    return ids2 ? fmtEntities(hass, ids2, lang) : null;
   }
   const phone = _mobileAppDevice(hass, svcName);
   if (phone) return phone.name;
@@ -29805,17 +30311,17 @@ function _triggerEffectiveId(tr, index) {
 function _entityNamesOr(hass, val, t5) {
   const arr = asArray(val);
   if (arr.length <= 1) return fmtEntity(hass, arr[0]);
-  const names = arr.map((e6) => fmtEntity(hass, e6));
-  return names.slice(0, -1).join(", ") + t5("or") + names[names.length - 1];
+  const names2 = arr.map((e6) => fmtEntity(hass, e6));
+  return names2.slice(0, -1).join(", ") + t5("or") + names2[names2.length - 1];
 }
 function _statesOr(val, lang, t5) {
   if (val == null) return null;
   const arr = asArray(val);
   if (!arr.length) return null;
-  const names = arr.map((s6) => fmtState(s6, lang)).filter(Boolean);
-  if (!names.length) return null;
-  if (names.length === 1) return names[0];
-  return names.slice(0, -1).join(", ") + t5("or") + names[names.length - 1];
+  const names2 = arr.map((s6) => fmtState(s6, lang)).filter(Boolean);
+  if (!names2.length) return null;
+  if (names2.length === 1) return names2[0];
+  return names2.slice(0, -1).join(", ") + t5("or") + names2[names2.length - 1];
 }
 var _CLAUSE_RE =
   /^\(?\s*(?:states\(\s*['"]([^'"]+)['"]\s*\)|state_attr\(\s*['"]([^'"]+)['"]\s*,\s*['"]([^'"]+)['"]\s*\))(?:\s*\|\s*(?:int|float)\b(?:\([^()]*\))?)*\s*\)?\s*(<=?|>=?)\s*(-?\d+(?:\.\d+)?)\s*$/;
@@ -30108,9 +30614,9 @@ function describeFlowItem(hass, item, ctx) {
     return parsed || t5("cond_template_true");
   }
   if (cond === "trigger") {
-    const ids = asArray(item.id).map(String);
+    const ids2 = asArray(item.id).map(String);
     const matched = asArray(ctx?.triggers).filter((tr, i8) =>
-      ids.includes(_triggerEffectiveId(tr, i8)),
+      ids2.includes(_triggerEffectiveId(tr, i8)),
     );
     if (
       matched.length &&
@@ -30122,7 +30628,7 @@ function describeFlowItem(hass, item, ctx) {
       if (times.length) return t5("cond_at_time", times.join(t5("or")));
     }
     const labels = matched.map((tr) => describeFlowItem(hass, tr, ctx));
-    const label = (labels.length ? labels : ids).join(t5("or"));
+    const label = (labels.length ? labels : ids2).join(t5("or"));
     return t5("cond_triggered_by", label);
   }
   if (cond === "sun") {
@@ -30439,8 +30945,8 @@ function displayTriggers(triggers, conditions, actions) {
     if (hasUnconditional) return false;
     if (refIds.has(_triggerEffectiveId(tr, i8))) return true;
     if (!_isBareStateTrigger(tr)) return false;
-    const ids = asArray(tr.entity_id).filter((e6) => typeof e6 === "string");
-    return ids.length > 0 && ids.every((e6) => condEntities.has(e6));
+    const ids2 = asArray(tr.entity_id).filter((e6) => typeof e6 === "string");
+    return ids2.length > 0 && ids2.every((e6) => condEntities.has(e6));
   };
   if (trigs.every(isRedundant)) return [];
   return mergeEquivalentTriggers(trigs);
@@ -31000,7 +31506,7 @@ function callTargetEntityIds(call) {
 }
 function describeCall(host, call) {
   const service = call?.service || "";
-  const ids = callTargetEntityIds(call);
+  const ids2 = callTargetEntityIds(call);
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
   const t5 =
@@ -31009,13 +31515,13 @@ function describeCall(host, call) {
       : (_k, fb) => fb;
   const imperative = forms?.imperative || t5("action_format_run_verb", "Run");
   const pastVerb = forms?.past || t5("action_format_ran_verb", "Ran");
-  if (ids.length) {
-    const names = ids.map((eid) => _friendlyName(host, eid));
+  if (ids2.length) {
+    const names2 = ids2.map((eid) => _friendlyName(host, eid));
     return {
       verb: imperative,
       pastVerb,
-      targetText: names.join(", "),
-      entityIds: ids,
+      targetText: names2.join(", "),
+      entityIds: ids2,
     };
   }
   const tail = _serviceSuffix(service);
@@ -31345,13 +31851,13 @@ function _renderActionTile(call) {
   `;
 }
 function _renderCallRow(host, call, reason) {
-  const ids = callTargetEntityIds(call);
+  const ids2 = callTargetEntityIds(call);
   const { targetText } = describeCall(host, call);
-  const rightSide = ids.length
+  const rightSide = ids2.length
     ? b2`
         <div
           class="selora-entity-grid"
-          data-entity-ids=${ids.join(",")}
+          data-entity-ids=${ids2.join(",")}
           data-no-features="true"
           style="flex:1;min-width:0;margin:0;"
         ></div>
@@ -31389,16 +31895,16 @@ function _renderCallRow(host, call, reason) {
 }
 function _proposalEntityIds(approval) {
   const seen = /* @__PURE__ */ new Set();
-  const ids = [];
+  const ids2 = [];
   for (const call of approval?.calls || []) {
     for (const eid of callTargetEntityIds(call)) {
       if (typeof eid === "string" && !seen.has(eid)) {
         seen.add(eid);
-        ids.push(eid);
+        ids2.push(eid);
       }
     }
   }
-  return ids;
+  return ids2;
 }
 function _domainOfEntity(entityId) {
   return (entityId || "").split(".", 1)[0];
@@ -36895,13 +37401,13 @@ function renderSceneEntityList(host, entities) {
   return _renderEntityList(host, entities);
 }
 function _renderEntityList(host, entities, editSceneId = null) {
-  const ids = Object.keys(entities || {});
-  if (!ids.length) return "";
+  const ids2 = Object.keys(entities || {});
+  if (!ids2.length) return "";
   const source = editSceneId
     ? host._sceneEditedEntities(editSceneId)
     : entities;
   const groups = /* @__PURE__ */ new Map();
-  for (const id of ids) {
+  for (const id of ids2) {
     const area = _entityArea(host, id);
     if (!groups.has(area)) groups.set(area, []);
     groups.get(area).push(id);
@@ -37926,12 +38432,12 @@ function formatDate3(host, iso) {
     return iso;
   }
 }
-async function fetchDetails(host, ids) {
+async function fetchDetails(host, ids2) {
   let items = [];
   try {
     ({ items } = await host.hass.callWS({
       type: "selora_ai/trash/get",
-      trash_ids: ids,
+      trash_ids: ids2,
     }));
   } catch (err) {
     console.error("Failed to load deleted items", err);
@@ -37942,7 +38448,7 @@ async function fetchDetails(host, ids) {
   );
   host._restoreDetails = {
     ...(host._restoreDetails || {}),
-    ...Object.fromEntries(ids.map((id) => [id, found[id] || null])),
+    ...Object.fromEntries(ids2.map((id) => [id, found[id] || null])),
   };
   host.requestUpdate();
 }
@@ -39314,8 +39820,23 @@ function buildEntityMarker(selections) {
 function stripEntityMarkers(text) {
   if (typeof text !== "string" || !text) return text;
   return text
-    .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
+    .replace(/\s*\[\[(?:entity|entities|areas|details):[^\]]+\]\]/g, "")
     .trimEnd();
+}
+function buildDetailsMarker(details) {
+  const text = String(details || "")
+    .replace(/\]/g, ")")
+    .trim();
+  return text
+    ? `
+
+[[details:${text}]]`
+    : "";
+}
+function messageDetails(text) {
+  if (typeof text !== "string") return "";
+  const match = text.match(/\[\[details:([^\]]+)\]\]/);
+  return match ? match[1].trim() : "";
 }
 function _escapeRegex(s6) {
   return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -39349,6 +39870,229 @@ function pruneStaleSelections(text, selections, ignoreRange) {
     if (!skipping) return spans.length > 0;
     return spans.some(([start, end]) => start < skipFrom || end > skipTo);
   });
+}
+
+// src/panel/home-suggestions.js
+var MAX_SHOWN = 3;
+var MAX_NAMED = 3;
+async function loadHomeSuggestions(host) {
+  try {
+    host._homeSuggestions =
+      (await host.hass.callWS({ type: "selora_ai/home_suggestions" })) || [];
+  } catch (err) {
+    console.error("Failed to load home suggestions", err);
+  }
+}
+async function dismiss(host, suggestion) {
+  host._homeSuggestions = (host._homeSuggestions || []).filter(
+    (s6) => s6.suggestion_id !== suggestion.suggestion_id,
+  );
+  try {
+    await host.hass.callWS({
+      type: "selora_ai/home_suggestions/dismiss",
+      suggestion_id: suggestion.suggestion_id,
+    });
+  } catch (err) {
+    console.error("Failed to dismiss home suggestion", err);
+  }
+}
+function toggle(host, suggestion) {
+  host._expandedHomeSuggestion =
+    host._expandedHomeSuggestion === suggestion.suggestion_id
+      ? null
+      : suggestion.suggestion_id;
+}
+async function act(host, suggestion, d3) {
+  const message = d3.title + buildDetailsMarker(d3.prompt);
+  const automationId = suggestion.collection.automation_id;
+  if (!automationId) {
+    await host._askInNewChat(message);
+    return;
+  }
+  try {
+    const { session_id } = await host.hass.callWS({
+      type: "selora_ai/load_automation_to_session",
+      automation_id: automationId,
+    });
+    host._setActiveTab("chat");
+    await host._openSession(session_id);
+    if (host._activeSessionId !== session_id) return;
+    host._input = message;
+    host._sendMessage();
+  } catch (err) {
+    console.error("Failed to open the automation in chat", err);
+    await host._askInNewChat(message);
+  }
+}
+function names(entities) {
+  return entities.map((e6) => e6.name).join(", ");
+}
+function ids(entities) {
+  return entities.map((e6) => e6.entity_id).join(", ");
+}
+function nameList(host, entities) {
+  const shown = entities.slice(0, MAX_NAMED).map((e6) => e6.name);
+  const rest = entities.length - shown.length;
+  if (rest > 0) {
+    shown.push(
+      interpolate(host._t("home_suggestion_more", "{count} more"), {
+        count: rest,
+      }),
+    );
+  }
+  try {
+    return new Intl.ListFormat(pickLocale(host.hass), {
+      type: "conjunction",
+    }).format(shown);
+  } catch {
+    return shown.join(", ");
+  }
+}
+function describe(host, s6) {
+  const grouping = s6.type === "group_entities";
+  const values = {
+    entity: names(s6.entities),
+    entity_id: ids(s6.entities),
+    collection: s6.collection.name,
+    ref: s6.collection.ref,
+    count: s6.entities.length,
+    members: nameList(host, grouping ? s6.entities : s6.members || []),
+    area: s6.area || "",
+  };
+  const t5 = (key, fallback) => interpolate(host._t(key, fallback), values);
+  if (grouping) {
+    return {
+      icon: "mdi:group",
+      title: t5(
+        "home_suggestion_group",
+        "Group the {count} devices that trigger {collection}",
+      ),
+      prompt: t5(
+        "home_suggestion_group_prompt",
+        "Group {entity} ({entity_id}) into one group helper, and update the automation {collection} ({ref}) to use the group instead of listing them. Reuse an existing group if one already holds exactly these.",
+      ),
+      why: [
+        t5(
+          "home_suggestion_group_why",
+          "{collection} lists {members} one by one. With a group, a new device only needs adding to the group and the automation follows.",
+        ),
+        t5(
+          "home_suggestion_group_caveat",
+          "It then runs when the group as a whole changes, not again for each device while another one is still active.",
+        ),
+      ],
+    };
+  }
+  if (s6.type !== "add_to_collection") return null;
+  const why = [
+    s6.area
+      ? t5(
+          "home_suggestion_why_area",
+          "{collection} already covers {members}: every one of this kind in {area}.",
+        )
+      : t5(
+          "home_suggestion_why_home",
+          "{collection} already covers {members}: every one of this kind in your home.",
+        ),
+    t5(
+      "home_suggestion_why_newer",
+      "{entity} was added after them, so it was probably not left out on purpose.",
+    ),
+  ];
+  if (s6.collection.source === "automation") {
+    return {
+      icon: "mdi:robot-outline",
+      title: t5(
+        "home_suggestion_add_automation",
+        "Include {entity} in {collection}",
+      ),
+      prompt: t5(
+        "home_suggestion_add_automation_prompt",
+        "Update the automation {collection} ({ref}) so it also covers {entity} ({entity_id}), the same way it covers the others like it. If Home Assistant already has one entity that follows all of them together (a group, or a zone counting the people in it), offer that as an alternative: new ones are then covered without editing the automation again.",
+      ),
+      why,
+    };
+  }
+  return {
+    icon: "mdi:plus-circle-outline",
+    title: t5("home_suggestion_add_group", "Add {entity} to {collection}"),
+    prompt: t5(
+      "home_suggestion_add_group_prompt",
+      "Add {entity} ({entity_id}) to the group {collection} ({ref}).",
+    ),
+    why,
+  };
+}
+function renderHomeSuggestions(host) {
+  const rows = (host._homeSuggestions || [])
+    .map((s6) => [s6, describe(host, s6)])
+    .filter(([, d3]) => d3)
+    .slice(0, MAX_SHOWN);
+  if (!rows.length) return "";
+  return b2`
+    <div class="home-suggestions">
+      <div class="home-suggestions-heading">
+        ${host._t(
+          "home_suggestions_heading",
+          "I noticed a few things I can help with",
+        )}
+      </div>
+      ${rows.map(([s6, d3]) => {
+        const open = host._expandedHomeSuggestion === s6.suggestion_id;
+        return b2`
+          <div class="home-suggestion ${open ? "open" : ""}">
+            <div class="home-suggestion-row">
+              <button
+                class="home-suggestion-main"
+                aria-expanded=${open ? "true" : "false"}
+                @click=${() => toggle(host, s6)}
+              >
+                <span class="home-suggestion-icon"
+                  ><ha-icon icon=${d3.icon}></ha-icon
+                ></span>
+                <span class="home-suggestion-title">${d3.title}</span>
+                <ha-icon
+                  class="home-suggestion-chevron"
+                  icon="mdi:chevron-down"
+                ></ha-icon>
+              </button>
+              <button
+                class="home-suggestion-dismiss"
+                title=${host._t("home_suggestion_dismiss", "Dismiss")}
+                aria-label=${host._t("home_suggestion_dismiss", "Dismiss")}
+                @click=${() => dismiss(host, s6)}
+              >
+                <ha-icon icon="mdi:close"></ha-icon>
+              </button>
+            </div>
+            ${
+              open
+                ? b2`<div class="home-suggestion-detail">
+                    ${d3.why.map((line) => b2`<p>${line}</p>`)}
+                    <div class="home-suggestion-footer">
+                      <button
+                        class="home-suggestion-act"
+                        @click=${() => act(host, s6, d3)}
+                      >
+                        <span
+                          >${host._t(
+                            "home_suggestion_do_it",
+                            "Ask Selora to do it",
+                          )}</span
+                        >
+                        <span class="composer-send" aria-hidden="true"
+                          ><ha-icon icon="mdi:arrow-up"></ha-icon
+                        ></span>
+                      </button>
+                    </div>
+                  </div>`
+                : ""
+            }
+          </div>
+        `;
+      })}
+    </div>
+  `;
 }
 
 // src/panel/chat-attachments.js
@@ -39822,6 +40566,7 @@ function renderChat(host) {
                           host._newAutomationMode
                             ? renderAutomationSuggestButton(host)
                             : b2`
+                                ${renderHomeSuggestions(host)}
                                 <details class="welcome-quickstart">
                                   <summary class="welcome-quickstart-summary">
                                     <span
@@ -40689,6 +41434,7 @@ function renderMessage(host, msg, idx) {
                   class="msg-content"
                   .textContent=${stripEntityMarkers(msg.content)}
                 ></span>
+                ${renderMessageDetails(host, msg.content)}
               </div>
             `
           : b2`
@@ -41057,6 +41803,14 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
         : ""
     }
   `;
+}
+function renderMessageDetails(host, content) {
+  const details = messageDetails(content);
+  if (!details) return "";
+  return b2`<details class="msg-details">
+    <summary>${host._t("chat_message_details", "Details")}</summary>
+    <div class="msg-details-body">${details}</div>
+  </details>`;
 }
 
 // src/panel/render-ignore-list.js
@@ -43741,7 +44495,7 @@ function _sumChange(buckets) {
 }
 async function loadUsageStats(host) {
   const sensors = _findUsageSensors(host.hass);
-  const ids = _USAGE_KEYS.map((k2) => sensors[k2]?.entityId).filter(Boolean);
+  const ids2 = _USAGE_KEYS.map((k2) => sensors[k2]?.entityId).filter(Boolean);
   const now = /* @__PURE__ */ new Date();
   const startOfToday = new Date(
     now.getFullYear(),
@@ -43753,12 +44507,12 @@ async function loadUsageStats(host) {
   const startOfMonth = new Date(startOfToday);
   startOfMonth.setDate(1);
   const periodPromise =
-    ids.length === 0
+    ids2.length === 0
       ? Promise.resolve([{}, {}, {}])
       : Promise.all([
-          _fetchPeriodStats(host.hass, ids, startOfToday),
-          _fetchPeriodStats(host.hass, ids, startOfWeek),
-          _fetchPeriodStats(host.hass, ids, startOfMonth),
+          _fetchPeriodStats(host.hass, ids2, startOfToday),
+          _fetchPeriodStats(host.hass, ids2, startOfWeek),
+          _fetchPeriodStats(host.hass, ids2, startOfMonth),
         ]);
   const recentPromise = host.hass
     .callWS({ type: "selora_ai/usage/recent" })
@@ -45159,11 +45913,11 @@ var _CATEGORY_LABEL = {
   improvement: "Improvement",
 };
 function _entityCards(host, entityIds) {
-  const ids = (entityIds || []).filter((e6) => host.hass?.states?.[e6]);
-  if (!ids.length) return "";
+  const ids2 = (entityIds || []).filter((e6) => host.hass?.states?.[e6]);
+  if (!ids2.length) return "";
   return b2`<div
     class="selora-entity-grid audit-card-tiles"
-    data-entity-ids=${ids.join(",")}
+    data-entity-ids=${ids2.join(",")}
   ></div>`;
 }
 function _askPrompt(rec) {
@@ -52054,7 +52808,7 @@ function phraseVersionChanges(host, changes) {
       `version_summary_section_${section}`,
       SECTION_FALLBACK[section]?.one || humanize(section),
     );
-  const describe = (item) =>
+  const describe2 = (item) =>
     clip(describeFlowItem(hass, item, {}), MAX_ITEM_CHARS + 1);
   const clauses = [];
   const pendingTwins = /* @__PURE__ */ new Map();
@@ -52063,8 +52817,8 @@ function phraseVersionChanges(host, changes) {
     const section = change.section;
     switch (change.kind) {
       case "item_changed": {
-        const from = change.before != null ? describe(change.before) : "";
-        const to = change.after != null ? describe(change.after) : "";
+        const from = change.before != null ? describe2(change.before) : "";
+        const to = change.after != null ? describe2(change.after) : "";
         if (
           from &&
           to &&
@@ -52582,6 +53336,7 @@ __export(session_actions_exports, {
   _onSessionTouchEnd: () => _onSessionTouchEnd,
   _onSessionTouchMove: () => _onSessionTouchMove,
   _onSessionTouchStart: () => _onSessionTouchStart,
+  _openChatHome: () => _openChatHome,
   _openRecipeFromPill: () => _openRecipeFromPill,
   _openSession: () => _openSession,
   _requestBulkDeleteSessions: () => _requestBulkDeleteSessions,
@@ -52707,8 +53462,24 @@ function _checkTabParam() {
     url.searchParams.delete("new_automation");
     window.history.replaceState({}, "", url);
   }
+  if (params.has("home_suggestions")) {
+    this._openingChatHome = true;
+    if (this.hass) this._openChatHome();
+    else this._pendingChatHome = true;
+    const url = new URL(window.location);
+    url.searchParams.delete("home_suggestions");
+    window.history.replaceState({}, "", url);
+  }
+}
+async function _openChatHome() {
+  try {
+    await this._newSession();
+  } finally {
+    this._openingChatHome = false;
+  }
 }
 async function _loadSessions() {
+  loadHomeSuggestions(this);
   try {
     const sessions = await this.hass.callWS({
       type: "selora_ai/get_sessions",
@@ -52716,6 +53487,7 @@ async function _loadSessions() {
     this._sessions = sessions || [];
     if (
       !this._activeSessionId &&
+      !this._openingChatHome &&
       this._sessions.length > 0 &&
       this._activeTab === "chat"
     ) {
@@ -53029,10 +53801,10 @@ function _requestBulkDeleteSessions() {
 }
 async function _confirmBulkDeleteSessions() {
   this._deleteConfirmSessionId = null;
-  const ids = Object.entries(this._selectedSessionIds)
+  const ids2 = Object.entries(this._selectedSessionIds)
     .filter(([, v3]) => v3)
     .map(([id]) => id);
-  for (const id of ids) {
+  for (const id of ids2) {
     try {
       await this.hass.callWS({
         type: "selora_ai/delete_session",
@@ -53060,7 +53832,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "deaff7137571" : "";
+var PANEL_BUILD = true ? "c6c9ac7a9064" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -54644,6 +55416,8 @@ var SeloraAIPanel = class extends i4 {
       panel: { type: Object },
       // Session list
       _sessions: { type: Array },
+      _homeSuggestions: { type: Array },
+      _expandedHomeSuggestion: { type: String },
       _activeSessionId: { type: String },
       // Message view
       _messages: { type: Array },
@@ -56377,6 +57151,10 @@ var SeloraAIPanel = class extends i4 {
             .join("");
       }
     }
+    if (this.hass && this._pendingChatHome) {
+      this._pendingChatHome = false;
+      this._openChatHome();
+    }
     if (this.hass && this._pendingNewAutomation) {
       const name = this._pendingNewAutomation;
       this._pendingNewAutomation = null;
@@ -56554,7 +57332,7 @@ var SeloraAIPanel = class extends i4 {
         };
       }
       if (!wired) {
-        const ids = (grid.dataset.entityIds || "")
+        const ids2 = (grid.dataset.entityIds || "")
           .split(",")
           .map((s6) => s6.trim())
           .filter(Boolean);
@@ -56563,7 +57341,7 @@ var SeloraAIPanel = class extends i4 {
         let appended = 0;
         if (createTile) {
           const groups = /* @__PURE__ */ new Map();
-          for (const id of ids) {
+          for (const id of ids2) {
             if (!this.hass.states?.[id]) continue;
             const reg = registries.entities?.[id];
             const dev = reg?.device_id
@@ -56637,7 +57415,7 @@ var SeloraAIPanel = class extends i4 {
           grid.dataset.wired = "true";
           grid.dataset.wiredIds = grid.dataset.entityIds || "";
         } else {
-          grid.textContent = ids.join(", ");
+          grid.textContent = ids2.join(", ");
         }
       }
       if (grid.dataset.sceneStates) {

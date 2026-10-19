@@ -1048,7 +1048,23 @@
     "delete_approval_warning_restorable": "Potrai ripristinarlo da Eliminati di recente.",
     "restore_card_deleted_on": "Eliminato il {date}",
     "restore_card_restored": "Ripristinato",
-    "restore_card_gone": "Non è più in Eliminati di recente"
+    "restore_card_gone": "Non è più in Eliminati di recente",
+    "home_suggestions_heading": "Ho notato alcune cose in cui posso aiutarti",
+    "home_suggestion_add_group": "Aggiungi {entity} a {collection}",
+    "home_suggestion_add_group_prompt": "Aggiungi {entity} ({entity_id}) al gruppo {collection} ({ref}).",
+    "home_suggestion_add_automation": "Includi {entity} in {collection}",
+    "home_suggestion_add_automation_prompt": "Aggiorna l'automazione {collection} ({ref}) in modo che copra anche {entity} ({entity_id}), come fa con gli altri dello stesso tipo. Se Home Assistant ha già un'entità che li segue tutti insieme (un gruppo, o una zona che conta le persone al suo interno), proponila come alternativa: così i nuovi saranno coperti senza modificare di nuovo l'automazione.",
+    "home_suggestion_group": "Raggruppa i {count} dispositivi che attivano {collection}",
+    "home_suggestion_group_prompt": "Raggruppa {entity} ({entity_id}) in un unico gruppo e aggiorna l'automazione {collection} ({ref}) perché usi il gruppo invece di elencarli. Riusa un gruppo esistente se contiene già esattamente questi.",
+    "home_suggestion_dismiss": "Ignora",
+    "home_suggestion_more": "altri {count}",
+    "home_suggestion_why_home": "{collection} copre già {members}: tutti quelli di questo tipo in casa tua.",
+    "home_suggestion_why_area": "{collection} copre già {members}: tutti quelli di questo tipo in {area}.",
+    "home_suggestion_why_newer": "{entity} è stato aggiunto dopo, quindi probabilmente non è stato escluso di proposito.",
+    "home_suggestion_group_why": "{collection} elenca {members} uno per uno. Con un gruppo basta aggiungere un nuovo dispositivo al gruppo e l'automazione lo segue.",
+    "home_suggestion_group_caveat": "Si attiva quindi quando cambia il gruppo nel suo insieme, non di nuovo per ogni dispositivo finché un altro è ancora attivo.",
+    "home_suggestion_do_it": "Chiedi a Selora di farlo",
+    "chat_message_details": "Dettagli"
   },
   "options": {
     "step": {

@@ -323,6 +323,42 @@ class SuggestionDict(TypedDict, total=False):
     dismissal_reason: str | None
 
 
+class HomeSuggestionEntity(TypedDict):
+    """An entity a home suggestion is about."""
+
+    entity_id: str
+    name: str
+
+
+class HomeSuggestionCollection(TypedDict):
+    """The group or automation a home suggestion changes."""
+
+    source: str  # "group_helper" | "automation"
+    name: str
+    # The group's entity_id, or the automation's entity_id (its config id when
+    # the automation is not loaded).
+    ref: str
+    # Automations only: the config id the panel loads into the chat to edit.
+    automation_id: NotRequired[str]
+
+
+class HomeSuggestion(TypedDict):
+    """A change Selora proposes from how the home is organised.
+
+    See home_suggestions.py. ``type`` is "add_to_collection" (one entity to
+    add) or "group_entities" (the automation's trigger entities to group).
+    """
+
+    suggestion_id: str
+    type: str
+    entities: list[HomeSuggestionEntity]
+    collection: HomeSuggestionCollection
+    # add_to_collection only: the members of the entity's kind the collection
+    # already holds, and the area they all cover (None: the whole home).
+    members: NotRequired[list[HomeSuggestionEntity]]
+    area: NotRequired[str | None]
+
+
 # ── Chat attachments ──────────────────────────────────────────────────
 
 

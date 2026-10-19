@@ -54,12 +54,16 @@ export const chatStyles = css`
   .chat-welcome-center {
     flex: 1;
     display: flex;
-    align-items: center;
+    /* Centred by the child's auto margins rather than align-items: centre
+       alignment pushes content taller than the pane above its scroll origin,
+       out of reach. */
+    align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
     padding: 24px;
   }
   .welcome-center-content {
+    margin-block: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -77,6 +81,165 @@ export const chatStyles = css`
   .welcome-center-content .qa-group {
     width: 100%;
     justify-content: center;
+  }
+
+  /* "I noticed a few things I can help with" on the welcome screen */
+  .home-suggestions {
+    width: 100%;
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+  }
+  .home-suggestions-heading {
+    padding: 0 4px;
+    margin-bottom: 4px;
+    font-size: 15px;
+    color: var(--secondary-text-color);
+  }
+  .home-suggestion {
+    border: 1px solid var(--divider-color);
+    border-radius: 14px;
+    background: var(--card-background-color);
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+  }
+  .home-suggestion-row {
+    display: flex;
+    align-items: center;
+  }
+  .home-suggestion:hover,
+  .home-suggestion.open {
+    border-color: rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.04);
+  }
+  .home-suggestion-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--primary-text-color);
+    text-align: left;
+    cursor: pointer;
+  }
+  .home-suggestion-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--selora-accent-text, #f59e0b);
+    --mdc-icon-size: 18px;
+  }
+  :host(:not([dark])) .home-suggestion-icon {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+  }
+  .home-suggestion-title {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+  .home-suggestion-chevron {
+    flex-shrink: 0;
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+    transition: transform 0.2s;
+  }
+  .home-suggestion.open .home-suggestion-chevron {
+    transform: rotate(180deg);
+  }
+  .home-suggestion-detail {
+    padding: 0 14px 14px 56px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--primary-text-color);
+  }
+  .home-suggestion-detail p {
+    margin: 0 0 8px;
+    opacity: 0.8;
+  }
+  .home-suggestion-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+  /* A small composer: the same gold edge and send button, so acting on a
+     suggestion reads as sending it to Selora. */
+  .home-suggestion-act {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    padding: 5px 5px 5px 20px;
+    border: 1px solid rgba(251, 191, 36, 0.45);
+    border-radius: 999px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 0 18px -6px rgba(251, 191, 36, 0.5);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.2s;
+  }
+  .home-suggestion-act:hover {
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 22px -4px rgba(251, 191, 36, 0.6);
+  }
+  .home-suggestion-act:hover .composer-send {
+    transform: scale(1.06);
+  }
+  .home-suggestion-dismiss {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-right: 6px;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    opacity: 0.6;
+    --mdc-icon-size: 16px;
+  }
+  .home-suggestion-dismiss:hover {
+    opacity: 1;
+    background: rgba(127, 127, 127, 0.12);
+  }
+
+  /* The full request behind a summary the panel sent for the user. */
+  .msg-details {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+  .msg-details summary {
+    cursor: pointer;
+    opacity: 0.6;
+    user-select: none;
+  }
+  .msg-details summary:hover {
+    opacity: 0.9;
+  }
+  .msg-details-body {
+    margin-top: 6px;
+    opacity: 0.75;
+    white-space: pre-wrap;
   }
 
   /* Quick-start disclosure on the welcome screen */

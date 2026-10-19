@@ -26,6 +26,7 @@ import {
 import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
 import { renderRestoreCard } from "./restore-card.js";
+import { renderHomeSuggestions } from "./home-suggestions.js";
 import {
   acceptNextPrompt,
   activeNextPrompt,
@@ -41,6 +42,7 @@ import {
   applySelection,
   pruneStaleSelections,
   stripEntityMarkers,
+  messageDetails,
   findGhostSuggestion,
 } from "./chat-autocomplete.js";
 import {
@@ -301,6 +303,7 @@ export function renderChat(host) {
                           host._newAutomationMode
                             ? renderAutomationSuggestButton(host)
                             : html`
+                                ${renderHomeSuggestions(host)}
                                 <details class="welcome-quickstart">
                                   <summary class="welcome-quickstart-summary">
                                     <span
@@ -1412,6 +1415,7 @@ export function renderMessage(host, msg, idx) {
                   class="msg-content"
                   .textContent=${stripEntityMarkers(msg.content)}
                 ></span>
+                ${renderMessageDetails(host, msg.content)}
               </div>
             `
           : html`
@@ -1891,4 +1895,14 @@ export function renderYamlEditor(
         : ""
     }
   `;
+}
+
+// The full request behind a summary the panel wrote for the user, folded away.
+function renderMessageDetails(host, content) {
+  const details = messageDetails(content);
+  if (!details) return "";
+  return html`<details class="msg-details">
+    <summary>${host._t("chat_message_details", "Details")}</summary>
+    <div class="msg-details-body">${details}</div>
+  </details>`;
 }
