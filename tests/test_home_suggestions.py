@@ -192,6 +192,34 @@ async def test_an_automation_listing_every_one_of_a_kind_is_a_collection(
     assert suggestion["collection"]["name"] == "Everyone left"
 
 
+async def test_one_left_out_when_the_automation_was_written_is_never_suggested(
+    home: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Paired before the rule was written, so not picked on purpose."""
+    a = _add(home, freezer, "person.alice")
+    b = _add(home, freezer, "person.bob")
+    _add(home, freezer, "person.carol")
+    _write_automations(
+        home,
+        [
+            {
+                "id": "both_left",
+                "alias": "Both left",
+                "triggers": [{"trigger": "state", "entity_id": [a, b], "to": "not_home"}],
+                "actions": [],
+            }
+        ],
+    )
+    # The automation's entity registers when the rule is loaded, after carol.
+    freezer.tick(timedelta(minutes=1))
+    er.async_get(home).async_get_or_create(
+        "automation", "automation", "both_left", suggested_object_id="both_left"
+    )
+    home.states.async_set("automation.both_left", "on", {"id": "both_left"})
+
+    assert _added(await async_home_suggestions(home)) == set()
+
+
 async def test_a_switch_without_a_device_class_is_no_kind(
     home: HomeAssistant, freezer: FrozenDateTimeFactory
 ) -> None:

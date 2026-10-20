@@ -3,7 +3,6 @@ import {
   acceptNextPrompt,
   activeNextPrompt,
   fitComposerToPrediction,
-  isPredicting,
   refreshNextPrompt,
   requestNextPrompt,
 } from "../next-prompt.js";
@@ -73,40 +72,30 @@ describe("next-message prediction", () => {
     );
   });
 
-  it("holds the composer until the prediction is in", async () => {
+  it("a prediction landing after the user started typing stays hidden", async () => {
     let answer;
     const host = makeHost(null);
     host.hass.callWS = vi.fn(
       () => new Promise((resolve) => (answer = resolve)),
     );
     const pending = requestNextPrompt(host, reply, "s1");
-    expect(isPredicting(host)).toBe(true);
-    // Another conversation's composer is not held.
-    host._activeSessionId = "s2";
-    expect(isPredicting(host)).toBe(false);
-    host._activeSessionId = "s1";
+    host._input = "Turn off";
     answer({ prompt: "Rename it" });
     await pending;
-    expect(isPredicting(host)).toBe(false);
+    expect(activeNextPrompt(host)).toBe("");
+    host._input = "";
     expect(activeNextPrompt(host)).toBe("Rename it");
   });
 
-  it("releases the composer when the provider hangs", async () => {
+  it("drops the prediction when the provider hangs", async () => {
     vi.useFakeTimers();
     const host = makeHost(null);
     host.hass.callWS = vi.fn(() => new Promise(() => {}));
     const pending = requestNextPrompt(host, reply, "s1");
     await vi.advanceTimersByTimeAsync(10000);
     await pending;
-    expect(isPredicting(host)).toBe(false);
     expect(activeNextPrompt(host)).toBe("");
     vi.useRealTimers();
-  });
-
-  it("asks nothing and holds nothing when the setting is off", async () => {
-    const host = makeHost("Rename it", { _config: {} });
-    await requestNextPrompt(host, reply, "s1");
-    expect(isPredicting(host)).toBe(false);
   });
 
   it("a failed request shows nothing", async () => {

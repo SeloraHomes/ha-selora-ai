@@ -139,6 +139,9 @@ class TrashItem(TypedDict):
     # The automations.yaml / scenes.yaml entry exactly as it was removed.
     entry: dict[str, Any]
     deleted_at: str
+    # Removed by the stale-automation auto-purge, not by the user: kept under
+    # its own count so a purge never pushes out what the user deleted.
+    automatic: NotRequired[bool]
 
 
 class GroupInfo(TypedDict):
@@ -234,6 +237,7 @@ class AutomationRecord(TypedDict):
     versions: list[AutomationVersion]
     lineage: list[LineageEntry]
     retired_at: NotRequired[str]
+    retired_automatically: NotRequired[bool]
 
 
 class AutomationMetadata(TypedDict):

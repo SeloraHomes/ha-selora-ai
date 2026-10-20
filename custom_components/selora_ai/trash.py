@@ -75,15 +75,17 @@ class TrashStore:
         return self._items
 
     def _prune(self, items: list[TrashItem]) -> bool:
-        """Drop items past their time or beyond the per-kind count."""
+        """Drop items past their time or beyond the per-kind count. Automatic
+        removals count apart from the user's own deletes."""
         cutoff = (datetime.now(UTC) - timedelta(days=TRASH_DAYS)).isoformat()
-        seen: dict[str, int] = {}
+        seen: dict[tuple[str, bool], int] = {}
         keep: list[TrashItem] = []
         for item in items:
             if item.get("deleted_at", "") < cutoff:
                 continue
-            seen[item["kind"]] = seen.get(item["kind"], 0) + 1
-            if seen[item["kind"]] <= TRASH_MAX_PER_KIND:
+            bucket = (item["kind"], bool(item.get("automatic")))
+            seen[bucket] = seen.get(bucket, 0) + 1
+            if seen[bucket] <= TRASH_MAX_PER_KIND:
                 keep.append(item)
         if len(keep) == len(items):
             return False
@@ -93,7 +95,9 @@ class TrashStore:
     async def _save(self) -> None:
         await self._store.async_save({"items": self._items or []})
 
-    async def async_add(self, kind: str, entry: dict[str, Any], name: str) -> TrashItem:
+    async def async_add(
+        self, kind: str, entry: dict[str, Any], name: str, *, automatic: bool = False
+    ) -> TrashItem:
         """Keep a removed entry. ``entry`` is copied as plain JSON types."""
         item: TrashItem = {
             "trash_id": uuid.uuid4().hex,
@@ -102,6 +106,8 @@ class TrashStore:
             "entry": json.loads(json.dumps(entry, default=str)),
             "deleted_at": datetime.now(UTC).isoformat(),
         }
+        if automatic:
+            item["automatic"] = True
         async with self._lock:
             items = await self._loaded()
             items.insert(0, item)
@@ -139,8 +145,11 @@ def get_trash_store(hass: HomeAssistant) -> TrashStore:
     return domain_data["_trash_store"]
 
 
-async def async_trash(hass: HomeAssistant, kind: str, entry: dict[str, Any]) -> None:
-    """Keep an entry its caller has just removed from the YAML.
+async def async_trash(
+    hass: HomeAssistant, kind: str, entry: dict[str, Any], *, automatic: bool = False
+) -> None:
+    """Keep an entry its caller has just removed from the YAML. ``automatic``
+    marks a removal the user didn't ask for (the stale-automation auto-purge).
 
     Best effort: the delete has already happened, and failing it now would
     report a removed automation as still there.
@@ -150,7 +159,7 @@ async def async_trash(hass: HomeAssistant, kind: str, entry: dict[str, Any]) -> 
     else:
         name = entry.get("name") or entry.get("id") or ""
     try:
-        await get_trash_store(hass).async_add(kind, entry, str(name))
+        await get_trash_store(hass).async_add(kind, entry, str(name), automatic=automatic)
     except (HomeAssistantError, OSError, TypeError, ValueError) as exc:
         _LOGGER.warning("Could not keep deleted %s %r for restore: %s", kind, name, exc)
 

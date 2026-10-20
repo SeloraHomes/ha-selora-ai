@@ -4,14 +4,13 @@
 // turn, an appended approval result or a session switch retires it without
 // anyone having to clear it. Never stored — a reopened session shows none.
 
-// A provider that hangs must not hold the composer: past this the turn is
-// released with no prediction.
+// Past this a prediction is dropped: the user has moved on.
 const PREDICT_TIMEOUT_MS = 10000;
 
 // Ask for a prediction after `assistantMsg` finished. The composer stays
-// disabled while that session is on screen (`isPredicting`) until the answer
-// is in, so the suggestion is there before the user can start typing. `refocus` is set at the end of a
-// turn, where the composer had focus before it was disabled.
+// usable meanwhile; the suggestion appears as the placeholder if it is still
+// empty when the answer lands (`activeNextPrompt`). `refocus` is set at the
+// end of a turn, where the composer had focus before streaming disabled it.
 export async function requestNextPrompt(
   host,
   assistantMsg,
@@ -19,9 +18,9 @@ export async function requestNextPrompt(
   { refocus = false } = {},
 ) {
   host._nextPrompt = null;
+  if (refocus) _focusComposer(host, true);
   if (!sessionId || !host._config?.next_prompt_enabled) return;
   const token = (host._predictToken = (host._predictToken || 0) + 1);
-  host._predictingSession = sessionId;
   let result = null;
   try {
     result = await Promise.race([
@@ -37,12 +36,12 @@ export async function requestNextPrompt(
     // provider error, just means there is none to show.
     result = null;
   }
-  // A newer request owns the flag and the result.
+  // A newer request owns the result.
   if (host._predictToken !== token) return;
-  host._predictingSession = null;
   const text = typeof result?.prompt === "string" ? result.prompt.trim() : "";
-  if (text) host._nextPrompt = { message: assistantMsg, sessionId, text };
-  if (refocus || text) _focusComposer(host, refocus);
+  if (!text) return;
+  host._nextPrompt = { message: assistantMsg, sessionId, text };
+  _focusComposer(host, refocus);
 }
 
 // Tab only reaches the prediction from the composer, and after a click on a
@@ -76,15 +75,6 @@ export function refreshNextPrompt(host) {
   const last = messages[messages.length - 1];
   if (last?.role !== "assistant") return;
   requestNextPrompt(host, last, host._activeSessionId);
-}
-
-// Whether the composer on screen waits on a prediction. Scoped to the
-// session it was asked for: another conversation's composer is not held.
-export function isPredicting(host) {
-  return (
-    !!host._predictingSession &&
-    host._predictingSession === host._activeSessionId
-  );
 }
 
 // The prediction to show now, or "" when there is none.

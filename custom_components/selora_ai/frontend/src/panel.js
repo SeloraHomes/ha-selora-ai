@@ -257,7 +257,6 @@ class SeloraAIPanel extends LitElement {
       // Predicted next message, shown in the empty composer (next-prompt.js)
       _nextPrompt: { type: Object },
       // Composer held while the next-message prediction is requested
-      _predictingSession: { type: String },
       // Pending image attachments (dropped/pasted screenshots) + transient
       // error notice shown in the composer strip
       _chatAttachments: { type: Array },
@@ -624,7 +623,6 @@ class SeloraAIPanel extends LitElement {
     this._autocompleteSelections = [];
     this._ghost = null;
     this._nextPrompt = null;
-    this._predictingSession = null;
     this._chatAttachments = [];
     this._attachmentNotice = "";
     this._attachmentsBusy = 0;

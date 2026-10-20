@@ -27,8 +27,10 @@ from statistics import median
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from sqlalchemy.exc import SQLAlchemyError
 
 from .health_monitor import _is_transient
 from .helpers import device_config_entry_ids
@@ -338,6 +340,35 @@ def forecast_battery(
     }
 
 
+def _forecast_candidates(
+    candidates: Sequence[_Candidate],
+    histories: dict[str, list[tuple[float, Any]]],
+    now: datetime,
+) -> list[BatteryForecastItem]:
+    """Every candidate's forecast, soonest first. CPU-bound: run in an executor."""
+    items: list[BatteryForecastItem] = []
+    for candidate in candidates:
+        # The live reading ends every series: daily statistics lag up to a
+        # day, and a battery swapped since then must restart the fit, not
+        # pair its new level with the old battery's date.
+        series = clean_series(
+            [*histories.get(candidate.entity_id, []), (now.timestamp(), candidate.reading)]
+        )
+        if is_rechargeable(candidate.integrations, candidate.companions, series):
+            continue
+        item = forecast_battery(
+            candidate.entity_id,
+            candidate.device_id,
+            candidate.level,
+            since_last_replacement(series),
+            now,
+        )
+        if item is not None:
+            items.append(item)
+    items.sort(key=lambda item: item["depleted_at"])
+    return items
+
+
 # ── Home Assistant side ────────────────────────────────────────────────────
 
 
@@ -366,7 +397,7 @@ class BatteryForecaster:
             self._attempted_at = now
             try:
                 self._result = await self._async_compute(now)
-            except Exception:  # noqa: BLE001 — a forecast miss must never fail the export
+            except (HomeAssistantError, SQLAlchemyError, ValueError, ArithmeticError):
                 _LOGGER.exception("Battery forecast failed; keeping the previous one")
             return self._result
 
@@ -375,26 +406,11 @@ class BatteryForecaster:
             return None
         candidates = self._candidates()
         histories = await self._async_histories(candidates, now - _HISTORY_WINDOW, now)
-        items: list[BatteryForecastItem] = []
-        for candidate in candidates:
-            # The live reading ends every series: daily statistics lag up to a
-            # day, and a battery swapped since then must restart the fit, not
-            # pair its new level with the old battery's date.
-            series = clean_series(
-                [*histories.get(candidate.entity_id, []), (now.timestamp(), candidate.reading)]
-            )
-            if is_rechargeable(candidate.integrations, candidate.companions, series):
-                continue
-            item = forecast_battery(
-                candidate.entity_id,
-                candidate.device_id,
-                candidate.level,
-                since_last_replacement(series),
-                now,
-            )
-            if item is not None:
-                items.append(item)
-        items.sort(key=lambda item: item["depleted_at"])
+        # Each fit sorts up to ~80k pairwise slopes; a home of batteries would
+        # stall the event loop for seconds.
+        items = await self._hass.async_add_executor_job(
+            _forecast_candidates, candidates, histories, now
+        )
         return {"generated_at": now.isoformat(), "items": items}
 
     def _candidates(self) -> list[_Candidate]:

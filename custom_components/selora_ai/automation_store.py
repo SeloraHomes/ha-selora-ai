@@ -92,7 +92,10 @@ def _backfill_changes(data: AutomationStoreData) -> bool:
 
 
 def _prune_retired(data: AutomationStoreData) -> bool:
-    """Drop retired records past their age or beyond the count. True if any went."""
+    """Drop retired records past their age or beyond the count. True if any went.
+
+    Auto-purged records count apart, so a purge never drops the history of an
+    automation the user deleted (and may restore from the trash)."""
     retired = data.get("retired")
     if not retired:
         return False
@@ -100,11 +103,15 @@ def _prune_retired(data: AutomationStoreData) -> bool:
     newest_first = sorted(
         retired.items(), key=lambda item: item[1].get("retired_at", ""), reverse=True
     )
-    keep = {
-        automation_id: record
-        for automation_id, record in newest_first[:MAX_RETIRED_AUTOMATIONS]
-        if record.get("retired_at", "") >= cutoff
-    }
+    seen: dict[bool, int] = {}
+    keep: dict[str, AutomationRecord] = {}
+    for automation_id, record in newest_first:
+        if record.get("retired_at", "") < cutoff:
+            continue
+        bucket = bool(record.get("retired_automatically"))
+        seen[bucket] = seen.get(bucket, 0) + 1
+        if seen[bucket] <= MAX_RETIRED_AUTOMATIONS:
+            keep[automation_id] = record
     if len(keep) == len(retired):
         return False
     data["retired"] = keep
@@ -313,17 +320,22 @@ class AutomationStore:
         record_activity(self._hass, "automations_deleted")
         return True
 
-    async def retire_record(self, automation_id: str) -> bool:
+    async def retire_record(self, automation_id: str, *, automatic: bool = False) -> bool:
         """Take a deleted automation's record out of view, keeping its history.
 
         ``revive_record`` puts it back when the automation is made again under
         the same id; otherwise it is pruned with the other retired records.
+        ``automatic`` as in :func:`trash.async_trash`.
         """
         data_store = await self._get_loaded_data()
         record = data_store["records"].pop(automation_id, None)
         if record is None:
             return False
         record["retired_at"] = datetime.now(UTC).isoformat()
+        if automatic:
+            record["retired_automatically"] = True
+        else:
+            record.pop("retired_automatically", None)
         data_store.setdefault("retired", {})[automation_id] = record
         _prune_retired(data_store)
         await self._store.async_save(data_store)
@@ -360,6 +372,7 @@ class AutomationStore:
             return False
         record = retired.pop(automation_id)
         record.pop("retired_at", None)
+        record.pop("retired_automatically", None)
         data_store["records"][automation_id] = record
         return True
 

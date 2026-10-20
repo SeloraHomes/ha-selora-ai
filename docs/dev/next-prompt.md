@@ -11,11 +11,11 @@ never sends on its own.
   prediction was clipped to one row. `fitComposerToPrediction` (run from the
   host's `updated()`) measures it as the value instead.
 
-- **The prediction is the end of the turn.** The composer stays disabled
-  (`isPredicting`, scoped to the session it was asked for) until it is in, so
-  the user never starts typing before the suggestion lands;
-  `PREDICT_TIMEOUT_MS` caps the wait so a hung provider cannot hold it. A
-  resumption (accepting a card) is not held.
+- **The prediction never holds the composer.** It is an extra provider round
+  trip, seconds long on a slow one, and locking the composer for it blocked
+  every follow-up. It lands as the placeholder only if the composer is still
+  empty and the reply is still last (`activeNextPrompt`); `PREDICT_TIMEOUT_MS`
+  drops a late one.
 - **Silence is the default.** A wrong guess on every turn is noise, so the
   model returns a confidence and anything below `MIN_CONFIDENCE` is dropped.
   Tune the bar or the prompt (`next_prompt.py`), never add a rule for one kind

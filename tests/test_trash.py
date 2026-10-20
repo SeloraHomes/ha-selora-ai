@@ -293,3 +293,15 @@ async def test_each_kind_keeps_its_newest(hass: HomeAssistant) -> None:
     assert len(automations) == TRASH_MAX_PER_KIND
     assert "A0" not in automations
     assert any(i["name"] == "Kept scene" for i in items)
+
+
+async def test_auto_purges_never_push_out_a_user_delete(hass: HomeAssistant) -> None:
+    store = get_trash_store(hass)
+    await store.async_add("automation", {"alias": "Mine"}, "Mine")
+    for n in range(TRASH_MAX_PER_KIND + 1):
+        await store.async_add("automation", {"alias": f"S{n}"}, f"S{n}", automatic=True)
+
+    names = [i["name"] for i in await store.async_list()]
+    assert "Mine" in names
+    assert "S0" not in names
+    assert len(names) == TRASH_MAX_PER_KIND + 1

@@ -174,9 +174,12 @@ class _Home:
     areas: dict[str, str | None]
     created: dict[str, datetime]
     names: dict[str, str]
+    # ``kinds`` inverted: every collection asks for each of its kinds, and a
+    # scan of the whole home per ask ran on the event loop.
+    by_kind: dict[_Kind, frozenset[str]]
 
-    def of_kind(self, kind: _Kind) -> set[str]:
-        return {eid for eid, k in self.kinds.items() if k == kind}
+    def of_kind(self, kind: _Kind) -> frozenset[str]:
+        return self.by_kind.get(kind, frozenset())
 
 
 def _normalize_lang(language: str | None) -> str:
@@ -239,7 +242,10 @@ def _build_home(hass: HomeAssistant) -> _Home:
     for state in hass.states.async_all():
         if state.entity_id not in kinds and ent_reg.async_get(state.entity_id) is None:
             _add(state.entity_id, None)
-    return _Home(kinds, areas, created, names)
+    by_kind: dict[_Kind, set[str]] = defaultdict(set)
+    for entity_id, kind in kinds.items():
+        by_kind[kind].add(entity_id)
+    return _Home(kinds, areas, created, names, {k: frozenset(v) for k, v in by_kind.items()})
 
 
 def _trigger_parts(body: Any) -> tuple[frozenset[str], ...]:
@@ -266,6 +272,7 @@ def _automation_collections(
         for st in hass.states.async_all("automation")
         if st.attributes.get("id")
     }
+    ent_reg = er.async_get(hass)
     collections: list[_Collection] = []
     for auto in automations:
         auto_id = str(auto.get("id") or "")
@@ -273,6 +280,11 @@ def _automation_collections(
             continue
         name = str(auto.get("alias") or auto_id)
         ref = id_to_entity.get(auto_id, auto_id)
+        # automations.yaml keeps no save time; the automation's registry entry
+        # is the closest record of when the user wrote it. Without it, an
+        # entity paired the day before was "added after" a rule written today.
+        entry = ent_reg.async_get(ref) if ref != auto_id else None
+        configured_at = max(entry.created_at, entry.modified_at) if entry is not None else None
         for section, keys in _SECTIONS:
             body = next((auto[k] for k in keys if auto.get(k)), None)
             if body is None:
@@ -291,6 +303,7 @@ def _automation_collections(
                         section,
                         automation_id=auto_id,
                         trigger_parts=_trigger_parts(body) if section == "triggers" else (),
+                        configured_at=configured_at,
                     )
                 )
     return collections
