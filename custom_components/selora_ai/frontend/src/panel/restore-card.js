@@ -36,6 +36,10 @@ function formatDate(host, iso) {
   }
 }
 
+// A failed fetch (a websocket reconnect) is retried after this, not on every
+// render, which streaming fires many times a second.
+const RETRY_MS = 5000;
+
 // Fetched once per card, so an item deleted after the panel opened is not
 // judged against a list read before it existed.
 async function fetchDetails(host, ids) {
@@ -47,6 +51,9 @@ async function fetchDetails(host, ids) {
     }));
   } catch (err) {
     console.error("Failed to load deleted items", err);
+    ids.forEach((id) => host._restoreFetching?.delete(id));
+    host._restoreRetryAt = Date.now() + RETRY_MS;
+    setTimeout(() => host.requestUpdate(), RETRY_MS);
     return;
   }
   const found = Object.fromEntries((items || []).map((i) => [i.trash_id, i]));
@@ -149,7 +156,7 @@ export function renderRestoreCard(host, msg) {
     .filter((id) => !(id in (host._restoreDetails || {})));
   host._restoreFetching = host._restoreFetching || new Set();
   const toFetch = missing.filter((id) => !host._restoreFetching.has(id));
-  if (toFetch.length) {
+  if (toFetch.length && Date.now() >= (host._restoreRetryAt || 0)) {
     toFetch.forEach((id) => host._restoreFetching.add(id));
     fetchDetails(host, toFetch);
   }

@@ -32487,9 +32487,9 @@ async function requestNextPrompt(
   { refocus = false } = {},
 ) {
   host._nextPrompt = null;
+  if (refocus) _focusComposer(host, true);
   if (!sessionId || !host._config?.next_prompt_enabled) return;
   const token = (host._predictToken = (host._predictToken || 0) + 1);
-  host._predictingSession = sessionId;
   let result = null;
   try {
     result = await Promise.race([
@@ -32504,10 +32504,10 @@ async function requestNextPrompt(
     result = null;
   }
   if (host._predictToken !== token) return;
-  host._predictingSession = null;
   const text = typeof result?.prompt === "string" ? result.prompt.trim() : "";
-  if (text) host._nextPrompt = { message: assistantMsg, sessionId, text };
-  if (refocus || text) _focusComposer(host, refocus);
+  if (!text) return;
+  host._nextPrompt = { message: assistantMsg, sessionId, text };
+  _focusComposer(host, refocus);
 }
 function _focusComposer(host, hadFocus) {
   if (!hadFocus && !globalThis.matchMedia?.("(pointer: fine)").matches) {
@@ -32531,12 +32531,6 @@ function refreshNextPrompt(host) {
   const last = messages[messages.length - 1];
   if (last?.role !== "assistant") return;
   requestNextPrompt(host, last, host._activeSessionId);
-}
-function isPredicting(host) {
-  return (
-    !!host._predictingSession &&
-    host._predictingSession === host._activeSessionId
-  );
 }
 function activeNextPrompt(host) {
   const np = host._nextPrompt;
@@ -38432,6 +38426,7 @@ function formatDate3(host, iso) {
     return iso;
   }
 }
+var RETRY_MS = 5e3;
 async function fetchDetails(host, ids2) {
   let items = [];
   try {
@@ -38441,6 +38436,9 @@ async function fetchDetails(host, ids2) {
     }));
   } catch (err) {
     console.error("Failed to load deleted items", err);
+    ids2.forEach((id) => host._restoreFetching?.delete(id));
+    host._restoreRetryAt = Date.now() + RETRY_MS;
+    setTimeout(() => host.requestUpdate(), RETRY_MS);
     return;
   }
   const found = Object.fromEntries(
@@ -38531,7 +38529,7 @@ function renderRestoreCard(host, msg) {
     .filter((id) => !(id in (host._restoreDetails || {})));
   host._restoreFetching = host._restoreFetching || /* @__PURE__ */ new Set();
   const toFetch = missing.filter((id) => !host._restoreFetching.has(id));
-  if (toFetch.length) {
+  if (toFetch.length && Date.now() >= (host._restoreRetryAt || 0)) {
     toFetch.forEach((id) => host._restoreFetching.add(id));
     fetchDetails(host, toFetch);
   }
@@ -41275,7 +41273,7 @@ function _renderComposer(host, opts = {}) {
                         "Ask Selora AI anything\u2026",
                       ))
               }
-              ?disabled=${host._loading || host._streaming || isPredicting(host)}
+              ?disabled=${host._loading || host._streaming}
               rows="1"
             ></textarea>
             ${
@@ -41322,7 +41320,7 @@ function _renderComposer(host, opts = {}) {
                     "chat_attach_image",
                     "Attach an image \u2014 drag & drop or paste works too",
                   )}
-                  ?disabled=${host._loading || host._streaming || isPredicting(host)}
+                  ?disabled=${host._loading || host._streaming}
                   @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
                 >
                   <ha-icon icon="mdi:image-plus-outline"></ha-icon>
@@ -41341,7 +41339,7 @@ function _renderComposer(host, opts = {}) {
             : b2`<button
                 class="composer-send"
                 @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || isPredicting(host) || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
+                ?disabled=${host._loading || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
                 title=${host._t("chat_send", "Send")}
               >
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
@@ -53648,7 +53646,7 @@ async function _openChatHome() {
   }
 }
 async function _loadSessions() {
-  loadHomeSuggestions(this);
+  if (!this._messages?.length) loadHomeSuggestions(this);
   try {
     const sessions = await this.hass.callWS({
       type: "selora_ai/get_sessions",
@@ -54001,7 +53999,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "d950deceea05" : "";
+var PANEL_BUILD = true ? "e44395772bf2" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -54692,9 +54690,7 @@ async function _sendMessage(options = {}) {
   const resumeProposalId = options.resumeProposalId || null;
   const hasPendingAttachments = (this._chatAttachments || []).length > 0;
   if (
-    (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) || // A resumption (accepting a card) is not the user typing, so a pending
-    // prediction does not hold it.
-    (!resumeProposalId && isPredicting(this)) ||
+    (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) ||
     this._loading ||
     this._attachmentsBusy
   ) {
@@ -55606,7 +55602,6 @@ var SeloraAIPanel = class extends i4 {
       // Predicted next message, shown in the empty composer (next-prompt.js)
       _nextPrompt: { type: Object },
       // Composer held while the next-message prediction is requested
-      _predictingSession: { type: String },
       // Pending image attachments (dropped/pasted screenshots) + transient
       // error notice shown in the composer strip
       _chatAttachments: { type: Array },
@@ -55936,7 +55931,6 @@ var SeloraAIPanel = class extends i4 {
     this._autocompleteSelections = [];
     this._ghost = null;
     this._nextPrompt = null;
-    this._predictingSession = null;
     this._chatAttachments = [];
     this._attachmentNotice = "";
     this._attachmentsBusy = 0;

@@ -183,6 +183,25 @@ async def test_only_the_newest_are_kept(hass: HomeAssistant) -> None:
     assert len(data["retired"]) == MAX_RETIRED_AUTOMATIONS
 
 
+async def test_auto_purges_never_drop_a_user_deletes_history(hass: HomeAssistant) -> None:
+    now = datetime.now(UTC)
+    retired = {"mine": _record("mine", now - timedelta(hours=1))}
+    store, _ = _store(hass, {"records": {}, "session_index": {}, "retired": retired})
+    data = await store._get_loaded_data()
+    for i in range(MAX_RETIRED_AUTOMATIONS + 1):
+        data["records"][f"s{i}"] = {
+            "automation_id": f"s{i}",
+            "current_version_id": "v1",
+            "versions": [],
+            "lineage": [],
+        }
+        assert await store.retire_record(f"s{i}", automatic=True)
+
+    assert await store.is_retired("mine")
+    assert not await store.is_retired("s0")
+    assert len(data["retired"]) == MAX_RETIRED_AUTOMATIONS + 1
+
+
 async def test_history_expires_while_the_hub_runs(hass: HomeAssistant) -> None:
     """Loaded before the deadline, it is still refused after it."""
     now = datetime.now(UTC)

@@ -80,6 +80,26 @@ describe("the restore card", () => {
     await vi.waitFor(() => expect(host._restoreDetails["t-a2"]).toBeTruthy());
   });
 
+  it("tries again after a failed fetch", async () => {
+    vi.useFakeTimers();
+    try {
+      const host = makeHost();
+      host.hass.callWS.mockRejectedValueOnce(new Error("reconnecting"));
+      renderRestoreCard(host, msg([TWO, THREE]));
+      await vi.waitFor(() => expect(host._restoreRetryAt).toBeTruthy());
+      renderRestoreCard(host, msg([TWO, THREE]));
+      expect(host.hass.callWS).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(host.requestUpdate).toHaveBeenCalled();
+      renderRestoreCard(host, msg([TWO, THREE]));
+      expect(host.hass.callWS).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(host._restoreDetails["t-a2"]).toBeTruthy());
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("shows what tells same-named matches apart", () => {
     const host = makeHost({
       _restoreDetails: {

@@ -5,7 +5,7 @@ import {
   pruneStaleSelections,
 } from "./chat-autocomplete.js";
 import { attachmentsForSend } from "./chat-attachments.js";
-import { isPredicting, requestNextPrompt } from "./next-prompt.js";
+import { requestNextPrompt } from "./next-prompt.js";
 
 export function _quickStart(message) {
   this._input = message;
@@ -250,9 +250,6 @@ export async function _sendMessage(options = {}) {
   const hasPendingAttachments = (this._chatAttachments || []).length > 0;
   if (
     (!resumeProposalId && !this._input.trim() && !hasPendingAttachments) ||
-    // A resumption (accepting a card) is not the user typing, so a pending
-    // prediction does not hold it.
-    (!resumeProposalId && isPredicting(this)) ||
     this._loading ||
     this._attachmentsBusy
   ) {

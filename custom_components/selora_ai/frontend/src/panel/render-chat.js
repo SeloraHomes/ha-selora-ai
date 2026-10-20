@@ -27,11 +27,7 @@ import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
 import { renderRestoreCard } from "./restore-card.js";
 import { renderHomeSuggestions } from "./home-suggestions.js";
-import {
-  acceptNextPrompt,
-  activeNextPrompt,
-  isPredicting,
-} from "./next-prompt.js";
+import { acceptNextPrompt, activeNextPrompt } from "./next-prompt.js";
 import {
   AUTOCOMPLETE_MIN_CHARS,
   buildSuggestionIndex,
@@ -1210,7 +1206,7 @@ function _renderComposer(host, opts = {}) {
                         "Ask Selora AI anything…",
                       ))
               }
-              ?disabled=${host._loading || host._streaming || isPredicting(host)}
+              ?disabled=${host._loading || host._streaming}
               rows="1"
             ></textarea>
             ${
@@ -1257,9 +1253,7 @@ function _renderComposer(host, opts = {}) {
                     "chat_attach_image",
                     "Attach an image — drag & drop or paste works too",
                   )}
-                  ?disabled=${
-                    host._loading || host._streaming || isPredicting(host)
-                  }
+                  ?disabled=${host._loading || host._streaming}
                   @click=${() =>
                     host.renderRoot
                       ?.querySelector("#selora-chat-image-input")
@@ -1283,7 +1277,6 @@ function _renderComposer(host, opts = {}) {
                 @click=${() => host._sendMessage()}
                 ?disabled=${
                   host._loading ||
-                  isPredicting(host) ||
                   !!host._attachmentsBusy ||
                   (!host._input.trim() && !(host._chatAttachments || []).length)
                 }

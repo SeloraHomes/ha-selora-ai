@@ -231,9 +231,10 @@ export async function _openChatHome() {
 }
 
 export async function _loadSessions() {
-  // Refreshed alongside the sessions, which reload after every turn: a
-  // suggestion acted on in chat drops out once the change is saved.
-  loadHomeSuggestions(this);
+  // Only for the chat home, where they show: each read scans the whole
+  // registry, and the sessions reload after every turn. Returning there
+  // reloads them, so a suggestion acted on in chat drops out.
+  if (!this._messages?.length) loadHomeSuggestions(this);
   try {
     const sessions = await this.hass.callWS({
       type: "selora_ai/get_sessions",

@@ -441,7 +441,9 @@ class DataCollector:
             to_purge = stale[:excess]
             ids_to_purge = [s["automation_id"] for s in to_purge]
 
-            removed = await async_delete_automations_batch(self._hass, ids_to_purge, trash=True)
+            removed = await async_delete_automations_batch(
+                self._hass, ids_to_purge, trash=True, automatic=True
+            )
             if removed:
                 removed_lines = "\n".join(f"- {name}" for name in removed)
                 _LOGGER.info("Auto-purged %d stale automations", len(removed))

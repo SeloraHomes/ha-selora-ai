@@ -12,6 +12,11 @@ is in it, and is the whole list once every live automation or scene is gone.
   chat/MCP and the stale-automation auto-purge pass it. A clean-up that removes
   its own temporary automation (scheduled actions) does not, or the trash fills
   with things nobody deleted. **A new user-facing delete path must pass it.**
+- **An auto-purge never pushes out the user's own deletes.** The auto-purge also
+  passes `automatic=True`, which marks the trash item (`automatic`) and the
+  retired record (`retired_automatically`); both prunes count marked entries
+  apart, each up to the per-kind cap, so a burst of purges can't evict an
+  automation the user deleted by mistake or drop its history.
 - **The entry is kept as written,** not as Selora would regenerate it, so
   someone else's automation, an id-less one, or a scene with editor metadata
   comes back unchanged. The list command never sends it to the panel.

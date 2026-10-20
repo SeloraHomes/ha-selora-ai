@@ -3305,12 +3305,17 @@ async def async_delete_automation(
 
 
 async def async_delete_automations_batch(
-    hass: HomeAssistant, automation_ids: list[str], *, trash: bool = False
+    hass: HomeAssistant,
+    automation_ids: list[str],
+    *,
+    trash: bool = False,
+    automatic: bool = False,
 ) -> list[str]:
     """Delete multiple automations in a single read/write/reload cycle.
 
     Returns the list of aliases that were successfully removed. ``trash`` as in
-    :func:`async_delete_automation`.
+    :func:`async_delete_automation`; ``automatic`` marks the trashed entries as
+    removed by Selora, not the user (:func:`trash.async_trash`).
     """
     if not automation_ids:
         return []
@@ -3350,10 +3355,10 @@ async def async_delete_automations_batch(
             if trash:
                 from .trash import KIND_AUTOMATION, async_trash  # noqa: PLC0415
 
-                await async_trash(hass, KIND_AUTOMATION, target)
+                await async_trash(hass, KIND_AUTOMATION, target, automatic=automatic)
             try:
                 if trash:
-                    await store.retire_record(aid)
+                    await store.retire_record(aid, automatic=automatic)
                 else:
                     await store.purge_record(aid)
             except Exception:
