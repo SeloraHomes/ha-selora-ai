@@ -1144,6 +1144,7 @@ function _renderComposer(host, opts = {}) {
                 const applyHistory = (idx) => {
                   const recalled = userHistory[userHistory.length - 1 - idx];
                   host._historyIndex = idx;
+                  host._historyRecalled = recalled;
                   host._input = recalled;
                   requestAnimationFrame(() => {
                     ta.value = recalled;

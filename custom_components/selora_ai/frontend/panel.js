@@ -41213,6 +41213,7 @@ function _renderComposer(host, opts = {}) {
                 const applyHistory = (idx) => {
                   const recalled = userHistory[userHistory.length - 1 - idx];
                   host._historyIndex = idx;
+                  host._historyRecalled = recalled;
                   host._input = recalled;
                   requestAnimationFrame(() => {
                     ta.value = recalled;
@@ -41811,6 +41812,79 @@ function renderMessageDetails(host, content) {
     <summary>${host._t("chat_message_details", "Details")}</summary>
     <div class="msg-details-body">${details}</div>
   </details>`;
+}
+
+// src/panel/composer-draft.js
+var DRAFT_KEY_PREFIX = "selora_ai_composer_draft:";
+function _storage() {
+  try {
+    return globalThis.localStorage || null;
+  } catch {
+    return null;
+  }
+}
+function _draftKey(host) {
+  const userId = host.hass?.user?.id;
+  return userId ? DRAFT_KEY_PREFIX + userId : null;
+}
+function loadComposerDraft(host) {
+  const storage = _storage();
+  const key = _draftKey(host);
+  if (!storage || !key) return null;
+  try {
+    const draft = JSON.parse(storage.getItem(key) || "null");
+    if (!draft || typeof draft.text !== "string" || !draft.text) return null;
+    const selections = Array.isArray(draft.selections)
+      ? pruneStaleSelections(
+          draft.text,
+          draft.selections.filter((s6) => s6 && typeof s6.label === "string"),
+        )
+      : [];
+    return { text: draft.text, selections };
+  } catch {
+    return null;
+  }
+}
+function restoreComposerDraft(host) {
+  if (host._draftRestored || !_draftKey(host)) return;
+  host._draftRestored = true;
+  if (host._input) {
+    saveComposerDraft(host);
+    return;
+  }
+  const draft = loadComposerDraft(host);
+  if (!draft) return;
+  host._input = draft.text;
+  host._autocompleteSelections = draft.selections;
+  host._fitDraft = true;
+}
+function saveComposerDraft(host) {
+  if (!host._draftRestored) return;
+  if (host._historyIndex != null && host._input === host._historyRecalled) {
+    return;
+  }
+  const storage = _storage();
+  const key = _draftKey(host);
+  if (!storage || !key) return;
+  try {
+    const text = host._input || "";
+    if (!text) {
+      storage.removeItem(key);
+      return;
+    }
+    storage.setItem(
+      key,
+      JSON.stringify({ text, selections: host._autocompleteSelections || [] }),
+    );
+  } catch {}
+}
+function fitComposerToDraft(host) {
+  if (!host._fitDraft) return;
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  if (!ta || ta.value !== host._input) return;
+  host._fitDraft = false;
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
 }
 
 // src/panel/render-ignore-list.js
@@ -53927,7 +54001,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "f6f6b5d2190c" : "";
+var PANEL_BUILD = true ? "d950deceea05" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -57204,6 +57278,14 @@ var SeloraAIPanel = class extends i4 {
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     this.toggleAttribute("processing", !!(this._streaming || this._loading));
     fitComposerToPrediction(this);
+    restoreComposerDraft(this);
+    fitComposerToDraft(this);
+    if (
+      changedProps.has("_input") ||
+      changedProps.has("_autocompleteSelections")
+    ) {
+      saveComposerDraft(this);
+    }
     if (this._highlightedScene && !this._sceneHighlightTimer) {
       const row = this.shadowRoot?.querySelector(
         `.auto-row[data-scene-id="${this._highlightedScene}"]`,

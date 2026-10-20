@@ -32,6 +32,11 @@ import {
   masonryColumns,
 } from "./panel/render-automations.js";
 import { resetProposalDiffState } from "./panel/render-proposal-diff.js";
+import {
+  fitComposerToDraft,
+  restoreComposerDraft,
+  saveComposerDraft,
+} from "./panel/composer-draft.js";
 import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
@@ -2198,6 +2203,14 @@ class SeloraAIPanel extends LitElement {
     // Reflect active LLM activity so CSS can pulse the header glow line.
     this.toggleAttribute("processing", !!(this._streaming || this._loading));
     fitComposerToPrediction(this);
+    restoreComposerDraft(this);
+    fitComposerToDraft(this);
+    if (
+      changedProps.has("_input") ||
+      changedProps.has("_autocompleteSelections")
+    ) {
+      saveComposerDraft(this);
+    }
     // A scene created from chat highlights when the user reaches the Scenes
     // tab, however much later that is. Start the expiry timer only once the
     // row is actually on screen, so the flash isn't spent off-view.
