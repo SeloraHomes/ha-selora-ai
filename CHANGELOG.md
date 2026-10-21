@@ -1,3 +1,30 @@
+## [1.1.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.0...v1.1.0) (2026-10-21)
+
+### Features
+
+* forecast battery depletion in insights ([bd8ca8f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/bd8ca8f0f2893ebdeafe133e71612c8867357051))
+* keep the chat composer draft across reloads ([fa29bf2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/fa29bf287396364301225c4c330db6e9dd9fd03b))
+* keep the composer glow in ongoing chats ([a4fcb65](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a4fcb655c97152e481e832967036da31990febbe))
+* rename automations without a proposal ([4a42461](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4a4246188a7b069db8cb4fde295566eb6e106b2d))
+* restore deleted automations and scenes ([bdd78b5](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/bdd78b592ffa4d21f410ff26983e603999ab3af7))
+* restore deleted items from chat ([9f89b34](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9f89b34d6ee80ed8a4e2b09093de76a0e04b663e))
+* revoke installer MCP support sessions ([e681e22](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e681e229d9e8e2ce652a7e773546b00e517fb099))
+* suggest grouping devices from home layout ([3ddf6e0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3ddf6e088be67d8f3c7c35baad694a3e771f9428))
+* suggest the next chat message ([add503e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/add503e75d29996cacfed0f60d317bd83193dcbe))
+
+### Bug Fixes
+
+* hide and prune empty chat sessions ([46a33f6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/46a33f66a28b9ec3c1cbd5bea0e6d9e9a6a5df51))
+* keep file I/O off the event loop ([58ff0c0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/58ff0c0cffc72460c34d246e8872bb9bf9d0b8f8))
+* **local:** sync with models release 0.6.1 ([24a7ec6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/24a7ec6ed7594c7b2dc6ddaacb4a575eeb158141))
+* make the recipe wizard usable on phones ([3c5950a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3c5950ac6ad45bc84e0cb4c7e7eac500e4af3c14))
+* release fixes for 1.1.0 ([1220461](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/12204618fa40d10e89b8ba8a69d807bf6eff29aa))
+* show the model the weather entity ([92554ff](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/92554ffd36bb211e772f38a0e424eec567f0944a))
+* show what recipe automations do ([94209c5](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/94209c5dc119ab7179d4b330854324eebe723fc3))
+* stop flagging steady sensors as unresponsive ([ba7ee57](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ba7ee575c01ac1af43a0b507168e4205c85f82ca))
+* stop reading deprecated device entry fields ([852ff03](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/852ff03d2c36d44cc1583a19d8ed0c1dab6aeb53))
+* tell the model which proposals were accepted ([31867cf](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/31867cf1899f09eee22daa4b924304c53bbc51ee))
+
 ## [1.0.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.17.0...v1.0.0) (2026-10-08)
 
 ### ⚠ BREAKING CHANGES
