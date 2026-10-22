@@ -37388,6 +37388,7 @@ function _renderTargetTile(host, entityId, stateData, editSceneId) {
       data-entity-ids=${entityId}
       data-scene-states=${single}
       data-scene-edit-id=${editSceneId || ""}
+      ?inert=${!editSceneId}
     ></div>
   `;
 }
@@ -53999,7 +54000,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "5b1bdaee981f" : "";
+var PANEL_BUILD = true ? "25a549e2f0ab" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -55366,6 +55367,57 @@ function _discardSceneEdits(sceneId) {
   delete next[sceneId];
   this._sceneEdits = next;
   this.requestUpdate();
+}
+
+// src/panel/scene-tile-context.js
+var STATES = "states";
+var API = "hassApi";
+function _apiFrom(hass) {
+  return {
+    callService: (...args) => hass.callService(...args),
+    callApi: (...args) => hass.callApi(...args),
+    callApiRaw: (...args) => hass.callApiRaw?.(...args),
+    fetchWithAuth: (...args) => hass.fetchWithAuth(...args),
+    sendWS: (...args) => hass.sendWS(...args),
+    callWS: (...args) => hass.callWS(...args),
+  };
+}
+function _onContextRequest(ev) {
+  const ctx = ev.currentTarget.__seloraTileContext;
+  if (!ctx || !(ev.context in ctx.values)) return;
+  ev.stopPropagation();
+  const key = ev.context;
+  if (!ev.subscribe) {
+    ev.callback(ctx.values[key]);
+    return;
+  }
+  const subs = ctx.subscribers[key];
+  if (!subs.has(ev.callback)) {
+    const cb = ev.callback;
+    subs.set(cb, () => subs.delete(cb));
+  }
+  ev.callback(ctx.values[key], subs.get(ev.callback));
+}
+function provideSceneTileContext(grid, gridHass) {
+  let ctx = grid.__seloraTileContext;
+  if (!ctx) {
+    ctx = {
+      values: {},
+      subscribers: {
+        [STATES]: /* @__PURE__ */ new Map(),
+        [API]: /* @__PURE__ */ new Map(),
+      },
+    };
+    grid.__seloraTileContext = ctx;
+    grid.addEventListener("context-request", _onContextRequest);
+  }
+  ctx.values = {
+    [STATES]: gridHass.states,
+    [API]: _apiFrom(gridHass),
+  };
+  for (const [key, subs] of Object.entries(ctx.subscribers)) {
+    for (const [cb, dispose] of subs) cb(ctx.values[key], dispose);
+  }
 }
 
 // src/panel/session-search.js
@@ -57486,7 +57538,10 @@ var SeloraAIPanel = class extends i4 {
         }
       }
       const sceneEditId = grid.dataset.sceneEditId;
-      if (sceneEditId) {
+      const scenePreview = !!grid.dataset.sceneStates && !sceneEditId;
+      if (scenePreview) {
+        gridHass = { ...gridHass, callService: () => Promise.resolve() };
+      } else if (sceneEditId) {
         const editEntityId = grid.dataset.entityIds;
         gridHass = {
           ...gridHass,
@@ -57501,6 +57556,15 @@ var SeloraAIPanel = class extends i4 {
             return Promise.resolve();
           },
         };
+      }
+      let sceneChanged = false;
+      if (grid.dataset.sceneStates) {
+        const sig = `${sceneEditId || ""}|${grid.dataset.sceneStates}`;
+        if (grid.dataset.sceneSig !== sig) {
+          grid.dataset.sceneSig = sig;
+          sceneChanged = true;
+          provideSceneTileContext(grid, gridHass);
+        }
       }
       if (!wired) {
         const ids2 = (grid.dataset.entityIds || "")
@@ -57534,7 +57598,7 @@ var SeloraAIPanel = class extends i4 {
           const buildTile = (id) => {
             const card = createTile(id, {
               noFeatures,
-              noActions: !!sceneEditId,
+              noActions: !!sceneEditId || scenePreview,
             });
             if (!card) return null;
             card.hass = gridHass;
@@ -57590,9 +57654,7 @@ var SeloraAIPanel = class extends i4 {
         }
       }
       if (grid.dataset.sceneStates) {
-        const sig = `${grid.dataset.sceneEditId || ""}|${grid.dataset.sceneStates}`;
-        if (grid.dataset.sceneSig !== sig) {
-          grid.dataset.sceneSig = sig;
+        if (sceneChanged) {
           for (const card of grid.children) {
             if (card.hass !== void 0) card.hass = { ...gridHass };
           }

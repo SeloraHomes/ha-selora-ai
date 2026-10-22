@@ -70,6 +70,10 @@ describe("the scene entity list shows one tile per entity", () => {
     // the editor the same tile IS the control — its service calls are
     // rerouted — which is why the modifier is conditional.
     expect(markup).toMatch(/scene-ent-tile--forced/);
+    // The class's pointer-events: none does not reach HA's slider, which
+    // sets its own inside the tile's shadow root — a drag moved the light
+    // while the pinned label stayed at the scene's value.
+    expect(markup).toMatch(/\?inert=/);
   });
 });
 

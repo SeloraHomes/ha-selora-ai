@@ -61,7 +61,9 @@ function _renderTargetTile(host, entityId, stateData, editSceneId) {
   // The tile shows the (possibly edited) target. When the scene is editable,
   // its callService is intercepted (see _hydrateEntityChips) via
   // data-scene-edit-id so dragging the tile changes the scene, not the
-  // device. Non-editable tiles (chat proposals) stay read-only.
+  // device. Non-editable tiles (chat proposals) are inert: HA's slider sets
+  // its own pointer-events inside the tile's shadow root, so the
+  // --forced class alone lets a drag through to the real device.
   const target =
     editSceneId && host._sceneEditedEntities(editSceneId)?.[entityId] != null
       ? host._sceneEditedEntities(editSceneId)[entityId]
@@ -76,6 +78,7 @@ function _renderTargetTile(host, entityId, stateData, editSceneId) {
       data-entity-ids=${entityId}
       data-scene-states=${single}
       data-scene-edit-id=${editSceneId || ""}
+      ?inert=${!editSceneId}
     ></div>
   `;
 }
