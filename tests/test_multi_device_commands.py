@@ -375,3 +375,38 @@ def test_the_local_model_turns_off_a_whole_floor_in_one_call() -> None:
     calls, _response = handler._light_clause_calls("turn off the upstairs lights", [])
 
     assert calls == [{"service": "light.turn_off", "target": {"entity_id": lights}}]
+
+
+def test_a_target_that_did_not_change_is_not_claimed() -> None:
+    text = build_executed_confirmation(
+        [
+            {
+                "executed": True,
+                "service": "switch.turn_on",
+                "entity_ids": ["switch.front_door_recordings", "switch.porch"],
+                "unconfirmed": ["switch.front_door_recordings"],
+            }
+        ],
+        {"switch.front_door_recordings": "Front Door Recordings", "switch.porch": "Porch"}.get,
+    )
+
+    assert text.startswith("Turned on Porch. Sent the command, but Front Door Recordings did not")
+    assert "[[entities:switch.front_door_recordings,switch.porch]]" in text
+
+
+def test_a_lone_unchanged_target_gets_no_success_sentence() -> None:
+    text = build_executed_confirmation(
+        [
+            {
+                "executed": True,
+                "service": "switch.turn_on",
+                "entity_ids": ["switch.front_door_recordings"],
+                "unconfirmed": ["switch.front_door_recordings"],
+            }
+        ],
+        {"switch.front_door_recordings": "Front Door Recordings"}.get,
+        language="fr",
+    )
+
+    assert text.startswith("Commande envoyée, mais Front Door Recordings n'a pas changé")
+    assert "Allumé" not in text

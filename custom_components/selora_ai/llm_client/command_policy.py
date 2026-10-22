@@ -2334,6 +2334,25 @@ _DONE_BY_LANG: dict[str, str] = {
     "ru": "Готово.",
 }
 
+# A target whose state did not reach what the call asked for: it is
+# unavailable, or still in the old state once the settle wait gave up.
+# Frigate's switches drop out and come back unchanged when Frigate ignores the
+# command, and "Turned on" above an "Off" tile leaves the user to guess.
+_UNCONFIRMED_BY_LANG: dict[str, str] = {
+    "en": "Sent the command, but {target} did not change, so it may not have worked.",
+    "fr": "Commande envoyée, mais {target} n'a pas changé : elle n'a peut-être pas abouti.",
+    "de": "Befehl gesendet, aber {target} hat sich nicht geändert, er hat also womöglich nicht funktioniert.",
+    "es": "Orden enviada, pero {target} no ha cambiado, así que puede que no haya funcionado.",
+    "it": "Comando inviato, ma {target} non è cambiato, quindi potrebbe non aver funzionato.",
+    "nl": "Opdracht verzonden, maar {target} is niet veranderd, dus het is misschien niet gelukt.",
+    "hu": "A parancsot elküldtem, de {target} nem változott, így lehet, hogy nem sikerült.",
+    "zh": "已发送指令，但 {target} 没有变化，可能没有生效。",
+    "pt": "Comando enviado, mas {target} não mudou, por isso pode não ter funcionado.",
+    "ja": "コマンドを送信しましたが、{target} が変化していないため、反映されていない可能性があります。",
+    "ko": "명령을 보냈지만 {target}이(가) 바뀌지 않아 적용되지 않았을 수 있습니다.",
+    "ru": "Команда отправлена, но {target} не изменилось — возможно, она не сработала.",
+}
+
 # Sentence template per locale. Non-EN locales use a colon-separator so
 # the past participle reads as a status label ("Allumé : Kitchen Lights")
 # rather than a verb that needs gender/number agreement with the object —
@@ -2452,7 +2471,9 @@ def build_executed_confirmation(
     # One entry per sentence: (past verb, target ids, names) — a targetless
     # call's entry is already its sentence, with no ids.
     groups: list[tuple[str, list[str], list[str]]] = []
+    unconfirmed: list[str] = []
     for call in executed_calls:
+        unreachable = {str(e) for e in call.get("unconfirmed") or []}
         service = str(call.get("service", "")).strip()
         if not service:
             continue
@@ -2467,6 +2488,15 @@ def build_executed_confirmation(
             else:
                 ids = []
         past = past_verb_for(service, language)
+        for eid in [e for e in ids if e in unreachable]:
+            name = friendly_name_resolver(eid) if friendly_name_resolver else eid
+            if name not in unconfirmed:
+                unconfirmed.append(name)
+            if eid not in entity_ids:
+                entity_ids.append(eid)
+        if ids and unreachable.issuperset(ids):
+            continue
+        ids = [e for e in ids if e not in unreachable]
         if ids:
             if not groups or groups[-1][0] != past or not groups[-1][1]:
                 groups.append((past, [], []))
@@ -2484,6 +2514,9 @@ def build_executed_confirmation(
         fmt.format(past=text, target=", ".join(names)) if group_ids else text
         for text, group_ids, names in groups
     ]
+    if unconfirmed:
+        template = _UNCONFIRMED_BY_LANG.get(lang, _UNCONFIRMED_BY_LANG["en"])
+        sentences.append(template.format(target=", ".join(unconfirmed)))
     content = " ".join(sentences) if sentences else done_text
     marker_ids = [eid for eid in entity_ids if eid not in excluded]
     if marker_ids:

@@ -31,13 +31,38 @@ def _safe_command_entity_allowlist(hass: HomeAssistant) -> set[str]:
     snapshot (unavailable / disabled / non-actionable entities are
     excluded) and adds scene-domain states that aren't tracked by the
     collector but are in the safe-command service allowlist.
+
+    Configuration entities are added too. The snapshot leaves them out
+    because they are noise in a prompt, not because they are unsafe, and
+    some are the only control a device has: Frigate's recording, detection
+    and snapshot switches are all ``config``. The model reaches them through
+    search_entities or get_device; refusing them as unknown left the user
+    unable to say "enable recording on the Front Door camera". Diagnostic
+    entities stay out — they are readings, not controls.
     """
+    from homeassistant.const import EntityCategory
+    from homeassistant.helpers import entity_registry as er
+
     from .. import _collect_entity_states
+    from ..command_policy_options import resolve_command_policy_options
+    from ..const import COLLECTOR_DOMAINS
+    from ..entity_capabilities import is_actionable_entity
 
     allowed = {e["entity_id"] for e in _collect_entity_states(hass) if e.get("entity_id")}
     for state in hass.states.async_all("scene"):
         if state.state not in ("unavailable", "unknown"):
             allowed.add(state.entity_id)
+    domain_filtered = resolve_command_policy_options(hass).allowlist_enabled
+    for entry in er.async_get(hass).entities.values():
+        if entry.entity_category is not EntityCategory.CONFIG or entry.disabled:
+            continue
+        if domain_filtered and entry.domain not in COLLECTOR_DOMAINS:
+            continue
+        state = hass.states.get(entry.entity_id)
+        if state is None or state.state in ("unavailable", "unknown"):
+            continue
+        if is_actionable_entity(entry.entity_id):
+            allowed.add(entry.entity_id)
     return allowed
 
 
@@ -124,6 +149,31 @@ def _requested_terminal_state(service: str) -> str | None:
     if service.endswith(".turn_off"):
         return "off"
     return _SERVICE_TERMINAL_STATE.get(service)
+
+
+# States a target passes through on its way to the requested one; still
+# moving when the settle wait ends is not a failure.
+_IN_PROGRESS_STATES: frozenset[str] = frozenset({"opening", "closing", "locking", "unlocking"})
+
+
+def _unconfirmed_targets(
+    hass: HomeAssistant, expected: str | None, settle_ids: list[str]
+) -> list[str]:
+    """Targets that did not reach the requested state: unavailable or unknown,
+    or, when the service names its end state, anywhere else but on the way.
+
+    Only targets that had a transition to make are checked; one already in
+    the requested state was a no-op.
+    """
+    unconfirmed: list[str] = []
+    for eid in settle_ids:
+        state = hass.states.get(eid)
+        current = state.state if state is not None else "unavailable"
+        if current in ("unavailable", "unknown") or (
+            expected is not None and current != expected and current not in _IN_PROGRESS_STATES
+        ):
+            unconfirmed.append(eid)
+    return unconfirmed
 
 
 def _targets_awaiting_transition(
@@ -366,6 +416,8 @@ async def _call_service_and_settle(
         "entity_ids": target_ids,
         "states": post_states,
     }
+    if unconfirmed := _unconfirmed_targets(hass, expected, settle_ids):
+        result["unconfirmed"] = unconfirmed
     if want_response and response is not None:
         result["response"] = response
     return result
