@@ -971,12 +971,13 @@ class SeloraAIPanel extends LitElement {
         if (!this.isConnected || document.hidden) return;
         const host = this.shadowRoot?.host;
         if (!host) return;
-        // Only treat shrinking viewport as a keyboard if a text input inside
-        // the panel currently has focus.
+        // Only treat shrinking viewport as a keyboard if the chat composer
+        // has focus. Any other field (a tab's search box, a form) sits inside
+        // a scroll view: pinning the host to the shrunk viewport clips it out
+        // of sight and iOS drops its focus, closing the keyboard on the first
+        // tap. Those fields rely on the browser panning the viewport instead.
         const active = this.shadowRoot?.activeElement;
-        const editing =
-          active &&
-          (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        const editing = !!active?.classList?.contains("composer-textarea");
         const vp = window.visualViewport;
         const keyboardHeight = window.innerHeight - vp.height;
         const isOpen = !!editing && keyboardHeight > 80;
