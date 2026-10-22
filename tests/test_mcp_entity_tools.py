@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import (
@@ -534,3 +535,76 @@ async def test_execute_command_waits_for_terminal_not_transitional_state(
 
     assert execution["executed"] is True
     assert execution["states"] == [{"entity_id": "cover.garage", "state": "open"}]
+
+
+@pytest.mark.asyncio
+async def test_execute_command_reaches_a_config_switch(hass: HomeAssistant) -> None:
+    """A device whose controls are all configuration entities — Frigate's
+    recording switch — is commandable once the model has found it, though the
+    prompt snapshot leaves it out. A diagnostic entity stays unreachable."""
+    from homeassistant.const import EntityCategory
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.selora_ai.mcp_server.commands import _tool_execute_command
+
+    registry = er.async_get(hass)
+    recordings = registry.async_get_or_create(
+        "switch",
+        "frigate",
+        "front_door_recordings",
+        suggested_object_id="front_door_recordings",
+        entity_category=EntityCategory.CONFIG,
+    )
+    restart = registry.async_get_or_create(
+        "switch",
+        "demo",
+        "router_restart",
+        suggested_object_id="router_restart",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    )
+    hass.states.async_set(recordings.entity_id, "off")
+    hass.states.async_set(restart.entity_id, "off")
+    calls: list[str] = []
+
+    async def _turn_on(call: ServiceCall) -> None:
+        calls.extend(call.data["entity_id"])
+        for entity_id in call.data["entity_id"]:
+            hass.states.async_set(entity_id, "on")
+
+    hass.services.async_register("switch", "turn_on", _turn_on)
+
+    execution = await _tool_execute_command(
+        hass, {"service": "switch.turn_on", "entity_id": recordings.entity_id}
+    )
+    refused = await _tool_execute_command(
+        hass, {"service": "switch.turn_on", "entity_id": restart.entity_id}
+    )
+
+    assert execution["executed"] is True
+    assert calls == [recordings.entity_id]
+    assert refused.get("valid") is False
+
+
+@pytest.mark.asyncio
+async def test_execute_command_flags_a_target_that_did_not_change(
+    hass: HomeAssistant, setup_entities
+) -> None:
+    """A device that takes the call but stays off (Frigate ignoring a
+    recording switch) is reported, so the reply cannot claim it worked."""
+    from custom_components.selora_ai.mcp_server import commands
+
+    hass.states.async_set("light.kitchen_light", "off", {"friendly_name": "Kitchen Light"})
+
+    async def _ignored(call: ServiceCall) -> None:
+        hass.states.async_set("light.kitchen_light", "unavailable")
+        hass.states.async_set("light.kitchen_light", "off", {"friendly_name": "Kitchen Light"})
+
+    hass.services.async_register("light", "turn_on", _ignored)
+
+    with patch.object(commands, "_STATE_SETTLE_TIMEOUT", 0.05):
+        execution = await commands._tool_execute_command(
+            hass, {"service": "light.turn_on", "entity_id": "light.kitchen_light"}
+        )
+
+    assert execution["executed"] is True
+    assert execution["unconfirmed"] == ["light.kitchen_light"]

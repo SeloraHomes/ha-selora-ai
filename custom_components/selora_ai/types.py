@@ -676,6 +676,8 @@ class ToolWriteResult(TypedDict, total=False):
     service: str
     entity_ids: list[str]
     states: list[EntityStateSnapshot]
+    # Targets that did not reach the requested state (see _unconfirmed_targets).
+    unconfirmed: list[str]
     # validator output (rejection / approval gate)
     valid: bool
     errors: list[str]
