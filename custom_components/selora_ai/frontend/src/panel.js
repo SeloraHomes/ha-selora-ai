@@ -63,6 +63,7 @@ import * as proposalReveal from "./panel/proposal-reveal.js";
 import * as automationManagement from "./panel/automation-management.js";
 import * as sceneActions from "./panel/scene-actions.js";
 import * as sceneEdit from "./panel/scene-edit.js";
+import { provideSceneTileContext } from "./panel/scene-tile-context.js";
 import { filterSessions } from "./panel/session-search.js";
 
 // ---------------------------------------------------------------------------
@@ -2465,7 +2466,12 @@ class SeloraAIPanel extends LitElement {
       // the tile mutates the scene's desired state (and prompts a save)
       // instead of driving the real device.
       const sceneEditId = grid.dataset.sceneEditId;
-      if (sceneEditId) {
+      // A read-only scene preview (chat proposal, saved card) must never
+      // reach a device, even through a control its inert grid missed.
+      const scenePreview = !!grid.dataset.sceneStates && !sceneEditId;
+      if (scenePreview) {
+        gridHass = { ...gridHass, callService: () => Promise.resolve() };
+      } else if (sceneEditId) {
         // The grid is single-entity, so route by its own id rather than
         // digging entity_id out of the call: HA tile features pass the
         // entity in the 4th ``target`` arg (not ``data``), and some calls
@@ -2485,6 +2491,27 @@ class SeloraAIPanel extends LitElement {
             return Promise.resolve();
           },
         };
+      }
+
+      // Scene-target grids pin the tile to the scene's desired state, so
+      // they must NOT be re-fed live hass on every tick. Doing so churns
+      // the tile and (for editable tiles) lets it re-issue callService, an
+      // unbounded loop that freezes the UI. Update them only when the
+      // target itself changes. The edit-scene id is part of the signature:
+      // when Lit reuses a tile for a different scene with the same entity
+      // and identical target, the states JSON alone is unchanged, so
+      // without it the card keeps the previous scene's intercepted
+      // callService closure and edits would land on the wrong scene.
+      let sceneChanged = false;
+      if (grid.dataset.sceneStates) {
+        const sig = `${sceneEditId || ""}|${grid.dataset.sceneStates}`;
+        if (grid.dataset.sceneSig !== sig) {
+          grid.dataset.sceneSig = sig;
+          sceneChanged = true;
+          // Before wiring: the tile's features request context as they
+          // attach.
+          provideSceneTileContext(grid, gridHass);
+        }
       }
 
       if (!wired) {
@@ -2530,11 +2557,11 @@ class SeloraAIPanel extends LitElement {
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
-            // Editable scene-target tiles disable the body tap so it
-            // can't open more-info (which would control the real device).
+            // Scene-target tiles disable the body tap so it can't open
+            // more-info (which would control the real device).
             const card = createTile(id, {
               noFeatures,
-              noActions: !!sceneEditId,
+              noActions: !!sceneEditId || scenePreview,
             });
             if (!card) return null;
             card.hass = gridHass;
@@ -2607,22 +2634,10 @@ class SeloraAIPanel extends LitElement {
       // hass object instead of creating a new one, so a plain reassign
       // looks like "no change" and the card never re-renders. A shallow
       // copy guarantees a fresh reference; methods like callService
-      // survive because they're own properties on hass.
-      //
-      // Scene-target grids are the exception: they pin the tile to the
-      // scene's desired state, so they must NOT be re-fed live hass on
-      // every tick. Doing so churns the tile and (for editable tiles)
-      // lets it re-issue callService, an unbounded loop that freezes the
-      // UI. Update them only when the target itself changes.
+      // survive because they're own properties on hass. Scene-target
+      // grids are refreshed only when their target changed (see above).
       if (grid.dataset.sceneStates) {
-        // Include the edit-scene id in the signature: when Lit reuses a
-        // tile for a different scene with the same entity and identical
-        // target, the states JSON alone is unchanged, so without this
-        // the card keeps the previous scene's intercepted callService
-        // closure and edits would land on the wrong scene.
-        const sig = `${grid.dataset.sceneEditId || ""}|${grid.dataset.sceneStates}`;
-        if (grid.dataset.sceneSig !== sig) {
-          grid.dataset.sceneSig = sig;
+        if (sceneChanged) {
           for (const card of grid.children) {
             if (card.hass !== undefined) card.hass = { ...gridHass };
           }
