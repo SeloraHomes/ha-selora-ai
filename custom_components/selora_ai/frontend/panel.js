@@ -54000,7 +54000,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "25a549e2f0ab" : "";
+var PANEL_BUILD = true ? "76506773768c" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -56268,9 +56268,7 @@ var SeloraAIPanel = class extends i4 {
         const host = this.shadowRoot?.host;
         if (!host) return;
         const active = this.shadowRoot?.activeElement;
-        const editing =
-          active &&
-          (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        const editing = !!active?.classList?.contains("composer-textarea");
         const vp = window.visualViewport;
         const keyboardHeight = window.innerHeight - vp.height;
         const isOpen = !!editing && keyboardHeight > 80;
