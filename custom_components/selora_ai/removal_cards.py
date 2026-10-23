@@ -1,6 +1,7 @@
-"""Removing a device, entity, integration or blueprint from chat, behind a card.
+"""Removing a device, entity, integration, blueprint or Frigate camera from
+chat, behind a card.
 
-One chat tool covers the four (every cloud turn carries every tool's schema).
+One chat tool covers the five (every cloud turn carries every tool's schema).
 The preview is each kind's own removal check, asked without confirmation —
 what it refuses, chat refuses — turned into a delete-card descriptor carrying
 the target's identity:
@@ -8,7 +9,9 @@ the target's identity:
 * device — its id (immutable);
 * entity — its registry entry id (an entity_id is a name a rename frees);
 * integration — its entry_id (immutable);
-* blueprint — its file's content hash (a deleted path can be taken again).
+* blueprint — its file's content hash (a deleted path can be taken again);
+* frigate_camera — its Frigate name, with a hash of its inputs and streams
+  (``frigate.removal``).
 
 Confirming replays the same removal with that identity, so what goes is what
 the card named.
@@ -23,10 +26,10 @@ from .helpers import sanitize_untrusted_text
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-REMOVAL_KINDS: Final = ("device", "entity", "integration", "blueprint")
+REMOVAL_KINDS: Final = ("device", "entity", "integration", "blueprint", "frigate_camera")
 
 
-def _card(
+def removal_card(
     kind: str, target_id: str, label: str, fingerprint: str, entity_id: str = ""
 ) -> dict[str, Any]:
     return {
@@ -71,13 +74,13 @@ async def async_preview_removal(
         label = f"Remove {device['name']} and its {len(res['entities'])} entities"
         if parts := res.get("parts"):
             label += f" (with {len(parts)} part(s))"
-        return _card("device", device["id"], label + _used_by(res["hint"]), device["id"])
+        return removal_card("device", device["id"], label + _used_by(res["hint"]), device["id"])
     if kind == "entity":
         res = await async_remove_entity_on_request(hass, target)
         if "error" in res:
             return res
         entity_id = res["entity_id"]
-        return _card(
+        return removal_card(
             "entity",
             entity_id,
             f"Remove {entity_id}" + _used_by(res["hint"]),
@@ -90,7 +93,7 @@ async def async_preview_removal(
             return res
         row = res["integration"]
         name = row["title"] or row["domain"]
-        return _card(
+        return removal_card(
             "integration",
             row["entry_id"],
             f"Remove the {name} integration with its {row['devices']} device(s) and "
@@ -104,12 +107,16 @@ async def async_preview_removal(
         fingerprint = await async_blueprint_fingerprint(hass, res["domain"], res["path"])
         if fingerprint is None:
             return {"error": "That blueprint is gone."}
-        return _card(
+        return removal_card(
             "blueprint",
             f"{res['domain']}/{res['path']}",
             f"Delete the {res['domain']} blueprint {res['path']}",
             fingerprint,
         )
+    if kind == "frigate_camera":
+        from .frigate.removal import async_preview_remove_camera
+
+        return await async_preview_remove_camera(hass, target)
     return {"error": f"kind must be one of {', '.join(REMOVAL_KINDS)}."}
 
 
@@ -140,4 +147,8 @@ async def async_confirm_removal(hass: HomeAssistant, descriptor: dict[str, Any])
         return await async_delete_blueprint(
             hass, domain, path, confirmed=True, expected_fingerprint=fingerprint
         )
+    if kind == "frigate_camera":
+        from .frigate.removal import async_remove_camera_confirmed
+
+        return await async_remove_camera_confirmed(hass, target_id, fingerprint)
     return {"error": f"unknown removal kind {kind}"}

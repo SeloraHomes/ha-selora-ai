@@ -214,6 +214,7 @@ because the obvious implementation shipped and broke something quietly.
 - `next-prompt.md` — the predicted next message in the panel composer.
 - `alexa-credential.md` — the OS-delivered Alexa voice credential.
 - `recipe-updates.md` — updating an installed recipe to a newer catalog version.
+- `frigate.md` — adding cameras to Frigate: what the integration may write, credentials.
 - `selora-local-prompts.md` — the bundled Selora AI Local prompts are pinned
   copies of a model release; never edit their wording here. The user turn's
   layout is pinned to the training corpus the same way.

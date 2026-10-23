@@ -40,6 +40,7 @@ import {
 import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
+import { syncDevConsole } from "./panel/dev-tools.js";
 import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
 import { renderStaleCodeNotice } from "./panel/render-stale-code-notice.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
@@ -1324,6 +1325,7 @@ class SeloraAIPanel extends LitElement {
       const config = await this.hass.callWS({ type: "selora_ai/get_config" });
       this._config = config;
       this._newApiKey = "";
+      syncDevConsole(this);
     } catch (err) {
       console.error("Failed to load config", err);
     }

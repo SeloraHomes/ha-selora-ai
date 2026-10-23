@@ -2273,7 +2273,8 @@ TOOL_IGNORE_REPAIR = ToolDef(
 TOOL_REMOVE_FROM_HOME = ToolDef(
     name="remove_from_home",
     description=(
-        "Remove a device, an entity, an integration or a blueprint for good. The user "
+        "Remove a device, an entity, an integration, a blueprint or a camera from "
+        "Frigate for good. The user "
         "gets a confirmation card naming what goes and what uses it; nothing is "
         "removed until they confirm. A device's integration has to agree, and an "
         "entity only goes once its integration no longer provides it — disable one "
@@ -2284,7 +2285,7 @@ TOOL_REMOVE_FROM_HOME = ToolDef(
             name="kind",
             type="string",
             description="What to remove.",
-            enum=("device", "entity", "integration", "blueprint"),
+            enum=("device", "entity", "integration", "blueprint", "frigate_camera"),
             required=True,
         ),
         ToolParam(
@@ -2292,7 +2293,8 @@ TOOL_REMOVE_FROM_HOME = ToolDef(
             type="string",
             description=(
                 "device_id, entity_id, the integration's entry_id (from check_system), "
-                "or the blueprint's path (from list_blueprints)."
+                "the blueprint's path (from list_blueprints), or for a Frigate camera its "
+                "name or its camera.* entity."
             ),
             required=True,
         ),
@@ -2335,6 +2337,76 @@ TOOL_INSTALL_UPDATE = ToolDef(
             description=(
                 "What you still have to do AFTER the user confirms, in one short phrase. "
                 "Leave it out when installing IS the request."
+            ),
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
+    name="add_cameras_to_frigate",
+    description=(
+        "Add cameras to Frigate, the video recorder that detects people and objects: "
+        "cameras Home Assistant has, and cameras on the network it does not (those "
+        "go straight to Frigate, which brings them into Home Assistant). Without "
+        "entity_ids or hosts, every camera Frigate does not have yet. Not for a "
+        "camera already in Frigate: its recording, detection and snapshots are "
+        "switches on its device, changed with execute_command. The user gets a card "
+        "naming each camera, what it tracks and records, and that Frigate restarts; "
+        "a network camera's login is typed into the card, so never ask for a "
+        "password in chat. Call again with other arguments to change the card."
+    ),
+    params=(
+        ToolParam(
+            name="entity_ids",
+            type="array",
+            items_type="string",
+            description="Only these camera.* entities.",
+        ),
+        ToolParam(
+            name="hosts",
+            type="array",
+            items_type="string",
+            description="Only the cameras at these network addresses (IP or hostname).",
+        ),
+        ToolParam(
+            name="stream_urls",
+            type="array",
+            items_type="string",
+            description=(
+                "Stream addresses the user gave (rtsp://, rtsps://), for a camera without "
+                "ONVIF: the main stream first, then a substream if they gave one. Never "
+                "include a password."
+            ),
+        ),
+        ToolParam(
+            name="name",
+            type="string",
+            description="What the user calls the one camera they named by address or stream.",
+        ),
+        ToolParam(
+            name="objects",
+            type="array",
+            items_type="string",
+            description="Objects to detect, as Frigate labels (person, car, dog, cat). Default person.",
+        ),
+        ToolParam(
+            name="record",
+            type="boolean",
+            description="Keep recordings of what is detected. Default true.",
+        ),
+        ToolParam(
+            name="record_days",
+            type="integer",
+            description="Days to keep those recordings. Default: Frigate's.",
+        ),
+        ToolParam(
+            name="remaining_intent",
+            type="string",
+            description=(
+                "What you still have to do AFTER the user confirms, in one short phrase. "
+                "Leave it out when adding the cameras IS the request."
             ),
         ),
     ),
@@ -3097,6 +3169,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_IGNORE_REPAIR,
     TOOL_REMOVE_FROM_HOME,
     TOOL_INSTALL_UPDATE,
+    TOOL_ADD_CAMERAS_TO_FRIGATE,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -3162,6 +3235,7 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "ignore_repair",
         "remove_from_home",
         "install_update",
+        "add_cameras_to_frigate",
         "delete_floor",
         "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
@@ -3252,6 +3326,7 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "ignore_repair",
         "remove_from_home",
         "install_update",
+        "add_cameras_to_frigate",
         "list_scripts",
         "get_script",
         "set_script",

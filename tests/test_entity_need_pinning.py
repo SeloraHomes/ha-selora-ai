@@ -279,9 +279,7 @@ def _weather_home() -> list[EntitySnapshot]:
     "message",
     ["Is it sunny or cloudy today?", "How cold is it outside?", "Will it rain later?"],
 )
-def test_weather_is_pinned_without_the_word_weather(
-    hass: HomeAssistant, message: str
-) -> None:
+def test_weather_is_pinned_without_the_word_weather(hass: HomeAssistant, message: str) -> None:
     """Pinned only on "weather"/"forecast", a conditions question got the
     lights and no weather entity, and the model answered that it could not see
     the weather."""
@@ -290,7 +288,7 @@ def test_weather_is_pinned_without_the_word_weather(
 
 
 def test_outside_as_a_place_does_not_pin_weather(hass: HomeAssistant) -> None:
-    """"Outside" also names where devices are; there the weather entity would
+    """ "Outside" also names where devices are; there the weather entity would
     take a slot from a light the command targets."""
     ids = _rendered(hass, "turn off all the lights outside", "chat_command", home=_weather_home())
     assert "weather.weather_service" not in ids, ids

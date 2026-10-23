@@ -161,6 +161,7 @@ class ToolExecutor:
             "ignore_repair": self._ignore_repair,
             "remove_from_home": self._remove_from_home,
             "install_update": self._install_update,
+            "add_cameras_to_frigate": self._add_cameras_to_frigate,
             "get_automation_traces": self._get_automation_traces,
             "get_automation": self._get_automation,
             "get_scene": self._get_scene,
@@ -668,6 +669,11 @@ class ToolExecutor:
         from .update_manager import async_preview_install
 
         return await async_preview_install(self._hass, str(arguments.get("entity_id") or ""))
+
+    async def _add_cameras_to_frigate(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.setup import async_preview_add_cameras
+
+        return await async_preview_add_cameras(self._hass, arguments)
 
     async def _remove_from_home(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .removal_cards import async_preview_removal

@@ -398,6 +398,17 @@ async def _record_client_action_result(
                     language,
                 )
             )
+        elif result.get("ok") and str(action.get("kind")) == "add_frigate_cameras":
+            # Which cameras were added comes from the plan the confirm wrote,
+            # never from the panel's report.
+            from ..frigate.setup import added_line  # noqa: PLC0415
+
+            line = added_line(hass, str(action.get("plan_id") or ""), language)
+            if line is None:
+                succeeded[-1] = False
+                lines.append(action_failed_line("Frigate has no record of these cameras", language))
+            else:
+                lines.append(line)
         elif result.get("ok") and str(result.get("kind")) == "delete_dashboard":
             # No seeding, no card marker: the page is gone, and a link to it
             # would be a link to nothing.

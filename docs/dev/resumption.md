@@ -23,6 +23,12 @@ fix.
   that the proposal now exists, and the model decides what remains. That directive
   says plainly a short confirmation is right when the proposal was the whole
   request — told only to "continue", a model invents work.
+- **A self-contained client action does not replay.** Adding cameras to
+  Frigate is the whole request: replayed, the model called the tool again and
+  reported the cameras it had just added as refused. Kinds in
+  `_SELF_CONTAINED_CLIENT_ACTIONS` (`__init__.py`, mirrored as `SELF_CONTAINED`
+  in `client-actions.js`) resume only on a declared `remaining_intent`; the
+  panel skips the call so no error bubble shows.
 - **The replayed request is RECORDED on the proposal** (`origin_request`, written
   at append time). Walking back through the session is wrong once pruning kept the
   first message pinned and dropped the proposal's own request — the scan would

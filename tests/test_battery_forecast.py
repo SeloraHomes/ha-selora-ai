@@ -71,7 +71,7 @@ def test_a_charging_state_sensor_marks_the_device_rechargeable(state: str) -> No
 
 
 def test_a_full_tank_is_not_a_charging_battery() -> None:
-    """"full" is a charging state only on a sensor that is about the battery."""
+    """ "full" is a charging state only on a sensor that is about the battery."""
     tank = Companion("sensor.dehumidifier_tank", "enum", "full", "Water tank tank_status")
     assert not is_rechargeable({"zha"}, [tank], [])
 

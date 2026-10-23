@@ -1767,4 +1767,40 @@ export const chatStyles = css`
     border-radius: 10px;
     border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
   }
+
+  /* Login fields for a camera on the Frigate card (frigate-cameras.js): side
+     by side under the camera's name, stacked full width on a phone, where two
+     columns beside an indent leave each field too narrow to read. */
+  .frigate-login {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 6px 0 2px 32px;
+  }
+  .frigate-login label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .frigate-login input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .frigate-camera-error {
+    margin: 4px 0 0 32px;
+    font-size: 12px;
+    color: var(--error-color, #ef4444);
+  }
+  @media (max-width: 600px) {
+    .frigate-login {
+      grid-template-columns: 1fr;
+      margin-left: 0;
+    }
+    .frigate-camera-error {
+      margin-left: 0;
+    }
+  }
 `;
