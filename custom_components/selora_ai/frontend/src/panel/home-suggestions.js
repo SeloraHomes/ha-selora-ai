@@ -77,13 +77,17 @@ function names(entities) {
   return entities.map((e) => e.name).join(", ");
 }
 
+// A camera found on the network has no entity; its address names it.
 function ids(entities) {
-  return entities.map((e) => e.entity_id).join(", ");
+  return entities.map((e) => e.entity_id || e.address).join(", ");
 }
 
 // "Front Door, Back Door and 2 more", in the panel's language.
 function nameList(host, entities) {
-  const shown = entities.slice(0, MAX_NAMED).map((e) => e.name);
+  // A camera found on the network is told apart by its address.
+  const shown = entities
+    .slice(0, MAX_NAMED)
+    .map((e) => (e.address ? `${e.name} (${e.address})` : e.name));
   const rest = entities.length - shown.length;
   if (rest > 0) {
     shown.push(
@@ -105,13 +109,14 @@ function nameList(host, entities) {
 // type this bundle does not know (a newer backend).
 function describe(host, s) {
   const grouping = s.type === "group_entities";
+  const listsEntities = grouping || s.type === "add_to_frigate";
   const values = {
     entity: names(s.entities),
     entity_id: ids(s.entities),
     collection: s.collection.name,
     ref: s.collection.ref,
     count: s.entities.length,
-    members: nameList(host, grouping ? s.entities : s.members || []),
+    members: nameList(host, listsEntities ? s.entities : s.members || []),
     area: s.area || "",
   };
   const t = (key, fallback) => interpolate(host._t(key, fallback), values);
@@ -134,6 +139,25 @@ function describe(host, s) {
         t(
           "home_suggestion_group_caveat",
           "It then runs when the group as a whole changes, not again for each device while another one is still active.",
+        ),
+      ],
+    };
+  }
+  if (s.type === "add_to_frigate") {
+    return {
+      icon: "mdi:cctv",
+      title:
+        s.entities.length === 1
+          ? t("home_suggestion_frigate_one", "Add {entity} to Frigate")
+          : t("home_suggestion_frigate", "Add {count} cameras to Frigate"),
+      prompt: t(
+        "home_suggestion_frigate_prompt",
+        "Add these cameras to Frigate: {entity} ({entity_id}).",
+      ),
+      why: [
+        t(
+          "home_suggestion_frigate_why",
+          "Frigate is not watching {members} yet. Once added, it spots people as they appear and keeps recordings of what it saw.",
         ),
       ],
     };

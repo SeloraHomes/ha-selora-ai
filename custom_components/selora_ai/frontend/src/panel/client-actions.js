@@ -13,6 +13,7 @@
  * model output — the model could issue any admin websocket command through the
  * user's session.
  */
+import { CameraLoginError, addFrigateCameras } from "./frigate-cameras.js";
 
 /**
  * Whether the dashboard sitting there is the one this action was built for.
@@ -87,6 +88,9 @@ const HELPER_FIELDS = {
 
 /** Kinds this panel will execute. Checked again here, not just server-side. */
 const HANDLERS = {
+  // Sends only the plan id and the logins typed into the card; the backend
+  // holds which cameras and settings were proposed.
+  add_frigate_cameras: addFrigateCameras,
   create_helper: async (hass, action) => {
     const domain = String(action.domain || "");
     const allowed = HELPER_FIELDS[domain];
@@ -255,7 +259,14 @@ export async function runClientAction(hass, action) {
     // A websocket error here is the user's own permissions or a colliding
     // url_path — surfaced verbatim, because a generic failure would send them
     // looking in the wrong place.
-    return { ok: false, kind, detail: err?.message || String(err) };
+    return {
+      ok: false,
+      kind,
+      detail: err?.message || String(err),
+      // A login the camera refused is the user's to fix on the card, not an
+      // outcome to record: the card stays open.
+      ...(err instanceof CameraLoginError ? { retry: true } : {}),
+    };
   }
 }
 
@@ -265,6 +276,18 @@ export async function runClientAction(hass, action) {
  * Reporting is not optional: without it the card resolves in the UI while the
  * conversation still says nothing happened, or worse, implies it did.
  */
+// Kinds that finish what they were asked for. They resume only when the model
+// declared something left to do: replaying "add the E1 Zoom to Frigate" had
+// the model add it again and report the camera it had just added as refused.
+// The server refuses the same case; skipping it here avoids an error bubble.
+const SELF_CONTAINED = new Set(["add_frigate_cameras"]);
+
+function resumes(approval) {
+  if (String(approval?.remaining_intent || "").trim()) return true;
+  const kinds = (approval?.client_actions || []).map((a) => String(a?.kind));
+  return !kinds.length || kinds.some((kind) => !SELF_CONTAINED.has(kind));
+}
+
 /** Proposals currently executing, for cards with no message to mark. */
 const IN_FLIGHT = new Set();
 
@@ -301,6 +324,12 @@ export async function resolveClientActions(host, msg, approval) {
     // The card renders msg.approval_status, and hiding the buttons is what stops
     // a second click running the command twice — same handling as the
     // server-resolved cards in chat-actions.js.
+    const before = msg
+      ? {
+          quick_actions: msg.quick_actions,
+          approval_status: msg.approval_status,
+        }
+      : null;
     if (msg) {
       msg._resolving = true;
       msg.quick_actions = null;
@@ -311,6 +340,18 @@ export async function resolveClientActions(host, msg, approval) {
     const results = [];
     for (const action of actions) {
       results.push(await runClientAction(host.hass, action));
+    }
+    if (results.some((r) => r.retry)) {
+      // Nothing was done and nothing is reported: the card goes back to
+      // waiting, showing which login to fix.
+      if (msg) {
+        msg._resolving = false;
+        msg.quick_actions = before.quick_actions;
+        msg.approval_status = before.approval_status;
+        host._messages = [...host._messages];
+      }
+      host.requestUpdate();
+      return;
     }
     ok = results.length > 0 && results.every((r) => r.ok);
 
@@ -356,7 +397,7 @@ export async function resolveClientActions(host, msg, approval) {
     // field unset, so the server replays the original request instead and
     // decides what is outstanding. It also refuses a denial, a repeat, and
     // anything already continued once.
-    if (ok) {
+    if (ok && resumes(approval)) {
       await host._sendMessage?.({ resumeProposalId: proposalId });
     }
   }

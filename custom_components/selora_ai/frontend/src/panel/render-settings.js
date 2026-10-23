@@ -1,5 +1,7 @@
 import { html } from "lit";
 
+import { interpolate } from "../shared/i18n.js";
+import { scanCameras, syncDevConsole } from "./dev-tools.js";
 import { renderIgnoreList } from "./render-ignore-list.js";
 
 // Native <input> wrapper used in place of <ha-textfield>. Recent HA builds
@@ -1614,6 +1616,7 @@ export function renderSettings(host) {
                 @change=${async (e) => {
                   const val = e.target.checked;
                   host._updateConfig("developer_mode", val);
+                  syncDevConsole(host);
                   try {
                     await host.hass.callWS({
                       type: "selora_ai/update_config",
@@ -1631,6 +1634,69 @@ export function renderSettings(host) {
                 }}
               ></ha-switch>
             </div>
+            ${
+              host._config.developer_mode
+                ? html`<div class="service-row">
+                    <div class="service-label-group">
+                      <label
+                        >${host._t(
+                          "settings_dev_scan_cameras_label",
+                          "Scan for cameras",
+                        )}</label
+                      >
+                      <span class="service-desc"
+                        >${host._t(
+                          "settings_dev_scan_cameras_desc",
+                          "Look for cameras on the network now instead of on the next half-hourly scan, and refresh the chat home's suggestions.",
+                        )}</span
+                      >
+                    </div>
+                    <button
+                      class="btn btn-outline"
+                      ?disabled=${host._scanningCameras}
+                      @click=${async () => {
+                        host._scanningCameras = true;
+                        host.requestUpdate();
+                        try {
+                          const cameras = await scanCameras(host);
+                          host._showToast(
+                            interpolate(
+                              host._t(
+                                "settings_dev_scan_cameras_done",
+                                "Found {count} cameras on the network.",
+                              ),
+                              { count: cameras.length },
+                            ),
+                          );
+                        } catch (err) {
+                          host._showToast(
+                            host._t(
+                              "settings_dev_scan_cameras_failed",
+                              "The camera scan failed.",
+                            ),
+                            "error",
+                          );
+                        } finally {
+                          host._scanningCameras = false;
+                          host.requestUpdate();
+                        }
+                      }}
+                    >
+                      ${
+                        host._scanningCameras
+                          ? host._t(
+                              "settings_dev_scan_cameras_scanning",
+                              "Scanning…",
+                            )
+                          : host._t(
+                              "settings_dev_scan_cameras_button",
+                              "Scan now",
+                            )
+                      }
+                    </button>
+                  </div>`
+                : ""
+            }
           </div>
 
           <div class="card-save-bar">

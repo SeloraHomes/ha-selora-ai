@@ -410,3 +410,25 @@ def test_a_lone_unchanged_target_gets_no_success_sentence() -> None:
 
     assert text.startswith("Commande envoyée, mais Front Door Recordings n'a pas changé")
     assert "Allumé" not in text
+
+
+def test_a_switch_frigate_config_disables_says_why() -> None:
+    text = build_executed_confirmation(
+        [
+            {
+                "executed": True,
+                "service": "switch.turn_on",
+                "entity_ids": ["switch.front_door_recordings"],
+                "unconfirmed": ["switch.front_door_recordings"],
+                "unconfirmed_reasons": {
+                    "switch.front_door_recordings": "disabled_in_frigate_config"
+                },
+            }
+        ],
+        {"switch.front_door_recordings": "Front Door Recordings"}.get,
+    )
+
+    assert text.startswith(
+        "Front Door Recordings did not turn on: it is turned off in this camera's Frigate settings"
+    )
+    assert "may not have worked" not in text

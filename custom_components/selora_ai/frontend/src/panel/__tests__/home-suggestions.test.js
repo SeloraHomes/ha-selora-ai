@@ -171,4 +171,71 @@ describe("renderHomeSuggestions", () => {
     const out = flatten(renderHomeSuggestions(host(many)));
     expect(out.split("home-suggestion-main").length - 1).toBe(3);
   });
+
+  it("offers to add cameras to Frigate, asking with their ids", () => {
+    const cameras = {
+      suggestion_id: "frigate:camera.driveway,camera.porch",
+      type: "add_to_frigate",
+      entities: [
+        { entity_id: "camera.porch", name: "Porch" },
+        { entity_id: "camera.driveway", name: "Driveway" },
+      ],
+      collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+    };
+    const h = host([cameras]);
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Add 2 cameras to Frigate",
+    );
+
+    handlers(renderHomeSuggestions(h))[0]();
+    const opened = renderHomeSuggestions(h);
+    expect(flatten(opened)).toContain(
+      "Frigate is not watching Porch and Driveway yet.",
+    );
+    handlers(opened).at(-1)();
+    const [sent] = h._askInNewChat.mock.calls[0];
+    expect(messageDetails(sent)).toBe(
+      "Add these cameras to Frigate: Porch, Driveway (camera.porch, camera.driveway).",
+    );
+  });
+
+  it("names a single camera", () => {
+    const out = flatten(
+      renderHomeSuggestions(
+        host([
+          {
+            suggestion_id: "frigate:camera.porch",
+            type: "add_to_frigate",
+            entities: [{ entity_id: "camera.porch", name: "Porch" }],
+            collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+          },
+        ]),
+      ),
+    );
+    expect(out).toContain("Add Porch to Frigate");
+  });
+
+  it("names a camera found on the network by its address", () => {
+    const h = host([
+      {
+        suggestion_id: "frigate:192.168.1.60,camera.porch",
+        type: "add_to_frigate",
+        entities: [
+          { entity_id: "camera.porch", name: "Porch" },
+          { entity_id: "", address: "192.168.1.60", name: "Garage Cam" },
+        ],
+        collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+      },
+    ]);
+    handlers(renderHomeSuggestions(h))[0]();
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Frigate is not watching Porch and Garage Cam (192.168.1.60) yet.",
+    );
+    handlers(renderHomeSuggestions(h)).at(-1)();
+
+    const [sent] = h._askInNewChat.mock.calls[0];
+    expect(messageDetails(sent)).toBe(
+      "Add these cameras to Frigate: Porch, Garage Cam (camera.porch, 192.168.1.60).",
+    );
+  });
 });

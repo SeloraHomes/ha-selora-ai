@@ -151,6 +151,9 @@ def _requested_terminal_state(service: str) -> str | None:
     return _SERVICE_TERMINAL_STATE.get(service)
 
 
+# Why a target in ``unconfirmed`` did not change, when it is known.
+UNCONFIRMED_DISABLED_IN_FRIGATE = "disabled_in_frigate_config"
+
 # States a target passes through on its way to the requested one; still
 # moving when the settle wait ends is not a failure.
 _IN_PROGRESS_STATES: frozenset[str] = frozenset({"opening", "closing", "locking", "unlocking"})
@@ -418,6 +421,16 @@ async def _call_service_and_settle(
     }
     if unconfirmed := _unconfirmed_targets(hass, expected, settle_ids):
         result["unconfirmed"] = unconfirmed
+        if expected == "on":
+            # A Frigate switch whose feature the camera's config disables
+            # takes the command and stays off; say why rather than "may not
+            # have worked".
+            from ..frigate.controls import async_disabled_in_config  # noqa: PLC0415
+
+            if disabled := await async_disabled_in_config(hass, unconfirmed):
+                result["unconfirmed_reasons"] = dict.fromkeys(
+                    disabled, UNCONFIRMED_DISABLED_IN_FRIGATE
+                )
     if want_response and response is not None:
         result["response"] = response
     return result

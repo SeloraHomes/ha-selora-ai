@@ -12,14 +12,17 @@ together, so the intent is inferred from coverage instead of stored:
   scope never suggests anything.
 * **group_entities** — an automation's triggers list three or more entities
   of one groupable kind, which a group helper would keep in one place.
+* **add_to_frigate** — cameras Frigate could watch but does not, when the
+  Frigate integration is set up (``frigate.setup``).
 
 Nothing is applied from here. The panel turns a suggestion into a chat
 request, where the usual tools and cards do the work and the user sees each
 change. Suggestions are recomputed on every read, so only the user's
 dismissals and which ones were already notified are stored.
 
-The rules know nothing about any particular domain: a new person joins the
-collection of people exactly as a new leak sensor joins the leak sensors.
+The collection rules know nothing about any particular domain: a new person
+joins the collection of people exactly as a new leak sensor joins the leak
+sensors. Frigate is the exception, as a service the home's cameras feed.
 """
 
 from __future__ import annotations
@@ -499,9 +502,12 @@ def get_home_suggestion_store(hass: HomeAssistant) -> HomeSuggestionStore:
 
 async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
     """Current suggestions the user has not dismissed."""
+    from .frigate.setup import async_frigate_suggestions  # noqa: PLC0415
+
     dismissed = await get_home_suggestion_store(hass).ids("dismissed")
     automations = await _async_read_automations(hass)
-    return [s for s, _ in _detect(hass, automations) if s["suggestion_id"] not in dismissed]
+    found = [s for s, _ in _detect(hass, automations)] + await async_frigate_suggestions(hass)
+    return [s for s in found if s["suggestion_id"] not in dismissed]
 
 
 async def async_dismiss_home_suggestion(hass: HomeAssistant, suggestion_id: str) -> None:

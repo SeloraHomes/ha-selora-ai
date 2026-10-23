@@ -598,3 +598,26 @@ def test_the_newest_proposal_with_a_reused_id_wins() -> None:
     assert error is None, error
     assert "brighter, and put it on the dashboard" in directive
     assert "make a movie scene" not in directive
+
+
+def test_a_frigate_card_without_a_remainder_does_not_replay_the_request() -> None:
+    """Replaying "add the E1 Zoom to Frigate" had the model add it again and
+    report the camera it had just added as refused."""
+    messages = _messages(
+        remaining_intent="", client_actions=[{"kind": "add_frigate_cameras", "plan_id": "x"}]
+    )
+
+    directive, error = _resume_request(messages, "p1")
+
+    assert directive is None and error == "That action had nothing left to do."
+
+
+def test_a_frigate_card_with_a_declared_remainder_still_resumes() -> None:
+    messages = _messages(
+        remaining_intent="put the new camera on the dashboard",
+        client_actions=[{"kind": "add_frigate_cameras", "plan_id": "x"}],
+    )
+
+    directive, error = _resume_request(messages, "p1")
+
+    assert error is None and "put the new camera on the dashboard" in directive

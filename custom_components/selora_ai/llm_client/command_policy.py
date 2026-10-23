@@ -2353,6 +2353,23 @@ _UNCONFIRMED_BY_LANG: dict[str, str] = {
     "ru": "Команда отправлена, но {target} не изменилось — возможно, она не сработала.",
 }
 
+# The camera's Frigate config disables the feature, so the switch cannot turn
+# it on (see frigate/controls.py).
+_DISABLED_IN_FRIGATE_BY_LANG: dict[str, str] = {
+    "en": "{target} did not turn on: it is turned off in this camera's Frigate settings, which have to enable it first.",
+    "fr": "{target} ne s'est pas activé : la fonction est désactivée dans les réglages Frigate de cette caméra, qui doivent d'abord l'activer.",
+    "de": "{target} wurde nicht eingeschaltet: Die Funktion ist in den Frigate-Einstellungen dieser Kamera deaktiviert und muss dort zuerst aktiviert werden.",
+    "es": "{target} no se activó: está desactivado en los ajustes de Frigate de esta cámara, que primero deben habilitarlo.",
+    "it": "{target} non si è attivato: è disattivato nelle impostazioni Frigate di questa telecamera, che devono prima abilitarlo.",
+    "nl": "{target} is niet ingeschakeld: het staat uit in de Frigate-instellingen van deze camera, die het eerst moeten inschakelen.",
+    "hu": "{target} nem kapcsolt be: ennek a kamerának a Frigate-beállításaiban ki van kapcsolva, előbb ott kell engedélyezni.",
+    "zh": "{target} 未能开启：此摄像头的 Frigate 设置中已关闭该功能，需先在其中启用。",
+    "pt": "{target} não foi ativado: está desativado nas definições do Frigate desta câmara, que têm de o ativar primeiro.",
+    "ja": "{target} はオンになりませんでした。このカメラの Frigate 設定で無効になっているため、先にそちらで有効にする必要があります。",
+    "ko": "{target}이(가) 켜지지 않았습니다. 이 카메라의 Frigate 설정에서 꺼져 있어 먼저 그곳에서 켜야 합니다.",
+    "ru": "{target} не включилось: функция отключена в настройках Frigate для этой камеры, сначала её нужно включить там.",
+}
+
 # Sentence template per locale. Non-EN locales use a colon-separator so
 # the past participle reads as a status label ("Allumé : Kitchen Lights")
 # rather than a verb that needs gender/number agreement with the object —
@@ -2472,8 +2489,10 @@ def build_executed_confirmation(
     # call's entry is already its sentence, with no ids.
     groups: list[tuple[str, list[str], list[str]]] = []
     unconfirmed: list[str] = []
+    disabled_in_frigate: list[str] = []
     for call in executed_calls:
         unreachable = {str(e) for e in call.get("unconfirmed") or []}
+        reasons = call.get("unconfirmed_reasons") or {}
         service = str(call.get("service", "")).strip()
         if not service:
             continue
@@ -2490,8 +2509,13 @@ def build_executed_confirmation(
         past = past_verb_for(service, language)
         for eid in [e for e in ids if e in unreachable]:
             name = friendly_name_resolver(eid) if friendly_name_resolver else eid
-            if name not in unconfirmed:
-                unconfirmed.append(name)
+            bucket = (
+                disabled_in_frigate
+                if reasons.get(eid) == "disabled_in_frigate_config"
+                else unconfirmed
+            )
+            if name not in bucket:
+                bucket.append(name)
             if eid not in entity_ids:
                 entity_ids.append(eid)
         if ids and unreachable.issuperset(ids):
@@ -2517,6 +2541,9 @@ def build_executed_confirmation(
     if unconfirmed:
         template = _UNCONFIRMED_BY_LANG.get(lang, _UNCONFIRMED_BY_LANG["en"])
         sentences.append(template.format(target=", ".join(unconfirmed)))
+    if disabled_in_frigate:
+        template = _DISABLED_IN_FRIGATE_BY_LANG.get(lang, _DISABLED_IN_FRIGATE_BY_LANG["en"])
+        sentences.append(template.format(target=", ".join(disabled_in_frigate)))
     content = " ".join(sentences) if sentences else done_text
     marker_ids = [eid for eid in entity_ids if eid not in excluded]
     if marker_ids:
@@ -2858,6 +2885,7 @@ _DELETE_KINDS = frozenset(
         "entity",
         "integration",
         "blueprint",
+        "frigate_camera",
     }
 )
 
@@ -3054,8 +3082,12 @@ def _delete_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
 # Tools whose work the PANEL performs, because the supported API is a websocket
 # command and we are not a websocket client. Only these may emit a
 # `client_action` descriptor, and the panel allowlists the kinds again.
-_CLIENT_ACTION_TOOLS = frozenset({"create_dashboard", "delete_dashboard", "create_helper"})
-_CLIENT_ACTION_KINDS = frozenset({"create_dashboard", "delete_dashboard", "create_helper"})
+_CLIENT_ACTION_TOOLS = frozenset(
+    {"create_dashboard", "delete_dashboard", "create_helper", "add_cameras_to_frigate"}
+)
+_CLIENT_ACTION_KINDS = frozenset(
+    {"create_dashboard", "delete_dashboard", "create_helper", "add_frigate_cameras"}
+)
 
 
 def _pending_client_actions_from_log(

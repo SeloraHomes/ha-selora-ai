@@ -332,12 +332,15 @@ class HomeSuggestionEntity(TypedDict):
 
     entity_id: str
     name: str
+    # add_to_frigate only: a camera found on the network, which has no entity
+    # (entity_id is empty) and is named by its address.
+    address: NotRequired[str]
 
 
 class HomeSuggestionCollection(TypedDict):
     """The group or automation a home suggestion changes."""
 
-    source: str  # "group_helper" | "automation"
+    source: str  # "group_helper" | "automation" | "frigate"
     name: str
     # The group's entity_id, or the automation's entity_id (its config id when
     # the automation is not loaded).
@@ -350,7 +353,8 @@ class HomeSuggestion(TypedDict):
     """A change Selora proposes from how the home is organised.
 
     See home_suggestions.py. ``type`` is "add_to_collection" (one entity to
-    add) or "group_entities" (the automation's trigger entities to group).
+    add), "group_entities" (the automation's trigger entities to group) or
+    "add_to_frigate" (cameras Frigate does not have yet).
     """
 
     suggestion_id: str
@@ -678,6 +682,8 @@ class ToolWriteResult(TypedDict, total=False):
     states: list[EntityStateSnapshot]
     # Targets that did not reach the requested state (see _unconfirmed_targets).
     unconfirmed: list[str]
+    # Why some of those did not change, as a reason code, when it is known.
+    unconfirmed_reasons: dict[str, str]
     # validator output (rejection / approval gate)
     valid: bool
     errors: list[str]

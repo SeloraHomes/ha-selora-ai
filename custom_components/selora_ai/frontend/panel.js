@@ -4485,6 +4485,42 @@ var chatStyles = i`
     border-radius: 10px;
     border: 1px solid var(--divider-color, rgba(255, 255, 255, 0.12));
   }
+
+  /* Login fields for a camera on the Frigate card (frigate-cameras.js): side
+     by side under the camera's name, stacked full width on a phone, where two
+     columns beside an indent leave each field too narrow to read. */
+  .frigate-login {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 6px 0 2px 32px;
+  }
+  .frigate-login label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .frigate-login input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .frigate-camera-error {
+    margin: 4px 0 0 32px;
+    font-size: 12px;
+    color: var(--error-color, #ef4444);
+  }
+  @media (max-width: 600px) {
+    .frigate-login {
+      grid-template-columns: 1fr;
+      margin-left: 0;
+    }
+    .frigate-camera-error {
+      margin-left: 0;
+    }
+  }
 `;
 
 // src/panel/styles/proposals.css.js
@@ -10124,6 +10160,13 @@ var en_default = {
     settings_auto_remove_stale_label: "Auto-remove stale automations",
     settings_developer_mode_label: "Developer mode",
     settings_developer_mode_desc: "Exposes raw entity payloads and debug logs",
+    settings_dev_scan_cameras_label: "Scan for cameras",
+    settings_dev_scan_cameras_desc:
+      "Look for cameras on the network now instead of on the next half-hourly scan, and refresh the chat home's suggestions.",
+    settings_dev_scan_cameras_button: "Scan now",
+    settings_dev_scan_cameras_scanning: "Scanning\u2026",
+    settings_dev_scan_cameras_done: "Found {count} cameras on the network.",
+    settings_dev_scan_cameras_failed: "The camera scan failed.",
     settings_telemetry_label: "Anonymous telemetry",
     settings_telemetry_desc:
       "Off by default. When on, sends anonymous counts about your setup (devices, integrations, automations, scenes, scripts, blueprints, areas) and how often Selora repairs model output, so we can improve the product. Never sends entity names, prompts, or responses.",
@@ -11026,6 +11069,22 @@ var en_default = {
     home_suggestion_group_caveat:
       "It then runs when the group as a whole changes, not again for each device while another one is still active.",
     home_suggestion_do_it: "Ask Selora to do it",
+    home_suggestion_frigate: "Add {count} cameras to Frigate",
+    home_suggestion_frigate_one: "Add {entity} to Frigate",
+    home_suggestion_frigate_prompt:
+      "Add these cameras to Frigate: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate is not watching {members} yet. Once added, it spots people as they appear and keeps recordings of what it saw.",
+    client_action_add_to_frigate: "Add to Frigate",
+    frigate_camera_username: "Username",
+    frigate_camera_password: "Password",
+    frigate_cameras_settings: "Detects {objects}; {recording}.",
+    frigate_cameras_recording: "recordings kept",
+    frigate_cameras_recording_days: "recordings kept {days} days",
+    frigate_cameras_no_recording: "no recording",
+    frigate_cameras_restart:
+      "Frigate restarts to add them, pausing its cameras for about a minute.",
+    frigate_cameras_not_added: "Not added: {list}.",
     chat_message_details: "Details",
   },
   options: {
@@ -11403,6 +11462,15 @@ var fr_default = {
     settings_developer_mode_label: "Mode d\xE9veloppeur",
     settings_developer_mode_desc:
       "Expose les charges utiles brutes des entit\xE9s et les journaux de d\xE9bogage",
+    settings_dev_scan_cameras_label: "Rechercher des cam\xE9ras",
+    settings_dev_scan_cameras_desc:
+      "Rechercher maintenant les cam\xE9ras du r\xE9seau au lieu d'attendre la prochaine recherche (toutes les 30 minutes), et actualiser les suggestions de l'accueil du chat.",
+    settings_dev_scan_cameras_button: "Rechercher",
+    settings_dev_scan_cameras_scanning: "Recherche\u2026",
+    settings_dev_scan_cameras_done:
+      "{count} cam\xE9ras trouv\xE9es sur le r\xE9seau.",
+    settings_dev_scan_cameras_failed:
+      "La recherche de cam\xE9ras a \xE9chou\xE9.",
     settings_telemetry_label: "T\xE9l\xE9m\xE9trie anonyme",
     settings_telemetry_desc:
       "D\xE9sactiv\xE9e par d\xE9faut. Si activ\xE9e, envoie des d\xE9comptes anonymes sur votre installation (appareils, int\xE9grations, automatisations, sc\xE8nes, scripts, blueprints, zones) et la fr\xE9quence \xE0 laquelle Selora corrige les sorties du mod\xE8le, afin d'am\xE9liorer le produit. N'envoie jamais de noms d'entit\xE9s, d'invites ni de r\xE9ponses.",
@@ -12354,6 +12422,22 @@ var fr_default = {
     home_suggestion_group_caveat:
       "Elle se d\xE9clenche alors quand le groupe dans son ensemble change, et plus pour chaque appareil tant qu'un autre est encore actif.",
     home_suggestion_do_it: "Demander \xE0 Selora de le faire",
+    home_suggestion_frigate: "Ajouter {count} cam\xE9ras \xE0 Frigate",
+    home_suggestion_frigate_one: "Ajouter {entity} \xE0 Frigate",
+    home_suggestion_frigate_prompt:
+      "Ajoute ces cam\xE9ras \xE0 Frigate : {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate ne surveille pas encore {members}. Une fois ajout\xE9es, il rep\xE8re les personnes d\xE8s qu'elles apparaissent et garde les enregistrements de ce qu'il a vu.",
+    client_action_add_to_frigate: "Ajouter \xE0 Frigate",
+    frigate_camera_username: "Nom d'utilisateur",
+    frigate_camera_password: "Mot de passe",
+    frigate_cameras_settings: "D\xE9tecte {objects} ; {recording}.",
+    frigate_cameras_recording: "enregistrements conserv\xE9s",
+    frigate_cameras_recording_days: "enregistrements conserv\xE9s {days} jours",
+    frigate_cameras_no_recording: "pas d'enregistrement",
+    frigate_cameras_restart:
+      "Frigate red\xE9marre pour les ajouter, ce qui interrompt ses cam\xE9ras pendant environ une minute.",
+    frigate_cameras_not_added: "Non ajout\xE9es : {list}.",
     chat_message_details: "D\xE9tails",
   },
   options: {
@@ -12732,6 +12816,13 @@ var de_default = {
     settings_developer_mode_label: "Entwicklermodus",
     settings_developer_mode_desc:
       "Stellt rohe Entit\xE4ts-Payloads und Debug-Logs bereit",
+    settings_dev_scan_cameras_label: "Nach Kameras suchen",
+    settings_dev_scan_cameras_desc:
+      "Jetzt nach Kameras im Netzwerk suchen statt bei der n\xE4chsten halbst\xFCndlichen Suche, und die Vorschl\xE4ge auf der Chat-Startseite aktualisieren.",
+    settings_dev_scan_cameras_button: "Jetzt suchen",
+    settings_dev_scan_cameras_scanning: "Suche\u2026",
+    settings_dev_scan_cameras_done: "{count} Kameras im Netzwerk gefunden.",
+    settings_dev_scan_cameras_failed: "Die Kamerasuche ist fehlgeschlagen.",
     settings_telemetry_label: "Anonyme Telemetrie",
     settings_telemetry_desc:
       "Standardm\xE4\xDFig deaktiviert. Wenn aktiviert, werden anonyme Z\xE4hlwerte zu Ihrer Installation (Ger\xE4te, Integrationen, Automationen, Szenen, Skripte, Blueprints, Bereiche) und dazu gesendet, wie oft Selora die Modellausgabe korrigiert, damit wir das Produkt verbessern k\xF6nnen. Es werden niemals Entit\xE4tsnamen, Prompts oder Antworten gesendet.",
@@ -13674,6 +13765,22 @@ var de_default = {
     home_suggestion_group_caveat:
       "Sie l\xE4uft dann, wenn sich die Gruppe als Ganzes \xE4ndert, nicht erneut f\xFCr jedes Ger\xE4t, solange ein anderes noch aktiv ist.",
     home_suggestion_do_it: "Selora darum bitten",
+    home_suggestion_frigate: "{count} Kameras zu Frigate hinzuf\xFCgen",
+    home_suggestion_frigate_one: "{entity} zu Frigate hinzuf\xFCgen",
+    home_suggestion_frigate_prompt:
+      "F\xFCge diese Kameras zu Frigate hinzu: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate \xFCberwacht {members} noch nicht. Danach erkennt es Personen, sobald sie auftauchen, und speichert Aufnahmen davon.",
+    client_action_add_to_frigate: "Zu Frigate hinzuf\xFCgen",
+    frigate_camera_username: "Benutzername",
+    frigate_camera_password: "Passwort",
+    frigate_cameras_settings: "Erkennt {objects}; {recording}.",
+    frigate_cameras_recording: "Aufnahmen werden gespeichert",
+    frigate_cameras_recording_days: "Aufnahmen werden {days} Tage gespeichert",
+    frigate_cameras_no_recording: "keine Aufnahme",
+    frigate_cameras_restart:
+      "Frigate startet daf\xFCr neu und unterbricht seine Kameras f\xFCr etwa eine Minute.",
+    frigate_cameras_not_added: "Nicht hinzugef\xFCgt: {list}.",
     chat_message_details: "Details",
   },
   options: {
@@ -14048,6 +14155,14 @@ var es_default = {
     settings_developer_mode_label: "Modo desarrollador",
     settings_developer_mode_desc:
       "Expone cargas \xFAtiles de entidades sin procesar y registros de depuraci\xF3n",
+    settings_dev_scan_cameras_label: "Buscar c\xE1maras",
+    settings_dev_scan_cameras_desc:
+      "Buscar ahora c\xE1maras en la red en lugar de esperar a la pr\xF3xima b\xFAsqueda (cada media hora) y actualizar las sugerencias del inicio del chat.",
+    settings_dev_scan_cameras_button: "Buscar ahora",
+    settings_dev_scan_cameras_scanning: "Buscando\u2026",
+    settings_dev_scan_cameras_done:
+      "Se encontraron {count} c\xE1maras en la red.",
+    settings_dev_scan_cameras_failed: "La b\xFAsqueda de c\xE1maras fall\xF3.",
     settings_telemetry_label: "Telemetr\xEDa an\xF3nima",
     settings_telemetry_desc:
       "Desactivada de forma predeterminada. Cuando est\xE1 activada, env\xEDa recuentos an\xF3nimos sobre tu configuraci\xF3n (dispositivos, integraciones, automatizaciones, escenas, scripts, blueprints, \xE1reas) y la frecuencia con la que Selora corrige la salida del modelo, para mejorar el producto. Nunca env\xEDa nombres de entidades, indicaciones ni respuestas.",
@@ -14973,6 +15088,22 @@ var es_default = {
     home_suggestion_group_caveat:
       "Entonces se ejecuta cuando cambia el grupo en conjunto, no otra vez por cada dispositivo mientras otro siga activo.",
     home_suggestion_do_it: "Pedir a Selora que lo haga",
+    home_suggestion_frigate: "A\xF1adir {count} c\xE1maras a Frigate",
+    home_suggestion_frigate_one: "A\xF1adir {entity} a Frigate",
+    home_suggestion_frigate_prompt:
+      "A\xF1ade estas c\xE1maras a Frigate: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate a\xFAn no vigila {members}. Una vez a\xF1adidas, detecta a las personas en cuanto aparecen y guarda grabaciones de lo que ha visto.",
+    client_action_add_to_frigate: "A\xF1adir a Frigate",
+    frigate_camera_username: "Usuario",
+    frigate_camera_password: "Contrase\xF1a",
+    frigate_cameras_settings: "Detecta {objects}; {recording}.",
+    frigate_cameras_recording: "se guardan grabaciones",
+    frigate_cameras_recording_days: "grabaciones guardadas {days} d\xEDas",
+    frigate_cameras_no_recording: "sin grabaci\xF3n",
+    frigate_cameras_restart:
+      "Frigate se reinicia para a\xF1adirlas y detiene sus c\xE1maras durante un minuto aproximadamente.",
+    frigate_cameras_not_added: "No a\xF1adidas: {list}.",
     chat_message_details: "Detalles",
   },
   options: {
@@ -15345,6 +15476,14 @@ var it_default = {
     settings_developer_mode_label: "Modalit\xE0 sviluppatore",
     settings_developer_mode_desc:
       "Espone i payload grezzi delle entit\xE0 e i log di debug",
+    settings_dev_scan_cameras_label: "Cerca telecamere",
+    settings_dev_scan_cameras_desc:
+      "Cerca ora le telecamere in rete invece di attendere la prossima ricerca (ogni mezz'ora) e aggiorna i suggerimenti nella home della chat.",
+    settings_dev_scan_cameras_button: "Cerca ora",
+    settings_dev_scan_cameras_scanning: "Ricerca\u2026",
+    settings_dev_scan_cameras_done: "Trovate {count} telecamere in rete.",
+    settings_dev_scan_cameras_failed:
+      "La ricerca delle telecamere non \xE8 riuscita.",
     settings_telemetry_label: "Telemetria anonima",
     settings_telemetry_desc:
       "Disattivata per impostazione predefinita. Se attiva, invia conteggi anonimi sulla tua configurazione (dispositivi, integrazioni, automazioni, scene, script, blueprint, aree) e sulla frequenza con cui Selora corregge l'output del modello, per migliorare il prodotto. Non invia mai nomi di entit\xE0, prompt o risposte.",
@@ -16271,6 +16410,23 @@ var it_default = {
     home_suggestion_group_caveat:
       "Si attiva quindi quando cambia il gruppo nel suo insieme, non di nuovo per ogni dispositivo finch\xE9 un altro \xE8 ancora attivo.",
     home_suggestion_do_it: "Chiedi a Selora di farlo",
+    home_suggestion_frigate: "Aggiungi {count} telecamere a Frigate",
+    home_suggestion_frigate_one: "Aggiungi {entity} a Frigate",
+    home_suggestion_frigate_prompt:
+      "Aggiungi queste telecamere a Frigate: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate non sta ancora sorvegliando {members}. Una volta aggiunte, rileva le persone appena compaiono e conserva le registrazioni di ci\xF2 che ha visto.",
+    client_action_add_to_frigate: "Aggiungi a Frigate",
+    frigate_camera_username: "Nome utente",
+    frigate_camera_password: "Password",
+    frigate_cameras_settings: "Rileva {objects}; {recording}.",
+    frigate_cameras_recording: "registrazioni conservate",
+    frigate_cameras_recording_days:
+      "registrazioni conservate per {days} giorni",
+    frigate_cameras_no_recording: "nessuna registrazione",
+    frigate_cameras_restart:
+      "Frigate si riavvia per aggiungerle, mettendo in pausa le sue telecamere per circa un minuto.",
+    frigate_cameras_not_added: "Non aggiunte: {list}.",
     chat_message_details: "Dettagli",
   },
   options: {
@@ -16661,6 +16817,13 @@ var nl_default = {
       "Verouderde automatiseringen automatisch verwijderen",
     settings_developer_mode_label: "Ontwikkelaarsmodus",
     settings_developer_mode_desc: "Toont ruwe entiteitsgegevens en debuglogs",
+    settings_dev_scan_cameras_label: "Naar camera's zoeken",
+    settings_dev_scan_cameras_desc:
+      "Nu naar camera's in het netwerk zoeken in plaats van bij de volgende halfuurlijkse zoektocht, en de suggesties op het chatbeginscherm vernieuwen.",
+    settings_dev_scan_cameras_button: "Nu zoeken",
+    settings_dev_scan_cameras_scanning: "Zoeken\u2026",
+    settings_dev_scan_cameras_done: "{count} camera's gevonden in het netwerk.",
+    settings_dev_scan_cameras_failed: "Het zoeken naar camera's is mislukt.",
     settings_telemetry_label: "Anonieme telemetrie",
     settings_telemetry_desc:
       "Standaard uitgeschakeld. Indien ingeschakeld worden anonieme aantallen over je installatie (apparaten, integraties, automatiseringen, sc\xE8nes, scripts, blueprints, gebieden) verzonden en hoe vaak Selora modeluitvoer corrigeert, zodat we het product kunnen verbeteren. Verzendt nooit entiteitsnamen, prompts of antwoorden.",
@@ -17588,6 +17751,22 @@ var nl_default = {
     home_suggestion_group_caveat:
       "Ze draait dan wanneer de groep als geheel verandert, niet opnieuw voor elk apparaat zolang een ander nog actief is.",
     home_suggestion_do_it: "Vraag Selora het te doen",
+    home_suggestion_frigate: "{count} camera's aan Frigate toevoegen",
+    home_suggestion_frigate_one: "{entity} aan Frigate toevoegen",
+    home_suggestion_frigate_prompt:
+      "Voeg deze camera's toe aan Frigate: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate houdt {members} nog niet in de gaten. Eenmaal toegevoegd herkent het mensen zodra ze verschijnen en bewaart het opnames van wat het zag.",
+    client_action_add_to_frigate: "Toevoegen aan Frigate",
+    frigate_camera_username: "Gebruikersnaam",
+    frigate_camera_password: "Wachtwoord",
+    frigate_cameras_settings: "Detecteert {objects}; {recording}.",
+    frigate_cameras_recording: "opnames bewaard",
+    frigate_cameras_recording_days: "opnames {days} dagen bewaard",
+    frigate_cameras_no_recording: "geen opname",
+    frigate_cameras_restart:
+      "Frigate herstart om ze toe te voegen, waardoor de camera's ongeveer een minuut pauzeren.",
+    frigate_cameras_not_added: "Niet toegevoegd: {list}.",
     chat_message_details: "Details",
   },
 };
@@ -17981,6 +18160,15 @@ var hu_default = {
     settings_developer_mode_label: "Fejleszt\u0151i m\xF3d",
     settings_developer_mode_desc:
       "Megjelen\xEDti a nyers entit\xE1sadatokat \xE9s a hibakeres\xE9si napl\xF3kat",
+    settings_dev_scan_cameras_label: "Kamer\xE1k keres\xE9se",
+    settings_dev_scan_cameras_desc:
+      "Kamer\xE1k keres\xE9se a h\xE1l\xF3zaton most, a k\xF6vetkez\u0151 f\xE9l\xF3r\xE1nk\xE9nti keres\xE9s helyett, \xE9s a cseveg\xE9s kezd\u0151lapj\xE1nak javaslatainak friss\xEDt\xE9se.",
+    settings_dev_scan_cameras_button: "Keres\xE9s most",
+    settings_dev_scan_cameras_scanning: "Keres\xE9s\u2026",
+    settings_dev_scan_cameras_done:
+      "{count} kamera tal\xE1lhat\xF3 a h\xE1l\xF3zaton.",
+    settings_dev_scan_cameras_failed:
+      "A kamer\xE1k keres\xE9se nem siker\xFClt.",
     settings_telemetry_label: "N\xE9vtelen telemetria",
     settings_telemetry_desc:
       "Alap\xE9rtelmezetten kikapcsolva. Bekapcsolva n\xE9vtelen darabsz\xE1mokat k\xFCld a be\xE1ll\xEDt\xE1sodr\xF3l (eszk\xF6z\xF6k, integr\xE1ci\xF3k, automatiz\xE1l\xE1sok, jelenetek, szkriptek, blueprintek, ter\xFCletek) \xE9s arr\xF3l, hogy a Selora milyen gyakran jav\xEDtja a modell kimenet\xE9t, hogy fejleszthess\xFCk a term\xE9ket. Soha nem k\xFCld entit\xE1sneveket, k\xE9r\xE9seket vagy v\xE1laszokat.",
@@ -18957,6 +19145,23 @@ var hu_default = {
     home_suggestion_group_caveat:
       "Ekkor akkor fut, amikor a csoport eg\xE9sze megv\xE1ltozik, \xE9s nem \xFAjra minden eszk\xF6zn\xE9l, am\xEDg egy m\xE1sik m\xE9g akt\xEDv.",
     home_suggestion_do_it: "K\xE9rd meg a Selor\xE1t",
+    home_suggestion_frigate: "{count} kamera hozz\xE1ad\xE1sa a Frigate-hez",
+    home_suggestion_frigate_one: "{entity} hozz\xE1ad\xE1sa a Frigate-hez",
+    home_suggestion_frigate_prompt:
+      "Add hozz\xE1 ezeket a kamer\xE1kat a Frigate-hez: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "A Frigate m\xE9g nem figyeli ezeket: {members}. Hozz\xE1ad\xE1s ut\xE1n \xE9szleli a megjelen\u0151 embereket, \xE9s felv\xE9teleket \u0151riz arr\xF3l, amit l\xE1tott.",
+    client_action_add_to_frigate: "Hozz\xE1ad\xE1s a Frigate-hez",
+    frigate_camera_username: "Felhaszn\xE1l\xF3n\xE9v",
+    frigate_camera_password: "Jelsz\xF3",
+    frigate_cameras_settings: "\xC9szleli: {objects}; {recording}.",
+    frigate_cameras_recording: "felv\xE9telek meg\u0151rz\xE9se",
+    frigate_cameras_recording_days:
+      "felv\xE9telek meg\u0151rz\xE9se {days} napig",
+    frigate_cameras_no_recording: "nincs felv\xE9tel",
+    frigate_cameras_restart:
+      "A Frigate \xFAjraindul a hozz\xE1ad\xE1shoz, \xEDgy kamer\xE1it k\xF6r\xFClbel\xFCl egy percre sz\xFCnetelteti.",
+    frigate_cameras_not_added: "Nincs hozz\xE1adva: {list}.",
     chat_message_details: "R\xE9szletek",
   },
 };
@@ -19315,6 +19520,13 @@ var pt_default = {
     settings_developer_mode_label: "Modo de programador",
     settings_developer_mode_desc:
       "Exp\xF5e os payloads brutos das entidades e registos de depura\xE7\xE3o",
+    settings_dev_scan_cameras_label: "Procurar c\xE2maras",
+    settings_dev_scan_cameras_desc:
+      "Procurar agora c\xE2maras na rede em vez de esperar pela pr\xF3xima procura (de meia em meia hora) e atualizar as sugest\xF5es do in\xEDcio do chat.",
+    settings_dev_scan_cameras_button: "Procurar agora",
+    settings_dev_scan_cameras_scanning: "A procurar\u2026",
+    settings_dev_scan_cameras_done: "Encontradas {count} c\xE2maras na rede.",
+    settings_dev_scan_cameras_failed: "A procura de c\xE2maras falhou.",
     settings_telemetry_label: "Telemetria an\xF3nima",
     settings_telemetry_desc:
       "Desativada por predefini\xE7\xE3o. Quando ativada, envia contagens an\xF3nimas sobre a sua configura\xE7\xE3o (dispositivos, integra\xE7\xF5es, automa\xE7\xF5es, cenas, scripts, blueprints, \xE1reas) e a frequ\xEAncia com que o Selora corrige a sa\xEDda do modelo, para melhorarmos o produto. Nunca envia nomes de entidades, comandos ou respostas.",
@@ -20251,6 +20463,22 @@ var pt_default = {
     home_suggestion_group_caveat:
       "Passa ent\xE3o a ser executada quando o grupo como um todo muda, e n\xE3o novamente para cada dispositivo enquanto outro ainda estiver ativo.",
     home_suggestion_do_it: "Pedir ao Selora para o fazer",
+    home_suggestion_frigate: "Adicionar {count} c\xE2maras ao Frigate",
+    home_suggestion_frigate_one: "Adicionar {entity} ao Frigate",
+    home_suggestion_frigate_prompt:
+      "Adiciona estas c\xE2maras ao Frigate: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "O Frigate ainda n\xE3o vigia {members}. Depois de adicionadas, deteta pessoas assim que aparecem e guarda grava\xE7\xF5es do que viu.",
+    client_action_add_to_frigate: "Adicionar ao Frigate",
+    frigate_camera_username: "Nome de utilizador",
+    frigate_camera_password: "Palavra-passe",
+    frigate_cameras_settings: "Deteta {objects}; {recording}.",
+    frigate_cameras_recording: "grava\xE7\xF5es guardadas",
+    frigate_cameras_recording_days: "grava\xE7\xF5es guardadas {days} dias",
+    frigate_cameras_no_recording: "sem grava\xE7\xE3o",
+    frigate_cameras_restart:
+      "O Frigate reinicia para as adicionar, pausando as c\xE2maras durante cerca de um minuto.",
+    frigate_cameras_not_added: "N\xE3o adicionadas: {list}.",
     chat_message_details: "Detalhes",
   },
   options: {
@@ -20770,6 +20998,17 @@ var ru_default = {
       "\u0420\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430",
     settings_developer_mode_desc:
       "\u041E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u0442 \u043D\u0435\u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439 \u0438 \u0436\u0443\u0440\u043D\u0430\u043B\u044B \u043E\u0442\u043B\u0430\u0434\u043A\u0438",
+    settings_dev_scan_cameras_label:
+      "\u041F\u043E\u0438\u0441\u043A \u043A\u0430\u043C\u0435\u0440",
+    settings_dev_scan_cameras_desc:
+      "\u041D\u0430\u0439\u0442\u0438 \u043A\u0430\u043C\u0435\u0440\u044B \u0432 \u0441\u0435\u0442\u0438 \u0441\u0435\u0439\u0447\u0430\u0441, \u043D\u0435 \u0434\u043E\u0436\u0438\u0434\u0430\u044F\u0441\u044C \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0433\u043E \u043F\u043E\u0438\u0441\u043A\u0430 (\u0440\u0430\u0437 \u0432 \u043F\u043E\u043B\u0447\u0430\u0441\u0430), \u0438 \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435 \u0447\u0430\u0442\u0430.",
+    settings_dev_scan_cameras_button:
+      "\u041D\u0430\u0439\u0442\u0438 \u0441\u0435\u0439\u0447\u0430\u0441",
+    settings_dev_scan_cameras_scanning: "\u041F\u043E\u0438\u0441\u043A\u2026",
+    settings_dev_scan_cameras_done:
+      "\u041D\u0430\u0439\u0434\u0435\u043D\u043E \u043A\u0430\u043C\u0435\u0440 \u0432 \u0441\u0435\u0442\u0438: {count}.",
+    settings_dev_scan_cameras_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u043F\u043E\u0438\u0441\u043A \u043A\u0430\u043C\u0435\u0440.",
     settings_telemetry_label:
       "\u0410\u043D\u043E\u043D\u0438\u043C\u043D\u0430\u044F \u0442\u0435\u043B\u0435\u043C\u0435\u0442\u0440\u0438\u044F",
     settings_telemetry_desc:
@@ -22177,6 +22416,31 @@ var ru_default = {
       "\u0422\u043E\u0433\u0434\u0430 \u043E\u043D\u0430 \u0441\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442 \u043F\u0440\u0438 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0438 \u0433\u0440\u0443\u043F\u043F\u044B \u0432 \u0446\u0435\u043B\u043E\u043C, \u0430 \u043D\u0435 \u0441\u043D\u043E\u0432\u0430 \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u043F\u043E\u043A\u0430 \u0434\u0440\u0443\u0433\u043E\u0435 \u0435\u0449\u0451 \u0430\u043A\u0442\u0438\u0432\u043D\u043E.",
     home_suggestion_do_it:
       "\u041F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u044C Selora \u0441\u0434\u0435\u043B\u0430\u0442\u044C \u044D\u0442\u043E",
+    home_suggestion_frigate:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043A\u0430\u043C\u0435\u0440\u044B \u0432 Frigate ({count})",
+    home_suggestion_frigate_one:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C {entity} \u0432 Frigate",
+    home_suggestion_frigate_prompt:
+      "\u0414\u043E\u0431\u0430\u0432\u044C \u044D\u0442\u0438 \u043A\u0430\u043C\u0435\u0440\u044B \u0432 Frigate: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate \u043F\u043E\u043A\u0430 \u043D\u0435 \u0441\u043B\u0435\u0434\u0438\u0442 \u0437\u0430 {members}. \u041F\u043E\u0441\u043B\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043E\u043D \u0437\u0430\u043C\u0435\u0447\u0430\u0435\u0442 \u043B\u044E\u0434\u0435\u0439, \u043A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u043E\u043D\u0438 \u043F\u043E\u044F\u0432\u043B\u044F\u044E\u0442\u0441\u044F, \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442 \u0437\u0430\u043F\u0438\u0441\u0438 \u0443\u0432\u0438\u0434\u0435\u043D\u043D\u043E\u0433\u043E.",
+    client_action_add_to_frigate:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u043E Frigate",
+    frigate_camera_username:
+      "\u0418\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F",
+    frigate_camera_password: "\u041F\u0430\u0440\u043E\u043B\u044C",
+    frigate_cameras_settings:
+      "\u0420\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0451\u0442: {objects}; {recording}.",
+    frigate_cameras_recording:
+      "\u0437\u0430\u043F\u0438\u0441\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044E\u0442\u0441\u044F",
+    frigate_cameras_recording_days:
+      "\u0437\u0430\u043F\u0438\u0441\u0438 \u0445\u0440\u0430\u043D\u044F\u0442\u0441\u044F {days} \u0434\u043D.",
+    frigate_cameras_no_recording:
+      "\u0431\u0435\u0437 \u0437\u0430\u043F\u0438\u0441\u0438",
+    frigate_cameras_restart:
+      "\u0427\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0438\u0445, Frigate \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0441\u044F \u0438 \u043F\u0440\u0438\u043C\u0435\u0440\u043D\u043E \u043D\u0430 \u043C\u0438\u043D\u0443\u0442\u0443 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442 \u043A\u0430\u043C\u0435\u0440\u044B.",
+    frigate_cameras_not_added:
+      "\u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B: {list}.",
     chat_message_details:
       "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435",
   },
@@ -22635,6 +22899,15 @@ var ja_default = {
     settings_developer_mode_label: "\u958B\u767A\u8005\u30E2\u30FC\u30C9",
     settings_developer_mode_desc:
       "\u751F\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u30DA\u30A4\u30ED\u30FC\u30C9\u3068\u30C7\u30D0\u30C3\u30B0\u30ED\u30B0\u3092\u516C\u958B\u3057\u307E\u3059",
+    settings_dev_scan_cameras_label: "\u30AB\u30E1\u30E9\u3092\u691C\u7D22",
+    settings_dev_scan_cameras_desc:
+      "30 \u5206\u3054\u3068\u306E\u6B21\u56DE\u691C\u7D22\u3092\u5F85\u305F\u305A\u306B\u3001\u4ECA\u3059\u3050\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u306E\u30AB\u30E1\u30E9\u3092\u691C\u7D22\u3057\u3001\u30C1\u30E3\u30C3\u30C8\u306E\u30DB\u30FC\u30E0\u306E\u63D0\u6848\u3092\u66F4\u65B0\u3057\u307E\u3059\u3002",
+    settings_dev_scan_cameras_button: "\u4ECA\u3059\u3050\u691C\u7D22",
+    settings_dev_scan_cameras_scanning: "\u691C\u7D22\u4E2D\u2026",
+    settings_dev_scan_cameras_done:
+      "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u3067 {count} \u53F0\u306E\u30AB\u30E1\u30E9\u304C\u898B\u3064\u304B\u308A\u307E\u3057\u305F\u3002",
+    settings_dev_scan_cameras_failed:
+      "\u30AB\u30E1\u30E9\u306E\u691C\u7D22\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
     settings_telemetry_label: "\u533F\u540D\u30C6\u30EC\u30E1\u30C8\u30EA",
     settings_telemetry_desc:
       "\u30C7\u30D5\u30A9\u30EB\u30C8\u306F\u7121\u52B9\u3067\u3059\u3002\u6709\u52B9\u306B\u3059\u308B\u3068\u3001\u69CB\u6210\u306B\u95A2\u3059\u308B\u533F\u540D\u306E\u30AB\u30A6\u30F3\u30C8\uFF08\u30C7\u30D0\u30A4\u30B9\u3001\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3001\u30B7\u30FC\u30F3\u3001\u30B9\u30AF\u30EA\u30D7\u30C8\u3001\u30D6\u30EB\u30FC\u30D7\u30EA\u30F3\u30C8\u3001\u30A8\u30EA\u30A2\uFF09\u3068\u3001Selora \u304C\u30E2\u30C7\u30EB\u51FA\u529B\u3092\u4FEE\u6B63\u3059\u308B\u983B\u5EA6\u3092\u9001\u4FE1\u3057\u3001\u88FD\u54C1\u306E\u6539\u5584\u306B\u5F79\u7ACB\u3066\u307E\u3059\u3002\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u540D\u3001\u30D7\u30ED\u30F3\u30D7\u30C8\u3001\u5FDC\u7B54\u306F\u4E00\u5207\u9001\u4FE1\u3057\u307E\u305B\u3093\u3002",
@@ -23778,6 +24051,26 @@ var ja_default = {
     home_suggestion_group_caveat:
       "\u305D\u306E\u5834\u5408\u3001\u30B0\u30EB\u30FC\u30D7\u5168\u4F53\u304C\u5909\u5316\u3057\u305F\u3068\u304D\u306B\u5B9F\u884C\u3055\u308C\u3001\u5225\u306E\u30C7\u30D0\u30A4\u30B9\u304C\u307E\u3060\u4F5C\u52D5\u4E2D\u306E\u9593\u306F\u5404\u30C7\u30D0\u30A4\u30B9\u3054\u3068\u306B\u518D\u5B9F\u884C\u3055\u308C\u307E\u305B\u3093\u3002",
     home_suggestion_do_it: "Selora \u306B\u4F9D\u983C\u3059\u308B",
+    home_suggestion_frigate:
+      "{count} \u53F0\u306E\u30AB\u30E1\u30E9\u3092 Frigate \u306B\u8FFD\u52A0",
+    home_suggestion_frigate_one: "{entity} \u3092 Frigate \u306B\u8FFD\u52A0",
+    home_suggestion_frigate_prompt:
+      "\u3053\u308C\u3089\u306E\u30AB\u30E1\u30E9\u3092 Frigate \u306B\u8FFD\u52A0\u3057\u3066: {entity} ({entity_id})\u3002",
+    home_suggestion_frigate_why:
+      "Frigate \u306F\u307E\u3060 {members} \u3092\u76E3\u8996\u3057\u3066\u3044\u307E\u305B\u3093\u3002\u8FFD\u52A0\u3059\u308B\u3068\u3001\u4EBA\u304C\u73FE\u308C\u305F\u6642\u70B9\u3067\u691C\u77E5\u3057\u3001\u898B\u305F\u3082\u306E\u3092\u9332\u753B\u3057\u3066\u6B8B\u3057\u307E\u3059\u3002",
+    client_action_add_to_frigate: "Frigate \u306B\u8FFD\u52A0",
+    frigate_camera_username: "\u30E6\u30FC\u30B6\u30FC\u540D",
+    frigate_camera_password: "\u30D1\u30B9\u30EF\u30FC\u30C9",
+    frigate_cameras_settings:
+      "{objects} \u3092\u691C\u51FA\u3001{recording}\u3002",
+    frigate_cameras_recording: "\u9332\u753B\u3092\u4FDD\u5B58",
+    frigate_cameras_recording_days:
+      "\u9332\u753B\u3092 {days} \u65E5\u9593\u4FDD\u5B58",
+    frigate_cameras_no_recording: "\u9332\u753B\u306A\u3057",
+    frigate_cameras_restart:
+      "\u8FFD\u52A0\u306E\u305F\u3081 Frigate \u304C\u518D\u8D77\u52D5\u3057\u3001\u30AB\u30E1\u30E9\u304C 1 \u5206\u307B\u3069\u505C\u6B62\u3057\u307E\u3059\u3002",
+    frigate_cameras_not_added:
+      "\u8FFD\u52A0\u3057\u306A\u304B\u3063\u305F\u3082\u306E: {list}\u3002",
     chat_message_details: "\u8A73\u7D30",
   },
   options: {
@@ -24215,6 +24508,15 @@ var ko_default = {
     settings_developer_mode_label: "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC",
     settings_developer_mode_desc:
       "\uC6D0\uC2DC \uC5D4\uD130\uD2F0 \uD398\uC774\uB85C\uB4DC\uC640 \uB514\uBC84\uADF8 \uB85C\uADF8\uB97C \uB178\uCD9C\uD569\uB2C8\uB2E4",
+    settings_dev_scan_cameras_label: "\uCE74\uBA54\uB77C \uAC80\uC0C9",
+    settings_dev_scan_cameras_desc:
+      "30\uBD84\uB9C8\uB2E4 \uD558\uB294 \uB2E4\uC74C \uAC80\uC0C9\uC744 \uAE30\uB2E4\uB9AC\uC9C0 \uC54A\uACE0 \uC9C0\uAE08 \uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C \uCE74\uBA54\uB77C\uB97C \uCC3E\uACE0 \uCC44\uD305 \uD648\uC758 \uC81C\uC548\uC744 \uC0C8\uB85C \uACE0\uCE69\uB2C8\uB2E4.",
+    settings_dev_scan_cameras_button: "\uC9C0\uAE08 \uAC80\uC0C9",
+    settings_dev_scan_cameras_scanning: "\uAC80\uC0C9 \uC911\u2026",
+    settings_dev_scan_cameras_done:
+      "\uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C \uCE74\uBA54\uB77C {count}\uB300\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4.",
+    settings_dev_scan_cameras_failed:
+      "\uCE74\uBA54\uB77C \uAC80\uC0C9\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
     settings_telemetry_label: "\uC775\uBA85 \uD154\uB808\uBA54\uD2B8\uB9AC",
     settings_telemetry_desc:
       "\uAE30\uBCF8\uC801\uC73C\uB85C \uAEBC\uC838 \uC788\uC2B5\uB2C8\uB2E4. \uCF1C\uBA74 \uC124\uC815\uC5D0 \uB300\uD55C \uC775\uBA85 \uAC1C\uC218(\uAE30\uAE30, \uD1B5\uD569, \uC790\uB3D9\uD654, \uC52C, \uC2A4\uD06C\uB9BD\uD2B8, \uBE14\uB8E8\uD504\uB9B0\uD2B8, \uC601\uC5ED)\uC640 Selora\uAC00 \uBAA8\uB378 \uCD9C\uB825\uC744 \uBCF4\uC815\uD558\uB294 \uBE48\uB3C4\uB97C \uC804\uC1A1\uD558\uC5EC \uC81C\uD488\uC744 \uAC1C\uC120\uD569\uB2C8\uB2E4. \uC5D4\uD130\uD2F0 \uC774\uB984, \uD504\uB86C\uD504\uD2B8, \uC751\uB2F5\uC740 \uC808\uB300 \uC804\uC1A1\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
@@ -25271,6 +25573,24 @@ var ko_default = {
     home_suggestion_group_caveat:
       "\uADF8\uB7EC\uBA74 \uADF8\uB8F9 \uC804\uCCB4\uAC00 \uBC14\uB014 \uB54C \uC2E4\uD589\uB418\uBA70, \uB2E4\uB978 \uAE30\uAE30\uAC00 \uC544\uC9C1 \uD65C\uC131 \uC0C1\uD0DC\uC778 \uB3D9\uC548\uC5D0\uB294 \uAE30\uAE30\uB9C8\uB2E4 \uB2E4\uC2DC \uC2E4\uD589\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
     home_suggestion_do_it: "Selora\uC5D0\uAC8C \uB9E1\uAE30\uAE30",
+    home_suggestion_frigate:
+      "\uCE74\uBA54\uB77C {count}\uB300\uB97C Frigate\uC5D0 \uCD94\uAC00",
+    home_suggestion_frigate_one:
+      "{entity}\uC744(\uB97C) Frigate\uC5D0 \uCD94\uAC00",
+    home_suggestion_frigate_prompt:
+      "\uC774 \uCE74\uBA54\uB77C\uB4E4\uC744 Frigate\uC5D0 \uCD94\uAC00\uD574 \uC918: {entity} ({entity_id}).",
+    home_suggestion_frigate_why:
+      "Frigate\uAC00 \uC544\uC9C1 {members}\uC744(\uB97C) \uC9C0\uCF1C\uBCF4\uACE0 \uC788\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uCD94\uAC00\uD558\uBA74 \uC0AC\uB78C\uC774 \uB098\uD0C0\uB098\uB294 \uC989\uC2DC \uAC10\uC9C0\uD558\uACE0 \uBCF8 \uB0B4\uC6A9\uC744 \uB179\uD654\uD574 \uB461\uB2C8\uB2E4.",
+    client_action_add_to_frigate: "Frigate\uC5D0 \uCD94\uAC00",
+    frigate_camera_username: "\uC0AC\uC6A9\uC790 \uC774\uB984",
+    frigate_camera_password: "\uBE44\uBC00\uBC88\uD638",
+    frigate_cameras_settings: "{objects} \uAC10\uC9C0, {recording}.",
+    frigate_cameras_recording: "\uB179\uD654 \uBCF4\uAD00",
+    frigate_cameras_recording_days: "\uB179\uD654 {days}\uC77C \uBCF4\uAD00",
+    frigate_cameras_no_recording: "\uB179\uD654 \uC548 \uD568",
+    frigate_cameras_restart:
+      "\uCD94\uAC00\uD558\uB824\uBA74 Frigate\uAC00 \uB2E4\uC2DC \uC2DC\uC791\uB418\uC5B4 \uCE74\uBA54\uB77C\uAC00 \uC57D 1\uBD84\uAC04 \uBA48\uCDA5\uB2C8\uB2E4.",
+    frigate_cameras_not_added: "\uCD94\uAC00\uD558\uC9C0 \uC54A\uC74C: {list}.",
     chat_message_details: "\uC790\uC138\uD788",
   },
   options: {
@@ -25674,6 +25994,15 @@ var zh_Hans_default = {
     settings_developer_mode_label: "\u5F00\u53D1\u8005\u6A21\u5F0F",
     settings_developer_mode_desc:
       "\u516C\u5F00\u539F\u59CB\u5B9E\u4F53\u8F7D\u8377\u548C\u8C03\u8BD5\u65E5\u5FD7",
+    settings_dev_scan_cameras_label: "\u641C\u7D22\u6444\u50CF\u5934",
+    settings_dev_scan_cameras_desc:
+      "\u7ACB\u5373\u5728\u7F51\u7EDC\u4E2D\u641C\u7D22\u6444\u50CF\u5934\uFF0C\u800C\u4E0D\u662F\u7B49\u5F85\u4E0B\u4E00\u6B21\uFF08\u6BCF\u534A\u5C0F\u65F6\u4E00\u6B21\uFF09\u641C\u7D22\uFF0C\u5E76\u5237\u65B0\u804A\u5929\u4E3B\u9875\u7684\u5EFA\u8BAE\u3002",
+    settings_dev_scan_cameras_button: "\u7ACB\u5373\u641C\u7D22",
+    settings_dev_scan_cameras_scanning: "\u6B63\u5728\u641C\u7D22\u2026",
+    settings_dev_scan_cameras_done:
+      "\u5728\u7F51\u7EDC\u4E2D\u627E\u5230 {count} \u4E2A\u6444\u50CF\u5934\u3002",
+    settings_dev_scan_cameras_failed:
+      "\u6444\u50CF\u5934\u641C\u7D22\u5931\u8D25\u3002",
     settings_telemetry_label: "\u533F\u540D\u9065\u6D4B",
     settings_telemetry_desc:
       "\u9ED8\u8BA4\u5173\u95ED\u3002\u5F00\u542F\u540E\u4F1A\u53D1\u9001\u6709\u5173\u4F60\u7684\u914D\u7F6E\u7684\u533F\u540D\u8BA1\u6570\uFF08\u8BBE\u5907\u3001\u96C6\u6210\u3001\u81EA\u52A8\u5316\u3001\u573A\u666F\u3001\u811A\u672C\u3001\u84DD\u56FE\u3001\u533A\u57DF\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F93\u51FA\u7684\u9891\u7387\uFF0C\u4EE5\u4FBF\u6211\u4EEC\u6539\u8FDB\u4EA7\u54C1\u3002\u7EDD\u4E0D\u53D1\u9001\u5B9E\u4F53\u540D\u79F0\u3001\u63D0\u793A\u8BCD\u6216\u54CD\u5E94\u5185\u5BB9\u3002",
@@ -26681,6 +27010,23 @@ var zh_Hans_default = {
     home_suggestion_group_caveat:
       "\u4E4B\u540E\u5B83\u4F1A\u5728\u6574\u4E2A\u7FA4\u7EC4\u53D8\u5316\u65F6\u8FD0\u884C\uFF0C\u800C\u4E0D\u4F1A\u5728\u53E6\u4E00\u4E2A\u8BBE\u5907\u4ECD\u5904\u4E8E\u6D3B\u52A8\u72B6\u6001\u65F6\u4E3A\u6BCF\u4E2A\u8BBE\u5907\u518D\u6B21\u8FD0\u884C\u3002",
     home_suggestion_do_it: "\u8BA9 Selora \u6765\u505A",
+    home_suggestion_frigate:
+      "\u5C06 {count} \u4E2A\u6444\u50CF\u5934\u6DFB\u52A0\u5230 Frigate",
+    home_suggestion_frigate_one: "\u5C06 {entity} \u6DFB\u52A0\u5230 Frigate",
+    home_suggestion_frigate_prompt:
+      "\u5C06\u8FD9\u4E9B\u6444\u50CF\u5934\u6DFB\u52A0\u5230 Frigate\uFF1A{entity}\uFF08{entity_id}\uFF09\u3002",
+    home_suggestion_frigate_why:
+      "Frigate \u5C1A\u672A\u76D1\u63A7 {members}\u3002\u6DFB\u52A0\u540E\uFF0C\u5B83\u4F1A\u5728\u6709\u4EBA\u51FA\u73B0\u65F6\u7ACB\u5373\u8BC6\u522B\uFF0C\u5E76\u4FDD\u5B58\u6240\u89C1\u5185\u5BB9\u7684\u5F55\u50CF\u3002",
+    client_action_add_to_frigate: "\u6DFB\u52A0\u5230 Frigate",
+    frigate_camera_username: "\u7528\u6237\u540D",
+    frigate_camera_password: "\u5BC6\u7801",
+    frigate_cameras_settings: "\u68C0\u6D4B {objects}\uFF1B{recording}\u3002",
+    frigate_cameras_recording: "\u4FDD\u7559\u5F55\u50CF",
+    frigate_cameras_recording_days: "\u5F55\u50CF\u4FDD\u7559 {days} \u5929",
+    frigate_cameras_no_recording: "\u4E0D\u5F55\u50CF",
+    frigate_cameras_restart:
+      "\u6DFB\u52A0\u65F6 Frigate \u4F1A\u91CD\u542F\uFF0C\u5176\u6444\u50CF\u5934\u5C06\u6682\u505C\u7EA6\u4E00\u5206\u949F\u3002",
+    frigate_cameras_not_added: "\u672A\u6DFB\u52A0\uFF1A{list}\u3002",
     chat_message_details: "\u8BE6\u60C5",
   },
   options: {
@@ -27084,6 +27430,15 @@ var zh_Hant_default = {
     settings_developer_mode_label: "\u958B\u767C\u8005\u6A21\u5F0F",
     settings_developer_mode_desc:
       "\u516C\u958B\u539F\u59CB\u5BE6\u9AD4\u916C\u8F09\u8207\u9664\u932F\u7D00\u9304",
+    settings_dev_scan_cameras_label: "\u641C\u5C0B\u651D\u5F71\u6A5F",
+    settings_dev_scan_cameras_desc:
+      "\u7ACB\u5373\u5728\u7DB2\u8DEF\u4E2D\u641C\u5C0B\u651D\u5F71\u6A5F\uFF0C\u800C\u4E0D\u662F\u7B49\u5F85\u4E0B\u4E00\u6B21\uFF08\u6BCF\u534A\u5C0F\u6642\u4E00\u6B21\uFF09\u641C\u5C0B\uFF0C\u4E26\u91CD\u65B0\u6574\u7406\u804A\u5929\u9996\u9801\u7684\u5EFA\u8B70\u3002",
+    settings_dev_scan_cameras_button: "\u7ACB\u5373\u641C\u5C0B",
+    settings_dev_scan_cameras_scanning: "\u6B63\u5728\u641C\u5C0B\u2026",
+    settings_dev_scan_cameras_done:
+      "\u5728\u7DB2\u8DEF\u4E2D\u627E\u5230 {count} \u90E8\u651D\u5F71\u6A5F\u3002",
+    settings_dev_scan_cameras_failed:
+      "\u651D\u5F71\u6A5F\u641C\u5C0B\u5931\u6557\u3002",
     settings_telemetry_label: "\u533F\u540D\u9059\u6E2C",
     settings_telemetry_desc:
       "\u9810\u8A2D\u95DC\u9589\u3002\u958B\u555F\u5F8C\u6703\u50B3\u9001\u6709\u95DC\u4F60\u7684\u8A2D\u5B9A\u7684\u533F\u540D\u8A08\u6578\uFF08\u88DD\u7F6E\u3001\u6574\u5408\u3001\u81EA\u52D5\u5316\u3001\u5834\u666F\u3001\u8173\u672C\u3001\u85CD\u5716\u3001\u5340\u57DF\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F38\u51FA\u7684\u983B\u7387\uFF0C\u4EE5\u4FBF\u6211\u5011\u6539\u9032\u7522\u54C1\u3002\u7D55\u4E0D\u50B3\u9001\u5BE6\u9AD4\u540D\u7A31\u3001\u63D0\u793A\u8A5E\u6216\u56DE\u61C9\u5167\u5BB9\u3002",
@@ -28097,6 +28452,23 @@ var zh_Hant_default = {
     home_suggestion_group_caveat:
       "\u4E4B\u5F8C\u5B83\u6703\u5728\u6574\u500B\u7FA4\u7D44\u8B8A\u5316\u6642\u57F7\u884C\uFF0C\u800C\u4E0D\u6703\u5728\u53E6\u4E00\u500B\u88DD\u7F6E\u4ECD\u8655\u65BC\u4F5C\u7528\u4E2D\u6642\u70BA\u6BCF\u500B\u88DD\u7F6E\u518D\u6B21\u57F7\u884C\u3002",
     home_suggestion_do_it: "\u8ACB Selora \u4F86\u505A",
+    home_suggestion_frigate:
+      "\u5C07 {count} \u90E8\u651D\u5F71\u6A5F\u52A0\u5165 Frigate",
+    home_suggestion_frigate_one: "\u5C07 {entity} \u52A0\u5165 Frigate",
+    home_suggestion_frigate_prompt:
+      "\u5C07\u9019\u4E9B\u651D\u5F71\u6A5F\u52A0\u5165 Frigate\uFF1A{entity}\uFF08{entity_id}\uFF09\u3002",
+    home_suggestion_frigate_why:
+      "Frigate \u5C1A\u672A\u76E3\u63A7 {members}\u3002\u52A0\u5165\u5F8C\uFF0C\u5B83\u6703\u5728\u6709\u4EBA\u51FA\u73FE\u6642\u7ACB\u5373\u8FA8\u8B58\uFF0C\u4E26\u4FDD\u5B58\u6240\u898B\u5167\u5BB9\u7684\u9304\u5F71\u3002",
+    client_action_add_to_frigate: "\u52A0\u5165 Frigate",
+    frigate_camera_username: "\u4F7F\u7528\u8005\u540D\u7A31",
+    frigate_camera_password: "\u5BC6\u78BC",
+    frigate_cameras_settings: "\u5075\u6E2C {objects}\uFF1B{recording}\u3002",
+    frigate_cameras_recording: "\u4FDD\u7559\u9304\u5F71",
+    frigate_cameras_recording_days: "\u9304\u5F71\u4FDD\u7559 {days} \u5929",
+    frigate_cameras_no_recording: "\u4E0D\u9304\u5F71",
+    frigate_cameras_restart:
+      "\u52A0\u5165\u6642 Frigate \u6703\u91CD\u65B0\u555F\u52D5\uFF0C\u5176\u651D\u5F71\u6A5F\u5C07\u66AB\u505C\u7D04\u4E00\u5206\u9418\u3002",
+    frigate_cameras_not_added: "\u672A\u52A0\u5165\uFF1A{list}\u3002",
     chat_message_details: "\u8A73\u60C5",
   },
   options: {
@@ -31188,6 +31560,165 @@ function renderRefineSuggestions(host) {
   `;
 }
 
+// src/panel/frigate-cameras.js
+var DEFAULT_USERNAME = "admin";
+var LOGINS = /* @__PURE__ */ new Map();
+var ERRORS = /* @__PURE__ */ new Map();
+function loginFor(planId, key) {
+  if (!LOGINS.has(planId)) LOGINS.set(planId, {});
+  const logins = LOGINS.get(planId);
+  if (!logins[key]) logins[key] = { username: DEFAULT_USERNAME, password: "" };
+  return logins[key];
+}
+var CameraLoginError = class extends Error {
+  constructor(message, cameraErrors) {
+    super(message);
+    this.cameraErrors = cameraErrors;
+  }
+};
+async function addFrigateCameras(hass, action) {
+  const planId = String(action.plan_id || "");
+  const credentials = {};
+  for (const camera of action.cameras || []) {
+    if (camera.needs_login) {
+      const login = loginFor(planId, String(camera.key));
+      credentials[String(camera.key)] = {
+        username: String(login.username || ""),
+        password: String(login.password || ""),
+      };
+    }
+  }
+  const result = await hass.callWS({
+    type: "selora_ai/frigate/add_cameras",
+    plan_id: planId,
+    credentials,
+  });
+  if (result?.camera_errors) {
+    ERRORS.set(planId, result.camera_errors);
+    throw new CameraLoginError(result.error || "", result.camera_errors);
+  }
+  if (result?.error) throw new Error(result.error);
+  LOGINS.delete(planId);
+  ERRORS.delete(planId);
+  return { cameras: result?.cameras || [] };
+}
+function cameraLine(host, camera) {
+  if (camera.source !== "network") return camera.area || "";
+  const parts = [];
+  if (camera.stream) parts.push(camera.stream);
+  else if (camera.address !== camera.name) parts.push(camera.address);
+  if (camera.brand) parts.push(camera.brand);
+  return parts.join(" \xB7 ");
+}
+function loginFields(host, planId, camera) {
+  const login = loginFor(planId, String(camera.key));
+  const field = (key, type, labelKey, fallback) => b2`
+    <label>
+      ${host._t(labelKey, fallback)}
+      <input
+        class="form-select"
+        type=${type}
+        autocomplete=${type === "password" ? "new-password" : "off"}
+        .value=${login[key] || ""}
+        @input=${(e6) => {
+          login[key] = e6.target.value;
+        }}
+      />
+    </label>
+  `;
+  return b2`
+    <div class="frigate-login">
+      ${field("username", "text", "frigate_camera_username", "Username")}
+      ${field("password", "password", "frigate_camera_password", "Password")}
+    </div>
+  `;
+}
+function settingsLine(host, action) {
+  const objects = (action.objects || []).join(", ");
+  const recording = !action.record
+    ? host._t("frigate_cameras_no_recording", "no recording")
+    : action.record_days
+      ? interpolate(
+          host._t(
+            "frigate_cameras_recording_days",
+            "recordings kept {days} days",
+          ),
+          { days: action.record_days },
+        )
+      : host._t("frigate_cameras_recording", "recordings kept");
+  return interpolate(
+    host._t("frigate_cameras_settings", "Detects {objects}; {recording}."),
+    { objects, recording },
+  );
+}
+function renderFrigateCameraRows(host, action) {
+  const planId = String(action.plan_id || "");
+  const errors = ERRORS.get(planId) || {};
+  return b2`
+    <div style="display:flex;flex-direction:column;gap:6px;padding:4px 0;">
+      ${(action.cameras || []).map(
+        (camera) => b2`
+          <div style="padding:4px 0;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <ha-icon
+                icon="mdi:cctv"
+                style="--mdc-icon-size:22px;color:var(--secondary-text-color);flex-shrink:0;"
+              ></ha-icon>
+              <div style="min-width:0;">
+                <div
+                  style="font-size:13px;font-weight:600;color:var(--primary-text-color);"
+                >
+                  ${camera.name}
+                </div>
+                <div style="font-size:12px;color:var(--secondary-text-color);">
+                  ${cameraLine(host, camera)}
+                </div>
+              </div>
+            </div>
+            ${camera.needs_login ? loginFields(host, planId, camera) : ""}
+            ${
+              errors[camera.key]
+                ? b2`<div class="frigate-camera-error">
+                    ${errors[camera.key]}
+                  </div>`
+                : ""
+            }
+          </div>
+        `,
+      )}
+      <div
+        style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+      >
+        ${settingsLine(host, action)}
+      </div>
+      ${
+        (action.skipped || []).length
+          ? b2`<div
+              style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+            >
+              ${interpolate(
+                host._t("frigate_cameras_not_added", "Not added: {list}."),
+                {
+                  list: action.skipped
+                    .map((s6) => `${s6.name} (${s6.reason})`)
+                    .join("; "),
+                },
+              )}
+            </div>`
+          : ""
+      }
+      <div
+        style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+      >
+        ${host._t(
+          "frigate_cameras_restart",
+          "Frigate restarts to add them, pausing its cameras for about a minute.",
+        )}
+      </div>
+    </div>
+  `;
+}
+
 // src/panel/client-actions.js
 function matchesProposal(existing, expected) {
   return (
@@ -31239,6 +31770,9 @@ var HELPER_FIELDS = {
   ],
 };
 var HANDLERS = {
+  // Sends only the plan id and the logins typed into the card; the backend
+  // holds which cameras and settings were proposed.
+  add_frigate_cameras: addFrigateCameras,
   create_helper: async (hass, action) => {
     const domain = String(action.domain || "");
     const allowed = HELPER_FIELDS[domain];
@@ -31338,8 +31872,21 @@ async function runClientAction(hass, action) {
     const detail = await handler(hass, action);
     return { ok: true, kind, detail };
   } catch (err) {
-    return { ok: false, kind, detail: err?.message || String(err) };
+    return {
+      ok: false,
+      kind,
+      detail: err?.message || String(err),
+      // A login the camera refused is the user's to fix on the card, not an
+      // outcome to record: the card stays open.
+      ...(err instanceof CameraLoginError ? { retry: true } : {}),
+    };
   }
+}
+var SELF_CONTAINED = /* @__PURE__ */ new Set(["add_frigate_cameras"]);
+function resumes(approval) {
+  if (String(approval?.remaining_intent || "").trim()) return true;
+  const kinds = (approval?.client_actions || []).map((a3) => String(a3?.kind));
+  return !kinds.length || kinds.some((kind) => !SELF_CONTAINED.has(kind));
 }
 var IN_FLIGHT = /* @__PURE__ */ new Set();
 async function resolveClientActions(host, msg, approval) {
@@ -31351,6 +31898,12 @@ async function resolveClientActions(host, msg, approval) {
   let ok = false;
   let reported = true;
   try {
+    const before = msg
+      ? {
+          quick_actions: msg.quick_actions,
+          approval_status: msg.approval_status,
+        }
+      : null;
     if (msg) {
       msg._resolving = true;
       msg.quick_actions = null;
@@ -31360,6 +31913,16 @@ async function resolveClientActions(host, msg, approval) {
     const results = [];
     for (const action of actions) {
       results.push(await runClientAction(host.hass, action));
+    }
+    if (results.some((r6) => r6.retry)) {
+      if (msg) {
+        msg._resolving = false;
+        msg.quick_actions = before.quick_actions;
+        msg.approval_status = before.approval_status;
+        host._messages = [...host._messages];
+      }
+      host.requestUpdate();
+      return;
     }
     ok = results.length > 0 && results.every((r6) => r6.ok);
     try {
@@ -31390,7 +31953,7 @@ async function resolveClientActions(host, msg, approval) {
   }
   if (reported && sessionId && host._activeSessionId === sessionId) {
     await host._openSession?.(sessionId);
-    if (ok) {
+    if (ok && resumes(approval)) {
       await host._sendMessage?.({ resumeProposalId: proposalId });
     }
   }
@@ -31567,8 +32130,10 @@ var _DELETE_KIND_LABELS = {
   helper: "helper",
   entity: "entity",
   device: "device",
+  frigate_camera: "Frigate camera",
 };
 var _DELETE_KIND_ICONS = {
+  frigate_camera: "mdi:cctv",
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",
@@ -31654,6 +32219,12 @@ var _CONFIRM_VARIANTS = {
           icon: "mdi:trash-can-outline",
           labelKey: "client_action_delete",
           labelFallback: "Delete",
+        },
+        add_frigate_cameras: {
+          tone: "approve",
+          icon: "mdi:cctv",
+          labelKey: "client_action_add_to_frigate",
+          labelFallback: "Add to Frigate",
         },
       },
       tone: "approve",
@@ -31771,8 +32342,14 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
                 const destructive = kinds.filter(
                   (kind) => copy.confirm.byKind?.[kind]?.tone === "deny",
                 );
+                const own =
+                  kinds.length && kinds.every((kind) => kind === kinds[0])
+                    ? copy.confirm.byKind?.[kinds[0]]
+                    : null;
                 const confirm2 = !destructive.length
-                  ? copy.confirm
+                  ? own
+                    ? { ...copy.confirm, ...own }
+                    : copy.confirm
                   : destructive.length === kinds.length
                     ? {
                         ...copy.confirm,
@@ -31970,6 +32547,9 @@ var _CLIENT_ACTION_ICONS = {
   create_helper: "mdi:tune-variant",
 };
 function _renderClientActionRow(host, action) {
+  if (action.kind === "add_frigate_cameras") {
+    return renderFrigateCameraRows(host, action);
+  }
   return b2`
     <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">
       <ha-icon
@@ -39927,10 +40507,12 @@ function names(entities) {
   return entities.map((e6) => e6.name).join(", ");
 }
 function ids(entities) {
-  return entities.map((e6) => e6.entity_id).join(", ");
+  return entities.map((e6) => e6.entity_id || e6.address).join(", ");
 }
 function nameList(host, entities) {
-  const shown = entities.slice(0, MAX_NAMED).map((e6) => e6.name);
+  const shown = entities
+    .slice(0, MAX_NAMED)
+    .map((e6) => (e6.address ? `${e6.name} (${e6.address})` : e6.name));
   const rest = entities.length - shown.length;
   if (rest > 0) {
     shown.push(
@@ -39949,13 +40531,14 @@ function nameList(host, entities) {
 }
 function describe(host, s6) {
   const grouping = s6.type === "group_entities";
+  const listsEntities = grouping || s6.type === "add_to_frigate";
   const values = {
     entity: names(s6.entities),
     entity_id: ids(s6.entities),
     collection: s6.collection.name,
     ref: s6.collection.ref,
     count: s6.entities.length,
-    members: nameList(host, grouping ? s6.entities : s6.members || []),
+    members: nameList(host, listsEntities ? s6.entities : s6.members || []),
     area: s6.area || "",
   };
   const t5 = (key, fallback) => interpolate(host._t(key, fallback), values);
@@ -39978,6 +40561,25 @@ function describe(host, s6) {
         t5(
           "home_suggestion_group_caveat",
           "It then runs when the group as a whole changes, not again for each device while another one is still active.",
+        ),
+      ],
+    };
+  }
+  if (s6.type === "add_to_frigate") {
+    return {
+      icon: "mdi:cctv",
+      title:
+        s6.entities.length === 1
+          ? t5("home_suggestion_frigate_one", "Add {entity} to Frigate")
+          : t5("home_suggestion_frigate", "Add {count} cameras to Frigate"),
+      prompt: t5(
+        "home_suggestion_frigate_prompt",
+        "Add these cameras to Frigate: {entity} ({entity_id}).",
+      ),
+      why: [
+        t5(
+          "home_suggestion_frigate_why",
+          "Frigate is not watching {members} yet. Once added, it spots people as they appear and keeps recordings of what it saw.",
         ),
       ],
     };
@@ -41884,6 +42486,37 @@ function fitComposerToDraft(host) {
   host._fitDraft = false;
   ta.style.height = "auto";
   ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+}
+
+// src/panel/dev-tools.js
+var announced = false;
+async function scanCameras(host, { sweep = false } = {}) {
+  const result = await host.hass.callWS({
+    type: "selora_ai/frigate/scan",
+    ...(sweep ? { sweep: true } : {}),
+  });
+  await loadHomeSuggestions(host);
+  return result?.cameras || [];
+}
+function syncDevConsole(host) {
+  if (!host._config?.developer_mode) {
+    delete globalThis.seloraDev;
+    return;
+  }
+  globalThis.seloraDev = {
+    async scanCameras(options) {
+      const cameras = await scanCameras(host, options);
+      console.table(cameras);
+      return cameras;
+    },
+  };
+  if (announced) return;
+  announced = true;
+  console.info(
+    "%cSelora AI developer mode%c\nseloraDev.scanCameras() \u2014 scan the network for cameras now and refresh the chat home's suggestions (otherwise every 30 min).\nseloraDev.scanCameras({ sweep: true }) \u2014 also ask every local address directly, for cameras that ignore the network-wide probe (otherwise once a day).",
+    "font-weight:bold",
+    "",
+  );
 }
 
 // src/panel/render-ignore-list.js
@@ -43980,6 +44613,7 @@ function renderSettings(host) {
                 @change=${async (e6) => {
                   const val = e6.target.checked;
                   host._updateConfig("developer_mode", val);
+                  syncDevConsole(host);
                   try {
                     await host.hass.callWS({
                       type: "selora_ai/update_config",
@@ -43997,6 +44631,69 @@ function renderSettings(host) {
                 }}
               ></ha-switch>
             </div>
+            ${
+              host._config.developer_mode
+                ? b2`<div class="service-row">
+                    <div class="service-label-group">
+                      <label
+                        >${host._t(
+                          "settings_dev_scan_cameras_label",
+                          "Scan for cameras",
+                        )}</label
+                      >
+                      <span class="service-desc"
+                        >${host._t(
+                          "settings_dev_scan_cameras_desc",
+                          "Look for cameras on the network now instead of on the next half-hourly scan, and refresh the chat home's suggestions.",
+                        )}</span
+                      >
+                    </div>
+                    <button
+                      class="btn btn-outline"
+                      ?disabled=${host._scanningCameras}
+                      @click=${async () => {
+                        host._scanningCameras = true;
+                        host.requestUpdate();
+                        try {
+                          const cameras = await scanCameras(host);
+                          host._showToast(
+                            interpolate(
+                              host._t(
+                                "settings_dev_scan_cameras_done",
+                                "Found {count} cameras on the network.",
+                              ),
+                              { count: cameras.length },
+                            ),
+                          );
+                        } catch (err) {
+                          host._showToast(
+                            host._t(
+                              "settings_dev_scan_cameras_failed",
+                              "The camera scan failed.",
+                            ),
+                            "error",
+                          );
+                        } finally {
+                          host._scanningCameras = false;
+                          host.requestUpdate();
+                        }
+                      }}
+                    >
+                      ${
+                        host._scanningCameras
+                          ? host._t(
+                              "settings_dev_scan_cameras_scanning",
+                              "Scanning\u2026",
+                            )
+                          : host._t(
+                              "settings_dev_scan_cameras_button",
+                              "Scan now",
+                            )
+                      }
+                    </button>
+                  </div>`
+                : ""
+            }
           </div>
 
           <div class="card-save-bar">
@@ -54000,7 +54697,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "76506773768c" : "";
+var PANEL_BUILD = true ? "c5bdb444fb66" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -56556,6 +57253,7 @@ var SeloraAIPanel = class extends i4 {
       const config = await this.hass.callWS({ type: "selora_ai/get_config" });
       this._config = config;
       this._newApiKey = "";
+      syncDevConsole(this);
     } catch (err) {
       console.error("Failed to load config", err);
     }

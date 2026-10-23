@@ -16,6 +16,7 @@
 import { html } from "lit";
 
 import { resolveClientActions } from "./client-actions.js";
+import { renderFrigateCameraRows } from "./frigate-cameras.js";
 import { renderConfirmChip } from "./quick-actions.js";
 import {
   actionIcon,
@@ -60,9 +61,11 @@ const _DELETE_KIND_LABELS = {
   helper: "helper",
   entity: "entity",
   device: "device",
+  frigate_camera: "Frigate camera",
 };
 
 const _DELETE_KIND_ICONS = {
+  frigate_camera: "mdi:cctv",
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",
@@ -160,6 +163,12 @@ const _CONFIRM_VARIANTS = {
           icon: "mdi:trash-can-outline",
           labelKey: "client_action_delete",
           labelFallback: "Delete",
+        },
+        add_frigate_cameras: {
+          tone: "approve",
+          icon: "mdi:cctv",
+          labelKey: "client_action_add_to_frigate",
+          labelFallback: "Add to Frigate",
         },
       },
       tone: "approve",
@@ -298,8 +307,16 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
                 const destructive = kinds.filter(
                   (kind) => copy.confirm.byKind?.[kind]?.tone === "deny",
                 );
+                // A card of one kind with wording of its own uses it, whatever
+                // its tone.
+                const own =
+                  kinds.length && kinds.every((kind) => kind === kinds[0])
+                    ? copy.confirm.byKind?.[kinds[0]]
+                    : null;
                 const confirm = !destructive.length
-                  ? copy.confirm
+                  ? own
+                    ? { ...copy.confirm, ...own }
+                    : copy.confirm
                   : destructive.length === kinds.length
                     ? {
                         ...copy.confirm,
@@ -555,6 +572,9 @@ const _CLIENT_ACTION_ICONS = {
 
 /** One proposed client action, in the shared card's row shape. */
 function _renderClientActionRow(host, action) {
+  if (action.kind === "add_frigate_cameras") {
+    return renderFrigateCameraRows(host, action);
+  }
   return html`
     <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">
       <ha-icon

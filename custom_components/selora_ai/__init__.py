@@ -3274,6 +3274,11 @@ def _request_behind(stored_messages: list[dict[str, Any]], proposal_index: int) 
     return None
 
 
+# Client actions that finish what they were asked for: nothing is made for a
+# later step to build on, so without a declared remainder they do not resume.
+_SELF_CONTAINED_CLIENT_ACTIONS = frozenset({"add_frigate_cameras"})
+
+
 def _resume_request(
     stored_messages: list[dict[str, Any]], proposal_id: str
 ) -> tuple[str | None, str | None]:
@@ -3333,6 +3338,16 @@ def _resume_request(
             # A service approval usually IS the whole request — "unlock the
             # front door" is done when it runs — and replaying it would put a
             # model round on the hottest path in the product for nothing.
+            return None, "That action had nothing left to do."
+        kinds = {
+            str(action.get("kind", ""))
+            for action in approval.get("client_actions") or []
+            if isinstance(action, dict)
+        }
+        if kinds and kinds <= _SELF_CONTAINED_CLIENT_ACTIONS:
+            # Adding cameras to Frigate is the whole request: replaying it
+            # had the model call the tool again and report the cameras it had
+            # just added as refused.
             return None, "That action had nothing left to do."
         # A CLIENT ACTION is different: it exists because the thing it makes
         # does not exist yet, so it is a first step by construction, and this
@@ -5330,7 +5345,7 @@ async def _resolve_delete_approval(
                     target_id,
                     expected_fingerprint=str(descriptor.get("fingerprint") or ""),
                 )
-            elif kind in ("device", "entity", "integration", "blueprint"):
+            elif kind in ("device", "entity", "integration", "blueprint", "frigate_camera"):
                 # remove_from_home: the descriptor carries the target's identity
                 # (device id, registry entry id, entry_id, file hash); the
                 # removal re-checks it, so what goes is what the card named.
@@ -6481,6 +6496,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     cache_invalidator.async_start()
     hass.data[DOMAIN][entry.entry_id]["cache_invalidator"] = cache_invalidator
 
+    # Look for cameras on the network Frigate could add; a timer, so start-up
+    # never waits on the probe.
+    from .frigate.discovery import async_start_scanning
+
+    hass.data[DOMAIN][entry.entry_id]["unsub_frigate_scan"] = async_start_scanning(hass)
+
     # Tell the user when a newly added entity fits a group or automation that
     # already covers every one of its kind.
     from .home_suggestions import HomeSuggestionNotifier
@@ -6757,7 +6778,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # unfired timer outliving its entry spawns its task against state this
     # function has already popped, and the collector stop is long enough to
     # land in.
-    for _unsub_key in ("unsub_initial_discovery", "unsub_telemetry_startup"):
+    for _unsub_key in ("unsub_initial_discovery", "unsub_telemetry_startup", "unsub_frigate_scan"):
         unsub_startup = data.get(_unsub_key)
         if unsub_startup:
             unsub_startup()
