@@ -16,6 +16,7 @@ const AUTOMATION_LABEL_KEYS = [
 ];
 const AUTOMATION_LABEL_INTERVAL_MS = 5_000;
 import { formatTime } from "../shared/date-utils.js";
+import { renderFrigateResult } from "./render-frigate-result.js";
 import { renderDeviceDetail } from "./render-device-detail.js";
 import { renderQuickActions } from "./quick-actions.js";
 import {
@@ -1438,7 +1439,9 @@ export function renderMessage(host, msg, idx) {
                     // A loaded automation's stored prose ("Describe the
                     // changes") is context for the model; the composer's
                     // placeholder and chip say it to the user.
-                    msg.command_approval || isLoadedAutomation
+                    msg.command_approval ||
+                    isLoadedAutomation ||
+                    msg.frigate_result
                       ? ""
                       : html`<span
                           class="msg-content ${
@@ -1524,6 +1527,7 @@ export function renderMessage(host, msg, idx) {
                   }
                   ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                   ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
+                  ${renderFrigateResult(host, msg)}
                   ${
                     msg.command_approval
                       ? renderApprovalCard(

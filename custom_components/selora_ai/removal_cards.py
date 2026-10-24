@@ -45,6 +45,23 @@ def removal_card(
     }
 
 
+def _frigate_camera_entity(hass: HomeAssistant, kind: str, target: str) -> str | None:
+    """The Frigate camera entity *target* names, as an entity or as its device."""
+    from homeassistant.helpers import entity_registry as er
+
+    ent_reg = er.async_get(hass)
+    if kind == "entity":
+        entry = ent_reg.async_get(target.lower())
+        candidates = [entry] if entry is not None else []
+    else:
+        # Disabled entities too: a camera the user disabled is still Frigate's.
+        candidates = er.async_entries_for_device(ent_reg, target, include_disabled_entities=True)
+    return next(
+        (e.entity_id for e in candidates if e.platform == "frigate" and e.domain == "camera"),
+        None,
+    )
+
+
 def _used_by(hint: str) -> str:
     """The 'used by …' clause the removal checks put in their hint, if any."""
     marker = ", used by "
@@ -66,6 +83,10 @@ async def async_preview_removal(
 
     kind = str(kind or "").strip()
     target = str(target or "").strip()
+    if kind in ("entity", "device") and (camera := _frigate_camera_entity(hass, kind, target)):
+        # A Frigate camera's entity or device is Frigate's to remove: HA would
+        # refuse it as still provided, and the camera would come back anyway.
+        kind, target = "frigate_camera", camera
     if kind == "device":
         res = await async_remove_device_on_request(hass, target)
         if "error" in res:

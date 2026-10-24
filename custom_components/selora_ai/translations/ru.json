@@ -1083,6 +1083,15 @@
     "frigate_cameras_no_recording": "без записи",
     "frigate_cameras_restart": "Чтобы добавить их, Frigate перезапустится и примерно на минуту остановит камеры.",
     "frigate_cameras_not_added": "Не добавлены: {list}.",
+    "frigate_result_added": "Добавлена во Frigate",
+    "frigate_result_saved_tag": "Сохранена во Frigate",
+    "frigate_result_removed": "Удалена из Frigate",
+    "frigate_result_waiting": "Frigate перезапускается; камера появится здесь примерно через минуту.",
+    "frigate_result_slow": "Frigate возвращается дольше обычного.",
+    "frigate_result_saved": "Сохранена во Frigate; заработает после следующего перезапуска Frigate.",
+    "frigate_result_open": "Открыть камеру",
+    "frigate_result_recording": "Запись",
+    "frigate_result_detection": "Обнаружение",
     "chat_message_details": "Подробнее"
   },
   "options": {

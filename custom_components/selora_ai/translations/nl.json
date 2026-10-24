@@ -1103,6 +1103,15 @@
     "frigate_cameras_no_recording": "geen opname",
     "frigate_cameras_restart": "Frigate herstart om ze toe te voegen, waardoor de camera's ongeveer een minuut pauzeren.",
     "frigate_cameras_not_added": "Niet toegevoegd: {list}.",
+    "frigate_result_added": "Toegevoegd aan Frigate",
+    "frigate_result_saved_tag": "Opgeslagen in Frigate",
+    "frigate_result_removed": "Verwijderd uit Frigate",
+    "frigate_result_waiting": "Frigate wordt herstart; de camera verschijnt hier over ongeveer een minuut.",
+    "frigate_result_slow": "Frigate doet er langer dan normaal over om terug te komen.",
+    "frigate_result_saved": "Opgeslagen in Frigate; hij start bij de volgende herstart van Frigate.",
+    "frigate_result_open": "Camera openen",
+    "frigate_result_recording": "Opname",
+    "frigate_result_detection": "Detectie",
     "chat_message_details": "Details"
   }
 }

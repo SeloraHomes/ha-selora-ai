@@ -2527,6 +2527,16 @@ class SeloraAIPanel extends LitElement {
         // action row so users can't tap "unlock" inside an
         // "approve unlocking?" card and bypass the approval flow.
         const noFeatures = grid.dataset.noFeatures === "true";
+        // ``data-tile-options``: {entity_id: {icon, name}} for tiles whose
+        // defaults say too little (see render-frigate-result.js).
+        let tileOptions = {};
+        if (grid.dataset.tileOptions) {
+          try {
+            tileOptions = JSON.parse(grid.dataset.tileOptions) || {};
+          } catch (e) {
+            console.warn("Selora: bad tile-options payload", e);
+          }
+        }
         // Clear any prior fallback text so a retry (after the tile
         // creator becomes available) rebuilds cleanly instead of
         // appending duplicates.
@@ -2565,6 +2575,8 @@ class SeloraAIPanel extends LitElement {
             const card = createTile(id, {
               noFeatures,
               noActions: !!sceneEditId || scenePreview,
+              icon: String(tileOptions[id]?.icon || ""),
+              name: String(tileOptions[id]?.name || ""),
             });
             if (!card) return null;
             card.hass = gridHass;
@@ -2926,13 +2938,17 @@ class SeloraAIPanel extends LitElement {
     // intercepted separately.
     const buildConfig = (
       id,
-      { noFeatures = false, noActions = false } = {},
+      { noFeatures = false, noActions = false, icon = "", name = "" } = {},
     ) => {
       const config = {
         type: "tile",
         entity: id,
         features: noFeatures ? [] : featuresForDomain(id),
       };
+      // A caller that knows better than the entity's defaults: HA draws a
+      // house for every occupancy sensor, and names repeat the device.
+      if (icon) config.icon = icon;
+      if (name) config.name = name;
       if (noActions) {
         config.tap_action = { action: "none" };
         config.hold_action = { action: "none" };

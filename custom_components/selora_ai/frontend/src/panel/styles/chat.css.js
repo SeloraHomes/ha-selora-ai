@@ -1785,9 +1785,31 @@ export const chatStyles = css`
     font-size: 12px;
     color: var(--secondary-text-color);
   }
+  /* The settings field style assumes the page behind it; on the card it
+     disappears, so the fields get a border drawn from the text colour and
+     an accent ring when focused. */
   .frigate-login input {
     width: 100%;
     box-sizing: border-box;
+    background: var(--primary-background-color, #18181b);
+    border: 1px solid
+      color-mix(in srgb, var(--secondary-text-color, #a1a1aa) 45%, transparent);
+    cursor: text;
+  }
+  .frigate-login input:hover {
+    border-color: color-mix(
+      in srgb,
+      var(--secondary-text-color, #a1a1aa) 70%,
+      transparent
+    );
+  }
+  .frigate-login input:focus {
+    border-color: var(--selora-accent);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--selora-accent) 25%, transparent);
+  }
+  .frigate-login label {
+    color: var(--primary-text-color);
   }
   .frigate-camera-error {
     margin: 4px 0 0 32px;
@@ -1801,6 +1823,77 @@ export const chatStyles = css`
     }
     .frigate-camera-error {
       margin-left: 0;
+    }
+  }
+
+  /* Frigate result card (render-frigate-result.js): the cameras added or
+     removed, then each added one's live preview and recording switch once
+     Frigate has brought it back. */
+  .frigate-result {
+    margin-top: 12px;
+  }
+  .frigate-result-camera + .frigate-result-camera {
+    margin-top: 14px;
+  }
+  .frigate-result-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    --mdc-icon-size: 18px;
+  }
+  .frigate-result-name ha-icon {
+    color: var(--secondary-text-color);
+  }
+  .frigate-result-name a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--divider-color);
+    text-underline-offset: 3px;
+  }
+  .frigate-result-name a:hover {
+    text-decoration-color: currentColor;
+  }
+  .frigate-result-wait {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 0 26px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    --mdc-icon-size: 16px;
+  }
+  .frigate-result-live {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0 0 26px;
+    max-width: 420px;
+  }
+  .frigate-result-preview {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 1px solid var(--divider-color);
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: var(--secondary-background-color, rgba(255, 255, 255, 0.04));
+    cursor: pointer;
+  }
+  .frigate-result-preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  @media (max-width: 600px) {
+    .frigate-result-wait,
+    .frigate-result-live {
+      margin-left: 0;
+      max-width: none;
     }
   }
 `;

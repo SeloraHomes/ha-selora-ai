@@ -1103,6 +1103,15 @@
     "frigate_cameras_no_recording": "nincs felvétel",
     "frigate_cameras_restart": "A Frigate újraindul a hozzáadáshoz, így kameráit körülbelül egy percre szünetelteti.",
     "frigate_cameras_not_added": "Nincs hozzáadva: {list}.",
+    "frigate_result_added": "Hozzáadva a Frigate-hez",
+    "frigate_result_saved_tag": "Elmentve a Frigate-ben",
+    "frigate_result_removed": "Eltávolítva a Frigate-ből",
+    "frigate_result_waiting": "A Frigate újraindul; a kamera körülbelül egy perc múlva itt jelenik meg.",
+    "frigate_result_slow": "A Frigate a szokásosnál tovább tart, mire visszatér.",
+    "frigate_result_saved": "Elmentve a Frigate-ben; a Frigate következő újraindításakor indul el.",
+    "frigate_result_open": "Kamera megnyitása",
+    "frigate_result_recording": "Felvétel",
+    "frigate_result_detection": "Észlelés",
     "chat_message_details": "Részletek"
   }
 }

@@ -1083,6 +1083,15 @@
     "frigate_cameras_no_recording": "録画なし",
     "frigate_cameras_restart": "追加のため Frigate が再起動し、カメラが 1 分ほど停止します。",
     "frigate_cameras_not_added": "追加しなかったもの: {list}。",
+    "frigate_result_added": "Frigate に追加しました",
+    "frigate_result_saved_tag": "Frigate に保存しました",
+    "frigate_result_removed": "Frigate から削除しました",
+    "frigate_result_waiting": "Frigate を再起動中です。1 分ほどでここにカメラが表示されます。",
+    "frigate_result_slow": "Frigate の復帰にいつもより時間がかかっています。",
+    "frigate_result_saved": "Frigate に保存しました。Frigate の次回の再起動後に有効になります。",
+    "frigate_result_open": "カメラを開く",
+    "frigate_result_recording": "録画",
+    "frigate_result_detection": "検出",
     "chat_message_details": "詳細"
   },
   "options": {

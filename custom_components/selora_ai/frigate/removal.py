@@ -15,12 +15,13 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 
 from ..const import DOMAIN
+from ..helpers import sanitize_untrusted_text
 from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError
 from .discovery import SUGGESTION_CACHE
 
@@ -28,6 +29,21 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
 _LOGGER = logging.getLogger(__name__)
+
+_REMOVED_BY_LANG: Final[dict[str, str]] = {
+    "en": "Removed {names} from Frigate.",
+    "fr": "{names} retiré(s) de Frigate.",
+    "de": "{names} aus Frigate entfernt.",
+    "es": "{names} quitada(s) de Frigate.",
+    "it": "{names} rimossa/e da Frigate.",
+    "nl": "{names} verwijderd uit Frigate.",
+    "hu": "{names} eltávolítva a Frigate-ből.",
+    "zh": "已从 Frigate 中移除 {names}。",
+    "pt": "{names} removida(s) do Frigate.",
+    "ja": "{names} を Frigate から削除しました。",
+    "ko": "{names}을(를) Frigate에서 제거했습니다.",
+    "ru": "{names} удалены из Frigate.",
+}
 
 _NOT_SET_UP = (
     "Frigate is not set up in Home Assistant: the Frigate integration has to be "
@@ -90,13 +106,16 @@ async def async_preview_remove_camera(hass: HomeAssistant, target: str) -> dict[
             "error": "Frigate has no such camera.",
             "frigate_cameras": sorted(cameras),
         }
-    friendly = str((cameras[name] or {}).get("friendly_name") or name)
-    return removal_card(
-        "frigate_camera",
-        name,
-        f"Remove {friendly} from Frigate (Frigate restarts)",
-        _fingerprint(config, name),
-    )
+    # The card names the camera; its kind line already says "Frigate camera".
+    friendly = str((cameras[name] or {}).get("friendly_name") or name.replace("_", " ").title())
+    return removal_card("frigate_camera", name, friendly, _fingerprint(config, name))
+
+
+def removed_line(names: list[str], language: str | None) -> str:
+    """The conversation's record of cameras taken out of Frigate."""
+    base = str(language or "en").lower().split("-")[0]
+    template = _REMOVED_BY_LANG.get(base, _REMOVED_BY_LANG["en"])
+    return template.format(names=", ".join(sanitize_untrusted_text(n, 60) for n in names))
 
 
 async def async_remove_camera_confirmed(

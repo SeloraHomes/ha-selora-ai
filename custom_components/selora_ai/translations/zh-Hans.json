@@ -1083,6 +1083,15 @@
     "frigate_cameras_no_recording": "不录像",
     "frigate_cameras_restart": "添加时 Frigate 会重启，其摄像头将暂停约一分钟。",
     "frigate_cameras_not_added": "未添加：{list}。",
+    "frigate_result_added": "已添加到 Frigate",
+    "frigate_result_saved_tag": "已保存到 Frigate",
+    "frigate_result_removed": "已从 Frigate 移除",
+    "frigate_result_waiting": "Frigate 正在重启，大约一分钟后摄像头会显示在这里。",
+    "frigate_result_slow": "Frigate 恢复所需时间比平时更长。",
+    "frigate_result_saved": "已保存到 Frigate，将在 Frigate 下次重启后启用。",
+    "frigate_result_open": "打开摄像头",
+    "frigate_result_recording": "录像",
+    "frigate_result_detection": "检测",
     "chat_message_details": "详情"
   },
   "options": {
