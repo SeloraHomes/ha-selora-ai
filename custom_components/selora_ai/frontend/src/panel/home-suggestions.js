@@ -14,6 +14,7 @@
 import { html } from "lit";
 import { interpolate, pickLocale } from "../shared/i18n.js";
 import { buildDetailsMarker } from "./chat-autocomplete.js";
+import { describeIdea } from "./camera-ideas.js";
 
 const MAX_SHOWN = 3;
 const MAX_NAMED = 3;
@@ -142,6 +143,12 @@ function describe(host, s) {
         ),
       ],
     };
+  }
+  if (s.type === "camera_idea") {
+    const d = describeIdea(host, s.idea);
+    return d
+      ? { icon: d.icon, title: d.title, prompt: d.prompt, why: d.why }
+      : null;
   }
   if (s.type === "add_to_frigate") {
     return {
