@@ -1083,6 +1083,15 @@
     "frigate_cameras_no_recording": "不錄影",
     "frigate_cameras_restart": "加入時 Frigate 會重新啟動，其攝影機將暫停約一分鐘。",
     "frigate_cameras_not_added": "未加入：{list}。",
+    "frigate_result_added": "已加入 Frigate",
+    "frigate_result_saved_tag": "已儲存至 Frigate",
+    "frigate_result_removed": "已從 Frigate 移除",
+    "frigate_result_waiting": "Frigate 正在重新啟動，約一分鐘後攝影機會顯示在這裡。",
+    "frigate_result_slow": "Frigate 恢復所需時間比平常更久。",
+    "frigate_result_saved": "已儲存至 Frigate，將在 Frigate 下次重新啟動後啟用。",
+    "frigate_result_open": "開啟攝影機",
+    "frigate_result_recording": "錄影",
+    "frigate_result_detection": "偵測",
     "chat_message_details": "詳情"
   },
   "options": {

@@ -4503,9 +4503,31 @@ var chatStyles = i`
     font-size: 12px;
     color: var(--secondary-text-color);
   }
+  /* The settings field style assumes the page behind it; on the card it
+     disappears, so the fields get a border drawn from the text colour and
+     an accent ring when focused. */
   .frigate-login input {
     width: 100%;
     box-sizing: border-box;
+    background: var(--primary-background-color, #18181b);
+    border: 1px solid
+      color-mix(in srgb, var(--secondary-text-color, #a1a1aa) 45%, transparent);
+    cursor: text;
+  }
+  .frigate-login input:hover {
+    border-color: color-mix(
+      in srgb,
+      var(--secondary-text-color, #a1a1aa) 70%,
+      transparent
+    );
+  }
+  .frigate-login input:focus {
+    border-color: var(--selora-accent);
+    box-shadow: 0 0 0 3px
+      color-mix(in srgb, var(--selora-accent) 25%, transparent);
+  }
+  .frigate-login label {
+    color: var(--primary-text-color);
   }
   .frigate-camera-error {
     margin: 4px 0 0 32px;
@@ -4519,6 +4541,77 @@ var chatStyles = i`
     }
     .frigate-camera-error {
       margin-left: 0;
+    }
+  }
+
+  /* Frigate result card (render-frigate-result.js): the cameras added or
+     removed, then each added one's live preview and recording switch once
+     Frigate has brought it back. */
+  .frigate-result {
+    margin-top: 12px;
+  }
+  .frigate-result-camera + .frigate-result-camera {
+    margin-top: 14px;
+  }
+  .frigate-result-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    --mdc-icon-size: 18px;
+  }
+  .frigate-result-name ha-icon {
+    color: var(--secondary-text-color);
+  }
+  .frigate-result-name a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--divider-color);
+    text-underline-offset: 3px;
+  }
+  .frigate-result-name a:hover {
+    text-decoration-color: currentColor;
+  }
+  .frigate-result-wait {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 0 26px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    --mdc-icon-size: 16px;
+  }
+  .frigate-result-live {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0 0 26px;
+    max-width: 420px;
+  }
+  .frigate-result-preview {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 1px solid var(--divider-color);
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: var(--secondary-background-color, rgba(255, 255, 255, 0.04));
+    cursor: pointer;
+  }
+  .frigate-result-preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  @media (max-width: 600px) {
+    .frigate-result-wait,
+    .frigate-result-live {
+      margin-left: 0;
+      max-width: none;
     }
   }
 `;
@@ -11085,6 +11178,17 @@ var en_default = {
     frigate_cameras_restart:
       "Frigate restarts to add them, pausing its cameras for about a minute.",
     frigate_cameras_not_added: "Not added: {list}.",
+    frigate_result_added: "Added to Frigate",
+    frigate_result_saved_tag: "Saved in Frigate",
+    frigate_result_removed: "Removed from Frigate",
+    frigate_result_waiting:
+      "Frigate is restarting; the camera appears here in about a minute.",
+    frigate_result_slow: "Frigate is taking longer than usual to come back.",
+    frigate_result_saved:
+      "Saved in Frigate; it starts with Frigate's next restart.",
+    frigate_result_open: "Open the camera",
+    frigate_result_recording: "Recording",
+    frigate_result_detection: "Detection",
     chat_message_details: "Details",
   },
   options: {
@@ -12438,6 +12542,18 @@ var fr_default = {
     frigate_cameras_restart:
       "Frigate red\xE9marre pour les ajouter, ce qui interrompt ses cam\xE9ras pendant environ une minute.",
     frigate_cameras_not_added: "Non ajout\xE9es : {list}.",
+    frigate_result_added: "Ajout\xE9e \xE0 Frigate",
+    frigate_result_saved_tag: "Enregistr\xE9e dans Frigate",
+    frigate_result_removed: "Retir\xE9e de Frigate",
+    frigate_result_waiting:
+      "Frigate red\xE9marre ; la cam\xE9ra appara\xEEtra ici d'ici une minute environ.",
+    frigate_result_slow:
+      "Frigate met plus de temps que d'habitude \xE0 revenir.",
+    frigate_result_saved:
+      "Enregistr\xE9e dans Frigate ; elle d\xE9marrera au prochain red\xE9marrage de Frigate.",
+    frigate_result_open: "Ouvrir la cam\xE9ra",
+    frigate_result_recording: "Enregistrement",
+    frigate_result_detection: "D\xE9tection",
     chat_message_details: "D\xE9tails",
   },
   options: {
@@ -13781,6 +13897,18 @@ var de_default = {
     frigate_cameras_restart:
       "Frigate startet daf\xFCr neu und unterbricht seine Kameras f\xFCr etwa eine Minute.",
     frigate_cameras_not_added: "Nicht hinzugef\xFCgt: {list}.",
+    frigate_result_added: "Zu Frigate hinzugef\xFCgt",
+    frigate_result_saved_tag: "In Frigate gespeichert",
+    frigate_result_removed: "Aus Frigate entfernt",
+    frigate_result_waiting:
+      "Frigate startet neu; die Kamera erscheint hier in etwa einer Minute.",
+    frigate_result_slow:
+      "Frigate braucht l\xE4nger als \xFCblich, um zur\xFCckzukommen.",
+    frigate_result_saved:
+      "In Frigate gespeichert; sie startet beim n\xE4chsten Neustart von Frigate.",
+    frigate_result_open: "Kamera \xF6ffnen",
+    frigate_result_recording: "Aufnahme",
+    frigate_result_detection: "Erkennung",
     chat_message_details: "Details",
   },
   options: {
@@ -15104,6 +15232,18 @@ var es_default = {
     frigate_cameras_restart:
       "Frigate se reinicia para a\xF1adirlas y detiene sus c\xE1maras durante un minuto aproximadamente.",
     frigate_cameras_not_added: "No a\xF1adidas: {list}.",
+    frigate_result_added: "A\xF1adida a Frigate",
+    frigate_result_saved_tag: "Guardada en Frigate",
+    frigate_result_removed: "Quitada de Frigate",
+    frigate_result_waiting:
+      "Frigate se est\xE1 reiniciando; la c\xE1mara aparecer\xE1 aqu\xED en un minuto aproximadamente.",
+    frigate_result_slow:
+      "Frigate est\xE1 tardando m\xE1s de lo habitual en volver.",
+    frigate_result_saved:
+      "Guardada en Frigate; empezar\xE1 con el pr\xF3ximo reinicio de Frigate.",
+    frigate_result_open: "Abrir la c\xE1mara",
+    frigate_result_recording: "Grabaci\xF3n",
+    frigate_result_detection: "Detecci\xF3n",
     chat_message_details: "Detalles",
   },
   options: {
@@ -16427,6 +16567,17 @@ var it_default = {
     frigate_cameras_restart:
       "Frigate si riavvia per aggiungerle, mettendo in pausa le sue telecamere per circa un minuto.",
     frigate_cameras_not_added: "Non aggiunte: {list}.",
+    frigate_result_added: "Aggiunta a Frigate",
+    frigate_result_saved_tag: "Salvata in Frigate",
+    frigate_result_removed: "Rimossa da Frigate",
+    frigate_result_waiting:
+      "Frigate si sta riavviando; la telecamera comparir\xE0 qui tra circa un minuto.",
+    frigate_result_slow: "Frigate ci sta mettendo pi\xF9 del solito a tornare.",
+    frigate_result_saved:
+      "Salvata in Frigate; partir\xE0 al prossimo riavvio di Frigate.",
+    frigate_result_open: "Apri la telecamera",
+    frigate_result_recording: "Registrazione",
+    frigate_result_detection: "Rilevamento",
     chat_message_details: "Dettagli",
   },
   options: {
@@ -17767,6 +17918,18 @@ var nl_default = {
     frigate_cameras_restart:
       "Frigate herstart om ze toe te voegen, waardoor de camera's ongeveer een minuut pauzeren.",
     frigate_cameras_not_added: "Niet toegevoegd: {list}.",
+    frigate_result_added: "Toegevoegd aan Frigate",
+    frigate_result_saved_tag: "Opgeslagen in Frigate",
+    frigate_result_removed: "Verwijderd uit Frigate",
+    frigate_result_waiting:
+      "Frigate wordt herstart; de camera verschijnt hier over ongeveer een minuut.",
+    frigate_result_slow:
+      "Frigate doet er langer dan normaal over om terug te komen.",
+    frigate_result_saved:
+      "Opgeslagen in Frigate; hij start bij de volgende herstart van Frigate.",
+    frigate_result_open: "Camera openen",
+    frigate_result_recording: "Opname",
+    frigate_result_detection: "Detectie",
     chat_message_details: "Details",
   },
 };
@@ -19162,6 +19325,18 @@ var hu_default = {
     frigate_cameras_restart:
       "A Frigate \xFAjraindul a hozz\xE1ad\xE1shoz, \xEDgy kamer\xE1it k\xF6r\xFClbel\xFCl egy percre sz\xFCnetelteti.",
     frigate_cameras_not_added: "Nincs hozz\xE1adva: {list}.",
+    frigate_result_added: "Hozz\xE1adva a Frigate-hez",
+    frigate_result_saved_tag: "Elmentve a Frigate-ben",
+    frigate_result_removed: "Elt\xE1vol\xEDtva a Frigate-b\u0151l",
+    frigate_result_waiting:
+      "A Frigate \xFAjraindul; a kamera k\xF6r\xFClbel\xFCl egy perc m\xFAlva itt jelenik meg.",
+    frigate_result_slow:
+      "A Frigate a szok\xE1sosn\xE1l tov\xE1bb tart, mire visszat\xE9r.",
+    frigate_result_saved:
+      "Elmentve a Frigate-ben; a Frigate k\xF6vetkez\u0151 \xFAjraind\xEDt\xE1sakor indul el.",
+    frigate_result_open: "Kamera megnyit\xE1sa",
+    frigate_result_recording: "Felv\xE9tel",
+    frigate_result_detection: "\xC9szlel\xE9s",
     chat_message_details: "R\xE9szletek",
   },
 };
@@ -20479,6 +20654,18 @@ var pt_default = {
     frigate_cameras_restart:
       "O Frigate reinicia para as adicionar, pausando as c\xE2maras durante cerca de um minuto.",
     frigate_cameras_not_added: "N\xE3o adicionadas: {list}.",
+    frigate_result_added: "Adicionada ao Frigate",
+    frigate_result_saved_tag: "Guardada no Frigate",
+    frigate_result_removed: "Removida do Frigate",
+    frigate_result_waiting:
+      "O Frigate est\xE1 a reiniciar; a c\xE2mara aparece aqui dentro de cerca de um minuto.",
+    frigate_result_slow:
+      "O Frigate est\xE1 a demorar mais do que o habitual a voltar.",
+    frigate_result_saved:
+      "Guardada no Frigate; come\xE7a no pr\xF3ximo rein\xEDcio do Frigate.",
+    frigate_result_open: "Abrir a c\xE2mara",
+    frigate_result_recording: "Grava\xE7\xE3o",
+    frigate_result_detection: "Dete\xE7\xE3o",
     chat_message_details: "Detalhes",
   },
   options: {
@@ -22441,6 +22628,23 @@ var ru_default = {
       "\u0427\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0438\u0445, Frigate \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0441\u044F \u0438 \u043F\u0440\u0438\u043C\u0435\u0440\u043D\u043E \u043D\u0430 \u043C\u0438\u043D\u0443\u0442\u0443 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442 \u043A\u0430\u043C\u0435\u0440\u044B.",
     frigate_cameras_not_added:
       "\u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B: {list}.",
+    frigate_result_added:
+      "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430 \u0432\u043E Frigate",
+    frigate_result_saved_tag:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430 \u0432\u043E Frigate",
+    frigate_result_removed:
+      "\u0423\u0434\u0430\u043B\u0435\u043D\u0430 \u0438\u0437 Frigate",
+    frigate_result_waiting:
+      "Frigate \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u043A\u0430\u0435\u0442\u0441\u044F; \u043A\u0430\u043C\u0435\u0440\u0430 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u043F\u0440\u0438\u043C\u0435\u0440\u043D\u043E \u0447\u0435\u0440\u0435\u0437 \u043C\u0438\u043D\u0443\u0442\u0443.",
+    frigate_result_slow:
+      "Frigate \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442\u0441\u044F \u0434\u043E\u043B\u044C\u0448\u0435 \u043E\u0431\u044B\u0447\u043D\u043E\u0433\u043E.",
+    frigate_result_saved:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430 \u0432\u043E Frigate; \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043F\u043E\u0441\u043B\u0435 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0433\u043E \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u043A\u0430 Frigate.",
+    frigate_result_open:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u0430\u043C\u0435\u0440\u0443",
+    frigate_result_recording: "\u0417\u0430\u043F\u0438\u0441\u044C",
+    frigate_result_detection:
+      "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0438\u0435",
     chat_message_details:
       "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435",
   },
@@ -24071,6 +24275,20 @@ var ja_default = {
       "\u8FFD\u52A0\u306E\u305F\u3081 Frigate \u304C\u518D\u8D77\u52D5\u3057\u3001\u30AB\u30E1\u30E9\u304C 1 \u5206\u307B\u3069\u505C\u6B62\u3057\u307E\u3059\u3002",
     frigate_cameras_not_added:
       "\u8FFD\u52A0\u3057\u306A\u304B\u3063\u305F\u3082\u306E: {list}\u3002",
+    frigate_result_added: "Frigate \u306B\u8FFD\u52A0\u3057\u307E\u3057\u305F",
+    frigate_result_saved_tag:
+      "Frigate \u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+    frigate_result_removed:
+      "Frigate \u304B\u3089\u524A\u9664\u3057\u307E\u3057\u305F",
+    frigate_result_waiting:
+      "Frigate \u3092\u518D\u8D77\u52D5\u4E2D\u3067\u3059\u30021 \u5206\u307B\u3069\u3067\u3053\u3053\u306B\u30AB\u30E1\u30E9\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002",
+    frigate_result_slow:
+      "Frigate \u306E\u5FA9\u5E30\u306B\u3044\u3064\u3082\u3088\u308A\u6642\u9593\u304C\u304B\u304B\u3063\u3066\u3044\u307E\u3059\u3002",
+    frigate_result_saved:
+      "Frigate \u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002Frigate \u306E\u6B21\u56DE\u306E\u518D\u8D77\u52D5\u5F8C\u306B\u6709\u52B9\u306B\u306A\u308A\u307E\u3059\u3002",
+    frigate_result_open: "\u30AB\u30E1\u30E9\u3092\u958B\u304F",
+    frigate_result_recording: "\u9332\u753B",
+    frigate_result_detection: "\u691C\u51FA",
     chat_message_details: "\u8A73\u7D30",
   },
   options: {
@@ -25591,6 +25809,18 @@ var ko_default = {
     frigate_cameras_restart:
       "\uCD94\uAC00\uD558\uB824\uBA74 Frigate\uAC00 \uB2E4\uC2DC \uC2DC\uC791\uB418\uC5B4 \uCE74\uBA54\uB77C\uAC00 \uC57D 1\uBD84\uAC04 \uBA48\uCDA5\uB2C8\uB2E4.",
     frigate_cameras_not_added: "\uCD94\uAC00\uD558\uC9C0 \uC54A\uC74C: {list}.",
+    frigate_result_added: "Frigate\uC5D0 \uCD94\uAC00\uB428",
+    frigate_result_saved_tag: "Frigate\uC5D0 \uC800\uC7A5\uB428",
+    frigate_result_removed: "Frigate\uC5D0\uC11C \uC81C\uAC70\uB428",
+    frigate_result_waiting:
+      "Frigate\uAC00 \uB2E4\uC2DC \uC2DC\uC791\uB418\uB294 \uC911\uC785\uB2C8\uB2E4. \uC57D 1\uBD84 \uD6C4 \uC5EC\uAE30\uC5D0 \uCE74\uBA54\uB77C\uAC00 \uD45C\uC2DC\uB429\uB2C8\uB2E4.",
+    frigate_result_slow:
+      "Frigate\uAC00 \uD3C9\uC18C\uBCF4\uB2E4 \uB2A6\uAC8C \uB3CC\uC544\uC624\uACE0 \uC788\uC2B5\uB2C8\uB2E4.",
+    frigate_result_saved:
+      "Frigate\uC5D0 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4. Frigate\uAC00 \uB2E4\uC74C\uC5D0 \uB2E4\uC2DC \uC2DC\uC791\uB420 \uB54C \uC2DC\uC791\uB429\uB2C8\uB2E4.",
+    frigate_result_open: "\uCE74\uBA54\uB77C \uC5F4\uAE30",
+    frigate_result_recording: "\uB179\uD654",
+    frigate_result_detection: "\uAC10\uC9C0",
     chat_message_details: "\uC790\uC138\uD788",
   },
   options: {
@@ -27027,6 +27257,18 @@ var zh_Hans_default = {
     frigate_cameras_restart:
       "\u6DFB\u52A0\u65F6 Frigate \u4F1A\u91CD\u542F\uFF0C\u5176\u6444\u50CF\u5934\u5C06\u6682\u505C\u7EA6\u4E00\u5206\u949F\u3002",
     frigate_cameras_not_added: "\u672A\u6DFB\u52A0\uFF1A{list}\u3002",
+    frigate_result_added: "\u5DF2\u6DFB\u52A0\u5230 Frigate",
+    frigate_result_saved_tag: "\u5DF2\u4FDD\u5B58\u5230 Frigate",
+    frigate_result_removed: "\u5DF2\u4ECE Frigate \u79FB\u9664",
+    frigate_result_waiting:
+      "Frigate \u6B63\u5728\u91CD\u542F\uFF0C\u5927\u7EA6\u4E00\u5206\u949F\u540E\u6444\u50CF\u5934\u4F1A\u663E\u793A\u5728\u8FD9\u91CC\u3002",
+    frigate_result_slow:
+      "Frigate \u6062\u590D\u6240\u9700\u65F6\u95F4\u6BD4\u5E73\u65F6\u66F4\u957F\u3002",
+    frigate_result_saved:
+      "\u5DF2\u4FDD\u5B58\u5230 Frigate\uFF0C\u5C06\u5728 Frigate \u4E0B\u6B21\u91CD\u542F\u540E\u542F\u7528\u3002",
+    frigate_result_open: "\u6253\u5F00\u6444\u50CF\u5934",
+    frigate_result_recording: "\u5F55\u50CF",
+    frigate_result_detection: "\u68C0\u6D4B",
     chat_message_details: "\u8BE6\u60C5",
   },
   options: {
@@ -28469,6 +28711,18 @@ var zh_Hant_default = {
     frigate_cameras_restart:
       "\u52A0\u5165\u6642 Frigate \u6703\u91CD\u65B0\u555F\u52D5\uFF0C\u5176\u651D\u5F71\u6A5F\u5C07\u66AB\u505C\u7D04\u4E00\u5206\u9418\u3002",
     frigate_cameras_not_added: "\u672A\u52A0\u5165\uFF1A{list}\u3002",
+    frigate_result_added: "\u5DF2\u52A0\u5165 Frigate",
+    frigate_result_saved_tag: "\u5DF2\u5132\u5B58\u81F3 Frigate",
+    frigate_result_removed: "\u5DF2\u5F9E Frigate \u79FB\u9664",
+    frigate_result_waiting:
+      "Frigate \u6B63\u5728\u91CD\u65B0\u555F\u52D5\uFF0C\u7D04\u4E00\u5206\u9418\u5F8C\u651D\u5F71\u6A5F\u6703\u986F\u793A\u5728\u9019\u88E1\u3002",
+    frigate_result_slow:
+      "Frigate \u6062\u5FA9\u6240\u9700\u6642\u9593\u6BD4\u5E73\u5E38\u66F4\u4E45\u3002",
+    frigate_result_saved:
+      "\u5DF2\u5132\u5B58\u81F3 Frigate\uFF0C\u5C07\u5728 Frigate \u4E0B\u6B21\u91CD\u65B0\u555F\u52D5\u5F8C\u555F\u7528\u3002",
+    frigate_result_open: "\u958B\u555F\u651D\u5F71\u6A5F",
+    frigate_result_recording: "\u9304\u5F71",
+    frigate_result_detection: "\u5075\u6E2C",
     chat_message_details: "\u8A73\u60C5",
   },
   options: {
@@ -28933,6 +29187,217 @@ function renderMarkdown(text) {
     return `<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">${escapeCode(body)}</code>`;
   });
   return escaped;
+}
+
+// src/shared/created-check.js
+function renderCreatedCheck({ animate = false, size = 14 } = {}) {
+  return b2`
+    <svg
+      class="created-check${animate ? " drawing" : ""}"
+      viewBox="0 0 24 24"
+      width=${size}
+      height=${size}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 12.5 L9.5 18 L20 6.5" />
+    </svg>
+  `;
+}
+
+// src/panel/render-frigate-result.js
+var SLOW_AFTER_MS = 3 * 60 * 1e3;
+var FRESH_MS = 60 * 1e3;
+function age(msg) {
+  const at = Date.parse(msg.timestamp || "");
+  return Number.isNaN(at) ? Infinity : Date.now() - at;
+}
+function frigateEntity(host, expectedId) {
+  const entities = host.hass?.entities;
+  if (!entities) return host.hass?.states?.[expectedId] ? expectedId : null;
+  if (entities[expectedId]?.platform === "frigate") return expectedId;
+  const prefix = `${expectedId}_`;
+  return (
+    Object.keys(entities).find(
+      (id) =>
+        id.startsWith(prefix) &&
+        /^\d+$/.test(id.slice(prefix.length)) &&
+        entities[id]?.platform === "frigate",
+    ) || null
+  );
+}
+function isLive(host, entityId) {
+  const state = entityId ? host.hass?.states?.[entityId] : null;
+  return !!state && state.state !== "unavailable";
+}
+function openMoreInfo(host, entityId) {
+  host.dispatchEvent(
+    new CustomEvent("hass-more-info", {
+      detail: { entityId },
+      bubbles: true,
+      composed: true,
+    }),
+  );
+}
+var OBJECT_ICONS = {
+  person: "mdi:account",
+  car: "mdi:car",
+  dog: "mdi:dog",
+  cat: "mdi:cat",
+  bird: "mdi:bird",
+  bicycle: "mdi:bicycle",
+  motorcycle: "mdi:motorbike",
+};
+function capitalize(text) {
+  return text.charAt(0).toUpperCase() + text.slice(1).replace(/_/g, " ");
+}
+function controlTiles(host, result, camera) {
+  const name = camera.frigate_name;
+  const tiles = [
+    [
+      camera.recordings_entity,
+      "mdi:filmstrip-box",
+      host._t("frigate_result_recording", "Recording"),
+    ],
+    [
+      `switch.${name}_detect`,
+      "mdi:motion-sensor",
+      host._t("frigate_result_detection", "Detection"),
+    ],
+    ...(result.objects || []).map((object) => [
+      `binary_sensor.${name}_${object}_occupancy`,
+      OBJECT_ICONS[object] || "mdi:eye-outline",
+      capitalize(object),
+    ]),
+  ]
+    .map(([id, icon, label]) => [frigateEntity(host, id), icon, label])
+    .filter(([id]) => id && host.hass?.states?.[id]);
+  return {
+    ids: tiles.map(([id]) => id),
+    options: Object.fromEntries(
+      tiles.map(([id, icon, label]) => [id, { icon, name: label }]),
+    ),
+  };
+}
+function renderWaiting(host, msg) {
+  const slow = age(msg) > SLOW_AFTER_MS;
+  return b2`
+    <div class="frigate-result-wait">
+      <span class="spinner" style="width:14px;height:14px;"></span>
+      <span
+        >${
+          slow
+            ? host._t(
+                "frigate_result_slow",
+                "Frigate is taking longer than usual to come back.",
+              )
+            : host._t(
+                "frigate_result_waiting",
+                "Frigate is restarting; the camera appears here in about a minute.",
+              )
+        }</span
+      >
+    </div>
+  `;
+}
+var SNAPSHOT_EVERY_MS = 5e3;
+function snapshotUrl(host, entityId) {
+  const picture = host.hass?.states?.[entityId]?.attributes?.entity_picture;
+  if (!picture) return "";
+  const bucket = Math.floor(Date.now() / SNAPSHOT_EVERY_MS);
+  return `${picture}${picture.includes("?") ? "&" : "?"}t=${bucket}`;
+}
+function renderAdded(host, msg, result, camera) {
+  const cameraId = frigateEntity(host, camera.camera_entity);
+  if (!isLive(host, cameraId)) return renderWaiting(host, msg);
+  const snapshot = snapshotUrl(host, cameraId);
+  return b2`
+    <div class="frigate-result-live pop-in">
+      ${
+        snapshot
+          ? b2`<button
+              class="frigate-result-preview"
+              title=${host._t("frigate_result_open", "Open the camera")}
+              @click=${() => openMoreInfo(host, cameraId)}
+            >
+              <img src=${snapshot} alt=${camera.name} loading="lazy" />
+            </button>`
+          : ""
+      }
+      ${(() => {
+        const { ids: ids2, options } = controlTiles(host, result, camera);
+        return ids2.length
+          ? b2`<div
+              class="selora-entity-grid"
+              data-entity-ids=${ids2.join(",")}
+              data-tile-options=${JSON.stringify(options)}
+            ></div>`
+          : "";
+      })()}
+    </div>
+  `;
+}
+function renderCamera(host, msg, result, camera) {
+  const added = result.action === "added";
+  const cameraId = frigateEntity(host, camera.camera_entity);
+  const live = added && isLive(host, cameraId);
+  return b2`
+    <div class="frigate-result-camera">
+      <div class="frigate-result-name">
+        <ha-icon icon="mdi:cctv"></ha-icon>
+        ${
+          live
+            ? b2`<a
+                href="#"
+                title=${host._t("frigate_result_open", "Open the camera")}
+                @click=${(e6) => {
+                  e6.preventDefault();
+                  openMoreInfo(host, cameraId);
+                }}
+                >${camera.name}</a
+              >`
+            : b2`<span>${camera.name}</span>`
+        }
+      </div>
+      ${
+        result.action === "saved"
+          ? b2`<div class="frigate-result-wait">
+              <ha-icon icon="mdi:alert-outline"></ha-icon>
+              <span
+                >${host._t(
+                  "frigate_result_saved",
+                  "Saved in Frigate; it starts with Frigate's next restart.",
+                )}</span
+              >
+            </div>`
+          : added
+            ? renderAdded(host, msg, result, camera)
+            : ""
+      }
+    </div>
+  `;
+}
+var TAGS = {
+  added: ["frigate_result_added", "Added to Frigate"],
+  saved: ["frigate_result_saved_tag", "Saved in Frigate"],
+  removed: ["frigate_result_removed", "Removed from Frigate"],
+};
+function renderFrigateResult(host, msg) {
+  const result = msg.frigate_result;
+  if (!result || !Array.isArray(result.cameras)) return "";
+  const fresh = age(msg) < FRESH_MS;
+  const [tagKey, tagFallback] = TAGS[result.action] || TAGS.added;
+  return b2`
+    <div class="frigate-result${fresh ? " pop-in" : ""}">
+      <div class="scene-saved-head">
+        <span class="scene-saved-icon"
+          >${result.action === "saved" ? b2`<ha-icon icon="mdi:content-save-outline"></ha-icon>` : renderCreatedCheck({ animate: fresh, size: 20 })}</span
+        >
+        <span class="scene-saved-tag">${host._t(tagKey, tagFallback)}</span>
+      </div>
+      ${result.cameras.map((camera) => renderCamera(host, msg, result, camera))}
+    </div>
+  `;
 }
 
 // src/panel/render-device-detail.js
@@ -32220,8 +32685,10 @@ var _CONFIRM_VARIANTS = {
           labelKey: "client_action_delete",
           labelFallback: "Delete",
         },
+        // Filled, unlike the quiet chips: after typing the camera logins this
+        // is the one thing left to press, and the quiet chip read as a row.
         add_frigate_cameras: {
-          tone: "approve",
+          tone: "primary",
           icon: "mdi:cctv",
           labelKey: "client_action_add_to_frigate",
           labelFallback: "Add to Frigate",
@@ -32763,22 +33230,6 @@ function renderAgentSteps(host, steps) {
         `;
       })}
     </div>
-  `;
-}
-
-// src/shared/created-check.js
-function renderCreatedCheck({ animate = false, size = 14 } = {}) {
-  return b2`
-    <svg
-      class="created-check${animate ? " drawing" : ""}"
-      viewBox="0 0 24 24"
-      width=${size}
-      height=${size}
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d="M4 12.5 L9.5 18 L20 6.5" />
-    </svg>
   `;
 }
 
@@ -42052,7 +42503,9 @@ function renderMessage(host, msg, idx) {
                     // A loaded automation's stored prose ("Describe the
                     // changes") is context for the model; the composer's
                     // placeholder and chip say it to the user.
-                    msg.command_approval || isLoadedAutomation
+                    msg.command_approval ||
+                    isLoadedAutomation ||
+                    msg.frigate_result
                       ? ""
                       : b2`<span
                           class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
@@ -42128,6 +42581,7 @@ function renderMessage(host, msg, idx) {
                   }
                   ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                   ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
+                  ${renderFrigateResult(host, msg)}
                   ${
                     msg.command_approval
                       ? renderApprovalCard(
@@ -53621,7 +54075,7 @@ function joinList(hass, parts) {
     return parts.join(", ");
   }
 }
-function capitalize(s6) {
+function capitalize2(s6) {
   return s6 ? s6.charAt(0).toUpperCase() + s6.slice(1) : s6;
 }
 function fmtValue(hass, value) {
@@ -53827,7 +54281,7 @@ function phraseVersionChanges(host, changes) {
           t5("version_summary_other_changes", "other changes"),
         ]
       : clauses;
-  return capitalize(
+  return capitalize2(
     interpolate(t5("version_summary_sentence", "{clauses}."), {
       clauses: joinList(hass, shown),
     }),
@@ -54697,7 +55151,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "c5bdb444fb66" : "";
+var PANEL_BUILD = true ? "80c77f771cfe" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -58268,6 +58722,14 @@ var SeloraAIPanel = class extends i4 {
           .map((s6) => s6.trim())
           .filter(Boolean);
         const noFeatures = grid.dataset.noFeatures === "true";
+        let tileOptions = {};
+        if (grid.dataset.tileOptions) {
+          try {
+            tileOptions = JSON.parse(grid.dataset.tileOptions) || {};
+          } catch (e6) {
+            console.warn("Selora: bad tile-options payload", e6);
+          }
+        }
         grid.replaceChildren();
         let appended = 0;
         if (createTile) {
@@ -58295,6 +58757,8 @@ var SeloraAIPanel = class extends i4 {
             const card = createTile(id, {
               noFeatures,
               noActions: !!sceneEditId || scenePreview,
+              icon: String(tileOptions[id]?.icon || ""),
+              name: String(tileOptions[id]?.name || ""),
             });
             if (!card) return null;
             card.hass = gridHass;
@@ -58589,13 +59053,15 @@ var SeloraAIPanel = class extends i4 {
     };
     const buildConfig = (
       id,
-      { noFeatures = false, noActions = false } = {},
+      { noFeatures = false, noActions = false, icon = "", name = "" } = {},
     ) => {
       const config = {
         type: "tile",
         entity: id,
         features: noFeatures ? [] : featuresForDomain(id),
       };
+      if (icon) config.icon = icon;
+      if (name) config.name = name;
       if (noActions) {
         config.tap_action = { action: "none" };
         config.hold_action = { action: "none" };

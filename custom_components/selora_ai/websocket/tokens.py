@@ -358,6 +358,9 @@ async def _record_client_action_result(
     # failure to record even when the panel called it a success — so the card's
     # status cannot be settled before the loop.
     succeeded: list[bool] = []
+    # The panel's card for cameras added to Frigate; the text stays for the
+    # model and the history.
+    frigate_result = None
     for result, action in zip(results, actions, strict=True):
         detail = result.get("detail")
         # WHICH dashboard this outcome is about comes from the stored
@@ -401,14 +404,16 @@ async def _record_client_action_result(
         elif result.get("ok") and str(action.get("kind")) == "add_frigate_cameras":
             # Which cameras were added comes from the plan the confirm wrote,
             # never from the panel's report.
-            from ..frigate.setup import added_line  # noqa: PLC0415
+            from ..frigate.setup import added_line, result_for  # noqa: PLC0415
 
-            line = added_line(hass, str(action.get("plan_id") or ""), language)
+            plan_id = str(action.get("plan_id") or "")
+            line = added_line(hass, plan_id, language)
             if line is None:
                 succeeded[-1] = False
                 lines.append(action_failed_line("Frigate has no record of these cameras", language))
             else:
                 lines.append(line)
+                frigate_result = result_for(hass, plan_id)
         elif result.get("ok") and str(result.get("kind")) == "delete_dashboard":
             # No seeding, no card marker: the page is gone, and a link to it
             # would be a link to nothing.
@@ -434,6 +439,11 @@ async def _record_client_action_result(
             lines.append(action_failed_line(sanitize_untrusted_text(str(detail), 200), language))
 
     ok = bool(succeeded) and all(succeeded)
+    if not ok or len(actions) != 1:
+        # The card replaces the message text, which is where any other action
+        # on this card is reported, failed or not, and it shows one set of
+        # cameras. Only a card that was the Frigate add alone gets it.
+        frigate_result = None
 
     # Status FIRST. `append_message` prunes a middle message once the session
     # hits its cap, which shifts the index located above — the write would then
@@ -446,6 +456,7 @@ async def _record_client_action_result(
         msg["session_id"],
         "assistant",
         "\n".join(lines) or "Nothing to do.",
+        frigate_result=frigate_result,
     )
     connection.send_result(msg["id"], {"ok": ok})
 

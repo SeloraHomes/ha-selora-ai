@@ -47,7 +47,7 @@ if TYPE_CHECKING:
     from .llm_client import LLMClient
     from .pattern_store import PatternStore
     from .scene_store import SceneStore
-    from .types import EntitySnapshot, ImageAttachment
+    from .types import EntitySnapshot, FrigateResult, FrigateResultCamera, ImageAttachment
 
 from .agent_steps import decode_step, is_step_chunk, make_step
 
@@ -5188,6 +5188,8 @@ async def _resolve_delete_approval(
 
     deleted_labels: list[str] = []
     errors: list[str] = []
+    # Cameras taken out of Frigate, for the panel's result card.
+    removed_cameras: list[FrigateResultCamera] = []
     for descriptor in deletes:
         kind = str(descriptor.get("kind", ""))
         target_id = str(descriptor.get("target_id", "")).strip()
@@ -5363,6 +5365,10 @@ async def _resolve_delete_approval(
             errors.append(f"{label}: {res['error']}")
         else:
             deleted_labels.append(label)
+            if kind == "frigate_camera":
+                from .frigate.setup import result_card_camera  # noqa: PLC0415
+
+                removed_cameras.append(result_card_camera(label, target_id))
 
     # A single card can carry both kinds. The destructive actions run after the
     # deletes and their outcomes join the same tallies, so a mixed card reports
@@ -5386,14 +5392,27 @@ async def _resolve_delete_approval(
     # failures are listed in the result text (re-running would only hit the
     # already-deleted targets).
     await store.set_approval_status(session_id, message_index, "approved")
-    result_text = _approval_phrase(_DELETE_DONE_BY_LANG, language).format(
-        items="“" + "”, “".join(deleted_labels) + "”"
-    )
+    frigate_result: FrigateResult | None = None
+    if removed_cameras and len(removed_cameras) == len(deleted_labels) and not errors:
+        # Only Frigate cameras, all removed: say so in those words, and give
+        # the panel its card. "Deleted “E1 Zoom”." reads as if the camera
+        # itself went. A partial failure keeps the plain text, because the
+        # card replaces it and the failures are listed there.
+        from .frigate.removal import removed_line  # noqa: PLC0415
+
+        result_text = removed_line([c["name"] for c in removed_cameras], language)
+        frigate_result = {"action": "removed", "cameras": removed_cameras}
+    else:
+        result_text = _approval_phrase(_DELETE_DONE_BY_LANG, language).format(
+            items="“" + "”, “".join(deleted_labels) + "”"
+        )
     if errors:
         errors_label = _approval_phrase(_APPROVAL_ERRORS_BY_LANG, language)
         result_text += f"\n\n{errors_label} {'; '.join(errors)}"
 
-    persisted = await store.append_message(session_id, "assistant", result_text, intent="answer")
+    persisted = await store.append_message(
+        session_id, "assistant", result_text, intent="answer", frigate_result=frigate_result
+    )
     connection.send_result(
         msg["id"],
         {

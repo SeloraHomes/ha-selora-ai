@@ -365,6 +365,9 @@ def build_config(
                 }
             )
         camera: dict[str, Any] = {
+            # What Frigate and the Frigate integration show, instead of the
+            # slug the camera is keyed by ("E1 Zoom", not "e1_zoom").
+            "friendly_name": c.name,
             "ffmpeg": {"inputs": inputs},
             "detect": {"enabled": True, **({} if c.sub else _SINGLE_STREAM_DETECT)},
             "objects": {"track": objects},

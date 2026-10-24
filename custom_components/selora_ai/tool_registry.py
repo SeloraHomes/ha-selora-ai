@@ -2294,7 +2294,8 @@ TOOL_REMOVE_FROM_HOME = ToolDef(
             description=(
                 "device_id, entity_id, the integration's entry_id (from check_system), "
                 "the blueprint's path (from list_blueprints), or for a Frigate camera its "
-                "name or its camera.* entity."
+                "name or its camera.* entity (a Frigate camera's entity or device is "
+                "removed from Frigate whatever the kind)."
             ),
             required=True,
         ),

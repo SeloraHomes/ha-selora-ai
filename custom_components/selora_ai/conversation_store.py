@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from .types import (
         AutomationDict,
         ChatMessage,
+        FrigateResult,
         RiskAssessment,
         ServiceCallDict,
         SessionData,
@@ -208,6 +209,7 @@ class ConversationStore:
         remaining_intent: str | None = None,
         resume_depth: int = 0,
         origin_request: str | None = None,
+        frigate_result: FrigateResult | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -275,6 +277,8 @@ class ConversationStore:
             message["approval_status"] = approval_status
         if steps:
             message["steps"] = steps
+        if frigate_result is not None:
+            message["frigate_result"] = frigate_result
         # What the turn still has to do once the user accepts this proposal.
         # A scene or automation is PROPOSED and accepted later, so the turn
         # that offered it is long over by then and nothing else remembers what

@@ -1083,6 +1083,15 @@
     "frigate_cameras_no_recording": "pas d'enregistrement",
     "frigate_cameras_restart": "Frigate redémarre pour les ajouter, ce qui interrompt ses caméras pendant environ une minute.",
     "frigate_cameras_not_added": "Non ajoutées : {list}.",
+    "frigate_result_added": "Ajoutée à Frigate",
+    "frigate_result_saved_tag": "Enregistrée dans Frigate",
+    "frigate_result_removed": "Retirée de Frigate",
+    "frigate_result_waiting": "Frigate redémarre ; la caméra apparaîtra ici d'ici une minute environ.",
+    "frigate_result_slow": "Frigate met plus de temps que d'habitude à revenir.",
+    "frigate_result_saved": "Enregistrée dans Frigate ; elle démarrera au prochain redémarrage de Frigate.",
+    "frigate_result_open": "Ouvrir la caméra",
+    "frigate_result_recording": "Enregistrement",
+    "frigate_result_detection": "Détection",
     "chat_message_details": "Détails"
   },
   "options": {

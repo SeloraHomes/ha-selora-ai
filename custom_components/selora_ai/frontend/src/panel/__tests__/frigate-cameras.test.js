@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { resolveClientActions } from "../client-actions.js";
 import { renderFrigateCameraRows } from "../frigate-cameras.js";
+import { renderApprovalCard } from "../render-approval-card.js";
 
 function flatten(node) {
   if (node == null || typeof node === "boolean") return "";
@@ -151,5 +152,23 @@ describe("the Frigate cameras card", () => {
     expect(flatten(renderFrigateCameraRows(h, card))).toContain(
       "The camera refused this username or password.",
     );
+  });
+
+  it("makes Add to Frigate the filled button, not a quiet chip", () => {
+    const out = flatten(
+      renderApprovalCard(
+        host(),
+        {},
+        {
+          proposal_id: "p4",
+          approval_kind: "client_action",
+          client_actions: [action("plan-e")],
+        },
+        "pending",
+      ),
+    );
+
+    expect(out).toContain("qa-confirm--primary");
+    expect(out).toContain("Add to Frigate");
   });
 });

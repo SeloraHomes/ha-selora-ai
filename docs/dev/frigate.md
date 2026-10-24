@@ -135,7 +135,50 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   The switch's camera and section come from its unique id
   (`<entry_id>:switch:<camera>_<name>`).
 
+## The result card
+
+Adding or removing cameras ends in a message carrying `frigate_result`
+(`types.FrigateResult`): the action, the cameras with the entity ids the
+Frigate integration gives them (`camera.<name>`, `switch.<name>_recordings`),
+and the detection and recording settings. It is built from the plan
+(`setup.result_for`) or the confirmed delete, never from the panel's report.
+The text line stays on the message for the model and the history; the panel
+shows `render-frigate-result.js` in its place.
+
+- **The card waits on `hass`, not on a poll.** An added camera exists in HA
+  only once Frigate has restarted and its integration reloaded. The panel
+  re-renders on every state change, so the card turns from a spinner into the
+  camera's snapshot and its controls as soon as `camera.<name>` is there: the
+  recording and detection switches, and an occupancy sensor per tracked object
+  (`binary_sensor.<name>_<object>_occupancy`), as live tiles rather than a
+  sentence repeating them. Their HA names repeat the camera's and every
+  occupancy sensor gets a house icon, so the grid's `data-tile-options` gives
+  each a short name and an icon of its own (Recording, Detection, Person…). After three minutes it says Frigate is slow to come back.
+- **The preview is the camera's own snapshot** (`entity_picture`, signed by HA),
+  refreshed at most every five seconds as state updates re-render the card, and
+  clicking it opens HA's live view. HA's `picture-entity` card is lazy-loaded
+  and is often not defined inside a custom panel, which left the preview empty.
+- **The entity ids are predictions, so the card checks them.** HA suffixes an
+  id already taken: adding the camera HA calls `camera.porch` gives Frigate's
+  `camera.porch_2`, and the predicted id is the original camera. The card only
+  takes an entity of the `frigate` platform (`hass.entities`), the predicted id
+  or its `_N` suffix (`frigateEntity` in `render-frigate-result.js`).
+- **Only a clean result gets the card.** It replaces the message text, which is
+  where failures are listed, so a removal or add that partly failed keeps the
+  plain text.
+- **`saved`** (Frigate could not restart itself) shows no spinner: nothing
+  comes back on its own.
+- **The tick draws only for a fresh result**, so reopening the conversation
+  later does not replay it.
+- Added cameras get `friendly_name`, so Frigate and HA show "E1 Zoom" rather
+  than `e1_zoom`, and the delete card names the camera the same way.
+
 ## Removing a camera
+
+A Frigate camera's entity or device given to `remove_from_home` as `entity` or
+`device` is redirected to `frigate_camera` (`removal_cards._frigate_camera_entity`):
+HA refuses to remove an entity Frigate still provides, and the camera would come
+back anyway. "Remove the Reolink Lumus Pro" reaches the tool as an entity.
 
 `remove_from_home` with `kind: frigate_camera` (`frigate/removal.py`) takes the
 camera's Frigate name, its friendly name, or the Frigate integration's

@@ -1083,6 +1083,15 @@
     "frigate_cameras_no_recording": "녹화 안 함",
     "frigate_cameras_restart": "추가하려면 Frigate가 다시 시작되어 카메라가 약 1분간 멈춥니다.",
     "frigate_cameras_not_added": "추가하지 않음: {list}.",
+    "frigate_result_added": "Frigate에 추가됨",
+    "frigate_result_saved_tag": "Frigate에 저장됨",
+    "frigate_result_removed": "Frigate에서 제거됨",
+    "frigate_result_waiting": "Frigate가 다시 시작되는 중입니다. 약 1분 후 여기에 카메라가 표시됩니다.",
+    "frigate_result_slow": "Frigate가 평소보다 늦게 돌아오고 있습니다.",
+    "frigate_result_saved": "Frigate에 저장되었습니다. Frigate가 다음에 다시 시작될 때 시작됩니다.",
+    "frigate_result_open": "카메라 열기",
+    "frigate_result_recording": "녹화",
+    "frigate_result_detection": "감지",
     "chat_message_details": "자세히"
   },
   "options": {

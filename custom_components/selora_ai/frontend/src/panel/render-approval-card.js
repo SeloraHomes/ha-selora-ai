@@ -164,8 +164,10 @@ const _CONFIRM_VARIANTS = {
           labelKey: "client_action_delete",
           labelFallback: "Delete",
         },
+        // Filled, unlike the quiet chips: after typing the camera logins this
+        // is the one thing left to press, and the quiet chip read as a row.
         add_frigate_cameras: {
-          tone: "approve",
+          tone: "primary",
           icon: "mdi:cctv",
           labelKey: "client_action_add_to_frigate",
           labelFallback: "Add to Frigate",

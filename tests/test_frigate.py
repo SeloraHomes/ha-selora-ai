@@ -813,7 +813,7 @@ async def test_a_camera_is_removed_from_frigate_with_its_streams(
     card = await _removal_card(hass, "Reolink Lumus Pro")
     assert card["kind"] == "frigate_camera"
     assert card["target_id"] == "reolink_lumus_pro"
-    assert "Remove reolink_lumus_pro from Frigate" in card["label"]
+    assert card["label"] == "Reolink Lumus Pro"
 
     with patch.object(frigate_setup, "async_reload_when_back", AsyncMock()):
         result = await async_confirm_removal(hass, card)
@@ -944,3 +944,206 @@ async def test_a_stopped_frigate_is_not_reported_as_refusing(
 
     with pytest.raises(FrigateError, match="not responding"):
         await FrigateClient(hass, FRIGATE).get_config()
+
+
+# ── The result card ───────────────────────────────────────────────────────
+
+
+async def test_the_conversation_gets_a_result_card_for_added_cameras(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Porch", "main", "rtsp://192.168.1.20/main")
+    _frigate_api(aioclient_mock)
+    action = await _card(hass, {"record_days": 7})
+    await _confirm(hass, action)
+    store, session_id = await _frigate_card_session(hass, action["plan_id"])
+
+    await _report(hass)
+
+    message = (await store.get_session(session_id))["messages"][-1]
+    assert message["frigate_result"] == {
+        "action": "added",
+        "cameras": [
+            {
+                "name": "Porch",
+                "frigate_name": "porch",
+                "camera_entity": "camera.porch",
+                "recordings_entity": "switch.porch_recordings",
+            }
+        ],
+        "objects": ["person"],
+        "record": True,
+        "record_days": 7,
+    }
+    assert _sent_config(aioclient_mock)["cameras"]["porch"]["friendly_name"] == "Porch"
+
+
+async def test_a_card_frigate_could_not_restart_for_says_saved(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Porch", "main", "rtsp://192.168.1.20/main")
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=_EMPTY_CONFIG)
+    aioclient_mock.put(f"{FRIGATE}/api/config/set", json={"success": True})
+    aioclient_mock.post(f"{FRIGATE}/api/restart", status=500, json={"message": "Unable"})
+    action = await _card(hass, {})
+    await _confirm(hass, action)
+
+    assert frigate_setup.result_for(hass, action["plan_id"])["action"] == "saved"
+
+
+async def test_removing_a_camera_says_so_and_gives_the_panel_its_card(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    from custom_components.selora_ai import _resolve_delete_approval
+    from custom_components.selora_ai.const import DOMAIN
+    from custom_components.selora_ai.conversation_store import ConversationStore
+
+    _frigate_api(aioclient_mock, _WITH_LUMUS)
+    card = await _removal_card(hass, "Reolink Lumus Pro")
+    store = ConversationStore(hass)
+    hass.data.setdefault(DOMAIN, {})["_conv_store"] = store
+    await store.append_message("sess-1", "user", "remove the Lumus Pro from Frigate")
+    await store.append_message(
+        "sess-1",
+        "assistant",
+        "",
+        intent="command_approval",
+        command_approval={"proposal_id": "p1", "approval_kind": "delete", "deletes": [card]},
+    )
+    connection = MagicMock()
+    connection.user.is_admin = True
+    with patch.object(frigate_setup, "async_reload_when_back", AsyncMock()):
+        await _resolve_delete_approval(
+            hass,
+            connection,
+            {"id": 1},
+            store,
+            "sess-1",
+            1,
+            {"proposal_id": "p1", "approval_kind": "delete", "deletes": [card]},
+            "delete",
+            language="en",
+        )
+
+    message = (await store.get_session("sess-1"))["messages"][-1]
+    assert message["content"] == "Removed Reolink Lumus Pro from Frigate."
+    assert message["frigate_result"]["action"] == "removed"
+    assert message["frigate_result"]["cameras"][0]["camera_entity"] == "camera.reolink_lumus_pro"
+
+
+async def test_removing_a_frigate_cameras_entity_removes_it_from_frigate(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """ "Remove the Reolink Lumus Pro" reached remove_from_home as an entity,
+    which HA refuses while Frigate provides it."""
+    config_entry = MockConfigEntry(domain="frigate_device_owner")
+    config_entry.add_to_hass(hass)
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=config_entry.entry_id, identifiers={("frigate", "lumus")}
+    )
+    camera = er.async_get(hass).async_get_or_create(
+        "camera",
+        "frigate",
+        "entry1:camera:reolink_lumus_pro",
+        suggested_object_id="reolink_lumus_pro",
+        device_id=device.id,
+        # Disabled by the user: still Frigate's camera, still redirected.
+        disabled_by=er.RegistryEntryDisabler.USER,
+    )
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=_WITH_LUMUS)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+
+    by_entity = await executor.execute(
+        "remove_from_home", {"kind": "entity", "id": camera.entity_id}
+    )
+    by_device = await executor.execute("remove_from_home", {"kind": "device", "id": device.id})
+
+    for result in (by_entity, by_device):
+        assert result["delete"]["kind"] == "frigate_camera"
+        assert result["delete"]["target_id"] == "reolink_lumus_pro"
+
+
+async def test_a_partly_failed_removal_keeps_its_errors_in_view(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """The card replaces the text, and the text is where failures are listed."""
+    from custom_components.selora_ai import _resolve_delete_approval
+    from custom_components.selora_ai.const import DOMAIN
+    from custom_components.selora_ai.conversation_store import ConversationStore
+
+    _frigate_api(aioclient_mock, _WITH_LUMUS)
+    lumus = await _removal_card(hass, "Reolink Lumus Pro")
+    door = {**await _removal_card(hass, "front_door"), "fingerprint": "changed-since"}
+    approval = {"proposal_id": "p1", "approval_kind": "delete", "deletes": [lumus, door]}
+    store = ConversationStore(hass)
+    hass.data.setdefault(DOMAIN, {})["_conv_store"] = store
+    await store.append_message("sess-1", "user", "remove both from Frigate")
+    await store.append_message(
+        "sess-1", "assistant", "", intent="command_approval", command_approval=approval
+    )
+
+    with patch.object(frigate_setup, "async_reload_when_back", AsyncMock()):
+        await _resolve_delete_approval(
+            hass, MagicMock(), {"id": 1}, store, "sess-1", 1, approval, "delete", language="en"
+        )
+
+    message = (await store.get_session("sess-1"))["messages"][-1]
+    assert "frigate_result" not in message
+    assert "changed since" in message["content"]
+
+
+async def test_a_card_with_another_action_keeps_its_text(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    """The result card replaces the text, where the other action is reported."""
+    import inspect
+
+    from custom_components.selora_ai.const import DOMAIN
+    from custom_components.selora_ai.conversation_store import ConversationStore
+    from custom_components.selora_ai.websocket import tokens
+
+    home.camera("Porch", "main", "rtsp://192.168.1.20/main")
+    _frigate_api(aioclient_mock)
+    action = await _card(hass, {})
+    await _confirm(hass, action)
+    store = ConversationStore(hass)
+    hass.data.setdefault(DOMAIN, {})["_conv_store"] = store
+    await store.append_message("sess-1", "user", "add the cameras and a Cameras dashboard")
+    await store.append_message(
+        "sess-1",
+        "assistant",
+        "",
+        intent="command_approval",
+        command_approval={
+            "proposal_id": "prop-1",
+            "approval_kind": "client_action",
+            "calls": [],
+            "deletes": [],
+            "actions": [],
+            "client_actions": [
+                {"kind": "add_frigate_cameras", "plan_id": action["plan_id"]},
+                {"kind": "create_dashboard", "title": "Cameras", "url_path": "cameras"},
+            ],
+        },
+    )
+    connection = MagicMock()
+    connection.user.is_admin = True
+
+    with patch.object(tokens, "async_initialize_created_dashboard", AsyncMock()):
+        await inspect.unwrap(tokens._handle_websocket_client_action_result)(
+            hass,
+            connection,
+            {
+                "id": 1,
+                "session_id": "sess-1",
+                "proposal_id": "prop-1",
+                "results": [
+                    {"ok": True, "kind": "add_frigate_cameras", "detail": {}},
+                    {"ok": True, "kind": "create_dashboard", "detail": {"url_path": "cameras"}},
+                ],
+            },
+        )
+
+    message = (await store.get_session("sess-1"))["messages"][-1]
+    assert "frigate_result" not in message
+    assert "Added Porch to Frigate" in message["content"]

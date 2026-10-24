@@ -327,6 +327,27 @@ class SuggestionDict(TypedDict, total=False):
     dismissal_reason: str | None
 
 
+class FrigateResultCamera(TypedDict):
+    """One camera on a Frigate result card."""
+
+    name: str
+    frigate_name: str
+    # The entities the Frigate integration makes for it, once Frigate has
+    # loaded it; the card waits for the camera one to appear.
+    camera_entity: str
+    recordings_entity: str
+
+
+class FrigateResult(TypedDict):
+    """Cameras added to or removed from Frigate, for the panel's result card."""
+
+    action: str  # "added" | "saved" (restart failed) | "removed"
+    cameras: list[FrigateResultCamera]
+    objects: NotRequired[list[str]]
+    record: NotRequired[bool]
+    record_days: NotRequired[int | None]
+
+
 class HomeSuggestionEntity(TypedDict):
     """An entity a home suggestion is about."""
 
@@ -942,6 +963,9 @@ class ChatMessage(TypedDict, total=False):
     # whose intent is "command_approval". The chat WS handler updates this
     # when the user clicks one of the approval-row buttons.
     approval_status: str
+    # The outcome of adding or removing Frigate cameras, which the panel shows
+    # as a card in place of the message text (frigate/setup.py result_for).
+    frigate_result: FrigateResult
 
 
 class SessionData(TypedDict):

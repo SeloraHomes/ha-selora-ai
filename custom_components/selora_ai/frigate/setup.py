@@ -61,7 +61,12 @@ from .onvif import ONVIF_PORTS, OnvifAuthError, OnvifCamera, OnvifError, Profile
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from ..types import HomeSuggestion, HomeSuggestionEntity
+    from ..types import (
+        FrigateResult,
+        FrigateResultCamera,
+        HomeSuggestion,
+        HomeSuggestionEntity,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -135,6 +140,8 @@ class _Plan:
     network: list[_Network]
     created: float = field(default_factory=time.monotonic)
     added: list[str] | None = None
+    # (name, Frigate name) of each camera written, for the result card.
+    added_cameras: list[tuple[str, str]] = field(default_factory=list)
     restart_failed: bool = False
 
 
@@ -513,6 +520,7 @@ async def async_add_cameras_confirmed(
         return {"error": str(exc)}
     # Saved: from here the cameras are Frigate's, whether or not it restarts.
     plan.added = [c.name for c in everything]
+    plan.added_cameras = [(c.name, c.camera) for c in everything]
     hass.data.setdefault(DOMAIN, {}).pop(SUGGESTION_CACHE, None)
     try:
         await client.restart()
@@ -539,6 +547,32 @@ def added_line(hass: HomeAssistant, plan_id: str, language: str | None) -> str |
     table = _SAVED_BY_LANG if plan.restart_failed else _ADDED_BY_LANG
     template = table.get(base, table["en"])
     return template.format(names=", ".join(sanitize_untrusted_text(n, 60) for n in plan.added))
+
+
+def result_card_camera(name: str, frigate_name: str) -> FrigateResultCamera:
+    """A camera on the result card, with the entities the Frigate integration
+    gives it (``camera.<name>``, ``switch.<name>_recordings``)."""
+    return {
+        "name": sanitize_untrusted_text(name, 60),
+        "frigate_name": frigate_name,
+        "camera_entity": f"camera.{frigate_name}",
+        "recordings_entity": f"switch.{frigate_name}_recordings",
+    }
+
+
+def result_for(hass: HomeAssistant, plan_id: str) -> FrigateResult | None:
+    """The panel's result card for a confirmed card, from the plan."""
+    plan = _store(hass).get(plan_id)
+    if plan is None or not plan.added_cameras:
+        return None
+    objects, record, days = _options(plan.arguments)
+    return {
+        "action": "saved" if plan.restart_failed else "added",
+        "cameras": [result_card_camera(name, slug) for name, slug in plan.added_cameras],
+        "objects": objects,
+        "record": record,
+        "record_days": days,
+    }
 
 
 async def async_reload_when_back(hass: HomeAssistant, client: FrigateClient) -> None:
