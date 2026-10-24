@@ -14,6 +14,8 @@ together, so the intent is inferred from coverage instead of stored:
   of one groupable kind, which a group helper would keep in one place.
 * **add_to_frigate** — cameras Frigate could watch but does not, when the
   Frigate integration is set up (``frigate.setup``).
+* **camera_idea** — an automation or scene a camera's detection could drive
+  (``frigate.ideas``).
 
 Nothing is applied from here. The panel turns a suggestion into a chat
 request, where the usual tools and cards do the work and the user sees each
@@ -502,11 +504,22 @@ def get_home_suggestion_store(hass: HomeAssistant) -> HomeSuggestionStore:
 
 async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
     """Current suggestions the user has not dismissed."""
+    from .frigate.ideas import async_camera_ideas  # noqa: PLC0415
     from .frigate.setup import async_frigate_suggestions  # noqa: PLC0415
 
     dismissed = await get_home_suggestion_store(hass).ids("dismissed")
     automations = await _async_read_automations(hass)
     found = [s for s, _ in _detect(hass, automations)] + await async_frigate_suggestions(hass)
+    found += [
+        {
+            "suggestion_id": idea["idea_id"],
+            "type": "camera_idea",
+            "entities": [idea["camera"]] if idea["camera"]["entity_id"] else [],
+            "collection": {"source": "camera", "name": idea["camera"]["name"], "ref": ""},
+            "idea": idea,
+        }
+        for idea in await async_camera_ideas(hass)
+    ]
     return [s for s in found if s["suggestion_id"] not in dismissed]
 
 

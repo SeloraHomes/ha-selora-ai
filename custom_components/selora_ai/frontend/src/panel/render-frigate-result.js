@@ -8,6 +8,7 @@
 import { html } from "lit";
 
 import { renderCreatedCheck } from "../shared/created-check.js";
+import { renderIdeaChips } from "./camera-ideas.js";
 
 // After this long the wait is not a normal restart any more.
 const SLOW_AFTER_MS = 3 * 60 * 1000;
@@ -164,6 +165,7 @@ function renderAdded(host, msg, result, camera) {
             ></div>`
           : "";
       })()}
+      ${renderIdeaChips(host, cameraId)}
     </div>
   `;
 }

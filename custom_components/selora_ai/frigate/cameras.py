@@ -101,11 +101,21 @@ def shown(url: str) -> str:
     return f"{parts.scheme}://{host}{port}{parts.path}"
 
 
-def _source_key(url: str) -> tuple[str, int, str] | None:
-    """Host, port and path: what a stream is, whatever its scheme or login.
+# Query parameters that say how to reach a stream, not which one: logins
+# (Frigate redacts them) and UniFi's SRTP flag (dropped when written to go2rtc).
+_NOT_IDENTITY: Final = frozenset(
+    {"user", "username", "password", "pass", "pwd", "token", "auth", "enablesrtp"}
+)
+
+
+def source_key(url: str) -> tuple[str, int, str, str] | None:
+    """Host, port, path and query: what a stream is, whatever its scheme or
+    login.
 
     Frigate redacts credentials and go2rtc wraps sources (``ffmpeg:…#video=copy``),
-    so only these survive in both what Home Assistant and Frigate report.
+    so only these survive in both what Home Assistant and Frigate report. The
+    query stays, minus logins and transport flags: Reolink's FLV and RTMP
+    streams name the NVR channel there, on one shared host and path.
     """
     url = url.strip()
     if url.startswith("ffmpeg:"):
@@ -118,10 +128,18 @@ def _source_key(url: str) -> tuple[str, int, str] | None:
     if not parts.hostname:
         return None
     scheme = parts.scheme.lower()
+    query = urlencode(
+        sorted(
+            (k, v)
+            for k, v in parse_qsl(parts.query, keep_blank_values=True)
+            if k.lower() not in _NOT_IDENTITY
+        )
+    )
     return (
         parts.hostname.lower(),
         port or _DEFAULT_PORTS.get(scheme, 0),
         parts.path.rstrip("/"),
+        query,
     )
 
 
@@ -173,7 +191,7 @@ def brand_streams(brand: str | None, host: str) -> tuple[str, str] | None:
 
 def existing_hosts(frigate_config: dict[str, Any]) -> set[str]:
     """Every camera host Frigate already reads."""
-    return {host for host, _port, _path in existing_sources(frigate_config)}
+    return {key[0] for key in existing_sources(frigate_config)}
 
 
 def for_go2rtc(url: str) -> str:
@@ -209,7 +227,7 @@ def _sub_rank(words: set[str]) -> int | None:
     return min(ranks) if ranks else None
 
 
-def existing_sources(frigate_config: dict[str, Any]) -> set[tuple[str, int, str]]:
+def existing_sources(frigate_config: dict[str, Any]) -> set[tuple[str, int, str, str]]:
     """Every source Frigate already reads, directly or through go2rtc."""
     urls: list[str] = []
     for value in ((frigate_config.get("go2rtc") or {}).get("streams") or {}).values():
@@ -217,7 +235,7 @@ def existing_sources(frigate_config: dict[str, Any]) -> set[tuple[str, int, str]
     for camera in (frigate_config.get("cameras") or {}).values():
         for stream in ((camera or {}).get("ffmpeg") or {}).get("inputs") or []:
             urls.append(str((stream or {}).get("path") or ""))
-    return {key for url in urls if isinstance(url, str) and (key := _source_key(url))}
+    return {key for url in urls if isinstance(url, str) and (key := source_key(url))}
 
 
 def existing_names(frigate_config: dict[str, Any]) -> set[str]:
@@ -291,7 +309,7 @@ async def async_camera_candidates(
                 reasons.append("its stream is in a format Frigate cannot read")
             elif not _is_local(url):
                 reasons.append("it streams from the internet, not your network")
-            elif _source_key(url) in in_frigate:
+            elif source_key(url) in in_frigate:
                 reasons.append("it is already in Frigate")
             else:
                 streams.append((entry, url))

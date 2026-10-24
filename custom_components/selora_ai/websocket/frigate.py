@@ -15,7 +15,9 @@ import voluptuous as vol
 
 from .. import _require_admin
 from ..frigate.discovery import async_scan
+from ..frigate.ideas import async_camera_ideas
 from ..frigate.setup import async_add_cameras_confirmed
+from ..home_suggestions import get_home_suggestion_store
 
 _LOGIN = vol.Schema(
     {
@@ -79,7 +81,30 @@ async def _handle_websocket_frigate_scan(
     )
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/ideas",
+        vol.Required("camera_entity"): vol.All(str, vol.Length(min=1, max=255)),
+    }
+)
+async def _handle_websocket_frigate_ideas(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Automation ideas for one camera, for its result card."""
+    if not _require_admin(connection, msg):
+        return
+    dismissed = await get_home_suggestion_store(hass).ids("dismissed")
+    ideas = await async_camera_ideas(hass, msg["camera_entity"])
+    connection.send_result(
+        msg["id"], {"ideas": [i for i in ideas if i["idea_id"] not in dismissed]}
+    )
+
+
 def async_register(hass: HomeAssistant) -> None:
     """Register the Frigate websocket commands."""
     websocket_api.async_register_command(hass, _handle_websocket_frigate_add_cameras)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_scan)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_ideas)

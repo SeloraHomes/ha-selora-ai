@@ -173,6 +173,49 @@ shows `render-frigate-result.js` in its place.
 - Added cameras get `friendly_name`, so Frigate and HA show "E1 Zoom" rather
   than `e1_zoom`, and the delete card names the camera the same way.
 
+## Ideas for a camera
+
+A new camera has no usage history for the pattern-based suggestions, so
+`frigate/ideas.py` proposes automations from what the home has:
+
+| Kind | Needs |
+|---|---|
+| `person_away` | a person sensor and a way to tell nobody is home: `zone.home`, whose state counts the people home, else a group covering every `person.*` (a group of some, like the kids, is not the household) |
+| `person_night_light` | a person sensor and a light in the camera's area |
+| `animal`, `vehicle` | an animal (dog/cat/bird/pet) or car sensor |
+| `watch_scene` | recording and detection switches on two or more Frigate cameras |
+
+- **Sensors come from the registry, never from guessed ids:** Frigate's
+  `<entry>:occupancy_sensor:<camera>_<object>` on the camera's device, or
+  Reolink's `binary_sensor`s with the `person`/`animal`/`pet`/`vehicle`
+  translation keys.
+- **An idea whose trigger already triggers an automation is not offered**
+  (`_collect_referenced_entity_ids` over the `triggers` of `automations.yaml`;
+  a sensor used only as a condition does not count).
+- **Notifications go to the first `notify.mobile_app_*`**, with the snapshot
+  as `data.image: /api/camera_proxy/<camera>`; without a phone, to
+  `persistent_notification.create`, which takes no image, so the prompt asks
+  for none.
+- **One physical camera, one set of ideas.** A Reolink camera Frigate also
+  watches is two cameras in HA with their own sensors. A non-Frigate camera
+  whose stream (host, port, path) Frigate reads is dropped, keeping Frigate's.
+  By stream, not host: every channel of a Reolink NVR has the NVR's address.
+  A camera is a device, not an entity: Reolink has an entity per stream
+  (Clear, Fluent), Frigate reads one, and any match drops the whole device.
+- **An unreadable `scenes.yaml` only drops the Watch idea**, never the other
+  suggestions beside it.
+- **The Watch scene** needs two cameras with both a recording and a detection
+  switch, and is not offered once a scene in `scenes.yaml` sets all of them to
+  on (membership alone is not enough: a scene may turn them off).
+- Excluded entities (Selora's exclusion label) are never used: not as the
+  camera, the trigger, the presence entity, the light, or a scene switch.
+- **Acting on an idea is a chat request**, never a write: the title, with the
+  exact entities in a details marker (cameras are not in the model's entity
+  list), and the model proposes the automation or scene on the usual card.
+- They show as chips under a live camera on the result card
+  (`selora_ai/frigate/ideas`, asked at most once a minute) and as `camera_idea`
+  home suggestions; a dismissal (`idea:<kind>:<camera>`) holds in both.
+
 ## Removing a camera
 
 A Frigate camera's entity or device given to `remove_from_home` as `entity` or

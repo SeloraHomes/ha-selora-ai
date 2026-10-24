@@ -4614,6 +4614,42 @@ var chatStyles = i`
       max-width: none;
     }
   }
+
+  /* Idea chips under a live camera on the Frigate result card
+     (camera-ideas.js): automations its detection could drive. */
+  .camera-ideas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .camera-ideas-label {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    margin-right: 2px;
+  }
+  .camera-idea-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 999px;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition: border-color 0.15s;
+  }
+  .camera-idea-chip:hover {
+    border-color: var(--selora-accent);
+  }
+  .camera-idea-chip ha-icon {
+    color: var(--selora-accent);
+  }
 `;
 
 // src/panel/styles/proposals.css.js
@@ -11189,6 +11225,41 @@ var en_default = {
     frigate_result_open: "Open the camera",
     frigate_result_recording: "Recording",
     frigate_result_detection: "Detection",
+    camera_ideas_label: "Ideas",
+    camera_idea_person_away_title:
+      "Alert me when someone is at {camera} while nobody is home",
+    camera_idea_person_away_chip: "Alert me when away",
+    camera_idea_person_away_why:
+      "{camera} detects people. With nobody home, a person there is worth a notification with a snapshot.",
+    camera_idea_person_away_prompt:
+      "Propose an automation I can review: when {trigger} turns on while {presence} is {presence_empty} (nobody is home), call {notify} to say a person was seen on {camera}.",
+    camera_idea_person_night_light_title:
+      "Turn on a light when someone is at {camera} after dark",
+    camera_idea_person_night_light_chip: "Light up at night",
+    camera_idea_person_night_light_why:
+      "{camera} detects people, and {light} is in the same area.",
+    camera_idea_person_night_light_prompt:
+      "Propose an automation I can review: when {trigger} turns on while sun.sun is below_horizon, turn on {light}, and turn it off again 5 minutes after {trigger} turns off.",
+    camera_idea_animal_title: "Tell me when an animal is at {camera}",
+    camera_idea_animal_chip: "Animal alert",
+    camera_idea_animal_why:
+      "{camera} detects animals: a pet in the garden, or a visitor that should not be there.",
+    camera_idea_animal_prompt:
+      "Propose an automation I can review: when {trigger} turns on, call {notify} to say an animal was seen on {camera}.",
+    camera_idea_vehicle_title: "Tell me when a car arrives at {camera}",
+    camera_idea_vehicle_chip: "Car alert",
+    camera_idea_vehicle_why:
+      "{camera} detects cars, so a delivery or a visitor arriving can be announced.",
+    camera_idea_vehicle_prompt:
+      "Propose an automation I can review: when {trigger} turns on, call {notify} to say a car arrived at {camera}.",
+    camera_idea_snapshot:
+      "Attach the camera snapshot to the notification as data image {image}.",
+    camera_idea_watch_scene_title:
+      "Create a scene that turns on every camera's recording and detection",
+    camera_idea_watch_scene_why:
+      "One tap before you leave, instead of switching each camera on.",
+    camera_idea_watch_scene_prompt:
+      "Propose a scene I can review, called Watch, that turns on {switches}.",
     chat_message_details: "Details",
   },
   options: {
@@ -12554,6 +12625,43 @@ var fr_default = {
     frigate_result_open: "Ouvrir la cam\xE9ra",
     frigate_result_recording: "Enregistrement",
     frigate_result_detection: "D\xE9tection",
+    camera_ideas_label: "Id\xE9es",
+    camera_idea_person_away_title:
+      "M'alerter quand quelqu'un est devant {camera} en mon absence",
+    camera_idea_person_away_chip: "Alerte en mon absence",
+    camera_idea_person_away_why:
+      "{camera} d\xE9tecte les personnes. Quand personne n'est \xE0 la maison, une pr\xE9sence m\xE9rite une notification avec une capture.",
+    camera_idea_person_away_prompt:
+      "Propose une automatisation que je pourrai relire : quand {trigger} passe \xE0 on alors que {presence} vaut {presence_empty} (personne \xE0 la maison), appelle {notify} pour dire qu'une personne a \xE9t\xE9 vue sur {camera}.",
+    camera_idea_person_night_light_title:
+      "Allumer une lumi\xE8re quand quelqu'un est devant {camera} la nuit",
+    camera_idea_person_night_light_chip: "\xC9clairer la nuit",
+    camera_idea_person_night_light_why:
+      "{camera} d\xE9tecte les personnes, et {light} est dans la m\xEAme pi\xE8ce.",
+    camera_idea_person_night_light_prompt:
+      "Propose une automatisation que je pourrai relire : quand {trigger} passe \xE0 on alors que sun.sun est below_horizon, allume {light}, puis \xE9teins-la 5 minutes apr\xE8s que {trigger} est repass\xE9 \xE0 off.",
+    camera_idea_animal_title:
+      "Me pr\xE9venir quand un animal est devant {camera}",
+    camera_idea_animal_chip: "Alerte animal",
+    camera_idea_animal_why:
+      "{camera} d\xE9tecte les animaux : un animal de compagnie dans le jardin, ou un visiteur qui ne devrait pas \xEAtre l\xE0.",
+    camera_idea_animal_prompt:
+      "Propose une automatisation que je pourrai relire : quand {trigger} passe \xE0 on, appelle {notify} pour dire qu'un animal a \xE9t\xE9 vu sur {camera}.",
+    camera_idea_vehicle_title:
+      "Me pr\xE9venir quand une voiture arrive devant {camera}",
+    camera_idea_vehicle_chip: "Alerte voiture",
+    camera_idea_vehicle_why:
+      "{camera} d\xE9tecte les voitures : une livraison ou un visiteur qui arrive peut \xEAtre annonc\xE9.",
+    camera_idea_vehicle_prompt:
+      "Propose une automatisation que je pourrai relire : quand {trigger} passe \xE0 on, appelle {notify} pour dire qu'une voiture est arriv\xE9e devant {camera}.",
+    camera_idea_snapshot:
+      "Joins la capture de la cam\xE9ra \xE0 la notification via data image {image}.",
+    camera_idea_watch_scene_title:
+      "Cr\xE9er une sc\xE8ne qui active l'enregistrement et la d\xE9tection de toutes les cam\xE9ras",
+    camera_idea_watch_scene_why:
+      "Un seul geste avant de partir, au lieu d'activer chaque cam\xE9ra.",
+    camera_idea_watch_scene_prompt:
+      "Propose une sc\xE8ne que je pourrai relire, appel\xE9e Surveillance, qui active {switches}.",
     chat_message_details: "D\xE9tails",
   },
   options: {
@@ -13909,6 +14017,43 @@ var de_default = {
     frigate_result_open: "Kamera \xF6ffnen",
     frigate_result_recording: "Aufnahme",
     frigate_result_detection: "Erkennung",
+    camera_ideas_label: "Ideen",
+    camera_idea_person_away_title:
+      "Benachrichtige mich, wenn jemand an {camera} ist, w\xE4hrend niemand zu Hause ist",
+    camera_idea_person_away_chip: "Alarm bei Abwesenheit",
+    camera_idea_person_away_why:
+      "{camera} erkennt Personen. Ist niemand zu Hause, ist eine Person dort eine Benachrichtigung mit Schnappschuss wert.",
+    camera_idea_person_away_prompt:
+      "Schlage eine Automatisierung vor, die ich pr\xFCfen kann: Wenn {trigger} auf on wechselt, w\xE4hrend {presence} {presence_empty} ist (niemand zu Hause), rufe {notify} auf und melde, dass eine Person an {camera} gesehen wurde.",
+    camera_idea_person_night_light_title:
+      "Licht einschalten, wenn nachts jemand an {camera} ist",
+    camera_idea_person_night_light_chip: "Nachts Licht an",
+    camera_idea_person_night_light_why:
+      "{camera} erkennt Personen, und {light} ist im selben Bereich.",
+    camera_idea_person_night_light_prompt:
+      "Schlage eine Automatisierung vor, die ich pr\xFCfen kann: Wenn {trigger} auf on wechselt, w\xE4hrend sun.sun below_horizon ist, schalte {light} ein und 5 Minuten, nachdem {trigger} auf off wechselt, wieder aus.",
+    camera_idea_animal_title:
+      "Benachrichtige mich, wenn ein Tier an {camera} ist",
+    camera_idea_animal_chip: "Tieralarm",
+    camera_idea_animal_why:
+      "{camera} erkennt Tiere: ein Haustier im Garten oder ein Besucher, der dort nicht sein sollte.",
+    camera_idea_animal_prompt:
+      "Schlage eine Automatisierung vor, die ich pr\xFCfen kann: Wenn {trigger} auf on wechselt, rufe {notify} auf und melde, dass ein Tier an {camera} gesehen wurde.",
+    camera_idea_vehicle_title:
+      "Benachrichtige mich, wenn ein Auto an {camera} ankommt",
+    camera_idea_vehicle_chip: "Autoalarm",
+    camera_idea_vehicle_why:
+      "{camera} erkennt Autos, so k\xF6nnen eine Lieferung oder ein Besuch angek\xFCndigt werden.",
+    camera_idea_vehicle_prompt:
+      "Schlage eine Automatisierung vor, die ich pr\xFCfen kann: Wenn {trigger} auf on wechselt, rufe {notify} auf und melde, dass ein Auto an {camera} angekommen ist.",
+    camera_idea_snapshot:
+      "H\xE4nge das Kamerabild als data image {image} an die Benachrichtigung an.",
+    camera_idea_watch_scene_title:
+      "Eine Szene erstellen, die Aufnahme und Erkennung aller Kameras einschaltet",
+    camera_idea_watch_scene_why:
+      "Ein Tipp vor dem Gehen, statt jede Kamera einzeln einzuschalten.",
+    camera_idea_watch_scene_prompt:
+      "Schlage eine Szene vor, die ich pr\xFCfen kann, namens Wache, die {switches} einschaltet.",
     chat_message_details: "Details",
   },
   options: {
@@ -15244,6 +15389,41 @@ var es_default = {
     frigate_result_open: "Abrir la c\xE1mara",
     frigate_result_recording: "Grabaci\xF3n",
     frigate_result_detection: "Detecci\xF3n",
+    camera_ideas_label: "Ideas",
+    camera_idea_person_away_title:
+      "Avisarme cuando haya alguien en {camera} sin nadie en casa",
+    camera_idea_person_away_chip: "Aviso en ausencia",
+    camera_idea_person_away_why:
+      "{camera} detecta personas. Sin nadie en casa, una persona all\xED merece una notificaci\xF3n con una captura.",
+    camera_idea_person_away_prompt:
+      "Prop\xF3n una automatizaci\xF3n que pueda revisar: cuando {trigger} pase a on mientras {presence} sea {presence_empty} (nadie en casa), llama a {notify} para avisar de que se ha visto a una persona en {camera}.",
+    camera_idea_person_night_light_title:
+      "Encender una luz cuando haya alguien en {camera} de noche",
+    camera_idea_person_night_light_chip: "Luz de noche",
+    camera_idea_person_night_light_why:
+      "{camera} detecta personas y {light} est\xE1 en la misma zona.",
+    camera_idea_person_night_light_prompt:
+      "Prop\xF3n una automatizaci\xF3n que pueda revisar: cuando {trigger} pase a on mientras sun.sun est\xE9 below_horizon, enciende {light} y ap\xE1gala 5 minutos despu\xE9s de que {trigger} pase a off.",
+    camera_idea_animal_title: "Avisarme cuando haya un animal en {camera}",
+    camera_idea_animal_chip: "Aviso de animal",
+    camera_idea_animal_why:
+      "{camera} detecta animales: una mascota en el jard\xEDn o un visitante que no deber\xEDa estar.",
+    camera_idea_animal_prompt:
+      "Prop\xF3n una automatizaci\xF3n que pueda revisar: cuando {trigger} pase a on, llama a {notify} para avisar de que se ha visto un animal en {camera}.",
+    camera_idea_vehicle_title: "Avisarme cuando llegue un coche a {camera}",
+    camera_idea_vehicle_chip: "Aviso de coche",
+    camera_idea_vehicle_why:
+      "{camera} detecta coches, as\xED se puede anunciar una entrega o una visita.",
+    camera_idea_vehicle_prompt:
+      "Prop\xF3n una automatizaci\xF3n que pueda revisar: cuando {trigger} pase a on, llama a {notify} para avisar de que ha llegado un coche a {camera}.",
+    camera_idea_snapshot:
+      "Adjunta la captura de la c\xE1mara a la notificaci\xF3n como data image {image}.",
+    camera_idea_watch_scene_title:
+      "Crear una escena que active la grabaci\xF3n y la detecci\xF3n de todas las c\xE1maras",
+    camera_idea_watch_scene_why:
+      "Un toque antes de salir, en lugar de activar cada c\xE1mara.",
+    camera_idea_watch_scene_prompt:
+      "Prop\xF3n una escena que pueda revisar, llamada Vigilancia, que active {switches}.",
     chat_message_details: "Detalles",
   },
   options: {
@@ -16578,6 +16758,41 @@ var it_default = {
     frigate_result_open: "Apri la telecamera",
     frigate_result_recording: "Registrazione",
     frigate_result_detection: "Rilevamento",
+    camera_ideas_label: "Idee",
+    camera_idea_person_away_title:
+      "Avvisami quando c'\xE8 qualcuno a {camera} mentre nessuno \xE8 in casa",
+    camera_idea_person_away_chip: "Avviso in assenza",
+    camera_idea_person_away_why:
+      "{camera} rileva le persone. Con nessuno in casa, una persona l\xEC merita una notifica con un'istantanea.",
+    camera_idea_person_away_prompt:
+      "Proponi un'automazione che posso rivedere: quando {trigger} passa a on mentre {presence} \xE8 {presence_empty} (nessuno in casa), chiama {notify} per dire che una persona \xE8 stata vista su {camera}.",
+    camera_idea_person_night_light_title:
+      "Accendere una luce quando c'\xE8 qualcuno a {camera} col buio",
+    camera_idea_person_night_light_chip: "Luce di notte",
+    camera_idea_person_night_light_why:
+      "{camera} rileva le persone e {light} \xE8 nella stessa area.",
+    camera_idea_person_night_light_prompt:
+      "Proponi un'automazione che posso rivedere: quando {trigger} passa a on mentre sun.sun \xE8 below_horizon, accendi {light} e spegnila 5 minuti dopo che {trigger} passa a off.",
+    camera_idea_animal_title: "Avvisami quando c'\xE8 un animale a {camera}",
+    camera_idea_animal_chip: "Avviso animale",
+    camera_idea_animal_why:
+      "{camera} rileva gli animali: un animale domestico in giardino o un visitatore che non dovrebbe esserci.",
+    camera_idea_animal_prompt:
+      "Proponi un'automazione che posso rivedere: quando {trigger} passa a on, chiama {notify} per dire che un animale \xE8 stato visto su {camera}.",
+    camera_idea_vehicle_title: "Avvisami quando arriva un'auto a {camera}",
+    camera_idea_vehicle_chip: "Avviso auto",
+    camera_idea_vehicle_why:
+      "{camera} rileva le auto, cos\xEC una consegna o una visita pu\xF2 essere annunciata.",
+    camera_idea_vehicle_prompt:
+      "Proponi un'automazione che posso rivedere: quando {trigger} passa a on, chiama {notify} per dire che un'auto \xE8 arrivata a {camera}.",
+    camera_idea_snapshot:
+      "Allega l'istantanea della telecamera alla notifica come data image {image}.",
+    camera_idea_watch_scene_title:
+      "Creare una scena che attiva registrazione e rilevamento di tutte le telecamere",
+    camera_idea_watch_scene_why:
+      "Un tocco prima di uscire, invece di attivare ogni telecamera.",
+    camera_idea_watch_scene_prompt:
+      "Proponi una scena che posso rivedere, chiamata Sorveglianza, che attiva {switches}.",
     chat_message_details: "Dettagli",
   },
   options: {
@@ -17930,6 +18145,42 @@ var nl_default = {
     frigate_result_open: "Camera openen",
     frigate_result_recording: "Opname",
     frigate_result_detection: "Detectie",
+    camera_ideas_label: "Idee\xEBn",
+    camera_idea_person_away_title:
+      "Waarschuw me als er iemand bij {camera} is terwijl niemand thuis is",
+    camera_idea_person_away_chip: "Melding bij afwezigheid",
+    camera_idea_person_away_why:
+      "{camera} herkent personen. Is er niemand thuis, dan is iemand daar een melding met momentopname waard.",
+    camera_idea_person_away_prompt:
+      "Stel een automatisering voor die ik kan nakijken: wanneer {trigger} naar on gaat terwijl {presence} {presence_empty} is (niemand thuis), roep {notify} aan om te melden dat er een persoon is gezien bij {camera}.",
+    camera_idea_person_night_light_title:
+      "Een lamp aanzetten als er 's nachts iemand bij {camera} is",
+    camera_idea_person_night_light_chip: "Licht in het donker",
+    camera_idea_person_night_light_why:
+      "{camera} herkent personen, en {light} is in dezelfde ruimte.",
+    camera_idea_person_night_light_prompt:
+      "Stel een automatisering voor die ik kan nakijken: wanneer {trigger} naar on gaat terwijl sun.sun below_horizon is, zet {light} aan en weer uit 5 minuten nadat {trigger} naar off gaat.",
+    camera_idea_animal_title: "Waarschuw me als er een dier bij {camera} is",
+    camera_idea_animal_chip: "Dierenmelding",
+    camera_idea_animal_why:
+      "{camera} herkent dieren: een huisdier in de tuin, of een bezoeker die er niet hoort.",
+    camera_idea_animal_prompt:
+      "Stel een automatisering voor die ik kan nakijken: wanneer {trigger} naar on gaat, roep {notify} aan om te melden dat er een dier is gezien bij {camera}.",
+    camera_idea_vehicle_title:
+      "Waarschuw me als er een auto bij {camera} aankomt",
+    camera_idea_vehicle_chip: "Automelding",
+    camera_idea_vehicle_why:
+      "{camera} herkent auto's, zodat een bezorging of bezoek kan worden aangekondigd.",
+    camera_idea_vehicle_prompt:
+      "Stel een automatisering voor die ik kan nakijken: wanneer {trigger} naar on gaat, roep {notify} aan om te melden dat er een auto is aangekomen bij {camera}.",
+    camera_idea_snapshot:
+      "Voeg de momentopname van de camera als data image {image} toe aan de melding.",
+    camera_idea_watch_scene_title:
+      "Een sc\xE8ne maken die opname en detectie van alle camera's aanzet",
+    camera_idea_watch_scene_why:
+      "E\xE9n tik voor je vertrekt, in plaats van elke camera aan te zetten.",
+    camera_idea_watch_scene_prompt:
+      "Stel een sc\xE8ne voor die ik kan nakijken, genaamd Bewaking, die {switches} aanzet.",
     chat_message_details: "Details",
   },
 };
@@ -19337,6 +19588,43 @@ var hu_default = {
     frigate_result_open: "Kamera megnyit\xE1sa",
     frigate_result_recording: "Felv\xE9tel",
     frigate_result_detection: "\xC9szlel\xE9s",
+    camera_ideas_label: "\xD6tletek",
+    camera_idea_person_away_title:
+      "\xC9rtes\xEDts, ha valaki van a(z) {camera} el\u0151tt, amikor senki sincs otthon",
+    camera_idea_person_away_chip: "Riaszt\xE1s t\xE1voll\xE9tben",
+    camera_idea_person_away_why:
+      "A(z) {camera} felismeri az embereket. Ha senki sincs otthon, egy ott l\xE9v\u0151 szem\xE9ly meg\xE9r egy \xE9rtes\xEDt\xE9st pillanatk\xE9ppel.",
+    camera_idea_person_away_prompt:
+      "Javasolj egy automatiz\xE1l\xE1st, amit \xE1tn\xE9zhetek: amikor a(z) {trigger} on \xE1llapotba ker\xFCl, mik\xF6zben a(z) {presence} \xE9rt\xE9ke {presence_empty} (senki sincs otthon), h\xEDvd meg a(z) {notify} szolg\xE1ltat\xE1st, \xE9s jelezd, hogy egy szem\xE9lyt l\xE1ttak a(z) {camera} kamer\xE1n.",
+    camera_idea_person_night_light_title:
+      "Kapcsolj fel egy l\xE1mp\xE1t, ha s\xF6t\xE9tben valaki van a(z) {camera} el\u0151tt",
+    camera_idea_person_night_light_chip: "\xC9jszakai f\xE9ny",
+    camera_idea_person_night_light_why:
+      "A(z) {camera} felismeri az embereket, \xE9s a(z) {light} ugyanabban a ter\xFCletben van.",
+    camera_idea_person_night_light_prompt:
+      "Javasolj egy automatiz\xE1l\xE1st, amit \xE1tn\xE9zhetek: amikor a(z) {trigger} on \xE1llapotba ker\xFCl, mik\xF6zben a sun.sun below_horizon, kapcsold be a(z) {light} l\xE1mp\xE1t, \xE9s kapcsold ki 5 perccel azut\xE1n, hogy a(z) {trigger} off \xE1llapotba ker\xFCl.",
+    camera_idea_animal_title:
+      "\xC9rtes\xEDts, ha egy \xE1llat van a(z) {camera} el\u0151tt",
+    camera_idea_animal_chip: "\xC1llatriaszt\xE1s",
+    camera_idea_animal_why:
+      "A(z) {camera} felismeri az \xE1llatokat: egy h\xE1zi\xE1llatot a kertben, vagy egy oda nem ill\u0151 l\xE1togat\xF3t.",
+    camera_idea_animal_prompt:
+      "Javasolj egy automatiz\xE1l\xE1st, amit \xE1tn\xE9zhetek: amikor a(z) {trigger} on \xE1llapotba ker\xFCl, h\xEDvd meg a(z) {notify} szolg\xE1ltat\xE1st, \xE9s jelezd, hogy egy \xE1llatot l\xE1ttak a(z) {camera} kamer\xE1n.",
+    camera_idea_vehicle_title:
+      "\xC9rtes\xEDts, ha aut\xF3 \xE9rkezik a(z) {camera} el\xE9",
+    camera_idea_vehicle_chip: "Aut\xF3riaszt\xE1s",
+    camera_idea_vehicle_why:
+      "A(z) {camera} felismeri az aut\xF3kat, \xEDgy egy sz\xE1ll\xEDt\xE1s vagy l\xE1togat\xF3 \xE9rkez\xE9se bejelenthet\u0151.",
+    camera_idea_vehicle_prompt:
+      "Javasolj egy automatiz\xE1l\xE1st, amit \xE1tn\xE9zhetek: amikor a(z) {trigger} on \xE1llapotba ker\xFCl, h\xEDvd meg a(z) {notify} szolg\xE1ltat\xE1st, \xE9s jelezd, hogy aut\xF3 \xE9rkezett a(z) {camera} el\xE9.",
+    camera_idea_snapshot:
+      "Csatold az \xE9rtes\xEDt\xE9shez a kamera pillanatk\xE9p\xE9t data image {image} form\xE1ban.",
+    camera_idea_watch_scene_title:
+      "Hozz l\xE9tre egy jelenetet, amely minden kamera felv\xE9tel\xE9t \xE9s \xE9szlel\xE9s\xE9t bekapcsolja",
+    camera_idea_watch_scene_why:
+      "Egy \xE9rint\xE9s indul\xE1s el\u0151tt, ahelyett, hogy minden kamer\xE1t k\xFCl\xF6n bekapcsoln\xE1l.",
+    camera_idea_watch_scene_prompt:
+      "Javasolj egy jelenetet, amit \xE1tn\xE9zhetek, \u0150rs\xE9g n\xE9ven, amely bekapcsolja ezeket: {switches}.",
     chat_message_details: "R\xE9szletek",
   },
 };
@@ -20666,6 +20954,41 @@ var pt_default = {
     frigate_result_open: "Abrir a c\xE2mara",
     frigate_result_recording: "Grava\xE7\xE3o",
     frigate_result_detection: "Dete\xE7\xE3o",
+    camera_ideas_label: "Ideias",
+    camera_idea_person_away_title:
+      "Avisar-me quando estiver algu\xE9m em {camera} sem ningu\xE9m em casa",
+    camera_idea_person_away_chip: "Alerta na aus\xEAncia",
+    camera_idea_person_away_why:
+      "{camera} deteta pessoas. Sem ningu\xE9m em casa, uma pessoa ali merece uma notifica\xE7\xE3o com uma imagem.",
+    camera_idea_person_away_prompt:
+      "Prop\xF5e uma automa\xE7\xE3o que eu possa rever: quando {trigger} passar a on enquanto {presence} for {presence_empty} (ningu\xE9m em casa), chama {notify} para dizer que foi vista uma pessoa em {camera}.",
+    camera_idea_person_night_light_title:
+      "Acender uma luz quando estiver algu\xE9m em {camera} \xE0 noite",
+    camera_idea_person_night_light_chip: "Luz \xE0 noite",
+    camera_idea_person_night_light_why:
+      "{camera} deteta pessoas e {light} est\xE1 na mesma \xE1rea.",
+    camera_idea_person_night_light_prompt:
+      "Prop\xF5e uma automa\xE7\xE3o que eu possa rever: quando {trigger} passar a on enquanto sun.sun estiver below_horizon, acende {light} e apaga-a 5 minutos depois de {trigger} passar a off.",
+    camera_idea_animal_title: "Avisar-me quando estiver um animal em {camera}",
+    camera_idea_animal_chip: "Alerta de animal",
+    camera_idea_animal_why:
+      "{camera} deteta animais: um animal de estima\xE7\xE3o no jardim ou um visitante que n\xE3o devia estar l\xE1.",
+    camera_idea_animal_prompt:
+      "Prop\xF5e uma automa\xE7\xE3o que eu possa rever: quando {trigger} passar a on, chama {notify} para dizer que foi visto um animal em {camera}.",
+    camera_idea_vehicle_title: "Avisar-me quando chegar um carro a {camera}",
+    camera_idea_vehicle_chip: "Alerta de carro",
+    camera_idea_vehicle_why:
+      "{camera} deteta carros, por isso uma entrega ou uma visita pode ser anunciada.",
+    camera_idea_vehicle_prompt:
+      "Prop\xF5e uma automa\xE7\xE3o que eu possa rever: quando {trigger} passar a on, chama {notify} para dizer que chegou um carro a {camera}.",
+    camera_idea_snapshot:
+      "Anexa a imagem da c\xE2mara \xE0 notifica\xE7\xE3o como data image {image}.",
+    camera_idea_watch_scene_title:
+      "Criar uma cena que liga a grava\xE7\xE3o e a dete\xE7\xE3o de todas as c\xE2maras",
+    camera_idea_watch_scene_why:
+      "Um toque antes de sair, em vez de ligar cada c\xE2mara.",
+    camera_idea_watch_scene_prompt:
+      "Prop\xF5e uma cena que eu possa rever, chamada Vigil\xE2ncia, que liga {switches}.",
     chat_message_details: "Detalhes",
   },
   options: {
@@ -22645,6 +22968,47 @@ var ru_default = {
     frigate_result_recording: "\u0417\u0430\u043F\u0438\u0441\u044C",
     frigate_result_detection:
       "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0438\u0435",
+    camera_ideas_label: "\u0418\u0434\u0435\u0438",
+    camera_idea_person_away_title:
+      "\u0421\u043E\u043E\u0431\u0449\u0430\u0442\u044C, \u043A\u043E\u0433\u0434\u0430 \u0443 {camera} \u043A\u0442\u043E-\u0442\u043E \u0435\u0441\u0442\u044C, \u0430 \u0434\u043E\u043C\u0430 \u043D\u0438\u043A\u043E\u0433\u043E \u043D\u0435\u0442",
+    camera_idea_person_away_chip:
+      "\u041E\u043F\u043E\u0432\u0435\u0449\u0435\u043D\u0438\u0435 \u0432 \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0438\u0435",
+    camera_idea_person_away_why:
+      "{camera} \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0451\u0442 \u043B\u044E\u0434\u0435\u0439. \u041A\u043E\u0433\u0434\u0430 \u0434\u043E\u043C\u0430 \u043D\u0438\u043A\u043E\u0433\u043E \u043D\u0435\u0442, \u0447\u0435\u043B\u043E\u0432\u0435\u043A \u0442\u0430\u043C \u0441\u0442\u043E\u0438\u0442 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F \u0441\u043E \u0441\u043D\u0438\u043C\u043A\u043E\u043C.",
+    camera_idea_person_away_prompt:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u044F \u0441\u043C\u043E\u0433\u0443 \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C: \u043A\u043E\u0433\u0434\u0430 {trigger} \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0438\u0442 \u0432 on, \u043F\u043E\u043A\u0430 {presence} \u0440\u0430\u0432\u043D\u043E {presence_empty} (\u0434\u043E\u043C\u0430 \u043D\u0438\u043A\u043E\u0433\u043E), \u0432\u044B\u0437\u043E\u0432\u0438 {notify} \u0441 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u043C, \u0447\u0442\u043E \u0443 {camera} \u0437\u0430\u043C\u0435\u0447\u0435\u043D \u0447\u0435\u043B\u043E\u0432\u0435\u043A.",
+    camera_idea_person_night_light_title:
+      "\u0412\u043A\u043B\u044E\u0447\u0430\u0442\u044C \u0441\u0432\u0435\u0442, \u043A\u043E\u0433\u0434\u0430 \u0443 {camera} \u043A\u0442\u043E-\u0442\u043E \u0435\u0441\u0442\u044C \u0432 \u0442\u0435\u043C\u043D\u043E\u0442\u0435",
+    camera_idea_person_night_light_chip:
+      "\u0421\u0432\u0435\u0442 \u043D\u043E\u0447\u044C\u044E",
+    camera_idea_person_night_light_why:
+      "{camera} \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0451\u0442 \u043B\u044E\u0434\u0435\u0439, \u0430 {light} \u043D\u0430\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0432 \u0442\u043E\u0439 \u0436\u0435 \u0437\u043E\u043D\u0435.",
+    camera_idea_person_night_light_prompt:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u044F \u0441\u043C\u043E\u0433\u0443 \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C: \u043A\u043E\u0433\u0434\u0430 {trigger} \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0438\u0442 \u0432 on, \u043F\u043E\u043A\u0430 sun.sun \u0440\u0430\u0432\u043D\u043E below_horizon, \u0432\u043A\u043B\u044E\u0447\u0438 {light} \u0438 \u0432\u044B\u043A\u043B\u044E\u0447\u0438 \u0447\u0435\u0440\u0435\u0437 5 \u043C\u0438\u043D\u0443\u0442 \u043F\u043E\u0441\u043B\u0435 \u0442\u043E\u0433\u043E, \u043A\u0430\u043A {trigger} \u043F\u0435\u0440\u0435\u0439\u0434\u0451\u0442 \u0432 off.",
+    camera_idea_animal_title:
+      "\u0421\u043E\u043E\u0431\u0449\u0430\u0442\u044C, \u043A\u043E\u0433\u0434\u0430 \u0443 {camera} \u0435\u0441\u0442\u044C \u0436\u0438\u0432\u043E\u0442\u043D\u043E\u0435",
+    camera_idea_animal_chip:
+      "\u041E\u043F\u043E\u0432\u0435\u0449\u0435\u043D\u0438\u0435 \u043E \u0436\u0438\u0432\u043E\u0442\u043D\u043E\u043C",
+    camera_idea_animal_why:
+      "{camera} \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0451\u0442 \u0436\u0438\u0432\u043E\u0442\u043D\u044B\u0445: \u043F\u0438\u0442\u043E\u043C\u0446\u0430 \u0432 \u0441\u0430\u0434\u0443 \u0438\u043B\u0438 \u0433\u043E\u0441\u0442\u044F, \u043A\u043E\u0442\u043E\u0440\u043E\u0433\u043E \u0442\u0430\u043C \u0431\u044B\u0442\u044C \u043D\u0435 \u0434\u043E\u043B\u0436\u043D\u043E.",
+    camera_idea_animal_prompt:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u044F \u0441\u043C\u043E\u0433\u0443 \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C: \u043A\u043E\u0433\u0434\u0430 {trigger} \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0438\u0442 \u0432 on, \u0432\u044B\u0437\u043E\u0432\u0438 {notify} \u0441 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u043C, \u0447\u0442\u043E \u0443 {camera} \u0437\u0430\u043C\u0435\u0447\u0435\u043D\u043E \u0436\u0438\u0432\u043E\u0442\u043D\u043E\u0435.",
+    camera_idea_vehicle_title:
+      "\u0421\u043E\u043E\u0431\u0449\u0430\u0442\u044C, \u043A\u043E\u0433\u0434\u0430 \u043A {camera} \u043F\u043E\u0434\u044A\u0435\u0437\u0436\u0430\u0435\u0442 \u043C\u0430\u0448\u0438\u043D\u0430",
+    camera_idea_vehicle_chip:
+      "\u041E\u043F\u043E\u0432\u0435\u0449\u0435\u043D\u0438\u0435 \u043E \u043C\u0430\u0448\u0438\u043D\u0435",
+    camera_idea_vehicle_why:
+      "{camera} \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0451\u0442 \u043C\u0430\u0448\u0438\u043D\u044B, \u0442\u0430\u043A \u0447\u0442\u043E \u043C\u043E\u0436\u043D\u043E \u0441\u043E\u043E\u0431\u0449\u0438\u0442\u044C \u043E \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0435 \u0438\u043B\u0438 \u043F\u0440\u0438\u0435\u0437\u0434\u0435 \u0433\u043E\u0441\u0442\u0435\u0439.",
+    camera_idea_vehicle_prompt:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u044F \u0441\u043C\u043E\u0433\u0443 \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C: \u043A\u043E\u0433\u0434\u0430 {trigger} \u043F\u0435\u0440\u0435\u0445\u043E\u0434\u0438\u0442 \u0432 on, \u0432\u044B\u0437\u043E\u0432\u0438 {notify} \u0441 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u043C, \u0447\u0442\u043E \u043A {camera} \u043F\u043E\u0434\u044A\u0435\u0445\u0430\u043B\u0430 \u043C\u0430\u0448\u0438\u043D\u0430.",
+    camera_idea_snapshot:
+      "\u041F\u0440\u0438\u043B\u043E\u0436\u0438 \u043A \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044E \u0441\u043D\u0438\u043C\u043E\u043A \u043A\u0430\u043C\u0435\u0440\u044B \u043A\u0430\u043A data image {image}.",
+    camera_idea_watch_scene_title:
+      "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0441\u0446\u0435\u043D\u0443, \u0432\u043A\u043B\u044E\u0447\u0430\u044E\u0449\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C \u0438 \u043E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0438\u0435 \u043D\u0430 \u0432\u0441\u0435\u0445 \u043A\u0430\u043C\u0435\u0440\u0430\u0445",
+    camera_idea_watch_scene_why:
+      "\u041E\u0434\u043D\u043E \u043D\u0430\u0436\u0430\u0442\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u0443\u0445\u043E\u0434\u043E\u043C \u0432\u043C\u0435\u0441\u0442\u043E \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u043A\u0430\u0436\u0434\u043E\u0439 \u043A\u0430\u043C\u0435\u0440\u044B.",
+    camera_idea_watch_scene_prompt:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0441\u0446\u0435\u043D\u0443, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u044F \u0441\u043C\u043E\u0433\u0443 \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C, \u043F\u043E\u0434 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435\u043C \u041E\u0445\u0440\u0430\u043D\u0430, \u043A\u043E\u0442\u043E\u0440\u0430\u044F \u0432\u043A\u043B\u044E\u0447\u0430\u0435\u0442 {switches}.",
     chat_message_details:
       "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435",
   },
@@ -24289,6 +24653,43 @@ var ja_default = {
     frigate_result_open: "\u30AB\u30E1\u30E9\u3092\u958B\u304F",
     frigate_result_recording: "\u9332\u753B",
     frigate_result_detection: "\u691C\u51FA",
+    camera_ideas_label: "\u30A2\u30A4\u30C7\u30A2",
+    camera_idea_person_away_title:
+      "\u8AB0\u3082\u5BB6\u306B\u3044\u306A\u3044\u3068\u304D\u306B {camera} \u306B\u4EBA\u304C\u3044\u305F\u3089\u901A\u77E5\u3059\u308B",
+    camera_idea_person_away_chip: "\u4E0D\u5728\u6642\u306B\u901A\u77E5",
+    camera_idea_person_away_why:
+      "{camera} \u306F\u4EBA\u3092\u691C\u51FA\u3057\u307E\u3059\u3002\u8AB0\u3082\u5BB6\u306B\u3044\u306A\u3044\u3068\u304D\u3001\u305D\u3053\u306B\u4EBA\u304C\u3044\u308C\u3070\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u4ED8\u304D\u3067\u901A\u77E5\u3059\u308B\u4FA1\u5024\u304C\u3042\u308A\u307E\u3059\u3002",
+    camera_idea_person_away_prompt:
+      "\u78BA\u8A8D\u3067\u304D\u308B\u81EA\u52D5\u5316\u3092\u63D0\u6848\u3057\u3066: {presence} \u304C {presence_empty}\uFF08\u8AB0\u3082\u5BB6\u306B\u3044\u306A\u3044\uFF09\u306E\u9593\u306B {trigger} \u304C on \u306B\u306A\u3063\u305F\u3089\u3001{notify} \u3092\u547C\u3073\u51FA\u3057\u3066 {camera} \u3067\u4EBA\u304C\u691C\u51FA\u3055\u308C\u305F\u3053\u3068\u3092\u77E5\u3089\u305B\u308B\u3002",
+    camera_idea_person_night_light_title:
+      "\u6697\u304F\u306A\u3063\u3066\u304B\u3089 {camera} \u306B\u4EBA\u304C\u3044\u305F\u3089\u7167\u660E\u3092\u3064\u3051\u308B",
+    camera_idea_person_night_light_chip: "\u591C\u306B\u70B9\u706F",
+    camera_idea_person_night_light_why:
+      "{camera} \u306F\u4EBA\u3092\u691C\u51FA\u3057\u3001{light} \u306F\u540C\u3058\u30A8\u30EA\u30A2\u306B\u3042\u308A\u307E\u3059\u3002",
+    camera_idea_person_night_light_prompt:
+      "\u78BA\u8A8D\u3067\u304D\u308B\u81EA\u52D5\u5316\u3092\u63D0\u6848\u3057\u3066: sun.sun \u304C below_horizon \u306E\u9593\u306B {trigger} \u304C on \u306B\u306A\u3063\u305F\u3089 {light} \u3092\u3064\u3051\u3001{trigger} \u304C off \u306B\u306A\u3063\u3066 5 \u5206\u5F8C\u306B\u6D88\u3059\u3002",
+    camera_idea_animal_title:
+      "{camera} \u306B\u52D5\u7269\u304C\u3044\u305F\u3089\u77E5\u3089\u305B\u308B",
+    camera_idea_animal_chip: "\u52D5\u7269\u306E\u901A\u77E5",
+    camera_idea_animal_why:
+      "{camera} \u306F\u52D5\u7269\u3092\u691C\u51FA\u3057\u307E\u3059\u3002\u5EAD\u306E\u30DA\u30C3\u30C8\u3084\u3001\u3044\u308B\u306F\u305A\u306E\u306A\u3044\u8A2A\u554F\u8005\u306A\u3069\u3067\u3059\u3002",
+    camera_idea_animal_prompt:
+      "\u78BA\u8A8D\u3067\u304D\u308B\u81EA\u52D5\u5316\u3092\u63D0\u6848\u3057\u3066: {trigger} \u304C on \u306B\u306A\u3063\u305F\u3089\u3001{notify} \u3092\u547C\u3073\u51FA\u3057\u3066 {camera} \u3067\u52D5\u7269\u304C\u691C\u51FA\u3055\u308C\u305F\u3053\u3068\u3092\u77E5\u3089\u305B\u308B\u3002",
+    camera_idea_vehicle_title:
+      "{camera} \u306B\u8ECA\u304C\u6765\u305F\u3089\u77E5\u3089\u305B\u308B",
+    camera_idea_vehicle_chip: "\u8ECA\u306E\u901A\u77E5",
+    camera_idea_vehicle_why:
+      "{camera} \u306F\u8ECA\u3092\u691C\u51FA\u3059\u308B\u306E\u3067\u3001\u914D\u9054\u3084\u6765\u5BA2\u306E\u5230\u7740\u3092\u77E5\u3089\u305B\u3089\u308C\u307E\u3059\u3002",
+    camera_idea_vehicle_prompt:
+      "\u78BA\u8A8D\u3067\u304D\u308B\u81EA\u52D5\u5316\u3092\u63D0\u6848\u3057\u3066: {trigger} \u304C on \u306B\u306A\u3063\u305F\u3089\u3001{notify} \u3092\u547C\u3073\u51FA\u3057\u3066 {camera} \u306B\u8ECA\u304C\u5230\u7740\u3057\u305F\u3053\u3068\u3092\u77E5\u3089\u305B\u308B\u3002",
+    camera_idea_snapshot:
+      "\u901A\u77E5\u306B\u30AB\u30E1\u30E9\u306E\u30B9\u30CA\u30C3\u30D7\u30B7\u30E7\u30C3\u30C8\u3092 data image {image} \u3068\u3057\u3066\u6DFB\u4ED8\u3059\u308B\u3002",
+    camera_idea_watch_scene_title:
+      "\u3059\u3079\u3066\u306E\u30AB\u30E1\u30E9\u306E\u9332\u753B\u3068\u691C\u51FA\u3092\u30AA\u30F3\u306B\u3059\u308B\u30B7\u30FC\u30F3\u3092\u4F5C\u6210",
+    camera_idea_watch_scene_why:
+      "\u51FA\u304B\u3051\u308B\u524D\u306B\u30EF\u30F3\u30BF\u30C3\u30D7\u3067\u3001\u30AB\u30E1\u30E9\u3092\u4E00\u53F0\u305A\u3064\u30AA\u30F3\u306B\u3059\u308B\u5FC5\u8981\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    camera_idea_watch_scene_prompt:
+      "\u78BA\u8A8D\u3067\u304D\u308B\u30B7\u30FC\u30F3\u3092\u63D0\u6848\u3057\u3066: \u540D\u524D\u306F\u300C\u898B\u5F35\u308A\u300D\u3067\u3001{switches} \u3092\u30AA\u30F3\u306B\u3059\u308B\u3002",
     chat_message_details: "\u8A73\u7D30",
   },
   options: {
@@ -25821,6 +26222,44 @@ var ko_default = {
     frigate_result_open: "\uCE74\uBA54\uB77C \uC5F4\uAE30",
     frigate_result_recording: "\uB179\uD654",
     frigate_result_detection: "\uAC10\uC9C0",
+    camera_ideas_label: "\uC544\uC774\uB514\uC5B4",
+    camera_idea_person_away_title:
+      "\uC544\uBB34\uB3C4 \uC9D1\uC5D0 \uC5C6\uC744 \uB54C {camera}\uC5D0 \uB204\uAD70\uAC00 \uC788\uC73C\uBA74 \uC54C\uB824 \uC8FC\uAE30",
+    camera_idea_person_away_chip: "\uBD80\uC7AC \uC2DC \uC54C\uB9BC",
+    camera_idea_person_away_why:
+      "{camera}\uC740(\uB294) \uC0AC\uB78C\uC744 \uAC10\uC9C0\uD569\uB2C8\uB2E4. \uC544\uBB34\uB3C4 \uC9D1\uC5D0 \uC5C6\uC744 \uB54C \uADF8\uACF3\uC5D0 \uC0AC\uB78C\uC774 \uC788\uC73C\uBA74 \uC2A4\uB0C5\uC0F7\uACFC \uD568\uAED8 \uC54C\uB9B4 \uB9CC\uD569\uB2C8\uB2E4.",
+    camera_idea_person_away_prompt:
+      "\uAC80\uD1A0\uD560 \uC218 \uC788\uB294 \uC790\uB3D9\uD654\uB97C \uC81C\uC548\uD574 \uC918: {presence}\uC774(\uAC00) {presence_empty}(\uC544\uBB34\uB3C4 \uC9D1\uC5D0 \uC5C6\uC74C)\uC778 \uB3D9\uC548 {trigger}\uC774(\uAC00) on\uC774 \uB418\uBA74 {notify}\uC744(\uB97C) \uD638\uCD9C\uD574 {camera}\uC5D0\uC11C \uC0AC\uB78C\uC774 \uAC10\uC9C0\uB418\uC5C8\uB2E4\uACE0 \uC54C\uB824.",
+    camera_idea_person_night_light_title:
+      "\uC5B4\uB450\uC6B8 \uB54C {camera}\uC5D0 \uB204\uAD70\uAC00 \uC788\uC73C\uBA74 \uC870\uBA85 \uCF1C\uAE30",
+    camera_idea_person_night_light_chip:
+      "\uBC24\uC5D0 \uC870\uBA85 \uCF1C\uAE30",
+    camera_idea_person_night_light_why:
+      "{camera}\uC740(\uB294) \uC0AC\uB78C\uC744 \uAC10\uC9C0\uD558\uACE0 {light}\uC740(\uB294) \uAC19\uC740 \uAD6C\uC5ED\uC5D0 \uC788\uC2B5\uB2C8\uB2E4.",
+    camera_idea_person_night_light_prompt:
+      "\uAC80\uD1A0\uD560 \uC218 \uC788\uB294 \uC790\uB3D9\uD654\uB97C \uC81C\uC548\uD574 \uC918: sun.sun\uC774 below_horizon\uC778 \uB3D9\uC548 {trigger}\uC774(\uAC00) on\uC774 \uB418\uBA74 {light}\uC744(\uB97C) \uCF1C\uACE0, {trigger}\uC774(\uAC00) off\uAC00 \uB41C 5\uBD84 \uD6C4\uC5D0 \uB2E4\uC2DC \uAEBC.",
+    camera_idea_animal_title:
+      "{camera}\uC5D0 \uB3D9\uBB3C\uC774 \uC788\uC73C\uBA74 \uC54C\uB824 \uC8FC\uAE30",
+    camera_idea_animal_chip: "\uB3D9\uBB3C \uC54C\uB9BC",
+    camera_idea_animal_why:
+      "{camera}\uC740(\uB294) \uB3D9\uBB3C\uC744 \uAC10\uC9C0\uD569\uB2C8\uB2E4. \uC815\uC6D0\uC758 \uBC18\uB824\uB3D9\uBB3C\uC774\uB098 \uC788\uC5B4\uC11C\uB294 \uC548 \uB420 \uBC29\uBB38\uC790 \uB4F1\uC785\uB2C8\uB2E4.",
+    camera_idea_animal_prompt:
+      "\uAC80\uD1A0\uD560 \uC218 \uC788\uB294 \uC790\uB3D9\uD654\uB97C \uC81C\uC548\uD574 \uC918: {trigger}\uC774(\uAC00) on\uC774 \uB418\uBA74 {notify}\uC744(\uB97C) \uD638\uCD9C\uD574 {camera}\uC5D0\uC11C \uB3D9\uBB3C\uC774 \uAC10\uC9C0\uB418\uC5C8\uB2E4\uACE0 \uC54C\uB824.",
+    camera_idea_vehicle_title:
+      "{camera}\uC5D0 \uCC28\uAC00 \uB3C4\uCC29\uD558\uBA74 \uC54C\uB824 \uC8FC\uAE30",
+    camera_idea_vehicle_chip: "\uCC28\uB7C9 \uC54C\uB9BC",
+    camera_idea_vehicle_why:
+      "{camera}\uC740(\uB294) \uCC28\uB7C9\uC744 \uAC10\uC9C0\uD558\uBBC0\uB85C \uD0DD\uBC30\uB098 \uBC29\uBB38\uAC1D \uB3C4\uCC29\uC744 \uC54C\uB9B4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    camera_idea_vehicle_prompt:
+      "\uAC80\uD1A0\uD560 \uC218 \uC788\uB294 \uC790\uB3D9\uD654\uB97C \uC81C\uC548\uD574 \uC918: {trigger}\uC774(\uAC00) on\uC774 \uB418\uBA74 {notify}\uC744(\uB97C) \uD638\uCD9C\uD574 {camera}\uC5D0 \uCC28\uAC00 \uB3C4\uCC29\uD588\uB2E4\uACE0 \uC54C\uB824.",
+    camera_idea_snapshot:
+      "\uC54C\uB9BC\uC5D0 \uCE74\uBA54\uB77C \uC2A4\uB0C5\uC0F7\uC744 data image {image}(\uC73C)\uB85C \uCCA8\uBD80\uD574.",
+    camera_idea_watch_scene_title:
+      "\uBAA8\uB4E0 \uCE74\uBA54\uB77C\uC758 \uB179\uD654\uC640 \uAC10\uC9C0\uB97C \uCF1C\uB294 \uC7A5\uBA74 \uB9CC\uB4E4\uAE30",
+    camera_idea_watch_scene_why:
+      "\uC678\uCD9C \uC804\uC5D0 \uD55C \uBC88\uB9CC \uB204\uB974\uBA74 \uB429\uB2C8\uB2E4. \uCE74\uBA54\uB77C\uB97C \uD558\uB098\uC529 \uCF24 \uD544\uC694\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    camera_idea_watch_scene_prompt:
+      "\uAC80\uD1A0\uD560 \uC218 \uC788\uB294 \uC7A5\uBA74\uC744 \uC81C\uC548\uD574 \uC918: \uC774\uB984\uC740 \uAC10\uC2DC\uC774\uACE0 {switches}\uC744(\uB97C) \uCF1C.",
     chat_message_details: "\uC790\uC138\uD788",
   },
   options: {
@@ -27269,6 +27708,43 @@ var zh_Hans_default = {
     frigate_result_open: "\u6253\u5F00\u6444\u50CF\u5934",
     frigate_result_recording: "\u5F55\u50CF",
     frigate_result_detection: "\u68C0\u6D4B",
+    camera_ideas_label: "\u5EFA\u8BAE",
+    camera_idea_person_away_title:
+      "\u5BB6\u4E2D\u65E0\u4EBA\u65F6\uFF0C\u82E5 {camera} \u5904\u6709\u4EBA\u5219\u63D0\u9192\u6211",
+    camera_idea_person_away_chip: "\u79BB\u5BB6\u65F6\u63D0\u9192",
+    camera_idea_person_away_why:
+      "{camera} \u80FD\u8BC6\u522B\u4EBA\u5458\u3002\u5BB6\u4E2D\u65E0\u4EBA\u65F6\uFF0C\u6709\u4EBA\u51FA\u73B0\u503C\u5F97\u53D1\u9001\u5E26\u5FEB\u7167\u7684\u901A\u77E5\u3002",
+    camera_idea_person_away_prompt:
+      "\u63D0\u51FA\u4E00\u4E2A\u6211\u53EF\u4EE5\u5BA1\u9605\u7684\u81EA\u52A8\u5316\uFF1A\u5F53 {presence} \u4E3A {presence_empty}\uFF08\u5BB6\u4E2D\u65E0\u4EBA\uFF09\u65F6 {trigger} \u53D8\u4E3A on\uFF0C\u8C03\u7528 {notify} \u544A\u77E5\u5728 {camera} \u770B\u5230\u4E86\u4EBA\u5458\u3002",
+    camera_idea_person_night_light_title:
+      "\u5929\u9ED1\u540E\u82E5 {camera} \u5904\u6709\u4EBA\u5219\u5F00\u706F",
+    camera_idea_person_night_light_chip: "\u591C\u95F4\u5F00\u706F",
+    camera_idea_person_night_light_why:
+      "{camera} \u80FD\u8BC6\u522B\u4EBA\u5458\uFF0C\u4E14 {light} \u5728\u540C\u4E00\u533A\u57DF\u3002",
+    camera_idea_person_night_light_prompt:
+      "\u63D0\u51FA\u4E00\u4E2A\u6211\u53EF\u4EE5\u5BA1\u9605\u7684\u81EA\u52A8\u5316\uFF1A\u5F53 sun.sun \u4E3A below_horizon \u65F6 {trigger} \u53D8\u4E3A on\uFF0C\u6253\u5F00 {light}\uFF0C\u5E76\u5728 {trigger} \u53D8\u4E3A off 5 \u5206\u949F\u540E\u5173\u95ED\u3002",
+    camera_idea_animal_title:
+      "{camera} \u5904\u51FA\u73B0\u52A8\u7269\u65F6\u544A\u8BC9\u6211",
+    camera_idea_animal_chip: "\u52A8\u7269\u63D0\u9192",
+    camera_idea_animal_why:
+      "{camera} \u80FD\u8BC6\u522B\u52A8\u7269\uFF1A\u82B1\u56ED\u91CC\u7684\u5BA0\u7269\uFF0C\u6216\u4E0D\u8BE5\u51FA\u73B0\u7684\u6765\u5BA2\u3002",
+    camera_idea_animal_prompt:
+      "\u63D0\u51FA\u4E00\u4E2A\u6211\u53EF\u4EE5\u5BA1\u9605\u7684\u81EA\u52A8\u5316\uFF1A\u5F53 {trigger} \u53D8\u4E3A on \u65F6\uFF0C\u8C03\u7528 {notify} \u544A\u77E5\u5728 {camera} \u770B\u5230\u4E86\u52A8\u7269\u3002",
+    camera_idea_vehicle_title:
+      "{camera} \u5904\u6709\u8F66\u5230\u8FBE\u65F6\u544A\u8BC9\u6211",
+    camera_idea_vehicle_chip: "\u8F66\u8F86\u63D0\u9192",
+    camera_idea_vehicle_why:
+      "{camera} \u80FD\u8BC6\u522B\u8F66\u8F86\uFF0C\u56E0\u6B64\u53EF\u4EE5\u544A\u77E5\u5FEB\u9012\u6216\u8BBF\u5BA2\u5230\u8FBE\u3002",
+    camera_idea_vehicle_prompt:
+      "\u63D0\u51FA\u4E00\u4E2A\u6211\u53EF\u4EE5\u5BA1\u9605\u7684\u81EA\u52A8\u5316\uFF1A\u5F53 {trigger} \u53D8\u4E3A on \u65F6\uFF0C\u8C03\u7528 {notify} \u544A\u77E5\u6709\u8F66\u5230\u8FBE {camera}\u3002",
+    camera_idea_snapshot:
+      "\u4EE5 data image {image} \u5728\u901A\u77E5\u4E2D\u9644\u4E0A\u6444\u50CF\u5934\u5FEB\u7167\u3002",
+    camera_idea_watch_scene_title:
+      "\u521B\u5EFA\u4E00\u4E2A\u5F00\u542F\u6240\u6709\u6444\u50CF\u5934\u5F55\u50CF\u548C\u68C0\u6D4B\u7684\u573A\u666F",
+    camera_idea_watch_scene_why:
+      "\u51FA\u95E8\u524D\u4E00\u952E\u5F00\u542F\uFF0C\u65E0\u9700\u9010\u4E2A\u6253\u5F00\u6444\u50CF\u5934\u3002",
+    camera_idea_watch_scene_prompt:
+      "\u63D0\u51FA\u4E00\u4E2A\u6211\u53EF\u4EE5\u5BA1\u9605\u7684\u573A\u666F\uFF0C\u540D\u4E3A\u770B\u5B88\uFF0C\u5F00\u542F {switches}\u3002",
     chat_message_details: "\u8BE6\u60C5",
   },
   options: {
@@ -28723,6 +29199,43 @@ var zh_Hant_default = {
     frigate_result_open: "\u958B\u555F\u651D\u5F71\u6A5F",
     frigate_result_recording: "\u9304\u5F71",
     frigate_result_detection: "\u5075\u6E2C",
+    camera_ideas_label: "\u5EFA\u8B70",
+    camera_idea_person_away_title:
+      "\u5BB6\u4E2D\u7121\u4EBA\u6642\uFF0C\u82E5 {camera} \u8655\u6709\u4EBA\u5247\u63D0\u9192\u6211",
+    camera_idea_person_away_chip: "\u96E2\u5BB6\u6642\u63D0\u9192",
+    camera_idea_person_away_why:
+      "{camera} \u80FD\u8FA8\u8B58\u4EBA\u54E1\u3002\u5BB6\u4E2D\u7121\u4EBA\u6642\uFF0C\u6709\u4EBA\u51FA\u73FE\u503C\u5F97\u50B3\u9001\u9644\u5FEB\u7167\u7684\u901A\u77E5\u3002",
+    camera_idea_person_away_prompt:
+      "\u63D0\u51FA\u4E00\u500B\u6211\u53EF\u4EE5\u5BE9\u95B1\u7684\u81EA\u52D5\u5316\uFF1A\u7576 {presence} \u70BA {presence_empty}\uFF08\u5BB6\u4E2D\u7121\u4EBA\uFF09\u6642 {trigger} \u8B8A\u70BA on\uFF0C\u547C\u53EB {notify} \u544A\u77E5\u5728 {camera} \u770B\u5230\u4E86\u4EBA\u54E1\u3002",
+    camera_idea_person_night_light_title:
+      "\u5929\u9ED1\u5F8C\u82E5 {camera} \u8655\u6709\u4EBA\u5247\u958B\u71C8",
+    camera_idea_person_night_light_chip: "\u591C\u9593\u958B\u71C8",
+    camera_idea_person_night_light_why:
+      "{camera} \u80FD\u8FA8\u8B58\u4EBA\u54E1\uFF0C\u4E14 {light} \u5728\u540C\u4E00\u5340\u57DF\u3002",
+    camera_idea_person_night_light_prompt:
+      "\u63D0\u51FA\u4E00\u500B\u6211\u53EF\u4EE5\u5BE9\u95B1\u7684\u81EA\u52D5\u5316\uFF1A\u7576 sun.sun \u70BA below_horizon \u6642 {trigger} \u8B8A\u70BA on\uFF0C\u958B\u555F {light}\uFF0C\u4E26\u5728 {trigger} \u8B8A\u70BA off 5 \u5206\u9418\u5F8C\u95DC\u9589\u3002",
+    camera_idea_animal_title:
+      "{camera} \u8655\u51FA\u73FE\u52D5\u7269\u6642\u544A\u8A34\u6211",
+    camera_idea_animal_chip: "\u52D5\u7269\u63D0\u9192",
+    camera_idea_animal_why:
+      "{camera} \u80FD\u8FA8\u8B58\u52D5\u7269\uFF1A\u82B1\u5712\u88E1\u7684\u5BF5\u7269\uFF0C\u6216\u4E0D\u8A72\u51FA\u73FE\u7684\u8A2A\u5BA2\u3002",
+    camera_idea_animal_prompt:
+      "\u63D0\u51FA\u4E00\u500B\u6211\u53EF\u4EE5\u5BE9\u95B1\u7684\u81EA\u52D5\u5316\uFF1A\u7576 {trigger} \u8B8A\u70BA on \u6642\uFF0C\u547C\u53EB {notify} \u544A\u77E5\u5728 {camera} \u770B\u5230\u4E86\u52D5\u7269\u3002",
+    camera_idea_vehicle_title:
+      "{camera} \u8655\u6709\u8ECA\u62B5\u9054\u6642\u544A\u8A34\u6211",
+    camera_idea_vehicle_chip: "\u8ECA\u8F1B\u63D0\u9192",
+    camera_idea_vehicle_why:
+      "{camera} \u80FD\u8FA8\u8B58\u8ECA\u8F1B\uFF0C\u56E0\u6B64\u53EF\u4EE5\u544A\u77E5\u5305\u88F9\u6216\u8A2A\u5BA2\u62B5\u9054\u3002",
+    camera_idea_vehicle_prompt:
+      "\u63D0\u51FA\u4E00\u500B\u6211\u53EF\u4EE5\u5BE9\u95B1\u7684\u81EA\u52D5\u5316\uFF1A\u7576 {trigger} \u8B8A\u70BA on \u6642\uFF0C\u547C\u53EB {notify} \u544A\u77E5\u6709\u8ECA\u62B5\u9054 {camera}\u3002",
+    camera_idea_snapshot:
+      "\u4EE5 data image {image} \u5728\u901A\u77E5\u4E2D\u9644\u4E0A\u651D\u5F71\u6A5F\u5FEB\u7167\u3002",
+    camera_idea_watch_scene_title:
+      "\u5EFA\u7ACB\u4E00\u500B\u958B\u555F\u6240\u6709\u651D\u5F71\u6A5F\u9304\u5F71\u8207\u5075\u6E2C\u7684\u5834\u666F",
+    camera_idea_watch_scene_why:
+      "\u51FA\u9580\u524D\u4E00\u9375\u958B\u555F\uFF0C\u4E0D\u5FC5\u9010\u4E00\u958B\u555F\u651D\u5F71\u6A5F\u3002",
+    camera_idea_watch_scene_prompt:
+      "\u63D0\u51FA\u4E00\u500B\u6211\u53EF\u4EE5\u5BE9\u95B1\u7684\u5834\u666F\uFF0C\u540D\u70BA\u770B\u5B88\uFF0C\u958B\u555F {switches}\u3002",
     chat_message_details: "\u8A73\u60C5",
   },
   options: {
@@ -29205,9 +29718,1492 @@ function renderCreatedCheck({ animate = false, size = 14 } = {}) {
   `;
 }
 
+// src/panel/chat-autocomplete.js
+var AUTOCOMPLETE_MIN_CHARS = 3;
+var AUTOCOMPLETE_MAX_RESULTS = 6;
+var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
+  "light",
+  "switch",
+  "lock",
+  "cover",
+  "fan",
+  "media_player",
+  "climate",
+  "vacuum",
+  "camera",
+  "humidifier",
+  "water_heater",
+  "input_boolean",
+  "input_select",
+  "input_number",
+  "input_button",
+  "remote",
+  "lawn_mower",
+]);
+var SENSOR_DOMAINS = /* @__PURE__ */ new Set(["sensor", "binary_sensor"]);
+var SENSOR_DEVICE_CLASS_ICONS = {
+  motion: "mdi:motion-sensor",
+  occupancy: "mdi:motion-sensor",
+  presence: "mdi:home-account",
+  door: "mdi:door",
+  garage_door: "mdi:garage",
+  window: "mdi:window-closed-variant",
+  opening: "mdi:square-outline",
+  moisture: "mdi:water-alert",
+  smoke: "mdi:smoke-detector",
+  gas: "mdi:gas-cylinder",
+  carbon_monoxide: "mdi:molecule-co",
+  carbon_dioxide: "mdi:molecule-co2",
+  vibration: "mdi:vibrate",
+  sound: "mdi:volume-high",
+  tamper: "mdi:shield-alert",
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  illuminance: "mdi:brightness-5",
+  pressure: "mdi:gauge",
+  power: "mdi:flash",
+  energy: "mdi:lightning-bolt",
+  pm25: "mdi:air-filter",
+};
+var DOMAIN_ICONS = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  climate: "mdi:thermostat",
+  vacuum: "mdi:robot-vacuum",
+  camera: "mdi:cctv",
+  humidifier: "mdi:air-humidifier",
+  water_heater: "mdi:water-boiler",
+  remote: "mdi:remote",
+  lawn_mower: "mdi:mower",
+  input_boolean: "mdi:toggle-switch-outline",
+  input_select: "mdi:form-dropdown",
+  input_number: "mdi:numeric",
+  input_button: "mdi:gesture-tap-button",
+  sensor: "mdi:gauge",
+  binary_sensor: "mdi:checkbox-marked-circle-outline",
+  scene: "mdi:palette",
+  automation: "mdi:robot",
+  script: "mdi:script-text",
+  area: "mdi:floor-plan",
+};
+var sensorCapable = (pattern) => ({
+  kind: "device",
+  pattern,
+  includeAreas: true,
+  includeSensors: true,
+});
+var BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
+var LOCALE_TRIGGERS = {
+  en: [
+    { kind: "area", pattern: /\bin (?:the |a )?$/i },
+    { kind: "area", pattern: /\bof (?:the |a )?$/i },
+    { kind: "scene", pattern: /\bactivate $/i },
+    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
+    { kind: "scene", pattern: /\bscene $/i },
+    { kind: "automation", pattern: /\brun $/i },
+    { kind: "automation", pattern: /\btrigger $/i },
+    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|close) (?:the |my )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:the |my )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
+    sensorCapable(/\bthe $/i),
+    sensorCapable(/\bmy $/i),
+  ],
+  fr: [
+    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
+    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
+    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
+    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
+    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
+    {
+      kind: "automation",
+      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
+    ),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bles $/i),
+    sensorCapable(/\bl['’]$/i),
+    sensorCapable(/\bmon $/i),
+    sensorCapable(/\bma $/i),
+    sensorCapable(/\bmes $/i),
+  ],
+  de: [
+    { kind: "area", pattern: /\bim $/i },
+    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
+    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
+    { kind: "scene", pattern: /\bSzene $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
+    },
+    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdimme (?:die |das |meine )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
+    ),
+    sensorCapable(/\bdie $/i),
+    sensorCapable(/\bder $/i),
+    sensorCapable(/\bdas $/i),
+    sensorCapable(/\bden $/i),
+    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
+  ],
+  es: [
+    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
+    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
+    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
+    { kind: "scene", pattern: /\bescena $/i },
+    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
+    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(
+      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
+    ),
+    sensorCapable(/\bel $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\blos $/i),
+    sensorCapable(/\blas $/i),
+    sensorCapable(/\bmi $/i),
+    sensorCapable(/\bmis $/i),
+  ],
+  it: [
+    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
+    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
+    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
+    { kind: "scene", pattern: /\bscena $/i },
+    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
+    sensorCapable(/\bil $/i),
+    sensorCapable(/\bla $/i),
+    sensorCapable(/\bi $/i),
+    sensorCapable(/\ble $/i),
+    sensorCapable(/\bgli $/i),
+    sensorCapable(/\blo $/i),
+    sensorCapable(/\bmio $/i),
+    sensorCapable(/\bmia $/i),
+    sensorCapable(/\bmiei $/i),
+  ],
+  nl: [
+    { kind: "area", pattern: /\bin (?:de |het )?$/i },
+    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
+    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdim (?:de |het |mijn )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
+    sensorCapable(/\bde $/i),
+    sensorCapable(/\bhet $/i),
+    sensorCapable(/\bmijn $/i),
+  ],
+  hu: [
+    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
+    { kind: "scene", pattern: /\bjelenet $/i },
+    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
+    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
+      includeAreas: true,
+    },
+    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
+    sensorCapable(/\ba $/i),
+    sensorCapable(/\baz $/i),
+  ],
+};
+function _toUnicodeBoundary(re) {
+  let src = re.source;
+  if (src.startsWith("\\b")) {
+    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
+  }
+  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
+  return new RegExp(src, flags); // nosemgrep
+}
+for (const t5 of BASE_TRIGGERS) {
+  t5.pattern = _toUnicodeBoundary(t5.pattern);
+}
+for (const list of Object.values(LOCALE_TRIGGERS)) {
+  for (const t5 of list) {
+    t5.pattern = _toUnicodeBoundary(t5.pattern);
+  }
+}
+function _langKey(lang) {
+  const base = String(lang || "en")
+    .toLowerCase()
+    .split("-")[0];
+  return LOCALE_TRIGGERS[base] ? base : "en";
+}
+function _triggersFor(lang) {
+  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey(lang)]];
+}
+var QUERY_STOP_RE = /[\n.?!]/;
+var MAX_QUERY_LEN = 40;
+var GHOST_VOCABULARY_BY_LANG = {
+  en: [
+    "automation",
+    "automations",
+    "trigger",
+    "triggers",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "scene",
+    "scenes",
+    "script",
+    "scripts",
+    "device",
+    "devices",
+    "entity",
+    "entities",
+    "schedule",
+    "weekday",
+    "weekdays",
+    "weekend",
+    "weekends",
+    "midnight",
+    "morning",
+    "afternoon",
+    "evening",
+    "sunrise",
+    "sunset",
+    "minutes",
+    "hours",
+    "seconds",
+    "temperature",
+    "brightness",
+    "thermostat",
+    "lights",
+    "lighting",
+    "bedroom",
+    "bathroom",
+    "kitchen",
+    "living",
+    "garage",
+    "office",
+    "hallway",
+    "basement",
+    "downstairs",
+    "upstairs",
+    "outside",
+    "create",
+    "suggest",
+    "notify",
+    "notification",
+    "between",
+    "before",
+    "after",
+    "during",
+    "while",
+    "everyone",
+    "nobody",
+  ],
+  fr: [
+    "automatisation",
+    "automatisations",
+    "d\xE9clencheur",
+    "d\xE9clencheurs",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "appareil",
+    "appareils",
+    "entit\xE9",
+    "entit\xE9s",
+    "planification",
+    "semaine",
+    "week-end",
+    "minuit",
+    "matin",
+    "apr\xE8s-midi",
+    "soir",
+    "lever",
+    "coucher",
+    "minutes",
+    "heures",
+    "secondes",
+    "temp\xE9rature",
+    "luminosit\xE9",
+    "thermostat",
+    "lumi\xE8re",
+    "lumi\xE8res",
+    "\xE9clairage",
+    "chambre",
+    "salle de bains",
+    "cuisine",
+    "salon",
+    "garage",
+    "bureau",
+    "couloir",
+    "sous-sol",
+    "\xE9tage",
+    "rez-de-chauss\xE9e",
+    "ext\xE9rieur",
+    "cr\xE9er",
+    "sugg\xE9rer",
+    "notifier",
+    "notification",
+    "entre",
+    "avant",
+    "apr\xE8s",
+    "pendant",
+    "tout le monde",
+    "personne",
+  ],
+  de: [
+    "Automatisierung",
+    "Automatisierungen",
+    "Ausl\xF6ser",
+    "Bedingung",
+    "Bedingungen",
+    "Aktion",
+    "Aktionen",
+    "Szene",
+    "Szenen",
+    "Skript",
+    "Skripte",
+    "Ger\xE4t",
+    "Ger\xE4te",
+    "Entit\xE4t",
+    "Entit\xE4ten",
+    "Zeitplan",
+    "Wochentag",
+    "Wochenende",
+    "Mitternacht",
+    "Morgen",
+    "Nachmittag",
+    "Abend",
+    "Sonnenaufgang",
+    "Sonnenuntergang",
+    "Minuten",
+    "Stunden",
+    "Sekunden",
+    "Temperatur",
+    "Helligkeit",
+    "Thermostat",
+    "Licht",
+    "Lichter",
+    "Beleuchtung",
+    "Schlafzimmer",
+    "Badezimmer",
+    "K\xFCche",
+    "Wohnzimmer",
+    "Garage",
+    "B\xFCro",
+    "Flur",
+    "Keller",
+    "drau\xDFen",
+    "erstelle",
+    "vorschlagen",
+    "benachrichtigen",
+    "Benachrichtigung",
+    "zwischen",
+    "vor",
+    "nach",
+    "w\xE4hrend",
+    "jeder",
+    "niemand",
+  ],
+  es: [
+    "automatizaci\xF3n",
+    "automatizaciones",
+    "disparador",
+    "disparadores",
+    "condici\xF3n",
+    "condiciones",
+    "acci\xF3n",
+    "acciones",
+    "escena",
+    "escenas",
+    "script",
+    "scripts",
+    "dispositivo",
+    "dispositivos",
+    "entidad",
+    "entidades",
+    "programaci\xF3n",
+    "semana",
+    "fin de semana",
+    "medianoche",
+    "ma\xF1ana",
+    "tarde",
+    "noche",
+    "amanecer",
+    "atardecer",
+    "minutos",
+    "horas",
+    "segundos",
+    "temperatura",
+    "brillo",
+    "termostato",
+    "luz",
+    "luces",
+    "iluminaci\xF3n",
+    "dormitorio",
+    "ba\xF1o",
+    "cocina",
+    "sal\xF3n",
+    "garaje",
+    "oficina",
+    "pasillo",
+    "s\xF3tano",
+    "exterior",
+    "crear",
+    "sugerir",
+    "notificar",
+    "notificaci\xF3n",
+    "entre",
+    "antes",
+    "despu\xE9s",
+    "durante",
+    "mientras",
+    "todos",
+    "nadie",
+  ],
+  it: [
+    "automazione",
+    "automazioni",
+    "trigger",
+    "condizione",
+    "condizioni",
+    "azione",
+    "azioni",
+    "scena",
+    "scene",
+    "script",
+    "dispositivo",
+    "dispositivi",
+    "entit\xE0",
+    "pianificazione",
+    "settimana",
+    "fine settimana",
+    "mezzanotte",
+    "mattina",
+    "pomeriggio",
+    "sera",
+    "alba",
+    "tramonto",
+    "minuti",
+    "ore",
+    "secondi",
+    "temperatura",
+    "luminosit\xE0",
+    "termostato",
+    "luce",
+    "luci",
+    "illuminazione",
+    "camera",
+    "bagno",
+    "cucina",
+    "soggiorno",
+    "garage",
+    "ufficio",
+    "corridoio",
+    "cantina",
+    "esterno",
+    "crea",
+    "suggerisci",
+    "notifica",
+    "tra",
+    "prima",
+    "dopo",
+    "durante",
+    "mentre",
+    "tutti",
+    "nessuno",
+  ],
+  nl: [
+    "automatisering",
+    "automatiseringen",
+    "trigger",
+    "triggers",
+    "voorwaarde",
+    "voorwaarden",
+    "actie",
+    "acties",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "apparaat",
+    "apparaten",
+    "entiteit",
+    "entiteiten",
+    "planning",
+    "weekdag",
+    "weekend",
+    "middernacht",
+    "ochtend",
+    "middag",
+    "avond",
+    "zonsopgang",
+    "zonsondergang",
+    "minuten",
+    "uren",
+    "seconden",
+    "temperatuur",
+    "helderheid",
+    "thermostaat",
+    "licht",
+    "lichten",
+    "verlichting",
+    "slaapkamer",
+    "badkamer",
+    "keuken",
+    "woonkamer",
+    "garage",
+    "kantoor",
+    "gang",
+    "kelder",
+    "buiten",
+    "maak",
+    "suggereer",
+    "meld",
+    "melding",
+    "tussen",
+    "voor",
+    "na",
+    "tijdens",
+    "terwijl",
+    "iedereen",
+    "niemand",
+  ],
+  hu: [
+    "automatizmus",
+    "automatizmusok",
+    "trigger",
+    "triggerek",
+    "felt\xE9tel",
+    "felt\xE9telek",
+    "m\u0171velet",
+    "m\u0171veletek",
+    "jelenet",
+    "jelenetek",
+    "szkript",
+    "szkriptek",
+    "eszk\xF6z",
+    "eszk\xF6z\xF6k",
+    "entit\xE1s",
+    "entit\xE1sok",
+    "\xFCtemez\xE9s",
+    "h\xE9tk\xF6znap",
+    "h\xE9tv\xE9ge",
+    "\xE9jf\xE9l",
+    "reggel",
+    "d\xE9lut\xE1n",
+    "este",
+    "napkelte",
+    "napnyugta",
+    "percek",
+    "\xF3r\xE1k",
+    "m\xE1sodpercek",
+    "h\u0151m\xE9rs\xE9klet",
+    "f\xE9nyer\u0151",
+    "termoszt\xE1t",
+    "f\xE9ny",
+    "f\xE9nyek",
+    "vil\xE1g\xEDt\xE1s",
+    "h\xE1l\xF3szoba",
+    "f\xFCrd\u0151szoba",
+    "konyha",
+    "nappali",
+    "gar\xE1zs",
+    "iroda",
+    "folyos\xF3",
+    "pince",
+    "kint",
+    "l\xE9trehoz",
+    "javasol",
+    "\xE9rtes\xEDt",
+    "\xE9rtes\xEDt\xE9s",
+    "k\xF6z\xF6tt",
+    "el\u0151tt",
+    "ut\xE1n",
+    "alatt",
+    "k\xF6zben",
+    "mindenki",
+    "senki",
+  ],
+};
+var _ghostSorted = {};
+function _ghostVocabFor(lang) {
+  const key = GHOST_VOCABULARY_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
+  if (!_ghostSorted[key]) {
+    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
+      (a3, b3) => a3.length - b3.length,
+    );
+  }
+  return _ghostSorted[key];
+}
+var GHOST_MIN_PREFIX = 3;
+var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
+function _partialWordAt(text, caret) {
+  if (caret <= 0) return null;
+  let i8 = caret;
+  while (i8 > 0 && _WORD_CHAR_RE.test(text[i8 - 1])) i8--;
+  const word = text.slice(i8, caret);
+  if (!word) return null;
+  return { word, start: i8 };
+}
+function findGhostSuggestion(text, caret, lang) {
+  if (typeof text !== "string") return null;
+  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
+  const part = _partialWordAt(text, caret);
+  if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
+  const lower = part.word.toLowerCase();
+  for (const w2 of _ghostVocabFor(lang)) {
+    const wLower = w2.toLowerCase();
+    if (wLower === lower) return null;
+    if (wLower.startsWith(lower)) {
+      return {
+        suffix: w2.slice(part.word.length),
+        word: w2,
+        start: part.start,
+      };
+    }
+  }
+  return null;
+}
+var ARTICLE_WORDS_BY_LANG = {
+  en: ["the", "my", "a", "an"],
+  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
+  de: [
+    "die",
+    "der",
+    "das",
+    "den",
+    "dem",
+    "mein",
+    "meine",
+    "meinen",
+    "meiner",
+    "meinem",
+    "ein",
+    "eine",
+    "einen",
+  ],
+  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
+  it: [
+    "il",
+    "la",
+    "lo",
+    "i",
+    "le",
+    "gli",
+    "mio",
+    "mia",
+    "miei",
+    "mie",
+    "un",
+    "una",
+    "uno",
+  ],
+  nl: ["de", "het", "een", "mijn"],
+  hu: ["a", "az", "egy"],
+};
+function _articleWordsFor(lang) {
+  const key = ARTICLE_WORDS_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
+  return new Set(ARTICLE_WORDS_BY_LANG[key]);
+}
+var _INTRA_WORD_RE = /['’-]/;
+function _isNameChar(text, i8) {
+  if (i8 < 0 || i8 >= text.length) return false;
+  if (_WORD_CHAR_RE.test(text[i8])) return true;
+  if (!_INTRA_WORD_RE.test(text[i8])) return false;
+  return (
+    i8 > 0 &&
+    i8 + 1 < text.length &&
+    _WORD_CHAR_RE.test(text[i8 - 1]) &&
+    _WORD_CHAR_RE.test(text[i8 + 1])
+  );
+}
+function _completionSpan(text, caret, labels) {
+  let start = -1;
+  let end = caret;
+  for (const label of labels || []) {
+    if (!label) continue;
+    for (const [from, to] of _labelSpans(text, label)) {
+      if (caret <= from || caret >= to) continue;
+      if (to < end) continue;
+      if (to === end && start >= 0 && from >= start) continue;
+      start = from;
+      end = to;
+    }
+  }
+  if (end > caret) return { start, end };
+  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
+    return { start: -1, end };
+  }
+  while (_isNameChar(text, end)) end += 1;
+  return { start: -1, end };
+}
+function detectTrigger(text, caret, lang, labels) {
+  if (typeof text !== "string" || caret == null || caret < 0) return null;
+  const before = text.slice(0, caret);
+  const completion = _completionSpan(text, caret, labels);
+  const triggers = _triggersFor(lang);
+  const articleWords = _articleWordsFor(lang);
+  let queryStart = caret;
+  while (queryStart > 0) {
+    const ch = before[queryStart - 1];
+    if (QUERY_STOP_RE.test(ch)) break;
+    queryStart -= 1;
+    if (caret - queryStart > MAX_QUERY_LEN) break;
+  }
+  let best = null;
+  for (let qs = queryStart; qs <= caret; qs++) {
+    const prefix = before.slice(0, qs);
+    for (const trig of triggers) {
+      if (trig.pattern.test(prefix)) {
+        best = {
+          kind: trig.kind,
+          query: before.slice(qs, caret),
+          start: qs,
+          end: completion.end,
+          domains: trig.domains || null,
+          includeAreas: !!trig.includeAreas,
+          includeSensors: !!trig.includeSensors,
+        };
+        break;
+      }
+    }
+  }
+  if (!best) return null;
+  if (!best.query.trim() && !best.domains) return null;
+  if (articleWords.has(best.query.trim().toLowerCase())) return null;
+  if (completion.start >= 0 && completion.start < best.start) {
+    best.start = completion.start;
+  }
+  return best;
+}
+function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
+  const items = [];
+  if (!hass?.states) return items;
+  const areaById = {};
+  if (areas && typeof areas === "object") {
+    for (const [id, a3] of Object.entries(areas)) {
+      areaById[id] = a3?.name || a3?.area_id || id;
+    }
+  }
+  const fullEntReg = entities || {};
+  const displayEntReg = hass.entities || {};
+  for (const [entityId, state] of Object.entries(hass.states)) {
+    const domain = entityId.split(".")[0];
+    const friendly = state?.attributes?.friendly_name;
+    if (!friendly) continue;
+    const entry = fullEntReg[entityId] || displayEntReg[entityId];
+    let areaId = entry?.area_id || null;
+    if (!areaId && entry?.device_id && devices) {
+      areaId = devices[entry.device_id]?.area_id || null;
+    }
+    const areaName = areaId ? areaById[areaId] || null : null;
+    if (SENSOR_DOMAINS.has(domain)) {
+      if (entry?.entity_category) continue;
+      if (entry?.hidden_by || entry?.hidden) continue;
+      items.push({
+        kind: "sensor",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon:
+          state?.attributes?.icon ||
+          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
+          DOMAIN_ICONS[domain],
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (DEVICE_DOMAINS.has(domain)) {
+      items.push({
+        kind: "device",
+        domain,
+        entity_id: entityId,
+        device_id: entry?.device_id || null,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS[domain] || "mdi:devices",
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "scene") {
+      items.push({
+        kind: "scene",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS.scene,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "automation") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS.automation,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "script") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS.script,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    }
+  }
+  for (const [areaId, name] of Object.entries(areaById)) {
+    items.push({
+      kind: "area",
+      entity_id: null,
+      area_id: areaId,
+      label: name,
+      area: null,
+      icon: DOMAIN_ICONS.area,
+      _lowerLabel: name.toLowerCase(),
+    });
+  }
+  return dedupeDeviceItems(items);
+}
+var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
+function normLabel(s6) {
+  return s6.toLowerCase().replace(/\s+/g, " ").trim();
+}
+function baseLabel(normalized) {
+  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
+}
+function isParenPrefix(shorter, longer) {
+  if (shorter === longer) return true;
+  if (!longer.startsWith(shorter)) return false;
+  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
+}
+function labelsForked(labels) {
+  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
+  for (let i8 = 0; i8 + 1 < sorted.length; i8++) {
+    if (!isParenPrefix(sorted[i8], sorted[i8 + 1])) return true;
+  }
+  return false;
+}
+function dedupeDeviceItems(items) {
+  const devices = items.filter((i8) => i8.kind === "device");
+  const domainsByDevice = /* @__PURE__ */ new Map();
+  for (const it of devices) {
+    if (!it.device_id) continue;
+    if (!domainsByDevice.has(it.device_id)) {
+      domainsByDevice.set(it.device_id, /* @__PURE__ */ new Set());
+    }
+    domainsByDevice.get(it.device_id).add(it.domain);
+  }
+  const kept = /* @__PURE__ */ new Set();
+  const seenIdentity = /* @__PURE__ */ new Set();
+  for (const it of devices) {
+    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
+    if (
+      parent &&
+      it.device_id &&
+      domainsByDevice.get(it.device_id)?.has(parent)
+    ) {
+      continue;
+    }
+    const disambig = it.device_id || it.entity_id;
+    const identity = `${disambig}\0${it._lowerLabel}\0${it.area_id || ""}\0${it.domain}`;
+    if (seenIdentity.has(identity)) continue;
+    seenIdentity.add(identity);
+    kept.add(it);
+  }
+  const sameDeviceAreaTagged = /* @__PURE__ */ new Set();
+  for (const it of kept) {
+    if (it.area_id && it.device_id) {
+      sameDeviceAreaTagged.add(
+        `${it.device_id}\0${it._lowerLabel}\0${it.domain}`,
+      );
+    }
+  }
+  for (const it of [...kept]) {
+    if (it.area_id || !it.device_id) continue;
+    const key = `${it.device_id}\0${it._lowerLabel}\0${it.domain}`;
+    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
+  }
+  const buckets = /* @__PURE__ */ new Map();
+  for (const it of kept) {
+    const key = `${baseLabel(normLabel(it.label))}\0${it.domain}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(it);
+  }
+  for (const rows of buckets.values()) {
+    const labels = new Set(rows.map((r6) => normLabel(r6.label)));
+    if (labels.size < 2) continue;
+    if (!rows.some((r6) => r6.area_id)) continue;
+    if (labelsForked(labels)) continue;
+    for (const it of rows) {
+      if (!it.area_id && it.device_id) kept.delete(it);
+    }
+  }
+  return items.filter((i8) => i8.kind !== "device" || kept.has(i8));
+}
+var SCORE_WORD_EXACT = 1500;
+var SCORE_LABEL_PREFIX = 1e3;
+var SCORE_WORD_PREFIX = 500;
+var SCORE_SUBSTRING = 100;
+var SCORE_SUBSEQUENCE = 10;
+var KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
+function _scoreItem(item, lowerQuery) {
+  const label = item._lowerLabel;
+  if (!label) return 0;
+  const words = label.split(/\s+/);
+  for (const w2 of words) {
+    if (w2 === lowerQuery) return SCORE_WORD_EXACT;
+  }
+  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
+  for (const w2 of words) {
+    if (w2.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
+  }
+  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
+  let qi = 0;
+  for (let i8 = 0; i8 < label.length && qi < lowerQuery.length; i8++) {
+    if (label[i8] === lowerQuery[qi]) qi += 1;
+  }
+  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
+  return 0;
+}
+function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
+  if (!items?.length || !domains?.length) return [];
+  const domainSet = new Set(domains);
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (!domainSet.has(it.domain)) continue;
+    out.push(it);
+  }
+  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
+  return out.slice(0, max);
+}
+function findExactMatches(items, kind, query, domains = null) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    if (it._lowerLabel === lowerQuery) out.push(it);
+  }
+  return out;
+}
+function rankSuggestions(
+  items,
+  kind,
+  query,
+  max = AUTOCOMPLETE_MAX_RESULTS,
+  domains = null,
+) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
+  const scored = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    const score = _scoreItem(it, lowerQuery);
+    if (score >= minScore) scored.push({ item: it, score });
+  }
+  scored.sort((a3, b3) => {
+    if (b3.score !== a3.score) return b3.score - a3.score;
+    if (a3.item.label.length !== b3.item.label.length) {
+      return a3.item.label.length - b3.item.label.length;
+    }
+    return a3.item.label.localeCompare(b3.item.label);
+  });
+  return scored.slice(0, max).map((s6) => s6.item);
+}
+function applySelection(text, trigger, item) {
+  const before = text.slice(0, trigger.start);
+  const after = text.slice(trigger.end);
+  const insert = item.label;
+  const needsSpace = !after.startsWith(" ");
+  const inserted = needsSpace ? insert + " " : insert;
+  const newText = before + inserted + after;
+  const newCaret = trigger.start + inserted.length;
+  return {
+    text: newText,
+    caret: newCaret,
+    range: [trigger.start, trigger.start + insert.length],
+  };
+}
+function buildEntityMarker(selections) {
+  if (!selections?.length) return "";
+  const seenEntities = /* @__PURE__ */ new Set();
+  const seenAreas = /* @__PURE__ */ new Set();
+  const entityIds = [];
+  const areaNames = [];
+  for (const sel of selections) {
+    if (sel.entity_id) {
+      if (seenEntities.has(sel.entity_id)) continue;
+      seenEntities.add(sel.entity_id);
+      entityIds.push(sel.entity_id);
+    } else if (sel.kind === "area" && sel.area_id) {
+      if (seenAreas.has(sel.area_id)) continue;
+      seenAreas.add(sel.area_id);
+      areaNames.push(sel.label);
+    }
+  }
+  const parts = [];
+  if (entityIds.length === 1) {
+    parts.push(`[[entity:${entityIds[0]}]]`);
+  } else if (entityIds.length > 1) {
+    parts.push(`[[entities:${entityIds.join(",")}]]`);
+  }
+  if (areaNames.length) {
+    parts.push(`[[areas:${areaNames.join(",")}]]`);
+  }
+  return parts.length ? "\n\n" + parts.join(" ") : "";
+}
+function stripEntityMarkers(text) {
+  if (typeof text !== "string" || !text) return text;
+  return text
+    .replace(/\s*\[\[(?:entity|entities|areas|details):[^\]]+\]\]/g, "")
+    .trimEnd();
+}
+function buildDetailsMarker(details) {
+  const text = String(details || "")
+    .replace(/\]/g, ")")
+    .trim();
+  return text
+    ? `
+
+[[details:${text}]]`
+    : "";
+}
+function messageDetails(text) {
+  if (typeof text !== "string") return "";
+  const match = text.match(/\[\[details:([^\]]+)\]\]/);
+  return match ? match[1].trim() : "";
+}
+function _escapeRegex(s6) {
+  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function _labelSpans(text, label) {
+  const startsWord = _WORD_CHAR_RE.test(label[0]);
+  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
+  const re = new RegExp(_escapeRegex(label), "gi"); // nosemgrep
+  const spans = [];
+  for (let m3 = re.exec(text); m3; m3 = re.exec(text)) {
+    const start = m3.index;
+    const end = start + m3[0].length;
+    const before = start > 0 ? text[start - 1] : "";
+    const after = end < text.length ? text[end] : "";
+    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
+    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
+    spans.push([start, end]);
+  }
+  return spans;
+}
+function pruneStaleSelections(text, selections, ignoreRange) {
+  if (!selections?.length) return selections;
+  const [skipFrom, skipTo] = ignoreRange || [];
+  const skipping =
+    typeof skipFrom === "number" &&
+    typeof skipTo === "number" &&
+    skipTo > skipFrom;
+  return selections.filter((s6) => {
+    if (!s6.label) return false;
+    const spans = _labelSpans(text, s6.label);
+    if (!skipping) return spans.length > 0;
+    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
+  });
+}
+
+// src/panel/camera-ideas.js
+var MAX_CHIPS = 3;
+var SNAPSHOT = [
+  "camera_idea_snapshot",
+  "Attach the camera snapshot to the notification as data image {image}.",
+];
+var TEXT = {
+  person_away: {
+    icon: "mdi:account-alert-outline",
+    title: [
+      "camera_idea_person_away_title",
+      "Alert me when someone is at {camera} while nobody is home",
+    ],
+    chip: ["camera_idea_person_away_chip", "Alert me when away"],
+    why: [
+      "camera_idea_person_away_why",
+      "{camera} detects people. With nobody home, a person there is worth a notification with a snapshot.",
+    ],
+    prompt: [
+      "camera_idea_person_away_prompt",
+      "Propose an automation I can review: when {trigger} turns on while {presence} is {presence_empty} (nobody is home), call {notify} to say a person was seen on {camera}.",
+    ],
+  },
+  person_night_light: {
+    icon: "mdi:lightbulb-on-outline",
+    title: [
+      "camera_idea_person_night_light_title",
+      "Turn on a light when someone is at {camera} after dark",
+    ],
+    chip: ["camera_idea_person_night_light_chip", "Light up at night"],
+    why: [
+      "camera_idea_person_night_light_why",
+      "{camera} detects people, and {light} is in the same area.",
+    ],
+    prompt: [
+      "camera_idea_person_night_light_prompt",
+      "Propose an automation I can review: when {trigger} turns on while sun.sun is below_horizon, turn on {light}, and turn it off again 5 minutes after {trigger} turns off.",
+    ],
+  },
+  animal: {
+    icon: "mdi:paw",
+    title: [
+      "camera_idea_animal_title",
+      "Tell me when an animal is at {camera}",
+    ],
+    chip: ["camera_idea_animal_chip", "Animal alert"],
+    why: [
+      "camera_idea_animal_why",
+      "{camera} detects animals: a pet in the garden, or a visitor that should not be there.",
+    ],
+    prompt: [
+      "camera_idea_animal_prompt",
+      "Propose an automation I can review: when {trigger} turns on, call {notify} to say an animal was seen on {camera}.",
+    ],
+  },
+  vehicle: {
+    icon: "mdi:car-outline",
+    title: [
+      "camera_idea_vehicle_title",
+      "Tell me when a car arrives at {camera}",
+    ],
+    chip: ["camera_idea_vehicle_chip", "Car alert"],
+    why: [
+      "camera_idea_vehicle_why",
+      "{camera} detects cars, so a delivery or a visitor arriving can be announced.",
+    ],
+    prompt: [
+      "camera_idea_vehicle_prompt",
+      "Propose an automation I can review: when {trigger} turns on, call {notify} to say a car arrived at {camera}.",
+    ],
+  },
+  watch_scene: {
+    icon: "mdi:cctv",
+    title: [
+      "camera_idea_watch_scene_title",
+      "Create a scene that turns on every camera's recording and detection",
+    ],
+    why: [
+      "camera_idea_watch_scene_why",
+      "One tap before you leave, instead of switching each camera on.",
+    ],
+    prompt: [
+      "camera_idea_watch_scene_prompt",
+      "Propose a scene I can review, called Watch, that turns on {switches}.",
+    ],
+  },
+};
+function describeIdea(host, idea) {
+  const text = TEXT[idea?.kind];
+  if (!text) return null;
+  const values = { camera: idea.camera?.name || "", ...(idea.facts || {}) };
+  const t5 = ([key, fallback]) => interpolate(host._t(key, fallback), values);
+  return {
+    icon: text.icon,
+    title: t5(text.title),
+    chip: text.chip ? t5(text.chip) : t5(text.title),
+    why: [t5(text.why)],
+    // The snapshot goes in only when the notifier can carry one: HA's own
+    // notifications take a title and a message, nothing else.
+    prompt: idea.facts?.image
+      ? `${t5(text.prompt)} ${t5(SNAPSHOT)}`
+      : t5(text.prompt),
+  };
+}
+function ideaMessage(host, idea) {
+  const d3 = describeIdea(host, idea);
+  return d3 ? d3.title + buildDetailsMarker(d3.prompt) : "";
+}
+var IDEAS = /* @__PURE__ */ new Map();
+var FRESH_MS = 60 * 1e3;
+async function loadIdeas(host, cameraEntity) {
+  const previous = IDEAS.get(cameraEntity);
+  IDEAS.set(cameraEntity, { at: Date.now(), ideas: previous?.ideas || [] });
+  try {
+    const result = await host.hass.callWS({
+      type: "selora_ai/frigate/ideas",
+      camera_entity: cameraEntity,
+    });
+    IDEAS.set(cameraEntity, { at: Date.now(), ideas: result?.ideas || [] });
+  } catch (err) {
+    console.error("Failed to load camera ideas", err);
+  }
+  host.requestUpdate?.();
+}
+function renderIdeaChips(host, cameraEntity) {
+  const loaded = IDEAS.get(cameraEntity);
+  if (!loaded || Date.now() - loaded.at > FRESH_MS) {
+    loadIdeas(host, cameraEntity);
+    if (!loaded) return "";
+  }
+  const ideas = loaded.ideas.slice(0, MAX_CHIPS);
+  if (!ideas.length) return "";
+  return b2`
+    <div class="camera-ideas">
+      <span class="camera-ideas-label"
+        >${host._t("camera_ideas_label", "Ideas")}</span
+      >
+      ${ideas.map((idea) => {
+        const d3 = describeIdea(host, idea);
+        if (!d3) return "";
+        return b2`<button
+          class="camera-idea-chip"
+          title=${d3.title}
+          @click=${() => host._quickStart(ideaMessage(host, idea))}
+        >
+          <ha-icon icon=${d3.icon}></ha-icon>
+          <span>${d3.chip}</span>
+        </button>`;
+      })}
+    </div>
+  `;
+}
+
 // src/panel/render-frigate-result.js
 var SLOW_AFTER_MS = 3 * 60 * 1e3;
-var FRESH_MS = 60 * 1e3;
+var FRESH_MS2 = 60 * 1e3;
 function age(msg) {
   const at = Date.parse(msg.timestamp || "");
   return Number.isNaN(at) ? Infinity : Date.now() - at;
@@ -29334,6 +31330,7 @@ function renderAdded(host, msg, result, camera) {
             ></div>`
           : "";
       })()}
+      ${renderIdeaChips(host, cameraId)}
     </div>
   `;
 }
@@ -29385,7 +31382,7 @@ var TAGS = {
 function renderFrigateResult(host, msg) {
   const result = msg.frigate_result;
   if (!result || !Array.isArray(result.cameras)) return "";
-  const fresh = age(msg) < FRESH_MS;
+  const fresh = age(msg) < FRESH_MS2;
   const [tagKey, tagFallback] = TAGS[result.action] || TAGS.added;
   return b2`
     <div class="frigate-result${fresh ? " pop-in" : ""}">
@@ -29903,7 +31900,7 @@ var _LIST_CONNECTORS = {
   nl: { last: " en ", oxford: " en " },
   hu: { last: " \xE9s ", oxford: " \xE9s " },
 };
-function _langKey(language, table) {
+function _langKey2(language, table) {
   const base = String(language || "en")
     .toLowerCase()
     .split("-")[0];
@@ -29913,7 +31910,7 @@ function fmtEntities(hass, val, language) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
   if (arr.length === 1) return fmtEntity(hass, arr[0]);
-  const c6 = _LIST_CONNECTORS[_langKey(language, _LIST_CONNECTORS)];
+  const c6 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
   if (arr.length === 2)
     return `${fmtEntity(hass, arr[0])}${c6.last}${fmtEntity(hass, arr[1])}`;
   return (
@@ -30035,7 +32032,7 @@ var _STATE_NAMES = {
 function fmtState(state, language) {
   if (state == null) return null;
   const s6 = String(state);
-  const table = _STATE_NAMES[_langKey(language, _STATE_NAMES)];
+  const table = _STATE_NAMES[_langKey2(language, _STATE_NAMES)];
   return table[s6] || s6.replace(/_/g, " ");
 }
 function fmtDuration(value) {
@@ -30117,7 +32114,7 @@ var _WEEKDAYS = {
 };
 function fmtWeekdays(value, language) {
   if (!value) return "";
-  const dayMap = _WEEKDAYS[_langKey(language, _WEEKDAYS)];
+  const dayMap = _WEEKDAYS[_langKey2(language, _WEEKDAYS)];
   const days = Array.isArray(value) ? value : [value];
   return days.map((d3) => dayMap[String(d3)] || humanizeToken(d3)).join(", ");
 }
@@ -32428,7 +34425,7 @@ async function resolveClientActions(host, msg, approval) {
 }
 
 // src/panel/action-format.js
-var DOMAIN_ICONS = {
+var DOMAIN_ICONS2 = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
   scene: "mdi:palette",
@@ -32525,7 +34522,7 @@ function _friendlyName(host, entityId) {
   return host?.hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
 }
 function actionIcon(service) {
-  return DOMAIN_ICONS[_domainOf(service)] || "mdi:cog-play-outline";
+  return DOMAIN_ICONS2[_domainOf(service)] || "mdi:cog-play-outline";
 }
 function callTargetEntityIds(call) {
   const raw =
@@ -35716,7 +37713,7 @@ function renderFlowEntityLink(host, entityId) {
   const friendly = stateObj?.attributes?.friendly_name || entityId;
   const icon =
     stateObj?.attributes?.icon ||
-    DOMAIN_ICONS2[entityId.split(".")[0]] ||
+    DOMAIN_ICONS3[entityId.split(".")[0]] ||
     "mdi:circle-medium";
   return b2`<button
     type="button"
@@ -35737,7 +37734,7 @@ function renderFlowEntityLink(host, entityId) {
   </button>`;
 }
 function renderFlowDeviceLink(host, deviceId, name, domain) {
-  const icon = (domain && DOMAIN_ICONS2[domain]) || "mdi:devices";
+  const icon = (domain && DOMAIN_ICONS3[domain]) || "mdi:devices";
   return b2`<button
     type="button"
     class="flow-entity-link"
@@ -39572,1338 +41569,6 @@ function renderRestoreCard(host, msg) {
   </div>`;
 }
 
-// src/panel/chat-autocomplete.js
-var AUTOCOMPLETE_MIN_CHARS = 3;
-var AUTOCOMPLETE_MAX_RESULTS = 6;
-var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
-  "light",
-  "switch",
-  "lock",
-  "cover",
-  "fan",
-  "media_player",
-  "climate",
-  "vacuum",
-  "camera",
-  "humidifier",
-  "water_heater",
-  "input_boolean",
-  "input_select",
-  "input_number",
-  "input_button",
-  "remote",
-  "lawn_mower",
-]);
-var SENSOR_DOMAINS = /* @__PURE__ */ new Set(["sensor", "binary_sensor"]);
-var SENSOR_DEVICE_CLASS_ICONS = {
-  motion: "mdi:motion-sensor",
-  occupancy: "mdi:motion-sensor",
-  presence: "mdi:home-account",
-  door: "mdi:door",
-  garage_door: "mdi:garage",
-  window: "mdi:window-closed-variant",
-  opening: "mdi:square-outline",
-  moisture: "mdi:water-alert",
-  smoke: "mdi:smoke-detector",
-  gas: "mdi:gas-cylinder",
-  carbon_monoxide: "mdi:molecule-co",
-  carbon_dioxide: "mdi:molecule-co2",
-  vibration: "mdi:vibrate",
-  sound: "mdi:volume-high",
-  tamper: "mdi:shield-alert",
-  temperature: "mdi:thermometer",
-  humidity: "mdi:water-percent",
-  illuminance: "mdi:brightness-5",
-  pressure: "mdi:gauge",
-  power: "mdi:flash",
-  energy: "mdi:lightning-bolt",
-  pm25: "mdi:air-filter",
-};
-var DOMAIN_ICONS3 = {
-  light: "mdi:lightbulb",
-  switch: "mdi:toggle-switch",
-  lock: "mdi:lock",
-  cover: "mdi:window-shutter",
-  fan: "mdi:fan",
-  media_player: "mdi:speaker",
-  climate: "mdi:thermostat",
-  vacuum: "mdi:robot-vacuum",
-  camera: "mdi:cctv",
-  humidifier: "mdi:air-humidifier",
-  water_heater: "mdi:water-boiler",
-  remote: "mdi:remote",
-  lawn_mower: "mdi:mower",
-  input_boolean: "mdi:toggle-switch-outline",
-  input_select: "mdi:form-dropdown",
-  input_number: "mdi:numeric",
-  input_button: "mdi:gesture-tap-button",
-  sensor: "mdi:gauge",
-  binary_sensor: "mdi:checkbox-marked-circle-outline",
-  scene: "mdi:palette",
-  automation: "mdi:robot",
-  script: "mdi:script-text",
-  area: "mdi:floor-plan",
-};
-var sensorCapable = (pattern) => ({
-  kind: "device",
-  pattern,
-  includeAreas: true,
-  includeSensors: true,
-});
-var BASE_TRIGGERS = [sensorCapable(/(?:^|\s)@$/)];
-var LOCALE_TRIGGERS = {
-  en: [
-    { kind: "area", pattern: /\bin (?:the |a )?$/i },
-    { kind: "area", pattern: /\bof (?:the |a )?$/i },
-    { kind: "scene", pattern: /\bactivate $/i },
-    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
-    { kind: "scene", pattern: /\bscene $/i },
-    { kind: "automation", pattern: /\brun $/i },
-    { kind: "automation", pattern: /\btrigger $/i },
-    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:open|close) (?:the |my )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:start|stop) (?:the |my )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:when|whenever|if|while|once) (?:the |a |an |my )?$/i),
-    sensorCapable(/\bthe $/i),
-    sensorCapable(/\bmy $/i),
-  ],
-  fr: [
-    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
-    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
-    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
-    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
-    { kind: "scene", pattern: /\bscène $/i },
-    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
-    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
-    {
-      kind: "automation",
-      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:quand|lorsque|lorsqu['’]|si|dès que) (?:la |le |les |l['’]|mon |ma |mes )?$/i,
-    ),
-    sensorCapable(/\ble $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\bles $/i),
-    sensorCapable(/\bl['’]$/i),
-    sensorCapable(/\bmon $/i),
-    sensorCapable(/\bma $/i),
-    sensorCapable(/\bmes $/i),
-  ],
-  de: [
-    { kind: "area", pattern: /\bim $/i },
-    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
-    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
-    { kind: "scene", pattern: /\bSzene $/i },
-    {
-      kind: "automation",
-      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
-    },
-    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\bdimme (?:die |das |meine )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:wenn|falls|sobald) (?:die |der |das |den |mein(?:e|en|er|em)? )?$/i,
-    ),
-    sensorCapable(/\bdie $/i),
-    sensorCapable(/\bder $/i),
-    sensorCapable(/\bdas $/i),
-    sensorCapable(/\bden $/i),
-    sensorCapable(/\bmein(?:e|en|er|em)? $/i),
-  ],
-  es: [
-    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
-    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
-    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
-    { kind: "scene", pattern: /\bescena $/i },
-    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
-    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
-    {
-      kind: "device",
-      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(
-      /\b(?:cuando|si|en cuanto) (?:la |el |los |las |mi |mis )?$/i,
-    ),
-    sensorCapable(/\bel $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\blos $/i),
-    sensorCapable(/\blas $/i),
-    sensorCapable(/\bmi $/i),
-    sensorCapable(/\bmis $/i),
-  ],
-  it: [
-    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
-    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
-    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
-    { kind: "scene", pattern: /\bscena $/i },
-    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
-    {
-      kind: "automation",
-      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern:
-        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:quando|se|appena) (?:la |il |le |i |gli |lo )?$/i),
-    sensorCapable(/\bil $/i),
-    sensorCapable(/\bla $/i),
-    sensorCapable(/\bi $/i),
-    sensorCapable(/\ble $/i),
-    sensorCapable(/\bgli $/i),
-    sensorCapable(/\blo $/i),
-    sensorCapable(/\bmio $/i),
-    sensorCapable(/\bmia $/i),
-    sensorCapable(/\bmiei $/i),
-  ],
-  nl: [
-    { kind: "area", pattern: /\bin (?:de |het )?$/i },
-    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
-    { kind: "scene", pattern: /\bscène $/i },
-    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
-    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
-    {
-      kind: "device",
-      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\bdim (?:de |het |mijn )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:als|wanneer|zodra) (?:de |het |mijn )?$/i),
-    sensorCapable(/\bde $/i),
-    sensorCapable(/\bhet $/i),
-    sensorCapable(/\bmijn $/i),
-  ],
-  hu: [
-    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
-    { kind: "scene", pattern: /\bjelenet $/i },
-    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
-    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
-    {
-      kind: "device",
-      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
-      domains: ["lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
-      domains: ["light"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
-      domains: ["cover", "lock"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
-      domains: ["media_player"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
-      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-    },
-    {
-      kind: "device",
-      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
-      includeAreas: true,
-    },
-    sensorCapable(/\b(?:amikor|ha|amint) (?:a |az )?$/i),
-    sensorCapable(/\ba $/i),
-    sensorCapable(/\baz $/i),
-  ],
-};
-function _toUnicodeBoundary(re) {
-  let src = re.source;
-  if (src.startsWith("\\b")) {
-    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
-  }
-  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
-  return new RegExp(src, flags); // nosemgrep
-}
-for (const t5 of BASE_TRIGGERS) {
-  t5.pattern = _toUnicodeBoundary(t5.pattern);
-}
-for (const list of Object.values(LOCALE_TRIGGERS)) {
-  for (const t5 of list) {
-    t5.pattern = _toUnicodeBoundary(t5.pattern);
-  }
-}
-function _langKey2(lang) {
-  const base = String(lang || "en")
-    .toLowerCase()
-    .split("-")[0];
-  return LOCALE_TRIGGERS[base] ? base : "en";
-}
-function _triggersFor(lang) {
-  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey2(lang)]];
-}
-var QUERY_STOP_RE = /[\n.?!]/;
-var MAX_QUERY_LEN = 40;
-var GHOST_VOCABULARY_BY_LANG = {
-  en: [
-    "automation",
-    "automations",
-    "trigger",
-    "triggers",
-    "condition",
-    "conditions",
-    "action",
-    "actions",
-    "scene",
-    "scenes",
-    "script",
-    "scripts",
-    "device",
-    "devices",
-    "entity",
-    "entities",
-    "schedule",
-    "weekday",
-    "weekdays",
-    "weekend",
-    "weekends",
-    "midnight",
-    "morning",
-    "afternoon",
-    "evening",
-    "sunrise",
-    "sunset",
-    "minutes",
-    "hours",
-    "seconds",
-    "temperature",
-    "brightness",
-    "thermostat",
-    "lights",
-    "lighting",
-    "bedroom",
-    "bathroom",
-    "kitchen",
-    "living",
-    "garage",
-    "office",
-    "hallway",
-    "basement",
-    "downstairs",
-    "upstairs",
-    "outside",
-    "create",
-    "suggest",
-    "notify",
-    "notification",
-    "between",
-    "before",
-    "after",
-    "during",
-    "while",
-    "everyone",
-    "nobody",
-  ],
-  fr: [
-    "automatisation",
-    "automatisations",
-    "d\xE9clencheur",
-    "d\xE9clencheurs",
-    "condition",
-    "conditions",
-    "action",
-    "actions",
-    "sc\xE8ne",
-    "sc\xE8nes",
-    "script",
-    "scripts",
-    "appareil",
-    "appareils",
-    "entit\xE9",
-    "entit\xE9s",
-    "planification",
-    "semaine",
-    "week-end",
-    "minuit",
-    "matin",
-    "apr\xE8s-midi",
-    "soir",
-    "lever",
-    "coucher",
-    "minutes",
-    "heures",
-    "secondes",
-    "temp\xE9rature",
-    "luminosit\xE9",
-    "thermostat",
-    "lumi\xE8re",
-    "lumi\xE8res",
-    "\xE9clairage",
-    "chambre",
-    "salle de bains",
-    "cuisine",
-    "salon",
-    "garage",
-    "bureau",
-    "couloir",
-    "sous-sol",
-    "\xE9tage",
-    "rez-de-chauss\xE9e",
-    "ext\xE9rieur",
-    "cr\xE9er",
-    "sugg\xE9rer",
-    "notifier",
-    "notification",
-    "entre",
-    "avant",
-    "apr\xE8s",
-    "pendant",
-    "tout le monde",
-    "personne",
-  ],
-  de: [
-    "Automatisierung",
-    "Automatisierungen",
-    "Ausl\xF6ser",
-    "Bedingung",
-    "Bedingungen",
-    "Aktion",
-    "Aktionen",
-    "Szene",
-    "Szenen",
-    "Skript",
-    "Skripte",
-    "Ger\xE4t",
-    "Ger\xE4te",
-    "Entit\xE4t",
-    "Entit\xE4ten",
-    "Zeitplan",
-    "Wochentag",
-    "Wochenende",
-    "Mitternacht",
-    "Morgen",
-    "Nachmittag",
-    "Abend",
-    "Sonnenaufgang",
-    "Sonnenuntergang",
-    "Minuten",
-    "Stunden",
-    "Sekunden",
-    "Temperatur",
-    "Helligkeit",
-    "Thermostat",
-    "Licht",
-    "Lichter",
-    "Beleuchtung",
-    "Schlafzimmer",
-    "Badezimmer",
-    "K\xFCche",
-    "Wohnzimmer",
-    "Garage",
-    "B\xFCro",
-    "Flur",
-    "Keller",
-    "drau\xDFen",
-    "erstelle",
-    "vorschlagen",
-    "benachrichtigen",
-    "Benachrichtigung",
-    "zwischen",
-    "vor",
-    "nach",
-    "w\xE4hrend",
-    "jeder",
-    "niemand",
-  ],
-  es: [
-    "automatizaci\xF3n",
-    "automatizaciones",
-    "disparador",
-    "disparadores",
-    "condici\xF3n",
-    "condiciones",
-    "acci\xF3n",
-    "acciones",
-    "escena",
-    "escenas",
-    "script",
-    "scripts",
-    "dispositivo",
-    "dispositivos",
-    "entidad",
-    "entidades",
-    "programaci\xF3n",
-    "semana",
-    "fin de semana",
-    "medianoche",
-    "ma\xF1ana",
-    "tarde",
-    "noche",
-    "amanecer",
-    "atardecer",
-    "minutos",
-    "horas",
-    "segundos",
-    "temperatura",
-    "brillo",
-    "termostato",
-    "luz",
-    "luces",
-    "iluminaci\xF3n",
-    "dormitorio",
-    "ba\xF1o",
-    "cocina",
-    "sal\xF3n",
-    "garaje",
-    "oficina",
-    "pasillo",
-    "s\xF3tano",
-    "exterior",
-    "crear",
-    "sugerir",
-    "notificar",
-    "notificaci\xF3n",
-    "entre",
-    "antes",
-    "despu\xE9s",
-    "durante",
-    "mientras",
-    "todos",
-    "nadie",
-  ],
-  it: [
-    "automazione",
-    "automazioni",
-    "trigger",
-    "condizione",
-    "condizioni",
-    "azione",
-    "azioni",
-    "scena",
-    "scene",
-    "script",
-    "dispositivo",
-    "dispositivi",
-    "entit\xE0",
-    "pianificazione",
-    "settimana",
-    "fine settimana",
-    "mezzanotte",
-    "mattina",
-    "pomeriggio",
-    "sera",
-    "alba",
-    "tramonto",
-    "minuti",
-    "ore",
-    "secondi",
-    "temperatura",
-    "luminosit\xE0",
-    "termostato",
-    "luce",
-    "luci",
-    "illuminazione",
-    "camera",
-    "bagno",
-    "cucina",
-    "soggiorno",
-    "garage",
-    "ufficio",
-    "corridoio",
-    "cantina",
-    "esterno",
-    "crea",
-    "suggerisci",
-    "notifica",
-    "tra",
-    "prima",
-    "dopo",
-    "durante",
-    "mentre",
-    "tutti",
-    "nessuno",
-  ],
-  nl: [
-    "automatisering",
-    "automatiseringen",
-    "trigger",
-    "triggers",
-    "voorwaarde",
-    "voorwaarden",
-    "actie",
-    "acties",
-    "sc\xE8ne",
-    "sc\xE8nes",
-    "script",
-    "scripts",
-    "apparaat",
-    "apparaten",
-    "entiteit",
-    "entiteiten",
-    "planning",
-    "weekdag",
-    "weekend",
-    "middernacht",
-    "ochtend",
-    "middag",
-    "avond",
-    "zonsopgang",
-    "zonsondergang",
-    "minuten",
-    "uren",
-    "seconden",
-    "temperatuur",
-    "helderheid",
-    "thermostaat",
-    "licht",
-    "lichten",
-    "verlichting",
-    "slaapkamer",
-    "badkamer",
-    "keuken",
-    "woonkamer",
-    "garage",
-    "kantoor",
-    "gang",
-    "kelder",
-    "buiten",
-    "maak",
-    "suggereer",
-    "meld",
-    "melding",
-    "tussen",
-    "voor",
-    "na",
-    "tijdens",
-    "terwijl",
-    "iedereen",
-    "niemand",
-  ],
-  hu: [
-    "automatizmus",
-    "automatizmusok",
-    "trigger",
-    "triggerek",
-    "felt\xE9tel",
-    "felt\xE9telek",
-    "m\u0171velet",
-    "m\u0171veletek",
-    "jelenet",
-    "jelenetek",
-    "szkript",
-    "szkriptek",
-    "eszk\xF6z",
-    "eszk\xF6z\xF6k",
-    "entit\xE1s",
-    "entit\xE1sok",
-    "\xFCtemez\xE9s",
-    "h\xE9tk\xF6znap",
-    "h\xE9tv\xE9ge",
-    "\xE9jf\xE9l",
-    "reggel",
-    "d\xE9lut\xE1n",
-    "este",
-    "napkelte",
-    "napnyugta",
-    "percek",
-    "\xF3r\xE1k",
-    "m\xE1sodpercek",
-    "h\u0151m\xE9rs\xE9klet",
-    "f\xE9nyer\u0151",
-    "termoszt\xE1t",
-    "f\xE9ny",
-    "f\xE9nyek",
-    "vil\xE1g\xEDt\xE1s",
-    "h\xE1l\xF3szoba",
-    "f\xFCrd\u0151szoba",
-    "konyha",
-    "nappali",
-    "gar\xE1zs",
-    "iroda",
-    "folyos\xF3",
-    "pince",
-    "kint",
-    "l\xE9trehoz",
-    "javasol",
-    "\xE9rtes\xEDt",
-    "\xE9rtes\xEDt\xE9s",
-    "k\xF6z\xF6tt",
-    "el\u0151tt",
-    "ut\xE1n",
-    "alatt",
-    "k\xF6zben",
-    "mindenki",
-    "senki",
-  ],
-};
-var _ghostSorted = {};
-function _ghostVocabFor(lang) {
-  const key = GHOST_VOCABULARY_BY_LANG[_langKey2(lang)]
-    ? _langKey2(lang)
-    : "en";
-  if (!_ghostSorted[key]) {
-    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
-      (a3, b3) => a3.length - b3.length,
-    );
-  }
-  return _ghostSorted[key];
-}
-var GHOST_MIN_PREFIX = 3;
-var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
-function _partialWordAt(text, caret) {
-  if (caret <= 0) return null;
-  let i8 = caret;
-  while (i8 > 0 && _WORD_CHAR_RE.test(text[i8 - 1])) i8--;
-  const word = text.slice(i8, caret);
-  if (!word) return null;
-  return { word, start: i8 };
-}
-function findGhostSuggestion(text, caret, lang) {
-  if (typeof text !== "string") return null;
-  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
-  const part = _partialWordAt(text, caret);
-  if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
-  const lower = part.word.toLowerCase();
-  for (const w2 of _ghostVocabFor(lang)) {
-    const wLower = w2.toLowerCase();
-    if (wLower === lower) return null;
-    if (wLower.startsWith(lower)) {
-      return {
-        suffix: w2.slice(part.word.length),
-        word: w2,
-        start: part.start,
-      };
-    }
-  }
-  return null;
-}
-var ARTICLE_WORDS_BY_LANG = {
-  en: ["the", "my", "a", "an"],
-  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
-  de: [
-    "die",
-    "der",
-    "das",
-    "den",
-    "dem",
-    "mein",
-    "meine",
-    "meinen",
-    "meiner",
-    "meinem",
-    "ein",
-    "eine",
-    "einen",
-  ],
-  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
-  it: [
-    "il",
-    "la",
-    "lo",
-    "i",
-    "le",
-    "gli",
-    "mio",
-    "mia",
-    "miei",
-    "mie",
-    "un",
-    "una",
-    "uno",
-  ],
-  nl: ["de", "het", "een", "mijn"],
-  hu: ["a", "az", "egy"],
-};
-function _articleWordsFor(lang) {
-  const key = ARTICLE_WORDS_BY_LANG[_langKey2(lang)] ? _langKey2(lang) : "en";
-  return new Set(ARTICLE_WORDS_BY_LANG[key]);
-}
-var _INTRA_WORD_RE = /['’-]/;
-function _isNameChar(text, i8) {
-  if (i8 < 0 || i8 >= text.length) return false;
-  if (_WORD_CHAR_RE.test(text[i8])) return true;
-  if (!_INTRA_WORD_RE.test(text[i8])) return false;
-  return (
-    i8 > 0 &&
-    i8 + 1 < text.length &&
-    _WORD_CHAR_RE.test(text[i8 - 1]) &&
-    _WORD_CHAR_RE.test(text[i8 + 1])
-  );
-}
-function _completionSpan(text, caret, labels) {
-  let start = -1;
-  let end = caret;
-  for (const label of labels || []) {
-    if (!label) continue;
-    for (const [from, to] of _labelSpans(text, label)) {
-      if (caret <= from || caret >= to) continue;
-      if (to < end) continue;
-      if (to === end && start >= 0 && from >= start) continue;
-      start = from;
-      end = to;
-    }
-  }
-  if (end > caret) return { start, end };
-  if (!_isNameChar(text, caret - 1) || !_isNameChar(text, caret)) {
-    return { start: -1, end };
-  }
-  while (_isNameChar(text, end)) end += 1;
-  return { start: -1, end };
-}
-function detectTrigger(text, caret, lang, labels) {
-  if (typeof text !== "string" || caret == null || caret < 0) return null;
-  const before = text.slice(0, caret);
-  const completion = _completionSpan(text, caret, labels);
-  const triggers = _triggersFor(lang);
-  const articleWords = _articleWordsFor(lang);
-  let queryStart = caret;
-  while (queryStart > 0) {
-    const ch = before[queryStart - 1];
-    if (QUERY_STOP_RE.test(ch)) break;
-    queryStart -= 1;
-    if (caret - queryStart > MAX_QUERY_LEN) break;
-  }
-  let best = null;
-  for (let qs = queryStart; qs <= caret; qs++) {
-    const prefix = before.slice(0, qs);
-    for (const trig of triggers) {
-      if (trig.pattern.test(prefix)) {
-        best = {
-          kind: trig.kind,
-          query: before.slice(qs, caret),
-          start: qs,
-          end: completion.end,
-          domains: trig.domains || null,
-          includeAreas: !!trig.includeAreas,
-          includeSensors: !!trig.includeSensors,
-        };
-        break;
-      }
-    }
-  }
-  if (!best) return null;
-  if (!best.query.trim() && !best.domains) return null;
-  if (articleWords.has(best.query.trim().toLowerCase())) return null;
-  if (completion.start >= 0 && completion.start < best.start) {
-    best.start = completion.start;
-  }
-  return best;
-}
-function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
-  const items = [];
-  if (!hass?.states) return items;
-  const areaById = {};
-  if (areas && typeof areas === "object") {
-    for (const [id, a3] of Object.entries(areas)) {
-      areaById[id] = a3?.name || a3?.area_id || id;
-    }
-  }
-  const fullEntReg = entities || {};
-  const displayEntReg = hass.entities || {};
-  for (const [entityId, state] of Object.entries(hass.states)) {
-    const domain = entityId.split(".")[0];
-    const friendly = state?.attributes?.friendly_name;
-    if (!friendly) continue;
-    const entry = fullEntReg[entityId] || displayEntReg[entityId];
-    let areaId = entry?.area_id || null;
-    if (!areaId && entry?.device_id && devices) {
-      areaId = devices[entry.device_id]?.area_id || null;
-    }
-    const areaName = areaId ? areaById[areaId] || null : null;
-    if (SENSOR_DOMAINS.has(domain)) {
-      if (entry?.entity_category) continue;
-      if (entry?.hidden_by || entry?.hidden) continue;
-      items.push({
-        kind: "sensor",
-        domain,
-        entity_id: entityId,
-        device_id: entry?.device_id || null,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon:
-          state?.attributes?.icon ||
-          SENSOR_DEVICE_CLASS_ICONS[state?.attributes?.device_class] ||
-          DOMAIN_ICONS3[domain],
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (DEVICE_DOMAINS.has(domain)) {
-      items.push({
-        kind: "device",
-        domain,
-        entity_id: entityId,
-        device_id: entry?.device_id || null,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon: DOMAIN_ICONS3[domain] || "mdi:devices",
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "scene") {
-      items.push({
-        kind: "scene",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: areaId,
-        area: areaName,
-        icon: DOMAIN_ICONS3.scene,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "automation") {
-      items.push({
-        kind: "automation",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: null,
-        area: null,
-        icon: DOMAIN_ICONS3.automation,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    } else if (domain === "script") {
-      items.push({
-        kind: "automation",
-        domain,
-        entity_id: entityId,
-        label: friendly,
-        area_id: null,
-        area: null,
-        icon: DOMAIN_ICONS3.script,
-        _lowerLabel: friendly.toLowerCase(),
-      });
-    }
-  }
-  for (const [areaId, name] of Object.entries(areaById)) {
-    items.push({
-      kind: "area",
-      entity_id: null,
-      area_id: areaId,
-      label: name,
-      area: null,
-      icon: DOMAIN_ICONS3.area,
-      _lowerLabel: name.toLowerCase(),
-    });
-  }
-  return dedupeDeviceItems(items);
-}
-var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
-function normLabel(s6) {
-  return s6.toLowerCase().replace(/\s+/g, " ").trim();
-}
-function baseLabel(normalized) {
-  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
-}
-function isParenPrefix(shorter, longer) {
-  if (shorter === longer) return true;
-  if (!longer.startsWith(shorter)) return false;
-  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
-}
-function labelsForked(labels) {
-  const sorted = [...labels].sort((a3, b3) => a3.length - b3.length);
-  for (let i8 = 0; i8 + 1 < sorted.length; i8++) {
-    if (!isParenPrefix(sorted[i8], sorted[i8 + 1])) return true;
-  }
-  return false;
-}
-function dedupeDeviceItems(items) {
-  const devices = items.filter((i8) => i8.kind === "device");
-  const domainsByDevice = /* @__PURE__ */ new Map();
-  for (const it of devices) {
-    if (!it.device_id) continue;
-    if (!domainsByDevice.has(it.device_id)) {
-      domainsByDevice.set(it.device_id, /* @__PURE__ */ new Set());
-    }
-    domainsByDevice.get(it.device_id).add(it.domain);
-  }
-  const kept = /* @__PURE__ */ new Set();
-  const seenIdentity = /* @__PURE__ */ new Set();
-  for (const it of devices) {
-    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
-    if (
-      parent &&
-      it.device_id &&
-      domainsByDevice.get(it.device_id)?.has(parent)
-    ) {
-      continue;
-    }
-    const disambig = it.device_id || it.entity_id;
-    const identity = `${disambig}\0${it._lowerLabel}\0${it.area_id || ""}\0${it.domain}`;
-    if (seenIdentity.has(identity)) continue;
-    seenIdentity.add(identity);
-    kept.add(it);
-  }
-  const sameDeviceAreaTagged = /* @__PURE__ */ new Set();
-  for (const it of kept) {
-    if (it.area_id && it.device_id) {
-      sameDeviceAreaTagged.add(
-        `${it.device_id}\0${it._lowerLabel}\0${it.domain}`,
-      );
-    }
-  }
-  for (const it of [...kept]) {
-    if (it.area_id || !it.device_id) continue;
-    const key = `${it.device_id}\0${it._lowerLabel}\0${it.domain}`;
-    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
-  }
-  const buckets = /* @__PURE__ */ new Map();
-  for (const it of kept) {
-    const key = `${baseLabel(normLabel(it.label))}\0${it.domain}`;
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key).push(it);
-  }
-  for (const rows of buckets.values()) {
-    const labels = new Set(rows.map((r6) => normLabel(r6.label)));
-    if (labels.size < 2) continue;
-    if (!rows.some((r6) => r6.area_id)) continue;
-    if (labelsForked(labels)) continue;
-    for (const it of rows) {
-      if (!it.area_id && it.device_id) kept.delete(it);
-    }
-  }
-  return items.filter((i8) => i8.kind !== "device" || kept.has(i8));
-}
-var SCORE_WORD_EXACT = 1500;
-var SCORE_LABEL_PREFIX = 1e3;
-var SCORE_WORD_PREFIX = 500;
-var SCORE_SUBSTRING = 100;
-var SCORE_SUBSEQUENCE = 10;
-var KIND_MIN_SCORE = { sensor: SCORE_SUBSTRING };
-function _scoreItem(item, lowerQuery) {
-  const label = item._lowerLabel;
-  if (!label) return 0;
-  const words = label.split(/\s+/);
-  for (const w2 of words) {
-    if (w2 === lowerQuery) return SCORE_WORD_EXACT;
-  }
-  if (label.startsWith(lowerQuery)) return SCORE_LABEL_PREFIX;
-  for (const w2 of words) {
-    if (w2.startsWith(lowerQuery)) return SCORE_WORD_PREFIX;
-  }
-  if (label.includes(lowerQuery)) return SCORE_SUBSTRING;
-  let qi = 0;
-  for (let i8 = 0; i8 < label.length && qi < lowerQuery.length; i8++) {
-    if (label[i8] === lowerQuery[qi]) qi += 1;
-  }
-  if (qi === lowerQuery.length) return SCORE_SUBSEQUENCE;
-  return 0;
-}
-function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
-  if (!items?.length || !domains?.length) return [];
-  const domainSet = new Set(domains);
-  const out = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (!domainSet.has(it.domain)) continue;
-    out.push(it);
-  }
-  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
-  return out.slice(0, max);
-}
-function findExactMatches(items, kind, query, domains = null) {
-  if (!items?.length || !query) return [];
-  const lowerQuery = query.trim().toLowerCase();
-  if (!lowerQuery) return [];
-  const domainSet = domains ? new Set(domains) : null;
-  const out = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (domainSet && !domainSet.has(it.domain)) continue;
-    if (it._lowerLabel === lowerQuery) out.push(it);
-  }
-  return out;
-}
-function rankSuggestions(
-  items,
-  kind,
-  query,
-  max = AUTOCOMPLETE_MAX_RESULTS,
-  domains = null,
-) {
-  if (!items?.length || !query) return [];
-  const lowerQuery = query.trim().toLowerCase();
-  if (!lowerQuery) return [];
-  const domainSet = domains ? new Set(domains) : null;
-  const minScore = KIND_MIN_SCORE[kind] || SCORE_SUBSEQUENCE;
-  const scored = [];
-  for (const it of items) {
-    if (it.kind !== kind) continue;
-    if (domainSet && !domainSet.has(it.domain)) continue;
-    const score = _scoreItem(it, lowerQuery);
-    if (score >= minScore) scored.push({ item: it, score });
-  }
-  scored.sort((a3, b3) => {
-    if (b3.score !== a3.score) return b3.score - a3.score;
-    if (a3.item.label.length !== b3.item.label.length) {
-      return a3.item.label.length - b3.item.label.length;
-    }
-    return a3.item.label.localeCompare(b3.item.label);
-  });
-  return scored.slice(0, max).map((s6) => s6.item);
-}
-function applySelection(text, trigger, item) {
-  const before = text.slice(0, trigger.start);
-  const after = text.slice(trigger.end);
-  const insert = item.label;
-  const needsSpace = !after.startsWith(" ");
-  const inserted = needsSpace ? insert + " " : insert;
-  const newText = before + inserted + after;
-  const newCaret = trigger.start + inserted.length;
-  return {
-    text: newText,
-    caret: newCaret,
-    range: [trigger.start, trigger.start + insert.length],
-  };
-}
-function buildEntityMarker(selections) {
-  if (!selections?.length) return "";
-  const seenEntities = /* @__PURE__ */ new Set();
-  const seenAreas = /* @__PURE__ */ new Set();
-  const entityIds = [];
-  const areaNames = [];
-  for (const sel of selections) {
-    if (sel.entity_id) {
-      if (seenEntities.has(sel.entity_id)) continue;
-      seenEntities.add(sel.entity_id);
-      entityIds.push(sel.entity_id);
-    } else if (sel.kind === "area" && sel.area_id) {
-      if (seenAreas.has(sel.area_id)) continue;
-      seenAreas.add(sel.area_id);
-      areaNames.push(sel.label);
-    }
-  }
-  const parts = [];
-  if (entityIds.length === 1) {
-    parts.push(`[[entity:${entityIds[0]}]]`);
-  } else if (entityIds.length > 1) {
-    parts.push(`[[entities:${entityIds.join(",")}]]`);
-  }
-  if (areaNames.length) {
-    parts.push(`[[areas:${areaNames.join(",")}]]`);
-  }
-  return parts.length ? "\n\n" + parts.join(" ") : "";
-}
-function stripEntityMarkers(text) {
-  if (typeof text !== "string" || !text) return text;
-  return text
-    .replace(/\s*\[\[(?:entity|entities|areas|details):[^\]]+\]\]/g, "")
-    .trimEnd();
-}
-function buildDetailsMarker(details) {
-  const text = String(details || "")
-    .replace(/\]/g, ")")
-    .trim();
-  return text
-    ? `
-
-[[details:${text}]]`
-    : "";
-}
-function messageDetails(text) {
-  if (typeof text !== "string") return "";
-  const match = text.match(/\[\[details:([^\]]+)\]\]/);
-  return match ? match[1].trim() : "";
-}
-function _escapeRegex(s6) {
-  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-function _labelSpans(text, label) {
-  const startsWord = _WORD_CHAR_RE.test(label[0]);
-  const endsWord = _WORD_CHAR_RE.test(label[label.length - 1]);
-  const re = new RegExp(_escapeRegex(label), "gi"); // nosemgrep
-  const spans = [];
-  for (let m3 = re.exec(text); m3; m3 = re.exec(text)) {
-    const start = m3.index;
-    const end = start + m3[0].length;
-    const before = start > 0 ? text[start - 1] : "";
-    const after = end < text.length ? text[end] : "";
-    if (startsWord && before && _WORD_CHAR_RE.test(before)) continue;
-    if (endsWord && after && _WORD_CHAR_RE.test(after)) continue;
-    spans.push([start, end]);
-  }
-  return spans;
-}
-function pruneStaleSelections(text, selections, ignoreRange) {
-  if (!selections?.length) return selections;
-  const [skipFrom, skipTo] = ignoreRange || [];
-  const skipping =
-    typeof skipFrom === "number" &&
-    typeof skipTo === "number" &&
-    skipTo > skipFrom;
-  return selections.filter((s6) => {
-    if (!s6.label) return false;
-    const spans = _labelSpans(text, s6.label);
-    if (!skipping) return spans.length > 0;
-    return spans.some(([start, end]) => start < skipFrom || end > skipTo);
-  });
-}
-
 // src/panel/home-suggestions.js
 var MAX_SHOWN = 3;
 var MAX_NAMED = 3;
@@ -41017,6 +41682,12 @@ function describe(host, s6) {
         ),
       ],
     };
+  }
+  if (s6.type === "camera_idea") {
+    const d3 = describeIdea(host, s6.idea);
+    return d3
+      ? { icon: d3.icon, title: d3.title, prompt: d3.prompt, why: d3.why }
+      : null;
   }
   if (s6.type === "add_to_frigate") {
     return {
@@ -42765,7 +43436,7 @@ function renderMessage(host, msg, idx) {
     </div>
   `;
 }
-var DOMAIN_ICONS2 = {
+var DOMAIN_ICONS3 = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
   climate: "mdi:thermostat",
@@ -55153,7 +55824,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "881ab4ad4b4b" : "";
+var PANEL_BUILD = true ? "37155218d93d" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

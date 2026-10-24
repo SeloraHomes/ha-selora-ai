@@ -1896,4 +1896,40 @@ export const chatStyles = css`
       max-width: none;
     }
   }
+
+  /* Idea chips under a live camera on the Frigate result card
+     (camera-ideas.js): automations its detection could drive. */
+  .camera-ideas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .camera-ideas-label {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    margin-right: 2px;
+  }
+  .camera-idea-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 999px;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition: border-color 0.15s;
+  }
+  .camera-idea-chip:hover {
+    border-color: var(--selora-accent);
+  }
+  .camera-idea-chip ha-icon {
+    color: var(--selora-accent);
+  }
 `;

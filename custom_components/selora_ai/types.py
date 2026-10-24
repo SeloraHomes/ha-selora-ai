@@ -348,6 +348,22 @@ class FrigateResult(TypedDict):
     record_days: NotRequired[int | None]
 
 
+class CameraIdeaCamera(TypedDict):
+    entity_id: str
+    name: str
+
+
+class CameraIdea(TypedDict):
+    """An automation or scene a camera's detection could drive
+    (frigate/ideas.py). ``kind`` picks the panel's text; ``facts`` are the
+    exact entities the request names (trigger, presence, notify, light…)."""
+
+    idea_id: str
+    kind: str  # "person_away" | "person_night_light" | "animal" | "vehicle" | "watch_scene"
+    camera: CameraIdeaCamera
+    facts: dict[str, str]
+
+
 class HomeSuggestionEntity(TypedDict):
     """An entity a home suggestion is about."""
 
@@ -374,14 +390,17 @@ class HomeSuggestion(TypedDict):
     """A change Selora proposes from how the home is organised.
 
     See home_suggestions.py. ``type`` is "add_to_collection" (one entity to
-    add), "group_entities" (the automation's trigger entities to group) or
-    "add_to_frigate" (cameras Frigate does not have yet).
+    add), "group_entities" (the automation's trigger entities to group),
+    "add_to_frigate" (cameras Frigate does not have yet) or "camera_idea" (an
+    automation or scene a camera's detection could drive).
     """
 
     suggestion_id: str
     type: str
     entities: list[HomeSuggestionEntity]
     collection: HomeSuggestionCollection
+    # camera_idea only: the idea, which the panel words from its kind.
+    idea: NotRequired[CameraIdea]
     # add_to_collection only: the members of the entity's kind the collection
     # already holds, and the area they all cover (None: the whole home).
     members: NotRequired[list[HomeSuggestionEntity]]

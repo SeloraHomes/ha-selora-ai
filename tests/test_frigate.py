@@ -1147,3 +1147,18 @@ async def test_a_card_with_another_action_keeps_its_text(
     message = (await store.get_session("sess-1"))["messages"][-1]
     assert "frigate_result" not in message
     assert "Added Porch to Frigate" in message["content"]
+
+
+def test_a_stream_is_named_by_its_query_but_not_its_login() -> None:
+    """Reolink FLV/RTMP pick the NVR channel in the query; a login there, or
+    UniFi's SRTP flag, does not change which stream it is."""
+    from custom_components.selora_ai.frigate.cameras import source_key
+
+    channel = "http://192.168.2.10/flv?port=1935&app=bcs&stream=channel{}_main.bcs"
+    assert source_key(channel.format(0)) != source_key(channel.format(1))
+    assert source_key(channel.format(0) + "&user=admin&password=x") == source_key(
+        channel.format(0) + "&user=*&password=*"
+    )
+    assert source_key("rtsps://10.0.0.2:7441/abc?enableSrtp") == source_key(
+        "rtspx://10.0.0.2:7441/abc"
+    )
