@@ -3275,7 +3275,8 @@ def _request_behind(stored_messages: list[dict[str, Any]], proposal_index: int) 
 
 
 # Client actions that finish what they were asked for: nothing is made for a
-# later step to build on, so without a declared remainder they do not resume.
+# later step to build on, so they never resume. Their tools take no
+# remaining_intent.
 _SELF_CONTAINED_CLIENT_ACTIONS = frozenset({"add_frigate_cameras"})
 
 
@@ -3331,6 +3332,17 @@ def _resume_request(
             # chain cannot form — a model that keeps proposing one more step
             # would otherwise run unbounded on the user's account.
             return None, "That step has already been continued once."
+        kinds = {
+            str(action.get("kind", ""))
+            for action in approval.get("client_actions") or []
+            if isinstance(action, dict)
+        }
+        if kinds and kinds <= _SELF_CONTAINED_CLIENT_ACTIONS:
+            # Adding cameras to Frigate is the whole request, whatever the
+            # card says is left: models declared the add itself as the
+            # remainder, and the resumed turn added the cameras again while
+            # Frigate was restarting from the first time.
+            return None, "That action had nothing left to do."
         intent = approval.get("remaining_intent")
         if isinstance(intent, str) and intent.strip():
             return _RESUME_DIRECTIVE.format(intent=intent.strip()), None
@@ -3338,16 +3350,6 @@ def _resume_request(
             # A service approval usually IS the whole request — "unlock the
             # front door" is done when it runs — and replaying it would put a
             # model round on the hottest path in the product for nothing.
-            return None, "That action had nothing left to do."
-        kinds = {
-            str(action.get("kind", ""))
-            for action in approval.get("client_actions") or []
-            if isinstance(action, dict)
-        }
-        if kinds and kinds <= _SELF_CONTAINED_CLIENT_ACTIONS:
-            # Adding cameras to Frigate is the whole request: replaying it
-            # had the model call the tool again and report the cameras it had
-            # just added as refused.
             return None, "That action had nothing left to do."
         # A CLIENT ACTION is different: it exists because the thing it makes
         # does not exist yet, so it is a first step by construction, and this

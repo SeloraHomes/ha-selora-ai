@@ -112,7 +112,7 @@ describe("the Frigate cameras card", () => {
     expect(h._sendMessage).not.toHaveBeenCalled();
   });
 
-  it("continues when the model declared something left to do", async () => {
+  it("never continues, even when the card declares something left", async () => {
     const h = host(async () => ({ status: "added", cameras: ["Porch"] }));
 
     await resolveClientActions(
@@ -120,12 +120,12 @@ describe("the Frigate cameras card", () => {
       {},
       {
         proposal_id: "p3",
-        remaining_intent: "put it on the dashboard",
+        remaining_intent: "add the Wyze Cam v3 stream to Frigate",
         client_actions: [action("plan-d")],
       },
     );
 
-    expect(h._sendMessage).toHaveBeenCalledWith({ resumeProposalId: "p3" });
+    expect(h._sendMessage).not.toHaveBeenCalled();
   });
 
   it("keeps the card open and names the camera when its login is refused", async () => {

@@ -612,12 +612,22 @@ def test_a_frigate_card_without_a_remainder_does_not_replay_the_request() -> Non
     assert directive is None and error == "That action had nothing left to do."
 
 
-def test_a_frigate_card_with_a_declared_remainder_still_resumes() -> None:
+def test_a_frigate_card_never_resumes_whatever_it_declares() -> None:
+    """The model declared the add itself as the remainder, and the resumed
+    turn added the Wyze Cam again while Frigate was restarting."""
     messages = _messages(
-        remaining_intent="put the new camera on the dashboard",
+        remaining_intent="add the Wyze Cam v3 stream to Frigate",
         client_actions=[{"kind": "add_frigate_cameras", "plan_id": "x"}],
     )
 
     directive, error = _resume_request(messages, "p1")
 
-    assert error is None and "put the new camera on the dashboard" in directive
+    assert directive is None and error == "That action had nothing left to do."
+
+
+def test_the_frigate_tool_takes_no_remaining_intent() -> None:
+    from custom_components.selora_ai.tool_registry import TOOL_MAP
+
+    params = {p.name for p in TOOL_MAP["add_cameras_to_frigate"].params}
+
+    assert "remaining_intent" not in params
