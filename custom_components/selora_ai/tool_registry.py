@@ -2402,14 +2402,6 @@ TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
             type="integer",
             description="Days to keep those recordings. Default: Frigate's.",
         ),
-        ToolParam(
-            name="remaining_intent",
-            type="string",
-            description=(
-                "What you still have to do AFTER the user confirms, in one short phrase. "
-                "Leave it out when adding the cameras IS the request."
-            ),
-        ),
     ),
     requires_admin=True,
     large_context_only=True,

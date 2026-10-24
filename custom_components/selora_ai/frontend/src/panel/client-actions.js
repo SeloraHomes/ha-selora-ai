@@ -276,16 +276,18 @@ export async function runClientAction(hass, action) {
  * Reporting is not optional: without it the card resolves in the UI while the
  * conversation still says nothing happened, or worse, implies it did.
  */
-// Kinds that finish what they were asked for. They resume only when the model
-// declared something left to do: replaying "add the E1 Zoom to Frigate" had
-// the model add it again and report the camera it had just added as refused.
-// The server refuses the same case; skipping it here avoids an error bubble.
+// Kinds that finish what they were asked for, so they never resume: the
+// resumed turn added the same cameras again, while Frigate was still
+// restarting from the first time. The server refuses the same case; skipping
+// it here avoids an error bubble.
 const SELF_CONTAINED = new Set(["add_frigate_cameras"]);
 
 function resumes(approval) {
-  if (String(approval?.remaining_intent || "").trim()) return true;
   const kinds = (approval?.client_actions || []).map((a) => String(a?.kind));
-  return !kinds.length || kinds.some((kind) => !SELF_CONTAINED.has(kind));
+  if (kinds.length && kinds.every((kind) => SELF_CONTAINED.has(kind))) {
+    return false;
+  }
+  return true;
 }
 
 /** Proposals currently executing, for cards with no message to mark. */

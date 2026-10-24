@@ -32349,9 +32349,11 @@ async function runClientAction(hass, action) {
 }
 var SELF_CONTAINED = /* @__PURE__ */ new Set(["add_frigate_cameras"]);
 function resumes(approval) {
-  if (String(approval?.remaining_intent || "").trim()) return true;
   const kinds = (approval?.client_actions || []).map((a3) => String(a3?.kind));
-  return !kinds.length || kinds.some((kind) => !SELF_CONTAINED.has(kind));
+  if (kinds.length && kinds.every((kind) => SELF_CONTAINED.has(kind))) {
+    return false;
+  }
+  return true;
 }
 var IN_FLIGHT = /* @__PURE__ */ new Set();
 async function resolveClientActions(host, msg, approval) {
@@ -55151,7 +55153,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "80c77f771cfe" : "";
+var PANEL_BUILD = true ? "881ab4ad4b4b" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
