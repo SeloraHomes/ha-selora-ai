@@ -27,6 +27,7 @@ import {
 import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
 import { renderRestoreCard } from "./restore-card.js";
+import { renderCameraEventsCard } from "./camera-events-card.js";
 import { renderHomeSuggestions } from "./home-suggestions.js";
 import { acceptNextPrompt, activeNextPrompt } from "./next-prompt.js";
 import {
@@ -1539,6 +1540,7 @@ export function renderMessage(host, msg, idx) {
                       : ""
                   }
                   ${renderRestoreCard(host, msg)}
+                  ${renderCameraEventsCard(host, msg)}
                   ${
                     msg._interrupted
                       ? html`

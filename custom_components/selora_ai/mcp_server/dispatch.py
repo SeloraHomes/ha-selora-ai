@@ -44,7 +44,7 @@ from .calendars import (
     _tool_list_calendar_events,
     _tool_set_calendar_event,
 )
-from .cameras import _tool_get_camera_image
+from .cameras import _tool_find_camera_events, _tool_get_camera_image
 from .chat import (
     _tool_accept_suggestion,
     _tool_chat,
@@ -157,6 +157,7 @@ from .names import (
     TOOL_DISMISS_SUGGESTION,
     TOOL_EVAL_TEMPLATE,
     TOOL_EXECUTE_COMMAND,
+    TOOL_FIND_CAMERA_EVENTS,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
     TOOL_FIRE_EVENT,
@@ -504,6 +505,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_HACS_SEARCH: _tool_hacs_search,
         TOOL_HACS_INFO: _tool_hacs_info,
         TOOL_GET_CAMERA_IMAGE: _tool_get_camera_image,
+        TOOL_FIND_CAMERA_EVENTS: _tool_find_camera_events,
         TOOL_LIST_CALENDAR_EVENTS: _tool_list_calendar_events,
         TOOL_SET_CALENDAR_EVENT: _tool_set_calendar_event,
         TOOL_DELETE_CALENDAR_EVENT: _tool_delete_calendar_event,

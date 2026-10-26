@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING, Any, Final
+from urllib.parse import urlencode
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntryState
@@ -112,6 +113,16 @@ class FrigateClient:
             raise FrigateError("Frigate returned no configuration.")
         return config
 
+    async def get_raw_config(self) -> str:
+        """Frigate's saved configuration file as text, logins included.
+
+        For a write that has to keep them; never log or return it.
+        """
+        raw = await self._request("GET", "/api/config/raw")
+        if not isinstance(raw, str) or not raw.strip():
+            raise FrigateError("Frigate returned no saved configuration.")
+        return raw
+
     async def set_config(self, config_data: dict[str, Any]) -> None:
         """Merge ``config_data`` into Frigate's saved configuration.
 
@@ -125,6 +136,15 @@ class FrigateClient:
     async def restart(self) -> None:
         """Restart Frigate, which takes up to a minute."""
         await self._request("POST", "/api/restart")
+
+    async def get_events(self, params: dict[str, Any], *, search: bool = False) -> list[Any]:
+        """Tracked-object events, newest first; ``search`` ranks them against
+        ``params["query"]`` with Frigate's semantic search instead."""
+        path = "/api/events/search" if search else "/api/events"
+        events = await self._request("GET", f"{path}?{urlencode(params)}")
+        if not isinstance(events, list):
+            raise FrigateError("Frigate returned no events.")
+        return events
 
     async def version(self) -> str:
         """Frigate's version; raises while it is down."""

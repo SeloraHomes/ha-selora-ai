@@ -4544,6 +4544,96 @@ var chatStyles = i`
     }
   }
 
+  /* What the cameras saw (camera-events-card.js): snapshot tiles, and the
+     one opened, large, above them. */
+  .camera-events {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .camera-events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .camera-event {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: var(--primary-text-color);
+    font: inherit;
+    min-width: 0;
+  }
+  .camera-event-thumb {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--secondary-background-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary-text-color);
+  }
+  .camera-event-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .camera-event-play {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    --mdc-icon-size: 22px;
+    color: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  }
+  .camera-event-what,
+  .camera-event-when {
+    font-size: 12px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .camera-event-when,
+  .camera-events-more {
+    color: var(--secondary-text-color);
+    font-size: 12px;
+  }
+  .camera-event-open img,
+  .camera-event-open video {
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #000;
+    display: block;
+  }
+  .camera-event-open-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .camera-event-close {
+    border: none;
+    background: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font: inherit;
+    padding: 4px;
+  }
+
   /* Frigate result card (render-frigate-result.js): the cameras added or
      removed, then each added one's live preview and recording switch once
      Frigate has brought it back. */
@@ -11213,6 +11303,15 @@ var en_default = {
     frigate_cameras_no_recording: "no recording",
     frigate_cameras_restart:
       "Frigate restarts to add them, pausing its cameras for about a minute.",
+    camera_events_close: "Close",
+    camera_events_now: "Still going",
+    camera_events_more: "{count} more in this time range.",
+    camera_events_person: "Person",
+    camera_events_car: "Car",
+    camera_events_dog: "Dog",
+    camera_events_cat: "Cat",
+    camera_events_bird: "Bird",
+    camera_events_package: "Package",
     frigate_cameras_not_added: "Not added: {list}.",
     frigate_result_added: "Added to Frigate",
     frigate_result_saved_tag: "Saved in Frigate",
@@ -12612,6 +12711,15 @@ var fr_default = {
     frigate_cameras_no_recording: "pas d'enregistrement",
     frigate_cameras_restart:
       "Frigate red\xE9marre pour les ajouter, ce qui interrompt ses cam\xE9ras pendant environ une minute.",
+    camera_events_close: "Fermer",
+    camera_events_now: "En cours",
+    camera_events_more: "{count} de plus sur cette p\xE9riode.",
+    camera_events_person: "Personne",
+    camera_events_car: "Voiture",
+    camera_events_dog: "Chien",
+    camera_events_cat: "Chat",
+    camera_events_bird: "Oiseau",
+    camera_events_package: "Colis",
     frigate_cameras_not_added: "Non ajout\xE9es : {list}.",
     frigate_result_added: "Ajout\xE9e \xE0 Frigate",
     frigate_result_saved_tag: "Enregistr\xE9e dans Frigate",
@@ -14004,6 +14112,15 @@ var de_default = {
     frigate_cameras_no_recording: "keine Aufnahme",
     frigate_cameras_restart:
       "Frigate startet daf\xFCr neu und unterbricht seine Kameras f\xFCr etwa eine Minute.",
+    camera_events_close: "Schlie\xDFen",
+    camera_events_now: "L\xE4uft noch",
+    camera_events_more: "{count} weitere in diesem Zeitraum.",
+    camera_events_person: "Person",
+    camera_events_car: "Auto",
+    camera_events_dog: "Hund",
+    camera_events_cat: "Katze",
+    camera_events_bird: "Vogel",
+    camera_events_package: "Paket",
     frigate_cameras_not_added: "Nicht hinzugef\xFCgt: {list}.",
     frigate_result_added: "Zu Frigate hinzugef\xFCgt",
     frigate_result_saved_tag: "In Frigate gespeichert",
@@ -15376,6 +15493,15 @@ var es_default = {
     frigate_cameras_no_recording: "sin grabaci\xF3n",
     frigate_cameras_restart:
       "Frigate se reinicia para a\xF1adirlas y detiene sus c\xE1maras durante un minuto aproximadamente.",
+    camera_events_close: "Cerrar",
+    camera_events_now: "En curso",
+    camera_events_more: "{count} m\xE1s en este intervalo.",
+    camera_events_person: "Persona",
+    camera_events_car: "Coche",
+    camera_events_dog: "Perro",
+    camera_events_cat: "Gato",
+    camera_events_bird: "P\xE1jaro",
+    camera_events_package: "Paquete",
     frigate_cameras_not_added: "No a\xF1adidas: {list}.",
     frigate_result_added: "A\xF1adida a Frigate",
     frigate_result_saved_tag: "Guardada en Frigate",
@@ -16746,6 +16872,15 @@ var it_default = {
     frigate_cameras_no_recording: "nessuna registrazione",
     frigate_cameras_restart:
       "Frigate si riavvia per aggiungerle, mettendo in pausa le sue telecamere per circa un minuto.",
+    camera_events_close: "Chiudi",
+    camera_events_now: "In corso",
+    camera_events_more: "Altri {count} in questo intervallo.",
+    camera_events_person: "Persona",
+    camera_events_car: "Auto",
+    camera_events_dog: "Cane",
+    camera_events_cat: "Gatto",
+    camera_events_bird: "Uccello",
+    camera_events_package: "Pacco",
     frigate_cameras_not_added: "Non aggiunte: {list}.",
     frigate_result_added: "Aggiunta a Frigate",
     frigate_result_saved_tag: "Salvata in Frigate",
@@ -18132,6 +18267,15 @@ var nl_default = {
     frigate_cameras_no_recording: "geen opname",
     frigate_cameras_restart:
       "Frigate herstart om ze toe te voegen, waardoor de camera's ongeveer een minuut pauzeren.",
+    camera_events_close: "Sluiten",
+    camera_events_now: "Nog bezig",
+    camera_events_more: "Nog {count} in deze periode.",
+    camera_events_person: "Persoon",
+    camera_events_car: "Auto",
+    camera_events_dog: "Hond",
+    camera_events_cat: "Kat",
+    camera_events_bird: "Vogel",
+    camera_events_package: "Pakket",
     frigate_cameras_not_added: "Niet toegevoegd: {list}.",
     frigate_result_added: "Toegevoegd aan Frigate",
     frigate_result_saved_tag: "Opgeslagen in Frigate",
@@ -19575,6 +19719,15 @@ var hu_default = {
     frigate_cameras_no_recording: "nincs felv\xE9tel",
     frigate_cameras_restart:
       "A Frigate \xFAjraindul a hozz\xE1ad\xE1shoz, \xEDgy kamer\xE1it k\xF6r\xFClbel\xFCl egy percre sz\xFCnetelteti.",
+    camera_events_close: "Bez\xE1r\xE1s",
+    camera_events_now: "Folyamatban",
+    camera_events_more: "M\xE9g {count} ebben az id\u0151szakban.",
+    camera_events_person: "Szem\xE9ly",
+    camera_events_car: "Aut\xF3",
+    camera_events_dog: "Kutya",
+    camera_events_cat: "Macska",
+    camera_events_bird: "Mad\xE1r",
+    camera_events_package: "Csomag",
     frigate_cameras_not_added: "Nincs hozz\xE1adva: {list}.",
     frigate_result_added: "Hozz\xE1adva a Frigate-hez",
     frigate_result_saved_tag: "Elmentve a Frigate-ben",
@@ -20941,6 +21094,15 @@ var pt_default = {
     frigate_cameras_no_recording: "sem grava\xE7\xE3o",
     frigate_cameras_restart:
       "O Frigate reinicia para as adicionar, pausando as c\xE2maras durante cerca de um minuto.",
+    camera_events_close: "Fechar",
+    camera_events_now: "Em curso",
+    camera_events_more: "Mais {count} neste per\xEDodo.",
+    camera_events_person: "Pessoa",
+    camera_events_car: "Carro",
+    camera_events_dog: "C\xE3o",
+    camera_events_cat: "Gato",
+    camera_events_bird: "P\xE1ssaro",
+    camera_events_package: "Encomenda",
     frigate_cameras_not_added: "N\xE3o adicionadas: {list}.",
     frigate_result_added: "Adicionada ao Frigate",
     frigate_result_saved_tag: "Guardada no Frigate",
@@ -22949,6 +23111,17 @@ var ru_default = {
       "\u0431\u0435\u0437 \u0437\u0430\u043F\u0438\u0441\u0438",
     frigate_cameras_restart:
       "\u0427\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0438\u0445, Frigate \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0441\u044F \u0438 \u043F\u0440\u0438\u043C\u0435\u0440\u043D\u043E \u043D\u0430 \u043C\u0438\u043D\u0443\u0442\u0443 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442 \u043A\u0430\u043C\u0435\u0440\u044B.",
+    camera_events_close: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+    camera_events_now:
+      "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0430\u0435\u0442\u0441\u044F",
+    camera_events_more:
+      "\u0415\u0449\u0451 {count} \u0437\u0430 \u044D\u0442\u043E\u0442 \u043F\u0435\u0440\u0438\u043E\u0434.",
+    camera_events_person: "\u0427\u0435\u043B\u043E\u0432\u0435\u043A",
+    camera_events_car: "\u041C\u0430\u0448\u0438\u043D\u0430",
+    camera_events_dog: "\u0421\u043E\u0431\u0430\u043A\u0430",
+    camera_events_cat: "\u041A\u043E\u0448\u043A\u0430",
+    camera_events_bird: "\u041F\u0442\u0438\u0446\u0430",
+    camera_events_package: "\u041F\u043E\u0441\u044B\u043B\u043A\u0430",
     frigate_cameras_not_added:
       "\u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B: {list}.",
     frigate_result_added:
@@ -24637,6 +24810,16 @@ var ja_default = {
     frigate_cameras_no_recording: "\u9332\u753B\u306A\u3057",
     frigate_cameras_restart:
       "\u8FFD\u52A0\u306E\u305F\u3081 Frigate \u304C\u518D\u8D77\u52D5\u3057\u3001\u30AB\u30E1\u30E9\u304C 1 \u5206\u307B\u3069\u505C\u6B62\u3057\u307E\u3059\u3002",
+    camera_events_close: "\u9589\u3058\u308B",
+    camera_events_now: "\u7D99\u7D9A\u4E2D",
+    camera_events_more:
+      "\u3053\u306E\u671F\u9593\u306B\u3042\u3068 {count} \u4EF6\u3002",
+    camera_events_person: "\u4EBA",
+    camera_events_car: "\u8ECA",
+    camera_events_dog: "\u72AC",
+    camera_events_cat: "\u732B",
+    camera_events_bird: "\u9CE5",
+    camera_events_package: "\u8377\u7269",
     frigate_cameras_not_added:
       "\u8FFD\u52A0\u3057\u306A\u304B\u3063\u305F\u3082\u306E: {list}\u3002",
     frigate_result_added: "Frigate \u306B\u8FFD\u52A0\u3057\u307E\u3057\u305F",
@@ -26209,6 +26392,16 @@ var ko_default = {
     frigate_cameras_no_recording: "\uB179\uD654 \uC548 \uD568",
     frigate_cameras_restart:
       "\uCD94\uAC00\uD558\uB824\uBA74 Frigate\uAC00 \uB2E4\uC2DC \uC2DC\uC791\uB418\uC5B4 \uCE74\uBA54\uB77C\uAC00 \uC57D 1\uBD84\uAC04 \uBA48\uCDA5\uB2C8\uB2E4.",
+    camera_events_close: "\uB2EB\uAE30",
+    camera_events_now: "\uC9C4\uD589 \uC911",
+    camera_events_more:
+      "\uC774 \uAE30\uAC04\uC5D0 {count}\uAC1C \uB354 \uC788\uC2B5\uB2C8\uB2E4.",
+    camera_events_person: "\uC0AC\uB78C",
+    camera_events_car: "\uC790\uB3D9\uCC28",
+    camera_events_dog: "\uAC1C",
+    camera_events_cat: "\uACE0\uC591\uC774",
+    camera_events_bird: "\uC0C8",
+    camera_events_package: "\uD0DD\uBC30",
     frigate_cameras_not_added: "\uCD94\uAC00\uD558\uC9C0 \uC54A\uC74C: {list}.",
     frigate_result_added: "Frigate\uC5D0 \uCD94\uAC00\uB428",
     frigate_result_saved_tag: "Frigate\uC5D0 \uC800\uC7A5\uB428",
@@ -27695,6 +27888,16 @@ var zh_Hans_default = {
     frigate_cameras_no_recording: "\u4E0D\u5F55\u50CF",
     frigate_cameras_restart:
       "\u6DFB\u52A0\u65F6 Frigate \u4F1A\u91CD\u542F\uFF0C\u5176\u6444\u50CF\u5934\u5C06\u6682\u505C\u7EA6\u4E00\u5206\u949F\u3002",
+    camera_events_close: "\u5173\u95ED",
+    camera_events_now: "\u8FDB\u884C\u4E2D",
+    camera_events_more:
+      "\u6B64\u65F6\u95F4\u6BB5\u5185\u8FD8\u6709 {count} \u4E2A\u3002",
+    camera_events_person: "\u4EBA",
+    camera_events_car: "\u6C7D\u8F66",
+    camera_events_dog: "\u72D7",
+    camera_events_cat: "\u732B",
+    camera_events_bird: "\u9E1F",
+    camera_events_package: "\u5305\u88F9",
     frigate_cameras_not_added: "\u672A\u6DFB\u52A0\uFF1A{list}\u3002",
     frigate_result_added: "\u5DF2\u6DFB\u52A0\u5230 Frigate",
     frigate_result_saved_tag: "\u5DF2\u4FDD\u5B58\u5230 Frigate",
@@ -29186,6 +29389,16 @@ var zh_Hant_default = {
     frigate_cameras_no_recording: "\u4E0D\u9304\u5F71",
     frigate_cameras_restart:
       "\u52A0\u5165\u6642 Frigate \u6703\u91CD\u65B0\u555F\u52D5\uFF0C\u5176\u651D\u5F71\u6A5F\u5C07\u66AB\u505C\u7D04\u4E00\u5206\u9418\u3002",
+    camera_events_close: "\u95DC\u9589",
+    camera_events_now: "\u9032\u884C\u4E2D",
+    camera_events_more:
+      "\u6B64\u6642\u9593\u6BB5\u5167\u9084\u6709 {count} \u500B\u3002",
+    camera_events_person: "\u4EBA",
+    camera_events_car: "\u6C7D\u8ECA",
+    camera_events_dog: "\u72D7",
+    camera_events_cat: "\u8C93",
+    camera_events_bird: "\u9CE5",
+    camera_events_package: "\u5305\u88F9",
     frigate_cameras_not_added: "\u672A\u52A0\u5165\uFF1A{list}\u3002",
     frigate_result_added: "\u5DF2\u52A0\u5165 Frigate",
     frigate_result_saved_tag: "\u5DF2\u5132\u5B58\u81F3 Frigate",
@@ -34595,9 +34808,13 @@ var _DELETE_KIND_LABELS = {
   entity: "entity",
   device: "device",
   frigate_camera: "Frigate camera",
+  frigate_objects: "Frigate camera",
+  frigate_move: "Frigate camera",
 };
 var _DELETE_KIND_ICONS = {
   frigate_camera: "mdi:cctv",
+  frigate_objects: "mdi:cctv",
+  frigate_move: "mdi:cctv",
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",
@@ -41569,6 +41786,199 @@ function renderRestoreCard(host, msg) {
   </div>`;
 }
 
+// src/panel/camera-events-card.js
+var SIGN_FOR_S = 3600;
+var RESIGN_AFTER_MS = 50 * 60 * 1e3;
+var RETRY_AFTER_MS = 30 * 1e3;
+var OBJECTS = {
+  person: ["camera_events_person", "Person"],
+  car: ["camera_events_car", "Car"],
+  dog: ["camera_events_dog", "Dog"],
+  cat: ["camera_events_cat", "Cat"],
+  bird: ["camera_events_bird", "Bird"],
+  package: ["camera_events_package", "Package"],
+};
+var SIGNED = /* @__PURE__ */ new Map();
+var OPEN = /* @__PURE__ */ new Map();
+function searchesOf(msg) {
+  const seen = /* @__PURE__ */ new Set();
+  const searches = [];
+  for (const call of msg.tool_calls || []) {
+    if (call?.tool !== "find_camera_events") continue;
+    const listed = call.result?.events || [];
+    const events = listed.filter((e6) => e6?.id && !seen.has(e6.id));
+    events.forEach((e6) => seen.add(e6.id));
+    const more = (call.result?.total || 0) - listed.length;
+    if (events.length || more > 0) searches.push({ events, more });
+  }
+  return searches;
+}
+function startOf(event) {
+  const start = parseFloat(String(event.id).split("-")[0]);
+  return Number.isFinite(start) ? start : null;
+}
+function snapshotPath(event, height) {
+  const id = encodeURIComponent(event.id);
+  return height
+    ? `/api/frigate/snapshot/${id}?h=${height}&crop=1`
+    : `/api/frigate/snapshot/${id}`;
+}
+function clipPath(event) {
+  const start = startOf(event);
+  if (start === null || event.in_progress || !event.has_clip) return null;
+  const end = start + (event.seconds || 0);
+  const camera = encodeURIComponent(event.camera);
+  return `/api/frigate/recording/${camera}/start/${Math.floor(start)}/end/${Math.ceil(end + 1)}`;
+}
+async function sign(host, path) {
+  const entry = SIGNED.get(path) || {};
+  SIGNED.set(path, { ...entry, at: Date.now(), pending: true });
+  try {
+    const result = await host.hass.callWS({
+      type: "auth/sign_path",
+      path,
+      expires: SIGN_FOR_S,
+    });
+    SIGNED.set(path, { url: result?.path || null, at: Date.now() });
+  } catch (err) {
+    console.error("Failed to sign a Frigate media path", err);
+    SIGNED.set(path, { ...entry, at: Date.now(), failed: true });
+  }
+  host.requestUpdate?.();
+}
+function signed(host, path) {
+  const entry = SIGNED.get(path);
+  const age2 = entry ? Date.now() - entry.at : Infinity;
+  const stale = entry?.failed ? age2 > RETRY_AFTER_MS : age2 > RESIGN_AFTER_MS;
+  if (!entry || (stale && !entry.pending)) sign(host, path);
+  return entry?.url || null;
+}
+function formatTime2(host, iso) {
+  try {
+    return new Date(iso).toLocaleString(
+      host.hass?.locale?.language || host.hass?.language || void 0,
+      { weekday: "short", hour: "numeric", minute: "2-digit" },
+    );
+  } catch {
+    return iso || "";
+  }
+}
+function objectName(host, label) {
+  const known = OBJECTS[label];
+  if (known) return host._t(known[0], known[1]);
+  const text = String(label || "").replace(/_/g, " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+function caption(host, event) {
+  const what = event.sub_label
+    ? `${objectName(host, event.label)} \xB7 ${event.sub_label}`
+    : objectName(host, event.label);
+  return `${what} \xB7 ${event.camera_name || event.camera}`;
+}
+function renderOpen(host, event, key) {
+  const snapshot = event.has_snapshot
+    ? signed(host, snapshotPath(event, 0))
+    : null;
+  const clip2 = clipPath(event) ? signed(host, clipPath(event)) : null;
+  return b2`
+    <div class="camera-event-open">
+      ${
+        clip2
+          ? b2`<video
+              controls
+              autoplay
+              playsinline
+              preload="metadata"
+              poster=${snapshot || ""}
+              src=${clip2}
+            ></video>`
+          : snapshot
+            ? b2`<img src=${snapshot} alt=${caption(host, event)} />`
+            : ""
+      }
+      <div class="camera-event-open-meta">
+        <span>${caption(host, event)} · ${formatTime2(host, event.start)}</span>
+        <button
+          class="camera-event-close"
+          @click=${() => {
+            OPEN.delete(key);
+            host.requestUpdate?.();
+          }}
+        >
+          ${host._t("camera_events_close", "Close")}
+        </button>
+      </div>
+    </div>
+  `;
+}
+function renderTile(host, event, key) {
+  const thumb = event.has_snapshot
+    ? signed(host, snapshotPath(event, 240))
+    : null;
+  return b2`
+    <button
+      class="camera-event"
+      title=${caption(host, event)}
+      @click=${() => {
+        OPEN.set(key, event.id);
+        host.requestUpdate?.();
+      }}
+    >
+      <div class="camera-event-thumb">
+        ${thumb ? b2`<img src=${thumb} alt="" loading="lazy" />` : b2`<ha-icon icon="mdi:cctv"></ha-icon>`}
+        ${
+          clipPath(event)
+            ? b2`<ha-icon
+                class="camera-event-play"
+                icon="mdi:play-circle"
+              ></ha-icon>`
+            : ""
+        }
+      </div>
+      <span class="camera-event-what">${caption(host, event)}</span>
+      <span class="camera-event-when"
+        >${event.in_progress ? host._t("camera_events_now", "Still going") : formatTime2(host, event.start)}</span
+      >
+    </button>
+  `;
+}
+function renderMore(host, more) {
+  return more > 0
+    ? b2`<div class="camera-events-more">
+        ${interpolate(
+          host._t("camera_events_more", "{count} more in this time range."),
+          { count: more },
+        )}
+      </div>`
+    : "";
+}
+function renderCameraEventsCard(host, msg) {
+  const searches = searchesOf(msg);
+  if (!searches.length) return "";
+  const key = msg.timestamp || "";
+  const openId = OPEN.get(key);
+  const open = openId
+    ? searches.flatMap((s6) => s6.events).find((e6) => e6.id === openId)
+    : null;
+  return b2`
+    <div class="camera-events">
+      ${open ? renderOpen(host, open, key) : ""}
+      ${searches.map(
+        ({ events, more }) => b2`
+          ${
+            events.length
+              ? b2`<div class="camera-events-grid">
+                  ${events.map((e6) => renderTile(host, e6, key))}
+                </div>`
+              : ""
+          }
+          ${renderMore(host, more)}
+        `,
+      )}
+    </div>
+  `;
+}
+
 // src/panel/home-suggestions.js
 var MAX_SHOWN = 3;
 var MAX_NAMED = 3;
@@ -43266,6 +43676,7 @@ function renderMessage(host, msg, idx) {
                       : ""
                   }
                   ${renderRestoreCard(host, msg)}
+                  ${renderCameraEventsCard(host, msg)}
                   ${
                     msg._interrupted
                       ? b2`
@@ -55824,7 +56235,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "37155218d93d" : "";
+var PANEL_BUILD = true ? "54a6fa8d0173" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

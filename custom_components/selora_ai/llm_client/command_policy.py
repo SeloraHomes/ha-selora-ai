@@ -2964,11 +2964,15 @@ _DESTRUCTIVE_TOOLS = frozenset(
         "remove_dashboard_view",
         "fix_repair",
         "install_update",
+        "set_camera_objects",
+        "move_frigate_camera",
     }
 )
 
 # Verbs the confirm handler knows how to replay.
-_DESTRUCTIVE_VERBS = frozenset({"disable", "rename_id", "replace", "remove_view", "fix", "install"})
+_DESTRUCTIVE_VERBS = frozenset(
+    {"disable", "rename_id", "replace", "remove_view", "fix", "install", "set_objects", "move"}
+)
 
 
 def _pending_destructive_from_log(
@@ -3411,6 +3415,17 @@ def is_dashboard_turn(tool_log: list[dict[str, Any]] | None) -> bool:
     return bool(tool_log) and any(
         "dashboard" in str(entry.get("tool") or "") for entry in tool_log or []
     )
+
+
+# Tools whose answer names cameras, which are named after the place they
+# watch: "the front door" is then a camera, not the lock of that name.
+_PLACE_NAMING_TOOLS: Final = frozenset({"find_camera_events"})
+
+
+def names_places(tool_log: list[dict[str, Any]] | None) -> bool:
+    """Whether the answer's device names may be places a camera watches,
+    so a name in its prose must not become that device's tile."""
+    return any(entry.get("tool") in _PLACE_NAMING_TOOLS for entry in tool_log or [])
 
 
 # Where the change can be seen. A dashboard turn's answer is about a PAGE, and

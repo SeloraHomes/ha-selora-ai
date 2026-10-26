@@ -1,0 +1,217 @@
+"""Changing what a camera already in Frigate looks for, behind a card.
+
+Frigate records events only for the objects in a camera's ``objects.track``
+(``person`` by default). That list is configuration, not a switch: the
+Frigate integration's "Detect" switch turns detection on or off for the whole
+camera and chooses nothing. So a change is written to ``cameras.<name>`` —
+the per-camera section Selora may write — and Frigate restarts to apply it.
+
+The card names the camera and the full list it will look for. Confirming
+re-reads the camera and writes only if what it looks for is still what the
+card was built from.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import json
+import logging
+from typing import TYPE_CHECKING, Any, Final
+
+from ..const import DOMAIN
+from ..helpers import sanitize_untrusted_text
+from .cameras import MAX_OBJECTS, OBJECT_LABEL
+from .client import FrigateClient, FrigateError
+from .removal import _camera_name
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+_LOGGER = logging.getLogger(__name__)
+
+# Confirms are serialized: two cards built from one list would both pass the
+# check, and the second write would silently undo the first.
+_WRITE_LOCK: Final = "_frigate_objects_lock"
+# Lists saved but not running yet, with the list that ran when each was
+# saved: Frigate reports its running configuration, and a write takes effect
+# only once it restarts (or never, when it cannot).
+_SAVED: Final = "_frigate_objects_saved"
+
+_NOT_SET_UP: Final = (
+    "Frigate is not set up in Home Assistant: the Frigate integration has to be "
+    "installed and connected first."
+)
+
+
+def _tracked(config: dict[str, Any], name: str) -> list[str]:
+    camera = (config.get("cameras") or {}).get(name) or {}
+    track = (camera.get("objects") or {}).get("track")
+    return sorted(str(o) for o in track or [] if o)
+
+
+def _looks_for(hass: HomeAssistant, config: dict[str, Any], name: str) -> list[str]:
+    """What the camera will look for: the list saved last, until it runs.
+
+    A running list that is neither the saved one nor the one it replaced was
+    set by someone else since, and is what counts.
+    """
+    saved: dict[str, tuple[list[str], list[str]]] = hass.data.setdefault(DOMAIN, {}).setdefault(
+        _SAVED, {}
+    )
+    running = _tracked(config, name)
+    if name in saved and running != saved[name][0]:
+        del saved[name]
+    return saved[name][1] if name in saved else running
+
+
+def _fingerprint(name: str, tracked: list[str]) -> str:
+    """The camera and what it looked for when the card was shown."""
+    return hashlib.sha256(json.dumps([name, tracked]).encode()).hexdigest()
+
+
+def _friendly(config: dict[str, Any], name: str) -> str:
+    camera = (config.get("cameras") or {}).get(name) or {}
+    friendly = str(camera.get("friendly_name") or name.replace("_", " ").title())
+    return sanitize_untrusted_text(friendly, 60)
+
+
+class _BadLabels(ValueError):
+    """Labels Frigate would not take, named for the reply."""
+
+
+def _labels(value: Any) -> set[str]:
+    items = value if isinstance(value, list) else [value] if isinstance(value, str) else []
+    labels = {str(i).strip().lower() for i in items} - {""}
+    if bad := sorted(o for o in labels if not OBJECT_LABEL.match(o)):
+        shown = ", ".join(sanitize_untrusted_text(o, 40) for o in bad)
+        raise _BadLabels(
+            f"Not Frigate object labels: {shown}. Use labels such as person, car, dog."
+        )
+    return labels
+
+
+def _wanted(arguments: dict[str, Any], tracked: list[str]) -> list[str]:
+    """The full list to look for: ``objects`` replaces, ``add``/``remove`` edit.
+
+    An empty ``objects`` counts as not given: models send ``[]`` for an
+    optional list, and reading it as "look for nothing" would be refused anyway.
+
+    Raises _BadLabels rather than dropping a label: a dropped removal or a
+    replacement left empty would change the camera in a way nobody asked for.
+    """
+    if replacement := _labels(arguments.get("objects")):
+        wanted = replacement
+    else:
+        wanted = (set(tracked) | _labels(arguments.get("add"))) - _labels(arguments.get("remove"))
+    if len(wanted) > MAX_OBJECTS:
+        raise _BadLabels(f"A camera can look for at most {MAX_OBJECTS} objects.")
+    return sorted(wanted)
+
+
+async def async_preview_set_objects(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """A card for changing what a Frigate camera looks for, or why not."""
+    client = FrigateClient.from_hass(hass)
+    if client is None:
+        return {"error": _NOT_SET_UP}
+    try:
+        config = await client.get_config()
+    except FrigateError as exc:
+        return {"error": str(exc)}
+    cameras = config.get("cameras") or {}
+    name = _camera_name(hass, cameras, str(arguments.get("camera") or ""))
+    if name is None:
+        return {"error": "Frigate has no such camera.", "frigate_cameras": sorted(cameras)}
+    tracked = _looks_for(hass, config, name)
+    try:
+        wanted = _wanted(arguments, tracked)
+    except _BadLabels as exc:
+        return {"error": str(exc)}
+    friendly = _friendly(config, name)
+    if not wanted:
+        return {"error": f"{friendly} has to look for at least one object."}
+    if wanted == tracked:
+        return {
+            "unchanged": True,
+            "camera": name,
+            "looks_for": tracked,
+            "note": f"{friendly} already looks for {', '.join(tracked)}; nothing to change.",
+        }
+    # What it costs comes first: a long list is what gets cut, never the restart.
+    detect = (cameras.get(name) or {}).get("detect") or {}
+    off = (
+        "; detection is off on it, so turn on its Detect switch too"
+        if detect.get("enabled") is False
+        else ""
+    )
+    label = (
+        f"Restart Frigate so {friendly} looks for {', '.join(wanted)}{off} "
+        f"(now {', '.join(tracked) or 'nothing'})"
+    )
+    return {
+        "requires_approval": True,
+        "destructive": {
+            "kind": "frigate_objects",
+            "verb": "set_objects",
+            "target_id": name,
+            "entity_id": "",
+            "name": friendly,
+            "label": sanitize_untrusted_text(label, 300),
+            "fingerprint": _fingerprint(name, tracked),
+        },
+    }
+
+
+async def async_set_objects_confirmed(
+    hass: HomeAssistant, name: str, fingerprint: str, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Write what the card showed, if the camera still looks for what it did."""
+    from .setup import async_reload_when_back  # noqa: PLC0415
+
+    client = FrigateClient.from_hass(hass)
+    if client is None:
+        return {"error": _NOT_SET_UP}
+    lock: asyncio.Lock = hass.data.setdefault(DOMAIN, {}).setdefault(_WRITE_LOCK, asyncio.Lock())
+    async with lock:
+        try:
+            config = await client.get_config()
+            if name not in (config.get("cameras") or {}):
+                return {"error": "Frigate no longer has that camera."}
+            tracked = _looks_for(hass, config, name)
+            if _fingerprint(name, tracked) != fingerprint:
+                return {"error": "What the camera looks for changed since it was shown; ask again."}
+            try:
+                wanted = _wanted(arguments, tracked)
+            except _BadLabels as exc:
+                return {"error": str(exc)}
+            if not wanted:
+                return {"error": "A camera has to look for at least one object."}
+            await client.set_config({"cameras": {name: {"objects": {"track": wanted}}}})
+            running = _tracked(config, name)
+            if wanted != running:
+                hass.data[DOMAIN][_SAVED][name] = (running, wanted)
+            else:
+                hass.data[DOMAIN][_SAVED].pop(name, None)
+            looks_for = f"{_friendly(config, name)} now looks for {', '.join(wanted)}"
+        except FrigateError as exc:
+            return {"error": str(exc)}
+    try:
+        await client.restart()
+    except FrigateError as exc:
+        _LOGGER.warning("Frigate saved the camera's objects but did not restart: %s", exc)
+        return {
+            "camera": name,
+            "looks_for": wanted,
+            "restart_failed": True,
+            "done": f"Saved: {looks_for} once Frigate restarts. It could not restart itself.",
+        }
+    hass.async_create_background_task(
+        async_reload_when_back(hass, client), f"{DOMAIN}_frigate_reload"
+    )
+    return {
+        "camera": name,
+        "looks_for": wanted,
+        "done": f"{looks_for}. Frigate is restarting, about a minute.",
+    }

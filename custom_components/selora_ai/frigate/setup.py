@@ -56,6 +56,7 @@ from .discovery import (
     merge,
     user_streams,
 )
+from .moving import async_moved_camera
 from .onvif import ONVIF_PORTS, OnvifAuthError, OnvifCamera, OnvifError, Profile
 
 if TYPE_CHECKING:
@@ -231,6 +232,8 @@ class _Gathered:
     network: list[_Network]
     skipped: list[Skipped]
     in_frigate: dict[str, list[dict[str, str]]]
+    # Network address → the Frigate camera it may be, moved there.
+    moved: dict[str, str] = field(default_factory=dict)
 
 
 async def _gather(
@@ -280,6 +283,7 @@ async def _gather(
     in_frigate_hosts = existing_hosts(config)
     taken = existing_names(config) | {c.camera for c in chosen}
     network: list[_Network] = []
+    moved: dict[str, str] = {}
     for camera in found:
         if camera.host in in_frigate_hosts:
             skipped.append(Skipped(camera.host, camera.name, "it is already in Frigate"))
@@ -288,7 +292,16 @@ async def _gather(
             continue
         else:
             network.append(_Network(camera.host, camera, unique_name(camera.name, taken)))
-    return _Gathered(chosen, network, skipped, in_frigate)
+    # Each probe can wait out a timeout: together, not one after another.
+    typed = [n.found for n in network if n.found.streams]
+    for camera, was in zip(
+        typed,
+        await asyncio.gather(*(async_moved_camera(config, c.streams) for c in typed)),
+        strict=True,
+    ):
+        if was:
+            moved[camera.host] = was
+    return _Gathered(chosen, network, skipped, in_frigate, moved)
 
 
 def _label(gathered: _Gathered, objects: list[str], record: bool, days: int | None) -> str:
@@ -368,7 +381,8 @@ async def async_preview_add_cameras(
             result["hint"] = (
                 "These cameras are already in Frigate. Recording, detection, motion and "
                 "snapshots are their switches above: change one with execute_command "
-                "(switch.turn_on / switch.turn_off)."
+                "(switch.turn_on / switch.turn_off). What a camera looks for (person, "
+                "car…) is not a switch: change it with set_camera_objects."
             )
         return result
     objects, record, days = _options(arguments)
@@ -412,6 +426,19 @@ async def async_preview_add_cameras(
         **(
             {"note": "The card asks for each network camera's login; never ask for it in chat."}
             if gathered.network
+            else {}
+        ),
+        **(
+            {
+                "possibly_moved": gathered.moved,
+                "moved_hint": (
+                    "A camera above is read from the same port and path as a Frigate "
+                    "camera whose address no longer answers: it may be that camera at a "
+                    "new address. Ask the user; if so, move_frigate_camera keeps its "
+                    "history and login, and this card is not needed."
+                ),
+            }
+            if gathered.moved
             else {}
         ),
     }

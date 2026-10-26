@@ -2167,6 +2167,8 @@ def _is_weak_prose_name(name: str) -> bool:
 def _inject_entity_markers(
     text: str,
     entities: list[EntitySnapshot],
+    *,
+    prose_fallback: bool = True,
 ) -> str:
     """Rewrite an LLM "answer" so devices it named in prose render as
     tile cards instead of duplicated markdown.
@@ -2193,7 +2195,8 @@ def _inject_entity_markers(
       2. Prose-only mention fallback — runs only when the response has
          neither markers nor stripped bullet runs. Without this guard,
          area sub-headings ("### Kitchen") match same-named entities
-         (media_player.kitchen) and surface spurious tiles.
+         (media_player.kitchen) and surface spurious tiles. Off when
+         *prose_fallback* is False.
 
     Entities the LLM already wrapped in a marker are never double-marked.
 
@@ -2532,7 +2535,7 @@ def _inject_entity_markers(
     # this guard, area sub-headings like "### Kitchen" false-positive
     # match against media_player.kitchen and surface spurious tiles.
     prose_eids: list[str] = []
-    fallback_mode = not already and not captured_in_bullets
+    fallback_mode = prose_fallback and not already and not captured_in_bullets
 
     def _under_cap() -> bool:
         return len(captured_in_bullets) + len(prose_eids) < _AUTO_MARKER_MAX_IDS
@@ -2879,7 +2882,11 @@ async def _handle_websocket_chat(
         if entity_ids:
             response_text += f"\n\n[[entities:{','.join(entity_ids)}]]"
     elif intent_type == "answer":
-        response_text = _inject_entity_markers(response_text, entities)
+        response_text = _inject_entity_markers(
+            response_text,
+            entities,
+            prose_fallback=not _names_places(result.get("tool_calls")),
+        )
 
     if intent_type in ("delayed_command", "cancel"):
         intent_type, response_text, schedule_id = await _handle_scheduled_intent(
@@ -4109,7 +4116,11 @@ async def _handle_websocket_chat_stream(
             if entity_ids and not dashboard_turn:
                 response_text += f"\n\n[[entities:{','.join(entity_ids)}]]"
         elif intent_type == "answer" and not dashboard_turn:
-            response_text = _inject_entity_markers(response_text, entities)
+            response_text = _inject_entity_markers(
+                response_text,
+                entities,
+                prose_fallback=not _names_places(tool_executor.call_log if tool_executor else None),
+            )
         elif intent_type in ("delayed_command", "cancel"):
             intent_type, response_text, schedule_id = await _handle_scheduled_intent(
                 hass, intent_type, parsed, session_id
@@ -4681,6 +4692,7 @@ from .llm_client.command_policy import (  # noqa: E402, PLC0415
     _SENTENCE_FORMAT_BY_LANG,
     _normalize_lang,
 )
+from .llm_client.command_policy import names_places as _names_places  # noqa: E402, PLC0415
 from .llm_client.command_policy import past_verb_for as _past_verb_for  # noqa: E402, PLC0415
 
 # Localized footer / empty / error strings for the persisted approval
@@ -5098,6 +5110,22 @@ async def _apply_destructive_actions(
                 res = await async_install_confirmed(
                     hass, target_id, str(action.get("fingerprint") or "")
                 )
+            elif kind == "frigate_objects":
+                # target_id is the Frigate camera; the fingerprint is what it
+                # looked for when the card was shown.
+                from .frigate.objects import async_set_objects_confirmed  # noqa: PLC0415
+
+                res = await async_set_objects_confirmed(
+                    hass, target_id, str(action.get("fingerprint") or ""), payload
+                )
+            elif kind == "frigate_move":
+                # target_id is the Frigate camera; the fingerprint is the camera
+                # as shown and the address the card named.
+                from .frigate.moving import async_move_camera_confirmed  # noqa: PLC0415
+
+                res = await async_move_camera_confirmed(
+                    hass, target_id, str(action.get("fingerprint") or ""), payload
+                )
             elif kind == "repair":
                 # target_id is "<domain>/<issue_id>"; the fingerprint is the issue
                 # as the card showed it, so one re-raised since is not fixed blind.
@@ -5125,7 +5153,10 @@ async def _apply_destructive_actions(
         if isinstance(res, dict) and res.get("error"):
             errors.append(f"{label}: {res['error']}")
         else:
-            applied.append(label)
+            # A kind may say what it did in its own words: the card's label
+            # promises the change, and a restart that failed breaks the promise.
+            done = res.get("done") if isinstance(res, dict) else None
+            applied.append(str(done) if done else label)
     return applied, errors
 
 
