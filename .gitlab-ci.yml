@@ -86,7 +86,7 @@ validate:
     - python3 scripts/validate_hacs.py
     - python3 scripts/validate_manifest.py
 
-# "3.15-rc" is a forward-compatibility canary for the next CPython: nothing
+# "3.15" is a forward-compatibility canary for the next CPython: nothing
 # else here would notice a 3.15 break until the day we move. Its rules are its
 # own — GitLab evaluates rules per matrix job, with that job's variables — so it
 # is ADVISORY: `allow_failure` on every rule, a warning rather than a red X;
@@ -102,9 +102,10 @@ validate:
 # (it compiles without importing), which is the one answer available while the
 # HA stack has no 3.15 support; on the stable entries it is a cheap check too.
 #
-# When 3.15.0 final ships (the `-rc` tag then stops being rebuilt, so the
-# canary silently tests a stale interpreter): rename "3.15-rc" to "3.15", and
-# once the suite passes there, drop its rules below, which makes it blocking.
+# Once the suite passes there, drop its rules below, which makes it blocking.
+# For the next CPython, track its `-rc` tag the same way and rename it when
+# the final ships: the `-rc` tag then stops being rebuilt, so the canary
+# would silently test a stale interpreter.
 # `.python-version` and ruff's `target-version` are a SEPARATE, later decision:
 # they follow the oldest runtime we support, not the newest available.
 unit:
@@ -112,10 +113,10 @@ unit:
   image: python:${PYTHON_VERSION}-slim
   parallel:
     matrix:
-      - PYTHON_VERSION: ["3.13", "3.14", "3.15-rc"]
+      - PYTHON_VERSION: ["3.13", "3.14", "3.15"]
   <<: *pip-cache
   rules:
-    - if: $PYTHON_VERSION != "3.15-rc"
+    - if: $PYTHON_VERSION != "3.15"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
       allow_failure: true
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
