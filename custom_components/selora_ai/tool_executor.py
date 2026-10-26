@@ -162,6 +162,9 @@ class ToolExecutor:
             "remove_from_home": self._remove_from_home,
             "install_update": self._install_update,
             "add_cameras_to_frigate": self._add_cameras_to_frigate,
+            "set_camera_objects": self._set_camera_objects,
+            "move_frigate_camera": self._move_frigate_camera,
+            "find_camera_events": self._find_camera_events,
             "get_automation_traces": self._get_automation_traces,
             "get_automation": self._get_automation,
             "get_scene": self._get_scene,
@@ -670,10 +673,25 @@ class ToolExecutor:
 
         return await async_preview_install(self._hass, str(arguments.get("entity_id") or ""))
 
+    async def _set_camera_objects(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.objects import async_preview_set_objects
+
+        return await async_preview_set_objects(self._hass, arguments)
+
+    async def _move_frigate_camera(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.moving import async_preview_move_camera
+
+        return await async_preview_move_camera(self._hass, arguments)
+
     async def _add_cameras_to_frigate(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .frigate.setup import async_preview_add_cameras
 
         return await async_preview_add_cameras(self._hass, arguments)
+
+    async def _find_camera_events(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.events import async_find_events
+
+        return await async_find_events(self._hass, arguments)
 
     async def _remove_from_home(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .removal_cards import async_preview_removal

@@ -62,10 +62,14 @@ const _DELETE_KIND_LABELS = {
   entity: "entity",
   device: "device",
   frigate_camera: "Frigate camera",
+  frigate_objects: "Frigate camera",
+  frigate_move: "Frigate camera",
 };
 
 const _DELETE_KIND_ICONS = {
   frigate_camera: "mdi:cctv",
+  frigate_objects: "mdi:cctv",
+  frigate_move: "mdi:cctv",
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",

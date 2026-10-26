@@ -1,4 +1,5 @@
-"""MCP tool for a camera snapshot, returned as an image the client can see."""
+"""MCP tools for cameras: a snapshot, returned as an image the client can see,
+and what Frigate saw."""
 
 from __future__ import annotations
 
@@ -92,3 +93,11 @@ async def _tool_get_camera_image(
         mime_type=mime_type,
         fields={"entity_id": entity_id, "content_type": mime_type, "bytes": len(image.content)},
     )
+
+
+async def _tool_find_camera_events(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    from ..frigate.events import async_find_events  # noqa: PLC0415
+
+    return await async_find_events(hass, arguments)

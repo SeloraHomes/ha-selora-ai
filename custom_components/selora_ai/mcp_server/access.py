@@ -47,6 +47,7 @@ from .names import (
     TOOL_DISMISS_SUGGESTION,
     TOOL_EVAL_TEMPLATE,
     TOOL_EXECUTE_COMMAND,
+    TOOL_FIND_CAMERA_EVENTS,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_FIND_REFERENCES,
     TOOL_FIRE_EVENT,
@@ -250,8 +251,9 @@ _ADMIN_TOOLS = frozenset(
         TOOL_GET_AUTOMATION_TRACES,
         # Read-only too, but a camera shows the inside of the home — more than
         # its states say — and a read-only credential is the one most often
-        # handed to an outside assistant.
+        # handed to an outside assistant. What the cameras saw, likewise.
         TOOL_GET_CAMERA_IMAGE,
+        TOOL_FIND_CAMERA_EVENTS,
         TOOL_SET_CALENDAR_EVENT,
         TOOL_DELETE_CALENDAR_EVENT,
         TOOL_SET_ENERGY_PREFS,

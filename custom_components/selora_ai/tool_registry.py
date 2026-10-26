@@ -2345,6 +2345,70 @@ TOOL_INSTALL_UPDATE = ToolDef(
     large_context_only=True,
 )
 
+TOOL_FIND_CAMERA_EVENTS = ToolDef(
+    name="find_camera_events",
+    description=(
+        "What Frigate's cameras saw: the people, cars, animals and other objects "
+        "it tracked, newest first, with camera, zones, local start time and "
+        "duration, and a name when it recognised a face or plate (sub_label). "
+        "'Was anyone at the door this afternoon?', 'when did the car leave?', "
+        "'when did the bus pass?', 'how many people came by yesterday?' (total, "
+        "by_object, by_camera count the whole range). The answer to anything a "
+        "camera saw or did not see, and when: not the history of Frigate's count "
+        "or occupancy sensors, which hold neither times of objects nor what a "
+        "camera is not looking for. The user sees each event's snapshot on a card under "
+        "your reply, so describe what happened, with no links and no device tiles. "
+        "An empty events list means nothing was tracked, not that nobody was there; "
+        "watching says what each camera looks for, and not_recorded what it "
+        "could not have seen: say so rather than 'nothing found'."
+    ),
+    params=(
+        ToolParam(
+            name="cameras",
+            type="array",
+            items_type="string",
+            description="Frigate camera names, their names, or camera entities; default all.",
+        ),
+        ToolParam(
+            name="objects",
+            type="array",
+            items_type="string",
+            description="Frigate labels: person, car, dog, cat, bird, package…; default all.",
+        ),
+        ToolParam(name="zones", type="array", items_type="string", description="Frigate zones."),
+        ToolParam(
+            name="names",
+            type="array",
+            items_type="string",
+            description="Only events Frigate recognised as these faces or plates.",
+        ),
+        ToolParam(
+            name="hours",
+            type="number",
+            description="Hours back from now, when no start is given (default 24).",
+        ),
+        ToolParam(
+            name="start",
+            type="string",
+            description="ISO date or datetime; local time if no offset. Up to 31 days.",
+        ),
+        ToolParam(name="end", type="string", description="ISO date or datetime; default now."),
+        ToolParam(
+            name="query",
+            type="string",
+            description=(
+                "Describe what to find ('a delivery van', 'someone in a red coat'); "
+                "needs Frigate's semantic search. Also give objects when it names "
+                "one ('white car': car): without semantic search the other filters "
+                "still apply."
+            ),
+        ),
+        ToolParam(name="limit", type="integer", description="Events listed (default 10, max 25)."),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
     name="add_cameras_to_frigate",
     description=(
@@ -2353,7 +2417,9 @@ TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
         "go straight to Frigate, which brings them into Home Assistant). Without "
         "entity_ids or hosts, every camera Frigate does not have yet. Not for a "
         "camera already in Frigate: its recording, detection and snapshots are "
-        "switches on its device, changed with execute_command. The user gets a card "
+        "switches on its device, changed with execute_command, what it looks "
+        "for is set_camera_objects, and a new address is move_frigate_camera. "
+        "The user gets a card "
         "naming each camera, what it tracks and records, and that Frigate restarts; "
         "a network camera's login is typed into the card, so never ask for a "
         "password in chat. Call again with other arguments to change the card."
@@ -2401,6 +2467,77 @@ TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
             name="record_days",
             type="integer",
             description="Days to keep those recordings. Default: Frigate's.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_MOVE_FRIGATE_CAMERA = ToolDef(
+    name="move_frigate_camera",
+    description=(
+        "Point a camera already in Frigate at its new network address, when the "
+        "router gave it another IP: 'the Wyze is at 192.168.2.205 now'. It keeps "
+        "the camera's name, history, entities and login; never add it to Frigate "
+        "again instead. The user gets a card naming the camera, the old and new "
+        "address, and that Frigate restarts. Never ask for or pass a password."
+    ),
+    params=(
+        ToolParam(
+            name="camera",
+            type="string",
+            description="The Frigate camera: its name, its friendly name, or its camera entity.",
+            required=True,
+        ),
+        ToolParam(
+            name="host",
+            type="string",
+            description="Its new IP address or hostname.",
+            required=True,
+        ),
+        ToolParam(
+            name="port",
+            type="integer",
+            description="Only when the stream's port changed too.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_SET_CAMERA_OBJECTS = ToolDef(
+    name="set_camera_objects",
+    description=(
+        "Change what a camera already in Frigate looks for (person, car, dog, cat, "
+        "package…): 'detect cars on the driveway camera'. Frigate records events only "
+        "for these. Not the camera's Detect switch, which turns all detection on or "
+        "off and chooses no object. The user gets a card naming the camera, the full "
+        "list, and that Frigate restarts; nothing changes until they confirm."
+    ),
+    params=(
+        ToolParam(
+            name="camera",
+            type="string",
+            description="The Frigate camera: its name, its friendly name, or its camera entity.",
+            required=True,
+        ),
+        ToolParam(
+            name="add",
+            type="array",
+            items_type="string",
+            description="Frigate labels to look for as well.",
+        ),
+        ToolParam(
+            name="remove",
+            type="array",
+            items_type="string",
+            description="Frigate labels to stop looking for.",
+        ),
+        ToolParam(
+            name="objects",
+            type="array",
+            items_type="string",
+            description="The whole list instead, replacing what it looks for now.",
         ),
     ),
     requires_admin=True,
@@ -3163,6 +3300,9 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_REMOVE_FROM_HOME,
     TOOL_INSTALL_UPDATE,
     TOOL_ADD_CAMERAS_TO_FRIGATE,
+    TOOL_FIND_CAMERA_EVENTS,
+    TOOL_SET_CAMERA_OBJECTS,
+    TOOL_MOVE_FRIGATE_CAMERA,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
@@ -3229,6 +3369,8 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "remove_from_home",
         "install_update",
         "add_cameras_to_frigate",
+        "set_camera_objects",
+        "move_frigate_camera",
         "delete_floor",
         "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
@@ -3320,6 +3462,8 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "remove_from_home",
         "install_update",
         "add_cameras_to_frigate",
+        "set_camera_objects",
+        "move_frigate_camera",
         "list_scripts",
         "get_script",
         "set_script",

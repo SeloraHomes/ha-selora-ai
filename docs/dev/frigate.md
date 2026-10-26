@@ -216,6 +216,53 @@ A new camera has no usage history for the pattern-based suggestions, so
   (`selora_ai/frigate/ideas`, asked at most once a minute) and as `camera_idea`
   home suggestions; a dismissal (`idea:<kind>:<camera>`) holds in both.
 
+## What a camera looks for
+
+`set_camera_objects` (`frigate/objects.py`) changes `cameras.<name>.objects.track`
+on a camera Frigate already has, behind the destructive confirmation card
+(`kind: "frigate_objects"`), then restarts Frigate.
+
+- **Not the Detect switch.** The Frigate integration's `switch.<cam>_detect`
+  turns all detection on or off and chooses no object. Asked to "enable car
+  detection", the model turned on an already-on switch and reported success;
+  the add-cameras tool and its "already in Frigate" hint now name this tool.
+- **The card shows the whole list**, before and after, and says when detection
+  is off on the camera, since a list changes nothing then.
+- **Confirming re-reads the camera** and writes only if it still looks for what
+  the card was built from (`_fingerprint`), then applies the call's `add` /
+  `remove` / `objects` to that list.
+- Asking for what it already looks for answers `unchanged`, with no card.
+- **Checked against the list saved, not the one running.** `/api/config` is
+  Frigate's running configuration, and a write runs only after the restart
+  (never, when Frigate cannot restart itself). The list written is kept
+  (`_SAVED`) until Frigate runs it or runs a list set elsewhere, and confirms are serialized, so a second
+  card built from the old list is refused instead of undoing the first.
+
+## A camera at a new address
+
+`move_frigate_camera` (`frigate/moving.py`) points a camera already in Frigate
+at the address the router gave it, behind a card (`kind: "frigate_move"`).
+Adding it again made a second camera, with no history, entities or
+automations, next to the dead one.
+
+- **The login is kept, never re-asked.** `/api/config` masks every stream
+  login, so the confirm reads `/api/config/raw` and swaps only the host (and
+  the port, when given) in the camera's own go2rtc streams, inputs and
+  `onvif.host`. The raw file holds every login and the MQTT password: it is
+  parsed in memory and never logged, returned or shown.
+- **One address per camera.** A camera read from two hosts is refused; which
+  one moved is not ours to guess.
+- **Only local addresses**, as for adding.
+- **Adding a moved camera asks about moving it.** A stream address the user
+  gives that matches a Frigate camera's port and path on another host whose
+  address no longer answers comes back as `possibly_moved`, with a hint to
+  ask the user. The add card stays: two cameras of one brand share a path,
+  and an old camera merely offline must not block a new one.
+- **Ports.** A port written in the address the user gave counts; one equal to
+  the camera's current port is no change. A camera read on several ports
+  (an omitted port is its scheme's default) refuses a new port, since which
+  source moved is a guess; its address alone can still move.
+
 ## Removing a camera
 
 A Frigate camera's entity or device given to `remove_from_home` as `entity` or
@@ -239,3 +286,51 @@ Cameras Frigate could add, from HA and from the last network scan, show as one
 `address`. Frigate's answer is cached for five minutes, since the chat home
 reads suggestions on every visit; the cache is dropped after cameras are added.
 The id lists the cameras, so a dismissal holds until a new one appears.
+
+## What the cameras saw
+
+`find_camera_events` (`frigate/events.py`, MCP `selora_find_camera_events`)
+reads Frigate's tracked-object events, not Home Assistant's: the Frigate
+entities only say what is there now.
+
+- **Admin only**, like `selora_get_camera_image`: the events say who came and
+  went, and a read-only credential is the one handed to outside assistants.
+- **The model gets facts, never media URLs.** Ids, labels, zones, local times,
+  and `sub_label` (a face or plate Frigate recognised, so "was Alice at the
+  door?" can be answered). Frigate's GenAI `description` only when GenAI is on.
+- **A description search without semantic search keeps its other filters.**
+  "White cars yesterday" still lists yesterday's cars, with `not_filtered_by`
+  so the reply says the colour was not checked, and `semantic_search`: where
+  to turn it on and what it costs (hub CPU and memory, a reindex for older
+  events, GenAI descriptions being a separate, outward option). Refusing the
+  whole search left the model asking instead of answering. Turning it on is
+  the user's: it is a global section, which this integration does not write.
+- **Counts cover the range, the list is a page.** Up to `_COUNT_CAP` events are
+  read without thumbnails so `total`, `by_object` and `by_camera` answer "how
+  many…" while at most 25 are listed.
+- **An event id is checked before it is passed on** (`_EVENT_ID`): the panel
+  builds media paths from it.
+- **The card is drawn from the stored tool calls** (`camera-events-card.js`),
+  so a reopened conversation has it. Snapshots and clips come from the Frigate
+  integration's own views (`/api/frigate/snapshot/<id>`,
+  `/api/frigate/recording/<camera>/start/<s>/end/<e>`), signed with
+  `auth/sign_path` because an `<img>` cannot carry the panel's token. Not the
+  notification views: those can be switched off in the Frigate integration.
+- **A camera answer gets no tiles from names in its prose.** Cameras are named
+  after the place they watch, and so is the lock on it: "nobody at the Front
+  Door" made the reply's name matching show the Front Door lock's tile.
+  `names_places()` turns that fallback off for the turn.
+- **An empty search says what could not have been seen.** Frigate records
+  events only for the objects a camera looks for (`objects.track`, `person` by
+  default) and only while detection is on, so "no cars" from a camera watching
+  for people is not an answer. `watching` lists both per camera, and
+  `not_recorded` spells out each blind spot for the requested objects. An
+  object no camera looks for comes with an `offer` of `set_camera_objects`:
+  stated as a fact, the model only reported it. The prompt allows offers for
+  safe devices only, so it carries an exception for a tool result's top-level
+  `offer` (`_SHARED_STATE_QUERY_RULES`), never for "offer" prose elsewhere in
+  a result, where entity names and descriptions are untrusted. The field is
+  built from checked camera names and object labels only.
+  Semantic search does not help there: it ranks recorded events only. The
+  config is today's, so the note says what is recorded now, never what
+  was in the range.

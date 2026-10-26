@@ -57,7 +57,7 @@ _RESTREAM: Final = "rtsp://127.0.0.1:8554/{}"
 _SINGLE_STREAM_DETECT: Final = {"width": 1280, "height": 720}
 
 DEFAULT_OBJECTS: Final = ("person",)
-_OBJECT: Final = re.compile(r"^[a-z_]{2,30}$")
+OBJECT_LABEL: Final = re.compile(r"^[a-z_]{2,30}$")
 MAX_OBJECTS: Final = 10
 
 
@@ -351,7 +351,7 @@ def clean_objects(value: Any) -> list[str]:
     """The object labels to track: lowercase words, the default when none."""
     items = value if isinstance(value, list) else []
     objects = sorted({str(o).strip().lower() for o in items} - {""})
-    objects = [o for o in objects if _OBJECT.match(o)][:MAX_OBJECTS]
+    objects = [o for o in objects if OBJECT_LABEL.match(o)][:MAX_OBJECTS]
     return objects or list(DEFAULT_OBJECTS)
 
 

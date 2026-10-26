@@ -1826,6 +1826,96 @@ export const chatStyles = css`
     }
   }
 
+  /* What the cameras saw (camera-events-card.js): snapshot tiles, and the
+     one opened, large, above them. */
+  .camera-events {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .camera-events-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  .camera-event {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    color: var(--primary-text-color);
+    font: inherit;
+    min-width: 0;
+  }
+  .camera-event-thumb {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--secondary-background-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary-text-color);
+  }
+  .camera-event-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .camera-event-play {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    --mdc-icon-size: 22px;
+    color: #fff;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  }
+  .camera-event-what,
+  .camera-event-when {
+    font-size: 12px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .camera-event-when,
+  .camera-events-more {
+    color: var(--secondary-text-color);
+    font-size: 12px;
+  }
+  .camera-event-open img,
+  .camera-event-open video {
+    width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #000;
+    display: block;
+  }
+  .camera-event-open-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .camera-event-close {
+    border: none;
+    background: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font: inherit;
+    padding: 4px;
+  }
+
   /* Frigate result card (render-frigate-result.js): the cameras added or
      removed, then each added one's live preview and recording switch once
      Frigate has brought it back. */
