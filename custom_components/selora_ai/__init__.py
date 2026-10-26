@@ -2113,6 +2113,36 @@ def _normalized_name(name: str) -> str:
     return re.sub(r"[\s_\-]+", "", name.lower())
 
 
+# A word after a name in prose that says what kind of device it is. A device
+# named after a place shares that name with every other device there: in "the
+# Front Door camera", "Front Door" is the camera, never the lock of that name.
+_KIND_WORD_DOMAINS: dict[str, frozenset[str]] = {
+    "camera": frozenset({"camera"}),
+    "cam": frozenset({"camera"}),
+    "doorbell": frozenset({"camera", "binary_sensor", "event", "button"}),
+    "lock": frozenset({"lock"}),
+    "light": frozenset({"light", "switch"}),
+    "lights": frozenset({"light", "switch"}),
+    "lamp": frozenset({"light", "switch"}),
+    "thermostat": frozenset({"climate"}),
+    "speaker": frozenset({"media_player"}),
+    "tv": frozenset({"media_player", "remote"}),
+    "blind": frozenset({"cover"}),
+    "blinds": frozenset({"cover"}),
+    "shade": frozenset({"cover"}),
+    "shades": frozenset({"cover"}),
+}
+
+
+def _named_as_other_kind(entity_id: str, tail: str) -> bool:
+    """True when the word after a name in prose (*tail*) names a kind of
+    device *entity_id* is not."""
+    # Past emphasis and a possessive: "**Front Door** camera", "Front Door's camera".
+    word = re.match(r"[*_`]*(?:['\u2019]s)?[*_`]*\s+([a-z]+)", tail)
+    domains = _KIND_WORD_DOMAINS.get(word.group(1)) if word else None
+    return domains is not None and entity_id.split(".", 1)[0] not in domains
+
+
 def _is_weak_prose_name(name: str) -> bool:
     """True when *name* is a single plain word — too generic to safely match
     in unanchored prose.
@@ -2542,7 +2572,12 @@ def _inject_entity_markers(
                         before_ok = pos == 0 or not line_lower[pos - 1].isalnum()
                         after_ok = end >= len(line_lower) or not line_lower[end].isalnum()
                         overlap = any(pos < e and end > s for s, e in consumed)
-                        if before_ok and after_ok and not overlap:
+                        if (
+                            before_ok
+                            and after_ok
+                            and not overlap
+                            and not _named_as_other_kind(eid, line_lower[end:])
+                        ):
                             # Swallow a trailing parenthesized area
                             # annotation. LLMs append the area to a
                             # device mention even when the friendly_name
