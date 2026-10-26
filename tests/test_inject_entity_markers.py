@@ -606,3 +606,20 @@ def test_prose_around_fenced_block_still_gets_marker():
     assert "[[entities:cover.garage_door]]" in out
     assert "```yaml" in out
     assert "foo: bar" in out
+
+
+def test_a_name_called_another_kind_of_device_is_not_that_entity() -> None:
+    # The lock and the camera watching it are both named after the door.
+    entities = [_ent("lock.front_door", "Front Door")]
+
+    camera = _inject_entity_markers(
+        "The Front Door camera's history shows activity around 11:00 AM.", entities
+    )
+    lock = _inject_entity_markers("The Front Door lock is locked.", entities)
+    bare = _inject_entity_markers("Front Door is locked.", entities)
+
+    assert "[[entit" not in camera
+    for written in ("The **Front Door** camera saw it.", "The Front Door’s camera saw it."):
+        assert "[[entit" not in _inject_entity_markers(written, entities)
+    assert "[[entities:lock.front_door]]" in lock
+    assert "[[entities:lock.front_door]]" in bare
