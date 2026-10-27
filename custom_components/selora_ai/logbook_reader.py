@@ -156,8 +156,14 @@ def _walk_back(
 
 def _next_end(when: float) -> str | None:
     """The page's oldest time, rounded DOWN to the microsecond an ISO time
-    holds: rounded up, the strict bound would read that row a second time."""
+    holds: rounded up, the strict bound would read that row a second time.
+
+    ``when * 1e6`` itself rounds, up to the next microsecond for about one
+    time in two hundred, so the floor is checked the way core compares it
+    (``datetime.timestamp()``) and stepped down when it still lands above."""
     floored = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(microseconds=math.floor(when * 1e6))
+    if floored.timestamp() > when:
+        floored -= _EPSILON
     return _iso(floored)
 
 
