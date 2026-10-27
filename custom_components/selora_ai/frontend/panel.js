@@ -42535,6 +42535,20 @@ var ACCEPTED_MIME = /* @__PURE__ */ new Set([
 function supportsImageAttachments(host) {
   return !!host._config?.supports_vision;
 }
+function unsupportedNotice(host) {
+  return host._t(
+    "chat_attachment_unsupported",
+    "Your current AI model can't analyze images.",
+  );
+}
+function clearUnsupportedNotice(host) {
+  if (
+    supportsImageAttachments(host) &&
+    host._attachmentNotice === unsupportedNotice(host)
+  ) {
+    host._attachmentNotice = "";
+  }
+}
 function _b64Length(attachment) {
   return Math.max(
     0,
@@ -42592,11 +42606,9 @@ async function addImageAttachments(host, files) {
     ACCEPTED_MIME.has(f4.type),
   );
   if (!images.length) return;
+  if (!supportsImageAttachments(host)) await host._loadConfig?.();
   if (!supportsImageAttachments(host)) {
-    host._attachmentNotice = host._t(
-      "chat_attachment_unsupported",
-      "Your current AI model can't analyze images.",
-    );
+    host._attachmentNotice = unsupportedNotice(host);
     return;
   }
   const reserved = host._attachmentSlotsReserved || 0;
@@ -56524,7 +56536,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "e661f9318db4" : "";
+var PANEL_BUILD = true ? "32051c10ce03" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -59081,6 +59093,7 @@ var SeloraAIPanel = class extends i4 {
       const config = await this.hass.callWS({ type: "selora_ai/get_config" });
       this._config = config;
       this._newApiKey = "";
+      clearUnsupportedNotice(this);
       syncDevConsole(this);
     } catch (err) {
       console.error("Failed to load config", err);

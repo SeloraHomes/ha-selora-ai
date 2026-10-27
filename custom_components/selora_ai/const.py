@@ -1696,6 +1696,8 @@ AIGATEWAY_CAPABILITIES_PATH = "/api/v1/ai-gateway/v1/capabilities"
 # Re-ask at most this often; the admin model changes rarely and get_config
 # fires on every panel load.
 AIGATEWAY_CAPABILITIES_TTL_S = 900.0
+# After a failed capabilities fetch: soon, but not on every panel load.
+AIGATEWAY_CAPABILITIES_RETRY_S = 60.0
 # Refresh the access token if fewer than this many seconds remain. Generous
 # enough that long-running requests don't get a 401 mid-flight.
 AIGATEWAY_REFRESH_LEEWAY_SECONDS = 120

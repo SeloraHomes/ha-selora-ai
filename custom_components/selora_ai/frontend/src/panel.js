@@ -58,7 +58,10 @@ import * as recipeUpdateActions from "./panel/recipe-update-actions.js";
 import * as suggestionActions from "./panel/suggestion-actions.js";
 import * as insightsActions from "./panel/insights-actions.js";
 import * as chatActions from "./panel/chat-actions.js";
-import { createGlobalDropGuard } from "./panel/chat-attachments.js";
+import {
+  clearUnsupportedNotice,
+  createGlobalDropGuard,
+} from "./panel/chat-attachments.js";
 import * as automationCrud from "./panel/automation-crud.js";
 import * as proposalReveal from "./panel/proposal-reveal.js";
 import * as automationManagement from "./panel/automation-management.js";
@@ -1325,6 +1328,7 @@ class SeloraAIPanel extends LitElement {
       const config = await this.hass.callWS({ type: "selora_ai/get_config" });
       this._config = config;
       this._newApiKey = "";
+      clearUnsupportedNotice(this);
       syncDevConsole(this);
     } catch (err) {
       console.error("Failed to load config", err);

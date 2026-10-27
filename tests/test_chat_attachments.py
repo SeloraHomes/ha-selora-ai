@@ -11,6 +11,7 @@ from custom_components.selora_ai import (
     _validate_chat_attachments,
 )
 from custom_components.selora_ai.const import (
+    AIGATEWAY_CAPABILITIES_RETRY_S,
     CHAT_ATTACHMENT_MAX_B64_BYTES,
     CHAT_ATTACHMENT_MAX_COUNT,
     CHAT_ATTACHMENT_MAX_TOTAL_B64_BYTES,
@@ -184,6 +185,30 @@ class TestSeloraCloudCapabilities:
         provider._ensure_token = _boom  # type: ignore[method-assign]
         await provider.async_refresh_capabilities()
         assert provider.supports_vision is True
+
+    async def test_a_gateway_error_is_not_an_answer_and_is_asked_again_soon(
+        self, hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import time as _time
+
+        clock = [10_000.0]
+        monkeypatch.setattr(_time, "monotonic", lambda: clock[0])
+        response = _FakeCapabilitiesResponse(503)
+        provider, session = _cloud_provider(hass, response)
+        provider._vision_capable = True
+
+        await provider.async_refresh_capabilities()
+        assert provider.supports_vision is True
+
+        clock[0] += AIGATEWAY_CAPABILITIES_RETRY_S - 1
+        await provider.async_refresh_capabilities()
+        assert session.get_calls == 1
+
+        response.status, response._data = 200, {"supports_vision": False}
+        clock[0] += 2
+        await provider.async_refresh_capabilities()
+        assert session.get_calls == 2
+        assert provider.supports_vision is False
 
     async def test_base_providers_have_noop_refresh(self, hass: HomeAssistant) -> None:
         provider = AnthropicProvider(hass, api_key="k")
