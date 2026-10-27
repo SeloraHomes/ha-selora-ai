@@ -48,6 +48,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..const import (
     AIGATEWAY_CAPABILITIES_PATH,
+    AIGATEWAY_CAPABILITIES_RETRY_S,
     AIGATEWAY_CAPABILITIES_TTL_S,
     AIGATEWAY_CHAT_COMPLETIONS_PATH,
     AIGATEWAY_REFRESH_LEEWAY_SECONDS,
@@ -279,10 +280,11 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
     async def async_refresh_capabilities(self) -> None:
         """Ask the gateway whether its active chat model supports vision.
 
-        TTL-cached; any failure (endpoint missing on an older gateway,
-        auth trouble, network) leaves the cached value in place and still
-        stamps the TTL so a broken gateway isn't polled on every panel
-        load. Never raises.
+        TTL-cached. Only a missing endpoint (an older gateway) is an answer;
+        any other failure (auth trouble, a gateway still starting, network)
+        leaves the cached value in place and asks again after a minute, not
+        the full TTL, so a fetch that fails while Home Assistant restarts
+        does not hide image attachments for the whole TTL. Never raises.
         """
         now = time.monotonic()
         if (
@@ -299,15 +301,25 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                 headers=self._get_headers(),
                 timeout=aiohttp.ClientTimeout(total=10),
             ) as resp:
-                if resp.status != 200:
+                if resp.status == 404:
                     # A gateway that predates the endpoint 404s — that's a
                     # definitive "can't do vision", not an error.
                     self._vision_capable = False
+                    return
+                if resp.status != 200:
+                    self._retry_capabilities_soon(now)
                     return
                 data = await resp.json()
             self._vision_capable = bool(data.get("supports_vision"))
         except (aiohttp.ClientError, TimeoutError, ValueError, ConnectionError):
             _LOGGER.debug("AI Gateway capabilities fetch failed; keeping cached value")
+            self._retry_capabilities_soon(now)
+
+    def _retry_capabilities_soon(self, now: float) -> None:
+        """Ask again after AIGATEWAY_CAPABILITIES_RETRY_S instead of the TTL."""
+        self._capabilities_fetched_at = (
+            now - AIGATEWAY_CAPABILITIES_TTL_S + AIGATEWAY_CAPABILITIES_RETRY_S
+        )
 
     @property
     def requires_api_key(self) -> bool:

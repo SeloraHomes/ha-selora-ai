@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { _processImageFile } from "../chat-attachments.js";
+import {
+  _processImageFile,
+  addImageAttachments,
+  clearUnsupportedNotice,
+} from "../chat-attachments.js";
 
 // chat-attachments runs in the browser; vitest uses the node environment here,
 // so stub only the three globals the image pipeline touches.
@@ -96,5 +100,51 @@ describe("_processImageFile", () => {
     const out = await _processImageFile(file("image/png", 4 * 1024 * 1024));
     expect(out.mimeType).toBe("image/jpeg");
     expect(canvasCalls.drawn).toBe(1);
+  });
+});
+
+describe("a model that can't analyze images", () => {
+  const panel = (vision) => ({
+    _config: { supports_vision: vision },
+    _chatAttachments: [],
+    _attachmentNotice: "",
+    _t: (_key, fallback) => fallback,
+  });
+
+  it("is asked again before an image is refused", async () => {
+    const host = panel(false);
+    host._loadConfig = vi.fn(async () => {
+      host._config = { supports_vision: false };
+    });
+
+    await addImageAttachments(host, [file("image/png", 10)]);
+
+    expect(host._loadConfig).toHaveBeenCalledOnce();
+    expect(host._attachmentNotice).toBe(
+      "Your current AI model can't analyze images.",
+    );
+  });
+
+  it("takes an image once the fresh config says it can", async () => {
+    const host = panel(false);
+    host._loadConfig = vi.fn(async () => {
+      host._config = { supports_vision: true };
+    });
+
+    await addImageAttachments(host, [file("image/png", 10)]);
+
+    expect(host._attachmentNotice).toBe("");
+    expect(host._chatAttachments).toHaveLength(1);
+  });
+
+  it("drops its notice once the model can, before any send", () => {
+    const host = panel(true);
+    host._attachmentNotice = "Your current AI model can't analyze images.";
+    clearUnsupportedNotice(host);
+    expect(host._attachmentNotice).toBe("");
+
+    host._attachmentNotice = "Up to 4 images per message.";
+    clearUnsupportedNotice(host);
+    expect(host._attachmentNotice).toBe("Up to 4 images per message.");
   });
 });

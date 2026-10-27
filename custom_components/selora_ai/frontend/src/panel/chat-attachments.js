@@ -31,6 +31,24 @@ export function supportsImageAttachments(host) {
   return !!host._config?.supports_vision;
 }
 
+function unsupportedNotice(host) {
+  return host._t(
+    "chat_attachment_unsupported",
+    "Your current AI model can't analyze images.",
+  );
+}
+
+// Called with each fresh config: the "can't analyze images" notice is about
+// the model, so it goes once the model can, not only on the next send.
+export function clearUnsupportedNotice(host) {
+  if (
+    supportsImageAttachments(host) &&
+    host._attachmentNotice === unsupportedNotice(host)
+  ) {
+    host._attachmentNotice = "";
+  }
+}
+
 function _b64Length(attachment) {
   return Math.max(
     0,
@@ -113,11 +131,11 @@ export async function addImageAttachments(host, files) {
     ACCEPTED_MIME.has(f.type),
   );
   if (!images.length) return;
+  // What the model can do is learned with the config and can be stale (the
+  // gateway was still starting): ask again before refusing.
+  if (!supportsImageAttachments(host)) await host._loadConfig?.();
   if (!supportsImageAttachments(host)) {
-    host._attachmentNotice = host._t(
-      "chat_attachment_unsupported",
-      "Your current AI model can't analyze images.",
-    );
+    host._attachmentNotice = unsupportedNotice(host);
     return;
   }
   // Room accounts for slots RESERVED by batches still decoding — two
