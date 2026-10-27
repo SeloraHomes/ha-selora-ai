@@ -55,6 +55,7 @@ from .const import (
     INSIGHTS_EXPORT_TMP_PREFIX,
 )
 from .insights_roster import build_home_roster
+from .system_log_export import collect as collect_system_log
 
 if TYPE_CHECKING:
     from .health_store import HealthStore
@@ -263,6 +264,7 @@ class InsightsExporter:
         integration_names: dict[str, str] = {}
         integration_urls: dict[str, str] = {}
         integration_versions: dict[str, str] = {}
+        integration_loggers: dict[str, list[str]] = {}
         try:
             for domain, integration in (await async_get_integrations(self._hass, domains)).items():
                 if not isinstance(integration, Exception):
@@ -276,8 +278,22 @@ class InsightsExporter:
                     # integrations are unversioned and track ha_version.
                     if integration.version:
                         integration_versions[domain] = str(integration.version)
+                    # Third-party libraries log under their own names; the
+                    # manifest's ``loggers`` is what ties them to a domain.
+                    if integration.loggers:
+                        integration_loggers[domain] = list(integration.loggers)
         except Exception:  # noqa: BLE001 — names/urls are best-effort; fall back to title/domain
             _LOGGER.debug("Could not resolve integration names; falling back to title/domain")
+        # Integrations loaded without a config entry (YAML, or as another's
+        # dependency) log too, so their manifests' loggers are wanted for
+        # attribution even though the roster has no row for them.
+        try:
+            loaded = {c for c in self._hass.config.components if "." not in c} - domains
+            for domain, integration in (await async_get_integrations(self._hass, loaded)).items():
+                if not isinstance(integration, Exception) and integration.loggers:
+                    integration_loggers[domain] = list(integration.loggers)
+        except Exception:  # noqa: BLE001 — attribution is best-effort, never fail the export
+            _LOGGER.debug("Could not resolve loaded integrations' loggers")
 
         apps = self._gather_apps()
         app_repositories = self._gather_app_repositories() if apps else {}
@@ -293,6 +309,13 @@ class InsightsExporter:
         )
         if roster["truncated"]:
             collection = {**collection, "roster_truncated": True}
+        # Optional and additive within schema v2: omitted (not empty) when the
+        # log cannot be read, since an empty one reads as "nothing logged".
+        try:
+            system_log = collect_system_log(self._hass, integration_loggers)
+        except Exception:  # noqa: BLE001 — best-effort, never fail the export
+            _LOGGER.debug("Could not read system_log; exporting without it")
+            system_log = None
         generated_iso = generated_at.isoformat()
         next_expected = (generated_at + timedelta(seconds=self._cadence)).isoformat()
 
@@ -306,6 +329,7 @@ class InsightsExporter:
             **({"battery_forecast": battery_forecast} if battery_forecast is not None else {}),
             "inventory": inventory,
             "roster": roster,
+            **({"system_log": system_log} if system_log is not None else {}),
             "collection": collection,
         }
         summary = {

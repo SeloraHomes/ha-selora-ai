@@ -533,3 +533,52 @@ async def test_a_truncated_roster_keeps_the_whole_battery_forecast(hass: HomeAss
 
     assert envelope["collection"]["roster_truncated"] is True
     assert envelope["battery_forecast"] == _FORECAST
+
+
+@pytest.mark.asyncio
+async def test_publish_exports_the_redacted_system_log(hass: HomeAssistant) -> None:
+    from homeassistant.components.system_log import DATA_SYSTEM_LOG  # noqa: PLC0415
+
+    record = {
+        "name": "homeassistant.components.lutron_caseta",
+        "message": ["Connect call failed ('192.168.86.241', 8081)"],
+        "level": "WARNING",
+        "timestamp": 1_790_000_000.0,
+        "exception": "",
+        "count": 187,
+        "first_occurred": 1_789_999_000.0,
+    }
+    hass.data[DATA_SYSTEM_LOG] = SimpleNamespace(records=SimpleNamespace(to_list=lambda: [record]))
+
+    envelope = (await _publish_capturing(hass, _FakeStore(None)))["envelope"]
+
+    (entry,) = envelope["system_log"]["entries"]
+    assert entry["domain"] == "lutron_caseta"
+    assert entry["count"] == 187
+    assert entry["messages"][0]["template"] == "Connect call failed (<str>, <n>)"
+    assert "192.168" not in json.dumps(envelope["system_log"])
+
+
+@pytest.mark.asyncio
+async def test_publish_omits_system_log_when_it_cannot_be_read(hass: HomeAssistant) -> None:
+    """Absent means unknown; an empty list would claim nothing was logged."""
+    from homeassistant.components.system_log import DATA_SYSTEM_LOG  # noqa: PLC0415
+
+    hass.data.pop(DATA_SYSTEM_LOG, None)
+
+    envelope = (await _publish_capturing(hass, _FakeStore(None)))["envelope"]
+
+    assert "system_log" not in envelope
+    assert "roster" in envelope
+
+
+@pytest.mark.asyncio
+async def test_publish_survives_a_failing_system_log(hass: HomeAssistant) -> None:
+    with patch(
+        "custom_components.selora_ai.insights_export.collect_system_log",
+        side_effect=RuntimeError("boom"),
+    ):
+        envelope = (await _publish_capturing(hass, _FakeStore(None)))["envelope"]
+
+    assert "system_log" not in envelope
+    assert "roster" in envelope
