@@ -29,6 +29,8 @@ from ..entity_filter import resolve_ignored_entity_ids
 from .client import FRIGATE_DOMAIN
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from homeassistant.core import HomeAssistant
 
 _SCHEMES: Final = frozenset({"rtsp", "rtsps", "rtspx", "rtmp", "rtmps", "http", "https"})
@@ -59,6 +61,13 @@ _SINGLE_STREAM_DETECT: Final = {"width": 1280, "height": 720}
 DEFAULT_OBJECTS: Final = ("person",)
 OBJECT_LABEL: Final = re.compile(r"^[a-z_]{2,30}$")
 MAX_OBJECTS: Final = 10
+# A labelmap may report several classes under one label, so a label the model
+# lacks may still be seen, as another. Frigate's coco-80 labelmap (its YOLO
+# models) does this for bus and truck; its Coral labelmap keeps bus.
+FOLDED_LABELS: Final = (
+    "A model may report one thing under another label: with Frigate's YOLO "
+    "labelmap (coco-80) a bus or a truck is reported as car."
+)
 
 
 @dataclass(frozen=True)
@@ -345,6 +354,43 @@ async def async_camera_candidates(
             )
         )
     return candidates, skipped
+
+
+def model_labels(config: dict[str, Any]) -> frozenset[str] | None:
+    """The labels Frigate's running model can report, or None when Frigate
+    does not say, which checks nothing.
+
+    ``/api/config`` puts the merged labelmap under each detector
+    (``detectors.<name>.model.labelmap``); the top-level ``model.labelmap`` is
+    only what the user overrode, usually empty. Frigate drops a tracked label
+    the model lacks at startup with a log warning, so a label written without
+    this check is saved, reported as done, and never detected.
+    """
+    labels: set[str] = set()
+    for detector in (config.get("detectors") or {}).values():
+        model = detector.get("model") if isinstance(detector, dict) else None
+        labelmap = model.get("labelmap") if isinstance(model, dict) else None
+        # One detector that does not say makes the answer partial, and a
+        # partial list would refuse labels that detector reports.
+        if not isinstance(labelmap, dict) or not labelmap:
+            return None
+        labels.update(str(v).strip().lower() for v in labelmap.values() if v)
+    return frozenset(labels) or None
+
+
+def unsupported_labels(labels: Iterable[str], supported: frozenset[str] | None) -> list[str]:
+    """The labels the running model cannot report."""
+    if supported is None:
+        return []
+    return sorted({label for label in labels if label not in supported})
+
+
+def unsupported_error(labels: list[str], supported: frozenset[str]) -> dict[str, Any]:
+    """A refusal naming labels the model cannot report, with the ones it can."""
+    return {
+        "error": f"Frigate's current model does not detect {', '.join(labels)}. {FOLDED_LABELS}",
+        "model_labels": sorted(supported),
+    }
 
 
 def clean_objects(value: Any) -> list[str]:

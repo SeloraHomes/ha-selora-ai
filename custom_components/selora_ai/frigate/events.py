@@ -24,7 +24,7 @@ from homeassistant.util import slugify
 
 from ..helpers import sanitize_untrusted_text
 from ..history_reader import _BadRequest, _window
-from .cameras import OBJECT_LABEL
+from .cameras import FOLDED_LABELS, OBJECT_LABEL, model_labels, unsupported_labels
 from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError
 
 if TYPE_CHECKING:
@@ -124,7 +124,9 @@ def _watching(config: dict[str, Any], cameras: list[str]) -> list[dict[str, Any]
     return watching
 
 
-def _blind_spots(watching: list[dict[str, Any]], labels: list[str]) -> list[str]:
+def _blind_spots(
+    watching: list[dict[str, Any]], labels: list[str], supported: frozenset[str] | None = None
+) -> list[str]:
     """What no searched camera could have recorded, said plainly."""
     notes = [
         f"Detection is off on {w['camera']}: Frigate records no events there."
@@ -132,7 +134,16 @@ def _blind_spots(watching: list[dict[str, Any]], labels: list[str]) -> list[str]
         if not w["detection"]
     ]
     looking = [w for w in watching if w["detection"]]
+    unknown = unsupported_labels(labels, supported)
+    if unknown:
+        # Not a camera setting: no camera can be made to look for it.
+        notes.append(
+            f"Frigate's current model does not detect {', '.join(map(repr, unknown))}, "
+            f"so no camera can look for it. {FOLDED_LABELS}"
+        )
     for label in labels:
+        if label in unknown:
+            continue
         if looking and not any(label in w["looks_for"] for w in looking):
             notes.append(
                 f"No searched camera looks for {label!r} now, so none records "
@@ -142,7 +153,9 @@ def _blind_spots(watching: list[dict[str, Any]], labels: list[str]) -> list[str]
     return notes
 
 
-def _offer(watching: list[dict[str, Any]], labels: list[str]) -> str | None:
+def _offer(
+    watching: list[dict[str, Any]], labels: list[str], supported: frozenset[str] | None = None
+) -> str | None:
     """What would let the cameras record the objects none looks for.
 
     A field of its own, built from checked names only: the prompt has the
@@ -152,7 +165,9 @@ def _offer(watching: list[dict[str, Any]], labels: list[str]) -> str | None:
     missing = [
         label
         for label in labels
-        if OBJECT_LABEL.match(label) and not any(label in w["looks_for"] for w in looking)
+        if OBJECT_LABEL.match(label)
+        and label not in unsupported_labels([label], supported)
+        and not any(label in w["looks_for"] for w in looking)
     ]
     cameras = [w["camera"] for w in looking if _CAMERA.match(w["camera"])]
     if not cameras or not missing:
@@ -299,9 +314,10 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         "events": events,
         "watching": watching,
     }
-    if notes := _blind_spots(watching, filters["labels"]):
+    supported = model_labels(config)
+    if notes := _blind_spots(watching, filters["labels"], supported):
         result["not_recorded"] = notes
-    if offer := _offer(watching, filters["labels"]):
+    if offer := _offer(watching, filters["labels"], supported):
         result["offer"] = offer
     if unfiltered:
         result["not_filtered_by"] = unfiltered

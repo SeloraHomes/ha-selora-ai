@@ -401,3 +401,23 @@ async def test_a_search_without_descriptions_leaves_frigates_default(
     await async_find_events(hass, {"query": "white car"})
 
     assert "search_type" not in _asked(aioclient_mock)
+
+
+async def test_a_label_the_model_cannot_report_is_not_offered(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # No camera setting fixes it, so offering one would loop: the card would
+    # be refused, or Frigate would drop the label at startup.
+    config = {
+        **_CONFIG,
+        "cameras": {"drive": {"detect": {"enabled": True}, "objects": {"track": ["person"]}}},
+        "detectors": {"rocm": {"model": {"labelmap": {0: "person", 2: "car", 5: "car"}}}},
+    }
+    _api(aioclient_mock, [], config)
+
+    result = await async_find_events(hass, {"objects": ["bus"]})
+
+    (note,) = result["not_recorded"]
+    assert "does not detect 'bus'" in note
+    assert "reported as car" in note
+    assert "offer" not in result
