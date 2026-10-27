@@ -97,6 +97,75 @@ describe("the camera events card", () => {
     expect(out.match(/class="camera-event"/g)).toHaveLength(2);
   });
 
+  it("shows the event's thumbnail on a camera with snapshots off", async () => {
+    // Frigate keeps a thumbnail for every event; a snapshot only when the
+    // camera's snapshots are on, which a camera added from chat leaves off.
+    // Through the integration's instance route, never its notification
+    // views, which can be switched off.
+    const h = host();
+    const car = {
+      ...NOW,
+      id: "1793063296.945653-2oc391",
+      in_progress: false,
+      has_snapshot: false,
+    };
+    const msg = {
+      timestamp: "t-thumb",
+      tool_calls: [
+        {
+          tool: "find_camera_events",
+          result: { events: [car], instance: "frigate" },
+        },
+      ],
+    };
+
+    renderCameraEventsCard(h, msg);
+    await vi.waitFor(() => expect(h.requestUpdate).toHaveBeenCalled());
+    const out = flatten(renderCameraEventsCard(h, msg));
+
+    expect(h.hass.callWS).toHaveBeenCalledWith({
+      type: "auth/sign_path",
+      path: "/api/frigate/frigate/thumbnail/1793063296.945653-2oc391",
+      expires: 3600,
+    });
+    expect(out).toContain("thumbnail/1793063296.945653-2oc391&authSig=x");
+    expect(out).not.toContain("notifications");
+  });
+
+  it("encodes an instance id and refuses one that would change the path", () => {
+    const h = host();
+    const car = { ...NOW, id: "1793063298.1-enc000", has_snapshot: false };
+    const at = (instance, ts) => ({
+      timestamp: ts,
+      tool_calls: [
+        { tool: "find_camera_events", result: { events: [car], instance } },
+      ],
+    });
+
+    renderCameraEventsCard(h, at("frigate:garage", "t-enc"));
+    expect(h.hass.callWS).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: "/api/frigate/frigate%3Agarage/thumbnail/1793063298.1-enc000",
+      }),
+    );
+    h.hass.callWS.mockClear();
+    for (const bad of ["..", "a/b", "a?b"]) {
+      renderCameraEventsCard(h, at(bad, `t-${bad}`));
+    }
+    expect(h.hass.callWS).not.toHaveBeenCalled();
+  });
+
+  it("keeps the placeholder for a reply stored without an instance", () => {
+    const h = host();
+    const car = { ...NOW, id: "1793063297.1-old000", has_snapshot: false };
+    const msg = message("t-noinstance", [car]);
+
+    const out = flatten(renderCameraEventsCard(h, msg));
+
+    expect(h.hass.callWS).not.toHaveBeenCalled();
+    expect(out).toContain("mdi:cctv");
+  });
+
   it("counts what each search left out on its own", () => {
     const msg = {
       timestamp: "t4",
@@ -136,5 +205,29 @@ describe("the camera events card", () => {
     const out = flatten(renderCameraEventsCard(host(), message("t3", [NOW])));
 
     expect(out).not.toContain("mdi:play-circle");
+  });
+});
+
+describe("links into Frigate's own UI", () => {
+  const opened = (panels) => {
+    const h = host();
+    h.hass.panels = panels;
+    const msg = message("t-links", [PORCH]);
+    // Open the event, as a click on its tile does.
+    for (const fn of handlers(renderCameraEventsCard(h, msg))) fn();
+    return flatten(renderCameraEventsCard(h, msg));
+  };
+
+  it("offers the event and the camera's zones when an app serves Frigate", () => {
+    const out = opened({
+      frigate: { config: { addon: "ccab4aaf_frigate-proxy" } },
+    });
+    expect(out).toContain("Open in Frigate");
+    expect(out).toContain("Zones");
+  });
+
+  it("offers nothing without one", () => {
+    const out = opened({});
+    expect(out).not.toContain("Open in Frigate");
   });
 });

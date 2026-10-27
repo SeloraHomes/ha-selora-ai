@@ -1128,7 +1128,9 @@
     "frigate_result_updated": "Aggiornata in Frigate",
     "frigate_result_looks_for": "Cerca",
     "frigate_result_restarting": "Frigate si sta riavviando; la telecamera torna tra circa un minuto.",
-    "frigate_result_update_saved": "Salvato in Frigate; ha effetto al riavvio di Frigate."
+    "frigate_result_update_saved": "Salvato in Frigate; ha effetto al riavvio di Frigate.",
+    "camera_events_open_in_frigate": "Apri in Frigate",
+    "camera_events_zones": "Zone"
   },
   "options": {
     "step": {

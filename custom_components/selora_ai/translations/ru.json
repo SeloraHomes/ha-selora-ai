@@ -1128,7 +1128,9 @@
     "frigate_result_updated": "Обновлено во Frigate",
     "frigate_result_looks_for": "Ищет",
     "frigate_result_restarting": "Frigate перезапускается; камера вернётся примерно через минуту.",
-    "frigate_result_update_saved": "Сохранено во Frigate; вступит в силу после перезапуска Frigate."
+    "frigate_result_update_saved": "Сохранено во Frigate; вступит в силу после перезапуска Frigate.",
+    "camera_events_open_in_frigate": "Открыть во Frigate",
+    "camera_events_zones": "Зоны"
   },
   "options": {
     "step": {

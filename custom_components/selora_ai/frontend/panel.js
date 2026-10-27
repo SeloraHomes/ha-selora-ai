@@ -4625,6 +4625,13 @@ var chatStyles = i`
     font-size: 12px;
     color: var(--secondary-text-color);
   }
+  .camera-event-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .camera-event-link,
   .camera-event-close {
     border: none;
     background: none;
@@ -11392,6 +11399,8 @@ var en_default = {
       "Frigate is restarting; the camera is back in about a minute.",
     frigate_result_update_saved:
       "Saved in Frigate; it takes effect when Frigate restarts.",
+    camera_events_open_in_frigate: "Open in Frigate",
+    camera_events_zones: "Zones",
   },
   options: {
     step: {
@@ -12811,6 +12820,8 @@ var fr_default = {
       "Frigate red\xE9marre ; la cam\xE9ra revient dans une minute environ.",
     frigate_result_update_saved:
       "Enregistr\xE9 dans Frigate ; prend effet au red\xE9marrage de Frigate.",
+    camera_events_open_in_frigate: "Ouvrir dans Frigate",
+    camera_events_zones: "Zones",
   },
   options: {
     step: {
@@ -14220,6 +14231,8 @@ var de_default = {
       "Frigate startet neu; die Kamera ist in etwa einer Minute wieder da.",
     frigate_result_update_saved:
       "In Frigate gespeichert; wirksam, sobald Frigate neu startet.",
+    camera_events_open_in_frigate: "In Frigate \xF6ffnen",
+    camera_events_zones: "Zonen",
   },
   options: {
     step: {
@@ -15607,6 +15620,8 @@ var es_default = {
       "Frigate se est\xE1 reiniciando; la c\xE1mara vuelve en un minuto aproximadamente.",
     frigate_result_update_saved:
       "Guardado en Frigate; se aplica cuando Frigate se reinicie.",
+    camera_events_open_in_frigate: "Abrir en Frigate",
+    camera_events_zones: "Zonas",
   },
   options: {
     step: {
@@ -16993,6 +17008,8 @@ var it_default = {
       "Frigate si sta riavviando; la telecamera torna tra circa un minuto.",
     frigate_result_update_saved:
       "Salvato in Frigate; ha effetto al riavvio di Frigate.",
+    camera_events_open_in_frigate: "Apri in Frigate",
+    camera_events_zones: "Zone",
   },
   options: {
     step: {
@@ -18398,6 +18415,8 @@ var nl_default = {
       "Frigate start opnieuw; de camera is over ongeveer een minuut terug.",
     frigate_result_update_saved:
       "Opgeslagen in Frigate; gaat in wanneer Frigate opnieuw start.",
+    camera_events_open_in_frigate: "Openen in Frigate",
+    camera_events_zones: "Zones",
   },
 };
 
@@ -19859,6 +19878,8 @@ var hu_default = {
       "A Frigate \xFAjraindul; a kamera k\xF6r\xFClbel\xFCl egy perc m\xFAlva visszat\xE9r.",
     frigate_result_update_saved:
       "Mentve a Frigate-ben; a Frigate \xFAjraindul\xE1sakor l\xE9p \xE9letbe.",
+    camera_events_open_in_frigate: "Megnyit\xE1s a Frigate-ben",
+    camera_events_zones: "Z\xF3n\xE1k",
   },
 };
 
@@ -21240,6 +21261,8 @@ var pt_default = {
       "O Frigate est\xE1 reiniciando; a c\xE2mera volta em cerca de um minuto.",
     frigate_result_update_saved:
       "Salvo no Frigate; entra em vigor quando o Frigate reiniciar.",
+    camera_events_open_in_frigate: "Abrir no Frigate",
+    camera_events_zones: "Zonas",
   },
   options: {
     step: {
@@ -23283,6 +23306,9 @@ var ru_default = {
       "Frigate \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u043A\u0430\u0435\u0442\u0441\u044F; \u043A\u0430\u043C\u0435\u0440\u0430 \u0432\u0435\u0440\u043D\u0451\u0442\u0441\u044F \u043F\u0440\u0438\u043C\u0435\u0440\u043D\u043E \u0447\u0435\u0440\u0435\u0437 \u043C\u0438\u043D\u0443\u0442\u0443.",
     frigate_result_update_saved:
       "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E \u0432\u043E Frigate; \u0432\u0441\u0442\u0443\u043F\u0438\u0442 \u0432 \u0441\u0438\u043B\u0443 \u043F\u043E\u0441\u043B\u0435 \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u043A\u0430 Frigate.",
+    camera_events_open_in_frigate:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432\u043E Frigate",
+    camera_events_zones: "\u0417\u043E\u043D\u044B",
   },
   options: {
     step: {
@@ -24982,6 +25008,8 @@ var ja_default = {
       "Frigate \u3092\u518D\u8D77\u52D5\u3057\u3066\u3044\u307E\u3059\u3002\u30AB\u30E1\u30E9\u306F\u7D04 1 \u5206\u3067\u623B\u308A\u307E\u3059\u3002",
     frigate_result_update_saved:
       "Frigate \u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002Frigate \u306E\u518D\u8D77\u52D5\u5F8C\u306B\u53CD\u6620\u3055\u308C\u307E\u3059\u3002",
+    camera_events_open_in_frigate: "Frigate \u3067\u958B\u304F",
+    camera_events_zones: "\u30BE\u30FC\u30F3",
   },
   options: {
     step: {
@@ -26571,6 +26599,8 @@ var ko_default = {
       "Frigate\uB97C \uB2E4\uC2DC \uC2DC\uC791\uD558\uB294 \uC911\uC785\uB2C8\uB2E4. \uCE74\uBA54\uB77C\uB294 \uC57D 1\uBD84 \uD6C4\uC5D0 \uB3CC\uC544\uC635\uB2C8\uB2E4.",
     frigate_result_update_saved:
       "Frigate\uC5D0 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4. Frigate\uB97C \uB2E4\uC2DC \uC2DC\uC791\uD558\uBA74 \uC801\uC6A9\uB429\uB2C8\uB2E4.",
+    camera_events_open_in_frigate: "Frigate\uC5D0\uC11C \uC5F4\uAE30",
+    camera_events_zones: "\uAD6C\uC5ED",
   },
   options: {
     step: {
@@ -28074,6 +28104,8 @@ var zh_Hans_default = {
       "Frigate \u6B63\u5728\u91CD\u542F\uFF1B\u6444\u50CF\u5934\u5927\u7EA6\u4E00\u5206\u949F\u540E\u6062\u590D\u3002",
     frigate_result_update_saved:
       "\u5DF2\u4FDD\u5B58\u5230 Frigate\uFF1BFrigate \u91CD\u542F\u540E\u751F\u6548\u3002",
+    camera_events_open_in_frigate: "\u5728 Frigate \u4E2D\u6253\u5F00",
+    camera_events_zones: "\u533A\u57DF",
   },
   options: {
     step: {
@@ -29583,6 +29615,8 @@ var zh_Hant_default = {
       "Frigate \u6B63\u5728\u91CD\u65B0\u555F\u52D5\uFF1B\u651D\u5F71\u6A5F\u5927\u7D04\u4E00\u5206\u9418\u5F8C\u6062\u5FA9\u3002",
     frigate_result_update_saved:
       "\u5DF2\u5132\u5B58\u5230 Frigate\uFF1BFrigate \u91CD\u65B0\u555F\u52D5\u5F8C\u751F\u6548\u3002",
+    camera_events_open_in_frigate: "\u5728 Frigate \u4E2D\u958B\u555F",
+    camera_events_zones: "\u5340\u57DF",
   },
   options: {
     step: {
@@ -41976,6 +42010,49 @@ function renderRestoreCard(host, msg) {
   </div>`;
 }
 
+// src/panel/frigate-ui.js
+var FRIGATE = /frigate/i;
+function frigateApp(hass) {
+  for (const panel of Object.values(hass?.panels || {})) {
+    const slug = panel?.config?.addon || panel?.config?.ingress;
+    if (typeof slug === "string" && FRIGATE.test(slug)) return slug;
+  }
+  return null;
+}
+function eventPage(eventId) {
+  return `explore?event_id=${encodeURIComponent(eventId)}`;
+}
+function zonesPage(camera) {
+  return `settings?page=masksAndZones&camera=${encodeURIComponent(camera)}`;
+}
+function setIngressCookie(session) {
+  document.cookie = `ingress_session=${session};path=/api/hassio_ingress/;SameSite=Strict${location.protocol === "https:" ? ";Secure" : ""}`;
+}
+async function openFrigatePage(host, page) {
+  const slug = frigateApp(host.hass);
+  if (!slug) return;
+  const tab = window.open("", "_blank");
+  try {
+    const info = await host.hass.callWS({
+      type: "supervisor/api",
+      endpoint: `/addons/${slug}/info`,
+      method: "get",
+    });
+    const entry = info?.ingress_entry;
+    if (!entry) throw new Error("the app has no ingress");
+    const { session } = await host.hass.callWS({
+      type: "supervisor/api",
+      endpoint: "/ingress/session",
+      method: "post",
+    });
+    setIngressCookie(session);
+    if (tab) tab.location.href = `${entry.replace(/\/+$/, "")}/${page}`;
+  } catch (err) {
+    console.error("Selora AI: could not open Frigate", err);
+    tab?.close();
+  }
+}
+
 // src/panel/camera-events-card.js
 var SIGN_FOR_S = 3600;
 var RESIGN_AFTER_MS = 50 * 60 * 1e3;
@@ -41996,7 +42073,10 @@ function searchesOf(msg) {
   for (const call of msg.tool_calls || []) {
     if (call?.tool !== "find_camera_events") continue;
     const listed = call.result?.events || [];
-    const events = listed.filter((e6) => e6?.id && !seen.has(e6.id));
+    const instance = call.result?.instance;
+    const events = listed
+      .filter((e6) => e6?.id && !seen.has(e6.id))
+      .map((e6) => ({ ...e6, frigate_instance: instance }));
     events.forEach((e6) => seen.add(e6.id));
     const more = (call.result?.total || 0) - listed.length;
     if (events.length || more > 0) searches.push({ events, more });
@@ -42007,8 +42087,15 @@ function startOf(event) {
   const start = parseFloat(String(event.id).split("-")[0]);
   return Number.isFinite(start) ? start : null;
 }
-function snapshotPath(event, height) {
+var INSTANCE = /^(?!\.{1,2}$)[^/\\?#%\s\x00-\x1f\x7f]{1,128}$/;
+function picturePath(event, height) {
   const id = encodeURIComponent(event.id);
+  if (!event.has_snapshot) {
+    const instance = event.frigate_instance;
+    return typeof instance === "string" && INSTANCE.test(instance)
+      ? `/api/frigate/${encodeURIComponent(instance)}/thumbnail/${id}`
+      : null;
+  }
   return height
     ? `/api/frigate/snapshot/${id}?h=${height}&crop=1`
     : `/api/frigate/snapshot/${id}`;
@@ -42066,9 +42153,8 @@ function caption(host, event) {
   return `${what} \xB7 ${event.camera_name || event.camera}`;
 }
 function renderOpen(host, event, key) {
-  const snapshot = event.has_snapshot
-    ? signed(host, snapshotPath(event, 0))
-    : null;
+  const picture = picturePath(event, 0);
+  const snapshot = picture ? signed(host, picture) : null;
   const clip2 = clipPath(event) ? signed(host, clipPath(event)) : null;
   return b2`
     <div class="camera-event-open">
@@ -42088,6 +42174,7 @@ function renderOpen(host, event, key) {
       }
       <div class="camera-event-open-meta">
         <span>${caption(host, event)} · ${formatTime2(host, event.start)}</span>
+        ${renderFrigateLinks(host, event)}
         <button
           class="camera-event-close"
           @click=${() => {
@@ -42101,10 +42188,22 @@ function renderOpen(host, event, key) {
     </div>
   `;
 }
+function renderFrigateLinks(host, event) {
+  if (!frigateApp(host.hass)) return "";
+  const link = (page, label) => b2`<button
+      class="camera-event-link"
+      @click=${() => openFrigatePage(host, page)}
+    >
+      ${label}
+    </button>`;
+  return b2`<span class="camera-event-links">
+    ${link(eventPage(event.id), host._t("camera_events_open_in_frigate", "Open in Frigate"))}
+    ${event.camera ? link(zonesPage(event.camera), host._t("camera_events_zones", "Zones")) : ""}
+  </span>`;
+}
 function renderTile(host, event, key) {
-  const thumb = event.has_snapshot
-    ? signed(host, snapshotPath(event, 240))
-    : null;
+  const picture = picturePath(event, 240);
+  const thumb = picture ? signed(host, picture) : null;
   return b2`
     <button
       class="camera-event"
@@ -56425,7 +56524,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "83be4b642766" : "";
+var PANEL_BUILD = true ? "e661f9318db4" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

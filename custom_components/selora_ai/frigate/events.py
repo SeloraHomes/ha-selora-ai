@@ -42,6 +42,10 @@ _MAX_FILTERS: Final = 10
 _EVENT_ID: Final = re.compile(r"^\d+(\.\d+)?-[a-z0-9]+$")
 # What Frigate allows in a camera name; the panel builds clip paths from it.
 _CAMERA: Final = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+# An MQTT client id, as the panel puts it in one path segment: nothing that
+# would end or escape the segment, and no "." or "..", which the browser would
+# resolve. The panel URL-encodes the rest.
+_INSTANCE: Final = re.compile(r"^(?!\.{1,2}$)[^/\\?#%\s\x00-\x1f\x7f]{1,128}$")
 
 _NOT_SET_UP: Final = (
     "Frigate is not set up in Home Assistant: the Frigate integration has to be "
@@ -314,6 +318,11 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         "events": events,
         "watching": watching,
     }
+    # The Frigate integration's always-on media routes are keyed by Frigate's
+    # MQTT client id; the panel draws an event without a snapshot from one.
+    instance = (config.get("mqtt") or {}).get("client_id")
+    if isinstance(instance, str) and _INSTANCE.match(instance):
+        result["instance"] = instance
     supported = model_labels(config)
     if notes := _blind_spots(watching, filters["labels"], supported):
         result["not_recorded"] = notes
