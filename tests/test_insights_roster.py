@@ -861,3 +861,25 @@ async def test_roster_tolerates_three_part_identifiers(
     rows = {d["id"]: d for d in build_home_roster(hass)["devices"]}
     assert rows[odd.id]["matter"] is None
     assert rows[node.id]["matter"] == {"vendor_id": 1, "product_id": 2}
+
+
+@pytest.mark.asyncio
+async def test_roster_exports_redacted_reason_of_failed_entry(hass: HomeAssistant) -> None:
+    """A failed entry carries Home Assistant's reason, redacted like the system
+    log, so a fleet alert can say why without a shell on the hub."""
+    failed = MockConfigEntry(domain="lutron_caseta", entry_id="l1", title="Bridge")
+    failed.add_to_hass(hass)
+    failed.mock_state(
+        hass,
+        ConfigEntryState.SETUP_RETRY,
+        reason="Connect call failed ('192.168.86.241', 8081) password=hunter2",
+    )
+    idle = MockConfigEntry(domain="hue", entry_id="h1", title="Hue")
+    idle.add_to_hass(hass)
+    idle.mock_state(hass, ConfigEntryState.NOT_LOADED, reason="stale text")
+
+    by_domain = {i["domain"]: i for i in build_home_roster(hass)["integrations"]}
+    reason = by_domain["lutron_caseta"]["reason"]
+    assert reason.startswith("Connect call failed")
+    assert "192.168" not in reason and "hunter2" not in reason
+    assert by_domain["hue"]["reason"] == ""

@@ -46,6 +46,7 @@ from .const import (
     TRANSIENT_INTEGRATIONS,
 )
 from .helpers import device_config_entry_ids, device_entries, device_primary_config_entry
+from .system_log_export import redact
 
 if TYPE_CHECKING:
     from .types import (
@@ -66,6 +67,14 @@ _LOGGER = logging.getLogger(__name__)
 # valid no-value state (TTS/notify services, sun-derived sensors, sensors
 # awaiting a first reading) — reporting it as unavailable is a false positive.
 _UNAVAILABLE_STATES = frozenset({"unavailable"})
+_FAILED_ENTRY_STATES = frozenset(
+    {
+        ConfigEntryState.SETUP_ERROR,
+        ConfigEntryState.SETUP_RETRY,
+        ConfigEntryState.MIGRATION_ERROR,
+        ConfigEntryState.FAILED_UNLOAD,
+    }
+)
 _SELORA_ALIAS_PREFIX = "[Selora AI]"
 _MATTER_DOMAIN = "matter"
 
@@ -280,12 +289,18 @@ def build_home_roster(
 
     # entry_id -> (domain, title, state) for integration rows + device mapping.
     entry_meta: dict[str, tuple[str, str, str]] = {}
+    entry_reasons: dict[str, str] = {}
     for entry in hass.config_entries.async_entries():
         entry_meta[entry.entry_id] = (
             entry.domain,
             entry.title,
             entry.state.name.lower(),
         )
+        # Why an entry failed is what lets a failure be told apart from the
+        # next one without a shell on the hub. It is free text from the
+        # integration, so it goes through the same redaction as the system log.
+        if entry.state in _FAILED_ENTRY_STATES and entry.reason:
+            entry_reasons[entry.entry_id] = redact(str(entry.reason))
     # Attribute a repair to the integration it AFFECTS, not the one that raised
     # it: HA stores the affected domain in ``issue_domain`` and the creator in
     # ``domain``. Skip issues the user dismissed (active but dismissed_version
@@ -461,6 +476,7 @@ def build_home_roster(
                 "custom": domain in custom_domains,
                 "url": _strip_url_credentials(integration_urls.get(domain, "")),
                 "version": integration_versions.get(domain, ""),
+                "reason": entry_reasons.get(entry_id, ""),
             }
         )
 
