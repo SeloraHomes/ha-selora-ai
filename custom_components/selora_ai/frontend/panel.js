@@ -4616,29 +4616,81 @@ var chatStyles = i`
     background: #000;
     display: block;
   }
+  /* Under the open event: what and when, then Frigate's pages as pills like
+     the camera ideas, and a round close button. Wraps on a phone. */
   .camera-event-open-meta {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    margin-top: 4px;
+    margin-top: 8px;
+  }
+  .camera-event-open-caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    min-width: 0;
+    margin-right: auto;
+  }
+  .camera-event-open-what {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary-text-color);
+  }
+  .camera-event-open-when {
     font-size: 12px;
     color: var(--secondary-text-color);
   }
   .camera-event-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-left: auto;
+    gap: 6px;
   }
-  .camera-event-link,
-  .camera-event-close {
-    border: none;
-    background: none;
-    color: var(--primary-color);
-    cursor: pointer;
+  .camera-event-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
     font: inherit;
-    padding: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 999px;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition: border-color 0.15s;
+  }
+  .camera-event-link ha-icon {
+    color: var(--selora-accent);
+  }
+  .camera-event-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    color: var(--secondary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 50%;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
+  }
+  .camera-event-link:hover,
+  .camera-event-close:hover {
+    border-color: var(--selora-accent);
+  }
+  .camera-event-close:hover {
+    color: var(--primary-text-color);
   }
 
   /* Frigate result card (render-frigate-result.js): the cameras added,
@@ -42173,16 +42225,23 @@ function renderOpen(host, event, key) {
             : ""
       }
       <div class="camera-event-open-meta">
-        <span>${caption(host, event)} · ${formatTime2(host, event.start)}</span>
+        <span class="camera-event-open-caption">
+          <span class="camera-event-open-what">${caption(host, event)}</span>
+          <span class="camera-event-open-when"
+            >${formatTime2(host, event.start)}</span
+          >
+        </span>
         ${renderFrigateLinks(host, event)}
         <button
           class="camera-event-close"
+          title=${host._t("camera_events_close", "Close")}
+          aria-label=${host._t("camera_events_close", "Close")}
           @click=${() => {
             OPEN.delete(key);
             host.requestUpdate?.();
           }}
         >
-          ${host._t("camera_events_close", "Close")}
+          <ha-icon icon="mdi:close"></ha-icon>
         </button>
       </div>
     </div>
@@ -42190,15 +42249,28 @@ function renderOpen(host, event, key) {
 }
 function renderFrigateLinks(host, event) {
   if (!frigateApp(host.hass)) return "";
-  const link = (page, label) => b2`<button
+  const link = (page, icon, label) => b2`<button
       class="camera-event-link"
       @click=${() => openFrigatePage(host, page)}
     >
-      ${label}
+      <ha-icon icon=${icon}></ha-icon>
+      <span>${label}</span>
     </button>`;
   return b2`<span class="camera-event-links">
-    ${link(eventPage(event.id), host._t("camera_events_open_in_frigate", "Open in Frigate"))}
-    ${event.camera ? link(zonesPage(event.camera), host._t("camera_events_zones", "Zones")) : ""}
+    ${link(
+      eventPage(event.id),
+      "mdi:open-in-new",
+      host._t("camera_events_open_in_frigate", "Open in Frigate"),
+    )}
+    ${
+      event.camera
+        ? link(
+            zonesPage(event.camera),
+            "mdi:vector-square",
+            host._t("camera_events_zones", "Zones"),
+          )
+        : ""
+    }
   </span>`;
 }
 function renderTile(host, event, key) {
@@ -56536,7 +56608,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "32051c10ce03" : "";
+var PANEL_BUILD = true ? "ad249ea5852e" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

@@ -158,16 +158,23 @@ function renderOpen(host, event, key) {
             : ""
       }
       <div class="camera-event-open-meta">
-        <span>${caption(host, event)} · ${formatTime(host, event.start)}</span>
+        <span class="camera-event-open-caption">
+          <span class="camera-event-open-what">${caption(host, event)}</span>
+          <span class="camera-event-open-when"
+            >${formatTime(host, event.start)}</span
+          >
+        </span>
         ${renderFrigateLinks(host, event)}
         <button
           class="camera-event-close"
+          title=${host._t("camera_events_close", "Close")}
+          aria-label=${host._t("camera_events_close", "Close")}
           @click=${() => {
             OPEN.delete(key);
             host.requestUpdate?.();
           }}
         >
-          ${host._t("camera_events_close", "Close")}
+          <ha-icon icon="mdi:close"></ha-icon>
         </button>
       </div>
     </div>
@@ -178,18 +185,27 @@ function renderOpen(host, event, key) {
 // where a parked car or a busy pavement is kept out of what counts.
 function renderFrigateLinks(host, event) {
   if (!frigateApp(host.hass)) return "";
-  const link = (page, label) =>
+  const link = (page, icon, label) =>
     html`<button
       class="camera-event-link"
       @click=${() => openFrigatePage(host, page)}
     >
-      ${label}
+      <ha-icon icon=${icon}></ha-icon>
+      <span>${label}</span>
     </button>`;
   return html`<span class="camera-event-links">
-    ${link(eventPage(event.id), host._t("camera_events_open_in_frigate", "Open in Frigate"))}
+    ${link(
+      eventPage(event.id),
+      "mdi:open-in-new",
+      host._t("camera_events_open_in_frigate", "Open in Frigate"),
+    )}
     ${
       event.camera
-        ? link(zonesPage(event.camera), host._t("camera_events_zones", "Zones"))
+        ? link(
+            zonesPage(event.camera),
+            "mdi:vector-square",
+            host._t("camera_events_zones", "Zones"),
+          )
         : ""
     }
   </span>`;

@@ -1898,29 +1898,81 @@ export const chatStyles = css`
     background: #000;
     display: block;
   }
+  /* Under the open event: what and when, then Frigate's pages as pills like
+     the camera ideas, and a round close button. Wraps on a phone. */
   .camera-event-open-meta {
     display: flex;
-    justify-content: space-between;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    margin-top: 4px;
+    margin-top: 8px;
+  }
+  .camera-event-open-caption {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 8px;
+    min-width: 0;
+    margin-right: auto;
+  }
+  .camera-event-open-what {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--primary-text-color);
+  }
+  .camera-event-open-when {
     font-size: 12px;
     color: var(--secondary-text-color);
   }
   .camera-event-links {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-left: auto;
+    gap: 6px;
   }
-  .camera-event-link,
-  .camera-event-close {
-    border: none;
-    background: none;
-    color: var(--primary-color);
-    cursor: pointer;
+  .camera-event-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
     font: inherit;
-    padding: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 999px;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition: border-color 0.15s;
+  }
+  .camera-event-link ha-icon {
+    color: var(--selora-accent);
+  }
+  .camera-event-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    color: var(--secondary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 50%;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition:
+      border-color 0.15s,
+      color 0.15s;
+  }
+  .camera-event-link:hover,
+  .camera-event-close:hover {
+    border-color: var(--selora-accent);
+  }
+  .camera-event-close:hover {
+    color: var(--primary-text-color);
   }
 
   /* Frigate result card (render-frigate-result.js): the cameras added,

@@ -224,10 +224,18 @@ describe("links into Frigate's own UI", () => {
     });
     expect(out).toContain("Open in Frigate");
     expect(out).toContain("Zones");
+    expect(out).toContain("mdi:open-in-new");
+    expect(out).toContain("mdi:vector-square");
   });
 
   it("offers nothing without one", () => {
     const out = opened({});
     expect(out).not.toContain("Open in Frigate");
+  });
+
+  it("closes with an icon button that still says what it does", () => {
+    const out = opened({});
+    expect(out).toContain("mdi:close");
+    expect(out).toMatch(/aria-label=\s*Close/);
   });
 });
