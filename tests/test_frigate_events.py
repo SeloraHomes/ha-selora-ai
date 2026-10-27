@@ -346,3 +346,58 @@ def test_the_offer_in_a_note_is_one_the_model_is_told_to_make() -> None:
     # The prompt limits offers to safe devices; a tool's `offer` is the
     # exception, or the model only reports what could not be seen.
     assert "top-level `offer` field" in _SHARED_STATE_QUERY_RULES
+
+
+@pytest.mark.parametrize(
+    ("genai", "shown"),
+    [
+        # Frigate 0.18: named providers; no roles means every role.
+        ({"selora": {"provider": "openai", "model": "m"}}, True),
+        ({"selora": {"provider": "openai", "roles": ["descriptions"]}}, True),
+        ({"selora": {"provider": "openai", "roles": ["chat", "embeddings"]}}, False),
+        ({"selora": {"provider": "openai", "roles": []}}, False),
+        ({"provider": {"provider": "openai", "roles": ["descriptions"]}}, True),
+        # Before 0.18: one provider with a flag.
+        ({"enabled": True, "provider": "openai"}, True),
+        ({"enabled": False}, False),
+        ({}, False),
+    ],
+)
+async def test_descriptions_are_kept_when_frigate_writes_them(
+    hass: HomeAssistant,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    genai: dict[str, Any],
+    shown: bool,
+) -> None:
+    _api(aioclient_mock, EVENTS, {**_CONFIG, "genai": genai})
+
+    result = await async_find_events(hass, {})
+
+    described = [e for e in result["events"] if "description" in e]
+    assert bool(described) is shown
+
+
+async def test_a_search_reads_descriptions_when_frigate_writes_them(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    config = {
+        **_CONFIG,
+        "semantic_search": {"enabled": True},
+        "genai": {"selora": {"provider": "openai", "roles": ["descriptions"]}},
+    }
+    _api(aioclient_mock, EVENTS, config)
+
+    await async_find_events(hass, {"query": "white car"})
+
+    assert _asked(aioclient_mock)["search_type"] == "thumbnail,description"
+
+
+async def test_a_search_without_descriptions_leaves_frigates_default(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    _api(aioclient_mock, EVENTS, {**_CONFIG, "semantic_search": {"enabled": True}})
+
+    await async_find_events(hass, {"query": "white car"})
+
+    assert "search_type" not in _asked(aioclient_mock)

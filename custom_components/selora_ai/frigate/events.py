@@ -183,6 +183,27 @@ def _resolve_camera(hass: HomeAssistant, given: str, cameras: dict[str, str]) ->
     return None
 
 
+def _describes(config: dict[str, Any]) -> bool:
+    """Whether Frigate writes event descriptions with GenAI.
+
+    Frigate 0.18 names its providers (``genai: {<name>: {provider, roles…}}``),
+    and one whose roles include ``descriptions`` writes them; ``roles`` left
+    out means every role. Before it, ``genai`` was one provider with an
+    ``enabled`` flag. Read as the old shape only, a home with descriptions on
+    had every one dropped.
+    """
+    genai = config.get("genai")
+    if not isinstance(genai, dict):
+        return False
+    # The old shape by its values: a name could be "provider" or "enabled".
+    if isinstance(genai.get("provider"), str) or isinstance(genai.get("enabled"), bool):
+        return genai.get("enabled") is True
+    return any(
+        isinstance(provider, dict) and "descriptions" in provider.get("roles", ["descriptions"])
+        for provider in genai.values()
+    )
+
+
 def _event(raw: dict[str, Any], cameras: dict[str, str], descriptions: bool) -> dict[str, Any]:
     camera = str(raw.get("camera") or "")
     start, end = raw.get("start_time"), raw.get("end_time")
@@ -257,6 +278,10 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         params.update({k: ",".join(v) for k, v in filters.items() if v})
         if query:
             params.update({"query": query, "limit": limit})
+            if _describes(config):
+                # Frigate searches thumbnails only unless asked; a colour or a
+                # make is in the description, not always in the picture's match.
+                params["search_type"] = "thumbnail,description"
             raw = await client.get_events(params, search=True)
         else:
             params["limit"] = _COUNT_CAP
@@ -267,8 +292,7 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
     found = [e for e in raw if isinstance(e, dict) and _EVENT_ID.match(str(e.get("id") or ""))]
     if not query:
         found.sort(key=lambda e: e.get("start_time") or 0, reverse=True)
-    descriptions = bool((config.get("genai") or {}).get("enabled"))
-    events = [_event(e, cameras, descriptions) for e in found[:limit]]
+    events = [_event(e, cameras, _describes(config)) for e in found[:limit]]
     watching = _watching(config, chosen or list(cameras))
     result: dict[str, Any] = {
         "range": {"start": _local(start.timestamp()), "end": _local(end.timestamp())},
