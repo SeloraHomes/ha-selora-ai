@@ -266,3 +266,77 @@ def test_looking_for_something_is_an_add_not_a_replacement() -> None:
     from custom_components.selora_ai.tool_registry import TOOL_SET_CAMERA_OBJECTS  # noqa: PLC0415
 
     assert "'Look for cars' adds (add)" in TOOL_SET_CAMERA_OBJECTS.description
+
+
+async def _confirm(hass: HomeAssistant, action: dict[str, Any]) -> MagicMock:
+    """Confirm *action* on its card through the resolver; returns the store."""
+    from custom_components.selora_ai import _resolve_approval  # noqa: PLC0415
+
+    approval = {"proposal_id": "p1", "approval_kind": "destructive", "actions": [action]}
+    store = MagicMock()
+    store.get_session = AsyncMock(
+        return_value={
+            "messages": [
+                {
+                    "intent": "command_approval",
+                    "command_approval": approval,
+                    "approval_status": "pending",
+                }
+            ]
+        }
+    )
+    store.set_approval_status = AsyncMock()
+    store.append_message = AsyncMock(return_value={"role": "assistant"})
+    with patch.object(frigate_setup, "async_reload_when_back", AsyncMock()):
+        await _resolve_approval(
+            hass, MagicMock(), {"id": 1}, store, MagicMock(), "sess", "p1", "apply"
+        )
+    return store
+
+
+async def test_a_confirmed_change_shows_the_camera_and_what_it_looks_for(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=_config(["person"]))
+    aioclient_mock.put(f"{FRIGATE}/api/config/set", json={"success": True})
+    aioclient_mock.post(f"{FRIGATE}/api/restart", json={"success": True})
+    _result, action = await _card(hass, {"camera": "wyze_cam_v3", "add": ["bus"]})
+
+    store = await _confirm(hass, action)
+
+    assert store.append_message.call_args.kwargs["frigate_result"] == {
+        "action": "updated",
+        "cameras": [
+            {
+                "name": "Wyze Cam V3",
+                "frigate_name": "wyze_cam_v3",
+                "camera_entity": "camera.wyze_cam_v3",
+                "recordings_entity": "switch.wyze_cam_v3_recordings",
+                "objects": ["bus", "person"],
+            }
+        ],
+    }
+
+
+async def test_a_change_frigate_could_not_restart_for_says_it_waits(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=_config(["person"]))
+    aioclient_mock.put(f"{FRIGATE}/api/config/set", json={"success": True})
+    aioclient_mock.post(f"{FRIGATE}/api/restart", status=500, json={"message": "Unable"})
+    _result, action = await _card(hass, {"camera": "wyze_cam_v3", "add": ["bus"]})
+
+    store = await _confirm(hass, action)
+
+    assert store.append_message.call_args.kwargs["frigate_result"]["action"] == "update_saved"
+
+
+def test_a_card_with_more_than_frigate_changes_keeps_its_text() -> None:
+    # The result card replaces the message, which would hide the rest.
+    from custom_components.selora_ai import _frigate_changed_result  # noqa: PLC0415
+
+    changed = {"camera": "porch", "name": "Porch", "looks_for": ["person"], "done": "x"}
+    assert _frigate_changed_result([changed], ["x"], [])
+    assert _frigate_changed_result([changed], ["x", "Renamed lamp"], []) is None
+    assert _frigate_changed_result([changed], ["x"], ["Lamp: gone"]) is None
+    assert _frigate_changed_result([], ["Renamed lamp"], []) is None

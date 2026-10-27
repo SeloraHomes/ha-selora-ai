@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "创建一个开启所有摄像头录像和检测的场景",
     "camera_idea_watch_scene_why": "出门前一键开启，无需逐个打开摄像头。",
     "camera_idea_watch_scene_prompt": "提出一个我可以审阅的场景，名为看守，开启 {switches}。",
-    "chat_message_details": "详情"
+    "chat_message_details": "详情",
+    "frigate_result_updated": "已在 Frigate 中更新",
+    "frigate_result_looks_for": "检测对象",
+    "frigate_result_restarting": "Frigate 正在重启；摄像头大约一分钟后恢复。",
+    "frigate_result_update_saved": "已保存到 Frigate；Frigate 重启后生效。"
   },
   "options": {
     "step": {

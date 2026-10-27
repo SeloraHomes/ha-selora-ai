@@ -383,6 +383,7 @@ export async function resolveClientActions(host, msg, approval) {
     if (msg) {
       msg._resolving = false;
       msg.approval_status = ok ? "approved" : "denied";
+      msg._justResolved = ok;
       host._messages = [...host._messages];
     }
   } finally {

@@ -5050,9 +5050,14 @@ def _stale_entity(hass: HomeAssistant, entity_id: str, fingerprint: str) -> str 
 
 
 async def _apply_destructive_actions(
-    hass: HomeAssistant, actions: list[dict[str, Any]]
+    hass: HomeAssistant,
+    actions: list[dict[str, Any]],
+    frigate: list[dict[str, Any]] | None = None,
 ) -> tuple[list[str], list[str]]:
     """Apply confirmed destructive actions. Returns (applied labels, errors).
+
+    *frigate*, when given, collects what each applied Frigate camera change
+    returned, for the result card.
 
     Shared by the destructive resolver and the delete resolver, because one card
     can carry both kinds and each must be applied exactly once by exactly one
@@ -5157,7 +5162,24 @@ async def _apply_destructive_actions(
             # promises the change, and a restart that failed breaks the promise.
             done = res.get("done") if isinstance(res, dict) else None
             applied.append(str(done) if done else label)
+            if frigate is not None and kind in ("frigate_objects", "frigate_move"):
+                frigate.append(res)
     return applied, errors
+
+
+def _frigate_changed_result(
+    frigate: list[dict[str, Any]], applied: list[str], errors: list[str]
+) -> FrigateResult | None:
+    """The result card for a card that only changed Frigate cameras, all of
+    them. Anything else keeps the plain text: the card replaces it, and would
+    hide the other changes and any failure."""
+    from .frigate.setup import changed_card_camera  # noqa: PLC0415
+
+    cameras = [camera for result in frigate if (camera := changed_card_camera(result))]
+    if not cameras or len(cameras) != len(applied) or errors:
+        return None
+    restart_failed = any(result.get("restart_failed") for result in frigate)
+    return {"action": "update_saved" if restart_failed else "updated", "cameras": cameras}
 
 
 async def _resolve_destructive_approval(
@@ -5196,7 +5218,8 @@ async def _resolve_destructive_approval(
         )
         return
 
-    applied, errors = await _apply_destructive_actions(hass, actions)
+    frigate: list[dict[str, Any]] = []
+    applied, errors = await _apply_destructive_actions(hass, actions, frigate)
 
     if not applied:
         # Keep the card pending so a transient failure can be retried, exactly
@@ -5210,7 +5233,13 @@ async def _resolve_destructive_approval(
     result_text = "; ".join(applied)
     if errors:
         result_text = f"{result_text} ({'; '.join(errors)})"
-    persisted = await store.append_message(session_id, "assistant", result_text, intent="answer")
+    persisted = await store.append_message(
+        session_id,
+        "assistant",
+        result_text,
+        intent="answer",
+        frigate_result=_frigate_changed_result(frigate, applied, errors),
+    )
     connection.send_result(
         msg["id"],
         {"status": "approved", "executed": applied, "result_message": persisted},

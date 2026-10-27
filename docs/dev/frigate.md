@@ -137,11 +137,12 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
 
 ## The result card
 
-Adding or removing cameras ends in a message carrying `frigate_result`
+Adding, changing or removing cameras ends in a message carrying `frigate_result`
 (`types.FrigateResult`): the action, the cameras with the entity ids the
 Frigate integration gives them (`camera.<name>`, `switch.<name>_recordings`),
 and the detection and recording settings. It is built from the plan
-(`setup.result_for`) or the confirmed delete, never from the panel's report.
+(`setup.result_for`), the confirmed delete, or what a confirmed change
+returned (`setup.changed_card_camera`), never from the panel's report.
 The text line stays on the message for the model and the history; the panel
 shows `render-frigate-result.js` in its place.
 
@@ -166,8 +167,13 @@ shows `render-frigate-result.js` in its place.
 - **Only a clean result gets the card.** It replaces the message text, which is
   where failures are listed, so a removal or add that partly failed keeps the
   plain text.
-- **`saved`** (Frigate could not restart itself) shows no spinner: nothing
-  comes back on its own.
+- **`saved`** and **`update_saved`** (Frigate could not restart itself) show
+  no spinner: nothing comes back on its own.
+- **A change (`updated`) says what the camera looks for in words**, per
+  camera (`objects` on the camera, not the card): the card replaces the
+  message that said it, and the new occupancy sensors only appear once
+  Frigate is back. A move carries no objects. A card that changed anything
+  besides Frigate cameras keeps the text (`_frigate_changed_result`).
 - **The tick draws only for a fresh result**, so reopening the conversation
   later does not replay it.
 - Added cameras get `friendly_name`, so Frigate and HA show "E1 Zoom" rather

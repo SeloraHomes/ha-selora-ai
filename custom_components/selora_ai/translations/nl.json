@@ -1144,6 +1144,10 @@
     "camera_idea_watch_scene_title": "Een scène maken die opname en detectie van alle camera's aanzet",
     "camera_idea_watch_scene_why": "Eén tik voor je vertrekt, in plaats van elke camera aan te zetten.",
     "camera_idea_watch_scene_prompt": "Stel een scène voor die ik kan nakijken, genaamd Bewaking, die {switches} aanzet.",
-    "chat_message_details": "Details"
+    "chat_message_details": "Details",
+    "frigate_result_updated": "Bijgewerkt in Frigate",
+    "frigate_result_looks_for": "Zoekt naar",
+    "frigate_result_restarting": "Frigate start opnieuw; de camera is over ongeveer een minuut terug.",
+    "frigate_result_update_saved": "Opgeslagen in Frigate; gaat in wanneer Frigate opnieuw start."
   }
 }

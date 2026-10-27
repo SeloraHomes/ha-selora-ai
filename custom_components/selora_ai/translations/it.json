@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "Creare una scena che attiva registrazione e rilevamento di tutte le telecamere",
     "camera_idea_watch_scene_why": "Un tocco prima di uscire, invece di attivare ogni telecamera.",
     "camera_idea_watch_scene_prompt": "Proponi una scena che posso rivedere, chiamata Sorveglianza, che attiva {switches}.",
-    "chat_message_details": "Dettagli"
+    "chat_message_details": "Dettagli",
+    "frigate_result_updated": "Aggiornata in Frigate",
+    "frigate_result_looks_for": "Cerca",
+    "frigate_result_restarting": "Frigate si sta riavviando; la telecamera torna tra circa un minuto.",
+    "frigate_result_update_saved": "Salvato in Frigate; ha effetto al riavvio di Frigate."
   },
   "options": {
     "step": {

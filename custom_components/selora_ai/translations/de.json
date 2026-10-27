@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "Eine Szene erstellen, die Aufnahme und Erkennung aller Kameras einschaltet",
     "camera_idea_watch_scene_why": "Ein Tipp vor dem Gehen, statt jede Kamera einzeln einzuschalten.",
     "camera_idea_watch_scene_prompt": "Schlage eine Szene vor, die ich prüfen kann, namens Wache, die {switches} einschaltet.",
-    "chat_message_details": "Details"
+    "chat_message_details": "Details",
+    "frigate_result_updated": "In Frigate aktualisiert",
+    "frigate_result_looks_for": "Sucht nach",
+    "frigate_result_restarting": "Frigate startet neu; die Kamera ist in etwa einer Minute wieder da.",
+    "frigate_result_update_saved": "In Frigate gespeichert; wirksam, sobald Frigate neu startet."
   },
   "options": {
     "step": {

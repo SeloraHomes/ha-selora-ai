@@ -15,6 +15,8 @@
 
 import { html } from "lit";
 
+import { renderCreatedCheck } from "../shared/created-check.js";
+
 import { resolveClientActions } from "./client-actions.js";
 import { renderFrigateCameraRows } from "./frigate-cameras.js";
 import { renderConfirmChip } from "./quick-actions.js";
@@ -223,14 +225,28 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
 
   if (approvalStatus === "approved" || approvalStatus === "denied") {
     const resolved = approvalStatus === "approved";
+    // A change confirmed in this session draws its tick, as a created
+    // automation does; one reloaded later shows it still. A deletion keeps its
+    // bin: a tick there would read as something made.
+    const ticked = resolved && copy.doneIcon === "mdi:check-circle-outline";
     return html`
       <div
+        class=${ticked && msg?._justResolved ? "pop-in" : ""}
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
-        <ha-icon
-          icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
-          style="--mdc-icon-size:16px;flex-shrink:0;"
-        ></ha-icon>
+        ${
+          ticked
+            ? html`<span class="scene-saved-icon"
+                >${renderCreatedCheck({
+                  animate: !!msg?._justResolved,
+                  size: 16,
+                })}</span
+              >`
+            : html`<ha-icon
+                icon=${resolved ? copy.doneIcon : "mdi:close-circle-outline"}
+                style="--mdc-icon-size:16px;flex-shrink:0;"
+              ></ha-icon>`
+        }
         <span
           >${
             resolved

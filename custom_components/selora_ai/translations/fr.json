@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "Créer une scène qui active l'enregistrement et la détection de toutes les caméras",
     "camera_idea_watch_scene_why": "Un seul geste avant de partir, au lieu d'activer chaque caméra.",
     "camera_idea_watch_scene_prompt": "Propose une scène que je pourrai relire, appelée Surveillance, qui active {switches}.",
-    "chat_message_details": "Détails"
+    "chat_message_details": "Détails",
+    "frigate_result_updated": "Mise à jour dans Frigate",
+    "frigate_result_looks_for": "Recherche",
+    "frigate_result_restarting": "Frigate redémarre ; la caméra revient dans une minute environ.",
+    "frigate_result_update_saved": "Enregistré dans Frigate ; prend effet au redémarrage de Frigate."
   },
   "options": {
     "step": {

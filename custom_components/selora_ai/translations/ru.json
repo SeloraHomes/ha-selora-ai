@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "Создать сцену, включающую запись и обнаружение на всех камерах",
     "camera_idea_watch_scene_why": "Одно нажатие перед уходом вместо включения каждой камеры.",
     "camera_idea_watch_scene_prompt": "Предложи сцену, которую я смогу проверить, под названием Охрана, которая включает {switches}.",
-    "chat_message_details": "Подробнее"
+    "chat_message_details": "Подробнее",
+    "frigate_result_updated": "Обновлено во Frigate",
+    "frigate_result_looks_for": "Ищет",
+    "frigate_result_restarting": "Frigate перезапускается; камера вернётся примерно через минуту.",
+    "frigate_result_update_saved": "Сохранено во Frigate; вступит в силу после перезапуска Frigate."
   },
   "options": {
     "step": {

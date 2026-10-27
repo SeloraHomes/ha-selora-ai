@@ -367,3 +367,17 @@ async def test_a_default_port_written_or_left_out_is_one_port(
     )
 
     assert "read from 192.168.2.99:8554" in result["destructive"]["label"]
+
+
+def test_a_moved_camera_is_on_the_result_card_without_objects() -> None:
+    from custom_components.selora_ai.frigate.setup import changed_card_camera  # noqa: PLC0415
+
+    camera = changed_card_camera({"camera": "wyze_front", "name": "Wyze Front", "done": "x"})
+
+    assert camera == {
+        "name": "Wyze Front",
+        "frigate_name": "wyze_front",
+        "camera_entity": "camera.wyze_front",
+        "recordings_entity": "switch.wyze_front_recordings",
+    }
+    assert changed_card_camera({"done": "x"}) is None

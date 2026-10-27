@@ -292,6 +292,7 @@ async def async_move_camera_confirmed(
         _LOGGER.warning("Frigate saved the camera's address but did not restart: %s", exc)
         return {
             "camera": name,
+            "name": friendly,
             "restart_failed": True,
             "done": f"Saved: Frigate reads {friendly} from {where} once it restarts. "
             "It could not restart itself.",
@@ -301,6 +302,7 @@ async def async_move_camera_confirmed(
     )
     return {
         "camera": name,
+        "name": friendly,
         "done": f"Frigate now reads {friendly} from {where}; it is restarting, about a minute.",
     }
 
