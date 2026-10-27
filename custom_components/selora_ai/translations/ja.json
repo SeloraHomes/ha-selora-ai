@@ -1128,7 +1128,9 @@
     "frigate_result_updated": "Frigate で更新しました",
     "frigate_result_looks_for": "検出対象",
     "frigate_result_restarting": "Frigate を再起動しています。カメラは約 1 分で戻ります。",
-    "frigate_result_update_saved": "Frigate に保存しました。Frigate の再起動後に反映されます。"
+    "frigate_result_update_saved": "Frigate に保存しました。Frigate の再起動後に反映されます。",
+    "camera_events_open_in_frigate": "Frigate で開く",
+    "camera_events_zones": "ゾーン"
   },
   "options": {
     "step": {

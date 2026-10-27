@@ -1907,6 +1907,13 @@ export const chatStyles = css`
     font-size: 12px;
     color: var(--secondary-text-color);
   }
+  .camera-event-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .camera-event-link,
   .camera-event-close {
     border: none;
     background: none;

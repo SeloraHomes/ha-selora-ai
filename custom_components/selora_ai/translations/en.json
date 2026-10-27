@@ -1128,7 +1128,9 @@
     "frigate_result_updated": "Updated in Frigate",
     "frigate_result_looks_for": "Looks for",
     "frigate_result_restarting": "Frigate is restarting; the camera is back in about a minute.",
-    "frigate_result_update_saved": "Saved in Frigate; it takes effect when Frigate restarts."
+    "frigate_result_update_saved": "Saved in Frigate; it takes effect when Frigate restarts.",
+    "camera_events_open_in_frigate": "Open in Frigate",
+    "camera_events_zones": "Zones"
   },
   "options": {
     "step": {

@@ -309,6 +309,25 @@ Cameras Frigate could add, from HA and from the last network scan, show as one
 reads suggestions on every visit; the cache is dropped after cameras are added.
 The id lists the cameras, so a dismissal holds until a new one appears.
 
+## Links into Frigate's UI
+
+An opened event on the events card links to Frigate's own pages: the event
+(`explore?event_id=`) and the camera's zones and masks
+(`settings?page=masksAndZones&camera=`). Frigate already does these well;
+Selora only takes the user to the right page (`panel/frigate-ui.js`).
+
+- **Through the app that serves Frigate's UI**, the Frigate app or Frigate
+  Proxy, found by its sidebar panel (`config.addon`). Listing apps is
+  admin-only; the panels are not.
+- **The ingress URL itself, not the app's panel.** HA's app panel loads the
+  app's root and drops any sub-path, so a deep link opens
+  `/api/hassio_ingress/<token>/<page>` in a new tab. First it creates the
+  `ingress_session` cookie with `supervisor/api` `/ingress/session`, as HA's
+  frontend does before loading an app. Both that call and `/addons/<slug>/info`
+  are allowed for non-admins.
+- The tab opens during the click, before any await, or the browser blocks it.
+- No app with ingress means no links.
+
 ## What the cameras saw
 
 `find_camera_events` (`frigate/events.py`, MCP `selora_find_camera_events`)
@@ -336,8 +355,12 @@ entities only say what is there now.
   so a reopened conversation has it. Snapshots and clips come from the Frigate
   integration's own views (`/api/frigate/snapshot/<id>`,
   `/api/frigate/recording/<camera>/start/<s>/end/<e>`), signed with
-  `auth/sign_path` because an `<img>` cannot carry the panel's token. Not the
-  notification views: those can be switched off in the Frigate integration.
+  `auth/sign_path` because an `<img>` cannot carry the panel's token. An event
+  without a snapshot (snapshots are off on a camera added from chat) is drawn
+  from its thumbnail, `/api/frigate/<instance>/thumbnail/<id>`: that route has
+  no form without the instance, so the tool result carries `instance`, Frigate's
+  MQTT `client_id`. Not the notification views: those can be switched off in
+  the Frigate integration.
 - **A camera answer gets no tiles from names in its prose.** Cameras are named
   after the place they watch, and so is the lock on it: "nobody at the Front
   Door" made the reply's name matching show the Front Door lock's tile.

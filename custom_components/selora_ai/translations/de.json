@@ -1128,7 +1128,9 @@
     "frigate_result_updated": "In Frigate aktualisiert",
     "frigate_result_looks_for": "Sucht nach",
     "frigate_result_restarting": "Frigate startet neu; die Kamera ist in etwa einer Minute wieder da.",
-    "frigate_result_update_saved": "In Frigate gespeichert; wirksam, sobald Frigate neu startet."
+    "frigate_result_update_saved": "In Frigate gespeichert; wirksam, sobald Frigate neu startet.",
+    "camera_events_open_in_frigate": "In Frigate öffnen",
+    "camera_events_zones": "Zonen"
   },
   "options": {
     "step": {

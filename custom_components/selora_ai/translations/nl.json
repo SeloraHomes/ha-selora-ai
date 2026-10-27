@@ -1148,6 +1148,8 @@
     "frigate_result_updated": "Bijgewerkt in Frigate",
     "frigate_result_looks_for": "Zoekt naar",
     "frigate_result_restarting": "Frigate start opnieuw; de camera is over ongeveer een minuut terug.",
-    "frigate_result_update_saved": "Opgeslagen in Frigate; gaat in wanneer Frigate opnieuw start."
+    "frigate_result_update_saved": "Opgeslagen in Frigate; gaat in wanneer Frigate opnieuw start.",
+    "camera_events_open_in_frigate": "Openen in Frigate",
+    "camera_events_zones": "Zones"
   }
 }

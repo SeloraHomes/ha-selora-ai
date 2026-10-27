@@ -1128,7 +1128,9 @@
     "frigate_result_updated": "已在 Frigate 中更新",
     "frigate_result_looks_for": "偵測對象",
     "frigate_result_restarting": "Frigate 正在重新啟動；攝影機大約一分鐘後恢復。",
-    "frigate_result_update_saved": "已儲存到 Frigate；Frigate 重新啟動後生效。"
+    "frigate_result_update_saved": "已儲存到 Frigate；Frigate 重新啟動後生效。",
+    "camera_events_open_in_frigate": "在 Frigate 中開啟",
+    "camera_events_zones": "區域"
   },
   "options": {
     "step": {

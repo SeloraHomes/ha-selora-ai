@@ -421,3 +421,44 @@ async def test_a_label_the_model_cannot_report_is_not_offered(
     assert "does not detect 'bus'" in note
     assert "reported as car" in note
     assert "offer" not in result
+
+
+async def test_the_result_names_the_frigate_instance_for_the_panels_media(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # The panel draws an event without a snapshot from the integration's
+    # thumbnail route, which is keyed by Frigate's MQTT client id.
+    _api(aioclient_mock, EVENTS, {**_CONFIG, "mqtt": {"client_id": "frigate"}})
+
+    result = await async_find_events(hass, {})
+
+    assert result["instance"] == "frigate"
+
+
+@pytest.mark.parametrize(
+    ("client_id", "passed"),
+    [
+        ("frigate.garage-2", True),
+        ("frigate:garage", True),
+        ("a b", False),
+        ("a?b", False),
+        ("x" * 128, True),
+        ("../api/config", False),
+        ("..", False),
+        (".", False),
+        ("a/b", False),
+        ("x" * 129, False),
+    ],
+)
+async def test_only_a_path_safe_instance_id_is_passed_on(
+    hass: HomeAssistant,
+    frigate: MockConfigEntry,
+    aioclient_mock: Any,
+    client_id: str,
+    passed: bool,
+) -> None:
+    _api(aioclient_mock, EVENTS, {**_CONFIG, "mqtt": {"client_id": client_id}})
+
+    result = await async_find_events(hass, {})
+
+    assert ("instance" in result) is passed

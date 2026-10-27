@@ -8,6 +8,12 @@
 // expires, since an <img> cannot send the panel's token.
 import { html } from "lit";
 import { interpolate } from "../shared/i18n.js";
+import {
+  eventPage,
+  frigateApp,
+  openFrigatePage,
+  zonesPage,
+} from "./frigate-ui.js";
 
 const SIGN_FOR_S = 3600;
 const RESIGN_AFTER_MS = 50 * 60 * 1000;
@@ -34,7 +40,10 @@ function searchesOf(msg) {
   for (const call of msg.tool_calls || []) {
     if (call?.tool !== "find_camera_events") continue;
     const listed = call.result?.events || [];
-    const events = listed.filter((e) => e?.id && !seen.has(e.id));
+    const instance = call.result?.instance;
+    const events = listed
+      .filter((e) => e?.id && !seen.has(e.id))
+      .map((e) => ({ ...e, frigate_instance: instance }));
     events.forEach((e) => seen.add(e.id));
     const more = (call.result?.total || 0) - listed.length;
     if (events.length || more > 0) searches.push({ events, more });
@@ -48,8 +57,22 @@ function startOf(event) {
   return Number.isFinite(start) ? start : null;
 }
 
-function snapshotPath(event, height) {
+// Mirrors _INSTANCE in frigate/events.py.
+const INSTANCE = /^(?!\.{1,2}$)[^/\\?#%\s\x00-\x1f\x7f]{1,128}$/;
+
+// The event's picture: its snapshot, or, on a camera with snapshots off, the
+// thumbnail Frigate keeps for every event. The Frigate integration serves
+// thumbnails only under its instance id (Frigate's MQTT client id), which the
+// tool result carries; not through its notification views, which can be
+// switched off. A reply stored without one keeps the placeholder.
+function picturePath(event, height) {
   const id = encodeURIComponent(event.id);
+  if (!event.has_snapshot) {
+    const instance = event.frigate_instance;
+    return typeof instance === "string" && INSTANCE.test(instance)
+      ? `/api/frigate/${encodeURIComponent(instance)}/thumbnail/${id}`
+      : null;
+  }
   return height
     ? `/api/frigate/snapshot/${id}?h=${height}&crop=1`
     : `/api/frigate/snapshot/${id}`;
@@ -115,9 +138,8 @@ function caption(host, event) {
 }
 
 function renderOpen(host, event, key) {
-  const snapshot = event.has_snapshot
-    ? signed(host, snapshotPath(event, 0))
-    : null;
+  const picture = picturePath(event, 0);
+  const snapshot = picture ? signed(host, picture) : null;
   const clip = clipPath(event) ? signed(host, clipPath(event)) : null;
   return html`
     <div class="camera-event-open">
@@ -137,6 +159,7 @@ function renderOpen(host, event, key) {
       }
       <div class="camera-event-open-meta">
         <span>${caption(host, event)} · ${formatTime(host, event.start)}</span>
+        ${renderFrigateLinks(host, event)}
         <button
           class="camera-event-close"
           @click=${() => {
@@ -151,10 +174,30 @@ function renderOpen(host, event, key) {
   `;
 }
 
+// Frigate's own pages for this event: the event, and the camera's zones,
+// where a parked car or a busy pavement is kept out of what counts.
+function renderFrigateLinks(host, event) {
+  if (!frigateApp(host.hass)) return "";
+  const link = (page, label) =>
+    html`<button
+      class="camera-event-link"
+      @click=${() => openFrigatePage(host, page)}
+    >
+      ${label}
+    </button>`;
+  return html`<span class="camera-event-links">
+    ${link(eventPage(event.id), host._t("camera_events_open_in_frigate", "Open in Frigate"))}
+    ${
+      event.camera
+        ? link(zonesPage(event.camera), host._t("camera_events_zones", "Zones"))
+        : ""
+    }
+  </span>`;
+}
+
 function renderTile(host, event, key) {
-  const thumb = event.has_snapshot
-    ? signed(host, snapshotPath(event, 240))
-    : null;
+  const picture = picturePath(event, 240);
+  const thumb = picture ? signed(host, picture) : null;
   return html`
     <button
       class="camera-event"
