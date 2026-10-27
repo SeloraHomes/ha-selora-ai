@@ -1277,6 +1277,7 @@ class RosterIntegration(TypedDict):
     custom: bool  # custom component (not built into Home Assistant)
     url: str  # manifest documentation URL (e.g. integration docs page), "" if unknown
     version: str  # manifest version (custom components); "" for core/unversioned
+    reason: str  # redacted reason a failed entry gave; "" when loaded or none given
 
 
 class RosterDevice(TypedDict):
