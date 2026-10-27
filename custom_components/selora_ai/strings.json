@@ -664,6 +664,8 @@
     "delete_approval_title": "Delete this?",
     "delete_approval_title_plural": "Delete these?",
     "delete_approval_warning": "This permanently removes it and can't be undone.",
+    "quick_actions_apply_label": "Apply",
+    "quick_actions_apply_desc": "Make this change",
     "quick_actions_delete_label": "Delete",
     "quick_actions_delete_desc": "Permanently delete this",
     "quick_actions_cancel_label": "Cancel",

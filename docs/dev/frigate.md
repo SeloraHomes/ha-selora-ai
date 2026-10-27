@@ -226,8 +226,12 @@ on a camera Frigate already has, behind the destructive confirmation card
   turns all detection on or off and chooses no object. Asked to "enable car
   detection", the model turned on an already-on switch and reported success;
   the add-cameras tool and its "already in Frigate" hint now name this tool.
-- **The card shows the whole list**, before and after, and says when detection
-  is off on the camera, since a list changes nothing then.
+- **The card says what the camera starts and stops looking for**, and the
+  list it ends with when something is dropped, and says when detection is off
+  on the camera, since a list changes nothing then. A before-and-after list
+  hid a removal: "look for cars" sent as `objects: ["car"]` dropped person,
+  and the card read "looks for car (now car, person)". The tool's description
+  makes "look for X" an `add`; `objects` is for a whole list the user gave.
 - **Confirming re-reads the camera** and writes only if it still looks for what
   the card was built from (`_fingerprint`), then applies the call's `add` /
   `remove` / `objects` to that list.

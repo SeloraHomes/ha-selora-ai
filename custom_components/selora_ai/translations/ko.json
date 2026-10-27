@@ -664,6 +664,8 @@
     "delete_approval_title": "삭제할까요?",
     "delete_approval_title_plural": "이것들을 삭제할까요?",
     "delete_approval_warning": "영구적으로 삭제되며 되돌릴 수 없습니다.",
+    "quick_actions_apply_label": "적용",
+    "quick_actions_apply_desc": "이 변경 적용",
     "quick_actions_delete_label": "삭제",
     "quick_actions_delete_desc": "영구적으로 삭제",
     "quick_actions_cancel_label": "취소",

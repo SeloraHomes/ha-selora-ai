@@ -664,6 +664,8 @@
     "delete_approval_title": "Supprimer ceci ?",
     "delete_approval_title_plural": "Supprimer ces éléments ?",
     "delete_approval_warning": "Cette action le supprime définitivement et est irréversible.",
+    "quick_actions_apply_label": "Appliquer",
+    "quick_actions_apply_desc": "Faire ce changement",
     "quick_actions_delete_label": "Supprimer",
     "quick_actions_delete_desc": "Supprimer définitivement",
     "quick_actions_cancel_label": "Annuler",

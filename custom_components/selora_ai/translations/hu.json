@@ -684,6 +684,8 @@
     "delete_approval_title": "Törli ezt?",
     "delete_approval_title_plural": "Törli ezeket?",
     "delete_approval_warning": "Ez véglegesen eltávolítja, és nem vonható vissza.",
+    "quick_actions_apply_label": "Alkalmaz",
+    "quick_actions_apply_desc": "A módosítás végrehajtása",
     "quick_actions_delete_label": "Törlés",
     "quick_actions_delete_desc": "Végleges törlés",
     "quick_actions_cancel_label": "Mégse",

@@ -91,6 +91,22 @@ def _labels(value: Any) -> set[str]:
     return labels
 
 
+def _change(friendly: str, tracked: list[str], wanted: list[str]) -> str:
+    """What the card changes, in words: what it starts and stops looking for.
+
+    A whole list hides a removal: asked to look for cars, a replacement of
+    "person" by "car" read "looks for car (now car, person)", and the person
+    it would stop looking for was easy to miss.
+    """
+    starts = [label for label in wanted if label not in tracked]
+    stops = [label for label in tracked if label not in wanted]
+    parts = [f"starts looking for {', '.join(starts)}"] if starts else []
+    if stops:
+        parts.append(f"stops looking for {', '.join(stops)}")
+    change = f"{friendly} {' and '.join(parts)}"
+    return f"{change}; it then looks for {', '.join(wanted)} only" if stops else change
+
+
 def _wanted(arguments: dict[str, Any], tracked: list[str]) -> list[str]:
     """The full list to look for: ``objects`` replaces, ``add``/``remove`` edit.
 
@@ -146,10 +162,7 @@ async def async_preview_set_objects(
         if detect.get("enabled") is False
         else ""
     )
-    label = (
-        f"Restart Frigate so {friendly} looks for {', '.join(wanted)}{off} "
-        f"(now {', '.join(tracked) or 'nothing'})"
-    )
+    label = f"{_change(friendly, tracked, wanted)}{off} (Frigate restarts)"
     return {
         "requires_approval": True,
         "destructive": {

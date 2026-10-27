@@ -9,7 +9,9 @@ from homeassistant.core import HomeAssistant
 import pytest
 
 from custom_components.selora_ai.llm_client.command_policy import (
+    _build_delete_approval_response,
     _delete_approval_quick_actions,
+    _destructive_approval_quick_actions,
     _pending_deletes_from_log,
     synthesize_approval_from_tool_log,
 )
@@ -964,3 +966,103 @@ class TestDeleteQuickActions:
         # The destructive confirm carries the deny tone (red); cancel is neutral.
         assert actions[0]["tone"] == "deny"
         assert "tone" not in actions[1]
+
+
+def test_a_change_that_deletes_nothing_confirms_with_its_own_scope() -> None:
+    # The panel words and styles approval buttons by scope: carried on the
+    # delete scope, a change rendered as a red Delete wherever a wording
+    # override did not reach.
+    confirm, cancel = _destructive_approval_quick_actions("pid")
+
+    assert confirm["value"] == "approve:apply:pid"
+    assert cancel["value"] == "approve:cancel:pid"
+    # A card that also deletes keeps the delete scope, worded Apply.
+    mixed, _cancel = _destructive_approval_quick_actions("pid", deletes=True, scope="delete")
+    assert mixed["value"] == "approve:delete:pid"
+    assert mixed["presentation"] == "apply"
+    assert "presentation" not in _delete_approval_quick_actions("pid")[0]
+
+
+def test_apply_is_red_only_when_the_card_also_deletes() -> None:
+    # A red Apply on a rename or a camera change reads as a warning.
+    assert _destructive_approval_quick_actions("pid")[0]["tone"] == "approve"
+    mixed = _destructive_approval_quick_actions("pid", deletes=True)
+    assert mixed[0]["tone"] == "deny"
+
+
+@pytest.mark.parametrize(
+    ("verb", "removes", "tone"),
+    [("disable", False, "approve"), ("remove_view", True, "deny")],
+)
+def test_a_card_says_whether_confirming_removes_anything(
+    verb: str, removes: bool, tone: str
+) -> None:
+    # A dashboard view's removal is an action, not a delete row, and must
+    # still read as one: the panel keeps the red warning on ``removes``.
+    action = {"kind": "dashboard", "verb": verb, "target_id": "t", "label": "L"}
+    upgraded = _build_delete_approval_response(
+        {"intent": "answer", "response": ""}, [], None, None, language="en", actions=[action]
+    )
+
+    assert upgraded["command_approval"]["removes"] is removes
+    assert upgraded["quick_actions"][0]["tone"] == tone
+    assert upgraded["quick_actions"][0]["value"].startswith("approve:apply:")
+
+
+class TestApplyScope:
+    def _session(self, approval: dict) -> dict:
+        return {
+            "messages": [
+                {
+                    "intent": "command_approval",
+                    "command_approval": approval,
+                    "approval_status": "pending",
+                }
+            ]
+        }
+
+    async def _resolve(self, hass: HomeAssistant, approval: dict, scope: str) -> MagicMock:
+        from custom_components.selora_ai import _resolve_approval  # noqa: PLC0415
+
+        store = MagicMock()
+        store.get_session = AsyncMock(return_value=self._session(approval))
+        store.set_approval_status = AsyncMock()
+        store.append_message = AsyncMock(return_value={})
+        connection = MagicMock()
+        await _resolve_approval(
+            hass, connection, {"id": 1}, store, MagicMock(), "sess", approval["proposal_id"], scope
+        )
+        return connection
+
+    @pytest.mark.parametrize("scope", ["apply", "delete"])
+    async def test_a_change_card_applies_on_apply_and_on_a_saved_delete(
+        self, hass: HomeAssistant, scope: str
+    ) -> None:
+        # ``delete`` is what a card saved before ``apply`` sends.
+        approval = {"proposal_id": "p", "approval_kind": "destructive", "actions": [{}]}
+        with patch(
+            "custom_components.selora_ai._apply_destructive_actions",
+            AsyncMock(return_value=(["Applied"], [])),
+        ) as apply:
+            connection = await self._resolve(hass, approval, scope)
+
+        apply.assert_awaited_once()
+        connection.send_error.assert_not_called()
+
+    async def test_a_delete_card_refuses_apply(self, hass: HomeAssistant) -> None:
+        approval = {
+            "proposal_id": "p",
+            "approval_kind": "delete",
+            "deletes": [{"kind": "scene", "target_id": "s", "entity_id": "scene.x"}],
+        }
+
+        connection = await self._resolve(hass, approval, "apply")
+
+        assert connection.send_error.call_args.args[1] == "invalid_scope"
+
+    async def test_a_service_call_card_refuses_apply(self, hass: HomeAssistant) -> None:
+        approval = {"proposal_id": "p", "calls": [{"service": "lock.unlock"}], "risk_level": "high"}
+
+        connection = await self._resolve(hass, approval, "apply")
+
+        assert connection.send_error.call_args.args[1] == "invalid_scope"

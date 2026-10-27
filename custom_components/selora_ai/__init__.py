@@ -5174,8 +5174,8 @@ async def _resolve_destructive_approval(
 ) -> None:
     """Resolve a destructive non-delete card (approval_kind == "destructive").
 
-    ``scope == "delete"`` (the shared confirm sentinel) replays each held
-    action's original tool arguments against the manager function that would
+    ``scope`` ``apply`` (or ``delete``, on a card saved before ``apply``)
+    replays each held action's original tool arguments against the manager function that would
     have run directly. Replaying the arguments rather than a reconstructed diff
     keeps the confirmed write on the same validated path as the direct one —
     the alternative is a second implementation that drifts.
@@ -5184,7 +5184,7 @@ async def _resolve_destructive_approval(
     """
     actions: list[dict[str, Any]] = approval.get("actions", []) or []
 
-    if scope != "delete":
+    if scope not in ("apply", "delete"):
         await store.set_approval_status(session_id, message_index, "denied")
         cancel_text = _approval_phrase(_DELETE_CANCELLED_BY_LANG, language)
         persisted = await store.append_message(
@@ -5537,16 +5537,23 @@ async def _resolve_approval(
     # ``cancel``/``delete`` sent for a service-call card would fall through to
     # the allow path below and execute the call, and an allow scope sent for a
     # delete card would hit the delete resolver.
-    # Destructive non-delete cards (disable, entity_id rename, script replace)
-    # reuse the delete/cancel scope vocabulary, so they share this gate — the
-    # confirm path differs only in what it replays.
+    # A change card (disable, rename, what a camera looks for) confirms with
+    # ``apply``; ``delete`` is still taken from cards saved before it had its
+    # own scope. A delete card never takes ``apply``.
     approval_kind = approval.get("approval_kind")
     is_delete_card = approval_kind == "delete"
     is_destructive_card = approval_kind == "destructive"
-    if (is_delete_card or is_destructive_card) and scope not in ("delete", "cancel", "deny"):
+    valid = (
+        ("delete", "cancel", "deny")
+        if is_delete_card
+        else ("apply", "delete", "cancel", "deny")
+        if is_destructive_card
+        else None
+    )
+    if valid is not None and scope not in valid:
         connection.send_error(msg["id"], "invalid_scope", "Scope not valid for a confirmation card")
         return
-    if not (is_delete_card or is_destructive_card) and scope in ("delete", "cancel"):
+    if valid is None and scope in ("delete", "apply", "cancel"):
         connection.send_error(msg["id"], "invalid_scope", "Scope not valid for this approval")
         return
 

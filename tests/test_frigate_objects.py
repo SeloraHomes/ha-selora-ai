@@ -64,7 +64,7 @@ async def test_a_car_is_added_on_a_card_then_written_and_frigate_restarts(
     result, action = await _card(hass, {"camera": "Wyze Cam V3", "add": ["Car"]})
 
     label = result["destructive"]["label"]
-    assert label == "Restart Frigate so Wyze Cam V3 looks for car, person (now person)"
+    assert label == "Wyze Cam V3 starts looking for car (Frigate restarts)"
     assert _written(aioclient_mock) == []
 
     with patch.object(frigate_setup, "async_reload_when_back", AsyncMock()):
@@ -227,7 +227,7 @@ async def test_a_change_saved_before_frigate_restarts_is_what_the_next_card_star
     after, _action = await _card(hass, {"camera": "wyze_cam_v3", "add": ["dog"]})
 
     assert "changed since it was shown" in errors[0]
-    assert after["destructive"]["label"].endswith("looks for car, dog, person (now car, person)")
+    assert after["destructive"]["label"] == "Wyze Cam V3 starts looking for dog (Frigate restarts)"
 
 
 async def test_a_list_changed_in_frigate_since_beats_the_one_saved(
@@ -244,4 +244,25 @@ async def test_a_list_changed_in_frigate_since_beats_the_one_saved(
 
     after, _action = await _card(hass, {"camera": "wyze_cam_v3", "add": ["dog"]})
 
-    assert after["destructive"]["label"].endswith("looks for cat, dog, person (now cat, person)")
+    assert after["destructive"]["label"] == "Wyze Cam V3 starts looking for dog (Frigate restarts)"
+
+
+async def test_a_replacement_says_what_it_stops_looking_for(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # "Look for cars" sent as a whole list drops person; the card must say so,
+    # not bury it in a before-and-after list.
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=_config(["person"]))
+
+    result, _action = await _card(hass, {"camera": "wyze_cam_v3", "objects": ["car"]})
+
+    assert result["destructive"]["label"] == (
+        "Wyze Cam V3 starts looking for car and stops looking for person; "
+        "it then looks for car only (Frigate restarts)"
+    )
+
+
+def test_looking_for_something_is_an_add_not_a_replacement() -> None:
+    from custom_components.selora_ai.tool_registry import TOOL_SET_CAMERA_OBJECTS  # noqa: PLC0415
+
+    assert "'Look for cars' adds (add)" in TOOL_SET_CAMERA_OBJECTS.description

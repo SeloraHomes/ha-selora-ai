@@ -10803,6 +10803,8 @@ var en_default = {
     delete_approval_title: "Delete this?",
     delete_approval_title_plural: "Delete these?",
     delete_approval_warning: "This permanently removes it and can't be undone.",
+    quick_actions_apply_label: "Apply",
+    quick_actions_apply_desc: "Make this change",
     quick_actions_delete_label: "Delete",
     quick_actions_delete_desc: "Permanently delete this",
     quick_actions_cancel_label: "Cancel",
@@ -12182,6 +12184,8 @@ var fr_default = {
     delete_approval_title_plural: "Supprimer ces \xE9l\xE9ments ?",
     delete_approval_warning:
       "Cette action le supprime d\xE9finitivement et est irr\xE9versible.",
+    quick_actions_apply_label: "Appliquer",
+    quick_actions_apply_desc: "Faire ce changement",
     quick_actions_delete_label: "Supprimer",
     quick_actions_delete_desc: "Supprimer d\xE9finitivement",
     quick_actions_cancel_label: "Annuler",
@@ -13586,6 +13590,8 @@ var de_default = {
     delete_approval_title_plural: "Diese l\xF6schen?",
     delete_approval_warning:
       "Dadurch wird es dauerhaft entfernt und kann nicht r\xFCckg\xE4ngig gemacht werden.",
+    quick_actions_apply_label: "\xDCbernehmen",
+    quick_actions_apply_desc: "Diese \xC4nderung vornehmen",
     quick_actions_delete_label: "L\xF6schen",
     quick_actions_delete_desc: "Endg\xFCltig l\xF6schen",
     quick_actions_cancel_label: "Abbrechen",
@@ -14981,6 +14987,8 @@ var es_default = {
     delete_approval_title_plural: "\xBFEliminar estos?",
     delete_approval_warning:
       "Esto lo elimina permanentemente y no se puede deshacer.",
+    quick_actions_apply_label: "Aplicar",
+    quick_actions_apply_desc: "Hacer este cambio",
     quick_actions_delete_label: "Eliminar",
     quick_actions_delete_desc: "Eliminar permanentemente",
     quick_actions_cancel_label: "Cancelar",
@@ -16356,6 +16364,8 @@ var it_default = {
     delete_approval_title_plural: "Eliminare questi?",
     delete_approval_warning:
       "Questa azione lo rimuove definitivamente e non pu\xF2 essere annullata.",
+    quick_actions_apply_label: "Applica",
+    quick_actions_apply_desc: "Esegui questa modifica",
     quick_actions_delete_label: "Elimina",
     quick_actions_delete_desc: "Elimina definitivamente",
     quick_actions_cancel_label: "Annulla",
@@ -17752,6 +17762,8 @@ var nl_default = {
     delete_approval_title_plural: "Deze verwijderen?",
     delete_approval_warning:
       "Hiermee wordt het permanent verwijderd en dit kan niet ongedaan worden gemaakt.",
+    quick_actions_apply_label: "Toepassen",
+    quick_actions_apply_desc: "Deze wijziging doorvoeren",
     quick_actions_delete_label: "Verwijderen",
     quick_actions_delete_desc: "Permanent verwijderen",
     quick_actions_cancel_label: "Annuleren",
@@ -19176,6 +19188,8 @@ var hu_default = {
     delete_approval_title_plural: "T\xF6rli ezeket?",
     delete_approval_warning:
       "Ez v\xE9glegesen elt\xE1vol\xEDtja, \xE9s nem vonhat\xF3 vissza.",
+    quick_actions_apply_label: "Alkalmaz",
+    quick_actions_apply_desc: "A m\xF3dos\xEDt\xE1s v\xE9grehajt\xE1sa",
     quick_actions_delete_label: "T\xF6rl\xE9s",
     quick_actions_delete_desc: "V\xE9gleges t\xF6rl\xE9s",
     quick_actions_cancel_label: "M\xE9gse",
@@ -20574,6 +20588,8 @@ var pt_default = {
     delete_approval_title_plural: "Eliminar estes?",
     delete_approval_warning:
       "Isto remove-o permanentemente e n\xE3o pode ser anulado.",
+    quick_actions_apply_label: "Aplicar",
+    quick_actions_apply_desc: "Fazer esta altera\xE7\xE3o",
     quick_actions_delete_label: "Eliminar",
     quick_actions_delete_desc: "Eliminar permanentemente",
     quick_actions_cancel_label: "Cancelar",
@@ -22344,6 +22360,10 @@ var ru_default = {
       "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0438\u0445?",
     delete_approval_warning:
       "\u042D\u0442\u043E \u0443\u0434\u0430\u043B\u0438\u0442 \u0435\u0433\u043E \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430, \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043D\u0435\u043E\u0431\u0440\u0430\u0442\u0438\u043C\u043E.",
+    quick_actions_apply_label:
+      "\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C",
+    quick_actions_apply_desc:
+      "\u0412\u043D\u0435\u0441\u0442\u0438 \u044D\u0442\u043E \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u0435",
     quick_actions_delete_label: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
     quick_actions_delete_desc:
       "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430",
@@ -24170,6 +24190,8 @@ var ja_default = {
       "\u3053\u308C\u3089\u3092\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
     delete_approval_warning:
       "\u5B8C\u5168\u306B\u524A\u9664\u3055\u308C\u3001\u5143\u306B\u623B\u305B\u307E\u305B\u3093\u3002",
+    quick_actions_apply_label: "\u9069\u7528",
+    quick_actions_apply_desc: "\u3053\u306E\u5909\u66F4\u3092\u884C\u3046",
     quick_actions_delete_label: "\u524A\u9664",
     quick_actions_delete_desc: "\u5B8C\u5168\u306B\u524A\u9664",
     quick_actions_cancel_label: "\u30AD\u30E3\u30F3\u30BB\u30EB",
@@ -25798,6 +25820,8 @@ var ko_default = {
       "\uC774\uAC83\uB4E4\uC744 \uC0AD\uC81C\uD560\uAE4C\uC694?",
     delete_approval_warning:
       "\uC601\uAD6C\uC801\uC73C\uB85C \uC0AD\uC81C\uB418\uBA70 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    quick_actions_apply_label: "\uC801\uC6A9",
+    quick_actions_apply_desc: "\uC774 \uBCC0\uACBD \uC801\uC6A9",
     quick_actions_delete_label: "\uC0AD\uC81C",
     quick_actions_delete_desc: "\uC601\uAD6C\uC801\uC73C\uB85C \uC0AD\uC81C",
     quick_actions_cancel_label: "\uCDE8\uC18C",
@@ -27327,6 +27351,8 @@ var zh_Hans_default = {
     delete_approval_title_plural: "\u5220\u9664\u8FD9\u4E9B\uFF1F",
     delete_approval_warning:
       "\u8FD9\u5C06\u6C38\u4E45\u5220\u9664\u5B83\uFF0C\u4E14\u65E0\u6CD5\u64A4\u9500\u3002",
+    quick_actions_apply_label: "\u5E94\u7528",
+    quick_actions_apply_desc: "\u8FDB\u884C\u6B64\u66F4\u6539",
     quick_actions_delete_label: "\u5220\u9664",
     quick_actions_delete_desc: "\u6C38\u4E45\u5220\u9664",
     quick_actions_cancel_label: "\u53D6\u6D88",
@@ -28825,6 +28851,8 @@ var zh_Hant_default = {
     delete_approval_title_plural: "\u522A\u9664\u9019\u4E9B\uFF1F",
     delete_approval_warning:
       "\u9019\u5C07\u6C38\u4E45\u522A\u9664\u5B83\uFF0C\u4E14\u7121\u6CD5\u5FA9\u539F\u3002",
+    quick_actions_apply_label: "\u5957\u7528",
+    quick_actions_apply_desc: "\u9032\u884C\u6B64\u8B8A\u66F4",
     quick_actions_delete_label: "\u522A\u9664",
     quick_actions_delete_desc: "\u6C38\u4E45\u522A\u9664",
     quick_actions_cancel_label: "\u53D6\u6D88",
@@ -31907,6 +31935,15 @@ function _approvalPresentation(host) {
         "Permanently delete this",
       ),
     },
+    // A change (disable, rename, what a camera looks for) confirms with its
+    // own scope. A card that also deletes keeps the delete scope and asks for
+    // this wording with `presentation`; the server sends the deny tone then.
+    apply: {
+      label: host._t("quick_actions_apply_label", "Apply"),
+      icon: "mdi:check",
+      tone: "approve",
+      description: host._t("quick_actions_apply_desc", "Make this change"),
+    },
     cancel: {
       label: host._t("quick_actions_cancel_label", "Cancel"),
       icon: "mdi:close",
@@ -31925,7 +31962,7 @@ function _normalizeApprovalActions(host, actions) {
   const out = actions.map((a3) => {
     const scope = _approvalScope(a3?.value);
     if (!scope) return a3;
-    const preset = presentation[scope];
+    const preset = presentation[a3.presentation || scope];
     if (!preset) return a3;
     touched = true;
     return {
@@ -34848,9 +34885,12 @@ var _CONFIRM_VARIANTS = {
     restorableWarningKey: "delete_approval_warning_restorable",
     restorableWarningFallback: "You can restore it from Recently deleted.",
   },
+  // A change that deletes nothing. Not the warning red: a rename or a camera
+  // that looks for one more object is not destructive, and a red card with a
+  // warning triangle made it read like one.
   destructive: {
-    accent: "#ef4444",
-    headIcon: "mdi:alert-outline",
+    accent: "var(--selora-accent)",
+    headIcon: "mdi:pencil-outline",
     rows: (approval) => [
       ...(approval.deletes || []),
       ...(approval.actions || []),
@@ -34863,8 +34903,6 @@ var _CONFIRM_VARIANTS = {
     titleFallback: "Apply this change?",
     titlePluralKey: "destructive_approval_title_plural",
     titlePluralFallback: "Apply these changes?",
-    warningKey: "destructive_approval_warning",
-    warningFallback: "This can't be undone from chat.",
   },
   // Work the PANEL performs. The only shape with its own button: the others
   // resolve server-side and get their Allow / Deny from `msg.quick_actions`,
@@ -34923,8 +34961,17 @@ var _CONFIRM_VARIANTS = {
 function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
   const mixedDelete =
     variant === "delete" && (approval.actions || []).length > 0;
-  const copy = mixedDelete
-    ? _CONFIRM_VARIANTS.destructive
+  const removes =
+    mixedDelete ||
+    (variant === "destructive" && (approval.removes ?? true) === true);
+  const copy = removes
+    ? {
+        ..._CONFIRM_VARIANTS.destructive,
+        accent: _CONFIRM_VARIANTS.delete.accent,
+        headIcon: _CONFIRM_VARIANTS.delete.headIcon,
+        warningKey: "destructive_approval_warning",
+        warningFallback: "This can't be undone from chat.",
+      }
     : _CONFIRM_VARIANTS[variant];
   const accent = copy.accent;
   const rows = copy.rows(approval);
@@ -56235,7 +56282,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "54a6fa8d0173" : "";
+var PANEL_BUILD = true ? "cdec26def480" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

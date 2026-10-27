@@ -69,6 +69,46 @@ describe("the shared confirmation card", () => {
     expect(out).toContain("Study");
   });
 
+  it("keeps the warning red while a mixed card still deletes something", () => {
+    const out = render({
+      ...DELETE,
+      actions: [{ kind: "area", label: "Study" }],
+    });
+    expect(out).toContain("#ef4444");
+    expect(out).toContain("This can't be undone from chat.");
+  });
+
+  it("keeps the warning red for a change that removes something", () => {
+    const out = render({
+      approval_kind: "destructive",
+      removes: true,
+      actions: [{ kind: "dashboard", verb: "remove_view", label: "Garage" }],
+    });
+    expect(out).toContain("#ef4444");
+    expect(out).toContain("This can't be undone from chat.");
+  });
+
+  it("keeps a card saved before it said whether it removes red", () => {
+    const out = render({
+      approval_kind: "destructive",
+      actions: [{ kind: "dashboard", verb: "remove_view", label: "Garage" }],
+    });
+    expect(out).toContain("#ef4444");
+  });
+
+  it("does not dress a change that deletes nothing as a warning", () => {
+    const out = render({
+      approval_kind: "destructive",
+      removes: false,
+      actions: [{ kind: "automation", label: "Disable Porch lights" }],
+    });
+    expect(out).toContain("Apply this change?");
+    expect(out).toContain("var(--selora-accent)");
+    expect(out).not.toContain("#ef4444");
+    expect(out).not.toContain("mdi:alert-outline");
+    expect(out).not.toContain("can't be undone");
+  });
+
   it("renders a client action on the same card, in Selora's accent", () => {
     const out = render(CLIENT);
     expect(out).toContain("Needs your confirmation");

@@ -664,6 +664,8 @@
     "delete_approval_title": "¿Eliminar esto?",
     "delete_approval_title_plural": "¿Eliminar estos?",
     "delete_approval_warning": "Esto lo elimina permanentemente y no se puede deshacer.",
+    "quick_actions_apply_label": "Aplicar",
+    "quick_actions_apply_desc": "Hacer este cambio",
     "quick_actions_delete_label": "Eliminar",
     "quick_actions_delete_desc": "Eliminar permanentemente",
     "quick_actions_cancel_label": "Cancelar",
