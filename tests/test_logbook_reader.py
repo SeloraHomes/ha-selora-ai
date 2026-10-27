@@ -286,3 +286,15 @@ def test_a_quiet_stretch_never_grows_one_read_past_the_cap() -> None:
     assert max(end - start for start, end in processor.ranges) <= (
         _MAX_WINDOW.total_seconds() + 0.001
     )
+
+
+def test_the_next_page_never_ends_after_its_first_row() -> None:
+    """``when * 1e6`` rounds up to the next microsecond for this time, and a
+    bound above the row reads it again on the next page."""
+    from custom_components.selora_ai.logbook_reader import _next_end  # noqa: PLC0415
+
+    when = 1793000000.0000489
+    end = dt_util.parse_datetime(_next_end(when) or "")
+
+    assert end is not None
+    assert end.timestamp() <= when
