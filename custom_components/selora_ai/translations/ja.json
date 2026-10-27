@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "すべてのカメラの録画と検出をオンにするシーンを作成",
     "camera_idea_watch_scene_why": "出かける前にワンタップで、カメラを一台ずつオンにする必要はありません。",
     "camera_idea_watch_scene_prompt": "確認できるシーンを提案して: 名前は「見張り」で、{switches} をオンにする。",
-    "chat_message_details": "詳細"
+    "chat_message_details": "詳細",
+    "frigate_result_updated": "Frigate で更新しました",
+    "frigate_result_looks_for": "検出対象",
+    "frigate_result_restarting": "Frigate を再起動しています。カメラは約 1 分で戻ります。",
+    "frigate_result_update_saved": "Frigate に保存しました。Frigate の再起動後に反映されます。"
   },
   "options": {
     "step": {

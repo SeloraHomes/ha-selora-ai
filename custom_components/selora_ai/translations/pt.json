@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "Criar uma cena que liga a gravação e a deteção de todas as câmaras",
     "camera_idea_watch_scene_why": "Um toque antes de sair, em vez de ligar cada câmara.",
     "camera_idea_watch_scene_prompt": "Propõe uma cena que eu possa rever, chamada Vigilância, que liga {switches}.",
-    "chat_message_details": "Detalhes"
+    "chat_message_details": "Detalhes",
+    "frigate_result_updated": "Atualizada no Frigate",
+    "frigate_result_looks_for": "Procura",
+    "frigate_result_restarting": "O Frigate está reiniciando; a câmera volta em cerca de um minuto.",
+    "frigate_result_update_saved": "Salvo no Frigate; entra em vigor quando o Frigate reiniciar."
   },
   "options": {
     "step": {

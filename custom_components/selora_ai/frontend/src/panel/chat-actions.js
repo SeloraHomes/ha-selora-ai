@@ -122,6 +122,8 @@ export async function _resolveApproval(originatingMsg, scope, proposalId) {
     });
     if (originatingMsg) {
       originatingMsg.approval_status = result.status;
+      // Draws the card's tick once; a reloaded session does not replay it.
+      originatingMsg._justResolved = result.status === "approved";
       this._messages = [...this._messages];
     }
     // The server persists the friendly "Locked the Front Door."

@@ -587,6 +587,19 @@ def result_card_camera(name: str, frigate_name: str) -> FrigateResultCamera:
     }
 
 
+def changed_card_camera(result: dict[str, Any]) -> FrigateResultCamera | None:
+    """A camera on the result card, from a confirmed change's result (what
+    ``async_set_objects_confirmed`` or ``async_move_camera_confirmed``
+    returned), or None for a result that names no camera."""
+    frigate_name = result.get("camera")
+    if not isinstance(frigate_name, str) or not frigate_name:
+        return None
+    camera = result_card_camera(str(result.get("name") or frigate_name), frigate_name)
+    if isinstance(looks_for := result.get("looks_for"), list):
+        camera["objects"] = [str(label) for label in looks_for]
+    return camera
+
+
 def result_for(hass: HomeAssistant, plan_id: str) -> FrigateResult | None:
     """The panel's result card for a confirmed card, from the plan."""
     plan = _store(hass).get(plan_id)

@@ -336,12 +336,17 @@ class FrigateResultCamera(TypedDict):
     # loaded it; the card waits for the camera one to appear.
     camera_entity: str
     recordings_entity: str
+    # What this camera looks for now, when a change set it.
+    objects: NotRequired[list[str]]
 
 
 class FrigateResult(TypedDict):
-    """Cameras added to or removed from Frigate, for the panel's result card."""
+    """Cameras added to, changed in or removed from Frigate, for the panel's
+    result card."""
 
-    action: str  # "added" | "saved" (restart failed) | "removed"
+    # "added" | "saved" (restart failed) | "updated" | "update_saved" (restart
+    # failed) | "removed"
+    action: str
     cameras: list[FrigateResultCamera]
     objects: NotRequired[list[str]]
     record: NotRequired[bool]

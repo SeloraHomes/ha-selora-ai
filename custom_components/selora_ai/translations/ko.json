@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "모든 카메라의 녹화와 감지를 켜는 장면 만들기",
     "camera_idea_watch_scene_why": "외출 전에 한 번만 누르면 됩니다. 카메라를 하나씩 켤 필요가 없습니다.",
     "camera_idea_watch_scene_prompt": "검토할 수 있는 장면을 제안해 줘: 이름은 감시이고 {switches}을(를) 켜.",
-    "chat_message_details": "자세히"
+    "chat_message_details": "자세히",
+    "frigate_result_updated": "Frigate에서 업데이트됨",
+    "frigate_result_looks_for": "감지 대상",
+    "frigate_result_restarting": "Frigate를 다시 시작하는 중입니다. 카메라는 약 1분 후에 돌아옵니다.",
+    "frigate_result_update_saved": "Frigate에 저장되었습니다. Frigate를 다시 시작하면 적용됩니다."
   },
   "options": {
     "step": {

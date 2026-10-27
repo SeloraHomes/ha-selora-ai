@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "Create a scene that turns on every camera's recording and detection",
     "camera_idea_watch_scene_why": "One tap before you leave, instead of switching each camera on.",
     "camera_idea_watch_scene_prompt": "Propose a scene I can review, called Watch, that turns on {switches}.",
-    "chat_message_details": "Details"
+    "chat_message_details": "Details",
+    "frigate_result_updated": "Updated in Frigate",
+    "frigate_result_looks_for": "Looks for",
+    "frigate_result_restarting": "Frigate is restarting; the camera is back in about a minute.",
+    "frigate_result_update_saved": "Saved in Frigate; it takes effect when Frigate restarts."
   },
   "options": {
     "step": {

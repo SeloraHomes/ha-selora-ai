@@ -1124,7 +1124,11 @@
     "camera_idea_watch_scene_title": "建立一個開啟所有攝影機錄影與偵測的場景",
     "camera_idea_watch_scene_why": "出門前一鍵開啟，不必逐一開啟攝影機。",
     "camera_idea_watch_scene_prompt": "提出一個我可以審閱的場景，名為看守，開啟 {switches}。",
-    "chat_message_details": "詳情"
+    "chat_message_details": "詳情",
+    "frigate_result_updated": "已在 Frigate 中更新",
+    "frigate_result_looks_for": "偵測對象",
+    "frigate_result_restarting": "Frigate 正在重新啟動；攝影機大約一分鐘後恢復。",
+    "frigate_result_update_saved": "已儲存到 Frigate；Frigate 重新啟動後生效。"
   },
   "options": {
     "step": {

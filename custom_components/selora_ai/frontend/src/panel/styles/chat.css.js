@@ -1916,9 +1916,9 @@ export const chatStyles = css`
     padding: 4px;
   }
 
-  /* Frigate result card (render-frigate-result.js): the cameras added or
-     removed, then each added one's live preview and recording switch once
-     Frigate has brought it back. */
+  /* Frigate result card (render-frigate-result.js): the cameras added,
+     changed or removed, what a changed one looks for now, then each live
+     one's preview and controls once Frigate has brought it back. */
   .frigate-result {
     margin-top: 12px;
   }
@@ -1955,6 +1955,29 @@ export const chatStyles = css`
     color: var(--secondary-text-color);
     --mdc-icon-size: 16px;
   }
+  .frigate-result-looks-for {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0 26px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .frigate-result-object {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border: 1px solid var(--divider-color);
+    border-radius: 999px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    --mdc-icon-size: 14px;
+  }
+  .frigate-result-object ha-icon {
+    color: var(--selora-accent);
+  }
   .frigate-result-live {
     display: flex;
     flex-direction: column;
@@ -1981,6 +2004,7 @@ export const chatStyles = css`
   }
   @media (max-width: 600px) {
     .frigate-result-wait,
+    .frigate-result-looks-for,
     .frigate-result-live {
       margin-left: 0;
       max-width: none;

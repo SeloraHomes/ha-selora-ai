@@ -1,8 +1,10 @@
-// The outcome of adding or removing Frigate cameras, as a card in place of the
-// message text (`msg.frigate_result`, written by the backend from its own plan).
+// The outcome of adding, changing or removing Frigate cameras, as a card in
+// place of the message text (`msg.frigate_result`, written by the backend from
+// its own plan or from the change it confirmed).
 //
 // An added camera exists in Home Assistant only once Frigate has restarted and
-// its integration reloaded, about a minute later. The card waits on `hass` —
+// its integration reloaded, about a minute later; a changed one goes away for
+// that minute and comes back with its new sensors. The card waits on `hass` —
 // the panel re-renders on every state change — so it turns from a spinner into
 // the camera's snapshot and recording switch without polling anything.
 import { html } from "lit";
@@ -88,7 +90,7 @@ function controlTiles(host, result, camera) {
       "mdi:motion-sensor",
       host._t("frigate_result_detection", "Detection"),
     ],
-    ...(result.objects || []).map((object) => [
+    ...(camera.objects || result.objects || []).map((object) => [
       `binary_sensor.${name}_${object}_occupancy`,
       OBJECT_ICONS[object] || "mdi:eye-outline",
       capitalize(object),
@@ -104,7 +106,7 @@ function controlTiles(host, result, camera) {
   };
 }
 
-function renderWaiting(host, msg) {
+function renderWaiting(host, msg, result) {
   const slow = age(msg) > SLOW_AFTER_MS;
   return html`
     <div class="frigate-result-wait">
@@ -116,10 +118,15 @@ function renderWaiting(host, msg) {
                 "frigate_result_slow",
                 "Frigate is taking longer than usual to come back.",
               )
-            : host._t(
-                "frigate_result_waiting",
-                "Frigate is restarting; the camera appears here in about a minute.",
-              )
+            : result.action === "updated"
+              ? host._t(
+                  "frigate_result_restarting",
+                  "Frigate is restarting; the camera is back in about a minute.",
+                )
+              : host._t(
+                  "frigate_result_waiting",
+                  "Frigate is restarting; the camera appears here in about a minute.",
+                )
         }</span
       >
     </div>
@@ -140,7 +147,7 @@ function snapshotUrl(host, entityId) {
 
 function renderAdded(host, msg, result, camera) {
   const cameraId = frigateEntity(host, camera.camera_entity);
-  if (!isLive(host, cameraId)) return renderWaiting(host, msg);
+  if (!isLive(host, cameraId)) return renderWaiting(host, msg, result);
   const snapshot = snapshotUrl(host, cameraId);
   return html`
     <div class="frigate-result-live pop-in">
@@ -170,8 +177,36 @@ function renderAdded(host, msg, result, camera) {
   `;
 }
 
+// What a changed camera looks for now, in words: its new sensors only appear
+// once Frigate is back, and the card replaces the message that said it.
+function renderLooksFor(host, camera) {
+  if (!camera.objects?.length) return "";
+  return html`<div class="frigate-result-looks-for">
+    <span>${host._t("frigate_result_looks_for", "Looks for")}</span>
+    ${camera.objects.map(
+      (object) =>
+        html`<span class="frigate-result-object"
+          ><ha-icon icon=${OBJECT_ICONS[object] || "mdi:eye-outline"}></ha-icon
+          >${capitalize(object)}</span
+        >`,
+    )}
+  </div>`;
+}
+
+const SAVED_TEXT = {
+  saved: [
+    "frigate_result_saved",
+    "Saved in Frigate; it starts with Frigate's next restart.",
+  ],
+  update_saved: [
+    "frigate_result_update_saved",
+    "Saved in Frigate; it takes effect when Frigate restarts.",
+  ],
+};
+
 function renderCamera(host, msg, result, camera) {
-  const added = result.action === "added";
+  const added = result.action === "added" || result.action === "updated";
+  const saved = SAVED_TEXT[result.action];
   const cameraId = frigateEntity(host, camera.camera_entity);
   const live = added && isLive(host, cameraId);
   return html`
@@ -192,16 +227,12 @@ function renderCamera(host, msg, result, camera) {
             : html`<span>${camera.name}</span>`
         }
       </div>
+      ${renderLooksFor(host, camera)}
       ${
-        result.action === "saved"
+        saved
           ? html`<div class="frigate-result-wait">
               <ha-icon icon="mdi:alert-outline"></ha-icon>
-              <span
-                >${host._t(
-                  "frigate_result_saved",
-                  "Saved in Frigate; it starts with Frigate's next restart.",
-                )}</span
-              >
+              <span>${host._t(saved[0], saved[1])}</span>
             </div>`
           : added
             ? renderAdded(host, msg, result, camera)
@@ -214,6 +245,8 @@ function renderCamera(host, msg, result, camera) {
 const TAGS = {
   added: ["frigate_result_added", "Added to Frigate"],
   saved: ["frigate_result_saved_tag", "Saved in Frigate"],
+  updated: ["frigate_result_updated", "Updated in Frigate"],
+  update_saved: ["frigate_result_saved_tag", "Saved in Frigate"],
   removed: ["frigate_result_removed", "Removed from Frigate"],
 };
 
@@ -228,7 +261,7 @@ export function renderFrigateResult(host, msg) {
       <div class="scene-saved-head">
         <span class="scene-saved-icon"
           >${
-            result.action === "saved"
+            SAVED_TEXT[result.action]
               ? html`<ha-icon icon="mdi:content-save-outline"></ha-icon>`
               : renderCreatedCheck({ animate: fresh, size: 20 })
           }</span

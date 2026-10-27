@@ -1144,6 +1144,10 @@
     "camera_idea_watch_scene_title": "Hozz létre egy jelenetet, amely minden kamera felvételét és észlelését bekapcsolja",
     "camera_idea_watch_scene_why": "Egy érintés indulás előtt, ahelyett, hogy minden kamerát külön bekapcsolnál.",
     "camera_idea_watch_scene_prompt": "Javasolj egy jelenetet, amit átnézhetek, Őrség néven, amely bekapcsolja ezeket: {switches}.",
-    "chat_message_details": "Részletek"
+    "chat_message_details": "Részletek",
+    "frigate_result_updated": "Frissítve a Frigate-ben",
+    "frigate_result_looks_for": "Ezt keresi:",
+    "frigate_result_restarting": "A Frigate újraindul; a kamera körülbelül egy perc múlva visszatér.",
+    "frigate_result_update_saved": "Mentve a Frigate-ben; a Frigate újraindulásakor lép életbe."
   }
 }

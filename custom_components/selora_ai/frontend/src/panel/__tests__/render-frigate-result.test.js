@@ -185,3 +185,58 @@ describe("the Frigate result card", () => {
     expect(out).not.toContain("token=reolink");
   });
 });
+
+describe("a camera changed in Frigate", () => {
+  const changed = (action, objects = ["bus", "car", "person"]) => ({
+    role: "assistant",
+    content: "Wyze Front now looks for bus, car, person.",
+    timestamp: new Date().toISOString(),
+    frigate_result: {
+      action,
+      cameras: [{ ...CAMERA, objects }],
+    },
+  });
+
+  it("says what it looks for while Frigate restarts", () => {
+    // The card replaces the message that said it, and the new sensors only
+    // appear once Frigate is back.
+    const out = flatten(renderFrigateResult(host(), changed("updated")));
+    expect(out).toContain("Updated in Frigate");
+    expect(out).toContain("Looks for");
+    expect(out).toContain("Bus");
+    expect(out).toContain("Car");
+    expect(out).toContain("Person");
+    expect(out).toContain("the camera is back in about a minute");
+    expect(out).toContain("created-check drawing");
+  });
+
+  it("shows a tile for each object it looks for once it is back", () => {
+    const ready = host({
+      "camera.e1_zoom": {
+        state: "idle",
+        attributes: { entity_picture: "/api/camera_proxy/camera.e1_zoom" },
+      },
+      "switch.e1_zoom_recordings": { state: "on" },
+      "switch.e1_zoom_detect": { state: "on" },
+      "binary_sensor.e1_zoom_bus_occupancy": { state: "off" },
+      "binary_sensor.e1_zoom_person_occupancy": { state: "off" },
+    });
+    const out = flatten(renderFrigateResult(ready, changed("updated")));
+    expect(out).toContain(
+      "data-entity-ids=switch.e1_zoom_recordings,switch.e1_zoom_detect,binary_sensor.e1_zoom_bus_occupancy,binary_sensor.e1_zoom_person_occupancy",
+    );
+  });
+
+  it("says a change Frigate could not restart for takes effect later", () => {
+    const out = flatten(renderFrigateResult(host(), changed("update_saved")));
+    expect(out).toContain("Saved in Frigate");
+    expect(out).toContain("it takes effect when Frigate restarts");
+    expect(out).not.toContain("the camera is back");
+  });
+
+  it("names no objects for a camera that was only moved", () => {
+    const out = flatten(renderFrigateResult(host(), changed("updated", [])));
+    expect(out).toContain("Updated in Frigate");
+    expect(out).not.toContain("Looks for");
+  });
+});

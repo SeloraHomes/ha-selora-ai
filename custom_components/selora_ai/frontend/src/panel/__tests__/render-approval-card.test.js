@@ -153,6 +153,31 @@ describe("the shared confirmation card", () => {
     expect(render(CLIENT, "resolving")).toContain("Working…");
   });
 
+  it("draws a tick on a change confirmed just now, not on a reload", () => {
+    const change = {
+      approval_kind: "destructive",
+      actions: [{ kind: "frigate_objects", label: "Look for bus" }],
+    };
+    const ser1 = (msg) =>
+      ser(renderApprovalCard(host, msg, change, "approved")).replace(
+        /\s+/g,
+        " ",
+      );
+    const now = ser1({ _justResolved: true });
+    expect(now).toContain("Applied");
+    expect(now).toContain("created-check drawing");
+    expect(now).toContain("pop-in");
+    const later = ser1({});
+    expect(later).toContain("created-check");
+    expect(later).not.toContain("drawing");
+    // A deletion keeps its bin.
+    expect(
+      ser(
+        renderApprovalCard(host, { _justResolved: true }, DELETE, "approved"),
+      ),
+    ).not.toContain("created-check");
+  });
+
   it("falls through to the service-call card for a risk-level approval", () => {
     const out = render({
       risk_level: "high",

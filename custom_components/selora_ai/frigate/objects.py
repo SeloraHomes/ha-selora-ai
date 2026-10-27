@@ -207,7 +207,8 @@ async def async_set_objects_confirmed(
                 hass.data[DOMAIN][_SAVED][name] = (running, wanted)
             else:
                 hass.data[DOMAIN][_SAVED].pop(name, None)
-            looks_for = f"{_friendly(config, name)} now looks for {', '.join(wanted)}"
+            friendly = _friendly(config, name)
+            looks_for = f"{friendly} now looks for {', '.join(wanted)}"
         except FrigateError as exc:
             return {"error": str(exc)}
     try:
@@ -216,6 +217,7 @@ async def async_set_objects_confirmed(
         _LOGGER.warning("Frigate saved the camera's objects but did not restart: %s", exc)
         return {
             "camera": name,
+            "name": friendly,
             "looks_for": wanted,
             "restart_failed": True,
             "done": f"Saved: {looks_for} once Frigate restarts. It could not restart itself.",
@@ -225,6 +227,7 @@ async def async_set_objects_confirmed(
     )
     return {
         "camera": name,
+        "name": friendly,
         "looks_for": wanted,
         "done": f"{looks_for}. Frigate is restarting, about a minute.",
     }
