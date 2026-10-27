@@ -247,6 +247,18 @@ on a camera Frigate already has, behind the destructive confirmation card
   (never, when Frigate cannot restart itself). The list written is kept
   (`_SAVED`) until Frigate runs it or runs a list set elsewhere, and confirms are serialized, so a second
   card built from the old list is refused instead of undoing the first.
+- **Only labels the running model reports** (`cameras.model_labels`). Frigate
+  saves any label, then drops one its model lacks at startup with only a log
+  warning, so the card and the reply promised a camera that never looked for
+  it. The labels are the merged labelmap under each detector
+  (`detectors.<name>.model.labelmap`); the top-level `model.labelmap` is only
+  the user's override. It is not the docs' list: Frigate's YOLO labelmap
+  (`coco-80.txt`) reports a bus or a truck as `car`, while its Coral one keeps
+  `bus`. A label being added is refused with the model's labels; one already
+  tracked can still be removed. The add card checks its objects the same way,
+  and `find_camera_events` says the model lacks the label instead of offering
+  a change that cannot work. A Frigate that publishes no labelmap is not
+  checked.
 
 ## A camera at a new address
 

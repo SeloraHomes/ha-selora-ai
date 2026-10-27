@@ -21,7 +21,13 @@ from typing import TYPE_CHECKING, Any, Final
 
 from ..const import DOMAIN
 from ..helpers import sanitize_untrusted_text
-from .cameras import MAX_OBJECTS, OBJECT_LABEL
+from .cameras import (
+    MAX_OBJECTS,
+    OBJECT_LABEL,
+    model_labels,
+    unsupported_error,
+    unsupported_labels,
+)
 from .client import FrigateClient, FrigateError
 from .removal import _camera_name
 
@@ -79,6 +85,22 @@ def _friendly(config: dict[str, Any], name: str) -> str:
 class _BadLabels(ValueError):
     """Labels Frigate would not take, named for the reply."""
 
+    def reply(self) -> dict[str, Any]:
+        return {"error": str(self)}
+
+
+class _NotInModel(_BadLabels):
+    """Labels the running model cannot report: Frigate would save them and
+    drop them at startup, so the card would promise what never happens."""
+
+    def __init__(self, labels: list[str], supported: frozenset[str]) -> None:
+        super().__init__(", ".join(labels))
+        self.labels = labels
+        self.supported = supported
+
+    def reply(self) -> dict[str, Any]:
+        return unsupported_error(self.labels, self.supported)
+
 
 def _labels(value: Any) -> set[str]:
     items = value if isinstance(value, list) else [value] if isinstance(value, str) else []
@@ -107,7 +129,9 @@ def _change(friendly: str, tracked: list[str], wanted: list[str]) -> str:
     return f"{change}; it then looks for {', '.join(wanted)} only" if stops else change
 
 
-def _wanted(arguments: dict[str, Any], tracked: list[str]) -> list[str]:
+def _wanted(
+    arguments: dict[str, Any], tracked: list[str], supported: frozenset[str] | None = None
+) -> list[str]:
     """The full list to look for: ``objects`` replaces, ``add``/``remove`` edit.
 
     An empty ``objects`` counts as not given: models send ``[]`` for an
@@ -115,6 +139,8 @@ def _wanted(arguments: dict[str, Any], tracked: list[str]) -> list[str]:
 
     Raises _BadLabels rather than dropping a label: a dropped removal or a
     replacement left empty would change the camera in a way nobody asked for.
+    Only a label being added is checked against the model (*supported*): one
+    it already tracks, or one being removed, is the user's to keep or drop.
     """
     if replacement := _labels(arguments.get("objects")):
         wanted = replacement
@@ -122,6 +148,8 @@ def _wanted(arguments: dict[str, Any], tracked: list[str]) -> list[str]:
         wanted = (set(tracked) | _labels(arguments.get("add"))) - _labels(arguments.get("remove"))
     if len(wanted) > MAX_OBJECTS:
         raise _BadLabels(f"A camera can look for at most {MAX_OBJECTS} objects.")
+    if supported is not None and (missing := unsupported_labels(wanted - set(tracked), supported)):
+        raise _NotInModel(missing, supported)
     return sorted(wanted)
 
 
@@ -142,9 +170,9 @@ async def async_preview_set_objects(
         return {"error": "Frigate has no such camera.", "frigate_cameras": sorted(cameras)}
     tracked = _looks_for(hass, config, name)
     try:
-        wanted = _wanted(arguments, tracked)
+        wanted = _wanted(arguments, tracked, model_labels(config))
     except _BadLabels as exc:
-        return {"error": str(exc)}
+        return exc.reply()
     friendly = _friendly(config, name)
     if not wanted:
         return {"error": f"{friendly} has to look for at least one object."}
@@ -196,9 +224,9 @@ async def async_set_objects_confirmed(
             if _fingerprint(name, tracked) != fingerprint:
                 return {"error": "What the camera looks for changed since it was shown; ask again."}
             try:
-                wanted = _wanted(arguments, tracked)
+                wanted = _wanted(arguments, tracked, model_labels(config))
             except _BadLabels as exc:
-                return {"error": str(exc)}
+                return exc.reply()
             if not wanted:
                 return {"error": "A camera has to look for at least one object."}
             await client.set_config({"cameras": {name: {"objects": {"track": wanted}}}})

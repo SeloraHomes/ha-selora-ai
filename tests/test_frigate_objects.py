@@ -340,3 +340,36 @@ def test_a_card_with_more_than_frigate_changes_keeps_its_text() -> None:
     assert _frigate_changed_result([changed], ["x", "Renamed lamp"], []) is None
     assert _frigate_changed_result([changed], ["x"], ["Lamp: gone"]) is None
     assert _frigate_changed_result([], ["Renamed lamp"], []) is None
+
+
+_YOLO_DETECTORS: dict[str, Any] = {
+    "rocm": {"type": "onnx", "model": {"labelmap": {0: "person", 2: "car", 5: "car"}}}
+}
+
+
+async def test_a_label_the_model_cannot_report_gets_no_card(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    config = {**_config(["person"]), "detectors": _YOLO_DETECTORS}
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=config)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+
+    result = await executor.execute("set_camera_objects", {"camera": "wyze_cam_v3", "add": ["bus"]})
+
+    assert "requires_approval" not in result
+    assert "does not detect bus" in result["error"]
+    assert result["model_labels"] == ["car", "person"]
+
+
+async def test_a_label_already_tracked_can_still_be_removed(
+    hass: HomeAssistant, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # Saved before the check existed: the user must be able to take it out.
+    config = {**_config(["bus", "car", "person"]), "detectors": _YOLO_DETECTORS}
+    aioclient_mock.get(f"{FRIGATE}/api/config", json=config)
+
+    result, _action = await _card(hass, {"camera": "wyze_cam_v3", "remove": ["bus"]})
+
+    assert result["destructive"]["label"] == (
+        "Wyze Cam V3 stops looking for bus; it then looks for car, person only (Frigate restarts)"
+    )

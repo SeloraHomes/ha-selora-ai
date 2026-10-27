@@ -42,8 +42,11 @@ from .cameras import (
     existing_hosts,
     existing_names,
     for_go2rtc,
+    model_labels,
     shown,
     unique_name,
+    unsupported_error,
+    unsupported_labels,
     with_credentials,
 )
 from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError, frigate_entry
@@ -234,6 +237,8 @@ class _Gathered:
     in_frigate: dict[str, list[dict[str, str]]]
     # Network address → the Frigate camera it may be, moved there.
     moved: dict[str, str] = field(default_factory=dict)
+    # What the running model can report (cameras.model_labels).
+    labels: frozenset[str] | None = None
 
 
 async def _gather(
@@ -301,7 +306,7 @@ async def _gather(
     ):
         if was:
             moved[camera.host] = was
-    return _Gathered(chosen, network, skipped, in_frigate, moved)
+    return _Gathered(chosen, network, skipped, in_frigate, moved, model_labels(config))
 
 
 def _label(gathered: _Gathered, objects: list[str], record: bool, days: int | None) -> str:
@@ -386,6 +391,8 @@ async def async_preview_add_cameras(
             )
         return result
     objects, record, days = _options(arguments)
+    if gathered.labels is not None and (missing := unsupported_labels(objects, gathered.labels)):
+        return unsupported_error(missing, gathered.labels)
     plan_id = uuid.uuid4().hex
     _store(hass)[plan_id] = _Plan(
         arguments={
@@ -523,6 +530,9 @@ async def async_add_cameras_confirmed(
         network
     ) != len(plan.network):
         return {"error": "The cameras are not the ones that were shown; ask again."}
+    # The model may have changed while the card was open.
+    if gathered.labels is not None and (missing := unsupported_labels(objects, gathered.labels)):
+        return unsupported_error(missing, gathered.labels)
 
     resolved: list[Candidate] = []
     camera_errors: dict[str, str] = {}

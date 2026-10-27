@@ -1162,3 +1162,57 @@ def test_a_stream_is_named_by_its_query_but_not_its_login() -> None:
     assert source_key("rtsps://10.0.0.2:7441/abc?enableSrtp") == source_key(
         "rtspx://10.0.0.2:7441/abc"
     )
+
+
+# Frigate's YOLO labelmap (coco-80): bus and truck are reported as car.
+_YOLO_DETECTORS: dict[str, Any] = {
+    "rocm": {"type": "onnx", "model": {"labelmap": {0: "person", 2: "car", 5: "car"}}}
+}
+
+
+async def test_a_label_the_model_cannot_report_is_refused_on_the_add_card(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    # Frigate would save it, drop it at startup with a warning, and the card
+    # would have promised a camera that looks for it.
+    home.camera("Porch", "main", f"rtsp://admin:{PASSWORD}@192.168.1.20/main")
+    _frigate_api(aioclient_mock, {**_EMPTY_CONFIG, "detectors": _YOLO_DETECTORS})
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+
+    result = await executor.execute("add_cameras_to_frigate", {"objects": ["person", "bus"]})
+
+    assert "requires_approval" not in result
+    assert "does not detect bus" in result["error"]
+    assert "reported as car" in result["error"]
+    assert result["model_labels"] == ["car", "person"]
+
+
+def test_the_model_labels_come_from_each_detector() -> None:
+    from custom_components.selora_ai.frigate.cameras import model_labels  # noqa: PLC0415
+
+    # The top-level model.labelmap is only what the user overrode.
+    assert model_labels({"model": {"labelmap": {}}, "detectors": _YOLO_DETECTORS}) == {
+        "person",
+        "car",
+    }
+    # An older Frigate that does not say checks nothing.
+    assert model_labels({"detectors": {"cpu": {"type": "cpu"}}}) is None
+    # Nor does one where any detector does not say.
+    assert model_labels({"detectors": {**_YOLO_DETECTORS, "cpu": {"type": "cpu"}}}) is None
+    assert model_labels({}) is None
+
+
+async def test_a_model_changed_while_the_card_was_open_is_checked_again(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Porch", "main", f"rtsp://admin:{PASSWORD}@192.168.1.20/main")
+    coral = {"cpu": {"type": "cpu", "model": {"labelmap": {0: "person", 5: "bus"}}}}
+    _frigate_api(aioclient_mock, {**_EMPTY_CONFIG, "detectors": coral})
+    action = await _card(hass, {"objects": ["person", "bus"]})
+    aioclient_mock.clear_requests()
+    _frigate_api(aioclient_mock, {**_EMPTY_CONFIG, "detectors": _YOLO_DETECTORS})
+
+    result = await _confirm(hass, action)
+
+    assert "does not detect bus" in result["error"]
+    assert _sent_config(aioclient_mock) is None
