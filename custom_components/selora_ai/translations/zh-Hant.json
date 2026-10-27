@@ -664,6 +664,8 @@
     "delete_approval_title": "刪除此項？",
     "delete_approval_title_plural": "刪除這些？",
     "delete_approval_warning": "這將永久刪除它，且無法復原。",
+    "quick_actions_apply_label": "套用",
+    "quick_actions_apply_desc": "進行此變更",
     "quick_actions_delete_label": "刪除",
     "quick_actions_delete_desc": "永久刪除",
     "quick_actions_cancel_label": "取消",

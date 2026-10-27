@@ -2974,6 +2974,10 @@ _DESTRUCTIVE_VERBS = frozenset(
     {"disable", "rename_id", "replace", "remove_view", "fix", "install", "set_objects", "move"}
 )
 
+# The ones among them that remove something, so their card is styled as a
+# deletion although nothing sits in its ``deletes`` list.
+_REMOVING_VERBS = frozenset({"remove_view"})
+
 
 def _pending_destructive_from_log(
     tool_log: list[dict[str, Any]] | None,
@@ -3030,21 +3034,27 @@ def _pending_destructive_from_log(
     return actions
 
 
-def _destructive_approval_quick_actions(proposal_id: str) -> list[dict[str, Any]]:
-    """Two-button row for a non-delete destructive confirmation.
+def _destructive_approval_quick_actions(
+    proposal_id: str, *, deletes: bool = False, scope: str = "apply"
+) -> list[dict[str, Any]]:
+    """Two-button row for a confirmation that is not purely deletions.
 
-    Reuses the ``delete`` / ``cancel`` sentinel scopes so the routing in the
-    chat handler and ``_resolve_approval`` stays one path; only the button
-    wording differs, because "Delete" would misdescribe a disable or a rename.
+    The confirm button sends the ``apply`` scope, which the panel styles and
+    words as Apply from the scope alone: a change carried on the ``delete``
+    scope rendered as a red Delete wherever a wording override did not reach
+    it. A mixed card (*scope* ``delete``) still deletes, so it keeps that
+    scope and asks for Apply wording with ``presentation``. The button is red
+    only when the card removes something (*deletes*).
     """
     return [
         {
             "label": "Apply",
+            "presentation": "apply",
             "description": "Make this change",
-            "value": f"approve:delete:{proposal_id}",
+            "value": f"approve:{scope}:{proposal_id}",
             "mode": "choice",
             "icon": "mdi:check",
-            "tone": "deny",
+            "tone": "deny" if deletes else "approve",
         },
         {
             "label": "Cancel",
@@ -3344,6 +3354,7 @@ def _build_delete_approval_response(
     service-call path (which would try to run a nonexistent delete service).
     """
     actions = actions or []
+    removes = bool(deletes) or any(a.get("verb") in _REMOVING_VERBS for a in actions)
     proposal: dict[str, Any] = {
         "proposal_id": str(uuid.uuid4()),
         # Stays "delete" whenever a delete is present so the existing routing,
@@ -3355,6 +3366,9 @@ def _build_delete_approval_response(
         "calls": [],
         "deletes": deletes,
         "actions": actions,
+        # Whether confirming removes anything. The panel keeps the warning red
+        # for these and drops it for a change that only edits.
+        "removes": removes,
         # What is still to do once this is confirmed. Same field the client
         # action carries, read off the tool log the same way: a deletion is
         # often a step ("delete the old scene and rebuild it"), and the turn
@@ -3373,7 +3387,9 @@ def _build_delete_approval_response(
     upgraded["quick_actions"] = (
         _delete_approval_quick_actions(proposal["proposal_id"])
         if deletes and not actions
-        else _destructive_approval_quick_actions(proposal["proposal_id"])
+        else _destructive_approval_quick_actions(
+            proposal["proposal_id"], deletes=removes, scope="delete" if deletes else "apply"
+        )
     )
     effective_language = language or (hass.config.language if hass is not None else None)
     hint = delete_pending_hint(

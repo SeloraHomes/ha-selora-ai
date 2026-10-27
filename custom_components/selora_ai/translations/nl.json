@@ -684,6 +684,8 @@
     "delete_approval_title": "Dit verwijderen?",
     "delete_approval_title_plural": "Deze verwijderen?",
     "delete_approval_warning": "Hiermee wordt het permanent verwijderd en dit kan niet ongedaan worden gemaakt.",
+    "quick_actions_apply_label": "Toepassen",
+    "quick_actions_apply_desc": "Deze wijziging doorvoeren",
     "quick_actions_delete_label": "Verwijderen",
     "quick_actions_delete_desc": "Permanent verwijderen",
     "quick_actions_cancel_label": "Annuleren",

@@ -664,6 +664,8 @@
     "delete_approval_title": "これを削除しますか？",
     "delete_approval_title_plural": "これらを削除しますか？",
     "delete_approval_warning": "完全に削除され、元に戻せません。",
+    "quick_actions_apply_label": "適用",
+    "quick_actions_apply_desc": "この変更を行う",
     "quick_actions_delete_label": "削除",
     "quick_actions_delete_desc": "完全に削除",
     "quick_actions_cancel_label": "キャンセル",

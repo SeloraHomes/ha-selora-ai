@@ -59,6 +59,15 @@ function _approvalPresentation(host) {
         "Permanently delete this",
       ),
     },
+    // A change (disable, rename, what a camera looks for) confirms with its
+    // own scope. A card that also deletes keeps the delete scope and asks for
+    // this wording with `presentation`; the server sends the deny tone then.
+    apply: {
+      label: host._t("quick_actions_apply_label", "Apply"),
+      icon: "mdi:check",
+      tone: "approve",
+      description: host._t("quick_actions_apply_desc", "Make this change"),
+    },
     cancel: {
       label: host._t("quick_actions_cancel_label", "Cancel"),
       icon: "mdi:close",
@@ -83,7 +92,7 @@ function _normalizeApprovalActions(host, actions) {
   const out = actions.map((a) => {
     const scope = _approvalScope(a?.value);
     if (!scope) return a;
-    const preset = presentation[scope];
+    const preset = presentation[a.presentation || scope];
     if (!preset) return a;
     touched = true;
     return {

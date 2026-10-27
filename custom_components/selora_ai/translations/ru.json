@@ -664,6 +664,8 @@
     "delete_approval_title": "Удалить это?",
     "delete_approval_title_plural": "Удалить их?",
     "delete_approval_warning": "Это удалит его навсегда, действие необратимо.",
+    "quick_actions_apply_label": "Применить",
+    "quick_actions_apply_desc": "Внести это изменение",
     "quick_actions_delete_label": "Удалить",
     "quick_actions_delete_desc": "Удалить навсегда",
     "quick_actions_cancel_label": "Отмена",

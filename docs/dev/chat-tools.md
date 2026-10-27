@@ -65,6 +65,13 @@ allowlists: add a new delete tool to **both** plus a branch in `_resolve_approva
 `requires_approval`, the loop short-circuits and discards the prose, the
 synthesizer drops the descriptor, and the user gets an empty reply and no card.
 
+**A change confirms with the `apply` scope, a deletion with `delete`.** The
+panel words and colours an approval button by its scope, so a change carried on
+`delete` rendered as a red Delete wherever a wording override did not reach it.
+`_DESTRUCTIVE_TOOLS` cards (`approval_kind: "destructive"`) send `apply`, and
+also take `delete` from cards saved before it; a card that both deletes and
+changes keeps `delete`, worded Apply by `presentation`.
+
 **A replace or delete hands back what it overwrote.** The result is the only
 undo a caller has, so it carries `previous`, through `helpers.attach_previous`:
 withheld as `previous_omitted` when the whole result would not fit, never cut by

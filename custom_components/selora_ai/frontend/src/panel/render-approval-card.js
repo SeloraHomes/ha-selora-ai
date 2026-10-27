@@ -115,9 +115,12 @@ const _CONFIRM_VARIANTS = {
     restorableWarningKey: "delete_approval_warning_restorable",
     restorableWarningFallback: "You can restore it from Recently deleted.",
   },
+  // A change that deletes nothing. Not the warning red: a rename or a camera
+  // that looks for one more object is not destructive, and a red card with a
+  // warning triangle made it read like one.
   destructive: {
-    accent: "#ef4444",
-    headIcon: "mdi:alert-outline",
+    accent: "var(--selora-accent)",
+    headIcon: "mdi:pencil-outline",
     rows: (approval) => [
       ...(approval.deletes || []),
       ...(approval.actions || []),
@@ -130,8 +133,6 @@ const _CONFIRM_VARIANTS = {
     titleFallback: "Apply this change?",
     titlePluralKey: "destructive_approval_title_plural",
     titlePluralFallback: "Apply these changes?",
-    warningKey: "destructive_approval_warning",
-    warningFallback: "This can't be undone from chat.",
   },
   // Work the PANEL performs. The only shape with its own button: the others
   // resolve server-side and get their Allow / Deny from `msg.quick_actions`,
@@ -198,8 +199,22 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
   // means what it says.
   const mixedDelete =
     variant === "delete" && (approval.actions || []).length > 0;
-  const copy = mixedDelete
-    ? _CONFIRM_VARIANTS.destructive
+  // A change that removes something without a delete row (a dashboard view)
+  // keeps the warning too; the server says which. A card saved before it said
+  // could be one, so it stays red.
+  const removes =
+    mixedDelete ||
+    (variant === "destructive" && (approval.removes ?? true) === true);
+  // A mixed card still deletes something, so it keeps the delete card's
+  // accent and its warning.
+  const copy = removes
+    ? {
+        ..._CONFIRM_VARIANTS.destructive,
+        accent: _CONFIRM_VARIANTS.delete.accent,
+        headIcon: _CONFIRM_VARIANTS.delete.headIcon,
+        warningKey: "destructive_approval_warning",
+        warningFallback: "This can't be undone from chat.",
+      }
     : _CONFIRM_VARIANTS[variant];
   const accent = copy.accent;
   // Every row is shown: a change the user was not shown is a change they

@@ -2511,8 +2511,10 @@ TOOL_SET_CAMERA_OBJECTS = ToolDef(
         "Change what a camera already in Frigate looks for (person, car, dog, cat, "
         "package…): 'detect cars on the driveway camera'. Frigate records events only "
         "for these. Not the camera's Detect switch, which turns all detection on or "
-        "off and chooses no object. The user gets a card naming the camera, the full "
-        "list, and that Frigate restarts; nothing changes until they confirm."
+        "off and chooses no object. 'Look for cars' adds (add): use objects only when "
+        "the user gives the whole list or says 'only'. The user gets a card naming the "
+        "camera, what it starts and stops looking for, and that Frigate restarts; "
+        "nothing changes until they confirm."
     ),
     params=(
         ToolParam(
@@ -2537,7 +2539,10 @@ TOOL_SET_CAMERA_OBJECTS = ToolDef(
             name="objects",
             type="array",
             items_type="string",
-            description="The whole list instead, replacing what it looks for now.",
+            description=(
+                "The whole list instead, replacing what it looks for now: anything not "
+                "in it is no longer looked for. Only when the user gave the whole list."
+            ),
         ),
     ),
     requires_admin=True,
