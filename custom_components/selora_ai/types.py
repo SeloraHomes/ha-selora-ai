@@ -1158,6 +1158,34 @@ class InsightsHealth(TypedDict):
     sections: list[ScoreSection]  # per-check roll-up, biggest impact first
 
 
+class SystemLogMessage(TypedDict):
+    """One redacted message of a system_log entry (see system_log_export)."""
+
+    fingerprint: str  # sha256(logger + "\n" + template)[:16]
+    template: str  # the message with addresses, names and numbers replaced
+
+
+class SystemLogEntry(TypedDict):
+    """One deduplicated system_log entry, as exported."""
+
+    domain: str | None  # attributed integration, None when nothing claims the logger
+    logger: str
+    level: str  # WARNING | ERROR | CRITICAL
+    count: int  # repetitions since Core started
+    first_occurred: str | None  # ISO-8601 UTC
+    last_occurred: str | None  # ISO-8601 UTC
+    exception: str | None  # exception class only, never its message
+    messages: list[SystemLogMessage]
+
+
+class SystemLogBlock(TypedDict):
+    """The envelope's ``system_log``; absent when it could not be read."""
+
+    collected_at: str
+    truncated: bool
+    entries: list[SystemLogEntry]
+
+
 class InsightsArtifactRef(TypedDict):
     """Pointer + integrity metadata for the immutable export artifact."""
 
