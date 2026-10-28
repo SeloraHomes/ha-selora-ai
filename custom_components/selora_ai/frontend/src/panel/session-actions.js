@@ -38,6 +38,29 @@ function _writeStoredTab(tab) {
   }
 }
 
+// A reload re-creates the panel with no active session, and auto-open would
+// land on the most recent conversation rather than the one that was open.
+// Remember the open conversation for the browser session the same way.
+const SESSION_STORAGE_KEY = "selora_ai_active_session";
+
+export function _rememberActiveSession(sessionId) {
+  try {
+    if (sessionId)
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    else window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // Storage unavailable: a reload falls back to the latest conversation.
+  }
+}
+
+function _readStoredSession() {
+  try {
+    return window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 function _parsePath(pathname) {
   // Returns ``{ tab, subpath }`` where ``subpath`` is whatever
   // follows ``/selora-ai/<tab>/``. Used for slug-aware deep links
@@ -240,14 +263,19 @@ export async function _loadSessions() {
       type: "selora_ai/get_sessions",
     });
     this._sessions = sessions || [];
-    // Auto-open most recent session if no active session and on chat tab
+    // Auto-open the conversation that was open before a reload, else the
+    // most recent one, if no active session and on chat tab
     if (
       !this._activeSessionId &&
       !this._openingChatHome &&
       this._sessions.length > 0 &&
       this._activeTab === "chat"
     ) {
-      await this._openSession(this._sessions[0].id);
+      const stored = _readStoredSession();
+      const target = this._sessions.some((s) => s.id === stored)
+        ? stored
+        : this._sessions[0].id;
+      await this._openSession(target);
     }
   } catch (err) {
     console.error("Failed to load sessions", err);
