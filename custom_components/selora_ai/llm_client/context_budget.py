@@ -66,12 +66,14 @@ _NEWLINE_TOKENS = 1
 # attributed light, a temperature sensor, a media player, a contact
 # sensor):
 #   sanitize._format_entity_line          mean 192 chars -> ~55 tokens
-#   selora_local user_turn.format_entity_line   mean 78 chars -> ~25 tokens
-#     (over the corpus examples in tests/fixtures)
+#   selora_local user_turn.format_entity_line   mean 113 chars -> 33 tokens
+#     (Qwen3 tokenizer, newline included, over the corpus examples in
+#     tests/fixtures with an area and a floor on every line)
 # The cloud line carries area/platform/manufacturer/model plus whitelisted
-# attributes; the local line carries the six attributes it was trained on.
+# attributes; the local line carries area, floor and the six attributes it
+# was trained on.
 CLOUD_ENTITY_LINE_TOKENS = 55
-LOCAL_ENTITY_LINE_TOKENS = 25
+LOCAL_ENTITY_LINE_TOKENS = 33
 
 # What to assume when the backend has not told us its context window.
 # Treating an unknown window as small is a deliberate asymmetry: a

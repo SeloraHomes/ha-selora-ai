@@ -32,6 +32,7 @@ from ..types import LLMUsageInfo
 
 if TYPE_CHECKING:
     from ..tool_registry import ToolDef
+    from ..types import SpeakerLocation
 
 UsageCallback = Callable[[str, str, LLMUsageInfo], None]
 
@@ -304,6 +305,7 @@ class LLMProvider(ABC):
         history: list[dict[str, str]] | None = None,
         language: str | None = None,
         turn_token: str | None = None,
+        speaker: SpeakerLocation | None = None,
     ) -> None:
         """Forward the raw chat context to the provider before send_request.
 

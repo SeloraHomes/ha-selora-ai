@@ -782,6 +782,25 @@ def test_selora_local_derived_cap_only_tightens(
     assert provider._entity_line_cap() < _SELORA_LOCAL_MAX_ENTITY_LINES
 
 
+@pytest.mark.parametrize("backend", ["llama", "ollama-unified"])
+@pytest.mark.parametrize(
+    ("kind", "cap"),
+    [
+        ("chat_command", _SELORA_LOCAL_MAX_ENTITY_LINES),
+        ("chat_automation", _SELORA_LOCAL_MAX_ENTITY_LINES_AUTOMATION),
+    ],
+)
+def test_selora_local_located_lines_keep_the_cap_in_the_hub_window(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch, backend: str, kind: str, cap: int
+) -> None:
+    """Area and floor on every line still leave the trained cap inside 4096 tokens."""
+    provider = _local_provider(hass)
+    monkeypatch.setattr(provider, "_backend", backend)
+    monkeypatch.setattr(type(provider), "context_window", 4096, raising=False)
+    provider.set_call_kind(kind)
+    assert provider._entity_line_cap() == cap
+
+
 def test_selora_local_line_cost_matches_its_render_format(hass: HomeAssistant) -> None:
     """The budget's assumed per-line cost must track the format the
     provider actually emits, or the arithmetic is decorative."""

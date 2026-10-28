@@ -492,11 +492,12 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     HA's "Show as" feature) and restricts to COLLECTOR_DOMAINS + automation.
     Excludes non-controllable light entities (IR LEDs, camera illuminators).
     Each entity is annotated with its area name (resolved from the entity's
-    direct area assignment or inherited from its device).
+    direct area assignment or inherited from its device) and that area's floor.
     """
     from homeassistant.helpers import area_registry as ar
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
+    from homeassistant.helpers import floor_registry as fr
 
     from .command_policy_options import resolve_command_policy_options
     from .entity_capabilities import is_actionable_entity
@@ -527,6 +528,10 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     device_reg = dr.async_get(hass)
     area_reg = ar.async_get(hass)
     area_id_to_name: dict[str, str] = {area.id: area.name for area in area_reg.async_list_areas()}
+    floor_names = {floor.floor_id: floor.name for floor in fr.async_get(hass).async_list_floors()}
+    area_id_to_floor: dict[str, str] = {
+        area.id: floor_names.get(area.floor_id or "", "") for area in area_reg.async_list_areas()
+    }
 
     states: list[EntitySnapshot] = []
     for state in all_states:
@@ -563,6 +568,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
         # binary_sensor.*_visitor is the doorbell button press) that the
         # entity_id and friendly_name alone don't reveal.
         area_name = ""
+        floor_name = ""
         manufacturer = ""
         model = ""
         platform = ""
@@ -580,6 +586,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
                         model = device.model or ""
             if area_id:
                 area_name = area_id_to_name.get(area_id, "")
+                floor_name = area_id_to_floor.get(area_id, "")
 
         snapshot: EntitySnapshot = {
             "entity_id": state.entity_id,
@@ -588,6 +595,8 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
         }
         if area_name:
             snapshot["area_name"] = area_name
+        if floor_name:
+            snapshot["floor_name"] = floor_name
         if manufacturer:
             snapshot["manufacturer"] = manufacturer
         if model:
