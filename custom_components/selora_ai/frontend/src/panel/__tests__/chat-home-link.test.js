@@ -60,3 +60,44 @@ describe("the home-suggestions notification link", () => {
     expect(host._openSession).toHaveBeenCalledWith("last");
   });
 });
+
+describe("reloading the panel", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function stubWindow(stored) {
+    const storage = new Map([["selora_ai_active_session", stored]]);
+    vi.stubGlobal("window", {
+      location: new URL("http://ha/selora-ai"),
+      history: { replaceState: vi.fn() },
+      sessionStorage: {
+        getItem: (k) => storage.get(k) ?? null,
+        setItem: (k, v) => storage.set(k, v),
+        removeItem: (k) => storage.delete(k),
+      },
+    });
+  }
+
+  function hostWith(ids) {
+    const host = makeHost();
+    host.hass.callWS = vi.fn(async () => ids.map((id) => ({ id })));
+    return host;
+  }
+
+  it("reopens the conversation that was open", async () => {
+    stubWindow("older");
+    const host = hostWith(["last", "older"]);
+
+    await _loadSessions.call(host);
+
+    expect(host._openSession).toHaveBeenCalledWith("older");
+  });
+
+  it("falls back to the latest when that one is gone", async () => {
+    stubWindow("deleted");
+    const host = hostWith(["last", "older"]);
+
+    await _loadSessions.call(host);
+
+    expect(host._openSession).toHaveBeenCalledWith("last");
+  });
+});

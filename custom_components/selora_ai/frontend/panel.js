@@ -56115,6 +56115,7 @@ __export(session_actions_exports, {
   _openChatHome: () => _openChatHome,
   _openRecipeFromPill: () => _openRecipeFromPill,
   _openSession: () => _openSession,
+  _rememberActiveSession: () => _rememberActiveSession,
   _requestBulkDeleteSessions: () => _requestBulkDeleteSessions,
   _setActiveTab: () => _setActiveTab,
   _setRecipeWizardUrl: () => _setRecipeWizardUrl,
@@ -56145,6 +56146,21 @@ function _writeStoredTab(tab) {
   try {
     window.sessionStorage.setItem(TAB_STORAGE_KEY, tab);
   } catch {}
+}
+var SESSION_STORAGE_KEY = "selora_ai_active_session";
+function _rememberActiveSession(sessionId) {
+  try {
+    if (sessionId)
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    else window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {}
+}
+function _readStoredSession() {
+  try {
+    return window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+  } catch {
+    return null;
+  }
 }
 function _parsePath(pathname) {
   if (!pathname.startsWith(PANEL_PREFIX)) return { tab: null, subpath: "" };
@@ -56267,7 +56283,11 @@ async function _loadSessions() {
       this._sessions.length > 0 &&
       this._activeTab === "chat"
     ) {
-      await this._openSession(this._sessions[0].id);
+      const stored = _readStoredSession();
+      const target = this._sessions.some((s6) => s6.id === stored)
+        ? stored
+        : this._sessions[0].id;
+      await this._openSession(target);
     }
   } catch (err) {
     console.error("Failed to load sessions", err);
@@ -56608,7 +56628,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "ad249ea5852e" : "";
+var PANEL_BUILD = true ? "7ae9c3d75a10" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -60005,6 +60025,12 @@ var SeloraAIPanel = class extends i4 {
         changedProps.has("_auditChecks"))
     ) {
       this._hydrateEntityChips();
+    }
+    if (
+      changedProps.has("_activeSessionId") &&
+      (this._activeSessionId || changedProps.get("_activeSessionId"))
+    ) {
+      this._rememberActiveSession(this._activeSessionId);
     }
     if (
       this._activeTab === "chat" &&

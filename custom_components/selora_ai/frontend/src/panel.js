@@ -2295,6 +2295,14 @@ class SeloraAIPanel extends LitElement {
     ) {
       this._hydrateEntityChips();
     }
+    // The first update reports the constructor's null, which must not erase
+    // the conversation a reload is about to restore.
+    if (
+      changedProps.has("_activeSessionId") &&
+      (this._activeSessionId || changedProps.get("_activeSessionId"))
+    ) {
+      this._rememberActiveSession(this._activeSessionId);
+    }
     // Auto-focus the composer when the chat tab activates or when the user
     // switches to a different conversation, so they can start typing
     // immediately.
