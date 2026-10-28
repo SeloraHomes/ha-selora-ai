@@ -23,6 +23,7 @@ from .user_turn import (
     format_entity_line,
     format_existing_automations_block,
     format_relevant_docs_block,
+    format_speaker_location_block,
 )
 
 # Selora AI Local — how many prior turns to feed back to the LoRA (matches model-tester backends.py:591 cap).
@@ -61,10 +62,11 @@ _SELORA_LOCAL_PROMPT_TOKENS: dict[str, int] = {
 
 # Everything a request carries besides its system prompt and entity block:
 # language directive, history, the user turn's labels and untrusted-data
-# notice, EXISTING AUTOMATIONS (20 aliases of 60 chars, ~400 tokens) and the
-# reply. The automation figure includes chat_automation's 400-token output cap.
-_SELORA_LOCAL_REQUEST_TOKENS = 754
-_SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS = 1121
+# notice, SPEAKER LOCATION (~20 tokens), EXISTING AUTOMATIONS (20 aliases of
+# 60 chars, ~400 tokens) and the reply. The automation figure includes
+# chat_automation's 400-token output cap.
+_SELORA_LOCAL_REQUEST_TOKENS = 774
+_SELORA_LOCAL_AUTOMATION_REQUEST_TOKENS = 1141
 
 # Non-entity tokens a request reserves before the entity block gets what is
 # left, on the llama backend, where each intent sends its own specialist prompt.
@@ -262,6 +264,7 @@ class _RequestBuildMixin:
             self._format_existing_automations_block(self._automations_for_lora.get() or [], raw),
             self._format_entities_block(self._entities_for_lora.get() or []),
             docs_block,
+            format_speaker_location_block(self._speaker_for_lora.get()),
         )
 
     def _build_training_messages(

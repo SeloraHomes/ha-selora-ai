@@ -2307,6 +2307,9 @@ _AMBIG_FALLBACK_DOMAINS: tuple[str, ...] = (
 _AMBIG_NUMERIC_SET_RE = re.compile(r"\b(?:to|at)\s+\d{1,3}\b", re.IGNORECASE)
 # Hard cap on options to keep the chat bubble compact.
 _AMBIG_MAX_OPTIONS = 12
+# Categories the speaker's area may settle ("turn on the light" from the
+# kitchen). Never locks: a door is unlocked only when named.
+_SPEAKER_DEFAULT_DOMAINS = frozenset({"light", "media_player", "climate", "cover"})
 
 
 def _is_unspecified_target_command(user_message: str) -> bool:
@@ -2374,6 +2377,8 @@ def _is_unspecified_target_command(user_message: str) -> bool:
 def _build_unspecified_target_clarification(
     user_message: str,
     entities: list[EntitySnapshot],
+    *,
+    speaker_area: str = "",
 ) -> dict[str, Any] | None:
     """Return a slim clarification envelope for an ambiguous prompt.
 
@@ -2386,6 +2391,9 @@ def _build_unspecified_target_clarification(
     through to the LLM) or when no controllable entities of the
     inferred domain exist (a clarification with no options would fail
     the contract just as badly).
+
+    Also ``None`` for a bare category the speaker's area holds a device of
+    (``_SPEAKER_DEFAULT_DOMAINS``): the model resolves it from SPEAKER LOCATION.
     """
     if not _is_unspecified_target_command(user_message):
         return None
@@ -2406,6 +2414,17 @@ def _build_unspecified_target_clarification(
         else:
             # Pure pronoun ("turn it on") — surface all controllable.
             domains_to_show = _AMBIG_FALLBACK_DOMAINS
+    elif (
+        speaker_area
+        and not _AMBIG_PRONOUN_TARGET.search(msg)
+        and _SPEAKER_DEFAULT_DOMAINS.issuperset(domains_to_show)
+        and any(
+            e.get("area_name") == speaker_area
+            and e.get("entity_id", "").split(".", 1)[0] in domains_to_show
+            for e in entities
+        )
+    ):
+        return None
 
     options: list[str] = []
     seen: set[str] = set()
@@ -2933,8 +2952,12 @@ def _filter_entities_by_keywords(
     *,
     cap: int,
     message: str = "",
+    speaker_area: str = "",
 ) -> list[EntitySnapshot]:
     """Rank entities by relevance to the user's keywords, return top ``cap``.
+
+    Among equal scores, entities in ``speaker_area`` (the Assist device's
+    area) come first, so the cap keeps the ones the user is next to.
 
     Falls back to a small slice of controllable entities (lights,
     switches, covers, etc.) when the user message has no content
@@ -2972,10 +2995,16 @@ def _filter_entities_by_keywords(
             if s > 0:
                 scored.append((s, idx, e))
         if scored:
-            # Higher score first; original index as the deterministic
-            # tiebreaker so the same prompt always produces the same
-            # entity list (no flaky training-format prefix).
-            scored.sort(key=lambda t: (-t[0], t[1]))
+            # Higher score first, then the speaker's area; original index
+            # as the deterministic tiebreaker so the same prompt always
+            # produces the same entity list (no flaky training-format prefix).
+            scored.sort(
+                key=lambda t: (
+                    -t[0],
+                    not speaker_area or t[2].get("area_name") != speaker_area,
+                    t[1],
+                )
+            )
             ranked = [(idx, e) for _, idx, e in scored]
             base_order = {idx: rank for rank, (idx, _e) in enumerate(ranked)}
             return _pin_needs_into_cap(

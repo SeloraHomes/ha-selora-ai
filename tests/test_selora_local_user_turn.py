@@ -41,11 +41,27 @@ def _provider(backend: str = SELORA_LOCAL_BACKEND_LLAMA) -> SeloraLocalProvider:
 
 def _snapshot(entity: dict[str, Any]) -> dict[str, Any]:
     """A HomeSpec entity as _collect_entity_states would snapshot it."""
-    return {
+    snapshot = {
         "entity_id": entity["entity_id"],
         "state": entity["state"],
         "attributes": {"friendly_name": entity["alias"], **entity["attributes"]},
     }
+    if entity.get("area"):
+        snapshot["area_name"] = entity["area"]
+        if entity.get("floor"):
+            snapshot["floor_name"] = entity["floor"]
+    return snapshot
+
+
+def _speaker(example: dict[str, Any]) -> dict[str, str] | None:
+    """A corpus example's speaker as conversation.speaker_location returns it."""
+    speaker = example.get("speaker") or {}
+    if not speaker.get("area"):
+        return None
+    location = {"area_name": speaker["area"]}
+    if speaker.get("floor"):
+        location["floor_name"] = speaker["floor"]
+    return location
 
 
 def _bundled_doc(chunk: dict[str, str]) -> dict[str, str]:
@@ -77,6 +93,7 @@ def test_renders_the_corpus_bytes(intent: str, backend: str) -> None:
         user_message=example["user_request"],
         entities=[_snapshot(e) for e in example["home"]["entities"]],
         relevant_docs=[_bundled_doc(d) for d in example.get("docs") or []],
+        speaker=_speaker(example),
     )
     # train.py prefixes the corpus turn with /no_think; the GGUF template does not.
     assert rendered == "/no_think " + example["user_message"]
@@ -96,6 +113,73 @@ def test_every_kind_gets_the_whole_layout(kind: str) -> None:
         f"{UNTRUSTED_DATA_NOTICE}\n\n"
         "AVAILABLE ENTITIES:\n"
         "  - entity_id=light.porch; state=on; friendly_name=light.porch"
+    )
+
+
+def test_entity_lines_carry_area_then_floor() -> None:
+    rendered = _render(
+        _provider(),
+        "chat_command",
+        user_message="lock the foyer lock",
+        entities=[
+            {
+                "entity_id": "lock.smart_lock",
+                "state": "unlocked",
+                "attributes": {"friendly_name": "Smart Lock", "device_class": "lock"},
+                "area_name": "Entry",
+                "floor_name": "Ground Floor",
+            },
+            {
+                "entity_id": "lock.rear_door_lock",
+                "state": "unlocked",
+                "attributes": {"friendly_name": "Rear Door Lock"},
+                "area_name": "Garage",
+            },
+            # A floor without an area places nothing.
+            {
+                "entity_id": "lock.shed",
+                "state": "locked",
+                "attributes": {"friendly_name": "Shed"},
+                "floor_name": "Ground Floor",
+            },
+        ],
+    )
+    assert rendered.endswith(
+        "AVAILABLE ENTITIES:\n"
+        "  - entity_id=lock.smart_lock; state=unlocked; friendly_name=Smart Lock; "
+        "area=Entry; floor=Ground Floor; device_class=lock\n"
+        "  - entity_id=lock.rear_door_lock; state=unlocked; friendly_name=Rear Door Lock; "
+        "area=Garage\n"
+        "  - entity_id=lock.shed; state=locked; friendly_name=Shed"
+    )
+
+
+def test_speaker_location_follows_the_notice() -> None:
+    rendered = _render(
+        _provider(),
+        "chat_command",
+        user_message="turn on the light",
+        entities=[{"entity_id": "light.porch", "state": "on", "attributes": {}}],
+        speaker={"area_name": "Living  Room", "floor_name": "Ground\nFloor"},
+    )
+    assert rendered == (
+        "/no_think USER REQUEST: turn on the light\n\n"
+        "EXISTING AUTOMATIONS:\n  None yet.\n\n"
+        f"{UNTRUSTED_DATA_NOTICE}\n\n"
+        "SPEAKER LOCATION:\n  area=Living Room; floor=Ground Floor\n\n"
+        "AVAILABLE ENTITIES:\n"
+        "  - entity_id=light.porch; state=on; friendly_name=light.porch"
+    )
+
+
+@pytest.mark.parametrize("speaker", [None, {}, {"floor_name": "Upstairs"}, {"area_name": " "}])
+def test_no_speaker_area_leaves_the_turn_as_trained(speaker: dict[str, str] | None) -> None:
+    context = {
+        "user_message": "turn on the light",
+        "entities": [{"entity_id": "light.porch", "state": "on", "attributes": {}}],
+    }
+    assert _render(_provider(), "chat_command", speaker=speaker, **context) == _render(
+        _provider(), "chat_command", **context
     )
 
 
@@ -253,3 +337,35 @@ def test_snapshot_keeps_the_trained_attributes(hass: HomeAssistant) -> None:
     attrs = by_id["sensor.indoor_temp"]["attributes"]
     assert attrs["unit_of_measurement"] == "°C"
     assert attrs["device_class"] == "temperature"
+
+
+def test_snapshot_carries_the_area_and_its_floor(hass: HomeAssistant) -> None:
+    """The entity's own area wins over its device's; the floor is the area's."""
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.helpers import floor_registry as fr
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(domain="test")
+    entry.add_to_hass(hass)
+    upstairs = fr.async_get(hass).async_create("Upstairs")
+    areas = ar.async_get(hass)
+    bedroom = areas.async_create("Bedroom", floor_id=upstairs.floor_id)
+    garage = areas.async_create("Garage")
+    device = dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("test", "lamp")}
+    )
+    dr.async_get(hass).async_update_device(device.id, area_id=bedroom.id)
+    ents = er.async_get(hass)
+    lamp = ents.async_get_or_create("light", "test", "lamp", device_id=device.id)
+    moved = ents.async_get_or_create("light", "test", "moved", device_id=device.id)
+    ents.async_update_entity(moved.entity_id, area_id=garage.id)
+    hass.states.async_set(lamp.entity_id, "on", {"friendly_name": "Lamp"})
+    hass.states.async_set(moved.entity_id, "on", {"friendly_name": "Moved"})
+
+    by_id = {s["entity_id"]: s for s in _collect_entity_states(hass)}
+    assert by_id[lamp.entity_id]["area_name"] == "Bedroom"
+    assert by_id[lamp.entity_id]["floor_name"] == "Upstairs"
+    assert by_id[moved.entity_id]["area_name"] == "Garage"
+    assert "floor_name" not in by_id[moved.entity_id]

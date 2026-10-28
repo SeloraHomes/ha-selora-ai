@@ -756,10 +756,18 @@ class EntitySnapshot(TypedDict, total=False):
     entity_id: str
     state: str
     area_name: str
+    floor_name: str
     manufacturer: str
     model: str
     platform: str
     attributes: dict[str, Any]
+
+
+class SpeakerLocation(TypedDict, total=False):
+    """Where the device the user is speaking to sits; keys match EntitySnapshot's."""
+
+    area_name: str
+    floor_name: str
 
 
 class AutomationSnapshot(TypedDict, total=False):

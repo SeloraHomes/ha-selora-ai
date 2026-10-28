@@ -7,7 +7,7 @@ from collections import OrderedDict
 from contextvars import ContextVar
 import logging
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from homeassistant.core import HomeAssistant
 
@@ -57,6 +57,9 @@ from .utilities.rag import (
     _UtilitiesRagMixin,
     async_preload_doc_chunks,
 )
+
+if TYPE_CHECKING:
+    from ...types import SpeakerLocation
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -263,6 +266,10 @@ class SeloraLocalProvider(
         # Request locale forwarded by LLMClient.set_chat_context.
         self._language_for_lora: ContextVar[str | None] = ContextVar(
             "selora_ai_local_language", default=None
+        )
+        # Area and floor of the Assist device the user is speaking to.
+        self._speaker_for_lora: ContextVar[SpeakerLocation | None] = ContextVar(
+            "selora_ai_local_speaker", default=None
         )
         # v0.4.8 RAG/utilities specialist: retrieved documentation chunks for the current turn, each as ``{"id": <doc_chunk_id>, "text": <chunk body>}``.
         self._docs_for_lora: ContextVar[list[dict[str, str]] | None] = ContextVar(
@@ -483,6 +490,7 @@ class SeloraLocalProvider(
         language: str | None = None,
         relevant_docs: list[dict[str, str]] | None = None,
         turn_token: str | None = None,
+        speaker: SpeakerLocation | None = None,
     ) -> None:
         """Capture the raw chat context from LLMClient so build_payload can render the trained user turn."""
         # Snapshot baseline entity states before this turn's command (if any) mutates them.
@@ -506,6 +514,7 @@ class SeloraLocalProvider(
         self._history_for_lora.set(list(history or []))
         self._language_for_lora.set(language)
         self._docs_for_lora.set(list(relevant_docs or []))
+        self._speaker_for_lora.set(speaker)
 
 
 __all__ = [

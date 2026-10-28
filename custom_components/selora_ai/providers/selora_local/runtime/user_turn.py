@@ -8,7 +8,10 @@ corpus examples. See ``docs/dev/selora-local-prompts.md``.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 # ``train.py`` prefixes every user turn with this. The GGUF's chat template
 # only forces thinking off and renders the content as-is, so we send it.
@@ -49,7 +52,7 @@ def _value(value: object) -> str:
 
 
 def format_entity_line(entity: dict[str, Any]) -> str:
-    """One AVAILABLE ENTITIES line: ``  - entity_id=X; state=Y; friendly_name=Z[; key=val …]``."""
+    """One AVAILABLE ENTITIES line: ``  - entity_id=X; state=Y; friendly_name=Z[; area=A][; floor=F][; key=val …]``."""
     eid = entity.get("entity_id", "")
     attrs = entity.get("attributes") or {}
     state = entity.get("state")
@@ -58,11 +61,29 @@ def format_entity_line(entity: dict[str, Any]) -> str:
         f"state={_value('unknown' if state is None else state)}",
         f"friendly_name={_value(attrs.get('friendly_name') or eid)}",
     ]
+    parts.extend(_location_parts(entity))
     for key in ENTITY_ATTRS:
         val = attrs.get(key)
         if val is not None:
             parts.append(f"{key}={_value(val)}")
     return ENTITY_INDENT + "; ".join(parts)
+
+
+def _location_parts(location: Mapping[str, Any]) -> list[str]:
+    """``area=A[; floor=F]`` parts; none without an area, since a floor alone places nothing."""
+    area = _sanitize(location.get("area_name") or "")
+    if not area:
+        return []
+    floor = _sanitize(location.get("floor_name") or "")
+    return [f"area={area}", f"floor={floor}"] if floor else [f"area={area}"]
+
+
+def format_speaker_location_block(speaker: Mapping[str, Any] | None) -> str:
+    """SPEAKER LOCATION, ``  area=A[; floor=F]``; empty without an area."""
+    parts = _location_parts(speaker or {})
+    if not parts:
+        return ""
+    return "SPEAKER LOCATION:\n  " + "; ".join(parts)
 
 
 def format_existing_automations_block(aliases: list[str]) -> str:
@@ -100,14 +121,19 @@ def format_relevant_docs_block(docs: list[dict[str, str]]) -> str:
 
 
 def build_user_turn(
-    request: str, automations_block: str, entities_block: str, docs_block: str = ""
+    request: str,
+    automations_block: str,
+    entities_block: str,
+    docs_block: str = "",
+    speaker_block: str = "",
 ) -> str:
     """The whole user turn, ``/no_think`` prefix included."""
     body = (
         f"USER REQUEST: {request}\n\n"
         f"{automations_block}\n\n"
         f"{UNTRUSTED_DATA_NOTICE}\n\n"
-        f"{entities_block}"
+        + (f"{speaker_block}\n\n" if speaker_block else "")
+        + entities_block
     )
     if docs_block:
         body += f"\n\n{docs_block}"

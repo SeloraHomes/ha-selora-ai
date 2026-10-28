@@ -23,8 +23,37 @@ from .telemetry import record_activity
 
 if TYPE_CHECKING:
     from .llm_client import LLMClient
+    from .types import SpeakerLocation
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def speaker_location(
+    hass: HomeAssistant, device_id: str | None, satellite_id: str | None = None
+) -> SpeakerLocation | None:
+    """Area and floor of the device the user is speaking to, or None without an area.
+
+    The satellite entity's own area wins over its device's, as in Home Assistant.
+    """
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from homeassistant.helpers import floor_registry as fr
+
+    area_id: str | None = None
+    if satellite_id and (entry := er.async_get(hass).async_get(satellite_id)):
+        area_id = entry.area_id
+        device_id = device_id or entry.device_id
+    if not area_id and device_id and (device := dr.async_get(hass).async_get(device_id)):
+        area_id = device.area_id
+    area = ar.async_get(hass).async_get_area(area_id) if area_id else None
+    if area is None:
+        return None
+    location: SpeakerLocation = {"area_name": area.name}
+    if area.floor_id and (floor := fr.async_get(hass).async_get_floor(area.floor_id)):
+        location["floor_name"] = floor.name
+    return location
+
 
 # Matches the scene metadata marker appended to Assist chat log entries.
 _SCENE_MARKER_RE = re.compile(r"\[Selora scene: id=([^,]+), name=[^\]]+\]")
@@ -469,6 +498,9 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             scene_context=assist_scenes or None,
             for_assist=True,
             language=user_input.language,
+            speaker=speaker_location(
+                self.hass, user_input.device_id, getattr(user_input, "satellite_id", None)
+            ),
         )
 
         response = intent.IntentResponse(language=user_input.language)

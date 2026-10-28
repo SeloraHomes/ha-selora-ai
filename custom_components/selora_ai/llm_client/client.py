@@ -52,6 +52,7 @@ from ..types import (
     EntitySnapshot,
     HomeSnapshot,
     ImageAttachment,
+    SpeakerLocation,
     ToolCallLog,
     ToolWriteResult,
 )
@@ -385,6 +386,7 @@ def _pre_provider_short_circuit(
     language: str | None = None,
     hass: HomeAssistant | None = None,
     low_context: bool = True,
+    speaker_area: str = "",
 ) -> dict[str, Any] | None:
     """Return a slim response envelope when a deterministic intent helper
     can answer the turn without going to the provider.
@@ -511,7 +513,9 @@ def _pre_provider_short_circuit(
     # approval flow instead.
     if _MULTI_TARGET_CATEGORY_SCOPE_RE.search(user_message):
         return None
-    return _build_unspecified_target_clarification(user_message, entities or [])
+    return _build_unspecified_target_clarification(
+        user_message, entities or [], speaker_area=speaker_area
+    )
 
 
 # Localized canned replies. The two early-return branches in
@@ -997,6 +1001,7 @@ class LLMClient:
         language: str | None = None,
         attachments: list[ImageAttachment] | None = None,
         turn_token: str | None = None,
+        speaker: SpeakerLocation | None = None,
     ) -> ArchitectResponse:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
@@ -1006,6 +1011,8 @@ class LLMClient:
         tool_executor: optional executor for LLM tool calling (device snapshot, integrations).
         attachments: base64 images for the current turn. Callers must gate on
                  provider.supports_vision; the low-context path ignores them.
+        speaker: area and floor of the Assist device the user spoke to; only
+                 the low-context path uses it.
 
         Returns a dict with at minimum:
           intent: "command" | "automation" | "answer"
@@ -1049,6 +1056,7 @@ class LLMClient:
         # suppressed during refinement (the prompt edits a proposal, not
         # a live device).
         refining = bool(refining_context or refining_scene_context or scene_context)
+        speaker_area = (speaker or {}).get("area_name", "")
         short_circuit = _pre_provider_short_circuit(
             user_message,
             entities,
@@ -1058,6 +1066,7 @@ class LLMClient:
             language=effective_language,
             hass=self._hass,
             low_context=self._provider.is_low_context,
+            speaker_area=speaker_area,
         )
         if short_circuit is not None:
             if short_circuit.get("intent") == "command":
@@ -1121,6 +1130,7 @@ class LLMClient:
                     _low_context_keywords(user_message),
                     cap=60,
                     message=user_message,
+                    speaker_area=speaker_area,
                 )
                 relevant_entities = await async_attach_schedule_data(
                     self._hass, user_message, relevant_entities, entities
@@ -1137,6 +1147,7 @@ class LLMClient:
                     history=history,
                     language=language or self._hass.config.language,
                     turn_token=turn_token,
+                    speaker=speaker,
                 )
                 system_prompt = build_minimal_architect_system_prompt(
                     intent_hint,
