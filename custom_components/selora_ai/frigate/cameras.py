@@ -204,17 +204,28 @@ def existing_hosts(frigate_config: dict[str, Any]) -> set[str]:
 
 
 def for_go2rtc(url: str) -> str:
-    """The URL as go2rtc should open it.
-
-    Cameras serve RTSPS with self-signed certificates, which go2rtc reads
-    unverified as ``rtspx``; UniFi Protect's ``enableSrtp`` asks for SRTP,
-    which go2rtc does not speak.
-    """
+    """The URL without what go2rtc cannot use: UniFi Protect's ``enableSrtp``
+    asks for SRTP, which go2rtc does not speak."""
     parts = urlsplit(url)
     if parts.scheme.lower() != "rtsps":
         return url
     query = urlencode([(k, v) for k, v in parse_qsl(parts.query) if k != "enableSrtp"])
-    return urlunsplit(("rtspx", parts.netloc, parts.path, query, parts.fragment))
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, query, parts.fragment))
+
+
+def go2rtc_source(url: str) -> str:
+    """The stream as written to ``go2rtc.streams``.
+
+    RTSPS is read through FFmpeg, which does not verify the camera's
+    self-signed certificate, copying the video and re-encoding the audio to
+    AAC. go2rtc's own unverified ``rtspx`` passes the camera's audio through
+    as is, and Safari's live view stalls on it (Wyze).
+    """
+    parts = urlsplit(url)
+    if parts.scheme.lower() != "rtsps":
+        return url
+    # urlsplit lowercases the scheme; FFmpeg's protocol lookup is case-sensitive.
+    return f"ffmpeg:{urlunsplit(parts)}#video=copy#audio=aac"
 
 
 def _words(entry: er.RegistryEntry) -> set[str]:
@@ -408,7 +419,7 @@ def build_config(
     streams: dict[str, list[str]] = {}
     cameras: dict[str, Any] = {}
     for c in candidates:
-        streams[c.camera] = [c.main.url]
+        streams[c.camera] = [go2rtc_source(c.main.url)]
         inputs: list[dict[str, Any]] = []
         main_roles = (["record"] if record else []) + ([] if c.sub else ["detect"])
         if main_roles:
@@ -420,7 +431,7 @@ def build_config(
                 }
             )
         if c.sub:
-            streams[f"{c.camera}_sub"] = [c.sub.url]
+            streams[f"{c.camera}_sub"] = [go2rtc_source(c.sub.url)]
             inputs.append(
                 {
                     "path": _RESTREAM.format(f"{c.camera}_sub"),
