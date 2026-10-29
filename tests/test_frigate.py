@@ -110,14 +110,12 @@ async def test_main_and_substream_are_told_apart(hass: HomeAssistant, home: _Hom
     assert (camera.main.entity_id, camera.sub and camera.sub.entity_id) == (main, sub)
 
 
-async def test_unifi_rtsps_is_read_unverified_without_srtp(
-    hass: HomeAssistant, home: _Home
-) -> None:
+async def test_unifi_rtsps_drops_srtp(hass: HomeAssistant, home: _Home) -> None:
     home.camera("Garage", "high", "rtsps://10.0.0.2:7441/abc?enableSrtp", platform="unifiprotect")
 
     (camera,), _ = await async_camera_candidates(hass, _EMPTY_CONFIG)
 
-    assert camera.main.url == "rtspx://10.0.0.2:7441/abc"
+    assert camera.main.url == "rtsps://10.0.0.2:7441/abc"
     assert camera.sub is None
 
 
@@ -720,14 +718,17 @@ async def test_a_camera_given_by_stream_address_skips_onvif(
     onvif = AsyncMock()
     with patch.object(frigate_setup.OnvifCamera, "async_profiles", onvif):
         result = await _confirm(
-            hass, action, {"192.168.2.113": {"username": "Lafou", "password": PASSWORD}}
+            hass, action, {"192.168.2.113": {"username": "camuser", "password": PASSWORD}}
         )
 
     onvif.assert_not_called()
     assert result["status"] == "added"
     streams = _sent_config(aioclient_mock)["go2rtc"]["streams"]
-    # RTSPS read unverified (self-signed), with the login typed into the card.
-    assert streams["wyze_cam3"] == [f"rtspx://Lafou:{PASSWORD}@192.168.2.113:322/stream0"]
+    # RTSPS read through FFmpeg (self-signed, audio Safari can play), with the
+    # login typed into the card.
+    assert streams["wyze_cam3"] == [
+        f"ffmpeg:rtsps://camuser:{PASSWORD}@192.168.2.113:322/stream0#video=copy#audio=aac"
+    ]
 
 
 async def test_a_stream_without_a_login_is_added_as_given(
@@ -1216,3 +1217,13 @@ async def test_a_model_changed_while_the_card_was_open_is_checked_again(
 
     assert "does not detect bus" in result["error"]
     assert _sent_config(aioclient_mock) is None
+
+
+def test_rtsps_is_read_through_ffmpeg_with_a_lowercase_scheme() -> None:
+    """FFmpeg's protocol lookup is case-sensitive."""
+    from custom_components.selora_ai.frigate.cameras import go2rtc_source
+
+    assert go2rtc_source("RTSPS://10.0.0.2:322/stream0") == (
+        "ffmpeg:rtsps://10.0.0.2:322/stream0#video=copy#audio=aac"
+    )
+    assert go2rtc_source("rtsp://10.0.0.2:554/stream0") == "rtsp://10.0.0.2:554/stream0"

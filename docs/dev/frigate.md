@@ -114,8 +114,10 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   (`ffmpeg:…#video=copy`).
 - **Only local streams.** A source on a public host (Nest, other cloud cameras)
   is skipped: its URLs expire and Frigate would record the internet.
-- `rtsps` becomes `rtspx` (go2rtc's unverified RTSPS, for self-signed camera
-  certificates) and UniFi's `enableSrtp` is dropped.
+- `rtsps` is written as `ffmpeg:rtsps://…#video=copy#audio=aac`: FFmpeg does
+  not verify the camera's self-signed certificate, and the AAC audio plays in
+  Safari. go2rtc's `rtspx` passed a Wyze camera's audio through and Safari's
+  live view stalled on it. UniFi's `enableSrtp` is dropped.
 - Every camera is restreamed by go2rtc (`rtsp://127.0.0.1:8554/<name>`), so the
   camera sees one connection whatever reads it.
 

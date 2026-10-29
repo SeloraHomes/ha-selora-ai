@@ -23,7 +23,7 @@ from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import COMMAND_TOOL_NAMES, CONFIG_TOOL_NAMES
 
 FRIGATE = "http://frigate.local:5000"
-LOGIN = "Lafou:s3cret-pass"
+LOGIN = "camuser:s3cret-pass"
 RESTREAM = "rtsp://127.0.0.1:8554/{}"
 
 
