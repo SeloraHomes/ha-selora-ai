@@ -264,18 +264,19 @@ export async function _loadSessions() {
     });
     this._sessions = sessions || [];
     // Auto-open the conversation that was open before a reload, else the
-    // most recent one, if no active session and on chat tab
+    // most recent one, if no active session and on chat tab. The stored one
+    // is opened by id, not looked up in the list: a new chat has no messages
+    // yet, so the list leaves it out and a reload would land on the latest.
     if (
       !this._activeSessionId &&
       !this._openingChatHome &&
-      this._sessions.length > 0 &&
       this._activeTab === "chat"
     ) {
       const stored = _readStoredSession();
-      const target = this._sessions.some((s) => s.id === stored)
-        ? stored
-        : this._sessions[0].id;
-      await this._openSession(target);
+      if (stored) await this._openSession(stored);
+      if (!this._activeSessionId && this._sessions.length > 0) {
+        await this._openSession(this._sessions[0].id);
+      }
     }
   } catch (err) {
     console.error("Failed to load sessions", err);

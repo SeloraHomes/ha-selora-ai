@@ -77,9 +77,14 @@ describe("reloading the panel", () => {
     });
   }
 
-  function hostWith(ids) {
+  // `listed` is what get_sessions returns; `stored` sessions also include
+  // the empty ones it leaves out. Opening an id the store lacks fails.
+  function hostWith(listed, stored = listed) {
     const host = makeHost();
-    host.hass.callWS = vi.fn(async () => ids.map((id) => ({ id })));
+    host.hass.callWS = vi.fn(async () => listed.map((id) => ({ id })));
+    host._openSession = vi.fn(async (id) => {
+      if (stored.includes(id)) host._activeSessionId = id;
+    });
     return host;
   }
 
@@ -98,6 +103,16 @@ describe("reloading the panel", () => {
 
     await _loadSessions.call(host);
 
-    expect(host._openSession).toHaveBeenCalledWith("last");
+    expect(host._activeSessionId).toBe("last");
+  });
+
+  it("stays on a new chat, which the list leaves out", async () => {
+    stubWindow("new-chat");
+    const host = hostWith(["last"], ["last", "new-chat"]);
+
+    await _loadSessions.call(host);
+
+    expect(host._activeSessionId).toBe("new-chat");
+    expect(host._openSession).not.toHaveBeenCalledWith("last");
   });
 });
