@@ -1,4 +1,5 @@
-"""MCP tools that change Frigate's cameras, and read its setup and snapshots.
+"""MCP tools that change Frigate's cameras and face recognition, and read its
+setup and snapshots.
 
 Chat proposes each change on a card the user confirms. MCP has no card, so the
 first call returns what would change with ``requires_confirmation`` and a token
@@ -216,4 +217,47 @@ async def _tool_get_frigate_snapshot(
         data=data,
         mime_type=mime_type,
         fields={**fields, "content_type": mime_type, "bytes": len(data)},
+    )
+
+
+async def _tool_get_face_recognition(
+    hass: HomeAssistant, _arguments: dict[str, Any]
+) -> dict[str, Any]:
+    from ..frigate.faces import FROM_EVENTS, async_face_recognition  # noqa: PLC0415
+
+    return await async_face_recognition(hass, FROM_EVENTS)
+
+
+async def _tool_set_face_recognition(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    from ..frigate.faces import (  # noqa: PLC0415
+        FROM_EVENTS,
+        async_preview_set_face_recognition,
+        async_set_face_recognition_confirmed,
+    )
+
+    preview = await async_preview_set_face_recognition(hass, arguments)
+    card = preview.get("destructive")
+    if card is None:
+        return preview
+    if not _confirmed(arguments):
+        return {
+            "requires_confirmation": True,
+            "change": card["label"],
+            "confirm_token": card["fingerprint"],
+            "note": _CONFIRM,
+        }
+    if not (token := _token(arguments)):
+        return {"error": _NO_TOKEN}
+    return await async_set_face_recognition_confirmed(hass, token, arguments, FROM_EVENTS)
+
+
+async def _tool_add_face_photo(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    from ..frigate.faces import async_add_event_photo  # noqa: PLC0415
+
+    return await async_add_event_photo(
+        hass,
+        str(arguments.get("name") or ""),
+        str(arguments.get("event_id") or "").strip(),
     )

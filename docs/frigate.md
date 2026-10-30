@@ -44,6 +44,7 @@ the connection, use **Disconnect**.
 | "The Wyze is at 192.168.1.205 now"                                                                | `move_frigate_camera`                                                            |
 | "Remove the garage camera from Frigate"                                                           | `remove_from_home` (`kind: frigate_camera`)                                      |
 | "Turn recording off on the porch camera"                                                          | `execute_command` on the camera's Frigate switch (needs the Frigate integration) |
+| "Turn on face recognition", "Who does Frigate recognize?"                                         | `set_face_recognition`, `get_face_recognition`                                   |
 
 Each change shows a card that says what will happen. Nothing changes until
 you confirm. Frigate restarts to apply a change, so detection and recording
@@ -64,6 +65,9 @@ them needs an admin credential, because a camera shows the inside of the home.
 | `selora_set_camera_objects`     | Changes what a camera looks for (`add`, `remove`, or the whole list as `objects`).                                                                                                                                                                                                                  |
 | `selora_move_frigate_camera`    | Points a camera at its new address and keeps its name, history and login.                                                                                                                                                                                                                           |
 | `selora_remove_frigate_camera`  | Removes a camera's Frigate configuration and streams. Its recordings stay until Frigate's retention deletes them.                                                                                                                                                                                   |
+| `selora_get_face_recognition`   | Whether face recognition is on, who is in Frigate's Face Library and with how many photos, and how to add someone.                                                                                                                                                                                  |
+| `selora_set_face_recognition`   | Turns face recognition on or off. On a Selora hub it uses the large model on the hub's GPU. Turning it off keeps the Face Library.                                                                                                                                                                  |
+| `selora_add_face_photo`         | Adds a person's face from an event in `selora_find_camera_events`: Frigate learns it from that event's snapshot.                                                                                                                                                                                    |
 
 **Changes are made in two calls.** The first call changes nothing. It returns
 `requires_confirmation`, a description of the change, and a `confirm_token`.
@@ -90,10 +94,19 @@ Assistant's own cameras and streams that need no login can be added over MCP.
 Moving a camera keeps the login Frigate already has, so no login is needed for
 that.
 
+**Faces come from your cameras, not from the conversation.** An assistant
+can't pass on a photo you showed it, so over MCP a person is added from an
+event where a camera saw them: the assistant finds one with
+`selora_find_camera_events`, and Frigate learns the face from its own
+snapshot. Pick a few events where the person faces the camera. To upload
+photos instead, use the card in Selora AI's own chat.
+
 ## What Selora AI changes in Frigate
 
 Selora AI only writes the sections for each camera: `cameras.<name>` and the
-`go2rtc` streams it reads the camera from. Detectors, hardware acceleration,
+`go2rtc` streams it reads the camera from. The one exception is face
+recognition, which it turns on or off when you ask (and on a Selora hub, sets
+to the large model). Detectors, hardware acceleration,
 models, MQTT and other global settings stay as you or Selora OS set them.
 Changes go through Frigate's own configuration API, which validates them, and
 never by editing `config.yml`.

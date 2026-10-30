@@ -89,6 +89,11 @@ _RESTART_WAIT: Final = 180
 # this often.
 _SUGGESTION_TTL: Final = 300
 
+# A main stream turned on from the card loads with Home Assistant's reload of
+# its integration, which HA runs 30 s after an entity is enabled.
+_FULL_QUALITY_POLL: Final = 3
+_FULL_QUALITY_WAIT: Final = 90
+
 _PLANS: Final = "_frigate_plans"
 _PLAN_TTL: Final = 1800
 
@@ -438,8 +443,8 @@ async def async_preview_add_cameras(
                 "low_resolution_hint": (
                     "A camera marked low_resolution has only its substream enabled in "
                     "Home Assistant, so Frigate would record it in low resolution. Tell "
-                    "the user; turning on the entity named in turn_on, then asking "
-                    "again, records the full stream."
+                    "the user; the card's button turns on the stream named in turn_on "
+                    "and updates the card to record the full stream."
                 )
             }
             if any(c.low_res for c in gathered.candidates)
@@ -582,6 +587,55 @@ async def async_add_cameras_confirmed(
         async_reload_when_back(hass, client), f"{DOMAIN}_frigate_reload"
     )
     return {"status": "added", "cameras": plan.added}
+
+
+async def async_use_full_quality(hass: HomeAssistant, plan_id: str) -> dict[str, Any]:
+    """Turn on the main stream of each low-resolution camera on a card, then
+    show the card again with it.
+
+    A disabled entity has no stream until Home Assistant reloads its
+    integration, so this waits for the stream before answering. The plan keeps
+    its id and now approves the full streams: the user asked for them.
+    """
+    plan = _store(hass).get(plan_id)
+    if plan is None:
+        return {"error": "This card has expired; ask again."}
+    client = FrigateClient.from_hass(hass)
+    if client is None:
+        return {"error": NOT_SET_UP}
+    try:
+        gathered = await _gather(hass, client, plan.arguments)
+    except FrigateError as exc:
+        return {"error": str(exc)}
+    turned_on = [c.main_off_id for c in gathered.candidates if c.low_res and c.main_off_id]
+    if not turned_on:
+        return {"error": "No camera on this card has a full-quality stream to turn on."}
+    ent_reg = er.async_get(hass)
+    for entity_id in turned_on:
+        ent_reg.async_update_entity(entity_id, disabled_by=None)
+    deadline = time.monotonic() + _FULL_QUALITY_WAIT
+    while True:
+        await asyncio.sleep(_FULL_QUALITY_POLL)
+        if all(hass.states.get(e) is not None for e in turned_on):
+            try:
+                gathered = await _gather(hass, client, plan.arguments)
+            except FrigateError as exc:
+                return {"error": str(exc)}
+            if not any(c.low_res and c.main_off_id for c in gathered.candidates) and all(
+                any(e in c.entity_ids for c in gathered.candidates) for e in turned_on
+            ):
+                break
+        if time.monotonic() > deadline:
+            return {
+                "error": "The full-quality stream is on, but Home Assistant has not "
+                "loaded it yet. Try again in a minute."
+            }
+    objects, record, days = _options(plan.arguments)
+    network = [n for n in gathered.network if n.key in {p.key for p in plan.network}]
+    plan.fingerprint = _fingerprint(gathered.candidates, network, objects, record, days)
+    plan.network = network
+    shown_now = replace(gathered, network=network)
+    return {"cameras": _rows(shown_now), "label": _label(shown_now, objects, record, days)}
 
 
 def added_line(hass: HomeAssistant, plan_id: str, language: str | None) -> str | None:

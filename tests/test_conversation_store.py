@@ -71,3 +71,23 @@ async def test_a_pruned_session_is_recreated_by_its_first_message(
     listed = await store.list_sessions()
     assert [s["id"] for s in listed] == [stale["id"]]
     assert listed[0]["title"] == "turn on the porch light"
+
+
+@pytest.mark.asyncio
+async def test_a_redrawn_card_reads_the_same_when_reopened(hass: HomeAssistant) -> None:
+    """A Frigate card turned to full quality keeps its new rows."""
+    store = ConversationStore(hass)
+    session = await store.create_session()
+    await store.append_message(session["id"], "user", "add my cameras to Frigate")
+    card = {"kind": "add_frigate_cameras", "plan_id": "p1", "cameras": [{"low_resolution": True}]}
+    await store.append_message(
+        session["id"], "assistant", "", command_approval={"client_actions": [card]}
+    )
+
+    assert await store.update_client_action(session["id"], 1, "p1", {"cameras": [{}]})
+    assert not await store.update_client_action(session["id"], 1, "other", {"cameras": []})
+    assert not await store.update_client_action(session["id"], 5, "p1", {"cameras": []})
+
+    reopened = await store.get_session(session["id"])
+    (action,) = reopened["messages"][1]["command_approval"]["client_actions"]
+    assert action["cameras"] == [{}]

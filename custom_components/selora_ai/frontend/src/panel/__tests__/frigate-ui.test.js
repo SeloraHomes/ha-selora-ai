@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   eventPage,
   frigateApp,
+  openFrigateInHA,
   openFrigatePage,
   zonesPage,
 } from "../frigate-ui.js";
@@ -81,9 +82,48 @@ describe("Frigate's own UI", () => {
       throw new Error("supervisor down");
     });
 
-    await openFrigatePage({ hass: { panels: PANELS, callWS } }, "explore");
+    const host = { hass: { panels: PANELS, callWS }, _showToast: vi.fn() };
+
+    await openFrigatePage(host, "explore");
 
     expect(tab.close).toHaveBeenCalled();
     expect(tab.location.href).toBe("");
+    expect(host._showToast).toHaveBeenCalledWith(
+      "Couldn't open Frigate: supervisor down",
+      "error",
+    );
+  });
+
+  it("opens Frigate in HA when no tab could be opened", async () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal("window", {
+      open: vi.fn(() => null),
+      history: { pushState },
+      dispatchEvent,
+    });
+    vi.stubGlobal("document", { cookie: "" });
+    vi.stubGlobal("location", { protocol: "http:" });
+    const callWS = vi.fn(async ({ endpoint }) =>
+      endpoint === "/ingress/session"
+        ? { session: "s3cr3t" }
+        : { ingress_entry: "/api/hassio_ingress/TOKEN" },
+    );
+
+    await openFrigatePage({ hass: { panels: PANELS, callWS } }, "explore");
+
+    expect(pushState).toHaveBeenCalledWith(null, "", "/ccab4aaf_frigate-proxy");
+    expect(dispatchEvent).toHaveBeenCalled();
+  });
+
+  it("opens HA's own Frigate panel, where the sidebar stays", () => {
+    const pushState = vi.fn();
+    const dispatchEvent = vi.fn();
+    vi.stubGlobal("window", { history: { pushState }, dispatchEvent });
+
+    openFrigateInHA({ hass: { panels: PANELS } });
+
+    expect(pushState).toHaveBeenCalledWith(null, "", "/ccab4aaf_frigate-proxy");
+    expect(dispatchEvent.mock.calls[0][0].type).toBe("location-changed");
   });
 });

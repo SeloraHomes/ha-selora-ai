@@ -630,6 +630,35 @@ class DescribeCard(TypedDict, total=False):
     done: str  # "saved" | "restarting" | "not_restarted"
 
 
+class FaceAnswer(TypedDict):
+    """The face-recognition question's answer a button carries: sent by the panel, not the model."""
+
+    enable: bool
+
+
+class FacesIntro(TypedDict):
+    """What face recognition gives and needs, shown before the question."""
+
+    title: str
+    tagline: str  # the heading's line: short, the lead is for the model
+    lead: str
+    points: list[DescribeIntroPoint]
+
+
+class FacesCard(TypedDict, total=False):
+    """A face-recognition guide message, shown as a card in place of its text
+    (frigate/faces.py): the question, how it was answered, or the card that
+    adds people to Frigate's Face Library."""
+
+    intro: FacesIntro
+    question: str
+    title: str  # the people card's heading
+    people: bool  # draw the people card
+    hint: str  # what makes a good photo, above the people card
+    done: str  # "restarting" | "not_restarted" | "declined"
+    status: str  # how the answer went, in words, above the people card
+
+
 class QuickAction(TypedDict, total=False):
     """A clickable action offered to the user after an AI message.
 
@@ -648,6 +677,7 @@ class QuickAction(TypedDict, total=False):
     tone: str  # "approve" | "deny": colours a confirmation chip
     inline: bool  # answers the question in its own bubble: drawn there, not above the composer
     camera_answer: CameraAnswer  # answered by selora_ai/frigate/describe_answer, not the model
+    face_answer: FaceAnswer  # answered by selora_ai/frigate/faces_answer, not the model
 
 
 class CommandApprovalProposal(TypedDict, total=False):
@@ -1050,6 +1080,8 @@ class ChatMessage(TypedDict, total=False):
     # The question about a camera's descriptions, and on the first one what
     # they add, which the panel shows in place of the message text.
     describe_card: DescribeCard
+    # The face-recognition guide's question, or its card for adding people.
+    faces_card: FacesCard
 
 
 class SessionGuide(TypedDict):

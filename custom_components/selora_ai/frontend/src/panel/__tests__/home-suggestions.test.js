@@ -247,7 +247,7 @@ describe("renderHomeSuggestions", () => {
     );
   });
 
-  it("starts face recognition, then asks for the people to recognize", () => {
+  it("starts face recognition, then asks for the people to recognize", async () => {
     const faces = (state) =>
       host([
         {
@@ -262,8 +262,12 @@ describe("renderHomeSuggestions", () => {
     expect(flatten(renderHomeSuggestions(off))).toContain(
       "Recognize the people you know on your cameras",
     );
+    // Only a server without the guide hands it to the model.
+    off.hass.callWS = vi.fn(async () => {
+      throw { code: "unknown_command", message: "Unknown command." };
+    });
     handlers(renderHomeSuggestions(off))[0]();
-    handlers(renderHomeSuggestions(off)).at(-1)();
+    await handlers(renderHomeSuggestions(off)).at(-1)();
     expect(messageDetails(off._askInNewChat.mock.calls[0][0])).toContain(
       "ask me before turning it on",
     );
@@ -332,6 +336,32 @@ describe("renderHomeSuggestions", () => {
       "error",
     );
     expect(h._homeSuggestions).toEqual([]);
+  });
+
+  it("opens the face recognition chat the server wrote, with no model turn", async () => {
+    const h = host([
+      {
+        suggestion_id: "faces:off",
+        type: "recognize_faces",
+        state: "off",
+        entities: [],
+        collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+      },
+    ]);
+    h.hass.callWS = vi.fn(async () => ({ session_id: "s7" }));
+    h._setActiveTab = vi.fn();
+    h._openSession = vi.fn(async () => {});
+    handlers(renderHomeSuggestions(h))[0]();
+
+    await handlers(renderHomeSuggestions(h)).at(-1)();
+
+    expect(h.hass.callWS).toHaveBeenCalledWith({
+      type: "selora_ai/frigate/faces_start",
+      title: "Recognize the people you know on your cameras",
+      language: "en",
+    });
+    expect(h._openSession).toHaveBeenCalledWith("s7");
+    expect(h._askInNewChat).not.toHaveBeenCalled();
   });
 
   it("opens the describe chat the server wrote, with no model turn", async () => {

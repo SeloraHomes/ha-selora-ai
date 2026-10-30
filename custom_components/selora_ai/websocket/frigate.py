@@ -2,12 +2,15 @@
 and checking the Frigate connection entered in settings.
 
 The card's camera logins come here straight from the panel, so they never
-reach the model or the conversation; see ``frigate.setup``.
+reach the model or the conversation; see ``frigate.setup``. So do the photos
+of the people Frigate should recognize; see ``frigate.faces``.
 """
 
 from __future__ import annotations
 
-from typing import Any
+import base64
+import binascii
+from typing import Any, Final
 
 from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
@@ -20,8 +23,18 @@ from ..conversation_store import ConversationStore
 from ..frigate.client import FrigateClient, FrigateError, normalize_frigate_url
 from ..frigate.descriptions import async_answer, async_start
 from ..frigate.discovery import async_scan
+from ..frigate.faces import (
+    async_add_photo,
+    async_people,
+)
+from ..frigate.faces import (
+    async_answer as async_faces_answer,
+)
+from ..frigate.faces import (
+    async_start as async_faces_start,
+)
 from ..frigate.ideas import async_camera_ideas
-from ..frigate.setup import async_add_cameras_confirmed
+from ..frigate.setup import async_add_cameras_confirmed, async_use_full_quality
 from ..home_suggestions import get_home_suggestion_store
 
 _LOGIN = vol.Schema(
@@ -52,6 +65,37 @@ async def _handle_websocket_frigate_add_cameras(
         msg["id"],
         await async_add_cameras_confirmed(hass, msg["plan_id"], msg["credentials"]),
     )
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/full_quality",
+        vol.Required("plan_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Optional("session_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Optional("message_index"): vol.All(int, vol.Range(min=0)),
+    }
+)
+async def _handle_websocket_frigate_full_quality(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Turn on the full-quality stream of a card's low-resolution cameras."""
+    if not _require_admin(connection, msg):
+        return
+    result = await async_use_full_quality(hass, msg["plan_id"])
+    if "cameras" in result and "session_id" in msg and "message_index" in msg:
+        store: ConversationStore = hass.data[DOMAIN].setdefault(
+            "_conv_store", ConversationStore(hass)
+        )
+        await store.update_client_action(
+            msg["session_id"],
+            msg["message_index"],
+            msg["plan_id"],
+            {"cameras": result["cameras"], "label": result["label"]},
+        )
+    connection.send_result(msg["id"], result)
 
 
 @websocket_api.async_response
@@ -234,11 +278,137 @@ async def _handle_websocket_frigate_describe_start(
     connection.send_result(msg["id"], {"session_id": session["id"]})
 
 
+# The panel downscales each photo first; HA closes the websocket on a frame
+# past 4 MiB, so one photo goes per call.
+_MAX_PHOTO_B64: Final = 3 * 1024 * 1024
+_PHOTO_TYPES: Final = ("image/jpeg", "image/png", "image/webp")
+
+
+def _language(msg: dict[str, Any]) -> str:
+    return str(msg.get("language") or "").lower().split("-")[0] or "en"
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/faces_start",
+        # The suggestion's title, shown as the user's message.
+        vol.Required("title"): vol.All(str, vol.Length(min=1, max=200)),
+        vol.Optional("language"): vol.Any(str, None),
+    }
+)
+async def _handle_websocket_frigate_faces_start(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Open the face-recognition guide, with no model turn."""
+    if not _require_admin(connection, msg):
+        return
+    result = await async_faces_start(hass, _language(msg))
+    if "error" in result:
+        connection.send_error(msg["id"], "faces_failed", result["error"])
+        return
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    session = await store.create_session()
+    await store.append_message(session["id"], "user", msg["title"])
+    await store.append_message(
+        session["id"],
+        "assistant",
+        result["reply"],
+        quick_actions=result.get("quick_actions"),
+        faces_card=result["card"],
+    )
+    await store.update_session_title(session["id"], msg["title"])
+    connection.send_result(msg["id"], {"session_id": session["id"]})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/faces_answer",
+        vol.Required("session_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("enable"): bool,
+        vol.Optional("language"): vol.Any(str, None),
+    }
+)
+async def _handle_websocket_frigate_faces_answer(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Turn face recognition on for a yes, or record a no; both sides go in the
+    conversation."""
+    if not _require_admin(connection, msg):
+        return
+    result = await async_faces_answer(hass, msg["enable"], _language(msg))
+    if "error" in result:
+        connection.send_error(msg["id"], "faces_failed", result["error"])
+        return
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    said = await store.append_message(msg["session_id"], "user", result["said"])
+    reply = await store.append_message(
+        msg["session_id"], "assistant", result["reply"], faces_card=result["card"]
+    )
+    connection.send_result(msg["id"], {"messages": [said, reply]})
+
+
+@websocket_api.async_response
+@decorators.websocket_command({vol.Required("type"): "selora_ai/frigate/faces_people"})
+async def _handle_websocket_frigate_faces_people(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Whom the Face Library knows, and whether Frigate takes photos yet."""
+    if not _require_admin(connection, msg):
+        return
+    result = await async_people(hass)
+    if "error" in result:
+        connection.send_error(msg["id"], "faces_failed", result["error"])
+        return
+    connection.send_result(msg["id"], result)
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/faces_add_photo",
+        vol.Required("name"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("content_type"): vol.In(_PHOTO_TYPES),
+        vol.Required("image"): vol.All(str, vol.Length(min=1, max=_MAX_PHOTO_B64)),
+    }
+)
+async def _handle_websocket_frigate_faces_add_photo(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Send one photo of a person to Frigate's Face Library."""
+    if not _require_admin(connection, msg):
+        return
+    try:
+        image = base64.b64decode(msg["image"], validate=True)
+    except binascii.Error:
+        connection.send_error(msg["id"], "faces_failed", "The photo could not be read.")
+        return
+    result = await async_add_photo(hass, msg["name"], image, msg["content_type"])
+    if "error" in result:
+        connection.send_error(msg["id"], "faces_failed", result["error"])
+        return
+    connection.send_result(msg["id"], result)
+
+
 def async_register(hass: HomeAssistant) -> None:
     """Register the Frigate websocket commands."""
     websocket_api.async_register_command(hass, _handle_websocket_frigate_add_cameras)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_full_quality)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_scan)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_ideas)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_test_connection)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_describe_answer)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_describe_start)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_start)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_answer)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_people)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_faces_add_photo)

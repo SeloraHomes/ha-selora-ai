@@ -2639,8 +2639,8 @@ TOOL_SET_FACE_RECOGNITION = ToolDef(
     name="set_face_recognition",
     description=(
         "Turn Frigate's face recognition on or off, only when the user said so. "
-        "The user gets a card, and Frigate restarts. People are added in Frigate's "
-        "Face Library, never here."
+        "The user gets a card, and Frigate restarts. People are then added on a "
+        "card under the reply, never with photos in chat."
     ),
     params=(
         ToolParam(
@@ -3430,6 +3430,10 @@ FRIGATE_TOOL_NAMES: frozenset[str] = frozenset(
         TOOL_FIND_CAMERA_EVENTS.name,
         TOOL_SET_CAMERA_OBJECTS.name,
         TOOL_MOVE_FRIGATE_CAMERA.name,
+        TOOL_GET_CAMERA_DESCRIPTIONS.name,
+        TOOL_SET_CAMERA_DESCRIPTIONS.name,
+        TOOL_GET_FACE_RECOGNITION.name,
+        TOOL_SET_FACE_RECOGNITION.name,
     }
 )
 

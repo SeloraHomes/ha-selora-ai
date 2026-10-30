@@ -8,6 +8,7 @@ import { attachmentsForSend } from "./chat-attachments.js";
 import { logChatTurn } from "./dev-tools.js";
 import { requestNextPrompt } from "./next-prompt.js";
 import { answerCamera } from "./describe-actions.js";
+import { answerFaces } from "./faces-actions.js";
 
 export function _quickStart(message) {
   this._input = message;
@@ -65,6 +66,11 @@ export function _selectQuickAction(action) {
   if (action.camera_answer) {
     const msg = this._messages.find((m) => m.quick_actions?.includes(action));
     answerCamera(this, msg, action);
+    return;
+  }
+  if (action.face_answer) {
+    const msg = this._messages.find((m) => m.quick_actions?.includes(action));
+    answerFaces(this, msg, action);
     return;
   }
   for (const msg of this._messages) {

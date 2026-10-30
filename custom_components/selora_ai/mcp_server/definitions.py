@@ -21,6 +21,7 @@ from .names import (
     TOOL_ADD_CAMERAS_TO_FRIGATE,
     TOOL_ADD_DASHBOARD_RESOURCE,
     TOOL_ADD_DASHBOARD_VIEW,
+    TOOL_ADD_FACE_PHOTO,
     TOOL_ASSIGN_AREA,
     TOOL_ASSIGN_CATEGORY,
     TOOL_ASSIGN_LABELS,
@@ -73,6 +74,7 @@ from .names import (
     TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
+    TOOL_GET_FACE_RECOGNITION,
     TOOL_GET_FRIGATE_SNAPSHOT,
     TOOL_GET_FRIGATE_STATUS,
     TOOL_GET_HOME_SNAPSHOT,
@@ -141,6 +143,7 @@ from .names import (
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_DASHBOARD_STRATEGY,
     TOOL_SET_ENERGY_PREFS,
+    TOOL_SET_FACE_RECOGNITION,
     TOOL_SET_INTEGRATION_ENABLED,
     TOOL_SET_INTEGRATION_OPTIONS,
     TOOL_SET_SCRIPT,
@@ -1111,6 +1114,7 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_GET_LOGS: "get_logs",
     TOOL_FIND_CAMERA_EVENTS: "find_camera_events",
     TOOL_GET_FRIGATE_STATUS: "get_frigate_status",
+    TOOL_GET_FACE_RECOGNITION: "get_face_recognition",
     TOOL_GET_AUTOMATION_TRACES: "get_automation_traces",
     TOOL_FIND_REFERENCES: "find_references",
     TOOL_LIST_DASHBOARDS: "list_dashboards",
@@ -1152,6 +1156,14 @@ _MCP_DESCRIPTIONS: dict[str, str] = {
         "id. An empty events list means nothing was tracked, not that nobody was "
         "there; watching says what each camera looks for, and not_recorded what it "
         "could not have seen: say so rather than 'nothing found'."
+    ),
+    # The chat text points at the panel's card for adding people.
+    "get_face_recognition": (
+        "Whether Frigate recognizes the faces of people the household knows, who is "
+        "in its Face Library and with how many photos, what setting it up takes "
+        "(guide) and how to add a person (add_people). Call it before offering to "
+        "turn it on with selora_set_face_recognition, and when asked how to add "
+        "someone. Requires admin access."
     ),
     # The chat text describes the panel's pick-from-a-card flow.
     "restore_deleted": (
@@ -1842,6 +1854,13 @@ _FRIGATE_CHANGES: dict[str, tuple[str, str]] = {
         "router gave it another IP. It keeps the camera's name, history, entities "
         "and login: never add it again instead, and never pass a password.",
     ),
+    TOOL_SET_FACE_RECOGNITION: (
+        "set_face_recognition",
+        "Turn Frigate's face recognition on or off, only when the user said so. It "
+        "runs on the hub, so no face leaves the house, and on a Selora hub it uses "
+        "the large model on the hub's GPU. Frigate then recognizes the people added "
+        "with selora_add_face_photo; turning it off keeps them.",
+    ),
 }
 
 
@@ -1910,6 +1929,38 @@ _TOOL_DEFINITIONS.extend(
                         "minimum": 120,
                         "maximum": 2160,
                         "description": "A camera frame's height in pixels (default 720).",
+                    },
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_ADD_FACE_PHOTO,
+            description=(
+                "Teach Frigate a person's face from an event its cameras recorded: "
+                "the event's snapshot goes from Frigate to its Face Library, which "
+                "keeps only the face and refuses a snapshot without one. Pick events "
+                "where the person faces the camera, alone (look first with "
+                "selora_get_frigate_snapshot), and add a few, one per call: 5 to 10 "
+                "to begin with. Only once face recognition is on and Frigate is back "
+                "from its restart. A photo the user shared with you cannot be added: "
+                "Selora AI's own chat has a card to upload one. Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["name", "event_id"],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 40,
+                        "description": (
+                            "The person's name as the user says it; Frigate reports "
+                            "it on the events it recognizes. The same name each time "
+                            "for the same person."
+                        ),
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "description": "A person event from selora_find_camera_events.",
                     },
                 },
             },

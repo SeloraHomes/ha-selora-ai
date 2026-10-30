@@ -31,7 +31,10 @@ import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
 import { renderRestoreCard } from "./restore-card.js";
 import { renderCameraEventsCard } from "./camera-events-card.js";
-import { renderFaceLibraryLink } from "./face-library-link.js";
+import {
+  renderFaceRecognitionReply,
+  renderFacesCard,
+} from "./render-faces-card.js";
 import { renderHomeSuggestions } from "./home-suggestions.js";
 import { acceptNextPrompt, activeNextPrompt } from "./next-prompt.js";
 import {
@@ -132,11 +135,15 @@ function renderAutomationSuggestButton(host) {
   `;
 }
 
-// The heading a guided conversation opens with. It belongs to one session, so
-// switching conversations never carries it along.
-export function renderGuide(host) {
+// The heading a guided conversation opens with. It tops Selora's first reply,
+// in the same frame, so the two read as one card instead of a picture floating
+// above the request. It belongs to one session, so switching conversations
+// never carries it along.
+export function renderGuide(host, idx) {
   const guide = host._guide;
   if (!guide || guide.sessionId !== host._activeSessionId) return "";
+  if ((host._messages || []).findIndex((m) => m.role === "assistant") !== idx)
+    return "";
   return html`<div class="chat-guide">
     ${renderCardHeading({
       icon: guide.icon,
@@ -321,7 +328,6 @@ export function renderChat(host) {
         id="chat-messages"
         @scroll=${host._onChatScroll}
       >
-        ${renderGuide(host)}
         ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
@@ -1352,6 +1358,9 @@ export function renderMessage(host, msg, idx) {
   // one track and gains no dead column.
   const sceneIsSingleTile =
     !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
+  // A guided reply keeps the bubble's frame around the heading and its card,
+  // even an approval card's, which otherwise brings its own.
+  const guide = isUser ? "" : renderGuide(host, idx);
 
   return html`
     ${isLoadedAutomation ? renderRefineHeading(host, idx) : ""}
@@ -1397,15 +1406,18 @@ export function renderMessage(host, msg, idx) {
                 ${renderAgentSteps(host, msg.steps)}
                 <div
                   class="bubble assistant${
-                    msg.command_approval
-                      ? " bubble--approval"
-                      : (showAutomationSpinner || showSceneSpinner) &&
-                          !displayContent?.trim()
-                        ? " bubble--spinner-only"
-                        : ""
+                    guide
+                      ? " bubble--guided"
+                      : msg.command_approval
+                        ? " bubble--approval"
+                        : (showAutomationSpinner || showSceneSpinner) &&
+                            !displayContent?.trim()
+                          ? " bubble--spinner-only"
+                          : ""
                   }"
                   style="max-width:100%;align-self:auto;"
                 >
+                  ${guide}
                   ${
                     // A loaded automation's stored prose ("Describe the
                     // changes") is context for the model; the composer's
@@ -1413,7 +1425,8 @@ export function renderMessage(host, msg, idx) {
                     msg.command_approval ||
                     isLoadedAutomation ||
                     msg.frigate_result ||
-                    msg.describe_card
+                    msg.describe_card ||
+                    msg.faces_card
                       ? ""
                       : html`<span
                           class="msg-content ${
@@ -1500,7 +1513,7 @@ export function renderMessage(host, msg, idx) {
                   ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                   ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
                   ${renderFrigateResult(host, msg)}
-                  ${renderDescribeCard(host, msg)}
+                  ${renderDescribeCard(host, msg)} ${renderFacesCard(host, msg)}
                   ${
                     msg.command_approval
                       ? renderApprovalCard(
@@ -1513,7 +1526,7 @@ export function renderMessage(host, msg, idx) {
                   }
                   ${renderRestoreCard(host, msg)}
                   ${renderCameraEventsCard(host, msg)}
-                  ${renderFaceLibraryLink(host, msg)}
+                  ${renderFaceRecognitionReply(host, msg)}
                   ${
                     msg._interrupted
                       ? html`

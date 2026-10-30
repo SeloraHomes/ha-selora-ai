@@ -294,6 +294,40 @@ async def test_a_low_resolution_camera_is_named_on_the_card_and_to_the_model(
     assert "turn_on" in result["low_resolution_hint"]
 
 
+async def test_the_card_turns_on_full_quality_and_then_records_it(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Kitchen", "sub", "rtsp://192.168.1.50:554/Preview_01_sub")
+    clear = home.camera("Kitchen", "clear", "rtsp://192.168.1.50:554/Preview_01_main")
+    er.async_get(hass).async_update_entity(clear, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    _frigate_api(aioclient_mock)
+    action = await _card(hass, {})
+
+    with patch.object(frigate_setup, "_FULL_QUALITY_POLL", 0):
+        result = await frigate_setup.async_use_full_quality(hass, action["plan_id"])
+
+    assert er.async_get(hass).async_get(clear).disabled_by is None
+    (row,) = result["cameras"]
+    assert "low_resolution" not in row
+    assert row["record_stream"].endswith("Preview_01_main")
+    assert (await _confirm(hass, action))["status"] == "added"
+    inputs = _sent_config(aioclient_mock)["cameras"]["kitchen"]["ffmpeg"]["inputs"]
+    assert {tuple(i["roles"]) for i in inputs} == {("record",), ("detect",)}
+
+
+async def test_full_quality_needs_a_camera_with_a_stream_to_turn_on(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Yard", "main", "rtsp://192.168.1.40/live")
+    _frigate_api(aioclient_mock)
+    action = await _card(hass, {})
+
+    result = await frigate_setup.async_use_full_quality(hass, action["plan_id"])
+
+    assert "error" in result
+    assert "error" in await frigate_setup.async_use_full_quality(hass, "no-such-plan")
+
+
 async def test_ha_cameras_are_carded_without_credentials_then_written(
     hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
 ) -> None:

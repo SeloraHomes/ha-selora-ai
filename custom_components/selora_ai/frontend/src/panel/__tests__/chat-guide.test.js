@@ -26,26 +26,44 @@ const guide = {
   sessionId: "s1",
 };
 
+const messages = [
+  { role: "user", content: "Add 3 cameras to Frigate" },
+  { role: "assistant", content: "" },
+  { role: "user", content: "yes" },
+  { role: "assistant", content: "Done." },
+];
+
+function host(overrides = {}) {
+  return {
+    _guide: guide,
+    _activeSessionId: "s1",
+    _messages: messages,
+    ...overrides,
+  };
+}
+
 describe("a guided conversation's heading", () => {
-  it("opens its own conversation, over the Frigate banner", () => {
-    const markup = ser(renderGuide({ _guide: guide, _activeSessionId: "s1" }));
+  it("tops Selora's first reply, over the Frigate banner", () => {
+    const markup = ser(renderGuide(host(), 1));
     expect(markup).toContain("chat-guide");
     expect(markup).toContain("card-heading--banner");
     expect(markup).toContain("/api/selora_ai/images/frigate-banner.webp");
     expect(markup).toContain("Recognize the people you know on your cameras");
   });
 
+  it("stays off the request and every later reply", () => {
+    expect(renderGuide(host(), 0)).toBe("");
+    expect(renderGuide(host(), 3)).toBe("");
+  });
+
   it("stays out of any other conversation", () => {
-    expect(renderGuide({ _guide: guide, _activeSessionId: "s2" })).toBe("");
-    expect(renderGuide({ _guide: null, _activeSessionId: "s1" })).toBe("");
+    expect(renderGuide(host({ _activeSessionId: "s2" }), 1)).toBe("");
+    expect(renderGuide(host({ _guide: null }), 1)).toBe("");
   });
 
   it("draws no picture for a name the panel does not know", () => {
     const markup = ser(
-      renderGuide({
-        _guide: { ...guide, banner: "elsewhere" },
-        _activeSessionId: "s1",
-      }),
+      renderGuide(host({ _guide: { ...guide, banner: "elsewhere" } }), 1),
     );
     expect(markup).not.toContain("card-heading--banner");
   });

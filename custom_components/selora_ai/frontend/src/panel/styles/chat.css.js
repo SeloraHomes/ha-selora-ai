@@ -1745,7 +1745,8 @@ export const chatStyles = css`
   /* The settings field style assumes the page behind it; on the card it
      disappears, so the fields get a border drawn from the text colour and
      an accent ring when focused. */
-  .frigate-login input {
+  .frigate-login input,
+  .faces-name input {
     width: 100%;
     box-sizing: border-box;
     background: var(--primary-background-color, #18181b);
@@ -1753,14 +1754,16 @@ export const chatStyles = css`
       color-mix(in srgb, var(--secondary-text-color, #a1a1aa) 45%, transparent);
     cursor: text;
   }
-  .frigate-login input:hover {
+  .frigate-login input:hover,
+  .faces-name input:hover {
     border-color: color-mix(
       in srgb,
       var(--secondary-text-color, #a1a1aa) 70%,
       transparent
     );
   }
-  .frigate-login input:focus {
+  .frigate-login input:focus,
+  .faces-name input:focus {
     border-color: var(--selora-accent);
     box-shadow: 0 0 0 3px
       color-mix(in srgb, var(--selora-accent) 25%, transparent);
@@ -2034,18 +2037,16 @@ export const chatStyles = css`
      opened by the shared card heading, each with its picture beside its
      words, stacked on a phone. Pictures use the Frigate result
      card's frame. */
-  /* The heading a guided conversation opens with (render-chat.js), as wide
-     as the cards under it. */
-  .chat-guide {
+  /* The heading a guided conversation opens with (render-chat.js) tops
+     Selora's first reply, as wide as the describe card, and runs to the
+     bubble's border the same way. */
+  .bubble--guided {
     width: 760px;
-    max-width: 100%;
-    margin-bottom: 8px;
   }
-  /* On its own it is the card, framed like a reply. */
   .chat-guide .card-heading--banner {
-    border: 1px solid var(--selora-zinc-700);
-    border-radius: 16px;
-    box-shadow: var(--card-box-shadow);
+    margin: -12px -16px 0;
+    padding: 16px;
+    border-radius: 15px 15px 0 0;
   }
   .describe-card {
     display: flex;
@@ -2141,6 +2142,88 @@ export const chatStyles = css`
     font-size: 15px;
     font-weight: 600;
     line-height: 1.45;
+  }
+
+  /* Face recognition's people card (render-faces-card.js): who Frigate
+     knows, then a name and the photos to add. */
+  .faces-card--reply {
+    margin-top: 10px;
+  }
+  .faces-status-icon {
+    color: var(--success-color, #22c55e);
+  }
+  .faces-status-quiet {
+    color: var(--secondary-text-color);
+  }
+  .faces-hint,
+  .faces-nobody {
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--secondary-text-color);
+  }
+  .faces-wait {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .faces-people {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .faces-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font: inherit;
+    font-size: 13px;
+    color: var(--primary-text-color);
+    background: transparent;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 999px;
+    cursor: pointer;
+    --mdc-icon-size: 16px;
+    transition: border-color 0.15s;
+  }
+  .faces-person ha-icon {
+    color: var(--selora-accent);
+  }
+  .faces-person:hover,
+  .faces-person.is-picked {
+    border-color: var(--selora-accent);
+  }
+  .faces-person-name {
+    font-weight: 600;
+  }
+  .faces-person-count {
+    color: var(--secondary-text-color);
+  }
+  .faces-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .faces-name {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 200px;
+    max-width: 320px;
+    font-size: 12px;
+    color: var(--primary-text-color);
+  }
+  .faces-result {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .faces-failed {
+    margin-left: 0;
   }
 
   /* Idea chips under a live camera on the Frigate result card
