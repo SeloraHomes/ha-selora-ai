@@ -1101,6 +1101,8 @@
     "camera_events_bird": "鳥",
     "camera_events_package": "荷物",
     "frigate_cameras_not_added": "追加しなかったもの: {list}。",
+    "frigate_cameras_low_res_turn_on": "低解像度のストリームしか有効になっていないため、低解像度で録画されます。フル画質で録画するには、先に Home Assistant で「{stream}」カメラを有効にしてください。",
+    "frigate_cameras_low_res": "低解像度のストリームしか利用できないため、低解像度で録画されます。",
     "frigate_result_added": "Frigate に追加しました",
     "frigate_result_saved_tag": "Frigate に保存しました",
     "frigate_result_removed": "Frigate から削除しました",

@@ -140,7 +140,12 @@ the cameras start with Frigate's next restart, instead of reporting a failure.
   camera is asked anything: the card's login goes into that address, or none
   when the stream needs none. A login in the URL the user typed is dropped
   from what the plan keeps; the card asks for it again.
-- With one stream it is used for both roles and detection is scaled to 720p.
+- With one stream it is used for both roles and detection is scaled to 720p,
+  unless that stream is a substream (Reolink with Clear left disabled): it is
+  detected on at its own size, since scaling a 640×360 stream up to 720p costs
+  the detector and sharpens nothing. The card and the model are told it records
+  in low resolution, naming the disabled main-stream entity to turn on; a
+  disabled entity has no state, so its name comes from the registry.
 - **"Already in Frigate" compares host, port and path**, since Frigate redacts
   credentials in `GET /api/config` and go2rtc wraps sources
   (`ffmpeg:…#video=copy`).

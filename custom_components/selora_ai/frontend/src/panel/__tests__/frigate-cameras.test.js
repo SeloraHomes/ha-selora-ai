@@ -66,6 +66,19 @@ const host = (callWS) => ({
 });
 
 describe("the Frigate cameras card", () => {
+  it("says a substream-only camera records in low resolution", () => {
+    const low = action("plan-low");
+    low.cameras[0] = {
+      ...low.cameras[0],
+      low_resolution: true,
+      turn_on: "Clear",
+    };
+    const out = flatten(renderFrigateCameraRows(host(), low));
+
+    expect(out).toContain("records in low resolution");
+    expect(out).toContain("“Clear”");
+  });
+
   it("asks for a login only for cameras found on the network", () => {
     const out = flatten(renderFrigateCameraRows(host(), action("plan-a")));
 

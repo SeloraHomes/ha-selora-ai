@@ -324,6 +324,8 @@ def _rows(gathered: _Gathered) -> list[dict[str, Any]]:
             "entity_ids": c.entity_ids,
             "record_stream": shown(c.main.url),
             "detect_stream": shown((c.sub or c.main).url),
+            **({"low_resolution": True} if c.low_res else {}),
+            **({"turn_on": sanitize_untrusted_text(c.main_off, 60)} if c.main_off else {}),
         }
         for c in gathered.candidates
     ]
@@ -429,6 +431,18 @@ async def async_preview_add_cameras(
         **(
             {"note": "The card asks for each network camera's login; never ask for it in chat."}
             if gathered.network
+            else {}
+        ),
+        **(
+            {
+                "low_resolution_hint": (
+                    "A camera marked low_resolution has only its substream enabled in "
+                    "Home Assistant, so Frigate would record it in low resolution. Tell "
+                    "the user; turning on the entity named in turn_on, then asking "
+                    "again, records the full stream."
+                )
+            }
+            if any(c.low_res for c in gathered.candidates)
             else {}
         ),
         **(

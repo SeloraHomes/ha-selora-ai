@@ -1101,6 +1101,8 @@
     "camera_events_bird": "Uccello",
     "camera_events_package": "Pacco",
     "frigate_cameras_not_added": "Non aggiunte: {list}.",
+    "frigate_cameras_low_res_turn_on": "È attivo solo il flusso a bassa risoluzione, quindi registrerà in bassa risoluzione. Attiva prima la telecamera «{stream}» in Home Assistant per registrare in piena qualità.",
+    "frigate_cameras_low_res": "È disponibile solo il flusso a bassa risoluzione, quindi registrerà in bassa risoluzione.",
     "frigate_result_added": "Aggiunta a Frigate",
     "frigate_result_saved_tag": "Salvata in Frigate",
     "frigate_result_removed": "Rimossa da Frigate",

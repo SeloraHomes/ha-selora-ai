@@ -11583,6 +11583,10 @@ var en_default = {
     camera_events_bird: "Bird",
     camera_events_package: "Package",
     frigate_cameras_not_added: "Not added: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "Only its low-resolution stream is on, so it records in low resolution. Turn on its \u201C{stream}\u201D camera in Home Assistant first to record in full quality.",
+    frigate_cameras_low_res:
+      "Only its low-resolution stream is available, so it records in low resolution.",
     frigate_result_added: "Added to Frigate",
     frigate_result_saved_tag: "Saved in Frigate",
     frigate_result_removed: "Removed from Frigate",
@@ -13018,6 +13022,10 @@ var fr_default = {
     camera_events_bird: "Oiseau",
     camera_events_package: "Colis",
     frigate_cameras_not_added: "Non ajout\xE9es : {list}.",
+    frigate_cameras_low_res_turn_on:
+      "Seul son flux basse r\xE9solution est activ\xE9 : il enregistrera en basse r\xE9solution. Activez d\u2019abord sa cam\xE9ra \xAB {stream} \xBB dans Home Assistant pour enregistrer en pleine qualit\xE9.",
+    frigate_cameras_low_res:
+      "Seul son flux basse r\xE9solution est disponible : il enregistrera en basse r\xE9solution.",
     frigate_result_added: "Ajout\xE9e \xE0 Frigate",
     frigate_result_saved_tag: "Enregistr\xE9e dans Frigate",
     frigate_result_removed: "Retir\xE9e de Frigate",
@@ -14448,6 +14456,10 @@ var de_default = {
     camera_events_bird: "Vogel",
     camera_events_package: "Paket",
     frigate_cameras_not_added: "Nicht hinzugef\xFCgt: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "Nur der Stream mit niedriger Aufl\xF6sung ist aktiv, daher wird in niedriger Aufl\xF6sung aufgenommen. Aktiviere zuerst die Kamera \u201E{stream}\u201C in Home Assistant, um in voller Qualit\xE4t aufzunehmen.",
+    frigate_cameras_low_res:
+      "Nur der Stream mit niedriger Aufl\xF6sung ist verf\xFCgbar, daher wird in niedriger Aufl\xF6sung aufgenommen.",
     frigate_result_added: "Zu Frigate hinzugef\xFCgt",
     frigate_result_saved_tag: "In Frigate gespeichert",
     frigate_result_removed: "Aus Frigate entfernt",
@@ -15857,6 +15869,10 @@ var es_default = {
     camera_events_bird: "P\xE1jaro",
     camera_events_package: "Paquete",
     frigate_cameras_not_added: "No a\xF1adidas: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "Solo est\xE1 activo su flujo de baja resoluci\xF3n, as\xED que grabar\xE1 en baja resoluci\xF3n. Activa primero su c\xE1mara \xAB{stream}\xBB en Home Assistant para grabar con calidad completa.",
+    frigate_cameras_low_res:
+      "Solo est\xE1 disponible su flujo de baja resoluci\xF3n, as\xED que grabar\xE1 en baja resoluci\xF3n.",
     frigate_result_added: "A\xF1adida a Frigate",
     frigate_result_saved_tag: "Guardada en Frigate",
     frigate_result_removed: "Quitada de Frigate",
@@ -17264,6 +17280,10 @@ var it_default = {
     camera_events_bird: "Uccello",
     camera_events_package: "Pacco",
     frigate_cameras_not_added: "Non aggiunte: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "\xC8 attivo solo il flusso a bassa risoluzione, quindi registrer\xE0 in bassa risoluzione. Attiva prima la telecamera \xAB{stream}\xBB in Home Assistant per registrare in piena qualit\xE0.",
+    frigate_cameras_low_res:
+      "\xC8 disponibile solo il flusso a bassa risoluzione, quindi registrer\xE0 in bassa risoluzione.",
     frigate_result_added: "Aggiunta a Frigate",
     frigate_result_saved_tag: "Salvata in Frigate",
     frigate_result_removed: "Rimossa da Frigate",
@@ -18686,6 +18706,10 @@ var nl_default = {
     camera_events_bird: "Vogel",
     camera_events_package: "Pakket",
     frigate_cameras_not_added: "Niet toegevoegd: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "Alleen de stream met lage resolutie staat aan, dus er wordt in lage resolutie opgenomen. Zet eerst de camera \u2018{stream}\u2019 aan in Home Assistant om in volle kwaliteit op te nemen.",
+    frigate_cameras_low_res:
+      "Alleen de stream met lage resolutie is beschikbaar, dus er wordt in lage resolutie opgenomen.",
     frigate_result_added: "Toegevoegd aan Frigate",
     frigate_result_saved_tag: "Opgeslagen in Frigate",
     frigate_result_removed: "Verwijderd uit Frigate",
@@ -20163,6 +20187,10 @@ var hu_default = {
     camera_events_bird: "Mad\xE1r",
     camera_events_package: "Csomag",
     frigate_cameras_not_added: "Nincs hozz\xE1adva: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "Csak az alacsony felbont\xE1s\xFA stream van bekapcsolva, ez\xE9rt alacsony felbont\xE1sban r\xF6gz\xEDt. Teljes min\u0151s\xE9ghez el\u0151bb kapcsold be a(z) \u201E{stream}\u201D kamer\xE1t a Home Assistantben.",
+    frigate_cameras_low_res:
+      "Csak az alacsony felbont\xE1s\xFA stream \xE9rhet\u0151 el, ez\xE9rt alacsony felbont\xE1sban r\xF6gz\xEDt.",
     frigate_result_added: "Hozz\xE1adva a Frigate-hez",
     frigate_result_saved_tag: "Elmentve a Frigate-ben",
     frigate_result_removed: "Elt\xE1vol\xEDtva a Frigate-b\u0151l",
@@ -21568,6 +21596,10 @@ var pt_default = {
     camera_events_bird: "P\xE1ssaro",
     camera_events_package: "Encomenda",
     frigate_cameras_not_added: "N\xE3o adicionadas: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "Apenas o fluxo de baixa resolu\xE7\xE3o est\xE1 ativo, por isso grava em baixa resolu\xE7\xE3o. Ative primeiro a c\xE2mara \u201C{stream}\u201D no Home Assistant para gravar com qualidade total.",
+    frigate_cameras_low_res:
+      "Apenas o fluxo de baixa resolu\xE7\xE3o est\xE1 dispon\xEDvel, por isso grava em baixa resolu\xE7\xE3o.",
     frigate_result_added: "Adicionada ao Frigate",
     frigate_result_saved_tag: "Guardada no Frigate",
     frigate_result_removed: "Removida do Frigate",
@@ -23616,6 +23648,10 @@ var ru_default = {
     camera_events_package: "\u041F\u043E\u0441\u044B\u043B\u043A\u0430",
     frigate_cameras_not_added:
       "\u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u044B: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "\u0412\u043A\u043B\u044E\u0447\u0451\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0442\u043E\u043A \u043D\u0438\u0437\u043A\u043E\u0433\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0437\u0430\u043F\u0438\u0441\u044C \u0431\u0443\u0434\u0435\u0442 \u0432 \u043D\u0438\u0437\u043A\u043E\u043C \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0438. \u0414\u043B\u044F \u0437\u0430\u043F\u0438\u0441\u0438 \u0432 \u043F\u043E\u043B\u043D\u043E\u043C \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0435 \u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u043A\u0430\u043C\u0435\u0440\u0443 \xAB{stream}\xBB \u0432 Home Assistant.",
+    frigate_cameras_low_res:
+      "\u0414\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0442\u043E\u043B\u044C\u043A\u043E \u043F\u043E\u0442\u043E\u043A \u043D\u0438\u0437\u043A\u043E\u0433\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u0437\u0430\u043F\u0438\u0441\u044C \u0431\u0443\u0434\u0435\u0442 \u0432 \u043D\u0438\u0437\u043A\u043E\u043C \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0438.",
     frigate_result_added:
       "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430 \u0432\u043E Frigate",
     frigate_result_saved_tag:
@@ -25347,6 +25383,10 @@ var ja_default = {
     camera_events_package: "\u8377\u7269",
     frigate_cameras_not_added:
       "\u8FFD\u52A0\u3057\u306A\u304B\u3063\u305F\u3082\u306E: {list}\u3002",
+    frigate_cameras_low_res_turn_on:
+      "\u4F4E\u89E3\u50CF\u5EA6\u306E\u30B9\u30C8\u30EA\u30FC\u30E0\u3057\u304B\u6709\u52B9\u306B\u306A\u3063\u3066\u3044\u306A\u3044\u305F\u3081\u3001\u4F4E\u89E3\u50CF\u5EA6\u3067\u9332\u753B\u3055\u308C\u307E\u3059\u3002\u30D5\u30EB\u753B\u8CEA\u3067\u9332\u753B\u3059\u308B\u306B\u306F\u3001\u5148\u306B Home Assistant \u3067\u300C{stream}\u300D\u30AB\u30E1\u30E9\u3092\u6709\u52B9\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    frigate_cameras_low_res:
+      "\u4F4E\u89E3\u50CF\u5EA6\u306E\u30B9\u30C8\u30EA\u30FC\u30E0\u3057\u304B\u5229\u7528\u3067\u304D\u306A\u3044\u305F\u3081\u3001\u4F4E\u89E3\u50CF\u5EA6\u3067\u9332\u753B\u3055\u308C\u307E\u3059\u3002",
     frigate_result_added: "Frigate \u306B\u8FFD\u52A0\u3057\u307E\u3057\u305F",
     frigate_result_saved_tag:
       "Frigate \u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F",
@@ -26961,6 +27001,10 @@ var ko_default = {
     camera_events_bird: "\uC0C8",
     camera_events_package: "\uD0DD\uBC30",
     frigate_cameras_not_added: "\uCD94\uAC00\uD558\uC9C0 \uC54A\uC74C: {list}.",
+    frigate_cameras_low_res_turn_on:
+      "\uC800\uD574\uC0C1\uB3C4 \uC2A4\uD2B8\uB9BC\uB9CC \uCF1C\uC838 \uC788\uC5B4 \uC800\uD574\uC0C1\uB3C4\uB85C \uB179\uD654\uB429\uB2C8\uB2E4. \uC804\uCCB4 \uD654\uC9C8\uB85C \uB179\uD654\uD558\uB824\uBA74 \uBA3C\uC800 Home Assistant\uC5D0\uC11C '{stream}' \uCE74\uBA54\uB77C\uB97C \uCF1C\uC138\uC694.",
+    frigate_cameras_low_res:
+      "\uC800\uD574\uC0C1\uB3C4 \uC2A4\uD2B8\uB9BC\uB9CC \uC0AC\uC6A9\uD560 \uC218 \uC788\uC5B4 \uC800\uD574\uC0C1\uB3C4\uB85C \uB179\uD654\uB429\uB2C8\uB2E4.",
     frigate_result_added: "Frigate\uC5D0 \uCD94\uAC00\uB428",
     frigate_result_saved_tag: "Frigate\uC5D0 \uC800\uC7A5\uB428",
     frigate_result_removed: "Frigate\uC5D0\uC11C \uC81C\uAC70\uB428",
@@ -28485,6 +28529,10 @@ var zh_Hans_default = {
     camera_events_bird: "\u9E1F",
     camera_events_package: "\u5305\u88F9",
     frigate_cameras_not_added: "\u672A\u6DFB\u52A0\uFF1A{list}\u3002",
+    frigate_cameras_low_res_turn_on:
+      "\u4EC5\u5F00\u542F\u4E86\u4F4E\u5206\u8FA8\u7387\u7801\u6D41\uFF0C\u56E0\u6B64\u5C06\u4EE5\u4F4E\u5206\u8FA8\u7387\u5F55\u5236\u3002\u5982\u9700\u5168\u753B\u8D28\u5F55\u5236\uFF0C\u8BF7\u5148\u5728 Home Assistant \u4E2D\u5F00\u542F\u5176\u201C{stream}\u201D\u6444\u50CF\u5934\u3002",
+    frigate_cameras_low_res:
+      "\u4EC5\u6709\u4F4E\u5206\u8FA8\u7387\u7801\u6D41\u53EF\u7528\uFF0C\u56E0\u6B64\u5C06\u4EE5\u4F4E\u5206\u8FA8\u7387\u5F55\u5236\u3002",
     frigate_result_added: "\u5DF2\u6DFB\u52A0\u5230 Frigate",
     frigate_result_saved_tag: "\u5DF2\u4FDD\u5B58\u5230 Frigate",
     frigate_result_removed: "\u5DF2\u4ECE Frigate \u79FB\u9664",
@@ -30015,6 +30063,10 @@ var zh_Hant_default = {
     camera_events_bird: "\u9CE5",
     camera_events_package: "\u5305\u88F9",
     frigate_cameras_not_added: "\u672A\u52A0\u5165\uFF1A{list}\u3002",
+    frigate_cameras_low_res_turn_on:
+      "\u50C5\u958B\u555F\u4E86\u4F4E\u89E3\u6790\u5EA6\u4E32\u6D41\uFF0C\u56E0\u6B64\u5C07\u4EE5\u4F4E\u89E3\u6790\u5EA6\u9304\u5F71\u3002\u5982\u9700\u5168\u756B\u8CEA\u9304\u5F71\uFF0C\u8ACB\u5148\u5728 Home Assistant \u4E2D\u958B\u555F\u5176\u300C{stream}\u300D\u651D\u5F71\u6A5F\u3002",
+    frigate_cameras_low_res:
+      "\u50C5\u6709\u4F4E\u89E3\u6790\u5EA6\u4E32\u6D41\u53EF\u7528\uFF0C\u56E0\u6B64\u5C07\u4EE5\u4F4E\u89E3\u6790\u5EA6\u9304\u5F71\u3002",
     frigate_result_added: "\u5DF2\u52A0\u5165 Frigate",
     frigate_result_saved_tag: "\u5DF2\u5132\u5B58\u81F3 Frigate",
     frigate_result_removed: "\u5DF2\u5F9E Frigate \u79FB\u9664",
@@ -35041,6 +35093,26 @@ function cameraLine(host2, camera) {
   if (camera.brand) parts.push(camera.brand);
   return parts.join(" \xB7 ");
 }
+function lowResLine(host2, camera) {
+  if (!camera.low_resolution) return "";
+  const text = camera.turn_on
+    ? interpolate(
+        host2._t(
+          "frigate_cameras_low_res_turn_on",
+          "Only its low-resolution stream is on, so it records in low resolution. Turn on its \u201C{stream}\u201D camera in Home Assistant first to record in full quality.",
+        ),
+        { stream: camera.turn_on },
+      )
+    : host2._t(
+        "frigate_cameras_low_res",
+        "Only its low-resolution stream is available, so it records in low resolution.",
+      );
+  return b2`<div
+    style="font-size:12px;color:var(--warning-color);line-height:1.4;padding-top:4px;"
+  >
+    ${text}
+  </div>`;
+}
 function loginFields(host2, planId, camera) {
   const login = loginFor(planId, String(camera.key));
   const field = (key, type, labelKey, fallback) => b2`
@@ -35106,6 +35178,7 @@ function renderFrigateCameraRows(host2, action) {
                 </div>
               </div>
             </div>
+            ${lowResLine(host2, camera)}
             ${camera.needs_login ? loginFields(host2, planId, camera) : ""}
             ${
               errors[camera.key]
@@ -57266,7 +57339,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "130a850955b7" : "";
+var PANEL_BUILD = true ? "51fc913489bb" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
