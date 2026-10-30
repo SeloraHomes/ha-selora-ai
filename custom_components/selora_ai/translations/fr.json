@@ -1101,6 +1101,8 @@
     "camera_events_bird": "Oiseau",
     "camera_events_package": "Colis",
     "frigate_cameras_not_added": "Non ajoutées : {list}.",
+    "frigate_cameras_low_res_turn_on": "Seul son flux basse résolution est activé : il enregistrera en basse résolution. Activez d’abord sa caméra « {stream} » dans Home Assistant pour enregistrer en pleine qualité.",
+    "frigate_cameras_low_res": "Seul son flux basse résolution est disponible : il enregistrera en basse résolution.",
     "frigate_result_added": "Ajoutée à Frigate",
     "frigate_result_saved_tag": "Enregistrée dans Frigate",
     "frigate_result_removed": "Retirée de Frigate",

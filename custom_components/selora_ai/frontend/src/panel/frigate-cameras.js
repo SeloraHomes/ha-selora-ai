@@ -70,6 +70,29 @@ function cameraLine(host, camera) {
   return parts.join(" · ");
 }
 
+// A camera with only its substream enabled records in low resolution; the
+// user decides before approving, so the card says so and what to turn on.
+function lowResLine(host, camera) {
+  if (!camera.low_resolution) return "";
+  const text = camera.turn_on
+    ? interpolate(
+        host._t(
+          "frigate_cameras_low_res_turn_on",
+          "Only its low-resolution stream is on, so it records in low resolution. Turn on its “{stream}” camera in Home Assistant first to record in full quality.",
+        ),
+        { stream: camera.turn_on },
+      )
+    : host._t(
+        "frigate_cameras_low_res",
+        "Only its low-resolution stream is available, so it records in low resolution.",
+      );
+  return html`<div
+    style="font-size:12px;color:var(--warning-color);line-height:1.4;padding-top:4px;"
+  >
+    ${text}
+  </div>`;
+}
+
 function loginFields(host, planId, camera) {
   const login = loginFor(planId, String(camera.key));
   const field = (key, type, labelKey, fallback) => html`
@@ -138,6 +161,7 @@ export function renderFrigateCameraRows(host, action) {
                 </div>
               </div>
             </div>
+            ${lowResLine(host, camera)}
             ${camera.needs_login ? loginFields(host, planId, camera) : ""}
             ${
               errors[camera.key]

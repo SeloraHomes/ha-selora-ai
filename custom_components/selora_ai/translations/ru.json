@@ -1101,6 +1101,8 @@
     "camera_events_bird": "Птица",
     "camera_events_package": "Посылка",
     "frigate_cameras_not_added": "Не добавлены: {list}.",
+    "frigate_cameras_low_res_turn_on": "Включён только поток низкого разрешения, поэтому запись будет в низком разрешении. Для записи в полном качестве сначала включите камеру «{stream}» в Home Assistant.",
+    "frigate_cameras_low_res": "Доступен только поток низкого разрешения, поэтому запись будет в низком разрешении.",
     "frigate_result_added": "Добавлена во Frigate",
     "frigate_result_saved_tag": "Сохранена во Frigate",
     "frigate_result_removed": "Удалена из Frigate",

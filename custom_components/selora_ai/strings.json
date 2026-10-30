@@ -1101,6 +1101,8 @@
     "camera_events_bird": "Bird",
     "camera_events_package": "Package",
     "frigate_cameras_not_added": "Not added: {list}.",
+    "frigate_cameras_low_res_turn_on": "Only its low-resolution stream is on, so it records in low resolution. Turn on its “{stream}” camera in Home Assistant first to record in full quality.",
+    "frigate_cameras_low_res": "Only its low-resolution stream is available, so it records in low resolution.",
     "frigate_result_added": "Added to Frigate",
     "frigate_result_saved_tag": "Saved in Frigate",
     "frigate_result_removed": "Removed from Frigate",

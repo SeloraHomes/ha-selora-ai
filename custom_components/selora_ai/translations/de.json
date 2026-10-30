@@ -1101,6 +1101,8 @@
     "camera_events_bird": "Vogel",
     "camera_events_package": "Paket",
     "frigate_cameras_not_added": "Nicht hinzugefügt: {list}.",
+    "frigate_cameras_low_res_turn_on": "Nur der Stream mit niedriger Auflösung ist aktiv, daher wird in niedriger Auflösung aufgenommen. Aktiviere zuerst die Kamera „{stream}“ in Home Assistant, um in voller Qualität aufzunehmen.",
+    "frigate_cameras_low_res": "Nur der Stream mit niedriger Auflösung ist verfügbar, daher wird in niedriger Auflösung aufgenommen.",
     "frigate_result_added": "Zu Frigate hinzugefügt",
     "frigate_result_saved_tag": "In Frigate gespeichert",
     "frigate_result_removed": "Aus Frigate entfernt",

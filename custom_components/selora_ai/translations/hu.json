@@ -1121,6 +1121,8 @@
     "camera_events_bird": "Madár",
     "camera_events_package": "Csomag",
     "frigate_cameras_not_added": "Nincs hozzáadva: {list}.",
+    "frigate_cameras_low_res_turn_on": "Csak az alacsony felbontású stream van bekapcsolva, ezért alacsony felbontásban rögzít. Teljes minőséghez előbb kapcsold be a(z) „{stream}” kamerát a Home Assistantben.",
+    "frigate_cameras_low_res": "Csak az alacsony felbontású stream érhető el, ezért alacsony felbontásban rögzít.",
     "frigate_result_added": "Hozzáadva a Frigate-hez",
     "frigate_result_saved_tag": "Elmentve a Frigate-ben",
     "frigate_result_removed": "Eltávolítva a Frigate-ből",

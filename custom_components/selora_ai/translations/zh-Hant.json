@@ -1101,6 +1101,8 @@
     "camera_events_bird": "鳥",
     "camera_events_package": "包裹",
     "frigate_cameras_not_added": "未加入：{list}。",
+    "frigate_cameras_low_res_turn_on": "僅開啟了低解析度串流，因此將以低解析度錄影。如需全畫質錄影，請先在 Home Assistant 中開啟其「{stream}」攝影機。",
+    "frigate_cameras_low_res": "僅有低解析度串流可用，因此將以低解析度錄影。",
     "frigate_result_added": "已加入 Frigate",
     "frigate_result_saved_tag": "已儲存至 Frigate",
     "frigate_result_removed": "已從 Frigate 移除",

@@ -205,6 +205,32 @@ async def test_a_single_stream_detects_scaled_down(hass: HomeAssistant, home: _H
     assert yard["record"] == {"enabled": False}
 
 
+async def test_a_lone_substream_is_low_res_and_not_scaled_up(
+    hass: HomeAssistant, home: _Home
+) -> None:
+    home.camera("Kitchen", "sub", "rtsp://192.168.1.50:554/Preview_01_sub")
+    # Reolink disables its Clear snapshot too: a still image, not the stream.
+    for key in ("snapshots_clear", "clear"):
+        er.async_get(hass).async_update_entity(
+            home.camera("Kitchen", key, None), disabled_by=er.RegistryEntryDisabler.INTEGRATION
+        )
+    (camera,), _ = await async_camera_candidates(hass, _EMPTY_CONFIG)
+
+    kitchen = build_config([camera], ["person"], True, None)["cameras"]["kitchen"]
+
+    assert (camera.low_res, camera.main_off) == (True, "Clear")
+    assert kitchen["ffmpeg"]["inputs"][0]["roles"] == ["record", "detect"]
+    assert kitchen["detect"] == {"enabled": True}
+
+
+async def test_a_lone_main_stream_is_not_low_res(hass: HomeAssistant, home: _Home) -> None:
+    home.camera("Yard", "main", "rtsp://192.168.1.40/live")
+
+    (camera,), _ = await async_camera_candidates(hass, _EMPTY_CONFIG)
+
+    assert (camera.low_res, camera.main_off) == (False, None)
+
+
 def test_objects_are_labels_or_the_default() -> None:
     assert clean_objects(None) == ["person"]
     assert clean_objects(["Car", "person", "rm -rf", "car"]) == ["car", "person"]
@@ -250,6 +276,22 @@ def _frigate_api(aioclient_mock: Any, config: dict[str, Any] | None = None) -> N
     aioclient_mock.get(f"{FRIGATE}/api/config", json=config or _EMPTY_CONFIG)
     aioclient_mock.put(f"{FRIGATE}/api/config/set", json={"success": True})
     aioclient_mock.post(f"{FRIGATE}/api/restart", json={"success": True})
+
+
+async def test_a_low_resolution_camera_is_named_on_the_card_and_to_the_model(
+    hass: HomeAssistant, home: _Home, frigate: MockConfigEntry, aioclient_mock: Any
+) -> None:
+    home.camera("Kitchen", "sub", "rtsp://192.168.1.50:554/Preview_01_sub")
+    clear = home.camera("Kitchen", "clear", None)
+    er.async_get(hass).async_update_entity(clear, disabled_by=er.RegistryEntryDisabler.INTEGRATION)
+    _frigate_api(aioclient_mock)
+    executor = ToolExecutor(hass, MagicMock(), is_admin=True)
+
+    result = await executor.execute("add_cameras_to_frigate", {})
+
+    (row,) = result["client_action"]["cameras"]
+    assert (row["low_resolution"], row["turn_on"]) == (True, "Clear")
+    assert "turn_on" in result["low_resolution_hint"]
 
 
 async def test_ha_cameras_are_carded_without_credentials_then_written(

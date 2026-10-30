@@ -1101,6 +1101,8 @@
     "camera_events_bird": "Pájaro",
     "camera_events_package": "Paquete",
     "frigate_cameras_not_added": "No añadidas: {list}.",
+    "frigate_cameras_low_res_turn_on": "Solo está activo su flujo de baja resolución, así que grabará en baja resolución. Activa primero su cámara «{stream}» en Home Assistant para grabar con calidad completa.",
+    "frigate_cameras_low_res": "Solo está disponible su flujo de baja resolución, así que grabará en baja resolución.",
     "frigate_result_added": "Añadida a Frigate",
     "frigate_result_saved_tag": "Guardada en Frigate",
     "frigate_result_removed": "Quitada de Frigate",

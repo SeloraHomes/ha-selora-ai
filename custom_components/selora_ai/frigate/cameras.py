@@ -4,7 +4,8 @@ A camera is a device: one Home Assistant entity per stream it serves (Reolink's
 Clear and Fluent, UniFi Protect's High/Medium/Low, an ONVIF camera's profiles).
 The main stream is recorded and the smallest substream is what Frigate runs
 detection on. A camera with a single stream uses it for both, with detection
-scaled down.
+scaled down, unless that stream is a substream: it is detected on as it is, and
+the card says it records in low resolution.
 
 Stream URLs carry the camera's credentials. They are resolved here, written to
 Frigate, and nowhere else: what leaves this module for a tool result, a card or
@@ -86,6 +87,11 @@ class Candidate:
     area: str | None
     main: Stream
     sub: Stream | None
+    # Its only stream is a substream (Reolink's Clear is disabled by default),
+    # so it records in low resolution. main_off names the disabled
+    # main-stream entity to turn on, when the camera has one.
+    low_res: bool = False
+    main_off: str | None = None
 
     @property
     def entity_ids(self) -> list[str]:
@@ -242,6 +248,12 @@ def _words(entry: er.RegistryEntry) -> set[str]:
     return set(re.split(r"[^a-z0-9]+", text))
 
 
+def _entity_name(entry: er.RegistryEntry) -> str:
+    """A disabled entity's name: it has no state to read one from."""
+    key = (entry.translation_key or "").replace("_", " ").capitalize()
+    return entry.name or entry.original_name or key or entry.entity_id
+
+
 def _sub_rank(words: set[str]) -> int | None:
     ranks = [rank for word, rank in _SUB_RANK.items() if word in words]
     return min(ranks) if ranks else None
@@ -295,7 +307,16 @@ async def async_camera_candidates(
     area_reg = ar.async_get(hass)
     ignored = resolve_ignored_entity_ids(hass)
     by_device: dict[str, list[er.RegistryEntry]] = {}
+    mains_off: dict[str, er.RegistryEntry] = {}
     for entry in ent_reg.entities.values():
+        if (
+            entry.domain == "camera"
+            and entry.disabled_by is not None
+            and entry.device_id
+            and _MAIN_WORDS & _words(entry)
+            and not _NOT_A_STREAM & _words(entry)
+        ):
+            mains_off.setdefault(entry.device_id, entry)
         if (
             entry.domain != "camera"
             or entry.platform == FRIGATE_DOMAIN
@@ -352,6 +373,8 @@ async def async_camera_candidates(
             (s for s in ranked if s is not main and _sub_rank(s[2]) is not None),
             key=lambda s: _sub_rank(s[2]) or 0,
         )
+        low_res = not subs and not _MAIN_WORDS & main[2] and _sub_rank(main[2]) is not None
+        off = mains_off.get(entries[0].device_id or "") if low_res else None
         area_id = entries[0].area_id or (device.area_id if device else None)
         area = area_reg.async_get_area(area_id) if area_id else None
         candidates.append(
@@ -362,6 +385,8 @@ async def async_camera_candidates(
                 area=area.name if area else None,
                 main=Stream(main[0].entity_id, for_go2rtc(main[1])),
                 sub=Stream(subs[0][0].entity_id, for_go2rtc(subs[0][1])) if subs else None,
+                low_res=low_res,
+                main_off=_entity_name(off) if off else None,
             )
         )
     return candidates, skipped
@@ -444,7 +469,12 @@ def build_config(
             # slug the camera is keyed by ("E1 Zoom", not "e1_zoom").
             "friendly_name": c.name,
             "ffmpeg": {"inputs": inputs},
-            "detect": {"enabled": True, **({} if c.sub else _SINGLE_STREAM_DETECT)},
+            # A substream is detected on at its own size: scaling it up to
+            # 720p costs the detector and sharpens nothing.
+            "detect": {
+                "enabled": True,
+                **({} if c.sub or c.low_res else _SINGLE_STREAM_DETECT),
+            },
             "objects": {"track": objects},
             "record": {"enabled": record},
         }

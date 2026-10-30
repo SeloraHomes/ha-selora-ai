@@ -1101,6 +1101,8 @@
     "camera_events_bird": "새",
     "camera_events_package": "택배",
     "frigate_cameras_not_added": "추가하지 않음: {list}.",
+    "frigate_cameras_low_res_turn_on": "저해상도 스트림만 켜져 있어 저해상도로 녹화됩니다. 전체 화질로 녹화하려면 먼저 Home Assistant에서 '{stream}' 카메라를 켜세요.",
+    "frigate_cameras_low_res": "저해상도 스트림만 사용할 수 있어 저해상도로 녹화됩니다.",
     "frigate_result_added": "Frigate에 추가됨",
     "frigate_result_saved_tag": "Frigate에 저장됨",
     "frigate_result_removed": "Frigate에서 제거됨",
