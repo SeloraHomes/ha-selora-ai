@@ -56914,14 +56914,13 @@ async function _loadSessions() {
     if (
       !this._activeSessionId &&
       !this._openingChatHome &&
-      this._sessions.length > 0 &&
       this._activeTab === "chat"
     ) {
       const stored = _readStoredSession();
-      const target = this._sessions.some((s6) => s6.id === stored)
-        ? stored
-        : this._sessions[0].id;
-      await this._openSession(target);
+      if (stored) await this._openSession(stored);
+      if (!this._activeSessionId && this._sessions.length > 0) {
+        await this._openSession(this._sessions[0].id);
+      }
     }
   } catch (err) {
     console.error("Failed to load sessions", err);
@@ -57267,7 +57266,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "85418d38ceb3" : "";
+var PANEL_BUILD = true ? "130a850955b7" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
