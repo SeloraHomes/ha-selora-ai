@@ -23,6 +23,7 @@ from .. import (
 )
 from ..const import (
     DOMAIN,
+    SESSION_GUIDE_BANNERS,
 )
 from ..conversation_store import ConversationStore
 from ..llm_client.lang_detect import resolve_reply_language
@@ -80,6 +81,14 @@ async def _handle_websocket_get_session(
 @decorators.websocket_command(
     {
         vol.Required("type"): "selora_ai/new_session",
+        vol.Optional("guide"): vol.Schema(
+            {
+                vol.Required("icon"): vol.All(str, vol.Match(r"^mdi:[a-z0-9-]{1,60}$")),
+                vol.Required("title"): vol.All(str, vol.Length(max=200)),
+                vol.Optional("subtitle", default=""): vol.All(str, vol.Length(max=500)),
+                vol.Required("banner"): vol.In(SESSION_GUIDE_BANNERS),
+            }
+        ),
     }
 )
 async def _handle_websocket_new_session(
@@ -87,12 +96,12 @@ async def _handle_websocket_new_session(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Create a new empty conversation session."""
+    """Create a new empty conversation session, opened by ``guide`` if given."""
     if not _require_admin(connection, msg):
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session = await store.create_session()
+    session = await store.create_session(msg.get("guide"))
     connection.send_result(msg["id"], {"session_id": session["id"]})
 
 

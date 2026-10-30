@@ -27,7 +27,7 @@ function age(msg) {
 // was given, so Frigate's becomes "camera.porch_2"), and the expected id could
 // then be the original camera, not Frigate's. Only an entity of the frigate
 // platform counts; without registry data the expected id is taken as is.
-function frigateEntity(host, expectedId) {
+export function frigateEntity(host, expectedId) {
   const entities = host.hass?.entities;
   if (!entities) return host.hass?.states?.[expectedId] ? expectedId : null;
   if (entities[expectedId]?.platform === "frigate") return expectedId;
@@ -47,7 +47,7 @@ function isLive(host, entityId) {
   return !!state && state.state !== "unavailable";
 }
 
-function openMoreInfo(host, entityId) {
+export function openMoreInfo(host, entityId) {
   host.dispatchEvent(
     new CustomEvent("hass-more-info", {
       detail: { entityId },
@@ -138,7 +138,7 @@ function renderWaiting(host, msg, result) {
 // card is lazy-loaded and often not there in a custom panel; a plain image is.
 const SNAPSHOT_EVERY_MS = 5000;
 
-function snapshotUrl(host, entityId) {
+export function snapshotUrl(host, entityId) {
   const picture = host.hass?.states?.[entityId]?.attributes?.entity_picture;
   if (!picture) return "";
   const bucket = Math.floor(Date.now() / SNAPSHOT_EVERY_MS);

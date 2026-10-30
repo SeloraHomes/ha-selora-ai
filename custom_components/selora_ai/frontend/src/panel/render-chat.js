@@ -16,6 +16,9 @@ const AUTOMATION_LABEL_KEYS = [
 ];
 const AUTOMATION_LABEL_INTERVAL_MS = 5_000;
 import { formatTime } from "../shared/date-utils.js";
+import { CARD_BANNERS } from "../shared/card-banners.js";
+import { renderCardHeading } from "../shared/card-heading.js";
+import { renderDescribeCard } from "./render-describe-card.js";
 import { renderFrigateResult } from "./render-frigate-result.js";
 import { renderDeviceDetail } from "./render-device-detail.js";
 import { renderQuickActions } from "./quick-actions.js";
@@ -28,6 +31,7 @@ import { renderApprovalCard } from "./render-approval-card.js";
 import { renderAgentSteps } from "./render-agent-steps.js";
 import { renderRestoreCard } from "./restore-card.js";
 import { renderCameraEventsCard } from "./camera-events-card.js";
+import { renderFaceLibraryLink } from "./face-library-link.js";
 import { renderHomeSuggestions } from "./home-suggestions.js";
 import { acceptNextPrompt, activeNextPrompt } from "./next-prompt.js";
 import {
@@ -202,6 +206,40 @@ function renderAutomationSuggestButton(host) {
   `;
 }
 
+// The heading a guided conversation opens with. It belongs to one session, so
+// switching conversations never carries it along.
+export function renderGuide(host) {
+  const guide = host._guide;
+  if (!guide || guide.sessionId !== host._activeSessionId) return "";
+  return html`<div class="chat-guide">
+    ${renderCardHeading({
+      icon: guide.icon,
+      title: guide.title,
+      subtitle: guide.subtitle,
+      banner: CARD_BANNERS[guide.banner] || "",
+    })}
+  </div>`;
+}
+
+// Quick actions that answer the question in their own message.
+function answersInline(msg) {
+  return !!msg.quick_actions?.some((a) => a.inline);
+}
+
+// Once the conversation has moved past a question, its answers stay in view
+// but can no longer be pressed: a reopened session shows what was answered
+// rather than buttons that would answer it again mid-flow. The answer given is
+// the user message that follows.
+function inlineAnswerState(host, msg, idx) {
+  const answered = idx < host._messages.length - 1;
+  if (!answered) return { used: !!msg._qa_used, picked: msg._qa_picked };
+  const next = host._messages[idx + 1];
+  return {
+    used: true,
+    picked: next?.role === "user" ? next.content : msg._qa_picked,
+  };
+}
+
 export function renderChat(host) {
   const isEmpty = host._messages.length === 0;
 
@@ -343,7 +381,9 @@ export function renderChat(host) {
     // they're approving. Without this guard the sticky composer row
     // below would render the same four buttons again — 8 buttons
     // on screen with no obvious link back to the card.
-    !lastMsg.command_approval
+    !lastMsg.command_approval &&
+    // Answers to the bubble's own question render in that bubble too.
+    !answersInline(lastMsg)
       ? lastMsg
       : null;
 
@@ -355,6 +395,7 @@ export function renderChat(host) {
         id="chat-messages"
         @scroll=${host._onChatScroll}
       >
+        ${renderGuide(host)}
         ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
@@ -1369,13 +1410,16 @@ export function renderMessage(host, msg, idx) {
     // quick_actions render exclusively in the sticky composer row (see
     // lastQuickActions in renderChat); rendering them here too would show the
     // same chips twice (in-card AND above the input).
-    msg.command_approval &&
-    // Hide approval action cards once the proposal has been resolved (or
-    // is mid-resolve). Re-clicking after the status flipped would 404
-    // server-side, and the approved/denied chip already says what happened.
-    msg.approval_status !== "approved" &&
-    msg.approval_status !== "denied" &&
-    msg.approval_status !== "resolving";
+    // Answers to the question the bubble asks sit under it the same way: in
+    // the composer row they were a screen away from it.
+    (answersInline(msg) ||
+      (msg.command_approval &&
+        // Hide approval action cards once the proposal has been resolved (or
+        // is mid-resolve). Re-clicking after the status flipped would 404
+        // server-side, and the approved/denied chip already says what happened.
+        msg.approval_status !== "approved" &&
+        msg.approval_status !== "denied" &&
+        msg.approval_status !== "resolving"));
   // How many tile tracks the scene card asks for. The wrap is sized from it
   // (see .assistant-wrap--scene) rather than from the prose above the card,
   // so the grid decides its own column count; a one-entity scene asks for
@@ -1442,7 +1486,8 @@ export function renderMessage(host, msg, idx) {
                     // placeholder and chip say it to the user.
                     msg.command_approval ||
                     isLoadedAutomation ||
-                    msg.frigate_result
+                    msg.frigate_result ||
+                    msg.describe_card
                       ? ""
                       : html`<span
                           class="msg-content ${
@@ -1529,6 +1574,7 @@ export function renderMessage(host, msg, idx) {
                   ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                   ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
                   ${renderFrigateResult(host, msg)}
+                  ${renderDescribeCard(host, msg)}
                   ${
                     msg.command_approval
                       ? renderApprovalCard(
@@ -1541,6 +1587,7 @@ export function renderMessage(host, msg, idx) {
                   }
                   ${renderRestoreCard(host, msg)}
                   ${renderCameraEventsCard(host, msg)}
+                  ${renderFaceLibraryLink(host, msg)}
                   ${
                     msg._interrupted
                       ? html`
@@ -1725,9 +1772,9 @@ export function renderMessage(host, msg, idx) {
                                     ? renderQuickActions(
                                         host,
                                         msg.quick_actions,
-                                        {
-                                          used: !!msg._qa_used,
-                                        },
+                                        answersInline(msg)
+                                          ? inlineAnswerState(host, msg, idx)
+                                          : { used: !!msg._qa_used },
                                       )
                                     : ""
                                 }

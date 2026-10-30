@@ -2,6 +2,7 @@ import { LitElement, html } from "lit";
 import { seloraTokens } from "./shared/design-tokens.css.js";
 import { sharedAnimations } from "./shared/styles/animations.css.js";
 import { sharedButtons } from "./shared/styles/buttons.css.js";
+import { armPressRipple } from "./shared/press-ripple.js";
 import { sharedModals } from "./shared/styles/modals.css.js";
 import { sharedBadges } from "./shared/styles/badges.css.js";
 import { sharedLoaders } from "./shared/styles/loaders.css.js";
@@ -245,6 +246,8 @@ class SeloraAIPanel extends LitElement {
 
       // Message view
       _messages: { type: Array },
+      // The open conversation's heading, tagged with its session id.
+      _guide: { type: Object },
       _input: { type: String },
       // Shell-style ArrowUp/ArrowDown history navigation cursor. null
       // means "not browsing history; _input is the live draft".
@@ -2158,6 +2161,7 @@ class SeloraAIPanel extends LitElement {
     // These live on this element's own shadow root, so they're GC'd with the
     // element — no teardown needed.
     const root = this.renderRoot;
+    armPressRipple(root);
     root.addEventListener(
       "mousedown",
       (e) => {

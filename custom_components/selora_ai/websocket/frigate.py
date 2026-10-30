@@ -15,8 +15,10 @@ from homeassistant.core import HomeAssistant
 import voluptuous as vol
 
 from .. import _require_admin, _resolve_llm_entry
-from ..const import CONF_FRIGATE_PASSWORD, CONF_FRIGATE_URL, CONF_FRIGATE_USERNAME
+from ..const import CONF_FRIGATE_PASSWORD, CONF_FRIGATE_URL, CONF_FRIGATE_USERNAME, DOMAIN
+from ..conversation_store import ConversationStore
 from ..frigate.client import FrigateClient, FrigateError, normalize_frigate_url
+from ..frigate.descriptions import async_answer, async_start
 from ..frigate.discovery import async_scan
 from ..frigate.ideas import async_camera_ideas
 from ..frigate.setup import async_add_cameras_confirmed
@@ -154,9 +156,89 @@ async def _handle_websocket_frigate_test_connection(
     connection.send_result(msg["id"], {"ok": True, "version": version, "cameras": len(cameras)})
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/describe_answer",
+        vol.Required("session_id"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("camera"): vol.All(str, vol.Length(min=1, max=64)),
+        vol.Required("describe"): bool,
+        vol.Optional("zones", default=[]): vol.All([str], vol.Length(max=10)),
+        vol.Optional("language"): vol.Any(str, None),
+    }
+)
+async def _handle_websocket_frigate_describe_answer(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Save a camera-descriptions answer a button gave, and ask the next.
+
+    Both sides of the exchange go in the conversation, so a reopened session
+    reads as it was answered.
+    """
+    if not _require_admin(connection, msg):
+        return
+    language = str(msg.get("language") or "").lower().split("-")[0]
+    result = await async_answer(
+        hass, msg["camera"], msg["describe"], msg["zones"], language or "en"
+    )
+    if "error" in result:
+        connection.send_error(msg["id"], "describe_failed", result["error"])
+        return
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    said = await store.append_message(msg["session_id"], "user", result["said"])
+    reply = await store.append_message(
+        msg["session_id"],
+        "assistant",
+        result["reply"],
+        quick_actions=result.get("quick_actions"),
+        describe_card=result.get("card"),
+    )
+    connection.send_result(msg["id"], {"messages": [said, reply]})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/describe_start",
+        # The suggestion's title, shown as the user's message.
+        vol.Required("title"): vol.All(str, vol.Length(min=1, max=200)),
+        vol.Optional("language"): vol.Any(str, None),
+    }
+)
+async def _handle_websocket_frigate_describe_start(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Open a conversation that asks about the first camera, with no model turn."""
+    if not _require_admin(connection, msg):
+        return
+    language = str(msg.get("language") or "").lower().split("-")[0]
+    result = await async_start(hass, language or "en")
+    if "error" in result:
+        connection.send_error(msg["id"], "describe_failed", result["error"])
+        return
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    session = await store.create_session()
+    await store.append_message(session["id"], "user", msg["title"])
+    await store.append_message(
+        session["id"],
+        "assistant",
+        result["reply"],
+        quick_actions=result["quick_actions"],
+        describe_card=result["card"],
+    )
+    await store.update_session_title(session["id"], msg["title"])
+    connection.send_result(msg["id"], {"session_id": session["id"]})
+
+
 def async_register(hass: HomeAssistant) -> None:
     """Register the Frigate websocket commands."""
     websocket_api.async_register_command(hass, _handle_websocket_frigate_add_cameras)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_scan)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_ideas)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_test_connection)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_describe_answer)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_describe_start)

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import UTC, datetime
+import itertools
 import re
 from typing import TYPE_CHECKING, Any, Final
 
@@ -26,6 +27,7 @@ from ..helpers import sanitize_untrusted_text
 from ..history_reader import _BadRequest, _window
 from .cameras import FOLDED_LABELS, OBJECT_LABEL, model_labels, unsupported_labels
 from .client import FRIGATE_DOMAIN, NOT_SET_UP, FrigateClient, FrigateError
+from .descriptions import async_budget, described_by, selora_describes
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -38,6 +40,10 @@ MAX_LIMIT: Final = 25
 # "how many people came by?" needs all of them, not the listed page.
 _COUNT_CAP: Final = 1000
 _MAX_FILTERS: Final = 10
+# A ranked search always fills its limit with the nearest events, however far.
+# Frigate's search_distance is a z-score, so a break of one standard deviation
+# between two ranks separates the matches from the closest of everything else.
+_STANDOUT_GAP: Final = 1.0
 # "<start epoch>-<random>": the panel builds media paths from it.
 _EVENT_ID: Final = re.compile(r"^\d+(\.\d+)?-[a-z0-9]+$")
 # What Frigate allows in a camera name; the panel builds clip paths from it.
@@ -54,6 +60,26 @@ _SEMANTIC_OFF: Final = (
     "Frigate's semantic search is off, so these events match the other filters "
     "only: say they were not checked for the description. If the user wants to "
     "search by description, tell them what turning it on means."
+)
+# Events a described camera should have described and did not: the answer
+# leaves them out, and has to say so rather than read as complete.
+_UNDESCRIBED: Final = (
+    "These events have no description although their camera is described, so a "
+    "search by description could not match them: say how many were not "
+    "described, and why when 'why' says, instead of presenting the results as "
+    "complete."
+)
+_NOT_YET: Final = (
+    "Frigate writes a description once the object has left; one that just "
+    "ended may still be coming."
+)
+# How long after an object leaves its description can still be on its way.
+_STILL_COMING_S: Final = 600
+_NO_REASON: Final = (
+    "These ended too long ago for a description still to be coming, and Selora "
+    "Connect reports no pause. The camera may not have described this object "
+    "then (descriptions can have been turned on since), or the description "
+    "failed: say the reason is unknown, don't guess."
 )
 _SEMANTIC_SEARCH: Final = {
     "where": (
@@ -249,6 +275,84 @@ def _event(raw: dict[str, Any], cameras: dict[str, str], descriptions: bool) -> 
     return event
 
 
+def _undescribed(found: list[dict[str, Any]], config: dict[str, Any]) -> list[dict[str, Any]]:
+    """Ended events their camera should have described and did not.
+
+    An object the camera does not describe (a dog, one outside its zones) is
+    not missing a description.
+    """
+    cameras = config.get("cameras") if isinstance(config.get("cameras"), dict) else {}
+    missing = []
+    for event in found:
+        if event.get("end_time") is None:
+            continue
+        data = event.get("data") if isinstance(event.get("data"), dict) else {}
+        if data.get("description"):
+            continue
+        if described_by(
+            cameras.get(str(event.get("camera") or "")),
+            str(event.get("label") or ""),
+            [str(z) for z in event.get("zones") or []],
+        ):
+            missing.append(event)
+    return missing
+
+
+async def _describe_gaps(
+    hass: HomeAssistant,
+    config: dict[str, Any],
+    found: list[dict[str, Any]],
+    chosen: list[str],
+    searching: bool,
+) -> dict[str, Any]:
+    """What the answer has to say about descriptions it could not use.
+
+    Cameras that describe nothing matter only to a search by description;
+    listed with every answer, they would crowd out the events.
+    """
+    gaps: dict[str, Any] = {}
+    cameras = config.get("cameras") if isinstance(config.get("cameras"), dict) else {}
+    off = [
+        key
+        for key in chosen or list(cameras)
+        if _CAMERA.match(key) and not described_by(cameras.get(key))
+    ]
+    if off and searching:
+        gaps["cameras_not_described"] = off
+    if missing := _undescribed(found, config):
+        first = min(e.get("start_time") or 0 for e in missing)
+        undescribed: dict[str, Any] = {
+            "count": len(missing),
+            "by_camera": dict(
+                Counter(sanitize_untrusted_text(str(e.get("camera") or ""), 64) for e in missing)
+            ),
+            "first": _local(first),
+            "note": _UNDESCRIBED,
+        }
+        budget = await async_budget(hass) if selora_describes(config) else {}
+        # Only when every one of them may still get its description.
+        first_end = min(float(e.get("end_time") or 0) for e in missing)
+        recent = dt_util.utcnow().timestamp() - first_end < _STILL_COMING_S
+        undescribed["why"] = budget.get("status") or (_NOT_YET if recent else _NO_REASON)
+        gaps["undescribed"] = undescribed
+    return gaps
+
+
+def _standouts(found: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The ranked matches before the widest break in their scores, if it is wide.
+
+    "Any FedEx truck today?" matches one van, then every pickup a little: the
+    van's score stands far from theirs. A query many events match equally well
+    has no such break and keeps them all.
+    """
+    scores = [e.get("search_distance") for e in found]
+    if len(scores) < 2 or not all(isinstance(s, int | float) for s in scores):
+        return found
+    gaps = [after - before for before, after in itertools.pairwise(scores)]
+    widest = max(range(len(gaps)), key=gaps.__getitem__)
+    return found[: widest + 1] if gaps[widest] >= _STANDOUT_GAP else found
+
+
 async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """The events matching the arguments, newest first, with counts for the range."""
     client = FrigateClient.from_hass(hass)
@@ -291,6 +395,7 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
             "sub_labels": _words(arguments, "names"),
         }
         params.update({k: ",".join(v) for k, v in filters.items() if v})
+        listed = {**params, "limit": _COUNT_CAP}
         if query:
             params.update({"query": query, "limit": limit})
             if _describes(config):
@@ -299,13 +404,21 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
                 params["search_type"] = "thumbnail,description"
             raw = await client.get_events(params, search=True)
         else:
-            params["limit"] = _COUNT_CAP
-            raw = await client.get_events(params)
+            raw = await client.get_events(listed)
+        # A ranked search returns matches only; what it could not match for
+        # want of a description is in the range's full list.
+        in_range = raw if not query else []
+        if query and selora_describes(config):
+            in_range = await client.get_events(listed)
     except FrigateError as exc:
         return {"error": str(exc)}
 
     found = [e for e in raw if isinstance(e, dict) and _EVENT_ID.match(str(e.get("id") or ""))]
-    if not query:
+    weaker = 0
+    if query:
+        matches = _standouts(found[:limit])
+        weaker, found = len(found[:limit]) - len(matches), matches
+    else:
         found.sort(key=lambda e: e.get("start_time") or 0, reverse=True)
     events = [_event(e, cameras, _describes(config)) for e in found[:limit]]
     watching = _watching(config, chosen or list(cameras))
@@ -324,12 +437,17 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
         result["not_recorded"] = notes
     if offer := _offer(watching, filters["labels"], supported):
         result["offer"] = offer
+    if selora_describes(config):
+        ranged = [e for e in in_range if isinstance(e, dict)]
+        result.update(await _describe_gaps(hass, config, ranged, chosen, bool(query or unfiltered)))
     if unfiltered:
         result["not_filtered_by"] = unfiltered
         result["note"] = _SEMANTIC_OFF
         result["semantic_search"] = _SEMANTIC_SEARCH
     if query:
         result["ranked_by"] = "how well each matches the query"
+        if weaker:
+            result["weaker_matches_left_out"] = weaker
         return result
     result["total"] = len(found)
     if len(found) >= _COUNT_CAP:

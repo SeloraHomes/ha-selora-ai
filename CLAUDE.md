@@ -131,6 +131,17 @@ lowercases and strips the region. The panel reads `translations/en.json`, not
 - Configurable values come from `host._config` (via websocket), so `const.py`
   stays the single source of truth.
 - Run `node build.js` in `frontend/` after any change; the bundle is committed.
+- A card in a reply opens with `renderCardHeading` (`shared/card-heading.js`):
+  the tinted icon square of the home suggestions, a title, a line under it.
+  One heading everywhere is what makes the cards read as one product; don't
+  style a new one. `banner` puts a picture behind it (`shared/card-banners.js`),
+  fading into the card under the words.
+- A button in the chat is `renderActionButton` (`shared/action-button.js`): a
+  pill whose round badge says what the press does (arrow sends to Selora,
+  tick agrees, cross declines), gold for the one answer a row offers, red only
+  for a delete. Elsewhere it is the `.btn` family. Both lift, press and ripple
+  the same way (`shared/styles/buttons.css.js`, `shared/press-ripple.js`);
+  don't style a new button.
 - **The shell's height comes from HA's panel container, which has none.**
   `ha-panel-custom` renders us block-level with no height, so `:host { height: 100% }`
   resolves to `auto` and overlays (app menu, conversations drawer) clip at the

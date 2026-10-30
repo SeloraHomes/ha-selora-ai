@@ -129,22 +129,6 @@ export const chatStyles = css`
     text-align: left;
     cursor: pointer;
   }
-  .home-suggestion-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(251, 191, 36, 0.12);
-    color: var(--selora-accent-text, #f59e0b);
-    --mdc-icon-size: 18px;
-  }
-  :host(:not([dark])) .home-suggestion-icon {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--primary-color);
-  }
   .home-suggestion-title {
     flex: 1;
     font-size: 15px;
@@ -173,34 +157,7 @@ export const chatStyles = css`
   .home-suggestion-footer {
     display: flex;
     justify-content: flex-end;
-    margin-top: 12px;
-  }
-  /* A small composer: the same gold edge and send button, so acting on a
-     suggestion reads as sending it to Selora. */
-  .home-suggestion-act {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    padding: 5px 5px 5px 20px;
-    border: 1px solid rgba(251, 191, 36, 0.45);
-    border-radius: 999px;
-    background: var(--card-background-color);
-    color: var(--primary-text-color);
-    font: inherit;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    box-shadow: 0 0 18px -6px rgba(251, 191, 36, 0.5);
-    transition:
-      border-color 0.15s,
-      box-shadow 0.2s;
-  }
-  .home-suggestion-act:hover {
-    border-color: rgba(251, 191, 36, 0.8);
-    box-shadow: 0 0 22px -4px rgba(251, 191, 36, 0.6);
-  }
-  .home-suggestion-act:hover .composer-send {
-    transform: scale(1.06);
+    margin-top: 20px;
   }
   .home-suggestion-dismiss {
     flex-shrink: 0;
@@ -1946,6 +1903,9 @@ export const chatStyles = css`
     --mdc-icon-size: 16px;
     transition: border-color 0.15s;
   }
+  .face-library {
+    margin-top: 10px;
+  }
   .camera-event-link ha-icon {
     color: var(--selora-accent);
   }
@@ -2068,6 +2028,119 @@ export const chatStyles = css`
       margin-left: 0;
       max-width: none;
     }
+  }
+
+  /* A camera-descriptions question (render-describe-card.js): sections
+     opened by the shared card heading, each with its picture beside its
+     words, stacked on a phone. Pictures use the Frigate result
+     card's frame. */
+  /* The heading a guided conversation opens with (render-chat.js), as wide
+     as the cards under it. */
+  .chat-guide {
+    width: 760px;
+    max-width: 100%;
+    margin-bottom: 8px;
+  }
+  /* On its own it is the card, framed like a reply. */
+  .chat-guide .card-heading--banner {
+    border: 1px solid var(--selora-zinc-700);
+    border-radius: 16px;
+    box-shadow: var(--card-box-shadow);
+  }
+  .describe-card {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 760px;
+    max-width: 100%;
+  }
+  /* The opening banner runs to the reply's border: the bubble's padding
+     (12px 16px) is taken back, and its words keep the 16px edge the
+     content under it starts at. */
+  .describe-card > .describe-section:first-child .card-heading--banner {
+    margin: -12px -16px 0;
+    padding: 16px;
+    border-radius: 15px 15px 0 0;
+  }
+  .describe-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .describe-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+  }
+  .describe-side {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+  @media (max-width: 700px) {
+    .describe-columns {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+  }
+  .describe-example-picture {
+    cursor: default;
+  }
+  /* One icon column for the example and the points: every row an 18px icon
+     on its first line of text, every text at the same left edge. */
+  .describe-points {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .describe-points li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 20px;
+  }
+  .describe-points li > ha-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 18px;
+    height: 20px;
+    --mdc-icon-size: 18px;
+    color: var(--selora-accent);
+  }
+  .describe-point-pair {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .describe-example-by {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .describe-example-described {
+    font-weight: 500;
+    color: var(--primary-text-color);
+  }
+  .describe-done {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .describe-done-warn {
+    color: var(--warning-color, #f59e0b);
+  }
+  .describe-question {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.45;
   }
 
   /* Idea chips under a live camera on the Frigate result card

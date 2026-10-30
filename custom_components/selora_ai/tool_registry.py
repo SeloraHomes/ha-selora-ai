@@ -2574,6 +2574,86 @@ TOOL_SET_CAMERA_OBJECTS = ToolDef(
     large_context_only=True,
 )
 
+TOOL_GET_CAMERA_DESCRIPTIONS = ToolDef(
+    name="get_camera_descriptions",
+    description=(
+        "Which Frigate cameras Selora AI describes (written descriptions of the "
+        "people and vehicles they see, searchable later), which were never asked "
+        "about, each camera's zones, area and share of events, and the budget: "
+        "the rules, and when known how many objects are left today and why "
+        "descriptions are paused. Call it before asking which cameras to describe, "
+        "and for 'how much of my camera budget is left?' or 'why wasn't that car "
+        "described?'. Follow its how_to_ask."
+    ),
+    params=(),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_SET_CAMERA_DESCRIPTIONS = ToolDef(
+    name="set_camera_descriptions",
+    description=(
+        "Record the user's answer for one Frigate camera: describe true only when "
+        "they said yes, never from your own guess; false when they said no. A no "
+        "to a camera that was off is saved at once; turning one on or off gets a "
+        "card naming the camera, and Frigate restarts."
+    ),
+    params=(
+        ToolParam(
+            name="camera",
+            type="string",
+            description="The Frigate camera: its name, its friendly name, or its camera entity.",
+            required=True,
+        ),
+        ToolParam(
+            name="describe",
+            type="boolean",
+            description="The user's answer.",
+            required=True,
+        ),
+        ToolParam(
+            name="zones",
+            type="array",
+            items_type="string",
+            description="Describe only objects entering these zones, the ones the user chose.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_GET_FACE_RECOGNITION = ToolDef(
+    name="get_face_recognition",
+    description=(
+        "Whether Frigate recognizes the faces of people the household knows, who "
+        "is in its Face Library and with how many photos, and what setting it up "
+        "takes. Call it for 'who's at the door?' set-up questions, before offering "
+        "to turn it on, and when someone asks how to add a person."
+    ),
+    params=(),
+    requires_admin=True,
+    large_context_only=True,
+)
+
+TOOL_SET_FACE_RECOGNITION = ToolDef(
+    name="set_face_recognition",
+    description=(
+        "Turn Frigate's face recognition on or off, only when the user said so. "
+        "The user gets a card, and Frigate restarts. People are added in Frigate's "
+        "Face Library, never here."
+    ),
+    params=(
+        ToolParam(
+            name="enabled",
+            type="boolean",
+            description="The user's answer.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_GET_AUTOMATION_TRACES = ToolDef(
     name="get_automation_traces",
     description=(
@@ -3334,6 +3414,10 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_FIND_CAMERA_EVENTS,
     TOOL_SET_CAMERA_OBJECTS,
     TOOL_MOVE_FRIGATE_CAMERA,
+    TOOL_GET_CAMERA_DESCRIPTIONS,
+    TOOL_SET_CAMERA_DESCRIPTIONS,
+    TOOL_GET_FACE_RECOGNITION,
+    TOOL_SET_FACE_RECOGNITION,
 )
 
 # Tools that only talk to Frigate. Offered only while Frigate is set up
@@ -3415,6 +3499,10 @@ COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
         "add_cameras_to_frigate",
         "set_camera_objects",
         "move_frigate_camera",
+        "get_camera_descriptions",
+        "set_camera_descriptions",
+        "get_face_recognition",
+        "set_face_recognition",
         "delete_floor",
         "delete_category",
         # Dashboard tools sit in BOTH lanes, deliberately.
@@ -3508,6 +3596,10 @@ CONFIG_TOOL_NAMES: frozenset[str] = frozenset(
         "add_cameras_to_frigate",
         "set_camera_objects",
         "move_frigate_camera",
+        "get_camera_descriptions",
+        "set_camera_descriptions",
+        "get_face_recognition",
+        "set_face_recognition",
         "list_scripts",
         "get_script",
         "set_script",

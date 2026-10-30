@@ -199,14 +199,17 @@ class FrigateClient:
             raise FrigateError("Frigate returned no saved configuration.")
         return raw
 
-    async def set_config(self, config_data: dict[str, Any]) -> None:
+    async def set_config(self, config_data: dict[str, Any], *, restart: bool = True) -> None:
         """Merge ``config_data`` into Frigate's saved configuration.
 
         Frigate validates the result and refuses an invalid one; the change
-        applies on its next restart.
+        applies on its next restart. ``restart=False`` is for a value that
+        changes nothing Frigate does, such as a setting already in effect.
         """
         await self._request(
-            "PUT", "/api/config/set", {"config_data": config_data, "requires_restart": 1}
+            "PUT",
+            "/api/config/set",
+            {"config_data": config_data, "requires_restart": 1 if restart else 0},
         )
 
     async def restart(self) -> None:
@@ -275,6 +278,11 @@ class FrigateClient:
                 yield resp
         except (aiohttp.ClientError, TimeoutError) as exc:
             raise FrigateError(f"Frigate could not be reached: {exc}") from exc
+
+    async def get_faces(self) -> dict[str, Any]:
+        """Frigate's Face Library: each folder's name → its image files."""
+        faces = await self._request("GET", "/api/faces")
+        return faces if isinstance(faces, dict) else {}
 
     async def version(self) -> str:
         """Frigate's version; raises while it is down."""

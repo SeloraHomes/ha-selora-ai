@@ -1102,12 +1102,25 @@ var sharedButtons = i`
     border: 1px solid transparent;
     background: transparent;
     font-family: inherit;
-    transition: colors 0.2s ease;
+    transition:
+      transform 0.18s var(--btn-ease),
+      background-color 0.2s,
+      border-color 0.2s,
+      box-shadow 0.2s,
+      opacity 0.2s;
     user-select: none;
     color: var(--primary-text-color);
   }
   .btn:hover {
     opacity: 0.9;
+  }
+  .btn-primary,
+  .btn-accent,
+  .btn-warning {
+    --btn-ring: var(--selora-accent, #fbbf24);
+  }
+  .btn-danger {
+    --btn-ring: var(--error-color, #ef4444);
   }
   .btn-primary {
     background: var(--selora-accent);
@@ -1200,7 +1213,265 @@ var sharedButtons = i`
     border-color: rgba(251, 191, 36, 0.35);
     background: rgba(251, 191, 36, 0.05);
   }
+
+  /* ── Every button moves the same way: it lifts under the pointer, gives
+     under the press, and one ring ripples out of a click (press-ripple.js
+     sets data-pressed). ── */
+  .btn,
+  .action-btn {
+    --btn-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+  @media (hover: hover) {
+    .btn:hover:not([disabled]),
+    .action-btn:hover:not([disabled]) {
+      transform: translateY(-1px);
+    }
+  }
+  .btn:active:not([disabled]),
+  .action-btn:active:not([disabled]) {
+    transform: scale(0.97);
+  }
+  .btn::after,
+  .action-btn::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border: 2px solid var(--btn-ring, var(--secondary-text-color, #a1a1aa));
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .btn[data-pressed]::after,
+  .action-btn[data-pressed]::after {
+    animation: btn-ripple 0.7s var(--btn-ease);
+  }
+  @keyframes btn-ripple {
+    0% {
+      opacity: 0.9;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.18, 1.6);
+    }
+  }
+
+  /* ── The action button (shared/action-button.js): a pill and a round
+     badge whose mark says what the press does. ── */
+  .action-btn {
+    --btn-ring: var(--secondary-text-color, #a1a1aa);
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 100%;
+    min-width: 0;
+    padding: 4px 4px 4px 18px;
+    border: 1px solid var(--selora-inner-card-border, var(--divider-color));
+    border-radius: 999px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition:
+      transform 0.18s var(--btn-ease),
+      border-color 0.15s,
+      box-shadow 0.2s,
+      opacity 0.3s;
+  }
+  .action-btn:hover:not([disabled]) {
+    border-color: rgba(251, 191, 36, 0.45);
+  }
+  .action-btn[disabled] {
+    cursor: default;
+    opacity: 0.5;
+  }
+  .action-btn--tall {
+    border-radius: 20px;
+    padding-block: 8px;
+  }
+  .action-btn-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .action-btn-label {
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+  .action-btn-desc {
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--secondary-text-color);
+  }
+  .action-btn-mark {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--secondary-background-color, #27272a);
+    color: var(--selora-accent, #fbbf24);
+    --mdc-icon-size: 16px;
+    transition: transform 0.18s var(--btn-ease);
+  }
+  .action-btn-mark ha-icon {
+    display: inline-flex;
+    line-height: 0;
+  }
+  @media (hover: hover) {
+    .action-btn:hover:not([disabled]) .action-btn-mark {
+      transform: scale(1.08);
+    }
+    .action-btn:hover:not([disabled]) .action-btn-tick {
+      animation: btn-draw 0.35s var(--btn-ease);
+    }
+    .action-btn:hover:not([disabled]) .action-btn-cross {
+      transform: rotate(90deg);
+    }
+  }
+  .action-btn:active:not([disabled]) .action-btn-mark {
+    transform: scale(0.9);
+  }
+  .action-btn[data-pressed] .action-btn-mark {
+    animation: btn-pop 0.4s var(--btn-ease);
+  }
+  .action-btn[data-pressed] .action-btn-tick {
+    animation: btn-draw 0.4s 0.12s var(--btn-ease) both;
+  }
+  .action-btn-svg {
+    width: 16px;
+    height: 16px;
+    overflow: visible;
+  }
+  .action-btn-svg path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .action-btn-tick {
+    stroke-dasharray: 22;
+  }
+  .action-btn-cross {
+    transform-origin: 12px 12px;
+    transition: transform 0.35s var(--btn-ease);
+  }
+  /* Gold: the answer the row offers. One per row. */
+  .action-btn--primary {
+    --btn-ring: var(--selora-accent, #fbbf24);
+    border-color: rgba(251, 191, 36, 0.45);
+    box-shadow: 0 0 18px -6px rgba(251, 191, 36, 0.5);
+  }
+  .action-btn--primary:hover:not([disabled]) {
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 22px -4px rgba(251, 191, 36, 0.6);
+  }
+  .action-btn--primary .action-btn-mark {
+    background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%);
+    color: #1a1300;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  /* A refusal: grey like the rest, its cross in red. */
+  .action-btn--decline {
+    --btn-ring: var(--error-color, #ef4444);
+  }
+  .action-btn--decline .action-btn-mark {
+    color: var(--error-color, #ef4444);
+  }
+  /* Red: the press deletes something. */
+  .action-btn--danger {
+    --btn-ring: var(--error-color, #ef4444);
+    border-color: rgba(239, 68, 68, 0.45);
+  }
+  .action-btn--danger:hover:not([disabled]) {
+    border-color: rgba(239, 68, 68, 0.85);
+  }
+  .action-btn--danger .action-btn-mark {
+    background: var(--error-color, #ef4444);
+    color: #fff;
+  }
+  .action-btn--picked {
+    border-color: rgba(251, 191, 36, 0.8);
+  }
+  .action-btn--danger.action-btn--picked {
+    border-color: var(--error-color, #ef4444);
+  }
+  @keyframes btn-draw {
+    from {
+      stroke-dashoffset: 22;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+  @keyframes btn-pop {
+    0% {
+      transform: scale(0.9);
+    }
+    55% {
+      transform: scale(1.15);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn,
+    .action-btn,
+    .action-btn-mark,
+    .action-btn-cross {
+      transition: none;
+    }
+    .btn:hover,
+    .btn:active,
+    .action-btn:hover,
+    .action-btn:active,
+    .action-btn:hover .action-btn-mark,
+    .action-btn:active .action-btn-mark,
+    .action-btn:hover .action-btn-cross {
+      transform: none;
+    }
+    .btn[data-pressed]::after,
+    .action-btn[data-pressed]::after,
+    .action-btn[data-pressed] .action-btn-mark,
+    .action-btn[data-pressed] .action-btn-tick,
+    .action-btn:hover .action-btn-tick {
+      animation: none;
+    }
+  }
 `;
+
+// src/shared/press-ripple.js
+var PRESSABLE = ".btn, .action-btn";
+function armPressRipple(root) {
+  const still = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  root.addEventListener("click", (event) => {
+    if (still?.matches) return;
+    const button = event.target.closest?.(PRESSABLE);
+    if (!button || button.disabled) return;
+    delete button.dataset.pressed;
+    void button.offsetWidth;
+    button.dataset.pressed = "";
+  });
+  const clear = (end) => {
+    if (end.pseudoElement !== "::after") return;
+    if (end.target.matches?.(PRESSABLE)) delete end.target.dataset.pressed;
+  };
+  root.addEventListener("animationend", clear);
+  root.addEventListener("animationcancel", clear);
+}
 
 // src/shared/styles/modals.css.js
 var sharedModals = i`
@@ -2847,22 +3118,6 @@ var chatStyles = i`
     text-align: left;
     cursor: pointer;
   }
-  .home-suggestion-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: rgba(251, 191, 36, 0.12);
-    color: var(--selora-accent-text, #f59e0b);
-    --mdc-icon-size: 18px;
-  }
-  :host(:not([dark])) .home-suggestion-icon {
-    background: rgba(0, 0, 0, 0.05);
-    color: var(--primary-color);
-  }
   .home-suggestion-title {
     flex: 1;
     font-size: 15px;
@@ -2891,34 +3146,7 @@ var chatStyles = i`
   .home-suggestion-footer {
     display: flex;
     justify-content: flex-end;
-    margin-top: 12px;
-  }
-  /* A small composer: the same gold edge and send button, so acting on a
-     suggestion reads as sending it to Selora. */
-  .home-suggestion-act {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    padding: 5px 5px 5px 20px;
-    border: 1px solid rgba(251, 191, 36, 0.45);
-    border-radius: 999px;
-    background: var(--card-background-color);
-    color: var(--primary-text-color);
-    font: inherit;
-    font-size: 15px;
-    font-weight: 500;
-    cursor: pointer;
-    box-shadow: 0 0 18px -6px rgba(251, 191, 36, 0.5);
-    transition:
-      border-color 0.15s,
-      box-shadow 0.2s;
-  }
-  .home-suggestion-act:hover {
-    border-color: rgba(251, 191, 36, 0.8);
-    box-shadow: 0 0 22px -4px rgba(251, 191, 36, 0.6);
-  }
-  .home-suggestion-act:hover .composer-send {
-    transform: scale(1.06);
+    margin-top: 20px;
   }
   .home-suggestion-dismiss {
     flex-shrink: 0;
@@ -4664,6 +4892,9 @@ var chatStyles = i`
     --mdc-icon-size: 16px;
     transition: border-color 0.15s;
   }
+  .face-library {
+    margin-top: 10px;
+  }
   .camera-event-link ha-icon {
     color: var(--selora-accent);
   }
@@ -4786,6 +5017,119 @@ var chatStyles = i`
       margin-left: 0;
       max-width: none;
     }
+  }
+
+  /* A camera-descriptions question (render-describe-card.js): sections
+     opened by the shared card heading, each with its picture beside its
+     words, stacked on a phone. Pictures use the Frigate result
+     card's frame. */
+  /* The heading a guided conversation opens with (render-chat.js), as wide
+     as the cards under it. */
+  .chat-guide {
+    width: 760px;
+    max-width: 100%;
+    margin-bottom: 8px;
+  }
+  /* On its own it is the card, framed like a reply. */
+  .chat-guide .card-heading--banner {
+    border: 1px solid var(--selora-zinc-700);
+    border-radius: 16px;
+    box-shadow: var(--card-box-shadow);
+  }
+  .describe-card {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 760px;
+    max-width: 100%;
+  }
+  /* The opening banner runs to the reply's border: the bubble's padding
+     (12px 16px) is taken back, and its words keep the 16px edge the
+     content under it starts at. */
+  .describe-card > .describe-section:first-child .card-heading--banner {
+    margin: -12px -16px 0;
+    padding: 16px;
+    border-radius: 15px 15px 0 0;
+  }
+  .describe-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .describe-columns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
+  }
+  .describe-side {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+  @media (max-width: 700px) {
+    .describe-columns {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+  }
+  .describe-example-picture {
+    cursor: default;
+  }
+  /* One icon column for the example and the points: every row an 18px icon
+     on its first line of text, every text at the same left edge. */
+  .describe-points {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .describe-points li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 20px;
+  }
+  .describe-points li > ha-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 18px;
+    height: 20px;
+    --mdc-icon-size: 18px;
+    color: var(--selora-accent);
+  }
+  .describe-point-pair {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .describe-example-by {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .describe-example-described {
+    font-weight: 500;
+    color: var(--primary-text-color);
+  }
+  .describe-done {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .describe-done-warn {
+    color: var(--warning-color, #f59e0b);
+  }
+  .describe-question {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.45;
   }
 
   /* Idea chips under a live camera on the Frigate result card
@@ -5846,6 +6190,107 @@ var proposalStyles = i`
 
 // src/panel/styles/cards.css.js
 var cardElementStyles = i`
+  /* ---- Card heading (shared/card-heading.js) ---- */
+  .card-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-heading-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--selora-accent-text, #f59e0b);
+    --mdc-icon-size: 18px;
+  }
+  /* ha-icon is inline: on the text baseline it sits low in the square. */
+  .card-heading-icon ha-icon {
+    display: flex;
+  }
+  :host(:not([dark])) .card-heading-icon {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--primary-color);
+  }
+  .card-heading-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .card-heading-title {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--primary-text-color);
+  }
+  .card-heading-subtitle {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--secondary-text-color);
+  }
+  /* The picture fades in under the words on an eased curve: a straight ramp
+     leaves a visible seam where it starts. Its bottom melts into the card.
+     The words sit in the bottom corner, as far from both edges. */
+  .card-heading--banner {
+    --_bg: var(--card-background-color);
+    align-items: flex-end;
+    min-height: 132px;
+    padding: 20px;
+    border-radius: 12px;
+    background:
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--_bg) 100%, transparent) 0%,
+        color-mix(in srgb, var(--_bg) 100%, transparent) 30%,
+        color-mix(in srgb, var(--_bg) 96%, transparent) 38%,
+        color-mix(in srgb, var(--_bg) 88%, transparent) 46%,
+        color-mix(in srgb, var(--_bg) 74%, transparent) 54%,
+        color-mix(in srgb, var(--_bg) 56%, transparent) 62%,
+        color-mix(in srgb, var(--_bg) 38%, transparent) 70%,
+        color-mix(in srgb, var(--_bg) 22%, transparent) 78%,
+        color-mix(in srgb, var(--_bg) 10%, transparent) 86%,
+        color-mix(in srgb, var(--_bg) 3%, transparent) 93%,
+        color-mix(in srgb, var(--_bg) 0%, transparent) 100%
+      ),
+      linear-gradient(
+        0deg,
+        var(--_bg) 0%,
+        color-mix(in srgb, var(--_bg) 40%, transparent) 14%,
+        transparent 32%
+      ),
+      var(--card-heading-banner) right center / cover no-repeat;
+  }
+  .card-heading--banner .card-heading-text {
+    max-width: 55%;
+  }
+  .card-heading--banner .card-heading-title {
+    font-size: 17px;
+  }
+  /* On a phone the picture would sit under the words: it fades out further. */
+  @media (max-width: 700px) {
+    .card-heading--banner {
+      background:
+        linear-gradient(
+          90deg,
+          color-mix(in srgb, var(--_bg) 100%, transparent) 0%,
+          color-mix(in srgb, var(--_bg) 100%, transparent) 40%,
+          color-mix(in srgb, var(--_bg) 94%, transparent) 55%,
+          color-mix(in srgb, var(--_bg) 84%, transparent) 70%,
+          color-mix(in srgb, var(--_bg) 74%, transparent) 85%,
+          color-mix(in srgb, var(--_bg) 70%, transparent) 100%
+        ),
+        var(--card-heading-banner) right center / cover no-repeat;
+    }
+    .card-heading--banner .card-heading-text {
+      max-width: none;
+    }
+  }
+
   /* ---- Card action buttons ---- */
   .card-actions {
     display: flex;
@@ -9296,346 +9741,40 @@ var insightsStyles = i`
 
 // src/panel/styles/quick-actions.css.js
 var quickActionStyles = i`
-  /* ── Shared quick-action container ── */
   .qa-group {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 10px;
   }
-
-  /* ────────────────────────────────────────────────────────────────────
-   * Animated comet that travels along the chip's border perimeter.
-   *
-   * Technique (port of the React/Tailwind reference):
-   *   - .qa-glow-track is a transparent-bordered overlay sitting at -1px on
-   *     the chip. A two-layer mask shows ONLY the border ring of the chip
-   *     (mask-composite: intersect with linear-gradient(transparent) on
-   *     padding-box and linear-gradient(#000) on border-box).
-   *   - .qa-glow-spot inside it follows offset-path: rect(0 auto auto 0
-   *     round Npx) — the rectangular perimeter — animated via offset-distance
-   *     0% → 100%, 5s linear infinite. The spot has a horizontal gradient
-   *     fading from transparent to brand color, giving a comet trail look.
-   *
-   * Brand color: --selora-accent (gold) in dark, HA --primary-color in light.
-   * ──────────────────────────────────────────────────────────────────── */
-
-  @keyframes qa-spot-travel {
-    to {
-      offset-distance: 100%;
-    }
-  }
-
-  .qa-suggestion,
-  .qa-choice {
-    --qa-spot-color: var(--selora-accent, #fbbf24);
-    /* Match the header tab fill/border (translucent ghost pill) */
-    --qa-bg: rgba(255, 255, 255, 0.06);
-    --qa-border-color: rgba(255, 255, 255, 0.08);
-    --qa-bg-hover: rgba(255, 255, 255, 0.1);
-    --qa-border-hover: rgba(255, 255, 255, 0.12);
-    --qa-radius: 999px;
-    --qa-spot-size: 24px;
-    --qa-spot-duration: 5s;
-
-    position: relative;
-    isolation: isolate;
-    cursor: pointer;
-    color: var(--primary-text-color);
-    border: 1px solid var(--qa-border-color);
-    border-radius: var(--qa-radius);
-    background: var(--qa-bg);
-  }
-
-  /* Light mode: match light-mode tabs */
-  :host(:not([dark])) .qa-suggestion,
-  :host(:not([dark])) .qa-choice {
-    --qa-spot-color: var(--primary-color, #03a9f4);
-    --qa-bg: rgba(0, 0, 0, 0.05);
-    --qa-border-color: rgba(0, 0, 0, 0.1);
-    --qa-bg-hover: rgba(0, 0, 0, 0.08);
-    --qa-border-hover: rgba(0, 0, 0, 0.15);
-  }
-
-  /* Comet track — masked so its contents only paint on the border ring */
-  .qa-glow-track {
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    border: 2px solid transparent;
-    pointer-events: none;
-    z-index: 0;
-    -webkit-mask:
-      linear-gradient(transparent, transparent), linear-gradient(#000, #000);
-    -webkit-mask-clip: padding-box, border-box;
-    -webkit-mask-composite: source-in;
-    mask:
-      linear-gradient(transparent, transparent), linear-gradient(#000, #000);
-    mask-clip: padding-box, border-box;
-    mask-composite: intersect;
-  }
-
-  /* The traveling spot. offset-path traces the perimeter; the comet trail
-     is a horizontal gradient (transparent → spot color) sized to the spot. */
-  .qa-glow-spot {
-    position: absolute;
-    width: var(--qa-spot-size);
-    height: var(--qa-spot-size);
-    background: linear-gradient(
-      to right,
-      transparent 0%,
-      var(--qa-spot-color) 100%
-    );
-    offset-path: rect(0 auto auto 0 round var(--qa-radius));
-    offset-distance: 0%;
-    animation: qa-spot-travel var(--qa-spot-duration) linear infinite;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .qa-glow-spot {
-      animation: none;
-    }
-  }
-
-  /* On touch devices, chips stack vertically and have full row width, so
-     drop label truncation entirely and let titles wrap to as many lines
-     as needed. Desktop keeps the ellipsis/line-clamp behavior. */
-  @media (hover: none) {
-    .qa-suggestion-label {
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
-    }
-    .qa-choice-label {
-      display: block;
-      -webkit-line-clamp: unset;
-      line-clamp: unset;
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
-    }
-  }
-
-  /* ── Suggestion chips (welcome / quick-start, scene suggestions) ── */
-  .qa-suggestion {
-    --qa-radius: 12px;
-    display: inline-flex;
-    align-items: center;
+  /* Answers to a message sit under it, at its right edge. */
+  .qa-group--answers {
+    justify-content: flex-end;
     gap: 10px;
-    padding: 12px 14px 12px 16px;
-    min-width: 0;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: left;
-    line-height: 1.3;
-    transition:
-      background-color 0.15s,
-      border-color 0.15s,
-      transform 0.15s,
-      box-shadow 0.2s;
+    margin-top: 14px;
   }
-  .qa-suggestion:hover {
-    border-color: var(--qa-border-hover);
-    background-color: var(--qa-bg-hover);
-  }
-  .qa-suggestion:hover .qa-suggestion-trail {
-    color: var(--qa-spot-color);
-    transform: translateX(2px);
-  }
-  .qa-suggestion:active {
-    transform: translateY(0) scale(0.99);
-  }
-  .qa-suggestion ha-icon {
-    --mdc-icon-size: 18px;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 1;
-  }
-  .qa-suggestion-lead {
-    color: var(--qa-spot-color);
-    opacity: 0.85;
-  }
-  .qa-suggestion-label {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    position: relative;
-    z-index: 1;
-  }
-  .qa-suggestion-trail {
-    --mdc-icon-size: 16px !important;
-    color: var(--secondary-text-color);
-    opacity: 0.5;
-    transition:
-      color 0.15s,
-      transform 0.15s,
-      opacity 0.15s;
+  @media (max-width: 600px) {
+    .qa-group--answers {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .qa-group--answers .action-btn {
+      justify-content: space-between;
+    }
   }
 
-  /* ── Choice cards (AI-offered options) ── */
-  .qa-group--choices {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 10px;
-  }
-  /* Approval row (Allow once / For this conversation / Always / Deny)
-     packs into a strict 2-column grid so all four scopes fit in two
-     compact rows even in narrow chat columns. Card padding is also
-     reduced so the row doesn't dwarf the proposal it's gating. */
-  .qa-group--approval {
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .qa-group--approval .qa-choice {
-    padding: 8px 12px;
-  }
-  .qa-choice {
-    --qa-radius: 12px;
-    display: flex;
-    padding: 12px 14px;
-    text-align: left;
-    transition:
-      background-color 0.15s,
-      border-color 0.15s,
-      transform 0.15s,
-      box-shadow 0.2s;
-  }
-  .qa-choice:hover {
-    border-color: var(--qa-border-hover);
-    background-color: var(--qa-bg-hover);
-  }
-  .qa-choice:hover .qa-choice-trail {
-    color: var(--qa-spot-color);
-    transform: translateX(2px);
-  }
-  .qa-choice:active {
-    transform: translateY(0) scale(0.99);
-  }
-  .qa-choice > *:not(.qa-glow-track) {
-    position: relative;
-    z-index: 1;
-  }
-  .qa-choice-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    min-width: 0;
-  }
-  .qa-choice ha-icon {
-    --mdc-icon-size: 18px;
-    flex-shrink: 0;
-  }
-  .qa-choice-lead {
-    color: var(--qa-spot-color);
-    opacity: 0.85;
-  }
-  .qa-choice-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0;
-  }
-  .qa-choice-label {
-    font-size: 13px;
-    font-weight: 600;
-    line-height: 1.3;
-    /* Wrap up to 2 lines, then ellipsis (line-clamp) */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-word;
-  }
-  .qa-choice-desc {
-    font-size: 12px;
-    opacity: 0.6;
-    line-height: 1.35;
-  }
-  .qa-choice-trail {
-    --mdc-icon-size: 16px !important;
-    color: var(--secondary-text-color);
-    opacity: 0.5;
-    transition:
-      color 0.15s,
-      transform 0.15s,
-      opacity 0.15s;
-  }
-
-  /* ── Confirmation buttons (Apply / Modify / Cancel, approval rows) ── */
-  /* Auto-fit grid so all buttons share the same width and height. Min
-     column is wide enough to fit the longest description (~150px) and
-     wraps to 2x2 on narrow chat columns. */
-  .qa-group--confirmations {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 8px;
-  }
-  .qa-confirm {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 8px;
-    transition:
-      background 0.15s,
-      border-color 0.15s;
-    border: 1px solid
-      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
-    background: transparent;
-    color: var(--primary-text-color);
-    min-height: 44px;
-    text-align: left;
-  }
-  .qa-confirm:hover {
-    border-color: var(--selora-accent);
-  }
-  .qa-confirm--primary {
-    background: var(--selora-accent);
-    color: #000;
-    border-color: var(--selora-accent);
-  }
-  .qa-confirm--primary:hover {
-    background: #f59e0b;
-    border-color: #f59e0b;
-  }
-  /* Approve / deny tones: icon-only colour cue so the buttons stay
-     visually quiet next to the risk card. Border and background stay
-     neutral until hover, then borrow the tone hue. */
-  .qa-confirm--approve:hover {
-    border-color: rgba(16, 185, 129, 0.7);
-    background: rgba(16, 185, 129, 0.08);
-  }
-  .qa-confirm--deny:hover {
-    border-color: rgba(239, 68, 68, 0.7);
-    background: rgba(239, 68, 68, 0.08);
-  }
-  .qa-confirm ha-icon {
-    --mdc-icon-size: 16px;
-    flex-shrink: 0;
-  }
-  .qa-confirm-label {
-    line-height: 1.1;
-  }
-  .qa-confirm-desc {
-    font-size: 11px;
-    font-weight: 400;
-    opacity: 0.6;
-    line-height: 1.2;
-    margin-top: 2px;
-  }
-
-  /* ── Disabled state (after selection) ── */
+  /* ── After a selection ── */
   .qa-group--used {
     opacity: 0.45;
     pointer-events: none;
+  }
+  /* The answer given stays lit; the others dim and step back. */
+  .qa-group--picked {
+    opacity: 1;
+  }
+  .qa-group--picked .action-btn:not(.action-btn--picked) {
+    opacity: 0.45;
+    transform: translateY(2px);
   }
 `;
 
@@ -11431,6 +11570,28 @@ var en_default = {
       "Add these cameras to Frigate: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate is not watching {members} yet. Once added, it spots people as they appear and keeps recordings of what it saw.",
+    home_suggestion_describe: "Search what your cameras saw, in plain words",
+    home_suggestion_describe_one: "Search what {entity} saw, in plain words",
+    home_suggestion_describe_prompt:
+      "Ask me, one camera at a time, whether Selora AI should describe what these cameras see: {entity}.",
+    home_suggestion_describe_why:
+      "Frigate only knows it saw \u201Ca car\u201D or \u201Ca person\u201D. Selora AI can describe each one, like \u201Ca white FedEx van in the driveway\u201D or \u201Csomeone leaving a parcel at the door\u201D, so you can simply ask \u201CDid a delivery come today?\u201D",
+    home_suggestion_describe_how:
+      "Pick which cameras to describe: {members}. It takes a minute, and no picture leaves your home until you say yes.",
+    home_suggestion_describe_act: "Choose cameras",
+    home_suggestion_describe_ask:
+      "Help me choose which cameras Selora AI describes",
+    home_suggestion_faces: "Recognize the people you know on your cameras",
+    home_suggestion_faces_prompt:
+      "Help me set up face recognition in Frigate: tell me what it does and what it needs, then ask me before turning it on.",
+    home_suggestion_faces_why:
+      "Frigate can tell who is at the door once it knows their faces. It runs on your hub, and needs a few photos of each person.",
+    home_suggestion_faces_empty: "Add the people Frigate should recognize",
+    home_suggestion_faces_empty_prompt:
+      "Help me add the people Frigate should recognize: where to add them, and which photos work best.",
+    home_suggestion_faces_empty_why:
+      "Face recognition is on, but Frigate does not know anyone yet. Add a few photos of each person in its Face Library.",
+    face_library_open: "Open the Face Library in Frigate",
     client_action_add_to_frigate: "Add to Frigate",
     frigate_camera_username: "Username",
     frigate_camera_password: "Password",
@@ -12874,6 +13035,31 @@ var fr_default = {
       "Ajoute ces cam\xE9ras \xE0 Frigate : {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate ne surveille pas encore {members}. Une fois ajout\xE9es, il rep\xE8re les personnes d\xE8s qu'elles apparaissent et garde les enregistrements de ce qu'il a vu.",
+    home_suggestion_describe:
+      "Retrouvez ce que vos cam\xE9ras ont vu, avec vos mots",
+    home_suggestion_describe_one:
+      "Retrouvez ce que {entity} a vu, avec vos mots",
+    home_suggestion_describe_prompt:
+      "Demande-moi, cam\xE9ra par cam\xE9ra, si Selora AI doit d\xE9crire ce que voient ces cam\xE9ras : {entity}.",
+    home_suggestion_describe_why:
+      "Frigate sait seulement qu'il a vu \xAB une voiture \xBB ou \xAB une personne \xBB. Selora AI peut d\xE9crire chacun, comme \xAB une camionnette FedEx blanche dans l'all\xE9e \xBB ou \xAB quelqu'un qui d\xE9pose un colis \xE0 la porte \xBB, pour que vous puissiez simplement demander \xAB Un livreur est-il pass\xE9 aujourd'hui ? \xBB",
+    home_suggestion_describe_how:
+      "Choisissez les cam\xE9ras \xE0 d\xE9crire : {members}. Cela prend une minute, et aucune image ne quitte la maison tant que vous ne dites pas oui.",
+    home_suggestion_describe_act: "Choisir les cam\xE9ras",
+    home_suggestion_describe_ask:
+      "Aide-moi \xE0 choisir les cam\xE9ras que Selora AI d\xE9crit",
+    home_suggestion_faces: "Reconna\xEEtre vos proches sur vos cam\xE9ras",
+    home_suggestion_faces_prompt:
+      "Aide-moi \xE0 configurer la reconnaissance faciale dans Frigate : explique-moi ce qu'elle fait et ce dont elle a besoin, puis demande-moi avant de l'activer.",
+    home_suggestion_faces_why:
+      "Frigate peut dire qui est \xE0 la porte une fois qu'il conna\xEEt leur visage. Elle fonctionne sur votre hub et a besoin de quelques photos de chaque personne.",
+    home_suggestion_faces_empty:
+      "Ajouter les personnes que Frigate doit reconna\xEEtre",
+    home_suggestion_faces_empty_prompt:
+      "Aide-moi \xE0 ajouter les personnes que Frigate doit reconna\xEEtre : o\xF9 les ajouter et quelles photos fonctionnent le mieux.",
+    home_suggestion_faces_empty_why:
+      "La reconnaissance faciale est activ\xE9e, mais Frigate ne conna\xEEt encore personne. Ajoutez quelques photos de chaque personne dans sa biblioth\xE8que de visages.",
+    face_library_open: "Ouvrir la biblioth\xE8que de visages dans Frigate",
     client_action_add_to_frigate: "Ajouter \xE0 Frigate",
     frigate_camera_username: "Nom d'utilisateur",
     frigate_camera_password: "Mot de passe",
@@ -14310,6 +14496,31 @@ var de_default = {
       "F\xFCge diese Kameras zu Frigate hinzu: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate \xFCberwacht {members} noch nicht. Danach erkennt es Personen, sobald sie auftauchen, und speichert Aufnahmen davon.",
+    home_suggestion_describe:
+      "Finde mit eigenen Worten, was deine Kameras gesehen haben",
+    home_suggestion_describe_one:
+      "Finde mit eigenen Worten, was {entity} gesehen hat",
+    home_suggestion_describe_prompt:
+      "Frag mich Kamera f\xFCr Kamera, ob Selora AI beschreiben soll, was diese Kameras sehen: {entity}.",
+    home_suggestion_describe_why:
+      "Frigate wei\xDF nur, dass es \u201Eein Auto\u201C oder \u201Eeine Person\u201C gesehen hat. Selora AI kann jedes davon beschreiben, etwa \u201Eein wei\xDFer FedEx-Transporter in der Einfahrt\u201C oder \u201Ejemand legt ein Paket vor die T\xFCr\u201C, sodass du einfach fragen kannst: \u201EKam heute eine Lieferung?\u201C",
+    home_suggestion_describe_how:
+      "W\xE4hle, welche Kameras beschrieben werden: {members}. Das dauert eine Minute, und kein Bild verl\xE4sst dein Zuhause, bevor du Ja sagst.",
+    home_suggestion_describe_act: "Kameras ausw\xE4hlen",
+    home_suggestion_describe_ask:
+      "Hilf mir auszuw\xE4hlen, welche Kameras Selora AI beschreibt",
+    home_suggestion_faces: "Bekannte Personen auf deinen Kameras erkennen",
+    home_suggestion_faces_prompt:
+      "Hilf mir, die Gesichtserkennung in Frigate einzurichten: Erkl\xE4r mir, was sie macht und was sie braucht, und frag mich, bevor du sie einschaltest.",
+    home_suggestion_faces_why:
+      "Frigate kann sagen, wer an der T\xFCr ist, sobald es die Gesichter kennt. Sie l\xE4uft auf deinem Hub und braucht ein paar Fotos von jeder Person.",
+    home_suggestion_faces_empty:
+      "Personen hinzuf\xFCgen, die Frigate erkennen soll",
+    home_suggestion_faces_empty_prompt:
+      "Hilf mir, die Personen hinzuzuf\xFCgen, die Frigate erkennen soll: wo ich sie hinzuf\xFCge und welche Fotos am besten funktionieren.",
+    home_suggestion_faces_empty_why:
+      "Die Gesichtserkennung ist an, aber Frigate kennt noch niemanden. F\xFCge in seiner Gesichterbibliothek ein paar Fotos von jeder Person hinzu.",
+    face_library_open: "Gesichterbibliothek in Frigate \xF6ffnen",
     client_action_add_to_frigate: "Zu Frigate hinzuf\xFCgen",
     frigate_camera_username: "Benutzername",
     frigate_camera_password: "Passwort",
@@ -15726,6 +15937,31 @@ var es_default = {
       "A\xF1ade estas c\xE1maras a Frigate: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate a\xFAn no vigila {members}. Una vez a\xF1adidas, detecta a las personas en cuanto aparecen y guarda grabaciones de lo que ha visto.",
+    home_suggestion_describe:
+      "Busca con tus palabras lo que vieron tus c\xE1maras",
+    home_suggestion_describe_one: "Busca con tus palabras lo que vio {entity}",
+    home_suggestion_describe_prompt:
+      "Preg\xFAntame, c\xE1mara por c\xE1mara, si Selora AI debe describir lo que ven estas c\xE1maras: {entity}.",
+    home_suggestion_describe_why:
+      "Frigate solo sabe que vio \xABun coche\xBB o \xABuna persona\xBB. Selora AI puede describir cada uno, como \xABuna furgoneta blanca de FedEx en la entrada\xBB o \xABalguien deja un paquete en la puerta\xBB, para que puedas preguntar simplemente \xAB\xBFHa llegado alg\xFAn paquete hoy?\xBB",
+    home_suggestion_describe_how:
+      "Elige qu\xE9 c\xE1maras describir: {members}. Lleva un minuto, y ninguna imagen sale de tu casa hasta que digas que s\xED.",
+    home_suggestion_describe_act: "Elegir c\xE1maras",
+    home_suggestion_describe_ask:
+      "Ay\xFAdame a elegir qu\xE9 c\xE1maras describe Selora AI",
+    home_suggestion_faces:
+      "Reconocer a las personas que conoces en tus c\xE1maras",
+    home_suggestion_faces_prompt:
+      "Ay\xFAdame a configurar el reconocimiento facial en Frigate: dime qu\xE9 hace y qu\xE9 necesita, y preg\xFAntame antes de activarlo.",
+    home_suggestion_faces_why:
+      "Frigate puede decir qui\xE9n est\xE1 en la puerta cuando conoce sus caras. Funciona en tu hub y necesita algunas fotos de cada persona.",
+    home_suggestion_faces_empty:
+      "A\xF1adir las personas que Frigate debe reconocer",
+    home_suggestion_faces_empty_prompt:
+      "Ay\xFAdame a a\xF1adir las personas que Frigate debe reconocer: d\xF3nde a\xF1adirlas y qu\xE9 fotos funcionan mejor.",
+    home_suggestion_faces_empty_why:
+      "El reconocimiento facial est\xE1 activado, pero Frigate a\xFAn no conoce a nadie. A\xF1ade algunas fotos de cada persona en su biblioteca de caras.",
+    face_library_open: "Abrir la biblioteca de caras en Frigate",
     client_action_add_to_frigate: "A\xF1adir a Frigate",
     frigate_camera_username: "Usuario",
     frigate_camera_password: "Contrase\xF1a",
@@ -17138,6 +17374,32 @@ var it_default = {
       "Aggiungi queste telecamere a Frigate: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate non sta ancora sorvegliando {members}. Una volta aggiunte, rileva le persone appena compaiono e conserva le registrazioni di ci\xF2 che ha visto.",
+    home_suggestion_describe:
+      "Cerca con parole tue ci\xF2 che hanno visto le telecamere",
+    home_suggestion_describe_one:
+      "Cerca con parole tue ci\xF2 che ha visto {entity}",
+    home_suggestion_describe_prompt:
+      "Chiedimi, una telecamera alla volta, se Selora AI deve descrivere ci\xF2 che vedono queste telecamere: {entity}.",
+    home_suggestion_describe_why:
+      "Frigate sa solo di aver visto \xABun'auto\xBB o \xABuna persona\xBB. Selora AI pu\xF2 descriverli uno per uno, come \xABun furgone FedEx bianco nel vialetto\xBB o \xABqualcuno lascia un pacco alla porta\xBB, cos\xEC puoi chiedere semplicemente \xAB\xC8 arrivata una consegna oggi?\xBB",
+    home_suggestion_describe_how:
+      "Scegli quali telecamere descrivere: {members}. Ci vuole un minuto, e nessuna immagine lascia la casa finch\xE9 non dici di s\xEC.",
+    home_suggestion_describe_act: "Scegli le telecamere",
+    home_suggestion_describe_ask:
+      "Aiutami a scegliere quali telecamere descrive Selora AI",
+    home_suggestion_faces:
+      "Riconoscere le persone che conosci sulle tue telecamere",
+    home_suggestion_faces_prompt:
+      "Aiutami a configurare il riconoscimento facciale in Frigate: spiegami cosa fa e di cosa ha bisogno, poi chiedimi prima di attivarlo.",
+    home_suggestion_faces_why:
+      "Frigate pu\xF2 dire chi \xE8 alla porta una volta che ne conosce il volto. Funziona sul tuo hub e servono alcune foto di ogni persona.",
+    home_suggestion_faces_empty:
+      "Aggiungi le persone che Frigate deve riconoscere",
+    home_suggestion_faces_empty_prompt:
+      "Aiutami ad aggiungere le persone che Frigate deve riconoscere: dove aggiungerle e quali foto funzionano meglio.",
+    home_suggestion_faces_empty_why:
+      "Il riconoscimento facciale \xE8 attivo, ma Frigate non conosce ancora nessuno. Aggiungi alcune foto di ogni persona nella sua libreria dei volti.",
+    face_library_open: "Apri la libreria dei volti in Frigate",
     client_action_add_to_frigate: "Aggiungi a Frigate",
     frigate_camera_username: "Nome utente",
     frigate_camera_password: "Password",
@@ -18568,6 +18830,29 @@ var nl_default = {
       "Voeg deze camera's toe aan Frigate: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate houdt {members} nog niet in de gaten. Eenmaal toegevoegd herkent het mensen zodra ze verschijnen en bewaart het opnames van wat het zag.",
+    home_suggestion_describe: "Zoek in gewone woorden wat je camera's zagen",
+    home_suggestion_describe_one: "Zoek in gewone woorden wat {entity} zag",
+    home_suggestion_describe_prompt:
+      "Vraag me per camera of Selora AI moet beschrijven wat deze camera's zien: {entity}.",
+    home_suggestion_describe_why:
+      "Frigate weet alleen dat het \u201Eeen auto\u201D of \u201Eeen persoon\u201D zag. Selora AI kan elk ervan beschrijven, zoals \u201Eeen witte FedEx-bestelbus op de oprit\u201D of \u201Eiemand legt een pakket bij de deur\u201D, zodat je gewoon kunt vragen: \u201EIs er vandaag iets bezorgd?\u201D",
+    home_suggestion_describe_how:
+      "Kies welke camera's beschreven worden: {members}. Het duurt een minuut, en er verlaat geen beeld je huis tot je ja zegt.",
+    home_suggestion_describe_act: "Camera's kiezen",
+    home_suggestion_describe_ask:
+      "Help me kiezen welke camera's Selora AI beschrijft",
+    home_suggestion_faces: "Herken de mensen die je kent op je camera's",
+    home_suggestion_faces_prompt:
+      "Help me gezichtsherkenning in Frigate in te stellen: vertel wat het doet en wat het nodig heeft, en vraag het me voordat je het aanzet.",
+    home_suggestion_faces_why:
+      "Frigate kan zeggen wie er aan de deur staat zodra het hun gezicht kent. Het draait op je hub en heeft een paar foto's van elke persoon nodig.",
+    home_suggestion_faces_empty:
+      "Voeg de mensen toe die Frigate moet herkennen",
+    home_suggestion_faces_empty_prompt:
+      "Help me de mensen toe te voegen die Frigate moet herkennen: waar ik ze toevoeg en welke foto's het best werken.",
+    home_suggestion_faces_empty_why:
+      "Gezichtsherkenning staat aan, maar Frigate kent nog niemand. Voeg in de gezichtenbibliotheek een paar foto's van elke persoon toe.",
+    face_library_open: "Open de gezichtenbibliotheek in Frigate",
     client_action_add_to_frigate: "Toevoegen aan Frigate",
     frigate_camera_username: "Gebruikersnaam",
     frigate_camera_password: "Wachtwoord",
@@ -20054,6 +20339,30 @@ var hu_default = {
       "Add hozz\xE1 ezeket a kamer\xE1kat a Frigate-hez: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "A Frigate m\xE9g nem figyeli ezeket: {members}. Hozz\xE1ad\xE1s ut\xE1n \xE9szleli a megjelen\u0151 embereket, \xE9s felv\xE9teleket \u0151riz arr\xF3l, amit l\xE1tott.",
+    home_suggestion_describe:
+      "Keresd meg a saj\xE1t szavaiddal, mit l\xE1ttak a kamer\xE1id",
+    home_suggestion_describe_one:
+      "Keresd meg a saj\xE1t szavaiddal, mit l\xE1tott: {entity}",
+    home_suggestion_describe_prompt:
+      "K\xE9rdezz meg kamer\xE1nk\xE9nt, hogy a Selora AI le\xEDrja-e, amit ezek a kamer\xE1k l\xE1tnak: {entity}.",
+    home_suggestion_describe_why:
+      "A Frigate csak annyit tud, hogy \u201Eegy aut\xF3t\u201D vagy \u201Eegy szem\xE9lyt\u201D l\xE1tott. A Selora AI mindegyiket le\xEDrja, p\xE9ld\xE1ul \u201Efeh\xE9r FedEx kisteheraut\xF3 a kocsibe\xE1ll\xF3n\u201D vagy \u201Evalaki csomagot tesz le az ajt\xF3 el\xE9\u201D, \xEDgy egyszer\u0171en megk\xE9rdezheted: \u201EJ\xF6tt ma csomag?\u201D",
+    home_suggestion_describe_how:
+      "V\xE1laszd ki, mely kamer\xE1kat \xEDrja le: {members}. Egy percig tart, \xE9s egyetlen k\xE9p sem hagyja el az otthonodat, am\xEDg igent nem mondasz.",
+    home_suggestion_describe_act: "Kamer\xE1k kiv\xE1laszt\xE1sa",
+    home_suggestion_describe_ask:
+      "Seg\xEDts kiv\xE1lasztani, mely kamer\xE1kat \xEDrja le a Selora AI",
+    home_suggestion_faces: "Ismer\u0151s\xF6k felismer\xE9se a kamer\xE1kon",
+    home_suggestion_faces_prompt:
+      "Seg\xEDts be\xE1ll\xEDtani az arcfelismer\xE9st a Frigate-ben: mondd el, mit csin\xE1l \xE9s mire van sz\xFCks\xE9ge, \xE9s k\xE9rdezz meg, miel\u0151tt bekapcsolod.",
+    home_suggestion_faces_why:
+      "A Frigate meg tudja mondani, ki \xE1ll az ajt\xF3ban, ha ismeri az arc\xE1t. A hubodon fut, \xE9s mindenkir\u0151l kell n\xE9h\xE1ny f\xE9nyk\xE9p.",
+    home_suggestion_faces_empty: "Add hozz\xE1, kiket ismerjen fel a Frigate",
+    home_suggestion_faces_empty_prompt:
+      "Seg\xEDts hozz\xE1adni azokat, akiket a Frigate-nek fel kell ismernie: hol adjam hozz\xE1 \u0151ket, \xE9s milyen f\xE9nyk\xE9pek a legjobbak.",
+    home_suggestion_faces_empty_why:
+      "Az arcfelismer\xE9s be van kapcsolva, de a Frigate m\xE9g senkit sem ismer. Adj hozz\xE1 n\xE9h\xE1ny f\xE9nyk\xE9pet mindenkir\u0151l az arck\xF6nyvt\xE1r\xE1ban.",
+    face_library_open: "Arck\xF6nyvt\xE1r megnyit\xE1sa a Frigate-ben",
     client_action_add_to_frigate: "Hozz\xE1ad\xE1s a Frigate-hez",
     frigate_camera_username: "Felhaszn\xE1l\xF3n\xE9v",
     frigate_camera_password: "Jelsz\xF3",
@@ -21465,6 +21774,32 @@ var pt_default = {
       "Adiciona estas c\xE2maras ao Frigate: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "O Frigate ainda n\xE3o vigia {members}. Depois de adicionadas, deteta pessoas assim que aparecem e guarda grava\xE7\xF5es do que viu.",
+    home_suggestion_describe:
+      "Pesquise com as suas palavras o que as c\xE2maras viram",
+    home_suggestion_describe_one:
+      "Pesquise com as suas palavras o que {entity} viu",
+    home_suggestion_describe_prompt:
+      "Pergunta-me, uma c\xE2mara de cada vez, se o Selora AI deve descrever o que estas c\xE2maras veem: {entity}.",
+    home_suggestion_describe_why:
+      "O Frigate s\xF3 sabe que viu \xABum carro\xBB ou \xABuma pessoa\xBB. O Selora AI pode descrever cada um, como \xABuma carrinha branca da FedEx na entrada\xBB ou \xABalgu\xE9m deixa uma encomenda \xE0 porta\xBB, para que possa simplesmente perguntar \xABChegou alguma entrega hoje?\xBB",
+    home_suggestion_describe_how:
+      "Escolha que c\xE2maras descrever: {members}. Demora um minuto, e nenhuma imagem sai de casa at\xE9 dizer que sim.",
+    home_suggestion_describe_act: "Escolher c\xE2maras",
+    home_suggestion_describe_ask:
+      "Ajude-me a escolher que c\xE2maras o Selora AI descreve",
+    home_suggestion_faces:
+      "Reconhecer as pessoas que conhece nas suas c\xE2maras",
+    home_suggestion_faces_prompt:
+      "Ajuda-me a configurar o reconhecimento facial no Frigate: diz-me o que faz e do que precisa, e pergunta-me antes de o ativar.",
+    home_suggestion_faces_why:
+      "O Frigate consegue dizer quem est\xE1 \xE0 porta quando conhece o rosto. Funciona no seu hub e precisa de algumas fotos de cada pessoa.",
+    home_suggestion_faces_empty:
+      "Adicionar as pessoas que o Frigate deve reconhecer",
+    home_suggestion_faces_empty_prompt:
+      "Ajuda-me a adicionar as pessoas que o Frigate deve reconhecer: onde as adicionar e que fotos funcionam melhor.",
+    home_suggestion_faces_empty_why:
+      "O reconhecimento facial est\xE1 ativado, mas o Frigate ainda n\xE3o conhece ningu\xE9m. Adicione algumas fotos de cada pessoa na biblioteca de rostos.",
+    face_library_open: "Abrir a biblioteca de rostos no Frigate",
     client_action_add_to_frigate: "Adicionar ao Frigate",
     frigate_camera_username: "Nome de utilizador",
     frigate_camera_password: "Palavra-passe",
@@ -23519,6 +23854,34 @@ var ru_default = {
       "\u0414\u043E\u0431\u0430\u0432\u044C \u044D\u0442\u0438 \u043A\u0430\u043C\u0435\u0440\u044B \u0432 Frigate: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate \u043F\u043E\u043A\u0430 \u043D\u0435 \u0441\u043B\u0435\u0434\u0438\u0442 \u0437\u0430 {members}. \u041F\u043E\u0441\u043B\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u044F \u043E\u043D \u0437\u0430\u043C\u0435\u0447\u0430\u0435\u0442 \u043B\u044E\u0434\u0435\u0439, \u043A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u043E\u043D\u0438 \u043F\u043E\u044F\u0432\u043B\u044F\u044E\u0442\u0441\u044F, \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442 \u0437\u0430\u043F\u0438\u0441\u0438 \u0443\u0432\u0438\u0434\u0435\u043D\u043D\u043E\u0433\u043E.",
+    home_suggestion_describe:
+      "\u0418\u0449\u0438\u0442\u0435 \u0441\u0432\u043E\u0438\u043C\u0438 \u0441\u043B\u043E\u0432\u0430\u043C\u0438 \u0442\u043E, \u0447\u0442\u043E \u0432\u0438\u0434\u0435\u043B\u0438 \u043A\u0430\u043C\u0435\u0440\u044B",
+    home_suggestion_describe_one:
+      "\u0418\u0449\u0438\u0442\u0435 \u0441\u0432\u043E\u0438\u043C\u0438 \u0441\u043B\u043E\u0432\u0430\u043C\u0438 \u0442\u043E, \u0447\u0442\u043E \u0432\u0438\u0434\u0435\u043B\u0430 \u043A\u0430\u043C\u0435\u0440\u0430 {entity}",
+    home_suggestion_describe_prompt:
+      "\u0421\u043F\u0440\u043E\u0441\u0438 \u043C\u0435\u043D\u044F \u043F\u043E \u043E\u0447\u0435\u0440\u0435\u0434\u0438 \u043F\u0440\u043E \u043A\u0430\u0436\u0434\u0443\u044E \u043A\u0430\u043C\u0435\u0440\u0443, \u0434\u043E\u043B\u0436\u0435\u043D \u043B\u0438 Selora AI \u043E\u043F\u0438\u0441\u044B\u0432\u0430\u0442\u044C \u0442\u043E, \u0447\u0442\u043E \u043E\u043D\u0438 \u0432\u0438\u0434\u044F\u0442: {entity}.",
+    home_suggestion_describe_why:
+      "Frigate \u0437\u043D\u0430\u0435\u0442 \u0442\u043E\u043B\u044C\u043A\u043E, \u0447\u0442\u043E \u0432\u0438\u0434\u0435\u043B \xAB\u043C\u0430\u0448\u0438\u043D\u0443\xBB \u0438\u043B\u0438 \xAB\u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430\xBB. Selora AI \u043C\u043E\u0436\u0435\u0442 \u043E\u043F\u0438\u0441\u0430\u0442\u044C \u043A\u0430\u0436\u0434\u043E\u0433\u043E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xAB\u0431\u0435\u043B\u044B\u0439 \u0444\u0443\u0440\u0433\u043E\u043D FedEx \u043D\u0430 \u043F\u043E\u0434\u044A\u0435\u0437\u0434\u043D\u043E\u0439 \u0434\u043E\u0440\u043E\u0436\u043A\u0435\xBB \u0438\u043B\u0438 \xAB\u043A\u0442\u043E-\u0442\u043E \u043E\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u0442 \u043F\u043E\u0441\u044B\u043B\u043A\u0443 \u0443 \u0434\u0432\u0435\u0440\u0438\xBB, \u0438 \u0432\u044B \u0441\u043C\u043E\u0436\u0435\u0442\u0435 \u043F\u0440\u043E\u0441\u0442\u043E \u0441\u043F\u0440\u043E\u0441\u0438\u0442\u044C: \xAB\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0431\u044B\u043B\u0430 \u0434\u043E\u0441\u0442\u0430\u0432\u043A\u0430?\xBB",
+    home_suggestion_describe_how:
+      "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435, \u043A\u0430\u043A\u0438\u0435 \u043A\u0430\u043C\u0435\u0440\u044B \u043E\u043F\u0438\u0441\u044B\u0432\u0430\u0442\u044C: {members}. \u042D\u0442\u043E \u0437\u0430\u0439\u043C\u0451\u0442 \u043C\u0438\u043D\u0443\u0442\u0443, \u0438 \u043D\u0438 \u043E\u0434\u043D\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u043D\u0435 \u043F\u043E\u043A\u0438\u043D\u0435\u0442 \u0434\u043E\u043C, \u043F\u043E\u043A\u0430 \u0432\u044B \u043D\u0435 \u0441\u043A\u0430\u0436\u0435\u0442\u0435 \xAB\u0434\u0430\xBB.",
+    home_suggestion_describe_act:
+      "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u043A\u0430\u043C\u0435\u0440\u044B",
+    home_suggestion_describe_ask:
+      "\u041F\u043E\u043C\u043E\u0433\u0438 \u0432\u044B\u0431\u0440\u0430\u0442\u044C, \u043A\u0430\u043A\u0438\u0435 \u043A\u0430\u043C\u0435\u0440\u044B \u043E\u043F\u0438\u0441\u044B\u0432\u0430\u0435\u0442 Selora AI",
+    home_suggestion_faces:
+      "\u0423\u0437\u043D\u0430\u0432\u0430\u0442\u044C \u0437\u043D\u0430\u043A\u043E\u043C\u044B\u0445 \u043B\u044E\u0434\u0435\u0439 \u043D\u0430 \u043A\u0430\u043C\u0435\u0440\u0430\u0445",
+    home_suggestion_faces_prompt:
+      "\u041F\u043E\u043C\u043E\u0433\u0438 \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0440\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0438\u0435 \u043B\u0438\u0446 \u0432\u043E Frigate: \u0440\u0430\u0441\u0441\u043A\u0430\u0436\u0438, \u0447\u0442\u043E \u043E\u043D\u043E \u0434\u0435\u043B\u0430\u0435\u0442 \u0438 \u0447\u0442\u043E \u0435\u043C\u0443 \u043D\u0443\u0436\u043D\u043E, \u0438 \u0441\u043F\u0440\u043E\u0441\u0438 \u043C\u0435\u043D\u044F, \u043F\u0440\u0435\u0436\u0434\u0435 \u0447\u0435\u043C \u0432\u043A\u043B\u044E\u0447\u0430\u0442\u044C.",
+    home_suggestion_faces_why:
+      "Frigate \u0441\u043C\u043E\u0436\u0435\u0442 \u0441\u043A\u0430\u0437\u0430\u0442\u044C, \u043A\u0442\u043E \u0443 \u0434\u0432\u0435\u0440\u0438, \u043A\u043E\u0433\u0434\u0430 \u0443\u0437\u043D\u0430\u0435\u0442 \u0438\u0445 \u043B\u0438\u0446\u0430. \u0420\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0438\u0435 \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043D\u0430 \u0432\u0430\u0448\u0435\u043C \u0445\u0430\u0431\u0435, \u0438 \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430 \u043D\u0443\u0436\u043D\u043E \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u043E\u0442\u043E.",
+    home_suggestion_faces_empty:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043B\u044E\u0434\u0435\u0439, \u043A\u043E\u0442\u043E\u0440\u044B\u0445 Frigate \u0434\u043E\u043B\u0436\u0435\u043D \u0443\u0437\u043D\u0430\u0432\u0430\u0442\u044C",
+    home_suggestion_faces_empty_prompt:
+      "\u041F\u043E\u043C\u043E\u0433\u0438 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043B\u044E\u0434\u0435\u0439, \u043A\u043E\u0442\u043E\u0440\u044B\u0445 Frigate \u0434\u043E\u043B\u0436\u0435\u043D \u0443\u0437\u043D\u0430\u0432\u0430\u0442\u044C: \u043A\u0443\u0434\u0430 \u0438\u0445 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0438 \u043A\u0430\u043A\u0438\u0435 \u0444\u043E\u0442\u043E \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0442 \u043B\u0443\u0447\u0448\u0435 \u0432\u0441\u0435\u0433\u043E.",
+    home_suggestion_faces_empty_why:
+      "\u0420\u0430\u0441\u043F\u043E\u0437\u043D\u0430\u0432\u0430\u043D\u0438\u0435 \u043B\u0438\u0446 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u043E, \u043D\u043E Frigate \u043F\u043E\u043A\u0430 \u043D\u0438\u043A\u043E\u0433\u043E \u043D\u0435 \u0437\u043D\u0430\u0435\u0442. \u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u043E\u0442\u043E \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0447\u0435\u043B\u043E\u0432\u0435\u043A\u0430 \u0432 \u0435\u0433\u043E \u0431\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0443 \u043B\u0438\u0446.",
+    face_library_open:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0431\u0438\u0431\u043B\u0438\u043E\u0442\u0435\u043A\u0443 \u043B\u0438\u0446 \u0432\u043E Frigate",
     client_action_add_to_frigate:
       "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u043E Frigate",
     frigate_camera_username:
@@ -25262,6 +25625,33 @@ var ja_default = {
       "\u3053\u308C\u3089\u306E\u30AB\u30E1\u30E9\u3092 Frigate \u306B\u8FFD\u52A0\u3057\u3066: {entity} ({entity_id})\u3002",
     home_suggestion_frigate_why:
       "Frigate \u306F\u307E\u3060 {members} \u3092\u76E3\u8996\u3057\u3066\u3044\u307E\u305B\u3093\u3002\u8FFD\u52A0\u3059\u308B\u3068\u3001\u4EBA\u304C\u73FE\u308C\u305F\u6642\u70B9\u3067\u691C\u77E5\u3057\u3001\u898B\u305F\u3082\u306E\u3092\u9332\u753B\u3057\u3066\u6B8B\u3057\u307E\u3059\u3002",
+    home_suggestion_describe:
+      "\u30AB\u30E1\u30E9\u304C\u898B\u305F\u3082\u306E\u3092\u3001\u666E\u6BB5\u306E\u8A00\u8449\u3067\u691C\u7D22",
+    home_suggestion_describe_one:
+      "{entity} \u304C\u898B\u305F\u3082\u306E\u3092\u3001\u666E\u6BB5\u306E\u8A00\u8449\u3067\u691C\u7D22",
+    home_suggestion_describe_prompt:
+      "\u3053\u308C\u3089\u306E\u30AB\u30E1\u30E9\u304C\u898B\u305F\u3082\u306E\u3092 Selora AI \u304C\u8AAC\u660E\u3059\u308B\u304B\u3069\u3046\u304B\u30011 \u53F0\u305A\u3064\u8CEA\u554F\u3057\u3066\u304F\u3060\u3055\u3044: {entity}\u3002",
+    home_suggestion_describe_why:
+      "Frigate \u304C\u5206\u304B\u308B\u306E\u306F\u300C\u8ECA\u300D\u3084\u300C\u4EBA\u300D\u3092\u898B\u305F\u3053\u3068\u3060\u3051\u3067\u3059\u3002Selora AI \u306F\u305D\u308C\u305E\u308C\u3092\u300C\u79C1\u9053\u306B\u505C\u307E\u3063\u305F\u767D\u3044 FedEx \u306E\u30D0\u30F3\u300D\u3084\u300C\u7384\u95A2\u306B\u8377\u7269\u3092\u7F6E\u304F\u4EBA\u300D\u306E\u3088\u3046\u306B\u8AAC\u660E\u3059\u308B\u306E\u3067\u3001\u300C\u4ECA\u65E5\u306F\u914D\u9054\u304C\u6765\u305F\uFF1F\u300D\u3068\u805E\u304F\u3060\u3051\u3067\u898B\u3064\u304B\u308A\u307E\u3059\u3002",
+    home_suggestion_describe_how:
+      "\u8AAC\u660E\u3059\u308B\u30AB\u30E1\u30E9\u3092\u9078\u3093\u3067\u304F\u3060\u3055\u3044: {members}\u30021 \u5206\u307B\u3069\u3067\u7D42\u308F\u308A\u3001\u300C\u306F\u3044\u300D\u3068\u7B54\u3048\u308B\u307E\u3067\u753B\u50CF\u304C\u5BB6\u306E\u5916\u306B\u9001\u3089\u308C\u308B\u3053\u3068\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    home_suggestion_describe_act: "\u30AB\u30E1\u30E9\u3092\u9078\u3076",
+    home_suggestion_describe_ask:
+      "Selora AI \u304C\u8AAC\u660E\u3059\u308B\u30AB\u30E1\u30E9\u3092\u9078\u3076\u306E\u3092\u624B\u4F1D\u3063\u3066",
+    home_suggestion_faces:
+      "\u30AB\u30E1\u30E9\u3067\u77E5\u3063\u3066\u3044\u308B\u4EBA\u3092\u8A8D\u8B58\u3059\u308B",
+    home_suggestion_faces_prompt:
+      "Frigate \u306E\u9854\u8A8D\u8B58\u306E\u8A2D\u5B9A\u3092\u624B\u4F1D\u3063\u3066\u304F\u3060\u3055\u3044\u3002\u4F55\u304C\u3067\u304D\u3066\u4F55\u304C\u5FC5\u8981\u304B\u3092\u8AAC\u660E\u3057\u3001\u30AA\u30F3\u306B\u3059\u308B\u524D\u306B\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    home_suggestion_faces_why:
+      "\u9854\u3092\u899A\u3048\u308B\u3068\u3001Frigate \u306F\u8AB0\u304C\u30C9\u30A2\u306E\u524D\u306B\u3044\u308B\u304B\u3092\u5224\u5225\u3067\u304D\u307E\u3059\u3002\u30CF\u30D6\u4E0A\u3067\u52D5\u4F5C\u3057\u3001\u5404\u4EBA\u306E\u5199\u771F\u304C\u6570\u679A\u5FC5\u8981\u3067\u3059\u3002",
+    home_suggestion_faces_empty:
+      "Frigate \u306B\u8A8D\u8B58\u3055\u305B\u308B\u4EBA\u3092\u8FFD\u52A0\u3059\u308B",
+    home_suggestion_faces_empty_prompt:
+      "Frigate \u306B\u8A8D\u8B58\u3055\u305B\u308B\u4EBA\u306E\u8FFD\u52A0\u3092\u624B\u4F1D\u3063\u3066\u304F\u3060\u3055\u3044\u3002\u3069\u3053\u3067\u8FFD\u52A0\u3059\u308B\u304B\u3001\u3069\u3093\u306A\u5199\u771F\u304C\u9069\u3057\u3066\u3044\u308B\u304B\u3092\u6559\u3048\u3066\u304F\u3060\u3055\u3044\u3002",
+    home_suggestion_faces_empty_why:
+      "\u9854\u8A8D\u8B58\u306F\u30AA\u30F3\u3067\u3059\u304C\u3001Frigate \u306F\u307E\u3060\u8AB0\u3082\u77E5\u308A\u307E\u305B\u3093\u3002\u9854\u30E9\u30A4\u30D6\u30E9\u30EA\u306B\u5404\u4EBA\u306E\u5199\u771F\u3092\u6570\u679A\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    face_library_open:
+      "Frigate \u3067\u9854\u30E9\u30A4\u30D6\u30E9\u30EA\u3092\u958B\u304F",
     client_action_add_to_frigate: "Frigate \u306B\u8FFD\u52A0",
     frigate_camera_username: "\u30E6\u30FC\u30B6\u30FC\u540D",
     frigate_camera_password: "\u30D1\u30B9\u30EF\u30FC\u30C9",
@@ -26885,6 +27275,33 @@ var ko_default = {
       "\uC774 \uCE74\uBA54\uB77C\uB4E4\uC744 Frigate\uC5D0 \uCD94\uAC00\uD574 \uC918: {entity} ({entity_id}).",
     home_suggestion_frigate_why:
       "Frigate\uAC00 \uC544\uC9C1 {members}\uC744(\uB97C) \uC9C0\uCF1C\uBCF4\uACE0 \uC788\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uCD94\uAC00\uD558\uBA74 \uC0AC\uB78C\uC774 \uB098\uD0C0\uB098\uB294 \uC989\uC2DC \uAC10\uC9C0\uD558\uACE0 \uBCF8 \uB0B4\uC6A9\uC744 \uB179\uD654\uD574 \uB461\uB2C8\uB2E4.",
+    home_suggestion_describe:
+      "\uCE74\uBA54\uB77C\uAC00 \uBCF8 \uAC83\uC744 \uD3C9\uC18C \uB9D0\uB85C \uAC80\uC0C9\uD558\uC138\uC694",
+    home_suggestion_describe_one:
+      "{entity}\uC774(\uAC00) \uBCF8 \uAC83\uC744 \uD3C9\uC18C \uB9D0\uB85C \uAC80\uC0C9\uD558\uC138\uC694",
+    home_suggestion_describe_prompt:
+      "\uC774 \uCE74\uBA54\uB77C\uB4E4\uC774 \uBCF4\uB294 \uAC83\uC744 Selora AI\uAC00 \uC124\uBA85\uD560\uC9C0 \uD55C \uB300\uC529 \uBB3C\uC5B4\uBD10 \uC8FC\uC138\uC694: {entity}.",
+    home_suggestion_describe_why:
+      "Frigate\uB294 \u201C\uC790\uB3D9\uCC28\u201D\uB098 \u201C\uC0AC\uB78C\u201D\uC744 \uBD24\uB2E4\uB294 \uAC83\uB9CC \uC555\uB2C8\uB2E4. Selora AI\uB294 \u201C\uC9C4\uC785\uB85C\uC5D0 \uC120 \uD770\uC0C9 FedEx \uBC34\u201D\uC774\uB098 \u201C\uBB38 \uC55E\uC5D0 \uD0DD\uBC30\uB97C \uB450\uACE0 \uAC00\uB294 \uC0AC\uB78C\u201D\uCC98\uB7FC \uD558\uB098\uD558\uB098 \uC124\uBA85\uD558\uBBC0\uB85C, \u201C\uC624\uB298 \uD0DD\uBC30 \uC654\uC5B4?\u201D\uB77C\uACE0 \uBB3B\uAE30\uB9CC \uD558\uBA74 \uB429\uB2C8\uB2E4.",
+    home_suggestion_describe_how:
+      "\uC124\uBA85\uD560 \uCE74\uBA54\uB77C\uB97C \uACE0\uB974\uC138\uC694: {members}. 1\uBD84\uC774\uBA74 \uB05D\uB098\uBA70, \u201C\uC608\u201D\uB77C\uACE0 \uB2F5\uD558\uAE30 \uC804\uC5D0\uB294 \uC5B4\uB5A4 \uC774\uBBF8\uC9C0\uB3C4 \uC9D1 \uBC16\uC73C\uB85C \uB098\uAC00\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    home_suggestion_describe_act: "\uCE74\uBA54\uB77C \uC120\uD0DD",
+    home_suggestion_describe_ask:
+      "Selora AI\uAC00 \uC124\uBA85\uD560 \uCE74\uBA54\uB77C\uB97C \uACE0\uB974\uB3C4\uB85D \uB3C4\uC640\uC918",
+    home_suggestion_faces:
+      "\uCE74\uBA54\uB77C\uC5D0\uC11C \uC544\uB294 \uC0AC\uB78C \uC54C\uC544\uBCF4\uAE30",
+    home_suggestion_faces_prompt:
+      "Frigate\uC5D0\uC11C \uC5BC\uAD74 \uC778\uC2DD \uC124\uC815\uC744 \uB3C4\uC640\uC8FC\uC138\uC694. \uBB34\uC5C7\uC744 \uD558\uACE0 \uBB34\uC5C7\uC774 \uD544\uC694\uD55C\uC9C0 \uC54C\uB824 \uC8FC\uACE0, \uCF1C\uAE30 \uC804\uC5D0 \uBB3C\uC5B4\uBD10 \uC8FC\uC138\uC694.",
+    home_suggestion_faces_why:
+      "Frigate\uB294 \uC5BC\uAD74\uC744 \uC54C\uAC8C \uB418\uBA74 \uBB38 \uC55E\uC5D0 \uB204\uAC00 \uC788\uB294\uC9C0 \uC54C\uB824 \uC904 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uD5C8\uBE0C\uC5D0\uC11C \uC2E4\uD589\uB418\uBA70 \uC0AC\uB78C\uB9C8\uB2E4 \uC0AC\uC9C4 \uBA87 \uC7A5\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.",
+    home_suggestion_faces_empty:
+      "Frigate\uAC00 \uC54C\uC544\uBCFC \uC0AC\uB78C \uCD94\uAC00",
+    home_suggestion_faces_empty_prompt:
+      "Frigate\uAC00 \uC54C\uC544\uBCFC \uC0AC\uB78C\uC744 \uCD94\uAC00\uD558\uB3C4\uB85D \uB3C4\uC640\uC8FC\uC138\uC694. \uC5B4\uB514\uC5D0\uC11C \uCD94\uAC00\uD558\uB294\uC9C0, \uC5B4\uB5A4 \uC0AC\uC9C4\uC774 \uAC00\uC7A5 \uC88B\uC740\uC9C0 \uC54C\uB824 \uC8FC\uC138\uC694.",
+    home_suggestion_faces_empty_why:
+      "\uC5BC\uAD74 \uC778\uC2DD\uC774 \uCF1C\uC838 \uC788\uC9C0\uB9CC Frigate\uB294 \uC544\uC9C1 \uC544\uBB34\uB3C4 \uBAA8\uB985\uB2C8\uB2E4. \uC5BC\uAD74 \uB77C\uC774\uBE0C\uB7EC\uB9AC\uC5D0 \uC0AC\uB78C\uB9C8\uB2E4 \uC0AC\uC9C4 \uBA87 \uC7A5\uC744 \uCD94\uAC00\uD558\uC138\uC694.",
+    face_library_open:
+      "Frigate\uC5D0\uC11C \uC5BC\uAD74 \uB77C\uC774\uBE0C\uB7EC\uB9AC \uC5F4\uAE30",
     client_action_add_to_frigate: "Frigate\uC5D0 \uCD94\uAC00",
     frigate_camera_username: "\uC0AC\uC6A9\uC790 \uC774\uB984",
     frigate_camera_password: "\uBE44\uBC00\uBC88\uD638",
@@ -28418,6 +28835,32 @@ var zh_Hans_default = {
       "\u5C06\u8FD9\u4E9B\u6444\u50CF\u5934\u6DFB\u52A0\u5230 Frigate\uFF1A{entity}\uFF08{entity_id}\uFF09\u3002",
     home_suggestion_frigate_why:
       "Frigate \u5C1A\u672A\u76D1\u63A7 {members}\u3002\u6DFB\u52A0\u540E\uFF0C\u5B83\u4F1A\u5728\u6709\u4EBA\u51FA\u73B0\u65F6\u7ACB\u5373\u8BC6\u522B\uFF0C\u5E76\u4FDD\u5B58\u6240\u89C1\u5185\u5BB9\u7684\u5F55\u50CF\u3002",
+    home_suggestion_describe:
+      "\u7528\u65E5\u5E38\u8BED\u8A00\u641C\u7D22\u6444\u50CF\u5934\u770B\u5230\u7684\u5185\u5BB9",
+    home_suggestion_describe_one:
+      "\u7528\u65E5\u5E38\u8BED\u8A00\u641C\u7D22 {entity} \u770B\u5230\u7684\u5185\u5BB9",
+    home_suggestion_describe_prompt:
+      "\u9010\u4E2A\u6444\u50CF\u5934\u95EE\u6211\uFF0CSelora AI \u662F\u5426\u5E94\u63CF\u8FF0\u8FD9\u4E9B\u6444\u50CF\u5934\u770B\u5230\u7684\u5185\u5BB9\uFF1A{entity}\u3002",
+    home_suggestion_describe_why:
+      "Frigate \u53EA\u77E5\u9053\u5B83\u770B\u5230\u4E86\u201C\u4E00\u8F86\u8F66\u201D\u6216\u201C\u4E00\u4E2A\u4EBA\u201D\u3002Selora AI \u53EF\u4EE5\u9010\u4E00\u63CF\u8FF0\uFF0C\u4F8B\u5982\u201C\u8F66\u9053\u4E0A\u4E00\u8F86\u767D\u8272 FedEx \u8D27\u8F66\u201D\u6216\u201C\u6709\u4EBA\u628A\u5305\u88F9\u653E\u5728\u95E8\u53E3\u201D\uFF0C\u8FD9\u6837\u4F60\u53EA\u9700\u95EE\u4E00\u53E5\u201C\u4ECA\u5929\u6709\u5FEB\u9012\u5417\uFF1F\u201D",
+    home_suggestion_describe_how:
+      "\u9009\u62E9\u8981\u63CF\u8FF0\u7684\u6444\u50CF\u5934\uFF1A{members}\u3002\u53EA\u9700\u4E00\u5206\u949F\uFF0C\u5728\u4F60\u540C\u610F\u4E4B\u524D\uFF0C\u4E0D\u4F1A\u6709\u4EFB\u4F55\u56FE\u50CF\u79BB\u5F00\u4F60\u7684\u5BB6\u3002",
+    home_suggestion_describe_act: "\u9009\u62E9\u6444\u50CF\u5934",
+    home_suggestion_describe_ask:
+      "\u5E2E\u6211\u9009\u62E9 Selora AI \u8981\u63CF\u8FF0\u7684\u6444\u50CF\u5934",
+    home_suggestion_faces:
+      "\u5728\u6444\u50CF\u5934\u4E0A\u8BA4\u51FA\u4F60\u8BA4\u8BC6\u7684\u4EBA",
+    home_suggestion_faces_prompt:
+      "\u5E2E\u6211\u5728 Frigate \u4E2D\u8BBE\u7F6E\u4EBA\u8138\u8BC6\u522B\uFF1A\u544A\u8BC9\u6211\u5B83\u7684\u4F5C\u7528\u548C\u9700\u8981\u4EC0\u4E48\uFF0C\u5E76\u5728\u5F00\u542F\u524D\u5148\u95EE\u6211\u3002",
+    home_suggestion_faces_why:
+      "Frigate \u8BA4\u8BC6\u4EBA\u8138\u540E\uFF0C\u5C31\u80FD\u544A\u8BC9\u4F60\u95E8\u53E3\u662F\u8C01\u3002\u5B83\u5728\u4F60\u7684\u4E2D\u67A2\u4E0A\u8FD0\u884C\uFF0C\u6BCF\u4E2A\u4EBA\u9700\u8981\u51E0\u5F20\u7167\u7247\u3002",
+    home_suggestion_faces_empty:
+      "\u6DFB\u52A0 Frigate \u5E94\u8BE5\u8BA4\u51FA\u7684\u4EBA",
+    home_suggestion_faces_empty_prompt:
+      "\u5E2E\u6211\u6DFB\u52A0 Frigate \u5E94\u8BE5\u8BA4\u51FA\u7684\u4EBA\uFF1A\u5728\u54EA\u91CC\u6DFB\u52A0\uFF0C\u4EE5\u53CA\u54EA\u4E9B\u7167\u7247\u6548\u679C\u6700\u597D\u3002",
+    home_suggestion_faces_empty_why:
+      "\u4EBA\u8138\u8BC6\u522B\u5DF2\u5F00\u542F\uFF0C\u4F46 Frigate \u8FD8\u4E0D\u8BA4\u8BC6\u4EFB\u4F55\u4EBA\u3002\u8BF7\u5728\u5B83\u7684\u4EBA\u8138\u5E93\u4E2D\u4E3A\u6BCF\u4E2A\u4EBA\u6DFB\u52A0\u51E0\u5F20\u7167\u7247\u3002",
+    face_library_open: "\u5728 Frigate \u4E2D\u6253\u5F00\u4EBA\u8138\u5E93",
     client_action_add_to_frigate: "\u6DFB\u52A0\u5230 Frigate",
     frigate_camera_username: "\u7528\u6237\u540D",
     frigate_camera_password: "\u5BC6\u7801",
@@ -29956,6 +30399,32 @@ var zh_Hant_default = {
       "\u5C07\u9019\u4E9B\u651D\u5F71\u6A5F\u52A0\u5165 Frigate\uFF1A{entity}\uFF08{entity_id}\uFF09\u3002",
     home_suggestion_frigate_why:
       "Frigate \u5C1A\u672A\u76E3\u63A7 {members}\u3002\u52A0\u5165\u5F8C\uFF0C\u5B83\u6703\u5728\u6709\u4EBA\u51FA\u73FE\u6642\u7ACB\u5373\u8FA8\u8B58\uFF0C\u4E26\u4FDD\u5B58\u6240\u898B\u5167\u5BB9\u7684\u9304\u5F71\u3002",
+    home_suggestion_describe:
+      "\u7528\u65E5\u5E38\u8A9E\u8A00\u641C\u5C0B\u651D\u5F71\u6A5F\u770B\u5230\u7684\u5167\u5BB9",
+    home_suggestion_describe_one:
+      "\u7528\u65E5\u5E38\u8A9E\u8A00\u641C\u5C0B {entity} \u770B\u5230\u7684\u5167\u5BB9",
+    home_suggestion_describe_prompt:
+      "\u9010\u53F0\u651D\u5F71\u6A5F\u554F\u6211\uFF0CSelora AI \u662F\u5426\u61C9\u63CF\u8FF0\u9019\u4E9B\u651D\u5F71\u6A5F\u770B\u5230\u7684\u5167\u5BB9\uFF1A{entity}\u3002",
+    home_suggestion_describe_why:
+      "Frigate \u53EA\u77E5\u9053\u5B83\u770B\u5230\u4E86\u300C\u4E00\u8F1B\u8ECA\u300D\u6216\u300C\u4E00\u500B\u4EBA\u300D\u3002Selora AI \u53EF\u4EE5\u9010\u4E00\u63CF\u8FF0\uFF0C\u4F8B\u5982\u300C\u8ECA\u9053\u4E0A\u4E00\u8F1B\u767D\u8272 FedEx \u8CA8\u8ECA\u300D\u6216\u300C\u6709\u4EBA\u628A\u5305\u88F9\u653E\u5728\u9580\u53E3\u300D\uFF0C\u9019\u6A23\u4F60\u53EA\u9700\u554F\u4E00\u53E5\u300C\u4ECA\u5929\u6709\u5305\u88F9\u9001\u4F86\u55CE\uFF1F\u300D",
+    home_suggestion_describe_how:
+      "\u9078\u64C7\u8981\u63CF\u8FF0\u7684\u651D\u5F71\u6A5F\uFF1A{members}\u3002\u53EA\u9700\u4E00\u5206\u9418\uFF0C\u5728\u4F60\u540C\u610F\u4E4B\u524D\uFF0C\u4E0D\u6703\u6709\u4EFB\u4F55\u5F71\u50CF\u96E2\u958B\u4F60\u7684\u5BB6\u3002",
+    home_suggestion_describe_act: "\u9078\u64C7\u651D\u5F71\u6A5F",
+    home_suggestion_describe_ask:
+      "\u5E6B\u6211\u9078\u64C7 Selora AI \u8981\u63CF\u8FF0\u7684\u651D\u5F71\u6A5F",
+    home_suggestion_faces:
+      "\u5728\u651D\u5F71\u6A5F\u4E0A\u8A8D\u51FA\u4F60\u8A8D\u8B58\u7684\u4EBA",
+    home_suggestion_faces_prompt:
+      "\u5E6B\u6211\u5728 Frigate \u4E2D\u8A2D\u5B9A\u4EBA\u81C9\u8FA8\u8B58\uFF1A\u544A\u8A34\u6211\u5B83\u7684\u4F5C\u7528\u548C\u9700\u8981\u4EC0\u9EBC\uFF0C\u4E26\u5728\u958B\u555F\u524D\u5148\u554F\u6211\u3002",
+    home_suggestion_faces_why:
+      "Frigate \u8A8D\u8B58\u4EBA\u81C9\u5F8C\uFF0C\u5C31\u80FD\u544A\u8A34\u4F60\u9580\u53E3\u662F\u8AB0\u3002\u5B83\u5728\u4F60\u7684\u4E2D\u6A1E\u4E0A\u57F7\u884C\uFF0C\u6BCF\u500B\u4EBA\u9700\u8981\u5E7E\u5F35\u7167\u7247\u3002",
+    home_suggestion_faces_empty:
+      "\u65B0\u589E Frigate \u61C9\u8A72\u8A8D\u51FA\u7684\u4EBA",
+    home_suggestion_faces_empty_prompt:
+      "\u5E6B\u6211\u65B0\u589E Frigate \u61C9\u8A72\u8A8D\u51FA\u7684\u4EBA\uFF1A\u5728\u54EA\u88E1\u65B0\u589E\uFF0C\u4EE5\u53CA\u54EA\u4E9B\u7167\u7247\u6548\u679C\u6700\u597D\u3002",
+    home_suggestion_faces_empty_why:
+      "\u4EBA\u81C9\u8FA8\u8B58\u5DF2\u958B\u555F\uFF0C\u4F46 Frigate \u9084\u4E0D\u8A8D\u8B58\u4EFB\u4F55\u4EBA\u3002\u8ACB\u5728\u5B83\u7684\u4EBA\u81C9\u5EAB\u4E2D\u70BA\u6BCF\u500B\u4EBA\u65B0\u589E\u5E7E\u5F35\u7167\u7247\u3002",
+    face_library_open: "\u5728 Frigate \u4E2D\u958B\u555F\u4EBA\u81C9\u5EAB",
     client_action_add_to_frigate: "\u52A0\u5165 Frigate",
     frigate_camera_username: "\u4F7F\u7528\u8005\u540D\u7A31",
     frigate_camera_password: "\u5BC6\u78BC",
@@ -30497,6 +30966,32 @@ function renderMarkdown(text) {
     return `<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">${escapeCode(body)}</code>`;
   });
   return escaped;
+}
+
+// src/shared/card-banners.js
+var CARD_BANNERS = {
+  frigate: "/api/selora_ai/images/frigate-banner.webp",
+};
+
+// src/shared/card-heading.js
+function renderCardIcon(icon) {
+  return b2`<span class="card-heading-icon"
+    ><ha-icon icon=${icon}></ha-icon
+  ></span>`;
+}
+function renderCardHeading({ icon, title, subtitle = "", banner = "" }) {
+  return b2`
+    <div
+      class="card-heading${banner ? " card-heading--banner" : ""}"
+      style=${banner ? `--card-heading-banner:url("${banner}")` : ""}
+    >
+      ${renderCardIcon(icon)}
+      <div class="card-heading-text">
+        ${title ? b2`<div class="card-heading-title">${title}</div>` : ""}
+        ${subtitle ? b2`<div class="card-heading-subtitle">${subtitle}</div>` : ""}
+      </div>
+    </div>
+  `;
 }
 
 // src/shared/created-check.js
@@ -32220,6 +32715,99 @@ function renderFrigateResult(host, msg) {
   `;
 }
 
+// src/panel/render-describe-card.js
+function renderIntro(intro) {
+  return b2`
+    <section class="describe-section">
+      ${renderCardHeading({
+        icon: "mdi:text-box-search-outline",
+        title: intro.title,
+        subtitle: intro.tagline,
+        banner: CARD_BANNERS.frigate,
+      })}
+      <div class="describe-columns">
+        <div class="frigate-result-preview describe-example-picture">
+          <img src=${intro.image} alt=${intro.example} loading="lazy" />
+        </div>
+        <ul class="describe-points">
+          <li>
+            <ha-icon icon="mdi:cctv"></ha-icon>
+            <span class="describe-point-pair">
+              <span class="describe-example-by">${intro.seen}</span>
+              <span class="describe-example-described">${intro.label}</span>
+            </span>
+          </li>
+          <li>
+            <ha-icon icon="mdi:creation"></ha-icon>
+            <span class="describe-point-pair">
+              <span class="describe-example-by">${intro.described}</span>
+              <span class="describe-example-described">${intro.example}</span>
+            </span>
+          </li>
+          ${(intro.points || []).map(
+            (point) => b2`<li>
+                <ha-icon icon=${point.icon}></ha-icon><span>${point.text}</span>
+              </li>`,
+          )}
+        </ul>
+      </div>
+    </section>
+  `;
+}
+function renderCamera2(host, card) {
+  const cameraId = frigateEntity(host, `camera.${card.camera}`);
+  const snapshot = cameraId ? snapshotUrl(host, cameraId) : "";
+  return b2`
+    <section class="describe-section">
+      ${renderCardHeading({
+        icon: "mdi:cctv",
+        title: card.camera_name,
+        subtitle: card.step || "",
+      })}
+      <div class="describe-columns">
+        ${
+          snapshot
+            ? b2`<button
+                class="frigate-result-preview"
+                title=${host._t("frigate_result_open", "Open the camera")}
+                @click=${() => openMoreInfo(host, cameraId)}
+              >
+                <img src=${snapshot} alt=${card.camera_name} loading="lazy" />
+              </button>`
+            : ""
+        }
+        <div class="describe-side">
+          <div class="describe-question">${card.question}</div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+var FRESH_MS3 = 60 * 1e3;
+function renderDone(msg, card) {
+  const at = Date.parse(msg.timestamp || "");
+  const fresh = !Number.isNaN(at) && Date.now() - at < FRESH_MS3;
+  const applied = card.done !== "not_restarted";
+  return b2`
+    <div class="describe-done${fresh ? " pop-in" : ""}">
+      <span class="scene-saved-icon${applied ? "" : " describe-done-warn"}"
+        >${applied ? renderCreatedCheck({ animate: fresh, size: 20 }) : b2`<ha-icon icon="mdi:alert-outline"></ha-icon>`}</span
+      >
+      <span>${msg.content}</span>
+    </div>
+  `;
+}
+function renderDescribeCard(host, msg) {
+  const card = msg.describe_card;
+  if (card?.done) return renderDone(msg, card);
+  if (!card?.question) return "";
+  return b2`
+    <div class="describe-card">
+      ${card.intro ? renderIntro(card.intro) : ""} ${renderCamera2(host, card)}
+    </div>
+  `;
+}
+
 // src/panel/render-device-detail.js
 function _formatTimestamp(iso) {
   if (!iso) return "";
@@ -32463,6 +33051,53 @@ function renderDeviceDetail(host) {
   `;
 }
 
+// src/shared/action-button.js
+var DRAWN_MARKS = {
+  "mdi:check": w`<path class="action-btn-tick" d="M5 12.5 L10 17.5 L19.5 7" />`,
+  "mdi:close": w`<path class="action-btn-cross" d="M7 7 L17 17 M17 7 L7 17" />`,
+};
+function renderMark(icon) {
+  const drawn = DRAWN_MARKS[icon];
+  return drawn
+    ? b2`<svg class="action-btn-svg" viewBox="0 0 24 24">${drawn}</svg>`
+    : b2`<ha-icon icon=${icon}></ha-icon>`;
+}
+function renderActionButton({
+  label,
+  onClick,
+  description = "",
+  mark = "mdi:arrow-up",
+  tone = "quiet",
+  picked = false,
+  disabled = false,
+  title = "",
+}) {
+  const cls = [
+    "action-btn",
+    `action-btn--${tone}`,
+    description ? "action-btn--tall" : "",
+    picked ? "action-btn--picked" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return b2`
+    <button
+      class=${cls}
+      title=${title || label}
+      ?disabled=${disabled}
+      @click=${onClick}
+    >
+      <span class="action-btn-text">
+        <span class="action-btn-label">${label}</span>
+        ${description ? b2`<span class="action-btn-desc">${description}</span>` : ""}
+      </span>
+      <span class="action-btn-mark" aria-hidden="true"
+        >${renderMark(mark)}</span
+      >
+    </button>
+  `;
+}
+
 // src/panel/quick-actions.js
 function _approvalPresentation(host) {
   return {
@@ -32561,146 +33196,85 @@ function _normalizeApprovalActions(host, actions) {
   });
   return touched ? out : actions;
 }
-function _isApprovalGroup(actions) {
-  return actions.some((a3) => _approvalScope(a3?.value));
-}
 function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
   actions = _normalizeApprovalActions(host, actions);
-  const mode = _detectMode(actions);
-  const usedClass = opts.used ? " qa-group--used" : "";
-  if (mode === "choice") {
-    const approvalClass = _isApprovalGroup(actions)
-      ? " qa-group--approval"
-      : "";
-    return b2`
-      <div class="qa-group qa-group--choices${approvalClass}${usedClass}">
-        ${actions.map((a3) => _renderChoice(host, a3))}
-      </div>
-    `;
-  }
-  if (mode === "confirmation") {
-    return b2`
-      <div class="qa-group qa-group--confirmations${usedClass}">
-        ${actions.map((a3) => _renderConfirmation(host, a3))}
-      </div>
-    `;
-  }
+  const picked = opts.used && actions.some((a3) => a3.value === opts.picked);
+  const usedClass = opts.used
+    ? picked
+      ? " qa-group--used qa-group--picked"
+      : " qa-group--used"
+    : "";
+  const answers = actions.some(
+    (a3) =>
+      a3.inline || a3.tone || a3.primary !== void 0 || a3.mode === "choice",
+  );
+  const lead = _leadIndex(actions);
   return b2`
-    <div class="qa-group${usedClass}">
-      ${actions.map((a3) => _renderSuggestion(host, a3))}
+    <div class="qa-group${answers ? " qa-group--answers" : ""}${usedClass}">
+      ${actions.map((a3, i8) =>
+        renderActionButton({
+          label: a3.label,
+          description: _ownsMark(a3) ? "" : a3.description || "",
+          title: a3.description
+            ? `${a3.label} \u2014 ${a3.description}`
+            : a3.label,
+          mark: _mark(a3, i8 === lead),
+          tone: _isDestructive(a3)
+            ? "danger"
+            : i8 === lead
+              ? "primary"
+              : _approvalScope(a3.value) === "deny"
+                ? "decline"
+                : "quiet",
+          picked: picked && a3.value === opts.picked,
+          onClick: () => _onSelect(host, a3),
+        }),
+      )}
     </div>
   `;
 }
-function _detectMode(actions) {
-  const first = actions[0];
-  if (first.mode) return first.mode;
-  if (actions.some((a3) => a3.primary !== void 0)) return "confirmation";
-  if (actions.some((a3) => a3.description)) return "choice";
-  return "suggestion";
+function _leadIndex(actions) {
+  const offered = actions.findIndex(
+    (a3) =>
+      !_isDestructive(a3) && (a3.tone === "approve" || a3.primary === true),
+  );
+  if (offered !== -1) return offered;
+  return actions[0]?.inline ? 0 : -1;
+}
+function _isDestructive(action) {
+  const scope = _approvalScope(action.value);
+  return (
+    action.tone === "deny" && !!scope && scope !== "deny" && scope !== "cancel"
+  );
+}
+function _ownsMark(action) {
+  return !!(action.inline || action.tone || _approvalScope(action.value));
+}
+function _mark(action, isLead) {
+  if (action.inline) {
+    return isLead ? "mdi:check" : action.icon || "mdi:close";
+  }
+  if (_ownsMark(action)) return action.icon || "mdi:check";
+  return "mdi:arrow-up";
 }
 function _onSelect(host, action) {
   host._selectQuickAction(action);
 }
-function _renderSuggestion(host, action) {
-  const leadingIcon = action.icon || "mdi:auto-fix";
-  return b2`
-    <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
-      <span class="qa-glow-track" aria-hidden="true">
-        <span class="qa-glow-spot"></span>
-      </span>
-      <ha-icon class="qa-suggestion-lead" icon=${leadingIcon}></ha-icon>
-      <span class="qa-suggestion-label">${action.label}</span>
-      <ha-icon class="qa-suggestion-trail" icon="mdi:chevron-right"></ha-icon>
-    </button>
-  `;
-}
-var _TONE_OVERRIDES = {
-  approve: {
-    "--qa-spot-color": "#10b981",
-    "--qa-border-color": "rgba(16, 185, 129, 0.35)",
-    "--qa-bg-hover": "rgba(16, 185, 129, 0.10)",
-    "--qa-border-hover": "rgba(16, 185, 129, 0.85)",
-  },
-  deny: {
-    "--qa-spot-color": "#ef4444",
-    "--qa-border-color": "rgba(239, 68, 68, 0.35)",
-    "--qa-bg-hover": "rgba(239, 68, 68, 0.10)",
-    "--qa-border-hover": "rgba(239, 68, 68, 0.85)",
-  },
-};
-function _toneStyle(tone) {
-  const vars = _TONE_OVERRIDES[tone];
-  if (!vars) return "";
-  return Object.entries(vars)
-    .map(([k2, v3]) => `${k2}:${v3};`)
-    .join("");
-}
-function _renderChoice(host, action) {
-  const leadingIcon = action.icon || "mdi:auto-fix";
-  const toneStyle = _toneStyle(action.tone);
-  const trailingIcon = action.tone
-    ? action.tone === "deny"
-      ? "mdi:close"
-      : "mdi:check"
-    : "mdi:chevron-right";
-  const tooltipDescription = action.tone && action.description;
-  const inlineDescription = !action.tone && action.description;
-  const cardTitle = tooltipDescription
-    ? `${action.label} \u2014 ${action.description}`
-    : action.label;
-  return b2`
-    <div
-      class="qa-choice"
-      style=${toneStyle}
-      title=${cardTitle}
-      @click=${() => _onSelect(host, action)}
-    >
-      <span class="qa-glow-track" aria-hidden="true">
-        <span class="qa-glow-spot"></span>
-      </span>
-      <div class="qa-choice-row">
-        <ha-icon class="qa-choice-lead" icon=${leadingIcon}></ha-icon>
-        <div class="qa-choice-text">
-          <span class="qa-choice-label" title=${action.label}
-            >${action.label}</span
-          >
-          ${inlineDescription ? b2`<span class="qa-choice-desc">${action.description}</span>` : ""}
-        </div>
-        <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
-      </div>
-    </div>
-  `;
-}
-function _renderConfirmation(host, action) {
-  return renderConfirmChip(host, action, () => _onSelect(host, action));
-}
 function renderConfirmChip(host, action, onClick) {
-  const tone = action.tone || (action.primary ? "primary" : null);
-  const toneClass = tone ? ` qa-confirm--${tone}` : "";
-  const cls = `qa-confirm${toneClass}`;
-  const iconStyle =
-    tone === "approve"
-      ? "color:#10b981;"
-      : tone === "deny"
-        ? "color:#ef4444;"
-        : "";
-  return b2`
-    <button class=${cls} @click=${onClick}>
-      ${
-        action.icon
-          ? b2`<ha-icon
-              icon=${action.icon}
-              style="--mdc-icon-size:16px;${iconStyle}"
-            ></ha-icon>`
-          : ""
-      }
-      <span style="display:flex;flex-direction:column;align-items:flex-start;">
-        <span class="qa-confirm-label">${action.label}</span>
-        ${action.description ? b2`<span class="qa-confirm-desc">${action.description}</span>` : ""}
-      </span>
-    </button>
-  `;
+  const tone =
+    action.tone === "deny"
+      ? "danger"
+      : action.tone === "approve" || action.tone === "primary" || action.primary
+        ? "primary"
+        : "quiet";
+  return renderActionButton({
+    label: action.label,
+    description: action.description || "",
+    mark: action.icon || "mdi:check",
+    tone,
+    onClick,
+  });
 }
 
 // src/shared/formatting.js
@@ -34835,19 +35409,12 @@ function renderRefineSuggestions(host) {
   return b2`
     <div class="chat-quick-actions refine-suggestions">
       <div class="qa-group">
-        ${suggestions.map(
-          (s6) => b2`
-            <button
-              class="qa-suggestion"
-              @click=${() => prefillComposer(host, s6.prefill)}
-            >
-              <span class="qa-glow-track" aria-hidden="true">
-                <span class="qa-glow-spot"></span>
-              </span>
-              <ha-icon class="qa-suggestion-lead" icon=${s6.icon}></ha-icon>
-              <span class="qa-suggestion-label">${s6.label}</span>
-            </button>
-          `,
+        ${suggestions.map((s6) =>
+          renderActionButton({
+            label: s6.label,
+            mark: s6.icon,
+            onClick: () => prefillComposer(host, s6.prefill),
+          }),
         )}
       </div>
     </div>
@@ -35430,11 +35997,15 @@ var _DELETE_KIND_LABELS = {
   frigate_camera: "Frigate camera",
   frigate_objects: "Frigate camera",
   frigate_move: "Frigate camera",
+  frigate_descriptions: "Frigate camera",
+  frigate_faces: "Frigate",
 };
 var _DELETE_KIND_ICONS = {
   frigate_camera: "mdi:cctv",
   frigate_objects: "mdi:cctv",
   frigate_move: "mdi:cctv",
+  frigate_descriptions: "mdi:text-box-search-outline",
+  frigate_faces: "mdi:face-recognition",
   scene: "mdi:palette-outline",
   group: "mdi:google-circles-communities",
   automation: "mdi:robot-outline",
@@ -35660,7 +36231,7 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
       }
       ${
         copy.confirm
-          ? b2`<div class="qa-group qa-group--confirmations">
+          ? b2`<div class="qa-group qa-group--answers">
               ${(() => {
                 const kinds = rows.map((row) => String(row?.kind || ""));
                 const destructive = kinds.filter(
@@ -39290,60 +39861,42 @@ function renderProposalActions(host, msg, msgIndex) {
       return b2`<div
         class="qa-group automation-card-actions${justCreated ? " pop-in-children" : ""}"
       >
-        <button
-          class="qa-suggestion"
-          ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
-          title=${host._t(
+        ${renderActionButton({
+          label: (host._runningAutomation || {})[savedAutomationId]
+            ? host._t("automations_action_running", "Running\u2026")
+            : host._t("automations_action_run_now", "Run now"),
+          title: host._t(
             "automations_action_run_tooltip",
             "Trigger the actions now to verify they work",
-          )}
-          @click=${() => host._runAutomation(created.entity_id, savedAutomationId)}
-        >
-          <span class="qa-glow-track" aria-hidden="true">
-            <span class="qa-glow-spot"></span>
-          </span>
-          <ha-icon class="qa-suggestion-lead" icon="mdi:play"></ha-icon>
-          <span class="qa-suggestion-label"
-            >${(host._runningAutomation || {})[savedAutomationId] ? host._t("automations_action_running", "Running\u2026") : host._t("automations_action_run_now", "Run now")}</span
-          >
-        </button>
-        <button
-          class="qa-suggestion"
-          title=${host._t(
+          ),
+          mark: "mdi:play",
+          disabled: !!(host._runningAutomation || {})[savedAutomationId],
+          onClick: () =>
+            host._runAutomation(created.entity_id, savedAutomationId),
+        })}
+        ${renderActionButton({
+          label: host._t("automations_action_view_in_ha", "View in HA"),
+          title: host._t(
             "automations_action_open_in_ha_tooltip",
             "Open this automation in Home Assistant",
-          )}
-          @click=${() => host._openAutomationInHA(savedAutomationId)}
-        >
-          <span class="qa-glow-track" aria-hidden="true">
-            <span class="qa-glow-spot"></span>
-          </span>
-          <ha-icon class="qa-suggestion-lead" icon="mdi:open-in-new"></ha-icon>
-          <span class="qa-suggestion-label"
-            >${host._t("automations_action_view_in_ha", "View in HA")}</span
-          >
-        </button>
+          ),
+          mark: "mdi:open-in-new",
+          onClick: () => host._openAutomationInHA(savedAutomationId),
+        })}
       </div>`;
     }
     if (created.state === "unavailable") {
       return b2`
         <div class="qa-group automation-card-actions">
-          <button
-            class="qa-suggestion"
-            title=${host._t(
+          ${renderActionButton({
+            label: host._t("automations_action_fix_in_ha", "Fix in HA"),
+            title: host._t(
               "automations_action_open_in_ha_tooltip",
               "Open this automation in Home Assistant",
-            )}
-            @click=${() => host._openAutomationInHA(savedAutomationId)}
-          >
-            <span class="qa-glow-track" aria-hidden="true">
-              <span class="qa-glow-spot"></span>
-            </span>
-            <ha-icon class="qa-suggestion-lead" icon="mdi:wrench"></ha-icon>
-            <span class="qa-suggestion-label"
-              >${host._t("automations_action_fix_in_ha", "Fix in HA")}</span
-            >
-          </button>
+            ),
+            mark: "mdi:wrench",
+            onClick: () => host._openAutomationInHA(savedAutomationId),
+          })}
         </div>
         <p class="automation-workflow-note elevated">
           <ha-icon
@@ -42705,6 +43258,27 @@ function renderCameraEventsCard(host, msg) {
   `;
 }
 
+// src/panel/face-library-link.js
+var FACES_PAGE = "faces";
+function renderFaceLibraryLink(host, msg) {
+  const shown = (msg.tool_calls || []).some(
+    (call) =>
+      call?.tool === "get_face_recognition" && call.result?.face_library,
+  );
+  if (!shown || !frigateApp(host.hass)) return "";
+  return b2`<div class="face-library camera-event-links">
+    <button
+      class="camera-event-link"
+      @click=${() => openFrigatePage(host, FACES_PAGE)}
+    >
+      <ha-icon icon="mdi:face-recognition"></ha-icon>
+      <span
+        >${host._t("face_library_open", "Open the Face Library in Frigate")}</span
+      >
+    </button>
+  </div>`;
+}
+
 // src/panel/home-suggestions.js
 var MAX_SHOWN = 3;
 var MAX_NAMED = 3;
@@ -42736,10 +43310,14 @@ function toggle(host, suggestion) {
       : suggestion.suggestion_id;
 }
 async function act(host, suggestion, d3) {
-  const message = d3.title + buildDetailsMarker(d3.prompt);
+  const said = d3.ask || d3.title;
+  const message = said + buildDetailsMarker(d3.prompt);
+  if (suggestion.type === "describe_cameras") {
+    if (await openDescribeChat(host, said)) return;
+  }
   const automationId = suggestion.collection.automation_id;
   if (!automationId) {
-    await host._askInNewChat(message);
+    await host._askInNewChat(message, { guide: guideFor(suggestion, d3) });
     return;
   }
   try {
@@ -42755,6 +43333,39 @@ async function act(host, suggestion, d3) {
   } catch (err) {
     console.error("Failed to open the automation in chat", err);
     await host._askInNewChat(message);
+  }
+}
+var FRIGATE_GUIDES = /* @__PURE__ */ new Set([
+  "add_to_frigate",
+  "recognize_faces",
+  "describe_cameras",
+]);
+function guideFor(suggestion, d3) {
+  if (!FRIGATE_GUIDES.has(suggestion.type)) return void 0;
+  return {
+    icon: d3.icon,
+    // A heading, not a paragraph: the row's reasons stay in the row. The
+    // server's limit cuts a long list of camera names rather than refusing it.
+    title: d3.title.slice(0, 200),
+    subtitle: "",
+    banner: "frigate",
+  };
+}
+async function openDescribeChat(host, title) {
+  try {
+    const { session_id } = await host.hass.callWS({
+      type: "selora_ai/frigate/describe_start",
+      title,
+      ...(host.hass?.language ? { language: host.hass.language } : {}),
+    });
+    host._setActiveTab("chat");
+    await host._openSession(session_id);
+    return true;
+  } catch (err) {
+    if (err?.code === "unknown_command") return false;
+    host._showToast?.(err?.message || String(err), "error");
+    await loadHomeSuggestions(host);
+    return true;
   }
 }
 function names(entities) {
@@ -42785,7 +43396,8 @@ function nameList(host, entities) {
 }
 function describe(host, s6) {
   const grouping = s6.type === "group_entities";
-  const listsEntities = grouping || s6.type === "add_to_frigate";
+  const listsEntities =
+    grouping || s6.type === "add_to_frigate" || s6.type === "describe_cameras";
   const values = {
     entity: names(s6.entities),
     entity_id: ids(s6.entities),
@@ -42843,6 +43455,77 @@ function describe(host, s6) {
         ),
       ],
     };
+  }
+  if (s6.type === "describe_cameras") {
+    return {
+      icon: "mdi:text-box-search-outline",
+      title:
+        s6.entities.length === 1
+          ? t5(
+              "home_suggestion_describe_one",
+              "Search what {entity} saw, in plain words",
+            )
+          : t5(
+              "home_suggestion_describe",
+              "Search what your cameras saw, in plain words",
+            ),
+      prompt: t5(
+        "home_suggestion_describe_prompt",
+        "Ask me, one camera at a time, whether Selora AI should describe what these cameras see: {entity}.",
+      ),
+      why: [
+        t5(
+          "home_suggestion_describe_why",
+          "Frigate only knows it saw \u201Ca car\u201D or \u201Ca person\u201D. Selora AI can describe each one, like \u201Ca white FedEx van in the driveway\u201D or \u201Csomeone leaving a parcel at the door\u201D, so you can simply ask \u201CDid a delivery come today?\u201D",
+        ),
+        t5(
+          "home_suggestion_describe_how",
+          "Pick which cameras to describe: {members}. It takes a minute, and no picture leaves your home until you say yes.",
+        ),
+      ],
+      act: t5("home_suggestion_describe_act", "Choose cameras"),
+      ask: t5(
+        "home_suggestion_describe_ask",
+        "Help me choose which cameras Selora AI describes",
+      ),
+    };
+  }
+  if (s6.type === "recognize_faces") {
+    return s6.state === "empty"
+      ? {
+          icon: "mdi:face-recognition",
+          title: t5(
+            "home_suggestion_faces_empty",
+            "Add the people Frigate should recognize",
+          ),
+          prompt: t5(
+            "home_suggestion_faces_empty_prompt",
+            "Help me add the people Frigate should recognize: where to add them, and which photos work best.",
+          ),
+          why: [
+            t5(
+              "home_suggestion_faces_empty_why",
+              "Face recognition is on, but Frigate does not know anyone yet. Add a few photos of each person in its Face Library.",
+            ),
+          ],
+        }
+      : {
+          icon: "mdi:face-recognition",
+          title: t5(
+            "home_suggestion_faces",
+            "Recognize the people you know on your cameras",
+          ),
+          prompt: t5(
+            "home_suggestion_faces_prompt",
+            "Help me set up face recognition in Frigate: tell me what it does and what it needs, then ask me before turning it on.",
+          ),
+          why: [
+            t5(
+              "home_suggestion_faces_why",
+              "Frigate can tell who is at the door once it knows their faces. It runs on your hub, and needs a few photos of each person.",
+            ),
+          ],
+        };
   }
   if (s6.type !== "add_to_collection") return null;
   const why = [
@@ -42908,9 +43591,7 @@ function renderHomeSuggestions(host) {
                 aria-expanded=${open ? "true" : "false"}
                 @click=${() => toggle(host, s6)}
               >
-                <span class="home-suggestion-icon"
-                  ><ha-icon icon=${d3.icon}></ha-icon
-                ></span>
+                ${renderCardIcon(d3.icon)}
                 <span class="home-suggestion-title">${d3.title}</span>
                 <ha-icon
                   class="home-suggestion-chevron"
@@ -42931,20 +43612,16 @@ function renderHomeSuggestions(host) {
                 ? b2`<div class="home-suggestion-detail">
                     ${d3.why.map((line) => b2`<p>${line}</p>`)}
                     <div class="home-suggestion-footer">
-                      <button
-                        class="home-suggestion-act"
-                        @click=${() => act(host, s6, d3)}
-                      >
-                        <span
-                          >${host._t(
+                      ${renderActionButton({
+                        label:
+                          d3.act ||
+                          host._t(
                             "home_suggestion_do_it",
                             "Ask Selora to do it",
-                          )}</span
-                        >
-                        <span class="composer-send" aria-hidden="true"
-                          ><ha-icon icon="mdi:arrow-up"></ha-icon
-                        ></span>
-                      </button>
+                          ),
+                        tone: "primary",
+                        onClick: () => act(host, s6, d3),
+                      })}
                     </div>
                   </div>`
                 : ""
@@ -43345,6 +44022,30 @@ function renderAutomationSuggestButton(host) {
     </button>
   `;
 }
+function renderGuide(host) {
+  const guide = host._guide;
+  if (!guide || guide.sessionId !== host._activeSessionId) return "";
+  return b2`<div class="chat-guide">
+    ${renderCardHeading({
+      icon: guide.icon,
+      title: guide.title,
+      subtitle: guide.subtitle,
+      banner: CARD_BANNERS[guide.banner] || "",
+    })}
+  </div>`;
+}
+function answersInline(msg) {
+  return !!msg.quick_actions?.some((a3) => a3.inline);
+}
+function inlineAnswerState(host, msg, idx) {
+  const answered = idx < host._messages.length - 1;
+  if (!answered) return { used: !!msg._qa_used, picked: msg._qa_picked };
+  const next = host._messages[idx + 1];
+  return {
+    used: true,
+    picked: next?.role === "user" ? next.content : msg._qa_picked,
+  };
+}
 function renderChat(host) {
   const isEmpty = host._messages.length === 0;
   if (isEmpty) {
@@ -43479,7 +44180,8 @@ function renderChat(host) {
     // they're approving. Without this guard the sticky composer row
     // below would render the same four buttons again — 8 buttons
     // on screen with no obvious link back to the card.
-    !lastMsg.command_approval
+    !lastMsg.command_approval && // Answers to the bubble's own question render in that bubble too.
+    !answersInline(lastMsg)
       ? lastMsg
       : null;
   return b2`
@@ -43490,6 +44192,7 @@ function renderChat(host) {
         id="chat-messages"
         @scroll=${host._onChatScroll}
       >
+        ${renderGuide(host)}
         ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
@@ -44272,12 +44975,15 @@ function renderMessage(host, msg, idx) {
     // quick_actions render exclusively in the sticky composer row (see
     // lastQuickActions in renderChat); rendering them here too would show the
     // same chips twice (in-card AND above the input).
-    msg.command_approval && // Hide approval action cards once the proposal has been resolved (or
-    // is mid-resolve). Re-clicking after the status flipped would 404
-    // server-side, and the approved/denied chip already says what happened.
-    msg.approval_status !== "approved" &&
-    msg.approval_status !== "denied" &&
-    msg.approval_status !== "resolving";
+    // Answers to the question the bubble asks sit under it the same way: in
+    // the composer row they were a screen away from it.
+    (answersInline(msg) ||
+      (msg.command_approval && // Hide approval action cards once the proposal has been resolved (or
+        // is mid-resolve). Re-clicking after the status flipped would 404
+        // server-side, and the approved/denied chip already says what happened.
+        msg.approval_status !== "approved" &&
+        msg.approval_status !== "denied" &&
+        msg.approval_status !== "resolving"));
   const sceneIsSingleTile =
     !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
   return b2`
@@ -44326,7 +45032,8 @@ function renderMessage(host, msg, idx) {
                     // placeholder and chip say it to the user.
                     msg.command_approval ||
                     isLoadedAutomation ||
-                    msg.frigate_result
+                    msg.frigate_result ||
+                    msg.describe_card
                       ? ""
                       : b2`<span
                           class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
@@ -44403,6 +45110,7 @@ function renderMessage(host, msg, idx) {
                   ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                   ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
                   ${renderFrigateResult(host, msg)}
+                  ${renderDescribeCard(host, msg)}
                   ${
                     msg.command_approval
                       ? renderApprovalCard(
@@ -44415,6 +45123,7 @@ function renderMessage(host, msg, idx) {
                   }
                   ${renderRestoreCard(host, msg)}
                   ${renderCameraEventsCard(host, msg)}
+                  ${renderFaceLibraryLink(host, msg)}
                   ${
                     msg._interrupted
                       ? b2`
@@ -44567,9 +45276,9 @@ function renderMessage(host, msg, idx) {
                                     ? renderQuickActions(
                                         host,
                                         msg.quick_actions,
-                                        {
-                                          used: !!msg._qa_used,
-                                        },
+                                        answersInline(msg)
+                                          ? inlineAnswerState(host, msg, idx)
+                                          : { used: !!msg._qa_used },
                                       )
                                     : ""
                                 }
@@ -56878,6 +57587,9 @@ async function _openSession(sessionId) {
       session_id: sessionId,
     });
     this._activeSessionId = session.id;
+    this._guide = session.guide
+      ? { ...session.guide, sessionId: session.id }
+      : null;
     this._messages = session.messages || [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
@@ -56915,12 +57627,14 @@ async function _openSession(sessionId) {
     console.error("Failed to open session", err);
   }
 }
-async function _newSession() {
+async function _newSession({ guide } = {}) {
   try {
     const { session_id } = await this.hass.callWS({
       type: "selora_ai/new_session",
+      ...(guide ? { guide } : {}),
     });
     this._activeSessionId = session_id;
+    this._guide = guide ? { ...guide, sessionId: session_id } : null;
     this._sessionSearch = "";
     this._messages = [];
     this._deviceDetail = null;
@@ -57206,7 +57920,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "1e0b6059917d" : "";
+var PANEL_BUILD = true ? "d4a5602711f1" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -57760,12 +58474,42 @@ __export(chat_actions_exports, {
   _toggleApprovalScope: () => _toggleApprovalScope,
   looksTruncatedResponse: () => looksTruncatedResponse,
 });
+
+// src/panel/describe-actions.js
+async function answerCamera(host, msg, action) {
+  const sessionId = host._activeSessionId;
+  if (!sessionId || !msg || msg._qa_used) return;
+  msg._qa_used = true;
+  msg._qa_picked = action.value;
+  host._messages = [...host._messages];
+  const answer = action.camera_answer;
+  try {
+    const result = await host.hass.callWS({
+      type: "selora_ai/frigate/describe_answer",
+      session_id: sessionId,
+      camera: answer.camera,
+      describe: answer.describe,
+      zones: answer.zones || [],
+      ...(host.hass?.language ? { language: host.hass.language } : {}),
+    });
+    if (host._activeSessionId === sessionId) {
+      host._messages = [...host._messages, ...(result.messages || [])];
+    }
+  } catch (err) {
+    msg._qa_used = false;
+    msg._qa_picked = void 0;
+    host._messages = [...host._messages];
+    host._showToast?.(err.message || String(err), "error");
+  }
+}
+
+// src/panel/chat-actions.js
 function _quickStart(message) {
   this._input = message;
   this._sendMessage();
 }
-async function _askInNewChat(message) {
-  const ok = await this._newSession();
+async function _askInNewChat(message, { guide } = {}) {
+  const ok = await this._newSession({ guide });
   if (!ok) return;
   this._input = message;
   this._sendMessage();
@@ -57788,6 +58532,11 @@ function _selectQuickAction(action) {
       this._resolveApproval(originatingMsg, scope, proposalId);
       return;
     }
+  }
+  if (action.camera_answer) {
+    const msg = this._messages.find((m3) => m3.quick_actions?.includes(action));
+    answerCamera(this, msg, action);
+    return;
   }
   for (const msg of this._messages) {
     if (msg.quick_actions && msg.quick_actions.includes(action)) {
@@ -58845,6 +59594,8 @@ var SeloraAIPanel = class extends i4 {
       _activeSessionId: { type: String },
       // Message view
       _messages: { type: Array },
+      // The open conversation's heading, tagged with its session id.
+      _guide: { type: Object },
       _input: { type: String },
       // Shell-style ArrowUp/ArrowDown history navigation cursor. null
       // means "not browsing history; _input is the live draft".
@@ -60494,6 +61245,7 @@ var SeloraAIPanel = class extends i4 {
   }
   firstUpdated() {
     const root = this.renderRoot;
+    armPressRipple(root);
     root.addEventListener(
       "mousedown",
       (e6) => {

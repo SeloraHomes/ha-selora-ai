@@ -1353,6 +1353,9 @@ PANEL_NAME = "selora-ai"
 PANEL_TITLE = "Selora AI"
 PANEL_ICON = "mdi:apple-keyboard-command"
 PANEL_PATH = "selora-ai"
+# The pictures a guided conversation's opening heading may carry, by name; the
+# panel maps each to its file in frontend/images.
+SESSION_GUIDE_BANNERS = ("frigate",)
 
 # ── HA Recorder ──────────────────────────────────────────────────────
 # Historical data source (SQLite) for pattern detection.

@@ -16,6 +16,13 @@ together, so the intent is inferred from coverage instead of stored:
   Frigate integration is set up (``frigate.setup``).
 * **camera_idea** — an automation or scene a camera's detection could drive
   (``frigate.ideas``).
+* **describe_cameras** — Frigate cameras nobody was asked about describing
+  yet, while Selora AI descriptions are on (``frigate.descriptions``).
+* **recognize_faces** — face recognition is off, or on with nobody in the
+  Face Library (``frigate.faces``).
+
+The Frigate set-up steps (describe, faces, add cameras) show one at a time,
+in that order: the first one not dismissed.
 
 Nothing is applied from here. The panel turns a suggestion into a chat
 request, where the usual tools and cards do the work and the user sees each
@@ -504,12 +511,22 @@ def get_home_suggestion_store(hass: HomeAssistant) -> HomeSuggestionStore:
 
 async def async_home_suggestions(hass: HomeAssistant) -> list[HomeSuggestion]:
     """Current suggestions the user has not dismissed."""
+    from .frigate.descriptions import async_describe_suggestions  # noqa: PLC0415
+    from .frigate.faces import async_face_suggestions  # noqa: PLC0415
     from .frigate.ideas import async_camera_ideas  # noqa: PLC0415
     from .frigate.setup import async_frigate_suggestions  # noqa: PLC0415
 
     dismissed = await get_home_suggestion_store(hass).ids("dismissed")
     automations = await _async_read_automations(hass)
-    found = [s for s, _ in _detect(hass, automations)] + await async_frigate_suggestions(hass)
+    found = [s for s, _ in _detect(hass, automations)]
+    # Setting Frigate up is one step at a time, so its steps take one row of
+    # the few the chat home shows: the first the user has not dismissed.
+    frigate = (
+        await async_describe_suggestions(hass)
+        + await async_face_suggestions(hass)
+        + await async_frigate_suggestions(hass)
+    )
+    found += [s for s in frigate if s["suggestion_id"] not in dismissed][:1]
     found += [
         {
             "suggestion_id": idea["idea_id"],

@@ -74,7 +74,8 @@ describe("renderHomeSuggestions", () => {
     );
 
     handlers(opened).at(-1)();
-    const [sent] = h._askInNewChat.mock.calls[0];
+    const [sent, opts] = h._askInNewChat.mock.calls[0];
+    expect(opts.guide).toBeUndefined();
     // The bubble shows the title; the model also gets the request with ids.
     expect(stripEntityMarkers(sent)).toBe(
       "Add Leak kitchen to Water Leak Sensors",
@@ -197,6 +198,13 @@ describe("renderHomeSuggestions", () => {
     expect(messageDetails(sent)).toBe(
       "Add these cameras to Frigate: Porch, Driveway (camera.porch, camera.driveway).",
     );
+    // A Frigate setup guide opens under its banner, named like the row.
+    expect(h._askInNewChat.mock.calls[0][1].guide).toEqual({
+      icon: "mdi:cctv",
+      title: "Add 2 cameras to Frigate",
+      subtitle: "",
+      banner: "frigate",
+    });
   });
 
   it("names a single camera", () => {
@@ -237,5 +245,120 @@ describe("renderHomeSuggestions", () => {
     expect(messageDetails(sent)).toBe(
       "Add these cameras to Frigate: Porch, Garage Cam (camera.porch, 192.168.1.60).",
     );
+  });
+
+  it("starts face recognition, then asks for the people to recognize", () => {
+    const faces = (state) =>
+      host([
+        {
+          suggestion_id: `faces:${state}`,
+          type: "recognize_faces",
+          state,
+          entities: [],
+          collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+        },
+      ]);
+    const off = faces("off");
+    expect(flatten(renderHomeSuggestions(off))).toContain(
+      "Recognize the people you know on your cameras",
+    );
+    handlers(renderHomeSuggestions(off))[0]();
+    handlers(renderHomeSuggestions(off)).at(-1)();
+    expect(messageDetails(off._askInNewChat.mock.calls[0][0])).toContain(
+      "ask me before turning it on",
+    );
+
+    expect(flatten(renderHomeSuggestions(faces("empty")))).toContain(
+      "Add the people Frigate should recognize",
+    );
+  });
+
+  it("asks the model about the cameras when the server cannot open the chat", async () => {
+    const h = host([
+      {
+        suggestion_id: "describe:driveway,living_room",
+        type: "describe_cameras",
+        entities: [
+          { entity_id: "camera.driveway", name: "Front Driveway" },
+          { entity_id: "", name: "Living Room" },
+        ],
+        collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+      },
+    ]);
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Search what your cameras saw, in plain words",
+    );
+
+    handlers(renderHomeSuggestions(h))[0]();
+    expect(flatten(renderHomeSuggestions(h))).toContain(
+      "Pick which cameras to describe: Front Driveway and Living Room.",
+    );
+    expect(flatten(renderHomeSuggestions(h))).toContain("Choose cameras");
+    h.hass.callWS = vi.fn(async () => {
+      throw { code: "unknown_command", message: "Unknown command." };
+    });
+    await handlers(renderHomeSuggestions(h)).at(-1)();
+    const [sent] = h._askInNewChat.mock.calls[0];
+    expect(messageDetails(sent)).toBe(
+      "Ask me, one camera at a time, whether Selora AI should describe what these cameras see: Front Driveway, Living Room.",
+    );
+  });
+
+  it("says why when the server refuses, and reads the rows again", async () => {
+    const h = host([
+      {
+        suggestion_id: "describe:front_door",
+        type: "describe_cameras",
+        entities: [{ entity_id: "", name: "Front Door" }],
+        collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+      },
+    ]);
+    h._showToast = vi.fn();
+    h.hass.callWS = vi.fn(async ({ type }) => {
+      if (type === "selora_ai/home_suggestions") return [];
+      throw {
+        code: "describe_failed",
+        message: "Every camera already has an answer.",
+      };
+    });
+    handlers(renderHomeSuggestions(h))[0]();
+
+    await handlers(renderHomeSuggestions(h)).at(-1)();
+
+    // A model chat would ask about cameras that are already answered.
+    expect(h._askInNewChat).not.toHaveBeenCalled();
+    expect(h._showToast).toHaveBeenCalledWith(
+      "Every camera already has an answer.",
+      "error",
+    );
+    expect(h._homeSuggestions).toEqual([]);
+  });
+
+  it("opens the describe chat the server wrote, with no model turn", async () => {
+    const h = host([
+      {
+        suggestion_id: "describe:front_door,garage",
+        type: "describe_cameras",
+        entities: [
+          { entity_id: "", name: "Front Door" },
+          { entity_id: "", name: "Garage" },
+        ],
+        collection: { source: "frigate", name: "Frigate", ref: "frigate" },
+      },
+    ]);
+    h.hass.callWS = vi.fn(async () => ({ session_id: "s9" }));
+    h._setActiveTab = vi.fn();
+    h._openSession = vi.fn(async () => {});
+    handlers(renderHomeSuggestions(h))[0]();
+
+    await handlers(renderHomeSuggestions(h)).at(-1)();
+
+    expect(h.hass.callWS).toHaveBeenCalledWith({
+      type: "selora_ai/frigate/describe_start",
+      title: "Help me choose which cameras Selora AI describes",
+      language: "en",
+    });
+    expect(h._openSession).toHaveBeenCalledWith("s9");
+    expect(h._askInNewChat).not.toHaveBeenCalled();
   });
 });

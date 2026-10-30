@@ -163,6 +163,10 @@ class ToolExecutor:
             "install_update": self._install_update,
             "add_cameras_to_frigate": self._add_cameras_to_frigate,
             "set_camera_objects": self._set_camera_objects,
+            "get_camera_descriptions": self._get_camera_descriptions,
+            "set_camera_descriptions": self._set_camera_descriptions,
+            "get_face_recognition": self._get_face_recognition,
+            "set_face_recognition": self._set_face_recognition,
             "move_frigate_camera": self._move_frigate_camera,
             "find_camera_events": self._find_camera_events,
             "get_frigate_status": self._get_frigate_status,
@@ -678,6 +682,26 @@ class ToolExecutor:
         from .frigate.objects import async_preview_set_objects
 
         return await async_preview_set_objects(self._hass, arguments)
+
+    async def _get_camera_descriptions(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.descriptions import async_camera_descriptions
+
+        return await async_camera_descriptions(self._hass)
+
+    async def _set_camera_descriptions(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.descriptions import async_preview_set_descriptions
+
+        return await async_preview_set_descriptions(self._hass, arguments)
+
+    async def _get_face_recognition(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.faces import async_face_recognition
+
+        return await async_face_recognition(self._hass)
+
+    async def _set_face_recognition(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.faces import async_preview_set_face_recognition
+
+        return await async_preview_set_face_recognition(self._hass, arguments)
 
     async def _move_frigate_camera(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .frigate.moving import async_preview_move_camera

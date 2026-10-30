@@ -123,8 +123,8 @@ describe("the shared confirmation card", () => {
     // and this one uses that same chip, quiet tone included, rather than a
     // button from the generic family.
     const out = render(CLIENT);
-    expect(out).toContain("qa-confirm");
-    expect(out).toContain("qa-confirm--approve");
+    expect(out).toContain("action-btn");
+    expect(out).toContain("action-btn--primary");
     expect(out).not.toContain("btn-primary");
     expect(render(DELETE)).not.toContain("<button");
   });
@@ -230,8 +230,8 @@ describe("the card follows the action, not the kind of card", () => {
     const out = render(DELETE);
     expect(out).toContain("Delete");
     expect(out).not.toContain(">Create<");
-    expect(out).toContain("qa-confirm--deny");
-    expect(out).not.toContain("qa-confirm--approve");
+    expect(out).toContain("action-btn--danger");
+    expect(out).not.toContain("action-btn--primary");
   });
 
   it("names what goes with it", () => {
@@ -244,7 +244,7 @@ describe("the card follows the action, not the kind of card", () => {
   it("still says Create on a creation", () => {
     const out = render(CLIENT);
     expect(out).toContain("Create");
-    expect(out).toContain("qa-confirm--approve");
+    expect(out).toContain("action-btn--primary");
   });
 });
 
@@ -270,7 +270,7 @@ describe("a card carrying more than one action", () => {
     ]) {
       const out = render(mixed(order));
       expect(out).toContain("Confirm all");
-      expect(out).toContain("qa-confirm--deny");
+      expect(out).toContain("action-btn--danger");
       expect(out).not.toContain(">Create<");
     }
   });

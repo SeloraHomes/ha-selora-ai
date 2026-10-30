@@ -1,5 +1,7 @@
 import { html } from "lit";
 
+import { renderActionButton } from "../shared/action-button.js";
+
 // Map approval-scope → presentation. Persisted messages from before the
 // choice-card switch carry mode="confirmation" with no icon/tone, so we
 // normalise every approval action here regardless of what the backend
@@ -110,214 +112,125 @@ function _normalizeApprovalActions(host, actions) {
   return touched ? out : actions;
 }
 
-function _isApprovalGroup(actions) {
-  return actions.some((a) => _approvalScope(a?.value));
-}
-
 /**
  * Render quick-action buttons below a chat message or in the welcome screen.
+ * Every one is the panel's action button (shared/action-button.js).
  *
  * Each action object:
- *   { label, value?, description?, icon?, mode?, primary? }
+ *   { label, value?, description?, icon?, mode?, primary?, tone?, inline? }
  *
- * Modes (auto-detected from the first item if omitted):
- *   - "suggestion"    → full-width chip (welcome quick-start)
- *   - "choice"        → grid card with title + description
- *   - "confirmation"  → inline button row (Apply / Modify / Cancel)
+ * The badge says what the press does: the action's own mark on an approval
+ * or an answer to the message's question, the send arrow on anything that
+ * sends its words to Selora. The first answer a row offers is gold (one per
+ * row); a press that deletes is red.
  *
  * @param {object}   host     Panel element (provides _selectQuickAction)
  * @param {object[]} actions  List of quick-action objects
- * @param {object}   [opts]   { used: boolean } — dims the group after selection
+ * @param {object}   [opts]   { used: boolean, picked?: string } — dims the
+ *   group after selection; the action whose value is `picked` stays lit
  */
 export function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
   actions = _normalizeApprovalActions(host, actions);
 
-  const mode = _detectMode(actions);
-  const usedClass = opts.used ? " qa-group--used" : "";
-
-  if (mode === "choice") {
-    // Approval rows pack into a 2-column grid even on narrow widths
-    // (qa-group--approval) so all four scopes fit in two rows. AI
-    // option cards keep the wider minmax for legibility.
-    const approvalClass = _isApprovalGroup(actions)
-      ? " qa-group--approval"
-      : "";
-    return html`
-      <div class="qa-group qa-group--choices${approvalClass}${usedClass}">
-        ${actions.map((a) => _renderChoice(host, a))}
-      </div>
-    `;
-  }
-
-  if (mode === "confirmation") {
-    return html`
-      <div class="qa-group qa-group--confirmations${usedClass}">
-        ${actions.map((a) => _renderConfirmation(host, a))}
-      </div>
-    `;
-  }
-
-  // Default: suggestion chips
+  const picked = opts.used && actions.some((a) => a.value === opts.picked);
+  const usedClass = opts.used
+    ? picked
+      ? " qa-group--used qa-group--picked"
+      : " qa-group--used"
+    : "";
+  // Chips that start a conversation sit where the welcome screen puts them;
+  // answers to a message sit under it, at its right edge.
+  const answers = actions.some(
+    (a) => a.inline || a.tone || a.primary !== undefined || a.mode === "choice",
+  );
+  const lead = _leadIndex(actions);
   return html`
-    <div class="qa-group${usedClass}">
-      ${actions.map((a) => _renderSuggestion(host, a))}
+    <div class="qa-group${answers ? " qa-group--answers" : ""}${usedClass}">
+      ${actions.map((a, i) =>
+        renderActionButton({
+          label: a.label,
+          description: _ownsMark(a) ? "" : a.description || "",
+          title: a.description ? `${a.label} — ${a.description}` : a.label,
+          mark: _mark(a, i === lead),
+          tone: _isDestructive(a)
+            ? "danger"
+            : i === lead
+              ? "primary"
+              : _approvalScope(a.value) === "deny"
+                ? "decline"
+                : "quiet",
+          picked: picked && a.value === opts.picked,
+          onClick: () => _onSelect(host, a),
+        }),
+      )}
     </div>
   `;
 }
 
-function _detectMode(actions) {
-  const first = actions[0];
-  if (first.mode) return first.mode;
-  if (actions.some((a) => a.primary !== undefined)) return "confirmation";
-  if (actions.some((a) => a.description)) return "choice";
-  return "suggestion";
+// The answer the row offers: the first approval or primary, or the first of
+// the answers to the message's own question. A row of plain suggestions has
+// none, so no chip outshines the others.
+function _leadIndex(actions) {
+  const offered = actions.findIndex(
+    (a) => !_isDestructive(a) && (a.tone === "approve" || a.primary === true),
+  );
+  if (offered !== -1) return offered;
+  return actions[0]?.inline ? 0 : -1;
+}
+
+// Red for a confirm that removes something. After normalising, every delete
+// confirm carries the deny tone, and so does an Apply on a card that deletes
+// alongside another change; the refusals share that tone but only decline.
+function _isDestructive(action) {
+  const scope = _approvalScope(action.value);
+  return (
+    action.tone === "deny" && !!scope && scope !== "deny" && scope !== "cancel"
+  );
+}
+
+// Approvals and answers to the message's own question carry their own mark
+// (their description is the tooltip); anything else sends its words.
+function _ownsMark(action) {
+  return !!(action.inline || action.tone || _approvalScope(action.value));
+}
+
+function _mark(action, isLead) {
+  if (action.inline) {
+    return isLead ? "mdi:check" : action.icon || "mdi:close";
+  }
+  if (_ownsMark(action)) return action.icon || "mdi:check";
+  return "mdi:arrow-up";
 }
 
 function _onSelect(host, action) {
   host._selectQuickAction(action);
 }
 
-function _renderSuggestion(host, action) {
-  const leadingIcon = action.icon || "mdi:auto-fix";
-  return html`
-    <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
-      <span class="qa-glow-track" aria-hidden="true">
-        <span class="qa-glow-spot"></span>
-      </span>
-      <ha-icon class="qa-suggestion-lead" icon=${leadingIcon}></ha-icon>
-      <span class="qa-suggestion-label">${action.label}</span>
-      <ha-icon class="qa-suggestion-trail" icon="mdi:chevron-right"></ha-icon>
-    </button>
-  `;
-}
-
-// Override the default amber comet/border colour via --qa-spot-color
-// for cards that want a semantic accent (green = approve, red = deny).
-// We also paint a faint matching border so the colour is visible even
-// before hover, and on browsers that don't run the comet animation.
-const _TONE_OVERRIDES = {
-  approve: {
-    "--qa-spot-color": "#10b981",
-    "--qa-border-color": "rgba(16, 185, 129, 0.35)",
-    "--qa-bg-hover": "rgba(16, 185, 129, 0.10)",
-    "--qa-border-hover": "rgba(16, 185, 129, 0.85)",
-  },
-  deny: {
-    "--qa-spot-color": "#ef4444",
-    "--qa-border-color": "rgba(239, 68, 68, 0.35)",
-    "--qa-bg-hover": "rgba(239, 68, 68, 0.10)",
-    "--qa-border-hover": "rgba(239, 68, 68, 0.85)",
-  },
-};
-
-function _toneStyle(tone) {
-  const vars = _TONE_OVERRIDES[tone];
-  if (!vars) return "";
-  return Object.entries(vars)
-    .map(([k, v]) => `${k}:${v};`)
-    .join("");
-}
-
-function _renderChoice(host, action) {
-  const leadingIcon = action.icon || "mdi:auto-fix";
-  const toneStyle = _toneStyle(action.tone);
-  // For toned cards the trailing chevron is redundant — the colour
-  // already signals the outcome — so swap it for the action's own
-  // icon (check / close) at the right edge, which doubles the visual
-  // cue without adding a third coloured element.
-  const trailingIcon = action.tone
-    ? action.tone === "deny"
-      ? "mdi:close"
-      : "mdi:check"
-    : "mdi:chevron-right";
-  // Toned choice cards (approval row) hide the description in a tooltip
-  // so all four cards stay the same height. Untoned choice cards keep
-  // showing the description inline — that's the original AI-suggested
-  // option layout where the description carries real information.
-  const tooltipDescription = action.tone && action.description;
-  const inlineDescription = !action.tone && action.description;
-  const cardTitle = tooltipDescription
-    ? `${action.label} — ${action.description}`
-    : action.label;
-  return html`
-    <div
-      class="qa-choice"
-      style=${toneStyle}
-      title=${cardTitle}
-      @click=${() => _onSelect(host, action)}
-    >
-      <span class="qa-glow-track" aria-hidden="true">
-        <span class="qa-glow-spot"></span>
-      </span>
-      <div class="qa-choice-row">
-        <ha-icon class="qa-choice-lead" icon=${leadingIcon}></ha-icon>
-        <div class="qa-choice-text">
-          <span class="qa-choice-label" title=${action.label}
-            >${action.label}</span
-          >
-          ${
-            inlineDescription
-              ? html`<span class="qa-choice-desc">${action.description}</span>`
-              : ""
-          }
-        </div>
-        <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
-      </div>
-    </div>
-  `;
-}
-
-function _renderConfirmation(host, action) {
-  return renderConfirmChip(host, action, () => _onSelect(host, action));
-}
-
 /**
- * One confirmation chip — the shape every "tap to authorize this" button in
+ * One confirmation button — the shape every "tap to authorize this" press in
  * chat uses, whether it resolves server-side (Allow / Deny on a risk card) or
  * in the panel (Create on a client-action card).
  *
  * Exported so a card can render one with its OWN handler: a client action has
- * no quick-action value to send back, it calls the panel directly. Without
- * this the card grew its own button from the generic `.btn` family, which
- * looked nothing like the Allow chip sitting on the card beside it.
+ * no quick-action value to send back, it calls the panel directly.
  *
  * @param {object} host      panel element
  * @param {object} action    {label, icon?, description?, tone?, primary?}
  * @param {Function} onClick what the press does
  */
 export function renderConfirmChip(host, action, onClick) {
-  // "tone" lets the card-emitter (e.g. command approval row) pre-classify
-  // the chip as approve/deny so we can colour the icon and border without
-  // shipping per-call inline styles. Falls back to the generic primary
-  // styling when unset, preserving behaviour for existing callers.
-  const tone = action.tone || (action.primary ? "primary" : null);
-  const toneClass = tone ? ` qa-confirm--${tone}` : "";
-  const cls = `qa-confirm${toneClass}`;
-  const iconStyle =
-    tone === "approve"
-      ? "color:#10b981;"
-      : tone === "deny"
-        ? "color:#ef4444;"
-        : "";
-  return html`
-    <button class=${cls} @click=${onClick}>
-      ${
-        action.icon
-          ? html`<ha-icon
-              icon=${action.icon}
-              style="--mdc-icon-size:16px;${iconStyle}"
-            ></ha-icon>`
-          : ""
-      }
-      <span style="display:flex;flex-direction:column;align-items:flex-start;">
-        <span class="qa-confirm-label">${action.label}</span>
-        ${
-          action.description
-            ? html`<span class="qa-confirm-desc">${action.description}</span>`
-            : ""
-        }
-      </span>
-    </button>
-  `;
+  const tone =
+    action.tone === "deny"
+      ? "danger"
+      : action.tone === "approve" || action.tone === "primary" || action.primary
+        ? "primary"
+        : "quiet";
+  return renderActionButton({
+    label: action.label,
+    description: action.description || "",
+    mark: action.icon || "mdi:check",
+    tone,
+    onClick,
+  });
 }

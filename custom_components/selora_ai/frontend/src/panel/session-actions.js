@@ -289,6 +289,9 @@ export async function _openSession(sessionId) {
       session_id: sessionId,
     });
     this._activeSessionId = session.id;
+    this._guide = session.guide
+      ? { ...session.guide, sessionId: session.id }
+      : null;
     this._messages = session.messages || [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
@@ -350,12 +353,16 @@ export async function _openSession(sessionId) {
 // Callers that MUST target a brand-new conversation (e.g. _askInNewChat) check
 // this and skip sending on failure, so a transient WS error can't append the
 // message to whatever session was previously active.
-export async function _newSession() {
+// `guide` ({icon, title, subtitle, banner}) opens the conversation with a
+// heading: a guide started from a home suggestion says what it sets up.
+export async function _newSession({ guide } = {}) {
   try {
     const { session_id } = await this.hass.callWS({
       type: "selora_ai/new_session",
+      ...(guide ? { guide } : {}),
     });
     this._activeSessionId = session_id;
+    this._guide = guide ? { ...guide, sessionId: session_id } : null;
     // Clear any active sidebar search — a brand-new empty session has no
     // content to match, so a stale query would hide the conversation the
     // user just started.
