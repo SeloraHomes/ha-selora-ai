@@ -25,7 +25,7 @@ from homeassistant.util import slugify
 from ..helpers import sanitize_untrusted_text
 from ..history_reader import _BadRequest, _window
 from .cameras import FOLDED_LABELS, OBJECT_LABEL, model_labels, unsupported_labels
-from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError
+from .client import FRIGATE_DOMAIN, NOT_SET_UP, FrigateClient, FrigateError
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -47,10 +47,6 @@ _CAMERA: Final = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # resolve. The panel URL-encodes the rest.
 _INSTANCE: Final = re.compile(r"^(?!\.{1,2}$)[^/\\?#%\s\x00-\x1f\x7f]{1,128}$")
 
-_NOT_SET_UP: Final = (
-    "Frigate is not set up in Home Assistant: the Frigate integration has to be "
-    "installed and connected to Frigate first."
-)
 # A description search with semantic search off still answers with the other
 # filters, and says what turning it on would take, for the user to decide:
 # it is a global Frigate setting, which Selora AI does not write.
@@ -257,7 +253,7 @@ async def async_find_events(hass: HomeAssistant, arguments: dict[str, Any]) -> d
     """The events matching the arguments, newest first, with counts for the range."""
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     try:
         start, end = _window({"hours": DEFAULT_HOURS, **arguments}, MAX_DAYS)
     except _BadRequest as exc:

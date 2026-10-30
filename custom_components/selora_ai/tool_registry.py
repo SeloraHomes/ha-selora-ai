@@ -2412,6 +2412,28 @@ TOOL_FIND_CAMERA_EVENTS = ToolDef(
     large_context_only=True,
 )
 
+TOOL_GET_FRIGATE_STATUS = ToolDef(
+    name="get_frigate_status",
+    description=(
+        "Frigate's cameras and how each is set up: whether it detects and records, "
+        "what it looks for, how long recordings are kept, its zones, where its video "
+        "comes from (no logins) and its live frame rates; plus Frigate's version, "
+        "detectors, the labels its model can detect, optional features (semantic "
+        "search, GenAI descriptions, faces, plates) and storage. 'Which cameras does "
+        "Frigate have?', 'is the garage camera recording?', 'what can Frigate "
+        "detect?'. Not what a camera saw: that is find_camera_events."
+    ),
+    params=(
+        ToolParam(
+            name="camera",
+            type="string",
+            description="Only this camera: its Frigate name, friendly name or camera entity.",
+        ),
+    ),
+    requires_admin=True,
+    large_context_only=True,
+)
+
 TOOL_ADD_CAMERAS_TO_FRIGATE = ToolDef(
     name="add_cameras_to_frigate",
     description=(
@@ -3307,10 +3329,24 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_IGNORE_REPAIR,
     TOOL_REMOVE_FROM_HOME,
     TOOL_INSTALL_UPDATE,
+    TOOL_GET_FRIGATE_STATUS,
     TOOL_ADD_CAMERAS_TO_FRIGATE,
     TOOL_FIND_CAMERA_EVENTS,
     TOOL_SET_CAMERA_OBJECTS,
     TOOL_MOVE_FRIGATE_CAMERA,
+)
+
+# Tools that only talk to Frigate. Offered only while Frigate is set up
+# (``frigate.client.frigate_available``): in a home without it each one would
+# only answer "Frigate is not set up", and the model offered them anyway.
+FRIGATE_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        TOOL_GET_FRIGATE_STATUS.name,
+        TOOL_ADD_CAMERAS_TO_FRIGATE.name,
+        TOOL_FIND_CAMERA_EVENTS.name,
+        TOOL_SET_CAMERA_OBJECTS.name,
+        TOOL_MOVE_FRIGATE_CAMERA.name,
+    }
 )
 
 # Name → ToolDef lookup for admin checks in the executor

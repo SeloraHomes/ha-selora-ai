@@ -744,6 +744,12 @@ DEFAULT_TELEMETRY_PROMPT_SEEN = False
 # models, off for Ollama, whose every extra call is local compute. Selora AI
 # Local cannot write free prose, so it never predicts.
 CONF_NEXT_PROMPT_ENABLED = "next_prompt_enabled"
+# A Frigate server Selora AI reaches directly, for a home whose Frigate has no
+# Frigate integration entry (on a Selora hub that entry is the connection).
+# Stored in the entry's data with the other credentials; see frigate/client.py.
+CONF_FRIGATE_URL = "frigate_url"
+CONF_FRIGATE_USERNAME = "frigate_username"
+CONF_FRIGATE_PASSWORD = "frigate_password"
 # Optional endpoint override (epic #56 wants configurable endpoints).
 CONF_TELEMETRY_ENDPOINT = "telemetry_endpoint"
 TELEMETRY_STORE_VERSION = 1

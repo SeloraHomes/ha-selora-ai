@@ -497,4 +497,33 @@ export const settingsStyles = css`
     opacity: 0.6;
     cursor: default;
   }
+
+  /* Settings → Frigate: who connects it, as the account's "Linked" row. */
+  .frigate-connected {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    background: var(--card-background-color);
+  }
+  .frigate-connected-icon {
+    --mdc-icon-size: 20px;
+    color: var(--success-color, #22c55e);
+    flex-shrink: 0;
+  }
+  .frigate-connected-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .frigate-connected-title {
+    font-size: 14px;
+    color: var(--primary-text-color);
+  }
+  .frigate-connected-desc {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    margin-top: 2px;
+  }
 `;

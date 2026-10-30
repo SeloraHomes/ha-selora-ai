@@ -22,7 +22,7 @@ from homeassistant.util import slugify
 
 from ..const import DOMAIN
 from ..helpers import sanitize_untrusted_text
-from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError
+from .client import FRIGATE_DOMAIN, NOT_SET_UP, FrigateClient, FrigateError
 from .discovery import SUGGESTION_CACHE
 
 if TYPE_CHECKING:
@@ -44,11 +44,6 @@ _REMOVED_BY_LANG: Final[dict[str, str]] = {
     "ko": "{names}을(를) Frigate에서 제거했습니다.",
     "ru": "{names} удалены из Frigate.",
 }
-
-_NOT_SET_UP = (
-    "Frigate is not set up in Home Assistant: the Frigate integration has to be "
-    "installed and connected first."
-)
 
 
 def _camera_name(hass: HomeAssistant, cameras: dict[str, Any], target: str) -> str | None:
@@ -94,7 +89,7 @@ async def async_preview_remove_camera(hass: HomeAssistant, target: str) -> dict[
 
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     try:
         config = await client.get_config()
     except FrigateError as exc:
@@ -126,7 +121,7 @@ async def async_remove_camera_confirmed(
 
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     try:
         config = await client.get_config()
         if name not in (config.get("cameras") or {}):

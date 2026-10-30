@@ -7994,6 +7994,35 @@ var settingsStyles = i`
     opacity: 0.6;
     cursor: default;
   }
+
+  /* Settings → Frigate: who connects it, as the account's "Linked" row. */
+  .frigate-connected {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    background: var(--card-background-color);
+  }
+  .frigate-connected-icon {
+    --mdc-icon-size: 20px;
+    color: var(--success-color, #22c55e);
+    flex-shrink: 0;
+  }
+  .frigate-connected-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .frigate-connected-title {
+    font-size: 14px;
+    color: var(--primary-text-color);
+  }
+  .frigate-connected-desc {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    margin-top: 2px;
+  }
 `;
 
 // src/panel/styles/usage.css.js
@@ -10445,6 +10474,29 @@ var en_default = {
     settings_household_profile_placeholder:
       "e.g. Family of 4. Kids in bed by 20:30. Grandma visits weekends \u2014 she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
     settings_household_profile_saved: "Household profile saved.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "Records your cameras and spots people, cars and animals. Selora AI can add cameras, choose what each one watches for, and tell you what they saw.",
+    settings_frigate_hub_title: "Set up by your Selora hub",
+    settings_frigate_hub_desc:
+      "Frigate runs on your hub and Selora keeps it connected. There is nothing to configure.",
+    settings_frigate_integration_title:
+      "Connected through the Frigate integration",
+    settings_frigate_integration_desc:
+      "Selora AI uses the connection set up in Home Assistant. Change it in the Frigate integration's settings.",
+    settings_frigate_url_label: "Frigate address",
+    settings_frigate_username_label: "Username (if Frigate asks for a login)",
+    settings_frigate_password_label: "Password",
+    settings_frigate_password_kept: "Saved \u2014 leave blank to keep it",
+    settings_frigate_no_integration_note:
+      "Without the Frigate integration, Frigate's cameras have no Home Assistant entities: install it from HACS for their switches and live views.",
+    settings_frigate_test_button: "Test connection",
+    settings_frigate_testing_label: "Testing\u2026",
+    settings_frigate_test_ok:
+      "Connected to Frigate {version} \xB7 cameras: {count}",
+    settings_frigate_disconnect_button: "Disconnect",
+    settings_frigate_saved: "Frigate settings saved.",
+    settings_frigate_disconnected: "Frigate disconnected.",
     settings_background_services_title: "BACKGROUND SERVICES",
     settings_data_collector_label: "Data collector (AI analysis)",
     settings_data_collector_desc: "Feeds entity history to Selora AI",
@@ -11808,6 +11860,31 @@ var fr_default = {
     settings_household_profile_placeholder:
       "ex. Famille de 4. Enfants au lit \xE0 20h30. Grand-m\xE8re vient le week-end \u2014 elle est frileuse. Lumi\xE8res chaudes et tamis\xE9es apr\xE8s le coucher du soleil. Ne jamais verrouiller le garage automatiquement (chati\xE8re).",
     settings_household_profile_saved: "Profil du foyer enregistr\xE9.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "Enregistre vos cam\xE9ras et rep\xE8re les personnes, les voitures et les animaux. Selora AI peut ajouter des cam\xE9ras, choisir ce que chacune surveille et vous dire ce qu'elles ont vu.",
+    settings_frigate_hub_title: "Configur\xE9 par votre hub Selora",
+    settings_frigate_hub_desc:
+      "Frigate tourne sur votre hub et Selora le garde connect\xE9. Il n'y a rien \xE0 configurer.",
+    settings_frigate_integration_title:
+      "Connect\xE9 via l'int\xE9gration Frigate",
+    settings_frigate_integration_desc:
+      "Selora AI utilise la connexion configur\xE9e dans Home Assistant. Modifiez-la dans les r\xE9glages de l'int\xE9gration Frigate.",
+    settings_frigate_url_label: "Adresse de Frigate",
+    settings_frigate_username_label:
+      "Nom d'utilisateur (si Frigate demande une connexion)",
+    settings_frigate_password_label: "Mot de passe",
+    settings_frigate_password_kept:
+      "Enregistr\xE9 \u2014 laissez vide pour le conserver",
+    settings_frigate_no_integration_note:
+      "Sans l'int\xE9gration Frigate, les cam\xE9ras de Frigate n'ont pas d'entit\xE9s Home Assistant : installez-la depuis HACS pour leurs interrupteurs et leurs vues en direct.",
+    settings_frigate_test_button: "Tester la connexion",
+    settings_frigate_testing_label: "Test en cours\u2026",
+    settings_frigate_test_ok:
+      "Connect\xE9 \xE0 Frigate {version} \xB7 cam\xE9ras : {count}",
+    settings_frigate_disconnect_button: "D\xE9connecter",
+    settings_frigate_saved: "R\xE9glages Frigate enregistr\xE9s.",
+    settings_frigate_disconnected: "Frigate d\xE9connect\xE9.",
     settings_background_services_title: "SERVICES EN ARRI\xC8RE-PLAN",
     settings_data_collector_label: "Collecteur de donn\xE9es (analyse IA)",
     settings_data_collector_desc:
@@ -13230,6 +13307,31 @@ var de_default = {
     settings_household_profile_placeholder:
       "z. B. Vierk\xF6pfige Familie. Kinder um 20:30 im Bett. Oma kommt am Wochenende \u2014 sie friert leicht. Warmes, ged\xE4mpftes Licht nach Sonnenuntergang. Garage nie automatisch abschlie\xDFen (Katzenklappe).",
     settings_household_profile_saved: "Haushaltsprofil gespeichert.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "Zeichnet deine Kameras auf und erkennt Personen, Autos und Tiere. Selora AI kann Kameras hinzuf\xFCgen, festlegen, worauf jede achtet, und dir sagen, was sie gesehen haben.",
+    settings_frigate_hub_title: "Von deinem Selora Hub eingerichtet",
+    settings_frigate_hub_desc:
+      "Frigate l\xE4uft auf deinem Hub und Selora h\xE4lt die Verbindung. Es gibt nichts einzurichten.",
+    settings_frigate_integration_title:
+      "\xDCber die Frigate-Integration verbunden",
+    settings_frigate_integration_desc:
+      "Selora AI nutzt die in Home Assistant eingerichtete Verbindung. \xC4ndere sie in den Einstellungen der Frigate-Integration.",
+    settings_frigate_url_label: "Frigate-Adresse",
+    settings_frigate_username_label:
+      "Benutzername (falls Frigate eine Anmeldung verlangt)",
+    settings_frigate_password_label: "Passwort",
+    settings_frigate_password_kept:
+      "Gespeichert \u2013 leer lassen, um es zu behalten",
+    settings_frigate_no_integration_note:
+      "Ohne die Frigate-Integration haben Frigates Kameras keine Home-Assistant-Entit\xE4ten: Installiere sie \xFCber HACS f\xFCr ihre Schalter und Live-Ansichten.",
+    settings_frigate_test_button: "Verbindung testen",
+    settings_frigate_testing_label: "Wird getestet\u2026",
+    settings_frigate_test_ok:
+      "Verbunden mit Frigate {version} \xB7 Kameras: {count}",
+    settings_frigate_disconnect_button: "Trennen",
+    settings_frigate_saved: "Frigate-Einstellungen gespeichert.",
+    settings_frigate_disconnected: "Frigate getrennt.",
     settings_background_services_title: "HINTERGRUNDDIENSTE",
     settings_data_collector_label: "Datensammler (KI-Analyse)",
     settings_data_collector_desc:
@@ -14637,6 +14739,31 @@ var es_default = {
     settings_household_profile_placeholder:
       "p. ej. Familia de 4. Ni\xF1os en la cama a las 20:30. La abuela viene los fines de semana \u2014 es friolera. Luces c\xE1lidas y tenues tras el atardecer. Nunca bloquear el garaje autom\xE1ticamente (gatera).",
     settings_household_profile_saved: "Perfil del hogar guardado.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "Graba tus c\xE1maras y detecta personas, coches y animales. Selora AI puede a\xF1adir c\xE1maras, elegir qu\xE9 vigila cada una y decirte lo que vieron.",
+    settings_frigate_hub_title: "Configurado por tu hub Selora",
+    settings_frigate_hub_desc:
+      "Frigate funciona en tu hub y Selora lo mantiene conectado. No hay nada que configurar.",
+    settings_frigate_integration_title:
+      "Conectado mediante la integraci\xF3n de Frigate",
+    settings_frigate_integration_desc:
+      "Selora AI usa la conexi\xF3n configurada en Home Assistant. C\xE1mbiala en los ajustes de la integraci\xF3n de Frigate.",
+    settings_frigate_url_label: "Direcci\xF3n de Frigate",
+    settings_frigate_username_label:
+      "Usuario (si Frigate pide iniciar sesi\xF3n)",
+    settings_frigate_password_label: "Contrase\xF1a",
+    settings_frigate_password_kept:
+      "Guardada: d\xE9jala en blanco para conservarla",
+    settings_frigate_no_integration_note:
+      "Sin la integraci\xF3n de Frigate, las c\xE1maras de Frigate no tienen entidades en Home Assistant: inst\xE1lala desde HACS para tener sus interruptores y vistas en directo.",
+    settings_frigate_test_button: "Probar conexi\xF3n",
+    settings_frigate_testing_label: "Probando\u2026",
+    settings_frigate_test_ok:
+      "Conectado a Frigate {version} \xB7 c\xE1maras: {count}",
+    settings_frigate_disconnect_button: "Desconectar",
+    settings_frigate_saved: "Ajustes de Frigate guardados.",
+    settings_frigate_disconnected: "Frigate desconectado.",
     settings_background_services_title: "SERVICIOS EN SEGUNDO PLANO",
     settings_data_collector_label: "Recopilador de datos (an\xE1lisis de IA)",
     settings_data_collector_desc:
@@ -16024,6 +16151,30 @@ var it_default = {
     settings_household_profile_placeholder:
       "es. Famiglia di 4. Bambini a letto alle 20:30. La nonna viene nei weekend \u2014 \xE8 freddolosa. Luci calde e soffuse dopo il tramonto. Non bloccare mai il garage automaticamente (gattaiola).",
     settings_household_profile_saved: "Profilo della casa salvato.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "Registra le tue telecamere e individua persone, auto e animali. Selora AI pu\xF2 aggiungere telecamere, scegliere cosa sorveglia ciascuna e dirti cosa hanno visto.",
+    settings_frigate_hub_title: "Configurato dal tuo hub Selora",
+    settings_frigate_hub_desc:
+      "Frigate funziona sul tuo hub e Selora lo mantiene collegato. Non c'\xE8 nulla da configurare.",
+    settings_frigate_integration_title:
+      "Collegato tramite l'integrazione Frigate",
+    settings_frigate_integration_desc:
+      "Selora AI usa la connessione configurata in Home Assistant. Modificala nelle impostazioni dell'integrazione Frigate.",
+    settings_frigate_url_label: "Indirizzo di Frigate",
+    settings_frigate_username_label:
+      "Nome utente (se Frigate richiede l'accesso)",
+    settings_frigate_password_label: "Password",
+    settings_frigate_password_kept: "Salvata: lascia vuoto per mantenerla",
+    settings_frigate_no_integration_note:
+      "Senza l'integrazione Frigate, le telecamere di Frigate non hanno entit\xE0 in Home Assistant: installala da HACS per i loro interruttori e le viste dal vivo.",
+    settings_frigate_test_button: "Prova connessione",
+    settings_frigate_testing_label: "Prova in corso\u2026",
+    settings_frigate_test_ok:
+      "Collegato a Frigate {version} \xB7 telecamere: {count}",
+    settings_frigate_disconnect_button: "Scollega",
+    settings_frigate_saved: "Impostazioni di Frigate salvate.",
+    settings_frigate_disconnected: "Frigate scollegato.",
     settings_background_services_title: "SERVIZI IN BACKGROUND",
     settings_data_collector_label: "Raccoglitore dati (analisi AI)",
     settings_data_collector_desc:
@@ -17432,6 +17583,30 @@ var nl_default = {
     settings_household_profile_placeholder:
       "bijv. Gezin van 4. Kinderen om 20:30 naar bed. Oma komt in het weekend \u2014 ze heeft het snel koud. Warm, gedimd licht na zonsondergang. Garage nooit automatisch vergrendelen (kattenluik).",
     settings_household_profile_saved: "Huishoudprofiel opgeslagen.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "Neemt je camera's op en herkent mensen, auto's en dieren. Selora AI kan camera's toevoegen, kiezen waar elke camera op let en vertellen wat ze zagen.",
+    settings_frigate_hub_title: "Ingesteld door je Selora-hub",
+    settings_frigate_hub_desc:
+      "Frigate draait op je hub en Selora houdt het verbonden. Er valt niets in te stellen.",
+    settings_frigate_integration_title: "Verbonden via de Frigate-integratie",
+    settings_frigate_integration_desc:
+      "Selora AI gebruikt de verbinding die in Home Assistant is ingesteld. Wijzig die in de instellingen van de Frigate-integratie.",
+    settings_frigate_url_label: "Frigate-adres",
+    settings_frigate_username_label:
+      "Gebruikersnaam (als Frigate om een login vraagt)",
+    settings_frigate_password_label: "Wachtwoord",
+    settings_frigate_password_kept:
+      "Opgeslagen \u2014 laat leeg om het te behouden",
+    settings_frigate_no_integration_note:
+      "Zonder de Frigate-integratie hebben de camera's van Frigate geen Home Assistant-entiteiten: installeer haar via HACS voor hun schakelaars en live weergaven.",
+    settings_frigate_test_button: "Verbinding testen",
+    settings_frigate_testing_label: "Testen\u2026",
+    settings_frigate_test_ok:
+      "Verbonden met Frigate {version} \xB7 camera's: {count}",
+    settings_frigate_disconnect_button: "Verbreken",
+    settings_frigate_saved: "Frigate-instellingen opgeslagen.",
+    settings_frigate_disconnected: "Frigate losgekoppeld.",
     settings_background_services_title: "ACHTERGRONDDIENSTEN",
     settings_data_collector_label: "Gegevensverzamelaar (AI-analyse)",
     settings_data_collector_desc: "Voert entiteitsgeschiedenis aan Selora AI",
@@ -18840,6 +19015,31 @@ var hu_default = {
     settings_household_profile_placeholder:
       "pl. N\xE9gyf\u0151s csal\xE1d. A gyerekek 20:30-kor lefekszenek. A nagymama h\xE9tv\xE9g\xE9n j\xF6n \u2014 f\xE1z\xF3s. Naplemente ut\xE1n meleg, tomp\xEDtott f\xE9ny. Soha ne z\xE1rja automatikusan a gar\xE1zst (macskaajt\xF3).",
     settings_household_profile_saved: "H\xE1ztart\xE1si profil elmentve.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "R\xF6gz\xEDti a kamer\xE1kat, \xE9s felismeri az embereket, aut\xF3kat \xE9s \xE1llatokat. A Selora AI kamer\xE1kat adhat hozz\xE1, be\xE1ll\xEDthatja, mit figyeljen mindegyik, \xE9s elmondja, mit l\xE1ttak.",
+    settings_frigate_hub_title: "A Selora hub \xE1ll\xEDtotta be",
+    settings_frigate_hub_desc:
+      "A Frigate a hubon fut, a Selora pedig csatlakoztatva tartja. Nincs mit be\xE1ll\xEDtani.",
+    settings_frigate_integration_title:
+      "Csatlakoztatva a Frigate integr\xE1ci\xF3n kereszt\xFCl",
+    settings_frigate_integration_desc:
+      "A Selora AI a Home Assistantben be\xE1ll\xEDtott kapcsolatot haszn\xE1lja. A Frigate integr\xE1ci\xF3 be\xE1ll\xEDt\xE1saiban m\xF3dos\xEDthatod.",
+    settings_frigate_url_label: "Frigate c\xEDme",
+    settings_frigate_username_label:
+      "Felhaszn\xE1l\xF3n\xE9v (ha a Frigate bejelentkez\xE9st k\xE9r)",
+    settings_frigate_password_label: "Jelsz\xF3",
+    settings_frigate_password_kept:
+      "Mentve \u2013 hagyd \xFCresen a megtart\xE1shoz",
+    settings_frigate_no_integration_note:
+      "A Frigate integr\xE1ci\xF3 n\xE9lk\xFCl a Frigate kamer\xE1inak nincsenek Home Assistant entit\xE1sai: telep\xEDtsd a HACS-b\xF3l a kapcsol\xF3ikhoz \xE9s \xE9l\u0151k\xE9peikhez.",
+    settings_frigate_test_button: "Kapcsolat tesztel\xE9se",
+    settings_frigate_testing_label: "Tesztel\xE9s\u2026",
+    settings_frigate_test_ok:
+      "Csatlakozva a Frigate {version} verzi\xF3hoz \xB7 kamer\xE1k: {count}",
+    settings_frigate_disconnect_button: "Lev\xE1laszt\xE1s",
+    settings_frigate_saved: "Frigate be\xE1ll\xEDt\xE1sok mentve.",
+    settings_frigate_disconnected: "Frigate lev\xE1lasztva.",
     settings_background_services_title: "H\xC1TT\xC9RSZOLG\xC1LTAT\xC1SOK",
     settings_data_collector_label: "Adatgy\u0171jt\u0151 (AI-elemz\xE9s)",
     settings_data_collector_desc:
@@ -20268,6 +20468,31 @@ var pt_default = {
     settings_household_profile_placeholder:
       "ex. Fam\xEDlia de 4. Crian\xE7as na cama \xE0s 20:30. A av\xF3 vem aos fins de semana \u2014 \xE9 friorenta. Luzes quentes e t\xE9nues ap\xF3s o p\xF4r do sol. Nunca trancar a garagem automaticamente (porta do gato).",
     settings_household_profile_saved: "Perfil do agregado familiar guardado.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "Grava as suas c\xE2maras e deteta pessoas, carros e animais. O Selora AI pode adicionar c\xE2maras, escolher o que cada uma vigia e dizer-lhe o que viram.",
+    settings_frigate_hub_title: "Configurado pelo seu hub Selora",
+    settings_frigate_hub_desc:
+      "O Frigate corre no seu hub e o Selora mant\xE9m-no ligado. N\xE3o h\xE1 nada a configurar.",
+    settings_frigate_integration_title:
+      "Ligado atrav\xE9s da integra\xE7\xE3o Frigate",
+    settings_frigate_integration_desc:
+      "O Selora AI usa a liga\xE7\xE3o configurada no Home Assistant. Altere-a nas defini\xE7\xF5es da integra\xE7\xE3o Frigate.",
+    settings_frigate_url_label: "Endere\xE7o do Frigate",
+    settings_frigate_username_label:
+      "Nome de utilizador (se o Frigate pedir in\xEDcio de sess\xE3o)",
+    settings_frigate_password_label: "Palavra-passe",
+    settings_frigate_password_kept:
+      "Guardada \u2014 deixe em branco para a manter",
+    settings_frigate_no_integration_note:
+      "Sem a integra\xE7\xE3o Frigate, as c\xE2maras do Frigate n\xE3o t\xEAm entidades no Home Assistant: instale-a a partir do HACS para os seus interruptores e vistas em direto.",
+    settings_frigate_test_button: "Testar liga\xE7\xE3o",
+    settings_frigate_testing_label: "A testar\u2026",
+    settings_frigate_test_ok:
+      "Ligado ao Frigate {version} \xB7 c\xE2maras: {count}",
+    settings_frigate_disconnect_button: "Desligar",
+    settings_frigate_saved: "Defini\xE7\xF5es do Frigate guardadas.",
+    settings_frigate_disconnected: "Frigate desligado.",
     settings_background_services_title: "SERVI\xC7OS EM SEGUNDO PLANO",
     settings_data_collector_label: "Recoletor de dados (an\xE1lise por IA)",
     settings_data_collector_desc:
@@ -21802,6 +22027,37 @@ var ru_default = {
       "\u043D\u0430\u043F\u0440. \u0421\u0435\u043C\u044C\u044F \u0438\u0437 4 \u0447\u0435\u043B\u043E\u0432\u0435\u043A. \u0414\u0435\u0442\u0438 \u043B\u043E\u0436\u0430\u0442\u0441\u044F \u0432 20:30. \u0411\u0430\u0431\u0443\u0448\u043A\u0430 \u043F\u0440\u0438\u0435\u0437\u0436\u0430\u0435\u0442 \u043F\u043E \u0432\u044B\u0445\u043E\u0434\u043D\u044B\u043C \u2014 \u043E\u043D\u0430 \u043C\u0451\u0440\u0437\u043D\u0435\u0442. \u041F\u043E\u0441\u043B\u0435 \u0437\u0430\u043A\u0430\u0442\u0430 \u0442\u0451\u043F\u043B\u044B\u0439 \u043F\u0440\u0438\u0433\u043B\u0443\u0448\u0451\u043D\u043D\u044B\u0439 \u0441\u0432\u0435\u0442. \u041D\u0438\u043A\u043E\u0433\u0434\u0430 \u043D\u0435 \u0437\u0430\u043F\u0438\u0440\u0430\u0442\u044C \u0433\u0430\u0440\u0430\u0436 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 (\u043A\u043E\u0448\u0430\u0447\u044C\u044F \u0434\u0432\u0435\u0440\u0446\u0430).",
     settings_household_profile_saved:
       "\u041F\u0440\u043E\u0444\u0438\u043B\u044C \u0434\u043E\u043C\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "\u0417\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0435\u0442 \u0432\u0430\u0448\u0438 \u043A\u0430\u043C\u0435\u0440\u044B \u0438 \u0437\u0430\u043C\u0435\u0447\u0430\u0435\u0442 \u043B\u044E\u0434\u0435\u0439, \u043C\u0430\u0448\u0438\u043D\u044B \u0438 \u0436\u0438\u0432\u043E\u0442\u043D\u044B\u0445. Selora AI \u043C\u043E\u0436\u0435\u0442 \u0434\u043E\u0431\u0430\u0432\u043B\u044F\u0442\u044C \u043A\u0430\u043C\u0435\u0440\u044B, \u0432\u044B\u0431\u0438\u0440\u0430\u0442\u044C, \u0437\u0430 \u0447\u0435\u043C \u0441\u043B\u0435\u0434\u0438\u0442 \u043A\u0430\u0436\u0434\u0430\u044F, \u0438 \u0440\u0430\u0441\u0441\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C, \u0447\u0442\u043E \u043E\u043D\u0438 \u0432\u0438\u0434\u0435\u043B\u0438.",
+    settings_frigate_hub_title:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043E \u0432\u0430\u0448\u0438\u043C \u0445\u0430\u0431\u043E\u043C Selora",
+    settings_frigate_hub_desc:
+      "Frigate \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043D\u0430 \u0432\u0430\u0448\u0435\u043C \u0445\u0430\u0431\u0435, \u0438 Selora \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u0442 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435. \u041D\u0430\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0442\u044C \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0443\u0436\u043D\u043E.",
+    settings_frigate_integration_title:
+      "\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u043E \u0447\u0435\u0440\u0435\u0437 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044E Frigate",
+    settings_frigate_integration_desc:
+      "Selora AI \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435, \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u043E\u0435 \u0432 Home Assistant. \u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0435\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438 Frigate.",
+    settings_frigate_url_label: "\u0410\u0434\u0440\u0435\u0441 Frigate",
+    settings_frigate_username_label:
+      "\u0418\u043C\u044F \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F (\u0435\u0441\u043B\u0438 Frigate \u0442\u0440\u0435\u0431\u0443\u0435\u0442 \u0432\u0445\u043E\u0434)",
+    settings_frigate_password_label: "\u041F\u0430\u0440\u043E\u043B\u044C",
+    settings_frigate_password_kept:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0451\u043D \u2014 \u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0441\u0442\u044B\u043C, \u0447\u0442\u043E\u0431\u044B \u043D\u0435 \u043C\u0435\u043D\u044F\u0442\u044C",
+    settings_frigate_no_integration_note:
+      "\u0411\u0435\u0437 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438 Frigate \u0443 \u043A\u0430\u043C\u0435\u0440 Frigate \u043D\u0435\u0442 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439 Home Assistant: \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0435 \u0435\u0451 \u0438\u0437 HACS, \u0447\u0442\u043E\u0431\u044B \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u0438 \u0438 \u043F\u0440\u044F\u043C\u043E\u0439 \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440.",
+    settings_frigate_test_button:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435",
+    settings_frigate_testing_label:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u2026",
+    settings_frigate_test_ok:
+      "\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u043E \u043A Frigate {version} \xB7 \u043A\u0430\u043C\u0435\u0440: {count}",
+    settings_frigate_disconnect_button:
+      "\u041E\u0442\u043A\u043B\u044E\u0447\u0438\u0442\u044C",
+    settings_frigate_saved:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 Frigate \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u044B.",
+    settings_frigate_disconnected:
+      "Frigate \u043E\u0442\u043A\u043B\u044E\u0447\u0451\u043D.",
     settings_background_services_title:
       "\u0424\u041E\u041D\u041E\u0412\u042B\u0415 \u0421\u041B\u0423\u0416\u0411\u042B",
     settings_data_collector_label:
@@ -23792,6 +24048,34 @@ var ja_default = {
       "\u4F8B: 4\u4EBA\u5BB6\u65CF\u3002\u5B50\u3069\u3082\u306F20:30\u5C31\u5BDD\u3002\u7956\u6BCD\u306F\u9031\u672B\u306B\u6765\u8A2A \u2014 \u5BD2\u304C\u308A\u3002\u65E5\u6CA1\u5F8C\u306F\u6696\u8272\u306E\u6DE1\u3044\u7167\u660E\u3002\u30AC\u30EC\u30FC\u30B8\u306F\u81EA\u52D5\u65BD\u9320\u3057\u306A\u3044\uFF08\u732B\u7528\u30C9\u30A2\u3042\u308A\uFF09\u3002",
     settings_household_profile_saved:
       "\u4E16\u5E2F\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "\u30AB\u30E1\u30E9\u3092\u9332\u753B\u3057\u3001\u4EBA\u30FB\u8ECA\u30FB\u52D5\u7269\u3092\u691C\u51FA\u3057\u307E\u3059\u3002Selora AI \u306F\u30AB\u30E1\u30E9\u306E\u8FFD\u52A0\u3001\u5404\u30AB\u30E1\u30E9\u304C\u898B\u5F35\u308B\u5BFE\u8C61\u306E\u9078\u629E\u3001\u30AB\u30E1\u30E9\u304C\u898B\u305F\u3082\u306E\u306E\u5831\u544A\u304C\u3067\u304D\u307E\u3059\u3002",
+    settings_frigate_hub_title:
+      "Selora \u30CF\u30D6\u3067\u81EA\u52D5\u8A2D\u5B9A\u6E08\u307F",
+    settings_frigate_hub_desc:
+      "Frigate \u306F\u30CF\u30D6\u4E0A\u3067\u52D5\u4F5C\u3057\u3001Selora \u304C\u63A5\u7D9A\u3092\u7DAD\u6301\u3057\u307E\u3059\u3002\u8A2D\u5B9A\u306F\u4E0D\u8981\u3067\u3059\u3002",
+    settings_frigate_integration_title:
+      "Frigate \u7D71\u5408\u7D4C\u7531\u3067\u63A5\u7D9A",
+    settings_frigate_integration_desc:
+      "Selora AI \u306F Home Assistant \u3067\u8A2D\u5B9A\u3055\u308C\u305F\u63A5\u7D9A\u3092\u4F7F\u3044\u307E\u3059\u3002\u5909\u66F4\u306F Frigate \u7D71\u5408\u306E\u8A2D\u5B9A\u3067\u884C\u3063\u3066\u304F\u3060\u3055\u3044\u3002",
+    settings_frigate_url_label: "Frigate \u306E\u30A2\u30C9\u30EC\u30B9",
+    settings_frigate_username_label:
+      "\u30E6\u30FC\u30B6\u30FC\u540D\uFF08Frigate \u304C\u30ED\u30B0\u30A4\u30F3\u3092\u6C42\u3081\u308B\u5834\u5408\uFF09",
+    settings_frigate_password_label: "\u30D1\u30B9\u30EF\u30FC\u30C9",
+    settings_frigate_password_kept:
+      "\u4FDD\u5B58\u6E08\u307F \u2014 \u5909\u66F4\u3057\u306A\u3044\u5834\u5408\u306F\u7A7A\u6B04\u306E\u307E\u307E",
+    settings_frigate_no_integration_note:
+      "Frigate \u7D71\u5408\u304C\u306A\u3044\u3068\u3001Frigate \u306E\u30AB\u30E1\u30E9\u306B Home Assistant \u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u304C\u3042\u308A\u307E\u305B\u3093\u3002\u30B9\u30A4\u30C3\u30C1\u3084\u30E9\u30A4\u30D6\u6620\u50CF\u306B\u306F HACS \u304B\u3089\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    settings_frigate_test_button: "\u63A5\u7D9A\u3092\u30C6\u30B9\u30C8",
+    settings_frigate_testing_label: "\u30C6\u30B9\u30C8\u4E2D\u2026",
+    settings_frigate_test_ok:
+      "Frigate {version} \u306B\u63A5\u7D9A\u3057\u307E\u3057\u305F \xB7 \u30AB\u30E1\u30E9: {count}",
+    settings_frigate_disconnect_button: "\u5207\u65AD",
+    settings_frigate_saved:
+      "Frigate \u306E\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
+    settings_frigate_disconnected:
+      "Frigate \u3092\u5207\u65AD\u3057\u307E\u3057\u305F\u3002",
     settings_background_services_title:
       "\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u30B5\u30FC\u30D3\u30B9",
     settings_data_collector_label:
@@ -25475,6 +25759,34 @@ var ko_default = {
       "\uC608: 4\uC778 \uAC00\uC871. \uC544\uC774\uB4E4\uC740 20:30 \uCDE8\uCE68. \uD560\uBA38\uB2C8\uB294 \uC8FC\uB9D0\uC5D0 \uBC29\uBB38 \u2014 \uCD94\uC704\uB97C \uB9CE\uC774 \uD0D0. \uC77C\uBAB0 \uD6C4 \uB530\uB73B\uD558\uACE0 \uC740\uC740\uD55C \uC870\uBA85. \uCC28\uACE0\uB294 \uC790\uB3D9 \uC7A0\uAE08 \uAE08\uC9C0(\uACE0\uC591\uC774 \uBB38).",
     settings_household_profile_saved:
       "\uAC00\uC815 \uD504\uB85C\uD544\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4.",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "\uCE74\uBA54\uB77C\uB97C \uB179\uD654\uD558\uACE0 \uC0AC\uB78C, \uC790\uB3D9\uCC28, \uB3D9\uBB3C\uC744 \uAC10\uC9C0\uD569\uB2C8\uB2E4. Selora AI\uAC00 \uCE74\uBA54\uB77C\uB97C \uCD94\uAC00\uD558\uACE0, \uAC01 \uCE74\uBA54\uB77C\uAC00 \uC9C0\uCF1C\uBCFC \uB300\uC0C1\uC744 \uACE0\uB974\uACE0, \uCE74\uBA54\uB77C\uAC00 \uBCF8 \uAC83\uC744 \uC54C\uB824 \uC90D\uB2C8\uB2E4.",
+    settings_frigate_hub_title:
+      "Selora \uD5C8\uBE0C\uC5D0\uC11C \uC124\uC815\uB428",
+    settings_frigate_hub_desc:
+      "Frigate\uB294 \uD5C8\uBE0C\uC5D0\uC11C \uC2E4\uD589\uB418\uBA70 Selora\uAC00 \uC5F0\uACB0\uC744 \uC720\uC9C0\uD569\uB2C8\uB2E4. \uC124\uC815\uD560 \uAC83\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    settings_frigate_integration_title:
+      "Frigate \uD1B5\uD569\uC73C\uB85C \uC5F0\uACB0\uB428",
+    settings_frigate_integration_desc:
+      "Selora AI\uB294 Home Assistant\uC5D0 \uC124\uC815\uB41C \uC5F0\uACB0\uC744 \uC0AC\uC6A9\uD569\uB2C8\uB2E4. Frigate \uD1B5\uD569 \uC124\uC815\uC5D0\uC11C \uBCC0\uACBD\uD558\uC138\uC694.",
+    settings_frigate_url_label: "Frigate \uC8FC\uC18C",
+    settings_frigate_username_label:
+      "\uC0AC\uC6A9\uC790 \uC774\uB984(Frigate\uC5D0\uC11C \uB85C\uADF8\uC778\uC744 \uC694\uAD6C\uD558\uB294 \uACBD\uC6B0)",
+    settings_frigate_password_label: "\uBE44\uBC00\uBC88\uD638",
+    settings_frigate_password_kept:
+      "\uC800\uC7A5\uB428 \u2014 \uC720\uC9C0\uD558\uB824\uBA74 \uBE44\uC6CC \uB450\uC138\uC694",
+    settings_frigate_no_integration_note:
+      "Frigate \uD1B5\uD569\uC774 \uC5C6\uC73C\uBA74 Frigate \uCE74\uBA54\uB77C\uC5D0 Home Assistant \uC5D4\uD130\uD2F0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uC2A4\uC704\uCE58\uC640 \uC2E4\uC2DC\uAC04 \uD654\uBA74\uC744 \uC4F0\uB824\uBA74 HACS\uC5D0\uC11C \uC124\uCE58\uD558\uC138\uC694.",
+    settings_frigate_test_button: "\uC5F0\uACB0 \uD14C\uC2A4\uD2B8",
+    settings_frigate_testing_label: "\uD14C\uC2A4\uD2B8 \uC911\u2026",
+    settings_frigate_test_ok:
+      "Frigate {version}\uC5D0 \uC5F0\uACB0\uB428 \xB7 \uCE74\uBA54\uB77C: {count}",
+    settings_frigate_disconnect_button: "\uC5F0\uACB0 \uD574\uC81C",
+    settings_frigate_saved:
+      "Frigate \uC124\uC815\uC744 \uC800\uC7A5\uD588\uC2B5\uB2C8\uB2E4.",
+    settings_frigate_disconnected:
+      "Frigate \uC5F0\uACB0\uC744 \uD574\uC81C\uD588\uC2B5\uB2C8\uB2E4.",
     settings_background_services_title:
       "\uBC31\uADF8\uB77C\uC6B4\uB4DC \uC11C\uBE44\uC2A4",
     settings_data_collector_label:
@@ -27033,6 +27345,32 @@ var zh_Hans_default = {
       "\u4F8B\u5982\uFF1A\u56DB\u53E3\u4E4B\u5BB6\u3002\u5B69\u5B50 20:30 \u4E0A\u5E8A\u3002\u5976\u5976\u5468\u672B\u6765\u8BBF\u2014\u2014\u5979\u6015\u51B7\u3002\u65E5\u843D\u540E\u4F7F\u7528\u6696\u8272\u67D4\u548C\u706F\u5149\u3002\u5207\u52FF\u81EA\u52A8\u9501\u8F66\u5E93\uFF08\u6709\u732B\u95E8\uFF09\u3002",
     settings_household_profile_saved:
       "\u5BB6\u5EAD\u6863\u6848\u5DF2\u4FDD\u5B58\u3002",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "\u5F55\u5236\u60A8\u7684\u6444\u50CF\u5934\uFF0C\u5E76\u8BC6\u522B\u4EBA\u3001\u8F66\u548C\u52A8\u7269\u3002Selora AI \u53EF\u4EE5\u6DFB\u52A0\u6444\u50CF\u5934\u3001\u9009\u62E9\u6BCF\u4E2A\u6444\u50CF\u5934\u5173\u6CE8\u7684\u5BF9\u8C61\uFF0C\u5E76\u544A\u8BC9\u60A8\u5B83\u4EEC\u770B\u5230\u4E86\u4EC0\u4E48\u3002",
+    settings_frigate_hub_title:
+      "\u7531\u60A8\u7684 Selora \u96C6\u7EBF\u5668\u8BBE\u7F6E",
+    settings_frigate_hub_desc:
+      "Frigate \u8FD0\u884C\u5728\u60A8\u7684\u96C6\u7EBF\u5668\u4E0A\uFF0C\u7531 Selora \u4FDD\u6301\u8FDE\u63A5\u3002\u65E0\u9700\u4EFB\u4F55\u914D\u7F6E\u3002",
+    settings_frigate_integration_title:
+      "\u5DF2\u901A\u8FC7 Frigate \u96C6\u6210\u8FDE\u63A5",
+    settings_frigate_integration_desc:
+      "Selora AI \u4F7F\u7528 Home Assistant \u4E2D\u8BBE\u7F6E\u7684\u8FDE\u63A5\u3002\u8BF7\u5728 Frigate \u96C6\u6210\u7684\u8BBE\u7F6E\u4E2D\u66F4\u6539\u3002",
+    settings_frigate_url_label: "Frigate \u5730\u5740",
+    settings_frigate_username_label:
+      "\u7528\u6237\u540D\uFF08\u5982\u679C Frigate \u8981\u6C42\u767B\u5F55\uFF09",
+    settings_frigate_password_label: "\u5BC6\u7801",
+    settings_frigate_password_kept:
+      "\u5DF2\u4FDD\u5B58 \u2014 \u7559\u7A7A\u5373\u4FDD\u6301\u4E0D\u53D8",
+    settings_frigate_no_integration_note:
+      "\u6CA1\u6709 Frigate \u96C6\u6210\u65F6\uFF0CFrigate \u7684\u6444\u50CF\u5934\u5728 Home Assistant \u4E2D\u6CA1\u6709\u5B9E\u4F53\uFF1A\u8BF7\u4ECE HACS \u5B89\u88C5\u5B83\u4EE5\u83B7\u5F97\u5F00\u5173\u548C\u5B9E\u65F6\u753B\u9762\u3002",
+    settings_frigate_test_button: "\u6D4B\u8BD5\u8FDE\u63A5",
+    settings_frigate_testing_label: "\u6B63\u5728\u6D4B\u8BD5\u2026",
+    settings_frigate_test_ok:
+      "\u5DF2\u8FDE\u63A5\u5230 Frigate {version} \xB7 \u6444\u50CF\u5934\uFF1A{count}",
+    settings_frigate_disconnect_button: "\u65AD\u5F00\u8FDE\u63A5",
+    settings_frigate_saved: "Frigate \u8BBE\u7F6E\u5DF2\u4FDD\u5B58\u3002",
+    settings_frigate_disconnected: "\u5DF2\u65AD\u5F00 Frigate\u3002",
     settings_background_services_title: "\u540E\u53F0\u670D\u52A1",
     settings_data_collector_label:
       "\u6570\u636E\u91C7\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
@@ -28538,6 +28876,33 @@ var zh_Hant_default = {
       "\u4F8B\u5982\uFF1A\u56DB\u53E3\u4E4B\u5BB6\u3002\u5B69\u5B50 20:30 \u4E0A\u5E8A\u3002\u5976\u5976\u9031\u672B\u4F86\u8A2A\u2014\u2014\u5979\u6015\u51B7\u3002\u65E5\u843D\u5F8C\u4F7F\u7528\u6696\u8272\u67D4\u548C\u71C8\u5149\u3002\u5207\u52FF\u81EA\u52D5\u9396\u8ECA\u5EAB\uFF08\u6709\u8C93\u9580\uFF09\u3002",
     settings_household_profile_saved:
       "\u5BB6\u5EAD\u6A94\u6848\u5DF2\u5132\u5B58\u3002",
+    settings_frigate_heading: "Frigate",
+    settings_frigate_desc:
+      "\u9304\u88FD\u60A8\u7684\u651D\u5F71\u6A5F\uFF0C\u4E26\u8FA8\u8B58\u4EBA\u3001\u8ECA\u548C\u52D5\u7269\u3002Selora AI \u53EF\u4EE5\u65B0\u589E\u651D\u5F71\u6A5F\u3001\u9078\u64C7\u6BCF\u53F0\u651D\u5F71\u6A5F\u95DC\u6CE8\u7684\u5C0D\u8C61\uFF0C\u4E26\u544A\u8A34\u60A8\u5B83\u5011\u770B\u5230\u4E86\u4EC0\u9EBC\u3002",
+    settings_frigate_hub_title:
+      "\u7531\u60A8\u7684 Selora \u96C6\u7DDA\u5668\u8A2D\u5B9A",
+    settings_frigate_hub_desc:
+      "Frigate \u5728\u60A8\u7684\u96C6\u7DDA\u5668\u4E0A\u57F7\u884C\uFF0C\u7531 Selora \u4FDD\u6301\u9023\u7DDA\u3002\u7121\u9700\u4EFB\u4F55\u8A2D\u5B9A\u3002",
+    settings_frigate_integration_title:
+      "\u5DF2\u900F\u904E Frigate \u6574\u5408\u9023\u7DDA",
+    settings_frigate_integration_desc:
+      "Selora AI \u4F7F\u7528 Home Assistant \u4E2D\u8A2D\u5B9A\u7684\u9023\u7DDA\u3002\u8ACB\u5728 Frigate \u6574\u5408\u7684\u8A2D\u5B9A\u4E2D\u8B8A\u66F4\u3002",
+    settings_frigate_url_label: "Frigate \u4F4D\u5740",
+    settings_frigate_username_label:
+      "\u4F7F\u7528\u8005\u540D\u7A31\uFF08\u5982\u679C Frigate \u8981\u6C42\u767B\u5165\uFF09",
+    settings_frigate_password_label: "\u5BC6\u78BC",
+    settings_frigate_password_kept:
+      "\u5DF2\u5132\u5B58 \u2014 \u7559\u7A7A\u5373\u4FDD\u6301\u4E0D\u8B8A",
+    settings_frigate_no_integration_note:
+      "\u6C92\u6709 Frigate \u6574\u5408\u6642\uFF0CFrigate \u7684\u651D\u5F71\u6A5F\u5728 Home Assistant \u4E2D\u6C92\u6709\u5BE6\u9AD4\uFF1A\u8ACB\u5F9E HACS \u5B89\u88DD\u4EE5\u53D6\u5F97\u958B\u95DC\u548C\u5373\u6642\u756B\u9762\u3002",
+    settings_frigate_test_button: "\u6E2C\u8A66\u9023\u7DDA",
+    settings_frigate_testing_label: "\u6B63\u5728\u6E2C\u8A66\u2026",
+    settings_frigate_test_ok:
+      "\u5DF2\u9023\u7DDA\u5230 Frigate {version} \xB7 \u651D\u5F71\u6A5F\uFF1A{count}",
+    settings_frigate_disconnect_button: "\u4E2D\u65B7\u9023\u7DDA",
+    settings_frigate_saved: "Frigate \u8A2D\u5B9A\u5DF2\u5132\u5B58\u3002",
+    settings_frigate_disconnected:
+      "\u5DF2\u4E2D\u65B7 Frigate \u9023\u7DDA\u3002",
     settings_background_services_title: "\u80CC\u666F\u670D\u52D9",
     settings_data_collector_label:
       "\u8CC7\u6599\u6536\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
@@ -44430,6 +44795,245 @@ function syncDevConsole(host) {
   );
 }
 
+// src/panel/settings-inputs.js
+function textInput({
+  label,
+  value,
+  oninput,
+  type = "text",
+  placeholder = "",
+  style = "",
+}) {
+  return b2`
+    ${
+      label
+        ? b2`<label
+            style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
+            >${label}</label
+          >`
+        : ""
+    }
+    <input
+      class="form-select"
+      type=${type}
+      .value=${value || ""}
+      @input=${oninput}
+      placeholder=${placeholder}
+      style="width:100%;box-sizing:border-box;${style}"
+    />
+  `;
+}
+
+// src/panel/frigate-settings.js
+function setStatus(host, type, message) {
+  host._frigateStatus = { type, message };
+  host.requestUpdate();
+}
+async function testFrigateConnection(host) {
+  if (host._frigateBusy) return;
+  host._frigateBusy = "testing";
+  host._frigateStatus = null;
+  host.requestUpdate();
+  try {
+    const result = await host.hass.callWS({
+      type: "selora_ai/frigate/test_connection",
+      url: host._config.frigate_url || "",
+      username: host._config.frigate_username || "",
+      password: host._frigatePassword || "",
+    });
+    if (result.ok) {
+      setStatus(
+        host,
+        "success",
+        interpolate(
+          host._t(
+            "settings_frigate_test_ok",
+            "Connected to Frigate {version} \xB7 cameras: {count}",
+          ),
+          { version: result.version, count: result.cameras },
+        ),
+      );
+    } else {
+      setStatus(host, "error", result.error);
+    }
+  } catch (err) {
+    setStatus(host, "error", err.message);
+  } finally {
+    host._frigateBusy = null;
+    host.requestUpdate();
+  }
+}
+async function saveFrigateSettings(host, { disconnect = false } = {}) {
+  if (host._frigateBusy) return;
+  host._frigateBusy = "saving";
+  host._frigateStatus = null;
+  host.requestUpdate();
+  const config = disconnect
+    ? { frigate_url: "" }
+    : {
+        frigate_url: host._config.frigate_url || "",
+        frigate_username: host._config.frigate_username || "",
+        frigate_password: host._frigatePassword || "",
+      };
+  try {
+    await host.hass.callWS({ type: "selora_ai/update_config", config });
+    host._frigatePassword = "";
+    await host._loadConfig();
+    setStatus(
+      host,
+      "success",
+      disconnect
+        ? host._t("settings_frigate_disconnected", "Frigate disconnected.")
+        : host._t("settings_frigate_saved", "Frigate settings saved."),
+    );
+  } catch (err) {
+    setStatus(host, "error", err.message);
+  } finally {
+    host._frigateBusy = null;
+    host.requestUpdate();
+  }
+}
+function renderStatus(host) {
+  const status = host._frigateStatus;
+  if (!status) return "";
+  return b2`<div class="save-feedback save-feedback--${status.type}">
+    <ha-icon
+      icon=${status.type === "success" ? "mdi:check-circle" : "mdi:alert-circle"}
+      style="--mdc-icon-size:14px;"
+    ></ha-icon>
+    ${status.message}
+  </div>`;
+}
+function renderFields(host) {
+  const config = host._config;
+  const busy = Boolean(host._frigateBusy);
+  return b2`
+    <div class="form-group">
+      ${textInput({
+        label: host._t("settings_frigate_url_label", "Frigate address"),
+        value: config.frigate_url,
+        placeholder: "http://192.168.1.10:5000",
+        oninput: (e6) => host._updateConfig("frigate_url", e6.target.value),
+      })}
+    </div>
+    <div class="form-group">
+      ${textInput({
+        label: host._t(
+          "settings_frigate_username_label",
+          "Username (if Frigate asks for a login)",
+        ),
+        value: config.frigate_username,
+        oninput: (e6) =>
+          host._updateConfig("frigate_username", e6.target.value),
+      })}
+    </div>
+    <div class="form-group">
+      ${textInput({
+        label: host._t("settings_frigate_password_label", "Password"),
+        type: "password",
+        value: host._frigatePassword,
+        placeholder: config.frigate_password_set
+          ? host._t(
+              "settings_frigate_password_kept",
+              "Saved \u2014 leave blank to keep it",
+            )
+          : "",
+        oninput: (e6) => (host._frigatePassword = e6.target.value),
+      })}
+    </div>
+    <p class="section-card-subtitle">
+      ${host._t(
+        "settings_frigate_no_integration_note",
+        "Without the Frigate integration, Frigate's cameras have no Home Assistant entities: install it from HACS for their switches and live views.",
+      )}
+    </p>
+    <div class="card-save-bar">
+      ${
+        config.frigate_url
+          ? b2`<button
+              class="btn btn-outline"
+              ?disabled=${busy}
+              @click=${() => saveFrigateSettings(host, { disconnect: true })}
+            >
+              ${host._t("settings_frigate_disconnect_button", "Disconnect")}
+            </button>`
+          : ""
+      }
+      <button
+        class="btn btn-outline"
+        ?disabled=${busy || !config.frigate_url}
+        @click=${() => testFrigateConnection(host)}
+      >
+        ${host._frigateBusy === "testing" ? host._t("settings_frigate_testing_label", "Testing\u2026") : host._t("settings_frigate_test_button", "Test connection")}
+      </button>
+      <button
+        class="btn btn-primary"
+        ?disabled=${busy}
+        @click=${() => saveFrigateSettings(host)}
+      >
+        ${host._frigateBusy === "saving" ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
+      </button>
+    </div>
+  `;
+}
+function renderConnected(host, source) {
+  const hub = source === "hub";
+  return b2`
+    <div class="frigate-connected">
+      <ha-icon
+        icon=${hub ? "mdi:check-decagram" : "mdi:check-circle"}
+        class="frigate-connected-icon"
+      ></ha-icon>
+      <div class="frigate-connected-text">
+        <div class="frigate-connected-title">
+          ${
+            hub
+              ? host._t(
+                  "settings_frigate_hub_title",
+                  "Set up by your Selora hub",
+                )
+              : host._t(
+                  "settings_frigate_integration_title",
+                  "Connected through the Frigate integration",
+                )
+          }
+        </div>
+        <div class="frigate-connected-desc">
+          ${
+            hub
+              ? host._t(
+                  "settings_frigate_hub_desc",
+                  "Frigate runs on your hub and Selora keeps it connected. There is nothing to configure.",
+                )
+              : host._t(
+                  "settings_frigate_integration_desc",
+                  "Selora AI uses the connection set up in Home Assistant. Change it in the Frigate integration's settings.",
+                )
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+function renderFrigateSettings(host) {
+  const config = host._config || {};
+  return b2`
+    <div class="section-card settings-section">
+      <div class="section-card-header">
+        <h3>${host._t("settings_frigate_heading", "Frigate")}</h3>
+      </div>
+      <p class="section-card-subtitle">
+        ${host._t(
+          "settings_frigate_desc",
+          "Records your cameras and spots people, cars and animals. Selora AI can add cameras, choose what each one watches for, and tell you what they saw.",
+        )}
+      </p>
+      ${config.frigate_source ? renderConnected(host, config.frigate_source) : renderFields(host)}
+      ${renderStatus(host)}
+    </div>
+  `;
+}
+
 // src/panel/render-ignore-list.js
 var MIN_QUERY = 1;
 var KIND_ENTITY = "entity";
@@ -44989,33 +45593,6 @@ function renderIgnoreList(host) {
 }
 
 // src/panel/render-settings.js
-function _textInput({
-  label,
-  value,
-  oninput,
-  type = "text",
-  placeholder = "",
-  style = "",
-}) {
-  return b2`
-    ${
-      label
-        ? b2`<label
-            style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
-            >${label}</label
-          >`
-        : ""
-    }
-    <input
-      class="form-select"
-      type=${type}
-      .value=${value || ""}
-      @input=${oninput}
-      placeholder=${placeholder}
-      style="width:100%;box-sizing:border-box;${style}"
-    />
-  `;
-}
 function _todayCostHint(host) {
   const states = host.hass?.states || {};
   for (const [entityId, state] of Object.entries(states)) {
@@ -45257,7 +45834,7 @@ function renderSettings(host) {
                               ${
                                 host._config.developer_mode
                                   ? b2`
-                                      ${_textInput({
+                                      ${textInput({
                                         label: host._t(
                                           "settings_selora_cloud_url_label",
                                           "Selora Cloud URL",
@@ -45348,7 +45925,7 @@ function renderSettings(host) {
                     host._config.aigateway_linked && host._config.developer_mode
                       ? b2`
                           <div class="form-group">
-                            ${_textInput({
+                            ${textInput({
                               label: host._t(
                                 "settings_selora_cloud_url_label",
                                 "Selora Cloud URL",
@@ -45403,7 +45980,7 @@ function renderSettings(host) {
                       ${
                         !host._config.gemini_api_key_set ||
                         host._showApiKeyInput
-                          ? _textInput({
+                          ? textInput({
                               label: host._config.gemini_api_key_set
                                 ? host._t(
                                     "settings_enter_new_key_label",
@@ -45424,7 +46001,7 @@ function renderSettings(host) {
                       }
                     </div>
                     <div class="form-group">
-                      ${_textInput({
+                      ${textInput({
                         label: host._t("settings_model_label", "Model"),
                         value: host._config.gemini_model,
                         oninput: (e6) =>
@@ -45469,7 +46046,7 @@ function renderSettings(host) {
                         ${
                           !host._config.anthropic_api_key_set ||
                           host._showApiKeyInput
-                            ? _textInput({
+                            ? textInput({
                                 label: host._config.anthropic_api_key_set
                                   ? host._t(
                                       "settings_enter_new_key_label",
@@ -45490,7 +46067,7 @@ function renderSettings(host) {
                         }
                       </div>
                       <div class="form-group">
-                        ${_textInput({
+                        ${textInput({
                           label: host._t("settings_model_label", "Model"),
                           value: host._config.anthropic_model,
                           oninput: (e6) =>
@@ -45541,7 +46118,7 @@ function renderSettings(host) {
                           ${
                             !host._config.openai_api_key_set ||
                             host._showApiKeyInput
-                              ? _textInput({
+                              ? textInput({
                                   label: host._config.openai_api_key_set
                                     ? host._t(
                                         "settings_enter_new_key_label",
@@ -45562,7 +46139,7 @@ function renderSettings(host) {
                           }
                         </div>
                         <div class="form-group">
-                          ${_textInput({
+                          ${textInput({
                             label: host._t("settings_model_label", "Model"),
                             value: host._config.openai_model,
                             oninput: (e6) =>
@@ -45613,7 +46190,7 @@ function renderSettings(host) {
                             ${
                               !host._config.openrouter_api_key_set ||
                               host._showApiKeyInput
-                                ? _textInput({
+                                ? textInput({
                                     label: host._config.openrouter_api_key_set
                                       ? host._t(
                                           "settings_enter_new_key_label",
@@ -45634,7 +46211,7 @@ function renderSettings(host) {
                             }
                           </div>
                           <div class="form-group">
-                            ${_textInput({
+                            ${textInput({
                               label: host._t("settings_model_label", "Model"),
                               value: host._config.openrouter_model,
                               oninput: (e6) =>
@@ -45684,7 +46261,7 @@ function renderSettings(host) {
                                       class="form-group"
                                       style="margin-top:8px;"
                                     >
-                                      ${_textInput({
+                                      ${textInput({
                                         label: host._t(
                                           "settings_selora_local_host_label",
                                           "Host",
@@ -45721,7 +46298,7 @@ function renderSettings(host) {
                           `
                         : b2`
                             <div class="form-group">
-                              ${_textInput({
+                              ${textInput({
                                 label: host._t(
                                   "settings_ollama_host_label",
                                   "Host",
@@ -45735,7 +46312,7 @@ function renderSettings(host) {
                               })}
                             </div>
                             <div class="form-group">
-                              ${_textInput({
+                              ${textInput({
                                 label: host._t("settings_model_label", "Model"),
                                 value: host._config.ollama_model,
                                 oninput: (e6) =>
@@ -45783,47 +46360,6 @@ function renderSettings(host) {
                 </div>`
               : ""
           }
-        </div>
-
-        <div class="section-card settings-section">
-          <div class="section-card-header">
-            <h3>
-              ${host._t("settings_household_profile_title", "Selora's Memory")}
-            </h3>
-          </div>
-          <p class="section-card-subtitle">
-            ${host._t(
-              "settings_household_profile_desc",
-              "Free-form context about your home \u2014 members, preferences, notes, known issues, patterns, conflicts. Selora keeps this in mind when it chats and when it proposes automations and scenes. Keep it short; it counts toward every request.",
-            )}
-          </p>
-          <textarea
-            class="form-select"
-            rows="6"
-            maxlength=${host._config.household_profile_max_chars || 2e3}
-            .value=${host._config.household_profile || ""}
-            @input=${(e6) => host._updateConfig("household_profile", e6.target.value)}
-            placeholder=${host._t(
-              "settings_household_profile_placeholder",
-              "e.g. Family of 4. Kids (L\xE9a 7, Tom 5) in bed by 20:30. Grandma visits weekends \u2014 she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
-            )}
-            style="width:100%;box-sizing:border-box;resize:vertical;min-height:120px;font-family:inherit;"
-          ></textarea>
-          <div
-            style="text-align:right;font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
-          >
-            ${(host._config.household_profile || "").length} /
-            ${host._config.household_profile_max_chars || 2e3}
-          </div>
-          <div class="card-save-bar">
-            <button
-              class="btn btn-primary"
-              @click=${host._saveHouseholdProfile}
-              ?disabled=${host._savingHouseholdProfile}
-            >
-              ${host._savingHouseholdProfile ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
-            </button>
-          </div>
         </div>
 
         <div class="section-card settings-section">
@@ -45944,7 +46480,7 @@ function renderSettings(host) {
               !host._config.selora_connect_enabled
                 ? b2`
                     <div style="padding:8px 0 0;">
-                      ${_textInput({
+                      ${textInput({
                         label: host._t(
                           "settings_connect_server_url_label",
                           "Connect Server URL",
@@ -46056,7 +46592,49 @@ function renderSettings(host) {
           </button>
         </div>
 
-        ${renderCreateTokenDialog(host)} ${renderIgnoreList(host)}
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>
+              ${host._t("settings_household_profile_title", "Selora's Memory")}
+            </h3>
+          </div>
+          <p class="section-card-subtitle">
+            ${host._t(
+              "settings_household_profile_desc",
+              "Free-form context about your home \u2014 members, preferences, notes, known issues, patterns, conflicts. Selora keeps this in mind when it chats and when it proposes automations and scenes. Keep it short; it counts toward every request.",
+            )}
+          </p>
+          <textarea
+            class="form-select"
+            rows="6"
+            maxlength=${host._config.household_profile_max_chars || 2e3}
+            .value=${host._config.household_profile || ""}
+            @input=${(e6) => host._updateConfig("household_profile", e6.target.value)}
+            placeholder=${host._t(
+              "settings_household_profile_placeholder",
+              "e.g. Family of 4. Kids (L\xE9a 7, Tom 5) in bed by 20:30. Grandma visits weekends \u2014 she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
+            )}
+            style="width:100%;box-sizing:border-box;resize:vertical;min-height:120px;font-family:inherit;"
+          ></textarea>
+          <div
+            style="text-align:right;font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+          >
+            ${(host._config.household_profile || "").length} /
+            ${host._config.household_profile_max_chars || 2e3}
+          </div>
+          <div class="card-save-bar">
+            <button
+              class="btn btn-primary"
+              @click=${host._saveHouseholdProfile}
+              ?disabled=${host._savingHouseholdProfile}
+            >
+              ${host._savingHouseholdProfile ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
+            </button>
+          </div>
+        </div>
+
+        ${renderFrigateSettings(host)} ${renderCreateTokenDialog(host)}
+        ${renderIgnoreList(host)}
 
         <div class="section-card settings-section">
           <div class="section-card-header">
@@ -46177,7 +46755,7 @@ function renderSettings(host) {
                                 style="display:flex;gap:12px;margin-top:12px;"
                               >
                                 <div style="flex:1;">
-                                  ${_textInput({
+                                  ${textInput({
                                     label: host._t(
                                       "settings_start_hhmm_label",
                                       "Start (HH:MM)",
@@ -46191,7 +46769,7 @@ function renderSettings(host) {
                                   })}
                                 </div>
                                 <div style="flex:1;">
-                                  ${_textInput({
+                                  ${textInput({
                                     label: host._t(
                                       "settings_end_hhmm_label",
                                       "End (HH:MM)",
@@ -46294,7 +46872,7 @@ function renderSettings(host) {
                                 style="display:flex;gap:12px;margin-top:12px;"
                               >
                                 <div style="flex:1;">
-                                  ${_textInput({
+                                  ${textInput({
                                     label: host._t(
                                       "settings_start_hhmm_label",
                                       "Start (HH:MM)",
@@ -46308,7 +46886,7 @@ function renderSettings(host) {
                                   })}
                                 </div>
                                 <div style="flex:1;">
-                                  ${_textInput({
+                                  ${textInput({
                                     label: host._t(
                                       "settings_end_hhmm_label",
                                       "End (HH:MM)",
@@ -56628,7 +57206,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "7ae9c3d75a10" : "";
+var PANEL_BUILD = true ? "1e0b6059917d" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {

@@ -49,7 +49,7 @@ from .cameras import (
     unsupported_labels,
     with_credentials,
 )
-from .client import FRIGATE_DOMAIN, FrigateClient, FrigateError, frigate_entry
+from .client import FRIGATE_DOMAIN, NOT_SET_UP, FrigateClient, FrigateError, frigate_entry
 from .discovery import (
     SUGGESTION_CACHE,
     NetworkCamera,
@@ -74,10 +74,6 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-_NOT_SET_UP: Final = (
-    "Frigate is not set up in Home Assistant: the Frigate integration has to be "
-    "installed and connected first."
-)
 _MAX_RECORD_DAYS: Final = 365
 _MAX_HOSTS: Final = 10
 _NOT_AN_ADDRESS: Final = "it is not an address on your network"
@@ -360,7 +356,7 @@ async def async_preview_add_cameras(
     """A card for adding cameras to Frigate; network cameras ask for a login."""
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     try:
         gathered = await _gather(hass, client, arguments)
     except FrigateError as exc:
@@ -519,7 +515,7 @@ async def async_add_cameras_confirmed(
         return {"error": "This card has expired; ask again."}
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     objects, record, days = _options(plan.arguments)
     try:
         gathered = await _gather(hass, client, plan.arguments)

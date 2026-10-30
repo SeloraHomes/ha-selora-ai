@@ -18,7 +18,7 @@ from ..const import (
     DOMAIN,
 )
 from ..selora_auth import SeloraAuthContext
-from .access import _can_access_tool, _check_tool_access
+from .access import FRIGATE_TOOLS, _can_access_tool, _check_tool_access
 from .apps import (
     _tool_get_app_logs,
     _tool_get_app_options,
@@ -99,6 +99,14 @@ from .files import (
     _tool_read_file,
     _tool_write_file,
 )
+from .frigate import (
+    _tool_add_cameras_to_frigate,
+    _tool_get_frigate_snapshot,
+    _tool_get_frigate_status,
+    _tool_move_frigate_camera,
+    _tool_remove_frigate_camera,
+    _tool_set_camera_objects,
+)
 from .groups import _tool_create_group, _tool_delete_group, _tool_list_groups, _tool_update_group
 from .hacs import (
     _tool_hacs_add_repository,
@@ -124,6 +132,7 @@ from .names import (
     TOOL_ACCEPT_AUTOMATION,
     TOOL_ACCEPT_SUGGESTION,
     TOOL_ACTIVATE_SCENE,
+    TOOL_ADD_CAMERAS_TO_FRIGATE,
     TOOL_ADD_DASHBOARD_RESOURCE,
     TOOL_ADD_DASHBOARD_VIEW,
     TOOL_ASSIGN_AREA,
@@ -178,6 +187,8 @@ from .names import (
     TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
+    TOOL_GET_FRIGATE_SNAPSHOT,
+    TOOL_GET_FRIGATE_STATUS,
     TOOL_GET_HOME_SNAPSHOT,
     TOOL_GET_LOGS,
     TOOL_GET_NETWORK_HEALTH,
@@ -222,6 +233,7 @@ from .names import (
     TOOL_LIST_SUGGESTIONS,
     TOOL_LIST_UPDATES,
     TOOL_MOVE_DASHBOARD_CARD,
+    TOOL_MOVE_FRIGATE_CAMERA,
     TOOL_READ_FILE,
     TOOL_RELOAD_INTEGRATION,
     TOOL_REMOVE_DASHBOARD_CARD,
@@ -229,6 +241,7 @@ from .names import (
     TOOL_REMOVE_DASHBOARD_VIEW,
     TOOL_REMOVE_DEVICE,
     TOOL_REMOVE_ENTITY,
+    TOOL_REMOVE_FRIGATE_CAMERA,
     TOOL_REMOVE_INTEGRATION,
     TOOL_RENAME_AUTOMATION,
     TOOL_RESTART_HOME_ASSISTANT,
@@ -238,6 +251,7 @@ from .names import (
     TOOL_SET_APP_OPTIONS,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
+    TOOL_SET_CAMERA_OBJECTS,
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_DASHBOARD_STRATEGY,
     TOOL_SET_ENERGY_PREFS,
@@ -344,12 +358,15 @@ async def _async_server_version(hass: HomeAssistant) -> str:
         async_get_integration,
     )
 
+    from ..frigate.client import frigate_available  # noqa: PLC0415
+
     release = "0"
     with contextlib.suppress(IntegrationNotFound):
         version = (await async_get_integration(hass, DOMAIN)).version
         if version is not None:
             release = str(version)
-    return f"{release}+{_tool_set_hash()}"
+    # Frigate's tools come and go with Frigate, so the list does too.
+    return f"{release}+{_tool_set_hash()}{'.frigate' if frigate_available(hass) else ''}"
 
 
 @functools.cache
@@ -384,11 +401,14 @@ async def _jsonrpc_dispatch(
     if method == "ping":
         return {}
     if method == "tools/list":
+        from ..frigate.client import frigate_available  # noqa: PLC0415
+
+        frigate = frigate_available(hass)
         return {
             "tools": [
                 {"name": t.name, "description": t.description, "inputSchema": t.inputSchema}
                 for t in _TOOL_DEFINITIONS
-                if _can_access_tool(auth_ctx, t.name)
+                if _can_access_tool(auth_ctx, t.name) and (frigate or t.name not in FRIGATE_TOOLS)
             ]
         }
     if method == "tools/call":
@@ -506,6 +526,12 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_HACS_INFO: _tool_hacs_info,
         TOOL_GET_CAMERA_IMAGE: _tool_get_camera_image,
         TOOL_FIND_CAMERA_EVENTS: _tool_find_camera_events,
+        TOOL_GET_FRIGATE_STATUS: _tool_get_frigate_status,
+        TOOL_GET_FRIGATE_SNAPSHOT: _tool_get_frigate_snapshot,
+        TOOL_ADD_CAMERAS_TO_FRIGATE: _tool_add_cameras_to_frigate,
+        TOOL_SET_CAMERA_OBJECTS: _tool_set_camera_objects,
+        TOOL_MOVE_FRIGATE_CAMERA: _tool_move_frigate_camera,
+        TOOL_REMOVE_FRIGATE_CAMERA: _tool_remove_frigate_camera,
         TOOL_LIST_CALENDAR_EVENTS: _tool_list_calendar_events,
         TOOL_SET_CALENDAR_EVENT: _tool_set_calendar_event,
         TOOL_DELETE_CALENDAR_EVENT: _tool_delete_calendar_event,

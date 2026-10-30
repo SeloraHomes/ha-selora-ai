@@ -32,7 +32,7 @@ from homeassistant.helpers.event import async_call_later
 
 from ..const import DOMAIN
 from .cameras import is_local_host
-from .client import frigate_entry
+from .client import frigate_available
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -373,7 +373,7 @@ def async_start_scanning(hass: HomeAssistant) -> CALLBACK_TYPE:
     def _fire(_now: Any = None) -> None:
         nonlocal cancel
         # Without Frigate nothing reads the answer, so nothing probes the LAN.
-        if frigate_entry(hass) is not None:
+        if frigate_available(hass):
             hass.async_create_background_task(
                 async_scan(hass, sweep=_sweep_due(hass)), f"{DOMAIN}_frigate_scan"
             )
