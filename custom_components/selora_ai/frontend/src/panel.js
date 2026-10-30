@@ -41,7 +41,7 @@ import {
 import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
-import { syncDevConsole } from "./panel/dev-tools.js";
+import { catalogUrlOverride, installDevConsole } from "./panel/dev-tools.js";
 import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
 import { renderStaleCodeNotice } from "./panel/render-stale-code-notice.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
@@ -442,7 +442,6 @@ class SeloraAIPanel extends LitElement {
 
       // Suggestion filter
       _suggestionFilter: { type: String },
-      _suggestionSourceFilter: { type: String },
       _suggestionSortBy: { type: String },
 
       // Burger menu
@@ -761,7 +760,6 @@ class SeloraAIPanel extends LitElement {
     this._sceneStatusFilter = "all";
     this._sceneSortDir = "desc";
     this._suggestionFilter = "";
-    this._suggestionSourceFilter = "all";
     this._suggestionSortBy = "recent";
     // Burger menu
     this._openBurgerMenu = null;
@@ -1332,7 +1330,7 @@ class SeloraAIPanel extends LitElement {
       this._config = config;
       this._newApiKey = "";
       clearUnsupportedNotice(this);
-      syncDevConsole(this);
+      installDevConsole(this);
     } catch (err) {
       console.error("Failed to load config", err);
     }
@@ -1630,7 +1628,7 @@ class SeloraAIPanel extends LitElement {
     }
   }
 
-  async _runOAuthLink({ flow, wsType, beforeStart, onSuccess, onError }) {
+  async _runOAuthLink({ flow, wsType, onSuccess, onError }) {
     let unsub = null;
     let timeout = null;
     const cleanup = () => {
@@ -1650,8 +1648,6 @@ class SeloraAIPanel extends LitElement {
     };
 
     try {
-      if (typeof beforeStart === "function") await beforeStart();
-
       // Subscribe BEFORE returning the URL so a fast callback can't
       // race the panel.
       unsub = await this.hass.connection.subscribeEvents((evt) => {
@@ -1805,18 +1801,6 @@ class SeloraAIPanel extends LitElement {
     await this._runOAuthLink({
       flow: "aigateway",
       wsType: "selora_ai/start_aigw_link",
-      beforeStart: async () => {
-        // Persist the developer-mode Selora Cloud URL before linking so
-        // the LLM provider rebuilt on entry reload uses it. Otherwise the
-        // unsaved field reverts after the post-link reload and chat
-        // completions go to the default host.
-        if (this._config?.developer_mode && this._config?.selora_connect_url) {
-          await this.hass.callWS({
-            type: "selora_ai/update_config",
-            config: { selora_connect_url: this._config.selora_connect_url },
-          });
-        }
-      },
       onSuccess: async () => {
         await this._loadConfig();
         this._linkingAIGateway = false;
@@ -3264,11 +3248,8 @@ class SeloraAIPanel extends LitElement {
 
   async _loadRecipesCatalog(force = false) {
     this._recipesCatalogError = null;
-    // Honour a per-browser catalog URL override stored in localStorage.
-    // Dev workflow: set this once to ``http://localhost:1313/api/recipes.json``
-    // (or any staging URL) and the catalog fetches against it without
-    // touching the HA env or restarting the integration.
-    const override = this._catalogUrlOverride();
+    // Honour the per-browser catalog URL set with `selora.catalogUrl()`.
+    const override = catalogUrlOverride();
     // Key the cache on the integration version (from _config, loaded on
     // mount before the recipes view) so an upgrade never reuses a catalog
     // filtered by the old version's min-version gate — a stale key simply
@@ -3341,27 +3322,6 @@ class SeloraAIPanel extends LitElement {
     } finally {
       this._recipesCatalogBusy = false;
     }
-  }
-
-  _catalogUrlOverride() {
-    try {
-      return localStorage.getItem("selora-ai-catalog-url") || "";
-    } catch {
-      return "";
-    }
-  }
-
-  _setCatalogUrlOverride(url) {
-    try {
-      if (url) {
-        localStorage.setItem("selora-ai-catalog-url", url);
-      } else {
-        localStorage.removeItem("selora-ai-catalog-url");
-      }
-    } catch (err) {
-      console.debug("Failed to persist catalog URL override", err);
-    }
-    this._loadRecipesCatalog(true);
   }
 
   // Substring search across the catalog (title + tags + description).

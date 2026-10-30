@@ -258,8 +258,6 @@ async def _handle_websocket_get_config(
             ),
             # Frigate: the integration's connection when it has one, else ours
             **_frigate_view(hass, config_data),
-            # Developer settings
-            "developer_mode": config_data.get("developer_mode", False),
             # Selora Connect
             "selora_connect_enabled": config_data.get(CONF_SELORA_CONNECT_ENABLED, False),
             "selora_connect_url": config_data.get(
@@ -381,7 +379,6 @@ async def _handle_websocket_update_config(
         CONF_LLM_PRICING_OVERRIDES,
         CONF_HOUSEHOLD_PROFILE,
         "pattern_detection_enabled",  # frontend key (see get_config)
-        "developer_mode",
         CONF_NEXT_PROMPT_ENABLED,
     }
     unknown_keys = [k for k in new_options if k not in allowed_option_keys]
@@ -440,7 +437,6 @@ async def _handle_websocket_update_config(
     # Frigate's connection is read on every use (frigate/client.py), and
     # which tools are offered with it, so it needs no reload either.
     frontend_only_keys = {
-        "developer_mode",
         CONF_TELEMETRY_PROMPT_SEEN,
         CONF_FRIGATE_URL,
         CONF_FRIGATE_USERNAME,

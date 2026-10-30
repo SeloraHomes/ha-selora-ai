@@ -1946,7 +1946,7 @@ var layoutStyles = i`
     border-radius: 14px;
   }
   /* A section header row: the .page-section-title on the left, action buttons
-     on the right (e.g. Suggested for you → Scan Now / Generate). */
+     on the right. */
   .page-section-header {
     display: flex;
     align-items: center;
@@ -1986,7 +1986,7 @@ var layoutStyles = i`
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
-    /* Allow narrow viewports (dev mode, side panel) to stack the
+    /* Allow narrow viewports (side panel, phones) to stack the
        title row above the action buttons instead of squeezing the
        heading into a wrapped two-line block. */
     flex-wrap: wrap;
@@ -10531,7 +10531,6 @@ var en_default = {
     chat_yaml_unsaved_changes: "Unsaved changes",
     chat_yaml_saving: "Saving\u2026",
     chat_yaml_save_changes: "Save changes",
-    chat_tools_used: "Tools used",
     chat_automation_label_building: "Building automation...",
     chat_automation_label_triggers: "Drafting triggers...",
     chat_automation_label_conditions: "Wiring conditions...",
@@ -10567,9 +10566,6 @@ var en_default = {
     settings_unlink_button: "Unlink",
     settings_signin_selora_desc:
       "Sign in with your Selora account to use the hosted LLM backend. No API key required.",
-    settings_selora_cloud_url_label: "Selora Cloud URL",
-    settings_selora_cloud_url_hint:
-      "OAuth and chat completions both use this URL. Saved automatically when you link.",
     settings_open_signin_page: "Open sign-in page \u2192",
     settings_preparing_label: "Preparing\u2026",
     settings_link_selora_account_button: "Link Selora account",
@@ -10599,7 +10595,6 @@ var en_default = {
     settings_connect_via_selora_desc:
       "Makes your MCP server reachable by external tools",
     settings_mcp_url_copied_toast: "MCP URL copied to clipboard",
-    settings_connect_server_url_label: "Connect Server URL",
     settings_mcp_tokens_section_title: "MCP TOKENS",
     settings_mcp_tokens_desc:
       "MCP tokens are an alternative to Selora Connect. Use them for tools that don't support OAuth or when you prefer token-based authentication.",
@@ -10651,15 +10646,6 @@ var en_default = {
     settings_pattern_detection_desc:
       "Detects recurring usage patterns and proposes automations",
     settings_auto_remove_stale_label: "Auto-remove stale automations",
-    settings_developer_mode_label: "Developer mode",
-    settings_developer_mode_desc: "Exposes raw entity payloads and debug logs",
-    settings_dev_scan_cameras_label: "Scan for cameras",
-    settings_dev_scan_cameras_desc:
-      "Look for cameras on the network now instead of on the next half-hourly scan, and refresh the chat home's suggestions.",
-    settings_dev_scan_cameras_button: "Scan now",
-    settings_dev_scan_cameras_scanning: "Scanning\u2026",
-    settings_dev_scan_cameras_done: "Found {count} cameras on the network.",
-    settings_dev_scan_cameras_failed: "The camera scan failed.",
     settings_telemetry_label: "Anonymous telemetry",
     settings_telemetry_desc:
       "Off by default. When on, sends anonymous counts about your setup (devices, integrations, automations, scenes, scripts, blueprints, areas) and how often Selora repairs model output, so we can improve the product. Never sends entity names, prompts, or responses.",
@@ -10676,7 +10662,6 @@ var en_default = {
       "This page is running an older Selora AI panel. Reload to pick up the deployed version.",
     stale_code_reload_action: "Reload",
     stale_code_dismiss: "Dismiss",
-    settings_dev_mode_save_failed_toast: "Failed to save developer mode.",
     settings_saving_label: "Saving\u2026",
     settings_clear_cache_label: "Clear learned data",
     settings_clear_cache_desc:
@@ -10973,19 +10958,10 @@ var en_default = {
     suggestions_btn_dismiss: "Dismiss",
     suggestions_section_title: "Suggested for you",
     suggestions_badge_new: "new",
-    suggestions_llm_setup_required: "Configure an LLM provider first",
-    suggestions_btn_scanning: "Scanning\u2026",
-    suggestions_btn_scan_now: "Scan Now",
-    suggestions_btn_analyzing: "Analyzing\u2026",
-    suggestions_btn_generate: "Generate",
     suggestions_section_subtitle:
       "Based on observed patterns and AI analysis in your home.",
-    suggestions_empty_state:
-      'No suggestions yet. Tap "Generate" to analyze your home.',
+    suggestions_empty_state: "No suggestions yet.",
     suggestions_filter_placeholder: "Filter suggestions\u2026",
-    suggestions_filter_all: "All",
-    suggestions_filter_patterns: "Patterns",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "Recent",
     suggestions_sort_alpha: "Alphabetical",
     suggestions_bulk_selected: "selected",
@@ -11179,12 +11155,8 @@ var en_default = {
     recipes_catalog_fetching: "Fetching catalog\u2026",
     recipes_catalog_no_matches_prefix: "No matches for",
     recipes_catalog_search_placeholder: "Search recipes\u2026",
-    recipes_catalog_set_url_title: "Set a catalog URL (dev / staging)",
     recipes_catalog_source_overridden: "Catalog source overridden:",
     recipes_catalog_unreachable: "Couldn't reach the recipes catalog:",
-    recipes_catalog_url_prompt:
-      "Catalog URL (leave blank to reset to selorahomes.com):",
-    recipes_catalog_using_override: "Using override:",
     recipes_catalog_will_load: "Catalog will load here.",
     recipes_continue_button: "Continue",
     recipes_details_copy_path_title: "Copy path",
@@ -11936,7 +11908,6 @@ var fr_default = {
     chat_yaml_unsaved_changes: "Modifications non enregistr\xE9es",
     chat_yaml_saving: "Enregistrement\u2026",
     chat_yaml_save_changes: "Enregistrer les modifications",
-    chat_tools_used: "Outils utilis\xE9s",
     chat_automation_label_building: "Cr\xE9ation de l'automatisation...",
     chat_automation_label_triggers: "R\xE9daction des d\xE9clencheurs...",
     chat_automation_label_conditions: "C\xE2blage des conditions...",
@@ -11974,9 +11945,6 @@ var fr_default = {
     settings_unlink_button: "Dissocier",
     settings_signin_selora_desc:
       "Connectez-vous avec votre compte Selora pour utiliser le backend LLM h\xE9berg\xE9. Aucune cl\xE9 API requise.",
-    settings_selora_cloud_url_label: "URL Selora Cloud",
-    settings_selora_cloud_url_hint:
-      "OAuth et les compl\xE9tions de chat utilisent tous deux cette URL. Enregistr\xE9e automatiquement lors de la liaison.",
     settings_open_signin_page: "Ouvrir la page de connexion \u2192",
     settings_preparing_label: "Pr\xE9paration\u2026",
     settings_link_selora_account_button: "Lier le compte Selora",
@@ -12007,7 +11975,6 @@ var fr_default = {
     settings_connect_via_selora_desc:
       "Rend votre serveur MCP accessible aux outils externes",
     settings_mcp_url_copied_toast: "URL MCP copi\xE9e dans le presse-papiers",
-    settings_connect_server_url_label: "URL du serveur Connect",
     settings_mcp_tokens_section_title: "JETONS MCP",
     settings_mcp_tokens_desc:
       "Les jetons MCP sont une alternative \xE0 Selora Connect. Utilisez-les pour les outils qui ne prennent pas en charge OAuth ou lorsque vous pr\xE9f\xE9rez une authentification par jeton.",
@@ -12064,18 +12031,6 @@ var fr_default = {
       "D\xE9tecte les motifs d'utilisation r\xE9currents et propose des automatisations",
     settings_auto_remove_stale_label:
       "Supprimer automatiquement les automatisations obsol\xE8tes",
-    settings_developer_mode_label: "Mode d\xE9veloppeur",
-    settings_developer_mode_desc:
-      "Expose les charges utiles brutes des entit\xE9s et les journaux de d\xE9bogage",
-    settings_dev_scan_cameras_label: "Rechercher des cam\xE9ras",
-    settings_dev_scan_cameras_desc:
-      "Rechercher maintenant les cam\xE9ras du r\xE9seau au lieu d'attendre la prochaine recherche (toutes les 30 minutes), et actualiser les suggestions de l'accueil du chat.",
-    settings_dev_scan_cameras_button: "Rechercher",
-    settings_dev_scan_cameras_scanning: "Recherche\u2026",
-    settings_dev_scan_cameras_done:
-      "{count} cam\xE9ras trouv\xE9es sur le r\xE9seau.",
-    settings_dev_scan_cameras_failed:
-      "La recherche de cam\xE9ras a \xE9chou\xE9.",
     settings_telemetry_label: "T\xE9l\xE9m\xE9trie anonyme",
     settings_telemetry_desc:
       "D\xE9sactiv\xE9e par d\xE9faut. Si activ\xE9e, envoie des d\xE9comptes anonymes sur votre installation (appareils, int\xE9grations, automatisations, sc\xE8nes, scripts, blueprints, zones) et la fr\xE9quence \xE0 laquelle Selora corrige les sorties du mod\xE8le, afin d'am\xE9liorer le produit. N'envoie jamais de noms d'entit\xE9s, d'invites ni de r\xE9ponses.",
@@ -12092,8 +12047,6 @@ var fr_default = {
       "Cette page utilise une ancienne version du panneau Selora AI. Rechargez-la pour charger la version d\xE9ploy\xE9e.",
     stale_code_reload_action: "Recharger",
     stale_code_dismiss: "Ignorer",
-    settings_dev_mode_save_failed_toast:
-      "Impossible d'enregistrer le mode d\xE9veloppeur.",
     settings_saving_label: "Enregistrement\u2026",
     settings_clear_cache_label: "Effacer les donn\xE9es apprises",
     settings_clear_cache_desc:
@@ -12407,19 +12360,10 @@ var fr_default = {
     suggestions_btn_dismiss: "Ignorer",
     suggestions_section_title: "Suggestions pour vous",
     suggestions_badge_new: "nouvelles",
-    suggestions_llm_setup_required: "Configurez d'abord un fournisseur LLM",
-    suggestions_btn_scanning: "Analyse\u2026",
-    suggestions_btn_scan_now: "Analyser maintenant",
-    suggestions_btn_analyzing: "Analyse en cours\u2026",
-    suggestions_btn_generate: "G\xE9n\xE9rer",
     suggestions_section_subtitle:
       "Bas\xE9 sur les motifs observ\xE9s et l'analyse IA de votre domicile.",
-    suggestions_empty_state:
-      "Aucune suggestion pour l'instant. Appuyez sur \xAB G\xE9n\xE9rer \xBB pour analyser votre domicile.",
+    suggestions_empty_state: "Aucune suggestion pour l'instant.",
     suggestions_filter_placeholder: "Filtrer les suggestions\u2026",
-    suggestions_filter_all: "Toutes",
-    suggestions_filter_patterns: "Motifs",
-    suggestions_filter_ai: "IA",
     suggestions_sort_recent: "R\xE9cent",
     suggestions_sort_alpha: "Alphab\xE9tique",
     suggestions_bulk_selected: "s\xE9lectionn\xE9(s)",
@@ -12624,14 +12568,9 @@ var fr_default = {
     recipes_catalog_fetching: "R\xE9cup\xE9ration du catalogue\u2026",
     recipes_catalog_no_matches_prefix: "Aucun r\xE9sultat pour",
     recipes_catalog_search_placeholder: "Rechercher des recettes\u2026",
-    recipes_catalog_set_url_title:
-      "D\xE9finir une URL de catalogue (dev / staging)",
     recipes_catalog_source_overridden: "Source du catalogue remplac\xE9e :",
     recipes_catalog_unreachable:
       "Impossible de joindre le catalogue de recettes :",
-    recipes_catalog_url_prompt:
-      "URL du catalogue (laissez vide pour r\xE9tablir selorahomes.com) :",
-    recipes_catalog_using_override: "Remplacement utilis\xE9 :",
     recipes_catalog_will_load: "Le catalogue se chargera ici.",
     recipes_continue_button: "Continuer",
     recipes_details_copy_path_title: "Copier le chemin",
@@ -13408,7 +13347,6 @@ var de_default = {
     chat_yaml_unsaved_changes: "Nicht gespeicherte \xC4nderungen",
     chat_yaml_saving: "Speichere\u2026",
     chat_yaml_save_changes: "\xC4nderungen speichern",
-    chat_tools_used: "Verwendete Tools",
     chat_automation_label_building: "Automatisierung wird erstellt...",
     chat_automation_label_triggers: "Ausl\xF6ser werden entworfen...",
     chat_automation_label_conditions: "Bedingungen werden verkn\xFCpft...",
@@ -13446,9 +13384,6 @@ var de_default = {
     settings_unlink_button: "Trennen",
     settings_signin_selora_desc:
       "Melden Sie sich mit Ihrem Selora-Konto an, um das gehostete LLM-Backend zu nutzen. Kein API-Schl\xFCssel erforderlich.",
-    settings_selora_cloud_url_label: "Selora Cloud URL",
-    settings_selora_cloud_url_hint:
-      "OAuth und Chat-Vervollst\xE4ndigungen verwenden beide diese URL. Wird beim Verkn\xFCpfen automatisch gespeichert.",
     settings_open_signin_page: "Anmeldeseite \xF6ffnen \u2192",
     settings_preparing_label: "Vorbereiten\u2026",
     settings_link_selora_account_button: "Selora-Konto verkn\xFCpfen",
@@ -13479,7 +13414,6 @@ var de_default = {
     settings_connect_via_selora_desc:
       "Macht Ihren MCP-Server f\xFCr externe Tools erreichbar",
     settings_mcp_url_copied_toast: "MCP-URL in die Zwischenablage kopiert",
-    settings_connect_server_url_label: "Connect-Server-URL",
     settings_mcp_tokens_section_title: "MCP-TOKEN",
     settings_mcp_tokens_desc:
       "MCP-Token sind eine Alternative zu Selora Connect. Verwenden Sie sie f\xFCr Tools, die OAuth nicht unterst\xFCtzen, oder wenn Sie die tokenbasierte Authentifizierung bevorzugen.",
@@ -13536,16 +13470,6 @@ var de_default = {
       "Erkennt wiederkehrende Nutzungsmuster und schl\xE4gt Automatisierungen vor",
     settings_auto_remove_stale_label:
       "Veraltete Automatisierungen automatisch entfernen",
-    settings_developer_mode_label: "Entwicklermodus",
-    settings_developer_mode_desc:
-      "Stellt rohe Entit\xE4ts-Payloads und Debug-Logs bereit",
-    settings_dev_scan_cameras_label: "Nach Kameras suchen",
-    settings_dev_scan_cameras_desc:
-      "Jetzt nach Kameras im Netzwerk suchen statt bei der n\xE4chsten halbst\xFCndlichen Suche, und die Vorschl\xE4ge auf der Chat-Startseite aktualisieren.",
-    settings_dev_scan_cameras_button: "Jetzt suchen",
-    settings_dev_scan_cameras_scanning: "Suche\u2026",
-    settings_dev_scan_cameras_done: "{count} Kameras im Netzwerk gefunden.",
-    settings_dev_scan_cameras_failed: "Die Kamerasuche ist fehlgeschlagen.",
     settings_telemetry_label: "Anonyme Telemetrie",
     settings_telemetry_desc:
       "Standardm\xE4\xDFig deaktiviert. Wenn aktiviert, werden anonyme Z\xE4hlwerte zu Ihrer Installation (Ger\xE4te, Integrationen, Automationen, Szenen, Skripte, Blueprints, Bereiche) und dazu gesendet, wie oft Selora die Modellausgabe korrigiert, damit wir das Produkt verbessern k\xF6nnen. Es werden niemals Entit\xE4tsnamen, Prompts oder Antworten gesendet.",
@@ -13562,8 +13486,6 @@ var de_default = {
       "Diese Seite verwendet eine \xE4ltere Version des Selora-AI-Panels. Lade sie neu, um die bereitgestellte Version zu verwenden.",
     stale_code_reload_action: "Neu laden",
     stale_code_dismiss: "Ausblenden",
-    settings_dev_mode_save_failed_toast:
-      "Entwicklermodus konnte nicht gespeichert werden.",
     settings_saving_label: "Speichere\u2026",
     settings_clear_cache_label: "Gelernte Daten l\xF6schen",
     settings_clear_cache_desc:
@@ -13870,20 +13792,10 @@ var de_default = {
     suggestions_btn_dismiss: "Verwerfen",
     suggestions_section_title: "F\xFCr Sie vorgeschlagen",
     suggestions_badge_new: "neu",
-    suggestions_llm_setup_required:
-      "Konfigurieren Sie zuerst einen LLM-Anbieter",
-    suggestions_btn_scanning: "Scanne\u2026",
-    suggestions_btn_scan_now: "Jetzt scannen",
-    suggestions_btn_analyzing: "Analysiere\u2026",
-    suggestions_btn_generate: "Generieren",
     suggestions_section_subtitle:
       "Basierend auf beobachteten Mustern und KI-Analyse in Ihrem Zuhause.",
-    suggestions_empty_state:
-      'Noch keine Vorschl\xE4ge. Tippen Sie auf "Generieren", um Ihr Zuhause zu analysieren.',
+    suggestions_empty_state: "Noch keine Vorschl\xE4ge.",
     suggestions_filter_placeholder: "Vorschl\xE4ge filtern\u2026",
-    suggestions_filter_all: "Alle",
-    suggestions_filter_patterns: "Muster",
-    suggestions_filter_ai: "KI",
     suggestions_sort_recent: "K\xFCrzlich",
     suggestions_sort_alpha: "Alphabetisch",
     suggestions_bulk_selected: "ausgew\xE4hlt",
@@ -14087,13 +13999,9 @@ var de_default = {
     recipes_catalog_fetching: "Katalog wird abgerufen\u2026",
     recipes_catalog_no_matches_prefix: "Keine Treffer f\xFCr",
     recipes_catalog_search_placeholder: "Rezepte suchen\u2026",
-    recipes_catalog_set_url_title: "Eine Katalog-URL festlegen (Dev / Staging)",
     recipes_catalog_source_overridden: "Katalogquelle \xFCberschrieben:",
     recipes_catalog_unreachable:
       "Der Rezeptkatalog konnte nicht erreicht werden:",
-    recipes_catalog_url_prompt:
-      "Katalog-URL (leer lassen, um auf selorahomes.com zur\xFCckzusetzen):",
-    recipes_catalog_using_override: "\xDCberschreibung wird verwendet:",
     recipes_catalog_will_load: "Der Katalog wird hier geladen.",
     recipes_continue_button: "Weiter",
     recipes_details_copy_path_title: "Pfad kopieren",
@@ -14867,7 +14775,6 @@ var es_default = {
     chat_yaml_unsaved_changes: "Cambios sin guardar",
     chat_yaml_saving: "Guardando\u2026",
     chat_yaml_save_changes: "Guardar cambios",
-    chat_tools_used: "Herramientas utilizadas",
     chat_automation_label_building: "Construyendo automatizaci\xF3n...",
     chat_automation_label_triggers: "Redactando disparadores...",
     chat_automation_label_conditions: "Conectando condiciones...",
@@ -14904,9 +14811,6 @@ var es_default = {
     settings_unlink_button: "Desvincular",
     settings_signin_selora_desc:
       "Inicie sesi\xF3n con su cuenta de Selora para usar el backend de LLM alojado. No se requiere clave de API.",
-    settings_selora_cloud_url_label: "URL de Selora Cloud",
-    settings_selora_cloud_url_hint:
-      "OAuth y las finalizaciones de chat usan esta URL. Se guarda autom\xE1ticamente al vincular.",
     settings_open_signin_page: "Abrir p\xE1gina de inicio de sesi\xF3n \u2192",
     settings_preparing_label: "Preparando\u2026",
     settings_link_selora_account_button: "Vincular cuenta de Selora",
@@ -14936,7 +14840,6 @@ var es_default = {
     settings_connect_via_selora_desc:
       "Hace que su servidor MCP sea accesible por herramientas externas",
     settings_mcp_url_copied_toast: "URL de MCP copiada al portapapeles",
-    settings_connect_server_url_label: "URL del servidor de Connect",
     settings_mcp_tokens_section_title: "TOKENS MCP",
     settings_mcp_tokens_desc:
       "Los tokens MCP son una alternativa a Selora Connect. \xDAselos para herramientas que no admiten OAuth o cuando prefiera la autenticaci\xF3n basada en tokens.",
@@ -14993,17 +14896,6 @@ var es_default = {
       "Detecta patrones de uso recurrentes y propone automatizaciones",
     settings_auto_remove_stale_label:
       "Eliminar autom\xE1ticamente automatizaciones obsoletas",
-    settings_developer_mode_label: "Modo desarrollador",
-    settings_developer_mode_desc:
-      "Expone cargas \xFAtiles de entidades sin procesar y registros de depuraci\xF3n",
-    settings_dev_scan_cameras_label: "Buscar c\xE1maras",
-    settings_dev_scan_cameras_desc:
-      "Buscar ahora c\xE1maras en la red en lugar de esperar a la pr\xF3xima b\xFAsqueda (cada media hora) y actualizar las sugerencias del inicio del chat.",
-    settings_dev_scan_cameras_button: "Buscar ahora",
-    settings_dev_scan_cameras_scanning: "Buscando\u2026",
-    settings_dev_scan_cameras_done:
-      "Se encontraron {count} c\xE1maras en la red.",
-    settings_dev_scan_cameras_failed: "La b\xFAsqueda de c\xE1maras fall\xF3.",
     settings_telemetry_label: "Telemetr\xEDa an\xF3nima",
     settings_telemetry_desc:
       "Desactivada de forma predeterminada. Cuando est\xE1 activada, env\xEDa recuentos an\xF3nimos sobre tu configuraci\xF3n (dispositivos, integraciones, automatizaciones, escenas, scripts, blueprints, \xE1reas) y la frecuencia con la que Selora corrige la salida del modelo, para mejorar el producto. Nunca env\xEDa nombres de entidades, indicaciones ni respuestas.",
@@ -15020,8 +14912,6 @@ var es_default = {
       "Esta p\xE1gina usa una versi\xF3n anterior del panel de Selora AI. Rec\xE1rgala para cargar la versi\xF3n desplegada.",
     stale_code_reload_action: "Recargar",
     stale_code_dismiss: "Descartar",
-    settings_dev_mode_save_failed_toast:
-      "No se pudo guardar el modo desarrollador.",
     settings_saving_label: "Guardando\u2026",
     settings_clear_cache_label: "Borrar datos aprendidos",
     settings_clear_cache_desc:
@@ -15326,19 +15216,10 @@ var es_default = {
     suggestions_btn_dismiss: "Descartar",
     suggestions_section_title: "Sugerido para usted",
     suggestions_badge_new: "nuevas",
-    suggestions_llm_setup_required: "Configure primero un proveedor de LLM",
-    suggestions_btn_scanning: "Escaneando\u2026",
-    suggestions_btn_scan_now: "Escanear ahora",
-    suggestions_btn_analyzing: "Analizando\u2026",
-    suggestions_btn_generate: "Generar",
     suggestions_section_subtitle:
       "Basado en patrones observados y an\xE1lisis de IA en su hogar.",
-    suggestions_empty_state:
-      'A\xFAn no hay sugerencias. Toque "Generar" para analizar su hogar.',
+    suggestions_empty_state: "A\xFAn no hay sugerencias.",
     suggestions_filter_placeholder: "Filtrar sugerencias\u2026",
-    suggestions_filter_all: "Todas",
-    suggestions_filter_patterns: "Patrones",
-    suggestions_filter_ai: "IA",
     suggestions_sort_recent: "Recientes",
     suggestions_sort_alpha: "Alfab\xE9tico",
     suggestions_bulk_selected: "seleccionadas",
@@ -15538,14 +15419,9 @@ var es_default = {
     recipes_catalog_fetching: "Obteniendo cat\xE1logo\u2026",
     recipes_catalog_no_matches_prefix: "No hay coincidencias para",
     recipes_catalog_search_placeholder: "Buscar recetas\u2026",
-    recipes_catalog_set_url_title:
-      "Establecer una URL de cat\xE1logo (dev / staging)",
     recipes_catalog_source_overridden: "Fuente del cat\xE1logo anulada:",
     recipes_catalog_unreachable:
       "No se pudo acceder al cat\xE1logo de recetas:",
-    recipes_catalog_url_prompt:
-      "URL del cat\xE1logo (deje en blanco para restablecer a selorahomes.com):",
-    recipes_catalog_using_override: "Usando anulaci\xF3n:",
     recipes_catalog_will_load: "El cat\xE1logo se cargar\xE1 aqu\xED.",
     recipes_continue_button: "Continuar",
     recipes_details_copy_path_title: "Copiar ruta",
@@ -16304,7 +16180,6 @@ var it_default = {
     chat_yaml_unsaved_changes: "Modifiche non salvate",
     chat_yaml_saving: "Salvataggio\u2026",
     chat_yaml_save_changes: "Salva modifiche",
-    chat_tools_used: "Strumenti utilizzati",
     chat_automation_label_building: "Creazione automazione in corso...",
     chat_automation_label_triggers: "Stesura dei trigger...",
     chat_automation_label_conditions: "Collegamento delle condizioni...",
@@ -16341,9 +16216,6 @@ var it_default = {
     settings_unlink_button: "Scollega",
     settings_signin_selora_desc:
       "Acceda con il Suo account Selora per utilizzare il backend LLM ospitato. Nessuna chiave API richiesta.",
-    settings_selora_cloud_url_label: "URL Selora Cloud",
-    settings_selora_cloud_url_hint:
-      "Sia OAuth sia i completamenti chat utilizzano questo URL. Salvato automaticamente al collegamento.",
     settings_open_signin_page: "Apri pagina di accesso \u2192",
     settings_preparing_label: "Preparazione\u2026",
     settings_link_selora_account_button: "Collega account Selora",
@@ -16373,7 +16245,6 @@ var it_default = {
     settings_connect_via_selora_desc:
       "Rende il Suo server MCP raggiungibile da strumenti esterni",
     settings_mcp_url_copied_toast: "URL MCP copiato negli appunti",
-    settings_connect_server_url_label: "URL del server Connect",
     settings_mcp_tokens_section_title: "TOKEN MCP",
     settings_mcp_tokens_desc:
       "I token MCP sono un'alternativa a Selora Connect. Li utilizzi per strumenti che non supportano OAuth o quando preferisce l'autenticazione basata su token.",
@@ -16429,17 +16300,6 @@ var it_default = {
       "Rileva pattern di utilizzo ricorrenti e propone automazioni",
     settings_auto_remove_stale_label:
       "Rimuovi automaticamente automazioni obsolete",
-    settings_developer_mode_label: "Modalit\xE0 sviluppatore",
-    settings_developer_mode_desc:
-      "Espone i payload grezzi delle entit\xE0 e i log di debug",
-    settings_dev_scan_cameras_label: "Cerca telecamere",
-    settings_dev_scan_cameras_desc:
-      "Cerca ora le telecamere in rete invece di attendere la prossima ricerca (ogni mezz'ora) e aggiorna i suggerimenti nella home della chat.",
-    settings_dev_scan_cameras_button: "Cerca ora",
-    settings_dev_scan_cameras_scanning: "Ricerca\u2026",
-    settings_dev_scan_cameras_done: "Trovate {count} telecamere in rete.",
-    settings_dev_scan_cameras_failed:
-      "La ricerca delle telecamere non \xE8 riuscita.",
     settings_telemetry_label: "Telemetria anonima",
     settings_telemetry_desc:
       "Disattivata per impostazione predefinita. Se attiva, invia conteggi anonimi sulla tua configurazione (dispositivi, integrazioni, automazioni, scene, script, blueprint, aree) e sulla frequenza con cui Selora corregge l'output del modello, per migliorare il prodotto. Non invia mai nomi di entit\xE0, prompt o risposte.",
@@ -16456,8 +16316,6 @@ var it_default = {
       "Questa pagina usa una versione precedente del pannello Selora AI. Ricaricala per usare la versione distribuita.",
     stale_code_reload_action: "Ricarica",
     stale_code_dismiss: "Ignora",
-    settings_dev_mode_save_failed_toast:
-      "Impossibile salvare la modalit\xE0 sviluppatore.",
     settings_saving_label: "Salvataggio\u2026",
     settings_clear_cache_label: "Cancella dati appresi",
     settings_clear_cache_desc:
@@ -16760,19 +16618,10 @@ var it_default = {
     suggestions_btn_dismiss: "Ignora",
     suggestions_section_title: "Suggeriti per Lei",
     suggestions_badge_new: "nuovi",
-    suggestions_llm_setup_required: "Configuri prima un provider LLM",
-    suggestions_btn_scanning: "Scansione\u2026",
-    suggestions_btn_scan_now: "Scansiona ora",
-    suggestions_btn_analyzing: "Analisi\u2026",
-    suggestions_btn_generate: "Genera",
     suggestions_section_subtitle:
       "Basati sui pattern osservati e sull'analisi AI della Sua casa.",
-    suggestions_empty_state:
-      'Nessun suggerimento ancora. Tocchi "Genera" per analizzare la Sua casa.',
+    suggestions_empty_state: "Nessun suggerimento ancora.",
     suggestions_filter_placeholder: "Filtra suggerimenti\u2026",
-    suggestions_filter_all: "Tutti",
-    suggestions_filter_patterns: "Pattern",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "Recenti",
     suggestions_sort_alpha: "Alfabetico",
     suggestions_bulk_selected: "selezionati",
@@ -16972,14 +16821,9 @@ var it_default = {
     recipes_catalog_fetching: "Recupero del catalogo\u2026",
     recipes_catalog_no_matches_prefix: "Nessun risultato per",
     recipes_catalog_search_placeholder: "Cerca ricette\u2026",
-    recipes_catalog_set_url_title:
-      "Imposta un URL del catalogo (dev / staging)",
     recipes_catalog_source_overridden: "Origine del catalogo sovrascritta:",
     recipes_catalog_unreachable:
       "Impossibile raggiungere il catalogo delle ricette:",
-    recipes_catalog_url_prompt:
-      "URL del catalogo (lasci vuoto per ripristinare selorahomes.com):",
-    recipes_catalog_using_override: "Override in uso:",
     recipes_catalog_will_load: "Il catalogo verr\xE0 caricato qui.",
     recipes_continue_button: "Continua",
     recipes_details_copy_path_title: "Copia percorso",
@@ -17762,7 +17606,6 @@ var nl_default = {
     chat_yaml_unsaved_changes: "Niet-opgeslagen wijzigingen",
     chat_yaml_saving: "Opslaan\u2026",
     chat_yaml_save_changes: "Wijzigingen opslaan",
-    chat_tools_used: "Gebruikte tools",
     chat_automation_label_building: "Automatisering bouwen...",
     chat_automation_label_triggers: "Triggers opstellen...",
     chat_automation_label_conditions: "Voorwaarden bedraden...",
@@ -17799,9 +17642,6 @@ var nl_default = {
     settings_unlink_button: "Ontkoppelen",
     settings_signin_selora_desc:
       "Meld u aan met uw Selora-account om de gehoste LLM-backend te gebruiken. Geen API-sleutel vereist.",
-    settings_selora_cloud_url_label: "Selora Cloud URL",
-    settings_selora_cloud_url_hint:
-      "OAuth en chatcompleties gebruiken beide deze URL. Wordt automatisch opgeslagen wanneer u koppelt.",
     settings_open_signin_page: "Aanmeldpagina openen \u2192",
     settings_preparing_label: "Voorbereiden\u2026",
     settings_link_selora_account_button: "Selora-account koppelen",
@@ -17831,7 +17671,6 @@ var nl_default = {
     settings_connect_via_selora_desc:
       "Maakt uw MCP-server bereikbaar voor externe tools",
     settings_mcp_url_copied_toast: "MCP-URL gekopieerd naar klembord",
-    settings_connect_server_url_label: "Connect-server-URL",
     settings_mcp_tokens_section_title: "MCP-TOKENS",
     settings_mcp_tokens_desc:
       "MCP-tokens zijn een alternatief voor Selora Connect. Gebruik ze voor tools die geen OAuth ondersteunen of wanneer u de voorkeur geeft aan tokengebaseerde authenticatie.",
@@ -17886,15 +17725,6 @@ var nl_default = {
       "Detecteert terugkerende gebruikspatronen en stelt automatiseringen voor",
     settings_auto_remove_stale_label:
       "Verouderde automatiseringen automatisch verwijderen",
-    settings_developer_mode_label: "Ontwikkelaarsmodus",
-    settings_developer_mode_desc: "Toont ruwe entiteitsgegevens en debuglogs",
-    settings_dev_scan_cameras_label: "Naar camera's zoeken",
-    settings_dev_scan_cameras_desc:
-      "Nu naar camera's in het netwerk zoeken in plaats van bij de volgende halfuurlijkse zoektocht, en de suggesties op het chatbeginscherm vernieuwen.",
-    settings_dev_scan_cameras_button: "Nu zoeken",
-    settings_dev_scan_cameras_scanning: "Zoeken\u2026",
-    settings_dev_scan_cameras_done: "{count} camera's gevonden in het netwerk.",
-    settings_dev_scan_cameras_failed: "Het zoeken naar camera's is mislukt.",
     settings_telemetry_label: "Anonieme telemetrie",
     settings_telemetry_desc:
       "Standaard uitgeschakeld. Indien ingeschakeld worden anonieme aantallen over je installatie (apparaten, integraties, automatiseringen, sc\xE8nes, scripts, blueprints, gebieden) verzonden en hoe vaak Selora modeluitvoer corrigeert, zodat we het product kunnen verbeteren. Verzendt nooit entiteitsnamen, prompts of antwoorden.",
@@ -17911,8 +17741,6 @@ var nl_default = {
       "Deze pagina gebruikt een oudere versie van het Selora AI-paneel. Herlaad de pagina om de uitgerolde versie te gebruiken.",
     stale_code_reload_action: "Herladen",
     stale_code_dismiss: "Negeren",
-    settings_dev_mode_save_failed_toast:
-      "Opslaan van ontwikkelaarsmodus mislukt.",
     settings_saving_label: "Opslaan\u2026",
     settings_clear_cache_label: "Geleerde gegevens wissen",
     settings_clear_cache_desc:
@@ -18217,19 +18045,10 @@ var nl_default = {
     suggestions_btn_dismiss: "Afwijzen",
     suggestions_section_title: "Voor u voorgesteld",
     suggestions_badge_new: "nieuw",
-    suggestions_llm_setup_required: "Configureer eerst een LLM-provider",
-    suggestions_btn_scanning: "Scannen\u2026",
-    suggestions_btn_scan_now: "Nu scannen",
-    suggestions_btn_analyzing: "Analyseren\u2026",
-    suggestions_btn_generate: "Genereren",
     suggestions_section_subtitle:
       "Op basis van waargenomen patronen en AI-analyse in uw woning.",
-    suggestions_empty_state:
-      'Nog geen suggesties. Tik op "Genereren" om uw woning te analyseren.',
+    suggestions_empty_state: "Nog geen suggesties.",
     suggestions_filter_placeholder: "Suggesties filteren\u2026",
-    suggestions_filter_all: "Alle",
-    suggestions_filter_patterns: "Patronen",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "Recent",
     suggestions_sort_alpha: "Alfabetisch",
     suggestions_bulk_selected: "geselecteerd",
@@ -18428,13 +18247,8 @@ var nl_default = {
     recipes_catalog_fetching: "Catalogus ophalen\u2026",
     recipes_catalog_no_matches_prefix: "Geen resultaten voor",
     recipes_catalog_search_placeholder: "Recepten zoeken\u2026",
-    recipes_catalog_set_url_title:
-      "Een catalogus-URL instellen (dev / staging)",
     recipes_catalog_source_overridden: "Catalogusbron overschreven:",
     recipes_catalog_unreachable: "Kon de receptencatalogus niet bereiken:",
-    recipes_catalog_url_prompt:
-      "Catalogus-URL (leeg laten om terug te zetten naar selorahomes.com):",
-    recipes_catalog_using_override: "Overschrijving gebruiken:",
     recipes_catalog_will_load: "De catalogus wordt hier geladen.",
     recipes_continue_button: "Doorgaan",
     recipes_details_copy_path_title: "Pad kopi\xEBren",
@@ -19211,7 +19025,6 @@ var hu_default = {
     chat_yaml_unsaved_changes: "Nem mentett v\xE1ltoz\xE1sok",
     chat_yaml_saving: "Ment\xE9s\u2026",
     chat_yaml_save_changes: "V\xE1ltoz\xE1sok ment\xE9se",
-    chat_tools_used: "Haszn\xE1lt eszk\xF6z\xF6k",
     chat_automation_label_building: "Automatizmus \xE9p\xEDt\xE9se...",
     chat_automation_label_triggers: "Triggerek megfogalmaz\xE1sa...",
     chat_automation_label_conditions: "Felt\xE9telek bek\xF6t\xE9se...",
@@ -19250,9 +19063,6 @@ var hu_default = {
     settings_unlink_button: "Kapcsolat megsz\xFCntet\xE9se",
     settings_signin_selora_desc:
       "Jelentkezzen be Selora-fi\xF3kj\xE1val a hostolt LLM-h\xE1tt\xE9rrendszer haszn\xE1lat\xE1hoz. Nincs sz\xFCks\xE9g API-kulcsra.",
-    settings_selora_cloud_url_label: "Selora Cloud URL",
-    settings_selora_cloud_url_hint:
-      "Az OAuth \xE9s a besz\xE9lget\xE9sekhez egyar\xE1nt ezt az URL-t haszn\xE1lja a rendszer. Az \xF6sszekapcsol\xE1skor automatikusan ment\xE9sre ker\xFCl.",
     settings_open_signin_page: "Bejelentkez\xE9si oldal megnyit\xE1sa \u2192",
     settings_preparing_label: "El\u0151k\xE9sz\xEDt\xE9s\u2026",
     settings_link_selora_account_button: "Selora-fi\xF3k \xF6sszekapcsol\xE1sa",
@@ -19286,7 +19096,6 @@ var hu_default = {
     settings_connect_via_selora_desc:
       "El\xE9rhet\u0151v\xE9 teszi az MCP-kiszolg\xE1l\xF3t k\xFCls\u0151 eszk\xF6z\xF6k sz\xE1m\xE1ra",
     settings_mcp_url_copied_toast: "Az MCP URL a v\xE1g\xF3lapra m\xE1solva",
-    settings_connect_server_url_label: "Connect-kiszolg\xE1l\xF3 URL-je",
     settings_mcp_tokens_section_title: "MCP-TOKENEK",
     settings_mcp_tokens_desc:
       "Az MCP-tokenek a Selora Connect alternat\xEDv\xE1i. Olyan eszk\xF6z\xF6kh\xF6z haszn\xE1lja \u0151ket, amelyek nem t\xE1mogatj\xE1k az OAuth-ot, vagy ha a token-alap\xFA hiteles\xEDt\xE9st r\xE9szes\xEDti el\u0151nyben.",
@@ -19343,18 +19152,6 @@ var hu_default = {
       "Ism\xE9tl\u0151d\u0151 haszn\xE1lati mint\xE1kat \xE9szlel \xE9s automatizmusokat javasol",
     settings_auto_remove_stale_label:
       "Elavult automatizmusok automatikus elt\xE1vol\xEDt\xE1sa",
-    settings_developer_mode_label: "Fejleszt\u0151i m\xF3d",
-    settings_developer_mode_desc:
-      "Megjelen\xEDti a nyers entit\xE1sadatokat \xE9s a hibakeres\xE9si napl\xF3kat",
-    settings_dev_scan_cameras_label: "Kamer\xE1k keres\xE9se",
-    settings_dev_scan_cameras_desc:
-      "Kamer\xE1k keres\xE9se a h\xE1l\xF3zaton most, a k\xF6vetkez\u0151 f\xE9l\xF3r\xE1nk\xE9nti keres\xE9s helyett, \xE9s a cseveg\xE9s kezd\u0151lapj\xE1nak javaslatainak friss\xEDt\xE9se.",
-    settings_dev_scan_cameras_button: "Keres\xE9s most",
-    settings_dev_scan_cameras_scanning: "Keres\xE9s\u2026",
-    settings_dev_scan_cameras_done:
-      "{count} kamera tal\xE1lhat\xF3 a h\xE1l\xF3zaton.",
-    settings_dev_scan_cameras_failed:
-      "A kamer\xE1k keres\xE9se nem siker\xFClt.",
     settings_telemetry_label: "N\xE9vtelen telemetria",
     settings_telemetry_desc:
       "Alap\xE9rtelmezetten kikapcsolva. Bekapcsolva n\xE9vtelen darabsz\xE1mokat k\xFCld a be\xE1ll\xEDt\xE1sodr\xF3l (eszk\xF6z\xF6k, integr\xE1ci\xF3k, automatiz\xE1l\xE1sok, jelenetek, szkriptek, blueprintek, ter\xFCletek) \xE9s arr\xF3l, hogy a Selora milyen gyakran jav\xEDtja a modell kimenet\xE9t, hogy fejleszthess\xFCk a term\xE9ket. Soha nem k\xFCld entit\xE1sneveket, k\xE9r\xE9seket vagy v\xE1laszokat.",
@@ -19373,8 +19170,6 @@ var hu_default = {
       "Ez az oldal a Selora AI panel r\xE9gebbi verzi\xF3j\xE1t futtatja. T\xF6ltse \xFAjra, hogy a telep\xEDtett verzi\xF3t haszn\xE1lja.",
     stale_code_reload_action: "\xDAjrat\xF6lt\xE9s",
     stale_code_dismiss: "Elvet\xE9s",
-    settings_dev_mode_save_failed_toast:
-      "A fejleszt\u0151i m\xF3d ment\xE9se nem siker\xFClt.",
     settings_saving_label: "Ment\xE9s\u2026",
     settings_clear_cache_label: "Tanult adatok t\xF6rl\xE9se",
     settings_clear_cache_desc:
@@ -19692,20 +19487,10 @@ var hu_default = {
     suggestions_btn_dismiss: "Elvet\xE9s",
     suggestions_section_title: "\xD6nnek javasoljuk",
     suggestions_badge_new: "\xFAj",
-    suggestions_llm_setup_required:
-      "El\u0151sz\xF6r konfigur\xE1ljon egy LLM-szolg\xE1ltat\xF3t",
-    suggestions_btn_scanning: "Vizsg\xE1lat\u2026",
-    suggestions_btn_scan_now: "Vizsg\xE1lat most",
-    suggestions_btn_analyzing: "Elemz\xE9s\u2026",
-    suggestions_btn_generate: "Gener\xE1l\xE1s",
     suggestions_section_subtitle:
       "Az otthon\xE1ban megfigyelt mint\xE1kon \xE9s AI-elemz\xE9sen alapul.",
-    suggestions_empty_state:
-      "M\xE9g nincsenek javaslatok. Az otthon\xE1nak elemz\xE9s\xE9hez koppintson a \u201EGener\xE1l\xE1s\u201D gombra.",
+    suggestions_empty_state: "M\xE9g nincsenek javaslatok.",
     suggestions_filter_placeholder: "Javaslatok sz\u0171r\xE9se\u2026",
-    suggestions_filter_all: "\xD6sszes",
-    suggestions_filter_patterns: "Mint\xE1k",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "Legut\xF3bbi",
     suggestions_sort_alpha: "Bet\u0171rend",
     suggestions_bulk_selected: "kijel\xF6lve",
@@ -19915,15 +19700,10 @@ var hu_default = {
     recipes_catalog_no_matches_prefix:
       "Nincs tal\xE1lat a k\xF6vetkez\u0151re:",
     recipes_catalog_search_placeholder: "Receptek keres\xE9se\u2026",
-    recipes_catalog_set_url_title:
-      "Katal\xF3gus URL be\xE1ll\xEDt\xE1sa (dev / staging)",
     recipes_catalog_source_overridden:
       "Katal\xF3gusforr\xE1s fel\xFClb\xEDr\xE1lva:",
     recipes_catalog_unreachable:
       "Nem siker\xFClt el\xE9rni a receptkatal\xF3gust:",
-    recipes_catalog_url_prompt:
-      "Katal\xF3gus URL (hagyja \xFCresen a selorahomes.com vissza\xE1ll\xEDt\xE1s\xE1hoz):",
-    recipes_catalog_using_override: "Fel\xFClb\xEDr\xE1l\xE1s haszn\xE1lata:",
     recipes_catalog_will_load: "A katal\xF3gus itt fog bet\xF6lt\u0151dni.",
     recipes_continue_button: "Folytat\xE1s",
     recipes_details_copy_path_title: "\xDAtvonal m\xE1sol\xE1sa",
@@ -20691,7 +20471,6 @@ var pt_default = {
     chat_yaml_unsaved_changes: "Altera\xE7\xF5es n\xE3o guardadas",
     chat_yaml_saving: "A guardar\u2026",
     chat_yaml_save_changes: "Guardar altera\xE7\xF5es",
-    chat_tools_used: "Ferramentas utilizadas",
     chat_automation_label_building: "A criar automa\xE7\xE3o...",
     chat_automation_label_triggers: "A elaborar acionadores...",
     chat_automation_label_conditions: "A ligar condi\xE7\xF5es...",
@@ -20729,9 +20508,6 @@ var pt_default = {
     settings_unlink_button: "Desassociar",
     settings_signin_selora_desc:
       "Inicie sess\xE3o com a sua conta Selora para utilizar o backend de LLM alojado. N\xE3o \xE9 necess\xE1ria nenhuma chave de API.",
-    settings_selora_cloud_url_label: "URL do Selora Cloud",
-    settings_selora_cloud_url_hint:
-      "O OAuth e as conclus\xF5es de conversa utilizam ambos este URL. Guardado automaticamente quando associa.",
     settings_open_signin_page:
       "Abrir p\xE1gina de in\xEDcio de sess\xE3o \u2192",
     settings_preparing_label: "A preparar\u2026",
@@ -20763,7 +20539,6 @@ var pt_default = {
       "Torna o seu servidor MCP acess\xEDvel a ferramentas externas",
     settings_mcp_url_copied_toast:
       "URL MCP copiado para a \xE1rea de transfer\xEAncia",
-    settings_connect_server_url_label: "URL do servidor Connect",
     settings_mcp_tokens_section_title: "TOKENS MCP",
     settings_mcp_tokens_desc:
       "Os tokens MCP s\xE3o uma alternativa ao Selora Connect. Utilize-os para ferramentas que n\xE3o suportam OAuth ou quando prefere autentica\xE7\xE3o baseada em tokens.",
@@ -20820,16 +20595,6 @@ var pt_default = {
       "Deteta padr\xF5es de utiliza\xE7\xE3o recorrentes e prop\xF5e automa\xE7\xF5es",
     settings_auto_remove_stale_label:
       "Remover automaticamente automa\xE7\xF5es obsoletas",
-    settings_developer_mode_label: "Modo de programador",
-    settings_developer_mode_desc:
-      "Exp\xF5e os payloads brutos das entidades e registos de depura\xE7\xE3o",
-    settings_dev_scan_cameras_label: "Procurar c\xE2maras",
-    settings_dev_scan_cameras_desc:
-      "Procurar agora c\xE2maras na rede em vez de esperar pela pr\xF3xima procura (de meia em meia hora) e atualizar as sugest\xF5es do in\xEDcio do chat.",
-    settings_dev_scan_cameras_button: "Procurar agora",
-    settings_dev_scan_cameras_scanning: "A procurar\u2026",
-    settings_dev_scan_cameras_done: "Encontradas {count} c\xE2maras na rede.",
-    settings_dev_scan_cameras_failed: "A procura de c\xE2maras falhou.",
     settings_telemetry_label: "Telemetria an\xF3nima",
     settings_telemetry_desc:
       "Desativada por predefini\xE7\xE3o. Quando ativada, envia contagens an\xF3nimas sobre a sua configura\xE7\xE3o (dispositivos, integra\xE7\xF5es, automa\xE7\xF5es, cenas, scripts, blueprints, \xE1reas) e a frequ\xEAncia com que o Selora corrige a sa\xEDda do modelo, para melhorarmos o produto. Nunca envia nomes de entidades, comandos ou respostas.",
@@ -20846,8 +20611,6 @@ var pt_default = {
       "Esta p\xE1gina est\xE1 a usar uma vers\xE3o anterior do painel Selora AI. Recarregue para usar a vers\xE3o implementada.",
     stale_code_reload_action: "Recarregar",
     stale_code_dismiss: "Ignorar",
-    settings_dev_mode_save_failed_toast:
-      "N\xE3o foi poss\xEDvel guardar o modo de programador.",
     settings_saving_label: "A guardar\u2026",
     settings_clear_cache_label: "Limpar dados aprendidos",
     settings_clear_cache_desc:
@@ -21155,19 +20918,10 @@ var pt_default = {
     suggestions_btn_dismiss: "Dispensar",
     suggestions_section_title: "Sugerido para si",
     suggestions_badge_new: "novo",
-    suggestions_llm_setup_required: "Configure primeiro um fornecedor de LLM",
-    suggestions_btn_scanning: "A analisar\u2026",
-    suggestions_btn_scan_now: "Analisar agora",
-    suggestions_btn_analyzing: "A analisar\u2026",
-    suggestions_btn_generate: "Gerar",
     suggestions_section_subtitle:
       "Com base nos padr\xF5es observados e na an\xE1lise por IA na sua casa.",
-    suggestions_empty_state:
-      'Ainda n\xE3o h\xE1 sugest\xF5es. Toque em "Gerar" para analisar a sua casa.',
+    suggestions_empty_state: "Ainda n\xE3o h\xE1 sugest\xF5es.",
     suggestions_filter_placeholder: "Filtrar sugest\xF5es\u2026",
-    suggestions_filter_all: "Todas",
-    suggestions_filter_patterns: "Padr\xF5es",
-    suggestions_filter_ai: "IA",
     suggestions_sort_recent: "Recente",
     suggestions_sort_alpha: "Alfab\xE9tica",
     suggestions_bulk_selected: "selecionadas",
@@ -21370,14 +21124,9 @@ var pt_default = {
     recipes_catalog_fetching: "A obter o cat\xE1logo\u2026",
     recipes_catalog_no_matches_prefix: "Sem correspond\xEAncias para",
     recipes_catalog_search_placeholder: "Procurar receitas\u2026",
-    recipes_catalog_set_url_title:
-      "Definir um URL de cat\xE1logo (dev / staging)",
     recipes_catalog_source_overridden: "Origem do cat\xE1logo substitu\xEDda:",
     recipes_catalog_unreachable:
       "N\xE3o foi poss\xEDvel alcan\xE7ar o cat\xE1logo de receitas:",
-    recipes_catalog_url_prompt:
-      "URL do cat\xE1logo (deixe em branco para repor para selorahomes.com):",
-    recipes_catalog_using_override: "A utilizar substitui\xE7\xE3o:",
     recipes_catalog_will_load: "O cat\xE1logo ser\xE1 carregado aqui.",
     recipes_continue_button: "Continuar",
     recipes_details_copy_path_title: "Copiar caminho",
@@ -22237,8 +21986,6 @@ var ru_default = {
       "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435\u2026",
     chat_yaml_save_changes:
       "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F",
-    chat_tools_used:
-      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u043D\u044B\u0435 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B",
     chat_automation_label_building:
       "\u0421\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438...",
     chat_automation_label_triggers:
@@ -22294,10 +22041,6 @@ var ru_default = {
     settings_unlink_button: "\u041E\u0442\u0432\u044F\u0437\u0430\u0442\u044C",
     settings_signin_selora_desc:
       "\u0412\u043E\u0439\u0434\u0438\u0442\u0435 \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u0443\u0447\u0451\u0442\u043D\u043E\u0439 \u0437\u0430\u043F\u0438\u0441\u0438 Selora, \u0447\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u0443\u044E \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u0443\u044E \u0447\u0430\u0441\u0442\u044C LLM. API-\u043A\u043B\u044E\u0447 \u043D\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F.",
-    settings_selora_cloud_url_label:
-      "URL-\u0430\u0434\u0440\u0435\u0441 Selora Cloud",
-    settings_selora_cloud_url_hint:
-      "OAuth \u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u044F \u0447\u0430\u0442\u0430 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044E\u0442 \u044D\u0442\u043E\u0442 URL-\u0430\u0434\u0440\u0435\u0441. \u0421\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0438 \u0441\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0438.",
     settings_open_signin_page:
       "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u0432\u0445\u043E\u0434\u0430 \u2192",
     settings_preparing_label:
@@ -22340,8 +22083,6 @@ var ru_default = {
       "\u0414\u0435\u043B\u0430\u0435\u0442 \u0432\u0430\u0448 \u0441\u0435\u0440\u0432\u0435\u0440 MCP \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u043C \u0434\u043B\u044F \u0432\u043D\u0435\u0448\u043D\u0438\u0445 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u043E\u0432",
     settings_mcp_url_copied_toast:
       "URL-\u0430\u0434\u0440\u0435\u0441 MCP \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D \u0432 \u0431\u0443\u0444\u0435\u0440 \u043E\u0431\u043C\u0435\u043D\u0430",
-    settings_connect_server_url_label:
-      "URL-\u0430\u0434\u0440\u0435\u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 Connect",
     settings_mcp_tokens_section_title:
       "\u0422\u041E\u041A\u0415\u041D\u042B MCP",
     settings_mcp_tokens_desc:
@@ -22420,21 +22161,6 @@ var ru_default = {
       "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0438\u0432\u0430\u0435\u0442 \u043F\u043E\u0432\u0442\u043E\u0440\u044F\u044E\u0449\u0438\u0435\u0441\u044F \u0448\u0430\u0431\u043B\u043E\u043D\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0438 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u0435\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
     settings_auto_remove_stale_label:
       "\u0410\u0432\u0442\u043E\u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0443\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0438\u0445 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0439",
-    settings_developer_mode_label:
-      "\u0420\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430",
-    settings_developer_mode_desc:
-      "\u041E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u0442 \u043D\u0435\u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439 \u0438 \u0436\u0443\u0440\u043D\u0430\u043B\u044B \u043E\u0442\u043B\u0430\u0434\u043A\u0438",
-    settings_dev_scan_cameras_label:
-      "\u041F\u043E\u0438\u0441\u043A \u043A\u0430\u043C\u0435\u0440",
-    settings_dev_scan_cameras_desc:
-      "\u041D\u0430\u0439\u0442\u0438 \u043A\u0430\u043C\u0435\u0440\u044B \u0432 \u0441\u0435\u0442\u0438 \u0441\u0435\u0439\u0447\u0430\u0441, \u043D\u0435 \u0434\u043E\u0436\u0438\u0434\u0430\u044F\u0441\u044C \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0435\u0433\u043E \u043F\u043E\u0438\u0441\u043A\u0430 (\u0440\u0430\u0437 \u0432 \u043F\u043E\u043B\u0447\u0430\u0441\u0430), \u0438 \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u044C \u043F\u043E\u0434\u0441\u043A\u0430\u0437\u043A\u0438 \u043D\u0430 \u0433\u043B\u0430\u0432\u043D\u043E\u0439 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435 \u0447\u0430\u0442\u0430.",
-    settings_dev_scan_cameras_button:
-      "\u041D\u0430\u0439\u0442\u0438 \u0441\u0435\u0439\u0447\u0430\u0441",
-    settings_dev_scan_cameras_scanning: "\u041F\u043E\u0438\u0441\u043A\u2026",
-    settings_dev_scan_cameras_done:
-      "\u041D\u0430\u0439\u0434\u0435\u043D\u043E \u043A\u0430\u043C\u0435\u0440 \u0432 \u0441\u0435\u0442\u0438: {count}.",
-    settings_dev_scan_cameras_failed:
-      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u043F\u043E\u0438\u0441\u043A \u043A\u0430\u043C\u0435\u0440.",
     settings_telemetry_label:
       "\u0410\u043D\u043E\u043D\u0438\u043C\u043D\u0430\u044F \u0442\u0435\u043B\u0435\u043C\u0435\u0442\u0440\u0438\u044F",
     settings_telemetry_desc:
@@ -22458,8 +22184,6 @@ var ru_default = {
     stale_code_reload_action:
       "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C",
     stale_code_dismiss: "\u0421\u043A\u0440\u044B\u0442\u044C",
-    settings_dev_mode_save_failed_toast:
-      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0440\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430.",
     settings_saving_label:
       "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435\u2026",
     settings_clear_cache_label:
@@ -22925,24 +22649,12 @@ var ru_default = {
     suggestions_section_title:
       "\u0420\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u043E\u0432\u0430\u043D\u043E \u0434\u043B\u044F \u0432\u0430\u0441",
     suggestions_badge_new: "\u043D\u043E\u0432\u043E\u0435",
-    suggestions_llm_setup_required:
-      "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 LLM",
-    suggestions_btn_scanning:
-      "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435\u2026",
-    suggestions_btn_scan_now:
-      "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0435\u0439\u0447\u0430\u0441",
-    suggestions_btn_analyzing: "\u0410\u043D\u0430\u043B\u0438\u0437\u2026",
-    suggestions_btn_generate:
-      "\u0421\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
     suggestions_section_subtitle:
       "\u041D\u0430 \u043E\u0441\u043D\u043E\u0432\u0435 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0435\u043C\u044B\u0445 \u0448\u0430\u0431\u043B\u043E\u043D\u043E\u0432 \u0438 \u0418\u0418-\u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0432 \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435.",
     suggestions_empty_state:
-      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0439 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u0421\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C\xBB, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0430\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0432\u0430\u0448 \u0434\u043E\u043C.",
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0439 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442.",
     suggestions_filter_placeholder:
       "\u0424\u0438\u043B\u044C\u0442\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u044F\u2026",
-    suggestions_filter_all: "\u0412\u0441\u0435",
-    suggestions_filter_patterns: "\u0428\u0430\u0431\u043B\u043E\u043D\u044B",
-    suggestions_filter_ai: "\u0418\u0418",
     suggestions_sort_recent: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
     suggestions_sort_alpha:
       "\u041F\u043E \u0430\u043B\u0444\u0430\u0432\u0438\u0442\u0443",
@@ -23253,16 +22965,10 @@ var ru_default = {
       "\u041D\u0435\u0442 \u0441\u043E\u0432\u043F\u0430\u0434\u0435\u043D\u0438\u0439 \u0434\u043B\u044F",
     recipes_catalog_search_placeholder:
       "\u041F\u043E\u0438\u0441\u043A \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432\u2026",
-    recipes_catalog_set_url_title:
-      "\u0417\u0430\u0434\u0430\u0442\u044C URL-\u0430\u0434\u0440\u0435\u0441 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 (dev / staging)",
     recipes_catalog_source_overridden:
       "\u0418\u0441\u0442\u043E\u0447\u043D\u0438\u043A \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D:",
     recipes_catalog_unreachable:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0443\u043F \u043A \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0443 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432:",
-    recipes_catalog_url_prompt:
-      "URL-\u0430\u0434\u0440\u0435\u0441 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 (\u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0441\u0442\u044B\u043C, \u0447\u0442\u043E\u0431\u044B \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043D\u0430 selorahomes.com):",
-    recipes_catalog_using_override:
-      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435:",
     recipes_catalog_will_load:
       "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C.",
     recipes_continue_button:
@@ -24309,7 +24015,6 @@ var ja_default = {
     chat_yaml_unsaved_changes: "\u672A\u4FDD\u5B58\u306E\u5909\u66F4",
     chat_yaml_saving: "\u4FDD\u5B58\u4E2D\u2026",
     chat_yaml_save_changes: "\u5909\u66F4\u3092\u4FDD\u5B58",
-    chat_tools_used: "\u4F7F\u7528\u3057\u305F\u30C4\u30FC\u30EB",
     chat_automation_label_building:
       "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u4F5C\u6210\u4E2D...",
     chat_automation_label_triggers:
@@ -24353,9 +24058,6 @@ var ja_default = {
     settings_unlink_button: "\u9023\u643A\u89E3\u9664",
     settings_signin_selora_desc:
       "Selora \u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u3001\u30DB\u30B9\u30C8\u578B LLM \u30D0\u30C3\u30AF\u30A8\u30F3\u30C9\u3092\u4F7F\u7528\u3057\u307E\u3059\u3002API \u30AD\u30FC\u306F\u4E0D\u8981\u3067\u3059\u3002",
-    settings_selora_cloud_url_label: "Selora Cloud URL",
-    settings_selora_cloud_url_hint:
-      "OAuth \u3068\u30C1\u30E3\u30C3\u30C8\u88DC\u5B8C\u306E\u4E21\u65B9\u3067\u3053\u306E URL \u3092\u4F7F\u7528\u3057\u307E\u3059\u3002\u9023\u643A\u6642\u306B\u81EA\u52D5\u7684\u306B\u4FDD\u5B58\u3055\u308C\u307E\u3059\u3002",
     settings_open_signin_page:
       "\u30B5\u30A4\u30F3\u30A4\u30F3\u30DA\u30FC\u30B8\u3092\u958B\u304F \u2192",
     settings_preparing_label: "\u6E96\u5099\u4E2D\u2026",
@@ -24394,7 +24096,6 @@ var ja_default = {
       "MCP \u30B5\u30FC\u30D0\u30FC\u3092\u5916\u90E8\u30C4\u30FC\u30EB\u304B\u3089\u5230\u9054\u53EF\u80FD\u306B\u3057\u307E\u3059",
     settings_mcp_url_copied_toast:
       "MCP URL \u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
-    settings_connect_server_url_label: "Connect \u30B5\u30FC\u30D0\u30FC URL",
     settings_mcp_tokens_section_title: "MCP \u30C8\u30FC\u30AF\u30F3",
     settings_mcp_tokens_desc:
       "MCP \u30C8\u30FC\u30AF\u30F3\u306F Selora Connect \u306E\u4EE3\u66FF\u624B\u6BB5\u3067\u3059\u3002OAuth \u306B\u5BFE\u5FDC\u3057\u3066\u3044\u306A\u3044\u30C4\u30FC\u30EB\u3084\u3001\u30C8\u30FC\u30AF\u30F3\u30D9\u30FC\u30B9\u306E\u8A8D\u8A3C\u3092\u597D\u3080\u5834\u5408\u306B\u4F7F\u7528\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
@@ -24461,18 +24162,6 @@ var ja_default = {
       "\u7E70\u308A\u8FD4\u3055\u308C\u308B\u4F7F\u7528\u30D1\u30BF\u30FC\u30F3\u3092\u691C\u51FA\u3057\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u63D0\u6848\u3057\u307E\u3059",
     settings_auto_remove_stale_label:
       "\u53E4\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u81EA\u52D5\u524A\u9664",
-    settings_developer_mode_label: "\u958B\u767A\u8005\u30E2\u30FC\u30C9",
-    settings_developer_mode_desc:
-      "\u751F\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u30DA\u30A4\u30ED\u30FC\u30C9\u3068\u30C7\u30D0\u30C3\u30B0\u30ED\u30B0\u3092\u516C\u958B\u3057\u307E\u3059",
-    settings_dev_scan_cameras_label: "\u30AB\u30E1\u30E9\u3092\u691C\u7D22",
-    settings_dev_scan_cameras_desc:
-      "30 \u5206\u3054\u3068\u306E\u6B21\u56DE\u691C\u7D22\u3092\u5F85\u305F\u305A\u306B\u3001\u4ECA\u3059\u3050\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u306E\u30AB\u30E1\u30E9\u3092\u691C\u7D22\u3057\u3001\u30C1\u30E3\u30C3\u30C8\u306E\u30DB\u30FC\u30E0\u306E\u63D0\u6848\u3092\u66F4\u65B0\u3057\u307E\u3059\u3002",
-    settings_dev_scan_cameras_button: "\u4ECA\u3059\u3050\u691C\u7D22",
-    settings_dev_scan_cameras_scanning: "\u691C\u7D22\u4E2D\u2026",
-    settings_dev_scan_cameras_done:
-      "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u3067 {count} \u53F0\u306E\u30AB\u30E1\u30E9\u304C\u898B\u3064\u304B\u308A\u307E\u3057\u305F\u3002",
-    settings_dev_scan_cameras_failed:
-      "\u30AB\u30E1\u30E9\u306E\u691C\u7D22\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
     settings_telemetry_label: "\u533F\u540D\u30C6\u30EC\u30E1\u30C8\u30EA",
     settings_telemetry_desc:
       "\u30C7\u30D5\u30A9\u30EB\u30C8\u306F\u7121\u52B9\u3067\u3059\u3002\u6709\u52B9\u306B\u3059\u308B\u3068\u3001\u69CB\u6210\u306B\u95A2\u3059\u308B\u533F\u540D\u306E\u30AB\u30A6\u30F3\u30C8\uFF08\u30C7\u30D0\u30A4\u30B9\u3001\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3001\u30B7\u30FC\u30F3\u3001\u30B9\u30AF\u30EA\u30D7\u30C8\u3001\u30D6\u30EB\u30FC\u30D7\u30EA\u30F3\u30C8\u3001\u30A8\u30EA\u30A2\uFF09\u3068\u3001Selora \u304C\u30E2\u30C7\u30EB\u51FA\u529B\u3092\u4FEE\u6B63\u3059\u308B\u983B\u5EA6\u3092\u9001\u4FE1\u3057\u3001\u88FD\u54C1\u306E\u6539\u5584\u306B\u5F79\u7ACB\u3066\u307E\u3059\u3002\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u540D\u3001\u30D7\u30ED\u30F3\u30D7\u30C8\u3001\u5FDC\u7B54\u306F\u4E00\u5207\u9001\u4FE1\u3057\u307E\u305B\u3093\u3002",
@@ -24492,8 +24181,6 @@ var ja_default = {
       "\u3053\u306E\u30DA\u30FC\u30B8\u306F\u53E4\u3044\u30D0\u30FC\u30B8\u30E7\u30F3\u306E Selora AI \u30D1\u30CD\u30EB\u3092\u5B9F\u884C\u3057\u3066\u3044\u307E\u3059\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u3066\u30C7\u30D7\u30ED\u30A4\u6E08\u307F\u306E\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u8AAD\u307F\u8FBC\u3093\u3067\u304F\u3060\u3055\u3044\u3002",
     stale_code_reload_action: "\u518D\u8AAD\u307F\u8FBC\u307F",
     stale_code_dismiss: "\u9589\u3058\u308B",
-    settings_dev_mode_save_failed_toast:
-      "\u958B\u767A\u8005\u30E2\u30FC\u30C9\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
     settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
     settings_clear_cache_label:
       "\u5B66\u7FD2\u30C7\u30FC\u30BF\u3092\u6D88\u53BB",
@@ -24857,21 +24544,12 @@ var ja_default = {
     suggestions_section_title:
       "\u3042\u306A\u305F\u3078\u306E\u304A\u3059\u3059\u3081",
     suggestions_badge_new: "\u65B0\u7740",
-    suggestions_llm_setup_required:
-      "\u5148\u306B LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044",
-    suggestions_btn_scanning: "\u30B9\u30AD\u30E3\u30F3\u4E2D\u2026",
-    suggestions_btn_scan_now: "\u4ECA\u3059\u3050\u30B9\u30AD\u30E3\u30F3",
-    suggestions_btn_analyzing: "\u5206\u6790\u4E2D\u2026",
-    suggestions_btn_generate: "\u751F\u6210",
     suggestions_section_subtitle:
       "\u3054\u81EA\u5B85\u3067\u89B3\u6E2C\u3055\u308C\u305F\u30D1\u30BF\u30FC\u30F3\u3068 AI \u5206\u6790\u306B\u57FA\u3065\u3044\u3066\u3044\u307E\u3059\u3002",
     suggestions_empty_state:
-      "\u63D0\u6848\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u300C\u751F\u6210\u300D\u3092\u30BF\u30C3\u30D7\u3057\u3066\u3054\u81EA\u5B85\u3092\u5206\u6790\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      "\u63D0\u6848\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
     suggestions_filter_placeholder:
       "\u63D0\u6848\u3092\u7D5E\u308A\u8FBC\u307F\u2026",
-    suggestions_filter_all: "\u3059\u3079\u3066",
-    suggestions_filter_patterns: "\u30D1\u30BF\u30FC\u30F3",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "\u6700\u8FD1",
     suggestions_sort_alpha: "\u30A2\u30EB\u30D5\u30A1\u30D9\u30C3\u30C8\u9806",
     suggestions_bulk_selected: "\u4EF6\u9078\u629E\u4E2D",
@@ -25129,16 +24807,10 @@ var ja_default = {
     recipes_catalog_no_matches_prefix: "\u4E00\u81F4\u306A\u3057\uFF1A",
     recipes_catalog_search_placeholder:
       "\u30EC\u30B7\u30D4\u3092\u691C\u7D22\u2026",
-    recipes_catalog_set_url_title:
-      "\u30AB\u30BF\u30ED\u30B0 URL \u3092\u8A2D\u5B9A\uFF08\u958B\u767A\uFF0F\u30B9\u30C6\u30FC\u30B8\u30F3\u30B0\uFF09",
     recipes_catalog_source_overridden:
       "\u30AB\u30BF\u30ED\u30B0\u30BD\u30FC\u30B9\u3092\u4E0A\u66F8\u304D\u3057\u307E\u3057\u305F\uFF1A",
     recipes_catalog_unreachable:
       "\u30EC\u30B7\u30D4\u30AB\u30BF\u30ED\u30B0\u306B\u5230\u9054\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\uFF1A",
-    recipes_catalog_url_prompt:
-      "\u30AB\u30BF\u30ED\u30B0 URL\uFF08selorahomes.com \u306B\u30EA\u30BB\u30C3\u30C8\u3059\u308B\u306B\u306F\u7A7A\u6B04\u306E\u307E\u307E\uFF09\uFF1A",
-    recipes_catalog_using_override:
-      "\u4E0A\u66F8\u304D\u3092\u4F7F\u7528\u4E2D\uFF1A",
     recipes_catalog_will_load:
       "\u30AB\u30BF\u30ED\u30B0\u306F\u3053\u3053\u306B\u8AAD\u307F\u8FBC\u307E\u308C\u307E\u3059\u3002",
     recipes_continue_button: "\u7D9A\u884C",
@@ -26053,7 +25725,6 @@ var ko_default = {
       "\uC800\uC7A5\uB418\uC9C0 \uC54A\uC740 \uBCC0\uACBD \uC0AC\uD56D",
     chat_yaml_saving: "\uC800\uC7A5 \uC911\u2026",
     chat_yaml_save_changes: "\uBCC0\uACBD \uC0AC\uD56D \uC800\uC7A5",
-    chat_tools_used: "\uC0AC\uC6A9\uB41C \uB3C4\uAD6C",
     chat_automation_label_building: "\uC790\uB3D9\uD654 \uC0DD\uC131 \uC911...",
     chat_automation_label_triggers: "\uD2B8\uB9AC\uAC70 \uC791\uC131 \uC911...",
     chat_automation_label_conditions: "\uC870\uAC74 \uC5F0\uACB0 \uC911...",
@@ -26094,9 +25765,6 @@ var ko_default = {
     settings_unlink_button: "\uC5F0\uACB0 \uD574\uC81C",
     settings_signin_selora_desc:
       "Selora \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC5EC \uD638\uC2A4\uD305\uB41C LLM \uBC31\uC5D4\uB4DC\uB97C \uC0AC\uC6A9\uD558\uC138\uC694. API \uD0A4\uAC00 \uD544\uC694\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
-    settings_selora_cloud_url_label: "Selora Cloud URL",
-    settings_selora_cloud_url_hint:
-      "OAuth\uC640 \uCC44\uD305 \uC644\uC131 \uBAA8\uB450 \uC774 URL\uC744 \uC0AC\uC6A9\uD569\uB2C8\uB2E4. \uC5F0\uACB0 \uC2DC \uC790\uB3D9\uC73C\uB85C \uC800\uC7A5\uB429\uB2C8\uB2E4.",
     settings_open_signin_page:
       "\uB85C\uADF8\uC778 \uD398\uC774\uC9C0 \uC5F4\uAE30 \u2192",
     settings_preparing_label: "\uC900\uBE44 \uC911\u2026",
@@ -26133,7 +25801,6 @@ var ko_default = {
       "\uC678\uBD80 \uB3C4\uAD6C\uAC00 MCP \uC11C\uBC84\uC5D0 \uC811\uADFC\uD560 \uC218 \uC788\uAC8C \uD569\uB2C8\uB2E4",
     settings_mcp_url_copied_toast:
       "MCP URL\uC774 \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
-    settings_connect_server_url_label: "Connect \uC11C\uBC84 URL",
     settings_mcp_tokens_section_title: "MCP \uD1A0\uD070",
     settings_mcp_tokens_desc:
       "MCP \uD1A0\uD070\uC740 Selora Connect\uC758 \uB300\uC548\uC785\uB2C8\uB2E4. OAuth\uB97C \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C\uB098 \uD1A0\uD070 \uAE30\uBC18 \uC778\uC99D\uC744 \uC120\uD638\uD560 \uB54C \uC0AC\uC6A9\uD558\uC138\uC694.",
@@ -26197,18 +25864,6 @@ var ko_default = {
       "\uBC18\uBCF5\uB418\uB294 \uC0AC\uC6A9 \uD328\uD134\uC744 \uAC10\uC9C0\uD558\uACE0 \uC790\uB3D9\uD654\uB97C \uC81C\uC548\uD569\uB2C8\uB2E4",
     settings_auto_remove_stale_label:
       "\uC624\uB798\uB41C \uC790\uB3D9\uD654 \uC790\uB3D9 \uC81C\uAC70",
-    settings_developer_mode_label: "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC",
-    settings_developer_mode_desc:
-      "\uC6D0\uC2DC \uC5D4\uD130\uD2F0 \uD398\uC774\uB85C\uB4DC\uC640 \uB514\uBC84\uADF8 \uB85C\uADF8\uB97C \uB178\uCD9C\uD569\uB2C8\uB2E4",
-    settings_dev_scan_cameras_label: "\uCE74\uBA54\uB77C \uAC80\uC0C9",
-    settings_dev_scan_cameras_desc:
-      "30\uBD84\uB9C8\uB2E4 \uD558\uB294 \uB2E4\uC74C \uAC80\uC0C9\uC744 \uAE30\uB2E4\uB9AC\uC9C0 \uC54A\uACE0 \uC9C0\uAE08 \uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C \uCE74\uBA54\uB77C\uB97C \uCC3E\uACE0 \uCC44\uD305 \uD648\uC758 \uC81C\uC548\uC744 \uC0C8\uB85C \uACE0\uCE69\uB2C8\uB2E4.",
-    settings_dev_scan_cameras_button: "\uC9C0\uAE08 \uAC80\uC0C9",
-    settings_dev_scan_cameras_scanning: "\uAC80\uC0C9 \uC911\u2026",
-    settings_dev_scan_cameras_done:
-      "\uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C \uCE74\uBA54\uB77C {count}\uB300\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4.",
-    settings_dev_scan_cameras_failed:
-      "\uCE74\uBA54\uB77C \uAC80\uC0C9\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
     settings_telemetry_label: "\uC775\uBA85 \uD154\uB808\uBA54\uD2B8\uB9AC",
     settings_telemetry_desc:
       "\uAE30\uBCF8\uC801\uC73C\uB85C \uAEBC\uC838 \uC788\uC2B5\uB2C8\uB2E4. \uCF1C\uBA74 \uC124\uC815\uC5D0 \uB300\uD55C \uC775\uBA85 \uAC1C\uC218(\uAE30\uAE30, \uD1B5\uD569, \uC790\uB3D9\uD654, \uC52C, \uC2A4\uD06C\uB9BD\uD2B8, \uBE14\uB8E8\uD504\uB9B0\uD2B8, \uC601\uC5ED)\uC640 Selora\uAC00 \uBAA8\uB378 \uCD9C\uB825\uC744 \uBCF4\uC815\uD558\uB294 \uBE48\uB3C4\uB97C \uC804\uC1A1\uD558\uC5EC \uC81C\uD488\uC744 \uAC1C\uC120\uD569\uB2C8\uB2E4. \uC5D4\uD130\uD2F0 \uC774\uB984, \uD504\uB86C\uD504\uD2B8, \uC751\uB2F5\uC740 \uC808\uB300 \uC804\uC1A1\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
@@ -26228,8 +25883,6 @@ var ko_default = {
       "\uC774 \uD398\uC774\uC9C0\uB294 \uC774\uC804 \uBC84\uC804\uC758 Selora AI \uD328\uB110\uC744 \uC2E4\uD589\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C \uACE0\uCCD0 \uBC30\uD3EC\uB41C \uBC84\uC804\uC744 \uBD88\uB7EC\uC624\uC138\uC694.",
     stale_code_reload_action: "\uC0C8\uB85C \uACE0\uCE68",
     stale_code_dismiss: "\uB2EB\uAE30",
-    settings_dev_mode_save_failed_toast:
-      "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC\uB97C \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
     settings_saving_label: "\uC800\uC7A5 \uC911\u2026",
     settings_clear_cache_label:
       "\uD559\uC2B5 \uB370\uC774\uD130 \uC9C0\uC6B0\uAE30",
@@ -26566,20 +26219,11 @@ var ko_default = {
     suggestions_btn_dismiss: "\uB2EB\uAE30",
     suggestions_section_title: "\uCD94\uCC9C \uD56D\uBAA9",
     suggestions_badge_new: "\uC2E0\uADDC",
-    suggestions_llm_setup_required:
-      "\uBA3C\uC800 LLM \uC81C\uACF5\uC790\uB97C \uAD6C\uC131\uD558\uC138\uC694",
-    suggestions_btn_scanning: "\uC2A4\uCE94 \uC911\u2026",
-    suggestions_btn_scan_now: "\uC9C0\uAE08 \uC2A4\uCE94",
-    suggestions_btn_analyzing: "\uBD84\uC11D \uC911\u2026",
-    suggestions_btn_generate: "\uC0DD\uC131",
     suggestions_section_subtitle:
       "\uC9D1\uC5D0\uC11C \uAD00\uCC30\uB41C \uD328\uD134\uACFC AI \uBD84\uC11D\uC744 \uAE30\uBC18\uC73C\uB85C \uD569\uB2C8\uB2E4.",
     suggestions_empty_state:
-      '\uC544\uC9C1 \uC81C\uC548\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. "\uC0DD\uC131"\uC744 \uB20C\uB7EC \uC9D1\uC744 \uBD84\uC11D\uD558\uC138\uC694.',
+      "\uC544\uC9C1 \uC81C\uC548\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
     suggestions_filter_placeholder: "\uC81C\uC548 \uD544\uD130\u2026",
-    suggestions_filter_all: "\uC804\uCCB4",
-    suggestions_filter_patterns: "\uD328\uD134",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "\uCD5C\uADFC",
     suggestions_sort_alpha: "\uAC00\uB098\uB2E4\uC21C",
     suggestions_bulk_selected: "\uC120\uD0DD\uB428",
@@ -26816,15 +26460,10 @@ var ko_default = {
     recipes_catalog_no_matches_prefix:
       "\uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4:",
     recipes_catalog_search_placeholder: "\uB808\uC2DC\uD53C \uAC80\uC0C9\u2026",
-    recipes_catalog_set_url_title:
-      "\uCE74\uD0C8\uB85C\uADF8 URL \uC124\uC815 (\uAC1C\uBC1C / \uC2A4\uD14C\uC774\uC9D5)",
     recipes_catalog_source_overridden:
       "\uCE74\uD0C8\uB85C\uADF8 \uC18C\uC2A4\uAC00 \uC7AC\uC815\uC758\uB418\uC5C8\uC2B5\uB2C8\uB2E4:",
     recipes_catalog_unreachable:
       "\uB808\uC2DC\uD53C \uCE74\uD0C8\uB85C\uADF8\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4:",
-    recipes_catalog_url_prompt:
-      "\uCE74\uD0C8\uB85C\uADF8 URL (selorahomes.com\uC73C\uB85C \uC7AC\uC124\uC815\uD558\uB824\uBA74 \uBE44\uC6CC \uB450\uC138\uC694):",
-    recipes_catalog_using_override: "\uC7AC\uC815\uC758 \uC0AC\uC6A9 \uC911:",
     recipes_catalog_will_load:
       "\uC5EC\uAE30\uC5D0 \uCE74\uD0C8\uB85C\uADF8\uAC00 \uB85C\uB4DC\uB429\uB2C8\uB2E4.",
     recipes_continue_button: "\uACC4\uC18D",
@@ -27669,7 +27308,6 @@ var zh_Hans_default = {
     chat_yaml_unsaved_changes: "\u672A\u4FDD\u5B58\u7684\u66F4\u6539",
     chat_yaml_saving: "\u4FDD\u5B58\u4E2D\u2026",
     chat_yaml_save_changes: "\u4FDD\u5B58\u66F4\u6539",
-    chat_tools_used: "\u5DF2\u4F7F\u7528\u7684\u5DE5\u5177",
     chat_automation_label_building:
       "\u6B63\u5728\u6784\u5EFA\u81EA\u52A8\u5316\u2026",
     chat_automation_label_triggers:
@@ -27711,9 +27349,6 @@ var zh_Hans_default = {
     settings_unlink_button: "\u89E3\u9664\u5173\u8054",
     settings_signin_selora_desc:
       "\u4F7F\u7528\u60A8\u7684 Selora \u8D26\u6237\u767B\u5F55\u4EE5\u4F7F\u7528\u6258\u7BA1\u7684 LLM \u540E\u7AEF\u3002\u65E0\u9700 API \u5BC6\u94A5\u3002",
-    settings_selora_cloud_url_label: "Selora Cloud URL",
-    settings_selora_cloud_url_hint:
-      "OAuth \u548C\u804A\u5929\u8865\u5168\u5747\u4F7F\u7528\u6B64 URL\u3002\u5173\u8054\u65F6\u4F1A\u81EA\u52A8\u4FDD\u5B58\u3002",
     settings_open_signin_page: "\u6253\u5F00\u767B\u5F55\u9875\u9762 \u2192",
     settings_preparing_label: "\u51C6\u5907\u4E2D\u2026",
     settings_link_selora_account_button: "\u5173\u8054 Selora \u8D26\u6237",
@@ -27747,7 +27382,6 @@ var zh_Hans_default = {
       "\u4F7F\u60A8\u7684 MCP \u670D\u52A1\u5668\u53EF\u88AB\u5916\u90E8\u5DE5\u5177\u8BBF\u95EE",
     settings_mcp_url_copied_toast:
       "MCP URL \u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F",
-    settings_connect_server_url_label: "Connect \u670D\u52A1\u5668 URL",
     settings_mcp_tokens_section_title: "MCP \u4EE4\u724C",
     settings_mcp_tokens_desc:
       "MCP \u4EE4\u724C\u662F Selora Connect \u7684\u66FF\u4EE3\u65B9\u6848\u3002\u53EF\u7528\u4E8E\u4E0D\u652F\u6301 OAuth \u7684\u5DE5\u5177\uFF0C\u6216\u5F53\u60A8\u503E\u5411\u4E8E\u57FA\u4E8E\u4EE4\u724C\u7684\u8EAB\u4EFD\u9A8C\u8BC1\u65F6\u4F7F\u7528\u3002",
@@ -27807,18 +27441,6 @@ var zh_Hans_default = {
       "\u68C0\u6D4B\u91CD\u590D\u7684\u4F7F\u7528\u6A21\u5F0F\u5E76\u63D0\u51FA\u81EA\u52A8\u5316\u5EFA\u8BAE",
     settings_auto_remove_stale_label:
       "\u81EA\u52A8\u79FB\u9664\u5931\u6548\u7684\u81EA\u52A8\u5316",
-    settings_developer_mode_label: "\u5F00\u53D1\u8005\u6A21\u5F0F",
-    settings_developer_mode_desc:
-      "\u516C\u5F00\u539F\u59CB\u5B9E\u4F53\u8F7D\u8377\u548C\u8C03\u8BD5\u65E5\u5FD7",
-    settings_dev_scan_cameras_label: "\u641C\u7D22\u6444\u50CF\u5934",
-    settings_dev_scan_cameras_desc:
-      "\u7ACB\u5373\u5728\u7F51\u7EDC\u4E2D\u641C\u7D22\u6444\u50CF\u5934\uFF0C\u800C\u4E0D\u662F\u7B49\u5F85\u4E0B\u4E00\u6B21\uFF08\u6BCF\u534A\u5C0F\u65F6\u4E00\u6B21\uFF09\u641C\u7D22\uFF0C\u5E76\u5237\u65B0\u804A\u5929\u4E3B\u9875\u7684\u5EFA\u8BAE\u3002",
-    settings_dev_scan_cameras_button: "\u7ACB\u5373\u641C\u7D22",
-    settings_dev_scan_cameras_scanning: "\u6B63\u5728\u641C\u7D22\u2026",
-    settings_dev_scan_cameras_done:
-      "\u5728\u7F51\u7EDC\u4E2D\u627E\u5230 {count} \u4E2A\u6444\u50CF\u5934\u3002",
-    settings_dev_scan_cameras_failed:
-      "\u6444\u50CF\u5934\u641C\u7D22\u5931\u8D25\u3002",
     settings_telemetry_label: "\u533F\u540D\u9065\u6D4B",
     settings_telemetry_desc:
       "\u9ED8\u8BA4\u5173\u95ED\u3002\u5F00\u542F\u540E\u4F1A\u53D1\u9001\u6709\u5173\u4F60\u7684\u914D\u7F6E\u7684\u533F\u540D\u8BA1\u6570\uFF08\u8BBE\u5907\u3001\u96C6\u6210\u3001\u81EA\u52A8\u5316\u3001\u573A\u666F\u3001\u811A\u672C\u3001\u84DD\u56FE\u3001\u533A\u57DF\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F93\u51FA\u7684\u9891\u7387\uFF0C\u4EE5\u4FBF\u6211\u4EEC\u6539\u8FDB\u4EA7\u54C1\u3002\u7EDD\u4E0D\u53D1\u9001\u5B9E\u4F53\u540D\u79F0\u3001\u63D0\u793A\u8BCD\u6216\u54CD\u5E94\u5185\u5BB9\u3002",
@@ -27836,8 +27458,6 @@ var zh_Hans_default = {
       "\u6B64\u9875\u9762\u8FD0\u884C\u7684\u662F\u65E7\u7248 Selora AI \u9762\u677F\u3002\u8BF7\u91CD\u65B0\u52A0\u8F7D\u4EE5\u4F7F\u7528\u5DF2\u90E8\u7F72\u7684\u7248\u672C\u3002",
     stale_code_reload_action: "\u91CD\u65B0\u52A0\u8F7D",
     stale_code_dismiss: "\u5FFD\u7565",
-    settings_dev_mode_save_failed_toast:
-      "\u4FDD\u5B58\u5F00\u53D1\u8005\u6A21\u5F0F\u5931\u8D25\u3002",
     settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
     settings_clear_cache_label: "\u6E05\u9664\u5B66\u4E60\u6570\u636E",
     settings_clear_cache_desc:
@@ -28164,20 +27784,10 @@ var zh_Hans_default = {
     suggestions_btn_dismiss: "\u5FFD\u7565",
     suggestions_section_title: "\u4E3A\u60A8\u63A8\u8350",
     suggestions_badge_new: "\u65B0",
-    suggestions_llm_setup_required:
-      "\u8BF7\u5148\u914D\u7F6E LLM \u63D0\u4F9B\u5546",
-    suggestions_btn_scanning: "\u626B\u63CF\u4E2D\u2026",
-    suggestions_btn_scan_now: "\u7ACB\u5373\u626B\u63CF",
-    suggestions_btn_analyzing: "\u5206\u6790\u4E2D\u2026",
-    suggestions_btn_generate: "\u751F\u6210",
     suggestions_section_subtitle:
       "\u57FA\u4E8E\u5728\u60A8\u5BB6\u4E2D\u89C2\u5BDF\u5230\u7684\u6A21\u5F0F\u548C AI \u5206\u6790\u3002",
-    suggestions_empty_state:
-      "\u6682\u65E0\u5EFA\u8BAE\u3002\u70B9\u51FB\u201C\u751F\u6210\u201D\u4EE5\u5206\u6790\u60A8\u7684\u5BB6\u5C45\u3002",
+    suggestions_empty_state: "\u6682\u65E0\u5EFA\u8BAE\u3002",
     suggestions_filter_placeholder: "\u7B5B\u9009\u5EFA\u8BAE\u2026",
-    suggestions_filter_all: "\u5168\u90E8",
-    suggestions_filter_patterns: "\u6A21\u5F0F",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "\u6700\u8FD1",
     suggestions_sort_alpha: "\u6309\u5B57\u6BCD\u987A\u5E8F",
     suggestions_bulk_selected: "\u5DF2\u9009\u62E9",
@@ -28397,16 +28007,10 @@ var zh_Hans_default = {
     recipes_catalog_no_matches_prefix:
       "\u672A\u627E\u5230\u5339\u914D\u9879\uFF1A",
     recipes_catalog_search_placeholder: "\u641C\u7D22\u914D\u65B9\u2026",
-    recipes_catalog_set_url_title:
-      "\u8BBE\u7F6E\u76EE\u5F55 URL\uFF08\u5F00\u53D1 / \u9884\u53D1\u5E03\uFF09",
     recipes_catalog_source_overridden:
       "\u76EE\u5F55\u6765\u6E90\u5DF2\u8986\u76D6\uFF1A",
     recipes_catalog_unreachable:
       "\u65E0\u6CD5\u8BBF\u95EE\u914D\u65B9\u76EE\u5F55\uFF1A",
-    recipes_catalog_url_prompt:
-      "\u76EE\u5F55 URL\uFF08\u7559\u7A7A\u4EE5\u91CD\u7F6E\u4E3A selorahomes.com\uFF09\uFF1A",
-    recipes_catalog_using_override:
-      "\u6B63\u5728\u4F7F\u7528\u8986\u76D6\uFF1A",
     recipes_catalog_will_load:
       "\u76EE\u5F55\u5C06\u5728\u6B64\u5904\u52A0\u8F7D\u3002",
     recipes_continue_button: "\u7EE7\u7EED",
@@ -29227,7 +28831,6 @@ var zh_Hant_default = {
     chat_yaml_unsaved_changes: "\u5C1A\u672A\u5132\u5B58\u7684\u8B8A\u66F4",
     chat_yaml_saving: "\u5132\u5B58\u4E2D\u2026",
     chat_yaml_save_changes: "\u5132\u5B58\u8B8A\u66F4",
-    chat_tools_used: "\u5DF2\u4F7F\u7528\u7684\u5DE5\u5177",
     chat_automation_label_building:
       "\u6B63\u5728\u5EFA\u7ACB\u81EA\u52D5\u5316...",
     chat_automation_label_triggers:
@@ -29268,9 +28871,6 @@ var zh_Hant_default = {
     settings_unlink_button: "\u53D6\u6D88\u9023\u7D50",
     settings_signin_selora_desc:
       "\u4F7F\u7528\u60A8\u7684 Selora \u5E33\u865F\u767B\u5165\u5373\u53EF\u4F7F\u7528\u4EE3\u7BA1\u7684 LLM \u5F8C\u7AEF\uFF0C\u7121\u9700 API \u91D1\u9470\u3002",
-    settings_selora_cloud_url_label: "Selora Cloud \u7DB2\u5740",
-    settings_selora_cloud_url_hint:
-      "OAuth \u8207\u5C0D\u8A71\u5B8C\u6210\u529F\u80FD\u7686\u4F7F\u7528\u6B64\u7DB2\u5740\u3002\u9023\u7D50\u6642\u6703\u81EA\u52D5\u5132\u5B58\u3002",
     settings_open_signin_page: "\u958B\u555F\u767B\u5165\u9801\u9762 \u2192",
     settings_preparing_label: "\u6E96\u5099\u4E2D\u2026",
     settings_link_selora_account_button: "\u9023\u7D50 Selora \u5E33\u865F",
@@ -29304,7 +28904,6 @@ var zh_Hant_default = {
       "\u8B93\u60A8\u7684 MCP \u4F3A\u670D\u5668\u53EF\u4F9B\u5916\u90E8\u5DE5\u5177\u9023\u7DDA",
     settings_mcp_url_copied_toast:
       "MCP \u7DB2\u5740\u5DF2\u8907\u88FD\u5230\u526A\u8CBC\u7C3F",
-    settings_connect_server_url_label: "Connect \u4F3A\u670D\u5668\u7DB2\u5740",
     settings_mcp_tokens_section_title: "MCP \u6B0A\u6756",
     settings_mcp_tokens_desc:
       "MCP \u6B0A\u6756\u662F Selora Connect \u7684\u66FF\u4EE3\u65B9\u6848\u3002\u9069\u7528\u65BC\u4E0D\u652F\u63F4 OAuth \u7684\u5DE5\u5177\uFF0C\u6216\u7576\u60A8\u504F\u597D\u4EE5\u6B0A\u6756\u9032\u884C\u9A57\u8B49\u6642\u3002",
@@ -29365,18 +28964,6 @@ var zh_Hant_default = {
       "\u5075\u6E2C\u91CD\u8907\u51FA\u73FE\u7684\u4F7F\u7528\u6A21\u5F0F\u4E26\u63D0\u51FA\u81EA\u52D5\u5316\u5EFA\u8B70",
     settings_auto_remove_stale_label:
       "\u81EA\u52D5\u79FB\u9664\u904E\u6642\u7684\u81EA\u52D5\u5316",
-    settings_developer_mode_label: "\u958B\u767C\u8005\u6A21\u5F0F",
-    settings_developer_mode_desc:
-      "\u516C\u958B\u539F\u59CB\u5BE6\u9AD4\u916C\u8F09\u8207\u9664\u932F\u7D00\u9304",
-    settings_dev_scan_cameras_label: "\u641C\u5C0B\u651D\u5F71\u6A5F",
-    settings_dev_scan_cameras_desc:
-      "\u7ACB\u5373\u5728\u7DB2\u8DEF\u4E2D\u641C\u5C0B\u651D\u5F71\u6A5F\uFF0C\u800C\u4E0D\u662F\u7B49\u5F85\u4E0B\u4E00\u6B21\uFF08\u6BCF\u534A\u5C0F\u6642\u4E00\u6B21\uFF09\u641C\u5C0B\uFF0C\u4E26\u91CD\u65B0\u6574\u7406\u804A\u5929\u9996\u9801\u7684\u5EFA\u8B70\u3002",
-    settings_dev_scan_cameras_button: "\u7ACB\u5373\u641C\u5C0B",
-    settings_dev_scan_cameras_scanning: "\u6B63\u5728\u641C\u5C0B\u2026",
-    settings_dev_scan_cameras_done:
-      "\u5728\u7DB2\u8DEF\u4E2D\u627E\u5230 {count} \u90E8\u651D\u5F71\u6A5F\u3002",
-    settings_dev_scan_cameras_failed:
-      "\u651D\u5F71\u6A5F\u641C\u5C0B\u5931\u6557\u3002",
     settings_telemetry_label: "\u533F\u540D\u9059\u6E2C",
     settings_telemetry_desc:
       "\u9810\u8A2D\u95DC\u9589\u3002\u958B\u555F\u5F8C\u6703\u50B3\u9001\u6709\u95DC\u4F60\u7684\u8A2D\u5B9A\u7684\u533F\u540D\u8A08\u6578\uFF08\u88DD\u7F6E\u3001\u6574\u5408\u3001\u81EA\u52D5\u5316\u3001\u5834\u666F\u3001\u8173\u672C\u3001\u85CD\u5716\u3001\u5340\u57DF\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F38\u51FA\u7684\u983B\u7387\uFF0C\u4EE5\u4FBF\u6211\u5011\u6539\u9032\u7522\u54C1\u3002\u7D55\u4E0D\u50B3\u9001\u5BE6\u9AD4\u540D\u7A31\u3001\u63D0\u793A\u8A5E\u6216\u56DE\u61C9\u5167\u5BB9\u3002",
@@ -29395,8 +28982,6 @@ var zh_Hant_default = {
       "\u6B64\u9801\u9762\u57F7\u884C\u7684\u662F\u820A\u7248 Selora AI \u9762\u677F\u3002\u8ACB\u91CD\u65B0\u8F09\u5165\u4EE5\u4F7F\u7528\u5DF2\u90E8\u7F72\u7684\u7248\u672C\u3002",
     stale_code_reload_action: "\u91CD\u65B0\u8F09\u5165",
     stale_code_dismiss: "\u5FFD\u7565",
-    settings_dev_mode_save_failed_toast:
-      "\u7121\u6CD5\u5132\u5B58\u958B\u767C\u8005\u6A21\u5F0F\u3002",
     settings_saving_label: "\u5132\u5B58\u4E2D\u2026",
     settings_clear_cache_label: "\u6E05\u9664\u5B78\u7FD2\u8CC7\u6599",
     settings_clear_cache_desc:
@@ -29722,20 +29307,10 @@ var zh_Hant_default = {
     suggestions_btn_dismiss: "\u95DC\u9589",
     suggestions_section_title: "\u70BA\u60A8\u63A8\u85A6",
     suggestions_badge_new: "\u65B0",
-    suggestions_llm_setup_required:
-      "\u8ACB\u5148\u8A2D\u5B9A LLM \u4F9B\u61C9\u5546",
-    suggestions_btn_scanning: "\u6383\u63CF\u4E2D\u2026",
-    suggestions_btn_scan_now: "\u7ACB\u5373\u6383\u63CF",
-    suggestions_btn_analyzing: "\u5206\u6790\u4E2D\u2026",
-    suggestions_btn_generate: "\u7522\u751F",
     suggestions_section_subtitle:
       "\u6839\u64DA\u5728\u60A8\u5BB6\u4E2D\u89C0\u5BDF\u5230\u7684\u6A21\u5F0F\u8207 AI \u5206\u6790\u3002",
-    suggestions_empty_state:
-      "\u5C1A\u7121\u5EFA\u8B70\u3002\u9EDE\u9078\u300C\u7522\u751F\u300D\u4EE5\u5206\u6790\u60A8\u7684\u5BB6\u3002",
+    suggestions_empty_state: "\u5C1A\u7121\u5EFA\u8B70\u3002",
     suggestions_filter_placeholder: "\u7BE9\u9078\u5EFA\u8B70\u2026",
-    suggestions_filter_all: "\u5168\u90E8",
-    suggestions_filter_patterns: "\u6A21\u5F0F",
-    suggestions_filter_ai: "AI",
     suggestions_sort_recent: "\u6700\u8FD1",
     suggestions_sort_alpha: "\u4F9D\u5B57\u6BCD\u6392\u5E8F",
     suggestions_bulk_selected: "\u5DF2\u9078\u53D6",
@@ -29960,15 +29535,10 @@ var zh_Hant_default = {
     recipes_catalog_no_matches_prefix:
       "\u627E\u4E0D\u5230\u7B26\u5408\u9805\u76EE\uFF1A",
     recipes_catalog_search_placeholder: "\u641C\u5C0B\u98DF\u8B5C\u2026",
-    recipes_catalog_set_url_title:
-      "\u8A2D\u5B9A\u76EE\u9304\u7DB2\u5740\uFF08\u958B\u767C / \u9810\u5099\u74B0\u5883\uFF09",
     recipes_catalog_source_overridden:
       "\u76EE\u9304\u4F86\u6E90\u5DF2\u8986\u5BEB\uFF1A",
     recipes_catalog_unreachable:
       "\u7121\u6CD5\u9023\u7DDA\u81F3\u98DF\u8B5C\u76EE\u9304\uFF1A",
-    recipes_catalog_url_prompt:
-      "\u76EE\u9304\u7DB2\u5740\uFF08\u7559\u7A7A\u4EE5\u91CD\u8A2D\u70BA selorahomes.com\uFF09\uFF1A",
-    recipes_catalog_using_override: "\u4F7F\u7528\u8986\u5BEB\uFF1A",
     recipes_catalog_will_load:
       "\u76EE\u9304\u5C07\u5728\u6B64\u8F09\u5165\u3002",
     recipes_continue_button: "\u7E7C\u7E8C",
@@ -32427,11 +31997,11 @@ var TEXT = {
     ],
   },
 };
-function describeIdea(host, idea) {
+function describeIdea(host2, idea) {
   const text = TEXT[idea?.kind];
   if (!text) return null;
   const values = { camera: idea.camera?.name || "", ...(idea.facts || {}) };
-  const t5 = ([key, fallback]) => interpolate(host._t(key, fallback), values);
+  const t5 = ([key, fallback]) => interpolate(host2._t(key, fallback), values);
   return {
     icon: text.icon,
     title: t5(text.title),
@@ -32444,17 +32014,17 @@ function describeIdea(host, idea) {
       : t5(text.prompt),
   };
 }
-function ideaMessage(host, idea) {
-  const d3 = describeIdea(host, idea);
+function ideaMessage(host2, idea) {
+  const d3 = describeIdea(host2, idea);
   return d3 ? d3.title + buildDetailsMarker(d3.prompt) : "";
 }
 var IDEAS = /* @__PURE__ */ new Map();
 var FRESH_MS = 60 * 1e3;
-async function loadIdeas(host, cameraEntity) {
+async function loadIdeas(host2, cameraEntity) {
   const previous = IDEAS.get(cameraEntity);
   IDEAS.set(cameraEntity, { at: Date.now(), ideas: previous?.ideas || [] });
   try {
-    const result = await host.hass.callWS({
+    const result = await host2.hass.callWS({
       type: "selora_ai/frigate/ideas",
       camera_entity: cameraEntity,
     });
@@ -32462,12 +32032,12 @@ async function loadIdeas(host, cameraEntity) {
   } catch (err) {
     console.error("Failed to load camera ideas", err);
   }
-  host.requestUpdate?.();
+  host2.requestUpdate?.();
 }
-function renderIdeaChips(host, cameraEntity) {
+function renderIdeaChips(host2, cameraEntity) {
   const loaded = IDEAS.get(cameraEntity);
   if (!loaded || Date.now() - loaded.at > FRESH_MS) {
-    loadIdeas(host, cameraEntity);
+    loadIdeas(host2, cameraEntity);
     if (!loaded) return "";
   }
   const ideas = loaded.ideas.slice(0, MAX_CHIPS);
@@ -32475,15 +32045,15 @@ function renderIdeaChips(host, cameraEntity) {
   return b2`
     <div class="camera-ideas">
       <span class="camera-ideas-label"
-        >${host._t("camera_ideas_label", "Ideas")}</span
+        >${host2._t("camera_ideas_label", "Ideas")}</span
       >
       ${ideas.map((idea) => {
-        const d3 = describeIdea(host, idea);
+        const d3 = describeIdea(host2, idea);
         if (!d3) return "";
         return b2`<button
           class="camera-idea-chip"
           title=${d3.title}
-          @click=${() => host._quickStart(ideaMessage(host, idea))}
+          @click=${() => host2._quickStart(ideaMessage(host2, idea))}
         >
           <ha-icon icon=${d3.icon}></ha-icon>
           <span>${d3.chip}</span>
@@ -32500,9 +32070,9 @@ function age(msg) {
   const at = Date.parse(msg.timestamp || "");
   return Number.isNaN(at) ? Infinity : Date.now() - at;
 }
-function frigateEntity(host, expectedId) {
-  const entities = host.hass?.entities;
-  if (!entities) return host.hass?.states?.[expectedId] ? expectedId : null;
+function frigateEntity(host2, expectedId) {
+  const entities = host2.hass?.entities;
+  if (!entities) return host2.hass?.states?.[expectedId] ? expectedId : null;
   if (entities[expectedId]?.platform === "frigate") return expectedId;
   const prefix = `${expectedId}_`;
   return (
@@ -32514,12 +32084,12 @@ function frigateEntity(host, expectedId) {
     ) || null
   );
 }
-function isLive(host, entityId) {
-  const state = entityId ? host.hass?.states?.[entityId] : null;
+function isLive(host2, entityId) {
+  const state = entityId ? host2.hass?.states?.[entityId] : null;
   return !!state && state.state !== "unavailable";
 }
-function openMoreInfo(host, entityId) {
-  host.dispatchEvent(
+function openMoreInfo(host2, entityId) {
+  host2.dispatchEvent(
     new CustomEvent("hass-more-info", {
       detail: { entityId },
       bubbles: true,
@@ -32539,18 +32109,18 @@ var OBJECT_ICONS = {
 function capitalize(text) {
   return text.charAt(0).toUpperCase() + text.slice(1).replace(/_/g, " ");
 }
-function controlTiles(host, result, camera) {
+function controlTiles(host2, result, camera) {
   const name = camera.frigate_name;
   const tiles = [
     [
       camera.recordings_entity,
       "mdi:filmstrip-box",
-      host._t("frigate_result_recording", "Recording"),
+      host2._t("frigate_result_recording", "Recording"),
     ],
     [
       `switch.${name}_detect`,
       "mdi:motion-sensor",
-      host._t("frigate_result_detection", "Detection"),
+      host2._t("frigate_result_detection", "Detection"),
     ],
     ...(camera.objects || result.objects || []).map((object) => [
       `binary_sensor.${name}_${object}_occupancy`,
@@ -32558,8 +32128,8 @@ function controlTiles(host, result, camera) {
       capitalize(object),
     ]),
   ]
-    .map(([id, icon, label]) => [frigateEntity(host, id), icon, label])
-    .filter(([id]) => id && host.hass?.states?.[id]);
+    .map(([id, icon, label]) => [frigateEntity(host2, id), icon, label])
+    .filter(([id]) => id && host2.hass?.states?.[id]);
   return {
     ids: tiles.map(([id]) => id),
     options: Object.fromEntries(
@@ -32567,7 +32137,7 @@ function controlTiles(host, result, camera) {
     ),
   };
 }
-function renderWaiting(host, msg, result) {
+function renderWaiting(host2, msg, result) {
   const slow = age(msg) > SLOW_AFTER_MS;
   return b2`
     <div class="frigate-result-wait">
@@ -32575,16 +32145,16 @@ function renderWaiting(host, msg, result) {
       <span
         >${
           slow
-            ? host._t(
+            ? host2._t(
                 "frigate_result_slow",
                 "Frigate is taking longer than usual to come back.",
               )
             : result.action === "updated"
-              ? host._t(
+              ? host2._t(
                   "frigate_result_restarting",
                   "Frigate is restarting; the camera is back in about a minute.",
                 )
-              : host._t(
+              : host2._t(
                   "frigate_result_waiting",
                   "Frigate is restarting; the camera appears here in about a minute.",
                 )
@@ -32594,31 +32164,31 @@ function renderWaiting(host, msg, result) {
   `;
 }
 var SNAPSHOT_EVERY_MS = 5e3;
-function snapshotUrl(host, entityId) {
-  const picture = host.hass?.states?.[entityId]?.attributes?.entity_picture;
+function snapshotUrl(host2, entityId) {
+  const picture = host2.hass?.states?.[entityId]?.attributes?.entity_picture;
   if (!picture) return "";
   const bucket = Math.floor(Date.now() / SNAPSHOT_EVERY_MS);
   return `${picture}${picture.includes("?") ? "&" : "?"}t=${bucket}`;
 }
-function renderAdded(host, msg, result, camera) {
-  const cameraId = frigateEntity(host, camera.camera_entity);
-  if (!isLive(host, cameraId)) return renderWaiting(host, msg, result);
-  const snapshot = snapshotUrl(host, cameraId);
+function renderAdded(host2, msg, result, camera) {
+  const cameraId = frigateEntity(host2, camera.camera_entity);
+  if (!isLive(host2, cameraId)) return renderWaiting(host2, msg, result);
+  const snapshot = snapshotUrl(host2, cameraId);
   return b2`
     <div class="frigate-result-live pop-in">
       ${
         snapshot
           ? b2`<button
               class="frigate-result-preview"
-              title=${host._t("frigate_result_open", "Open the camera")}
-              @click=${() => openMoreInfo(host, cameraId)}
+              title=${host2._t("frigate_result_open", "Open the camera")}
+              @click=${() => openMoreInfo(host2, cameraId)}
             >
               <img src=${snapshot} alt=${camera.name} loading="lazy" />
             </button>`
           : ""
       }
       ${(() => {
-        const { ids: ids2, options } = controlTiles(host, result, camera);
+        const { ids: ids2, options } = controlTiles(host2, result, camera);
         return ids2.length
           ? b2`<div
               class="selora-entity-grid"
@@ -32627,14 +32197,14 @@ function renderAdded(host, msg, result, camera) {
             ></div>`
           : "";
       })()}
-      ${renderIdeaChips(host, cameraId)}
+      ${renderIdeaChips(host2, cameraId)}
     </div>
   `;
 }
-function renderLooksFor(host, camera) {
+function renderLooksFor(host2, camera) {
   if (!camera.objects?.length) return "";
   return b2`<div class="frigate-result-looks-for">
-    <span>${host._t("frigate_result_looks_for", "Looks for")}</span>
+    <span>${host2._t("frigate_result_looks_for", "Looks for")}</span>
     ${camera.objects.map(
       (object) => b2`<span class="frigate-result-object"
           ><ha-icon icon=${OBJECT_ICONS[object] || "mdi:eye-outline"}></ha-icon
@@ -32653,11 +32223,11 @@ var SAVED_TEXT = {
     "Saved in Frigate; it takes effect when Frigate restarts.",
   ],
 };
-function renderCamera(host, msg, result, camera) {
+function renderCamera(host2, msg, result, camera) {
   const added = result.action === "added" || result.action === "updated";
   const saved = SAVED_TEXT[result.action];
-  const cameraId = frigateEntity(host, camera.camera_entity);
-  const live = added && isLive(host, cameraId);
+  const cameraId = frigateEntity(host2, camera.camera_entity);
+  const live = added && isLive(host2, cameraId);
   return b2`
     <div class="frigate-result-camera">
       <div class="frigate-result-name">
@@ -32666,25 +32236,25 @@ function renderCamera(host, msg, result, camera) {
           live
             ? b2`<a
                 href="#"
-                title=${host._t("frigate_result_open", "Open the camera")}
+                title=${host2._t("frigate_result_open", "Open the camera")}
                 @click=${(e6) => {
                   e6.preventDefault();
-                  openMoreInfo(host, cameraId);
+                  openMoreInfo(host2, cameraId);
                 }}
                 >${camera.name}</a
               >`
             : b2`<span>${camera.name}</span>`
         }
       </div>
-      ${renderLooksFor(host, camera)}
+      ${renderLooksFor(host2, camera)}
       ${
         saved
           ? b2`<div class="frigate-result-wait">
               <ha-icon icon="mdi:alert-outline"></ha-icon>
-              <span>${host._t(saved[0], saved[1])}</span>
+              <span>${host2._t(saved[0], saved[1])}</span>
             </div>`
           : added
-            ? renderAdded(host, msg, result, camera)
+            ? renderAdded(host2, msg, result, camera)
             : ""
       }
     </div>
@@ -32697,7 +32267,7 @@ var TAGS = {
   update_saved: ["frigate_result_saved_tag", "Saved in Frigate"],
   removed: ["frigate_result_removed", "Removed from Frigate"],
 };
-function renderFrigateResult(host, msg) {
+function renderFrigateResult(host2, msg) {
   const result = msg.frigate_result;
   if (!result || !Array.isArray(result.cameras)) return "";
   const fresh = age(msg) < FRESH_MS2;
@@ -32708,9 +32278,9 @@ function renderFrigateResult(host, msg) {
         <span class="scene-saved-icon"
           >${SAVED_TEXT[result.action] ? b2`<ha-icon icon="mdi:content-save-outline"></ha-icon>` : renderCreatedCheck({ animate: fresh, size: 20 })}</span
         >
-        <span class="scene-saved-tag">${host._t(tagKey, tagFallback)}</span>
+        <span class="scene-saved-tag">${host2._t(tagKey, tagFallback)}</span>
       </div>
-      ${result.cameras.map((camera) => renderCamera(host, msg, result, camera))}
+      ${result.cameras.map((camera) => renderCamera(host2, msg, result, camera))}
     </div>
   `;
 }
@@ -32754,9 +32324,9 @@ function renderIntro(intro) {
     </section>
   `;
 }
-function renderCamera2(host, card) {
-  const cameraId = frigateEntity(host, `camera.${card.camera}`);
-  const snapshot = cameraId ? snapshotUrl(host, cameraId) : "";
+function renderCamera2(host2, card) {
+  const cameraId = frigateEntity(host2, `camera.${card.camera}`);
+  const snapshot = cameraId ? snapshotUrl(host2, cameraId) : "";
   return b2`
     <section class="describe-section">
       ${renderCardHeading({
@@ -32769,8 +32339,8 @@ function renderCamera2(host, card) {
           snapshot
             ? b2`<button
                 class="frigate-result-preview"
-                title=${host._t("frigate_result_open", "Open the camera")}
-                @click=${() => openMoreInfo(host, cameraId)}
+                title=${host2._t("frigate_result_open", "Open the camera")}
+                @click=${() => openMoreInfo(host2, cameraId)}
               >
                 <img src=${snapshot} alt=${card.camera_name} loading="lazy" />
               </button>`
@@ -32797,13 +32367,13 @@ function renderDone(msg, card) {
     </div>
   `;
 }
-function renderDescribeCard(host, msg) {
+function renderDescribeCard(host2, msg) {
   const card = msg.describe_card;
   if (card?.done) return renderDone(msg, card);
   if (!card?.question) return "";
   return b2`
     <div class="describe-card">
-      ${card.intro ? renderIntro(card.intro) : ""} ${renderCamera2(host, card)}
+      ${card.intro ? renderIntro(card.intro) : ""} ${renderCamera2(host2, card)}
     </div>
   `;
 }
@@ -32841,10 +32411,10 @@ function _deviceIcon(domains) {
   };
   return map[d3] || "mdi:devices";
 }
-function renderDeviceDetail(host) {
-  const detail = host._deviceDetail;
+function renderDeviceDetail(host2) {
+  const detail = host2._deviceDetail;
   if (!detail) return "";
-  const loading = host._deviceDetailLoading;
+  const loading = host2._deviceDetailLoading;
   return b2`
     <div
       class="device-detail-drawer"
@@ -32858,7 +32428,7 @@ function renderDeviceDetail(host) {
       ${
         loading
           ? b2`<span style="font-size:13px;color:var(--selora-zinc-400);"
-              >${host._t(
+              >${host2._t(
                 "device_detail_loading",
                 "Loading device detail...",
               )}</span
@@ -32895,9 +32465,9 @@ function renderDeviceDetail(host) {
                 <button
                   style="background:none;border:none;cursor:pointer;color:var(--selora-zinc-400);padding:4px;"
                   @click=${() => {
-                    host._deviceDetail = null;
+                    host2._deviceDetail = null;
                   }}
-                  title=${host._t("device_detail_close", "Close")}
+                  title=${host2._t("device_detail_close", "Close")}
                 >
                   <ha-icon
                     icon="mdi:close"
@@ -32914,7 +32484,7 @@ function renderDeviceDetail(host) {
                         <div
                           style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                         >
-                          ${host._t("device_detail_entities_heading", "Entities")}
+                          ${host2._t("device_detail_entities_heading", "Entities")}
                         </div>
                         ${detail.entities.map(
                           (e6) => b2`
@@ -32947,7 +32517,7 @@ function renderDeviceDetail(host) {
                         <div
                           style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                         >
-                          ${host._t(
+                          ${host2._t(
                             "device_detail_state_history_heading",
                             "State History (24h)",
                           )}
@@ -32984,7 +32554,7 @@ function renderDeviceDetail(host) {
                         <div
                           style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                         >
-                          ${host._t(
+                          ${host2._t(
                             "device_detail_linked_automations_heading",
                             "Linked Automations",
                           )}
@@ -33014,7 +32584,7 @@ function renderDeviceDetail(host) {
                         <div
                           style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                         >
-                          ${host._t(
+                          ${host2._t(
                             "device_detail_detected_patterns_heading",
                             "Detected Patterns",
                           )}
@@ -33033,7 +32603,7 @@ function renderDeviceDetail(host) {
                                 style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
                               >
                                 ${p4.type} · ${Math.round(p4.confidence * 100)}%
-                                ${host._t(
+                                ${host2._t(
                                   "device_detail_confidence_label",
                                   "confidence",
                                 )}
@@ -33099,43 +32669,43 @@ function renderActionButton({
 }
 
 // src/panel/quick-actions.js
-function _approvalPresentation(host) {
+function _approvalPresentation(host2) {
   return {
     once: {
-      label: host._t("quick_actions_approve_once_label", "Allow once"),
+      label: host2._t("quick_actions_approve_once_label", "Allow once"),
       icon: "mdi:check",
       tone: "approve",
-      description: host._t(
+      description: host2._t(
         "quick_actions_approve_once_desc",
         "Just this one request",
       ),
     },
     session: {
-      label: host._t(
+      label: host2._t(
         "quick_actions_approve_session_label",
         "For this conversation",
       ),
       icon: "mdi:check-all",
       tone: "approve",
-      description: host._t(
+      description: host2._t(
         "quick_actions_approve_session_desc",
         "Allow for the rest of this conversation",
       ),
     },
     always: {
-      label: host._t("quick_actions_approve_always_label", "Always"),
+      label: host2._t("quick_actions_approve_always_label", "Always"),
       icon: "mdi:shield-check",
       tone: "approve",
-      description: host._t(
+      description: host2._t(
         "quick_actions_approve_always_desc",
         "Remember this approval",
       ),
     },
     deny: {
-      label: host._t("quick_actions_deny_label", "Deny"),
+      label: host2._t("quick_actions_deny_label", "Deny"),
       icon: "mdi:close",
       tone: "deny",
-      description: host._t(
+      description: host2._t(
         "quick_actions_deny_desc",
         "Do not run this request",
       ),
@@ -33144,10 +32714,10 @@ function _approvalPresentation(host) {
     // confirm + a neutral cancel. The confirm is styled red (deny tone) so
     // it reads as destructive rather than as a friendly "approve".
     delete: {
-      label: host._t("quick_actions_delete_label", "Delete"),
+      label: host2._t("quick_actions_delete_label", "Delete"),
       icon: "mdi:delete-outline",
       tone: "deny",
-      description: host._t(
+      description: host2._t(
         "quick_actions_delete_desc",
         "Permanently delete this",
       ),
@@ -33156,16 +32726,16 @@ function _approvalPresentation(host) {
     // own scope. A card that also deletes keeps the delete scope and asks for
     // this wording with `presentation`; the server sends the deny tone then.
     apply: {
-      label: host._t("quick_actions_apply_label", "Apply"),
+      label: host2._t("quick_actions_apply_label", "Apply"),
       icon: "mdi:check",
       tone: "approve",
-      description: host._t("quick_actions_apply_desc", "Make this change"),
+      description: host2._t("quick_actions_apply_desc", "Make this change"),
     },
     cancel: {
-      label: host._t("quick_actions_cancel_label", "Cancel"),
+      label: host2._t("quick_actions_cancel_label", "Cancel"),
       icon: "mdi:close",
       tone: null,
-      description: host._t("quick_actions_cancel_desc", "Keep it"),
+      description: host2._t("quick_actions_cancel_desc", "Keep it"),
     },
   };
 }
@@ -33173,9 +32743,9 @@ function _approvalScope(value) {
   if (typeof value !== "string" || !value.startsWith("approve:")) return null;
   return value.split(":", 2)[1] || null;
 }
-function _normalizeApprovalActions(host, actions) {
+function _normalizeApprovalActions(host2, actions) {
   let touched = false;
-  const presentation = _approvalPresentation(host);
+  const presentation = _approvalPresentation(host2);
   const out = actions.map((a3) => {
     const scope = _approvalScope(a3?.value);
     if (!scope) return a3;
@@ -33196,9 +32766,9 @@ function _normalizeApprovalActions(host, actions) {
   });
   return touched ? out : actions;
 }
-function renderQuickActions(host, actions, opts = {}) {
+function renderQuickActions(host2, actions, opts = {}) {
   if (!actions || !actions.length) return "";
-  actions = _normalizeApprovalActions(host, actions);
+  actions = _normalizeApprovalActions(host2, actions);
   const picked = opts.used && actions.some((a3) => a3.value === opts.picked);
   const usedClass = opts.used
     ? picked
@@ -33228,7 +32798,7 @@ function renderQuickActions(host, actions, opts = {}) {
                 ? "decline"
                 : "quiet",
           picked: picked && a3.value === opts.picked,
-          onClick: () => _onSelect(host, a3),
+          onClick: () => _onSelect(host2, a3),
         }),
       )}
     </div>
@@ -33258,10 +32828,10 @@ function _mark(action, isLead) {
   if (_ownsMark(action)) return action.icon || "mdi:check";
   return "mdi:arrow-up";
 }
-function _onSelect(host, action) {
-  host._selectQuickAction(action);
+function _onSelect(host2, action) {
+  host2._selectQuickAction(action);
 }
-function renderConfirmChip(host, action, onClick) {
+function renderConfirmChip(host2, action, onClick) {
   const tone =
     action.tone === "deny"
       ? "danger"
@@ -35255,10 +34825,10 @@ function _leaves(automation) {
 var _triggerType = (t5) => t5.trigger ?? t5.platform;
 var _service = (a3) => String(a3.action ?? a3.service ?? "");
 var _isNumber = (v3) => typeof v3 === "number" || /^-?\d+(\.\d+)?$/.test(v3);
-function refineSuggestions(host, automation) {
+function refineSuggestions(host2, automation) {
   const leaves = _leaves(automation);
   const t5 = (key, fallback, values) =>
-    interpolate(host._t(key, fallback), values || {});
+    interpolate(host2._t(key, fallback), values || {});
   const out = [];
   const add = (icon, label, prefill) => out.push({ icon, label, prefill });
   const threshold = leaves.find(
@@ -35304,7 +34874,7 @@ function refineSuggestions(host, automation) {
       !/[.{]/.test(item.at),
   );
   if (timed) {
-    const value = fmtTime(host.hass, timed.item.at);
+    const value = fmtTime(host2.hass, timed.item.at);
     add(
       "mdi:clock-outline",
       t5("refine_suggest_time", "Change the time ({value})", { value }),
@@ -35361,23 +34931,23 @@ function refineSuggestions(host, automation) {
   }
   return out.slice(0, MAX_SUGGESTIONS);
 }
-function stepPrefill(host, description) {
-  return interpolate(host._t("refine_prefill_step", 'Change "{step}" to'), {
+function stepPrefill(host2, description) {
+  return interpolate(host2._t("refine_prefill_step", 'Change "{step}" to'), {
     step: description,
   });
 }
-async function prefillComposer(host, text) {
-  host._input = `${text} `;
-  host.requestUpdate?.();
-  await host.updateComplete;
-  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+async function prefillComposer(host2, text) {
+  host2._input = `${text} `;
+  host2.requestUpdate?.();
+  await host2.updateComplete;
+  const ta = host2.shadowRoot?.querySelector(".composer-textarea");
   if (!ta) return;
   ta.focus();
   ta.setSelectionRange(ta.value.length, ta.value.length);
 }
-function renderRefineHeading(host, msgIndex) {
-  if (activeRefinement(host._messages)?.index !== msgIndex) return "";
-  const alias = host._messages[msgIndex]?.automation?.alias || "";
+function renderRefineHeading(host2, msgIndex) {
+  if (activeRefinement(host2._messages)?.index !== msgIndex) return "";
+  const alias = host2._messages[msgIndex]?.automation?.alias || "";
   return b2`
     <div class="refine-heading">
       <div class="refine-heading-icon">
@@ -35385,12 +34955,12 @@ function renderRefineHeading(host, msgIndex) {
       </div>
       <div class="refine-heading-text">
         <div class="refine-heading-title">
-          ${interpolate(host._t("refine_heading", "Editing {name}"), {
+          ${interpolate(host2._t("refine_heading", "Editing {name}"), {
             name: alias,
           })}
         </div>
         <div class="refine-heading-hint">
-          ${host._t(
+          ${host2._t(
             "refine_heading_hint",
             "Describe what to change below, or click any step. Nothing changes until you accept the new version.",
           )}
@@ -35399,12 +34969,12 @@ function renderRefineHeading(host, msgIndex) {
     </div>
   `;
 }
-function renderRefineSuggestions(host) {
-  if (host._input || host._loading || host._streaming) return "";
-  const active = activeRefinement(host._messages);
+function renderRefineSuggestions(host2) {
+  if (host2._input || host2._loading || host2._streaming) return "";
+  const active = activeRefinement(host2._messages);
   if (!active) return "";
-  const automation = host._messages[active.index]?.automation;
-  const suggestions = refineSuggestions(host, automation);
+  const automation = host2._messages[active.index]?.automation;
+  const suggestions = refineSuggestions(host2, automation);
   if (!suggestions.length) return "";
   return b2`
     <div class="chat-quick-actions refine-suggestions">
@@ -35413,7 +34983,7 @@ function renderRefineSuggestions(host) {
           renderActionButton({
             label: s6.label,
             mark: s6.icon,
-            onClick: () => prefillComposer(host, s6.prefill),
+            onClick: () => prefillComposer(host2, s6.prefill),
           }),
         )}
       </div>
@@ -35463,7 +35033,7 @@ async function addFrigateCameras(hass, action) {
   ERRORS.delete(planId);
   return { cameras: result?.cameras || [] };
 }
-function cameraLine(host, camera) {
+function cameraLine(host2, camera) {
   if (camera.source !== "network") return camera.area || "";
   const parts = [];
   if (camera.stream) parts.push(camera.stream);
@@ -35471,11 +35041,11 @@ function cameraLine(host, camera) {
   if (camera.brand) parts.push(camera.brand);
   return parts.join(" \xB7 ");
 }
-function loginFields(host, planId, camera) {
+function loginFields(host2, planId, camera) {
   const login = loginFor(planId, String(camera.key));
   const field = (key, type, labelKey, fallback) => b2`
     <label>
-      ${host._t(labelKey, fallback)}
+      ${host2._t(labelKey, fallback)}
       <input
         class="form-select"
         type=${type}
@@ -35494,25 +35064,25 @@ function loginFields(host, planId, camera) {
     </div>
   `;
 }
-function settingsLine(host, action) {
+function settingsLine(host2, action) {
   const objects = (action.objects || []).join(", ");
   const recording = !action.record
-    ? host._t("frigate_cameras_no_recording", "no recording")
+    ? host2._t("frigate_cameras_no_recording", "no recording")
     : action.record_days
       ? interpolate(
-          host._t(
+          host2._t(
             "frigate_cameras_recording_days",
             "recordings kept {days} days",
           ),
           { days: action.record_days },
         )
-      : host._t("frigate_cameras_recording", "recordings kept");
+      : host2._t("frigate_cameras_recording", "recordings kept");
   return interpolate(
-    host._t("frigate_cameras_settings", "Detects {objects}; {recording}."),
+    host2._t("frigate_cameras_settings", "Detects {objects}; {recording}."),
     { objects, recording },
   );
 }
-function renderFrigateCameraRows(host, action) {
+function renderFrigateCameraRows(host2, action) {
   const planId = String(action.plan_id || "");
   const errors = ERRORS.get(planId) || {};
   return b2`
@@ -35532,11 +35102,11 @@ function renderFrigateCameraRows(host, action) {
                   ${camera.name}
                 </div>
                 <div style="font-size:12px;color:var(--secondary-text-color);">
-                  ${cameraLine(host, camera)}
+                  ${cameraLine(host2, camera)}
                 </div>
               </div>
             </div>
-            ${camera.needs_login ? loginFields(host, planId, camera) : ""}
+            ${camera.needs_login ? loginFields(host2, planId, camera) : ""}
             ${
               errors[camera.key]
                 ? b2`<div class="frigate-camera-error">
@@ -35550,7 +35120,7 @@ function renderFrigateCameraRows(host, action) {
       <div
         style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >
-        ${settingsLine(host, action)}
+        ${settingsLine(host2, action)}
       </div>
       ${
         (action.skipped || []).length
@@ -35558,7 +35128,7 @@ function renderFrigateCameraRows(host, action) {
               style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
             >
               ${interpolate(
-                host._t("frigate_cameras_not_added", "Not added: {list}."),
+                host2._t("frigate_cameras_not_added", "Not added: {list}."),
                 {
                   list: action.skipped
                     .map((s6) => `${s6.name} (${s6.reason})`)
@@ -35571,7 +35141,7 @@ function renderFrigateCameraRows(host, action) {
       <div
         style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
       >
-        ${host._t(
+        ${host2._t(
           "frigate_cameras_restart",
           "Frigate restarts to add them, pausing its cameras for about a minute.",
         )}
@@ -35752,12 +35322,12 @@ function resumes(approval) {
   return true;
 }
 var IN_FLIGHT = /* @__PURE__ */ new Set();
-async function resolveClientActions(host, msg, approval) {
+async function resolveClientActions(host2, msg, approval) {
   const proposalId = approval?.proposal_id;
   if ((msg && msg._resolving) || IN_FLIGHT.has(proposalId)) return;
   IN_FLIGHT.add(proposalId);
   const actions = approval?.client_actions || [];
-  const sessionId = host._activeSessionId;
+  const sessionId = host2._activeSessionId;
   let ok = false;
   let reported = true;
   try {
@@ -35771,25 +35341,25 @@ async function resolveClientActions(host, msg, approval) {
       msg._resolving = true;
       msg.quick_actions = null;
       msg.approval_status = "resolving";
-      host._messages = [...host._messages];
+      host2._messages = [...host2._messages];
     }
     const results = [];
     for (const action of actions) {
-      results.push(await runClientAction(host.hass, action));
+      results.push(await runClientAction(host2.hass, action));
     }
     if (results.some((r6) => r6.retry)) {
       if (msg) {
         msg._resolving = false;
         msg.quick_actions = before.quick_actions;
         msg.approval_status = before.approval_status;
-        host._messages = [...host._messages];
+        host2._messages = [...host2._messages];
       }
-      host.requestUpdate();
+      host2.requestUpdate();
       return;
     }
     ok = results.length > 0 && results.every((r6) => r6.ok);
     try {
-      await host.hass.callWS({
+      await host2.hass.callWS({
         type: "selora_ai/client_action_result",
         session_id: sessionId,
         proposal_id: approval.proposal_id,
@@ -35798,8 +35368,8 @@ async function resolveClientActions(host, msg, approval) {
         // hass.language, which is only the UI locale: a French message on an
         // English-UI install must get a French outcome, and the panel cannot
         // work out which — only the turn that detected it knows.
-        ...(approval.language || host.hass?.language
-          ? { language: approval.language || host.hass.language }
+        ...(approval.language || host2.hass?.language
+          ? { language: approval.language || host2.hass.language }
           : {}),
       });
     } catch (err) {
@@ -35810,18 +35380,18 @@ async function resolveClientActions(host, msg, approval) {
       msg._resolving = false;
       msg.approval_status = ok ? "approved" : "denied";
       msg._justResolved = ok;
-      host._messages = [...host._messages];
+      host2._messages = [...host2._messages];
     }
   } finally {
     IN_FLIGHT.delete(proposalId);
   }
-  if (reported && sessionId && host._activeSessionId === sessionId) {
-    await host._openSession?.(sessionId);
+  if (reported && sessionId && host2._activeSessionId === sessionId) {
+    await host2._openSession?.(sessionId);
     if (ok && resumes(approval)) {
-      await host._sendMessage?.({ resumeProposalId: proposalId });
+      await host2._sendMessage?.({ resumeProposalId: proposalId });
     }
   }
-  host.requestUpdate();
+  host2.requestUpdate();
 }
 
 // src/panel/action-format.js
@@ -35918,8 +35488,8 @@ function _serviceSuffix(s6) {
   const parts = (s6 || "").split(".");
   return parts.length > 1 ? parts.slice(1).join(".") : "";
 }
-function _friendlyName(host, entityId) {
-  return host?.hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+function _friendlyName(host2, entityId) {
+  return host2?.hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
 }
 function actionIcon(service) {
   return DOMAIN_ICONS2[_domainOf(service)] || "mdi:cog-play-outline";
@@ -35931,19 +35501,19 @@ function callTargetEntityIds(call) {
       : call?.target?.entity_id;
   return Array.isArray(raw) ? raw : raw ? [raw] : [];
 }
-function describeCall(host, call) {
+function describeCall(host2, call) {
   const service = call?.service || "";
   const ids2 = callTargetEntityIds(call);
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
   const t5 =
-    typeof host?._t === "function"
-      ? (k2, fb) => host._t(k2, fb)
+    typeof host2?._t === "function"
+      ? (k2, fb) => host2._t(k2, fb)
       : (_k, fb) => fb;
   const imperative = forms?.imperative || t5("action_format_run_verb", "Run");
   const pastVerb = forms?.past || t5("action_format_ran_verb", "Ran");
   if (ids2.length) {
-    const names2 = ids2.map((eid) => _friendlyName(host, eid));
+    const names2 = ids2.map((eid) => _friendlyName(host2, eid));
     return {
       verb: imperative,
       pastVerb,
@@ -36024,7 +35594,7 @@ var _CONFIRM_VARIANTS = {
       ...(approval.deletes || []),
       ...(approval.actions || []),
     ],
-    renderRow: (host, row) => _renderDeleteRow(host, row),
+    renderRow: (host2, row) => _renderDeleteRow(host2, row),
     doneIcon: "mdi:trash-can-outline",
     doneKey: "approval_status_deleted",
     doneFallback: "Deleted",
@@ -36049,7 +35619,7 @@ var _CONFIRM_VARIANTS = {
       ...(approval.deletes || []),
       ...(approval.actions || []),
     ],
-    renderRow: (host, row) => _renderDeleteRow(host, row),
+    renderRow: (host2, row) => _renderDeleteRow(host2, row),
     doneIcon: "mdi:check-circle-outline",
     doneKey: "approval_status_applied",
     doneFallback: "Applied",
@@ -36069,7 +35639,7 @@ var _CONFIRM_VARIANTS = {
     // so repeating its icon here rendered the same glyph twice.
     headIcon: "mdi:gesture-tap",
     rows: (approval) => approval.client_actions || [],
-    renderRow: (host, row) => _renderClientActionRow(host, row),
+    renderRow: (host2, row) => _renderClientActionRow(host2, row),
     doneIcon: "mdi:check-circle-outline",
     doneKey: "client_action_done",
     doneFallback: "Done.",
@@ -36108,11 +35678,11 @@ var _CONFIRM_VARIANTS = {
       labelFallback: "Create",
       busyKey: "client_action_working",
       busyFallback: "Working\u2026",
-      run: (host, msg, approval) => resolveClientActions(host, msg, approval),
+      run: (host2, msg, approval) => resolveClientActions(host2, msg, approval),
     },
   },
 };
-function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
+function renderConfirmationCard(host2, msg, approval, approvalStatus, variant) {
   const mixedDelete =
     variant === "delete" && (approval.actions || []).length > 0;
   const removes =
@@ -36153,8 +35723,8 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
         <span
           >${
             resolved
-              ? host._t(copy.doneKey, copy.doneFallback)
-              : host._t(
+              ? host2._t(copy.doneKey, copy.doneFallback)
+              : host2._t(
                   copy.cancelledKey || "approval_status_cancelled",
                   copy.cancelledFallback || "Cancelled",
                 )
@@ -36170,7 +35740,7 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
       >
         <span class="spinner" style="width:14px;height:14px;"></span>
         <span
-          >${host._t(
+          >${host2._t(
             copy.confirm?.busyKey || "approval_working",
             copy.confirm?.busyFallback || "Working\u2026",
           )}</span
@@ -36190,11 +35760,11 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
           style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
         ></ha-icon>
         <span
-          >${rows.length > 1 ? host._t(copy.titlePluralKey, copy.titlePluralFallback) : host._t(copy.titleKey, copy.titleFallback)}</span
+          >${rows.length > 1 ? host2._t(copy.titlePluralKey, copy.titlePluralFallback) : host2._t(copy.titleKey, copy.titleFallback)}</span
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${rows.map((row) => copy.renderRow(host, row))}
+        ${rows.map((row) => copy.renderRow(host2, row))}
       </div>
       ${
         approval.remaining_intent
@@ -36206,7 +35776,7 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
                 style="--mdc-icon-size:14px;flex-shrink:0;"
               ></ha-icon>
               <span
-                >${host._t("approval_then", "then")}
+                >${host2._t("approval_then", "then")}
                 ${approval.remaining_intent}</span
               >
             </div>`
@@ -36220,11 +35790,11 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
               ${
                 copy.restorableKinds &&
                 rows.every((r6) => copy.restorableKinds.includes(r6.kind))
-                  ? host._t(
+                  ? host2._t(
                       copy.restorableWarningKey,
                       copy.restorableWarningFallback,
                     )
-                  : host._t(copy.warningKey, copy.warningFallback)
+                  : host2._t(copy.warningKey, copy.warningFallback)
               }
             </div>`
           : ""
@@ -36261,13 +35831,13 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
                         labelFallback: "Confirm all",
                       };
                 return renderConfirmChip(
-                  host,
+                  host2,
                   {
-                    label: host._t(confirm2.labelKey, confirm2.labelFallback),
+                    label: host2._t(confirm2.labelKey, confirm2.labelFallback),
                     icon: confirm2.icon,
                     tone: confirm2.tone,
                   },
-                  () => copy.confirm.run(host, msg, approval),
+                  () => copy.confirm.run(host2, msg, approval),
                 );
               })()}
             </div>`
@@ -36276,7 +35846,7 @@ function renderConfirmationCard(host, msg, approval, approvalStatus, variant) {
     </div>
   `;
 }
-function _renderDeleteRow(host, d3) {
+function _renderDeleteRow(host2, d3) {
   const label = d3.label || d3.entity_id || d3.target_id || "";
   const entityId = d3.entity_id || "";
   const kind = _DELETE_KIND_LABELS[d3.kind] || "";
@@ -36322,9 +35892,9 @@ function _renderActionTile(call) {
     </div>
   `;
 }
-function _renderCallRow(host, call, reason) {
+function _renderCallRow(host2, call, reason) {
   const ids2 = callTargetEntityIds(call);
-  const { targetText } = describeCall(host, call);
+  const { targetText } = describeCall(host2, call);
   const rightSide = ids2.length
     ? b2`
         <div
@@ -36381,7 +35951,7 @@ function _proposalEntityIds(approval) {
 function _domainOfEntity(entityId) {
   return (entityId || "").split(".", 1)[0];
 }
-function _scopeLabel(host, scope, entityIds) {
+function _scopeLabel(host2, scope, entityIds) {
   if (!entityIds.length) return null;
   if (scope === "all") {
     const domains = new Set(entityIds.map(_domainOfEntity));
@@ -36389,28 +35959,28 @@ function _scopeLabel(host, scope, entityIds) {
       const d3 = [...domains][0];
       return `All ${d3}s`;
     }
-    return host._t("approval_scope_all_matching", "All matching entities");
+    return host2._t("approval_scope_all_matching", "All matching entities");
   }
   if (entityIds.length === 1) {
     const friendly =
-      host?.hass?.states?.[entityIds[0]]?.attributes?.friendly_name ||
+      host2?.hass?.states?.[entityIds[0]]?.attributes?.friendly_name ||
       entityIds[0];
     return `Just ${friendly}`;
   }
-  return host._t("approval_scope_just_these", "Just these entities");
+  return host2._t("approval_scope_just_these", "Just these entities");
 }
-function _actionLabel(host, action) {
+function _actionLabel(host2, action) {
   if (action.kind === "delete_dashboard") {
     const title = action.title || action.url_path || "";
     if (action.view_count == null || action.card_count == null) {
-      return host
+      return host2
         ._t(
           "client_action_delete_dashboard_unknown",
           "Delete the {title} dashboard \u2014 contents unknown",
         )
         .replace("{title}", title);
     }
-    return host
+    return host2
       ._t(
         "client_action_delete_dashboard",
         "Delete the {title} dashboard \u2014 {views} views, {cards} cards",
@@ -36420,13 +35990,13 @@ function _actionLabel(host, action) {
       .replace("{cards}", String(action.card_count));
   }
   if (action.kind === "create_helper") {
-    return host
+    return host2
       ._t("client_action_create_helper", "Create the {name} helper ({domain})")
       .replace("{name}", action.name || "")
       .replace("{domain}", action.domain || "");
   }
   if (action.kind === "create_dashboard") {
-    return host
+    return host2
       ._t(
         "client_action_create_dashboard",
         "Create the {title} dashboard at /{url}",
@@ -36441,9 +36011,9 @@ var _CLIENT_ACTION_ICONS = {
   delete_dashboard: "mdi:view-dashboard-outline",
   create_helper: "mdi:tune-variant",
 };
-function _renderClientActionRow(host, action) {
+function _renderClientActionRow(host2, action) {
   if (action.kind === "add_frigate_cameras") {
-    return renderFrigateCameraRows(host, action);
+    return renderFrigateCameraRows(host2, action);
   }
   return b2`
     <div style="padding:8px 0;display:flex;align-items:center;gap:10px;">
@@ -36453,16 +36023,16 @@ function _renderClientActionRow(host, action) {
       ></ha-icon>
       <span
         style="font-size:13px;font-weight:600;color:var(--primary-text-color);min-width:0;overflow:hidden;text-overflow:ellipsis;"
-        >${_actionLabel(host, action)}</span
+        >${_actionLabel(host2, action)}</span
       >
     </div>
   `;
 }
-function renderApprovalCard(host, msg, approval, approvalStatus) {
+function renderApprovalCard(host2, msg, approval, approvalStatus) {
   if (!approval) return "";
   if (_CONFIRM_VARIANTS[approval.approval_kind]) {
     return renderConfirmationCard(
-      host,
+      host2,
       msg,
       approval,
       approvalStatus,
@@ -36472,7 +36042,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
   const level = (approval.risk_level || "low").toLowerCase();
   const { accent, icon, explainerKey, explainerFallback } =
     RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;
-  const explainer = host._t(explainerKey, explainerFallback);
+  const explainer = host2._t(explainerKey, explainerFallback);
   const reasons = approval.risk_reasons || [];
   const calls = approval.calls || [];
   const entityIds = _proposalEntityIds(approval);
@@ -36493,7 +36063,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
           style="--mdc-icon-size:16px;flex-shrink:0;"
         ></ha-icon>
         <span
-          >${approvalStatus === "approved" ? host._t("approval_status_approved", "Approved") : host._t("approval_status_denied", "Denied")}</span
+          >${approvalStatus === "approved" ? host2._t("approval_status_approved", "Approved") : host2._t("approval_status_denied", "Denied")}</span
         >
       </div>
     `;
@@ -36504,7 +36074,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
         <span class="spinner" style="width:14px;height:14px;"></span>
-        <span>${host._t("approval_working", "Working\u2026")}</span>
+        <span>${host2._t("approval_working", "Working\u2026")}</span>
       </div>
     `;
   }
@@ -36520,7 +36090,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
           icon=${icon}
           style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
         ></ha-icon>
-        <span>${host._t("approval_required_title", "Approval required")}</span>
+        <span>${host2._t("approval_required_title", "Approval required")}</span>
         <span
           title=${explainer}
           style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:4px;color:${accent};border:1px solid ${accent};line-height:1.2;cursor:help;"
@@ -36528,7 +36098,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${calls.map((c6, i8) => _renderCallRow(host, c6, reasonFor(i8)))}
+        ${calls.map((c6, i8) => _renderCallRow(host2, c6, reasonFor(i8)))}
       </div>
       ${
         entityIds.length
@@ -36537,14 +36107,14 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
                 style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
               >
                 <span
-                  >${host._t(
+                  >${host2._t(
                     "approval_scope_label",
                     "For Session / Always:",
                   )}</span
                 >
                 <button
-                  @click=${() => host._toggleApprovalScope?.(msg)}
-                  title=${host._t(
+                  @click=${() => host2._toggleApprovalScope?.(msg)}
+                  title=${host2._t(
                     "approval_scope_button_title",
                     "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
                   )}
@@ -36554,7 +36124,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
                     icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
                     style="--mdc-icon-size:14px;color:${scope === "all" ? "#f59e0b" : "#10b981"};"
                   ></ha-icon>
-                  <span>${_scopeLabel(host, scope, entityIds)}</span>
+                  <span>${_scopeLabel(host2, scope, entityIds)}</span>
                   <ha-icon
                     icon="mdi:chevron-down"
                     style="--mdc-icon-size:14px;opacity:0.6;"
@@ -36613,7 +36183,7 @@ function _dedupeSteps(steps) {
   }
   return [...byKey.values()];
 }
-function renderAgentSteps(host, steps) {
+function renderAgentSteps(host2, steps) {
   if (!Array.isArray(steps) || steps.length === 0) return "";
   const items = _dedupeSteps(steps);
   if (items.length === 0) return "";
@@ -36760,13 +36330,13 @@ function _clearProposalReveals() {
   this._revealPieces = {};
   this._revealingProposals = {};
 }
-function renderRevealParticles(host) {
+function renderRevealParticles(host2) {
   return b2`
     <selora-particles
       class="proposal-reveal-particles"
       .count=${90}
-      .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
-      .maxOpacity=${host._isDark ? 0.5 : 0.4}
+      .color=${host2._isDark ? "#fbbf24" : host2._primaryColor || "#03a9f4"}
+      .maxOpacity=${host2._isDark ? 0.5 : 0.4}
       .speed=${2.4}
     ></selora-particles>
   `;
@@ -36940,40 +36510,40 @@ __export(automation_crud_exports, {
 // src/panel/next-prompt.js
 var PREDICT_TIMEOUT_MS = 1e4;
 async function requestNextPrompt(
-  host,
+  host2,
   assistantMsg,
   sessionId,
   { refocus = false } = {},
 ) {
-  host._nextPrompt = null;
-  if (refocus) _focusComposer(host, true);
-  if (!sessionId || !host._config?.next_prompt_enabled) return;
-  const token = (host._predictToken = (host._predictToken || 0) + 1);
+  host2._nextPrompt = null;
+  if (refocus) _focusComposer(host2, true);
+  if (!sessionId || !host2._config?.next_prompt_enabled) return;
+  const token = (host2._predictToken = (host2._predictToken || 0) + 1);
   let result = null;
   try {
     result = await Promise.race([
-      host.hass.callWS({
+      host2.hass.callWS({
         type: "selora_ai/predict_next_prompt",
         session_id: sessionId,
-        ...(host.hass?.language ? { language: host.hass.language } : {}),
+        ...(host2.hass?.language ? { language: host2.hass.language } : {}),
       }),
       new Promise((resolve) => setTimeout(resolve, PREDICT_TIMEOUT_MS, null)),
     ]);
   } catch (err) {
     result = null;
   }
-  if (host._predictToken !== token) return;
+  if (host2._predictToken !== token) return;
   const text = typeof result?.prompt === "string" ? result.prompt.trim() : "";
   if (!text) return;
-  host._nextPrompt = { message: assistantMsg, sessionId, text };
-  _focusComposer(host, refocus);
+  host2._nextPrompt = { message: assistantMsg, sessionId, text };
+  _focusComposer(host2, refocus);
 }
-function _focusComposer(host, hadFocus) {
+function _focusComposer(host2, hadFocus) {
   if (!hadFocus && !globalThis.matchMedia?.("(pointer: fine)").matches) {
     return;
   }
-  host.updateComplete?.then(() => {
-    const active = host.shadowRoot?.activeElement;
+  host2.updateComplete?.then(() => {
+    const active = host2.shadowRoot?.activeElement;
     if (
       active &&
       (active.isContentEditable ||
@@ -36981,27 +36551,27 @@ function _focusComposer(host, hadFocus) {
     ) {
       return;
     }
-    const ta = host.shadowRoot?.querySelector(".composer-textarea");
+    const ta = host2.shadowRoot?.querySelector(".composer-textarea");
     if (ta && !ta.disabled) ta.focus();
   });
 }
-function refreshNextPrompt(host) {
-  const messages = host._messages || [];
+function refreshNextPrompt(host2) {
+  const messages = host2._messages || [];
   const last = messages[messages.length - 1];
   if (last?.role !== "assistant") return;
-  requestNextPrompt(host, last, host._activeSessionId);
+  requestNextPrompt(host2, last, host2._activeSessionId);
 }
-function activeNextPrompt(host) {
-  const np = host._nextPrompt;
-  if (!np || host._input || host._loading || host._streaming) return "";
-  if (np.sessionId !== host._activeSessionId) return "";
-  const messages = host._messages || [];
+function activeNextPrompt(host2) {
+  const np = host2._nextPrompt;
+  if (!np || host2._input || host2._loading || host2._streaming) return "";
+  if (np.sessionId !== host2._activeSessionId) return "";
+  const messages = host2._messages || [];
   return messages[messages.length - 1] === np.message ? np.text : "";
 }
-function fitComposerToPrediction(host) {
-  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+function fitComposerToPrediction(host2) {
+  const ta = host2.shadowRoot?.querySelector(".composer-textarea");
   if (!ta) return;
-  const text = activeNextPrompt(host);
+  const text = activeNextPrompt(host2);
   if (text === (ta._fittedPrediction ?? "")) return;
   ta._fittedPrediction = text;
   if (ta.value) return;
@@ -37010,11 +36580,11 @@ function fitComposerToPrediction(host) {
   ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
   ta.value = "";
 }
-function acceptNextPrompt(host, textarea) {
-  const text = activeNextPrompt(host);
+function acceptNextPrompt(host2, textarea) {
+  const text = activeNextPrompt(host2);
   if (!text) return false;
-  host._input = text;
-  host._nextPrompt = null;
+  host2._input = text;
+  host2._nextPrompt = null;
   requestAnimationFrame(() => {
     if (!textarea) return;
     textarea.value = text;
@@ -37670,7 +37240,7 @@ function _cancelRenameScene() {
 
 // src/panel/render-proposal-diff.js
 var PREVIEW_DEBOUNCE_MS = 350;
-function requestPreview(host, entry, delay) {
+function requestPreview(host2, entry, delay) {
   const generation = ++entry.generation;
   entry.pending = true;
   entry.timer = setTimeout(async () => {
@@ -37678,7 +37248,7 @@ function requestPreview(host, entry, delay) {
     let current = "";
     let proposed = "";
     try {
-      const result = await host.hass?.callWS({
+      const result = await host2.hass?.callWS({
         type: "selora_ai/preview_automation_write",
         automation_id: entry.targetId,
         yaml_text: entry.yamlText,
@@ -37694,14 +37264,14 @@ function requestPreview(host, entry, delay) {
     entry.pending = false;
     if (entry.stale) {
       entry.stale = false;
-      requestPreview(host, entry, 0);
+      requestPreview(host2, entry, 0);
     }
-    host.requestUpdate?.();
+    host2.requestUpdate?.();
   }, delay);
 }
-function previewWrite(host, msgIndex, request) {
-  if (!host._previewCache) host._previewCache = /* @__PURE__ */ new Map();
-  const cached = host._previewCache.get(msgIndex);
+function previewWrite(host2, msgIndex, request) {
+  if (!host2._previewCache) host2._previewCache = /* @__PURE__ */ new Map();
+  const cached = host2._previewCache.get(msgIndex);
   const sameRequest =
     cached &&
     cached.targetId === request.targetId &&
@@ -37710,7 +37280,7 @@ function previewWrite(host, msgIndex, request) {
   if (sameRequest) {
     if (cached.stale && !cached.pending) {
       cached.stale = false;
-      requestPreview(host, cached, 0);
+      requestPreview(host2, cached, 0);
     }
     return cached;
   }
@@ -37725,29 +37295,29 @@ function previewWrite(host, msgIndex, request) {
     proposed: "",
     timer: null,
   };
-  host._previewCache.set(msgIndex, entry);
-  requestPreview(host, entry, cached ? PREVIEW_DEBOUNCE_MS : 0);
+  host2._previewCache.set(msgIndex, entry);
+  requestPreview(host2, entry, cached ? PREVIEW_DEBOUNCE_MS : 0);
   return entry;
 }
-function invalidateProposalPreviews(host, key = null) {
-  for (const cache of [host._previewCache, host._scenePreviewCache]) {
+function invalidateProposalPreviews(host2, key = null) {
+  for (const cache of [host2._previewCache, host2._scenePreviewCache]) {
     if (!cache) continue;
     const entries =
       key === null ? cache.values() : [cache.get(key)].filter(Boolean);
     for (const entry of entries) entry.stale = true;
   }
 }
-function savedDiff(host, msgIndex) {
-  const msg = (host._messages || [])[msgIndex];
+function savedDiff(host2, msgIndex) {
+  const msg = (host2._messages || [])[msgIndex];
   const automationId = msg?.automation_id;
   if (!automationId) return null;
-  const versions = host._versions?.[automationId];
+  const versions = host2._versions?.[automationId];
   if (versions === void 0) {
-    if (!host._savedDiffRequested)
-      host._savedDiffRequested = /* @__PURE__ */ new Set();
-    if (!host._savedDiffRequested.has(automationId)) {
-      host._savedDiffRequested.add(automationId);
-      host._loadVersionHistory(automationId);
+    if (!host2._savedDiffRequested)
+      host2._savedDiffRequested = /* @__PURE__ */ new Set();
+    if (!host2._savedDiffRequested.has(automationId)) {
+      host2._savedDiffRequested.add(automationId);
+      host2._loadVersionHistory(automationId);
     }
     return null;
   }
@@ -37755,39 +37325,39 @@ function savedDiff(host, msgIndex) {
   const after = versions[0]?.yaml || "";
   const before = versions[1]?.yaml || "";
   if (!after || !before) return null;
-  if (!host._savedDiffCache) host._savedDiffCache = /* @__PURE__ */ new Map();
-  const cached = host._savedDiffCache.get(msgIndex);
+  if (!host2._savedDiffCache) host2._savedDiffCache = /* @__PURE__ */ new Map();
+  const cached = host2._savedDiffCache.get(msgIndex);
   if (cached && cached.before === before && cached.after === after) {
     return cached.diff;
   }
   const diff = diffLines(before, after);
-  host._savedDiffCache.set(msgIndex, { before, after, diff });
+  host2._savedDiffCache.set(msgIndex, { before, after, diff });
   return diff;
 }
-function proposalDiff(host, msgIndex) {
-  const msg = (host._messages || [])[msgIndex];
+function proposalDiff(host2, msgIndex) {
+  const msg = (host2._messages || [])[msgIndex];
   if (!msg?.automation) return null;
   const yamlKey = `proposal_${msgIndex}`;
-  const edited = host._editedYaml?.[yamlKey];
+  const edited = host2._editedYaml?.[yamlKey];
   const after = edited === void 0 ? msg.automation_yaml || "" : edited;
   if (!after) return null;
-  const targetId = _getRefiningAutomationId.call(host, msgIndex);
+  const targetId = _getRefiningAutomationId.call(host2, msgIndex);
   if (!targetId) return null;
   const generated = msg.automation_yaml || "";
-  const proposalBaseline = host._originalYaml?.[yamlKey] ?? generated;
+  const proposalBaseline = host2._originalYaml?.[yamlKey] ?? generated;
   const stateEdited =
     !!edited &&
     edited !== proposalBaseline &&
     _initialStateEdited(proposalBaseline, edited);
-  const preview = previewWrite(host, msgIndex, {
+  const preview = previewWrite(host2, msgIndex, {
     targetId,
     yamlText: after,
     preserveEnabledState: !stateEdited,
   });
   if (preview.loading || !preview.current || !preview.proposed) return null;
-  if (!host._proposalDiffCache)
-    host._proposalDiffCache = /* @__PURE__ */ new Map();
-  const cached = host._proposalDiffCache.get(msgIndex);
+  if (!host2._proposalDiffCache)
+    host2._proposalDiffCache = /* @__PURE__ */ new Map();
+  const cached = host2._proposalDiffCache.get(msgIndex);
   if (
     cached &&
     cached.before === preview.current &&
@@ -37796,7 +37366,7 @@ function proposalDiff(host, msgIndex) {
     return cached.diff;
   }
   const diff = diffLines(preview.current, preview.proposed);
-  host._proposalDiffCache.set(msgIndex, {
+  host2._proposalDiffCache.set(msgIndex, {
     before: preview.current,
     after: preview.proposed,
     diff,
@@ -37806,14 +37376,14 @@ function proposalDiff(host, msgIndex) {
 function sceneDiffKey(msgIndex) {
   return `scene_${msgIndex}`;
 }
-function requestScenePreview(host, entry) {
+function requestScenePreview(host2, entry) {
   const generation = ++entry.generation;
   entry.pending = true;
   (async () => {
     let current = "";
     let proposed = "";
     try {
-      const result = await host.hass?.callWS({
+      const result = await host2.hass?.callWS({
         type: "selora_ai/preview_scene_write",
         session_id: entry.sessionId,
         message_index: entry.storedIndex,
@@ -37828,21 +37398,21 @@ function requestScenePreview(host, entry) {
     entry.pending = false;
     if (entry.stale) {
       entry.stale = false;
-      requestScenePreview(host, entry);
+      requestScenePreview(host2, entry);
     }
-    host.requestUpdate?.();
+    host2.requestUpdate?.();
   })();
 }
-function sceneProposalDiff(host, msgIndex) {
-  const msg = (host._messages || [])[msgIndex];
+function sceneProposalDiff(host2, msgIndex) {
+  const msg = (host2._messages || [])[msgIndex];
   if (!msg?.scene) return null;
-  const sessionId = host._activeSessionId;
+  const sessionId = host2._activeSessionId;
   if (!sessionId) return null;
   const storedIndex = storedSceneIndex(msg, msgIndex);
   const key = sceneDiffKey(msgIndex);
-  if (!host._scenePreviewCache)
-    host._scenePreviewCache = /* @__PURE__ */ new Map();
-  const cached = host._scenePreviewCache.get(key);
+  if (!host2._scenePreviewCache)
+    host2._scenePreviewCache = /* @__PURE__ */ new Map();
+  const cached = host2._scenePreviewCache.get(key);
   let entry = cached;
   if (
     !cached ||
@@ -37859,44 +37429,44 @@ function sceneProposalDiff(host, msgIndex) {
       current: "",
       proposed: "",
     };
-    host._scenePreviewCache.set(key, entry);
-    requestScenePreview(host, entry);
+    host2._scenePreviewCache.set(key, entry);
+    requestScenePreview(host2, entry);
   } else if (cached.stale && !cached.pending) {
     cached.stale = false;
-    requestScenePreview(host, cached);
+    requestScenePreview(host2, cached);
   }
   if (entry.loading || !entry.current || !entry.proposed) return null;
-  if (!host._sceneDiffCache) host._sceneDiffCache = /* @__PURE__ */ new Map();
-  const hit = host._sceneDiffCache.get(key);
+  if (!host2._sceneDiffCache) host2._sceneDiffCache = /* @__PURE__ */ new Map();
+  const hit = host2._sceneDiffCache.get(key);
   if (hit && hit.before === entry.current && hit.after === entry.proposed) {
     return hit.diff;
   }
   const diff = diffLines(entry.current, entry.proposed);
-  host._sceneDiffCache.set(key, {
+  host2._sceneDiffCache.set(key, {
     before: entry.current,
     after: entry.proposed,
     diff,
   });
   return diff;
 }
-function resetProposalDiffState(host) {
-  host._proposalDiffOpen = {};
-  host._proposalDiffExpanded = {};
-  host._proposalDiffFull = {};
-  host._proposalDiffCache = null;
-  host._savedDiffCache = null;
-  host._savedDiffRequested = null;
-  for (const entry of host._previewCache?.values() || []) {
+function resetProposalDiffState(host2) {
+  host2._proposalDiffOpen = {};
+  host2._proposalDiffExpanded = {};
+  host2._proposalDiffFull = {};
+  host2._proposalDiffCache = null;
+  host2._savedDiffCache = null;
+  host2._savedDiffRequested = null;
+  for (const entry of host2._previewCache?.values() || []) {
     if (entry.timer) clearTimeout(entry.timer);
   }
-  host._previewCache = null;
-  host._scenePreviewCache = null;
-  host._sceneDiffCache = null;
+  host2._previewCache = null;
+  host2._scenePreviewCache = null;
+  host2._sceneDiffCache = null;
 }
 var REVEAL_SETTLE_MS = 800;
-async function revealPanel(host, selector) {
-  await host.updateComplete;
-  const panel = host.shadowRoot?.querySelector(selector);
+async function revealPanel(host2, selector) {
+  await host2.updateComplete;
+  const panel = host2.shadowRoot?.querySelector(selector);
   if (!panel) return;
   const bring = () =>
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -37906,50 +37476,50 @@ async function revealPanel(host, selector) {
   observer.observe(panel);
   setTimeout(() => observer.disconnect(), REVEAL_SETTLE_MS);
 }
-function toggleProposalDiff(host, key) {
-  const opening = !(host._proposalDiffOpen || {})[key];
-  host._proposalDiffOpen = {
-    ...(host._proposalDiffOpen || {}),
+function toggleProposalDiff(host2, key) {
+  const opening = !(host2._proposalDiffOpen || {})[key];
+  host2._proposalDiffOpen = {
+    ...(host2._proposalDiffOpen || {}),
     [key]: opening,
   };
-  if (opening) invalidateProposalPreviews(host, key);
-  host.requestUpdate();
-  if (opening) revealPanel(host, `[data-diff-panel="${key}"]`);
+  if (opening) invalidateProposalPreviews(host2, key);
+  host2.requestUpdate();
+  if (opening) revealPanel(host2, `[data-diff-panel="${key}"]`);
 }
-function expandGap(host, key, start) {
-  const current = (host._proposalDiffExpanded || {})[key] || [];
-  host._proposalDiffExpanded = {
-    ...(host._proposalDiffExpanded || {}),
+function expandGap(host2, key, start) {
+  const current = (host2._proposalDiffExpanded || {})[key] || [];
+  host2._proposalDiffExpanded = {
+    ...(host2._proposalDiffExpanded || {}),
     [key]: [...current, start],
   };
-  host.requestUpdate();
+  host2.requestUpdate();
 }
-function toggleFullDiff(host, key) {
-  const full = !(host._proposalDiffFull || {})[key];
-  host._proposalDiffFull = {
-    ...(host._proposalDiffFull || {}),
+function toggleFullDiff(host2, key) {
+  const full = !(host2._proposalDiffFull || {})[key];
+  host2._proposalDiffFull = {
+    ...(host2._proposalDiffFull || {}),
     [key]: full,
   };
   if (!full) {
-    host._proposalDiffExpanded = {
-      ...(host._proposalDiffExpanded || {}),
+    host2._proposalDiffExpanded = {
+      ...(host2._proposalDiffExpanded || {}),
       [key]: [],
     };
   }
-  host.requestUpdate();
+  host2.requestUpdate();
 }
-function renderProposalDiffToggle(host, key, diff) {
+function renderProposalDiffToggle(host2, key, diff) {
   if (!diff) return "";
-  const open = !!(host._proposalDiffOpen || {})[key];
+  const open = !!(host2._proposalDiffOpen || {})[key];
   const changed = diff.added > 0 || diff.removed > 0;
   return b2`
     <button
       type="button"
       class="subcard-action-link ${open ? "active" : ""}"
-      @click=${() => toggleProposalDiff(host, key)}
+      @click=${() => toggleProposalDiff(host2, key)}
     >
       <ha-icon icon="mdi:file-compare"></ha-icon>
-      ${open ? host._t("automations_diff_toggle_hide", "Hide changes") : host._t("automations_diff_toggle_view", "View changes")}
+      ${open ? host2._t("automations_diff_toggle_hide", "Hide changes") : host2._t("automations_diff_toggle_view", "View changes")}
       ${
         changed
           ? b2`<span class="diff-stat-inline">
@@ -37961,21 +37531,21 @@ function renderProposalDiffToggle(host, key, diff) {
     </button>
   `;
 }
-function renderProposalDiffPanel(host, key, diff, legend = {}) {
+function renderProposalDiffPanel(host2, key, diff, legend = {}) {
   if (!diff) return "";
-  if (!(host._proposalDiffOpen || {})[key]) return "";
+  if (!(host2._proposalDiffOpen || {})[key]) return "";
   if (diff.added === 0 && diff.removed === 0) {
     return b2`<div class="proposal-diff" data-diff-panel=${key}>
       <div class="proposal-diff-empty">
-        ${host._t(
+        ${host2._t(
           "automations_diff_identical",
           "Identical to the previous version \u2014 nothing changed.",
         )}
       </div>
     </div>`;
   }
-  const full = !!(host._proposalDiffFull || {})[key];
-  const expanded = (host._proposalDiffExpanded || {})[key] || [];
+  const full = !!(host2._proposalDiffFull || {})[key];
+  const expanded = (host2._proposalDiffExpanded || {})[key] || [];
   const collapsed = collapseDiff(diff.lines, DEFAULT_CONTEXT_RADIUS, expanded);
   const entries = full ? diff.lines : collapsed;
   const foldable = full || collapsed.some((e6) => e6.type === "gap");
@@ -37983,12 +37553,12 @@ function renderProposalDiffPanel(host, key, diff, legend = {}) {
     <div class="proposal-diff" data-diff-panel=${key}>
       <div class="proposal-diff-head">
         <span class="proposal-diff-legend">
-          ${legend.from || host._t("automations_diff_legend_previous", "Previous")}
+          ${legend.from || host2._t("automations_diff_legend_previous", "Previous")}
           <ha-icon
             icon="mdi:arrow-right"
             style="--mdc-icon-size:13px;"
           ></ha-icon>
-          ${legend.to || host._t("automations_diff_legend_proposed", "Proposed")}
+          ${legend.to || host2._t("automations_diff_legend_proposed", "Proposed")}
         </span>
         <span class="proposal-diff-head-right">
           ${
@@ -37996,13 +37566,13 @@ function renderProposalDiffPanel(host, key, diff, legend = {}) {
               ? b2`<button
                   type="button"
                   class="proposal-diff-expand-all"
-                  @click=${() => toggleFullDiff(host, key)}
+                  @click=${() => toggleFullDiff(host2, key)}
                 >
                   <ha-icon
                     icon=${full ? "mdi:unfold-less-horizontal" : "mdi:unfold-more-horizontal"}
                     style="--mdc-icon-size:13px;"
                   ></ha-icon>
-                  ${full ? host._t("automations_diff_changes_only", "Changes only") : host._t("automations_diff_show_all", "Whole file")}
+                  ${full ? host2._t("automations_diff_changes_only", "Changes only") : host2._t("automations_diff_show_all", "Whole file")}
                 </button>`
               : ""
           }
@@ -38013,26 +37583,26 @@ function renderProposalDiffPanel(host, key, diff, legend = {}) {
         </span>
       </div>
       <div class="proposal-diff-body">
-        ${entries.map((entry) => renderDiffEntry(host, key, entry))}
+        ${entries.map((entry) => renderDiffEntry(host2, key, entry))}
       </div>
     </div>
   `;
 }
-function renderDiffEntry(host, key, entry) {
+function renderDiffEntry(host2, key, entry) {
   if (entry.type === "gap") {
     const path = entry.path || [];
     return b2`<button
       type="button"
       class="proposal-diff-gap"
-      title=${host._t("automations_diff_expand_tooltip", "Show these lines")}
-      @click=${() => expandGap(host, key, entry.start)}
+      title=${host2._t("automations_diff_expand_tooltip", "Show these lines")}
+      @click=${() => expandGap(host2, key, entry.start)}
     >
       <ha-icon
         icon="mdi:unfold-more-horizontal"
         style="--mdc-icon-size:13px;"
       ></ha-icon>
       <span
-        >${host._t("automations_diff_unchanged_lines", "{count} unchanged lines").replace("{count}", String(entry.count))}</span
+        >${host2._t("automations_diff_unchanged_lines", "{count} unchanged lines").replace("{count}", String(entry.count))}</span
       >
       ${
         path.length
@@ -38049,12 +37619,12 @@ function renderDiffEntry(host, key, entry) {
 }
 
 // src/panel/search-match.js
-function renderSearchMatchReason(host, reasons) {
+function renderSearchMatchReason(host2, reasons) {
   if (!reasons || !reasons.length) return "";
   return b2`<span class="auto-row-match" title=${reasons.join(", ")}>
     <ha-icon icon="mdi:magnify"></ha-icon>
     <span class="auto-row-match-text"
-      >${interpolate(host._t("search_match_reason", "matches {targets}"), {
+      >${interpolate(host2._t("search_match_reason", "matches {targets}"), {
         targets: reasons.join(", "),
       })}</span
     >
@@ -38255,26 +37825,26 @@ function collapsedSuggestionCount() {
   const w2 = window.innerWidth;
   return w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : COLLAPSED_COUNT;
 }
-function gridColumnsRef(host) {
-  if (!host._suggestionGridRef) {
-    host._suggestionGridRef = (grid) => {
-      host._suggestionGridObserver?.disconnect();
-      host._suggestionGridObserver = null;
+function gridColumnsRef(host2) {
+  if (!host2._suggestionGridRef) {
+    host2._suggestionGridRef = (grid) => {
+      host2._suggestionGridObserver?.disconnect();
+      host2._suggestionGridObserver = null;
       if (!grid || typeof ResizeObserver === "undefined") return;
       const observer = new ResizeObserver(() => {
         const cols = getComputedStyle(grid)
           .gridTemplateColumns.split(" ")
           .filter(Boolean).length;
-        if (cols && cols !== host._suggestionGridCols) {
-          host._suggestionGridCols = cols;
-          host.requestUpdate?.();
+        if (cols && cols !== host2._suggestionGridCols) {
+          host2._suggestionGridCols = cols;
+          host2.requestUpdate?.();
         }
       });
       observer.observe(grid);
-      host._suggestionGridObserver = observer;
+      host2._suggestionGridObserver = observer;
     };
   }
-  return n5(host._suggestionGridRef);
+  return n5(host2._suggestionGridRef);
 }
 function normalizeProactive(s6) {
   return {
@@ -38303,17 +37873,17 @@ function normalizeLLM(item) {
     _auto: auto,
   };
 }
-function buildQualified(host) {
+function buildQualified(host2) {
   const seenKeys = /* @__PURE__ */ new Set();
   const qualified = [];
-  for (const s6 of host._proactiveSuggestions || []) {
+  for (const s6 of host2._proactiveSuggestions || []) {
     if ((s6.confidence || 0) < MIN_CONF) continue;
     const key = (s6.description || "").toLowerCase().trim();
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
     qualified.push(normalizeProactive(s6));
   }
-  for (const item of host._suggestions || []) {
+  for (const item of host2._suggestions || []) {
     const auto = item.automation || item.automation_data;
     if (!auto) continue;
     const key = (auto.alias || "").toLowerCase().trim();
@@ -38323,17 +37893,14 @@ function buildQualified(host) {
   }
   return qualified;
 }
-function applyFilters(host, qualified) {
-  const filterText = (host._suggestionFilter || "").toLowerCase().trim();
-  const sourceFilter = host._suggestionSourceFilter || "all";
-  const sortBy = host._suggestionSortBy || "recent";
+function applyFilters(host2, qualified) {
+  const filterText = (host2._suggestionFilter || "").toLowerCase().trim();
+  const sortBy = host2._suggestionSortBy || "recent";
   const filtered = qualified.filter((item) => {
     if (filterText) {
       const text = `${item.title} ${item.subtitle || ""}`.toLowerCase();
       if (!text.includes(filterText)) return false;
     }
-    if (sourceFilter === "pattern" && item.type !== "proactive") return false;
-    if (sourceFilter === "ai" && item.type !== "llm") return false;
     return true;
   });
   if (sortBy === "alpha") {
@@ -38350,59 +37917,64 @@ function applyFilters(host, qualified) {
 }
 var isSuggestionKey = (key) =>
   key.startsWith("sug_") || key.startsWith("proactive_");
-function setCardTab(host, cardKey, tab) {
+function setCardTab(host2, cardKey, tab) {
   if (tab) {
-    for (const [key, open] of Object.entries(host._cardActiveTab)) {
+    for (const [key, open] of Object.entries(host2._cardActiveTab)) {
       if (open && key !== cardKey && isSuggestionKey(key)) {
-        setCardTab(host, key, null);
+        setCardTab(host2, key, null);
       }
     }
   }
-  host._cardPanelSettled = {
-    ...(host._cardPanelSettled || {}),
+  host2._cardPanelSettled = {
+    ...(host2._cardPanelSettled || {}),
     [cardKey]: false,
   };
-  host._cardActiveTab = { ...host._cardActiveTab, [cardKey]: tab };
+  host2._cardActiveTab = { ...host2._cardActiveTab, [cardKey]: tab };
   if (tab) {
-    host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: tab };
+    host2._cardLastTab = { ...(host2._cardLastTab || {}), [cardKey]: tab };
   }
-  const timers = host._cardPanelTimers || (host._cardPanelTimers = {});
+  const timers = host2._cardPanelTimers || (host2._cardPanelTimers = {});
   clearTimeout(timers[cardKey]);
   timers[cardKey] = setTimeout(() => {
-    host._cardPanelSettled = {
-      ...(host._cardPanelSettled || {}),
+    host2._cardPanelSettled = {
+      ...(host2._cardPanelSettled || {}),
       [cardKey]: true,
     };
-    if (!host._cardActiveTab[cardKey]) {
-      host._cardLastTab = { ...(host._cardLastTab || {}), [cardKey]: null };
+    if (!host2._cardActiveTab[cardKey]) {
+      host2._cardLastTab = { ...(host2._cardLastTab || {}), [cardKey]: null };
     }
   }, PANEL_SETTLE_MS);
 }
-function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
+function renderSuggestionCard(
+  host2,
+  item,
+  bulkMode = false,
+  selectedKeys = {},
+) {
   const { cardKey, automationData } = item;
-  const editedYaml = host._editedYaml[cardKey];
+  const editedYaml = host2._editedYaml[cardKey];
   const displayYaml = editedYaml !== void 0 ? editedYaml : item.automationYaml;
   const hasFlow =
     automationData &&
     ((automationData.triggers ?? automationData.trigger)?.length ||
       (automationData.actions ?? automationData.action)?.length);
   const activeTab =
-    host._cardActiveTab[cardKey] !== void 0
-      ? host._cardActiveTab[cardKey]
+    host2._cardActiveTab[cardKey] !== void 0
+      ? host2._cardActiveTab[cardKey]
       : null;
   const isProactive = item.type === "proactive";
   const accepting = isProactive
-    ? !!host._acceptingProactive[item._suggestionId]
-    : !!host._savingYaml[cardKey];
+    ? !!host2._acceptingProactive[item._suggestionId]
+    : !!host2._savingYaml[cardKey];
   const dismissing = isProactive
-    ? !!host._dismissingProactive[item._suggestionId]
+    ? !!host2._dismissingProactive[item._suggestionId]
     : false;
-  const fadingOut = !!(host._fadingOutSuggestions || {})[cardKey];
+  const fadingOut = !!(host2._fadingOutSuggestions || {})[cardKey];
   const expanded = !!activeTab;
-  const lastTab = (host._cardLastTab || {})[cardKey] || null;
+  const lastTab = (host2._cardLastTab || {})[cardKey] || null;
   const panelTab = activeTab || lastTab;
-  const settled = !!(host._cardPanelSettled || {})[cardKey];
-  const setTab = (tab) => setCardTab(host, cardKey, tab);
+  const settled = !!(host2._cardPanelSettled || {})[cardKey];
+  const setTab = (tab) => setCardTab(host2, cardKey, tab);
   const toggleExpand = () =>
     setTab(expanded ? null : hasFlow ? "flow" : "yaml");
   const expandedClass = expanded ? "expanded" : "";
@@ -38424,8 +37996,8 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
                     type="checkbox"
                     .checked=${!!selectedKeys[cardKey]}
                     @change=${(e6) => {
-                      host._selectedSuggestionKeys = {
-                        ...host._selectedSuggestionKeys,
+                      host2._selectedSuggestionKeys = {
+                        ...host2._selectedSuggestionKeys,
                         [cardKey]: e6.target.checked,
                       };
                     }}
@@ -38490,7 +38062,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
                     icon="mdi:sitemap-outline"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${host._t("suggestions_tab_flow", "Flow")}
+                  ${host2._t("suggestions_tab_flow", "Flow")}
                 </button>
                 <span class="card-tab-sep">|</span>
               `
@@ -38507,7 +38079,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          ${host._t("suggestions_tab_yaml", "YAML")}
+          ${host2._t("suggestions_tab_yaml", "YAML")}
         </button>
         <ha-icon
           icon="mdi:chevron-down"
@@ -38525,24 +38097,24 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
           ?disabled=${accepting}
           @click=${() =>
             isProactive
-              ? host._acceptProactiveSuggestion(item._suggestionId, editedYaml)
-              : host._createSuggestionWithEdits(
+              ? host2._acceptProactiveSuggestion(item._suggestionId, editedYaml)
+              : host2._createSuggestionWithEdits(
                   item._auto,
                   cardKey,
                   item.automationYaml,
                 )}
         >
           <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
-          ${accepting ? host._t("suggestions_btn_creating", "Creating\u2026") : host._t("suggestions_btn_accept", "Accept")}
+          ${accepting ? host2._t("suggestions_btn_creating", "Creating\u2026") : host2._t("suggestions_btn_accept", "Accept")}
         </button>
         <button
           class="btn btn-outline"
           style="flex:1;justify-content:center;"
           ?disabled=${dismissing}
-          @click=${() => (isProactive ? host._dismissProactiveSuggestion(item._suggestionId) : host._discardSuggestion(item._original))}
+          @click=${() => (isProactive ? host2._dismissProactiveSuggestion(item._suggestionId) : host2._discardSuggestion(item._original))}
         >
           <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
-          ${dismissing ? host._t("suggestions_btn_dismissing", "Dismissing\u2026") : host._t("suggestions_btn_dismiss", "Dismiss")}
+          ${dismissing ? host2._t("suggestions_btn_dismissing", "Dismissing\u2026") : host2._t("suggestions_btn_dismiss", "Dismiss")}
         </button>
       </div>
     </div>
@@ -38555,7 +38127,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
           >
             <div class="card-panel-inner">
               <div class="card-detail-body">
-                ${panelTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
+                ${panelTab === "flow" && hasFlow ? renderAutomationFlowchart(host2, automationData) : ""}
                 ${
                   panelTab === "yaml"
                     ? b2`
@@ -38564,8 +38136,8 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
                             mode="yaml"
                             .value=${displayYaml}
                             @value-changed=${(e6) => {
-                              host._editedYaml = {
-                                ...host._editedYaml,
+                              host2._editedYaml = {
+                                ...host2._editedYaml,
                                 [cardKey]: e6.detail.value,
                               };
                             }}
@@ -38585,16 +38157,16 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     : null;
   return [card, detail];
 }
-function renderSuggestionCards(host, items, bulkMode, selectedKeys) {
+function renderSuggestionCards(host2, items, bulkMode, selectedKeys) {
   const cols = Math.max(
     1,
-    host._suggestionGridCols || collapsedSuggestionCount(),
+    host2._suggestionGridCols || collapsedSuggestionCount(),
   );
   const out = [];
   let details = [];
   items.forEach((item, i8) => {
     const [card, detail] = renderSuggestionCard(
-      host,
+      host2,
       item,
       bulkMode,
       selectedKeys,
@@ -38612,92 +38184,38 @@ function renderSuggestionCards(host, items, bulkMode, selectedKeys) {
     (part) => part.tpl,
   );
 }
-function renderSuggestionsSection(host) {
-  const qualified = buildQualified(host);
-  const filtered = applyFilters(host, qualified);
+function renderSuggestionsSection(host2) {
+  const qualified = buildQualified(host2);
+  const filtered = applyFilters(host2, qualified);
   const totalCount = qualified.length;
-  const isDev = !!host._config?.developer_mode;
   const collapsedCount = collapsedSuggestionCount();
-  const visibleCount = host._suggestionsVisibleCount || collapsedCount;
+  const visibleCount = host2._suggestionsVisibleCount || collapsedCount;
   const visibleItems = filtered.slice(0, visibleCount);
   const remainingCount = filtered.length - visibleCount;
   const expanded = visibleCount > collapsedCount;
-  const bulkMode = !!host._suggestionBulkMode;
-  const selectedKeys = host._selectedSuggestionKeys || {};
+  const bulkMode = !!host2._suggestionBulkMode;
+  const selectedKeys = host2._selectedSuggestionKeys || {};
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
   return b2`
     <div class="suggestions-section">
       <div class="page-section-header">
         <div class="section-card-title-group">
           <span class="page-section-title"
-            >${host._t("suggestions_section_title", "Suggested for you")}</span
+            >${host2._t("suggestions_section_title", "Suggested for you")}</span
           >
           ${
             totalCount > 0
               ? b2`<span class="badge"
                   >${totalCount}
-                  ${host._t("suggestions_badge_new", "new")}</span
+                  ${host2._t("suggestions_badge_new", "new")}</span
                 >`
               : ""
           }
         </div>
-        ${
-          isDev
-            ? b2`
-                <div class="section-card-actions">
-                  <button
-                    class="filter-row-secondary"
-                    ?disabled=${host._loadingProactive || host._llmNeedsSetup}
-                    title=${
-                      host._llmNeedsSetup
-                        ? host._t(
-                            "suggestions_llm_setup_required",
-                            "Configure an LLM provider first",
-                          )
-                        : ""
-                    }
-                    @click=${() => host._triggerPatternScan()}
-                  >
-                    <ha-icon
-                      icon="mdi:refresh"
-                      style="--mdc-icon-size:14px;"
-                    ></ha-icon>
-                    ${host._loadingProactive ? host._t("suggestions_btn_scanning", "Scanning\u2026") : host._t("suggestions_btn_scan_now", "Scan Now")}
-                  </button>
-                  <button
-                    class="filter-row-action"
-                    ?disabled=${host._generatingSuggestions || host._llmNeedsSetup}
-                    title=${
-                      host._llmNeedsSetup
-                        ? host._t(
-                            "suggestions_llm_setup_required",
-                            "Configure an LLM provider first",
-                          )
-                        : ""
-                    }
-                    @click=${() => host._triggerGenerateSuggestions()}
-                  >
-                    ${
-                      host._generatingSuggestions
-                        ? b2`<span
-                            class="spinner"
-                            style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
-                          ></span>`
-                        : b2`<ha-icon
-                            icon="mdi:auto-fix"
-                            style="--mdc-icon-size:14px;"
-                          ></ha-icon>`
-                    }
-                    ${host._generatingSuggestions ? host._t("suggestions_btn_analyzing", "Analyzing\u2026") : host._t("suggestions_btn_generate", "Generate")}
-                  </button>
-                </div>
-              `
-            : ""
-        }
       </div>
 
       <div class="section-card-subtitle">
-        ${host._t(
+        ${host2._t(
           "suggestions_section_subtitle",
           "Based on observed patterns and AI analysis in your home.",
         )}
@@ -38707,10 +38225,7 @@ function renderSuggestionsSection(host) {
         totalCount === 0
           ? b2`
               <p style="opacity:0.45;margin:0;font-size:13px;">
-                ${host._t(
-                  "suggestions_empty_state",
-                  'No suggestions yet. Tap "Generate" to analyze your home.',
-                )}
+                ${host2._t("suggestions_empty_state", "No suggestions yet.")}
               </p>
             `
           : b2`
@@ -38721,81 +38236,43 @@ function renderSuggestionsSection(host) {
                         <ha-icon icon="mdi:magnify"></ha-icon>
                         <input
                           type="text"
-                          placeholder=${host._t(
+                          placeholder=${host2._t(
                             "suggestions_filter_placeholder",
                             "Filter suggestions\u2026",
                           )}
-                          .value=${host._suggestionFilter}
+                          .value=${host2._suggestionFilter}
                           @input=${(e6) => {
-                            host._suggestionFilter = e6.target.value;
-                            host._suggestionsVisibleCount =
+                            host2._suggestionFilter = e6.target.value;
+                            host2._suggestionsVisibleCount =
                               collapsedSuggestionCount();
                           }}
                         />
                         ${
-                          host._suggestionFilter
+                          host2._suggestionFilter
                             ? b2`<ha-icon
                                 icon="mdi:close-circle"
                                 style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                                 @click=${() => {
-                                  host._suggestionFilter = "";
-                                  host._suggestionsVisibleCount =
+                                  host2._suggestionFilter = "";
+                                  host2._suggestionsVisibleCount =
                                     collapsedSuggestionCount();
                                 }}
                               ></ha-icon>`
                             : ""
                         }
                       </div>
-                      ${
-                        isDev
-                          ? b2`
-                              <div class="status-pills">
-                                ${[
-                                  [
-                                    "all",
-                                    host._t("suggestions_filter_all", "All"),
-                                  ],
-                                  [
-                                    "pattern",
-                                    host._t(
-                                      "suggestions_filter_patterns",
-                                      "Patterns",
-                                    ),
-                                  ],
-                                  [
-                                    "ai",
-                                    host._t("suggestions_filter_ai", "AI"),
-                                  ],
-                                ].map(
-                                  ([val, label]) => b2`
-                                    <button
-                                      class="status-pill ${(host._suggestionSourceFilter || "all") === val ? "active" : ""}"
-                                      @click=${() => {
-                                        host._suggestionSourceFilter = val;
-                                        host._suggestionsVisibleCount =
-                                          collapsedSuggestionCount();
-                                      }}
-                                    >
-                                      ${label}
-                                    </button>
-                                  `,
-                                )}
-                              </div>
-                            `
-                          : ""
-                      }
                       <select
                         class="sort-select"
-                        .value=${host._suggestionSortBy || "recent"}
+                        .value=${host2._suggestionSortBy || "recent"}
                         @change=${(e6) => {
-                          host._suggestionSortBy = e6.target.value;
+                          host2._suggestionSortBy = e6.target.value;
                         }}
                       >
                         <option value="recent">
-                          ${host._t("suggestions_sort_recent", "Recent")}
+                          ${host2._t("suggestions_sort_recent", "Recent")}
                         </option>
                         <option value="alpha">
-                          ${host._t("suggestions_sort_alpha", "Alphabetical")}
+                          ${host2._t("suggestions_sort_alpha", "Alphabetical")}
                         </option>
                       </select>
                       <div
@@ -38806,7 +38283,7 @@ function renderSuggestionsSection(host) {
                             ? b2`
                                 <span style="font-size:12px;opacity:0.7;">
                                   ${selectedCount}
-                                  ${host._t("suggestions_bulk_selected", "selected")}
+                                  ${host2._t("suggestions_bulk_selected", "selected")}
                                 </span>
                                 <button
                                   class="btn btn-primary"
@@ -38815,11 +38292,11 @@ function renderSuggestionsSection(host) {
                                     for (const item of filtered) {
                                       if (selectedKeys[item.cardKey]) {
                                         if (item.type === "proactive") {
-                                          host._acceptProactiveSuggestion(
+                                          host2._acceptProactiveSuggestion(
                                             item._suggestionId,
                                           );
                                         } else {
-                                          host._createSuggestionWithEdits(
+                                          host2._createSuggestionWithEdits(
                                             item._auto,
                                             item.cardKey,
                                             item.automationYaml,
@@ -38827,11 +38304,11 @@ function renderSuggestionsSection(host) {
                                         }
                                       }
                                     }
-                                    host._selectedSuggestionKeys = {};
-                                    host._suggestionBulkMode = false;
+                                    host2._selectedSuggestionKeys = {};
+                                    host2._suggestionBulkMode = false;
                                   }}
                                 >
-                                  ${host._t(
+                                  ${host2._t(
                                     "suggestions_bulk_accept_selected",
                                     "Accept selected",
                                   )}
@@ -38843,21 +38320,21 @@ function renderSuggestionsSection(host) {
                                     for (const item of filtered) {
                                       if (selectedKeys[item.cardKey]) {
                                         if (item.type === "proactive") {
-                                          host._dismissProactiveSuggestion(
+                                          host2._dismissProactiveSuggestion(
                                             item._suggestionId,
                                           );
                                         } else {
-                                          host._discardSuggestion(
+                                          host2._discardSuggestion(
                                             item._original,
                                           );
                                         }
                                       }
                                     }
-                                    host._selectedSuggestionKeys = {};
-                                    host._suggestionBulkMode = false;
+                                    host2._selectedSuggestionKeys = {};
+                                    host2._suggestionBulkMode = false;
                                   }}
                                 >
-                                  ${host._t(
+                                  ${host2._t(
                                     "suggestions_bulk_dismiss_selected",
                                     "Dismiss selected",
                                   )}
@@ -38865,25 +38342,25 @@ function renderSuggestionsSection(host) {
                                 <button
                                   class="btn btn-outline"
                                   @click=${() => {
-                                    host._suggestionBulkMode = false;
-                                    host._selectedSuggestionKeys = {};
+                                    host2._suggestionBulkMode = false;
+                                    host2._selectedSuggestionKeys = {};
                                   }}
                                 >
-                                  ${host._t("suggestions_bulk_done", "Done")}
+                                  ${host2._t("suggestions_bulk_done", "Done")}
                                 </button>
                               `
                             : b2`
                                 <button
                                   class="btn btn-outline"
                                   @click=${() => {
-                                    host._suggestionBulkMode = true;
+                                    host2._suggestionBulkMode = true;
                                   }}
                                 >
                                   <ha-icon
                                     icon="mdi:checkbox-multiple-outline"
                                     style="--mdc-icon-size:14px;"
                                   ></ha-icon>
-                                  ${host._t("suggestions_bulk_edit", "Bulk edit")}
+                                  ${host2._t("suggestions_bulk_edit", "Bulk edit")}
                                 </button>
                               `
                         }
@@ -38894,9 +38371,9 @@ function renderSuggestionsSection(host) {
 
               <div
                 class="automations-grid suggestions-grid"
-                ${gridColumnsRef(host)}
+                ${gridColumnsRef(host2)}
               >
-                ${renderSuggestionCards(host, visibleItems, bulkMode, selectedKeys)}
+                ${renderSuggestionCards(host2, visibleItems, bulkMode, selectedKeys)}
               </div>
 
               ${
@@ -38905,10 +38382,10 @@ function renderSuggestionsSection(host) {
                       <button
                         class="show-more-link"
                         @click=${() => {
-                          host._suggestionsVisibleCount = visibleCount + 10;
+                          host2._suggestionsVisibleCount = visibleCount + 10;
                         }}
                       >
-                        ${host._t("suggestions_show_more", "Show more suggestions")}
+                        ${host2._t("suggestions_show_more", "Show more suggestions")}
                       </button>
                     `
                   : ""
@@ -38921,11 +38398,11 @@ function renderSuggestionsSection(host) {
 
 // src/panel/stale-automations.js
 var STALE_KEPT_KEY = "selora_stale_kept";
-function _staleDays(host) {
-  return host._config?.stale_days || 5;
+function _staleDays(host2) {
+  return host2._config?.stale_days || 5;
 }
-function _staleMs(host) {
-  return _staleDays(host) * 24 * 60 * 60 * 1e3;
+function _staleMs(host2) {
+  return _staleDays(host2) * 24 * 60 * 60 * 1e3;
 }
 function _loadKept() {
   try {
@@ -38937,14 +38414,14 @@ function _loadKept() {
 function _saveKept(kept) {
   localStorage.setItem(STALE_KEPT_KEY, JSON.stringify(kept));
 }
-function staleTooltip(host) {
-  const days = _staleDays(host);
+function staleTooltip(host2) {
+  const days = _staleDays(host2);
   return `The following Selora automations haven't triggered in ${days} day${days !== 1 ? "s" : ""}. You can remove ones you no longer need to free up space for new suggestions.`;
 }
-function getStaleAutomations(host) {
-  if (!host._automations?.length) return [];
+function getStaleAutomations(host2) {
+  if (!host2._automations?.length) return [];
   const now = Date.now();
-  const staleMs = _staleMs(host);
+  const staleMs = _staleMs(host2);
   const cutoff = now - staleMs;
   const kept = _loadKept();
   let dirty = false;
@@ -38955,8 +38432,8 @@ function getStaleAutomations(host) {
     }
   }
   if (dirty) _saveKept(kept);
-  return host._automations.filter((a3) => {
-    if (!host._automationIsEnabled(a3)) return false;
+  return host2._automations.filter((a3) => {
+    if (!host2._automationIsEnabled(a3)) return false;
     if (!a3.automation_id?.startsWith("selora_ai_")) return false;
     if (kept[a3.automation_id]) return false;
     if (!a3.last_triggered) {
@@ -38971,56 +38448,56 @@ function getStaleAutomations(host) {
 }
 
 // src/panel/trash.js
-async function loadTrash(host) {
+async function loadTrash(host2) {
   try {
-    host._trash =
-      (await host.hass.callWS({ type: "selora_ai/trash/list" })) || [];
+    host2._trash =
+      (await host2.hass.callWS({ type: "selora_ai/trash/list" })) || [];
   } catch (err) {
-    host._trash = [];
+    host2._trash = [];
   }
 }
-function reloadTab(host, kind) {
-  return kind === "scene" ? host._loadScenes() : host._loadAutomations();
+function reloadTab(host2, kind) {
+  return kind === "scene" ? host2._loadScenes() : host2._loadAutomations();
 }
-async function withBusy(host, item, work) {
-  host._trashBusy = { ...(host._trashBusy || {}), [item.trash_id]: true };
+async function withBusy(host2, item, work) {
+  host2._trashBusy = { ...(host2._trashBusy || {}), [item.trash_id]: true };
   try {
     await work();
   } finally {
-    host._trashBusy = { ...host._trashBusy, [item.trash_id]: false };
+    host2._trashBusy = { ...host2._trashBusy, [item.trash_id]: false };
   }
 }
-async function restore(host, item) {
+async function restore(host2, item) {
   const values = { name: item.name };
-  await withBusy(host, item, async () => {
+  await withBusy(host2, item, async () => {
     try {
-      await host.hass.callWS({
+      await host2.hass.callWS({
         type: "selora_ai/trash/restore",
         trash_id: item.trash_id,
       });
-      host._restoredTrash = /* @__PURE__ */ new Set([
-        ...(host._restoredTrash || []),
+      host2._restoredTrash = /* @__PURE__ */ new Set([
+        ...(host2._restoredTrash || []),
         item.trash_id,
       ]);
-      host._showToast(
+      host2._showToast(
         interpolate(
-          host._t("trash_restored", "Restored \u201C{name}\u201D."),
+          host2._t("trash_restored", "Restored \u201C{name}\u201D."),
           values,
         ),
         "success",
       );
     } catch (err) {
-      host._showToast(
+      host2._showToast(
         err?.code === "in_use"
           ? interpolate(
-              host._t(
+              host2._t(
                 "trash_restore_in_use",
                 "Couldn't restore \u201C{name}\u201D: another one now uses its id.",
               ),
               values,
             )
           : interpolate(
-              host._t(
+              host2._t(
                 "trash_restore_failed",
                 "Couldn't restore \u201C{name}\u201D: {error}",
               ),
@@ -39029,15 +38506,15 @@ async function restore(host, item) {
         "error",
       );
     }
-    await reloadTab(host, item.kind);
+    await reloadTab(host2, item.kind);
   });
 }
-async function deleteForever(host, item) {
+async function deleteForever(host2, item) {
   const values = { name: item.name };
   if (
     !confirm(
       interpolate(
-        host._t(
+        host2._t(
           "trash_delete_forever_confirm",
           "Delete \u201C{name}\u201D for good? This can't be undone.",
         ),
@@ -39046,16 +38523,16 @@ async function deleteForever(host, item) {
     )
   )
     return;
-  await withBusy(host, item, async () => {
+  await withBusy(host2, item, async () => {
     try {
-      await host.hass.callWS({
+      await host2.hass.callWS({
         type: "selora_ai/trash/delete",
         trash_id: item.trash_id,
       });
     } catch (err) {
-      host._showToast(
+      host2._showToast(
         interpolate(
-          host._t(
+          host2._t(
             "trash_delete_failed",
             "Couldn't delete \u201C{name}\u201D: {error}",
           ),
@@ -39064,24 +38541,24 @@ async function deleteForever(host, item) {
         "error",
       );
     }
-    await loadTrash(host);
+    await loadTrash(host2);
   });
 }
-function formatDate2(host, iso) {
+function formatDate2(host2, iso) {
   try {
     return new Date(iso).toLocaleDateString(
-      host.hass?.locale?.language || host.hass?.language || void 0,
+      host2.hass?.locale?.language || host2.hass?.language || void 0,
       { day: "numeric", month: "short" },
     );
   } catch {
     return iso.slice(0, 10);
   }
 }
-function trashItems(host, kind) {
-  return (host._trash || []).filter((i8) => i8.kind === kind);
+function trashItems(host2, kind) {
+  return (host2._trash || []).filter((i8) => i8.kind === kind);
 }
-function renderTrashTab(host, kind, active, onSelect) {
-  const count = trashItems(host, kind).length;
+function renderTrashTab(host2, kind, active, onSelect) {
+  const count = trashItems(host2, kind).length;
   if (!count) return "";
   return b2`<button
     role="tab"
@@ -39093,39 +38570,39 @@ function renderTrashTab(host, kind, active, onSelect) {
       icon="mdi:delete-clock-outline"
       style="--mdc-icon-size:14px;display:block;"
     ></ha-icon>
-    <span>${host._t("trash_heading", "Recently deleted")} (${count})</span>
+    <span>${host2._t("trash_heading", "Recently deleted")} (${count})</span>
   </button>`;
 }
-function renderTrashList(host, kind) {
-  const busy = host._trashBusy || {};
+function renderTrashList(host2, kind) {
+  const busy = host2._trashBusy || {};
   return b2`
     <div class="automations-list">
-      ${trashItems(host, kind).map(
+      ${trashItems(host2, kind).map(
         (item) => b2`
           <div class="trash-row">
             <div class="trash-row-text">
               <div class="trash-name">${item.name}</div>
               <div class="trash-meta">
                 ${interpolate(
-                  host._t("trash_kept_until", "Kept until {date}"),
-                  { date: formatDate2(host, item.expires_at) },
+                  host2._t("trash_kept_until", "Kept until {date}"),
+                  { date: formatDate2(host2, item.expires_at) },
                 )}
               </div>
             </div>
             <button
               class="btn btn-outline btn-sm"
               ?disabled=${busy[item.trash_id]}
-              @click=${() => restore(host, item)}
+              @click=${() => restore(host2, item)}
             >
               <ha-icon icon="mdi:restore"></ha-icon>
-              ${host._t("trash_restore", "Restore")}
+              ${host2._t("trash_restore", "Restore")}
             </button>
             <button
               class="trash-forever"
-              title=${host._t("trash_delete_forever", "Delete forever")}
-              aria-label=${host._t("trash_delete_forever", "Delete forever")}
+              title=${host2._t("trash_delete_forever", "Delete forever")}
+              aria-label=${host2._t("trash_delete_forever", "Delete forever")}
               ?disabled=${busy[item.trash_id]}
-              @click=${() => deleteForever(host, item)}
+              @click=${() => deleteForever(host2, item)}
             >
               <ha-icon icon="mdi:delete-forever-outline"></ha-icon>
             </button>
@@ -39137,8 +38614,8 @@ function renderTrashList(host, kind) {
 }
 
 // src/panel/render-automations.js
-function renderFlowEntityLink(host, entityId) {
-  const stateObj = host.hass?.states?.[entityId];
+function renderFlowEntityLink(host2, entityId) {
+  const stateObj = host2.hass?.states?.[entityId];
   const friendly = stateObj?.attributes?.friendly_name || entityId;
   const icon =
     stateObj?.attributes?.icon ||
@@ -39150,7 +38627,7 @@ function renderFlowEntityLink(host, entityId) {
     title=${`Open ${friendly} (${entityId})`}
     @click=${(e6) => {
       e6.stopPropagation();
-      host.dispatchEvent(
+      host2.dispatchEvent(
         new CustomEvent("hass-more-info", {
           bubbles: true,
           composed: true,
@@ -39162,7 +38639,7 @@ function renderFlowEntityLink(host, entityId) {
     <ha-icon icon=${icon}></ha-icon><span>${friendly}</span>
   </button>`;
 }
-function renderFlowDeviceLink(host, deviceId, name, domain) {
+function renderFlowDeviceLink(host2, deviceId, name, domain) {
   const icon = (domain && DOMAIN_ICONS3[domain]) || "mdi:devices";
   return b2`<button
     type="button"
@@ -39203,15 +38680,15 @@ function splitDurations(text) {
   if (last < text.length) out.push(text.slice(last));
   return out;
 }
-function renderFlowDescription(host, item, ctx) {
-  const description = describeFlowItem(host.hass, item, ctx);
+function renderFlowDescription(host2, item, ctx) {
+  const description = describeFlowItem(host2.hass, item, ctx);
   if (!description) return b2`${description}`;
   const lookups = [
     ...collectFlowEntityIds(item).map((eid) => ({
-      name: fmtEntity(host.hass, eid),
+      name: fmtEntity(host2.hass, eid),
       link: { entity: eid },
     })),
-    ...collectFlowDeviceRefs(host.hass, item).map((d3) => ({
+    ...collectFlowDeviceRefs(host2.hass, item).map((d3) => ({
       name: d3.name,
       link: { device: d3 },
     })),
@@ -39264,30 +38741,30 @@ function renderFlowDescription(host, item, ctx) {
   }
   return b2`${final.map((s6) => {
     if (typeof s6 === "string") return s6;
-    if (s6.link?.entity) return renderFlowEntityLink(host, s6.link.entity);
+    if (s6.link?.entity) return renderFlowEntityLink(host2, s6.link.entity);
     if (s6.link?.device) {
       const d3 = s6.link.device;
-      return renderFlowDeviceLink(host, d3.deviceId, d3.name, d3.domain);
+      return renderFlowDeviceLink(host2, d3.deviceId, d3.name, d3.domain);
     }
     if (s6.duration) return renderFlowDuration(s6.duration);
     return "";
   })}`;
 }
-function renderFlowNode(host, item, kind, ctx) {
+function renderFlowNode(host2, item, kind, ctx) {
   const off = item?.enabled === false;
   const tag = off
     ? b2`<span class="flow-off-tag"
-        >${host._t("automations_flow_disabled", "disabled")}</span
+        >${host2._t("automations_flow_disabled", "disabled")}</span
       >`
     : "";
   const onEdit = ctx?.onEditStep;
   if (onEdit) {
-    const edit = () => onEdit(describeFlowItem(host.hass, item, ctx));
+    const edit = () => onEdit(describeFlowItem(host2.hass, item, ctx));
     return b2`<div
       class="flow-node ${kind}-node flow-node--editable ${off ? "flow-node--off" : ""}"
       role="button"
       tabindex="0"
-      title=${host._t("refine_edit_step_tooltip", "Change this step")}
+      title=${host2._t("refine_edit_step_tooltip", "Change this step")}
       @click=${edit}
       @keydown=${(e6) => {
         if (e6.target !== e6.currentTarget) return;
@@ -39296,7 +38773,7 @@ function renderFlowNode(host, item, kind, ctx) {
         edit();
       }}
     >
-      ${renderFlowDescription(host, item, ctx)}${tag}<ha-icon
+      ${renderFlowDescription(host2, item, ctx)}${tag}<ha-icon
         class="flow-node-edit"
         icon="mdi:pencil-outline"
         aria-hidden="true"
@@ -39306,10 +38783,10 @@ function renderFlowNode(host, item, kind, ctx) {
   return b2`<div
     class="flow-node ${kind}-node ${off ? "flow-node--off" : ""}"
   >
-    ${renderFlowDescription(host, item, ctx)}${tag}
+    ${renderFlowDescription(host2, item, ctx)}${tag}
   </div>`;
 }
-function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
+function renderConditionItem(host2, rawCond, ctx, implicitAll = true) {
   if (
     rawCond &&
     typeof rawCond === "object" &&
@@ -39320,8 +38797,8 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
   ) {
     const { enabled: _drop, ...rest } = rawCond;
     return renderOffWrap(
-      host,
-      renderConditionItem(host, rest, ctx, implicitAll),
+      host2,
+      renderConditionItem(host2, rest, ctx, implicitAll),
     );
   }
   const cond = normalizeCondition(rawCond);
@@ -39329,12 +38806,12 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
     const type = cond.condition;
     if (type === "and") {
       const children = asArray(cond.conditions).map((c6) =>
-        renderConditionItem(host, c6, ctx, true),
+        renderConditionItem(host2, c6, ctx, true),
       );
       if (implicitAll) return b2`${children}`;
       return b2`<div class="flow-branch">
         <div class="flow-branch-label">
-          ${host._t("automations_flow_group_all_of", "All of the following:")}
+          ${host2._t("automations_flow_group_all_of", "All of the following:")}
         </div>
         ${children}
       </div>`;
@@ -39342,27 +38819,30 @@ function renderConditionItem(host, rawCond, ctx, implicitAll = true) {
     if (type === "or" || type === "not") {
       const label =
         type === "or"
-          ? host._t("automations_flow_group_any_of", "Any of the following:")
-          : host._t("automations_flow_group_none_of", "None of the following:");
+          ? host2._t("automations_flow_group_any_of", "Any of the following:")
+          : host2._t(
+              "automations_flow_group_none_of",
+              "None of the following:",
+            );
       return b2`<div class="flow-branch">
         <div class="flow-branch-label">${label}</div>
         ${asArray(cond.conditions).map((c6) =>
-          renderConditionItem(host, c6, ctx, false),
+          renderConditionItem(host2, c6, ctx, false),
         )}
       </div>`;
     }
   }
-  return renderFlowNode(host, cond, "condition", ctx);
+  return renderFlowNode(host2, cond, "condition", ctx);
 }
-function renderOffWrap(host, inner) {
+function renderOffWrap(host2, inner) {
   return b2`<div class="flow-off-wrap">
     <div class="flow-off-wrap-label">
-      ${host._t("automations_flow_disabled_block", "Disabled \u2014 does not run")}
+      ${host2._t("automations_flow_disabled_block", "Disabled \u2014 does not run")}
     </div>
     ${inner}
   </div>`;
 }
-function renderActionItem(host, action, ctx) {
+function renderActionItem(host2, action, ctx) {
   if (
     action &&
     typeof action === "object" &&
@@ -39370,9 +38850,9 @@ function renderActionItem(host, action, ctx) {
     _isBlockAction(action)
   ) {
     const { enabled: _drop, ...rest } = action;
-    return renderOffWrap(host, renderActionItem(host, rest, ctx));
+    return renderOffWrap(host2, renderActionItem(host2, rest, ctx));
   }
-  return renderActionItemBody(host, action, ctx);
+  return renderActionItemBody(host2, action, ctx);
 }
 function _isBlockAction(action) {
   return (
@@ -39383,7 +38863,7 @@ function _isBlockAction(action) {
     action.repeat != null
   );
 }
-function renderActionItemBody(host, action, ctx) {
+function renderActionItemBody(host2, action, ctx) {
   if (action && typeof action === "object" && action.if != null) {
     const elseSteps = asArray(action.else);
     const ifConds = asArray(action.if);
@@ -39391,9 +38871,9 @@ function renderActionItemBody(host, action, ctx) {
     return b2`<div class="flow-choose">
       <div class="flow-branch">
         <div class="flow-branch-label">
-          ${host._t("automations_flow_branch_if", "If")}
+          ${host2._t("automations_flow_branch_if", "If")}
         </div>
-        ${ifConds.map((c6) => renderConditionItem(host, c6, ctx))}
+        ${ifConds.map((c6) => renderConditionItem(host2, c6, ctx))}
         ${
           // An arrow only means something with a step on each side; an empty
           // `then` otherwise left it dangling into nothing.
@@ -39401,15 +38881,15 @@ function renderActionItemBody(host, action, ctx) {
             ? b2`<div class="flow-arrow-sm">↓</div>`
             : ""
         }
-        ${thenSteps.map((s6) => renderActionItem(host, s6, ctx))}
+        ${thenSteps.map((s6) => renderActionItem(host2, s6, ctx))}
       </div>
       ${
         elseSteps.length
           ? b2`<div class="flow-branch">
               <div class="flow-branch-label">
-                ${host._t("automations_flow_branch_otherwise", "Otherwise")}
+                ${host2._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${elseSteps.map((s6) => renderActionItem(host, s6, ctx))}
+              ${elseSteps.map((s6) => renderActionItem(host2, s6, ctx))}
             </div>`
           : ""
       }
@@ -39421,14 +38901,14 @@ function renderActionItemBody(host, action, ctx) {
         (branch, i8) => b2`
           <div class="flow-branch">
             <div class="flow-branch-label">
-              ${i8 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
+              ${i8 === 0 ? host2._t("automations_flow_branch_if", "If") : host2._t("automations_flow_branch_else_if", "Else if")}
             </div>
             ${asArray(branch?.conditions).map((c6) =>
-              renderConditionItem(host, c6, ctx),
+              renderConditionItem(host2, c6, ctx),
             )}
             ${asArray(branch?.conditions).length && asArray(branch?.sequence).length ? b2`<div class="flow-arrow-sm">↓</div>` : ""}
             ${asArray(branch?.sequence).map((s6) =>
-              renderActionItem(host, s6, ctx),
+              renderActionItem(host2, s6, ctx),
             )}
           </div>
         `,
@@ -39437,9 +38917,9 @@ function renderActionItemBody(host, action, ctx) {
         asArray(action.default).length
           ? b2`<div class="flow-branch">
               <div class="flow-branch-label">
-                ${host._t("automations_flow_branch_otherwise", "Otherwise")}
+                ${host2._t("automations_flow_branch_otherwise", "Otherwise")}
               </div>
-              ${asArray(action.default).map((s6) => renderActionItem(host, s6, ctx))}
+              ${asArray(action.default).map((s6) => renderActionItem(host2, s6, ctx))}
             </div>`
           : ""
       }
@@ -39448,17 +38928,17 @@ function renderActionItemBody(host, action, ctx) {
   if (action && typeof action === "object" && action.parallel != null) {
     return b2`<div class="flow-branch">
       <div class="flow-branch-label">
-        ${host._t("automations_flow_branch_in_parallel", "In parallel")}
+        ${host2._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${asArray(action.parallel).map((s6) => renderActionItem(host, s6, ctx))}
+      ${asArray(action.parallel).map((s6) => renderActionItem(host2, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.sequence != null) {
     return b2`<div class="flow-branch">
       <div class="flow-branch-label">
-        ${host._t("automations_flow_branch_in_sequence", "In sequence")}
+        ${host2._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${asArray(action.sequence).map((s6) => renderActionItem(host, s6, ctx))}
+      ${asArray(action.sequence).map((s6) => renderActionItem(host2, s6, ctx))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -39473,41 +38953,41 @@ function renderActionItemBody(host, action, ctx) {
               ? Number(String(r6.count).trim())
               : null;
         return literal == null
-          ? host._t("automations_flow_repeat", "Repeat")
-          : host
+          ? host2._t("automations_flow_repeat", "Repeat")
+          : host2
               ._t("automations_flow_repeat_count", "Repeat {count}\xD7")
               .replace("{count}", String(literal));
       }
       if (r6.for_each != null)
         return Array.isArray(r6.for_each)
-          ? host
+          ? host2
               ._t(
                 "automations_flow_repeat_for_each",
                 "Repeat for each item ({count})",
               )
               .replace("{count}", String(r6.for_each.length))
-          : host._t(
+          : host2._t(
               "automations_flow_repeat_for_each_dynamic",
               "Repeat for each item",
             );
       if (r6.while)
-        return host._t(
+        return host2._t(
           "automations_flow_repeat_while",
           "Repeat while condition holds",
         );
       if (r6.until)
-        return host._t(
+        return host2._t(
           "automations_flow_repeat_until",
           "Repeat until condition is met",
         );
-      return host._t("automations_flow_repeat", "Repeat");
+      return host2._t("automations_flow_repeat", "Repeat");
     })();
     return b2`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${inner.map((s6) => renderActionItem(host, s6, ctx))}
+      ${inner.map((s6) => renderActionItem(host2, s6, ctx))}
     </div>`;
   }
-  return renderFlowNode(host, action, "action", ctx);
+  return renderFlowNode(host2, action, "action", ctx);
 }
 function renderAutomationIdentity(alias, description, opts = {}) {
   const {
@@ -39571,7 +39051,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     </div>
   `;
 }
-function renderAutomationFlowchart(host, auto, opts = {}) {
+function renderAutomationFlowchart(host2, auto, opts = {}) {
   if (!auto) return b2``;
   const triggers = (() => {
     const t5 = auto.triggers ?? auto.trigger ?? [];
@@ -39596,14 +39076,14 @@ function renderAutomationFlowchart(host, auto, opts = {}) {
               <div class="flow-label">
                 ${
                   shownTriggers.length > 1
-                    ? host._t(
+                    ? host2._t(
                         "automations_flow_label_trigger_any",
                         "Trigger (any of these)",
                       )
-                    : host._t("automations_flow_label_trigger", "Trigger")
+                    : host2._t("automations_flow_label_trigger", "Trigger")
                 }
               </div>
-              ${shownTriggers.map((t5) => renderFlowNode(host, t5, "trigger", ctx))}
+              ${shownTriggers.map((t5) => renderFlowNode(host2, t5, "trigger", ctx))}
             </div>`
           : ""
       }
@@ -39613,9 +39093,9 @@ function renderAutomationFlowchart(host, auto, opts = {}) {
               ${shownTriggers.length ? b2`<div class="flow-arrow">↓</div>` : ""}
               <div class="flow-section flow-section--inline">
                 <div class="flow-label">
-                  ${host._t("automations_flow_label_condition", "Condition")}
+                  ${host2._t("automations_flow_label_condition", "Condition")}
                 </div>
-                ${conditions.map((c6) => renderConditionItem(host, c6, ctx))}
+                ${conditions.map((c6) => renderConditionItem(host2, c6, ctx))}
               </div>
             `
           : ""
@@ -39623,63 +39103,63 @@ function renderAutomationFlowchart(host, auto, opts = {}) {
       ${shownTriggers.length || conditions.length ? b2`<div class="flow-arrow">↓</div>` : ""}
       <div class="flow-section flow-section--stacked">
         <div class="flow-label">
-          ${host._t("automations_flow_label_actions", "Actions")}
+          ${host2._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a3) => renderActionItem(host, a3, ctx))}
+        ${actions.map((a3) => renderActionItem(host2, a3, ctx))}
       </div>
     </div>
   `;
 }
-function renderProposalCard(host, msg, msgIndex) {
+function renderProposalCard(host2, msg, msgIndex) {
   const status = msg.automation_status;
   const automation = msg.automation;
   const yaml = msg.automation_yaml || "";
   const risk = msg.risk_assessment || automation?.risk_assessment || null;
   const scrutinyTags = risk?.scrutiny_tags || [];
   if (status === "saved") {
-    const isEnabled = _savedIsEnabled(host, msg);
+    const isEnabled = _savedIsEnabled(host2, msg);
     const yamlKey2 = `saved_${msgIndex}`;
-    const yamlOpen2 = host._yamlOpen && host._yamlOpen[msgIndex];
-    const changes = savedDiff(host, msgIndex);
+    const yamlOpen2 = host2._yamlOpen && host2._yamlOpen[msgIndex];
+    const changes = savedDiff(host2, msgIndex);
     return b2`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(automation.alias, msg.description, {
             badge: isEnabled
-              ? host._t("automations_badge_enabled", "Enabled")
-              : host._t("automations_badge_saved", "Saved"),
+              ? host2._t("automations_badge_enabled", "Enabled")
+              : host2._t("automations_badge_saved", "Saved"),
             badgeCheck: true,
             badgeCheckAnimate:
-              !!msg.automation_id && host._justCreatedId === msg.automation_id,
+              !!msg.automation_id && host2._justCreatedId === msg.automation_id,
           })}
         </div>
         <div class="automation-subcard-body">
-          ${renderAutomationFlowchart(host, automation)}
+          ${renderAutomationFlowchart(host2, automation)}
           ${
             yaml
               ? b2`
                   <div
                     class="yaml-toggle"
                     style="margin-top:12px;"
-                    @click=${() => toggleYaml(host, msgIndex)}
+                    @click=${() => toggleYaml(host2, msgIndex)}
                   >
                     <ha-icon
                       icon="mdi:code-braces"
                       style="--mdc-icon-size:14px;"
                     ></ha-icon>
-                    ${yamlOpen2 ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_view", "View YAML")}
+                    ${yamlOpen2 ? host2._t("automations_yaml_toggle_hide", "Hide YAML") : host2._t("automations_yaml_toggle_view", "View YAML")}
                   </div>
                   ${
                     yamlOpen2
                       ? b2`<div style="margin-top:6px;">
-                          ${host._renderYamlEditor(yamlKey2, yaml, null, {
+                          ${host2._renderYamlEditor(yamlKey2, yaml, null, {
                             readOnly: true,
                           })}
                         </div>`
                       : ""
                   }
-                  ${renderProposalDiffToggle(host, msgIndex, changes)}
-                  ${renderProposalDiffPanel(host, msgIndex, changes)}
+                  ${renderProposalDiffToggle(host2, msgIndex, changes)}
+                  ${renderProposalDiffPanel(host2, msgIndex, changes)}
                 `
               : ""
           }
@@ -39692,7 +39172,7 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-          ${host._t(
+          ${host2._t(
             "automations_proposal_declined_title",
             "Automation Declined",
           )}
@@ -39700,7 +39180,7 @@ function renderProposalCard(host, msg, msgIndex) {
         <div class="proposal-body">
           <div class="proposal-name">${automation.alias}</div>
           <div class="proposal-status declined">
-            ${host._t(
+            ${host2._t(
               "automations_proposal_declined_body",
               "Dismissed. You can refine it by replying below.",
             )}
@@ -39710,9 +39190,12 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    const editing = activeRefinement(host._messages)?.index === msgIndex;
+    const editing = activeRefinement(host2._messages)?.index === msgIndex;
     const flowOpts = editing
-      ? { onEditStep: (step) => prefillComposer(host, stepPrefill(host, step)) }
+      ? {
+          onEditStep: (step) =>
+            prefillComposer(host2, stepPrefill(host2, step)),
+        }
       : {};
     return b2`
       <div class="automation-subcard">
@@ -39721,7 +39204,7 @@ function renderProposalCard(host, msg, msgIndex) {
             automation.alias,
             msg.description || automation.description,
             {
-              badge: host._t(
+              badge: host2._t(
                 "automations_badge_current_version",
                 "Current version",
               ),
@@ -39729,7 +39212,7 @@ function renderProposalCard(host, msg, msgIndex) {
           )}
         </div>
         <div class="automation-subcard-body">
-          ${renderAutomationFlowchart(host, automation, flowOpts)}
+          ${renderAutomationFlowchart(host2, automation, flowOpts)}
         </div>
       </div>
     `;
@@ -39739,30 +39222,31 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="automation-subcard" style="opacity:0.55;">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(automation.alias, msg.description, {
-            badge: host._t("automations_badge_superseded", "Replaced"),
+            badge: host2._t("automations_badge_superseded", "Replaced"),
           })}
         </div>
         <div class="automation-subcard-body">
-          ${renderAutomationFlowchart(host, automation)}
+          ${renderAutomationFlowchart(host2, automation)}
         </div>
       </div>
     `;
   }
-  const yamlOpen = host._yamlOpen && host._yamlOpen[msgIndex];
+  const yamlOpen = host2._yamlOpen && host2._yamlOpen[msgIndex];
   const yamlKey = `proposal_${msgIndex}`;
   const hasEdits =
-    host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
-  const revealing = !!(host._revealingProposals || {})[msgIndex];
-  const diff = proposalDiff(host, msgIndex);
+    host2._editedYaml[yamlKey] !== void 0 &&
+    host2._editedYaml[yamlKey] !== yaml;
+  const revealing = !!(host2._revealingProposals || {})[msgIndex];
+  const diff = proposalDiff(host2, msgIndex);
   return b2`
     <div
       class="automation-subcard${revealing ? " revealing" : ""}"
       data-reveal=${msgIndex}
     >
-      ${revealing ? renderRevealParticles(host) : ""}
+      ${revealing ? renderRevealParticles(host2) : ""}
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
-          badge: host._t("automations_badge_proposal", "Proposal"),
+          badge: host2._t("automations_badge_proposal", "Proposal"),
         })}
       </div>
       <div class="automation-subcard-body">
@@ -39776,7 +39260,7 @@ function renderProposalCard(host, msg, msgIndex) {
                   <ha-icon icon="mdi:alert-outline"></ha-icon>
                   <div>
                     <strong
-                      >${host._t(
+                      >${host2._t(
                         "automations_proposal_elevated_risk",
                         "Elevated risk review recommended.",
                       )}</strong
@@ -39794,31 +39278,31 @@ function renderProposalCard(host, msg, msgIndex) {
               `
             : ""
         }
-        ${renderAutomationFlowchart(host, automation)}
+        ${renderAutomationFlowchart(host2, automation)}
       </div>
       <!-- Third section, ruled off from the flow above it: the card's own
            controls, with whatever they open unfolding beneath them. -->
       <div class="automation-subcard-footer">
         <div class="subcard-actions">
-          ${renderProposalDiffToggle(host, msgIndex, diff)}
+          ${renderProposalDiffToggle(host2, msgIndex, diff)}
           <button
             type="button"
             class="subcard-action-link ${yamlOpen ? "active" : ""}"
-            @click=${() => toggleYaml(host, msgIndex)}
+            @click=${() => toggleYaml(host2, msgIndex)}
           >
             <ha-icon icon="mdi:code-braces"></ha-icon>
-            ${yamlOpen ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_edit", "Edit YAML")}
+            ${yamlOpen ? host2._t("automations_yaml_toggle_hide", "Hide YAML") : host2._t("automations_yaml_toggle_edit", "Edit YAML")}
           </button>
         </div>
-        ${renderProposalDiffPanel(host, msgIndex, diff)}
+        ${renderProposalDiffPanel(host2, msgIndex, diff)}
         ${
           yamlOpen
             ? b2`<div class="proposal-yaml-panel" data-yaml-panel=${msgIndex}>
-                ${host._renderYamlEditor(yamlKey, yaml)}
+                ${host2._renderYamlEditor(yamlKey, yaml)}
                 ${
                   hasEdits
                     ? b2`<div class="proposal-verify">
-                        ${host._t(
+                        ${host2._t(
                           "automations_proposal_yaml_edits_note",
                           "Your YAML edits will be used when you accept.",
                         )}
@@ -39832,15 +39316,15 @@ function renderProposalCard(host, msg, msgIndex) {
     </div>
   `;
 }
-function _savedIsEnabled(host, msg) {
+function _savedIsEnabled(host2, msg) {
   const savedAutomationId = msg.automation_id || null;
   if (!savedAutomationId) return false;
-  const created = (host._automations || []).find(
+  const created = (host2._automations || []).find(
     (a3) => a3.automation_id === savedAutomationId,
   );
-  return created ? host._automationIsEnabled(created) : false;
+  return created ? host2._automationIsEnabled(created) : false;
 }
-function renderProposalActions(host, msg, msgIndex) {
+function renderProposalActions(host2, msg, msgIndex) {
   if (!msg?.automation) return "";
   const status = msg.automation_status;
   const automation = msg.automation;
@@ -39848,40 +39332,40 @@ function renderProposalActions(host, msg, msgIndex) {
   if (status === "saved") {
     const savedAutomationId = msg.automation_id || null;
     const created = savedAutomationId
-      ? (host._automations || []).find(
+      ? (host2._automations || []).find(
           (a3) => a3.automation_id === savedAutomationId,
         )
       : null;
     if (!created) return "";
-    const isEnabled = host._automationIsEnabled(created);
-    const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
+    const isEnabled = host2._automationIsEnabled(created);
+    const toggling = !!(host2._togglingAutomation || {})[savedAutomationId];
     const elevated = risk?.level === "elevated";
     if (isEnabled) {
-      const justCreated = host._justCreatedId === savedAutomationId;
+      const justCreated = host2._justCreatedId === savedAutomationId;
       return b2`<div
         class="qa-group automation-card-actions${justCreated ? " pop-in-children" : ""}"
       >
         ${renderActionButton({
-          label: (host._runningAutomation || {})[savedAutomationId]
-            ? host._t("automations_action_running", "Running\u2026")
-            : host._t("automations_action_run_now", "Run now"),
-          title: host._t(
+          label: (host2._runningAutomation || {})[savedAutomationId]
+            ? host2._t("automations_action_running", "Running\u2026")
+            : host2._t("automations_action_run_now", "Run now"),
+          title: host2._t(
             "automations_action_run_tooltip",
             "Trigger the actions now to verify they work",
           ),
           mark: "mdi:play",
-          disabled: !!(host._runningAutomation || {})[savedAutomationId],
+          disabled: !!(host2._runningAutomation || {})[savedAutomationId],
           onClick: () =>
-            host._runAutomation(created.entity_id, savedAutomationId),
+            host2._runAutomation(created.entity_id, savedAutomationId),
         })}
         ${renderActionButton({
-          label: host._t("automations_action_view_in_ha", "View in HA"),
-          title: host._t(
+          label: host2._t("automations_action_view_in_ha", "View in HA"),
+          title: host2._t(
             "automations_action_open_in_ha_tooltip",
             "Open this automation in Home Assistant",
           ),
           mark: "mdi:open-in-new",
-          onClick: () => host._openAutomationInHA(savedAutomationId),
+          onClick: () => host2._openAutomationInHA(savedAutomationId),
         })}
       </div>`;
     }
@@ -39889,13 +39373,13 @@ function renderProposalActions(host, msg, msgIndex) {
       return b2`
         <div class="qa-group automation-card-actions">
           ${renderActionButton({
-            label: host._t("automations_action_fix_in_ha", "Fix in HA"),
-            title: host._t(
+            label: host2._t("automations_action_fix_in_ha", "Fix in HA"),
+            title: host2._t(
               "automations_action_open_in_ha_tooltip",
               "Open this automation in Home Assistant",
             ),
             mark: "mdi:wrench",
-            onClick: () => host._openAutomationInHA(savedAutomationId),
+            onClick: () => host2._openAutomationInHA(savedAutomationId),
           })}
         </div>
         <p class="automation-workflow-note elevated">
@@ -39903,7 +39387,7 @@ function renderProposalActions(host, msg, msgIndex) {
             icon="mdi:alert-circle-outline"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          ${host._t(
+          ${host2._t(
             "automations_unavailable_note",
             "Home Assistant could not set this automation up, so it is not running. Check its error in Settings \u2192 Automations.",
           )}
@@ -39915,7 +39399,7 @@ function renderProposalActions(host, msg, msgIndex) {
         <button
           class="btn btn-success"
           ?disabled=${toggling}
-          @click=${() => host._enableSavedAutomation(created.entity_id, savedAutomationId)}
+          @click=${() => host2._enableSavedAutomation(created.entity_id, savedAutomationId)}
         >
           <ha-icon
             icon=${toggling ? "mdi:loading" : "mdi:toggle-switch-outline"}
@@ -39923,8 +39407,8 @@ function renderProposalActions(host, msg, msgIndex) {
           ></ha-icon>
           ${
             toggling
-              ? host._t("automations_action_enabling", "Enabling\u2026")
-              : host._t(
+              ? host2._t("automations_action_enabling", "Enabling\u2026")
+              : host2._t(
                   "automations_action_enable_automation",
                   "Enable automation",
                 )
@@ -39938,7 +39422,7 @@ function renderProposalActions(host, msg, msgIndex) {
                 icon="mdi:shield-alert-outline"
                 style="--mdc-icon-size:14px;"
               ></ha-icon>
-              ${host._t(
+              ${host2._t(
                 "automations_elevated_risk_note",
                 "Uses elevated-risk actions \u2014 review the flow and YAML before enabling.",
               )}
@@ -39952,26 +39436,26 @@ function renderProposalActions(host, msg, msgIndex) {
   }
   const yamlKey = `proposal_${msgIndex}`;
   return b2`<div
-    class="automation-card-actions ${(host._acceptAnimating || {})[msgIndex] ? "exiting" : ""}"
+    class="automation-card-actions ${(host2._acceptAnimating || {})[msgIndex] ? "exiting" : ""}"
   >
     <button
       class="btn btn-success"
-      ?disabled=${(host._acceptAnimating || {})[msgIndex]}
-      @click=${() => host._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
+      ?disabled=${(host2._acceptAnimating || {})[msgIndex]}
+      @click=${() => host2._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
     >
       <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-      ${host._t("automations_action_accept_and_save", "Accept & Save")}
+      ${host2._t("automations_action_accept_and_save", "Accept & Save")}
     </button>
   </div>`;
 }
-function toggleYaml(host, msgIndex) {
-  const opening = !(host._yamlOpen || {})[msgIndex];
-  host._yamlOpen = {
-    ...(host._yamlOpen || {}),
+function toggleYaml(host2, msgIndex) {
+  const opening = !(host2._yamlOpen || {})[msgIndex];
+  host2._yamlOpen = {
+    ...(host2._yamlOpen || {}),
     [msgIndex]: opening,
   };
-  host.requestUpdate();
-  if (opening) revealPanel(host, `[data-yaml-panel="${msgIndex}"]`);
+  host2.requestUpdate();
+  if (opening) revealPanel(host2, `[data-yaml-panel="${msgIndex}"]`);
 }
 function masonryColumns(cards, cols = 3, firstColFooter = null) {
   const w2 = window.innerWidth;
@@ -39984,25 +39468,25 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
       </div>`,
   );
 }
-function renderAutomations(host) {
-  const terms = searchTerms(host._automationFilter || "");
-  const deletedCount = trashItems(host, "automation").length;
-  let statusFilter = host._statusFilter || "all";
+function renderAutomations(host2) {
+  const terms = searchTerms(host2._automationFilter || "");
+  const deletedCount = trashItems(host2, "automation").length;
+  let statusFilter = host2._statusFilter || "all";
   if (statusFilter === "deleted" && !deletedCount) statusFilter = "all";
-  if (!host._automations.length && deletedCount) statusFilter = "deleted";
+  if (!host2._automations.length && deletedCount) statusFilter = "deleted";
   const showDeleted = statusFilter === "deleted";
-  const sortBy = host._sortBy || "recent";
-  const sortDir = host._sortDir || "desc";
-  let filteredAutomations = [...host._automations];
-  const staleList = getStaleAutomations(host);
+  const sortBy = host2._sortBy || "recent";
+  const sortDir = host2._sortDir || "desc";
+  let filteredAutomations = [...host2._automations];
+  const staleList = getStaleAutomations(host2);
   const staleSet = new Set(staleList.map((a3) => a3.automation_id));
   if (statusFilter === "enabled") {
     filteredAutomations = filteredAutomations.filter((a3) =>
-      host._automationIsEnabled(a3),
+      host2._automationIsEnabled(a3),
     );
   } else if (statusFilter === "disabled") {
     filteredAutomations = filteredAutomations.filter(
-      (a3) => !host._automationIsEnabled(a3),
+      (a3) => !host2._automationIsEnabled(a3),
     );
   } else if (statusFilter === "stale") {
     filteredAutomations = filteredAutomations.filter((a3) =>
@@ -40013,7 +39497,7 @@ function renderAutomations(host) {
   }
   const matchReasons = /* @__PURE__ */ new Map();
   if (terms.length) {
-    const reg = host._searchRegistry();
+    const reg = host2._searchRegistry();
     filteredAutomations = filteredAutomations.filter((a3) => {
       const { match, reasons } = matchesSearchFields(
         automationSearchFields(a3, reg),
@@ -40040,20 +39524,20 @@ function renderAutomations(host) {
     );
   } else if (sortBy === "enabled_first") {
     filteredAutomations.sort((a3, b3) => {
-      const aOn = host._automationIsEnabled(a3) ? 0 : 1;
-      const bOn = host._automationIsEnabled(b3) ? 0 : 1;
+      const aOn = host2._automationIsEnabled(a3) ? 0 : 1;
+      const bOn = host2._automationIsEnabled(b3) ? 0 : 1;
       return aOn - bOn;
     });
   }
   if (sortDir !== naturalDir[sortBy]) {
     filteredAutomations.reverse();
   }
-  const perPage = host._autosPerPage || 10;
+  const perPage = host2._autosPerPage || 10;
   const totalAutoPages = Math.max(
     1,
     Math.ceil(filteredAutomations.length / perPage),
   );
-  const safeAutoPage = Math.min(host._automationsPage, totalAutoPages);
+  const safeAutoPage = Math.min(host2._automationsPage, totalAutoPages);
   const pagedAutomations = filteredAutomations.slice(
     (safeAutoPage - 1) * perPage,
     safeAutoPage * perPage,
@@ -40062,9 +39546,9 @@ function renderAutomations(host) {
     (a3) => a3.automation_id,
   );
   const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
-  const selectedIds = host._getSelectedAutomationIds();
+  const selectedIds = host2._getSelectedAutomationIds();
   const selectedVisibleCount = selectableIds.filter(
-    (id) => host._selectedAutomationIds[id],
+    (id) => host2._selectedAutomationIds[id],
   ).length;
   const allVisibleSelected =
     selectableIds.length > 0 && selectedVisibleCount === selectableIds.length;
@@ -40074,34 +39558,34 @@ function renderAutomations(host) {
     0,
     selectedIds.length - selectedVisibleCount,
   );
-  const bulkDisabled = selectedIds.length === 0 || host._bulkActionInProgress;
+  const bulkDisabled = selectedIds.length === 0 || host2._bulkActionInProgress;
   return b2`
-    <div class="scroll-view" @click=${() => host._closeBurgerMenus()}>
+    <div class="scroll-view" @click=${() => host2._closeBurgerMenus()}>
       <div class="page-root">
         <div class="page-header">
           <h1 class="page-h1">
-            ${host._t("automations_page_title", "Automations")}
+            ${host2._t("automations_page_title", "Automations")}
           </h1>
           ${
-            host._automations.length > 0
+            host2._automations.length > 0
               ? b2`<button
                   class="filter-row-action"
-                  ?disabled=${host._llmNeedsSetup}
+                  ?disabled=${host2._llmNeedsSetup}
                   title=${
-                    host._llmNeedsSetup
-                      ? host._t(
+                    host2._llmNeedsSetup
+                      ? host2._t(
                           "automations_llm_setup_required_tooltip",
                           "Configure an LLM provider first",
                         )
                       : ""
                   }
-                  @click=${() => host._startNewAutomationChat()}
+                  @click=${() => host2._startNewAutomationChat()}
                 >
                   <ha-icon
                     icon="mdi:plus"
                     style="--mdc-icon-size:13px;"
                   ></ha-icon>
-                  ${host._t(
+                  ${host2._t(
                     "automations_new_automation_button",
                     "New Automation",
                   )}
@@ -40109,12 +39593,12 @@ function renderAutomations(host) {
               : ""
           }
         </div>
-        ${renderSuggestionsSection(host)}
+        ${renderSuggestionsSection(host2)}
         <div class="page-section-title">
-          ${host._t("automations_section_title", "Your Automations")}
+          ${host2._t("automations_section_title", "Your Automations")}
         </div>
         ${
-          host._automations.length > 0 || deletedCount > 0
+          host2._automations.length > 0 || deletedCount > 0
             ? b2`
                 <div class="filter-tabs-row" style="margin-top:12px;">
                   <div class="filter-tabs" role="tablist">
@@ -40125,11 +39609,11 @@ function renderAutomations(host) {
                           aria-selected=${statusFilter === s6}
                           class="filter-tab ${statusFilter === s6 ? "active" : ""}"
                           @click=${() => {
-                            host._statusFilter = s6;
-                            host._automationsPage = 1;
+                            host2._statusFilter = s6;
+                            host2._automationsPage = 1;
                           }}
                         >
-                          ${host._t(
+                          ${host2._t(
                             `automations_status_tab_${s6}`,
                             s6.charAt(0).toUpperCase() + s6.slice(1),
                           )}
@@ -40142,10 +39626,10 @@ function renderAutomations(host) {
                             role="tab"
                             aria-selected=${statusFilter === "stale"}
                             class="filter-tab ${statusFilter === "stale" ? "active" : ""}"
-                            title=${staleTooltip(host)}
+                            title=${staleTooltip(host2)}
                             @click=${() => {
-                              host._statusFilter = "stale";
-                              host._automationsPage = 1;
+                              host2._statusFilter = "stale";
+                              host2._automationsPage = 1;
                             }}
                           >
                             <ha-icon
@@ -40153,35 +39637,35 @@ function renderAutomations(host) {
                               style="--mdc-icon-size:14px;color:#f59e0b;display:block;"
                             ></ha-icon>
                             <span
-                              >${host._t("automations_status_tab_stale", "Stale")}
+                              >${host2._t("automations_status_tab_stale", "Stale")}
                               (${staleSet.size})</span
                             >
                           </button>`
                         : ""
                     }
-                    ${renderTrashTab(host, "automation", showDeleted, () => {
-                      host._statusFilter = "deleted";
-                      host._automationsPage = 1;
+                    ${renderTrashTab(host2, "automation", showDeleted, () => {
+                      host2._statusFilter = "deleted";
+                      host2._automationsPage = 1;
                     })}
                   </div>
                   <div class="filter-tabs-actions">
                     ${
-                      host._bulkEditMode
+                      host2._bulkEditMode
                         ? b2`
                             <label class="bulk-select-all">
                               <input
                                 type="checkbox"
                                 ?checked=${allVisibleSelected}
                                 .indeterminate=${partiallyVisibleSelected}
-                                ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
+                                ?disabled=${selectableIds.length === 0 || host2._bulkActionInProgress}
                                 @change=${(e6) =>
-                                  host._toggleSelectAllFiltered(
+                                  host2._toggleSelectAllFiltered(
                                     filteredAutomations,
                                     e6.target.checked,
                                   )}
                               />
                               <span
-                                >${host._t(
+                                >${host2._t(
                                   "automations_bulk_select_all",
                                   "Select all",
                                 )}</span
@@ -40190,25 +39674,25 @@ function renderAutomations(host) {
                             <button
                               class="filter-row-secondary"
                               @click=${() => {
-                                host._bulkEditMode = false;
-                                host._clearAutomationSelection();
+                                host2._bulkEditMode = false;
+                                host2._clearAutomationSelection();
                               }}
                             >
-                              ${host._t("automations_bulk_done", "Done")}
+                              ${host2._t("automations_bulk_done", "Done")}
                             </button>
                           `
                         : b2`
                             <button
                               class="filter-row-secondary"
                               @click=${() => {
-                                host._bulkEditMode = true;
+                                host2._bulkEditMode = true;
                               }}
                             >
                               <ha-icon
                                 icon="mdi:checkbox-multiple-outline"
                                 style="--mdc-icon-size:14px;"
                               ></ha-icon>
-                              ${host._t("automations_bulk_edit", "Bulk edit")}
+                              ${host2._t("automations_bulk_edit", "Bulk edit")}
                             </button>
                           `
                     }
@@ -40219,25 +39703,25 @@ function renderAutomations(host) {
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input
                       type="text"
-                      placeholder=${host._t(
+                      placeholder=${host2._t(
                         "automations_filter_placeholder",
                         "Search automations, devices, areas\u2026",
                       )}
-                      .value=${host._automationFilter}
+                      .value=${host2._automationFilter}
                       @input=${(e6) => {
-                        host._automationFilter = e6.target.value;
-                        host._automationsPage = 1;
-                        host._ensureSearchRegistries();
+                        host2._automationFilter = e6.target.value;
+                        host2._automationsPage = 1;
+                        host2._ensureSearchRegistries();
                       }}
                     />
                     ${
-                      host._automationFilter
+                      host2._automationFilter
                         ? b2`<ha-icon
                             icon="mdi:close-circle"
                             style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                             @click=${() => {
-                              host._automationFilter = "";
-                              host._automationsPage = 1;
+                              host2._automationFilter = "";
+                              host2._automationsPage = 1;
                             }}
                           ></ha-icon>`
                         : ""
@@ -40246,19 +39730,19 @@ function renderAutomations(host) {
                   <div class="sort-group">
                     <select
                       class="sort-select"
-                      .value=${host._sortBy}
+                      .value=${host2._sortBy}
                       @change=${(e6) => {
-                        host._sortBy = e6.target.value;
+                        host2._sortBy = e6.target.value;
                       }}
                     >
                       <option value="recent">
-                        ${host._t("automations_sort_recent", "Recent activity")}
+                        ${host2._t("automations_sort_recent", "Recent activity")}
                       </option>
                       <option value="alpha">
-                        ${host._t("automations_sort_alpha", "Alphabetical")}
+                        ${host2._t("automations_sort_alpha", "Alphabetical")}
                       </option>
                       <option value="enabled_first">
-                        ${host._t(
+                        ${host2._t(
                           "automations_sort_enabled_first",
                           "Enabled first",
                         )}
@@ -40268,7 +39752,7 @@ function renderAutomations(host) {
                       class="sort-dir-toggle"
                       title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
                       @click=${() => {
-                        host._sortDir = sortDir === "desc" ? "asc" : "desc";
+                        host2._sortDir = sortDir === "desc" ? "asc" : "desc";
                       }}
                     >
                       <ha-icon
@@ -40279,7 +39763,7 @@ function renderAutomations(host) {
                   </div>
                 </div>
                 ${
-                  host._bulkEditMode && selectedIds.length > 0
+                  host2._bulkEditMode && selectedIds.length > 0
                     ? b2`
                         <div class="bulk-actions-row">
                           <div class="left">
@@ -40294,11 +39778,11 @@ function renderAutomations(host) {
                                 : ""
                             }
                             ${
-                              host._bulkActionInProgress
+                              host2._bulkActionInProgress
                                 ? b2`<span
                                     style="opacity:0.75;font-weight:500;"
                                   >
-                                    · ${host._bulkActionLabel}</span
+                                    · ${host2._bulkActionLabel}</span
                                   >`
                                 : ""
                             }
@@ -40307,15 +39791,15 @@ function renderAutomations(host) {
                             <button
                               class="btn btn-outline"
                               ?disabled=${bulkDisabled}
-                              @click=${() => host._bulkToggleSelected(true)}
+                              @click=${() => host2._bulkToggleSelected(true)}
                             >
                               ${
-                                host._bulkActionInProgress
-                                  ? host._t(
+                                host2._bulkActionInProgress
+                                  ? host2._t(
                                       "automations_bulk_working",
                                       "Working\u2026",
                                     )
-                                  : host._t(
+                                  : host2._t(
                                       "automations_bulk_enable_all",
                                       "Enable all",
                                     )
@@ -40324,15 +39808,15 @@ function renderAutomations(host) {
                             <button
                               class="btn btn-outline"
                               ?disabled=${bulkDisabled}
-                              @click=${() => host._bulkToggleSelected(false)}
+                              @click=${() => host2._bulkToggleSelected(false)}
                             >
                               ${
-                                host._bulkActionInProgress
-                                  ? host._t(
+                                host2._bulkActionInProgress
+                                  ? host2._t(
                                       "automations_bulk_working",
                                       "Working\u2026",
                                     )
-                                  : host._t(
+                                  : host2._t(
                                       "automations_bulk_disable_all",
                                       "Disable all",
                                     )
@@ -40341,15 +39825,15 @@ function renderAutomations(host) {
                             <button
                               class="btn btn-outline btn-danger"
                               ?disabled=${bulkDisabled}
-                              @click=${() => host._bulkSoftDeleteSelected()}
+                              @click=${() => host2._bulkSoftDeleteSelected()}
                             >
                               ${
-                                host._bulkActionInProgress
-                                  ? host._t(
+                                host2._bulkActionInProgress
+                                  ? host2._t(
                                       "automations_bulk_working",
                                       "Working\u2026",
                                     )
-                                  : host._t(
+                                  : host2._t(
                                       "automations_bulk_delete_selected",
                                       "Delete selected",
                                     )
@@ -40357,44 +39841,44 @@ function renderAutomations(host) {
                             </button>
                             <button
                               class="btn btn-ghost"
-                              ?disabled=${host._bulkActionInProgress}
-                              @click=${() => host._clearAutomationSelection()}
+                              ?disabled=${host2._bulkActionInProgress}
+                              @click=${() => host2._clearAutomationSelection()}
                             >
-                              ${host._t("automations_bulk_clear", "Clear")}
+                              ${host2._t("automations_bulk_clear", "Clear")}
                             </button>
                           </div>
                         </div>
                       `
                     : ""
                 }
-                ${showDeleted ? renderTrashList(host, "automation") : ""}
+                ${showDeleted ? renderTrashList(host2, "automation") : ""}
                 <div class="automations-list" ?hidden=${showDeleted}>
                   ${pagedAutomations.map((a3) => {
-                    const isOn = host._automationIsEnabled(a3);
+                    const isOn = host2._automationIsEnabled(a3);
                     const isUnavailable = a3.state === "unavailable";
                     const automationId = a3.automation_id || "";
                     const hasAutomationId = !!automationId;
                     const versionCount = Math.max(
-                      (host._versions[automationId] || []).length,
+                      (host2._versions[automationId] || []).length,
                       a3.version_count || 0,
                     );
                     const canToggle =
-                      hasAutomationId && !host._bulkActionInProgress;
-                    const deleting = host._deletingAutomation[automationId];
-                    const loadingChat = host._loadingToChat[automationId];
+                      hasAutomationId && !host2._bulkActionInProgress;
+                    const deleting = host2._deletingAutomation[automationId];
+                    const loadingChat = host2._loadingToChat[automationId];
                     const runKey = automationId || a3.entity_id;
-                    const running = !!host._runningAutomation?.[runKey];
-                    const burgerOpen = host._openBurgerMenu === automationId;
-                    const cardExpanded = !!host._cardActiveTab[a3.entity_id];
+                    const running = !!host2._runningAutomation?.[runKey];
+                    const burgerOpen = host2._openBurgerMenu === automationId;
+                    const cardExpanded = !!host2._cardActiveTab[a3.entity_id];
                     const ago = formatTimeAgo(a3.last_triggered);
                     const lastRun = ago
                       ? ago
                       : !isOn
-                        ? host._t("automations_last_run_disabled", "Disabled")
-                        : host._t("automations_last_run_never", "Never");
+                        ? host2._t("automations_last_run_disabled", "Disabled")
+                        : host2._t("automations_last_run_never", "Never");
                     return b2`
                       <div
-                        class="auto-row${cardExpanded ? " expanded" : ""}${!isOn ? " disabled" : ""}${host._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
+                        class="auto-row${cardExpanded ? " expanded" : ""}${!isOn ? " disabled" : ""}${host2._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
                         data-entity-id="${a3.entity_id}"
                       >
                         <div
@@ -40406,10 +39890,10 @@ function renderAutomations(host) {
                               )
                             )
                               return;
-                            const current = host._cardActiveTab[a3.entity_id];
+                            const current = host2._cardActiveTab[a3.entity_id];
                             if (current) {
-                              host._cardActiveTab = {
-                                ...host._cardActiveTab,
+                              host2._cardActiveTab = {
+                                ...host2._cardActiveTab,
                                 [a3.entity_id]: null,
                               };
                             } else {
@@ -40422,24 +39906,24 @@ function renderAutomations(host) {
                                     : hasAutomationId
                                       ? "history"
                                       : null;
-                              host._cardActiveTab = {
-                                ...host._cardActiveTab,
+                              host2._cardActiveTab = {
+                                ...host2._cardActiveTab,
                                 [a3.entity_id]: defaultTab,
                               };
                             }
                           }}
                         >
                           ${
-                            host._bulkEditMode && hasAutomationId
+                            host2._bulkEditMode && hasAutomationId
                               ? b2`
                                   <label class="card-select">
                                     <input
                                       type="checkbox"
-                                      .checked=${!!host._selectedAutomationIds[automationId]}
-                                      ?disabled=${host._bulkActionInProgress}
+                                      .checked=${!!host2._selectedAutomationIds[automationId]}
+                                      ?disabled=${host2._bulkActionInProgress}
                                       @click=${(e6) => e6.stopPropagation()}
                                       @change=${(e6) =>
-                                        host._toggleAutomationSelection(
+                                        host2._toggleAutomationSelection(
                                           automationId,
                                           e6,
                                         )}
@@ -40460,11 +39944,11 @@ function renderAutomations(host) {
                                       tabindex=${a3.recipe_slug ? "0" : A}
                                       title=${
                                         a3.recipe_slug
-                                          ? host._t(
+                                          ? host2._t(
                                               "automations_recipe_pill_link_tooltip",
                                               "Open the recipe that installed this.",
                                             )
-                                          : host._t(
+                                          : host2._t(
                                               "automations_recipe_pill_tooltip",
                                               "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
                                             )
@@ -40473,7 +39957,7 @@ function renderAutomations(host) {
                                         a3.recipe_slug
                                           ? (e6) => {
                                               e6.stopPropagation();
-                                              host._openRecipeFromPill(
+                                              host2._openRecipeFromPill(
                                                 a3.recipe_slug,
                                               );
                                             }
@@ -40488,7 +39972,7 @@ function renderAutomations(host) {
                                               ) {
                                                 e6.preventDefault();
                                                 e6.stopPropagation();
-                                                host._openRecipeFromPill(
+                                                host2._openRecipeFromPill(
                                                   a3.recipe_slug,
                                                 );
                                               }
@@ -40511,10 +39995,10 @@ function renderAutomations(host) {
                                       class="needs-attention-pill"
                                       @click=${(e6) => {
                                         e6.stopPropagation();
-                                        host._unavailableAutoId = automationId;
-                                        host._unavailableAutoName = a3.alias;
+                                        host2._unavailableAutoId = automationId;
+                                        host2._unavailableAutoName = a3.alias;
                                       }}
-                                      >${host._t(
+                                      >${host2._t(
                                         "automations_needs_attention_pill",
                                         "Needs attention",
                                       )}</span
@@ -40525,7 +40009,7 @@ function renderAutomations(host) {
                                 staleSet.has(automationId)
                                   ? b2`<span
                                       class="stale-pill"
-                                      title=${staleTooltip(host)}
+                                      title=${staleTooltip(host2)}
                                     >
                                       <ha-icon
                                         icon="mdi:alert-outline"
@@ -40542,7 +40026,7 @@ function renderAutomations(host) {
                                         icon="mdi:pause-circle-outline"
                                         style="--mdc-icon-size:12px;"
                                       ></ha-icon>
-                                      ${host._t(
+                                      ${host2._t(
                                         "automations_status_tab_disabled",
                                         "Disabled",
                                       )}
@@ -40551,34 +40035,34 @@ function renderAutomations(host) {
                               }
                             `,
                             nameOverride:
-                              host._editingAlias === automationId
+                              host2._editingAlias === automationId
                                 ? b2`
                                     <input
                                       class="rename-input"
                                       data-id="${automationId}"
-                                      .value=${host._editingAliasValue}
+                                      .value=${host2._editingAliasValue}
                                       @input=${(e6) => {
-                                        host._editingAliasValue =
+                                        host2._editingAliasValue =
                                           e6.target.value;
                                       }}
                                       @click=${(e6) => e6.stopPropagation()}
                                       @keydown=${(e6) => {
                                         if (e6.key === "Enter")
-                                          host._saveRenameAutomation(
+                                          host2._saveRenameAutomation(
                                             automationId,
                                           );
                                         if (e6.key === "Escape")
-                                          host._cancelRenameAutomation();
+                                          host2._cancelRenameAutomation();
                                       }}
                                     />
                                     <button
                                       class="rename-save-btn"
-                                      title=${host._t(
+                                      title=${host2._t(
                                         "automations_rename_save_tooltip",
                                         "Save",
                                       )}
                                       @click=${() =>
-                                        host._saveRenameAutomation(
+                                        host2._saveRenameAutomation(
                                           automationId,
                                         )}
                                     >
@@ -40590,11 +40074,11 @@ function renderAutomations(host) {
                                   `
                                 : null,
                             tail: b2`${renderSearchMatchReason(
-                              host,
+                              host2,
                               matchReasons.get(a3),
                             )}<span class="auto-row-mobile-meta">
                                 <span
-                                  >${host._t(
+                                  >${host2._t(
                                     "automations_last_run_prefix",
                                     "Last run:",
                                   )}
@@ -40609,7 +40093,7 @@ function renderAutomations(host) {
                           })}
                           <span class="auto-row-last-run"
                             ><span class="last-run-prefix"
-                              >${host._t(
+                              >${host2._t(
                                 "automations_last_run_prefix_inline",
                                 "Last run:",
                               )} </span
@@ -40632,15 +40116,15 @@ function renderAutomations(host) {
                               title="${
                                 canToggle
                                   ? isOn
-                                    ? host._t(
+                                    ? host2._t(
                                         "automations_toggle_enabled",
                                         "Enabled",
                                       )
-                                    : host._t(
+                                    : host2._t(
                                         "automations_toggle_disabled",
                                         "Disabled",
                                       )
-                                  : host._t(
+                                  : host2._t(
                                       "automations_toggle_unavailable",
                                       "Unavailable",
                                     )
@@ -40649,8 +40133,8 @@ function renderAutomations(host) {
                               @click=${(e6) => {
                                 e6.stopPropagation();
                                 if (!canToggle) {
-                                  host._showToast(
-                                    host._t(
+                                  host2._showToast(
+                                    host2._t(
                                       "automations_toast_toggle_unresolved",
                                       "Unable to toggle: automation id was not resolved. Reload and try again.",
                                     ),
@@ -40666,7 +40150,7 @@ function renderAutomations(host) {
                                 @click=${(e6) => e6.stopPropagation()}
                                 @change=${(e6) => {
                                   if (!canToggle) return;
-                                  host._toggleAutomation(
+                                  host2._toggleAutomation(
                                     a3.entity_id,
                                     automationId,
                                     e6.target.checked,
@@ -40687,12 +40171,12 @@ function renderAutomations(host) {
                                         @click=${(e6) => {
                                           e6.stopPropagation();
                                           if (running || isUnavailable) return;
-                                          host._runAutomation(
+                                          host2._runAutomation(
                                             a3.entity_id,
                                             automationId,
                                           );
                                         }}
-                                        title=${host._t(
+                                        title=${host2._t(
                                           "automations_run_tooltip",
                                           "Run Automation",
                                         )}
@@ -40712,12 +40196,12 @@ function renderAutomations(host) {
                                         <button
                                           class="burger-btn"
                                           @click=${(e6) =>
-                                            host._toggleBurgerMenu(
+                                            host2._toggleBurgerMenu(
                                               automationId,
                                               e6,
                                             )}
-                                          ?disabled=${host._bulkActionInProgress}
-                                          title=${host._t(
+                                          ?disabled=${host2._bulkActionInProgress}
+                                          title=${host2._t(
                                             "automations_more_actions_tooltip",
                                             "More actions",
                                           )}
@@ -40732,17 +40216,17 @@ function renderAutomations(host) {
                                             ? b2`
                                                 <div
                                                   class="burger-dropdown"
-                                                  style=${host._openBurgerMenuStyle}
+                                                  style=${host2._openBurgerMenuStyle}
                                                 >
                                                   <button
                                                     class="burger-item burger-item-toggle"
                                                     ?disabled=${!canToggle}
                                                     @click=${(e6) => {
                                                       e6.stopPropagation();
-                                                      host._openBurgerMenu =
+                                                      host2._openBurgerMenu =
                                                         null;
                                                       if (!canToggle) return;
-                                                      host._toggleAutomation(
+                                                      host2._toggleAutomation(
                                                         a3.entity_id,
                                                         automationId,
                                                         !isOn,
@@ -40755,11 +40239,11 @@ function renderAutomations(host) {
                                                     ></ha-icon>
                                                     ${
                                                       isOn
-                                                        ? host._t(
+                                                        ? host2._t(
                                                             "automations_burger_disable",
                                                             "Disable",
                                                           )
-                                                        : host._t(
+                                                        : host2._t(
                                                             "automations_burger_enable",
                                                             "Enable",
                                                           )
@@ -40769,9 +40253,9 @@ function renderAutomations(host) {
                                                     class="burger-item"
                                                     @click=${(e6) => {
                                                       e6.stopPropagation();
-                                                      host._openBurgerMenu =
+                                                      host2._openBurgerMenu =
                                                         null;
-                                                      host._loadAutomationToChat(
+                                                      host2._loadAutomationToChat(
                                                         automationId,
                                                       );
                                                     }}
@@ -40783,11 +40267,11 @@ function renderAutomations(host) {
                                                     ></ha-icon>
                                                     ${
                                                       loadingChat
-                                                        ? host._t(
+                                                        ? host2._t(
                                                             "automations_burger_loading",
                                                             "Loading\u2026",
                                                           )
-                                                        : host._t(
+                                                        : host2._t(
                                                             "automations_burger_refine_in_chat",
                                                             "Refine in chat",
                                                           )
@@ -40797,7 +40281,7 @@ function renderAutomations(host) {
                                                     class="burger-item"
                                                     @click=${(e6) => {
                                                       e6.stopPropagation();
-                                                      host._startRenameAutomation(
+                                                      host2._startRenameAutomation(
                                                         automationId,
                                                         a3.alias,
                                                       );
@@ -40807,7 +40291,7 @@ function renderAutomations(host) {
                                                       icon="mdi:pencil-outline"
                                                       style="--mdc-icon-size:14px;"
                                                     ></ha-icon>
-                                                    ${host._t(
+                                                    ${host2._t(
                                                       "automations_burger_rename",
                                                       "Rename",
                                                     )}
@@ -40816,7 +40300,7 @@ function renderAutomations(host) {
                                                     class="burger-item"
                                                     @click=${(e6) => {
                                                       e6.stopPropagation();
-                                                      host._openBurgerMenu =
+                                                      host2._openBurgerMenu =
                                                         null;
                                                       window.history.pushState(
                                                         null,
@@ -40834,7 +40318,7 @@ function renderAutomations(host) {
                                                       icon="mdi:open-in-new"
                                                       style="--mdc-icon-size:14px;"
                                                     ></ha-icon>
-                                                    ${host._t(
+                                                    ${host2._t(
                                                       "automations_burger_view_in_ha",
                                                       "View in HA",
                                                     )}
@@ -40844,9 +40328,9 @@ function renderAutomations(host) {
                                                     ?disabled=${deleting}
                                                     @click=${(e6) => {
                                                       e6.stopPropagation();
-                                                      host._openBurgerMenu =
+                                                      host2._openBurgerMenu =
                                                         null;
-                                                      host._deleteAutomation(
+                                                      host2._deleteAutomation(
                                                         automationId,
                                                       );
                                                     }}
@@ -40857,11 +40341,11 @@ function renderAutomations(host) {
                                                     ></ha-icon>
                                                     ${
                                                       deleting
-                                                        ? host._t(
+                                                        ? host2._t(
                                                             "automations_burger_deleting",
                                                             "Deleting\u2026",
                                                           )
-                                                        : host._t(
+                                                        : host2._t(
                                                             "automations_burger_delete",
                                                             "Delete",
                                                           )
@@ -40878,7 +40362,7 @@ function renderAutomations(host) {
                                         <button
                                           class="burger-btn"
                                           disabled
-                                          title=${host._t(
+                                          title=${host2._t(
                                             "automations_more_actions_external",
                                             "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
                                           )}
@@ -40914,12 +40398,12 @@ function renderAutomations(host) {
                                       (a3.actions ?? a3.action)?.length
                                         ? b2`
                                             <button
-                                              class="card-tab ${host._cardActiveTab[a3.entity_id] === "flow" ? "active" : ""}"
+                                              class="card-tab ${host2._cardActiveTab[a3.entity_id] === "flow" ? "active" : ""}"
                                               @click=${() => {
-                                                host._cardActiveTab = {
-                                                  ...host._cardActiveTab,
+                                                host2._cardActiveTab = {
+                                                  ...host2._cardActiveTab,
                                                   [a3.entity_id]:
-                                                    host._cardActiveTab[
+                                                    host2._cardActiveTab[
                                                       a3.entity_id
                                                     ] === "flow"
                                                       ? null
@@ -40931,7 +40415,7 @@ function renderAutomations(host) {
                                                 icon="mdi:sitemap-outline"
                                                 style="--mdc-icon-size:16px;"
                                               ></ha-icon>
-                                              ${host._t(
+                                              ${host2._t(
                                                 "automations_card_tab_flow",
                                                 "Flow",
                                               )}
@@ -40944,12 +40428,12 @@ function renderAutomations(host) {
                                       a3.yaml_text
                                         ? b2`
                                             <button
-                                              class="card-tab ${host._cardActiveTab[a3.entity_id] === "yaml" ? "active" : ""}"
+                                              class="card-tab ${host2._cardActiveTab[a3.entity_id] === "yaml" ? "active" : ""}"
                                               @click=${() => {
-                                                host._cardActiveTab = {
-                                                  ...host._cardActiveTab,
+                                                host2._cardActiveTab = {
+                                                  ...host2._cardActiveTab,
                                                   [a3.entity_id]:
-                                                    host._cardActiveTab[
+                                                    host2._cardActiveTab[
                                                       a3.entity_id
                                                     ] === "yaml"
                                                       ? null
@@ -40961,7 +40445,7 @@ function renderAutomations(host) {
                                                 icon="mdi:code-braces"
                                                 style="--mdc-icon-size:16px;"
                                               ></ha-icon>
-                                              ${host._t(
+                                              ${host2._t(
                                                 "automations_card_tab_yaml",
                                                 "YAML",
                                               )}
@@ -40974,30 +40458,30 @@ function renderAutomations(host) {
                                       hasAutomationId
                                         ? b2`
                                             <button
-                                              class="card-tab ${host._cardActiveTab[a3.entity_id] === "history" ? "active" : ""}"
+                                              class="card-tab ${host2._cardActiveTab[a3.entity_id] === "history" ? "active" : ""}"
                                               @click=${() => {
                                                 const isActive =
-                                                  host._cardActiveTab[
+                                                  host2._cardActiveTab[
                                                     a3.entity_id
                                                   ] === "history";
-                                                host._cardActiveTab = {
-                                                  ...host._cardActiveTab,
+                                                host2._cardActiveTab = {
+                                                  ...host2._cardActiveTab,
                                                   [a3.entity_id]: isActive
                                                     ? null
                                                     : "history",
                                                 };
                                                 if (!isActive) {
-                                                  host._versionHistoryOpen = {
-                                                    ...host._versionHistoryOpen,
+                                                  host2._versionHistoryOpen = {
+                                                    ...host2._versionHistoryOpen,
                                                     [automationId]: true,
                                                   };
-                                                  host._loadVersionHistory(
+                                                  host2._loadVersionHistory(
                                                     automationId,
                                                   );
                                                 }
                                               }}
                                             >
-                                              ${host._t(
+                                              ${host2._t(
                                                 "automations_card_tab_history",
                                                 "History",
                                               )}
@@ -41024,22 +40508,22 @@ function renderAutomations(host) {
                                         : ""
                                     }
                                   </div>
-                                  ${host._cardActiveTab[a3.entity_id] === "flow" && ((a3.triggers ?? a3.trigger)?.length || (a3.actions ?? a3.action)?.length) ? renderAutomationFlowchart(host, a3) : ""}
+                                  ${host2._cardActiveTab[a3.entity_id] === "flow" && ((a3.triggers ?? a3.trigger)?.length || (a3.actions ?? a3.action)?.length) ? renderAutomationFlowchart(host2, a3) : ""}
                                   ${
-                                    host._cardActiveTab[a3.entity_id] ===
+                                    host2._cardActiveTab[a3.entity_id] ===
                                       "yaml" && a3.yaml_text
-                                      ? host._renderYamlEditor(
+                                      ? host2._renderYamlEditor(
                                           `yaml_${a3.entity_id}`,
                                           a3.yaml_text,
                                           (key) =>
-                                            host._saveActiveAutomationYaml(
+                                            host2._saveActiveAutomationYaml(
                                               a3.automation_id,
                                               key,
                                             ),
                                         )
                                       : ""
                                   }
-                                  ${host._cardActiveTab[a3.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a3) : ""}
+                                  ${host2._cardActiveTab[a3.entity_id] === "history" && hasAutomationId ? host2._renderVersionHistoryDrawer(a3) : ""}
                                 </div>
                               `
                             : ""
@@ -41056,26 +40540,26 @@ function renderAutomations(host) {
                             class="btn btn-outline"
                             ?disabled=${safeAutoPage <= 1}
                             @click=${() => {
-                              host._automationsPage = safeAutoPage - 1;
+                              host2._automationsPage = safeAutoPage - 1;
                             }}
                           >
-                            ${host._t("automations_pagination_prev", "\u2039 Prev")}
+                            ${host2._t("automations_pagination_prev", "\u2039 Prev")}
                           </button>
                           <span class="page-info"
                             >Page ${safeAutoPage} of ${totalAutoPages} ·
                             ${filteredAutomations.length} automations</span
                           >
                           <label class="per-page-label"
-                            >${host._t(
+                            >${host2._t(
                               "automations_pagination_per_page",
                               "Per page:",
                             )}
                             <select
                               class="per-page-select"
-                              .value=${String(host._autosPerPage)}
+                              .value=${String(host2._autosPerPage)}
                               @change=${(e6) => {
-                                host._autosPerPage = Number(e6.target.value);
-                                host._automationsPage = 1;
+                                host2._autosPerPage = Number(e6.target.value);
+                                host2._automationsPage = 1;
                               }}
                             >
                               <option value="10">10</option>
@@ -41087,10 +40571,10 @@ function renderAutomations(host) {
                             class="btn btn-outline"
                             ?disabled=${safeAutoPage >= totalAutoPages}
                             @click=${() => {
-                              host._automationsPage = safeAutoPage + 1;
+                              host2._automationsPage = safeAutoPage + 1;
                             }}
                           >
-                            ${host._t("automations_pagination_next", "Next \u203A")}
+                            ${host2._t("automations_pagination_next", "Next \u203A")}
                           </button>
                         </div>
                       `
@@ -41098,17 +40582,17 @@ function renderAutomations(host) {
                 }
                 ${
                   filteredAutomations.length === 0 &&
-                  host._automations.length > 0 &&
+                  host2._automations.length > 0 &&
                   !showDeleted
                     ? b2`<div
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
                         ${interpolate(
-                          host._t(
+                          host2._t(
                             "automations_search_no_match",
                             'No automations match "{query}"',
                           ),
-                          { query: host._automationFilter },
+                          { query: host2._automationFilter },
                         )}
                       </div>`
                     : ""
@@ -41120,26 +40604,26 @@ function renderAutomations(host) {
                   style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
                 ></ha-icon>
                 <p style="opacity:0.45;margin:0 0 12px;">
-                  ${host._t("automations_empty_state", "No automations yet.")}
+                  ${host2._t("automations_empty_state", "No automations yet.")}
                 </p>
                 <button
                   class="btn btn-accent"
-                  ?disabled=${host._llmNeedsSetup}
+                  ?disabled=${host2._llmNeedsSetup}
                   title=${
-                    host._llmNeedsSetup
-                      ? host._t(
+                    host2._llmNeedsSetup
+                      ? host2._t(
                           "automations_llm_setup_required_tooltip",
                           "Configure an LLM provider first",
                         )
                       : ""
                   }
-                  @click=${() => host._startNewAutomationChat()}
+                  @click=${() => host2._startNewAutomationChat()}
                 >
                   <ha-icon
                     icon="mdi:plus"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${host._t(
+                  ${host2._t(
                     "automations_new_automation_button",
                     "New Automation",
                   )}
@@ -41147,18 +40631,18 @@ function renderAutomations(host) {
               </div>`
         }
       </div>
-      ${host._renderDiffViewer()} ${renderUnavailableModal(host)}
+      ${host2._renderDiffViewer()} ${renderUnavailableModal(host2)}
     </div>
   `;
 }
-function renderUnavailableModal(host) {
-  if (!host._unavailableAutoId) return "";
+function renderUnavailableModal(host2) {
+  if (!host2._unavailableAutoId) return "";
   return b2`
     <div
       class="modal-overlay"
       @click=${() => {
-        host._unavailableAutoId = null;
-        host._unavailableAutoName = null;
+        host2._unavailableAutoId = null;
+        host2._unavailableAutoName = null;
       }}
     >
       <div
@@ -41171,7 +40655,7 @@ function renderUnavailableModal(host) {
             icon="mdi:alert-circle-outline"
             style="--mdc-icon-size:22px;color:#ef4444;vertical-align:middle;margin-right:6px;"
           ></ha-icon>
-          ${host._t(
+          ${host2._t(
             "automations_unavailable_modal_title",
             "Automation Unavailable",
           )}
@@ -41180,9 +40664,9 @@ function renderUnavailableModal(host) {
           style="font-size:14px;line-height:1.6;margin:0 0 8px;color:var(--primary-text-color);"
         >
           <strong
-            >${host._unavailableAutoName || host._t("automations_unavailable_default_name", "This automation")}</strong
+            >${host2._unavailableAutoName || host2._t("automations_unavailable_default_name", "This automation")}</strong
           >
-          ${host._t(
+          ${host2._t(
             "automations_unavailable_modal_intro",
             "is marked as unavailable by Home Assistant. This usually means:",
           )}
@@ -41191,19 +40675,19 @@ function renderUnavailableModal(host) {
           style="font-size:13px;line-height:1.8;margin:0 0 16px;padding-left:20px;color:var(--secondary-text-color);"
         >
           <li>
-            ${host._t(
+            ${host2._t(
               "automations_unavailable_reason_entity",
               "A trigger or condition references an entity that no longer exists",
             )}
           </li>
           <li>
-            ${host._t(
+            ${host2._t(
               "automations_unavailable_reason_yaml",
               "The automation YAML has a configuration error",
             )}
           </li>
           <li>
-            ${host._t(
+            ${host2._t(
               "automations_unavailable_reason_integration",
               "A required integration was removed or is not loaded",
             )}
@@ -41212,7 +40696,7 @@ function renderUnavailableModal(host) {
         <p
           style="font-size:13px;margin:0 0 16px;color:var(--secondary-text-color);"
         >
-          ${host._t(
+          ${host2._t(
             "automations_unavailable_modal_advice",
             "Open the automation in Home Assistant Settings to review and fix the configuration.",
           )}
@@ -41221,26 +40705,26 @@ function renderUnavailableModal(host) {
           <button
             class="modal-btn modal-cancel"
             @click=${() => {
-              host._unavailableAutoId = null;
-              host._unavailableAutoName = null;
+              host2._unavailableAutoId = null;
+              host2._unavailableAutoName = null;
             }}
           >
-            ${host._t("automations_unavailable_modal_close", "Close")}
+            ${host2._t("automations_unavailable_modal_close", "Close")}
           </button>
           <a
             class="modal-btn modal-create"
             href="/developer-tools/state"
             style="text-decoration:none;"
             @click=${() => {
-              host._unavailableAutoId = null;
-              host._unavailableAutoName = null;
+              host2._unavailableAutoId = null;
+              host2._unavailableAutoName = null;
             }}
           >
             <ha-icon
               icon="mdi:code-tags"
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            ${host._t(
+            ${host2._t(
               "automations_unavailable_modal_edit_states",
               "Edit States",
             )}
@@ -41250,12 +40734,12 @@ function renderUnavailableModal(host) {
             href="/config/automation/dashboard"
             style="text-decoration:none;"
             @click=${() => {
-              host._unavailableAutoId = null;
-              host._unavailableAutoName = null;
+              host2._unavailableAutoId = null;
+              host2._unavailableAutoName = null;
             }}
           >
             <ha-icon icon="mdi:robot" style="--mdc-icon-size:14px;"></ha-icon>
-            ${host._t(
+            ${host2._t(
               "automations_unavailable_modal_open_in_automations",
               "Open in Automations",
             )}
@@ -41811,16 +41295,18 @@ function _sceneCardHeader(name, badge) {
     </div>
   `;
 }
-function _entityArea(host, entityId) {
-  const entReg = host.hass?.entities?.[entityId];
+function _entityArea(host2, entityId) {
+  const entReg = host2.hass?.entities?.[entityId];
   const areaId =
-    entReg?.area_id || host.hass?.devices?.[entReg?.device_id]?.area_id || null;
-  return areaId ? host.hass?.areas?.[areaId]?.name || null : null;
+    entReg?.area_id ||
+    host2.hass?.devices?.[entReg?.device_id]?.area_id ||
+    null;
+  return areaId ? host2.hass?.areas?.[areaId]?.name || null : null;
 }
-function _renderTargetTile(host, entityId, stateData, editSceneId) {
+function _renderTargetTile(host2, entityId, stateData, editSceneId) {
   const target =
-    editSceneId && host._sceneEditedEntities(editSceneId)?.[entityId] != null
-      ? host._sceneEditedEntities(editSceneId)[entityId]
+    editSceneId && host2._sceneEditedEntities(editSceneId)?.[entityId] != null
+      ? host2._sceneEditedEntities(editSceneId)[entityId]
       : stateData;
   const single = JSON.stringify({ [entityId]: target });
   return b2`
@@ -41833,18 +41319,18 @@ function _renderTargetTile(host, entityId, stateData, editSceneId) {
     ></div>
   `;
 }
-function renderSceneEntityList(host, entities) {
-  return _renderEntityList(host, entities);
+function renderSceneEntityList(host2, entities) {
+  return _renderEntityList(host2, entities);
 }
-function _renderEntityList(host, entities, editSceneId = null) {
+function _renderEntityList(host2, entities, editSceneId = null) {
   const ids2 = Object.keys(entities || {});
   if (!ids2.length) return "";
   const source = editSceneId
-    ? host._sceneEditedEntities(editSceneId)
+    ? host2._sceneEditedEntities(editSceneId)
     : entities;
   const groups = /* @__PURE__ */ new Map();
   for (const id of ids2) {
-    const area = _entityArea(host, id);
+    const area = _entityArea(host2, id);
     if (!groups.has(area)) groups.set(area, []);
     groups.get(area).push(id);
   }
@@ -41860,7 +41346,7 @@ function _renderEntityList(host, entities, editSceneId = null) {
         ? b2`<div class="scene-ent-hint">
             <ha-icon icon="mdi:gesture-tap"></ha-icon>
             <span
-              >${host._t(
+              >${host2._t(
                 "scenes_edit_hint",
                 "Adjust each entity to the state this scene should set. Edits don't touch your devices until you Test or activate the scene.",
               )}</span
@@ -41880,13 +41366,13 @@ function _renderEntityList(host, entities, editSceneId = null) {
               : ""
           }
           ${areaIds.map((id) =>
-            _renderTargetTile(host, id, source[id], editSceneId),
+            _renderTargetTile(host2, id, source[id], editSceneId),
           )}
         `,
       )}
     </div>
     ${
-      editSceneId && host._sceneIsDirty(editSceneId)
+      editSceneId && host2._sceneIsDirty(editSceneId)
         ? b2`<div class="scene-edit-bar">
             <span class="scene-edit-bar-msg">
               <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this
@@ -41895,33 +41381,33 @@ function _renderEntityList(host, entities, editSceneId = null) {
             <span class="scene-edit-bar-actions">
               <button
                 class="btn btn-outline"
-                ?disabled=${host._savingScene?.[editSceneId] || host._testingScene?.[editSceneId]}
+                ?disabled=${host2._savingScene?.[editSceneId] || host2._testingScene?.[editSceneId]}
                 title="Apply these states to your devices now, without saving"
-                @click=${() => host._testSceneEdits(editSceneId)}
+                @click=${() => host2._testSceneEdits(editSceneId)}
               >
                 <ha-icon
                   icon="mdi:flask-outline"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                ${host._testingScene?.[editSceneId] ? "Testing\u2026" : "Test"}
+                ${host2._testingScene?.[editSceneId] ? "Testing\u2026" : "Test"}
               </button>
               <button
                 class="btn btn-outline"
-                ?disabled=${host._savingScene?.[editSceneId]}
-                @click=${() => host._discardSceneEdits(editSceneId)}
+                ?disabled=${host2._savingScene?.[editSceneId]}
+                @click=${() => host2._discardSceneEdits(editSceneId)}
               >
                 Discard
               </button>
               <button
                 class="btn btn-success"
-                ?disabled=${host._savingScene?.[editSceneId]}
-                @click=${() => host._saveSceneEdits(editSceneId)}
+                ?disabled=${host2._savingScene?.[editSceneId]}
+                @click=${() => host2._saveSceneEdits(editSceneId)}
               >
                 <ha-icon
                   icon="mdi:content-save"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                ${host._savingScene?.[editSceneId] ? "Saving\u2026" : "Save changes"}
+                ${host2._savingScene?.[editSceneId] ? "Saving\u2026" : "Save changes"}
               </button>
             </span>
           </div>`
@@ -41929,43 +41415,43 @@ function _renderEntityList(host, entities, editSceneId = null) {
     }
   `;
 }
-function renderSceneCard(host, msg, msgIndex) {
+function renderSceneCard(host2, msg, msgIndex) {
   const scene = msg.scene;
   if (!scene) return "";
   const status = msg.scene_status || (msg.scene_id ? "saved" : void 0);
   const yamlKey = `scene_${msgIndex}`;
-  const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
+  const yamlOpen = host2._yamlOpen && host2._yamlOpen[yamlKey];
   if (status === "saved") {
     return b2`
       <div style="margin-top:12px;padding:14px 0 0;">
         <div class="scene-saved-head">
           <span class="scene-saved-icon"
             >${renderCreatedCheck({
-              animate: !!msg.scene_id && host._justCreatedId === msg.scene_id,
+              animate: !!msg.scene_id && host2._justCreatedId === msg.scene_id,
               size: 20,
             })}</span
           >
           <span class="scene-saved-name">${scene.name}</span>
           <span
-            class="scene-saved-tag${!!msg.scene_id && host._justCreatedId === msg.scene_id ? " pop-in" : ""}"
+            class="scene-saved-tag${!!msg.scene_id && host2._justCreatedId === msg.scene_id ? " pop-in" : ""}"
           >
-            ${host._t("scenes_card_saved_status", "Saved to Home Assistant")}
+            ${host2._t("scenes_card_saved_status", "Saved to Home Assistant")}
           </span>
         </div>
         <div class="proposal-body" style="padding:0;">
-          ${_renderEntityList(host, scene.entities || {})}
+          ${_renderEntityList(host2, scene.entities || {})}
           ${
             msg.scene_yaml
               ? b2`<div
                     class="yaml-toggle"
                     style="margin-top:10px;margin-bottom:0;"
-                    @click=${() => toggleYaml(host, yamlKey)}
+                    @click=${() => toggleYaml(host2, yamlKey)}
                   >
                     <ha-icon
                       icon="mdi:code-braces"
                       style="--mdc-icon-size:14px;"
                     ></ha-icon>
-                    ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+                    ${yamlOpen ? host2._t("scenes_hide_yaml", "Hide YAML") : host2._t("scenes_view_yaml", "View YAML")}
                   </div>
                   ${
                     yamlOpen
@@ -41986,11 +41472,11 @@ function renderSceneCard(host, msg, msgIndex) {
                 const id = msg.entity_id
                   ? msg.entity_id.replace(/^scene\./, "")
                   : msg.scene_id;
-                host._activateScene(id, scene.name);
+                host2._activateScene(id, scene.name);
               }}
             >
               <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
-              ${host._t("scenes_card_test_button", "Test Scene")}
+              ${host2._t("scenes_card_test_button", "Test Scene")}
             </button>
             <button
               class="btn btn-outline"
@@ -42003,7 +41489,7 @@ function renderSceneCard(host, msg, msgIndex) {
                 icon="mdi:open-in-new"
                 style="--mdc-icon-size:14px;"
               ></ha-icon>
-              ${host._t("scenes_card_view_in_ha_button", "View in HA")}
+              ${host2._t("scenes_card_view_in_ha_button", "View in HA")}
             </button>
           </div>
         </div>
@@ -42015,12 +41501,12 @@ function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-          ${host._t("scenes_card_declined_title", "Scene Declined")}
+          ${host2._t("scenes_card_declined_title", "Scene Declined")}
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${scene.name}</div>
           <div class="proposal-status declined">
-            ${host._t(
+            ${host2._t(
               "scenes_card_declined_message",
               "Dismissed. You can refine it by replying below.",
             )}
@@ -42034,22 +41520,22 @@ function renderSceneCard(host, msg, msgIndex) {
       <div style="margin-top:12px;padding:14px 0 0;">
         ${_sceneCardHeader(
           scene.name,
-          host._t("scenes_card_refining_badge", "Being Refined"),
+          host2._t("scenes_card_refining_badge", "Being Refined"),
         )}
         <div class="proposal-body" style="padding:0;">
-          ${_renderEntityList(host, scene.entities || {})}
+          ${_renderEntityList(host2, scene.entities || {})}
           ${
             msg.scene_yaml
               ? b2`<div
                   class="yaml-toggle"
                   style="margin-top:10px;margin-bottom:0;"
-                  @click=${() => toggleYaml(host, yamlKey)}
+                  @click=${() => toggleYaml(host2, yamlKey)}
                 >
                   <ha-icon
                     icon="mdi:code-braces"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+                  ${yamlOpen ? host2._t("scenes_hide_yaml", "Hide YAML") : host2._t("scenes_view_yaml", "View YAML")}
                 </div>`
               : ""
           }
@@ -42069,32 +41555,32 @@ function renderSceneCard(host, msg, msgIndex) {
       </div>
     `;
   }
-  const diff = sceneProposalDiff(host, msgIndex);
+  const diff = sceneProposalDiff(host2, msgIndex);
   const diffKey = sceneDiffKey(msgIndex);
   return b2`
     <div style="margin-top:12px;padding:14px 0 0;">
       ${_sceneCardHeader(
         scene.name,
-        host._t("scenes_card_proposal_badge", "Proposal"),
+        host2._t("scenes_card_proposal_badge", "Proposal"),
       )}
       <div class="proposal-body" style="padding:0;">
-        ${_renderEntityList(host, scene.entities || {})}
+        ${_renderEntityList(host2, scene.entities || {})}
 
         <div class="subcard-actions" style="margin-top:12px;">
-          ${renderProposalDiffToggle(host, diffKey, diff)}
+          ${renderProposalDiffToggle(host2, diffKey, diff)}
           <div
             class="yaml-toggle"
             style="margin:0;"
-            @click=${() => toggleYaml(host, yamlKey)}
+            @click=${() => toggleYaml(host2, yamlKey)}
           >
             <ha-icon
               icon="mdi:code-braces"
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+            ${yamlOpen ? host2._t("scenes_hide_yaml", "Hide YAML") : host2._t("scenes_view_yaml", "View YAML")}
           </div>
         </div>
-        ${renderProposalDiffPanel(host, diffKey, diff)}
+        ${renderProposalDiffPanel(host2, diffKey, diff)}
         ${
           yamlOpen && msg.scene_yaml
             ? b2`
@@ -42110,10 +41596,10 @@ function renderSceneCard(host, msg, msgIndex) {
         <div style="display:flex;justify-content:flex-end;margin-top:12px;">
           <button
             class="btn btn-success"
-            @click=${() => host._acceptScene(msgIndex)}
+            @click=${() => host2._acceptScene(msgIndex)}
           >
             <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-            ${host._t("scenes_card_accept_save_button", "Accept & Save")}
+            ${host2._t("scenes_card_accept_save_button", "Accept & Save")}
           </button>
         </div>
       </div>
@@ -42124,13 +41610,13 @@ function _sceneEntityCount(scene) {
   if (typeof scene.entity_count === "number") return scene.entity_count;
   return Object.keys(scene.entities || {}).length;
 }
-function renderScenes(host) {
-  const terms = searchTerms(host._sceneFilter || "");
-  const sortBy = host._sceneSortBy || "recent";
-  const sortDir = host._sceneSortDir || "desc";
-  const allScenes = host._scenes || [];
-  const deletedCount = trashItems(host, "scene").length;
-  let statusFilter = host._sceneStatusFilter || "all";
+function renderScenes(host2) {
+  const terms = searchTerms(host2._sceneFilter || "");
+  const sortBy = host2._sceneSortBy || "recent";
+  const sortDir = host2._sceneSortDir || "desc";
+  const allScenes = host2._scenes || [];
+  const deletedCount = trashItems(host2, "scene").length;
+  let statusFilter = host2._sceneStatusFilter || "all";
   if (statusFilter === "deleted" && !deletedCount) statusFilter = "all";
   if (!allScenes.length && deletedCount) statusFilter = "deleted";
   const showDeleted = statusFilter === "deleted";
@@ -42146,7 +41632,7 @@ function renderScenes(host) {
   }
   const matchReasons = /* @__PURE__ */ new Map();
   if (terms.length) {
-    const reg = host._searchRegistry();
+    const reg = host2._searchRegistry();
     filtered = filtered.filter((s6) => {
       const { match, reasons } = matchesSearchFields(
         sceneSearchFields(s6, reg),
@@ -42176,28 +41662,28 @@ function renderScenes(host) {
       <div class="page-root">
         <div class="page-header">
           <h1 class="page-h1">
-            ${host._t("scenes_section_title", "Your Scenes")}
+            ${host2._t("scenes_section_title", "Your Scenes")}
           </h1>
           ${
-            (host._scenes || []).length > 0
+            (host2._scenes || []).length > 0
               ? b2`<button
                   class="filter-row-action"
-                  ?disabled=${host._llmNeedsSetup}
+                  ?disabled=${host2._llmNeedsSetup}
                   title=${
-                    host._llmNeedsSetup
-                      ? host._t(
+                    host2._llmNeedsSetup
+                      ? host2._t(
                           "scenes_llm_needs_setup_tooltip",
                           "Configure an LLM provider first",
                         )
                       : ""
                   }
-                  @click=${() => host._newSceneChat()}
+                  @click=${() => host2._newSceneChat()}
                 >
                   <ha-icon
                     icon="mdi:plus"
                     style="--mdc-icon-size:13px;"
                   ></ha-icon>
-                  ${host._t("scenes_new_scene_button", "New Scene")}
+                  ${host2._t("scenes_new_scene_button", "New Scene")}
                 </button>`
               : ""
           }
@@ -42212,10 +41698,10 @@ function renderScenes(host) {
                       aria-selected=${statusFilter === "all"}
                       class="filter-tab ${statusFilter === "all" ? "active" : ""}"
                       @click=${() => {
-                        host._sceneStatusFilter = "all";
+                        host2._sceneStatusFilter = "all";
                       }}
                     >
-                      ${host._t("scenes_status_tab_all", "All")}
+                      ${host2._t("scenes_status_tab_all", "All")}
                     </button>
                     ${
                       seloraCount > 0 && manualCount > 0
@@ -42225,7 +41711,7 @@ function renderScenes(host) {
                               aria-selected=${statusFilter === "selora"}
                               class="filter-tab ${statusFilter === "selora" ? "active" : ""}"
                               @click=${() => {
-                                host._sceneStatusFilter = "selora";
+                                host2._sceneStatusFilter = "selora";
                               }}
                             >
                               <ha-icon
@@ -42233,7 +41719,7 @@ function renderScenes(host) {
                                 style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
                               ></ha-icon>
                               <span
-                                >${host._t("scenes_status_tab_selora", "Selora AI")}
+                                >${host2._t("scenes_status_tab_selora", "Selora AI")}
                                 (${seloraCount})</span
                               >
                             </button>
@@ -42242,17 +41728,17 @@ function renderScenes(host) {
                               aria-selected=${statusFilter === "manual"}
                               class="filter-tab ${statusFilter === "manual" ? "active" : ""}"
                               @click=${() => {
-                                host._sceneStatusFilter = "manual";
+                                host2._sceneStatusFilter = "manual";
                               }}
                             >
-                              ${host._t("scenes_status_tab_manual", "Manual")}
+                              ${host2._t("scenes_status_tab_manual", "Manual")}
                               (${manualCount})
                             </button>
                           `
                         : ""
                     }
-                    ${renderTrashTab(host, "scene", showDeleted, () => {
-                      host._sceneStatusFilter = "deleted";
+                    ${renderTrashTab(host2, "scene", showDeleted, () => {
+                      host2._sceneStatusFilter = "deleted";
                     })}
                   </div>
                 </div>
@@ -42261,23 +41747,23 @@ function renderScenes(host) {
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input
                       type="text"
-                      placeholder=${host._t(
+                      placeholder=${host2._t(
                         "scenes_filter_placeholder",
                         "Search scenes, devices, areas\u2026",
                       )}
-                      .value=${host._sceneFilter || ""}
+                      .value=${host2._sceneFilter || ""}
                       @input=${(e6) => {
-                        host._sceneFilter = e6.target.value;
-                        host._ensureSearchRegistries();
+                        host2._sceneFilter = e6.target.value;
+                        host2._ensureSearchRegistries();
                       }}
                     />
                     ${
-                      host._sceneFilter
+                      host2._sceneFilter
                         ? b2`<ha-icon
                             icon="mdi:close-circle"
                             style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                             @click=${() => {
-                              host._sceneFilter = "";
+                              host2._sceneFilter = "";
                             }}
                           ></ha-icon>`
                         : ""
@@ -42286,26 +41772,26 @@ function renderScenes(host) {
                   <div class="sort-group">
                     <select
                       class="sort-select"
-                      .value=${host._sceneSortBy || "recent"}
+                      .value=${host2._sceneSortBy || "recent"}
                       @change=${(e6) => {
-                        host._sceneSortBy = e6.target.value;
+                        host2._sceneSortBy = e6.target.value;
                       }}
                     >
                       <option value="recent">
-                        ${host._t("scenes_sort_recent", "Recently updated")}
+                        ${host2._t("scenes_sort_recent", "Recently updated")}
                       </option>
                       <option value="alpha">
-                        ${host._t("scenes_sort_alpha", "Alphabetical")}
+                        ${host2._t("scenes_sort_alpha", "Alphabetical")}
                       </option>
                       <option value="size">
-                        ${host._t("scenes_sort_size", "Most entities")}
+                        ${host2._t("scenes_sort_size", "Most entities")}
                       </option>
                     </select>
                     <button
                       class="sort-dir-toggle"
                       title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
                       @click=${() => {
-                        host._sceneSortDir =
+                        host2._sceneSortDir =
                           sortDir === "desc" ? "asc" : "desc";
                       }}
                     >
@@ -42316,29 +41802,29 @@ function renderScenes(host) {
                     </button>
                   </div>
                 </div>
-                ${showDeleted ? renderTrashList(host, "scene") : ""}
+                ${showDeleted ? renderTrashList(host2, "scene") : ""}
                 <div class="automations-list" ?hidden=${showDeleted}>
                   ${filtered.map((s6) => {
                     const sceneId = s6.scene_id;
                     const sceneEntityId = s6.entity_id;
                     const entities = s6.entities || {};
                     const entityCount = _sceneEntityCount(s6);
-                    const isExpanded = !!host._expandedScenes?.[sceneId];
-                    const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
-                    const burgerOpen = host._openSceneBurger === sceneId;
-                    const deleting = !!host._deletingScene?.[sceneId];
-                    const loadingChat = !!host._loadingToChat?.[sceneId];
+                    const isExpanded = !!host2._expandedScenes?.[sceneId];
+                    const yamlOpen = !!host2._sceneYamlOpen?.[sceneId];
+                    const burgerOpen = host2._openSceneBurger === sceneId;
+                    const deleting = !!host2._deletingScene?.[sceneId];
+                    const loadingChat = !!host2._loadingToChat?.[sceneId];
                     const updated = formatTimeAgo(s6.updated_at);
                     const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
                     const isSelora = s6.source === "selora";
                     const renamable =
                       s6.renamable === void 0 ? isSelora : !!s6.renamable;
                     const renameBlockedReason = {
-                      no_yaml_id: host._t(
+                      no_yaml_id: host2._t(
                         "scenes_rename_blocked_no_yaml_id",
                         "This scene has no id in scenes.yaml, so Home Assistant builds its entity_id from the name. Renaming it here would move the entity and break anything pointing at it \u2014 add an id: to the entry first.",
                       ),
-                      integration: host._t(
+                      integration: host2._t(
                         "scenes_rename_blocked_integration",
                         "This scene comes from another integration, so its name lives there. Rename it in that integration, or override the name in Home Assistant's entity settings.",
                       ),
@@ -42348,7 +41834,7 @@ function renderScenes(host) {
                     const recipeSlug = s6.recipe_slug || "";
                     return b2`
                       <div
-                        class="auto-row${isExpanded ? " expanded" : ""}${host._highlightedScene === sceneId ? " highlighted" : ""}"
+                        class="auto-row${isExpanded ? " expanded" : ""}${host2._highlightedScene === sceneId ? " highlighted" : ""}"
                         data-scene-id="${sceneId}"
                       >
                         <div
@@ -42360,8 +41846,8 @@ function renderScenes(host) {
                               )
                             )
                               return;
-                            host._expandedScenes = {
-                              ...host._expandedScenes,
+                            host2._expandedScenes = {
+                              ...host2._expandedScenes,
                               [sceneId]: !isExpanded,
                             };
                           }}
@@ -42375,33 +41861,33 @@ function renderScenes(host) {
                             <div class="auto-row-name">
                               <div class="auto-row-title-row">
                                 ${
-                                  host._editingSceneName === sceneId
+                                  host2._editingSceneName === sceneId
                                     ? b2`
                                         <input
                                           class="rename-input"
                                           data-scene-id="${sceneId}"
-                                          .value=${host._editingSceneNameValue}
+                                          .value=${host2._editingSceneNameValue}
                                           @input=${(e6) => {
-                                            host._editingSceneNameValue =
+                                            host2._editingSceneNameValue =
                                               e6.target.value;
                                           }}
                                           @click=${(e6) => e6.stopPropagation()}
                                           @keydown=${(e6) => {
                                             if (e6.key === "Enter")
-                                              host._saveRenameScene(sceneId);
+                                              host2._saveRenameScene(sceneId);
                                             if (e6.key === "Escape")
-                                              host._cancelRenameScene();
+                                              host2._cancelRenameScene();
                                           }}
                                         />
                                         <button
                                           class="rename-save-btn"
-                                          title=${host._t(
+                                          title=${host2._t(
                                             "scenes_rename_save_tooltip",
                                             "Save",
                                           )}
                                           @click=${(e6) => {
                                             e6.stopPropagation();
-                                            host._saveRenameScene(sceneId);
+                                            host2._saveRenameScene(sceneId);
                                           }}
                                         >
                                           <ha-icon
@@ -42422,11 +41908,11 @@ function renderScenes(host) {
                                         tabindex=${recipeSlug ? "0" : A}
                                         title=${
                                           recipeSlug
-                                            ? host._t(
+                                            ? host2._t(
                                                 "automations_recipe_pill_link_tooltip",
                                                 "Open the recipe that installed this.",
                                               )
-                                            : host._t(
+                                            : host2._t(
                                                 "automations_recipe_pill_tooltip",
                                                 "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
                                               )
@@ -42435,7 +41921,7 @@ function renderScenes(host) {
                                           recipeSlug
                                             ? (e6) => {
                                                 e6.stopPropagation();
-                                                host._openRecipeFromPill(
+                                                host2._openRecipeFromPill(
                                                   recipeSlug,
                                                 );
                                               }
@@ -42450,7 +41936,7 @@ function renderScenes(host) {
                                                 ) {
                                                   e6.preventDefault();
                                                   e6.stopPropagation();
-                                                  host._openRecipeFromPill(
+                                                  host2._openRecipeFromPill(
                                                     recipeSlug,
                                                   );
                                                 }
@@ -42477,7 +41963,7 @@ function renderScenes(host) {
                                 >${meta}</span
                               >
                               ${renderSearchMatchReason(
-                                host,
+                                host2,
                                 matchReasons.get(s6),
                               )}
                               <span class="auto-row-mobile-meta">
@@ -42501,9 +41987,9 @@ function renderScenes(host) {
                                 const id = sceneEntityId
                                   ? sceneEntityId.replace(/^scene\./, "")
                                   : sceneId;
-                                host._activateScene(id, s6.name);
+                                host2._activateScene(id, s6.name);
                               }}
-                              title=${host._t(
+                              title=${host2._t(
                                 "scenes_activate_button",
                                 "Activate",
                               )}
@@ -42519,15 +42005,15 @@ function renderScenes(host) {
                                 @click=${(e6) => {
                                   e6.stopPropagation();
                                   if (burgerOpen) {
-                                    host._openSceneBurger = null;
+                                    host2._openSceneBurger = null;
                                     return;
                                   }
-                                  host._openBurgerMenuStyle = burgerMenuAnchor(
+                                  host2._openBurgerMenuStyle = burgerMenuAnchor(
                                     e6.currentTarget,
                                   );
-                                  host._openSceneBurger = sceneId;
+                                  host2._openSceneBurger = sceneId;
                                 }}
-                                title=${host._t(
+                                title=${host2._t(
                                   "scenes_more_actions_tooltip",
                                   "More actions",
                                 )}
@@ -42542,15 +42028,15 @@ function renderScenes(host) {
                                   ? b2`
                                       <div
                                         class="burger-dropdown"
-                                        style=${host._openBurgerMenuStyle}
+                                        style=${host2._openBurgerMenuStyle}
                                       >
                                         <button
                                           class="burger-item"
                                           ?disabled=${loadingChat}
                                           @click=${(e6) => {
                                             e6.stopPropagation();
-                                            host._openSceneBurger = null;
-                                            host._loadSceneToChat(sceneId);
+                                            host2._openSceneBurger = null;
+                                            host2._loadSceneToChat(sceneId);
                                           }}
                                         >
                                           <ha-icon
@@ -42559,11 +42045,11 @@ function renderScenes(host) {
                                           ></ha-icon>
                                           ${
                                             loadingChat
-                                              ? host._t(
+                                              ? host2._t(
                                                   "scenes_loading_label",
                                                   "Loading\u2026",
                                                 )
-                                              : host._t(
+                                              : host2._t(
                                                   "scenes_refine_in_chat_button",
                                                   "Refine in chat",
                                                 )
@@ -42576,7 +42062,7 @@ function renderScenes(host) {
                                           @click=${(e6) => {
                                             e6.stopPropagation();
                                             if (!renamable) return;
-                                            host._startRenameScene(
+                                            host2._startRenameScene(
                                               sceneId,
                                               s6.name,
                                             );
@@ -42586,7 +42072,7 @@ function renderScenes(host) {
                                             icon="mdi:pencil-outline"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          ${host._t(
+                                          ${host2._t(
                                             "scenes_burger_rename",
                                             "Rename",
                                           )}
@@ -42595,9 +42081,9 @@ function renderScenes(host) {
                                           class="burger-item"
                                           @click=${(e6) => {
                                             e6.stopPropagation();
-                                            host._openSceneBurger = null;
+                                            host2._openSceneBurger = null;
                                             if (sceneEntityId) {
-                                              host.dispatchEvent(
+                                              host2.dispatchEvent(
                                                 new CustomEvent(
                                                   "hass-more-info",
                                                   {
@@ -42625,7 +42111,7 @@ function renderScenes(host) {
                                             icon="mdi:open-in-new"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          ${host._t(
+                                          ${host2._t(
                                             "scenes_open_in_ha_button",
                                             "Open in HA",
                                           )}
@@ -42637,10 +42123,10 @@ function renderScenes(host) {
                                                 ?disabled=${deleting}
                                                 @click=${(e6) => {
                                                   e6.stopPropagation();
-                                                  host._openSceneBurger = null;
-                                                  host._deleteSceneConfirmId =
+                                                  host2._openSceneBurger = null;
+                                                  host2._deleteSceneConfirmId =
                                                     sceneId;
-                                                  host._deleteSceneConfirmName =
+                                                  host2._deleteSceneConfirmName =
                                                     s6.name;
                                                 }}
                                               >
@@ -42650,11 +42136,11 @@ function renderScenes(host) {
                                                 ></ha-icon>
                                                 ${
                                                   deleting
-                                                    ? host._t(
+                                                    ? host2._t(
                                                         "scenes_deleting_label",
                                                         "Deleting\u2026",
                                                       )
-                                                    : host._t(
+                                                    : host2._t(
                                                         "scenes_delete_button",
                                                         "Delete",
                                                       )
@@ -42676,14 +42162,14 @@ function renderScenes(host) {
                                   ${
                                     Object.keys(entities).length
                                       ? _renderEntityList(
-                                          host,
+                                          host2,
                                           entities,
                                           isSelora ? sceneId : null,
                                         )
                                       : b2`<div
                                           style="font-size:12px;opacity:0.6;padding:6px 0;"
                                         >
-                                          ${host._t(
+                                          ${host2._t(
                                             "scenes_no_entity_details",
                                             "No entity details available \u2014 open the scene in Home Assistant to inspect it.",
                                           )}
@@ -42693,8 +42179,8 @@ function renderScenes(host) {
                                     class="yaml-toggle"
                                     style="margin-top:10px;"
                                     @click=${() => {
-                                      host._sceneYamlOpen = {
-                                        ...host._sceneYamlOpen,
+                                      host2._sceneYamlOpen = {
+                                        ...host2._sceneYamlOpen,
                                         [sceneId]: !yamlOpen,
                                       };
                                     }}
@@ -42705,11 +42191,11 @@ function renderScenes(host) {
                                     ></ha-icon>
                                     ${
                                       yamlOpen
-                                        ? host._t(
+                                        ? host2._t(
                                             "scenes_hide_yaml",
                                             "Hide YAML",
                                           )
-                                        : host._t(
+                                        : host2._t(
                                             "scenes_view_yaml",
                                             "View YAML",
                                           )
@@ -42722,13 +42208,13 @@ function renderScenes(host) {
                                             mode="yaml"
                                             .value=${
                                               isSelora &&
-                                              host._sceneIsDirty(sceneId)
-                                                ? host._sceneEditYaml(
+                                              host2._sceneIsDirty(sceneId)
+                                                ? host2._sceneEditYaml(
                                                     sceneId,
                                                     s6.name,
                                                   )
                                                 : s6.yaml ||
-                                                  host._t(
+                                                  host2._t(
                                                     "scenes_yaml_unavailable_comment",
                                                     "# YAML not available \u2014 open the scene in Home Assistant to view it.",
                                                   )
@@ -42753,11 +42239,11 @@ function renderScenes(host) {
                         style="text-align:center;opacity:0.45;padding:24px 0;"
                       >
                         ${interpolate(
-                          host._t(
+                          host2._t(
                             "scenes_search_no_match",
                             'No scenes match "{query}"',
                           ),
-                          { query: host._sceneFilter },
+                          { query: host2._sceneFilter },
                         )}
                       </div>`
                     : ""
@@ -42769,59 +42255,59 @@ function renderScenes(host) {
                   style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
                 ></ha-icon>
                 <p style="opacity:0.45;margin:0 0 12px;">
-                  ${host._t(
+                  ${host2._t(
                     "scenes_empty_state",
                     "No scenes found. Ask Selora to create one.",
                   )}
                 </p>
                 <button
                   class="btn btn-accent"
-                  ?disabled=${host._llmNeedsSetup}
+                  ?disabled=${host2._llmNeedsSetup}
                   title=${
-                    host._llmNeedsSetup
-                      ? host._t(
+                    host2._llmNeedsSetup
+                      ? host2._t(
                           "scenes_llm_needs_setup_tooltip",
                           "Configure an LLM provider first",
                         )
                       : ""
                   }
-                  @click=${() => host._newSceneChat()}
+                  @click=${() => host2._newSceneChat()}
                 >
                   <ha-icon
                     icon="mdi:plus"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${host._t("scenes_new_scene_button", "New Scene")}
+                  ${host2._t("scenes_new_scene_button", "New Scene")}
                 </button>
               </div>`
         }
       </div>
-      ${renderDeleteSceneModal(host)}
+      ${renderDeleteSceneModal(host2)}
     </div>
   `;
 }
-function renderDeleteSceneModal(host) {
-  if (!host._deleteSceneConfirmId) return "";
+function renderDeleteSceneModal(host2) {
+  if (!host2._deleteSceneConfirmId) return "";
   const name =
-    host._deleteSceneConfirmName ||
-    host._t("scenes_delete_modal_fallback_name", "this scene");
+    host2._deleteSceneConfirmName ||
+    host2._t("scenes_delete_modal_fallback_name", "this scene");
   return b2`
     <div
       class="modal-overlay"
       @click=${(e6) => {
         if (e6.target === e6.currentTarget) {
-          host._deleteSceneConfirmId = null;
-          host._deleteSceneConfirmName = null;
+          host2._deleteSceneConfirmId = null;
+          host2._deleteSceneConfirmName = null;
         }
       }}
     >
       <div class="modal-content" style="max-width:420px;text-align:center;">
         <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-          ${host._t("scenes_delete_modal_title", "Delete Scene")}
+          ${host2._t("scenes_delete_modal_title", "Delete Scene")}
         </div>
         <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
-          ${host._t("scenes_delete_modal_prefix", "Delete")}
-          <strong>${name}</strong>${host._t(
+          ${host2._t("scenes_delete_modal_prefix", "Delete")}
+          <strong>${name}</strong>${host2._t(
             "scenes_delete_modal_suffix",
             "? This removes the scene from Home Assistant and cannot be undone.",
           )}
@@ -42830,18 +42316,18 @@ function renderDeleteSceneModal(host) {
           <button
             class="btn btn-outline"
             @click=${() => {
-              host._deleteSceneConfirmId = null;
-              host._deleteSceneConfirmName = null;
+              host2._deleteSceneConfirmId = null;
+              host2._deleteSceneConfirmName = null;
             }}
           >
-            ${host._t("scenes_delete_modal_cancel_button", "Cancel")}
+            ${host2._t("scenes_delete_modal_cancel_button", "Cancel")}
           </button>
           <button
             class="btn"
             style="background:#ef4444;color:#fff;border-color:#ef4444;"
-            @click=${() => host._confirmDeleteScene()}
+            @click=${() => host2._confirmDeleteScene()}
           >
-            ${host._t("scenes_delete_modal_confirm_button", "Delete")}
+            ${host2._t("scenes_delete_modal_confirm_button", "Delete")}
           </button>
         </div>
       </div>
@@ -42858,10 +42344,10 @@ function candidatesOf(msg) {
   }
   return [...seen.values()];
 }
-function formatDate3(host, iso) {
+function formatDate3(host2, iso) {
   try {
     return new Date(iso).toLocaleString(
-      host.hass?.locale?.language || host.hass?.language || void 0,
+      host2.hass?.locale?.language || host2.hass?.language || void 0,
       { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" },
     );
   } catch {
@@ -42869,93 +42355,93 @@ function formatDate3(host, iso) {
   }
 }
 var RETRY_MS = 5e3;
-async function fetchDetails(host, ids2) {
+async function fetchDetails(host2, ids2) {
   let items = [];
   try {
-    ({ items } = await host.hass.callWS({
+    ({ items } = await host2.hass.callWS({
       type: "selora_ai/trash/get",
       trash_ids: ids2,
     }));
   } catch (err) {
     console.error("Failed to load deleted items", err);
-    ids2.forEach((id) => host._restoreFetching?.delete(id));
-    host._restoreRetryAt = Date.now() + RETRY_MS;
-    setTimeout(() => host.requestUpdate(), RETRY_MS);
+    ids2.forEach((id) => host2._restoreFetching?.delete(id));
+    host2._restoreRetryAt = Date.now() + RETRY_MS;
+    setTimeout(() => host2.requestUpdate(), RETRY_MS);
     return;
   }
   const found = Object.fromEntries(
     (items || []).map((i8) => [i8.trash_id, i8]),
   );
-  host._restoreDetails = {
-    ...(host._restoreDetails || {}),
+  host2._restoreDetails = {
+    ...(host2._restoreDetails || {}),
     ...Object.fromEntries(ids2.map((id) => [id, found[id] || null])),
   };
-  host.requestUpdate();
+  host2.requestUpdate();
 }
-function renderAction(host, c6, detail) {
-  if (host._restoredTrash?.has(c6.trash_id)) {
+function renderAction(host2, c6, detail) {
+  if (host2._restoredTrash?.has(c6.trash_id)) {
     return b2`<span class="restore-card-state">
       <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-      ${host._t("restore_card_restored", "Restored")}
+      ${host2._t("restore_card_restored", "Restored")}
     </span>`;
   }
   if (detail === null) {
     return b2`<span class="restore-card-state">
-      ${host._t("restore_card_gone", "No longer in Recently deleted")}
+      ${host2._t("restore_card_gone", "No longer in Recently deleted")}
     </span>`;
   }
   if (!detail) return "";
   return b2`<button
     class="btn btn-outline btn-sm"
-    ?disabled=${host._trashBusy?.[c6.trash_id]}
-    @click=${() => restore(host, c6)}
+    ?disabled=${host2._trashBusy?.[c6.trash_id]}
+    @click=${() => restore(host2, c6)}
   >
     <ha-icon icon="mdi:restore"></ha-icon>
-    ${host._t("trash_restore", "Restore")}
+    ${host2._t("trash_restore", "Restore")}
   </button>`;
 }
-function renderCandidate(host, c6) {
-  const detail = host._restoreDetails?.[c6.trash_id];
+function renderCandidate(host2, c6) {
+  const detail = host2._restoreDetails?.[c6.trash_id];
   const yamlKey = `restore_${c6.trash_id}`;
-  const yamlOpen = host._yamlOpen?.[yamlKey];
+  const yamlOpen = host2._yamlOpen?.[yamlKey];
   return b2`
     <div class="automation-subcard restore-candidate">
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(c6.name, c6.description, {
           badge: interpolate(
-            host._t("restore_card_deleted_on", "Deleted {date}"),
-            { date: formatDate3(host, c6.deleted_at) },
+            host2._t("restore_card_deleted_on", "Deleted {date}"),
+            { date: formatDate3(host2, c6.deleted_at) },
           ),
         })}
       </div>
       <div class="automation-subcard-body">
-        ${!detail ? "" : c6.kind === "scene" ? renderSceneEntityList(host, detail.config?.entities) : renderAutomationFlowchart(host, detail.config)}
-        ${detail ? renderYaml(host, detail, yamlKey, yamlOpen) : ""}
-        <div class="restore-card-actions">${renderAction(host, c6, detail)}</div>
+        ${!detail ? "" : c6.kind === "scene" ? renderSceneEntityList(host2, detail.config?.entities) : renderAutomationFlowchart(host2, detail.config)}
+        ${detail ? renderYaml(host2, detail, yamlKey, yamlOpen) : ""}
+        <div class="restore-card-actions">${renderAction(host2, c6, detail)}</div>
       </div>
     </div>
   `;
 }
-function renderYaml(host, detail, yamlKey, yamlOpen) {
+function renderYaml(host2, detail, yamlKey, yamlOpen) {
   return b2`
     <div
       class="yaml-toggle"
       style="margin-top:12px;"
       @click=${() => {
-        host._yamlOpen = {
-          ...(host._yamlOpen || {}),
+        host2._yamlOpen = {
+          ...(host2._yamlOpen || {}),
           [yamlKey]: !yamlOpen,
         };
-        host.requestUpdate();
+        host2.requestUpdate();
       }}
     >
       <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon>
-      ${yamlOpen ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_view", "View YAML")}
+      ${yamlOpen ? host2._t("automations_yaml_toggle_hide", "Hide YAML") : host2._t("automations_yaml_toggle_view", "View YAML")}
     </div>
     ${
       yamlOpen
         ? b2`<div style="margin-top:6px;">
-            ${host._renderYamlEditor(yamlKey, detail.yaml, null, {
+            ${host2._renderYamlEditor(yamlKey, detail.yaml, null, {
               readOnly: true,
             })}
           </div>`
@@ -42963,20 +42449,20 @@ function renderYaml(host, detail, yamlKey, yamlOpen) {
     }
   `;
 }
-function renderRestoreCard(host, msg) {
+function renderRestoreCard(host2, msg) {
   const candidates = candidatesOf(msg);
   if (!candidates.length) return "";
   const missing = candidates
     .map((c6) => c6.trash_id)
-    .filter((id) => !(id in (host._restoreDetails || {})));
-  host._restoreFetching = host._restoreFetching || /* @__PURE__ */ new Set();
-  const toFetch = missing.filter((id) => !host._restoreFetching.has(id));
-  if (toFetch.length && Date.now() >= (host._restoreRetryAt || 0)) {
-    toFetch.forEach((id) => host._restoreFetching.add(id));
-    fetchDetails(host, toFetch);
+    .filter((id) => !(id in (host2._restoreDetails || {})));
+  host2._restoreFetching = host2._restoreFetching || /* @__PURE__ */ new Set();
+  const toFetch = missing.filter((id) => !host2._restoreFetching.has(id));
+  if (toFetch.length && Date.now() >= (host2._restoreRetryAt || 0)) {
+    toFetch.forEach((id) => host2._restoreFetching.add(id));
+    fetchDetails(host2, toFetch);
   }
   return b2`<div class="restore-card">
-    ${candidates.map((c6) => renderCandidate(host, c6))}
+    ${candidates.map((c6) => renderCandidate(host2, c6))}
   </div>`;
 }
 
@@ -42998,19 +42484,19 @@ function zonesPage(camera) {
 function setIngressCookie(session) {
   document.cookie = `ingress_session=${session};path=/api/hassio_ingress/;SameSite=Strict${location.protocol === "https:" ? ";Secure" : ""}`;
 }
-async function openFrigatePage(host, page) {
-  const slug = frigateApp(host.hass);
+async function openFrigatePage(host2, page) {
+  const slug = frigateApp(host2.hass);
   if (!slug) return;
   const tab = window.open("", "_blank");
   try {
-    const info = await host.hass.callWS({
+    const info = await host2.hass.callWS({
       type: "supervisor/api",
       endpoint: `/addons/${slug}/info`,
       method: "get",
     });
     const entry = info?.ingress_entry;
     if (!entry) throw new Error("the app has no ingress");
-    const { session } = await host.hass.callWS({
+    const { session } = await host2.hass.callWS({
       type: "supervisor/api",
       endpoint: "/ingress/session",
       method: "post",
@@ -43077,11 +42563,11 @@ function clipPath(event) {
   const camera = encodeURIComponent(event.camera);
   return `/api/frigate/recording/${camera}/start/${Math.floor(start)}/end/${Math.ceil(end + 1)}`;
 }
-async function sign(host, path) {
+async function sign(host2, path) {
   const entry = SIGNED.get(path) || {};
   SIGNED.set(path, { ...entry, at: Date.now(), pending: true });
   try {
-    const result = await host.hass.callWS({
+    const result = await host2.hass.callWS({
       type: "auth/sign_path",
       path,
       expires: SIGN_FOR_S,
@@ -43091,41 +42577,41 @@ async function sign(host, path) {
     console.error("Failed to sign a Frigate media path", err);
     SIGNED.set(path, { ...entry, at: Date.now(), failed: true });
   }
-  host.requestUpdate?.();
+  host2.requestUpdate?.();
 }
-function signed(host, path) {
+function signed(host2, path) {
   const entry = SIGNED.get(path);
   const age2 = entry ? Date.now() - entry.at : Infinity;
   const stale = entry?.failed ? age2 > RETRY_AFTER_MS : age2 > RESIGN_AFTER_MS;
-  if (!entry || (stale && !entry.pending)) sign(host, path);
+  if (!entry || (stale && !entry.pending)) sign(host2, path);
   return entry?.url || null;
 }
-function formatTime2(host, iso) {
+function formatTime2(host2, iso) {
   try {
     return new Date(iso).toLocaleString(
-      host.hass?.locale?.language || host.hass?.language || void 0,
+      host2.hass?.locale?.language || host2.hass?.language || void 0,
       { weekday: "short", hour: "numeric", minute: "2-digit" },
     );
   } catch {
     return iso || "";
   }
 }
-function objectName(host, label) {
+function objectName(host2, label) {
   const known = OBJECTS[label];
-  if (known) return host._t(known[0], known[1]);
+  if (known) return host2._t(known[0], known[1]);
   const text = String(label || "").replace(/_/g, " ");
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
-function caption(host, event) {
+function caption(host2, event) {
   const what = event.sub_label
-    ? `${objectName(host, event.label)} \xB7 ${event.sub_label}`
-    : objectName(host, event.label);
+    ? `${objectName(host2, event.label)} \xB7 ${event.sub_label}`
+    : objectName(host2, event.label);
   return `${what} \xB7 ${event.camera_name || event.camera}`;
 }
-function renderOpen(host, event, key) {
+function renderOpen(host2, event, key) {
   const picture = picturePath(event, 0);
-  const snapshot = picture ? signed(host, picture) : null;
-  const clip2 = clipPath(event) ? signed(host, clipPath(event)) : null;
+  const snapshot = picture ? signed(host2, picture) : null;
+  const clip2 = clipPath(event) ? signed(host2, clipPath(event)) : null;
   return b2`
     <div class="camera-event-open">
       ${
@@ -43139,24 +42625,24 @@ function renderOpen(host, event, key) {
               src=${clip2}
             ></video>`
           : snapshot
-            ? b2`<img src=${snapshot} alt=${caption(host, event)} />`
+            ? b2`<img src=${snapshot} alt=${caption(host2, event)} />`
             : ""
       }
       <div class="camera-event-open-meta">
         <span class="camera-event-open-caption">
-          <span class="camera-event-open-what">${caption(host, event)}</span>
+          <span class="camera-event-open-what">${caption(host2, event)}</span>
           <span class="camera-event-open-when"
-            >${formatTime2(host, event.start)}</span
+            >${formatTime2(host2, event.start)}</span
           >
         </span>
-        ${renderFrigateLinks(host, event)}
+        ${renderFrigateLinks(host2, event)}
         <button
           class="camera-event-close"
-          title=${host._t("camera_events_close", "Close")}
-          aria-label=${host._t("camera_events_close", "Close")}
+          title=${host2._t("camera_events_close", "Close")}
+          aria-label=${host2._t("camera_events_close", "Close")}
           @click=${() => {
             OPEN.delete(key);
-            host.requestUpdate?.();
+            host2.requestUpdate?.();
           }}
         >
           <ha-icon icon="mdi:close"></ha-icon>
@@ -43165,11 +42651,11 @@ function renderOpen(host, event, key) {
     </div>
   `;
 }
-function renderFrigateLinks(host, event) {
-  if (!frigateApp(host.hass)) return "";
+function renderFrigateLinks(host2, event) {
+  if (!frigateApp(host2.hass)) return "";
   const link = (page, icon, label) => b2`<button
       class="camera-event-link"
-      @click=${() => openFrigatePage(host, page)}
+      @click=${() => openFrigatePage(host2, page)}
     >
       <ha-icon icon=${icon}></ha-icon>
       <span>${label}</span>
@@ -43178,29 +42664,29 @@ function renderFrigateLinks(host, event) {
     ${link(
       eventPage(event.id),
       "mdi:open-in-new",
-      host._t("camera_events_open_in_frigate", "Open in Frigate"),
+      host2._t("camera_events_open_in_frigate", "Open in Frigate"),
     )}
     ${
       event.camera
         ? link(
             zonesPage(event.camera),
             "mdi:vector-square",
-            host._t("camera_events_zones", "Zones"),
+            host2._t("camera_events_zones", "Zones"),
           )
         : ""
     }
   </span>`;
 }
-function renderTile(host, event, key) {
+function renderTile(host2, event, key) {
   const picture = picturePath(event, 240);
-  const thumb = picture ? signed(host, picture) : null;
+  const thumb = picture ? signed(host2, picture) : null;
   return b2`
     <button
       class="camera-event"
-      title=${caption(host, event)}
+      title=${caption(host2, event)}
       @click=${() => {
         OPEN.set(key, event.id);
-        host.requestUpdate?.();
+        host2.requestUpdate?.();
       }}
     >
       <div class="camera-event-thumb">
@@ -43214,24 +42700,24 @@ function renderTile(host, event, key) {
             : ""
         }
       </div>
-      <span class="camera-event-what">${caption(host, event)}</span>
+      <span class="camera-event-what">${caption(host2, event)}</span>
       <span class="camera-event-when"
-        >${event.in_progress ? host._t("camera_events_now", "Still going") : formatTime2(host, event.start)}</span
+        >${event.in_progress ? host2._t("camera_events_now", "Still going") : formatTime2(host2, event.start)}</span
       >
     </button>
   `;
 }
-function renderMore(host, more) {
+function renderMore(host2, more) {
   return more > 0
     ? b2`<div class="camera-events-more">
         ${interpolate(
-          host._t("camera_events_more", "{count} more in this time range."),
+          host2._t("camera_events_more", "{count} more in this time range."),
           { count: more },
         )}
       </div>`
     : "";
 }
-function renderCameraEventsCard(host, msg) {
+function renderCameraEventsCard(host2, msg) {
   const searches = searchesOf(msg);
   if (!searches.length) return "";
   const key = msg.timestamp || "";
@@ -43241,17 +42727,17 @@ function renderCameraEventsCard(host, msg) {
     : null;
   return b2`
     <div class="camera-events">
-      ${open ? renderOpen(host, open, key) : ""}
+      ${open ? renderOpen(host2, open, key) : ""}
       ${searches.map(
         ({ events, more }) => b2`
           ${
             events.length
               ? b2`<div class="camera-events-grid">
-                  ${events.map((e6) => renderTile(host, e6, key))}
+                  ${events.map((e6) => renderTile(host2, e6, key))}
                 </div>`
               : ""
           }
-          ${renderMore(host, more)}
+          ${renderMore(host2, more)}
         `,
       )}
     </div>
@@ -43260,20 +42746,20 @@ function renderCameraEventsCard(host, msg) {
 
 // src/panel/face-library-link.js
 var FACES_PAGE = "faces";
-function renderFaceLibraryLink(host, msg) {
+function renderFaceLibraryLink(host2, msg) {
   const shown = (msg.tool_calls || []).some(
     (call) =>
       call?.tool === "get_face_recognition" && call.result?.face_library,
   );
-  if (!shown || !frigateApp(host.hass)) return "";
+  if (!shown || !frigateApp(host2.hass)) return "";
   return b2`<div class="face-library camera-event-links">
     <button
       class="camera-event-link"
-      @click=${() => openFrigatePage(host, FACES_PAGE)}
+      @click=${() => openFrigatePage(host2, FACES_PAGE)}
     >
       <ha-icon icon="mdi:face-recognition"></ha-icon>
       <span
-        >${host._t("face_library_open", "Open the Face Library in Frigate")}</span
+        >${host2._t("face_library_open", "Open the Face Library in Frigate")}</span
       >
     </button>
   </div>`;
@@ -43282,20 +42768,20 @@ function renderFaceLibraryLink(host, msg) {
 // src/panel/home-suggestions.js
 var MAX_SHOWN = 3;
 var MAX_NAMED = 3;
-async function loadHomeSuggestions(host) {
+async function loadHomeSuggestions(host2) {
   try {
-    host._homeSuggestions =
-      (await host.hass.callWS({ type: "selora_ai/home_suggestions" })) || [];
+    host2._homeSuggestions =
+      (await host2.hass.callWS({ type: "selora_ai/home_suggestions" })) || [];
   } catch (err) {
     console.error("Failed to load home suggestions", err);
   }
 }
-async function dismiss(host, suggestion) {
-  host._homeSuggestions = (host._homeSuggestions || []).filter(
+async function dismiss(host2, suggestion) {
+  host2._homeSuggestions = (host2._homeSuggestions || []).filter(
     (s6) => s6.suggestion_id !== suggestion.suggestion_id,
   );
   try {
-    await host.hass.callWS({
+    await host2.hass.callWS({
       type: "selora_ai/home_suggestions/dismiss",
       suggestion_id: suggestion.suggestion_id,
     });
@@ -43303,36 +42789,36 @@ async function dismiss(host, suggestion) {
     console.error("Failed to dismiss home suggestion", err);
   }
 }
-function toggle(host, suggestion) {
-  host._expandedHomeSuggestion =
-    host._expandedHomeSuggestion === suggestion.suggestion_id
+function toggle(host2, suggestion) {
+  host2._expandedHomeSuggestion =
+    host2._expandedHomeSuggestion === suggestion.suggestion_id
       ? null
       : suggestion.suggestion_id;
 }
-async function act(host, suggestion, d3) {
+async function act(host2, suggestion, d3) {
   const said = d3.ask || d3.title;
   const message = said + buildDetailsMarker(d3.prompt);
   if (suggestion.type === "describe_cameras") {
-    if (await openDescribeChat(host, said)) return;
+    if (await openDescribeChat(host2, said)) return;
   }
   const automationId = suggestion.collection.automation_id;
   if (!automationId) {
-    await host._askInNewChat(message, { guide: guideFor(suggestion, d3) });
+    await host2._askInNewChat(message, { guide: guideFor(suggestion, d3) });
     return;
   }
   try {
-    const { session_id } = await host.hass.callWS({
+    const { session_id } = await host2.hass.callWS({
       type: "selora_ai/load_automation_to_session",
       automation_id: automationId,
     });
-    host._setActiveTab("chat");
-    await host._openSession(session_id);
-    if (host._activeSessionId !== session_id) return;
-    host._input = message;
-    host._sendMessage();
+    host2._setActiveTab("chat");
+    await host2._openSession(session_id);
+    if (host2._activeSessionId !== session_id) return;
+    host2._input = message;
+    host2._sendMessage();
   } catch (err) {
     console.error("Failed to open the automation in chat", err);
-    await host._askInNewChat(message);
+    await host2._askInNewChat(message);
   }
 }
 var FRIGATE_GUIDES = /* @__PURE__ */ new Set([
@@ -43351,20 +42837,20 @@ function guideFor(suggestion, d3) {
     banner: "frigate",
   };
 }
-async function openDescribeChat(host, title) {
+async function openDescribeChat(host2, title) {
   try {
-    const { session_id } = await host.hass.callWS({
+    const { session_id } = await host2.hass.callWS({
       type: "selora_ai/frigate/describe_start",
       title,
-      ...(host.hass?.language ? { language: host.hass.language } : {}),
+      ...(host2.hass?.language ? { language: host2.hass.language } : {}),
     });
-    host._setActiveTab("chat");
-    await host._openSession(session_id);
+    host2._setActiveTab("chat");
+    await host2._openSession(session_id);
     return true;
   } catch (err) {
     if (err?.code === "unknown_command") return false;
-    host._showToast?.(err?.message || String(err), "error");
-    await loadHomeSuggestions(host);
+    host2._showToast?.(err?.message || String(err), "error");
+    await loadHomeSuggestions(host2);
     return true;
   }
 }
@@ -43374,27 +42860,27 @@ function names(entities) {
 function ids(entities) {
   return entities.map((e6) => e6.entity_id || e6.address).join(", ");
 }
-function nameList(host, entities) {
+function nameList(host2, entities) {
   const shown = entities
     .slice(0, MAX_NAMED)
     .map((e6) => (e6.address ? `${e6.name} (${e6.address})` : e6.name));
   const rest = entities.length - shown.length;
   if (rest > 0) {
     shown.push(
-      interpolate(host._t("home_suggestion_more", "{count} more"), {
+      interpolate(host2._t("home_suggestion_more", "{count} more"), {
         count: rest,
       }),
     );
   }
   try {
-    return new Intl.ListFormat(pickLocale(host.hass), {
+    return new Intl.ListFormat(pickLocale(host2.hass), {
       type: "conjunction",
     }).format(shown);
   } catch {
     return shown.join(", ");
   }
 }
-function describe(host, s6) {
+function describe(host2, s6) {
   const grouping = s6.type === "group_entities";
   const listsEntities =
     grouping || s6.type === "add_to_frigate" || s6.type === "describe_cameras";
@@ -43404,10 +42890,10 @@ function describe(host, s6) {
     collection: s6.collection.name,
     ref: s6.collection.ref,
     count: s6.entities.length,
-    members: nameList(host, listsEntities ? s6.entities : s6.members || []),
+    members: nameList(host2, listsEntities ? s6.entities : s6.members || []),
     area: s6.area || "",
   };
-  const t5 = (key, fallback) => interpolate(host._t(key, fallback), values);
+  const t5 = (key, fallback) => interpolate(host2._t(key, fallback), values);
   if (grouping) {
     return {
       icon: "mdi:group",
@@ -43432,7 +42918,7 @@ function describe(host, s6) {
     };
   }
   if (s6.type === "camera_idea") {
-    const d3 = describeIdea(host, s6.idea);
+    const d3 = describeIdea(host2, s6.idea);
     return d3
       ? { icon: d3.icon, title: d3.title, prompt: d3.prompt, why: d3.why }
       : null;
@@ -43567,29 +43053,29 @@ function describe(host, s6) {
     why,
   };
 }
-function renderHomeSuggestions(host) {
-  const rows = (host._homeSuggestions || [])
-    .map((s6) => [s6, describe(host, s6)])
+function renderHomeSuggestions(host2) {
+  const rows = (host2._homeSuggestions || [])
+    .map((s6) => [s6, describe(host2, s6)])
     .filter(([, d3]) => d3)
     .slice(0, MAX_SHOWN);
   if (!rows.length) return "";
   return b2`
     <div class="home-suggestions">
       <div class="home-suggestions-heading">
-        ${host._t(
+        ${host2._t(
           "home_suggestions_heading",
           "I noticed a few things I can help with",
         )}
       </div>
       ${rows.map(([s6, d3]) => {
-        const open = host._expandedHomeSuggestion === s6.suggestion_id;
+        const open = host2._expandedHomeSuggestion === s6.suggestion_id;
         return b2`
           <div class="home-suggestion ${open ? "open" : ""}">
             <div class="home-suggestion-row">
               <button
                 class="home-suggestion-main"
                 aria-expanded=${open ? "true" : "false"}
-                @click=${() => toggle(host, s6)}
+                @click=${() => toggle(host2, s6)}
               >
                 ${renderCardIcon(d3.icon)}
                 <span class="home-suggestion-title">${d3.title}</span>
@@ -43600,9 +43086,9 @@ function renderHomeSuggestions(host) {
               </button>
               <button
                 class="home-suggestion-dismiss"
-                title=${host._t("home_suggestion_dismiss", "Dismiss")}
-                aria-label=${host._t("home_suggestion_dismiss", "Dismiss")}
-                @click=${() => dismiss(host, s6)}
+                title=${host2._t("home_suggestion_dismiss", "Dismiss")}
+                aria-label=${host2._t("home_suggestion_dismiss", "Dismiss")}
+                @click=${() => dismiss(host2, s6)}
               >
                 <ha-icon icon="mdi:close"></ha-icon>
               </button>
@@ -43615,12 +43101,12 @@ function renderHomeSuggestions(host) {
                       ${renderActionButton({
                         label:
                           d3.act ||
-                          host._t(
+                          host2._t(
                             "home_suggestion_do_it",
                             "Ask Selora to do it",
                           ),
                         tone: "primary",
-                        onClick: () => act(host, s6, d3),
+                        onClick: () => act(host2, s6, d3),
                       })}
                     </div>
                   </div>`
@@ -43646,21 +43132,21 @@ var ACCEPTED_MIME = /* @__PURE__ */ new Set([
   "image/webp",
   "image/gif",
 ]);
-function supportsImageAttachments(host) {
-  return !!host._config?.supports_vision;
+function supportsImageAttachments(host2) {
+  return !!host2._config?.supports_vision;
 }
-function unsupportedNotice(host) {
-  return host._t(
+function unsupportedNotice(host2) {
+  return host2._t(
     "chat_attachment_unsupported",
     "Your current AI model can't analyze images.",
   );
 }
-function clearUnsupportedNotice(host) {
+function clearUnsupportedNotice(host2) {
   if (
-    supportsImageAttachments(host) &&
-    host._attachmentNotice === unsupportedNotice(host)
+    supportsImageAttachments(host2) &&
+    host2._attachmentNotice === unsupportedNotice(host2)
   ) {
-    host._attachmentNotice = "";
+    host2._attachmentNotice = "";
   }
 }
 function _b64Length(attachment) {
@@ -43715,21 +43201,21 @@ async function _processImageFile(file) {
         : canvas.toDataURL("image/jpeg", JPEG_QUALITY),
   };
 }
-async function addImageAttachments(host, files) {
+async function addImageAttachments(host2, files) {
   const images = Array.from(files || []).filter((f4) =>
     ACCEPTED_MIME.has(f4.type),
   );
   if (!images.length) return;
-  if (!supportsImageAttachments(host)) await host._loadConfig?.();
-  if (!supportsImageAttachments(host)) {
-    host._attachmentNotice = unsupportedNotice(host);
+  if (!supportsImageAttachments(host2)) await host2._loadConfig?.();
+  if (!supportsImageAttachments(host2)) {
+    host2._attachmentNotice = unsupportedNotice(host2);
     return;
   }
-  const reserved = host._attachmentSlotsReserved || 0;
+  const reserved = host2._attachmentSlotsReserved || 0;
   const room =
-    MAX_CHAT_ATTACHMENTS - (host._chatAttachments || []).length - reserved;
+    MAX_CHAT_ATTACHMENTS - (host2._chatAttachments || []).length - reserved;
   if (room <= 0) {
-    host._attachmentNotice = host._t(
+    host2._attachmentNotice = host2._t(
       "chat_attachment_limit",
       "You can attach up to 4 images per message.",
     );
@@ -43737,9 +43223,9 @@ async function addImageAttachments(host, files) {
   }
   const accepted = images.slice(0, room);
   const results = [];
-  host._attachmentsBusy = (host._attachmentsBusy || 0) + 1;
-  host._attachmentSlotsReserved = reserved + accepted.length;
-  let totalB64 = (host._chatAttachments || []).reduce(
+  host2._attachmentsBusy = (host2._attachmentsBusy || 0) + 1;
+  host2._attachmentSlotsReserved = reserved + accepted.length;
+  let totalB64 = (host2._chatAttachments || []).reduce(
     (sum, a3) => sum + _b64Length(a3),
     0,
   );
@@ -43749,7 +43235,7 @@ async function addImageAttachments(host, files) {
         const processed = await _processImageFile(file);
         const size = _b64Length(processed);
         if (size > MAX_B64_PER_IMAGE || totalB64 + size > MAX_B64_TOTAL) {
-          host._attachmentNotice = host._t(
+          host2._attachmentNotice = host2._t(
             "chat_attachment_too_large",
             "That image is too large to send.",
           );
@@ -43758,40 +43244,40 @@ async function addImageAttachments(host, files) {
         totalB64 += size;
         results.push(processed);
       } catch (_2) {
-        host._attachmentNotice = host._t(
+        host2._attachmentNotice = host2._t(
           "chat_attachment_read_error",
           "Couldn't read that image.",
         );
       }
     }
   } finally {
-    host._attachmentsBusy = Math.max(0, (host._attachmentsBusy || 1) - 1);
-    host._attachmentSlotsReserved = Math.max(
+    host2._attachmentsBusy = Math.max(0, (host2._attachmentsBusy || 1) - 1);
+    host2._attachmentSlotsReserved = Math.max(
       0,
-      (host._attachmentSlotsReserved || accepted.length) - accepted.length,
+      (host2._attachmentSlotsReserved || accepted.length) - accepted.length,
     );
   }
   if (!results.length) return;
-  host._chatAttachments = [...(host._chatAttachments || []), ...results].slice(
-    0,
-    MAX_CHAT_ATTACHMENTS,
-  );
-  host._attachmentNotice =
+  host2._chatAttachments = [
+    ...(host2._chatAttachments || []),
+    ...results,
+  ].slice(0, MAX_CHAT_ATTACHMENTS);
+  host2._attachmentNotice =
     images.length > room
-      ? host._t(
+      ? host2._t(
           "chat_attachment_limit",
           "You can attach up to 4 images per message.",
         )
       : "";
 }
-function removeChatAttachment(host, idx) {
-  host._chatAttachments = (host._chatAttachments || []).filter(
+function removeChatAttachment(host2, idx) {
+  host2._chatAttachments = (host2._chatAttachments || []).filter(
     (_2, i8) => i8 !== idx,
   );
-  host._attachmentNotice = "";
+  host2._attachmentNotice = "";
 }
-function attachmentsForSend(host) {
-  return (host._chatAttachments || [])
+function attachmentsForSend(host2) {
+  return (host2._chatAttachments || [])
     .map((a3) => {
       const comma = a3.dataUrl.indexOf(",");
       if (comma < 0) return null;
@@ -43799,16 +43285,16 @@ function attachmentsForSend(host) {
     })
     .filter(Boolean);
 }
-function createGlobalDropGuard(host) {
+function createGlobalDropGuard(host2) {
   const isFileDrag = (e6) => e6.dataTransfer?.types?.includes?.("Files");
   let depth = 0;
   const setDropActive = (value) => {
-    if (host._chatDropActive !== value) host._chatDropActive = value;
+    if (host2._chatDropActive !== value) host2._chatDropActive = value;
   };
   const onDragEnter = (e6) => {
     if (!isFileDrag(e6)) return;
     depth += 1;
-    if (host._activeTab === "chat" && supportsImageAttachments(host)) {
+    if (host2._activeTab === "chat" && supportsImageAttachments(host2)) {
       setDropActive(true);
     }
   };
@@ -43825,8 +43311,8 @@ function createGlobalDropGuard(host) {
     setDropActive(false);
     if (!isFileDrag(e6) || e6.defaultPrevented) return;
     e6.preventDefault();
-    if (host._activeTab === "chat" && e6.dataTransfer.files?.length) {
-      addImageAttachments(host, e6.dataTransfer.files);
+    if (host2._activeTab === "chat" && e6.dataTransfer.files?.length) {
+      addImageAttachments(host2, e6.dataTransfer.files);
     }
   };
   window.addEventListener("dragenter", onDragEnter);
@@ -43840,22 +43326,22 @@ function createGlobalDropGuard(host) {
     window.removeEventListener("drop", onDrop);
   };
 }
-function renderDropOverlay(host) {
-  if (!host._chatDropActive) return b2``;
+function renderDropOverlay(host2) {
+  if (!host2._chatDropActive) return b2``;
   return b2`
     <div class="chat-drop-overlay">
       <div class="chat-drop-overlay-inner">
         <ha-icon icon="mdi:image-plus-outline"></ha-icon>
         <span
-          >${host._t("chat_attachment_drop_here", "Drop images to attach")}</span
+          >${host2._t("chat_attachment_drop_here", "Drop images to attach")}</span
         >
       </div>
     </div>
   `;
 }
-function renderAttachmentStrip(host) {
-  const attachments = host._chatAttachments || [];
-  if (!attachments.length && !host._attachmentNotice) return b2``;
+function renderAttachmentStrip(host2) {
+  const attachments = host2._chatAttachments || [];
+  if (!attachments.length && !host2._attachmentNotice) return b2``;
   return b2`
     <div class="composer-attachments">
       ${attachments.map(
@@ -43865,8 +43351,8 @@ function renderAttachmentStrip(host) {
             <button
               type="button"
               class="composer-attachment-remove"
-              title=${host._t("chat_attachment_remove", "Remove image")}
-              @click=${() => removeChatAttachment(host, idx)}
+              title=${host2._t("chat_attachment_remove", "Remove image")}
+              @click=${() => removeChatAttachment(host2, idx)}
             >
               ×
             </button>
@@ -43874,9 +43360,9 @@ function renderAttachmentStrip(host) {
         `,
       )}
       ${
-        host._attachmentNotice
+        host2._attachmentNotice
           ? b2`<span class="composer-attachment-notice"
-              >${host._attachmentNotice}</span
+              >${host2._attachmentNotice}</span
             >`
           : b2``
       }
@@ -43900,99 +43386,36 @@ var AUTOCOMPLETE_KIND_LABEL_KEYS = {
   scene: ["chat_autocomplete_kind_scenes", "Scenes"],
   automation: ["chat_autocomplete_kind_automations", "Automations"],
 };
-function _formatReplyMs(ms) {
-  if (ms < 1e3) return `${ms} ms`;
-  const seconds = ms / 1e3;
-  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
-}
-function _formatToolArgs(args) {
-  if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
-  const parts = [];
-  for (const [k2, v3] of Object.entries(args)) {
-    let val;
-    if (v3 === null || v3 === void 0) {
-      val = "null";
-    } else if (typeof v3 === "string") {
-      val =
-        v3.length > 60
-          ? JSON.stringify(v3.slice(0, 60) + "\u2026")
-          : JSON.stringify(v3);
-    } else if (typeof v3 === "object") {
-      const json = JSON.stringify(v3);
-      val = json.length > 60 ? json.slice(0, 60) + "\u2026" : json;
-    } else {
-      val = String(v3);
-    }
-    parts.push(`${k2}=${val}`);
-  }
-  return parts.join(", ");
-}
-function renderToolCalls(host, toolCalls) {
-  return b2`
-    <details
-      class="dev-tool-calls"
-      style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
-    >
-      <summary
-        style="cursor:pointer;padding:6px 10px;color:var(--secondary-text-color);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;"
-      >
-        <ha-icon
-          icon="mdi:wrench-outline"
-          style="--mdc-icon-size:14px;"
-        ></ha-icon>
-        <span
-          >${host._t("chat_tools_used", "Tools used")}
-          (${toolCalls.length})</span
-        >
-      </summary>
-      <div
-        style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
-      >
-        ${toolCalls.map(
-          (tc, i8) => b2`
-            <div
-              style="padding:2px 0;${i8 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
-            >
-              <span style="color:var(--primary-text-color);font-weight:600;"
-                >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
-            </div>
-          `,
-        )}
-      </div>
-    </details>
-  `;
-}
-function _welcomeSuggestions(host) {
+function _welcomeSuggestions(host2) {
   return [
     {
-      label: host._t(
+      label: host2._t(
         "chat_welcome_suggestion_lights_label",
         "Turn off all lights at midnight",
       ),
-      value: host._t(
+      value: host2._t(
         "chat_welcome_suggestion_lights_value",
         "Create an automation that turns off all lights at midnight",
       ),
       icon: "mdi:lightbulb-off-outline",
     },
     {
-      label: host._t(
+      label: host2._t(
         "chat_welcome_suggestion_devices_label",
         "What devices do I have?",
       ),
-      value: host._t(
+      value: host2._t(
         "chat_welcome_suggestion_devices_value",
         "What devices do I have and which ones are currently on?",
       ),
       icon: "mdi:devices",
     },
     {
-      label: host._t(
+      label: host2._t(
         "chat_welcome_suggestion_suggest_label",
         "Suggest automations for my home",
       ),
-      value: host._t(
+      value: host2._t(
         "chat_welcome_suggestion_suggest_value",
         "Suggest useful automations based on my devices and usage patterns",
       ),
@@ -44000,13 +43423,13 @@ function _welcomeSuggestions(host) {
     },
   ];
 }
-function renderAutomationSuggestButton(host) {
-  const busy = !!host._suggestingAutomation;
+function renderAutomationSuggestButton(host2) {
+  const busy = !!host2._suggestingAutomation;
   return b2`
     <button
       class="welcome-suggest-btn"
-      ?disabled=${busy || host._loading || host._streaming}
-      @click=${() => host._suggestAutomationIdea()}
+      ?disabled=${busy || host2._loading || host2._streaming}
+      @click=${() => host2._suggestAutomationIdea()}
     >
       ${
         busy
@@ -44017,14 +43440,14 @@ function renderAutomationSuggestButton(host) {
             ></ha-icon>`
       }
       <span
-        >${busy ? host._t("chat_suggest_thinking", "Thinking\u2026") : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
+        >${busy ? host2._t("chat_suggest_thinking", "Thinking\u2026") : host2._t("chat_suggest_one_for_me", "Suggest one for me")}</span
       >
     </button>
   `;
 }
-function renderGuide(host) {
-  const guide = host._guide;
-  if (!guide || guide.sessionId !== host._activeSessionId) return "";
+function renderGuide(host2) {
+  const guide = host2._guide;
+  if (!guide || guide.sessionId !== host2._activeSessionId) return "";
   return b2`<div class="chat-guide">
     ${renderCardHeading({
       icon: guide.icon,
@@ -44037,24 +43460,24 @@ function renderGuide(host) {
 function answersInline(msg) {
   return !!msg.quick_actions?.some((a3) => a3.inline);
 }
-function inlineAnswerState(host, msg, idx) {
-  const answered = idx < host._messages.length - 1;
+function inlineAnswerState(host2, msg, idx) {
+  const answered = idx < host2._messages.length - 1;
   if (!answered) return { used: !!msg._qa_used, picked: msg._qa_picked };
-  const next = host._messages[idx + 1];
+  const next = host2._messages[idx + 1];
   return {
     used: true,
     picked: next?.role === "user" ? next.content : msg._qa_picked,
   };
 }
-function renderChat(host) {
-  const isEmpty = host._messages.length === 0;
+function renderChat(host2) {
+  const isEmpty = host2._messages.length === 0;
   if (isEmpty) {
     return b2`
       <div class="chat-pane">
-        ${renderDropOverlay(host)}
+        ${renderDropOverlay(host2)}
         <div class="chat-welcome-center" id="chat-messages">
           ${i7(
-            host._welcomeKey || 0,
+            host2._welcomeKey || 0,
             b2`
               <div class="welcome-center-content">
                 <img
@@ -44064,12 +43487,12 @@ function renderChat(host) {
                 />
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
                   ${
-                    host._newAutomationMode
-                      ? b2`${host._t("new_automation_title_prefix", "New")}
+                    host2._newAutomationMode
+                      ? b2`${host2._t("new_automation_title_prefix", "New")}
                           <span class="gold-text"
-                            >${host._t("new_automation_gold", "Automation")}</span
+                            >${host2._t("new_automation_gold", "Automation")}</span
                           >`
-                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
+                      : b2`${host2._t("welcome_title_prefix", "Welcome to")}
                           <span class="gold-text">Selora AI</span>`
                   }
                 </div>
@@ -44077,12 +43500,12 @@ function renderChat(host) {
                   style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
                 >
                   ${
-                    host._newAutomationMode
-                      ? host._t(
+                    host2._newAutomationMode
+                      ? host2._t(
                           "new_automation_subtitle",
                           "Describe what you want to automate \u2014 mention the devices, times, or conditions involved.",
                         )
-                      : host._t(
+                      : host2._t(
                           "welcome_subtitle",
                           "Your intelligent home automation architect",
                         )
@@ -44090,11 +43513,11 @@ function renderChat(host) {
                 </div>
 
                 ${
-                  host._llmNeedsSetup
+                  host2._llmNeedsSetup
                     ? b2`
                         <div
                           style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
-                          @click=${() => host._goToSettings()}
+                          @click=${() => host2._goToSettings()}
                         >
                           <ha-icon
                             icon="mdi:rocket-launch-outline"
@@ -44103,12 +43526,12 @@ function renderChat(host) {
                           <div
                             style="font-size:16px;font-weight:700;margin-bottom:6px;"
                           >
-                            ${host._t("get_started", "Get started")}
+                            ${host2._t("get_started", "Get started")}
                           </div>
                           <div
                             style="font-size:13px;opacity:0.6;margin-bottom:16px;"
                           >
-                            ${host._t(
+                            ${host2._t(
                               "get_started_body",
                               "Configure your LLM provider in the Settings tab to start chatting with your home.",
                             )}
@@ -44116,7 +43539,7 @@ function renderChat(host) {
                           <span
                             style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
                           >
-                            ${host._t("open_settings", "Open Settings")}
+                            ${host2._t("open_settings", "Open Settings")}
                             <ha-icon
                               icon="mdi:arrow-right"
                               style="--mdc-icon-size:16px;"
@@ -44129,22 +43552,22 @@ function renderChat(host) {
                           <selora-particles
                             class="welcome-composer-particles"
                             .count=${260}
-                            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
-                            .maxOpacity=${host._isDark ? 0.55 : 0.5}
-                            .speed=${host._streaming || host._loading ? 2.2 : 1}
+                            .color=${host2._isDark ? "#fbbf24" : host2._primaryColor || "#03a9f4"}
+                            .maxOpacity=${host2._isDark ? 0.55 : 0.5}
+                            .speed=${host2._streaming || host2._loading ? 2.2 : 1}
                           ></selora-particles>
-                          ${_renderComposer(host, { welcome: true })}
+                          ${_renderComposer(host2, { welcome: true })}
                         </div>
 
                         ${
-                          host._newAutomationMode
-                            ? renderAutomationSuggestButton(host)
+                          host2._newAutomationMode
+                            ? renderAutomationSuggestButton(host2)
                             : b2`
-                                ${renderHomeSuggestions(host)}
+                                ${renderHomeSuggestions(host2)}
                                 <details class="welcome-quickstart">
                                   <summary class="welcome-quickstart-summary">
                                     <span
-                                      >${host._t(
+                                      >${host2._t(
                                         "quick_start",
                                         "Quick start",
                                       )}</span
@@ -44155,8 +43578,8 @@ function renderChat(host) {
                                     ></ha-icon>
                                   </summary>
                                   ${renderQuickActions(
-                                    host,
-                                    _welcomeSuggestions(host),
+                                    host2,
+                                    _welcomeSuggestions(host2),
                                   )}
                                 </details>
                               `
@@ -44170,7 +43593,7 @@ function renderChat(host) {
       </div>
     `;
   }
-  const lastMsg = host._messages[host._messages.length - 1];
+  const lastMsg = host2._messages[host2._messages.length - 1];
   const lastQuickActions =
     lastMsg &&
     lastMsg.role !== "user" &&
@@ -44186,17 +43609,17 @@ function renderChat(host) {
       : null;
   return b2`
     <div class="chat-pane">
-      ${renderDropOverlay(host)}
+      ${renderDropOverlay(host2)}
       <div
         class="chat-messages"
         id="chat-messages"
-        @scroll=${host._onChatScroll}
+        @scroll=${host2._onChatScroll}
       >
-        ${renderGuide(host)}
-        ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
-        ${host._deviceDetail ? renderDeviceDetail(host) : ""}
+        ${renderGuide(host2)}
+        ${host2._messages.map((msg, idx) => renderMessage(host2, msg, idx))}
+        ${host2._deviceDetail ? renderDeviceDetail(host2) : ""}
         ${
-          host._loading
+          host2._loading
             ? b2`
                 <div class="typing-bubble">
                   <div class="typing-dot"></div>
@@ -44210,13 +43633,13 @@ function renderChat(host) {
 
       <div class="chat-input-wrapper">
         ${
-          host._chatScrolledAway && host._messages.length > 0
+          host2._chatScrolledAway && host2._messages.length > 0
             ? b2`
                 <button
                   class="chat-jump-bottom"
-                  @click=${() => host._scrollChatToBottom()}
-                  title=${host._t("chat_jump_to_latest", "Go to latest message")}
-                  aria-label=${host._t(
+                  @click=${() => host2._scrollChatToBottom()}
+                  title=${host2._t("chat_jump_to_latest", "Go to latest message")}
+                  aria-label=${host2._t(
                     "chat_jump_to_latest",
                     "Go to latest message",
                   )}
@@ -44230,23 +43653,23 @@ function renderChat(host) {
           lastQuickActions
             ? b2`
                 <div class="chat-quick-actions">
-                  ${renderQuickActions(host, lastQuickActions.quick_actions, {
+                  ${renderQuickActions(host2, lastQuickActions.quick_actions, {
                     used: !!lastQuickActions._qa_used,
                   })}
                 </div>
               `
             : ""
         }
-        ${renderRefineSuggestions(host)}
+        ${renderRefineSuggestions(host2)}
         <div class="dock-composer-area">
           <selora-particles
             class="dock-composer-particles"
             .count=${120}
-            .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
-            .maxOpacity=${host._isDark ? 0.55 : 0.5}
-            .speed=${host._streaming || host._loading ? 2.2 : 1}
+            .color=${host2._isDark ? "#fbbf24" : host2._primaryColor || "#03a9f4"}
+            .maxOpacity=${host2._isDark ? 0.55 : 0.5}
+            .speed=${host2._streaming || host2._loading ? 2.2 : 1}
           ></selora-particles>
-          ${_renderComposer(host)}
+          ${_renderComposer(host2)}
         </div>
       </div>
     </div>
@@ -44267,7 +43690,7 @@ function _maybeDecodePercentEncoded(text) {
   } catch (_2) {}
   return null;
 }
-function _handlePaste(host, e6) {
+function _handlePaste(host2, e6) {
   const clip2 = e6.clipboardData;
   if (!clip2) return;
   const imageFiles = Array.from(clip2.files || []).filter((f4) =>
@@ -44275,7 +43698,7 @@ function _handlePaste(host, e6) {
   );
   if (imageFiles.length) {
     e6.preventDefault();
-    addImageAttachments(host, imageFiles);
+    addImageAttachments(host2, imageFiles);
     return;
   }
   const decoded = _maybeDecodePercentEncoded(clip2.getData("text"));
@@ -44288,14 +43711,14 @@ function _handlePaste(host, e6) {
   ta.value = next;
   const caret = start + decoded.length;
   ta.setSelectionRange(caret, caret);
-  host._input = next;
-  host._autocompleteSelections = pruneStaleSelections(
+  host2._input = next;
+  host2._autocompleteSelections = pruneStaleSelections(
     next,
-    host._autocompleteSelections || [],
+    host2._autocompleteSelections || [],
   );
   _autoResize(ta);
-  _updateAutocomplete(host, ta);
-  _updateGhost(host, ta);
+  _updateAutocomplete(host2, ta);
+  _updateGhost(host2, ta);
 }
 var _MIRROR_COPY_PROPS = [
   "boxSizing",
@@ -44360,18 +43783,18 @@ function _measureCaretInTextarea(textarea) {
   mirror.remove();
   return { left, top, height };
 }
-function _updateAutocomplete(host, textarea) {
+function _updateAutocomplete(host2, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
   const trigger = detectTrigger(
     value,
     caret,
-    host.hass?.language,
-    (host._autocompleteSelections || []).map((s6) => s6.label),
+    host2.hass?.language,
+    (host2._autocompleteSelections || []).map((s6) => s6.label),
   );
   const closeIfOpen = () => {
-    if (host._autocomplete?.open) {
-      host._autocomplete = {
+    if (host2._autocomplete?.open) {
+      host2._autocomplete = {
         open: false,
         items: [],
         activeIndex: 0,
@@ -44385,19 +43808,19 @@ function _updateAutocomplete(host, textarea) {
     return;
   }
   const qLen = trigger.query.trim().length;
-  if (!host._autocompleteRegCache && host._ensureFullRegistries) {
-    host._autocompleteRegCache = "pending";
-    host._ensureFullRegistries().then((reg) => {
-      host._autocompleteRegCache = reg || null;
+  if (!host2._autocompleteRegCache && host2._ensureFullRegistries) {
+    host2._autocompleteRegCache = "pending";
+    host2._ensureFullRegistries().then((reg) => {
+      host2._autocompleteRegCache = reg || null;
     });
   }
   const cache =
-    host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
-      ? host._autocompleteRegCache
+    host2._autocompleteRegCache && host2._autocompleteRegCache !== "pending"
+      ? host2._autocompleteRegCache
       : null;
   const index = buildSuggestionIndex(
-    host.hass,
-    cache?.areas || host.hass?.areas,
+    host2.hass,
+    cache?.areas || host2.hass?.areas,
     cache?.devices || null,
     cache?.entities || null,
   );
@@ -44451,28 +43874,28 @@ function _updateAutocomplete(host, textarea) {
   textarea.selectionStart = textarea.selectionEnd = trigger.start;
   const anchor = _measureCaretInTextarea(textarea);
   textarea.selectionStart = textarea.selectionEnd = savedCaret;
-  host._autocomplete = { open: true, items, activeIndex: 0, trigger, anchor };
+  host2._autocomplete = { open: true, items, activeIndex: 0, trigger, anchor };
 }
-function _updateGhost(host, textarea) {
+function _updateGhost(host2, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
-  const hit = findGhostSuggestion(value, caret, host.hass?.language);
+  const hit = findGhostSuggestion(value, caret, host2.hass?.language);
   if (!hit) {
-    host._ghost = null;
+    host2._ghost = null;
     return;
   }
   const anchor = _measureCaretInTextarea(textarea);
-  host._ghost = { suffix: hit.suffix, anchor };
+  host2._ghost = { suffix: hit.suffix, anchor };
 }
-function _acceptGhost(host, textarea) {
-  if (!host._ghost?.suffix) return false;
+function _acceptGhost(host2, textarea) {
+  if (!host2._ghost?.suffix) return false;
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
   const newText =
-    value.slice(0, caret) + host._ghost.suffix + value.slice(caret);
-  const newCaret = caret + host._ghost.suffix.length;
-  host._input = newText;
-  host._ghost = null;
+    value.slice(0, caret) + host2._ghost.suffix + value.slice(caret);
+  const newCaret = caret + host2._ghost.suffix.length;
+  host2._input = newText;
+  host2._ghost = null;
   requestAnimationFrame(() => {
     textarea.value = newText;
     textarea.setSelectionRange(newCaret, newCaret);
@@ -44481,10 +43904,10 @@ function _acceptGhost(host, textarea) {
   });
   return true;
 }
-function _renderGhostOverlay(host) {
-  const suffix = host._ghost?.suffix;
-  if (!suffix || !host._input) return "";
-  const anchor = host._ghost.anchor;
+function _renderGhostOverlay(host2) {
+  const suffix = host2._ghost?.suffix;
+  if (!suffix || !host2._input) return "";
+  const anchor = host2._ghost.anchor;
   if (!anchor) return "";
   return b2`
     <span
@@ -44495,9 +43918,9 @@ function _renderGhostOverlay(host) {
     >
   `;
 }
-function _scrollActiveItemIntoView(host) {
+function _scrollActiveItemIntoView(host2) {
   const scroll = () => {
-    const list = host.shadowRoot?.querySelector(".composer-autocomplete");
+    const list = host2.shadowRoot?.querySelector(".composer-autocomplete");
     const active = list?.querySelector(".composer-autocomplete-item.active");
     if (!list || !active) return;
     const listRect = list.getBoundingClientRect();
@@ -44508,15 +43931,15 @@ function _scrollActiveItemIntoView(host) {
       list.scrollTop -= listRect.top - itemRect.top;
     }
   };
-  if (host.updateComplete?.then) {
-    host.updateComplete.then(scroll);
+  if (host2.updateComplete?.then) {
+    host2.updateComplete.then(scroll);
   } else {
     requestAnimationFrame(scroll);
   }
 }
-function _closeAutocomplete(host) {
-  if (host._autocomplete?.open) {
-    host._autocomplete = {
+function _closeAutocomplete(host2) {
+  if (host2._autocomplete?.open) {
+    host2._autocomplete = {
       open: false,
       items: [],
       activeIndex: 0,
@@ -44524,16 +43947,16 @@ function _closeAutocomplete(host) {
     };
   }
 }
-function _selectAutocompleteItem(host, textarea, item) {
-  const trigger = host._autocomplete?.trigger;
+function _selectAutocompleteItem(host2, textarea, item) {
+  const trigger = host2._autocomplete?.trigger;
   if (!trigger || !item) return;
   const { text, caret, range } = applySelection(textarea.value, trigger, item);
-  host._input = text;
-  host._autocompleteSelections = [
-    ...pruneStaleSelections(text, host._autocompleteSelections || [], range),
+  host2._input = text;
+  host2._autocompleteSelections = [
+    ...pruneStaleSelections(text, host2._autocompleteSelections || [], range),
     item,
   ];
-  _closeAutocomplete(host);
+  _closeAutocomplete(host2);
   requestAnimationFrame(() => {
     textarea.value = text;
     textarea.setSelectionRange(caret, caret);
@@ -44541,15 +43964,15 @@ function _selectAutocompleteItem(host, textarea, item) {
     _autoResize(textarea);
   });
 }
-function _removeSelection(host, idx) {
-  const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i8) => i8 !== idx);
+function _removeSelection(host2, idx) {
+  const sels = host2._autocompleteSelections || [];
+  host2._autocompleteSelections = sels.filter((_2, i8) => i8 !== idx);
 }
-function _renderAutocomplete(host) {
-  const ac = host._autocomplete;
+function _renderAutocomplete(host2) {
+  const ac = host2._autocomplete;
   if (!ac?.open || !ac.items?.length) return "";
-  const ta = host.shadowRoot?.querySelector(".composer-textarea");
-  const wrap = host.shadowRoot?.querySelector(".composer-wrap");
+  const ta = host2.shadowRoot?.querySelector(".composer-textarea");
+  const wrap = host2.shadowRoot?.querySelector(".composer-wrap");
   let positionStyle = "";
   if (wrap) {
     const wrapRect = wrap.getBoundingClientRect();
@@ -44578,17 +44001,17 @@ function _renderAutocomplete(host) {
       ${groupOrder.map((kind) => {
         const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
         const header = headerKV
-          ? host._t(headerKV[0], headerKV[1])
-          : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
+          ? host2._t(headerKV[0], headerKV[1])
+          : host2._t("chat_autocomplete_kind_suggestions", "Suggestions");
         return b2`
           <div class="composer-autocomplete-header">
             <span>${header}</span>
           </div>
-          ${groups.get(kind).map((item) => _renderAutocompleteRow(host, ac, item))}
+          ${groups.get(kind).map((item) => _renderAutocompleteRow(host2, ac, item))}
         `;
       })}
       <div class="composer-autocomplete-hint">
-        ${host._t(
+        ${host2._t(
           "chat_autocomplete_hint",
           "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
         )}
@@ -44596,7 +44019,7 @@ function _renderAutocomplete(host) {
     </div>
   `;
 }
-function _renderAutocompleteRow(host, ac, item) {
+function _renderAutocompleteRow(host2, ac, item) {
   const idx = ac.items.indexOf(item);
   return b2`<button
     type="button"
@@ -44604,11 +44027,11 @@ function _renderAutocompleteRow(host, ac, item) {
     role="option"
     @mousedown=${(e6) => {
       e6.preventDefault();
-      const ta = host.shadowRoot?.querySelector(".composer-textarea");
-      if (ta) _selectAutocompleteItem(host, ta, item);
+      const ta = host2.shadowRoot?.querySelector(".composer-textarea");
+      if (ta) _selectAutocompleteItem(host2, ta, item);
     }}
     @mouseenter=${() => {
-      host._autocomplete = { ...ac, activeIndex: idx };
+      host2._autocomplete = { ...ac, activeIndex: idx };
     }}
   >
     <ha-icon icon=${item.icon}></ha-icon>
@@ -44616,8 +44039,8 @@ function _renderAutocompleteRow(host, ac, item) {
     ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
   </button>`;
 }
-function _renderSelectionChips(host) {
-  const sels = host._autocompleteSelections || [];
+function _renderSelectionChips(host2) {
+  const sels = host2._autocompleteSelections || [];
   if (!sels.length) return "";
   return b2`
     <div class="composer-selections-inline">
@@ -44631,8 +44054,8 @@ function _renderSelectionChips(host) {
             ${s6.label}
             <button
               type="button"
-              title=${host._t("chat_selection_remove", "Remove")}
-              @click=${() => _removeSelection(host, idx)}
+              title=${host2._t("chat_selection_remove", "Remove")}
+              @click=${() => _removeSelection(host2, idx)}
             >
               ×
             </button>
@@ -44642,56 +44065,56 @@ function _renderSelectionChips(host) {
     </div>
   `;
 }
-function _renderComposer(host, opts = {}) {
+function _renderComposer(host2, opts = {}) {
   const welcome = !!opts.welcome;
   const onDragOver = (e6) => {
     if (!e6.dataTransfer?.types?.includes?.("Files")) return;
     e6.preventDefault();
-    if (!supportsImageAttachments(host)) return;
-    if (!host._composerDragOver) host._composerDragOver = true;
+    if (!supportsImageAttachments(host2)) return;
+    if (!host2._composerDragOver) host2._composerDragOver = true;
   };
   const onDragLeave = (e6) => {
     if (e6.currentTarget.contains(e6.relatedTarget)) return;
-    if (host._composerDragOver) host._composerDragOver = false;
+    if (host2._composerDragOver) host2._composerDragOver = false;
   };
   const onDrop = (e6) => {
     if (!e6.dataTransfer?.files?.length) return;
     e6.preventDefault();
-    host._composerDragOver = false;
-    addImageAttachments(host, e6.dataTransfer.files);
+    host2._composerDragOver = false;
+    addImageAttachments(host2, e6.dataTransfer.files);
   };
-  const refining = !welcome && !!activeRefinement(host._messages);
-  const nextPrompt = activeNextPrompt(host);
+  const refining = !welcome && !!activeRefinement(host2._messages);
+  const nextPrompt = activeNextPrompt(host2);
   return b2`
     <div class="composer-wrap">
-      ${_renderAutocomplete(host)}
+      ${_renderAutocomplete(host2)}
       <div
-        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${host._composerDragOver ? " composer-dragover" : ""}"
+        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}${host2._composerDragOver ? " composer-dragover" : ""}"
         @dragover=${onDragOver}
         @dragleave=${onDragLeave}
         @drop=${onDrop}
       >
         <div class="composer-input-col">
-          ${renderAttachmentStrip(host)}
+          ${renderAttachmentStrip(host2)}
           <div class="composer-textarea-wrap">
-            ${_renderGhostOverlay(host)}
+            ${_renderGhostOverlay(host2)}
             <textarea
               class="composer-textarea"
-              .value=${host._input}
-              @paste=${(e6) => _handlePaste(host, e6)}
+              .value=${host2._input}
+              @paste=${(e6) => _handlePaste(host2, e6)}
               @input=${(e6) => {
-                host._input = e6.target.value;
-                host._autocompleteSelections = pruneStaleSelections(
+                host2._input = e6.target.value;
+                host2._autocompleteSelections = pruneStaleSelections(
                   e6.target.value,
-                  host._autocompleteSelections || [],
+                  host2._autocompleteSelections || [],
                 );
                 _autoResize(e6.target);
-                _updateAutocomplete(host, e6.target);
-                _updateGhost(host, e6.target);
+                _updateAutocomplete(host2, e6.target);
+                _updateGhost(host2, e6.target);
               }}
               @click=${(e6) => {
-                _updateAutocomplete(host, e6.target);
-                _updateGhost(host, e6.target);
+                _updateAutocomplete(host2, e6.target);
+                _updateGhost(host2, e6.target);
               }}
               @keyup=${(e6) => {
                 if (
@@ -44700,40 +44123,40 @@ function _renderComposer(host, opts = {}) {
                   e6.key === "Home" ||
                   e6.key === "End"
                 ) {
-                  _updateAutocomplete(host, e6.target);
-                  _updateGhost(host, e6.target);
+                  _updateAutocomplete(host2, e6.target);
+                  _updateGhost(host2, e6.target);
                 }
               }}
               @blur=${() => {
-                setTimeout(() => _closeAutocomplete(host), 150);
+                setTimeout(() => _closeAutocomplete(host2), 150);
               }}
               @keydown=${(e6) => {
-                const ac = host._autocomplete;
+                const ac = host2._autocomplete;
                 if (ac?.open && ac.items.length) {
                   if (e6.key === "ArrowDown") {
                     e6.preventDefault();
-                    host._autocomplete = {
+                    host2._autocomplete = {
                       ...ac,
                       activeIndex: (ac.activeIndex + 1) % ac.items.length,
                     };
-                    _scrollActiveItemIntoView(host);
+                    _scrollActiveItemIntoView(host2);
                     return;
                   }
                   if (e6.key === "ArrowUp") {
                     e6.preventDefault();
-                    host._autocomplete = {
+                    host2._autocomplete = {
                       ...ac,
                       activeIndex:
                         (ac.activeIndex - 1 + ac.items.length) %
                         ac.items.length,
                     };
-                    _scrollActiveItemIntoView(host);
+                    _scrollActiveItemIntoView(host2);
                     return;
                   }
                   if (e6.key === "Enter" || e6.key === "Tab") {
                     e6.preventDefault();
                     _selectAutocompleteItem(
-                      host,
+                      host2,
                       e6.target,
                       ac.items[ac.activeIndex],
                     );
@@ -44741,41 +44164,41 @@ function _renderComposer(host, opts = {}) {
                   }
                   if (e6.key === "Escape") {
                     e6.preventDefault();
-                    _closeAutocomplete(host);
+                    _closeAutocomplete(host2);
                     return;
                   }
                 }
                 if (e6.key === "Enter" && !e6.shiftKey) {
                   e6.preventDefault();
-                  host._sendMessage();
+                  host2._sendMessage();
                   return;
                 }
                 if (e6.key === "Tab" && !e6.shiftKey) {
                   e6.preventDefault();
-                  if (!_acceptGhost(host, e6.target)) {
-                    acceptNextPrompt(host, e6.target);
+                  if (!_acceptGhost(host2, e6.target)) {
+                    acceptNextPrompt(host2, e6.target);
                   }
                   return;
                 }
                 if (
                   e6.key === "ArrowRight" &&
                   !e6.target.value &&
-                  acceptNextPrompt(host, e6.target)
+                  acceptNextPrompt(host2, e6.target)
                 ) {
                   e6.preventDefault();
                   return;
                 }
                 if (
                   e6.key === "ArrowRight" &&
-                  host._ghost?.suffix &&
+                  host2._ghost?.suffix &&
                   e6.target.selectionStart === e6.target.value.length &&
                   e6.target.selectionEnd === e6.target.value.length
                 ) {
                   e6.preventDefault();
-                  _acceptGhost(host, e6.target);
+                  _acceptGhost(host2, e6.target);
                   return;
                 }
-                const userHistory = host._messages
+                const userHistory = host2._messages
                   .filter((m3) => m3.role === "user" && m3.content)
                   .map((m3) => stripEntityMarkers(m3.content));
                 const ta = e6.target;
@@ -44785,12 +44208,13 @@ function _renderComposer(host, opts = {}) {
                   ta.selectionStart === ta.value.length &&
                   ta.selectionEnd === ta.value.length;
                 const inHistory =
-                  host._historyIndex !== null && host._historyIndex !== void 0;
+                  host2._historyIndex !== null &&
+                  host2._historyIndex !== void 0;
                 const applyHistory = (idx) => {
                   const recalled = userHistory[userHistory.length - 1 - idx];
-                  host._historyIndex = idx;
-                  host._historyRecalled = recalled;
-                  host._input = recalled;
+                  host2._historyIndex = idx;
+                  host2._historyRecalled = recalled;
+                  host2._input = recalled;
                   requestAnimationFrame(() => {
                     ta.value = recalled;
                     ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -44800,17 +44224,17 @@ function _renderComposer(host, opts = {}) {
                 if (
                   e6.key === "ArrowUp" &&
                   userHistory.length > 0 &&
-                  (inHistory || atStart || !host._input)
+                  (inHistory || atStart || !host2._input)
                 ) {
                   if (!inHistory) {
-                    host._historyDraft = host._input || "";
+                    host2._historyDraft = host2._input || "";
                     e6.preventDefault();
                     applyHistory(0);
                     return;
                   }
-                  if (host._historyIndex < userHistory.length - 1) {
+                  if (host2._historyIndex < userHistory.length - 1) {
                     e6.preventDefault();
-                    applyHistory(host._historyIndex + 1);
+                    applyHistory(host2._historyIndex + 1);
                     return;
                   }
                   e6.preventDefault();
@@ -44818,14 +44242,14 @@ function _renderComposer(host, opts = {}) {
                 }
                 if (e6.key === "ArrowDown" && inHistory && atEnd) {
                   e6.preventDefault();
-                  if (host._historyIndex > 0) {
-                    applyHistory(host._historyIndex - 1);
+                  if (host2._historyIndex > 0) {
+                    applyHistory(host2._historyIndex - 1);
                     return;
                   }
-                  const draft = host._historyDraft || "";
-                  host._historyIndex = null;
-                  host._historyDraft = "";
-                  host._input = draft;
+                  const draft = host2._historyDraft || "";
+                  host2._historyIndex = null;
+                  host2._historyDraft = "";
+                  host2._input = draft;
                   requestAnimationFrame(() => {
                     ta.value = draft;
                     ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -44836,22 +44260,22 @@ function _renderComposer(host, opts = {}) {
               }}
               placeholder=${
                 nextPrompt ||
-                (host._newAutomationMode
-                  ? host._t(
+                (host2._newAutomationMode
+                  ? host2._t(
                       "composer_placeholder_automation",
                       "Describe the automation you\u2019d like to create\u2026",
                     )
                   : refining
-                    ? host._t(
+                    ? host2._t(
                         "composer_placeholder_refine",
                         "Describe the changes\u2026",
                       )
-                    : host._t(
+                    : host2._t(
                         "composer_placeholder_ask",
                         "Ask Selora AI anything\u2026",
                       ))
               }
-              ?disabled=${host._loading || host._streaming}
+              ?disabled=${host2._loading || host2._streaming}
               rows="1"
             ></textarea>
             ${
@@ -44859,14 +44283,14 @@ function _renderComposer(host, opts = {}) {
                 ? b2`<button
                     type="button"
                     class="composer-next-accept"
-                    title=${host._t(
+                    title=${host2._t(
                       "composer_next_prompt_accept",
                       "Use this suggestion",
                     )}
                     @click=${() =>
                       acceptNextPrompt(
-                        host,
-                        host.shadowRoot?.querySelector(".composer-textarea"),
+                        host2,
+                        host2.shadowRoot?.querySelector(".composer-textarea"),
                       )}
                   >
                     <span class="composer-next-key">Tab</span
@@ -44878,10 +44302,10 @@ function _renderComposer(host, opts = {}) {
                 : ""
             }
           </div>
-          ${_renderSelectionChips(host)}
+          ${_renderSelectionChips(host2)}
         </div>
         ${
-          supportsImageAttachments(host)
+          supportsImageAttachments(host2)
             ? b2`<input
                   type="file"
                   id="selora-chat-image-input"
@@ -44889,36 +44313,36 @@ function _renderComposer(host, opts = {}) {
                   multiple
                   hidden
                   @change=${(e6) => {
-                    addImageAttachments(host, e6.target.files);
+                    addImageAttachments(host2, e6.target.files);
                     e6.target.value = "";
                   }}
                 /><button
                   class="composer-attach"
-                  title=${host._t(
+                  title=${host2._t(
                     "chat_attach_image",
                     "Attach an image \u2014 drag & drop or paste works too",
                   )}
-                  ?disabled=${host._loading || host._streaming}
-                  @click=${() => host.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
+                  ?disabled=${host2._loading || host2._streaming}
+                  @click=${() => host2.renderRoot?.querySelector("#selora-chat-image-input")?.click()}
                 >
                   <ha-icon icon="mdi:image-plus-outline"></ha-icon>
                 </button>`
             : b2``
         }
         ${
-          host._streaming
+          host2._streaming
             ? b2`<button
                 class="composer-send"
-                @click=${() => host._stopStreaming()}
-                title=${host._t("chat_stop_generating", "Stop generating")}
+                @click=${() => host2._stopStreaming()}
+                title=${host2._t("chat_stop_generating", "Stop generating")}
               >
                 <ha-icon icon="mdi:stop"></ha-icon>
               </button>`
             : b2`<button
                 class="composer-send"
-                @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || !!host._attachmentsBusy || (!host._input.trim() && !(host._chatAttachments || []).length)}
-                title=${host._t("chat_send", "Send")}
+                @click=${() => host2._sendMessage()}
+                ?disabled=${host2._loading || !!host2._attachmentsBusy || (!host2._input.trim() && !(host2._chatAttachments || []).length)}
+                title=${host2._t("chat_send", "Send")}
               >
                 <ha-icon icon="mdi:arrow-up"></ha-icon>
               </button>`
@@ -44927,7 +44351,7 @@ function _renderComposer(host, opts = {}) {
     </div>
   `;
 }
-function renderMessage(host, msg, idx) {
+function renderMessage(host2, msg, idx) {
   const isUser = msg.role === "user";
   if (msg._streaming && !msg.content) return b2``;
   let displayContent = msg.content;
@@ -44987,7 +44411,7 @@ function renderMessage(host, msg, idx) {
   const sceneIsSingleTile =
     !!msg.scene && Object.keys(msg.scene.entities || {}).length === 1;
   return b2`
-    ${isLoadedAutomation ? renderRefineHeading(host, idx) : ""}
+    ${isLoadedAutomation ? renderRefineHeading(host2, idx) : ""}
     <div class="message-row">
       ${
         isUser
@@ -45014,14 +44438,14 @@ function renderMessage(host, msg, idx) {
                   class="msg-content"
                   .textContent=${stripEntityMarkers(msg.content)}
                 ></span>
-                ${renderMessageDetails(host, msg.content)}
+                ${renderMessageDetails(host2, msg.content)}
               </div>
             `
           : b2`
               <div
                 class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}${msg.scene ? " assistant-wrap--scene" : ""}${sceneIsSingleTile ? " assistant-wrap--scene-single" : ""}"
               >
-                ${renderAgentSteps(host, msg.steps)}
+                ${renderAgentSteps(host2, msg.steps)}
                 <div
                   class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
                   style="max-width:100%;align-self:auto;"
@@ -45037,7 +44461,7 @@ function renderMessage(host, msg, idx) {
                       ? ""
                       : b2`<span
                           class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
-                          @click=${host._onCodeCopyClick}
+                          @click=${host2._onCodeCopyClick}
                           .innerHTML=${renderMarkdown(displayContent)}
                         ></span>`
                   }
@@ -45062,7 +44486,7 @@ function renderMessage(host, msg, idx) {
                               ></div>
                               <span
                                 style="font-size:13px;font-weight:500;color:#fbbf24;"
-                                >${host._t(labelKey, labelFallback)}</span
+                                >${host2._t(labelKey, labelFallback)}</span
                               >
                             </div>
                           `;
@@ -45081,7 +44505,7 @@ function renderMessage(host, msg, idx) {
                             ></div>
                             <span
                               style="font-size:13px;font-weight:500;color:#fbbf24;"
-                              >${host._t(
+                              >${host2._t(
                                 "chat_building_scene",
                                 "Building scene...",
                               )}</span
@@ -45097,8 +44521,8 @@ function renderMessage(host, msg, idx) {
                             <mwc-button
                               dense
                               raised
-                              @click=${host._goToSettings}
-                              >${host._t(
+                              @click=${host2._goToSettings}
+                              >${host2._t(
                                 "chat_go_to_settings",
                                 "Go to Settings",
                               )}</mwc-button
@@ -45107,23 +44531,23 @@ function renderMessage(host, msg, idx) {
                         `
                       : ""
                   }
-                  ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
-                  ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
-                  ${renderFrigateResult(host, msg)}
-                  ${renderDescribeCard(host, msg)}
+                  ${msg.automation ? host2._renderProposalCard(msg, idx) : ""}
+                  ${msg.scene ? host2._renderSceneCard(msg, idx) : ""}
+                  ${renderFrigateResult(host2, msg)}
+                  ${renderDescribeCard(host2, msg)}
                   ${
                     msg.command_approval
                       ? renderApprovalCard(
-                          host,
+                          host2,
                           msg,
                           msg.command_approval,
                           msg.approval_status,
                         )
                       : ""
                   }
-                  ${renderRestoreCard(host, msg)}
-                  ${renderCameraEventsCard(host, msg)}
-                  ${renderFaceLibraryLink(host, msg)}
+                  ${renderRestoreCard(host2, msg)}
+                  ${renderCameraEventsCard(host2, msg)}
+                  ${renderFaceLibraryLink(host2, msg)}
                   ${
                     msg._interrupted
                       ? b2`
@@ -45135,7 +44559,7 @@ function renderMessage(host, msg, idx) {
                             <span class="stream-interrupt-text"
                               >${
                                 msg._interruptReason ||
-                                host._t(
+                                host2._t(
                                   "chat_response_cut_short",
                                   "Response was cut short.",
                                 )
@@ -45145,7 +44569,6 @@ function renderMessage(host, msg, idx) {
                         `
                       : ""
                   }
-                  ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
                 </div>
                 ${
                   msg._streaming ||
@@ -45161,8 +44584,7 @@ function renderMessage(host, msg, idx) {
                         ${
                           msg._streaming
                             ? b2`<span style="opacity:0.5;">
-                                Selora AI ·
-                                ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
+                                Selora AI · ${formatTime(msg.timestamp)}
                               </span>`
                             : canCopy || canFeedback || canRetry
                               ? b2`<div class="msg-actions">
@@ -45170,7 +44592,7 @@ function renderMessage(host, msg, idx) {
                                     canCopy
                                       ? b2`<button
                                           class="msg-action-btn"
-                                          title=${host._t(
+                                          title=${host2._t(
                                             isProposal
                                               ? "chat_copy_yaml"
                                               : "chat_copy_message",
@@ -45178,7 +44600,7 @@ function renderMessage(host, msg, idx) {
                                               ? "Copy YAML"
                                               : "Copy message",
                                           )}
-                                          aria-label=${host._t(
+                                          aria-label=${host2._t(
                                             isProposal
                                               ? "chat_copy_yaml"
                                               : "chat_copy_message",
@@ -45187,7 +44609,7 @@ function renderMessage(host, msg, idx) {
                                               : "Copy message",
                                           )}
                                           @click=${(e6) =>
-                                            host._copyMessageText(
+                                            host2._copyMessageText(
                                               msg,
                                               e6.currentTarget,
                                               copyText,
@@ -45202,19 +44624,19 @@ function renderMessage(host, msg, idx) {
                                   }
                                   ${
                                     canFeedback &&
-                                    host._config?.telemetry_enabled
+                                    host2._config?.telemetry_enabled
                                       ? b2`<button
                                             class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
-                                            title=${host._t(
+                                            title=${host2._t(
                                               "chat_feedback_helpful",
                                               "Good response",
                                             )}
-                                            aria-label=${host._t(
+                                            aria-label=${host2._t(
                                               "chat_feedback_helpful",
                                               "Good response",
                                             )}
                                             @click=${(e6) =>
-                                              host._recordChatFeedback(
+                                              host2._recordChatFeedback(
                                                 msg,
                                                 "positive",
                                                 e6.currentTarget,
@@ -45227,16 +44649,16 @@ function renderMessage(host, msg, idx) {
                                           </button>
                                           <button
                                             class="msg-action-btn${msg._feedback === "negative" ? " active" : ""}"
-                                            title=${host._t(
+                                            title=${host2._t(
                                               "chat_feedback_not_helpful",
                                               "Bad response",
                                             )}
-                                            aria-label=${host._t(
+                                            aria-label=${host2._t(
                                               "chat_feedback_not_helpful",
                                               "Bad response",
                                             )}
                                             @click=${(e6) =>
-                                              host._recordChatFeedback(
+                                              host2._recordChatFeedback(
                                                 msg,
                                                 "negative",
                                                 e6.currentTarget,
@@ -45253,9 +44675,9 @@ function renderMessage(host, msg, idx) {
                                     msg._interrupted && msg._retryWith
                                       ? b2`<button
                                           class="msg-action-btn"
-                                          title=${host._t("chat_retry", "Retry")}
-                                          aria-label=${host._t("chat_retry", "Retry")}
-                                          @click=${() => host._retryMessage(msg._retryWith)}
+                                          title=${host2._t("chat_retry", "Retry")}
+                                          aria-label=${host2._t("chat_retry", "Retry")}
+                                          @click=${() => host2._retryMessage(msg._retryWith)}
                                         >
                                           <ha-icon
                                             icon="mdi:refresh"
@@ -45270,14 +44692,14 @@ function renderMessage(host, msg, idx) {
                         ${
                           hasProposalActions || showQuickActions
                             ? b2`<div class="msg-quick">
-                                ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
+                                ${hasProposalActions ? host2._renderProposalActions(msg, idx) : ""}
                                 ${
                                   showQuickActions
                                     ? renderQuickActions(
-                                        host,
+                                        host2,
                                         msg.quick_actions,
                                         answersInline(msg)
-                                          ? inlineAnswerState(host, msg, idx)
+                                          ? inlineAnswerState(host2, msg, idx)
                                           : { used: !!msg._qa_used },
                                       )
                                     : ""
@@ -45331,14 +44753,14 @@ var DOMAIN_ICONS3 = {
   air_quality: "mdi:air-filter",
   remote: "mdi:remote",
 };
-function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
+function renderYamlEditor(host2, key, originalYaml, onSave = null, opts = {}) {
   const readOnly = !!opts.readOnly;
-  host._initYamlEdit(key, originalYaml);
+  host2._initYamlEdit(key, originalYaml);
   const current = readOnly
     ? originalYaml
-    : (host._editedYaml[key] ?? originalYaml);
+    : (host2._editedYaml[key] ?? originalYaml);
   const isDirty = !readOnly && current !== originalYaml;
-  const saving = !!host._savingYaml[key];
+  const saving = !!host2._savingYaml[key];
   return b2`
     <ha-code-editor
       mode="yaml"
@@ -45346,7 +44768,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
       ?read-only=${readOnly}
       @value-changed=${(e6) => {
         if (readOnly) return;
-        host._onYamlInput(key, e6.detail.value);
+        host2._onYamlInput(key, e6.detail.value);
       }}
       autocomplete-entities
       style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
@@ -45363,7 +44785,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
                           icon="mdi:circle-edit-outline"
                           style="--mdc-icon-size:13px;"
                         ></ha-icon>
-                        ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
+                        ${host2._t("chat_yaml_unsaved_changes", "Unsaved changes")}
                       </span>
                     `
                   : b2`<span style="flex:1;"></span>`
@@ -45380,7 +44802,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
                           icon="mdi:content-save"
                           style="--mdc-icon-size:13px;"
                         ></ha-icon>
-                        ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
+                        ${saving ? host2._t("chat_yaml_saving", "Saving\u2026") : host2._t("chat_yaml_save_changes", "Save changes")}
                       </button>
                     `
                   : ""
@@ -45391,11 +44813,11 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     }
   `;
 }
-function renderMessageDetails(host, content) {
+function renderMessageDetails(host2, content) {
   const details = messageDetails(content);
   if (!details) return "";
   return b2`<details class="msg-details">
-    <summary>${host._t("chat_message_details", "Details")}</summary>
+    <summary>${host2._t("chat_message_details", "Details")}</summary>
     <div class="msg-details-body">${details}</div>
   </details>`;
 }
@@ -45409,13 +44831,13 @@ function _storage() {
     return null;
   }
 }
-function _draftKey(host) {
-  const userId = host.hass?.user?.id;
+function _draftKey(host2) {
+  const userId = host2.hass?.user?.id;
   return userId ? DRAFT_KEY_PREFIX + userId : null;
 }
-function loadComposerDraft(host) {
+function loadComposerDraft(host2) {
   const storage = _storage();
-  const key = _draftKey(host);
+  const key = _draftKey(host2);
   if (!storage || !key) return null;
   try {
     const draft = JSON.parse(storage.getItem(key) || "null");
@@ -45431,77 +44853,46 @@ function loadComposerDraft(host) {
     return null;
   }
 }
-function restoreComposerDraft(host) {
-  if (host._draftRestored || !_draftKey(host)) return;
-  host._draftRestored = true;
-  if (host._input) {
-    saveComposerDraft(host);
+function restoreComposerDraft(host2) {
+  if (host2._draftRestored || !_draftKey(host2)) return;
+  host2._draftRestored = true;
+  if (host2._input) {
+    saveComposerDraft(host2);
     return;
   }
-  const draft = loadComposerDraft(host);
+  const draft = loadComposerDraft(host2);
   if (!draft) return;
-  host._input = draft.text;
-  host._autocompleteSelections = draft.selections;
-  host._fitDraft = true;
+  host2._input = draft.text;
+  host2._autocompleteSelections = draft.selections;
+  host2._fitDraft = true;
 }
-function saveComposerDraft(host) {
-  if (!host._draftRestored) return;
-  if (host._historyIndex != null && host._input === host._historyRecalled) {
+function saveComposerDraft(host2) {
+  if (!host2._draftRestored) return;
+  if (host2._historyIndex != null && host2._input === host2._historyRecalled) {
     return;
   }
   const storage = _storage();
-  const key = _draftKey(host);
+  const key = _draftKey(host2);
   if (!storage || !key) return;
   try {
-    const text = host._input || "";
+    const text = host2._input || "";
     if (!text) {
       storage.removeItem(key);
       return;
     }
     storage.setItem(
       key,
-      JSON.stringify({ text, selections: host._autocompleteSelections || [] }),
+      JSON.stringify({ text, selections: host2._autocompleteSelections || [] }),
     );
   } catch {}
 }
-function fitComposerToDraft(host) {
-  if (!host._fitDraft) return;
-  const ta = host.shadowRoot?.querySelector(".composer-textarea");
-  if (!ta || ta.value !== host._input) return;
-  host._fitDraft = false;
+function fitComposerToDraft(host2) {
+  if (!host2._fitDraft) return;
+  const ta = host2.shadowRoot?.querySelector(".composer-textarea");
+  if (!ta || ta.value !== host2._input) return;
+  host2._fitDraft = false;
   ta.style.height = "auto";
   ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
-}
-
-// src/panel/dev-tools.js
-var announced = false;
-async function scanCameras(host, { sweep = false } = {}) {
-  const result = await host.hass.callWS({
-    type: "selora_ai/frigate/scan",
-    ...(sweep ? { sweep: true } : {}),
-  });
-  await loadHomeSuggestions(host);
-  return result?.cameras || [];
-}
-function syncDevConsole(host) {
-  if (!host._config?.developer_mode) {
-    delete globalThis.seloraDev;
-    return;
-  }
-  globalThis.seloraDev = {
-    async scanCameras(options) {
-      const cameras = await scanCameras(host, options);
-      console.table(cameras);
-      return cameras;
-    },
-  };
-  if (announced) return;
-  announced = true;
-  console.info(
-    "%cSelora AI developer mode%c\nseloraDev.scanCameras() \u2014 scan the network for cameras now and refresh the chat home's suggestions (otherwise every 30 min).\nseloraDev.scanCameras({ sweep: true }) \u2014 also ask every local address directly, for cameras that ignore the network-wide probe (otherwise once a day).",
-    "font-weight:bold",
-    "",
-  );
 }
 
 // src/panel/settings-inputs.js
@@ -45534,28 +44925,28 @@ function textInput({
 }
 
 // src/panel/frigate-settings.js
-function setStatus(host, type, message) {
-  host._frigateStatus = { type, message };
-  host.requestUpdate();
+function setStatus(host2, type, message) {
+  host2._frigateStatus = { type, message };
+  host2.requestUpdate();
 }
-async function testFrigateConnection(host) {
-  if (host._frigateBusy) return;
-  host._frigateBusy = "testing";
-  host._frigateStatus = null;
-  host.requestUpdate();
+async function testFrigateConnection(host2) {
+  if (host2._frigateBusy) return;
+  host2._frigateBusy = "testing";
+  host2._frigateStatus = null;
+  host2.requestUpdate();
   try {
-    const result = await host.hass.callWS({
+    const result = await host2.hass.callWS({
       type: "selora_ai/frigate/test_connection",
-      url: host._config.frigate_url || "",
-      username: host._config.frigate_username || "",
-      password: host._frigatePassword || "",
+      url: host2._config.frigate_url || "",
+      username: host2._config.frigate_username || "",
+      password: host2._frigatePassword || "",
     });
     if (result.ok) {
       setStatus(
-        host,
+        host2,
         "success",
         interpolate(
-          host._t(
+          host2._t(
             "settings_frigate_test_ok",
             "Connected to Frigate {version} \xB7 cameras: {count}",
           ),
@@ -45563,47 +44954,47 @@ async function testFrigateConnection(host) {
         ),
       );
     } else {
-      setStatus(host, "error", result.error);
+      setStatus(host2, "error", result.error);
     }
   } catch (err) {
-    setStatus(host, "error", err.message);
+    setStatus(host2, "error", err.message);
   } finally {
-    host._frigateBusy = null;
-    host.requestUpdate();
+    host2._frigateBusy = null;
+    host2.requestUpdate();
   }
 }
-async function saveFrigateSettings(host, { disconnect = false } = {}) {
-  if (host._frigateBusy) return;
-  host._frigateBusy = "saving";
-  host._frigateStatus = null;
-  host.requestUpdate();
+async function saveFrigateSettings(host2, { disconnect = false } = {}) {
+  if (host2._frigateBusy) return;
+  host2._frigateBusy = "saving";
+  host2._frigateStatus = null;
+  host2.requestUpdate();
   const config = disconnect
     ? { frigate_url: "" }
     : {
-        frigate_url: host._config.frigate_url || "",
-        frigate_username: host._config.frigate_username || "",
-        frigate_password: host._frigatePassword || "",
+        frigate_url: host2._config.frigate_url || "",
+        frigate_username: host2._config.frigate_username || "",
+        frigate_password: host2._frigatePassword || "",
       };
   try {
-    await host.hass.callWS({ type: "selora_ai/update_config", config });
-    host._frigatePassword = "";
-    await host._loadConfig();
+    await host2.hass.callWS({ type: "selora_ai/update_config", config });
+    host2._frigatePassword = "";
+    await host2._loadConfig();
     setStatus(
-      host,
+      host2,
       "success",
       disconnect
-        ? host._t("settings_frigate_disconnected", "Frigate disconnected.")
-        : host._t("settings_frigate_saved", "Frigate settings saved."),
+        ? host2._t("settings_frigate_disconnected", "Frigate disconnected.")
+        : host2._t("settings_frigate_saved", "Frigate settings saved."),
     );
   } catch (err) {
-    setStatus(host, "error", err.message);
+    setStatus(host2, "error", err.message);
   } finally {
-    host._frigateBusy = null;
-    host.requestUpdate();
+    host2._frigateBusy = null;
+    host2.requestUpdate();
   }
 }
-function renderStatus(host) {
-  const status = host._frigateStatus;
+function renderStatus(host2) {
+  const status = host2._frigateStatus;
   if (!status) return "";
   return b2`<div class="save-feedback save-feedback--${status.type}">
     <ha-icon
@@ -45613,45 +45004,45 @@ function renderStatus(host) {
     ${status.message}
   </div>`;
 }
-function renderFields(host) {
-  const config = host._config;
-  const busy = Boolean(host._frigateBusy);
+function renderFields(host2) {
+  const config = host2._config;
+  const busy = Boolean(host2._frigateBusy);
   return b2`
     <div class="form-group">
       ${textInput({
-        label: host._t("settings_frigate_url_label", "Frigate address"),
+        label: host2._t("settings_frigate_url_label", "Frigate address"),
         value: config.frigate_url,
         placeholder: "http://192.168.1.10:5000",
-        oninput: (e6) => host._updateConfig("frigate_url", e6.target.value),
+        oninput: (e6) => host2._updateConfig("frigate_url", e6.target.value),
       })}
     </div>
     <div class="form-group">
       ${textInput({
-        label: host._t(
+        label: host2._t(
           "settings_frigate_username_label",
           "Username (if Frigate asks for a login)",
         ),
         value: config.frigate_username,
         oninput: (e6) =>
-          host._updateConfig("frigate_username", e6.target.value),
+          host2._updateConfig("frigate_username", e6.target.value),
       })}
     </div>
     <div class="form-group">
       ${textInput({
-        label: host._t("settings_frigate_password_label", "Password"),
+        label: host2._t("settings_frigate_password_label", "Password"),
         type: "password",
-        value: host._frigatePassword,
+        value: host2._frigatePassword,
         placeholder: config.frigate_password_set
-          ? host._t(
+          ? host2._t(
               "settings_frigate_password_kept",
               "Saved \u2014 leave blank to keep it",
             )
           : "",
-        oninput: (e6) => (host._frigatePassword = e6.target.value),
+        oninput: (e6) => (host2._frigatePassword = e6.target.value),
       })}
     </div>
     <p class="section-card-subtitle">
-      ${host._t(
+      ${host2._t(
         "settings_frigate_no_integration_note",
         "Without the Frigate integration, Frigate's cameras have no Home Assistant entities: install it from HACS for their switches and live views.",
       )}
@@ -45662,30 +45053,30 @@ function renderFields(host) {
           ? b2`<button
               class="btn btn-outline"
               ?disabled=${busy}
-              @click=${() => saveFrigateSettings(host, { disconnect: true })}
+              @click=${() => saveFrigateSettings(host2, { disconnect: true })}
             >
-              ${host._t("settings_frigate_disconnect_button", "Disconnect")}
+              ${host2._t("settings_frigate_disconnect_button", "Disconnect")}
             </button>`
           : ""
       }
       <button
         class="btn btn-outline"
         ?disabled=${busy || !config.frigate_url}
-        @click=${() => testFrigateConnection(host)}
+        @click=${() => testFrigateConnection(host2)}
       >
-        ${host._frigateBusy === "testing" ? host._t("settings_frigate_testing_label", "Testing\u2026") : host._t("settings_frigate_test_button", "Test connection")}
+        ${host2._frigateBusy === "testing" ? host2._t("settings_frigate_testing_label", "Testing\u2026") : host2._t("settings_frigate_test_button", "Test connection")}
       </button>
       <button
         class="btn btn-primary"
         ?disabled=${busy}
-        @click=${() => saveFrigateSettings(host)}
+        @click=${() => saveFrigateSettings(host2)}
       >
-        ${host._frigateBusy === "saving" ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
+        ${host2._frigateBusy === "saving" ? host2._t("settings_saving_label", "Saving\u2026") : host2._t("settings_save_button", "Save")}
       </button>
     </div>
   `;
 }
-function renderConnected(host, source) {
+function renderConnected(host2, source) {
   const hub = source === "hub";
   return b2`
     <div class="frigate-connected">
@@ -45697,11 +45088,11 @@ function renderConnected(host, source) {
         <div class="frigate-connected-title">
           ${
             hub
-              ? host._t(
+              ? host2._t(
                   "settings_frigate_hub_title",
                   "Set up by your Selora hub",
                 )
-              : host._t(
+              : host2._t(
                   "settings_frigate_integration_title",
                   "Connected through the Frigate integration",
                 )
@@ -45710,11 +45101,11 @@ function renderConnected(host, source) {
         <div class="frigate-connected-desc">
           ${
             hub
-              ? host._t(
+              ? host2._t(
                   "settings_frigate_hub_desc",
                   "Frigate runs on your hub and Selora keeps it connected. There is nothing to configure.",
                 )
-              : host._t(
+              : host2._t(
                   "settings_frigate_integration_desc",
                   "Selora AI uses the connection set up in Home Assistant. Change it in the Frigate integration's settings.",
                 )
@@ -45724,21 +45115,21 @@ function renderConnected(host, source) {
     </div>
   `;
 }
-function renderFrigateSettings(host) {
-  const config = host._config || {};
+function renderFrigateSettings(host2) {
+  const config = host2._config || {};
   return b2`
     <div class="section-card settings-section">
       <div class="section-card-header">
-        <h3>${host._t("settings_frigate_heading", "Frigate")}</h3>
+        <h3>${host2._t("settings_frigate_heading", "Frigate")}</h3>
       </div>
       <p class="section-card-subtitle">
-        ${host._t(
+        ${host2._t(
           "settings_frigate_desc",
           "Records your cameras and spots people, cars and animals. Selora AI can add cameras, choose what each one watches for, and tell you what they saw.",
         )}
       </p>
-      ${config.frigate_source ? renderConnected(host, config.frigate_source) : renderFields(host)}
-      ${renderStatus(host)}
+      ${config.frigate_source ? renderConnected(host2, config.frigate_source) : renderFields(host2)}
+      ${renderStatus(host2)}
     </div>
   `;
 }
@@ -45800,39 +45191,44 @@ var IGNORE_DOMAIN_ICONS = {
   automation: "mdi:robot",
   script: "mdi:script-text",
 };
-function _config(host) {
-  return host._config || {};
+function _config(host2) {
+  return host2._config || {};
 }
-function _labelTagged(host) {
-  return _config(host).label_tagged || { entities: [], devices: [], areas: [] };
+function _labelTagged(host2) {
+  return (
+    _config(host2).label_tagged || { entities: [], devices: [], areas: [] }
+  );
 }
-async function _refresh(host) {
-  await host._loadConfig?.();
+async function _refresh(host2) {
+  await host2._loadConfig?.();
 }
-async function _applyLabel(host, payload) {
+async function _applyLabel(host2, payload) {
   try {
-    await host.hass.callWS({
+    await host2.hass.callWS({
       type: "selora_ai/apply_exclude_label",
       ...payload,
     });
-    await _refresh(host);
+    await _refresh(host2);
   } catch (err) {
-    host._showToast?.(`Failed to apply label: ${err.message || err}`, "error");
+    host2._showToast?.(`Failed to apply label: ${err.message || err}`, "error");
   }
 }
-async function _removeLabel(host, payload) {
+async function _removeLabel(host2, payload) {
   try {
-    await host.hass.callWS({
+    await host2.hass.callWS({
       type: "selora_ai/remove_exclude_label",
       ...payload,
     });
-    await _refresh(host);
+    await _refresh(host2);
   } catch (err) {
-    host._showToast?.(`Failed to remove label: ${err.message || err}`, "error");
+    host2._showToast?.(
+      `Failed to remove label: ${err.message || err}`,
+      "error",
+    );
   }
 }
-function _entityLabel(host, entityId) {
-  const state = host.hass?.states?.[entityId];
+function _entityLabel(host2, entityId) {
+  const state = host2.hass?.states?.[entityId];
   const friendly = state?.attributes?.friendly_name;
   return friendly || entityId;
 }
@@ -45840,29 +45236,30 @@ function _entityIcon(entityId) {
   const domain = (entityId || "").split(".")[0];
   return IGNORE_DOMAIN_ICONS[domain] || "mdi:devices";
 }
-function _cachedRegistries(host) {
+function _cachedRegistries(host2) {
   if (
-    host._autocompleteRegCache === void 0 &&
-    typeof host._ensureFullRegistries === "function"
+    host2._autocompleteRegCache === void 0 &&
+    typeof host2._ensureFullRegistries === "function"
   ) {
-    host._autocompleteRegCache = "pending";
-    host._ensureFullRegistries().then((reg) => {
-      host._autocompleteRegCache = reg || null;
-      host.requestUpdate();
+    host2._autocompleteRegCache = "pending";
+    host2._ensureFullRegistries().then((reg) => {
+      host2._autocompleteRegCache = reg || null;
+      host2.requestUpdate();
     });
   }
-  return host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
-    ? host._autocompleteRegCache
+  return host2._autocompleteRegCache &&
+    host2._autocompleteRegCache !== "pending"
+    ? host2._autocompleteRegCache
     : null;
 }
-function _deviceLabel2(host, deviceId) {
-  const cache = _cachedRegistries(host);
+function _deviceLabel2(host2, deviceId) {
+  const cache = _cachedRegistries(host2);
   const dev = cache?.devices?.[deviceId];
   return dev?.name_by_user || dev?.name || deviceId;
 }
-function _areaLabel(host, areaId) {
-  const cache = _cachedRegistries(host);
-  const area = cache?.areas?.[areaId] || host.hass?.areas?.[areaId];
+function _areaLabel(host2, areaId) {
+  const cache = _cachedRegistries(host2);
+  const area = cache?.areas?.[areaId] || host2.hass?.areas?.[areaId];
   return area?.name || areaId;
 }
 function _buildEntityIndex(hass, areasMap, devicesMap, entitiesMap) {
@@ -45944,11 +45341,11 @@ function _interleave(lists, max) {
   }
   return out;
 }
-function _computeDropdownItems(host, query) {
-  const cache = _cachedRegistries(host);
-  const areasMap = cache?.areas || host.hass?.areas;
+function _computeDropdownItems(host2, query) {
+  const cache = _cachedRegistries(host2);
+  const areasMap = cache?.areas || host2.hass?.areas;
   const entityIndex = _buildEntityIndex(
-    host.hass,
+    host2.hass,
     areasMap,
     cache?.devices,
     cache?.entities,
@@ -45956,7 +45353,7 @@ function _computeDropdownItems(host, query) {
   const deviceIndex = _buildDeviceIndex(cache?.devices, areasMap);
   const q = (query || "").trim();
   if (q.length < MIN_QUERY) return [];
-  const tagged = _labelTagged(host);
+  const tagged = _labelTagged(host2);
   const taggedEntities = new Set(tagged.entities);
   const taggedDevices = new Set(tagged.devices);
   const taggedAreas = new Set(tagged.areas);
@@ -45983,22 +45380,22 @@ function _computeDropdownItems(host, query) {
   ).filter((it) => !taggedAreas.has(it.area_id));
   return _interleave([areas, devices, entities], AUTOCOMPLETE_MAX_RESULTS);
 }
-function _selectItem(host, item) {
+function _selectItem(host2, item) {
   if (!item) return;
-  host._ignoreInput = "";
-  host._ignoreDropdownOpen = false;
-  host._ignoreDropdownIndex = 0;
-  host.requestUpdate();
+  host2._ignoreInput = "";
+  host2._ignoreDropdownOpen = false;
+  host2._ignoreDropdownIndex = 0;
+  host2.requestUpdate();
   if (item.kind === KIND_AREA) {
-    _applyLabel(host, { area_id: item.area_id });
+    _applyLabel(host2, { area_id: item.area_id });
   } else if (item.kind === KIND_HA_DEVICE) {
-    _applyLabel(host, { device_id: item.device_id });
+    _applyLabel(host2, { device_id: item.device_id });
   } else {
-    _applyLabel(host, { entity_id: item.entity_id });
+    _applyLabel(host2, { entity_id: item.entity_id });
   }
 }
-function _openEntity(host, entityId) {
-  host.dispatchEvent(
+function _openEntity(host2, entityId) {
+  host2.dispatchEvent(
     new CustomEvent("hass-more-info", {
       bubbles: true,
       composed: true,
@@ -46023,7 +45420,7 @@ function _renderChipGroup(title, chips) {
   `;
 }
 function _renderChip({
-  host,
+  host: host2,
   icon,
   label,
   kindLabel,
@@ -46051,7 +45448,7 @@ function _renderChip({
       </button>
       <button
         type="button"
-        title=${host._t("ignore_list_remove_label", "Remove label")}
+        title=${host2._t("ignore_list_remove_label", "Remove label")}
         @click=${(e6) => {
           e6.stopPropagation();
           onRemove();
@@ -46062,7 +45459,7 @@ function _renderChip({
     </span>
   `;
 }
-function _renderDropdown(host, items, activeIndex) {
+function _renderDropdown(host2, items, activeIndex) {
   if (!items.length) return "";
   return b2`
     <div
@@ -46071,9 +45468,9 @@ function _renderDropdown(host, items, activeIndex) {
       ${items.map((item, idx) => {
         let kindLabel = "";
         if (item.kind === KIND_AREA)
-          kindLabel = host._t("ignore_list_dropdown_kind_area", "Area");
+          kindLabel = host2._t("ignore_list_dropdown_kind_area", "Area");
         else if (item.kind === KIND_HA_DEVICE)
-          kindLabel = host._t("ignore_list_dropdown_kind_device", "Device");
+          kindLabel = host2._t("ignore_list_dropdown_kind_device", "Device");
         const active = idx === activeIndex;
         return b2`
           <button
@@ -46081,12 +45478,12 @@ function _renderDropdown(host, items, activeIndex) {
             data-ignore-row=${idx}
             style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 12px;border:none;background:${active ? "var(--secondary-background-color)" : "transparent"};color:var(--primary-text-color);font-size:13px;cursor:pointer;"
             @mouseenter=${() => {
-              host._ignoreDropdownIndex = idx;
-              host.requestUpdate();
+              host2._ignoreDropdownIndex = idx;
+              host2.requestUpdate();
             }}
             @mousedown=${(e6) => {
               e6.preventDefault();
-              _selectItem(host, item);
+              _selectItem(host2, item);
             }}
           >
             <ha-icon
@@ -46113,7 +45510,7 @@ function _renderDropdown(host, items, activeIndex) {
     </div>
   `;
 }
-function _renderInfoCallout(host, labelName) {
+function _renderInfoCallout(host2, labelName) {
   return b2`
     <details
       style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
@@ -46125,7 +45522,7 @@ function _renderInfoCallout(host, labelName) {
           icon="mdi:information-outline"
           style="--mdc-icon-size:16px;color:var(--secondary-text-color);"
         ></ha-icon>
-        ${host._t("ignore_list_how_it_works", "How does this work?")}
+        ${host2._t("ignore_list_how_it_works", "How does this work?")}
       </summary>
       <div
         style="padding:0 12px 10px 36px;font-size:13px;color:var(--secondary-text-color);line-height:1.45;"
@@ -46139,92 +45536,92 @@ function _renderInfoCallout(host, labelName) {
     </details>
   `;
 }
-function _onInputKeydown(host, e6) {
+function _onInputKeydown(host2, e6) {
   if (!["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(e6.key)) return;
-  if (!host._ignoreDropdownOpen) {
+  if (!host2._ignoreDropdownOpen) {
     if (e6.key === "Escape") {
       e6.preventDefault();
     }
     return;
   }
-  const items = _computeDropdownItems(host, host._ignoreInput || "");
+  const items = _computeDropdownItems(host2, host2._ignoreInput || "");
   if (!items.length) {
     if (e6.key === "Escape") {
       e6.preventDefault();
-      host._ignoreDropdownOpen = false;
-      host.requestUpdate();
+      host2._ignoreDropdownOpen = false;
+      host2.requestUpdate();
     }
     return;
   }
   e6.preventDefault();
   e6.stopPropagation();
-  const idx = host._ignoreDropdownIndex ?? 0;
+  const idx = host2._ignoreDropdownIndex ?? 0;
   if (e6.key === "ArrowDown") {
-    host._ignoreDropdownIndex = (idx + 1) % items.length;
+    host2._ignoreDropdownIndex = (idx + 1) % items.length;
   } else if (e6.key === "ArrowUp") {
-    host._ignoreDropdownIndex = (idx - 1 + items.length) % items.length;
+    host2._ignoreDropdownIndex = (idx - 1 + items.length) % items.length;
   } else if (e6.key === "Enter") {
-    _selectItem(host, items[idx]);
+    _selectItem(host2, items[idx]);
     return;
   } else if (e6.key === "Escape") {
-    host._ignoreDropdownOpen = false;
+    host2._ignoreDropdownOpen = false;
   }
-  host.requestUpdate();
+  host2.requestUpdate();
 }
-function renderIgnoreList(host) {
-  const query = host._ignoreInput || "";
-  const open = host._ignoreDropdownOpen && query.trim().length >= MIN_QUERY;
-  const items = open ? _computeDropdownItems(host, query) : [];
+function renderIgnoreList(host2) {
+  const query = host2._ignoreInput || "";
+  const open = host2._ignoreDropdownOpen && query.trim().length >= MIN_QUERY;
+  const items = open ? _computeDropdownItems(host2, query) : [];
   if (
-    host._ignoreDropdownIndex == null ||
-    host._ignoreDropdownIndex >= items.length
+    host2._ignoreDropdownIndex == null ||
+    host2._ignoreDropdownIndex >= items.length
   ) {
-    host._ignoreDropdownIndex = 0;
+    host2._ignoreDropdownIndex = 0;
   }
-  const activeIndex = items.length ? host._ignoreDropdownIndex : -1;
-  const tagged = _labelTagged(host);
+  const activeIndex = items.length ? host2._ignoreDropdownIndex : -1;
+  const tagged = _labelTagged(host2);
   const total =
     tagged.entities.length + tagged.devices.length + tagged.areas.length;
-  const labelName = _config(host).exclude_label_name || "Selora exclude";
+  const labelName = _config(host2).exclude_label_name || "Selora exclude";
   return b2`
     <div class="section-card settings-section">
       <div class="section-card-header">
         <h3>
-          ${host._t("ignore_list_section_title", "Ignore in suggestions")}
+          ${host2._t("ignore_list_section_title", "Ignore in suggestions")}
         </h3>
       </div>
 
-      ${_renderInfoCallout(host, labelName)}
+      ${_renderInfoCallout(host2, labelName)}
 
       <div style="position:relative;margin-top:12px;">
         <input
           class="form-select"
           type="text"
           .value=${query}
-          placeholder=${host._t(
+          placeholder=${host2._t(
             "ignore_list_search_placeholder",
             "Search an entity, device, or area\u2026",
           )}
           style="width:100%;box-sizing:border-box;"
           @input=${(e6) => {
-            host._ignoreInput = e6.target.value;
-            host._ignoreDropdownOpen = true;
-            host._ignoreDropdownIndex = 0;
-            host.requestUpdate();
+            host2._ignoreInput = e6.target.value;
+            host2._ignoreDropdownOpen = true;
+            host2._ignoreDropdownIndex = 0;
+            host2.requestUpdate();
           }}
           @focus=${() => {
-            host._ignoreDropdownOpen = true;
-            host.requestUpdate();
+            host2._ignoreDropdownOpen = true;
+            host2.requestUpdate();
           }}
           @blur=${() => {
             setTimeout(() => {
-              host._ignoreDropdownOpen = false;
-              host.requestUpdate();
+              host2._ignoreDropdownOpen = false;
+              host2.requestUpdate();
             }, 150);
           }}
-          @keydown=${(e6) => _onInputKeydown(host, e6)}
+          @keydown=${(e6) => _onInputKeydown(host2, e6)}
         />
-        ${_renderDropdown(host, items, activeIndex)}
+        ${_renderDropdown(host2, items, activeIndex)}
       </div>
 
       ${
@@ -46232,7 +45629,7 @@ function renderIgnoreList(host) {
           ? b2`<div
               style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
             >
-              ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
+              ${host2._t("ignore_list_empty_state", "Nothing ignored yet.")}
             </div>`
           : b2`
               <div
@@ -46244,14 +45641,14 @@ function renderIgnoreList(host) {
                         "Areas",
                         tagged.areas.map((aid) =>
                           _renderChip({
-                            host,
+                            host: host2,
                             icon: "mdi:floor-plan",
-                            label: _areaLabel(host, aid),
+                            label: _areaLabel(host2, aid),
                             title: `Open area \xB7 ${aid}`,
                             onOpen: () =>
                               _navigate(`/config/areas/area/${aid}`),
                             onRemove: () =>
-                              _removeLabel(host, { area_id: aid }),
+                              _removeLabel(host2, { area_id: aid }),
                           }),
                         ),
                       )
@@ -46263,14 +45660,14 @@ function renderIgnoreList(host) {
                         "Devices",
                         tagged.devices.map((did) =>
                           _renderChip({
-                            host,
+                            host: host2,
                             icon: "mdi:chip",
-                            label: _deviceLabel2(host, did),
+                            label: _deviceLabel2(host2, did),
                             title: `Open device \xB7 ${did}`,
                             onOpen: () =>
                               _navigate(`/config/devices/device/${did}`),
                             onRemove: () =>
-                              _removeLabel(host, { device_id: did }),
+                              _removeLabel(host2, { device_id: did }),
                           }),
                         ),
                       )
@@ -46282,13 +45679,13 @@ function renderIgnoreList(host) {
                         "Entities",
                         tagged.entities.map((eid) =>
                           _renderChip({
-                            host,
+                            host: host2,
                             icon: _entityIcon(eid),
-                            label: _entityLabel(host, eid),
+                            label: _entityLabel(host2, eid),
                             title: `Open ${eid}`,
-                            onOpen: () => _openEntity(host, eid),
+                            onOpen: () => _openEntity(host2, eid),
                             onRemove: () =>
-                              _removeLabel(host, { entity_id: eid }),
+                              _removeLabel(host2, { entity_id: eid }),
                           }),
                         ),
                       )
@@ -46302,8 +45699,8 @@ function renderIgnoreList(host) {
 }
 
 // src/panel/render-settings.js
-function _todayCostHint(host) {
-  const states = host.hass?.states || {};
+function _todayCostHint(host2) {
+  const states = host2.hass?.states || {};
   for (const [entityId, state] of Object.entries(states)) {
     if (
       entityId.startsWith("sensor.") &&
@@ -46319,22 +45716,22 @@ function _todayCostHint(host) {
   }
   return null;
 }
-function _renderUsageHeaderLink(host) {
-  const cost = _todayCostHint(host);
+function _renderUsageHeaderLink(host2) {
+  const cost = _todayCostHint(host2);
   const hasData = cost !== null && cost > 0;
   return b2`
     <button
       class="section-card-action"
-      title=${host._t("settings_view_token_usage_title", "View token usage")}
+      title=${host2._t("settings_view_token_usage_title", "View token usage")}
       @click=${() => {
-        host._setActiveTab("usage");
-        host._loadUsageStats?.();
-        host.requestUpdate();
+        host2._setActiveTab("usage");
+        host2._loadUsageStats?.();
+        host2.requestUpdate();
       }}
     >
       <ha-icon icon="mdi:chart-line-variant"></ha-icon>
       <span
-        >${hasData ? host._t("settings_usage_label", "Usage") : host._t("settings_view_usage_label", "View usage")}</span
+        >${hasData ? host2._t("settings_usage_label", "Usage") : host2._t("settings_view_usage_label", "View usage")}</span
       >
       <ha-icon
         icon="mdi:chevron-right"
@@ -46352,24 +45749,24 @@ var _PROVIDERS = [
   { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
 ];
-function _renderProviderPicker(host) {
+function _renderProviderPicker(host2) {
   const providers = _PROVIDERS;
   const current = providers.find(
-    (p4) => p4.value === host._config.llm_provider,
+    (p4) => p4.value === host2._config.llm_provider,
   );
-  const open = host._providerDropdownOpen || false;
+  const open = host2._providerDropdownOpen || false;
   return b2`
     <div style="position:relative;">
       <button
         class="form-select"
         style="text-align:left;width:100%;display:flex;align-items:center;justify-content:space-between;"
         @click=${() => {
-          host._providerDropdownOpen = !open;
-          host.requestUpdate();
+          host2._providerDropdownOpen = !open;
+          host2.requestUpdate();
         }}
       >
         <span
-          >${current ? current.label : host._t("settings_provider_select_placeholder", "Select...")}</span
+          >${current ? current.label : host2._t("settings_provider_select_placeholder", "Select...")}</span
         >
         <ha-icon
           icon="mdi:chevron-down"
@@ -46382,8 +45779,8 @@ function _renderProviderPicker(host) {
               <div
                 style="position:fixed;inset:0;z-index:9;"
                 @click=${() => {
-                  host._providerDropdownOpen = false;
-                  host.requestUpdate();
+                  host2._providerDropdownOpen = false;
+                  host2.requestUpdate();
                 }}
               ></div>
               <div
@@ -46392,23 +45789,23 @@ function _renderProviderPicker(host) {
                 ${providers.map(
                   (p4) => b2`
                     <button
-                      style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p4.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p4.disabled ? "var(--disabled-text-color, #999)" : p4.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p4.disabled ? "default" : "pointer"};opacity:${p4.disabled ? "0.5" : "1"};"
+                      style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p4.value === host2._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p4.disabled ? "var(--disabled-text-color, #999)" : p4.value === host2._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p4.disabled ? "default" : "pointer"};opacity:${p4.disabled ? "0.5" : "1"};"
                       @click=${() => {
                         if (p4.disabled) return;
-                        host._providerDropdownOpen = false;
-                        host._updateConfig("llm_provider", p4.value);
+                        host2._providerDropdownOpen = false;
+                        host2._updateConfig("llm_provider", p4.value);
                         if (
                           p4.value === "selora_local" &&
-                          host._config?.selora_local_discovered_host
+                          host2._config?.selora_local_discovered_host
                         ) {
-                          host._updateConfig(
+                          host2._updateConfig(
                             "selora_local_host",
-                            host._config.selora_local_discovered_host,
+                            host2._config.selora_local_discovered_host,
                           );
                         }
-                        host._showApiKeyInput = false;
-                        host._newApiKey = "";
-                        host._llmSaveStatus = null;
+                        host2._showApiKeyInput = false;
+                        host2._newApiKey = "";
+                        host2._llmSaveStatus = null;
                       }}
                     >
                       ${p4.label}
@@ -46422,8 +45819,8 @@ function _renderProviderPicker(host) {
     </div>
   `;
 }
-function renderSettings(host) {
-  if (!host._config) {
+function renderSettings(host2) {
+  if (!host2._config) {
     return b2`
       <div
         class="scroll-view"
@@ -46433,12 +45830,12 @@ function renderSettings(host) {
       </div>
     `;
   }
-  const isSeloraCloud = host._config.llm_provider === "selora_cloud";
-  const isAnthropic = host._config.llm_provider === "anthropic";
-  const isGemini = host._config.llm_provider === "gemini";
-  const isOpenAI = host._config.llm_provider === "openai";
-  const isOpenRouter = host._config.llm_provider === "openrouter";
-  const isSeloraLocal = host._config.llm_provider === "selora_local";
+  const isSeloraCloud = host2._config.llm_provider === "selora_cloud";
+  const isAnthropic = host2._config.llm_provider === "anthropic";
+  const isGemini = host2._config.llm_provider === "gemini";
+  const isOpenAI = host2._config.llm_provider === "openai";
+  const isOpenRouter = host2._config.llm_provider === "openrouter";
+  const isSeloraLocal = host2._config.llm_provider === "selora_local";
   return b2`
     <div class="scroll-view">
       <div class="settings-form">
@@ -46450,13 +45847,13 @@ function renderSettings(host) {
         >
           <div style="flex:1;">
             <strong
-              >${host._t(
+              >${host2._t(
                 "settings_doc_banner_title",
                 "Configuration guide",
               )}</strong
             >
             <span
-              >${host._t(
+              >${host2._t(
                 "settings_doc_banner_desc",
                 "Learn how to set up LLM providers, remote access, and MCP tokens.",
               )}</span
@@ -46469,12 +45866,12 @@ function renderSettings(host) {
         </a>
         <div class="section-card settings-section">
           <div class="section-card-header section-card-header--with-action">
-            <h3>${host._t("settings_llm_provider_heading", "LLM Provider")}</h3>
-            ${_renderUsageHeaderLink(host)}
+            <h3>${host2._t("settings_llm_provider_heading", "LLM Provider")}</h3>
+            ${_renderUsageHeaderLink(host2)}
           </div>
           <div class="form-group">
-            <label>${host._t("settings_provider_label", "Provider")}</label>
-            ${_renderProviderPicker(host)}
+            <label>${host2._t("settings_provider_label", "Provider")}</label>
+            ${_renderProviderPicker(host2)}
           </div>
 
           ${
@@ -46482,13 +45879,13 @@ function renderSettings(host) {
               ? b2`
                   <div class="form-group">
                     <label
-                      >${host._t(
+                      >${host2._t(
                         "settings_selora_account_label",
                         "Selora account",
                       )}</label
                     >
                     ${
-                      host._config.aigateway_linked
+                      host2._config.aigateway_linked
                         ? b2`
                             <div
                               style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);"
@@ -46502,10 +45899,10 @@ function renderSettings(host) {
                                   style="font-size:14px;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
                                 >
                                   Linked${
-                                    host._config.aigateway_user_email
+                                    host2._config.aigateway_user_email
                                       ? b2` as
                                           <strong
-                                            >${host._config.aigateway_user_email}</strong
+                                            >${host2._config.aigateway_user_email}</strong
                                           >`
                                       : ""
                                   }
@@ -46513,7 +45910,7 @@ function renderSettings(host) {
                                 <div
                                   style="font-size:12px;color:var(--secondary-text-color);"
                                 >
-                                  ${host._t(
+                                  ${host2._t(
                                     "settings_selora_cloud_backend_desc",
                                     "Selora Cloud is providing your LLM backend.",
                                   )}
@@ -46522,9 +45919,9 @@ function renderSettings(host) {
                               <button
                                 class="btn btn-outline"
                                 style="flex-shrink:0;"
-                                @click=${() => host._unlinkAIGateway()}
+                                @click=${() => host2._unlinkAIGateway()}
                               >
-                                ${host._t("settings_unlink_button", "Unlink")}
+                                ${host2._t("settings_unlink_button", "Unlink")}
                               </button>
                             </div>
                           `
@@ -46535,70 +45932,42 @@ function renderSettings(host) {
                               <p
                                 style="font-size:13px;color:var(--secondary-text-color);margin:0;"
                               >
-                                ${host._t(
+                                ${host2._t(
                                   "settings_signin_selora_desc",
                                   "Sign in with your Selora account to use the hosted LLM backend. No API key required.",
                                 )}
                               </p>
                               ${
-                                host._config.developer_mode
-                                  ? b2`
-                                      ${textInput({
-                                        label: host._t(
-                                          "settings_selora_cloud_url_label",
-                                          "Selora Cloud URL",
-                                        ),
-                                        value:
-                                          host._config.selora_connect_url ||
-                                          "https://connect.selorahomes.com",
-                                        oninput: (e6) =>
-                                          host._updateConfig(
-                                            "selora_connect_url",
-                                            e6.target.value,
-                                          ),
-                                      })}
-                                      <div
-                                        style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
-                                      >
-                                        ${host._t(
-                                          "settings_selora_cloud_url_hint",
-                                          "OAuth and chat completions both use this URL. Saved automatically when you link.",
-                                        )}
-                                      </div>
-                                    `
-                                  : ""
-                              }
-                              ${
-                                host._aigwAuthorizeUrl
+                                host2._aigwAuthorizeUrl
                                   ? b2`<a
                                       class="btn btn-primary"
-                                      href=${host._aigwAuthorizeUrl}
+                                      href=${host2._aigwAuthorizeUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"
                                     >
-                                      ${host._t(
+                                      ${host2._t(
                                         "settings_open_signin_page",
                                         "Open sign-in page \u2192",
                                       )}
                                     </a>`
                                   : b2`<button
                                       class="btn btn-primary"
-                                      ?disabled=${host._linkingAIGateway}
-                                      @click=${() => host._startAIGatewayLink()}
+                                      ?disabled=${host2._linkingAIGateway}
+                                      @click=${() => host2._startAIGatewayLink()}
                                       style="align-self:flex-start;"
                                     >
                                       ${
-                                        host._linkingAIGateway
+                                        host2._linkingAIGateway
                                           ? b2`<span
                                                 class="spinner"
                                                 style="width:14px;height:14px;"
                                               ></span>
-                                              ${host._t(
+                                              ${host2._t(
                                                 "settings_preparing_label",
                                                 "Preparing\u2026",
                                               )}`
-                                          : host._t(
+                                          : host2._t(
                                               "settings_link_selora_account_button",
                                               "Link Selora account",
                                             )
@@ -46606,11 +45975,11 @@ function renderSettings(host) {
                                     </button>`
                               }
                               ${
-                                host._aigwAuthorizeUrl
+                                host2._aigwAuthorizeUrl
                                   ? b2`<div
                                       style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                                     >
-                                      ${host._t(
+                                      ${host2._t(
                                         "settings_signin_new_tab_hint",
                                         "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
                                       )}
@@ -46621,88 +45990,67 @@ function renderSettings(host) {
                           `
                     }
                     ${
-                      host._aigatewayError
+                      host2._aigatewayError
                         ? b2`<div
                             style="color:var(--error-color,#d32f2f);font-size:13px;padding:6px 0 0;"
                           >
-                            ${host._aigatewayError}
+                            ${host2._aigatewayError}
                           </div>`
                         : ""
                     }
                   </div>
-                  ${
-                    host._config.aigateway_linked && host._config.developer_mode
-                      ? b2`
-                          <div class="form-group">
-                            ${textInput({
-                              label: host._t(
-                                "settings_selora_cloud_url_label",
-                                "Selora Cloud URL",
-                              ),
-                              value:
-                                host._config.selora_connect_url ||
-                                "https://connect.selorahomes.com",
-                              oninput: (e6) =>
-                                host._updateConfig(
-                                  "selora_connect_url",
-                                  e6.target.value,
-                                ),
-                            })}
-                          </div>
-                        `
-                      : ""
-                  }
                 `
               : isGemini
                 ? b2`
                     <div class="form-group">
                       <label
-                        >${host._t("settings_api_key_label", "API Key")}</label
+                        >${host2._t("settings_api_key_label", "API Key")}</label
                       >
                       ${
-                        host._config.gemini_api_key_set
+                        host2._config.gemini_api_key_set
                           ? b2`<button
                               class="key-hint key-set key-hint-btn"
-                              title=${host._t(
+                              title=${host2._t(
                                 "settings_click_replace_key_title",
                                 "Click to replace key",
                               )}
                               @click=${() => {
-                                host._showApiKeyInput = !host._showApiKeyInput;
-                                if (!host._showApiKeyInput)
-                                  host._newApiKey = "";
-                                host.requestUpdate();
+                                host2._showApiKeyInput =
+                                  !host2._showApiKeyInput;
+                                if (!host2._showApiKeyInput)
+                                  host2._newApiKey = "";
+                                host2.requestUpdate();
                               }}
                             >
                               <ha-icon
                                 icon="mdi:check-circle"
                                 style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                               ></ha-icon>
-                              ${host._config.gemini_api_key_hint}
+                              ${host2._config.gemini_api_key_hint}
                               <ha-icon
-                                icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                icon="${host2._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                                 class="key-hint-action"
                               ></ha-icon>
                             </button>`
                           : ""
                       }
                       ${
-                        !host._config.gemini_api_key_set ||
-                        host._showApiKeyInput
+                        !host2._config.gemini_api_key_set ||
+                        host2._showApiKeyInput
                           ? textInput({
-                              label: host._config.gemini_api_key_set
-                                ? host._t(
+                              label: host2._config.gemini_api_key_set
+                                ? host2._t(
                                     "settings_enter_new_key_label",
                                     "Enter new key",
                                   )
-                                : host._t(
+                                : host2._t(
                                     "settings_enter_api_key_label",
                                     "Enter API key",
                                   ),
                               type: "password",
-                              value: host._newApiKey,
+                              value: host2._newApiKey,
                               oninput: (e6) =>
-                                (host._newApiKey = e6.target.value),
+                                (host2._newApiKey = e6.target.value),
                               placeholder: "AIza...",
                               style: "margin-top:8px;",
                             })
@@ -46711,10 +46059,10 @@ function renderSettings(host) {
                     </div>
                     <div class="form-group">
                       ${textInput({
-                        label: host._t("settings_model_label", "Model"),
-                        value: host._config.gemini_model,
+                        label: host2._t("settings_model_label", "Model"),
+                        value: host2._config.gemini_model,
                         oninput: (e6) =>
-                          host._updateConfig("gemini_model", e6.target.value),
+                          host2._updateConfig("gemini_model", e6.target.value),
                       })}
                     </div>
                   `
@@ -46722,53 +46070,53 @@ function renderSettings(host) {
                   ? b2`
                       <div class="form-group">
                         <label
-                          >${host._t("settings_api_key_label", "API Key")}</label
+                          >${host2._t("settings_api_key_label", "API Key")}</label
                         >
                         ${
-                          host._config.anthropic_api_key_set
+                          host2._config.anthropic_api_key_set
                             ? b2`<button
                                 class="key-hint key-set key-hint-btn"
-                                title=${host._t(
+                                title=${host2._t(
                                   "settings_click_replace_key_title",
                                   "Click to replace key",
                                 )}
                                 @click=${() => {
-                                  host._showApiKeyInput =
-                                    !host._showApiKeyInput;
-                                  if (!host._showApiKeyInput)
-                                    host._newApiKey = "";
-                                  host.requestUpdate();
+                                  host2._showApiKeyInput =
+                                    !host2._showApiKeyInput;
+                                  if (!host2._showApiKeyInput)
+                                    host2._newApiKey = "";
+                                  host2.requestUpdate();
                                 }}
                               >
                                 <ha-icon
                                   icon="mdi:check-circle"
                                   style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                                 ></ha-icon>
-                                ${host._config.anthropic_api_key_hint}
+                                ${host2._config.anthropic_api_key_hint}
                                 <ha-icon
-                                  icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                  icon="${host2._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                                   class="key-hint-action"
                                 ></ha-icon>
                               </button>`
                             : ""
                         }
                         ${
-                          !host._config.anthropic_api_key_set ||
-                          host._showApiKeyInput
+                          !host2._config.anthropic_api_key_set ||
+                          host2._showApiKeyInput
                             ? textInput({
-                                label: host._config.anthropic_api_key_set
-                                  ? host._t(
+                                label: host2._config.anthropic_api_key_set
+                                  ? host2._t(
                                       "settings_enter_new_key_label",
                                       "Enter new key",
                                     )
-                                  : host._t(
+                                  : host2._t(
                                       "settings_enter_api_key_label",
                                       "Enter API key",
                                     ),
                                 type: "password",
-                                value: host._newApiKey,
+                                value: host2._newApiKey,
                                 oninput: (e6) =>
-                                  (host._newApiKey = e6.target.value),
+                                  (host2._newApiKey = e6.target.value),
                                 placeholder: "sk-ant-...",
                                 style: "margin-top:8px;",
                               })
@@ -46777,10 +46125,10 @@ function renderSettings(host) {
                       </div>
                       <div class="form-group">
                         ${textInput({
-                          label: host._t("settings_model_label", "Model"),
-                          value: host._config.anthropic_model,
+                          label: host2._t("settings_model_label", "Model"),
+                          value: host2._config.anthropic_model,
                           oninput: (e6) =>
-                            host._updateConfig(
+                            host2._updateConfig(
                               "anthropic_model",
                               e6.target.value,
                             ),
@@ -46791,56 +46139,56 @@ function renderSettings(host) {
                     ? b2`
                         <div class="form-group">
                           <label
-                            >${host._t(
+                            >${host2._t(
                               "settings_api_key_label",
                               "API Key",
                             )}</label
                           >
                           ${
-                            host._config.openai_api_key_set
+                            host2._config.openai_api_key_set
                               ? b2`<button
                                   class="key-hint key-set key-hint-btn"
-                                  title=${host._t(
+                                  title=${host2._t(
                                     "settings_click_replace_key_title",
                                     "Click to replace key",
                                   )}
                                   @click=${() => {
-                                    host._showApiKeyInput =
-                                      !host._showApiKeyInput;
-                                    if (!host._showApiKeyInput)
-                                      host._newApiKey = "";
-                                    host.requestUpdate();
+                                    host2._showApiKeyInput =
+                                      !host2._showApiKeyInput;
+                                    if (!host2._showApiKeyInput)
+                                      host2._newApiKey = "";
+                                    host2.requestUpdate();
                                   }}
                                 >
                                   <ha-icon
                                     icon="mdi:check-circle"
                                     style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                                   ></ha-icon>
-                                  ${host._config.openai_api_key_hint}
+                                  ${host2._config.openai_api_key_hint}
                                   <ha-icon
-                                    icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                    icon="${host2._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                                     class="key-hint-action"
                                   ></ha-icon>
                                 </button>`
                               : ""
                           }
                           ${
-                            !host._config.openai_api_key_set ||
-                            host._showApiKeyInput
+                            !host2._config.openai_api_key_set ||
+                            host2._showApiKeyInput
                               ? textInput({
-                                  label: host._config.openai_api_key_set
-                                    ? host._t(
+                                  label: host2._config.openai_api_key_set
+                                    ? host2._t(
                                         "settings_enter_new_key_label",
                                         "Enter new key",
                                       )
-                                    : host._t(
+                                    : host2._t(
                                         "settings_enter_api_key_label",
                                         "Enter API key",
                                       ),
                                   type: "password",
-                                  value: host._newApiKey,
+                                  value: host2._newApiKey,
                                   oninput: (e6) =>
-                                    (host._newApiKey = e6.target.value),
+                                    (host2._newApiKey = e6.target.value),
                                   placeholder: "sk-...",
                                   style: "margin-top:8px;",
                                 })
@@ -46849,10 +46197,10 @@ function renderSettings(host) {
                         </div>
                         <div class="form-group">
                           ${textInput({
-                            label: host._t("settings_model_label", "Model"),
-                            value: host._config.openai_model,
+                            label: host2._t("settings_model_label", "Model"),
+                            value: host2._config.openai_model,
                             oninput: (e6) =>
-                              host._updateConfig(
+                              host2._updateConfig(
                                 "openai_model",
                                 e6.target.value,
                               ),
@@ -46863,56 +46211,56 @@ function renderSettings(host) {
                       ? b2`
                           <div class="form-group">
                             <label
-                              >${host._t(
+                              >${host2._t(
                                 "settings_api_key_label",
                                 "API Key",
                               )}</label
                             >
                             ${
-                              host._config.openrouter_api_key_set
+                              host2._config.openrouter_api_key_set
                                 ? b2`<button
                                     class="key-hint key-set key-hint-btn"
-                                    title=${host._t(
+                                    title=${host2._t(
                                       "settings_click_replace_key_title",
                                       "Click to replace key",
                                     )}
                                     @click=${() => {
-                                      host._showApiKeyInput =
-                                        !host._showApiKeyInput;
-                                      if (!host._showApiKeyInput)
-                                        host._newApiKey = "";
-                                      host.requestUpdate();
+                                      host2._showApiKeyInput =
+                                        !host2._showApiKeyInput;
+                                      if (!host2._showApiKeyInput)
+                                        host2._newApiKey = "";
+                                      host2.requestUpdate();
                                     }}
                                   >
                                     <ha-icon
                                       icon="mdi:check-circle"
                                       style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                                     ></ha-icon>
-                                    ${host._config.openrouter_api_key_hint}
+                                    ${host2._config.openrouter_api_key_hint}
                                     <ha-icon
-                                      icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                      icon="${host2._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                                       class="key-hint-action"
                                     ></ha-icon>
                                   </button>`
                                 : ""
                             }
                             ${
-                              !host._config.openrouter_api_key_set ||
-                              host._showApiKeyInput
+                              !host2._config.openrouter_api_key_set ||
+                              host2._showApiKeyInput
                                 ? textInput({
-                                    label: host._config.openrouter_api_key_set
-                                      ? host._t(
+                                    label: host2._config.openrouter_api_key_set
+                                      ? host2._t(
                                           "settings_enter_new_key_label",
                                           "Enter new key",
                                         )
-                                      : host._t(
+                                      : host2._t(
                                           "settings_enter_api_key_label",
                                           "Enter API key",
                                         ),
                                     type: "password",
-                                    value: host._newApiKey,
+                                    value: host2._newApiKey,
                                     oninput: (e6) =>
-                                      (host._newApiKey = e6.target.value),
+                                      (host2._newApiKey = e6.target.value),
                                     placeholder: "sk-or-...",
                                     style: "margin-top:8px;",
                                   })
@@ -46921,10 +46269,10 @@ function renderSettings(host) {
                           </div>
                           <div class="form-group">
                             ${textInput({
-                              label: host._t("settings_model_label", "Model"),
-                              value: host._config.openrouter_model,
+                              label: host2._t("settings_model_label", "Model"),
+                              value: host2._config.openrouter_model,
                               oninput: (e6) =>
-                                host._updateConfig(
+                                host2._updateConfig(
                                   "openrouter_model",
                                   e6.target.value,
                                 ),
@@ -46938,30 +46286,30 @@ function renderSettings(host) {
                               class="btn-link"
                               style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
                               @click=${() => {
-                                host._seloraLocalAdvanced =
-                                  !host._seloraLocalAdvanced;
-                                host.requestUpdate();
+                                host2._seloraLocalAdvanced =
+                                  !host2._seloraLocalAdvanced;
+                                host2.requestUpdate();
                               }}
                             >
                               ${
-                                host._seloraLocalAdvanced
-                                  ? host._t(
+                                host2._seloraLocalAdvanced
+                                  ? host2._t(
                                       "settings_selora_local_hide_advanced",
                                       "Hide advanced options",
                                     )
-                                  : host._t(
+                                  : host2._t(
                                       "settings_selora_local_show_advanced",
                                       "Show advanced options",
                                     )
                               }
                             </button>
                             ${
-                              host._seloraLocalAdvanced
+                              host2._seloraLocalAdvanced
                                 ? b2`
                                     <p
                                       style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
                                     >
-                                      ${host._t(
+                                      ${host2._t(
                                         "settings_selora_local_advanced_desc",
                                         "Selora AI Local runs the Selora AI model on your own network via a self-hosted llama-server (listening on port 8080). Enter its address below \u2014 the default works when the server runs on the same host as Home Assistant. The specialist model is selected automatically per request.",
                                       )}
@@ -46971,14 +46319,14 @@ function renderSettings(host) {
                                       style="margin-top:8px;"
                                     >
                                       ${textInput({
-                                        label: host._t(
+                                        label: host2._t(
                                           "settings_selora_local_host_label",
                                           "Host",
                                         ),
                                         value:
-                                          host._config.selora_local_host || "",
+                                          host2._config.selora_local_host || "",
                                         oninput: (e6) =>
-                                          host._updateConfig(
+                                          host2._updateConfig(
                                             "selora_local_host",
                                             e6.target.value,
                                           ),
@@ -46987,14 +46335,14 @@ function renderSettings(host) {
                                       <p
                                         style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                                       >
-                                        ${host._t(
+                                        ${host2._t(
                                           "settings_selora_local_auto_detected_prefix",
                                           "Auto-detected:",
                                         )}
                                         ${
-                                          host._config
+                                          host2._config
                                             .selora_local_discovered_host ||
-                                          host._t(
+                                          host2._t(
                                             "settings_selora_local_auto_detected_none",
                                             "none",
                                           )
@@ -47008,13 +46356,13 @@ function renderSettings(host) {
                         : b2`
                             <div class="form-group">
                               ${textInput({
-                                label: host._t(
+                                label: host2._t(
                                   "settings_ollama_host_label",
                                   "Host",
                                 ),
-                                value: host._config.ollama_host,
+                                value: host2._config.ollama_host,
                                 oninput: (e6) =>
-                                  host._updateConfig(
+                                  host2._updateConfig(
                                     "ollama_host",
                                     e6.target.value,
                                   ),
@@ -47022,10 +46370,13 @@ function renderSettings(host) {
                             </div>
                             <div class="form-group">
                               ${textInput({
-                                label: host._t("settings_model_label", "Model"),
-                                value: host._config.ollama_model,
+                                label: host2._t(
+                                  "settings_model_label",
+                                  "Model",
+                                ),
+                                value: host2._config.ollama_model,
                                 oninput: (e6) =>
-                                  host._updateConfig(
+                                  host2._updateConfig(
                                     "ollama_model",
                                     e6.target.value,
                                   ),
@@ -47034,38 +46385,38 @@ function renderSettings(host) {
                           `
           }
           ${
-            isSeloraCloud && !host._config.aigateway_linked
+            isSeloraCloud && !host2._config.aigateway_linked
               ? ""
               : b2`
                   <div class="card-save-bar">
                     <button
                       class="btn btn-primary"
-                      @click=${host._saveLlmConfig}
-                      ?disabled=${host._savingLlmConfig}
+                      @click=${host2._saveLlmConfig}
+                      ?disabled=${host2._savingLlmConfig}
                     >
                       ${
-                        host._savingLlmConfig
+                        host2._savingLlmConfig
                           ? b2`<span
                                 class="spinner"
                                 style="width:14px;height:14px;"
                               ></span>
-                              ${host._t("settings_validating_label", "Validating\u2026")}`
-                          : host._t("settings_save_button", "Save")
+                              ${host2._t("settings_validating_label", "Validating\u2026")}`
+                          : host2._t("settings_save_button", "Save")
                       }
                     </button>
                   </div>
                 `
           }
           ${
-            host._llmSaveStatus
+            host2._llmSaveStatus
               ? b2`<div
-                  class="save-feedback save-feedback--${host._llmSaveStatus.type}"
+                  class="save-feedback save-feedback--${host2._llmSaveStatus.type}"
                 >
                   <ha-icon
-                    icon="${host._llmSaveStatus.type === "success" ? "mdi:check-circle" : "mdi:alert-circle"}"
+                    icon="${host2._llmSaveStatus.type === "success" ? "mdi:check-circle" : "mdi:alert-circle"}"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${host._llmSaveStatus.message}
+                  ${host2._llmSaveStatus.message}
                 </div>`
               : ""
           }
@@ -47073,10 +46424,10 @@ function renderSettings(host) {
 
         <div class="section-card settings-section">
           <div class="section-card-header">
-            <h3>${host._t("settings_mcp_server_heading", "MCP Server")}</h3>
+            <h3>${host2._t("settings_mcp_server_heading", "MCP Server")}</h3>
           </div>
           <p class="section-card-subtitle">
-            ${host._t(
+            ${host2._t(
               "settings_mcp_server_subtitle",
               "Expose your home to external AI tools like Openclaw, Claude Desktop, Cursor, or Windsurf.",
             )}
@@ -47089,52 +46440,52 @@ function renderSettings(host) {
             >
               <div class="service-label-group">
                 <label
-                  >${host._t(
+                  >${host2._t(
                     "settings_connect_via_selora_label",
                     "Connect via Selora account",
                   )}</label
                 >
                 <span class="service-desc"
-                  >${host._t(
+                  >${host2._t(
                     "settings_connect_via_selora_desc",
                     "Makes your MCP server reachable by external tools",
                   )}</span
                 >
               </div>
               <ha-switch
-                .checked=${host._config.selora_connect_enabled}
+                .checked=${host2._config.selora_connect_enabled}
                 @change=${(e6) => {
                   if (e6.target.checked) {
-                    host._startOAuthLink();
+                    host2._startOAuthLink();
                   } else {
-                    host._unlinkConnect();
+                    host2._unlinkConnect();
                   }
                 }}
-                ?disabled=${host._linkingConnect}
+                ?disabled=${host2._linkingConnect}
               ></ha-switch>
             </div>
             ${
-              host._connectError
+              host2._connectError
                 ? b2`<div
                     style="color:var(--error-color,#d32f2f);font-size:13px;padding:4px 0 0;"
                   >
-                    ${host._connectError}
+                    ${host2._connectError}
                   </div>`
                 : ""
             }
             ${
-              host._connectAuthorizeUrl
+              host2._connectAuthorizeUrl
                 ? b2`<div
                     style="display:flex;flex-direction:column;gap:6px;padding:8px 0 0;"
                   >
                     <a
                       class="btn btn-primary"
-                      href=${host._connectAuthorizeUrl}
+                      href=${host2._connectAuthorizeUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       style="align-self:flex-start;text-decoration:none;"
                     >
-                      ${host._t(
+                      ${host2._t(
                         "settings_open_signin_page",
                         "Open sign-in page \u2192",
                       )}
@@ -47142,7 +46493,7 @@ function renderSettings(host) {
                     <div
                       style="font-size:12px;color:var(--secondary-text-color);"
                     >
-                      ${host._t(
+                      ${host2._t(
                         "settings_signin_new_tab_hint",
                         "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
                       )}
@@ -47151,23 +46502,23 @@ function renderSettings(host) {
                 : ""
             }
             ${
-              host._config.selora_connect_enabled
+              host2._config.selora_connect_enabled
                 ? b2`
                     <div
                       style="display:flex;align-items:center;gap:8px;padding:8px 0 0;"
                     >
                       <code
                         style="font-size:12px;word-break:break-all;flex:1;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);overflow:hidden;text-overflow:ellipsis;"
-                        >${host._config.selora_mcp_url || `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`}</code
+                        >${host2._config.selora_mcp_url || `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`}</code
                       >
                       <ha-icon-button
                         @click=${() => {
                           const mcpUrl =
-                            host._config.selora_mcp_url ||
+                            host2._config.selora_mcp_url ||
                             `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`;
                           navigator.clipboard.writeText(mcpUrl);
-                          host._showToast(
-                            host._t(
+                          host2._showToast(
+                            host2._t(
                               "settings_mcp_url_copied_toast",
                               "MCP URL copied to clipboard",
                             ),
@@ -47184,52 +46535,29 @@ function renderSettings(host) {
                   `
                 : ""
             }
-            ${
-              host._config.developer_mode &&
-              !host._config.selora_connect_enabled
-                ? b2`
-                    <div style="padding:8px 0 0;">
-                      ${textInput({
-                        label: host._t(
-                          "settings_connect_server_url_label",
-                          "Connect Server URL",
-                        ),
-                        value:
-                          host._config.selora_connect_url ||
-                          "https://connect.selorahomes.com",
-                        oninput: (e6) =>
-                          host._updateConfig(
-                            "selora_connect_url",
-                            e6.target.value,
-                          ),
-                      })}
-                    </div>
-                  `
-                : ""
-            }
           </div>
 
           <div class="settings-section-title">
-            ${host._t("settings_mcp_tokens_section_title", "MCP TOKENS")}
+            ${host2._t("settings_mcp_tokens_section_title", "MCP TOKENS")}
           </div>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
           >
-            ${host._t(
+            ${host2._t(
               "settings_mcp_tokens_desc",
               "MCP tokens are an alternative to Selora Connect. Use them for tools that don't support OAuth or when you prefer token-based authentication.",
             )}
           </p>
           ${
-            host._mcpTokens.length === 0
+            host2._mcpTokens.length === 0
               ? b2`<div
                   style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
                 >
-                  ${host._t("settings_no_tokens_yet", "No tokens yet.")}
+                  ${host2._t("settings_no_tokens_yet", "No tokens yet.")}
                 </div>`
               : b2`
                   <div class="mcp-token-list">
-                    ${host._mcpTokens.map(
+                    ${host2._mcpTokens.map(
                       (t5) => b2`
                         <div class="mcp-token-row">
                           <ha-icon
@@ -47270,11 +46598,11 @@ function renderSettings(host) {
                             </div>
                           </div>
                           <ha-icon-button
-                            ?disabled=${host._revokingTokenId === t5.id}
-                            @click=${() => host._revokeMcpToken(t5.id)}
+                            ?disabled=${host2._revokingTokenId === t5.id}
+                            @click=${() => host2._revokeMcpToken(t5.id)}
                           >
                             ${
-                              host._revokingTokenId === t5.id
+                              host2._revokingTokenId === t5.id
                                 ? b2`<span
                                     class="spinner"
                                     style="width:14px;height:14px;"
@@ -47294,21 +46622,21 @@ function renderSettings(host) {
           <button
             class="btn btn-outline"
             style="margin-top:8px;"
-            @click=${() => host._openCreateTokenDialog()}
+            @click=${() => host2._openCreateTokenDialog()}
           >
             <ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon>
-            ${host._t("settings_add_token_button", "Add token")}
+            ${host2._t("settings_add_token_button", "Add token")}
           </button>
         </div>
 
         <div class="section-card settings-section">
           <div class="section-card-header">
             <h3>
-              ${host._t("settings_household_profile_title", "Selora's Memory")}
+              ${host2._t("settings_household_profile_title", "Selora's Memory")}
             </h3>
           </div>
           <p class="section-card-subtitle">
-            ${host._t(
+            ${host2._t(
               "settings_household_profile_desc",
               "Free-form context about your home \u2014 members, preferences, notes, known issues, patterns, conflicts. Selora keeps this in mind when it chats and when it proposes automations and scenes. Keep it short; it counts toward every request.",
             )}
@@ -47316,10 +46644,10 @@ function renderSettings(host) {
           <textarea
             class="form-select"
             rows="6"
-            maxlength=${host._config.household_profile_max_chars || 2e3}
-            .value=${host._config.household_profile || ""}
-            @input=${(e6) => host._updateConfig("household_profile", e6.target.value)}
-            placeholder=${host._t(
+            maxlength=${host2._config.household_profile_max_chars || 2e3}
+            .value=${host2._config.household_profile || ""}
+            @input=${(e6) => host2._updateConfig("household_profile", e6.target.value)}
+            placeholder=${host2._t(
               "settings_household_profile_placeholder",
               "e.g. Family of 4. Kids (L\xE9a 7, Tom 5) in bed by 20:30. Grandma visits weekends \u2014 she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
             )}
@@ -47328,27 +46656,27 @@ function renderSettings(host) {
           <div
             style="text-align:right;font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
           >
-            ${(host._config.household_profile || "").length} /
-            ${host._config.household_profile_max_chars || 2e3}
+            ${(host2._config.household_profile || "").length} /
+            ${host2._config.household_profile_max_chars || 2e3}
           </div>
           <div class="card-save-bar">
             <button
               class="btn btn-primary"
-              @click=${host._saveHouseholdProfile}
-              ?disabled=${host._savingHouseholdProfile}
+              @click=${host2._saveHouseholdProfile}
+              ?disabled=${host2._savingHouseholdProfile}
             >
-              ${host._savingHouseholdProfile ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
+              ${host2._savingHouseholdProfile ? host2._t("settings_saving_label", "Saving\u2026") : host2._t("settings_save_button", "Save")}
             </button>
           </div>
         </div>
 
-        ${renderFrigateSettings(host)} ${renderCreateTokenDialog(host)}
-        ${renderIgnoreList(host)}
+        ${renderFrigateSettings(host2)} ${renderCreateTokenDialog(host2)}
+        ${renderIgnoreList(host2)}
 
         <div class="section-card settings-section">
           <div class="section-card-header">
             <h3>
-              ${host._t(
+              ${host2._t(
                 "settings_command_approvals_heading",
                 "Command Approvals",
               )}
@@ -47361,12 +46689,12 @@ function renderSettings(host) {
             prompting. Granted by clicking <em>Always</em> on an approval card
             in chat. Revoke any you no longer want auto-approved.
           </p>
-          ${renderApprovalGrants(host)}
+          ${renderApprovalGrants(host2)}
         </div>
 
         <details class="section-card settings-section advanced-section" open>
           <summary class="advanced-toggle">
-            ${host._t(
+            ${host2._t(
               "settings_advanced_settings_heading",
               "Advanced settings",
             )}
@@ -47378,7 +46706,7 @@ function renderSettings(host) {
           </summary>
 
           <div class="settings-section-title" style="margin-top:16px;">
-            ${host._t(
+            ${host2._t(
               "settings_background_services_title",
               "BACKGROUND SERVICES",
             )}
@@ -47388,46 +46716,46 @@ function renderSettings(host) {
             <div class="service-row">
               <div class="service-label-group">
                 <label
-                  >${host._t(
+                  >${host2._t(
                     "settings_data_collector_label",
                     "Data collector (AI analysis)",
                   )}</label
                 >
                 <span class="service-desc"
-                  >${host._t(
+                  >${host2._t(
                     "settings_data_collector_desc",
                     "Feeds entity history to Selora AI",
                   )}</span
                 >
               </div>
               <ha-switch
-                .checked=${host._config.collector_enabled}
-                @change=${(e6) => host._updateConfig("collector_enabled", e6.target.checked)}
+                .checked=${host2._config.collector_enabled}
+                @change=${(e6) => host2._updateConfig("collector_enabled", e6.target.checked)}
               ></ha-switch>
             </div>
             ${
-              host._config.collector_enabled
+              host2._config.collector_enabled
                 ? b2`
                     <div class="service-details">
                       <div style="display:flex;gap:12px;">
                         <div class="form-group" style="flex:1;margin-bottom:0;">
                           <label
-                            >${host._t("settings_mode_label", "Mode")}</label
+                            >${host2._t("settings_mode_label", "Mode")}</label
                           >
                           <select
                             class="form-select"
-                            .value=${host._config.collector_mode}
+                            .value=${host2._config.collector_mode}
                             @change=${(e6) =>
-                              host._updateConfig(
+                              host2._updateConfig(
                                 "collector_mode",
                                 e6.target.value,
                               )}
                           >
                             <option value="continuous">
-                              ${host._t("settings_mode_continuous", "Continuous")}
+                              ${host2._t("settings_mode_continuous", "Continuous")}
                             </option>
                             <option value="scheduled">
-                              ${host._t(
+                              ${host2._t(
                                 "settings_mode_scheduled_window",
                                 "Scheduled Window",
                               )}
@@ -47439,7 +46767,7 @@ function renderSettings(host) {
                           style="width:130px;margin-bottom:0;"
                         >
                           <label
-                            >${host._t(
+                            >${host2._t(
                               "settings_interval_seconds_label",
                               "Interval (s)",
                             )}</label
@@ -47447,9 +46775,9 @@ function renderSettings(host) {
                           <input
                             class="form-select"
                             type="number"
-                            .value=${host._config.collector_interval}
+                            .value=${host2._config.collector_interval}
                             @input=${(e6) =>
-                              host._updateConfig(
+                              host2._updateConfig(
                                 "collector_interval",
                                 parseInt(e6.target.value),
                               )}
@@ -47458,20 +46786,20 @@ function renderSettings(host) {
                         </div>
                       </div>
                       ${
-                        host._config.collector_mode === "scheduled"
+                        host2._config.collector_mode === "scheduled"
                           ? b2`
                               <div
                                 style="display:flex;gap:12px;margin-top:12px;"
                               >
                                 <div style="flex:1;">
                                   ${textInput({
-                                    label: host._t(
+                                    label: host2._t(
                                       "settings_start_hhmm_label",
                                       "Start (HH:MM)",
                                     ),
-                                    value: host._config.collector_start_time,
+                                    value: host2._config.collector_start_time,
                                     oninput: (e6) =>
-                                      host._updateConfig(
+                                      host2._updateConfig(
                                         "collector_start_time",
                                         e6.target.value,
                                       ),
@@ -47479,13 +46807,13 @@ function renderSettings(host) {
                                 </div>
                                 <div style="flex:1;">
                                   ${textInput({
-                                    label: host._t(
+                                    label: host2._t(
                                       "settings_end_hhmm_label",
                                       "End (HH:MM)",
                                     ),
-                                    value: host._config.collector_end_time,
+                                    value: host2._config.collector_end_time,
                                     oninput: (e6) =>
-                                      host._updateConfig(
+                                      host2._updateConfig(
                                         "collector_end_time",
                                         e6.target.value,
                                       ),
@@ -47505,46 +46833,46 @@ function renderSettings(host) {
             <div class="service-row">
               <div class="service-label-group">
                 <label
-                  >${host._t(
+                  >${host2._t(
                     "settings_network_discovery_label",
                     "Network discovery",
                   )}</label
                 >
                 <span class="service-desc"
-                  >${host._t(
+                  >${host2._t(
                     "settings_network_discovery_desc",
                     "Scans local network for new devices",
                   )}</span
                 >
               </div>
               <ha-switch
-                .checked=${host._config.discovery_enabled}
-                @change=${(e6) => host._updateConfig("discovery_enabled", e6.target.checked)}
+                .checked=${host2._config.discovery_enabled}
+                @change=${(e6) => host2._updateConfig("discovery_enabled", e6.target.checked)}
               ></ha-switch>
             </div>
             ${
-              host._config.discovery_enabled
+              host2._config.discovery_enabled
                 ? b2`
                     <div class="service-details">
                       <div style="display:flex;gap:12px;">
                         <div class="form-group" style="flex:1;margin-bottom:0;">
                           <label
-                            >${host._t("settings_mode_label", "Mode")}</label
+                            >${host2._t("settings_mode_label", "Mode")}</label
                           >
                           <select
                             class="form-select"
-                            .value=${host._config.discovery_mode}
+                            .value=${host2._config.discovery_mode}
                             @change=${(e6) =>
-                              host._updateConfig(
+                              host2._updateConfig(
                                 "discovery_mode",
                                 e6.target.value,
                               )}
                           >
                             <option value="continuous">
-                              ${host._t("settings_mode_continuous", "Continuous")}
+                              ${host2._t("settings_mode_continuous", "Continuous")}
                             </option>
                             <option value="scheduled">
-                              ${host._t(
+                              ${host2._t(
                                 "settings_mode_scheduled_window",
                                 "Scheduled Window",
                               )}
@@ -47556,7 +46884,7 @@ function renderSettings(host) {
                           style="width:130px;margin-bottom:0;"
                         >
                           <label
-                            >${host._t(
+                            >${host2._t(
                               "settings_interval_seconds_label",
                               "Interval (s)",
                             )}</label
@@ -47564,9 +46892,9 @@ function renderSettings(host) {
                           <input
                             class="form-select"
                             type="number"
-                            .value=${host._config.discovery_interval}
+                            .value=${host2._config.discovery_interval}
                             @input=${(e6) =>
-                              host._updateConfig(
+                              host2._updateConfig(
                                 "discovery_interval",
                                 parseInt(e6.target.value),
                               )}
@@ -47575,20 +46903,20 @@ function renderSettings(host) {
                         </div>
                       </div>
                       ${
-                        host._config.discovery_mode === "scheduled"
+                        host2._config.discovery_mode === "scheduled"
                           ? b2`
                               <div
                                 style="display:flex;gap:12px;margin-top:12px;"
                               >
                                 <div style="flex:1;">
                                   ${textInput({
-                                    label: host._t(
+                                    label: host2._t(
                                       "settings_start_hhmm_label",
                                       "Start (HH:MM)",
                                     ),
-                                    value: host._config.discovery_start_time,
+                                    value: host2._config.discovery_start_time,
                                     oninput: (e6) =>
-                                      host._updateConfig(
+                                      host2._updateConfig(
                                         "discovery_start_time",
                                         e6.target.value,
                                       ),
@@ -47596,13 +46924,13 @@ function renderSettings(host) {
                                 </div>
                                 <div style="flex:1;">
                                   ${textInput({
-                                    label: host._t(
+                                    label: host2._t(
                                       "settings_end_hhmm_label",
                                       "End (HH:MM)",
                                     ),
-                                    value: host._config.discovery_end_time,
+                                    value: host2._config.discovery_end_time,
                                     oninput: (e6) =>
-                                      host._updateConfig(
+                                      host2._updateConfig(
                                         "discovery_end_time",
                                         e6.target.value,
                                       ),
@@ -47622,22 +46950,22 @@ function renderSettings(host) {
             <div class="service-row">
               <div class="service-label-group">
                 <label
-                  >${host._t(
+                  >${host2._t(
                     "settings_pattern_detection_label",
                     "Pattern detection",
                   )}</label
                 >
                 <span class="service-desc"
-                  >${host._t(
+                  >${host2._t(
                     "settings_pattern_detection_desc",
                     "Detects recurring usage patterns and proposes automations",
                   )}</span
                 >
               </div>
               <ha-switch
-                .checked=${host._config.pattern_detection_enabled !== false}
+                .checked=${host2._config.pattern_detection_enabled !== false}
                 @change=${(e6) =>
-                  host._updateConfig(
+                  host2._updateConfig(
                     "pattern_detection_enabled",
                     e6.target.checked,
                   )}
@@ -47649,25 +46977,25 @@ function renderSettings(host) {
             <div class="service-row">
               <div class="service-label-group">
                 <label
-                  >${host._t(
+                  >${host2._t(
                     "settings_health_monitoring_label",
                     "Health monitoring",
                   )}</label
                 >
                 <span class="service-desc"
-                  >${host._t(
+                  >${host2._t(
                     "settings_health_monitoring_desc",
                     "Deterministic checks for offline devices, low batteries, integration errors and automation issues \u2014 powers the Health page.",
                   )}</span
                 >
               </div>
               <ha-switch
-                .checked=${host._config.insights_enabled !== false}
-                @change=${(e6) => host._updateConfig("insights_enabled", e6.target.checked)}
+                .checked=${host2._config.insights_enabled !== false}
+                @change=${(e6) => host2._updateConfig("insights_enabled", e6.target.checked)}
               ></ha-switch>
             </div>
             ${
-              host._config.insights_enabled !== false
+              host2._config.insights_enabled !== false
                 ? b2`
                     <div class="service-details">
                       <div
@@ -47675,7 +47003,7 @@ function renderSettings(host) {
                         style="width:150px;margin-bottom:0;"
                       >
                         <label
-                          >${host._t(
+                          >${host2._t(
                             "settings_scan_interval_seconds_label",
                             "Scan interval (s)",
                           )}</label
@@ -47685,9 +47013,9 @@ function renderSettings(host) {
                           type="number"
                           min="60"
                           step="60"
-                          .value=${host._config.insights_interval}
+                          .value=${host2._config.insights_interval}
                           @input=${(e6) =>
-                            host._updateConfig(
+                            host2._updateConfig(
                               "insights_interval",
                               parseInt(e6.target.value),
                             )}
@@ -47704,19 +47032,19 @@ function renderSettings(host) {
             <div class="service-row">
               <div class="service-label-group">
                 <label
-                  >${host._t(
+                  >${host2._t(
                     "settings_auto_remove_stale_label",
                     "Auto-remove stale automations",
                   )}</label
                 >
                 <span class="service-desc"
                   >Deletes automations inactive for
-                  ${host._config.stale_days || 5}+ days</span
+                  ${host2._config.stale_days || 5}+ days</span
                 >
               </div>
               <ha-switch
-                .checked=${host._config.auto_purge_stale || false}
-                @change=${(e6) => host._updateConfig("auto_purge_stale", e6.target.checked)}
+                .checked=${host2._config.auto_purge_stale || false}
+                @change=${(e6) => host2._updateConfig("auto_purge_stale", e6.target.checked)}
               ></ha-switch>
             </div>
           </div>
@@ -47725,58 +47053,58 @@ function renderSettings(host) {
             <div class="service-row">
               <div class="service-label-group">
                 <label
-                  >${host._t(
+                  >${host2._t(
                     "settings_telemetry_label",
                     "Anonymous telemetry",
                   )}</label
                 >
                 <span class="service-desc"
-                  >${host._t(
+                  >${host2._t(
                     "settings_telemetry_desc",
                     "Off by default. When on, sends anonymous counts about your setup (devices, integrations, automations, scenes, scripts, blueprints, areas) and how often Selora repairs model output, so we can improve the product. Never sends entity names, prompts, or responses.",
                   )}</span
                 >
               </div>
               <ha-switch
-                .checked=${host._config.telemetry_enabled === true}
-                @change=${(e6) => host._updateConfig("telemetry_enabled", e6.target.checked)}
+                .checked=${host2._config.telemetry_enabled === true}
+                @change=${(e6) => host2._updateConfig("telemetry_enabled", e6.target.checked)}
               ></ha-switch>
             </div>
           </div>
 
           ${
-            host._config.next_prompt_available
+            host2._config.next_prompt_available
               ? b2`<div class="service-group">
                   <div class="service-row">
                     <div class="service-label-group">
                       <label
-                        >${host._t(
+                        >${host2._t(
                           "settings_next_prompt_label",
                           "Suggest my next message",
                         )}</label
                       >
                       <span class="service-desc"
-                        >${host._t(
+                        >${host2._t(
                           "settings_next_prompt_desc",
                           "After a reply, shows the message you are likely to send next in the empty message box. Press Tab to use it. Makes one extra short request to your AI provider per reply.",
                         )}</span
                       >
                     </div>
                     <ha-switch
-                      .checked=${host._config.next_prompt_enabled === true}
+                      .checked=${host2._config.next_prompt_enabled === true}
                       @change=${async (e6) => {
                         const val = e6.target.checked;
-                        host._updateConfig("next_prompt_enabled", val);
+                        host2._updateConfig("next_prompt_enabled", val);
                         try {
-                          await host.hass.callWS({
+                          await host2.hass.callWS({
                             type: "selora_ai/update_config",
                             config: { next_prompt_enabled: val },
                           });
                         } catch (err) {
-                          host._updateConfig("next_prompt_enabled", !val);
+                          host2._updateConfig("next_prompt_enabled", !val);
                           e6.target.checked = !val;
-                          host._showToast(
-                            host._t(
+                          host2._showToast(
+                            host2._t(
                               "settings_next_prompt_save_failed_toast",
                               "Failed to save the next-message setting.",
                             ),
@@ -47790,117 +47118,13 @@ function renderSettings(host) {
               : ""
           }
 
-          <div class="service-group">
-            <div class="service-row">
-              <div class="service-label-group">
-                <label
-                  >${host._t(
-                    "settings_developer_mode_label",
-                    "Developer mode",
-                  )}</label
-                >
-                <span class="service-desc"
-                  >${host._t(
-                    "settings_developer_mode_desc",
-                    "Exposes raw entity payloads and debug logs",
-                  )}</span
-                >
-              </div>
-              <ha-switch
-                .checked=${host._config.developer_mode}
-                @change=${async (e6) => {
-                  const val = e6.target.checked;
-                  host._updateConfig("developer_mode", val);
-                  syncDevConsole(host);
-                  try {
-                    await host.hass.callWS({
-                      type: "selora_ai/update_config",
-                      config: { developer_mode: val },
-                    });
-                  } catch (err) {
-                    host._showToast(
-                      host._t(
-                        "settings_dev_mode_save_failed_toast",
-                        "Failed to save developer mode.",
-                      ),
-                      "error",
-                    );
-                  }
-                }}
-              ></ha-switch>
-            </div>
-            ${
-              host._config.developer_mode
-                ? b2`<div class="service-row">
-                    <div class="service-label-group">
-                      <label
-                        >${host._t(
-                          "settings_dev_scan_cameras_label",
-                          "Scan for cameras",
-                        )}</label
-                      >
-                      <span class="service-desc"
-                        >${host._t(
-                          "settings_dev_scan_cameras_desc",
-                          "Look for cameras on the network now instead of on the next half-hourly scan, and refresh the chat home's suggestions.",
-                        )}</span
-                      >
-                    </div>
-                    <button
-                      class="btn btn-outline"
-                      ?disabled=${host._scanningCameras}
-                      @click=${async () => {
-                        host._scanningCameras = true;
-                        host.requestUpdate();
-                        try {
-                          const cameras = await scanCameras(host);
-                          host._showToast(
-                            interpolate(
-                              host._t(
-                                "settings_dev_scan_cameras_done",
-                                "Found {count} cameras on the network.",
-                              ),
-                              { count: cameras.length },
-                            ),
-                          );
-                        } catch (err) {
-                          host._showToast(
-                            host._t(
-                              "settings_dev_scan_cameras_failed",
-                              "The camera scan failed.",
-                            ),
-                            "error",
-                          );
-                        } finally {
-                          host._scanningCameras = false;
-                          host.requestUpdate();
-                        }
-                      }}
-                    >
-                      ${
-                        host._scanningCameras
-                          ? host._t(
-                              "settings_dev_scan_cameras_scanning",
-                              "Scanning\u2026",
-                            )
-                          : host._t(
-                              "settings_dev_scan_cameras_button",
-                              "Scan now",
-                            )
-                      }
-                    </button>
-                  </div>`
-                : ""
-            }
-          </div>
-
           <div class="card-save-bar">
             <button
               class="btn btn-primary"
-              @click=${host._saveAdvancedConfig}
-              ?disabled=${host._savingAdvancedConfig}
+              @click=${host2._saveAdvancedConfig}
+              ?disabled=${host2._savingAdvancedConfig}
             >
-              ${host._savingAdvancedConfig ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
+              ${host2._savingAdvancedConfig ? host2._t("settings_saving_label", "Saving\u2026") : host2._t("settings_save_button", "Save")}
             </button>
           </div>
         </details>
@@ -47908,22 +47132,22 @@ function renderSettings(host) {
         <div class="section-card settings-section">
           <div class="section-card-header">
             <h3>
-              ${host._t("settings_clear_cache_label", "Clear learned data")}
+              ${host2._t("settings_clear_cache_label", "Clear learned data")}
             </h3>
           </div>
           <div class="settings-maintenance">
             <span class="service-desc"
-              >${host._t(
+              >${host2._t(
                 "settings_clear_cache_desc",
                 "Wipes stored usage history, detected patterns, and pending suggestions. Use this if suggestions reference devices you've removed. Selora relearns over time; your saved automations are not affected.",
               )}</span
             >
             <button
               class="btn btn-danger"
-              @click=${host._clearLearnedCache}
-              ?disabled=${host._clearingCache}
+              @click=${host2._clearLearnedCache}
+              ?disabled=${host2._clearingCache}
             >
-              ${host._clearingCache ? host._t("settings_clear_cache_clearing", "Clearing\u2026") : host._t("settings_clear_cache_button", "Clear")}
+              ${host2._clearingCache ? host2._t("settings_clear_cache_clearing", "Clearing\u2026") : host2._t("settings_clear_cache_button", "Clear")}
             </button>
           </div>
         </div>
@@ -47950,23 +47174,23 @@ function mcpToolLabel(name) {
     .replace(/_/g, " ");
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
-function _grantableTools(host) {
-  return [...(host._mcpTools || [])].sort((a3, b3) =>
+function _grantableTools(host2) {
+  return [...(host2._mcpTools || [])].sort((a3, b3) =>
     mcpToolLabel(a3.name).localeCompare(mcpToolLabel(b3.name)),
   );
 }
-function renderApprovalGrants(host) {
-  const grants = host._approvalGrants || [];
+function renderApprovalGrants(host2) {
+  const grants = host2._approvalGrants || [];
   if (!grants.length) {
     return b2`<div
       style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
     >
-      ${host._t(
+      ${host2._t(
         "settings_no_approvals_yet_prefix",
         "No saved approvals yet. The next time Selora asks before running something risky, click",
       )}
-      <em>${host._t("settings_no_approvals_always_word", "Always")}</em>
-      ${host._t("settings_no_approvals_yet_suffix", "to remember it here.")}
+      <em>${host2._t("settings_no_approvals_always_word", "Always")}</em>
+      ${host2._t("settings_no_approvals_yet_suffix", "to remember it here.")}
     </div>`;
   }
   const riskColor = {
@@ -47979,7 +47203,7 @@ function renderApprovalGrants(host) {
       ${grants.map((g2) => {
         const grantKey = g2.key || g2.service;
         const entityFriendly = g2.entity_id
-          ? host?.hass?.states?.[g2.entity_id]?.attributes?.friendly_name ||
+          ? host2?.hass?.states?.[g2.entity_id]?.attributes?.friendly_name ||
             g2.entity_id
           : null;
         return b2`
@@ -47989,11 +47213,11 @@ function renderApprovalGrants(host) {
               style="--mdc-icon-size:20px;color:${riskColor[g2.risk_level] || "var(--selora-accent)"};flex-shrink:0;"
               title=${
                 entityFriendly
-                  ? host._t(
+                  ? host2._t(
                       "settings_per_entity_approval_title",
                       "Per-entity approval",
                     )
-                  : host._t(
+                  : host2._t(
                       "settings_wildcard_approval_title",
                       "Wildcard \u2014 applies to every entity of this service",
                     )
@@ -48010,7 +47234,7 @@ function renderApprovalGrants(host) {
                     : b2` <span
                         style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
                         >→
-                        ${host._t("settings_approval_all_label", "all")}</span
+                        ${host2._t("settings_approval_all_label", "all")}</span
                       >`
                 }
                 <span
@@ -48028,11 +47252,11 @@ function renderApprovalGrants(host) {
               </div>
             </div>
             <ha-icon-button
-              ?disabled=${host._revokingApprovalKey === grantKey}
-              @click=${() => host._revokeApproval(grantKey)}
+              ?disabled=${host2._revokingApprovalKey === grantKey}
+              @click=${() => host2._revokeApproval(grantKey)}
             >
               ${
-                host._revokingApprovalKey === grantKey
+                host2._revokingApprovalKey === grantKey
                   ? b2`<span
                       class="spinner"
                       style="width:14px;height:14px;"
@@ -48074,23 +47298,23 @@ function _timeAgo(isoString) {
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
 }
-function renderCreateTokenDialog(host) {
-  if (!host._showCreateTokenDialog) return "";
-  if (host._createdToken) {
+function renderCreateTokenDialog(host2) {
+  if (!host2._showCreateTokenDialog) return "";
+  if (host2._createdToken) {
     return b2`
-      <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
+      <div class="modal-overlay" @click=${() => host2._closeCreateTokenDialog()}>
         <div
           class="modal-content"
           style="max-width:480px;"
           @click=${(e6) => e6.stopPropagation()}
         >
           <h3 style="margin:0 0 12px;">
-            ${host._t("settings_token_created_heading", "Token Created")}
+            ${host2._t("settings_token_created_heading", "Token Created")}
           </h3>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 12px;"
           >
-            ${host._t(
+            ${host2._t(
               "settings_token_created_desc",
               "Copy this token now \u2014 it won't be shown again.",
             )}
@@ -48098,13 +47322,13 @@ function renderCreateTokenDialog(host) {
           <div
             style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card-background-color);border:1px solid var(--selora-accent);border-radius:8px;font-family:monospace;font-size:13px;word-break:break-all;"
           >
-            <span style="flex:1;user-select:all;">${host._createdToken}</span>
+            <span style="flex:1;user-select:all;">${host2._createdToken}</span>
             <button
               style="background:none;border:none;color:var(--selora-accent);cursor:pointer;padding:8px;border-radius:50%;flex-shrink:0;"
               @click=${() => {
-                navigator.clipboard.writeText(host._createdToken);
-                host._showToast(
-                  host._t(
+                navigator.clipboard.writeText(host2._createdToken);
+                host2._showToast(
+                  host2._t(
                     "settings_token_copied_toast",
                     "Token copied to clipboard",
                   ),
@@ -48121,39 +47345,39 @@ function renderCreateTokenDialog(host) {
           <div style="display:flex;justify-content:flex-end;margin-top:16px;">
             <button
               class="btn btn-primary"
-              @click=${() => host._closeCreateTokenDialog()}
+              @click=${() => host2._closeCreateTokenDialog()}
             >
-              ${host._t("settings_done_button", "Done")}
+              ${host2._t("settings_done_button", "Done")}
             </button>
           </div>
         </div>
       </div>
     `;
   }
-  const permission = host._newTokenPermission;
+  const permission = host2._newTokenPermission;
   return b2`
-    <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
+    <div class="modal-overlay" @click=${() => host2._closeCreateTokenDialog()}>
       <div
         class="modal-content"
         style="max-width:480px;"
         @click=${(e6) => e6.stopPropagation()}
       >
         <h3 style="margin:0 0 16px;">
-          ${host._t("settings_create_mcp_token_heading", "Create MCP Token")}
+          ${host2._t("settings_create_mcp_token_heading", "Create MCP Token")}
         </h3>
 
         <div class="form-group">
-          <label>${host._t("settings_token_name_label", "Name")}</label>
+          <label>${host2._t("settings_token_name_label", "Name")}</label>
           <input
             class="modal-input"
             type="text"
-            placeholder=${host._t(
+            placeholder=${host2._t(
               "settings_token_name_placeholder",
               "e.g. Claude Desktop",
             )}
-            .value=${host._newTokenName}
+            .value=${host2._newTokenName}
             @input=${(e6) => {
-              host._newTokenName = e6.target.value;
+              host2._newTokenName = e6.target.value;
             }}
             style="width:100%;box-sizing:border-box;"
           />
@@ -48161,7 +47385,7 @@ function renderCreateTokenDialog(host) {
 
         <div class="form-group">
           <label
-            >${host._t(
+            >${host2._t(
               "settings_permission_level_label",
               "Permission Level",
             )}</label
@@ -48170,18 +47394,18 @@ function renderCreateTokenDialog(host) {
             class="form-select"
             .value=${permission}
             @change=${(e6) => {
-              host._newTokenPermission = e6.target.value;
-              host.requestUpdate();
+              host2._newTokenPermission = e6.target.value;
+              host2.requestUpdate();
             }}
           >
             <option value="read_only">
-              ${host._t("settings_perm_read_only", "Read Only")}
+              ${host2._t("settings_perm_read_only", "Read Only")}
             </option>
             <option value="admin">
-              ${host._t("settings_perm_admin_all", "Admin (all tools)")}
+              ${host2._t("settings_perm_admin_all", "Admin (all tools)")}
             </option>
             <option value="custom">
-              ${host._t("settings_perm_custom", "Custom (select tools)")}
+              ${host2._t("settings_perm_custom", "Custom (select tools)")}
             </option>
           </select>
         </div>
@@ -48191,24 +47415,24 @@ function renderCreateTokenDialog(host) {
             ? b2`
                 <div class="form-group">
                   <label
-                    >${host._t(
+                    >${host2._t(
                       "settings_allowed_tools_label",
                       "Allowed Tools",
                     )}</label
                   >
                   <div class="mcp-tool-checklist">
-                    ${_grantableTools(host).map(
+                    ${_grantableTools(host2).map(
                       (tool) => b2`
                         <label class="mcp-tool-check">
                           <input
                             type="checkbox"
-                            .checked=${host._newTokenTools[tool.name] || false}
+                            .checked=${host2._newTokenTools[tool.name] || false}
                             @change=${(e6) => {
-                              host._newTokenTools = {
-                                ...host._newTokenTools,
+                              host2._newTokenTools = {
+                                ...host2._newTokenTools,
                                 [tool.name]: e6.target.checked,
                               };
-                              host.requestUpdate();
+                              host2.requestUpdate();
                             }}
                           />
                           <span>${mcpToolLabel(tool.name)}</span>
@@ -48217,7 +47441,7 @@ function renderCreateTokenDialog(host) {
                               ? b2`<span
                                   class="mcp-token-badge mcp-token-badge--admin"
                                   style="font-size:10px;padding:1px 5px;"
-                                  >${host._t("settings_admin_badge", "admin")}</span
+                                  >${host2._t("settings_admin_badge", "admin")}</span
                                 >`
                               : ""
                           }
@@ -48232,33 +47456,33 @@ function renderCreateTokenDialog(host) {
 
         <div class="form-group">
           <label
-            >${host._t(
+            >${host2._t(
               "settings_expiration_label",
               "Expiration (optional)",
             )}</label
           >
           <select
             class="form-select"
-            .value=${host._newTokenExpiry}
+            .value=${host2._newTokenExpiry}
             @change=${(e6) => {
-              host._newTokenExpiry = e6.target.value;
-              host.requestUpdate();
+              host2._newTokenExpiry = e6.target.value;
+              host2.requestUpdate();
             }}
           >
             <option value="">
-              ${host._t("settings_expiry_never", "Never expires")}
+              ${host2._t("settings_expiry_never", "Never expires")}
             </option>
             <option value="7">
-              ${host._t("settings_expiry_7_days", "7 days")}
+              ${host2._t("settings_expiry_7_days", "7 days")}
             </option>
             <option value="30">
-              ${host._t("settings_expiry_30_days", "30 days")}
+              ${host2._t("settings_expiry_30_days", "30 days")}
             </option>
             <option value="90">
-              ${host._t("settings_expiry_90_days", "90 days")}
+              ${host2._t("settings_expiry_90_days", "90 days")}
             </option>
             <option value="365">
-              ${host._t("settings_expiry_1_year", "1 year")}
+              ${host2._t("settings_expiry_1_year", "1 year")}
             </option>
           </select>
         </div>
@@ -48268,22 +47492,22 @@ function renderCreateTokenDialog(host) {
         >
           <button
             class="btn btn-outline"
-            @click=${() => host._closeCreateTokenDialog()}
+            @click=${() => host2._closeCreateTokenDialog()}
           >
-            ${host._t("settings_cancel_button", "Cancel")}
+            ${host2._t("settings_cancel_button", "Cancel")}
           </button>
           <button
             class="btn btn-primary"
-            ?disabled=${!host._newTokenName?.trim() || host._creatingToken}
-            @click=${() => host._createMcpToken()}
+            ?disabled=${!host2._newTokenName?.trim() || host2._creatingToken}
+            @click=${() => host2._createMcpToken()}
           >
             ${
-              host._creatingToken
+              host2._creatingToken
                 ? b2`<span
                     class="spinner"
                     style="width:14px;height:14px;"
                   ></span>`
-                : host._t("settings_create_token_button", "Create Token")
+                : host2._t("settings_create_token_button", "Create Token")
             }
           </button>
         </div>
@@ -48292,26 +47516,177 @@ function renderCreateTokenDialog(host) {
   `;
 }
 
+// src/panel/dev-tools.js
+var DEBUG_KEY = "selora-ai-debug";
+var CATALOG_URL_KEY = "selora-ai-catalog-url";
+var BANNER = [
+  "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2557      \u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2557 ",
+  "\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D\u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D\u2588\u2588\u2551     \u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557",
+  "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551",
+  "\u255A\u2550\u2550\u2550\u2550\u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u255D  \u2588\u2588\u2551     \u2588\u2588\u2551   \u2588\u2588\u2551\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557\u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2551",
+  "\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557\u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D\u2588\u2588\u2551  \u2588\u2588\u2551\u2588\u2588\u2551  \u2588\u2588\u2551",
+  "\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D\u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u255D  \u255A\u2550\u255D\u255A\u2550\u255D  \u255A\u2550\u255D",
+].join("\n");
+var COMMANDS = [
+  ["selora.help()", "show this list"],
+  [
+    "selora.debug(true | false)",
+    "log each chat turn's raw response, tool calls and reply time (remembered in this browser)",
+  ],
+  [
+    "selora.scanCameras()",
+    "scan the network for cameras now and refresh the chat home's suggestions (otherwise every 30 min)",
+  ],
+  [
+    "selora.scanCameras({ sweep: true })",
+    "also ask every local address directly, for cameras that ignore the network-wide probe (otherwise once a day)",
+  ],
+  ["selora.scanPatterns()", "run the pattern scan behind the suggestions now"],
+  [
+    "selora.generateSuggestions()",
+    "ask the LLM for new automation suggestions now",
+  ],
+  [
+    "selora.catalogUrl(url)",
+    'fetch recipes from another catalog, e.g. "http://localhost:1313/api/recipes.json"; "" resets it (this browser only)',
+  ],
+  [
+    "selora.connectUrl(url)",
+    'use another Selora Connect / Cloud server; "" resets it to connect.selorahomes.com',
+  ],
+];
+var host = null;
+var announced = false;
+function _storageGet(key) {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+function _storageSet(key, value) {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch (err) {
+    console.debug(`Failed to persist ${key}`, err);
+  }
+}
+function debugEnabled() {
+  return _storageGet(DEBUG_KEY) === "1";
+}
+function catalogUrlOverride() {
+  return _storageGet(CATALOG_URL_KEY);
+}
+function logChatTurn(response, event, replyMs) {
+  if (!debugEnabled()) return;
+  const markerCount = (response.match(/\[\[entit(?:y|ies):[^\]]+\]\]/g) || [])
+    .length;
+  const toolCalls = event.tool_calls || [];
+  console.groupCollapsed(
+    `Selora chat \xB7 ${replyMs} ms \xB7 ${toolCalls.length} tool call(s) \xB7 ${markerCount} entity marker(s)`,
+  );
+  if (toolCalls.length) {
+    console.table(
+      toolCalls.map((tc) => ({
+        tool: tc.tool,
+        arguments: JSON.stringify(tc.arguments || {}),
+      })),
+    );
+  }
+  console.log("raw response:\n" + response);
+  console.log("event:", event);
+  console.groupEnd();
+}
+async function scanCameras(panel, { sweep = false } = {}) {
+  const result = await panel.hass.callWS({
+    type: "selora_ai/frigate/scan",
+    ...(sweep ? { sweep: true } : {}),
+  });
+  await loadHomeSuggestions(panel);
+  return result?.cameras || [];
+}
+function _requireHost() {
+  if (!host?.hass) throw new Error("Open the Selora AI panel first.");
+  return host;
+}
+function help() {
+  const width = Math.max(...COMMANDS.map(([cmd]) => cmd.length));
+  console.info(
+    `%c${BANNER}%c
+
+Developer tools for Selora AI, from this console:
+
+` + COMMANDS.map(([cmd, desc]) => `  ${cmd.padEnd(width)}  ${desc}`).join("\n"),
+    "color:#f59e0b;font-weight:bold;line-height:1.1",
+    "",
+  );
+}
+var api = {
+  help,
+  debug(on = true) {
+    _storageSet(DEBUG_KEY, on ? "1" : "");
+    return on
+      ? "Chat turns are now logged here."
+      : "Chat turns are no longer logged.";
+  },
+  async scanCameras(options) {
+    const cameras = await scanCameras(_requireHost(), options);
+    console.table(cameras);
+    return cameras;
+  },
+  async scanPatterns() {
+    await _requireHost()._triggerPatternScan();
+  },
+  async generateSuggestions() {
+    await _requireHost()._triggerGenerateSuggestions();
+  },
+  catalogUrl(url) {
+    if (url === void 0) return catalogUrlOverride() || "(default)";
+    _storageSet(CATALOG_URL_KEY, String(url).trim());
+    host?._loadRecipesCatalog?.(true);
+    return catalogUrlOverride() || "(default)";
+  },
+  async connectUrl(url) {
+    const panel = _requireHost();
+    if (url !== void 0) {
+      await panel.hass.callWS({
+        type: "selora_ai/update_config",
+        config: { selora_connect_url: String(url).trim() },
+      });
+      await panel._loadConfig();
+    }
+    return panel._config?.selora_connect_url || "(default)";
+  },
+};
+function installDevConsole(panel) {
+  host = panel;
+  globalThis.selora = api;
+  if (announced) return;
+  announced = true;
+  help();
+}
+
 // src/panel/render-telemetry-consent.js
-function renderTelemetryConsent(host) {
-  const cfg = host._config;
+function renderTelemetryConsent(host2) {
+  const cfg = host2._config;
   if (!cfg || cfg.telemetry_prompt_seen || cfg.telemetry_enabled) return "";
   return b2`
     <div
       class="telemetry-consent"
       role="region"
-      aria-label=${host._t("telemetry_consent_title", "Help improve Selora AI")}
+      aria-label=${host2._t("telemetry_consent_title", "Help improve Selora AI")}
     >
       <ha-icon icon="mdi:chart-box-outline"></ha-icon>
       <div class="telemetry-consent-text">
         <strong
-          >${host._t(
+          >${host2._t(
             "telemetry_consent_title",
             "Help improve Selora AI",
           )}</strong
         >
         <span
-          >${host._t(
+          >${host2._t(
             "telemetry_consent_body",
             "Share anonymous counts about your setup (devices, integrations, automations\u2026) and how often Selora repairs model output. Never your entity names, prompts, or responses.",
           )}</span
@@ -48320,12 +47695,12 @@ function renderTelemetryConsent(host) {
       <div class="telemetry-consent-actions">
         <button
           class="btn btn-primary"
-          @click=${() => host._setTelemetryConsent(true)}
+          @click=${() => host2._setTelemetryConsent(true)}
         >
-          ${host._t("telemetry_consent_enable", "Enable")}
+          ${host2._t("telemetry_consent_enable", "Enable")}
         </button>
-        <button class="btn" @click=${() => host._setTelemetryConsent(false)}>
-          ${host._t("telemetry_consent_decline", "No thanks")}
+        <button class="btn" @click=${() => host2._setTelemetryConsent(false)}>
+          ${host2._t("telemetry_consent_decline", "No thanks")}
         </button>
       </div>
     </div>
@@ -48333,21 +47708,21 @@ function renderTelemetryConsent(host) {
 }
 
 // src/panel/render-stale-code-notice.js
-function renderStaleCodeNotice(host) {
-  const status = host._versionStatus;
-  if (!status || host._staleCodeDismissed) return "";
+function renderStaleCodeNotice(host2) {
+  const status = host2._versionStatus;
+  if (!status || host2._staleCodeDismissed) return "";
   const restart = status.restart_required;
   const reload = status.panel_reload_required;
   if (!restart && !reload) return "";
   const title = restart
-    ? host._t("stale_code_restart_title", "Restart to finish updating")
-    : host._t("stale_code_reload_title", "Reload to finish updating");
+    ? host2._t("stale_code_restart_title", "Restart to finish updating")
+    : host2._t("stale_code_reload_title", "Reload to finish updating");
   const body = restart
-    ? host._t(
+    ? host2._t(
         "stale_code_restart_body",
         "Selora AI's files changed on disk, but Home Assistant is still running the previously loaded code. Restart Home Assistant to finish the update.",
       )
-    : host._t(
+    : host2._t(
         "stale_code_reload_body",
         "This page is running an older Selora AI panel. Reload to pick up the deployed version.",
       );
@@ -48370,13 +47745,13 @@ function renderStaleCodeNotice(host) {
                   class="btn btn-primary"
                   @click=${() => window.location.reload()}
                 >
-                  ${host._t("stale_code_reload_action", "Reload")}
+                  ${host2._t("stale_code_reload_action", "Reload")}
                 </button>
               `
             : ""
         }
-        <button class="btn" @click=${() => host._dismissStaleCodeNotice()}>
-          ${host._t("stale_code_dismiss", "Dismiss")}
+        <button class="btn" @click=${() => host2._dismissStaleCodeNotice()}>
+          ${host2._t("stale_code_dismiss", "Dismiss")}
         </button>
       </div>
     </div>
@@ -48461,8 +47836,8 @@ function _sumChange(buckets) {
   }
   return total;
 }
-async function loadUsageStats(host) {
-  const sensors = _findUsageSensors(host.hass);
+async function loadUsageStats(host2) {
+  const sensors = _findUsageSensors(host2.hass);
   const ids2 = _USAGE_KEYS.map((k2) => sensors[k2]?.entityId).filter(Boolean);
   const now = /* @__PURE__ */ new Date();
   const startOfToday = new Date(
@@ -48478,25 +47853,25 @@ async function loadUsageStats(host) {
     ids2.length === 0
       ? Promise.resolve([{}, {}, {}])
       : Promise.all([
-          _fetchPeriodStats(host.hass, ids2, startOfToday),
-          _fetchPeriodStats(host.hass, ids2, startOfWeek),
-          _fetchPeriodStats(host.hass, ids2, startOfMonth),
+          _fetchPeriodStats(host2.hass, ids2, startOfToday),
+          _fetchPeriodStats(host2.hass, ids2, startOfWeek),
+          _fetchPeriodStats(host2.hass, ids2, startOfMonth),
         ]);
-  const recentPromise = host.hass
+  const recentPromise = host2.hass
     .callWS({ type: "selora_ai/usage/recent" })
     .then((r6) => (Array.isArray(r6?.events) ? r6.events : []))
     .catch((err) => {
       console.warn("Selora AI: failed to fetch recent usage events", err);
       return [];
     });
-  const pricingPromise = host.hass
+  const pricingPromise = host2.hass
     .callWS({ type: "selora_ai/usage/pricing_defaults" })
     .then((r6) => r6?.pricing || {})
     .catch((err) => {
       console.warn("Selora AI: failed to fetch pricing defaults", err);
       return {};
     });
-  const breakdownPromise = host.hass
+  const breakdownPromise = host2.hass
     .callWS({ type: "selora_ai/usage/breakdown", range: "30d" })
     .then((r6) => r6?.breakdown || {})
     .catch((err) => {
@@ -48510,22 +47885,22 @@ async function loadUsageStats(host) {
       pricingPromise,
       breakdownPromise,
     ]);
-  if (!host._usageFilterUserSet) {
-    const activeProvider = host?._config?.llm_provider || null;
+  if (!host2._usageFilterUserSet) {
+    const activeProvider = host2?._config?.llm_provider || null;
     const activeBucket = activeProvider
       ? persistedBreakdown[activeProvider]
       : null;
     const hasDataForActive =
       activeBucket && Object.keys(activeBucket).length > 0;
     if (activeProvider && hasDataForActive) {
-      host._usageFilter = { provider: activeProvider, model: null };
+      host2._usageFilter = { provider: activeProvider, model: null };
     } else {
-      host._usageFilter = { provider: null, model: null };
+      host2._usageFilter = { provider: null, model: null };
     }
   }
-  const filter = host._usageFilter || { provider: null, model: null };
+  const filter = host2._usageFilter || { provider: null, model: null };
   const filteredTotals = filter.provider
-    ? await host.hass
+    ? await host2.hass
         .callWS({
           type: "selora_ai/usage/totals",
           range: "30d",
@@ -48548,16 +47923,16 @@ async function loadUsageStats(host) {
     }
     return out;
   };
-  host._usageStats = {
+  host2._usageStats = {
     today: reduce(today),
     week: reduce(week),
     month: reduce(month),
   };
-  host._usageRecent = recent;
-  host._pricingDefaults = pricingDefaults;
-  host._usageBreakdown = persistedBreakdown;
-  host._usageFilteredTotals = filteredTotals;
-  host.requestUpdate();
+  host2._usageRecent = recent;
+  host2._pricingDefaults = pricingDefaults;
+  host2._usageBreakdown = persistedBreakdown;
+  host2._usageFilteredTotals = filteredTotals;
+  host2.requestUpdate();
 }
 var _KIND_LABELS = {
   chat: "Chat",
@@ -48688,8 +48063,8 @@ function _highlightYaml(yamlStr) {
     return b2`<div class="yaml-line">${line}</div>`;
   });
 }
-function _renderDashboardSnippet(host, sensors) {
-  const selected = host._dashboardSnippetKey || _USAGE_KEYS[0];
+function _renderDashboardSnippet(host2, sensors) {
+  const selected = host2._dashboardSnippetKey || _USAGE_KEYS[0];
   const s6 = sensors[selected];
   const entityId = s6?.entityId || `sensor.${selected}`;
   const label =
@@ -48702,8 +48077,8 @@ function _renderDashboardSnippet(host, sensors) {
           <button
             class="usage-snippet-pill ${key === selected ? "active" : ""}"
             @click=${() => {
-              host._dashboardSnippetKey = key;
-              host.requestUpdate();
+              host2._dashboardSnippetKey = key;
+              host2.requestUpdate();
             }}
           >
             ${_SNIPPET_LABELS[key]}
@@ -48734,17 +48109,17 @@ function _renderDashboardSnippet(host, sensors) {
           document.execCommand("copy");
           document.body.removeChild(ta);
           const btn = e6.currentTarget;
-          btn.textContent = host._t("usage_snippet_copied_label", "Copied!");
+          btn.textContent = host2._t("usage_snippet_copied_label", "Copied!");
           setTimeout(() => {
-            btn.textContent = host._t("usage_snippet_copy_button", "Copy");
+            btn.textContent = host2._t("usage_snippet_copy_button", "Copy");
           }, 1500);
         }}
       >
-        ${host._t("usage_snippet_copy_button", "Copy")}
+        ${host2._t("usage_snippet_copy_button", "Copy")}
       </button>
     </div>
     <p class="usage-help" style="margin-top: 8px;">
-      ${host._t(
+      ${host2._t(
         "usage_snippet_help",
         "The visual card picker will also find these sensors after the Recorder's first hourly compilation.",
       )}
@@ -48879,8 +48254,8 @@ function _renderRecentList(events) {
     </div>
   `;
 }
-function _activeProviderModel(host) {
-  const cfg = host?._config || {};
+function _activeProviderModel(host2) {
+  const cfg = host2?._config || {};
   const provider = cfg.llm_provider || "anthropic";
   const modelKey =
     provider === "anthropic"
@@ -48909,12 +48284,12 @@ var _PROVIDER_LABELS = {
 function _providerLabel(p4) {
   return _PROVIDER_LABELS[p4] || p4;
 }
-function _defaultPriceFor(host, provider, model) {
-  const table = host?._pricingDefaults || {};
+function _defaultPriceFor(host2, provider, model) {
+  const table = host2?._pricingDefaults || {};
   return table[provider]?.[model] || null;
 }
-function _overridePriceFor(host, provider, model) {
-  const overrides = host?._config?.llm_pricing_overrides || {};
+function _overridePriceFor(host2, provider, model) {
+  const overrides = host2?._config?.llm_pricing_overrides || {};
   return overrides[provider]?.[model] || null;
 }
 function _formatPrice(n6) {
@@ -48922,9 +48297,9 @@ function _formatPrice(n6) {
   if (!Number.isFinite(v3)) return "\u2014";
   return "$" + v3.toFixed(v3 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
 }
-async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
-  if (!host?._config) return;
-  const current = { ...(host._config.llm_pricing_overrides || {}) };
+async function _savePricingOverride(host2, provider, model, inPrice, outPrice) {
+  if (!host2?._config) return;
+  const current = { ...(host2._config.llm_pricing_overrides || {}) };
   const perProvider = { ...(current[provider] || {}) };
   const inNum = Number(inPrice);
   const outNum = Number(outPrice);
@@ -48934,8 +48309,8 @@ async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
     !Number.isFinite(outNum) ||
     outNum < 0
   ) {
-    host._showToast?.(
-      host._t(
+    host2._showToast?.(
+      host2._t(
         "usage_pricing_invalid_error",
         "Pricing must be non-negative numbers.",
       ),
@@ -48946,29 +48321,29 @@ async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
   perProvider[model] = [inNum, outNum];
   current[provider] = perProvider;
   try {
-    await host.hass.callWS({
+    await host2.hass.callWS({
       type: "selora_ai/update_config",
       config: { llm_pricing_overrides: current },
     });
-    host._config = { ...host._config, llm_pricing_overrides: current };
-    host._pricingEdit = null;
-    host._showToast?.(
-      host._t("usage_pricing_saved_toast", "Pricing override saved."),
+    host2._config = { ...host2._config, llm_pricing_overrides: current };
+    host2._pricingEdit = null;
+    host2._showToast?.(
+      host2._t("usage_pricing_saved_toast", "Pricing override saved."),
       "success",
     );
-    host.requestUpdate();
+    host2.requestUpdate();
   } catch (err) {
-    host._showToast?.(
-      host._t("usage_pricing_save_failed", "Failed to save pricing:") +
+    host2._showToast?.(
+      host2._t("usage_pricing_save_failed", "Failed to save pricing:") +
         " " +
         err.message,
       "error",
     );
   }
 }
-async function _clearPricingOverride(host, provider, model) {
-  if (!host?._config) return;
-  const current = { ...(host._config.llm_pricing_overrides || {}) };
+async function _clearPricingOverride(host2, provider, model) {
+  if (!host2?._config) return;
+  const current = { ...(host2._config.llm_pricing_overrides || {}) };
   const perProvider = { ...(current[provider] || {}) };
   if (!(model in perProvider)) return;
   delete perProvider[model];
@@ -48978,20 +48353,20 @@ async function _clearPricingOverride(host, provider, model) {
     current[provider] = perProvider;
   }
   try {
-    await host.hass.callWS({
+    await host2.hass.callWS({
       type: "selora_ai/update_config",
       config: { llm_pricing_overrides: current },
     });
-    host._config = { ...host._config, llm_pricing_overrides: current };
-    host._pricingEdit = null;
-    host._showToast?.(
-      host._t("usage_pricing_reset_toast", "Reset to default pricing."),
+    host2._config = { ...host2._config, llm_pricing_overrides: current };
+    host2._pricingEdit = null;
+    host2._showToast?.(
+      host2._t("usage_pricing_reset_toast", "Reset to default pricing."),
       "success",
     );
-    host.requestUpdate();
+    host2.requestUpdate();
   } catch (err) {
-    host._showToast?.(
-      host._t("usage_pricing_reset_failed", "Failed to reset pricing:") +
+    host2._showToast?.(
+      host2._t("usage_pricing_reset_failed", "Failed to reset pricing:") +
         " " +
         err.message,
       "error",
@@ -48999,19 +48374,19 @@ async function _clearPricingOverride(host, provider, model) {
   }
 }
 var SELORA_CLOUD_USAGE_URL = "https://connect.selorahomes.com/selora-ai";
-function _renderPricingCard(host) {
-  const { provider, model } = _activeProviderModel(host);
+function _renderPricingCard(host2) {
+  const { provider, model } = _activeProviderModel(host2);
   if (provider === "selora_cloud") {
     return b2`
       <div class="section-card">
         <div class="section-card-header">
-          <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
+          <h3>${host2._t("usage_pricing_title", "Pricing")}</h3>
           <span class="usage-section-sub"
-            >${host._t("usage_pricing_selora_cloud_sub", "Selora Cloud")}</span
+            >${host2._t("usage_pricing_selora_cloud_sub", "Selora Cloud")}</span
           >
         </div>
         <p class="usage-help" style="margin-top:0;">
-          ${host._t(
+          ${host2._t(
             "usage_pricing_selora_cloud_help",
             "Token and call counts are tracked locally in this integration's sensors and charts. Selora Cloud is billed in prepaid credits in your Selora Homes account, so no per-token cost estimate is shown here.",
           )}
@@ -49027,7 +48402,7 @@ function _renderPricingCard(host) {
               icon="mdi:open-in-new"
               style="--mdc-icon-size:16px;"
             ></ha-icon>
-            ${host._t(
+            ${host2._t(
               "usage_pricing_view_cloud_link",
               "View usage in your Selora Homes account",
             )}
@@ -49040,21 +48415,21 @@ function _renderPricingCard(host) {
     return b2`
       <div class="section-card">
         <div class="section-card-header">
-          <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
+          <h3>${host2._t("usage_pricing_title", "Pricing")}</h3>
         </div>
         <p class="usage-help">
           ${
             provider === "ollama"
-              ? host._t(
+              ? host2._t(
                   "usage_pricing_ollama_help",
                   "Ollama runs locally \u2014 no token costs to track.",
                 )
               : provider === "selora_local"
-                ? host._t(
+                ? host2._t(
                     "usage_pricing_selora_local_help",
                     "Selora AI Local runs on your hardware \u2014 no token costs to track.",
                   )
-                : host._t(
+                : host2._t(
                     "usage_pricing_no_model_help",
                     "Configure an LLM provider and model in Settings to set custom pricing.",
                   )
@@ -49063,20 +48438,20 @@ function _renderPricingCard(host) {
       </div>
     `;
   }
-  const defaults = _defaultPriceFor(host, provider, model);
-  const override = _overridePriceFor(host, provider, model);
+  const defaults = _defaultPriceFor(host2, provider, model);
+  const override = _overridePriceFor(host2, provider, model);
   const editing =
-    host._pricingEdit?.provider === provider &&
-    host._pricingEdit?.model === model;
+    host2._pricingEdit?.provider === provider &&
+    host2._pricingEdit?.model === model;
   const effective = override || defaults;
   return b2`
     <div class="section-card">
       <div class="section-card-header">
-        <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
+        <h3>${host2._t("usage_pricing_title", "Pricing")}</h3>
         <span class="usage-section-sub">${provider} · ${model}</span>
       </div>
       <p class="usage-help" style="margin-top:0;">
-        ${host._t(
+        ${host2._t(
           "usage_pricing_intro_prefix",
           "Cost estimates use these per-million-token rates. Anthropic defaults come from the",
         )}
@@ -49084,11 +48459,11 @@ function _renderPricingCard(host) {
           href="https://platform.claude.com/docs/en/about-claude/pricing"
           target="_blank"
           rel="noopener noreferrer"
-          >${host._t(
+          >${host2._t(
             "usage_pricing_official_page_link",
             "official pricing page",
           )}</a
-        >${host._t(
+        >${host2._t(
           "usage_pricing_intro_suffix",
           "; override here if you have negotiated rates or are tracking a different model.",
         )}
@@ -49097,7 +48472,7 @@ function _renderPricingCard(host) {
       <div class="usage-pricing-row">
         <div class="usage-pricing-cell">
           <span class="usage-pricing-label"
-            >${host._t("usage_pricing_input_label", "Input")}</span
+            >${host2._t("usage_pricing_input_label", "Input")}</span
           >
           <span class="usage-pricing-value">
             ${effective ? _formatPrice(effective[0]) : "\u2014"}
@@ -49105,11 +48480,11 @@ function _renderPricingCard(host) {
           ${
             defaults
               ? b2`<span class="usage-pricing-default">
-                  ${host._t("usage_pricing_default_prefix", "default")}
+                  ${host2._t("usage_pricing_default_prefix", "default")}
                   ${_formatPrice(defaults[0])}
                 </span>`
               : b2`<span class="usage-pricing-default"
-                  >${host._t(
+                  >${host2._t(
                     "usage_pricing_no_default",
                     "no built-in default",
                   )}</span
@@ -49118,7 +48493,7 @@ function _renderPricingCard(host) {
         </div>
         <div class="usage-pricing-cell">
           <span class="usage-pricing-label"
-            >${host._t("usage_pricing_output_label", "Output")}</span
+            >${host2._t("usage_pricing_output_label", "Output")}</span
           >
           <span class="usage-pricing-value">
             ${effective ? _formatPrice(effective[1]) : "\u2014"}
@@ -49126,7 +48501,7 @@ function _renderPricingCard(host) {
           ${
             defaults
               ? b2`<span class="usage-pricing-default">
-                  ${host._t("usage_pricing_default_prefix", "default")}
+                  ${host2._t("usage_pricing_default_prefix", "default")}
                   ${_formatPrice(defaults[1])}
                 </span>`
               : ""
@@ -49139,34 +48514,34 @@ function _renderPricingCard(host) {
           ? b2`
               <div class="usage-pricing-edit">
                 <ha-textfield
-                  label=${host._t(
+                  label=${host2._t(
                     "usage_pricing_input_field_label",
                     "Input ($/MTok)",
                   )}
                   type="number"
                   step="0.01"
                   min="0"
-                  .value=${String(host._pricingEdit.input ?? "")}
+                  .value=${String(host2._pricingEdit.input ?? "")}
                   @input=${(e6) => {
-                    host._pricingEdit = {
-                      ...host._pricingEdit,
+                    host2._pricingEdit = {
+                      ...host2._pricingEdit,
                       input: e6.target.value,
                     };
                   }}
                   style="flex:1;min-width:120px;"
                 ></ha-textfield>
                 <ha-textfield
-                  label=${host._t(
+                  label=${host2._t(
                     "usage_pricing_output_field_label",
                     "Output ($/MTok)",
                   )}
                   type="number"
                   step="0.01"
                   min="0"
-                  .value=${String(host._pricingEdit.output ?? "")}
+                  .value=${String(host2._pricingEdit.output ?? "")}
                   @input=${(e6) => {
-                    host._pricingEdit = {
-                      ...host._pricingEdit,
+                    host2._pricingEdit = {
+                      ...host2._pricingEdit,
                       output: e6.target.value,
                     };
                   }}
@@ -49176,24 +48551,24 @@ function _renderPricingCard(host) {
                   <button
                     class="btn btn-outline"
                     @click=${() => {
-                      host._pricingEdit = null;
-                      host.requestUpdate();
+                      host2._pricingEdit = null;
+                      host2.requestUpdate();
                     }}
                   >
-                    ${host._t("usage_pricing_cancel_button", "Cancel")}
+                    ${host2._t("usage_pricing_cancel_button", "Cancel")}
                   </button>
                   <button
                     class="btn btn-primary"
                     @click=${() =>
                       _savePricingOverride(
-                        host,
+                        host2,
                         provider,
                         model,
-                        host._pricingEdit.input,
-                        host._pricingEdit.output,
+                        host2._pricingEdit.input,
+                        host2._pricingEdit.output,
                       )}
                   >
-                    ${host._t("usage_pricing_save_button", "Save")}
+                    ${host2._t("usage_pricing_save_button", "Save")}
                   </button>
                 </div>
               </div>
@@ -49203,13 +48578,13 @@ function _renderPricingCard(host) {
                 <button
                   class="btn btn-outline"
                   @click=${() => {
-                    host._pricingEdit = {
+                    host2._pricingEdit = {
                       provider,
                       model,
                       input: effective ? effective[0] : "",
                       output: effective ? effective[1] : "",
                     };
-                    host.requestUpdate();
+                    host2.requestUpdate();
                   }}
                 >
                   <ha-icon
@@ -49218,11 +48593,11 @@ function _renderPricingCard(host) {
                   ></ha-icon>
                   ${
                     override
-                      ? host._t(
+                      ? host2._t(
                           "usage_pricing_edit_override_button",
                           "Edit override",
                         )
-                      : host._t(
+                      : host2._t(
                           "usage_pricing_set_custom_button",
                           "Set custom pricing",
                         )
@@ -49233,9 +48608,9 @@ function _renderPricingCard(host) {
                     ? b2`
                         <button
                           class="btn btn-outline"
-                          @click=${() => _clearPricingOverride(host, provider, model)}
+                          @click=${() => _clearPricingOverride(host2, provider, model)}
                         >
-                          ${host._t(
+                          ${host2._t(
                             "usage_pricing_reset_default_button",
                             "Reset to default",
                           )}
@@ -49249,20 +48624,20 @@ function _renderPricingCard(host) {
     </div>
   `;
 }
-function renderUsage(host) {
-  const sensors = _findUsageSensors(host.hass);
+function renderUsage(host2) {
+  const sensors = _findUsageSensors(host2.hass);
   const tokensIn = Number(sensors.llm_tokens_in?.state?.state) || 0;
   const tokensOut = Number(sensors.llm_tokens_out?.state?.state) || 0;
   const calls = Number(sensors.llm_calls?.state?.state) || 0;
   const cost = Number(sensors.llm_cost?.state?.state) || 0;
   const sensorsMissing = Object.keys(sensors).length === 0;
-  const stats = host._usageStats || null;
-  const recent = Array.isArray(host._usageRecent) ? host._usageRecent : null;
-  const persistedBreakdown = host._usageBreakdown || {};
-  const filteredTotals = host._usageFilteredTotals || null;
-  const filter = host._usageFilter || { provider: null, model: null };
-  const groupingMode = host._usageGrouping || "kind";
-  const activeProvider = host?._config?.llm_provider || null;
+  const stats = host2._usageStats || null;
+  const recent = Array.isArray(host2._usageRecent) ? host2._usageRecent : null;
+  const persistedBreakdown = host2._usageBreakdown || {};
+  const filteredTotals = host2._usageFilteredTotals || null;
+  const filter = host2._usageFilter || { provider: null, model: null };
+  const groupingMode = host2._usageGrouping || "kind";
+  const activeProvider = host2?._config?.llm_provider || null;
   const providerOptionSet = new Set(Object.keys(persistedBreakdown));
   if (activeProvider) {
     providerOptionSet.add(activeProvider);
@@ -49342,12 +48717,12 @@ function renderUsage(host) {
   }
   const hasTotals = dispTokensIn || dispTokensOut || dispCalls || dispCost;
   const setFilter = (provider, model) => {
-    host._usageFilter = { provider, model };
-    host._usageFilterUserSet = true;
-    if (typeof host._loadUsageStats === "function") {
-      host._loadUsageStats();
+    host2._usageFilter = { provider, model };
+    host2._usageFilterUserSet = true;
+    if (typeof host2._loadUsageStats === "function") {
+      host2._loadUsageStats();
     }
-    host.requestUpdate();
+    host2.requestUpdate();
   };
   const filterChips =
     providerOptions.length === 0
@@ -49358,7 +48733,7 @@ function renderUsage(host) {
               class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
               @click=${() => setFilter(null, null)}
             >
-              ${host._t("usage_filter_all_providers", "All providers")}
+              ${host2._t("usage_filter_all_providers", "All providers")}
             </button>
             ${providerOptions.map(
               (p4) => b2`
@@ -49379,7 +48754,7 @@ function renderUsage(host) {
                       class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
                       @click=${() => setFilter(filter.provider, null)}
                     >
-                      ${host._t("usage_filter_all_models", "All models")}
+                      ${host2._t("usage_filter_all_models", "All models")}
                     </button>
                     ${modelOptions.map(
                       (m3) => b2`
@@ -49387,7 +48762,7 @@ function renderUsage(host) {
                           class="usage-snippet-pill ${filter.model === m3 ? "active" : ""}"
                           @click=${() => setFilter(filter.provider, m3)}
                         >
-                          ${m3 || host._t("usage_filter_no_model", "(no model)")}
+                          ${m3 || host2._t("usage_filter_no_model", "(no model)")}
                         </button>
                       `,
                     )}
@@ -49404,15 +48779,15 @@ function renderUsage(host) {
           href="#"
           @click=${(e6) => {
             e6.preventDefault();
-            host._setActiveTab("settings");
-            host.requestUpdate();
+            host2._setActiveTab("settings");
+            host2.requestUpdate();
           }}
         >
           <ha-icon icon="mdi:chevron-left"></ha-icon>
-          <span>${host._t("usage_back_to_settings", "Back to settings")}</span>
+          <span>${host2._t("usage_back_to_settings", "Back to settings")}</span>
         </a>
         <div class="usage-title-row">
-          <h2>${host._t("usage_token_usage_title", "Token usage")}</h2>
+          <h2>${host2._t("usage_token_usage_title", "Token usage")}</h2>
           ${
             lastProvider
               ? b2`
@@ -49435,13 +48810,13 @@ function renderUsage(host) {
                   ></ha-icon>
                   <div>
                     <strong
-                      >${host._t(
+                      >${host2._t(
                         "usage_empty_title",
                         "No usage data yet.",
                       )}</strong
                     >
                     <p>
-                      ${host._t(
+                      ${host2._t(
                         "usage_empty_body",
                         "Usage will appear after the first LLM call. Try chatting with Selora AI or running a suggestion cycle. If you've already used Selora AI and still see this, restart Home Assistant so the new sensors get registered.",
                       )}
@@ -49455,25 +48830,28 @@ function renderUsage(host) {
                     ? b2`
                         <div class="section-card">
                           <div class="section-card-header">
-                            <h3>${host._t("usage_totals_title", "Totals")}</h3>
+                            <h3>${host2._t("usage_totals_title", "Totals")}</h3>
                           </div>
                           <div class="usage-tile-grid">
                             ${_renderTile({
-                              label: host._t("usage_tile_cost_label", "Cost"),
+                              label: host2._t("usage_tile_cost_label", "Cost"),
                               value: _fmtUsd(dispCost),
-                              sub: host._t(
+                              sub: host2._t(
                                 "usage_tile_cost_sub",
                                 "USD estimate",
                               ),
                               icon: "mdi:cash",
                             })}
                             ${_renderTile({
-                              label: host._t("usage_tile_calls_label", "Calls"),
+                              label: host2._t(
+                                "usage_tile_calls_label",
+                                "Calls",
+                              ),
                               value: _fmtInt(dispCalls),
                               icon: "mdi:counter",
                             })}
                             ${_renderTile({
-                              label: host._t(
+                              label: host2._t(
                                 "usage_tile_tokens_in_label",
                                 "Tokens in",
                               ),
@@ -49481,7 +48859,7 @@ function renderUsage(host) {
                               icon: "mdi:upload",
                             })}
                             ${_renderTile({
-                              label: host._t(
+                              label: host2._t(
                                 "usage_tile_tokens_out_label",
                                 "Tokens out",
                               ),
@@ -49499,29 +48877,29 @@ function renderUsage(host) {
                         <div class="section-card">
                           <div class="section-card-header">
                             <h3>
-                              ${host._t("usage_by_period_title", "By period")}
+                              ${host2._t("usage_by_period_title", "By period")}
                             </h3>
                           </div>
                           ${_renderPeriodRow(
-                            host._t("usage_period_today", "Today"),
+                            host2._t("usage_period_today", "Today"),
                             periodStats?.today,
                           )}
                           ${_renderPeriodRow(
-                            host._t("usage_period_last_7_days", "Last 7 days"),
+                            host2._t("usage_period_last_7_days", "Last 7 days"),
                             periodStats?.week,
                           )}
                           ${_renderPeriodRow(
-                            host._t("usage_period_this_month", "This month"),
+                            host2._t("usage_period_this_month", "This month"),
                             periodStats?.month,
                           )}
                           <div class="usage-period-note">
                             ${
                               filterActive
-                                ? host._t(
+                                ? host2._t(
                                     "usage_period_note_filtered",
                                     "Period buckets come from the integration's usage store (kept for 30 days).",
                                   )
-                                : host._t(
+                                : host2._t(
                                     "usage_period_note_unfiltered",
                                     "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here.",
                                   )
@@ -49535,13 +48913,13 @@ function renderUsage(host) {
                 <div class="section-card">
                   <div class="section-card-header">
                     <h3>
-                      ${host._t("usage_where_tokens_go_title", "Where tokens go")}
+                      ${host2._t("usage_where_tokens_go_title", "Where tokens go")}
                     </h3>
                     <span class="usage-section-sub">
-                      ${host._t("usage_where_tokens_last_prefix", "Last")}
+                      ${host2._t("usage_where_tokens_last_prefix", "Last")}
                       ${filteredRecent === null ? "\u2026" : filteredRecent.length}
                       call${filteredRecent && filteredRecent.length === 1 ? "" : "s"}
-                      ${host._t(
+                      ${host2._t(
                         "usage_where_tokens_resets_suffix",
                         "\xB7 resets on HA restart",
                       )}
@@ -49557,20 +48935,20 @@ function renderUsage(host) {
                             <button
                               class="usage-snippet-pill ${groupingMode === "kind" ? "active" : ""}"
                               @click=${() => {
-                                host._usageGrouping = "kind";
-                                host.requestUpdate();
+                                host2._usageGrouping = "kind";
+                                host2.requestUpdate();
                               }}
                             >
-                              ${host._t("usage_group_by_kind_button", "By kind")}
+                              ${host2._t("usage_group_by_kind_button", "By kind")}
                             </button>
                             <button
                               class="usage-snippet-pill ${groupingMode === "provider" ? "active" : ""}"
                               @click=${() => {
-                                host._usageGrouping = "provider";
-                                host.requestUpdate();
+                                host2._usageGrouping = "provider";
+                                host2.requestUpdate();
                               }}
                             >
-                              ${host._t(
+                              ${host2._t(
                                 "usage_group_by_provider_button",
                                 "By provider",
                               )}
@@ -49582,11 +48960,11 @@ function renderUsage(host) {
                   ${
                     filteredRecent === null
                       ? b2`<div class="usage-period-loading">
-                          ${host._t("usage_loading", "Loading\u2026")}
+                          ${host2._t("usage_loading", "Loading\u2026")}
                         </div>`
                       : filteredRecent.length === 0
                         ? b2`<div class="usage-period-empty">
-                            ${host._t(
+                            ${host2._t(
                               "usage_no_calls_recorded",
                               "No calls recorded yet.",
                             )}
@@ -49601,7 +48979,7 @@ function renderUsage(host) {
                         <div class="section-card">
                           <div class="section-card-header">
                             <h3>
-                              ${host._t("usage_recent_calls_title", "Recent calls")}
+                              ${host2._t("usage_recent_calls_title", "Recent calls")}
                             </h3>
                           </div>
                           ${_renderRecentList(filteredRecent.slice(-15).reverse())}
@@ -49609,25 +48987,25 @@ function renderUsage(host) {
                       `
                     : ""
                 }
-                ${_renderPricingCard(host)}
+                ${_renderPricingCard(host2)}
                 ${
                   sensorsMissing
                     ? b2`
                         <div class="section-card">
                           <div class="section-card-header">
                             <h3>
-                              ${host._t(
+                              ${host2._t(
                                 "usage_dashboard_sensors_title",
                                 "Dashboard sensors",
                               )}
                             </h3>
                           </div>
                           <p class="usage-help">
-                            ${host._t(
+                            ${host2._t(
                               "usage_dashboard_sensors_help_prefix",
                               "Restart Home Assistant to register the usage sensors. Once registered, you can add them to any dashboard with a",
                             )}
-                            <code>statistics-graph</code> ${host._t(
+                            <code>statistics-graph</code> ${host2._t(
                               "usage_dashboard_sensors_help_suffix",
                               "card.",
                             )}
@@ -49638,19 +49016,19 @@ function renderUsage(host) {
                         <div class="section-card">
                           <div class="section-card-header">
                             <h3>
-                              ${host._t(
+                              ${host2._t(
                                 "usage_add_to_dashboard_title",
                                 "Add to your dashboard",
                               )}
                             </h3>
                           </div>
                           <p class="usage-help">
-                            ${host._t(
+                            ${host2._t(
                               "usage_add_to_dashboard_help",
                               "Each metric has a different scale \u2014 create one card per sensor. Pick a metric, copy the YAML, then paste it in a dashboard's YAML editor.",
                             )}
                           </p>
-                          ${_renderDashboardSnippet(host, sensors)}
+                          ${_renderDashboardSnippet(host2, sensors)}
                         </div>
                       `
                 }
@@ -49676,10 +49054,10 @@ var _BAND_COLOR = {
 function _bandColor(band) {
   return _BAND_COLOR[band] || _BAND_COLOR.A;
 }
-function renderHealthGauge(host) {
-  const score = host._auditScore;
+function renderHealthGauge(host2) {
+  const score = host2._auditScore;
   if (typeof score !== "number") return "";
-  const band = host._auditBand || "A";
+  const band = host2._auditBand || "A";
   const color = _bandColor(band);
   const pct = Math.max(0, Math.min(100, score)) / 100;
   const valueLen = TRACK_LEN * pct;
@@ -49687,7 +49065,7 @@ function renderHealthGauge(host) {
     <div
       class="health-gauge"
       style="--gauge-color:${color};"
-      title=${host._t("insights_score_title", "Deterministic health score")}
+      title=${host2._t("insights_score_title", "Deterministic health score")}
     >
       <svg viewBox="0 0 120 120" class="health-gauge-svg" aria-hidden="true">
         <circle
@@ -49723,19 +49101,19 @@ function _barColor(points) {
 function _round(n6) {
   return Math.round(n6);
 }
-function _jumpToCheck(host, checkId) {
-  const root = host.renderRoot || host.shadowRoot;
+function _jumpToCheck(host2, checkId) {
+  const root = host2.renderRoot || host2.shadowRoot;
   const el = root && root.getElementById(`hc-${checkId}`);
   if (!el) return;
   el.scrollIntoView({ behavior: "smooth", block: "start" });
   el.classList.add("check-item-flash");
   setTimeout(() => el.classList.remove("check-item-flash"), 1200);
 }
-function _sectionRow(host, section, maxPoints, linkable, index) {
+function _sectionRow(host2, section, maxPoints, linkable, index) {
   const color = _barColor(section.points);
   const width = Math.max(5, Math.round((section.points / maxPoints) * 100));
   const count = section.count || 0;
-  const countLabel = `${count} ${count === 1 ? host._t("insights_issue_one", "issue") : host._t("insights_issue_many", "issues")}`;
+  const countLabel = `${count} ${count === 1 ? host2._t("insights_issue_one", "issue") : host2._t("insights_issue_many", "issues")}`;
   const delay = `${index * 90}ms`;
   const body = b2`
     <span class="sb-row-name" title=${section.title}>${section.title}</span>
@@ -49760,34 +49138,34 @@ function _sectionRow(host, section, maxPoints, linkable, index) {
     ? b2`<button
         class="sb-row sb-row-link"
         style="animation-delay:${delay};"
-        @click=${() => _jumpToCheck(host, section.check_id)}
+        @click=${() => _jumpToCheck(host2, section.check_id)}
       >
         ${body}
       </button>`
     : b2`<div class="sb-row" style="animation-delay:${delay};">${body}</div>`;
 }
-function renderScoreBreakdown(host) {
-  const bd = host._auditBreakdown;
-  const score = host._auditScore;
+function renderScoreBreakdown(host2) {
+  const bd = host2._auditBreakdown;
+  const score = host2._auditScore;
   if (!bd || typeof score !== "number") return "";
   const sections = Array.isArray(bd.sections)
     ? bd.sections.filter((s6) => s6 && s6.points > 0)
     : [];
   if (!sections.length) return "";
   const checkIds = new Set(
-    (host._auditChecks || []).map((c6) => c6.check_id).filter(Boolean),
+    (host2._auditChecks || []).map((c6) => c6.check_id).filter(Boolean),
   );
   const maxPoints = sections[0].points || 1;
   return b2`
     <div class="score-breakdown">
       <div class="sb-head">
         <span class="sb-title">
-          ${host._t("insights_score_breakdown", "What's affecting your score")}
+          ${host2._t("insights_score_breakdown", "What's affecting your score")}
         </span>
       </div>
       <div class="sb-rows">
         ${sections.map((s6, i8) =>
-          _sectionRow(host, s6, maxPoints, checkIds.has(s6.check_id), i8),
+          _sectionRow(host2, s6, maxPoints, checkIds.has(s6.check_id), i8),
         )}
       </div>
     </div>
@@ -49795,23 +49173,23 @@ function renderScoreBreakdown(host) {
 }
 
 // src/panel/render-delete-device-modal.js
-function _offlineFor(host, seconds) {
+function _offlineFor(host2, seconds) {
   const secs = Number(seconds) || 0;
   const days = Math.floor(secs / 86400);
   if (days >= 1) {
-    return host._tn("insights_offline_days", days, "{count} days");
+    return host2._tn("insights_offline_days", days, "{count} days");
   }
   const hours = Math.max(1, Math.floor(secs / 3600));
-  return host._tn("insights_offline_hours", hours, "{count} hours");
+  return host2._tn("insights_offline_hours", hours, "{count} hours");
 }
-function renderDeleteDeviceModal(host) {
-  const target = host._deleteDeviceTarget;
+function renderDeleteDeviceModal(host2) {
+  const target = host2._deleteDeviceTarget;
   if (!target) return "";
   const name =
-    target.name || host._t("insights_delete_device_fallback", "this device");
+    target.name || host2._t("insights_delete_device_fallback", "this device");
   const close = () => {
-    if (host._deletingDevice) return;
-    host._deleteDeviceTarget = null;
+    if (host2._deletingDevice) return;
+    host2._deleteDeviceTarget = null;
   };
   return b2`
     <div
@@ -49822,13 +49200,13 @@ function renderDeleteDeviceModal(host) {
     >
       <div class="modal-content" style="max-width:440px;text-align:center;">
         <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-          ${host._t("insights_delete_device_title", "Delete device")}
+          ${host2._t("insights_delete_device_title", "Delete device")}
         </div>
         <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
           <strong>${name}</strong>
-          ${host._t("insights_delete_device_offline", "has been offline for")}
-          ${_offlineFor(host, target.offline_seconds)}.
-          ${host._t(
+          ${host2._t("insights_delete_device_offline", "has been offline for")}
+          ${_offlineFor(host2, target.offline_seconds)}.
+          ${host2._t(
             "insights_delete_device_body",
             "Deleting removes it and its entities from Home Assistant \u2014 automations, scenes, and dashboard cards that use them will stop working. It only comes back if its integration rediscovers it.",
           )}
@@ -49836,19 +49214,19 @@ function renderDeleteDeviceModal(host) {
         <div style="display:flex;gap:10px;justify-content:center;">
           <button
             class="btn btn-outline"
-            ?disabled=${host._deletingDevice}
+            ?disabled=${host2._deletingDevice}
             @click=${close}
           >
-            ${host._t("insights_delete_device_cancel", "Cancel")}
+            ${host2._t("insights_delete_device_cancel", "Cancel")}
           </button>
           <button
             class="btn"
             style="background:#ef4444;color:#fff;border-color:#ef4444;"
-            ?disabled=${host._deletingDevice}
-            @click=${() => host._confirmDeleteDevice()}
+            ?disabled=${host2._deletingDevice}
+            @click=${() => host2._confirmDeleteDevice()}
           >
-            ${host._deletingDevice ? b2`<span class="spinner"></span>` : b2`<ha-icon icon="mdi:trash-can-outline"></ha-icon>`}
-            ${host._t("insights_delete_device_confirm", "Delete")}
+            ${host2._deletingDevice ? b2`<span class="spinner"></span>` : b2`<ha-icon icon="mdi:trash-can-outline"></ha-icon>`}
+            ${host2._t("insights_delete_device_confirm", "Delete")}
           </button>
         </div>
       </div>
@@ -49865,12 +49243,12 @@ var _SEVERITY_META = {
 function _severityMeta(sev) {
   return _SEVERITY_META[sev] || _SEVERITY_META.info;
 }
-function _relativeTime(host, iso) {
-  if (!iso) return host._t("insights_never", "never");
+function _relativeTime(host2, iso) {
+  if (!iso) return host2._t("insights_never", "never");
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return "";
   const mins = Math.max(0, Math.round((Date.now() - then) / 6e4));
-  if (mins < 1) return host._t("insights_just_now", "just now");
+  if (mins < 1) return host2._t("insights_just_now", "just now");
   if (mins < 60) return `${mins} min ago`;
   const hrs = Math.round(mins / 60);
   return hrs < 24 ? `${hrs} h ago` : `${Math.round(hrs / 24)} d ago`;
@@ -49880,8 +49258,8 @@ var _CATEGORY_LABEL = {
   fix: "Fix",
   improvement: "Improvement",
 };
-function _entityCards(host, entityIds) {
-  const ids2 = (entityIds || []).filter((e6) => host.hass?.states?.[e6]);
+function _entityCards(host2, entityIds) {
+  const ids2 = (entityIds || []).filter((e6) => host2.hass?.states?.[e6]);
   if (!ids2.length) return "";
   return b2`<div
     class="selora-entity-grid audit-card-tiles"
@@ -49901,9 +49279,9 @@ function _askPrompt(rec) {
   );
   return parts.join(" ");
 }
-function _recCard(host, rec) {
+function _recCard(host2, rec) {
   const meta = _severityMeta(rec.severity);
-  const category = host._t(
+  const category = host2._t(
     `insights_kind_${rec.category}`,
     _CATEGORY_LABEL[rec.category] || rec.category,
   );
@@ -49920,20 +49298,20 @@ function _recCard(host, rec) {
           <span class="badge audit-card-badge">${category}</span>
         </div>
         ${rec.detail ? b2`<div class="audit-card-detail">${rec.detail}</div>` : ""}
-        ${_entityCards(host, rec.entities)}
+        ${_entityCards(host2, rec.entities)}
         <div class="audit-card-actions">
           <button
             class="btn btn-outline btn-sm"
-            @click=${() => host._askInNewChat(_askPrompt(rec))}
+            @click=${() => host2._askInNewChat(_askPrompt(rec))}
           >
             <ha-icon icon="mdi:auto-fix"></ha-icon>
-            ${host._t("insights_ask_selora", "Ask Selora AI")}
+            ${host2._t("insights_ask_selora", "Ask Selora AI")}
           </button>
           ${
             rec.link
               ? b2`<a class="btn btn-outline btn-sm" href=${rec.link}>
                   <ha-icon icon="mdi:open-in-new"></ha-icon>
-                  ${host._t(
+                  ${host2._t(
                     "insights_open_settings",
                     rec.link_label || "Open in Settings",
                   )}
@@ -49947,10 +49325,10 @@ function _recCard(host, rec) {
             rec.removable && rec.device_id
               ? b2`<button
                   class="btn btn-danger btn-sm"
-                  @click=${() => host._promptDeleteDevice(rec)}
+                  @click=${() => host2._promptDeleteDevice(rec)}
                 >
                   <ha-icon icon="mdi:trash-can-outline"></ha-icon>
-                  ${host._t("insights_delete_device", "Delete device")}
+                  ${host2._t("insights_delete_device", "Delete device")}
                 </button>`
               : ""
           }
@@ -49958,10 +49336,10 @@ function _recCard(host, rec) {
             rec.device_id || (rec.entities && rec.entities.length)
               ? b2`<button
                   class="btn btn-outline btn-sm"
-                  @click=${() => host._ignoreFix(rec)}
+                  @click=${() => host2._ignoreFix(rec)}
                 >
                   <ha-icon icon="mdi:bell-off-outline"></ha-icon>
-                  ${host._t("insights_ignore_short", "Ignore")}
+                  ${host2._t("insights_ignore_short", "Ignore")}
                 </button>`
               : ""
           }
@@ -49970,15 +49348,15 @@ function _recCard(host, rec) {
     </div>
   `;
 }
-function _checkRow(host, check) {
+function _checkRow(host2, check) {
   const issues = check.status === "issues";
   const errored = check.status === "error";
   const findings = check.findings || [];
   const statusText = errored
-    ? host._t("insights_check_error", "Couldn't check")
+    ? host2._t("insights_check_error", "Couldn't check")
     : issues
       ? `${findings.length} ${findings.length === 1 ? "issue" : "issues"}`
-      : host._t("insights_check_clear", "Clear");
+      : host2._t("insights_check_clear", "Clear");
   const iconName = errored
     ? "mdi:help-circle-outline"
     : issues
@@ -50004,35 +49382,35 @@ function _checkRow(host, check) {
       ${
         issues
           ? b2`<div class="audit-cards check-findings">
-              ${findings.map((f4) => _recCard(host, f4))}
+              ${findings.map((f4) => _recCard(host2, f4))}
             </div>`
           : ""
       }
     </div>
   `;
 }
-function _auditBody(host) {
-  if (host._auditRunning || !host._auditLoaded) {
+function _auditBody(host2) {
+  if (host2._auditRunning || !host2._auditLoaded) {
     return b2`<div class="insight-audit-card">
       <div class="insight-audit-status insight-audit-running">
         <span class="spinner"></span>
         <div>
-          <div>${host._t("insights_audit_running", "Running checks\u2026")}</div>
+          <div>${host2._t("insights_audit_running", "Running checks\u2026")}</div>
         </div>
       </div>
     </div>`;
   }
-  const status = host._auditStatus;
-  const checks = host._auditChecks || [];
+  const status = host2._auditStatus;
+  const checks = host2._auditChecks || [];
   if (checks.length) {
     return b2`<div class="check-list">
-      ${checks.map((c6) => _checkRow(host, c6))}
+      ${checks.map((c6) => _checkRow(host2, c6))}
     </div>`;
   }
   if (status === "no_llm") {
     return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
-        ${host._t(
+        ${host2._t(
           "insights_audit_no_llm",
           "Configure an LLM provider in Settings to get daily home audits.",
         )}
@@ -50042,7 +49420,7 @@ function _auditBody(host) {
   if (status === "unsupported") {
     return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
-        ${host._t(
+        ${host2._t(
           "insights_audit_unsupported",
           "Home audits need a cloud LLM provider (Anthropic, Gemini, or OpenAI). A local model can't run them.",
         )}
@@ -50052,28 +49430,28 @@ function _auditBody(host) {
   if (status === "error") {
     return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
-        ${host._t("insights_audit_error", "The last audit failed.")}
-        ${host._auditError ? b2`<div class="insight-audit-err">${host._auditError}</div>` : ""}
+        ${host2._t("insights_audit_error", "The last audit failed.")}
+        ${host2._auditError ? b2`<div class="insight-audit-err">${host2._auditError}</div>` : ""}
       </div>
     </div>`;
   }
-  const recs = host._auditRecommendations || [];
+  const recs = host2._auditRecommendations || [];
   if (status === "ok" && recs.length) {
     return b2`<div class="audit-cards">
-      ${recs.map((r6) => _recCard(host, r6))}
+      ${recs.map((r6) => _recCard(host2, r6))}
     </div>`;
   }
-  if (status === "ok" && host._auditResponse) {
+  if (status === "ok" && host2._auditResponse) {
     return b2`
       <div class="insight-audit-card">
         <div
           class="insight-audit-md"
-          .innerHTML=${renderMarkdown(host._auditResponse)}
+          .innerHTML=${renderMarkdown(host2._auditResponse)}
         ></div>
         ${
-          host._auditQuickActions && host._auditQuickActions.length
+          host2._auditQuickActions && host2._auditQuickActions.length
             ? b2`<div class="insight-audit-actions">
-                ${renderQuickActions(host, host._auditQuickActions, {})}
+                ${renderQuickActions(host2, host2._auditQuickActions, {})}
               </div>`
             : ""
         }
@@ -50083,7 +49461,7 @@ function _auditBody(host) {
   if (status === "ok") {
     return b2`<div class="insight-audit-card">
       <div class="insight-audit-status">
-        ${host._t(
+        ${host2._t(
           "insights_audit_empty_ok",
           "All clear \u2014 the last audit found nothing to fix or improve.",
         )}
@@ -50092,15 +49470,15 @@ function _auditBody(host) {
   }
   return b2`<div class="insight-audit-card">
     <div class="insight-audit-status">
-      ${host._t(
+      ${host2._t(
         "insights_audit_pending",
         "No audit yet \u2014 the first one runs shortly after startup, or run it now.",
       )}
     </div>
   </div>`;
 }
-function renderInsights(host) {
-  if (host._insightsEnabled === false) {
+function renderInsights(host2) {
+  if (host2._insightsEnabled === false) {
     return b2`
       <div class="scroll-view">
         <div class="page-root">
@@ -50110,7 +49488,7 @@ function renderInsights(host) {
               style="--mdc-icon-size:40px;opacity:0.4;"
             ></ha-icon>
             <p>
-              ${host._t(
+              ${host2._t(
                 "insights_disabled",
                 "Health monitoring is turned off. Enable it in Settings to monitor your home's health.",
               )}
@@ -50120,23 +49498,23 @@ function renderInsights(host) {
       </div>
     `;
   }
-  if (host._auditSettling) {
+  if (host2._auditSettling) {
     return b2`
       <div class="scroll-view">
         <div class="page-root">
           <div class="page-header">
-            <h1 class="page-h1">${host._t("insights_title", "Health")}</h1>
+            <h1 class="page-h1">${host2._t("insights_title", "Health")}</h1>
           </div>
           <div class="insights-settling">
             <span class="spinner"></span>
             <div class="insights-settling-title">
-              ${host._t(
+              ${host2._t(
                 "insights_settling_title",
                 "Your home is still starting up",
               )}
             </div>
             <div class="insights-settling-sub">
-              ${host._t(
+              ${host2._t(
                 "insights_settling_sub",
                 "We'll run a health check once your devices are back online.",
               )}
@@ -50150,24 +49528,24 @@ function renderInsights(host) {
     <div class="scroll-view">
       <div class="page-root">
         <div class="page-header">
-          <h1 class="page-h1">${host._t("insights_title", "Health")}</h1>
+          <h1 class="page-h1">${host2._t("insights_title", "Health")}</h1>
           <span class="page-header-spacer"></span>
           <button
             class="filter-row-action"
-            ?disabled=${host._auditRunning}
-            @click=${() => host._rerunAudit()}
+            ?disabled=${host2._auditRunning}
+            @click=${() => host2._rerunAudit()}
           >
             <ha-icon icon="mdi:refresh" style="--mdc-icon-size:13px;"></ha-icon>
-            ${host._t("insights_rerun_audit", "Re-run")}
+            ${host2._t("insights_rerun_audit", "Re-run")}
           </button>
         </div>
         <div class="page-sub">
-          ${host._t("insights_last_audit", "Last checked")}:
-          ${_relativeTime(host, host._auditGeneratedAt)}
+          ${host2._t("insights_last_audit", "Last checked")}:
+          ${_relativeTime(host2, host2._auditGeneratedAt)}
         </div>
 
-        ${renderHealthGauge(host)} ${renderScoreBreakdown(host)}
-        ${_auditBody(host)} ${renderDeleteDeviceModal(host)}
+        ${renderHealthGauge(host2)} ${renderScoreBreakdown(host2)}
+        ${_auditBody(host2)} ${renderDeleteDeviceModal(host2)}
       </div>
     </div>
   `;
@@ -53532,58 +52910,58 @@ var _STYLE = b2`
     }
   </style>
 `;
-function _renderInstallSourceCard(host) {
-  const urlBusy = host._recipesUrlBusy;
-  const uploadBusy = host._recipesUploadBusy;
-  const dragOver = host._recipesDragOver;
-  const error = host._recipesInstallError;
+function _renderInstallSourceCard(host2) {
+  const urlBusy = host2._recipesUrlBusy;
+  const uploadBusy = host2._recipesUploadBusy;
+  const dragOver = host2._recipesDragOver;
+  const error = host2._recipesInstallError;
   const onPickFile = () => {
     if (uploadBusy) return;
-    host.renderRoot?.querySelector("#selora-recipe-upload-input")?.click();
+    host2.renderRoot?.querySelector("#selora-recipe-upload-input")?.click();
   };
   const onDragOver = (e6) => {
     e6.preventDefault();
     if (uploadBusy) return;
-    if (!host._recipesDragOver) host._recipesDragOver = true;
+    if (!host2._recipesDragOver) host2._recipesDragOver = true;
   };
   const onDragLeave = (e6) => {
     if (e6.currentTarget.contains(e6.relatedTarget)) return;
-    if (host._recipesDragOver) host._recipesDragOver = false;
+    if (host2._recipesDragOver) host2._recipesDragOver = false;
   };
   const onDrop = (e6) => {
     e6.preventDefault();
-    host._recipesDragOver = false;
+    host2._recipesDragOver = false;
     if (uploadBusy) return;
     const file = e6.dataTransfer?.files?.[0];
     if (!file) return;
     if (!_hasAcceptedSuffix(file.name)) {
-      host._recipesInstallError = `${host._t("recipes_install_unsupported_file_prefix", "Unsupported file:")} ${file.name}. ${host._t("recipes_install_unsupported_file_suffix", "Use a .tar.gz, .tgz, or .zip archive.")}`;
+      host2._recipesInstallError = `${host2._t("recipes_install_unsupported_file_prefix", "Unsupported file:")} ${file.name}. ${host2._t("recipes_install_unsupported_file_suffix", "Use a .tar.gz, .tgz, or .zip archive.")}`;
       return;
     }
-    host._uploadRecipeArchive(file);
+    host2._uploadRecipeArchive(file);
   };
   const onFileChosen = (e6) => {
     const file = e6.target.files?.[0];
     e6.target.value = "";
     if (!file) return;
     if (!_hasAcceptedSuffix(file.name)) {
-      host._recipesInstallError = `${host._t("recipes_install_unsupported_file_prefix", "Unsupported file:")} ${file.name}. ${host._t("recipes_install_unsupported_file_suffix", "Use a .tar.gz, .tgz, or .zip archive.")}`;
+      host2._recipesInstallError = `${host2._t("recipes_install_unsupported_file_prefix", "Unsupported file:")} ${file.name}. ${host2._t("recipes_install_unsupported_file_suffix", "Use a .tar.gz, .tgz, or .zip archive.")}`;
       return;
     }
-    host._uploadRecipeArchive(file);
+    host2._uploadRecipeArchive(file);
   };
   return b2`
     <details class="install-disclosure" ?open=${!!error}>
       <summary class="install-disclosure-summary">
         <ha-icon icon="mdi:package-variant-closed"></ha-icon>
         <span
-          >${host._t(
+          >${host2._t(
             "recipes_install_source_summary",
             "Install from a URL or file",
           )}</span
         >
         <span class="install-disclosure-hint"
-          >${host._t(
+          >${host2._t(
             "recipes_install_source_hint",
             "Have a recipe from elsewhere? Add it here.",
           )}</span
@@ -53596,7 +52974,7 @@ function _renderInstallSourceCard(host) {
       <div class="install-card">
         <div>
           <div class="install-card-subtitle">
-            ${host._t(
+            ${host2._t(
               "recipes_install_bom_note",
               "The bill of materials is checked against your home before anything is installed.",
             )}
@@ -53606,41 +52984,41 @@ function _renderInstallSourceCard(host) {
         <div>
           <div class="install-source-label">
             <ha-icon icon="mdi:link-variant"></ha-icon>
-            ${host._t("recipes_install_from_url_label", "Install from URL")}
+            ${host2._t("recipes_install_from_url_label", "Install from URL")}
           </div>
           <div class="install-url-row">
             <input
               class="install-url-input"
               type="text"
-              .value=${host._recipesUrl || ""}
+              .value=${host2._recipesUrl || ""}
               placeholder="https://example.com/recipes/foo.tar.gz"
-              @input=${(e6) => (host._recipesUrl = e6.target.value)}
+              @input=${(e6) => (host2._recipesUrl = e6.target.value)}
               @keydown=${(e6) => {
                 if (e6.key === "Enter" && !urlBusy)
-                  host._installRecipeFromUrl();
+                  host2._installRecipeFromUrl();
               }}
               ?disabled=${urlBusy}
             />
             <button
               class="btn btn-primary"
-              ?disabled=${urlBusy || !host._recipesUrl}
-              @click=${() => host._installRecipeFromUrl()}
+              ?disabled=${urlBusy || !host2._recipesUrl}
+              @click=${() => host2._installRecipeFromUrl()}
             >
-              ${urlBusy ? host._t("recipes_install_fetching", "Fetching\u2026") : host._t("recipes_install_fetch_button", "Fetch")}
+              ${urlBusy ? host2._t("recipes_install_fetching", "Fetching\u2026") : host2._t("recipes_install_fetch_button", "Fetch")}
             </button>
           </div>
         </div>
 
         <div class="install-or-divider">
           <span class="install-or-text"
-            >${host._t("recipes_install_or", "OR")}</span
+            >${host2._t("recipes_install_or", "OR")}</span
           >
         </div>
 
         <div>
           <div class="install-source-label">
             <ha-icon icon="mdi:upload-outline"></ha-icon>
-            ${host._t(
+            ${host2._t(
               "recipes_install_upload_label",
               "Upload from this device",
             )}
@@ -53659,27 +53037,27 @@ function _renderInstallSourceCard(host) {
             <div class="install-dropzone-title">
               ${
                 uploadBusy
-                  ? host._t("recipes_install_uploading", "Uploading\u2026")
+                  ? host2._t("recipes_install_uploading", "Uploading\u2026")
                   : dragOver
-                    ? host._t(
+                    ? host2._t(
                         "recipes_install_drop_to_upload",
                         "Drop to upload",
                       )
-                    : host._t(
+                    : host2._t(
                         "recipes_install_drop_here",
                         "Drop a recipe archive here",
                       )
               }
             </div>
             <div class="install-dropzone-hint">
-              ${host._t("recipes_install_or_lower", "or")}
+              ${host2._t("recipes_install_or_lower", "or")}
               <strong
-                >${host._t(
+                >${host2._t(
                   "recipes_install_click_to_choose",
                   "click to choose a file",
                 )}</strong
               >
-              · ${host._t("recipes_install_accepts", "accepts")}
+              · ${host2._t("recipes_install_accepts", "accepts")}
               <code>.tar.gz</code>
               <code>.tgz</code>
               <code>.zip</code>
@@ -53699,7 +53077,7 @@ function _renderInstallSourceCard(host) {
     </details>
   `;
 }
-function _renderInstalledDetails(host, record, description, opts = {}) {
+function _renderInstalledDetails(host2, record, description, opts = {}) {
   if (!record) return "";
   const asCard = !!opts.asCard;
   const bindings = record.bindings || {};
@@ -53710,7 +53088,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
   );
   const inputKeys = Object.keys(inputs);
   const integrationDomains = Object.keys(integrations);
-  const pkg = host._recipePackages?.[record.slug];
+  const pkg = host2._recipePackages?.[record.slug];
   let installedOn = record.installed_at || "";
   if (installedOn) {
     const d3 = new Date(installedOn);
@@ -53726,12 +53104,12 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
       class="recipe-details ${asCard ? "recipe-details-card" : ""}"
       ?open=${asCard}
       @toggle=${(e6) => {
-        if (e6.target.open) host._loadRecipePackage?.(record.slug);
+        if (e6.target.open) host2._loadRecipePackage?.(record.slug);
       }}
     >
       <summary class="recipe-details-summary">
         <ha-icon icon="mdi:chevron-down"></ha-icon>
-        ${asCard ? host._t("recipes_details_installed_title", "Installation details") : host._t("recipes_details_summary", "Details")}
+        ${asCard ? host2._t("recipes_details_installed_title", "Installation details") : host2._t("recipes_details_summary", "Details")}
       </summary>
       ${
         !asCard && description
@@ -53745,23 +53123,23 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
           pkg?.counts && Object.keys(pkg.counts).length
             ? b2`
                 <div class="recipe-details-key">
-                  ${host._t("recipes_details_creates_key", "Creates")}
+                  ${host2._t("recipes_details_creates_key", "Creates")}
                 </div>
                 <div class="recipe-details-val">
-                  ${_formatPackageCounts(host, pkg.counts)}
+                  ${_formatPackageCounts(host2, pkg.counts)}
                 </div>
               `
             : ""
         }
         <div class="recipe-details-key">
-          ${host._t("recipes_details_version_key", "Version")}
+          ${host2._t("recipes_details_version_key", "Version")}
         </div>
         <div class="recipe-details-val">
-          v${record.version}${installedOn ? ` \xB7 ${host._t("recipes_details_installed_on", "installed")} ${installedOn}` : ""}
+          v${record.version}${installedOn ? ` \xB7 ${host2._t("recipes_details_installed_on", "installed")} ${installedOn}` : ""}
         </div>
 
         <div class="recipe-details-key">
-          ${host._t("recipes_details_where_key", "Where")}
+          ${host2._t("recipes_details_where_key", "Where")}
         </div>
         <div class="recipe-details-val">
           <span class="recipe-details-path">
@@ -53770,7 +53148,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
               record.package_path
                 ? b2`<button
                     class="recipe-details-copy"
-                    title=${host._t(
+                    title=${host2._t(
                       "recipes_details_copy_path_title",
                       "Copy path",
                     )}
@@ -53786,7 +53164,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
               ? b2`<details class="recipe-package-view">
                   <summary class="recipe-details-summary">
                     <ha-icon icon="mdi:chevron-down"></ha-icon>
-                    ${host._t(
+                    ${host2._t(
                       "recipes_details_view_package",
                       "View package file",
                     )}
@@ -53802,13 +53180,13 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
         </div>
 
         <div class="recipe-details-key">
-          ${host._t("recipes_details_devices_key", "Devices")}
+          ${host2._t("recipes_details_devices_key", "Devices")}
         </div>
         <div class="recipe-details-val">
           ${
             bindingRoles.length === 0
               ? b2`<span class="recipe-details-empty"
-                  >${host._t(
+                  >${host2._t(
                     "recipes_details_no_bound_devices",
                     "No bound devices",
                   )}</span
@@ -53823,18 +53201,18 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
                       ${
                         ents.length === 0
                           ? b2`<span class="recipe-details-empty"
-                              >${host._t(
+                              >${host2._t(
                                 "recipes_details_none_selected_optional",
                                 "None selected (optional)",
                               )}</span
                             >`
                           : ents.map((id) => {
-                              const name = _entityFriendlyName(host.hass, id);
+                              const name = _entityFriendlyName(host2.hass, id);
                               const inner = b2`<ha-icon
-                                  icon=${_entityIcon2(host.hass, id)}
+                                  icon=${_entityIcon2(host2.hass, id)}
                                 ></ha-icon>
                                 ${name}`;
-                              if (!host.hass?.states?.[id]) {
+                              if (!host2.hass?.states?.[id]) {
                                 return b2`<span class="recipe-details-chip"
                                   >${inner}</span
                                 >`;
@@ -53845,7 +53223,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
                                 title=${`Open ${name} (${id})`}
                                 @click=${(e6) => {
                                   e6.stopPropagation();
-                                  host.dispatchEvent(
+                                  host2.dispatchEvent(
                                     new CustomEvent("hass-more-info", {
                                       bubbles: true,
                                       composed: true,
@@ -53868,7 +53246,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
           inputKeys.length
             ? b2`
                 <div class="recipe-details-key">
-                  ${host._t("recipes_details_settings_key", "Settings")}
+                  ${host2._t("recipes_details_settings_key", "Settings")}
                 </div>
                 <div class="recipe-details-val">
                   ${inputKeys.map(
@@ -53887,7 +53265,7 @@ function _renderInstalledDetails(host, record, description, opts = {}) {
           integrationDomains.length
             ? b2`
                 <div class="recipe-details-key">
-                  ${host._t("recipes_details_integrations_key", "Integrations")}
+                  ${host2._t("recipes_details_integrations_key", "Integrations")}
                 </div>
                 <div class="recipe-details-val">
                   <div class="recipe-details-entities">
@@ -53922,7 +53300,7 @@ var _PACKAGE_SECTION_LABELS = {
   timer: ["timer", "timers"],
   counter: ["counter", "counters"],
 };
-function _formatPackageCounts(host, counts) {
+function _formatPackageCounts(host2, counts) {
   const parts = Object.entries(counts || {})
     .filter(([, n6]) => n6 > 0)
     .map(([key, n6]) => {
@@ -53931,7 +53309,7 @@ function _formatPackageCounts(host, counts) {
     });
   if (!parts.length)
     return b2`<span class="recipe-details-empty"
-      >${host._t("recipes_details_creates_nothing", "Nothing")}</span
+      >${host2._t("recipes_details_creates_nothing", "Nothing")}</span
     >`;
   return parts.join(" \xB7 ");
 }
@@ -53940,9 +53318,9 @@ function _humanizeRole(s6) {
   const spaced = s6.replace(/_/g, " ");
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
-function _renderListView(host) {
-  const available = host._recipesList?.available || [];
-  const installed = host._recipesList?.installed || [];
+function _renderListView(host2) {
+  const available = host2._recipesList?.available || [];
+  const installed = host2._recipesList?.installed || [];
   const availableBySlug = Object.fromEntries(
     available.map((m3) => [m3.slug, m3]),
   );
@@ -53952,7 +53330,7 @@ function _renderListView(host) {
     installedSlugs.has(m3.slug),
   );
   const catalogBySlug = new Map(
-    (host._recipesCatalog?.recipes || []).map((r6) => [r6.slug, r6]),
+    (host2._recipesCatalog?.recipes || []).map((r6) => [r6.slug, r6]),
   );
   const catalogSlugs = new Set(catalogBySlug.keys());
   const stagedLocal = available.filter(
@@ -53967,28 +53345,28 @@ function _renderListView(host) {
     <div class="recipes-root">
       <div class="recipes-header">
         <div class="recipes-h1">
-          ${host._t("recipes_list_title", "Recipes")}
+          ${host2._t("recipes_list_title", "Recipes")}
         </div>
         <button
           class="filter-row-action"
           @click=${() => {
-            host._loadRecipesList();
-            host._loadRecipesCatalog(true);
+            host2._loadRecipesList();
+            host2._loadRecipesCatalog(true);
           }}
-          title=${host._t(
+          title=${host2._t(
             "recipes_list_check_updates_title",
             "Check selorahomes.com for new and updated recipes",
           )}
-          ?disabled=${host._recipesBusy || host._recipesCatalogBusy}
+          ?disabled=${host2._recipesBusy || host2._recipesCatalogBusy}
         >
           <ha-icon
-            class=${host._recipesCatalogBusy ? "icon-spin" : ""}
+            class=${host2._recipesCatalogBusy ? "icon-spin" : ""}
             icon="mdi:refresh"
           ></ha-icon>
           ${
-            host._recipesCatalogBusy
-              ? host._t("recipes_list_checking", "Checking\u2026")
-              : host._t(
+            host2._recipesCatalogBusy
+              ? host2._t("recipes_list_checking", "Checking\u2026")
+              : host2._t(
                   "recipes_list_check_updates_button",
                   "Check for updates",
                 )
@@ -53997,22 +53375,22 @@ function _renderListView(host) {
       </div>
 
       <p class="recipes-intro">
-        ${host._t(
+        ${host2._t(
           "recipes_list_intro",
           "Recipes are ready-made automations you install in one step \u2014 a leak lockdown, a bedtime routine, a tornado alert. Selora checks each recipe against the devices in your home, then wires it up for you. Pick one below to get started.",
         )}
       </p>
 
-      ${_renderInstallSourceCard(host)} ${_renderCatalogSection(host)}
+      ${_renderInstallSourceCard(host2)} ${_renderCatalogSection(host2)}
       ${
         installedAvailable.length > 0
           ? b2`
               <div class="recipes-section-title">
-                ${host._t("recipes_list_installed_section", "Installed recipes")}
+                ${host2._t("recipes_list_installed_section", "Installed recipes")}
               </div>
               <div class="catalog-grid">
                 ${installedAvailable.map((m3) =>
-                  _renderCatalogCard(host, withCategory(m3), true),
+                  _renderCatalogCard(host2, withCategory(m3), true),
                 )}
               </div>
             `
@@ -54022,11 +53400,11 @@ function _renderListView(host) {
         stagedLocal.length > 0
           ? b2`
               <div class="recipes-section-title">
-                ${host._t("recipes_list_staged", "On this device")}
+                ${host2._t("recipes_list_staged", "On this device")}
               </div>
               <div class="catalog-grid">
                 ${stagedLocal.map((m3) =>
-                  _renderCatalogCard(host, withCategory(m3), false),
+                  _renderCatalogCard(host2, withCategory(m3), false),
                 )}
               </div>
             `
@@ -54036,7 +53414,7 @@ function _renderListView(host) {
         onlyInstalled.length > 0
           ? b2`
               <div class="recipes-section-title">
-                ${host._t(
+                ${host2._t(
                   "recipes_list_installed_missing_bundle",
                   "Installed (bundle missing from disk)",
                 )}
@@ -54049,7 +53427,7 @@ function _renderListView(host) {
                         <div class="recipe-card-title">
                           ${rec.title}
                           <span class="recipe-installed-badge"
-                            >${host._t(
+                            >${host2._t(
                               "recipes_card_installed_badge",
                               "Installed",
                             )}</span
@@ -54057,17 +53435,17 @@ function _renderListView(host) {
                         </div>
                         <div class="recipe-card-meta">
                           v${rec.version} ·
-                          ${host._t("recipes_list_package_label", "package:")}
+                          ${host2._t("recipes_list_package_label", "package:")}
                           ${rec.package_path}
                         </div>
                       </div>
                       <div class="recipe-card-actions">
                         <button
                           class="btn btn-outline"
-                          @click=${() => host._uninstallRecipe(rec.slug)}
-                          ?disabled=${host._recipesBusy}
+                          @click=${() => host2._uninstallRecipe(rec.slug)}
+                          ?disabled=${host2._recipesBusy}
                         >
-                          ${host._t("recipes_card_uninstall_button", "Uninstall")}
+                          ${host2._t("recipes_card_uninstall_button", "Uninstall")}
                         </button>
                       </div>
                     </div>
@@ -54080,18 +53458,15 @@ function _renderListView(host) {
     </div>
   `;
 }
-function _renderCatalogSection(host) {
-  const cat = host._recipesCatalog;
+function _renderCatalogSection(host2) {
+  const cat = host2._recipesCatalog;
   const installedSlugs = new Set(
-    (host._recipesList?.installed || []).map((r6) => r6.slug),
+    (host2._recipesList?.installed || []).map((r6) => r6.slug),
   );
-  const filtered = host._filteredCatalog
-    ? host._filteredCatalog()
+  const filtered = host2._filteredCatalog
+    ? host2._filteredCatalog()
     : cat?.recipes || [];
-  const currentOverride = host._catalogUrlOverride
-    ? host._catalogUrlOverride()
-    : "";
-  const isDev = !!host._config?.developer_mode;
+  const currentOverride = catalogUrlOverride();
   return b2`
     <div class="catalog-section">
       <div class="filter-row">
@@ -54099,59 +53474,29 @@ function _renderCatalogSection(host) {
           <ha-icon icon="mdi:magnify"></ha-icon>
           <input
             type="text"
-            placeholder=${host._t(
+            placeholder=${host2._t(
               "recipes_catalog_search_placeholder",
               "Search recipes\u2026",
             )}
-            .value=${host._recipesCatalogSearch || ""}
-            @input=${(e6) => host._onRecipesCatalogSearch(e6.target.value)}
+            .value=${host2._recipesCatalogSearch || ""}
+            @input=${(e6) => host2._onRecipesCatalogSearch(e6.target.value)}
           />
           ${
-            host._recipesCatalogSearch
+            host2._recipesCatalogSearch
               ? b2`<ha-icon
                   icon="mdi:close-circle"
                   style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                  @click=${() => host._onRecipesCatalogSearch("")}
+                  @click=${() => host2._onRecipesCatalogSearch("")}
                 ></ha-icon>`
-              : ""
-          }
-        </div>
-        <div class="catalog-controls">
-          ${
-            isDev
-              ? b2`<button
-                  class="sort-dir-toggle"
-                  @click=${() => {
-                    const next = window.prompt(
-                      host._t(
-                        "recipes_catalog_url_prompt",
-                        "Catalog URL (leave blank to reset to selorahomes.com):",
-                      ),
-                      currentOverride,
-                    );
-                    if (next === null) return;
-                    host._setCatalogUrlOverride(next.trim());
-                  }}
-                  title=${
-                    currentOverride
-                      ? `${host._t("recipes_catalog_using_override", "Using override:")} ${currentOverride}`
-                      : host._t(
-                          "recipes_catalog_set_url_title",
-                          "Set a catalog URL (dev / staging)",
-                        )
-                  }
-                >
-                  <ha-icon icon="mdi:cog-outline"></ha-icon>
-                </button>`
               : ""
           }
         </div>
       </div>
       ${
-        currentOverride && isDev
+        currentOverride
           ? b2`<div class="catalog-override-banner">
               <ha-icon icon="mdi:flask-outline"></ha-icon>
-              ${host._t(
+              ${host2._t(
                 "recipes_catalog_source_overridden",
                 "Catalog source overridden:",
               )}
@@ -54160,52 +53505,52 @@ function _renderCatalogSection(host) {
           : ""
       }
       ${
-        host._recipesCatalogError
+        host2._recipesCatalogError
           ? b2`<div class="catalog-error">
               <ha-icon icon="mdi:cloud-off-outline"></ha-icon>
-              ${host._t(
+              ${host2._t(
                 "recipes_catalog_unreachable",
                 "Couldn't reach the recipes catalog:",
               )}
-              ${host._recipesCatalogError}
+              ${host2._recipesCatalogError}
             </div>`
           : !cat
             ? b2`<div class="catalog-loading">
                 ${
-                  host._recipesCatalogBusy
-                    ? host._t(
+                  host2._recipesCatalogBusy
+                    ? host2._t(
                         "recipes_catalog_fetching",
                         "Fetching catalog\u2026",
                       )
-                    : host._t(
+                    : host2._t(
                         "recipes_catalog_will_load",
                         "Catalog will load here.",
                       )
                 }
               </div>`
             : filtered.length === 0
-              ? (host._recipesCatalogSearch || "").trim()
+              ? (host2._recipesCatalogSearch || "").trim()
                 ? b2`<div class="catalog-loading">
-                    ${host._t(
+                    ${host2._t(
                       "recipes_catalog_no_matches_prefix",
                       "No matches for",
                     )}
-                    &ldquo;${host._recipesCatalogSearch}&rdquo;.
+                    &ldquo;${host2._recipesCatalogSearch}&rdquo;.
                   </div>`
                 : b2`<div class="catalog-loading">
-                    ${host._t(
+                    ${host2._t(
                       "recipes_catalog_empty",
                       "No recipes in this catalog yet.",
                     )}
                   </div>`
-              : _renderCatalogResults(host, filtered, installedSlugs)
+              : _renderCatalogResults(host2, filtered, installedSlugs)
       }
     </div>
   `;
 }
 var _CATALOG_PAGE_SIZE = 6;
-function _renderCatalogResults(host, filtered, installedSlugs) {
-  const searching = !!(host._recipesCatalogSearch || "").trim();
+function _renderCatalogResults(host2, filtered, installedSlugs) {
+  const searching = !!(host2._recipesCatalogSearch || "").trim();
   const browseable = filtered.filter((e6) => !installedSlugs.has(e6.slug));
   let featured = [];
   let rest = browseable;
@@ -54217,17 +53562,17 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
     rest = byDate.slice(2);
   }
   const totalPages = Math.max(1, Math.ceil(rest.length / _CATALOG_PAGE_SIZE));
-  const page = Math.min(Math.max(1, host._catalogPage || 1), totalPages);
+  const page = Math.min(Math.max(1, host2._catalogPage || 1), totalPages);
   const start = (page - 1) * _CATALOG_PAGE_SIZE;
   const pageItems = rest.slice(start, start + _CATALOG_PAGE_SIZE);
   const card = (entry, isFeatured) =>
-    _renderCatalogCard(host, entry, false, isFeatured);
+    _renderCatalogCard(host2, entry, false, isFeatured);
   return b2`
     ${
       featured.length
         ? b2`
             <div class="recipes-section-title">
-              ${host._t("recipes_catalog_featured", "Featured")}
+              ${host2._t("recipes_catalog_featured", "Featured")}
             </div>
             <div class="catalog-grid catalog-grid-featured">
               ${featured.map((e6) => card(e6, true))}
@@ -54241,39 +53586,39 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
             ${
               !searching
                 ? b2`<div class="recipes-section-title">
-                    ${host._t("recipes_catalog_all", "Available recipes")}
+                    ${host2._t("recipes_catalog_all", "Available recipes")}
                   </div>`
                 : ""
             }
             <div class="catalog-grid">
               ${pageItems.map((e6) => card(e6, false))}
             </div>
-            ${totalPages > 1 ? _renderCatalogPagination(host, page, totalPages) : ""}
+            ${totalPages > 1 ? _renderCatalogPagination(host2, page, totalPages) : ""}
           `
         : ""
     }
   `;
 }
-function _renderCatalogPagination(host, page, totalPages) {
+function _renderCatalogPagination(host2, page, totalPages) {
   return b2`
     <div class="catalog-pagination">
       <button
         class="btn btn-outline"
         ?disabled=${page <= 1}
-        @click=${() => host._setCatalogPage(page - 1)}
+        @click=${() => host2._setCatalogPage(page - 1)}
       >
         <ha-icon icon="mdi:chevron-left"></ha-icon>
-        ${host._t("recipes_catalog_prev", "Previous")}
+        ${host2._t("recipes_catalog_prev", "Previous")}
       </button>
       <span class="catalog-page-indicator">
-        ${host._t("recipes_catalog_page", "Page")} ${page} / ${totalPages}
+        ${host2._t("recipes_catalog_page", "Page")} ${page} / ${totalPages}
       </span>
       <button
         class="btn btn-outline"
         ?disabled=${page >= totalPages}
-        @click=${() => host._setCatalogPage(page + 1)}
+        @click=${() => host2._setCatalogPage(page + 1)}
       >
-        ${host._t("recipes_catalog_next", "Next")}
+        ${host2._t("recipes_catalog_next", "Next")}
         <ha-icon icon="mdi:chevron-right"></ha-icon>
       </button>
     </div>
@@ -54314,21 +53659,21 @@ function _renderRecipeBrandStrip(brands) {
     </div>
   `;
 }
-function _renderCatalogCard(host, entry, installed, featured = false) {
+function _renderCatalogCard(host2, entry, installed, featured = false) {
   const slug = entry.slug;
-  const staged = (host._recipesList?.available || []).some(
+  const staged = (host2._recipesList?.available || []).some(
     (r6) => r6.slug === slug,
   );
   const open = () => {
-    if (host._recipesBusy || host._recipesUrlBusy) return;
+    if (host2._recipesBusy || host2._recipesUrlBusy) return;
     if (installed || staged) {
-      host._openRecipeWizard(slug);
+      host2._openRecipeWizard(slug);
     } else {
-      host._installFromCatalogEntry(entry);
+      host2._installFromCatalogEntry(entry);
     }
   };
   const meta = entry.released || entry.author || "";
-  const staging = host._recipesStagingSlug === slug;
+  const staging = host2._recipesStagingSlug === slug;
   return b2`
     <div
       class="catalog-card catalog-card-clickable ${featured ? "catalog-card-featured" : ""} ${staging ? "is-staging" : ""}"
@@ -54362,15 +53707,15 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
             : ""
         }
         ${
-          installed && host._recipeUpdateVersion(slug)
+          installed && host2._recipeUpdateVersion(slug)
             ? b2`<span class="catalog-installed-badge is-update">
                 <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
-                ${host._t("recipes_card_update_badge", "Update available")}
+                ${host2._t("recipes_card_update_badge", "Update available")}
               </span>`
             : installed
               ? b2`<span class="catalog-installed-badge">
                   <ha-icon icon="mdi:check"></ha-icon>
-                  ${host._t("recipes_card_installed_badge", "Installed")}
+                  ${host2._t("recipes_card_installed_badge", "Installed")}
                 </span>`
               : ""
         }
@@ -54399,17 +53744,17 @@ function _renderCatalogCard(host, entry, installed, featured = false) {
     </div>
   `;
 }
-function _renderInputField(host, input) {
+function _renderInputField(host2, input) {
   const value =
-    host._recipeWizardInputs[input.id] !== void 0
-      ? host._recipeWizardInputs[input.id]
+    host2._recipeWizardInputs[input.id] !== void 0
+      ? host2._recipeWizardInputs[input.id]
       : input.default;
   const onInput = (e6) => {
     const raw = e6.target.value;
     let v3 = raw;
     if (input.type === "number") v3 = raw === "" ? "" : Number(raw);
     if (input.type === "boolean") v3 = e6.target.checked;
-    host._updateRecipeInput(input.id, v3);
+    host2._updateRecipeInput(input.id, v3);
   };
   if (input.type === "boolean") {
     return b2`
@@ -54449,47 +53794,47 @@ function _renderInputField(host, input) {
     </div>
   `;
 }
-function _integrationPairCopy(host) {
+function _integrationPairCopy(host2) {
   return {
     hue: {
       label: "Philips Hue",
-      action: host._t(
+      action: host2._t(
         "recipes_pair_hue_action",
         "Pair this bulb to your Hue Bridge using the Hue app or its setup page.",
       ),
-      cta: host._t("recipes_pair_hue_cta", "Open Hue setup"),
+      cta: host2._t("recipes_pair_hue_cta", "Open Hue setup"),
     },
     zha: {
       label: "Zigbee (ZHA)",
-      action: host._t(
+      action: host2._t(
         "recipes_pair_zha_action",
         "Open ZHA's setup page and put the coordinator in pairing mode to add this device.",
       ),
-      cta: host._t("recipes_pair_zha_cta", "Open ZHA setup"),
+      cta: host2._t("recipes_pair_zha_cta", "Open ZHA setup"),
     },
     zwave_js: {
       label: "Z-Wave",
-      action: host._t(
+      action: host2._t(
         "recipes_pair_zwave_action",
         "Start Z-Wave inclusion from its setup page to add this device.",
       ),
-      cta: host._t("recipes_pair_zwave_cta", "Open Z-Wave setup"),
+      cta: host2._t("recipes_pair_zwave_cta", "Open Z-Wave setup"),
     },
     matter: {
       label: "Matter",
-      action: host._t(
+      action: host2._t(
         "recipes_pair_matter_action",
         "Commission this Matter device with its pairing code from the Matter setup page.",
       ),
-      cta: host._t("recipes_pair_matter_cta", "Open Matter setup"),
+      cta: host2._t("recipes_pair_matter_cta", "Open Matter setup"),
     },
     mqtt: {
       label: "MQTT",
-      action: host._t(
+      action: host2._t(
         "recipes_pair_mqtt_action",
         "Bring this MQTT device online so it publishes to the configured topic.",
       ),
-      cta: host._t("recipes_pair_mqtt_cta", "Open MQTT setup"),
+      cta: host2._t("recipes_pair_mqtt_cta", "Open MQTT setup"),
     },
   };
 }
@@ -54501,11 +53846,11 @@ function _navigateInHA(path) {
   history.pushState(null, "", path);
   window.dispatchEvent(new Event("location-changed"));
 }
-function _renderPunchList(host, items) {
+function _renderPunchList(host2, items) {
   if (!items || items.length === 0) return "";
   return b2`
     <div class="wizard-section">
-      <h3>${host._t("recipes_punch_list_title", "Punch list")}</h3>
+      <h3>${host2._t("recipes_punch_list_title", "Punch list")}</h3>
       <div class="punch">
         ${items.map(
           (item) => b2`
@@ -54529,22 +53874,22 @@ var _STATUS_ICON = {
   skipped: "mdi:circle-slice-8",
   pending: "mdi:circle-outline",
 };
-function _statusLabel(host, status) {
+function _statusLabel(host2, status) {
   return (
     {
-      ok: host._t("recipes_status_done", "Done"),
-      failed: host._t("recipes_status_failed", "Failed"),
-      running: host._t("recipes_status_running", "Running"),
-      needs_input: host._t("recipes_status_needs_you", "Needs you"),
-      skipped: host._t("recipes_status_skipped", "Skipped"),
-      pending: host._t("recipes_status_pending", "Pending"),
+      ok: host2._t("recipes_status_done", "Done"),
+      failed: host2._t("recipes_status_failed", "Failed"),
+      running: host2._t("recipes_status_running", "Running"),
+      needs_input: host2._t("recipes_status_needs_you", "Needs you"),
+      skipped: host2._t("recipes_status_skipped", "Skipped"),
+      pending: host2._t("recipes_status_pending", "Pending"),
     }[status] || status
   );
 }
-function _activeItem(host, items) {
+function _activeItem(host2, items) {
   if (!items?.length) return null;
-  if (host._recipeActiveItemId) {
-    const found = items.find((i8) => i8.id === host._recipeActiveItemId);
+  if (host2._recipeActiveItemId) {
+    const found = items.find((i8) => i8.id === host2._recipeActiveItemId);
     if (found) return found;
   }
   return (
@@ -54554,16 +53899,16 @@ function _activeItem(host, items) {
     items[items.length - 1]
   );
 }
-function _renderActionPanel(host, item) {
+function _renderActionPanel(host2, item) {
   if (!item) return "";
-  if (item.kind === "inputs") return _renderInputsPanel(host, item);
+  if (item.kind === "inputs") return _renderInputsPanel(host2, item);
   if (item.kind === "role_selection")
-    return _renderRoleSelectionPanel(host, item);
-  if (item.kind === "pin") return _renderPinPanel(host, item);
-  if (item.kind === "integration") return _renderIntegrationPanel(host, item);
-  return _renderSystemPanel(host, item);
+    return _renderRoleSelectionPanel(host2, item);
+  if (item.kind === "pin") return _renderPinPanel(host2, item);
+  if (item.kind === "integration") return _renderIntegrationPanel(host2, item);
+  return _renderSystemPanel(host2, item);
 }
-function _panelShell(host, title, statusKind, body, footer) {
+function _panelShell(host2, title, statusKind, body, footer) {
   return b2`
     <div class="panel-shell">
       <div class="panel-head">
@@ -54571,7 +53916,7 @@ function _panelShell(host, title, statusKind, body, footer) {
         ${
           statusKind
             ? b2`<span class="panel-status ${statusKind}"
-                >${_statusLabel(host, statusKind)}</span
+                >${_statusLabel(host2, statusKind)}</span
               >`
             : ""
         }
@@ -54581,15 +53926,15 @@ function _panelShell(host, title, statusKind, body, footer) {
     </div>
   `;
 }
-function _renderSystemPanel(host, item) {
+function _renderSystemPanel(host2, item) {
   return _panelShell(
-    host,
+    host2,
     item.title,
     item.status,
     item.detail
       ? b2`<p class="panel-prose">${item.detail}</p>`
       : b2`<p class="panel-prose panel-muted">
-          ${host._t(
+          ${host2._t(
             "recipes_system_panel_auto",
             "This step runs automatically. No action needed from you.",
           )}
@@ -54597,47 +53942,49 @@ function _renderSystemPanel(host, item) {
     null,
   );
 }
-function _renderInputsPanel(host, item) {
+function _renderInputsPanel(host2, item) {
   const inputs = item.payload?.inputs || [];
   return _panelShell(
-    host,
-    host._t("recipes_inputs_panel_title", "Recipe settings"),
+    host2,
+    host2._t("recipes_inputs_panel_title", "Recipe settings"),
     item.status,
     b2`<div class="panel-fields">
-      ${inputs.map((input) => _renderInputField(host, input))}
+      ${inputs.map((input) => _renderInputField(host2, input))}
     </div>`,
     null,
   );
 }
-function _humaniseRoleFilter(host, role) {
+function _humaniseRoleFilter(host2, role) {
   const dc = role.device_class;
   if (dc) {
     const noun =
       role.kind === "binary_sensor" || role.kind === "sensor"
-        ? host._t("recipes_role_filter_sensor_noun", "sensor")
+        ? host2._t("recipes_role_filter_sensor_noun", "sensor")
         : role.kind;
     return `${dc.replace(/_/g, " ")} ${noun}`;
   }
   return (
     role.kind?.replace(/_/g, " ") ||
-    host._t("recipes_role_filter_device_noun", "device")
+    host2._t("recipes_role_filter_device_noun", "device")
   );
 }
-function _renderRoleSelectionPanel(host, item) {
+function _renderRoleSelectionPanel(host2, item) {
   const role = item.payload?.role || {};
   const candidates = item.payload?.candidates || [];
   const pinned = item.payload?.pinned || [];
   const bound = new Set(item.payload?.bound || []);
-  const selected = new Set((host._recipeWizardSelections || {})[role.id] || []);
-  const filterLabel = _humaniseRoleFilter(host, role);
+  const selected = new Set(
+    (host2._recipeWizardSelections || {})[role.id] || [],
+  );
+  const filterLabel = _humaniseRoleFilter(host2, role);
   const roleId = role.id;
-  const filterText = (host._recipeRoleFilters?.[roleId] || "")
+  const filterText = (host2._recipeRoleFilters?.[roleId] || "")
     .trim()
     .toLowerCase();
   const candidatesT = item.payload?.candidates || [];
   const matched = filterText
     ? candidatesT.filter((id) => {
-        const name = String(_entityFriendlyName(host.hass, id) || "");
+        const name = String(_entityFriendlyName(host2.hass, id) || "");
         return (
           id.toLowerCase().includes(filterText) ||
           name.toLowerCase().includes(filterText)
@@ -54648,7 +53995,7 @@ function _renderRoleSelectionPanel(host, item) {
     (a3, b3) => (selected.has(b3) ? 1 : 0) - (selected.has(a3) ? 1 : 0),
   );
   const CHIP_CAP = 12;
-  const expanded = !!host._recipeRoleExpanded?.[roleId] || !!filterText;
+  const expanded = !!host2._recipeRoleExpanded?.[roleId] || !!filterText;
   const selectedInMatch = ordered.filter((id) => selected.has(id)).length;
   const shown = expanded
     ? ordered
@@ -54656,8 +54003,8 @@ function _renderRoleSelectionPanel(host, item) {
   const hiddenCount = ordered.length - shown.length;
   const showFilter = candidatesT.length > CHIP_CAP;
   return _panelShell(
-    host,
-    `${host._t("recipes_role_pick_prefix", "Pick:")} ${item.title}`,
+    host2,
+    `${host2._t("recipes_role_pick_prefix", "Pick:")} ${item.title}`,
     item.status,
     b2`
       ${role.description ? b2`<p class="panel-prose">${role.description}</p>` : ""}
@@ -54666,7 +54013,7 @@ function _renderRoleSelectionPanel(host, item) {
           ? b2`
               <div class="panel-prose panel-muted">
                 ${pinned.length}
-                ${host._t(
+                ${host2._t(
                   "recipes_role_pinned_count_suffix",
                   "pinned by the recipe (always included).",
                 )}
@@ -54676,11 +54023,11 @@ function _renderRoleSelectionPanel(host, item) {
                   (id) => b2`
                     <span class="role-entity-chip is-pinned" title=${id}>
                       <span class="chip-icon-tile">
-                        <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
+                        <ha-icon icon=${_entityIcon2(host2.hass, id)}></ha-icon>
                       </span>
                       <span class="chip-text">
                         <span class="chip-name">
-                          ${_entityFriendlyName(host.hass, id)}
+                          ${_entityFriendlyName(host2.hass, id)}
                           <ha-icon
                             class="pin-badge"
                             icon="mdi:lock-outline"
@@ -54699,9 +54046,9 @@ function _renderRoleSelectionPanel(host, item) {
         candidates.length > 0
           ? b2`
               <p class="panel-prose panel-muted">
-                ${host._t("recipes_role_pick_one_or_more", "Pick one or more")}
-                ${filterLabel}${role.max_count ? ` (${host._t("recipes_role_up_to", "up to")} ${role.max_count})` : ""}.
-                ${host._t(
+                ${host2._t("recipes_role_pick_one_or_more", "Pick one or more")}
+                ${filterLabel}${role.max_count ? ` (${host2._t("recipes_role_up_to", "up to")} ${role.max_count})` : ""}.
+                ${host2._t(
                   "recipes_role_run_against",
                   "Selora will run the recipe against the ones you tick.",
                 )}
@@ -54711,19 +54058,19 @@ function _renderRoleSelectionPanel(host, item) {
                   ? b2`<input
                       class="role-filter-input"
                       type="text"
-                      .value=${host._recipeRoleFilters?.[roleId] || ""}
-                      placeholder=${host._t(
+                      .value=${host2._recipeRoleFilters?.[roleId] || ""}
+                      placeholder=${host2._t(
                         "recipes_role_filter_placeholder",
                         "Filter by name\u2026",
                       )}
-                      @input=${(e6) => host._setRecipeRoleFilter(roleId, e6.target.value)}
+                      @input=${(e6) => host2._setRecipeRoleFilter(roleId, e6.target.value)}
                     />`
                   : ""
               }
               ${
                 ordered.length === 0
                   ? b2`<p class="panel-prose panel-muted">
-                      ${host._t(
+                      ${host2._t(
                         "recipes_role_filter_no_matches",
                         "No entities match your filter.",
                       )}
@@ -54738,21 +54085,21 @@ function _renderRoleSelectionPanel(host, item) {
                               type="button"
                               title=${id}
                               @click=${() =>
-                                host._toggleRecipeRoleEntity(
+                                host2._toggleRecipeRoleEntity(
                                   role.id,
                                   id,
                                   role.max_count,
                                 )}
-                              ?disabled=${host._recipesBusy}
+                              ?disabled=${host2._recipesBusy}
                             >
                               <span class="chip-icon-tile">
                                 <ha-icon
-                                  icon=${_entityIcon2(host.hass, id)}
+                                  icon=${_entityIcon2(host2.hass, id)}
                                 ></ha-icon>
                               </span>
                               <span class="chip-text">
                                 <span class="chip-name">
-                                  ${_entityFriendlyName(host.hass, id)}
+                                  ${_entityFriendlyName(host2.hass, id)}
                                 </span>
                                 <span class="chip-id">${id}</span>
                               </span>
@@ -54765,9 +54112,9 @@ function _renderRoleSelectionPanel(host, item) {
                           ? b2`<button
                               class="role-show-more"
                               type="button"
-                              @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                              @click=${() => host2._toggleRecipeRoleExpanded(roleId)}
                             >
-                              ${host._t("recipes_role_show_all", "Show all")}
+                              ${host2._t("recipes_role_show_all", "Show all")}
                               (${ordered.length})
                             </button>`
                           : expanded &&
@@ -54776,9 +54123,9 @@ function _renderRoleSelectionPanel(host, item) {
                             ? b2`<button
                                 class="role-show-more"
                                 type="button"
-                                @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                                @click=${() => host2._toggleRecipeRoleExpanded(roleId)}
                               >
-                                ${host._t("recipes_role_show_less", "Show less")}
+                                ${host2._t("recipes_role_show_less", "Show less")}
                               </button>`
                             : ""
                       }
@@ -54794,13 +54141,13 @@ function _renderRoleSelectionPanel(host, item) {
             <ha-icon icon="mdi:radar" class="role-empty-icon"></ha-icon>
             <div class="role-empty-body">
               <div class="role-empty-title">
-                ${host._t("recipes_role_empty_none_prefix", "No")}
+                ${host2._t("recipes_role_empty_none_prefix", "No")}
                 ${filterLabel}s
-                ${host._t("recipes_role_empty_none_suffix", "in your home yet")}
+                ${host2._t("recipes_role_empty_none_suffix", "in your home yet")}
               </div>
               <p class="role-empty-prose">
-                ${host._t("recipes_role_empty_pair", "Pair")}
-                ${role.min_count > 0 ? b2`${host._t("recipes_role_empty_at_least", "at least")} ` : ""}${host._t(
+                ${host2._t("recipes_role_empty_pair", "Pair")}
+                ${role.min_count > 0 ? b2`${host2._t("recipes_role_empty_at_least", "at least")} ` : ""}${host2._t(
                   "recipes_role_empty_one_prose",
                   "one and it'll appear here automatically \u2014 you can leave this page to add a device and the wizard keeps your progress on Back.",
                 )}
@@ -54812,7 +54159,7 @@ function _renderRoleSelectionPanel(host, item) {
                   @click=${() => _navigateInHA("/config/integrations/dashboard")}
                 >
                   <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
-                  ${host._t(
+                  ${host2._t(
                     "recipes_role_empty_add_device",
                     "Add device in HA",
                   )}
@@ -54820,11 +54167,11 @@ function _renderRoleSelectionPanel(host, item) {
                 <button
                   class="panel-btn secondary"
                   type="button"
-                  ?disabled=${host._recipesBusy}
-                  @click=${() => host._refreshRecipePreview()}
+                  ?disabled=${host2._recipesBusy}
+                  @click=${() => host2._refreshRecipePreview()}
                 >
                   <ha-icon icon="mdi:refresh"></ha-icon>
-                  ${host._t("recipes_role_check_again", "Check again")}
+                  ${host2._t("recipes_role_check_again", "Check again")}
                 </button>
               </div>
             </div>
@@ -54833,32 +54180,32 @@ function _renderRoleSelectionPanel(host, item) {
       : null,
   );
 }
-function _renderPinPanel(host, item) {
+function _renderPinPanel(host2, item) {
   const id = item.payload?.identity || {};
   const integration = id.integration || "";
-  const copy = _integrationPairCopy(host)[integration];
+  const copy = _integrationPairCopy(host2)[integration];
   const integrationLabel = copy?.label || integration;
   const setupPath = _integrationSetupPath(integration);
   const model = [id.manufacturer, id.model].filter(Boolean).join(" ");
   const action =
     copy?.action ||
-    host._t(
+    host2._t(
       "recipes_pin_default_action",
       "Add this device to Home Assistant. Selora will detect it automatically.",
     );
   return _panelShell(
-    host,
+    host2,
     item.title,
     item.status,
     b2`
       ${model ? b2`<div class="panel-prose panel-muted">${model}</div>` : ""}
       <p class="panel-prose">${action}</p>
       <p class="panel-prose panel-muted">
-        ${host._t("recipes_pin_expected_entity", "Expected entity id:")}
+        ${host2._t("recipes_pin_expected_entity", "Expected entity id:")}
         <code>${id.entity_id}</code>
       </p>
       <p class="panel-prose panel-muted">
-        ${host._t(
+        ${host2._t(
           "recipes_pin_tip",
           "Tip: leave this tab open. When the device pairs, this step ticks itself off \u2014 no need to click anything here.",
         )}
@@ -54874,8 +54221,8 @@ function _renderPinPanel(host, item) {
         ${
           copy?.cta ||
           (integration
-            ? `${host._t("recipes_pin_open_setup_prefix", "Open")} ${integrationLabel} ${host._t("recipes_pin_open_setup_suffix", "setup")}`
-            : host._t(
+            ? `${host2._t("recipes_pin_open_setup_prefix", "Open")} ${integrationLabel} ${host2._t("recipes_pin_open_setup_suffix", "setup")}`
+            : host2._t(
                 "recipes_pin_open_ha_integrations",
                 "Open HA integrations",
               ))
@@ -54884,44 +54231,44 @@ function _renderPinPanel(host, item) {
       <button
         class="panel-btn secondary"
         type="button"
-        ?disabled=${host._recipesBusy}
-        @click=${() => host._refreshRecipePreview()}
+        ?disabled=${host2._recipesBusy}
+        @click=${() => host2._refreshRecipePreview()}
       >
         <ha-icon icon="mdi:refresh"></ha-icon>
-        ${host._t("recipes_pin_check_now", "Check now")}
+        ${host2._t("recipes_pin_check_now", "Check now")}
       </button>
     `,
   );
 }
-function _renderIntegrationPanel(host, item) {
+function _renderIntegrationPanel(host2, item) {
   const domain = item.payload?.domain || "";
-  const copy = _integrationPairCopy(host)[domain];
-  const flow = (host._recipeFlows || {})[domain];
+  const copy = _integrationPairCopy(host2)[domain];
+  const flow = (host2._recipeFlows || {})[domain];
   if (item.status === "ok") {
     const entryTitle = item.payload?.entry_title || "";
     const label = copy?.label || domain;
     return _panelShell(
-      host,
+      host2,
       item.title,
       item.status,
       b2`
         <p class="panel-prose">
           ${label}
-          ${host._t("recipes_integration_ready", "is set up and ready to use.")}
+          ${host2._t("recipes_integration_ready", "is set up and ready to use.")}
         </p>
         ${
           entryTitle
             ? b2`<div class="integration-entry-meta">
                 <ha-icon icon="mdi:identifier"></ha-icon>
                 <span class="panel-muted"
-                  >${host._t("recipes_integration_entry_label", "Entry:")}</span
+                  >${host2._t("recipes_integration_entry_label", "Entry:")}</span
                 >
                 <code>${entryTitle}</code>
               </div>`
             : ""
         }
         <p class="panel-prose panel-muted">
-          ${host._t(
+          ${host2._t(
             "recipes_integration_manage_anytime",
             "Manage this integration anytime from Settings \u2192 Devices & Services.",
           )}
@@ -54934,7 +54281,7 @@ function _renderIntegrationPanel(host, item) {
           @click=${() => _navigateInHA(_integrationSetupPath(domain))}
         >
           <ha-icon icon="mdi:open-in-new"></ha-icon>
-          ${host._t("recipes_integration_open_in_ha", "Open in HA")}
+          ${host2._t("recipes_integration_open_in_ha", "Open in HA")}
         </button>
       `,
     );
@@ -54942,12 +54289,12 @@ function _renderIntegrationPanel(host, item) {
   if (!flow) {
     const autoSetup = item.payload?.auto_setup === true;
     return _panelShell(
-      host,
+      host2,
       item.title,
       item.status,
       b2`
         <p class="panel-prose">
-          ${autoSetup ? `${item.title} ${host._t("recipes_integration_autosetup_prose", "can be set up automatically using your Home Assistant location. No questions for you to answer.")}` : `${item.title} ${host._t("recipes_integration_needs_setup_prose", "needs to be set up before this recipe can install. You can start it without leaving this page.")}`}
+          ${autoSetup ? `${item.title} ${host2._t("recipes_integration_autosetup_prose", "can be set up automatically using your Home Assistant location. No questions for you to answer.")}` : `${item.title} ${host2._t("recipes_integration_needs_setup_prose", "needs to be set up before this recipe can install. You can start it without leaving this page.")}`}
         </p>
         ${flow?.error ? b2`<div class="panel-error">${flow.error}</div>` : ""}
       `,
@@ -54955,25 +54302,25 @@ function _renderIntegrationPanel(host, item) {
         <button
           class="panel-btn primary"
           type="button"
-          ?disabled=${host._recipesBusy}
-          @click=${() => (autoSetup ? host._autoSetupIntegration(domain) : host._startIntegrationFlow(domain))}
+          ?disabled=${host2._recipesBusy}
+          @click=${() => (autoSetup ? host2._autoSetupIntegration(domain) : host2._startIntegrationFlow(domain))}
         >
           ${
-            host._recipesBusy
+            host2._recipesBusy
               ? b2`<span class="spinner"></span>`
               : b2`<ha-icon
                   icon=${autoSetup ? "mdi:auto-fix" : "mdi:play"}
                 ></ha-icon>`
           }
           ${
-            host._recipesBusy
-              ? host._t("recipes_setting_up_button", "Setting up\u2026")
+            host2._recipesBusy
+              ? host2._t("recipes_setting_up_button", "Setting up\u2026")
               : autoSetup
-                ? host._t(
+                ? host2._t(
                     "recipes_integration_setup_auto_button",
                     "Set up automatically",
                   )
-                : `${host._t("recipes_integration_setup_prefix", "Set up")} ${copy?.label || domain}`
+                : `${host2._t("recipes_integration_setup_prefix", "Set up")} ${copy?.label || domain}`
           }
         </button>
         <button
@@ -54982,7 +54329,7 @@ function _renderIntegrationPanel(host, item) {
           @click=${() => _navigateInHA(_integrationSetupPath(domain))}
         >
           <ha-icon icon="mdi:open-in-new"></ha-icon>
-          ${host._t(
+          ${host2._t(
             "recipes_integration_open_in_ha_settings",
             "Open in HA settings",
           )}
@@ -54991,17 +54338,17 @@ function _renderIntegrationPanel(host, item) {
     );
   }
   if (flow.state === "form") {
-    return _renderFlowForm(host, item, flow);
+    return _renderFlowForm(host2, item, flow);
   }
   if (flow.state === "error") {
     return _panelShell(
-      host,
+      host2,
       item.title,
       "failed",
       b2`<p class="panel-prose">
         ${
           flow.error ||
-          host._t(
+          host2._t(
             "recipes_integration_setup_failed",
             "Setup failed. Try again or use HA's settings page.",
           )
@@ -55011,21 +54358,21 @@ function _renderIntegrationPanel(host, item) {
         <button
           class="panel-btn secondary"
           type="button"
-          @click=${() => host._resetIntegrationFlow(domain)}
+          @click=${() => host2._resetIntegrationFlow(domain)}
         >
-          ${host._t("recipes_integration_try_again", "Try again")}
+          ${host2._t("recipes_integration_try_again", "Try again")}
         </button>
       `,
     );
   }
   if (flow.state === "complete") {
     return _panelShell(
-      host,
+      host2,
       item.title,
       "ok",
       b2`<p class="panel-prose">
         ${copy?.label || domain}
-        ${host._t(
+        ${host2._t(
           "recipes_integration_was_set_up",
           "was set up. Selora will re-check the recipe automatically.",
         )}
@@ -55034,19 +54381,19 @@ function _renderIntegrationPanel(host, item) {
     );
   }
   return _panelShell(
-    host,
+    host2,
     item.title,
     "running",
-    b2`<p>${host._t("recipes_working", "Working\u2026")}</p>`,
+    b2`<p>${host2._t("recipes_working", "Working\u2026")}</p>`,
     null,
   );
 }
-function _renderFlowForm(host, item, flow) {
+function _renderFlowForm(host2, item, flow) {
   const fields = flow.step?.data_schema || [];
   const values = flow.values || {};
   const errors = flow.step?.errors || {};
   return _panelShell(
-    host,
+    host2,
     item.title,
     "needs_input",
     b2`
@@ -55055,7 +54402,7 @@ function _renderFlowForm(host, item, flow) {
       <div class="panel-fields">
         ${fields.map((f4) =>
           _renderFlowField(
-            host,
+            host2,
             item,
             flow,
             f4,
@@ -55069,26 +54416,26 @@ function _renderFlowForm(host, item, flow) {
       <button
         class="panel-btn secondary"
         type="button"
-        @click=${() => host._abortIntegrationFlow(item.payload.domain)}
+        @click=${() => host2._abortIntegrationFlow(item.payload.domain)}
       >
-        ${host._t("recipes_flow_cancel", "Cancel")}
+        ${host2._t("recipes_flow_cancel", "Cancel")}
       </button>
       <button
         class="panel-btn primary"
         type="button"
-        ?disabled=${host._recipesBusy}
-        @click=${() => host._submitIntegrationFlow(item.payload.domain)}
+        ?disabled=${host2._recipesBusy}
+        @click=${() => host2._submitIntegrationFlow(item.payload.domain)}
       >
-        ${host._recipesBusy ? host._t("recipes_working", "Working\u2026") : host._t("recipes_flow_continue", "Continue")}
+        ${host2._recipesBusy ? host2._t("recipes_working", "Working\u2026") : host2._t("recipes_flow_continue", "Continue")}
       </button>
     `,
   );
 }
-function _renderFlowField(host, item, flow, field, value, error) {
+function _renderFlowField(host2, item, flow, field, value, error) {
   const update = (v3) => {
     const next = { ...(flow.values || {}), [field.name]: v3 };
-    host._recipeFlows = {
-      ...(host._recipeFlows || {}),
+    host2._recipeFlows = {
+      ...(host2._recipeFlows || {}),
       [item.payload.domain]: { ...flow, values: next },
     };
   };
@@ -55131,7 +54478,7 @@ function _renderFlowField(host, item, flow, field, value, error) {
         ${
           field.required === false
             ? b2`<em class="panel-field-optional"
-                >${host._t("recipes_field_optional", "(optional)")}</em
+                >${host2._t("recipes_field_optional", "(optional)")}</em
               >`
             : ""
         }
@@ -55141,108 +54488,108 @@ function _renderFlowField(host, item, flow, field, value, error) {
     </label>
   `;
 }
-function _stepLabels(host) {
+function _stepLabels(host2) {
   return [
-    host._t("recipes_step_overview", "Overview"),
-    host._t("recipes_step_settings", "Settings"),
-    host._t("recipes_step_match", "Match"),
-    host._t("recipes_step_set_up", "Set up"),
-    host._t("recipes_step_activate", "Activate"),
+    host2._t("recipes_step_overview", "Overview"),
+    host2._t("recipes_step_settings", "Settings"),
+    host2._t("recipes_step_match", "Match"),
+    host2._t("recipes_step_set_up", "Set up"),
+    host2._t("recipes_step_activate", "Activate"),
   ];
 }
-function _humaniseSection(host, key, n6) {
+function _humaniseSection(host2, key, n6) {
   const map = {
     automation: [
-      host._t("recipes_section_automation_singular", "automation"),
-      host._t("recipes_section_automation_plural", "automations"),
+      host2._t("recipes_section_automation_singular", "automation"),
+      host2._t("recipes_section_automation_plural", "automations"),
     ],
     script: [
-      host._t("recipes_section_script_singular", "script"),
-      host._t("recipes_section_script_plural", "scripts"),
+      host2._t("recipes_section_script_singular", "script"),
+      host2._t("recipes_section_script_plural", "scripts"),
     ],
     scene: [
-      host._t("recipes_section_scene_singular", "scene"),
-      host._t("recipes_section_scene_plural", "scenes"),
+      host2._t("recipes_section_scene_singular", "scene"),
+      host2._t("recipes_section_scene_plural", "scenes"),
     ],
     sensor: [
-      host._t("recipes_section_sensor_singular", "sensor"),
-      host._t("recipes_section_sensor_plural", "sensors"),
+      host2._t("recipes_section_sensor_singular", "sensor"),
+      host2._t("recipes_section_sensor_plural", "sensors"),
     ],
     binary_sensor: [
-      host._t("recipes_section_binary_sensor_singular", "binary sensor"),
-      host._t("recipes_section_binary_sensor_plural", "binary sensors"),
+      host2._t("recipes_section_binary_sensor_singular", "binary sensor"),
+      host2._t("recipes_section_binary_sensor_plural", "binary sensors"),
     ],
     input_boolean: [
-      host._t("recipes_section_helper_singular", "helper"),
-      host._t("recipes_section_helper_plural", "helpers"),
+      host2._t("recipes_section_helper_singular", "helper"),
+      host2._t("recipes_section_helper_plural", "helpers"),
     ],
     input_number: [
-      host._t("recipes_section_helper_singular", "helper"),
-      host._t("recipes_section_helper_plural", "helpers"),
+      host2._t("recipes_section_helper_singular", "helper"),
+      host2._t("recipes_section_helper_plural", "helpers"),
     ],
     input_text: [
-      host._t("recipes_section_helper_singular", "helper"),
-      host._t("recipes_section_helper_plural", "helpers"),
+      host2._t("recipes_section_helper_singular", "helper"),
+      host2._t("recipes_section_helper_plural", "helpers"),
     ],
     input_select: [
-      host._t("recipes_section_helper_singular", "helper"),
-      host._t("recipes_section_helper_plural", "helpers"),
+      host2._t("recipes_section_helper_singular", "helper"),
+      host2._t("recipes_section_helper_plural", "helpers"),
     ],
     input_datetime: [
-      host._t("recipes_section_helper_singular", "helper"),
-      host._t("recipes_section_helper_plural", "helpers"),
+      host2._t("recipes_section_helper_singular", "helper"),
+      host2._t("recipes_section_helper_plural", "helpers"),
     ],
     timer: [
-      host._t("recipes_section_timer_singular", "timer"),
-      host._t("recipes_section_timer_plural", "timers"),
+      host2._t("recipes_section_timer_singular", "timer"),
+      host2._t("recipes_section_timer_plural", "timers"),
     ],
     counter: [
-      host._t("recipes_section_counter_singular", "counter"),
-      host._t("recipes_section_counter_plural", "counters"),
+      host2._t("recipes_section_counter_singular", "counter"),
+      host2._t("recipes_section_counter_plural", "counters"),
     ],
     template: [
-      host._t("recipes_section_template_singular", "template entity"),
-      host._t("recipes_section_template_plural", "template entities"),
+      host2._t("recipes_section_template_singular", "template entity"),
+      host2._t("recipes_section_template_plural", "template entities"),
     ],
     group: [
-      host._t("recipes_section_group_singular", "group"),
-      host._t("recipes_section_group_plural", "groups"),
+      host2._t("recipes_section_group_singular", "group"),
+      host2._t("recipes_section_group_plural", "groups"),
     ],
     notify: [
-      host._t("recipes_section_notify_singular", "notifier"),
-      host._t("recipes_section_notify_plural", "notifiers"),
+      host2._t("recipes_section_notify_singular", "notifier"),
+      host2._t("recipes_section_notify_plural", "notifiers"),
     ],
     light: [
-      host._t("recipes_section_light_singular", "light"),
-      host._t("recipes_section_light_plural", "lights"),
+      host2._t("recipes_section_light_singular", "light"),
+      host2._t("recipes_section_light_plural", "lights"),
     ],
     switch: [
-      host._t("recipes_section_switch_singular", "switch"),
-      host._t("recipes_section_switch_plural", "switches"),
+      host2._t("recipes_section_switch_singular", "switch"),
+      host2._t("recipes_section_switch_plural", "switches"),
     ],
     cover: [
-      host._t("recipes_section_cover_singular", "cover"),
-      host._t("recipes_section_cover_plural", "covers"),
+      host2._t("recipes_section_cover_singular", "cover"),
+      host2._t("recipes_section_cover_plural", "covers"),
     ],
     climate: [
-      host._t("recipes_section_climate_singular", "climate entity"),
-      host._t("recipes_section_climate_plural", "climate entities"),
+      host2._t("recipes_section_climate_singular", "climate entity"),
+      host2._t("recipes_section_climate_plural", "climate entities"),
     ],
     media_player: [
-      host._t("recipes_section_media_player_singular", "media player"),
-      host._t("recipes_section_media_player_plural", "media players"),
+      host2._t("recipes_section_media_player_singular", "media player"),
+      host2._t("recipes_section_media_player_plural", "media players"),
     ],
     rest_command: [
-      host._t("recipes_section_rest_command_singular", "REST command"),
-      host._t("recipes_section_rest_command_plural", "REST commands"),
+      host2._t("recipes_section_rest_command_singular", "REST command"),
+      host2._t("recipes_section_rest_command_plural", "REST commands"),
     ],
     shell_command: [
-      host._t("recipes_section_shell_command_singular", "shell command"),
-      host._t("recipes_section_shell_command_plural", "shell commands"),
+      host2._t("recipes_section_shell_command_singular", "shell command"),
+      host2._t("recipes_section_shell_command_plural", "shell commands"),
     ],
     homeassistant: [
-      host._t("recipes_section_customisation_singular", "customisation"),
-      host._t("recipes_section_customisation_plural", "customisations"),
+      host2._t("recipes_section_customisation_singular", "customisation"),
+      host2._t("recipes_section_customisation_plural", "customisations"),
     ],
   };
   const [singular, plural] = map[key] || [key, key];
@@ -55285,7 +54632,7 @@ function _roleIconForKind(role) {
     }[k2] || "mdi:devices"
   );
 }
-function _renderWhatYouNeedRail(host, manifest) {
+function _renderWhatYouNeedRail(host2, manifest) {
   const integrations = manifest.integrations || [];
   const roles = manifest.roles || [];
   const required = roles.filter((r6) => (r6.min_count || 0) > 0);
@@ -55304,12 +54651,12 @@ function _renderWhatYouNeedRail(host, manifest) {
   return b2`
     <aside class="need-rail">
       <div class="need-rail-title">
-        ${host._t("recipes_what_you_need_title", "What you need")}
+        ${host2._t("recipes_what_you_need_title", "What you need")}
       </div>
       ${
         brands.length
           ? b2`<div class="need-integrations">
-              ${brands.map((b3) => _renderIntegrationBanner(host, b3))}
+              ${brands.map((b3) => _renderIntegrationBanner(host2, b3))}
             </div>`
           : ""
       }
@@ -55319,7 +54666,7 @@ function _renderWhatYouNeedRail(host, manifest) {
           optional.length
             ? b2`
                 <div class="need-rail-eyebrow">
-                  ${host._t("recipes_optional_eyebrow", "Optional")}
+                  ${host2._t("recipes_optional_eyebrow", "Optional")}
                 </div>
                 ${optional.map((r6) => _renderNeedRoleCard(r6, hasPin(r6)))}
               `
@@ -55329,7 +54676,7 @@ function _renderWhatYouNeedRail(host, manifest) {
     </aside>
   `;
 }
-function _renderIntegrationBanner(host, brand) {
+function _renderIntegrationBanner(host2, brand) {
   const iconUrl = `https://brands.home-assistant.io/_/${brand.domain}/icon@2x.png`;
   return b2`
     <div class="need-integration">
@@ -55350,7 +54697,7 @@ function _renderIntegrationBanner(host, brand) {
       </div>
       <div class="need-integration-text">
         <div class="need-integration-eyebrow">
-          ${host._t("recipes_works_with", "Works with")}
+          ${host2._t("recipes_works_with", "Works with")}
         </div>
         <div class="need-integration-name">${brand.title}</div>
       </div>
@@ -55372,19 +54719,19 @@ function _renderNeedRoleCard(role, pinned) {
     </div>
   `;
 }
-function _renderWizardStepper(host) {
+function _renderWizardStepper(host2) {
   return b2`
     <aside class="step-rail">
       <div class="step-rail-title">
-        ${host._t("recipes_progress_title", "Progress")}
+        ${host2._t("recipes_progress_title", "Progress")}
       </div>
-      ${_renderStepRailList(host)}
+      ${_renderStepRailList(host2)}
     </aside>
   `;
 }
-function _renderStepRailList(host, onJump) {
-  const current = host._recipeWizardStep || 1;
-  const labels = _stepLabels(host).slice(1);
+function _renderStepRailList(host2, onJump) {
+  const current = host2._recipeWizardStep || 1;
+  const labels = _stepLabels(host2).slice(1);
   return b2`
     <div class="step-rail-list">
       ${labels.map((label, idx) => {
@@ -55411,7 +54758,7 @@ function _renderStepRailList(host, onJump) {
             @click=${(e6) => {
               if (!clickable) return;
               onJump?.(e6);
-              host._jumpToRecipeStep(internalStep);
+              host2._jumpToRecipeStep(internalStep);
             }}
           >
             <ha-icon class="step-rail-icon" icon=${icon}></ha-icon>
@@ -55423,17 +54770,17 @@ function _renderStepRailList(host, onJump) {
     </div>
   `;
 }
-function _renderWizardStepperCompact(host) {
-  const current = host._recipeWizardStep || 1;
-  const labels = _stepLabels(host).slice(1);
+function _renderWizardStepperCompact(host2) {
+  const current = host2._recipeWizardStep || 1;
+  const labels = _stepLabels(host2).slice(1);
   const step = current - 1;
   return b2`
     <details class="step-rail-compact">
       <summary class="step-rail-compact-summary">
         <ha-icon class="step-rail-icon" icon="mdi:circle-slice-8"></ha-icon>
         <span class="step-rail-compact-count"
-          >${host._t("recipes_step_label", "Step")} ${step}
-          ${host._t("recipes_step_of_4", "of 4")}</span
+          >${host2._t("recipes_step_label", "Step")} ${step}
+          ${host2._t("recipes_step_of_4", "of 4")}</span
         >
         <span class="step-rail-compact-label">${labels[step - 1] || ""}</span>
         <ha-icon
@@ -55441,14 +54788,14 @@ function _renderWizardStepperCompact(host) {
           icon="mdi:chevron-down"
         ></ha-icon>
       </summary>
-      ${_renderStepRailList(host, (e6) => {
+      ${_renderStepRailList(host2, (e6) => {
         e6.currentTarget.closest("details").open = false;
       })}
     </details>
   `;
 }
-function _renderWizardFooter(host, opts) {
-  const current = host._recipeWizardStep || 1;
+function _renderWizardFooter(host2, opts) {
+  const current = host2._recipeWizardStep || 1;
   const { primary, primaryDisabled, hint, hideBack, hideSecondary } =
     opts || {};
   return b2`
@@ -55462,16 +54809,16 @@ function _renderWizardFooter(host, opts) {
               ? b2`<button
                   class="panel-btn secondary"
                   type="button"
-                  @click=${() => host._retreatRecipeStep()}
+                  @click=${() => host2._retreatRecipeStep()}
                 >
-                  ${host._t("recipes_footer_back", "Back")}
+                  ${host2._t("recipes_footer_back", "Back")}
                 </button>`
               : b2`<button
                   class="panel-btn secondary"
                   type="button"
-                  @click=${() => host._closeRecipeWizard()}
+                  @click=${() => host2._closeRecipeWizard()}
                 >
-                  ${host._t("recipes_footer_cancel", "Cancel")}
+                  ${host2._t("recipes_footer_cancel", "Cancel")}
                 </button>`
         }
         ${
@@ -55491,7 +54838,7 @@ function _renderWizardFooter(host, opts) {
     </div>
   `;
 }
-function _renderWizardHero(host, manifest, opts) {
+function _renderWizardHero(host2, manifest, opts) {
   const compact = opts?.compact === true;
   if (compact) {
     return b2`
@@ -55499,8 +54846,8 @@ function _renderWizardHero(host, manifest, opts) {
         <button
           class="wizard-back-compact"
           type="button"
-          title=${host._t("recipes_back_to_overview", "Back to overview")}
-          @click=${() => host._jumpToRecipeStep(1)}
+          title=${host2._t("recipes_back_to_overview", "Back to overview")}
+          @click=${() => host2._jumpToRecipeStep(1)}
         >
           <ha-icon icon="mdi:arrow-left"></ha-icon>
         </button>
@@ -55530,7 +54877,7 @@ function _renderWizardHero(host, manifest, opts) {
         <div class="wizard-eyebrow">
           <ha-icon icon="mdi:book-open-page-variant-outline"></ha-icon>
           <span class="wizard-eyebrow-tag"
-            >${host._t("recipes_eyebrow_recipe", "RECIPE")}</span
+            >${host2._t("recipes_eyebrow_recipe", "RECIPE")}</span
           >
           ${
             manifest.version
@@ -55542,7 +54889,7 @@ function _renderWizardHero(host, manifest, opts) {
             released
               ? b2`<span class="wizard-eyebrow-sep">·</span>
                   <span class="wizard-eyebrow-meta"
-                    >${host._t("recipes_eyebrow_released", "Released")}
+                    >${host2._t("recipes_eyebrow_released", "Released")}
                     ${released}</span
                   >`
               : ""
@@ -55577,27 +54924,27 @@ function _renderWizardHero(host, manifest, opts) {
     </div>
   `;
 }
-function _renderStep1Overview(host) {
-  const { manifest } = host._recipeWizardDetail;
+function _renderStep1Overview(host2) {
+  const { manifest } = host2._recipeWizardDetail;
   const backLink = b2`<button
     class="wizard-back"
-    @click=${() => host._closeRecipeWizard()}
+    @click=${() => host2._closeRecipeWizard()}
   >
     <ha-icon icon="mdi:arrow-left"></ha-icon>
-    ${host._t("recipes_back_to_recipes", "Back to recipes")}
+    ${host2._t("recipes_back_to_recipes", "Back to recipes")}
   </button>`;
-  const record = (host._recipesList?.installed || []).find(
+  const record = (host2._recipesList?.installed || []).find(
     (r6) => r6.slug === manifest.slug,
   );
   if (record) {
-    const updateVersion = host._recipeUpdateVersion(manifest.slug);
+    const updateVersion = host2._recipeUpdateVersion(manifest.slug);
     const notice =
-      host._recipeUpdateNotice?.slug === manifest.slug
-        ? host._recipeUpdateNotice
+      host2._recipeUpdateNotice?.slug === manifest.slug
+        ? host2._recipeUpdateNotice
         : null;
     return b2`
       <div class="step-pane">
-        ${_renderInstalledDetails(host, record, null, { asCard: true })}
+        ${_renderInstalledDetails(host2, record, null, { asCard: true })}
         ${
           notice
             ? b2`<div
@@ -55615,10 +54962,10 @@ function _renderStep1Overview(host) {
               manifest.binding_mode === "group"
                 ? b2`<button
                     class="btn btn-outline"
-                    @click=${() => host._openManageDevices(manifest.slug)}
-                    ?disabled=${host._recipesBusy}
+                    @click=${() => host2._openManageDevices(manifest.slug)}
+                    ?disabled=${host2._recipesBusy}
                   >
-                    ${host._t(
+                    ${host2._t(
                       "recipes_card_manage_devices_button",
                       "Manage devices",
                     )}
@@ -55627,30 +54974,30 @@ function _renderStep1Overview(host) {
             }
             <button
               class="btn btn-outline"
-              @click=${() => host._uninstallRecipe(manifest.slug)}
-              ?disabled=${host._recipesBusy}
+              @click=${() => host2._uninstallRecipe(manifest.slug)}
+              ?disabled=${host2._recipesBusy}
             >
-              ${host._t("recipes_card_uninstall_button", "Uninstall")}
+              ${host2._t("recipes_card_uninstall_button", "Uninstall")}
             </button>
             <button
               class="btn ${updateVersion ? "btn-outline" : "btn-primary"}"
-              @click=${() => host._advanceRecipeStep()}
-              ?disabled=${host._recipesBusy}
+              @click=${() => host2._advanceRecipeStep()}
+              ?disabled=${host2._recipesBusy}
             >
-              ${host._t("recipes_card_reconfigure_button", "Reconfigure")}
+              ${host2._t("recipes_card_reconfigure_button", "Reconfigure")}
             </button>
             ${
               updateVersion
                 ? b2`<button
                     class="btn btn-primary"
-                    @click=${() => host._runRecipeUpdate(manifest.slug)}
-                    ?disabled=${host._recipesBusy}
+                    @click=${() => host2._runRecipeUpdate(manifest.slug)}
+                    ?disabled=${host2._recipesBusy}
                   >
                     ${
-                      host._recipeUpdateSlug === manifest.slug
-                        ? host._t("recipes_update_running", "Updating\u2026")
+                      host2._recipeUpdateSlug === manifest.slug
+                        ? host2._t("recipes_update_running", "Updating\u2026")
                         : interpolate(
-                            host._t(
+                            host2._t(
                               "recipes_update_button",
                               "Update to v{version}",
                             ),
@@ -55665,11 +55012,11 @@ function _renderStep1Overview(host) {
       </div>
     `;
   }
-  const preview = host._recipeWizardPreview;
+  const preview = host2._recipeWizardPreview;
   const counts = preview?.preview?.created_counts || {};
   const bullets = Object.entries(counts)
     .filter(([, n6]) => n6 > 0)
-    .map(([k2, n6]) => _humaniseSection(host, k2, n6));
+    .map(([k2, n6]) => _humaniseSection(host2, k2, n6));
   return b2`
     <div class="step-pane">
       ${
@@ -55677,7 +55024,7 @@ function _renderStep1Overview(host) {
           ? b2`
               <section class="overview-card">
                 <h3 class="overview-card-title">
-                  ${host._t("recipes_this_recipe_creates", "This recipe creates")}
+                  ${host2._t("recipes_this_recipe_creates", "This recipe creates")}
                 </h3>
                 <ul class="overview-list">
                   ${bullets.map(
@@ -55695,18 +55042,18 @@ function _renderStep1Overview(host) {
         ${backLink}
         <div class="overview-actions-group">
           ${
-            host._recipesBusy
+            host2._recipesBusy
               ? b2`<span class="overview-actions-hint"
-                  >${host._t("recipes_loading_recipe", "Loading recipe\u2026")}</span
+                  >${host2._t("recipes_loading_recipe", "Loading recipe\u2026")}</span
                 >`
               : ""
           }
           <button
             class="btn btn-primary"
-            @click=${() => host._advanceRecipeStep()}
-            ?disabled=${!host._canAdvanceFromStep(1) || host._recipesBusy}
+            @click=${() => host2._advanceRecipeStep()}
+            ?disabled=${!host2._canAdvanceFromStep(1) || host2._recipesBusy}
           >
-            ${host._t("recipes_start_setup_button", "Start setup")}
+            ${host2._t("recipes_start_setup_button", "Start setup")}
             <ha-icon icon="mdi:arrow-right"></ha-icon>
           </button>
         </div>
@@ -55714,23 +55061,23 @@ function _renderStep1Overview(host) {
     </div>
   `;
 }
-function _renderStepHeading(host, stepNum, label, subline, required) {
+function _renderStepHeading(host2, stepNum, label, subline, required) {
   const displayNum = stepNum - 1;
   return b2`
     <header class="step-heading">
       <div class="step-heading-eyebrow">
         <span class="step-heading-num"
-          >${host._t("recipes_step_label", "Step")} ${displayNum}
-          ${host._t("recipes_step_of_4", "of 4")}</span
+          >${host2._t("recipes_step_label", "Step")} ${displayNum}
+          ${host2._t("recipes_step_of_4", "of 4")}</span
         >
         ${
           required === false
             ? b2`<span class="step-heading-optional"
-                >${host._t("recipes_optional_eyebrow", "Optional")}</span
+                >${host2._t("recipes_optional_eyebrow", "Optional")}</span
               >`
             : required === true
               ? b2`<span class="step-heading-required"
-                  >${host._t("recipes_required_eyebrow", "Required")}</span
+                  >${host2._t("recipes_required_eyebrow", "Required")}</span
                 >`
               : ""
         }
@@ -55740,22 +55087,22 @@ function _renderStepHeading(host, stepNum, label, subline, required) {
     </header>
   `;
 }
-function _renderStep2Settings(host) {
-  const { manifest } = host._recipeWizardDetail;
+function _renderStep2Settings(host2) {
+  const { manifest } = host2._recipeWizardDetail;
   const inputs = (manifest.inputs || []).filter((i8) => !i8.resolver);
   const required = inputs.some((i8) => i8.required !== false);
   return b2`
     <div class="step-pane">
       ${_renderStepHeading(
-        host,
+        host2,
         2,
-        host._t("recipes_step2_title", "Recipe settings"),
+        host2._t("recipes_step2_title", "Recipe settings"),
         inputs.length === 0
-          ? host._t(
+          ? host2._t(
               "recipes_step2_sub_empty",
               "This recipe has no settings to configure \u2014 just click Continue.",
             )
-          : host._t(
+          : host2._t(
               "recipes_step2_sub",
               "Recipe-wide preferences. Defaults are pre-filled; adjust only if you want to change something, then Continue.",
             ),
@@ -55767,26 +55114,26 @@ function _renderStep2Settings(host) {
           : b2`
               <section class="overview-card">
                 <div class="panel-fields">
-                  ${inputs.map((input) => _renderInputField(host, input))}
+                  ${inputs.map((input) => _renderInputField(host2, input))}
                 </div>
               </section>
             `
       }
-      ${_renderWizardFooter(host, {
+      ${_renderWizardFooter(host2, {
         primary: {
-          label: host._t("recipes_continue_button", "Continue"),
+          label: host2._t("recipes_continue_button", "Continue"),
           icon: "mdi:arrow-right",
-          onClick: () => host._advanceRecipeStep(),
+          onClick: () => host2._advanceRecipeStep(),
         },
-        primaryDisabled: !host._canAdvanceFromStep(2) || host._recipesBusy,
+        primaryDisabled: !host2._canAdvanceFromStep(2) || host2._recipesBusy,
         hint: "",
       })}
     </div>
   `;
 }
-function _step3BlockReason(host, preview, needsAction) {
+function _step3BlockReason(host2, preview, needsAction) {
   if (needsAction) {
-    return host._t(
+    return host2._t(
       "recipes_step3_hint_finish",
       "Finish the rows that say \u201CNeeds setup\u201D to continue.",
     );
@@ -55795,13 +55142,13 @@ function _step3BlockReason(host, preview, needsAction) {
     (p4) => p4.code !== "binding_pending" && p4.message,
   );
   if (punch?.message) return punch.message;
-  return host._t(
+  return host2._t(
     "recipes_step3_hint_blocked",
     "This recipe can't be prepared yet \u2014 check the recipe for errors, then try again.",
   );
 }
-function _renderStep3Match(host) {
-  const preview = host._recipeWizardPreview;
+function _renderStep3Match(host2) {
+  const preview = host2._recipeWizardPreview;
   const items = preview?.items || [];
   const matchItems = items.filter(
     (it) =>
@@ -55810,18 +55157,18 @@ function _renderStep3Match(host) {
         it.kind === "integration" ||
         it.kind === "pin"),
   );
-  const active = _activeItem(host, matchItems);
-  const canAdvance = host._canAdvanceFromStep(3);
+  const active = _activeItem(host2, matchItems);
+  const canAdvance = host2._canAdvanceFromStep(3);
   const needsAction = matchItems.some(
     (it) => it.status === "needs_input" || it.status === "failed",
   );
   return b2`
     <div class="step-pane">
       ${_renderStepHeading(
-        host,
+        host2,
         3,
-        host._t("recipes_step3_title", "Match devices"),
-        host._t(
+        host2._t("recipes_step3_title", "Match devices"),
+        host2._t(
           "recipes_step3_sub",
           "Pair each item below with an entity from your home. Click any row to set it up.",
         ),
@@ -55830,27 +55177,27 @@ function _renderStep3Match(host) {
 
       <div class="match-table">
         <div class="match-row match-head">
-          <div>${host._t("recipes_match_col_item", "Item")}</div>
-          <div>${host._t("recipes_match_col_status", "Status")}</div>
-          <div>${host._t("recipes_match_col_selected", "Selected")}</div>
+          <div>${host2._t("recipes_match_col_item", "Item")}</div>
+          <div>${host2._t("recipes_match_col_status", "Status")}</div>
+          <div>${host2._t("recipes_match_col_selected", "Selected")}</div>
         </div>
         ${
           matchItems.length === 0
             ? b2`<div class="match-empty">
                 ${
-                  host._recipesBusy
-                    ? host._t(
+                  host2._recipesBusy
+                    ? host2._t(
                         "recipes_match_scanning",
                         "Scanning your home\u2026",
                       )
-                    : host._t(
+                    : host2._t(
                         "recipes_match_nothing",
                         "Nothing to match \u2014 this recipe runs without device setup.",
                       )
                 }
               </div>`
             : matchItems.map((it) =>
-                _renderMatchRow(host, it, it.id === active?.id),
+                _renderMatchRow(host2, it, it.id === active?.id),
               )
         }
       </div>
@@ -55858,23 +55205,23 @@ function _renderStep3Match(host) {
       ${
         active
           ? b2`<div class="match-detail">
-              ${_renderActionPanel(host, active)}
+              ${_renderActionPanel(host2, active)}
             </div>`
           : ""
       }
-      ${_renderWizardFooter(host, {
+      ${_renderWizardFooter(host2, {
         primary: {
-          label: host._t("recipes_continue_button", "Continue"),
+          label: host2._t("recipes_continue_button", "Continue"),
           icon: "mdi:arrow-right",
-          onClick: () => host._advanceRecipeStep(),
+          onClick: () => host2._advanceRecipeStep(),
         },
-        primaryDisabled: !canAdvance || host._recipesBusy,
+        primaryDisabled: !canAdvance || host2._recipesBusy,
         hint: canAdvance
-          ? host._t(
+          ? host2._t(
               "recipes_step3_hint_ready",
               "Looks good \u2014 ready to set up.",
             )
-          : _step3BlockReason(host, preview, needsAction),
+          : _step3BlockReason(host2, preview, needsAction),
       })}
     </div>
   `;
@@ -55898,32 +55245,32 @@ function _matchRowVisual(item) {
   }
   return { icon: "mdi:circle-outline", variant: "role" };
 }
-function _renderMatchRow(host, item, active) {
+function _renderMatchRow(host2, item, active) {
   const statusCopy = {
-    ok: host._t("recipes_match_status_ready", "Ready"),
-    needs_input: host._t("recipes_match_status_needs_setup", "Needs setup"),
-    failed: host._t("recipes_match_status_error", "Error"),
-    skipped: host._t("recipes_match_status_optional", "Optional"),
-    pending: host._t("recipes_match_status_waiting", "Waiting"),
-    running: host._t("recipes_match_status_working", "Working"),
+    ok: host2._t("recipes_match_status_ready", "Ready"),
+    needs_input: host2._t("recipes_match_status_needs_setup", "Needs setup"),
+    failed: host2._t("recipes_match_status_error", "Error"),
+    skipped: host2._t("recipes_match_status_optional", "Optional"),
+    pending: host2._t("recipes_match_status_waiting", "Waiting"),
+    running: host2._t("recipes_match_status_working", "Working"),
   };
   let displayStatus = item.status;
   let flowError = null;
   if (item.kind === "integration") {
-    const flow = (host._recipeFlows || {})[item.payload?.domain];
+    const flow = (host2._recipeFlows || {})[item.payload?.domain];
     if (flow?.state === "error") {
       displayStatus = "failed";
       flowError = flow.error || null;
     }
   }
-  const selected = _matchRowSelected(host, item);
+  const selected = _matchRowSelected(host2, item);
   const visual = _matchRowVisual(item);
   return b2`
     <button
       type="button"
       class="match-row match-data ${active ? "is-active" : ""}"
       @click=${() => {
-        host._recipeActiveItemId = item.id;
+        host2._recipeActiveItemId = item.id;
       }}
     >
       <div class="match-cell-item">
@@ -55952,18 +55299,18 @@ function _renderMatchRow(host, item, active) {
     </button>
   `;
 }
-function _matchRowSelected(host, item) {
+function _matchRowSelected(host2, item) {
   if (item.kind === "role_selection") {
     const bound = item.payload?.bound || [];
     const pinned = item.payload?.pinned || [];
     const total = bound.length + pinned.length;
     if (total === 0)
       return b2`<span class="panel-muted"
-        >${host._t("recipes_selected_none", "None")}</span
+        >${host2._t("recipes_selected_none", "None")}</span
       >`;
     if (total === 1)
-      return _entityFriendlyName(host.hass, bound[0] || pinned[0]);
-    return `${total} ${host._t("recipes_selected_entities_suffix", "entities")}`;
+      return _entityFriendlyName(host2.hass, bound[0] || pinned[0]);
+    return `${total} ${host2._t("recipes_selected_entities_suffix", "entities")}`;
   }
   if (item.kind === "pin") {
     const id = item.payload?.identity || {};
@@ -55971,7 +55318,7 @@ function _matchRowSelected(host, item) {
     return (
       label ||
       b2`<span class="panel-muted"
-        >${host._t("recipes_selected_awaiting_pair", "Awaiting pair")}</span
+        >${host2._t("recipes_selected_awaiting_pair", "Awaiting pair")}</span
       >`
     );
   }
@@ -55980,13 +55327,13 @@ function _matchRowSelected(host, item) {
   }
   if (item.kind === "inputs") {
     const n6 = item.payload?.inputs?.length || 0;
-    return `${n6} ${n6 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
+    return `${n6} ${n6 === 1 ? host2._t("recipes_selected_setting_singular", "setting") : host2._t("recipes_selected_setting_plural", "settings")}`;
   }
   return "";
 }
-function _renderStep4Resolve(host) {
-  const items = host._recipeWizardPreview?.items || [];
-  const result = host._recipeWizardResult;
+function _renderStep4Resolve(host2) {
+  const items = host2._recipeWizardPreview?.items || [];
+  const result = host2._recipeWizardResult;
   const installOk = !!result && result.ok === true;
   const installFailed = !!result && result.ok === false;
   const apply = items
@@ -56007,23 +55354,23 @@ function _renderStep4Resolve(host) {
   return b2`
     <div class="step-pane">
       ${_renderStepHeading(
-        host,
+        host2,
         4,
-        host._t("recipes_step4_title", "Setting up"),
-        host._recipesBusy
-          ? host._t(
+        host2._t("recipes_step4_title", "Setting up"),
+        host2._recipesBusy
+          ? host2._t(
               "recipes_step4_sub_busy",
               "Selora is installing your recipe. Sit tight \u2014 this only takes a few seconds.",
             )
           : installFailed
-            ? `${host._t("recipes_step4_sub_halted_prefix", "Install halted at the")} ${result.stage_reached || host._t("recipes_stage_unknown", "unknown")} ${host._t("recipes_step4_sub_halted_suffix", "stage. Go back to fix the issues below.")}`
+            ? `${host2._t("recipes_step4_sub_halted_prefix", "Install halted at the")} ${result.stage_reached || host2._t("recipes_stage_unknown", "unknown")} ${host2._t("recipes_step4_sub_halted_suffix", "stage. Go back to fix the issues below.")}`
             : allDone
-              ? host._t(
+              ? host2._t(
                   "recipes_step4_sub_done",
                   "All done. Click Continue to review what was installed.",
                 )
-              : host._t("recipes_step4_sub_starting", "Starting setup\u2026"),
-        host._recipesBusy || !allDone,
+              : host2._t("recipes_step4_sub_starting", "Starting setup\u2026"),
+        host2._recipesBusy || !allDone,
       )}
       ${
         installFailed
@@ -56031,7 +55378,7 @@ function _renderStep4Resolve(host) {
               <section class="bucket bucket-failed">
                 <h3 class="bucket-title">
                   <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-                  ${host._t("recipes_bucket_install_failed", "Install failed")}
+                  ${host2._t("recipes_bucket_install_failed", "Install failed")}
                 </h3>
                 ${
                   errorPunch.length
@@ -56044,7 +55391,7 @@ function _renderStep4Resolve(host) {
                         )}
                       </ul>`
                     : b2`<p class="panel-prose panel-muted">
-                        ${host._t(
+                        ${host2._t(
                           "recipes_bucket_no_details",
                           "No details available. Check the Home Assistant log for the underlying error.",
                         )}
@@ -56060,9 +55407,9 @@ function _renderStep4Resolve(host) {
               <section class="bucket bucket-waiting">
                 <h3 class="bucket-title">
                   <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
-                  ${host._t("recipes_bucket_waiting_for_you", "Waiting for you")}
+                  ${host2._t("recipes_bucket_waiting_for_you", "Waiting for you")}
                 </h3>
-                ${interrupts.map((it) => _renderBucketItem(host, it, true))}
+                ${interrupts.map((it) => _renderBucketItem(host2, it, true))}
               </section>
             `
           : ""
@@ -56073,9 +55420,9 @@ function _renderStep4Resolve(host) {
               <section class="bucket bucket-failed">
                 <h3 class="bucket-title">
                   <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-                  ${host._t("recipes_bucket_failed", "Failed")}
+                  ${host2._t("recipes_bucket_failed", "Failed")}
                 </h3>
-                ${failed.map((it) => _renderBucketItem(host, it, false))}
+                ${failed.map((it) => _renderBucketItem(host2, it, false))}
               </section>
             `
           : ""
@@ -56086,9 +55433,9 @@ function _renderStep4Resolve(host) {
               <section class="bucket bucket-running">
                 <h3 class="bucket-title">
                   <ha-icon icon="mdi:cog-sync-outline"></ha-icon>
-                  ${host._t("recipes_bucket_in_progress", "In progress")}
+                  ${host2._t("recipes_bucket_in_progress", "In progress")}
                 </h3>
-                ${running.map((it) => _renderBucketItem(host, it, false))}
+                ${running.map((it) => _renderBucketItem(host2, it, false))}
               </section>
             `
           : ""
@@ -56099,9 +55446,9 @@ function _renderStep4Resolve(host) {
               <section class="bucket bucket-upcoming">
                 <h3 class="bucket-title">
                   <ha-icon icon="mdi:tray-arrow-down"></ha-icon>
-                  ${host._t("recipes_bucket_up_next", "Up next")}
+                  ${host2._t("recipes_bucket_up_next", "Up next")}
                 </h3>
-                ${upcoming.map((it) => _renderBucketItem(host, it, false))}
+                ${upcoming.map((it) => _renderBucketItem(host2, it, false))}
               </section>
             `
           : ""
@@ -56112,34 +55459,34 @@ function _renderStep4Resolve(host) {
               <section class="bucket bucket-done">
                 <h3 class="bucket-title">
                   <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                  ${host._t("recipes_bucket_completed", "Completed")}
+                  ${host2._t("recipes_bucket_completed", "Completed")}
                 </h3>
-                ${completed.map((it) => _renderBucketItem(host, it, false))}
+                ${completed.map((it) => _renderBucketItem(host2, it, false))}
               </section>
             `
           : ""
       }
-      ${_renderWizardFooter(host, {
+      ${_renderWizardFooter(host2, {
         primary: {
           label: allDone
-            ? host._t("recipes_continue_button", "Continue")
-            : host._recipesBusy
-              ? host._t("recipes_working", "Working\u2026")
+            ? host2._t("recipes_continue_button", "Continue")
+            : host2._recipesBusy
+              ? host2._t("recipes_working", "Working\u2026")
               : installFailed
-                ? host._t("recipes_install_failed_button", "Install failed")
-                : host._t("recipes_setting_up_button", "Setting up\u2026"),
+                ? host2._t("recipes_install_failed_button", "Install failed")
+                : host2._t("recipes_setting_up_button", "Setting up\u2026"),
           icon: allDone ? "mdi:arrow-right" : null,
-          onClick: () => host._advanceRecipeStep(),
+          onClick: () => host2._advanceRecipeStep(),
         },
-        primaryDisabled: host._recipesBusy || !host._canAdvanceFromStep(4),
-        hideBack: host._recipesBusy,
+        primaryDisabled: host2._recipesBusy || !host2._canAdvanceFromStep(4),
+        hideBack: host2._recipesBusy,
         hint: installFailed
-          ? host._t(
+          ? host2._t(
               "recipes_step4_hint_failed",
               "Hit Back to revise your selections, then try again.",
             )
           : failed.length
-            ? host._t(
+            ? host2._t(
                 "recipes_step4_hint_something_failed",
                 "Something failed \u2014 go back and try again.",
               )
@@ -56148,7 +55495,7 @@ function _renderStep4Resolve(host) {
     </div>
   `;
 }
-function _renderBucketItem(host, item, interactive) {
+function _renderBucketItem(host2, item, interactive) {
   const icon = _STATUS_ICON[item.status] || "mdi:circle-outline";
   return b2`
     <div class="bucket-item">
@@ -56162,27 +55509,27 @@ function _renderBucketItem(host, item, interactive) {
       ${
         interactive
           ? b2`<div class="bucket-item-action">
-              ${_renderActionPanel(host, item)}
+              ${_renderActionPanel(host2, item)}
             </div>`
           : ""
       }
     </div>
   `;
 }
-function _renderDashboardOutcome(host) {
-  const manifest = host._recipeWizardDetail?.manifest;
+function _renderDashboardOutcome(host2) {
+  const manifest = host2._recipeWizardDetail?.manifest;
   if (!manifest?.dashboard) return "";
-  const card = host._recipeWizardResult?.record?.dashboard_card || {};
+  const card = host2._recipeWizardResult?.record?.dashboard_card || {};
   const placed = card.ok === true;
-  const dashboards = host._recipeDashboards || [];
-  const title = host._t("recipes_step5_dashboard_title", "Dashboard card");
+  const dashboards = host2._recipeDashboards || [];
+  const title = host2._t("recipes_step5_dashboard_title", "Dashboard card");
   if (placed) {
     return b2`
       <section class="overview-card">
         <h3 class="overview-card-title">${title}</h3>
         <p class="step-prose">
           <ha-icon icon="mdi:check-circle" class="safety-ok"></ha-icon>
-          ${host._t(
+          ${host2._t(
             "recipes_step5_dashboard_added",
             "A card was added to your dashboard.",
           )}
@@ -56195,7 +55542,7 @@ function _renderDashboardOutcome(host) {
       <section class="overview-card">
         <h3 class="overview-card-title">${title}</h3>
         <p class="step-prose panel-muted">
-          ${host._t(
+          ${host2._t(
             "recipes_step5_dashboard_none",
             "No editable dashboards found. Add a card yourself from your dashboard's edit mode.",
           )}
@@ -56203,7 +55550,7 @@ function _renderDashboardOutcome(host) {
       </section>
     `;
   }
-  const current = host._recipeDashboardTarget;
+  const current = host2._recipeDashboardTarget;
   const firstValue =
     dashboards[0].url_path == null ? "" : dashboards[0].url_path;
   const selected =
@@ -56212,7 +55559,7 @@ function _renderDashboardOutcome(host) {
     <section class="overview-card">
       <h3 class="overview-card-title">${title}</h3>
       <p class="step-prose panel-muted">
-        ${host._t(
+        ${host2._t(
           "recipes_step5_dashboard_offer",
           "Drop a card for this recipe onto a dashboard so you can tap it.",
         )}
@@ -56220,8 +55567,8 @@ function _renderDashboardOutcome(host) {
       <select
         class="role-filter-input"
         .value=${selected}
-        @change=${(e6) => host._setRecipeDashboardTarget(e6.target.value)}
-        ?disabled=${host._recipesBusy}
+        @change=${(e6) => host2._setRecipeDashboardTarget(e6.target.value)}
+        ?disabled=${host2._recipesBusy}
       >
         ${dashboards.map(
           (d3) => b2`<option value=${d3.url_path == null ? "" : d3.url_path}>
@@ -56233,18 +55580,18 @@ function _renderDashboardOutcome(host) {
         <button
           class="panel-btn primary"
           type="button"
-          @click=${() => host._insertRecipeDashboardCard()}
-          ?disabled=${host._recipesBusy}
+          @click=${() => host2._insertRecipeDashboardCard()}
+          ?disabled=${host2._recipesBusy}
         >
-          ${host._t("recipes_step5_dashboard_add", "Add card")}
+          ${host2._t("recipes_step5_dashboard_add", "Add card")}
           <ha-icon icon="mdi:view-dashboard-outline"></ha-icon>
         </button>
       </div>
     </section>
   `;
 }
-function _renderStep5Activate(host) {
-  const result = host._recipeWizardResult;
+function _renderStep5Activate(host2) {
+  const result = host2._recipeWizardResult;
   const counts = result?.preview?.created_counts || {};
   const bindings = result?.bindings || {};
   const allBoundIds = Object.values(bindings).flat();
@@ -56254,40 +55601,40 @@ function _renderStep5Activate(host) {
       ok: result?.ok === true,
       label:
         result?.ok === true
-          ? host._t(
+          ? host2._t(
               "recipes_safety_installed_ok",
               "Recipe installed successfully",
             )
-          : host._t("recipes_safety_install_incomplete", "Install incomplete"),
+          : host2._t("recipes_safety_install_incomplete", "Install incomplete"),
     },
     {
       ok: (result?.punch_list?.length || 0) === 0,
       label:
         (result?.punch_list?.length || 0) === 0
-          ? host._t("recipes_safety_no_issues", "No outstanding issues")
-          : `${result.punch_list.length} ${host._t("recipes_safety_issues_to_address", "issue(s) to address")}`,
+          ? host2._t("recipes_safety_no_issues", "No outstanding issues")
+          : `${result.punch_list.length} ${host2._t("recipes_safety_issues_to_address", "issue(s) to address")}`,
     },
     {
       ok: Object.keys(counts).length > 0,
       label:
         Object.keys(counts).length > 0
-          ? host._t(
+          ? host2._t(
               "recipes_safety_automations_generated",
               "Automations generated",
             )
-          : host._t("recipes_safety_no_artifacts", "No artifacts created"),
+          : host2._t("recipes_safety_no_artifacts", "No artifacts created"),
     },
   ];
   const summaryBullets = Object.entries(counts)
     .filter(([, n6]) => n6 > 0)
-    .map(([k2, n6]) => _humaniseSection(host, k2, n6));
+    .map(([k2, n6]) => _humaniseSection(host2, k2, n6));
   return b2`
     <div class="step-pane">
       ${_renderStepHeading(
-        host,
+        host2,
         5,
-        host._t("recipes_step5_title", "Review & finish"),
-        host._t(
+        host2._t("recipes_step5_title", "Review & finish"),
+        host2._t(
           "recipes_step5_sub",
           "Your recipe is installed and Home Assistant has been reloaded. Review what was created below, then click Finish.",
         ),
@@ -56297,7 +55644,7 @@ function _renderStep5Activate(host) {
       <div class="activate-grid">
         <section class="overview-card">
           <h3 class="overview-card-title">
-            ${host._t("recipes_step5_created_title", "This recipe created")}
+            ${host2._t("recipes_step5_created_title", "This recipe created")}
           </h3>
           ${
             summaryBullets.length
@@ -56310,7 +55657,7 @@ function _renderStep5Activate(host) {
                   )}
                 </ul>`
               : b2`<p class="step-prose panel-muted">
-                  ${host._t(
+                  ${host2._t(
                     "recipes_step5_no_entries",
                     "No entries were generated.",
                   )}
@@ -56320,28 +55667,28 @@ function _renderStep5Activate(host) {
 
         <section class="overview-card">
           <h3 class="overview-card-title">
-            ${host._t("recipes_step5_devices_linked", "Devices linked")}
+            ${host2._t("recipes_step5_devices_linked", "Devices linked")}
           </h3>
           ${
             uniqueBound.length
               ? b2`<ul class="overview-list compact">
                   ${uniqueBound.slice(0, 8).map(
                     (id) => b2`<li>
-                        <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
-                        ${_entityFriendlyName(host.hass, id)}
+                        <ha-icon icon=${_entityIcon2(host2.hass, id)}></ha-icon>
+                        ${_entityFriendlyName(host2.hass, id)}
                       </li>`,
                   )}
                   ${
                     uniqueBound.length > 8
                       ? b2`<li class="panel-muted">
                           + ${uniqueBound.length - 8}
-                          ${host._t("recipes_step5_more_suffix", "more")}
+                          ${host2._t("recipes_step5_more_suffix", "more")}
                         </li>`
                       : ""
                   }
                 </ul>`
               : b2`<p class="step-prose panel-muted">
-                  ${host._t(
+                  ${host2._t(
                     "recipes_step5_no_devices",
                     "No devices are tied to this recipe.",
                   )}
@@ -56351,7 +55698,7 @@ function _renderStep5Activate(host) {
 
         <section class="overview-card safety-card">
           <h3 class="overview-card-title">
-            ${host._t("recipes_step5_safety_checks", "Safety checks")}
+            ${host2._t("recipes_step5_safety_checks", "Safety checks")}
           </h3>
           <ul class="overview-list compact">
             ${safety.map(
@@ -56365,19 +55712,19 @@ function _renderStep5Activate(host) {
             )}
           </ul>
         </section>
-        ${_renderDashboardOutcome(host)}
+        ${_renderDashboardOutcome(host2)}
       </div>
 
-      ${_renderWizardFooter(host, {
+      ${_renderWizardFooter(host2, {
         primary: {
-          label: host._t("recipes_finish_button", "Finish"),
+          label: host2._t("recipes_finish_button", "Finish"),
           icon: "mdi:check",
-          onClick: () => host._closeRecipeWizard(),
+          onClick: () => host2._closeRecipeWizard(),
         },
         primaryDisabled: false,
         hideBack: true,
         hideSecondary: true,
-        hint: host._t(
+        hint: host2._t(
           "recipes_step5_hint",
           "Home Assistant has been reloaded \u2014 your recipe is live.",
         ),
@@ -56385,55 +55732,55 @@ function _renderStep5Activate(host) {
     </div>
   `;
 }
-function _renderWizardView(host) {
-  const detail = host._recipeWizardDetail;
+function _renderWizardView(host2) {
+  const detail = host2._recipeWizardDetail;
   if (!detail) {
     return b2`<div class="recipes-empty">
-      ${host._t("recipes_loading", "Loading\u2026")}
+      ${host2._t("recipes_loading", "Loading\u2026")}
     </div>`;
   }
-  const step = host._recipeWizardStep || 1;
+  const step = host2._recipeWizardStep || 1;
   const body =
     step === 1
-      ? _renderStep1Overview(host)
+      ? _renderStep1Overview(host2)
       : step === 2
-        ? _renderStep2Settings(host)
+        ? _renderStep2Settings(host2)
         : step === 3
-          ? _renderStep3Match(host)
+          ? _renderStep3Match(host2)
           : step === 4
-            ? _renderStep4Resolve(host)
-            : _renderStep5Activate(host);
+            ? _renderStep4Resolve(host2)
+            : _renderStep5Activate(host2);
   const rail =
     step === 1
-      ? _renderWhatYouNeedRail(host, detail.manifest)
-      : _renderWizardStepper(host);
+      ? _renderWhatYouNeedRail(host2, detail.manifest)
+      : _renderWizardStepper(host2);
   return b2`
     <div class="wizard-root ${step === 1 ? "wizard-root-overview" : ""}">
-      ${step === 1 ? "" : _renderWizardStepperCompact(host)}
+      ${step === 1 ? "" : _renderWizardStepperCompact(host2)}
       <div class="wizard-main">
-        ${_renderWizardHero(host, detail.manifest, { compact: step !== 1 })}
+        ${_renderWizardHero(host2, detail.manifest, { compact: step !== 1 })}
         ${body}
       </div>
       ${rail}
     </div>
   `;
 }
-function _renderResultView(host) {
-  const result = host._recipeWizardResult;
+function _renderResultView(host2) {
+  const result = host2._recipeWizardResult;
   if (!result) return "";
   return b2`
     <div class="recipes-root">
       <button
         class="wizard-back"
         @click=${() => {
-          host._recipeWizardResult = null;
-          host._recipesView = "list";
-          host._recipeWizardSlug = null;
-          host._setRecipeWizardUrl?.(null);
-          host._loadRecipesList();
+          host2._recipeWizardResult = null;
+          host2._recipesView = "list";
+          host2._recipeWizardSlug = null;
+          host2._setRecipeWizardUrl?.(null);
+          host2._loadRecipesList();
         }}
       >
-        <ha-icon icon="mdi:arrow-left"></ha-icon> ${host._t(
+        <ha-icon icon="mdi:arrow-left"></ha-icon> ${host2._t(
           "recipes_back_to_recipes",
           "Back to recipes",
         )}
@@ -56446,7 +55793,7 @@ function _renderResultView(host) {
                   style="font-size:var(--selora-fs-xl);font-weight:700;display:flex;align-items:center;gap:8px;"
                 >
                   <ha-icon icon="mdi:check-circle"></ha-icon>
-                  ${host._t(
+                  ${host2._t(
                     "recipes_result_install_complete",
                     "Installation complete",
                   )}
@@ -56458,7 +55805,7 @@ function _renderResultView(host) {
                           style="font-size:var(--selora-fs-md);line-height:1.6;"
                         >
                           ${result.record.title} v${result.record.version}
-                          ${host._t(
+                          ${host2._t(
                             "recipes_result_installed_reloaded",
                             "was installed and Home Assistant has been reloaded. Package file:",
                           )}
@@ -56478,13 +55825,13 @@ function _renderResultView(host) {
                             icon="mdi:chevron-right"
                           ></ha-icon>
                           <ha-icon icon="mdi:file-document-outline"></ha-icon>
-                          ${host._t(
+                          ${host2._t(
                             "recipes_result_view_yaml",
                             "View generated package YAML",
                           )}
                           <span class="filler"></span>
                           <span class="package-disclosure-hint"
-                            >${host._t("recipes_result_advanced", "advanced")}</span
+                            >${host2._t("recipes_result_advanced", "advanced")}</span
                           >
                         </summary>
                         ${o7(
@@ -56500,7 +55847,7 @@ function _renderResultView(host) {
           : b2`
               <div class="wizard-section">
                 <h3 style="color:var(--error-color,#c62828);">
-                  ${host._t(
+                  ${host2._t(
                     "recipes_result_halted_at_stage",
                     "Installation halted at stage:",
                   )}
@@ -56509,42 +55856,42 @@ function _renderResultView(host) {
                 <p
                   style="font-size:var(--selora-fs-md);color:var(--secondary-text-color);"
                 >
-                  ${host._t(
+                  ${host2._t(
                     "recipes_result_fix_retry",
                     "Fix the items below, then re-open the recipe to retry.",
                   )}
                 </p>
               </div>
-              ${_renderPunchList(host, result.punch_list)}
+              ${_renderPunchList(host2, result.punch_list)}
             `
       }
     </div>
   `;
 }
-function _renderUninstallModal(host) {
-  const slug = host._recipeUninstallPending;
+function _renderUninstallModal(host2) {
+  const slug = host2._recipeUninstallPending;
   if (!slug) return "";
-  const record = (host._recipesList?.installed || []).find(
+  const record = (host2._recipesList?.installed || []).find(
     (r6) => r6.slug === slug,
   );
   const title = record?.title || slug;
   const installedIntegrations = record?.integrations_installed || {};
   const integrationDomains = Object.keys(installedIntegrations);
-  const selectedEntries = host._recipeUninstallEntries || {};
+  const selectedEntries = host2._recipeUninstallEntries || {};
   const onKey = (e6) => {
     if (e6.key === "Enter") {
       e6.preventDefault();
-      host._confirmRecipeUninstall();
+      host2._confirmRecipeUninstall();
     } else if (e6.key === "Escape") {
       e6.preventDefault();
-      host._cancelRecipeUninstall();
+      host2._cancelRecipeUninstall();
     }
   };
   return b2`
     <div
       class="modal-overlay"
       @click=${(e6) => {
-        if (e6.target === e6.currentTarget) host._cancelRecipeUninstall();
+        if (e6.target === e6.currentTarget) host2._cancelRecipeUninstall();
       }}
       @keydown=${onKey}
     >
@@ -56557,11 +55904,11 @@ function _renderUninstallModal(host) {
             icon="mdi:delete-alert-outline"
             class="modal-title-icon"
           ></ha-icon>
-          ${host._t("recipes_uninstall_confirm_prefix", "Uninstall")}
+          ${host2._t("recipes_uninstall_confirm_prefix", "Uninstall")}
           &ldquo;${title}&rdquo;?
         </h3>
         <p class="modal-body">
-          ${host._t(
+          ${host2._t(
             "recipes_uninstall_body",
             "The package file will be deleted and Home Assistant will reload. The automations this recipe created will be removed.",
           )}
@@ -56571,13 +55918,13 @@ function _renderUninstallModal(host) {
             ? b2`
                 <div class="uninstall-integrations">
                   <div class="uninstall-integrations-title">
-                    ${host._t(
+                    ${host2._t(
                       "recipes_uninstall_integrations_title",
                       "Integrations this recipe installed",
                     )}
                   </div>
                   <p class="uninstall-integrations-sub">
-                    ${host._t(
+                    ${host2._t(
                       "recipes_uninstall_integrations_sub",
                       "Tick any that should be removed along with the recipe. Anything you leave unchecked stays in Home Assistant.",
                     )}
@@ -56585,14 +55932,14 @@ function _renderUninstallModal(host) {
                   ${integrationDomains.map((domain) => {
                     const entryId = installedIntegrations[domain];
                     const checked = !!selectedEntries[entryId];
-                    const others = host._otherUsersOfDomain(domain, slug);
+                    const others = host2._otherUsersOfDomain(domain, slug);
                     const iconUrl = `https://brands.home-assistant.io/_/${domain}/icon@2x.png`;
                     return b2`
                       <label class="uninstall-integration-row">
                         <input
                           type="checkbox"
                           .checked=${checked}
-                          @change=${() => host._toggleUninstallEntry(entryId)}
+                          @change=${() => host2._toggleUninstallEntry(entryId)}
                         />
                         <img
                           class="uninstall-integration-brand"
@@ -56611,13 +55958,13 @@ function _renderUninstallModal(host) {
                             others.length
                               ? b2`<div
                                   class="uninstall-integration-warn"
-                                  title=${host._t(
+                                  title=${host2._t(
                                     "recipes_uninstall_warn_title",
                                     "Removing this integration will break those recipes.",
                                   )}
                                 >
                                   <ha-icon icon="mdi:alert-outline"></ha-icon>
-                                  ${host._t(
+                                  ${host2._t(
                                     "recipes_uninstall_still_used_by",
                                     "Still used by",
                                   )}
@@ -56636,32 +55983,32 @@ function _renderUninstallModal(host) {
         <div class="modal-actions">
           <button
             class="modal-btn modal-cancel"
-            @click=${() => host._cancelRecipeUninstall()}
+            @click=${() => host2._cancelRecipeUninstall()}
           >
-            ${host._t("recipes_footer_cancel", "Cancel")}
+            ${host2._t("recipes_footer_cancel", "Cancel")}
           </button>
           <button
             class="modal-btn modal-destructive"
             autofocus
-            @click=${() => host._confirmRecipeUninstall()}
+            @click=${() => host2._confirmRecipeUninstall()}
           >
             <ha-icon icon="mdi:delete-outline" class="modal-btn-icon"></ha-icon>
-            ${host._t("recipes_card_uninstall_button", "Uninstall")}
+            ${host2._t("recipes_card_uninstall_button", "Uninstall")}
           </button>
         </div>
       </div>
     </div>
   `;
 }
-function _renderManageDevicesModal(host) {
-  const slug = host._recipeManageSlug;
+function _renderManageDevicesModal(host2) {
+  const slug = host2._recipeManageSlug;
   if (!slug) return "";
-  const detail = host._recipeManageDetail;
+  const detail = host2._recipeManageDetail;
   return b2`
     <div
       class="modal-overlay"
       @click=${(e6) => {
-        if (e6.target === e6.currentTarget) host._closeManageDevices();
+        if (e6.target === e6.currentTarget) host2._closeManageDevices();
       }}
     >
       <div
@@ -56670,19 +56017,19 @@ function _renderManageDevicesModal(host) {
       >
         <h3 class="modal-title">
           <ha-icon icon="mdi:swap-horizontal"></ha-icon>
-          ${host._t(
+          ${host2._t(
             "recipes_card_manage_devices_button",
             "Manage devices",
           )}${detail ? ` \u2014 ${detail.manifest.title}` : ""}
         </h3>
-        ${host._recipeManageError ? b2`<div class="panel-error">${host._recipeManageError}</div>` : ""}
+        ${host2._recipeManageError ? b2`<div class="panel-error">${host2._recipeManageError}</div>` : ""}
         ${
           !detail
             ? b2`<p class="panel-prose panel-muted">
                 ${
-                  host._recipeManageBusy
-                    ? host._t("recipes_loading", "Loading\u2026")
-                    : host._t(
+                  host2._recipeManageBusy
+                    ? host2._t("recipes_loading", "Loading\u2026")
+                    : host2._t(
                         "recipes_manage_no_detail",
                         "No detail available.",
                       )
@@ -56690,39 +56037,39 @@ function _renderManageDevicesModal(host) {
               </p>`
             : b2`
                 <p class="panel-prose">
-                  ${host._t(
+                  ${host2._t(
                     "recipes_manage_intro",
                     "Update which entities back each role. Saves immediately \u2014 automations are not re-rendered, only the group memberships change.",
                   )}
                 </p>
                 ${detail.manifest.roles.map((role) =>
-                  _renderManageRoleRow(host, role),
+                  _renderManageRoleRow(host2, role),
                 )}
               `
         }
         <div class="modal-actions">
           <button
             class="modal-btn modal-cancel"
-            @click=${() => host._closeManageDevices()}
-            ?disabled=${host._recipeManageBusy}
+            @click=${() => host2._closeManageDevices()}
+            ?disabled=${host2._recipeManageBusy}
           >
-            ${host._t("recipes_footer_cancel", "Cancel")}
+            ${host2._t("recipes_footer_cancel", "Cancel")}
           </button>
           <button
             class="modal-btn modal-create"
-            @click=${() => host._saveManageDevices()}
-            ?disabled=${host._recipeManageBusy || !detail}
+            @click=${() => host2._saveManageDevices()}
+            ?disabled=${host2._recipeManageBusy || !detail}
           >
-            ${host._recipeManageBusy ? host._t("recipes_manage_saving", "Saving\u2026") : host._t("recipes_manage_save", "Save")}
+            ${host2._recipeManageBusy ? host2._t("recipes_manage_saving", "Saving\u2026") : host2._t("recipes_manage_save", "Save")}
           </button>
         </div>
       </div>
     </div>
   `;
 }
-function _renderManageRoleRow(host, role) {
-  const selected = new Set(host._recipeManageSelections[role.id] || []);
-  const states = host.hass?.states || {};
+function _renderManageRoleRow(host2, role) {
+  const selected = new Set(host2._recipeManageSelections[role.id] || []);
+  const states = host2.hass?.states || {};
   const candidates = Object.keys(states).filter((id) => {
     if (!id.startsWith(`${role.kind}.`)) return false;
     if (role.device_class) {
@@ -56741,9 +56088,9 @@ function _renderManageRoleRow(host, role) {
         ${
           candidates.length === 0
             ? b2`<p class="panel-prose panel-muted">
-                ${host._t("recipes_manage_no_entities_prefix", "No")}
+                ${host2._t("recipes_manage_no_entities_prefix", "No")}
                 ${role.kind}
-                ${host._t(
+                ${host2._t(
                   "recipes_manage_no_entities_suffix",
                   "entities found in this home.",
                 )}
@@ -56755,15 +56102,15 @@ function _renderManageRoleRow(host, role) {
                     type="button"
                     class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
                     title=${id}
-                    @click=${() => host._toggleManageEntity(role.id, id)}
-                    ?disabled=${host._recipeManageBusy}
+                    @click=${() => host2._toggleManageEntity(role.id, id)}
+                    ?disabled=${host2._recipeManageBusy}
                   >
                     <span class="chip-icon-tile">
-                      <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
+                      <ha-icon icon=${_entityIcon2(host2.hass, id)}></ha-icon>
                     </span>
                     <span class="chip-text">
                       <span class="chip-name">
-                        ${_entityFriendlyName(host.hass, id)}
+                        ${_entityFriendlyName(host2.hass, id)}
                       </span>
                       <span class="chip-id">${id}</span>
                     </span>
@@ -56775,14 +56122,14 @@ function _renderManageRoleRow(host, role) {
     </div>
   `;
 }
-function renderRecipesV2(host) {
+function renderRecipesV2(host2) {
   let body;
-  if (host._recipesView === "wizard") body = _renderWizardView(host);
-  else if (host._recipesView === "result") body = _renderResultView(host);
-  else body = _renderListView(host);
+  if (host2._recipesView === "wizard") body = _renderWizardView(host2);
+  else if (host2._recipesView === "result") body = _renderResultView(host2);
+  else body = _renderListView(host2);
   return b2`
     <div class="scroll-view">${_STYLE} ${body}</div>
-    ${_renderManageDevicesModal(host)} ${_renderUninstallModal(host)}
+    ${_renderManageDevicesModal(host2)} ${_renderUninstallModal(host2)}
   `;
 }
 
@@ -56861,11 +56208,11 @@ function valueClause(t5, hass, field, before, after) {
     { field, from: fmtValue(hass, before), to: fmtValue(hass, after) },
   );
 }
-function phraseVersionChanges(host, changes) {
+function phraseVersionChanges(host2, changes) {
   if (!Array.isArray(changes) || !changes.length) return "";
-  const hass = host.hass;
+  const hass = host2.hass;
   const t5 = (key, fallback) =>
-    typeof host._t === "function" ? host._t(key, fallback) : fallback;
+    typeof host2._t === "function" ? host2._t(key, fallback) : fallback;
   const sectionLabel = (section) =>
     t5(
       `version_summary_section_${section}`,
@@ -57031,40 +56378,40 @@ function phraseVersionChanges(host, changes) {
     }),
   );
 }
-function versionSummary(host, automationId, version) {
+function versionSummary(host2, automationId, version) {
   if (!version) return "";
   if (
     version.summary &&
     String(version.summary_language || "").toLowerCase() ===
-      pickLocale(host.hass).split("-")[0]
+      pickLocale(host2.hass).split("-")[0]
   ) {
     return version.summary;
   }
-  const entities = host.hass?.entities;
-  const devices = host.hass?.devices;
-  const cache = host._versionSummaryCache;
+  const entities = host2.hass?.entities;
+  const devices = host2.hass?.devices;
+  const cache = host2._versionSummaryCache;
   if (!cache || cache.entities !== entities || cache.devices !== devices) {
-    host._versionSummaryCache = {
+    host2._versionSummaryCache = {
       entities,
       devices,
       summaries: /* @__PURE__ */ new Map(),
     };
   }
-  const summaries = host._versionSummaryCache.summaries;
-  const key = `${automationId}_${version.version_id}_${pickLocale(host.hass)}`;
+  const summaries = host2._versionSummaryCache.summaries;
+  const key = `${automationId}_${version.version_id}_${pickLocale(host2.hass)}`;
   let summary = summaries.get(key);
   if (summary === void 0) {
-    summary = phraseVersionChanges(host, version.changes);
+    summary = phraseVersionChanges(host2, version.changes);
     summaries.set(key, summary);
   }
   return summary;
 }
 
 // src/panel/render-version-history.js
-function renderVersionHistoryDrawer(host, a3) {
+function renderVersionHistoryDrawer(host2, a3) {
   const automationId = a3.automation_id || a3.entity_id;
-  const versions = host._versions[automationId] || [];
-  const loading = host._loadingVersions[automationId];
+  const versions = host2._versions[automationId] || [];
+  const loading = host2._loadingVersions[automationId];
   return b2`
     <div class="version-history">
       ${
@@ -57072,16 +56419,16 @@ function renderVersionHistoryDrawer(host, a3) {
         // blanking the list to "Loading…" each time the tab opens.
         loading && versions.length === 0
           ? b2`<div class="version-history-empty">
-              ${host._t("version_history_loading", "Loading\u2026")}
+              ${host2._t("version_history_loading", "Loading\u2026")}
             </div>`
           : versions.length === 0
             ? b2`<div class="version-history-empty">
-                ${host._t("version_history_empty", "No version history yet.")}
+                ${host2._t("version_history_empty", "No version history yet.")}
               </div>`
             : b2`
                 <ol class="version-list">
                   ${versions.map((v3, i8) =>
-                    renderVersionEntry(host, automationId, versions, i8),
+                    renderVersionEntry(host2, automationId, versions, i8),
                   )}
                 </ol>
               `
@@ -57089,39 +56436,39 @@ function renderVersionHistoryDrawer(host, a3) {
     </div>
   `;
 }
-function versionDiff(host, automationId, versions, i8) {
+function versionDiff(host2, automationId, versions, i8) {
   const newer = versions[i8];
   const older = versions[i8 + 1];
   if (!newer || !older) return null;
   const after = newer.yaml || newer.yaml_content || "";
   const before = older.yaml || older.yaml_content || "";
   if (!before || !after) return null;
-  if (!host._versionDiffCache)
-    host._versionDiffCache = /* @__PURE__ */ new Map();
+  if (!host2._versionDiffCache)
+    host2._versionDiffCache = /* @__PURE__ */ new Map();
   const cacheKey = `${automationId}_${newer.version_id}`;
-  const cached = host._versionDiffCache.get(cacheKey);
+  const cached = host2._versionDiffCache.get(cacheKey);
   if (cached && cached.before === before && cached.after === after) {
     return cached.diff;
   }
   const diff = diffLines(before, after);
-  host._versionDiffCache.set(cacheKey, { before, after, diff });
+  host2._versionDiffCache.set(cacheKey, { before, after, diff });
   return diff;
 }
-function renderVersionEntry(host, automationId, versions, i8) {
+function renderVersionEntry(host2, automationId, versions, i8) {
   const v3 = versions[i8];
   const total = versions.length;
   const key = `${automationId}_${v3.version_id}`;
-  const restoring = host._restoringVersion[key];
+  const restoring = host2._restoringVersion[key];
   const date = new Date(v3.created_at);
   const timeAgo = relativeTime(date);
   const isCurrent = i8 === 0;
   const message = v3.message || v3.version_message;
-  const summary = versionSummary(host, automationId, v3);
-  const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
+  const summary = versionSummary(host2, automationId, v3);
+  const yamlOpen = !!host2._expandedAutomations[`ver_${key}`];
   const versionNumber = total - i8;
-  const diff = versionDiff(host, automationId, versions, i8);
+  const diff = versionDiff(host2, automationId, versions, i8);
   const diffKey = `verdiff_${key}`;
-  const diffOpen = !!(host._proposalDiffOpen || {})[diffKey];
+  const diffOpen = !!(host2._proposalDiffOpen || {})[diffKey];
   return b2`
     <li class="version-entry ${isCurrent ? "current" : ""}">
       <span class="version-entry-dot" aria-hidden="true"></span>
@@ -57132,7 +56479,7 @@ function renderVersionEntry(host, automationId, versions, i8) {
             ${
               isCurrent
                 ? b2`<span class="version-entry-badge"
-                    >${host._t("version_history_current_badge", "Current")}</span
+                    >${host2._t("version_history_current_badge", "Current")}</span
                   >`
                 : ""
             }
@@ -57154,20 +56501,20 @@ function renderVersionEntry(host, automationId, versions, i8) {
         <div class="version-entry-actions">
           <button
             class="btn btn-outline version-entry-btn"
-            @click=${() => host._toggleExpandAutomation(`ver_${key}`)}
+            @click=${() => host2._toggleExpandAutomation(`ver_${key}`)}
           >
             <ha-icon
               icon=${yamlOpen ? "mdi:eye-off-outline" : "mdi:code-braces"}
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            ${yamlOpen ? host._t("version_history_hide_yaml", "Hide YAML") : host._t("version_history_view_yaml", "View YAML")}
+            ${yamlOpen ? host2._t("version_history_hide_yaml", "Hide YAML") : host2._t("version_history_view_yaml", "View YAML")}
           </button>
           ${
             diff
               ? b2`
                   <button
                     class="btn btn-outline version-entry-btn"
-                    @click=${() => toggleProposalDiff(host, diffKey)}
+                    @click=${() => toggleProposalDiff(host2, diffKey)}
                   >
                     <ha-icon
                       icon="mdi:file-compare"
@@ -57175,11 +56522,11 @@ function renderVersionEntry(host, automationId, versions, i8) {
                     ></ha-icon>
                     ${
                       diffOpen
-                        ? host._t(
+                        ? host2._t(
                             "automations_diff_toggle_hide",
                             "Hide changes",
                           )
-                        : host._t(
+                        : host2._t(
                             "automations_diff_toggle_view",
                             "View changes",
                           )
@@ -57203,7 +56550,7 @@ function renderVersionEntry(host, automationId, versions, i8) {
                     class="btn btn-outline version-entry-btn"
                     ?disabled=${restoring || !(v3.yaml || v3.yaml_content)}
                     @click=${() =>
-                      host._restoreVersion(
+                      host2._restoreVersion(
                         automationId,
                         v3.version_id,
                         v3.yaml || v3.yaml_content || "",
@@ -57215,11 +56562,11 @@ function renderVersionEntry(host, automationId, versions, i8) {
                     ></ha-icon>
                     ${
                       restoring
-                        ? host._t(
+                        ? host2._t(
                             "version_history_restoring",
                             "Restoring\u2026",
                           )
-                        : host._t(
+                        : host2._t(
                             "version_history_restore_button",
                             "Restore this version",
                           )
@@ -57237,7 +56584,7 @@ function renderVersionEntry(host, automationId, versions, i8) {
                   .value=${
                     v3.yaml ||
                     v3.yaml_content ||
-                    host._t(
+                    host2._t(
                       "version_history_no_yaml_stored",
                       "(no YAML stored)",
                     )
@@ -57248,7 +56595,7 @@ function renderVersionEntry(host, automationId, versions, i8) {
               </div>`
             : ""
         }
-        ${renderProposalDiffPanel(host, diffKey, diff, {
+        ${renderProposalDiffPanel(host2, diffKey, diff, {
           from: `v${versionNumber - 1}`,
           to: `v${versionNumber}`,
         })}
@@ -57256,17 +56603,17 @@ function renderVersionEntry(host, automationId, versions, i8) {
     </li>
   `;
 }
-function renderDiffViewer(host) {
-  if (!host._diffOpen) return "";
-  const automationId = host._diffAutomationId;
-  const versions = host._versions[automationId] || [];
+function renderDiffViewer(host2) {
+  if (!host2._diffOpen) return "";
+  const automationId = host2._diffAutomationId;
+  const versions = host2._versions[automationId] || [];
   return b2`
     <div
       style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
       @click=${(e6) => {
         if (e6.target === e6.currentTarget) {
-          host._diffOpen = false;
-          host.requestUpdate();
+          host2._diffOpen = false;
+          host2.requestUpdate();
         }
       }}
     >
@@ -57281,14 +56628,14 @@ function renderDiffViewer(host) {
               icon="mdi:compare"
               style="--mdc-icon-size:17px;vertical-align:middle;margin-right:6px;"
             ></ha-icon>
-            ${host._t("version_history_compare_title", "Compare Versions")}
+            ${host2._t("version_history_compare_title", "Compare Versions")}
           </span>
           <ha-icon
             icon="mdi:close"
             style="cursor:pointer;--mdc-icon-size:20px;"
             @click=${() => {
-              host._diffOpen = false;
-              host.requestUpdate();
+              host2._diffOpen = false;
+              host2.requestUpdate();
             }}
           ></ha-icon>
         </div>
@@ -57297,20 +56644,20 @@ function renderDiffViewer(host) {
         >
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:12px;opacity:0.7;"
-              >${host._t(
+              >${host2._t(
                 "version_history_version_a_label",
                 "Version A (newer):",
               )}</span
             >
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
-              .value=${host._diffVersionA || ""}
+              .value=${host2._diffVersionA || ""}
               @change=${async (e6) => {
-                host._diffVersionA = e6.target.value;
-                await host._loadDiff(
+                host2._diffVersionA = e6.target.value;
+                await host2._loadDiff(
                   automationId,
-                  host._diffVersionA,
-                  host._diffVersionB,
+                  host2._diffVersionA,
+                  host2._diffVersionB,
                 );
               }}
             >
@@ -57324,20 +56671,20 @@ function renderDiffViewer(host) {
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:12px;opacity:0.7;"
-              >${host._t(
+              >${host2._t(
                 "version_history_version_b_label",
                 "Version B (older):",
               )}</span
             >
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
-              .value=${host._diffVersionB || ""}
+              .value=${host2._diffVersionB || ""}
               @change=${async (e6) => {
-                host._diffVersionB = e6.target.value;
-                await host._loadDiff(
+                host2._diffVersionB = e6.target.value;
+                await host2._loadDiff(
                   automationId,
-                  host._diffVersionA,
-                  host._diffVersionB,
+                  host2._diffVersionA,
+                  host2._diffVersionB,
                 );
               }}
             >
@@ -57352,18 +56699,18 @@ function renderDiffViewer(host) {
         </div>
         <div style="flex:1;overflow-y:auto;padding:12px 20px;">
           ${
-            host._loadingDiff
+            host2._loadingDiff
               ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
-                  ${host._t("version_history_loading_diff", "Loading diff\u2026")}
+                  ${host2._t("version_history_loading_diff", "Loading diff\u2026")}
                 </div>`
-              : host._diffResult.length === 0
+              : host2._diffResult.length === 0
                 ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
-                    ${host._t("version_history_no_diff", "No differences found.")}
+                    ${host2._t("version_history_no_diff", "No differences found.")}
                   </div>`
                 : b2`<pre
                     style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
                   >
-${host._diffResult.map((line) => {
+${host2._diffResult.map((line) => {
   const bg = line.startsWith("+")
     ? "rgba(40,167,69,0.15)"
     : line.startsWith("-")
@@ -57920,7 +57267,7 @@ __export(version_actions_exports, {
   _dismissStaleCodeNotice: () => _dismissStaleCodeNotice,
   _loadVersionStatus: () => _loadVersionStatus,
 });
-var PANEL_BUILD = true ? "d4a5602711f1" : "";
+var PANEL_BUILD = true ? "85418d38ceb3" : "";
 var RESTART_ONLY = { restart_required: true, panel_reload_required: false };
 async function _loadVersionStatus() {
   try {
@@ -58282,18 +57629,18 @@ async function _loadInsights() {
     console.error("Failed to load insights", err);
   }
 }
-function _applyAudit(host, audit) {
-  host._auditStatus = audit?.status || "pending";
-  host._auditResponse = audit?.response || "";
-  host._auditRecommendations = audit?.recommendations || [];
-  host._auditChecks = audit?.checks || [];
-  host._auditScore = typeof audit?.score === "number" ? audit.score : null;
-  host._auditBand = audit?.band || "";
-  host._auditBreakdown = audit?.score_breakdown || null;
-  host._auditQuickActions = audit?.quick_actions || [];
-  host._auditGeneratedAt = audit?.generated_at || null;
-  host._auditError = audit?.error || null;
-  host._auditSettling = audit?.settling === true;
+function _applyAudit(host2, audit) {
+  host2._auditStatus = audit?.status || "pending";
+  host2._auditResponse = audit?.response || "";
+  host2._auditRecommendations = audit?.recommendations || [];
+  host2._auditChecks = audit?.checks || [];
+  host2._auditScore = typeof audit?.score === "number" ? audit.score : null;
+  host2._auditBand = audit?.band || "";
+  host2._auditBreakdown = audit?.score_breakdown || null;
+  host2._auditQuickActions = audit?.quick_actions || [];
+  host2._auditGeneratedAt = audit?.generated_at || null;
+  host2._auditError = audit?.error || null;
+  host2._auditSettling = audit?.settling === true;
 }
 async function _loadAudit() {
   if (this._settleRetryTimer) {
@@ -58370,24 +57717,24 @@ async function _rerunAudit() {
   }
   this._auditRunning = false;
 }
-async function _applyExclude(host, { device_id, entity_ids }) {
+async function _applyExclude(host2, { device_id, entity_ids }) {
   if (device_id) {
-    await host.hass.callWS({
+    await host2.hass.callWS({
       type: "selora_ai/apply_exclude_label",
       device_id,
     });
   } else {
     for (const eid of entity_ids || []) {
-      await host.hass.callWS({
+      await host2.hass.callWS({
         type: "selora_ai/apply_exclude_label",
         entity_id: eid,
       });
     }
   }
-  await host.hass.callWS({ type: "selora_ai/insights/rescan" });
-  await Promise.all([host._loadInsights(), host._loadAudit()]);
-  host._showToast(
-    host._t(
+  await host2.hass.callWS({ type: "selora_ai/insights/rescan" });
+  await Promise.all([host2._loadInsights(), host2._loadAudit()]);
+  host2._showToast(
+    host2._t(
       "insights_ignored",
       "Ignored \u2014 undo it in Settings \u2192 Ignore list",
     ),
@@ -58476,30 +57823,30 @@ __export(chat_actions_exports, {
 });
 
 // src/panel/describe-actions.js
-async function answerCamera(host, msg, action) {
-  const sessionId = host._activeSessionId;
+async function answerCamera(host2, msg, action) {
+  const sessionId = host2._activeSessionId;
   if (!sessionId || !msg || msg._qa_used) return;
   msg._qa_used = true;
   msg._qa_picked = action.value;
-  host._messages = [...host._messages];
+  host2._messages = [...host2._messages];
   const answer = action.camera_answer;
   try {
-    const result = await host.hass.callWS({
+    const result = await host2.hass.callWS({
       type: "selora_ai/frigate/describe_answer",
       session_id: sessionId,
       camera: answer.camera,
       describe: answer.describe,
       zones: answer.zones || [],
-      ...(host.hass?.language ? { language: host.hass.language } : {}),
+      ...(host2.hass?.language ? { language: host2.hass.language } : {}),
     });
-    if (host._activeSessionId === sessionId) {
-      host._messages = [...host._messages, ...(result.messages || [])];
+    if (host2._activeSessionId === sessionId) {
+      host2._messages = [...host2._messages, ...(result.messages || [])];
     }
   } catch (err) {
     msg._qa_used = false;
     msg._qa_picked = void 0;
-    host._messages = [...host._messages];
-    host._showToast?.(err.message || String(err), "error");
+    host2._messages = [...host2._messages];
+    host2._showToast?.(err.message || String(err), "error");
   }
 }
 
@@ -58622,7 +57969,7 @@ function looksTruncatedResponse(responseText, hasStructured) {
   );
 }
 function _finaliseInterruption(
-  host,
+  host2,
   assistantMsg,
   retryPayload,
   reason,
@@ -58633,12 +57980,12 @@ function _finaliseInterruption(
   assistantMsg._interrupted = true;
   assistantMsg._interruptReason = reason;
   assistantMsg._retryWith = retryPayload;
-  host._messages = [...host._messages];
-  if (myTurn === void 0 || host._activeTurn === myTurn) {
-    host._loading = false;
-    host._streaming = false;
-    host.updateComplete.then(() => {
-      const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  host2._messages = [...host2._messages];
+  if (myTurn === void 0 || host2._activeTurn === myTurn) {
+    host2._loading = false;
+    host2._streaming = false;
+    host2.updateComplete.then(() => {
+      const ta = host2.shadowRoot?.querySelector(".composer-textarea");
       if (ta && !ta.disabled) ta.focus();
     });
   }
@@ -58823,17 +58170,7 @@ async function _sendMessage(options = {}) {
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
-        if (this._config?.developer_mode) {
-          const markerCount = (
-            responseText.match(/\[\[entit(?:y|ies):[^\]]+\]\]/g) || []
-          ).length;
-          console.groupCollapsed(
-            `Selora chat done \xB7 ${markerCount} entity marker(s)`,
-          );
-          console.log("raw response:\n" + responseText);
-          console.log("event:", event);
-          console.groupEnd();
-        }
+        logChatTurn(responseText, event, Date.now() - sendStartedAt);
         const hasStructured =
           event.automation ||
           event.scene ||
@@ -58906,7 +58243,6 @@ async function _sendMessage(options = {}) {
           : null;
         assistantMsg.tool_calls = event.tool_calls || null;
         assistantMsg.steps = event.steps || assistantMsg.steps || null;
-        assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         if (this._activeTurn === myTurn) {
@@ -59779,7 +59115,6 @@ var SeloraAIPanel = class extends i4 {
       _sortDir: { type: String },
       // Suggestion filter
       _suggestionFilter: { type: String },
-      _suggestionSourceFilter: { type: String },
       _suggestionSortBy: { type: String },
       // Burger menu
       _openBurgerMenu: { type: String },
@@ -60054,7 +59389,6 @@ var SeloraAIPanel = class extends i4 {
     this._sceneStatusFilter = "all";
     this._sceneSortDir = "desc";
     this._suggestionFilter = "";
-    this._suggestionSourceFilter = "all";
     this._suggestionSortBy = "recent";
     this._openBurgerMenu = null;
     this._openBurgerMenuStyle = "";
@@ -60211,31 +59545,31 @@ var SeloraAIPanel = class extends i4 {
     window.addEventListener("scroll", this._closeRowMenusOnScroll, true);
     this._keyboardOpen = false;
     this._resetHostKeyboardStyles = () => {
-      const host = this.shadowRoot?.host;
-      if (!host) return;
-      host.style.height = "";
-      host.style.position = "";
-      host.style.top = "";
-      host.style.left = "";
-      host.style.right = "";
+      const host2 = this.shadowRoot?.host;
+      if (!host2) return;
+      host2.style.height = "";
+      host2.style.position = "";
+      host2.style.top = "";
+      host2.style.left = "";
+      host2.style.right = "";
       this._keyboardOpen = false;
     };
     if (window.visualViewport) {
       this._viewportHandler = () => {
         if (!this.isConnected || document.hidden) return;
-        const host = this.shadowRoot?.host;
-        if (!host) return;
+        const host2 = this.shadowRoot?.host;
+        if (!host2) return;
         const active = this.shadowRoot?.activeElement;
         const editing = !!active?.classList?.contains("composer-textarea");
         const vp = window.visualViewport;
         const keyboardHeight = window.innerHeight - vp.height;
         const isOpen = !!editing && keyboardHeight > 80;
         if (isOpen) {
-          host.style.height = `${vp.height}px`;
-          host.style.position = "fixed";
-          host.style.top = `${vp.offsetTop}px`;
-          host.style.left = "0";
-          host.style.right = "0";
+          host2.style.height = `${vp.height}px`;
+          host2.style.position = "fixed";
+          host2.style.top = `${vp.offsetTop}px`;
+          host2.style.left = "0";
+          host2.style.right = "0";
         } else {
           this._resetHostKeyboardStyles();
         }
@@ -60515,7 +59849,7 @@ var SeloraAIPanel = class extends i4 {
       this._config = config;
       this._newApiKey = "";
       clearUnsupportedNotice(this);
-      syncDevConsole(this);
+      installDevConsole(this);
     } catch (err) {
       console.error("Failed to load config", err);
     }
@@ -60780,7 +60114,7 @@ var SeloraAIPanel = class extends i4 {
       this._connectAuthorizeUrl = "";
     }
   }
-  async _runOAuthLink({ flow, wsType, beforeStart, onSuccess, onError }) {
+  async _runOAuthLink({ flow, wsType, onSuccess, onError }) {
     let unsub = null;
     let timeout = null;
     const cleanup = () => {
@@ -60797,7 +60131,6 @@ var SeloraAIPanel = class extends i4 {
       this._resetOAuthState(flow);
     };
     try {
-      if (typeof beforeStart === "function") await beforeStart();
       unsub = await this.hass.connection.subscribeEvents((evt) => {
         const data = evt.data || {};
         if (data.flow !== flow) return;
@@ -60935,14 +60268,6 @@ var SeloraAIPanel = class extends i4 {
     await this._runOAuthLink({
       flow: "aigateway",
       wsType: "selora_ai/start_aigw_link",
-      beforeStart: async () => {
-        if (this._config?.developer_mode && this._config?.selora_connect_url) {
-          await this.hass.callWS({
-            type: "selora_ai/update_config",
-            config: { selora_connect_url: this._config.selora_connect_url },
-          });
-        }
-      },
       onSuccess: async () => {
         await this._loadConfig();
         this._linkingAIGateway = false;
@@ -62135,7 +61460,7 @@ var SeloraAIPanel = class extends i4 {
   }
   async _loadRecipesCatalog(force = false) {
     this._recipesCatalogError = null;
-    const override = this._catalogUrlOverride();
+    const override = catalogUrlOverride();
     const version = this._config?.integration_version || "";
     const cacheKey = `selora_ai.recipes.catalog:${override || "default"}:${version}`;
     if (!this._recipesCatalog?.recipes?.length) {
@@ -62184,25 +61509,6 @@ var SeloraAIPanel = class extends i4 {
     } finally {
       this._recipesCatalogBusy = false;
     }
-  }
-  _catalogUrlOverride() {
-    try {
-      return localStorage.getItem("selora-ai-catalog-url") || "";
-    } catch {
-      return "";
-    }
-  }
-  _setCatalogUrlOverride(url) {
-    try {
-      if (url) {
-        localStorage.setItem("selora-ai-catalog-url", url);
-      } else {
-        localStorage.removeItem("selora-ai-catalog-url");
-      }
-    } catch (err) {
-      console.debug("Failed to persist catalog URL override", err);
-    }
-    this._loadRecipesCatalog(true);
   }
   // Substring search across the catalog (title + tags + description).
   // Pure render-time filter so we don't re-fetch on every keystroke.

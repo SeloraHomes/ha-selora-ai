@@ -6852,9 +6852,9 @@ _AIGW_TOKEN_FIELDS = frozenset(
 # Option keys that are applied live (no entry reload needed). Must mirror
 # the ``hot_option_keys`` + ``frontend_only_keys`` classification in
 # ``_handle_websocket_update_config``: pricing overrides and the household
-# profile are pushed to the running client, telemetry flags are read live on
-# each use, and developer_mode only affects the frontend. An options-only
-# change confined to these must NOT trigger ``async_reload_entry``'s reload.
+# profile are pushed to the running client, and telemetry flags are read live
+# on each use. An options-only change confined to these must NOT trigger
+# ``async_reload_entry``'s reload.
 _NO_RELOAD_OPTION_KEYS = frozenset(
     {
         CONF_LLM_PRICING_OVERRIDES,
@@ -6862,7 +6862,6 @@ _NO_RELOAD_OPTION_KEYS = frozenset(
         CONF_TELEMETRY_ENABLED,
         CONF_TELEMETRY_PROMPT_SEEN,
         CONF_NEXT_PROMPT_ENABLED,
-        "developer_mode",
     }
 )
 

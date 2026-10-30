@@ -93,7 +93,6 @@ function makeHost(over = {}) {
     _cardPanelSettled: {},
     _selectedSuggestionKeys: {},
     _suggestionFilter: "",
-    _suggestionSourceFilter: "all",
     _suggestionSortBy: "recent",
     _suggestionsVisibleCount: 3,
     _config: {},

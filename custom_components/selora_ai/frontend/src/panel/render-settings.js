@@ -1,7 +1,5 @@
 import { html } from "lit";
 
-import { interpolate } from "../shared/i18n.js";
-import { scanCameras, syncDevConsole } from "./dev-tools.js";
 import { renderFrigateSettings } from "./frigate-settings.js";
 import { renderIgnoreList } from "./render-ignore-list.js";
 import { textInput as _textInput } from "./settings-inputs.js";
@@ -282,34 +280,6 @@ export function renderSettings(host) {
                                 )}
                               </p>
                               ${
-                                host._config.developer_mode
-                                  ? html`
-                                      ${_textInput({
-                                        label: host._t(
-                                          "settings_selora_cloud_url_label",
-                                          "Selora Cloud URL",
-                                        ),
-                                        value:
-                                          host._config.selora_connect_url ||
-                                          "https://connect.selorahomes.com",
-                                        oninput: (e) =>
-                                          host._updateConfig(
-                                            "selora_connect_url",
-                                            e.target.value,
-                                          ),
-                                      })}
-                                      <div
-                                        style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
-                                      >
-                                        ${host._t(
-                                          "settings_selora_cloud_url_hint",
-                                          "OAuth and chat completions both use this URL. Saved automatically when you link.",
-                                        )}
-                                      </div>
-                                    `
-                                  : ""
-                              }
-                              ${
                                 host._aigwAuthorizeUrl
                                   ? html`<a
                                       class="btn btn-primary"
@@ -371,28 +341,6 @@ export function renderSettings(host) {
                         : ""
                     }
                   </div>
-                  ${
-                    host._config.aigateway_linked && host._config.developer_mode
-                      ? html`
-                          <div class="form-group">
-                            ${_textInput({
-                              label: host._t(
-                                "settings_selora_cloud_url_label",
-                                "Selora Cloud URL",
-                              ),
-                              value:
-                                host._config.selora_connect_url ||
-                                "https://connect.selorahomes.com",
-                              oninput: (e) =>
-                                host._updateConfig(
-                                  "selora_connect_url",
-                                  e.target.value,
-                                ),
-                            })}
-                          </div>
-                        `
-                      : ""
-                  }
                 `
               : isGemini
                 ? html`
@@ -944,29 +892,6 @@ export function renderSettings(host) {
                           style="--mdc-icon-size:20px;"
                         ></ha-icon>
                       </ha-icon-button>
-                    </div>
-                  `
-                : ""
-            }
-            ${
-              host._config.developer_mode &&
-              !host._config.selora_connect_enabled
-                ? html`
-                    <div style="padding:8px 0 0;">
-                      ${_textInput({
-                        label: host._t(
-                          "settings_connect_server_url_label",
-                          "Connect Server URL",
-                        ),
-                        value:
-                          host._config.selora_connect_url ||
-                          "https://connect.selorahomes.com",
-                        oninput: (e) =>
-                          host._updateConfig(
-                            "selora_connect_url",
-                            e.target.value,
-                          ),
-                      })}
                     </div>
                   `
                 : ""
@@ -1563,110 +1488,6 @@ export function renderSettings(host) {
                 </div>`
               : ""
           }
-
-          <div class="service-group">
-            <div class="service-row">
-              <div class="service-label-group">
-                <label
-                  >${host._t(
-                    "settings_developer_mode_label",
-                    "Developer mode",
-                  )}</label
-                >
-                <span class="service-desc"
-                  >${host._t(
-                    "settings_developer_mode_desc",
-                    "Exposes raw entity payloads and debug logs",
-                  )}</span
-                >
-              </div>
-              <ha-switch
-                .checked=${host._config.developer_mode}
-                @change=${async (e) => {
-                  const val = e.target.checked;
-                  host._updateConfig("developer_mode", val);
-                  syncDevConsole(host);
-                  try {
-                    await host.hass.callWS({
-                      type: "selora_ai/update_config",
-                      config: { developer_mode: val },
-                    });
-                  } catch (err) {
-                    host._showToast(
-                      host._t(
-                        "settings_dev_mode_save_failed_toast",
-                        "Failed to save developer mode.",
-                      ),
-                      "error",
-                    );
-                  }
-                }}
-              ></ha-switch>
-            </div>
-            ${
-              host._config.developer_mode
-                ? html`<div class="service-row">
-                    <div class="service-label-group">
-                      <label
-                        >${host._t(
-                          "settings_dev_scan_cameras_label",
-                          "Scan for cameras",
-                        )}</label
-                      >
-                      <span class="service-desc"
-                        >${host._t(
-                          "settings_dev_scan_cameras_desc",
-                          "Look for cameras on the network now instead of on the next half-hourly scan, and refresh the chat home's suggestions.",
-                        )}</span
-                      >
-                    </div>
-                    <button
-                      class="btn btn-outline"
-                      ?disabled=${host._scanningCameras}
-                      @click=${async () => {
-                        host._scanningCameras = true;
-                        host.requestUpdate();
-                        try {
-                          const cameras = await scanCameras(host);
-                          host._showToast(
-                            interpolate(
-                              host._t(
-                                "settings_dev_scan_cameras_done",
-                                "Found {count} cameras on the network.",
-                              ),
-                              { count: cameras.length },
-                            ),
-                          );
-                        } catch (err) {
-                          host._showToast(
-                            host._t(
-                              "settings_dev_scan_cameras_failed",
-                              "The camera scan failed.",
-                            ),
-                            "error",
-                          );
-                        } finally {
-                          host._scanningCameras = false;
-                          host.requestUpdate();
-                        }
-                      }}
-                    >
-                      ${
-                        host._scanningCameras
-                          ? host._t(
-                              "settings_dev_scan_cameras_scanning",
-                              "Scanning…",
-                            )
-                          : host._t(
-                              "settings_dev_scan_cameras_button",
-                              "Scan now",
-                            )
-                      }
-                    </button>
-                  </div>`
-                : ""
-            }
-          </div>
 
           <div class="card-save-bar">
             <button

@@ -68,9 +68,8 @@ half hour, only while Frigate is set up); only its answer is cached, and flows
 are read live, so a camera set up or dismissed since is not offered again. A
 network camera Frigate or HA already has is not offered as one. A finished scan
 drops the chat home's cached suggestions, which were built from the one before.
-In developer mode, Settings has a "Scan now" button and the browser console a
-`seloraDev.scanCameras()` helper (`selora_ai/frigate/scan`), so testing a camera
-does not wait on the timer.
+The browser console's `selora.scanCameras()` (`selora_ai/frigate/scan`) runs it
+now, so testing a camera does not wait on the timer.
 
 **Some cameras never answer the multicast probe** but answer one sent to them
 (a Reolink E1 Zoom on Wi-Fi). `async_sweep` asks each address of the hub's own

@@ -13,6 +13,7 @@
 import { html } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { interpolate } from "../shared/i18n.js";
+import { catalogUrlOverride } from "./dev-tools.js";
 
 const _ACCEPTED_SUFFIXES = [".tar.gz", ".tgz", ".zip"];
 
@@ -4011,11 +4012,7 @@ function _renderCatalogSection(host) {
   const filtered = host._filteredCatalog
     ? host._filteredCatalog()
     : cat?.recipes || [];
-  const currentOverride = host._catalogUrlOverride
-    ? host._catalogUrlOverride()
-    : "";
-  // Dev-mode gate from the integration's Settings tab.
-  const isDev = !!host._config?.developer_mode;
+  const currentOverride = catalogUrlOverride();
   return html`
     <div class="catalog-section">
       <div class="filter-row">
@@ -4040,39 +4037,9 @@ function _renderCatalogSection(host) {
               : ""
           }
         </div>
-        <div class="catalog-controls">
-          ${
-            isDev
-              ? html`<button
-                  class="sort-dir-toggle"
-                  @click=${() => {
-                    const next = window.prompt(
-                      host._t(
-                        "recipes_catalog_url_prompt",
-                        "Catalog URL (leave blank to reset to selorahomes.com):",
-                      ),
-                      currentOverride,
-                    );
-                    if (next === null) return;
-                    host._setCatalogUrlOverride(next.trim());
-                  }}
-                  title=${
-                    currentOverride
-                      ? `${host._t("recipes_catalog_using_override", "Using override:")} ${currentOverride}`
-                      : host._t(
-                          "recipes_catalog_set_url_title",
-                          "Set a catalog URL (dev / staging)",
-                        )
-                  }
-                >
-                  <ha-icon icon="mdi:cog-outline"></ha-icon>
-                </button>`
-              : ""
-          }
-        </div>
       </div>
       ${
-        currentOverride && isDev
+        currentOverride
           ? html`<div class="catalog-override-banner">
               <ha-icon icon="mdi:flask-outline"></ha-icon>
               ${host._t(

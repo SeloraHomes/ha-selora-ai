@@ -105,7 +105,6 @@ function buildQualified(host) {
 
 function applyFilters(host, qualified) {
   const filterText = (host._suggestionFilter || "").toLowerCase().trim();
-  const sourceFilter = host._suggestionSourceFilter || "all";
   const sortBy = host._suggestionSortBy || "recent";
 
   const filtered = qualified.filter((item) => {
@@ -113,8 +112,6 @@ function applyFilters(host, qualified) {
       const text = `${item.title} ${item.subtitle || ""}`.toLowerCase();
       if (!text.includes(filterText)) return false;
     }
-    if (sourceFilter === "pattern" && item.type !== "proactive") return false;
-    if (sourceFilter === "ai" && item.type !== "llm") return false;
     return true;
   });
 
@@ -453,7 +450,6 @@ export function renderSuggestionsSection(host) {
   const qualified = buildQualified(host);
   const filtered = applyFilters(host, qualified);
   const totalCount = qualified.length;
-  const isDev = !!host._config?.developer_mode;
   const collapsedCount = collapsedSuggestionCount();
   const visibleCount = host._suggestionsVisibleCount || collapsedCount;
   const visibleItems = filtered.slice(0, visibleCount);
@@ -479,69 +475,6 @@ export function renderSuggestionsSection(host) {
               : ""
           }
         </div>
-        ${
-          isDev
-            ? html`
-                <div class="section-card-actions">
-                  <button
-                    class="filter-row-secondary"
-                    ?disabled=${host._loadingProactive || host._llmNeedsSetup}
-                    title=${
-                      host._llmNeedsSetup
-                        ? host._t(
-                            "suggestions_llm_setup_required",
-                            "Configure an LLM provider first",
-                          )
-                        : ""
-                    }
-                    @click=${() => host._triggerPatternScan()}
-                  >
-                    <ha-icon
-                      icon="mdi:refresh"
-                      style="--mdc-icon-size:14px;"
-                    ></ha-icon>
-                    ${
-                      host._loadingProactive
-                        ? host._t("suggestions_btn_scanning", "Scanning…")
-                        : host._t("suggestions_btn_scan_now", "Scan Now")
-                    }
-                  </button>
-                  <button
-                    class="filter-row-action"
-                    ?disabled=${
-                      host._generatingSuggestions || host._llmNeedsSetup
-                    }
-                    title=${
-                      host._llmNeedsSetup
-                        ? host._t(
-                            "suggestions_llm_setup_required",
-                            "Configure an LLM provider first",
-                          )
-                        : ""
-                    }
-                    @click=${() => host._triggerGenerateSuggestions()}
-                  >
-                    ${
-                      host._generatingSuggestions
-                        ? html`<span
-                            class="spinner"
-                            style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
-                          ></span>`
-                        : html`<ha-icon
-                            icon="mdi:auto-fix"
-                            style="--mdc-icon-size:14px;"
-                          ></ha-icon>`
-                    }
-                    ${
-                      host._generatingSuggestions
-                        ? host._t("suggestions_btn_analyzing", "Analyzing…")
-                        : host._t("suggestions_btn_generate", "Generate")
-                    }
-                  </button>
-                </div>
-              `
-            : ""
-        }
       </div>
 
       <div class="section-card-subtitle">
@@ -555,10 +488,7 @@ export function renderSuggestionsSection(host) {
         totalCount === 0
           ? html`
               <p style="opacity:0.45;margin:0;font-size:13px;">
-                ${host._t(
-                  "suggestions_empty_state",
-                  'No suggestions yet. Tap "Generate" to analyze your home.',
-                )}
+                ${host._t("suggestions_empty_state", "No suggestions yet.")}
               </p>
             `
           : html`
@@ -594,49 +524,6 @@ export function renderSuggestionsSection(host) {
                             : ""
                         }
                       </div>
-                      ${
-                        isDev
-                          ? html`
-                              <div class="status-pills">
-                                ${[
-                                  [
-                                    "all",
-                                    host._t("suggestions_filter_all", "All"),
-                                  ],
-                                  [
-                                    "pattern",
-                                    host._t(
-                                      "suggestions_filter_patterns",
-                                      "Patterns",
-                                    ),
-                                  ],
-                                  [
-                                    "ai",
-                                    host._t("suggestions_filter_ai", "AI"),
-                                  ],
-                                ].map(
-                                  ([val, label]) => html`
-                                    <button
-                                      class="status-pill ${
-                                        (host._suggestionSourceFilter ||
-                                          "all") === val
-                                          ? "active"
-                                          : ""
-                                      }"
-                                      @click=${() => {
-                                        host._suggestionSourceFilter = val;
-                                        host._suggestionsVisibleCount =
-                                          collapsedSuggestionCount();
-                                      }}
-                                    >
-                                      ${label}
-                                    </button>
-                                  `,
-                                )}
-                              </div>
-                            `
-                          : ""
-                      }
                       <select
                         class="sort-select"
                         .value=${host._suggestionSortBy || "recent"}

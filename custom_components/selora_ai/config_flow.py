@@ -301,13 +301,6 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     # ── Helpers ────────────────────────────────────────────────────────
 
-    def _is_developer_mode(self) -> bool:
-        """Check if developer mode is enabled on the existing LLM entry."""
-        for entry in self._async_current_entries():
-            if entry.data.get("developer_mode", False):
-                return True
-        return False
-
     def _has_llm_entry(self) -> bool:
         """Check if an LLM config entry already exists."""
         for entry in self._async_current_entries():

@@ -50,6 +50,16 @@ cd custom_components/selora_ai/frontend && npm ci && npm test
    changed: Python modules stay loaded while the panel bundle is served fresh,
    and the panel shows a restart banner when the two disagree.
 
+## Developer console
+
+There is no developer mode in the panel. Open the browser console on the
+Selora AI panel: it prints a banner and the `selora` helper's commands, and
+`selora.help()` prints them again. It runs what otherwise waits on a timer
+(`selora.scanCameras()`, `selora.scanPatterns()`, `selora.generateSuggestions()`),
+points the panel at another recipes catalog (`selora.catalogUrl(url)`) or
+Selora Cloud (`selora.connectUrl(url)`), and `selora.debug(true)` logs each chat
+turn's raw response, tool calls and reply time.
+
 ## Before you push
 
 Install [Lefthook](https://github.com/evilmartians/lefthook) once so the same

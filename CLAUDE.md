@@ -142,6 +142,11 @@ lowercases and strips the region. The panel reads `translations/en.json`, not
   for a delete. Elsewhere it is the `.btn` family. Both lift, press and ripple
   the same way (`shared/styles/buttons.css.js`, `shared/press-ripple.js`);
   don't style a new button.
+- **Developer tools go in the browser console, never in the UI.** The panel
+  renders the same for everyone, so a developer sees what users see; a debug
+  action or override is a command on `selora` (`panel/dev-tools.js`), listed in
+  its `help()`. An active override still shows in the UI (the recipes catalog
+  banner), since hiding it would mislead too.
 - **The shell's height comes from HA's panel container, which has none.**
   `ha-panel-custom` renders us block-level with no height, so `:host { height: 100% }`
   resolves to `auto` and overlays (app menu, conversations drawer) clip at the
