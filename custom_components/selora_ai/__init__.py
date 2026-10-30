@@ -5939,6 +5939,13 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     async_register_recipe_websocket_commands(hass)
     async_register_recipe_upload_view(hass)
 
+    # Signed links to Frigate events' snapshots and clips, which MCP clients
+    # hand the user. Registered whether or not Frigate is set up: it can be
+    # connected later, and the view answers 404 until then.
+    from .frigate.media import async_register_view as async_register_frigate_media_view
+
+    async_register_frigate_media_view(hass)
+
     # Serve card resources recipes downloaded on an earlier run. Static
     # paths don't survive a restart, so this has to happen at every setup,
     # not only at the install that fetched the file.

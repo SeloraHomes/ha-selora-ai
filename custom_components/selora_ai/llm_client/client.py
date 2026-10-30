@@ -1959,17 +1959,22 @@ class LLMClient:
         Study") never needs execute_command. A smaller schema cuts prefill
         latency on every turn, which is what keeps the tool count from being a
         tax the whole product pays. An unknown or absent hint gets everything.
+
+        Frigate's tools need Frigate set up (``FRIGATE_TOOL_NAMES``).
         """
-        from ..tool_registry import CHAT_TOOLS, TOOL_LANES
+        from ..frigate.client import frigate_available
+        from ..tool_registry import CHAT_TOOLS, FRIGATE_TOOL_NAMES, TOOL_LANES
 
         low_ctx = self._provider.is_low_context
         lane = TOOL_LANES.get(intent_hint or "")
+        frigate = frigate_available(self._hass)
         return [
             self._provider.format_tool(t)
             for t in CHAT_TOOLS
             if not (low_ctx and t.large_context_only)
             and not (t.panel_only and not panel_available)
             and (lane is None or t.name in lane)
+            and (frigate or t.name not in FRIGATE_TOOL_NAMES)
         ]
 
     async def _send_request_with_tools(

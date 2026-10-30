@@ -98,6 +98,25 @@ async def _tool_get_camera_image(
 async def _tool_find_camera_events(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
-    from ..frigate.events import async_find_events  # noqa: PLC0415
+    """Frigate's events, with signed links to each one's snapshot and clip.
 
-    return await async_find_events(hass, arguments)
+    The chat panel draws the media itself; an MCP client cannot show the user
+    an image, so it gets links the user opens in their browser."""
+    from ..frigate.events import async_find_events  # noqa: PLC0415
+    from ..frigate.media import LINK_LIFETIME, async_link_base, event_links  # noqa: PLC0415
+
+    result = await async_find_events(hass, arguments)
+    if not result.get("events"):
+        return result
+    base = await async_link_base(hass)
+    if base is None:
+        result["links"] = "No links: Home Assistant has no address to give the user."
+        return result
+    for event in result["events"]:
+        event.update(event_links(hass, base, event["id"], event["has_clip"]))
+    minutes = int(LINK_LIFETIME.total_seconds() // 60)
+    result["links"] = (
+        f"snapshot_url and clip_url open in the user's browser for {minutes} minutes. "
+        "Give them to the user as links: you cannot open them yourself."
+    )
+    return result

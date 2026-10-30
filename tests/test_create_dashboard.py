@@ -643,6 +643,7 @@ def _tool_names(**kwargs: Any) -> set[str]:
     client = MagicMock(spec=LLMClient)
     client._provider = MagicMock(is_low_context=False)
     client._provider.format_tool = lambda t: {"name": t.name}
+    client._hass = MagicMock()  # no Frigate entry: its tools are left out
     return {t["name"] for t in LLMClient._get_tools_for_provider(client, **kwargs)}
 
 

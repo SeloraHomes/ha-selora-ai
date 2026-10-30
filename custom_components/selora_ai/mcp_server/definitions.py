@@ -18,6 +18,7 @@ from .names import (
     TOOL_ACCEPT_AUTOMATION,
     TOOL_ACCEPT_SUGGESTION,
     TOOL_ACTIVATE_SCENE,
+    TOOL_ADD_CAMERAS_TO_FRIGATE,
     TOOL_ADD_DASHBOARD_RESOURCE,
     TOOL_ADD_DASHBOARD_VIEW,
     TOOL_ASSIGN_AREA,
@@ -72,6 +73,8 @@ from .names import (
     TOOL_GET_ENERGY_PREFS,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_GET_ENTITY_STATE,
+    TOOL_GET_FRIGATE_SNAPSHOT,
+    TOOL_GET_FRIGATE_STATUS,
     TOOL_GET_HOME_SNAPSHOT,
     TOOL_GET_LOGS,
     TOOL_GET_NETWORK_HEALTH,
@@ -116,6 +119,7 @@ from .names import (
     TOOL_LIST_SUGGESTIONS,
     TOOL_LIST_UPDATES,
     TOOL_MOVE_DASHBOARD_CARD,
+    TOOL_MOVE_FRIGATE_CAMERA,
     TOOL_READ_FILE,
     TOOL_RELOAD_INTEGRATION,
     TOOL_REMOVE_DASHBOARD_CARD,
@@ -123,6 +127,7 @@ from .names import (
     TOOL_REMOVE_DASHBOARD_VIEW,
     TOOL_REMOVE_DEVICE,
     TOOL_REMOVE_ENTITY,
+    TOOL_REMOVE_FRIGATE_CAMERA,
     TOOL_REMOVE_INTEGRATION,
     TOOL_RENAME_AUTOMATION,
     TOOL_RESTART_HOME_ASSISTANT,
@@ -132,6 +137,7 @@ from .names import (
     TOOL_SET_APP_OPTIONS,
     TOOL_SET_ASSIST_PIPELINE,
     TOOL_SET_CALENDAR_EVENT,
+    TOOL_SET_CAMERA_OBJECTS,
     TOOL_SET_CONFIG_YAML,
     TOOL_SET_DASHBOARD_STRATEGY,
     TOOL_SET_ENERGY_PREFS,
@@ -1104,6 +1110,7 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
     TOOL_DELETE_HELPER: "delete_helper",
     TOOL_GET_LOGS: "get_logs",
     TOOL_FIND_CAMERA_EVENTS: "find_camera_events",
+    TOOL_GET_FRIGATE_STATUS: "get_frigate_status",
     TOOL_GET_AUTOMATION_TRACES: "get_automation_traces",
     TOOL_FIND_REFERENCES: "find_references",
     TOOL_LIST_DASHBOARDS: "list_dashboards",
@@ -1130,6 +1137,22 @@ _DERIVED_MCP_TOOLS: dict[str, str] = {
 # half winning, so these replace the chat text outright. Parameters are still
 # derived.
 _MCP_DESCRIPTIONS: dict[str, str] = {
+    # The chat text points at the panel's event cards, which MCP has none of.
+    "find_camera_events": (
+        "What Frigate's cameras saw: the people, cars, animals and other objects "
+        "it tracked, newest first, with camera, zones, local start time and "
+        "duration, and a name when it recognised a face or plate (sub_label). "
+        "'Was anyone at the door this afternoon?', 'when did the car leave?', "
+        "'how many people came by yesterday?' (total, by_object, by_camera count "
+        "the whole range). The answer to anything a camera saw or did not see, and "
+        "when: not the history of Frigate's count or occupancy sensors. Each event "
+        "has snapshot_url and, when Frigate kept a recording, clip_url: short-lived "
+        "links for the user to open in their browser, which you cannot open "
+        "yourself. To look at a snapshot, call selora_get_frigate_snapshot with its "
+        "id. An empty events list means nothing was tracked, not that nobody was "
+        "there; watching says what each camera looks for, and not_recorded what it "
+        "could not have seen: say so rather than 'nothing found'."
+    ),
     # The chat text describes the panel's pick-from-a-card flow.
     "restore_deleted": (
         "Restore an automation or scene from Recently deleted, where Selora keeps "
@@ -1773,6 +1796,125 @@ _TOOL_DEFINITIONS.append(
             },
         },
     )
+)
+
+# Frigate's changes. Chat proposes each on a card; over MCP the first call
+# returns the change and a confirm_token, and the second, with confirmed=true
+# and that token, makes it (``mcp_server/frigate.py``). The parameters are the
+# chat tools', so the two cannot drift; the descriptions say what MCP does.
+_FRIGATE_CONFIRM_PARAMS: dict[str, Any] = {
+    "confirmed": _CONFIRMED_PARAM,
+    "confirm_token": {
+        "type": "string",
+        "description": "With confirmed=true: the confirm_token the first call returned.",
+    },
+}
+_FRIGATE_RESTARTS = (
+    " Frigate restarts to apply it, about a minute without detection or recording. "
+    "The first call changes nothing: it comes back with requires_confirmation, the "
+    "change in words and a confirm_token. Tell the user, and only once they agree "
+    "call again with the same arguments, confirmed=true and that confirm_token. "
+    "Requires admin access."
+)
+_FRIGATE_CHANGES: dict[str, tuple[str, str]] = {
+    TOOL_ADD_CAMERAS_TO_FRIGATE: (
+        "add_cameras_to_frigate",
+        "Add cameras to Frigate, the video recorder that detects people and objects: "
+        "cameras Home Assistant has (by entity_ids, or all of them), cameras on the "
+        "network at the addresses given (hosts), or a stream the user gave "
+        "(stream_urls). A network camera that needs a login cannot be added over "
+        "MCP: its login is never passed through an assistant, and the result says to "
+        "add it from Selora AI's own chat. A stream given here is added as given, so "
+        "only one that needs no login. Not for a camera Frigate already has: what it "
+        "looks for is selora_set_camera_objects, a new address "
+        "selora_move_frigate_camera.",
+    ),
+    TOOL_SET_CAMERA_OBJECTS: (
+        "set_camera_objects",
+        "Change what a camera already in Frigate looks for (person, car, dog, cat, "
+        "package…); Frigate records events only for these. 'Look for cars' is add; "
+        "objects replaces the whole list, only when the user gives it. Only labels "
+        "the model can detect (model_labels in selora_get_frigate_status).",
+    ),
+    TOOL_MOVE_FRIGATE_CAMERA: (
+        "move_frigate_camera",
+        "Point a camera already in Frigate at its new network address, when the "
+        "router gave it another IP. It keeps the camera's name, history, entities "
+        "and login: never add it again instead, and never pass a password.",
+    ),
+}
+
+
+def _frigate_change_definition(mcp_name: str, chat_name: str, description: str) -> MCPTool:
+    from ..tool_registry import TOOL_MAP  # noqa: PLC0415
+
+    schema = TOOL_MAP[chat_name].to_anthropic()["input_schema"]
+    return MCPTool(
+        name=mcp_name,
+        description=f"{description}{_FRIGATE_RESTARTS}",
+        inputSchema={
+            **schema,
+            "properties": {**schema["properties"], **_FRIGATE_CONFIRM_PARAMS},
+        },
+    )
+
+
+_TOOL_DEFINITIONS.extend(
+    _frigate_change_definition(mcp_name, chat_name, description)
+    for mcp_name, (chat_name, description) in _FRIGATE_CHANGES.items()
+)
+_TOOL_DEFINITIONS.extend(
+    [
+        MCPTool(
+            name=TOOL_REMOVE_FRIGATE_CAMERA,
+            description=(
+                "Remove a camera from Frigate: its Frigate configuration and the "
+                "streams Frigate reads it from. Its recordings stay until Frigate's "
+                "retention removes them, and the camera itself is untouched."
+                f"{_FRIGATE_RESTARTS}"
+            ),
+            inputSchema={
+                "type": "object",
+                "required": ["camera"],
+                "properties": {
+                    "camera": {
+                        "type": "string",
+                        "description": "Its Frigate name, friendly name, or camera entity.",
+                    },
+                    **_FRIGATE_CONFIRM_PARAMS,
+                },
+            },
+        ),
+        MCPTool(
+            name=TOOL_GET_FRIGATE_SNAPSHOT,
+            description=(
+                "An image from Frigate you can look at: a camera's latest frame, or "
+                "the snapshot of something it tracked (an event_id from "
+                "selora_find_camera_events), with the object boxed — who was at the "
+                "door, which car. For a camera without a Home Assistant entity too. "
+                "Requires admin access."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "camera": {
+                        "type": "string",
+                        "description": "Its Frigate name, friendly name, or camera entity.",
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "description": "From selora_find_camera_events; instead of camera.",
+                    },
+                    "height": {
+                        "type": "integer",
+                        "minimum": 120,
+                        "maximum": 2160,
+                        "description": "A camera frame's height in pixels (default 720).",
+                    },
+                },
+            },
+        ),
+    ]
 )
 
 _CALENDAR_ENTITY_PARAM: dict[str, Any] = {

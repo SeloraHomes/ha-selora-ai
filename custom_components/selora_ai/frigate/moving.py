@@ -25,7 +25,7 @@ import yaml
 from ..const import DOMAIN
 from ..helpers import sanitize_untrusted_text
 from .cameras import is_local_host, source_key
-from .client import FrigateClient, FrigateError
+from .client import NOT_SET_UP, FrigateClient, FrigateError
 from .discovery import SUGGESTION_CACHE
 from .removal import _camera_name, _streams_of
 
@@ -47,11 +47,6 @@ _SOURCE: Final = re.compile(
 )
 # go2rtc's restream, which Frigate reads a restreamed camera from.
 _RESTREAM_HOST: Final = "127.0.0.1"
-
-_NOT_SET_UP: Final = (
-    "Frigate is not set up in Home Assistant: the Frigate integration has to be "
-    "installed and connected first."
-)
 
 
 class _Refused(ValueError):
@@ -177,7 +172,7 @@ async def async_preview_move_camera(
     """A card for reading a Frigate camera from a new address, or why not."""
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     try:
         config = await client.get_config()
     except FrigateError as exc:
@@ -262,7 +257,7 @@ async def async_move_camera_confirmed(
 
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     lock: asyncio.Lock = hass.data.setdefault(DOMAIN, {}).setdefault(_WRITE_LOCK, asyncio.Lock())
     async with lock:
         try:

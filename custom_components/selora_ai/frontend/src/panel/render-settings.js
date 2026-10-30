@@ -2,41 +2,9 @@ import { html } from "lit";
 
 import { interpolate } from "../shared/i18n.js";
 import { scanCameras, syncDevConsole } from "./dev-tools.js";
+import { renderFrigateSettings } from "./frigate-settings.js";
 import { renderIgnoreList } from "./render-ignore-list.js";
-
-// Native <input> wrapper used in place of <ha-textfield>. Recent HA builds
-// wrap each panel in a scoped custom-element registry, which prevents
-// globally-registered HA components like <ha-textfield> from upgrading
-// inside our shadow root — they render as empty unknown elements. Plain
-// <input> works regardless of the registry, and the .form-select class
-// already styles it to match the rest of the settings form.
-function _textInput({
-  label,
-  value,
-  oninput,
-  type = "text",
-  placeholder = "",
-  style = "",
-}) {
-  return html`
-    ${
-      label
-        ? html`<label
-            style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
-            >${label}</label
-          >`
-        : ""
-    }
-    <input
-      class="form-select"
-      type=${type}
-      .value=${value || ""}
-      @input=${oninput}
-      placeholder=${placeholder}
-      style="width:100%;box-sizing:border-box;${style}"
-    />
-  `;
-}
+import { textInput as _textInput } from "./settings-inputs.js";
 
 // Find the LLM cost sensor and return today's spend, or null if either
 // the sensor isn't present or the value is non-numeric. Used to surface
@@ -866,52 +834,6 @@ export function renderSettings(host) {
 
         <div class="section-card settings-section">
           <div class="section-card-header">
-            <h3>
-              ${host._t("settings_household_profile_title", "Selora's Memory")}
-            </h3>
-          </div>
-          <p class="section-card-subtitle">
-            ${host._t(
-              "settings_household_profile_desc",
-              "Free-form context about your home — members, preferences, notes, known issues, patterns, conflicts. Selora keeps this in mind when it chats and when it proposes automations and scenes. Keep it short; it counts toward every request.",
-            )}
-          </p>
-          <textarea
-            class="form-select"
-            rows="6"
-            maxlength=${host._config.household_profile_max_chars || 2000}
-            .value=${host._config.household_profile || ""}
-            @input=${(e) =>
-              host._updateConfig("household_profile", e.target.value)}
-            placeholder=${host._t(
-              "settings_household_profile_placeholder",
-              "e.g. Family of 4. Kids (Léa 7, Tom 5) in bed by 20:30. Grandma visits weekends — she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
-            )}
-            style="width:100%;box-sizing:border-box;resize:vertical;min-height:120px;font-family:inherit;"
-          ></textarea>
-          <div
-            style="text-align:right;font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
-          >
-            ${(host._config.household_profile || "").length} /
-            ${host._config.household_profile_max_chars || 2000}
-          </div>
-          <div class="card-save-bar">
-            <button
-              class="btn btn-primary"
-              @click=${host._saveHouseholdProfile}
-              ?disabled=${host._savingHouseholdProfile}
-            >
-              ${
-                host._savingHouseholdProfile
-                  ? host._t("settings_saving_label", "Saving…")
-                  : host._t("settings_save_button", "Save")
-              }
-            </button>
-          </div>
-        </div>
-
-        <div class="section-card settings-section">
-          <div class="section-card-header">
             <h3>${host._t("settings_mcp_server_heading", "MCP Server")}</h3>
           </div>
           <p class="section-card-subtitle">
@@ -1143,7 +1065,54 @@ export function renderSettings(host) {
           </button>
         </div>
 
-        ${renderCreateTokenDialog(host)} ${renderIgnoreList(host)}
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>
+              ${host._t("settings_household_profile_title", "Selora's Memory")}
+            </h3>
+          </div>
+          <p class="section-card-subtitle">
+            ${host._t(
+              "settings_household_profile_desc",
+              "Free-form context about your home — members, preferences, notes, known issues, patterns, conflicts. Selora keeps this in mind when it chats and when it proposes automations and scenes. Keep it short; it counts toward every request.",
+            )}
+          </p>
+          <textarea
+            class="form-select"
+            rows="6"
+            maxlength=${host._config.household_profile_max_chars || 2000}
+            .value=${host._config.household_profile || ""}
+            @input=${(e) =>
+              host._updateConfig("household_profile", e.target.value)}
+            placeholder=${host._t(
+              "settings_household_profile_placeholder",
+              "e.g. Family of 4. Kids (Léa 7, Tom 5) in bed by 20:30. Grandma visits weekends — she's cold-averse. Prefer warm, dim lights after sunset. Never auto-lock the garage (cat door).",
+            )}
+            style="width:100%;box-sizing:border-box;resize:vertical;min-height:120px;font-family:inherit;"
+          ></textarea>
+          <div
+            style="text-align:right;font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+          >
+            ${(host._config.household_profile || "").length} /
+            ${host._config.household_profile_max_chars || 2000}
+          </div>
+          <div class="card-save-bar">
+            <button
+              class="btn btn-primary"
+              @click=${host._saveHouseholdProfile}
+              ?disabled=${host._savingHouseholdProfile}
+            >
+              ${
+                host._savingHouseholdProfile
+                  ? host._t("settings_saving_label", "Saving…")
+                  : host._t("settings_save_button", "Save")
+              }
+            </button>
+          </div>
+        </div>
+
+        ${renderFrigateSettings(host)} ${renderCreateTokenDialog(host)}
+        ${renderIgnoreList(host)}
 
         <div class="section-card settings-section">
           <div class="section-card-header">

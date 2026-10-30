@@ -28,7 +28,7 @@ from .cameras import (
     unsupported_error,
     unsupported_labels,
 )
-from .client import FrigateClient, FrigateError
+from .client import NOT_SET_UP, FrigateClient, FrigateError
 from .removal import _camera_name
 
 if TYPE_CHECKING:
@@ -43,11 +43,6 @@ _WRITE_LOCK: Final = "_frigate_objects_lock"
 # saved: Frigate reports its running configuration, and a write takes effect
 # only once it restarts (or never, when it cannot).
 _SAVED: Final = "_frigate_objects_saved"
-
-_NOT_SET_UP: Final = (
-    "Frigate is not set up in Home Assistant: the Frigate integration has to be "
-    "installed and connected first."
-)
 
 
 def _tracked(config: dict[str, Any], name: str) -> list[str]:
@@ -159,7 +154,7 @@ async def async_preview_set_objects(
     """A card for changing what a Frigate camera looks for, or why not."""
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     try:
         config = await client.get_config()
     except FrigateError as exc:
@@ -213,7 +208,7 @@ async def async_set_objects_confirmed(
 
     client = FrigateClient.from_hass(hass)
     if client is None:
-        return {"error": _NOT_SET_UP}
+        return {"error": NOT_SET_UP}
     lock: asyncio.Lock = hass.data.setdefault(DOMAIN, {}).setdefault(_WRITE_LOCK, asyncio.Lock())
     async with lock:
         try:

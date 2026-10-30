@@ -1,4 +1,5 @@
-"""Selora AI websocket handlers: adding cameras to Frigate, and rescanning for them.
+"""Selora AI websocket handlers: adding cameras to Frigate, rescanning for them,
+and checking the Frigate connection entered in settings.
 
 The card's camera logins come here straight from the panel, so they never
 reach the model or the conversation; see ``frigate.setup``.
@@ -13,7 +14,9 @@ from homeassistant.components.websocket_api import decorators
 from homeassistant.core import HomeAssistant
 import voluptuous as vol
 
-from .. import _require_admin
+from .. import _require_admin, _resolve_llm_entry
+from ..const import CONF_FRIGATE_PASSWORD, CONF_FRIGATE_URL, CONF_FRIGATE_USERNAME
+from ..frigate.client import FrigateClient, FrigateError, normalize_frigate_url
 from ..frigate.discovery import async_scan
 from ..frigate.ideas import async_camera_ideas
 from ..frigate.setup import async_add_cameras_confirmed
@@ -103,8 +106,57 @@ async def _handle_websocket_frigate_ideas(
     )
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/frigate/test_connection",
+        vol.Required("url"): vol.All(str, vol.Length(min=1, max=512)),
+        vol.Optional("username", default=""): vol.All(str, vol.Length(max=128)),
+        vol.Optional("password", default=""): vol.All(str, vol.Length(max=256)),
+    }
+)
+async def _handle_websocket_frigate_test_connection(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Reach the Frigate the settings page names, before it is saved.
+
+    The page never holds the saved password, so a blank one with the saved
+    address and username is the saved password.
+    """
+    if not _require_admin(connection, msg):
+        return
+    url = normalize_frigate_url(msg["url"])
+    if url is None:
+        connection.send_result(
+            msg["id"], {"ok": False, "error": "Frigate's address must be http(s)://host:port."}
+        )
+        return
+    username, password = msg["username"].strip(), msg["password"]
+    entry = _resolve_llm_entry(hass)
+    # Only for the saved address: a password goes to the host it was given for.
+    if (
+        username
+        and not password
+        and entry is not None
+        and entry.data.get(CONF_FRIGATE_URL) == url
+        and entry.data.get(CONF_FRIGATE_USERNAME) == username
+    ):
+        password = str(entry.data.get(CONF_FRIGATE_PASSWORD) or "")
+    client = FrigateClient(hass, url, username or None, password or None)
+    try:
+        version = await client.version()
+        cameras = (await client.get_config()).get("cameras") or {}
+    except FrigateError as exc:
+        connection.send_result(msg["id"], {"ok": False, "error": str(exc)})
+        return
+    connection.send_result(msg["id"], {"ok": True, "version": version, "cameras": len(cameras)})
+
+
 def async_register(hass: HomeAssistant) -> None:
     """Register the Frigate websocket commands."""
     websocket_api.async_register_command(hass, _handle_websocket_frigate_add_cameras)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_scan)
     websocket_api.async_register_command(hass, _handle_websocket_frigate_ideas)
+    websocket_api.async_register_command(hass, _handle_websocket_frigate_test_connection)

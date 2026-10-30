@@ -46,6 +46,9 @@ from ..const import (
     CONF_DISCOVERY_MODE,
     CONF_DISCOVERY_START_TIME,
     CONF_ENTRY_TYPE,
+    CONF_FRIGATE_PASSWORD,
+    CONF_FRIGATE_URL,
+    CONF_FRIGATE_USERNAME,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
     CONF_HOUSEHOLD_PROFILE,
@@ -112,10 +115,31 @@ from ..const import (
     SELORA_EXCLUDE_LABEL_ID,
     SELORA_EXCLUDE_LABEL_NAME,
 )
+from ..frigate.client import normalize_frigate_url
 from ..helpers import sanitize_household_profile
 from ..next_prompt import next_prompt_available, next_prompt_enabled
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _frigate_view(hass: HomeAssistant, config_data: dict[str, Any]) -> dict[str, Any]:
+    """Frigate's connection for the settings page; never its password.
+
+    ``frigate_source`` is who connects Frigate: ``hub`` (Selora OS set up the
+    Frigate integration), ``integration`` (the user did), or empty, when the
+    page's own fields do. Its address is not shown: the user cannot change it
+    here.
+    """
+    from ..frigate.client import frigate_entry, managed_by_hub  # noqa: PLC0415
+
+    entry = frigate_entry(hass)
+    source = "" if entry is None else "hub" if managed_by_hub(entry) else "integration"
+    return {
+        "frigate_source": source,
+        "frigate_url": config_data.get(CONF_FRIGATE_URL, ""),
+        "frigate_username": config_data.get(CONF_FRIGATE_USERNAME, ""),
+        "frigate_password_set": bool(config_data.get(CONF_FRIGATE_PASSWORD)),
+    }
 
 
 @websocket_api.async_response
@@ -232,6 +256,8 @@ async def _handle_websocket_get_config(
             "next_prompt_enabled": next_prompt_enabled(
                 config_data, _resolve_llm_provider(config_data)
             ),
+            # Frigate: the integration's connection when it has one, else ours
+            **_frigate_view(hass, config_data),
             # Developer settings
             "developer_mode": config_data.get("developer_mode", False),
             # Selora Connect
@@ -310,9 +336,25 @@ async def _handle_websocket_update_config(
         CONF_SELORA_CONNECT_URL,
         CONF_SELORA_INSTALLATION_ID,
         CONF_SELORA_JWT_KEY,
+        CONF_FRIGATE_URL,
+        CONF_FRIGATE_USERNAME,
+        CONF_FRIGATE_PASSWORD,
     }
 
     new_data = {k: v for k, v in new_config.items() if k in data_keys}
+    if CONF_FRIGATE_URL in new_data:
+        if not str(new_data[CONF_FRIGATE_URL] or "").strip():
+            # No Frigate: its login goes with it.
+            new_data.update(
+                {CONF_FRIGATE_URL: "", CONF_FRIGATE_USERNAME: "", CONF_FRIGATE_PASSWORD: ""}
+            )
+        elif (url := normalize_frigate_url(str(new_data[CONF_FRIGATE_URL]))) is None:
+            connection.send_error(
+                msg["id"], "invalid_frigate_url", "Frigate's address must be http(s)://host:port"
+            )
+            return
+        else:
+            new_data[CONF_FRIGATE_URL] = url
     new_options = {k: v for k, v in new_config.items() if k not in data_keys}
 
     # Only persist KNOWN settable options. Without this any key a client sends
@@ -378,11 +420,32 @@ async def _handle_websocket_update_config(
     ):
         if key in new_data and not new_data[key]:
             new_data.pop(key, None)
+    # Frigate's password likewise, unless Frigate itself was cleared above —
+    # and only for the address and login it was given for: kept for another
+    # host, it would be sent there.
+    if new_data.get(CONF_FRIGATE_URL) and not new_data.get(CONF_FRIGATE_PASSWORD):
+        same_login = new_data[CONF_FRIGATE_URL] == entry.data.get(
+            CONF_FRIGATE_URL
+        ) and new_data.get(
+            CONF_FRIGATE_USERNAME, entry.data.get(CONF_FRIGATE_USERNAME)
+        ) == entry.data.get(CONF_FRIGATE_USERNAME)
+        if same_login:
+            new_data.pop(CONF_FRIGATE_PASSWORD, None)
+        else:
+            new_data[CONF_FRIGATE_PASSWORD] = ""
 
     # Keys that only affect the frontend — no reload needed. The telemetry
     # consent flag only gates the one-time banner; it changes no backend
     # behaviour, so persisting it must never trigger a reload.
-    frontend_only_keys = {"developer_mode", CONF_TELEMETRY_PROMPT_SEEN}
+    # Frigate's connection is read on every use (frigate/client.py), and
+    # which tools are offered with it, so it needs no reload either.
+    frontend_only_keys = {
+        "developer_mode",
+        CONF_TELEMETRY_PROMPT_SEEN,
+        CONF_FRIGATE_URL,
+        CONF_FRIGATE_USERNAME,
+        CONF_FRIGATE_PASSWORD,
+    }
     # Keys whose change can be applied live to the running LLMClient
     # without rebuilding it. Pricing overrides only impact cost reporting
     # for subsequent calls, so a hot update is enough. The telemetry

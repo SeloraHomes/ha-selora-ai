@@ -20,6 +20,7 @@ An AI assistant for Home Assistant that knows your home. Ask it to do things, as
 - **Suggestions** — automations for the routines it spots in your home's history.
 - **Scenes, dashboards and helpers** — created and edited by asking.
 - **Insights** — a health score for your home and what needs fixing.
+- **Cameras with Frigate** — add cameras to Frigate, choose what they look for, and ask what they saw ([Frigate tools](docs/frigate.md)).
 - **Recipes** — ready-made setups from the [Selora catalog](https://selorahomes.com/docs/selora-ai/recipes/), installed in a few clicks.
 - **MCP server** — let Claude Desktop, Cursor, n8n and other agents work with your home ([guide](https://selorahomes.com/docs/selora-ai/mcp-onboarding/)).
 

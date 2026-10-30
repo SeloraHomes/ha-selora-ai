@@ -1,9 +1,41 @@
 # Frigate
 
-Frigate runs on the Selora OS host, not in Home Assistant. Selora AI reaches it
-at the URL (and with the login) of the **Frigate integration's config entry**,
-which points at the host's proxy; without that integration loaded every Frigate
-feature is off (`frigate/client.py`).
+On a Selora hub Frigate runs on the Selora OS host, not in Home Assistant, and
+Selora AI reaches it at the URL (and with the login) of the **Frigate
+integration's config entry**, which points at the host's proxy. A home without
+a hub can enter Frigate's address and login in Settings → Frigate instead
+(`frigate_url` / `frigate_username` / `frigate_password` in the LLM entry's
+data). `frigate_connection` (`frigate/client.py`) is the one place either is
+read: the integration's entry first, then the settings; with neither, every
+Frigate feature is off.
+
+## Offered only with Frigate
+
+- **A tool that only talks to Frigate is withheld without it**:
+  `FRIGATE_TOOL_NAMES` (`tool_registry.py`) for chat, `FRIGATE_TOOLS`
+  (`mcp_server/access.py`) for MCP `tools/list`. Offered anyway, the model
+  proposed camera changes a home without Frigate could only refuse. A new
+  Frigate tool goes in the set for each surface it is on.
+- **Read on every use, never cached**: saving the settings needs no reload,
+  and the MCP `serverInfo.version` gains `.frigate` while Frigate is set up so a
+  client refetches the list.
+- **Without the integration there are no entities.** Switches, the result
+  card's live tiles, the events card's media (`/api/frigate/...` views) and
+  `controls.py` all need it; `get_frigate_status` says so (`note`). The API
+  calls (status, events, add, objects, move, remove, snapshots) work either way.
+- **Settings says who connects Frigate, not where.** `frigate_source` is
+  `hub` when the Frigate integration points at the hub's own Frigate
+  (`managed_by_hub`), `integration` for any other; neither shows the address,
+  which cannot be changed there. Selora OS creates the entry through the
+  integration's config flow (`source: user`, like a hand-made one), always at
+  the host's address on the VM network, `SELORA_HUB_HOST` (Selora OS's
+  `seloraSlirpHost`); the host is the signal, never the source. Supervisor
+  discovery is not an option: Frigate runs on the host, not as an app, so
+  nothing can post it, and it would wait for a human to submit the flow.
+- **The saved password never reaches the panel** (`frigate_password_set`); a
+  blank one on save or test keeps it only for the saved address and username,
+  since it would otherwise be sent to the new host. Clearing the address
+  clears the login.
 
 ## Who owns which part of Frigate's config
 
@@ -381,3 +413,54 @@ entities only say what is there now.
   Semantic search does not help there: it ranks recorded events only. The
   config is today's, so the note says what is recorded now, never what
   was in the range.
+
+## Over MCP
+
+Chat's card-based changes are two calls on MCP (`mcp_server/frigate.py`): the
+first runs the chat preview and returns `requires_confirmation`, the change
+in words and a `confirm_token` (the card's fingerprint, or the add's
+`plan_id`); the second, with `confirmed` and the token, runs the same confirm
+the card does.
+
+- **The confirm is checked against the client's token, not a fresh preview.**
+  A fresh fingerprint would always match, so a camera changed since the user
+  agreed would be changed anyway.
+- **A confirmed add reads only the plan**, never the second call's arguments,
+  like the panel's confirm.
+- **No camera login goes through MCP.** An outside assistant is a model too; a
+  network camera that needs one is refused with `needs_login`, naming Selora
+  AI's own chat, where the card takes it. A stream URL is added as given (any
+  login in it is already dropped by `user_streams`).
+- **Parameters are derived from the chat tools** (`_FRIGATE_CHANGES` in
+  `mcp_server/definitions.py`) plus `confirmed` / `confirm_token`; only the
+  descriptions are MCP's own.
+- `selora_get_frigate_snapshot` fetches from Frigate itself, so it serves a
+  camera without an HA entity and an event's boxed snapshot (its thumbnail
+  when snapshots are off on the camera).
+- **Events over MCP carry links, not media** (`frigate/media.py`). An MCP
+  client cannot show the user an image a tool returns, and its servers cannot
+  reach the home, so `selora_find_camera_events` adds `snapshot_url` and
+  `clip_url`: links the user's own browser opens, past any proxy in front of
+  Home Assistant (the browser holds that login). Chat's events stay link-free;
+  the panel draws them.
+  - **Signed with `async_sign_path` for the content user**, for 15 minutes and
+    one path. Not the caller's token: a Selora Connect login has none.
+  - **The view takes a signed link or an admin**, nothing else. A request with
+    no `Authorization` header can only have been authenticated by the
+    signature; a non-admin's own token is refused, as the MCP tools refuse it.
+  - **Streamed from Frigate, never redirected to it**, so Frigate's address and
+    login stay on the hub whichever way it is connected. `Range` is forwarded
+    and the range headers passed back: a browser fetches a video in ranges,
+    and Safari plays nothing without them. Frigate's cookies are not passed.
+  - **At the hub's remote address, else the local one** (`async_link_base`).
+    Connect's remote access for Home Assistant, behind its login, which Selora
+    OS writes to `<config>/.selora/remote_url.json` (`{"remote_url": ...}`,
+    atomically, removed when remote access is off). A file, not entry data:
+    writing the entry means editing `.storage` with Core stopped, a restart on
+    every hub. Read in the executor on each link build, no cache; a missing,
+    unreadable or invalid file falls back, and its content is never logged.
+    Without it, Home Assistant's own URL settings (internal allowed: a link
+    that opens at home beats none). Never the MCP client's address: on a hub
+    that is the MCP resource, which takes only Connect's token, so a browser
+    gets Pangolin's 401. Nor the external URL alone: on a hub it is often the
+    LAN address, and nobody types the proxy's hostname into it.

@@ -165,6 +165,7 @@ class ToolExecutor:
             "set_camera_objects": self._set_camera_objects,
             "move_frigate_camera": self._move_frigate_camera,
             "find_camera_events": self._find_camera_events,
+            "get_frigate_status": self._get_frigate_status,
             "get_automation_traces": self._get_automation_traces,
             "get_automation": self._get_automation,
             "get_scene": self._get_scene,
@@ -692,6 +693,11 @@ class ToolExecutor:
         from .frigate.events import async_find_events
 
         return await async_find_events(self._hass, arguments)
+
+    async def _get_frigate_status(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .frigate.status import async_frigate_status
+
+        return await async_frigate_status(self._hass, arguments)
 
     async def _remove_from_home(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .removal_cards import async_preview_removal
