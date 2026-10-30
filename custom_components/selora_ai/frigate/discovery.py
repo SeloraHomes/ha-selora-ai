@@ -10,7 +10,7 @@ Three sources, merged by address:
 The probe takes a few seconds, so its answer is cached and refreshed on a
 timer: the chat home reads the cache and never waits on a scan. Cameras that
 ignore the multicast probe are found by asking each local address directly,
-at most once a day on the timer or on demand in developer mode.
+at most once a day on the timer or on demand from the browser console.
 """
 
 from __future__ import annotations

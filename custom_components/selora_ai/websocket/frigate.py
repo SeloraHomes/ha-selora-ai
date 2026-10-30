@@ -68,7 +68,7 @@ async def _handle_websocket_frigate_scan(
 ) -> None:
     """Scan the network for cameras now instead of on the next timer.
 
-    For developer mode: the scan otherwise runs a minute after start and then
+    For the console's ``selora.scanCameras()``: the scan otherwise runs a minute after start and then
     every half hour, which is a long wait while testing. ``sweep`` also asks
     every local address directly, which the timer does once a day.
     """

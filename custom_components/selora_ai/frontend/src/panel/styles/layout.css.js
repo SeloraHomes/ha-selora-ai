@@ -176,7 +176,7 @@ export const layoutStyles = css`
     border-radius: 14px;
   }
   /* A section header row: the .page-section-title on the left, action buttons
-     on the right (e.g. Suggested for you → Scan Now / Generate). */
+     on the right. */
   .page-section-header {
     display: flex;
     align-items: center;
@@ -216,7 +216,7 @@ export const layoutStyles = css`
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
-    /* Allow narrow viewports (dev mode, side panel) to stack the
+    /* Allow narrow viewports (side panel, phones) to stack the
        title row above the action buttons instead of squeezing the
        heading into a wrapped two-line block. */
     flex-wrap: wrap;

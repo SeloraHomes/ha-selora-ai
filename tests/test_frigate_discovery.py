@@ -120,7 +120,7 @@ def test_a_factory_name_gives_way_to_the_hardware_model() -> None:
 
 
 async def test_scanning_now_drops_the_chat_homes_cached_list(hass: HomeAssistant) -> None:
-    """The developer-mode scan must show its answer, not a list built before it."""
+    """The on-demand scan must show its answer, not a list built before it."""
     import inspect
 
     from custom_components.selora_ai.const import DOMAIN

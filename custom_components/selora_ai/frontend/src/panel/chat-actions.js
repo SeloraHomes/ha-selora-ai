@@ -5,6 +5,7 @@ import {
   pruneStaleSelections,
 } from "./chat-autocomplete.js";
 import { attachmentsForSend } from "./chat-attachments.js";
+import { logChatTurn } from "./dev-tools.js";
 import { requestNextPrompt } from "./next-prompt.js";
 import { answerCamera } from "./describe-actions.js";
 
@@ -525,17 +526,7 @@ export async function _sendMessage(options = {}) {
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
-        if (this._config?.developer_mode) {
-          const markerCount = (
-            responseText.match(/\[\[entit(?:y|ies):[^\]]+\]\]/g) || []
-          ).length;
-          console.groupCollapsed(
-            `Selora chat done · ${markerCount} entity marker(s)`,
-          );
-          console.log("raw response:\n" + responseText);
-          console.log("event:", event);
-          console.groupEnd();
-        }
+        logChatTurn(responseText, event, Date.now() - sendStartedAt);
         // Truncation detection: bubble landed clean ("done" event)
         // but the response looks like the LLM was about to continue
         // ("…in your setup:", "**Lights:**\n-"). The model emitting
@@ -632,7 +623,6 @@ export async function _sendMessage(options = {}) {
         // Canonical timeline from the server (covers any step the live
         // stream dropped); fall back to what streamed in if absent.
         assistantMsg.steps = event.steps || assistantMsg.steps || null;
-        assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         // Only release the composer if this is still the active turn.
